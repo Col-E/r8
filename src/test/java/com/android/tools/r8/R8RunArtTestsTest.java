@@ -77,9 +77,9 @@ public abstract class R8RunArtTestsTest {
     R8_AFTER_D8 // refers to the R8 (default: debug) step but implies a previous D8 step as well
   }
 
-  private static final String ART_TESTS_DIR = "tests/2017-07-07/art";
+  private static final String ART_TESTS_DIR = "tests/2017-07-27/art";
   private static final String ART_LEGACY_TESTS_DIR = "tests/2016-12-19/art/";
-  private static final String ART_TESTS_NATIVE_LIBRARY_DIR = "tests/2017-07-07/art/lib64";
+  private static final String ART_TESTS_NATIVE_LIBRARY_DIR = "tests/2017-07-27/art/lib64";
   private static final String ART_LEGACY_TESTS_NATIVE_LIBRARY_DIR = "tests/2016-12-19/art/lib64";
 
   // Input jar for jctf tests.
@@ -99,16 +99,20 @@ public abstract class R8RunArtTestsTest {
       new ImmutableMap.Builder<String, Integer>()
           // Android O
           .put("952-invoke-custom", Constants.ANDROID_O_API)
+          .put("952-invoke-custom-kinds", Constants.ANDROID_O_API)
           .put("953-invoke-polymorphic-compiler", Constants.ANDROID_O_API)
           .put("957-methodhandle-transforms", Constants.ANDROID_O_API)
           .put("958-methodhandle-stackframe", Constants.ANDROID_O_API)
           .put("959-invoke-polymorphic-accessors", Constants.ANDROID_O_API)
+          .put("990-method-handle-and-mr", Constants.ANDROID_O_API)
           // Test intentionally asserts presence of bridge default methods desugar removes.
           .put("044-proxy", Constants.ANDROID_N_API)
           // Test intentionally asserts absence of default interface method in a class.
           .put("048-reflect-v8", Constants.ANDROID_N_API)
           // Uses default interface methods.
+          .put("162-method-resolution", Constants.ANDROID_N_API)
           .put("616-cha-interface-default", Constants.ANDROID_N_API)
+          .put("1910-transform-with-default", Constants.ANDROID_N_API)
           // Interface initializer is not triggered after desugaring.
           .put("962-iface-static", Constants.ANDROID_N_API)
           // Interface initializer is not triggered after desugaring.
@@ -226,6 +230,7 @@ public abstract class R8RunArtTestsTest {
       "497-inlining-and-class-loader",
       "626-const-class-linking",
       "642-fp-callees",
+      "660-clinit",
       "909-attach-agent",
       "914-hello-obsolescence",
       "915-obsolete-2",
@@ -265,7 +270,16 @@ public abstract class R8RunArtTestsTest {
       "949-in-memory-transform",
       "950-redefine-intrinsic",
       "951-threaded-obsolete",
-      "980-redefine-object"
+      "980-redefine-object",
+      "1900-track-alloc",
+      "1901-get-bytecodes",
+      "1902-suspend",
+      "1903-suspend-self",
+      "1904-double-suspend",
+      "1906-suspend-list-me-first",
+      "1907-suspend-list-self-twice",
+      "1909-per-agent-tls",
+      "1910-transform-with-default"
   );
 
   // Tests with custom run.
@@ -667,7 +681,8 @@ public abstract class R8RunArtTestsTest {
           .put("600-verifier-fails", TestCondition.match(TestCondition.R8_COMPILER))
           // Contains a method that falls off the end without a return.
           .put("606-erroneous-class", TestCondition
-              .match(TestCondition.tools(DexTool.DX, DexTool.JACK), TestCondition.R8_COMPILER))
+              .match(TestCondition.tools(DexTool.DX, DexTool.JACK),
+                  TestCondition.R8_NOT_AFTER_D8_COMPILER))
           .put("064-field-access", TestCondition
               .match(TestCondition.tools(DexTool.NONE), TestCondition.D8_COMPILER))
           .build();
@@ -675,6 +690,11 @@ public abstract class R8RunArtTestsTest {
   // Tests that are invalid dex files and on which R8/D8 fails and that is OK.
   private static final Multimap<String, TestCondition> expectedToFailWithCompiler =
       new ImmutableListMultimap.Builder<String, TestCondition>()
+          // When starting from the Dex frontend we see two definitions of the same class coming
+          // from two differents dex files.
+          .put("064-field-access",
+              TestCondition.match(TestCondition.tools(DexTool.DX, DexTool.JACK),
+                  TestCondition.runtimes(DexVm.ART_DEFAULT)))
           // When starting from the Jar frontend we see the A$B class both from the Java source
           // code and from the smali dex code. We reject that because there are then two definitions
           // of the same class in the application. When running from the final dex files there is
@@ -682,8 +702,18 @@ public abstract class R8RunArtTestsTest {
           .put("121-modifiers", TestCondition.match(TestCondition.tools(DexTool.NONE)))
           // This test uses register r1 in method that is declared to only use 1 register (r0).
           .put("142-classloader2", TestCondition.match(TestCondition.R8_COMPILER))
+          // When starting from the Dex frontend we see two definitions of the same class coming
+          // from two differents dex files.
+          .put("162-method-resolution",
+              TestCondition.match(TestCondition.tools(DexTool.DX, DexTool.JACK)))
           // This test uses an uninitialized register.
           .put("471-uninitialized-locals", TestCondition.match(TestCondition.R8_COMPILER))
+          // When starting from the Dex frontend we see two definitions of the same class coming
+          // from two differents dex files.
+          .put("606-erroneous-class",
+              TestCondition
+                  .match(TestCondition.tools(DexTool.DX, DexTool.JACK), TestCondition.D8_COMPILER,
+                      TestCondition.runtimes(DexVm.ART_DEFAULT)))
           // This test is starting from invalid dex code. It splits up a double value and uses
           // the first register of a double with the second register of another double.
           .put("800-smali", TestCondition.match(TestCondition.R8_COMPILER))
@@ -701,7 +731,7 @@ public abstract class R8RunArtTestsTest {
   private static List<String> noInputJar = ImmutableList.of(
       "064-field-access", // Missing classes2 dir (has src2)
       "097-duplicate-method", // No input class files.
-      "606-erroneous-class", // Based on multiple smali files.
+      "162-method-resolution", // Based on multiple jasmin files
       "630-safecast-array", // No input class files.
       "801-VoidCheckCast", // No input class files.
       "804-class-extends-itself", // No input class files.
@@ -746,6 +776,9 @@ public abstract class R8RunArtTestsTest {
           .build();
 
   public static List<String> requireInliningToBeDisabled = ImmutableList.of(
+      // Test require that a call is not inlined to trigger an OOM.
+      "163-app-image-methods",
+
       // Test for a specific stack trace that gets destroyed by inlining.
       "492-checker-inline-invoke-interface",
       "493-checker-inline-invoke-interface",
@@ -805,7 +838,11 @@ public abstract class R8RunArtTestsTest {
 
       // These two fail with missing *-hostdex.jar files.
       "648-inline-caches-unresolved",
-      "998-redefine-use-after-free"
+      "998-redefine-use-after-free",
+
+      // (b/63608437) This test uses method handle kind unsupported by R8 and trigger a R8 bug
+      // that shared call site entries when it should not.
+      "952-invoke-custom-kinds"
   );
 
   private static class TestSpecification {

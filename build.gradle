@@ -167,7 +167,7 @@ def osString = OperatingSystem.current().isLinux() ? "linux" :
 
 def cloudDependencies = [
         "tests"      : [
-                "2017-07-07/art.tar.gz",
+                "2017-07-27/art.tar.gz",
                 "2016-12-19/art.tar.gz"
         ],
         "third_party": [
@@ -452,7 +452,7 @@ artifacts {
 task createArtTests(type: Exec) {
     def outputDir = "build/generated/test/java/com/android/tools/r8/art"
     def createArtTestsScript = "tools/create_art_tests.py"
-    inputs.file "tests/2017-07-07/art.tar.gz"
+    inputs.file "tests/2017-07-27/art.tar.gz"
     inputs.file createArtTestsScript
     outputs.dir outputDir
     dependsOn downloadDeps
