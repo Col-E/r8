@@ -28,6 +28,7 @@ public class LiveIntervals {
   private int register = NO_REGISTER;
   private LiveIntervals hint;
   private boolean spilled = false;
+  private boolean usedInMonitorOperations = false;
 
   // Only registers up to and including the registerLimit are allowed for this interval.
   private int registerLimit = U16BIT_MAX;
@@ -39,6 +40,7 @@ public class LiveIntervals {
 
   LiveIntervals(Value value) {
     this.value = value;
+    usedInMonitorOperations = value.usedInMonitorOperation();
     splitParent = this;
     value.setLiveIntervals(this);
   }
@@ -46,6 +48,7 @@ public class LiveIntervals {
   LiveIntervals(LiveIntervals splitParent) {
     this.splitParent = splitParent;
     value = splitParent.value;
+    usedInMonitorOperations = splitParent.usedInMonitorOperations;
   }
 
   private int toInstructionPosition(int position) {
@@ -434,6 +437,10 @@ public class LiveIntervals {
 
   public boolean isConstantNumberInterval() {
     return value.definition != null && value.isConstNumber();
+  }
+
+  public boolean usedInMonitorOperation() {
+    return usedInMonitorOperations;
   }
 
   public int numberOfUsesWithConstraint() {

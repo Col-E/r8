@@ -231,6 +231,15 @@ public class Value {
         || ((debugData != null) && !debugData.debugUsers.isEmpty());
   }
 
+  public boolean usedInMonitorOperation() {
+    for (Instruction instruction : uniqueUsers()) {
+      if (instruction.isMonitor()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   public void addUser(Instruction user) {
     users.add(user);
     uniqueUsers = null;

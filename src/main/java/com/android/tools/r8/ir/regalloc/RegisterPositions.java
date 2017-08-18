@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.regalloc;
 
+import com.android.tools.r8.errors.Unreachable;
 import java.util.Arrays;
 import java.util.BitSet;
 
@@ -14,10 +15,14 @@ import java.util.BitSet;
  */
 
 public class RegisterPositions {
+
+  enum Type { MONITOR, CONST_NUMBER, OTHER, ANY }
+
   private static final int INITIAL_SIZE = 16;
   private int limit;
   private int[] backing;
   private BitSet registerHoldsConstant;
+  private BitSet registerHoldsMonitor;
 
   public RegisterPositions(int limit) {
     this.limit = limit;
@@ -26,18 +31,41 @@ public class RegisterPositions {
       backing[i] = Integer.MAX_VALUE;
     }
     registerHoldsConstant = new BitSet(limit);
+    registerHoldsMonitor = new BitSet(limit);
   }
 
-  public boolean holdsConstant(int index) {
+  public boolean hasType(int index, Type type) {
+    switch (type) {
+      case MONITOR:
+        return holdsMonitor(index);
+      case CONST_NUMBER:
+        return holdsConstant(index);
+      case OTHER:
+        return !holdsMonitor(index) && !holdsConstant(index);
+      case ANY:
+        return true;
+      default:
+        throw new Unreachable("Unexpected register position type: " + type);
+    }
+  }
+
+  private boolean holdsConstant(int index) {
     return registerHoldsConstant.get(index);
   }
 
-  public void set(int index, int value, boolean holdsConstant) {
+  private boolean holdsMonitor(int index) { return registerHoldsMonitor.get(index); }
+
+  public void set(int index, int value) {
     if (index >= backing.length) {
       grow(index + 1);
     }
     backing[index] = value;
-    registerHoldsConstant.set(index, holdsConstant);
+  }
+
+  public void set(int index, int value, LiveIntervals intervals) {
+    set(index, value);
+    registerHoldsConstant.set(index, intervals.isConstantNumberInterval());
+    registerHoldsMonitor.set(index, intervals.usedInMonitorOperation());
   }
 
   public int get(int index) {
