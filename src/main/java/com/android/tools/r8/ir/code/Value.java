@@ -71,7 +71,7 @@ public class Value {
   private boolean isThis = false;
   private boolean isArgument = false;
   private LongInterval valueRange;
-  private DebugData debugData;
+  private final DebugData debugData;
 
   public Value(int number, MoveType type, DebugInfo debugInfo) {
     this.number = number;
@@ -93,12 +93,6 @@ public class Value {
 
   public int requiredRegisters() {
     return type.requiredRegisters();
-  }
-
-  public void setDebugInfo(DebugInfo info) {
-    assert info != null;
-    assert debugData == null;
-    debugData = new DebugData(info);
   }
 
   public DebugInfo getDebugInfo() {
