@@ -428,6 +428,10 @@ public class IRConverter {
     printC1VisualizerHeader(method);
     printMethod(code, "Initial IR (SSA)");
 
+    if (options.debug) {
+      codeRewriter.simplifyDebugLocals(code);
+    }
+
     if (!method.isProcessed()) {
       if (protoLiteRewriter != null && protoLiteRewriter.appliesTo(method)) {
         protoLiteRewriter.rewriteProtoLiteSpecialMethod(code, method);
