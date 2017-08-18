@@ -37,6 +37,7 @@ import com.android.tools.r8.ir.code.Cmp.Bias;
 import com.android.tools.r8.ir.code.ConstInstruction;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.ConstString;
+import com.android.tools.r8.ir.code.DebugLocalWrite;
 import com.android.tools.r8.ir.code.DominatorTree;
 import com.android.tools.r8.ir.code.Goto;
 import com.android.tools.r8.ir.code.IRCode;
@@ -1144,6 +1145,37 @@ public class CodeRewriter {
         } while (block != null);
       }
     }
+  }
+
+  public void simplifyDebugLocals(IRCode code) {
+    for (BasicBlock block : code.blocks) {
+      for (Phi phi : block.getPhis()) {
+        if (phi.getDebugInfo() == null && phi.numberOfUsers() == 1 && phi.numberOfAllUsers() == 1) {
+          Instruction instruction = phi.uniqueUsers().iterator().next();
+          if (instruction.isDebugLocalWrite()) {
+            removeDebugWriteOfPhi(phi, instruction.asDebugLocalWrite());
+          }
+        }
+      }
+    }
+  }
+
+  private void removeDebugWriteOfPhi(Phi phi, DebugLocalWrite write) {
+    assert write.src() == phi;
+    Value previousLocalValue = write.getPreviousLocalValue();
+    if (previousLocalValue != null) {
+      if (phi.getOperands().contains(previousLocalValue)) {
+        // The phi is explicitly redefining the local already.
+        previousLocalValue.removeDebugUser(write);
+      } else {
+        // If the phi would redefine a local the debug-write instruction must remain.
+        return;
+      }
+    }
+    phi.setDebugInfo(write.getDebugInfo());
+    phi.removeUser(write);
+    write.outValue().replaceUsers(phi);
+    write.getBlock().removeInstruction(write);
   }
 
   private static class ExpressionEquivalence extends Equivalence<Instruction> {
