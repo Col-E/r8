@@ -315,17 +315,25 @@ compileJctfTestsJava {
     options.compilerArgs = ['-Xlint:none']
 }
 
-task R8(type: Jar) {
+task R8(type: com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar) {
     from sourceSets.main.output
     baseName 'r8'
+    classifier = null
+    version = null
     manifest {
         attributes 'Main-Class': 'com.android.tools.r8.R8'
     }
     // In order to build without dependencies, pass the exclude_deps property using:
     // gradle -Pexclude_deps R8
     if (!project.hasProperty('exclude_deps')) {
+        // Relocating dependencies to avoid conflicts.
+        relocate 'com.google', 'com.android.tools.r8.com.google'
+        relocate 'joptsimple', 'com.android.tools.r8.joptsimple'
+        relocate 'org', 'com.android.tools.r8.org'
+        relocate 'it.unimi.dsi.fastutil', 'com.android.tools.r8.it.unimi.dsi.fastutil'
+        relocate 'junit', 'com.android.tools.r8.junit'
         // Also include dependencies
-        from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+        configurations = [project.configurations.compile]
     }
 }
 
