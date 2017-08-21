@@ -9,8 +9,6 @@ import subprocess
 import sys
 import utils
 
-COMPATDX_JAR = os.path.join(utils.REPO_ROOT, 'build', 'libs', 'compatdx.jar')
-
 def run(args, build = True, debug = True, profile = False, track_memory_file=None):
   if build:
     gradle.RunGradle(['CompatDX'])
@@ -22,7 +20,7 @@ def run(args, build = True, debug = True, profile = False, track_memory_file=Non
     cmd.append('-ea')
   if profile:
     cmd.append('-agentlib:hprof=cpu=samples,interval=1,depth=8')
-  cmd.extend(['-jar', COMPATDX_JAR])
+  cmd.extend(['-jar', utils.COMPATDX_JAR])
   cmd.extend(args)
   subprocess.check_call(cmd)
 

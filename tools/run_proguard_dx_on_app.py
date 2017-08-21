@@ -26,7 +26,6 @@ import youtube_data
 
 APPS = ['gmscore', 'youtube']
 DX_JAR = join(utils.REPO_ROOT, 'tools', 'linux', 'dx', 'framework', 'dx.jar')
-COMPATDX_JAR = join(utils.REPO_ROOT, 'build', 'libs', 'compatdx.jar')
 
 def parse_arguments(argv):
   parser = argparse.ArgumentParser(
@@ -122,7 +121,7 @@ def Main(argv):
 
   # run dex on the result
   if options.compatdx:
-    jar = COMPATDX_JAR
+    jar = utils.COMPATDX_JAR
   else:
     jar = DX_JAR
 

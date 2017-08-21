@@ -40,7 +40,6 @@ AOSP_MANIFEST_XML = join(utils.REPO_ROOT, 'third_party',
 AOSP_HELPER_SH = join(utils.REPO_ROOT, 'scripts', 'aosp_helper.sh')
 
 D8_JAR = join(utils.REPO_ROOT, 'build/libs/d8.jar')
-COMPATDX_JAR = join(utils.REPO_ROOT, 'build/libs/compatdx.jar')
 D8LOGGER_JAR = join(utils.REPO_ROOT, 'build/libs/d8logger.jar')
 
 AOSP_ROOT = join(utils.REPO_ROOT, 'build/aosp')
@@ -175,7 +174,7 @@ def Main():
       alt_jar_option += D8LOGGER_JAR
       os.environ['D8LOGGER_OUTPUT'] = args.d8log
     else:
-      alt_jar_option += COMPATDX_JAR
+      alt_jar_option += utils.COMPATDX_JAR
 
   gradle.RunGradle(['d8','d8logger', 'compatdx'])
 

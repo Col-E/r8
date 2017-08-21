@@ -18,6 +18,7 @@ MEMORY_USE_TMP_FILE = 'memory_use.tmp'
 DEX_SEGMENTS_JAR = os.path.join(REPO_ROOT, 'build', 'libs',
     'dexsegments.jar')
 DEX_SEGMENTS_RESULT_PATTERN = re.compile('- ([^:]+): ([0-9]+)')
+COMPATDX_JAR = os.path.join(REPO_ROOT, 'build', 'libs', 'compatdx.jar')
 
 def PrintCmd(s):
   if type(s) is list:
@@ -185,3 +186,34 @@ def check_java_version():
   if m is None:
     raise Exception("Incorrect java version, expected: '1.8.*-internal',"
         " actual: {}".format(version))
+
+def verify_with_dex2oat(dex_file):
+
+  # dex2oat accepts non-existent dex files, check here instead
+  if not os.path.exists(dex_file):
+    raise Exception('Dex file not found: "{}"'.format(dex_file))
+
+  android_root_dir = os.path.join(TOOLS_DIR, 'linux', 'art', 'product',
+    'angler')
+  boot_art = os.path.join(android_root_dir, 'system', 'framework', 'boot.art')
+  dex2oat = os.path.join(TOOLS_DIR, 'linux', 'art', 'bin', 'dex2oat')
+
+  with TempDir() as temp:
+    oat_file = os.path.join(temp, 'all.oat')
+
+    cmd = [
+        dex2oat,
+        '--android-root=' + android_root_dir,
+        '--runtime-arg', '-Xnorelocate',
+        '--boot-image=' + boot_art,
+        '--dex-file=' + dex_file,
+        '--oat-file=' + oat_file,
+        '--instruction-set=arm64',
+        '--compiler-filter=interpret-only'
+    ]
+
+    PrintCmd(cmd)
+    subprocess.check_call(cmd,
+      env = {"LD_LIBRARY_PATH":
+        os.path.join(TOOLS_DIR, 'linux', 'art', 'lib')}
+    )
