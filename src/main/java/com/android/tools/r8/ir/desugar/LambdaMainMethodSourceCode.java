@@ -134,6 +134,11 @@ final class LambdaMainMethodSourceCode extends SynthesizedLambdaSourceCode {
     }
 
     if (b.isPrimitiveType()) {
+      if (a == factory.objectType) {
+        // `a` is java.lang.Object in which case we assume it represented by
+        // proper boxed type.
+        return true;
+      }
       // `a` is a boxed type for `a*` which can be
       // widened to primitive type `b`.
       DexType unboxedA = getPrimitiveFromBoxed(a);
@@ -313,9 +318,16 @@ final class LambdaMainMethodSourceCode extends SynthesizedLambdaSourceCode {
     // type, the value must be unboxed and converted to the resulting type via primitive
     // widening conversion.
     if (toTypePrimitive) {
-      DexType fromTypeAsPrimitive = getPrimitiveFromBoxed(fromType);
+      DexType boxedType = fromType;
+      if (boxedType == factory().objectType) {
+        // We are in situation when from(=java.lang.Object) is being adjusted to a
+        // primitive type, in which case we assume it is of proper box type.
+        boxedType = getBoxedForPrimitiveType(toType);
+        register = castToBoxedType(register, boxedType);
+      }
+      DexType fromTypeAsPrimitive = getPrimitiveFromBoxed(boxedType);
       if (fromTypeAsPrimitive != null) {
-        int unboxedRegister = addPrimitiveUnboxing(register, fromTypeAsPrimitive, fromType);
+        int unboxedRegister = addPrimitiveUnboxing(register, fromTypeAsPrimitive, boxedType);
         return addPrimitiveWideningConversion(unboxedRegister, fromTypeAsPrimitive, toType);
       }
     }
@@ -459,6 +471,11 @@ final class LambdaMainMethodSourceCode extends SynthesizedLambdaSourceCode {
     int result = nextRegister(moveType);
     add(builder -> builder.addMoveResult(moveType, result));
     return result;
+  }
+
+  private int castToBoxedType(int register, DexType boxType) {
+    add(builder -> builder.addCheckCast(register, boxType));
+    return register;
   }
 
   private int addPrimitiveBoxing(int register, DexType primitiveType, DexType boxType) {

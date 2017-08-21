@@ -13,6 +13,10 @@ public class ValueAdjustments {
         int i, Integer I, long l, Long L, float f, Float F, double d, Double D);
   }
 
+  interface it<T> {
+    T t();
+  }
+
   interface iz {
     boolean f();
   }
@@ -135,6 +139,11 @@ public class ValueAdjustments {
 
   private static void checkDouble(StringBuffer builder) {
     builder
+        .append(((id) new it<Double>() {
+          @Override public Double t() {
+            return (double) (Integer.MAX_VALUE) + 1;
+          }
+        }::t).f()).append(' ')
         .append(((id) ValueAdjustments::b).f()).append(' ')
         .append(((id) ValueAdjustments::B).f()).append(' ')
         .append(((id) ValueAdjustments::s).f()).append(' ')
@@ -153,6 +162,11 @@ public class ValueAdjustments {
 
   private static void checkFloat(StringBuffer builder) {
     builder
+        .append(((if_) new it<Float>() {
+          @Override public Float t() {
+            return (float) (Short.MAX_VALUE) + 1;
+          }
+        }::t).f()).append(' ')
         .append(((if_) ValueAdjustments::b).f()).append(' ')
         .append(((if_) ValueAdjustments::B).f()).append(' ')
         .append(((if_) ValueAdjustments::s).f()).append(' ')
@@ -169,6 +183,11 @@ public class ValueAdjustments {
 
   private static void checkLong(StringBuffer builder) {
     builder
+        .append(((ij) new it<Long>() {
+          @Override public Long t() {
+            return (long) (Integer.MAX_VALUE) + 1;
+          }
+        }::t).f()).append(' ')
         .append(((ij) ValueAdjustments::b).f()).append(' ')
         .append(((ij) ValueAdjustments::B).f()).append(' ')
         .append(((ij) ValueAdjustments::s).f()).append(' ')
@@ -183,6 +202,11 @@ public class ValueAdjustments {
 
   private static void checkInt(StringBuffer builder) {
     builder
+        .append(((ii) new it<Integer>() {
+          @Override public Integer t() {
+            return Short.MAX_VALUE + 1;
+          }
+        }::t).f()).append(' ')
         .append(((ii) ValueAdjustments::b).f()).append(' ')
         .append(((ii) ValueAdjustments::B).f()).append(' ')
         .append(((ii) ValueAdjustments::s).f()).append(' ')
@@ -195,6 +219,11 @@ public class ValueAdjustments {
 
   private static void checkShort(StringBuffer builder) {
     builder
+        .append(((is) new it<Short>() {
+          @Override public Short t() {
+            return 256;
+          }
+        }::t).f()).append(' ')
         .append(((is) ValueAdjustments::b).f()).append(' ')
         .append(((is) ValueAdjustments::B).f()).append(' ')
         .append(((is) ValueAdjustments::s).f()).append(' ')
@@ -203,18 +232,33 @@ public class ValueAdjustments {
 
   private static void checkChar(StringBuffer builder) {
     builder
+        .append(((ic) new it<Character>() {
+          @Override public Character t() {
+            return 'C';
+          }
+        }::t).f()).append(' ')
         .append(((ic) ValueAdjustments::c).f()).append(' ')
         .append(((ic) ValueAdjustments::C).f()).append('\n');
   }
 
   private static void checkByte(StringBuffer builder) {
     builder
+        .append(((ib) new it<Byte>() {
+          @Override public Byte t() {
+            return 11;
+          }
+        }::t).f()).append(' ')
         .append(((ib) ValueAdjustments::b).f()).append(' ')
         .append(((ib) ValueAdjustments::B).f()).append('\n');
   }
 
   private static void checkBoolean(StringBuffer builder) {
     builder
+        .append(((iz) new it<Boolean>() {
+          @Override public Boolean t() {
+            return true;
+          }
+        }::t).f()).append(' ')
         .append(((iz) ValueAdjustments::z).f()).append(' ')
         .append(((iz) ValueAdjustments::Z).f()).append('\n');
   }
