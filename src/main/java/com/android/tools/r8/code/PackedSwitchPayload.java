@@ -83,9 +83,24 @@ public class PackedSwitchPayload extends SwitchPayload {
   }
 
   public String toString(ClassNameMapper naming) {
-    StringBuilder builder = new StringBuilder("[PackedSwitchPayload]\n");
+    return toString(naming, null);
+  }
+
+  public String toString(ClassNameMapper naming, Instruction payloadUser) {
+    StringBuilder builder = new StringBuilder("[PackedSwitchPayload");
+    if (payloadUser == null) {
+      builder.append(" offsets relative to associated PackedSwitch");
+    }
+    builder.append("]\n");
     for (int i = 0; i < size; i++) {
-      StringUtils.appendLeftPadded(builder, (first_key + i) + " -> " + targets[i] + "\n", 20);
+      String offsetString;
+      if (payloadUser != null) {
+        // Don't show the decimal offset, as these are relative to the associated switch.
+        offsetString = formatOffset(targets[i] + payloadUser.getOffset());
+      } else {
+        offsetString = formatDecimalOffset(targets[i]);
+      }
+      StringUtils.appendLeftPadded(builder, (first_key + i) + " -> " + offsetString + "\n", 20);
     }
     return super.toString(naming) + builder.toString();
   }

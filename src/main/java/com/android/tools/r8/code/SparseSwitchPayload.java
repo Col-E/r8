@@ -89,9 +89,24 @@ public class SparseSwitchPayload extends SwitchPayload {
   }
 
   public String toString(ClassNameMapper naming) {
-    StringBuilder builder = new StringBuilder("[SparseSwitchPayload]\n");
+    return toString(naming, null);
+  }
+
+  public String toString(ClassNameMapper naming, Instruction payloadUser) {
+    StringBuilder builder = new StringBuilder("[SparseSwitchPayload");
+    if (payloadUser == null) {
+      builder.append(" offsets relative to associated SparseSwitch");
+    }
+    builder.append("]\n");
     for (int i = 0; i < size; i++) {
-      StringUtils.appendLeftPadded(builder, keys[i] + " -> " + targets[i] + "\n", 20);
+      String offsetString;
+      if (payloadUser != null) {
+        // Don't show the decimal offset, as these are relative to the associated switch.
+        offsetString = StringUtils.hexString(targets[i] + payloadUser.getOffset(), 2);
+      } else {
+        offsetString = targets[i] >= 0 ? ("+" + targets[i]) : Integer.toString(targets[i]);
+      }
+      StringUtils.appendLeftPadded(builder, keys[i] + " -> " + offsetString + "\n", 20);
     }
     return super.toString(naming) + builder.toString();
   }

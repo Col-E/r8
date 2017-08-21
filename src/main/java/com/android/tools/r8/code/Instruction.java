@@ -146,9 +146,12 @@ public abstract class Instruction {
     return StringUtils.hexString(offset, 2);
   }
 
+  static String formatDecimalOffset(int offset) {
+    return offset >= 0 ? ("+" + offset) : Integer.toString(offset);
+  }
+
   String formatRelativeOffset(int offset) {
-    String relativeString = offset >= 0 ? ("+" + offset) : Integer.toString(offset);
-    return formatOffset(getOffset() + offset) + " (" + relativeString + ")";
+    return formatOffset(getOffset() + offset) + " (" + formatDecimalOffset(offset) + ")";
   }
 
   String formatString(String left) {
@@ -219,6 +222,10 @@ public abstract class Instruction {
   }
 
   public abstract String toString(ClassNameMapper naming);
+
+  public String toString(ClassNameMapper naming, Instruction payloadUser) {
+    throw new InternalCompilerError("Instruction " + payloadUser + " is not a payload user");
+  }
 
   public String toString() {
     return toString(null);
