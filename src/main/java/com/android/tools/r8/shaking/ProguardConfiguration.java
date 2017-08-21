@@ -32,6 +32,7 @@ public class ProguardConfiguration {
     private Path printUsageFile;
     private boolean printMapping;
     private Path printMappingFile;
+    private Path applyMappingFile = null;
     private boolean verbose = false;
     private final List<String> attributesRemovalPatterns = new ArrayList<>();
     private final Set<ProguardTypeMatcher> dontWarnPatterns = new HashSet<>();
@@ -110,6 +111,10 @@ public class ProguardConfiguration {
       this.printMappingFile = file;
     }
 
+    public void setApplyMappingFile(Path file) {
+      this.applyMappingFile = file;
+    }
+
     public void setVerbose(boolean verbose) {
       this.verbose = verbose;
     }
@@ -162,6 +167,7 @@ public class ProguardConfiguration {
           printUsageFile,
           printMapping,
           printMappingFile,
+          applyMappingFile,
           verbose,
           attributesRemovalPatterns,
           dontWarnPatterns,
@@ -188,6 +194,7 @@ public class ProguardConfiguration {
   private final Path printUsageFile;
   private final boolean printMapping;
   private final Path printMappingFile;
+  private final Path applyMappingFile;
   private final boolean verbose;
   private final ImmutableList<String> attributesRemovalPatterns;
   private final ImmutableSet<ProguardTypeMatcher> dontWarnPatterns;
@@ -213,6 +220,7 @@ public class ProguardConfiguration {
       Path printUsageFile,
       boolean printMapping,
       Path printMappingFile,
+      Path applyMappingFile,
       boolean verbose,
       List<String> attributesRemovalPatterns,
       Set<ProguardTypeMatcher> dontWarnPatterns,
@@ -236,6 +244,7 @@ public class ProguardConfiguration {
     this.printUsageFile = printUsageFile;
     this.printMapping = printMapping;
     this.printMappingFile = printMappingFile;
+    this.applyMappingFile = applyMappingFile;
     this.verbose = verbose;
     this.attributesRemovalPatterns = ImmutableList.copyOf(attributesRemovalPatterns);
     this.dontWarnPatterns = ImmutableSet.copyOf(dontWarnPatterns);
@@ -288,6 +297,14 @@ public class ProguardConfiguration {
 
   public Path getPrintMappingFile() {
     return printMappingFile;
+  }
+
+  public boolean hasApplyMappingFile() {
+    return applyMappingFile != null;
+  }
+
+  public Path getApplyMappingFile() {
+    return applyMappingFile;
   }
 
   public boolean isIgnoreWarnings() {
@@ -362,7 +379,8 @@ public class ProguardConfiguration {
           false                 /* printUsage */,
           null                  /* printUsageFile */,
           false                 /* printMapping */,
-          null                  /* outputMapping */,
+          null                  /* printMappingFile */,
+          null                  /* applyMapping */,
           false                 /* verbose */,
           ImmutableList.of()    /* attributesRemovalPatterns */,
           ImmutableSet.of()     /* dontWarnPatterns */,

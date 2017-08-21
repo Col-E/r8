@@ -220,6 +220,10 @@ public class ProguardConfigurationParser {
         if (isOptionalArgumentGiven()) {
           configurationBuilder.setPrintMappingFile(parseFileName());
         }
+      } else if (acceptString("applymapping")) {
+        configurationBuilder.setApplyMappingFile(parseFileName());
+        // TODO(b/64802420): warn until it is fully implemented.
+        warnIgnoringOptions("applymapping");
       } else if (acceptString("assumenosideeffects")) {
         ProguardAssumeNoSideEffectRule rule = parseAssumeNoSideEffectsRule();
         configurationBuilder.addRule(rule);

@@ -5,7 +5,6 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.shaking.ProguardConfiguration;
-import com.android.tools.r8.shaking.ProguardConfiguration.Builder;
 import com.android.tools.r8.shaking.ProguardConfigurationParser;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
@@ -193,6 +192,8 @@ public class R8Command extends BaseCommand {
         addProgramFiles(configuration.getInjars());
         addLibraryFiles(configuration.getLibraryjars());
       }
+
+      // TODO(b/64802420): setProguardMapFile if configuration.hasApplyMappingFile
 
       if (packageDistributionFile != null) {
         getAppBuilder().setPackageDistributionFile(packageDistributionFile);
