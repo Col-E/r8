@@ -5,6 +5,7 @@ package com.android.tools.r8.dex;
 
 import static com.android.tools.r8.utils.LebUtils.sizeAsUleb128;
 
+import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.AppInfo;
@@ -183,7 +184,7 @@ public class FileWriter {
     return this;
   }
 
-  public byte[] generate() {
+  public byte[] generate() throws ApiLevelException {
     // Check restrictions on interface methods.
     checkInterfaceMethods();
 
@@ -268,10 +269,15 @@ public class FileWriter {
     Arrays.sort(methods, (DexEncodedMethod a, DexEncodedMethod b) -> a.method.compareTo(b.method));
   }
 
-  private void checkInterfaceMethods() {
+  private void checkInterfaceMethods() throws ApiLevelException {
     for (DexProgramClass clazz : mapping.getClasses()) {
       if (clazz.isInterface()) {
-        clazz.forEachMethod(this::checkInterfaceMethod);
+        for (DexEncodedMethod method : clazz.directMethods()) {
+          checkInterfaceMethod(method);
+        }
+        for (DexEncodedMethod method : clazz.virtualMethods()) {
+          checkInterfaceMethod(method);
+        }
       }
     }
   }
@@ -282,15 +288,17 @@ public class FileWriter {
   //  -- starting with N interfaces may also have public or private
   //     static methods, as well as public non-abstract (default)
   //     and private instance methods.
-  private void checkInterfaceMethod(DexEncodedMethod method) {
+  private void checkInterfaceMethod(DexEncodedMethod method) throws ApiLevelException {
     if (application.dexItemFactory.isClassConstructor(method.method)) {
       return; // Class constructor is always OK.
     }
     if (method.accessFlags.isStatic()) {
       if (!options.canUseDefaultAndStaticInterfaceMethods()) {
-        throw new CompilationError("Static interface methods are only supported "
-            + "starting with Android N (--min-api " + Constants.ANDROID_N_API + "): "
-            + method.method.toSourceString());
+        throw new ApiLevelException(
+            Constants.ANDROID_N_API,
+            "Android N",
+            "Static interface methods",
+            method.method.toSourceString());
       }
 
     } else {
@@ -300,9 +308,11 @@ public class FileWriter {
       }
       if (!method.accessFlags.isAbstract() && !method.accessFlags.isPrivate() &&
           !options.canUseDefaultAndStaticInterfaceMethods()) {
-        throw new CompilationError("Default interface methods are only supported "
-            + "starting with Android N (--min-api " + Constants.ANDROID_N_API + "): "
-            + method.method.toSourceString());
+        throw new ApiLevelException(
+            Constants.ANDROID_N_API,
+            "Android N",
+            "Default interface methods",
+            method.method.toSourceString());
       }
     }
 
@@ -310,9 +320,11 @@ public class FileWriter {
       if (options.canUsePrivateInterfaceMethods()) {
         return;
       }
-      throw new CompilationError("Private interface methods are only supported "
-          + "starting with Android N (--min-api " + Constants.ANDROID_N_API + "): "
-          + method.method.toSourceString());
+      throw new ApiLevelException(
+          Constants.ANDROID_N_API,
+          "Android N",
+          "Private interface methods",
+          method.method.toSourceString());
     }
 
     if (!method.accessFlags.isPublic()) {
@@ -353,11 +365,19 @@ public class FileWriter {
   }
 
   private <T extends DexItem> void writeFixedSectionItems(T[] items, int offset,
-      Consumer<T> writer) {
+      ItemWriter<T> writer) throws ApiLevelException {
     assert dest.position() == offset;
     for (T item : items) {
       writer.accept(item);
     }
+  }
+
+  /**
+   * Similar to a {@link Consumer} but throws an {@link ApiLevelException}.
+   */
+  @FunctionalInterface
+  private interface ItemWriter<T> {
+    void accept(T t) throws ApiLevelException;
   }
 
   private <T extends DexItem> void writeItems(Collection<T> items, Consumer<Integer> offsetSetter,
@@ -660,7 +680,7 @@ public class FileWriter {
     }
   }
 
-  private void writeMethodHandle(DexMethodHandle methodHandle) {
+  private void writeMethodHandle(DexMethodHandle methodHandle) throws ApiLevelException {
     checkThatInvokeCustomIsAllowed();
     MethodHandleType methodHandleDexType;
     switch (methodHandle.type) {
@@ -689,7 +709,7 @@ public class FileWriter {
     dest.putShort((short) 0); // unused
   }
 
-  private void writeCallSite(DexCallSite callSite) {
+  private void writeCallSite(DexCallSite callSite) throws ApiLevelException {
     checkThatInvokeCustomIsAllowed();
     assert dest.isAligned(4);
     dest.putInt(mixedSectionOffsets.getOffsetFor(callSite.getEncodedArray()));
@@ -1339,10 +1359,13 @@ public class FileWriter {
     }
   }
 
-  private void checkThatInvokeCustomIsAllowed() {
+  private void checkThatInvokeCustomIsAllowed() throws ApiLevelException {
     if (!options.canUseInvokeCustom()) {
-      throw new CompilationError("Invoke-custom is unsupported before Android O (--min-api "
-          + Constants.ANDROID_O_API + ")");
+      throw new ApiLevelException(
+          Constants.ANDROID_O_API,
+          "Android O",
+          "Invoke-customs",
+          null /* sourceString */);
     }
   }
 }

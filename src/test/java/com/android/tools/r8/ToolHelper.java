@@ -473,18 +473,18 @@ public class ToolHelper {
   }
 
   public static AndroidApp runR8(R8Command command)
-      throws ProguardRuleParserException, ExecutionException, IOException {
+      throws ProguardRuleParserException, ExecutionException, IOException, CompilationException {
     return runR8(command, null);
   }
 
   public static AndroidApp runR8(R8Command command, Consumer<InternalOptions> optionsConsumer)
-      throws ProguardRuleParserException, ExecutionException, IOException {
+      throws ProguardRuleParserException, ExecutionException, IOException, CompilationException {
     return runR8WithFullResult(command, optionsConsumer).androidApp;
   }
 
   public static CompilationResult runR8WithFullResult(
         R8Command command, Consumer<InternalOptions> optionsConsumer)
-        throws ProguardRuleParserException, ExecutionException, IOException {
+        throws ProguardRuleParserException, ExecutionException, IOException, CompilationException {
    // TODO(zerny): Should we really be adding the android library in ToolHelper?
     AndroidApp app = command.getInputApp();
     if (app.getLibraryResourceProviders().isEmpty()) {
@@ -536,12 +536,12 @@ public class ToolHelper {
     return runD8(D8Command.builder(app).build(), optionsConsumer);
   }
 
-  public static AndroidApp runD8(D8Command command) throws IOException {
+  public static AndroidApp runD8(D8Command command) throws IOException, CompilationException {
     return runD8(command, null);
   }
 
   public static AndroidApp runD8(D8Command command, Consumer<InternalOptions> optionsConsumer)
-      throws IOException {
+      throws IOException, CompilationException {
     InternalOptions options = command.getInternalOptions();
     if (optionsConsumer != null) {
       optionsConsumer.accept(options);
