@@ -103,6 +103,7 @@ public class R8RunExamplesTest {
         "regress_37875803.Regress",
         "regress_37955340.Regress",
         "regress_62300145.Regress",
+        "regress_64881691.Regress",
         "memberrebinding2.Memberrebinding",
         "memberrebinding3.Memberrebinding",
         "minification.Minification",
