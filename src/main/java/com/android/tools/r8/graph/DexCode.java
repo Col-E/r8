@@ -184,6 +184,15 @@ public class DexCode extends Code {
     builder.append("------------------------------------------------------------\n");
     builder.append("inst#  offset  instruction         arguments\n");
     builder.append("------------------------------------------------------------\n");
+
+    // Collect payload users.
+    Map<Integer, Instruction> payloadUsers = new HashMap<>();
+    for (Instruction dex : instructions) {
+      if (dex.hasPayload()) {
+        payloadUsers.put(dex.getOffset() + dex.getPayloadOffset(), dex);
+      }
+    }
+
     DexDebugEntry debugInfo = null;
     Iterator<DexDebugEntry> debugInfoIterator = Collections.emptyIterator();
     if (getDebugInfo() != null && method != null) {
@@ -197,7 +206,14 @@ public class DexCode extends Code {
         debugInfo = debugInfoIterator.hasNext() ? debugInfoIterator.next() : null;
       }
       StringUtils.appendLeftPadded(builder, Integer.toString(instructionNumber++), 5);
-      builder.append(": ").append(insn.toString(naming)).append('\n');
+      builder.append(": ");
+      if (insn.isSwitchPayload()) {
+        Instruction payloadUser = payloadUsers.get(insn.getOffset());
+        builder.append(insn.toString(naming, payloadUser));
+      } else {
+        builder.append(insn.toString(naming));
+      }
+      builder.append('\n');
     }
     if (debugInfoIterator.hasNext()) {
       throw new Unreachable("Could not print all debug information.");
