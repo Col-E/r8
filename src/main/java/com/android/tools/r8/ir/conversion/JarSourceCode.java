@@ -31,6 +31,8 @@ import com.android.tools.r8.ir.conversion.IRBuilder.BlockInfo;
 import com.android.tools.r8.ir.conversion.JarState.Local;
 import com.android.tools.r8.ir.conversion.JarState.Slot;
 import com.android.tools.r8.logging.Log;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -257,9 +259,39 @@ public class JarSourceCode implements SourceCode {
 
   @Override
   public void buildPrelude(IRBuilder builder) {
-    Map<Integer, MoveType> initializedLocals = new HashMap<>(node.localVariables.size());
     // Record types for arguments.
-    recordArgumentTypes(initializedLocals);
+    Map<Integer, MoveType> initializedLocals = recordArgumentTypes();
+    // Initialize all non-argument locals to ensure safe insertion of debug-local instructions.
+    for (Object o : node.localVariables) {
+      LocalVariableNode local = (LocalVariableNode) o;
+      Type localType = Type.getType(local.desc);
+      int sort = localType.getSort();
+      switch (sort) {
+        case Type.OBJECT:
+        case Type.ARRAY:
+          localType = JarState.NULL_TYPE;
+          break;
+        case Type.DOUBLE:
+        case Type.LONG:
+        case Type.FLOAT:
+          break;
+        case Type.VOID:
+        case Type.METHOD:
+          throw new Unreachable("Invalid local variable type: " + localType);
+        default:
+          localType = Type.INT_TYPE;
+          break;
+      }
+      int localRegister = state.getLocalRegister(local.index, localType);
+      MoveType existingLocalType = initializedLocals.get(localRegister);
+      assert existingLocalType == null || existingLocalType == moveType(localType);
+      if (existingLocalType == null) {
+        int localRegister2 = state.writeLocal(local.index, localType);
+        assert localRegister == localRegister2;
+        initializedLocals.put(localRegister, moveType(localType));
+        builder.addDebugUninitialized(localRegister, constType(localType));
+      }
+    }
     // Add debug information for all locals at the initial label.
     if (initialLabel != null) {
       state.openLocals(initialLabel);
@@ -285,37 +317,6 @@ public class JarSourceCode implements SourceCode {
       monitorEnter = builder.addMonitor(Monitor.Type.ENTER, monitorRegister);
       generatingMethodSynchronization = false;
     }
-    // Initialize all non-argument locals to ensure safe insertion of debug-local instructions.
-    for (Object o : node.localVariables) {
-      LocalVariableNode local = (LocalVariableNode) o;
-      Type localType = Type.getType(local.desc);
-      int sort = localType.getSort();
-      switch (sort) {
-        case Type.OBJECT:
-        case Type.ARRAY:
-          localType = JarState.NULL_TYPE;
-          break;
-        case Type.DOUBLE:
-        case Type.LONG:
-        case Type.FLOAT:
-          break;
-        case Type.VOID:
-        case Type.METHOD:
-          throw new Unreachable("Invalid local variable type: " + localType);
-        default:
-          localType = Type.INT_TYPE;
-          break;
-      }
-      int localRegister = state.getLocalRegister(local.index, localType);
-      MoveType exitingLocalType = initializedLocals.get(localRegister);
-      assert exitingLocalType == null || exitingLocalType == moveType(localType);
-      if (exitingLocalType == null) {
-        int localRegister2 = state.writeLocal(local.index, localType);
-        assert localRegister == localRegister2;
-        initializedLocals.put(localRegister, moveType(localType));
-        builder.addDebugUninitialized(localRegister, constType(localType));
-      }
-    }
     computeBlockEntryJarStates(builder);
     state.setBuilding();
   }
@@ -335,7 +336,9 @@ public class JarSourceCode implements SourceCode {
     }
   }
 
-  private void recordArgumentTypes(Map<Integer, MoveType> initializedLocals) {
+  private Int2ReferenceMap<MoveType> recordArgumentTypes() {
+    Int2ReferenceMap<MoveType> initializedLocals =
+        new Int2ReferenceOpenHashMap<>(node.localVariables.size());
     int argumentRegister = 0;
     if (!isStatic()) {
       Type thisType = Type.getType(clazz.descriptor.toString());
@@ -348,6 +351,7 @@ public class JarSourceCode implements SourceCode {
       argumentRegister += moveType.requiredRegisters();
       initializedLocals.put(register, moveType);
     }
+    return initializedLocals;
   }
 
   private void computeBlockEntryJarStates(IRBuilder builder) {
