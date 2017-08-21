@@ -40,6 +40,8 @@ class ClassNameMinifier {
   private final AppInfoWithLiveness appInfo;
   private final RootSet rootSet;
   private final PackageObfuscationMode packageObfuscationMode;
+  private final boolean isAccessModificationAllowed;
+  private final Set<String> noObfuscationPrefixes = Sets.newHashSet();
   private final Set<String> usedPackagePrefixes = Sets.newHashSet();
   private final Set<DexString> usedTypeNames = Sets.newIdentityHashSet();
 
@@ -63,6 +65,7 @@ class ClassNameMinifier {
     this.appInfo = appInfo;
     this.rootSet = rootSet;
     this.packageObfuscationMode = options.proguardConfiguration.getPackageObfuscationMode();
+    this.isAccessModificationAllowed = options.proguardConfiguration.isAccessModificationAllowed();
     this.packageDictionary = options.proguardConfiguration.getPackageObfuscationDictionary();
     this.classDictionary = options.proguardConfiguration.getClassObfuscationDictionary();
     this.keepInnerClassStructure = options.attributeRemoval.signature;
@@ -164,6 +167,11 @@ class ClassNameMinifier {
    * Registers the given package prefix and all of parent packages as used.
    */
   private void registerPackagePrefixesAsUsed(String packagePrefix) {
+    // If -allowaccessmodification is not set, we may keep classes in their original packages,
+    // accounting for package-private accesses.
+    if (!isAccessModificationAllowed) {
+      noObfuscationPrefixes.add(packagePrefix);
+    }
     String usedPrefix = packagePrefix;
     while (usedPrefix.length() > 0) {
       usedPackagePrefixes.add(usedPrefix);
@@ -209,7 +217,9 @@ class ClassNameMinifier {
   private Namespace getStateForClass(DexClass clazz) {
     String packageName = getPackageBinaryNameFromJavaType(clazz.type.getPackageDescriptor());
     // Check whether the given class should be kept.
-    if (rootSet.keepPackageName.contains(clazz)) {
+    // or check whether the given class belongs to a package that is kept for another class.
+    if (rootSet.keepPackageName.contains(clazz)
+        || noObfuscationPrefixes.contains(packageName)) {
       return states.computeIfAbsent(packageName, Namespace::new);
     }
     Namespace state = topLevelState;
@@ -320,6 +330,7 @@ class ClassNameMinifier {
       do {
         candidate = appInfo.dexItemFactory.createString(nextSuggestedNameForClass());
       } while (usedTypeNames.contains(candidate));
+      usedTypeNames.add(candidate);
       return candidate;
     }
 
@@ -342,6 +353,7 @@ class ClassNameMinifier {
       do {
         candidate = nextSuggestedNameForSubpackage();
       } while (usedPackagePrefixes.contains(candidate));
+      usedPackagePrefixes.add(candidate);
       return candidate;
     }
 
