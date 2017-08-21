@@ -69,6 +69,10 @@ public class ProguardConfigurationParserTest extends TestBase {
       VALID_PROGUARD_DIR + "package-obfuscation-5.flags";
   private static final String PACKAGE_OBFUSCATION_6 =
       VALID_PROGUARD_DIR + "package-obfuscation-6.flags";
+  private static final String APPLY_MAPPING =
+      VALID_PROGUARD_DIR + "applymapping.flags";
+  private static final String APPLY_MAPPING_WITHOUT_FILE =
+      INVALID_PROGUARD_DIR + "applymapping-without-file.flags";
   private static final String DONT_SHRINK =
       VALID_PROGUARD_DIR + "dontshrink.flags";
   private static final String DONT_SKIP_NON_PUBLIC_LIBRARY_CLASSES =
@@ -336,6 +340,25 @@ public class ProguardConfigurationParserTest extends TestBase {
     assertEquals(PackageObfuscationMode.REPACKAGE, config.getPackageObfuscationMode());
     assertNotNull(config.getPackagePrefix());
     assertEquals("top", config.getPackagePrefix());
+  }
+
+  @Test
+  public void parseApplyMapping() throws IOException, ProguardRuleParserException {
+    ProguardConfigurationParser parser = new ProguardConfigurationParser(new DexItemFactory());
+    parser.parse(Paths.get(APPLY_MAPPING));
+    ProguardConfiguration config = parser.getConfig();
+    assertTrue(config.hasApplyMappingFile());
+  }
+
+  @Test
+  public void parseApplyMappingWithoutFile() throws IOException, ProguardRuleParserException {
+    try {
+      ProguardConfigurationParser parser = new ProguardConfigurationParser(new DexItemFactory());
+      parser.parse(Paths.get(APPLY_MAPPING_WITHOUT_FILE));
+      fail("Expect to fail due to the lack of file name.");
+    } catch (ProguardRuleParserException e) {
+      assertTrue(e.getMessage().contains("File name expected"));
+    }
   }
 
   @Test
