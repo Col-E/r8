@@ -8,6 +8,7 @@ class KotlinApp {
             println("Hello world!")
             val instance = KotlinApp()
             instance.processObject(instance, instance::printObject)
+            instance.invokeInlinedFunctions()
         }
     }
 
@@ -17,5 +18,27 @@ class KotlinApp {
 
     fun printObject(obj: Any) {
         println(obj)
+    }
+
+    fun invokeInlinedFunctions() {
+        inlinedA {
+            val inA = 1
+            inlinedB {
+                val inB = 2
+                foo(inA, inB)
+            }
+        }
+    }
+
+    inline fun inlinedA(f: () -> Unit) {
+        f()
+    }
+
+    inline fun inlinedB(f: () -> Unit) {
+        f()
+    }
+
+    fun foo(a: Int, b: Int) {
+        println("a=$a, b=$b")
     }
 }
