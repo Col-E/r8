@@ -99,15 +99,19 @@ abstract class BaseCommand {
     protected boolean ignoreDexInArchive = false;
 
     protected Builder(CompilationMode mode) {
-      this(AndroidApp.builder(), mode);
+      this(AndroidApp.builder(), mode, false);
+    }
+
+    protected Builder(CompilationMode mode, boolean ignoreDexInArchive) {
+      this(AndroidApp.builder(), mode, ignoreDexInArchive);
     }
 
     // Internal constructor for testing.
     Builder(AndroidApp app, CompilationMode mode) {
-      this(AndroidApp.builder(app), mode);
+      this(AndroidApp.builder(app), mode, false);
     }
 
-    private Builder(AndroidApp.Builder builder, CompilationMode mode) {
+    private Builder(AndroidApp.Builder builder, CompilationMode mode, boolean ignoreDexInArchive) {
       assert mode != null;
       this.app = builder;
       this.mode = mode;
