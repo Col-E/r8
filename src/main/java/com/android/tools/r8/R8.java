@@ -207,7 +207,7 @@ public class R8 {
   }
 
   static CompilationResult runForTesting(AndroidApp app, InternalOptions options)
-      throws ProguardRuleParserException, IOException {
+      throws ProguardRuleParserException, IOException, CompilationException {
     ExecutorService executor = ThreadUtils.getExecutorService(options);
     try {
       return runForTesting(app, options, executor);
@@ -220,12 +220,12 @@ public class R8 {
       AndroidApp app,
       InternalOptions options,
       ExecutorService executor)
-      throws ProguardRuleParserException, IOException {
+      throws ProguardRuleParserException, IOException, CompilationException {
     return new R8(options).run(app, executor);
   }
 
   private CompilationResult run(AndroidApp inputApp, ExecutorService executorService)
-      throws IOException, ProguardRuleParserException {
+      throws IOException, ProguardRuleParserException, CompilationException {
     if (options.quiet) {
       System.setOut(new PrintStream(ByteStreams.nullOutputStream()));
     }
@@ -389,15 +389,43 @@ public class R8 {
     } catch (MainDexError mainDexError) {
       throw new CompilationError(mainDexError.getMessageForR8());
     } catch (ExecutionException e) {
-      if (e.getCause() instanceof CompilationError) {
-        throw (CompilationError) e.getCause();
-      }
-      throw new RuntimeException(e.getMessage(), e.getCause());
+      unwrapExecutionException(e);
+      throw new AssertionError(e); // unwrapping method should have thrown
     } finally {
       // Dump timings.
       if (options.printTimes) {
         timing.report();
       }
+    }
+  }
+
+  static void unwrapExecutionException(ExecutionException executionException)
+      throws CompilationException {
+    Throwable cause = executionException.getCause();
+    if (cause instanceof CompilationError) {
+      // add original exception as suppressed exception to provide the original stack trace
+      cause.addSuppressed(executionException);
+      throw (CompilationError) cause;
+    } else if (cause instanceof CompilationException) {
+      cause.addSuppressed(executionException);
+      throw (CompilationException) cause;
+    } else if (cause instanceof RuntimeException) {
+      // ForkJoinPool wraps checked exceptions in RuntimeExceptions
+      if (cause.getCause() != null
+          && cause.getCause() instanceof CompilationException) {
+        cause.addSuppressed(executionException);
+        throw (CompilationException) cause.getCause();
+      // ForkJoinPool sometimes uses 2 levels of RuntimeExceptions, to provide accurate stack traces
+      } else if (cause.getCause() != null && cause.getCause().getCause() != null
+          && cause.getCause().getCause() instanceof CompilationException) {
+        cause.addSuppressed(executionException);
+        throw (CompilationException) cause.getCause().getCause();
+      } else {
+        cause.addSuppressed(executionException);
+        throw (RuntimeException) cause;
+      }
+    } else {
+      throw new RuntimeException(executionException.getMessage(), cause);
     }
   }
 
