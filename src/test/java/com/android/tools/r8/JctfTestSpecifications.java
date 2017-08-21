@@ -2675,7 +2675,8 @@ public class JctfTestSpecifications {
           // 1) t02
           // java.lang.AssertionError: Failed to load serialization resource file: serialization/com/google/jctf/test/lib/java/lang/String/CASE_INSENSITIVE_ORDER/serialization/String_serialization_A01.golden.0.ser
 
-          .put("lang.String.getBytesLjava_lang_String.String_getBytes_A14", any())
+          .put("lang.String.getBytesLjava_lang_String.String_getBytes_A14",
+              match(runtimes(DexVm.ART_7_0_0, DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
           // 1) t07
           // arrays first differed at element [0]; expected:<-2> but was:<-1>
           // Caused by: java.lang.AssertionError: expected:<-2> but was:<-1>
@@ -2735,7 +2736,8 @@ public class JctfTestSpecifications {
           // 1) t09
           // org.junit.ComparisonFailure: Incorrect double string returned expected:<0.001[0]> but was:<0.001[]>
 
-          .put("lang.String.getBytesLjava_nio_charset_Charset.String_getBytes_A14", any())
+          .put("lang.String.getBytesLjava_nio_charset_Charset.String_getBytes_A14",
+              match(runtimes(DexVm.ART_7_0_0, DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
           // 1) t07
           // arrays first differed at element [0]; expected:<-2> but was:<-1>
           // Caused by: java.lang.AssertionError: expected:<-2> but was:<-1>
