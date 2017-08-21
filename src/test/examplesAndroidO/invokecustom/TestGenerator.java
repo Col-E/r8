@@ -189,7 +189,7 @@ public class TestGenerator {
     MethodType mt = MethodType.methodType(CallSite.class, MethodHandles.Lookup.class, String.class,
         MethodType.class, MethodHandle.class);
     Handle bootstrap = new Handle(Opcodes.H_INVOKESTATIC, Type.getInternalName(InvokeCustom.class),
-        "bsmCreateCallCallingtargetMethodTest6", mt.toMethodDescriptorString(), false);
+        "bsmCreateCallSite", mt.toMethodDescriptorString(), false);
     mv.visitTypeInsn(Opcodes.NEW, Type.getInternalName(InvokeCustom.class));
     mv.visitInsn(Opcodes.DUP);
     mv.visitMethodInsn(
@@ -212,7 +212,7 @@ public class TestGenerator {
     MethodType mt = MethodType.methodType(CallSite.class, MethodHandles.Lookup.class, String.class,
         MethodType.class, MethodHandle.class);
     Handle bootstrap = new Handle(Opcodes.H_INVOKESTATIC, Type.getInternalName(InvokeCustom.class),
-        "bsmCreateCallCallingtargetMethodTest7", mt.toMethodDescriptorString(), false);
+        "bsmCreateCallSite", mt.toMethodDescriptorString(), false);
     mv.visitTypeInsn(Opcodes.NEW, Type.getInternalName(InvokeCustom.class));
     mv.visitInsn(Opcodes.DUP);
     mv.visitMethodInsn(
@@ -235,7 +235,7 @@ public class TestGenerator {
     MethodType mt = MethodType.methodType(CallSite.class, MethodHandles.Lookup.class, String.class,
         MethodType.class, MethodHandle.class);
     Handle bootstrap = new Handle(Opcodes.H_INVOKESTATIC, Type.getInternalName(InvokeCustom.class),
-        "bsmCreateCallCallingtargetMethodTest8", mt.toMethodDescriptorString(), false);
+        "bsmCreateCallSite", mt.toMethodDescriptorString(), false);
     mv.visitTypeInsn(Opcodes.NEW, Type.getInternalName(InvokeCustom.class));
     mv.visitInsn(Opcodes.DUP);
     mv.visitMethodInsn(
@@ -258,7 +258,7 @@ public class TestGenerator {
     MethodType mt = MethodType.methodType(CallSite.class, MethodHandles.Lookup.class, String.class,
         MethodType.class, MethodHandle.class);
     Handle bootstrap = new Handle(Opcodes.H_INVOKESTATIC, Type.getInternalName(InvokeCustom.class),
-        "bsmCreateCallCallingtargetMethodTest9", mt.toMethodDescriptorString(), false);
+        "bsmCreateCallSite", mt.toMethodDescriptorString(), false);
     mv.visitTypeInsn(Opcodes.NEW, Type.getInternalName(InvokeCustom.class));
     mv.visitInsn(Opcodes.DUP);
     mv.visitMethodInsn(
@@ -281,7 +281,7 @@ public class TestGenerator {
     MethodType mt = MethodType.methodType(CallSite.class, MethodHandles.Lookup.class, String.class,
         MethodType.class, MethodHandle.class);
     Handle bootstrap = new Handle(Opcodes.H_INVOKESTATIC, Type.getInternalName(InvokeCustom.class),
-        "bsmCreateCallCallingtargetMethodTest10", mt.toMethodDescriptorString(), false);
+        "bsmCreateCallSite", mt.toMethodDescriptorString(), false);
     mv.visitTypeInsn(Opcodes.NEW, Type.getInternalName(InvokeCustom.class));
     mv.visitInsn(Opcodes.DUP);
     mv.visitMethodInsn(
@@ -303,7 +303,7 @@ public class TestGenerator {
     MethodType mt = MethodType.methodType(CallSite.class, MethodHandles.Lookup.class, String.class,
         MethodType.class, MethodHandle.class);
     Handle bootstrap = new Handle(Opcodes.H_INVOKESTATIC, Type.getInternalName(InvokeCustom.class),
-        "bsmCreateCallCallingtargetMethod", mt.toMethodDescriptorString(), false);
+        "bsmCreateCallSite", mt.toMethodDescriptorString(), false);
     mv.visitFieldInsn(Opcodes.GETSTATIC,
         "java/lang/System",
         "out",
@@ -330,7 +330,7 @@ public class TestGenerator {
     MethodType mt = MethodType.methodType(CallSite.class, MethodHandles.Lookup.class, String.class,
             MethodType.class, MethodHandle.class);
     Handle bootstrap = new Handle(Opcodes.H_INVOKESTATIC, Type.getInternalName(InvokeCustom.class),
-        "bsmCreateCallCallingtargetMethod", mt.toMethodDescriptorString(), false);
+        "bsmCreateCallSite", mt.toMethodDescriptorString(), false);
     mv.visitLdcInsn("Write static field");
     mv.visitInvokeDynamicInsn("staticField1", "(Ljava/lang/String;)V", bootstrap,
         new Handle(Opcodes.H_PUTSTATIC, Type.getInternalName(InvokeCustom.class),
@@ -361,7 +361,7 @@ public class TestGenerator {
     MethodType mt = MethodType.methodType(CallSite.class, MethodHandles.Lookup.class, String.class,
         MethodType.class, MethodHandle.class);
     Handle bootstrap = new Handle(Opcodes.H_INVOKESTATIC, Type.getInternalName(InvokeCustom.class),
-        "bsmCreateCallCallingtargetMethod", mt.toMethodDescriptorString(), false);
+        "bsmCreateCallSite", mt.toMethodDescriptorString(), false);
     mv.visitFieldInsn(Opcodes.GETSTATIC,
         "java/lang/System",
         "out",
@@ -392,7 +392,7 @@ public class TestGenerator {
     MethodType mt = MethodType.methodType(CallSite.class, MethodHandles.Lookup.class, String.class,
         MethodType.class, MethodHandle.class);
     Handle bootstrap = new Handle(Opcodes.H_INVOKESTATIC, Type.getInternalName(InvokeCustom.class),
-        "bsmCreateCallCallingtargetMethod", mt.toMethodDescriptorString(), false);
+        "bsmCreateCallSite", mt.toMethodDescriptorString(), false);
     mv.visitTypeInsn(Opcodes.NEW, Type.getInternalName(InvokeCustom.class));
     mv.visitInsn(Opcodes.DUP);
     mv.visitMethodInsn(

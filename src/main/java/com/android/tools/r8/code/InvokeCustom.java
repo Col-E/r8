@@ -104,6 +104,9 @@ public class InvokeCustom extends Format35c {
       case INVOKE_SUPER:
         registry.registerInvokeSuper(methodHandle.asMethod());
         break;
+      case INVOKE_DIRECT:
+        registry.registerInvokeDirect(methodHandle.asMethod());
+        break;
       default:
         throw new AssertionError();
     }

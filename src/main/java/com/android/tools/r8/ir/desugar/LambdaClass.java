@@ -250,6 +250,7 @@ final class LambdaClass {
         return createConstructorTarget(accessedFrom);
       case INVOKE_STATIC:
         return createStaticMethodTarget(accessedFrom);
+      case INVOKE_DIRECT:
       case INVOKE_INSTANCE:
         return createInstanceMethodTarget(accessedFrom);
       default:
@@ -273,7 +274,7 @@ final class LambdaClass {
       return new StaticLambdaImplTarget();
     }
 
-    assert implHandle.type.isInvokeInstance();
+    assert implHandle.type.isInvokeInstance() || implHandle.type.isInvokeDirect();
 
     // If lambda$ method is an instance method we convert it into a static methods and
     // relax its accessibility.
@@ -291,7 +292,8 @@ final class LambdaClass {
   // Create targets for instance method referenced directly without
   // lambda$ methods. It may require creation of accessors in some cases.
   private Target createInstanceMethodTarget(DexType accessedFrom) {
-    assert descriptor.implHandle.type.isInvokeInstance();
+    assert descriptor.implHandle.type.isInvokeInstance() ||
+        descriptor.implHandle.type.isInvokeDirect();
 
     if (!descriptor.needsAccessor(accessedFrom)) {
       return new NoAccessorMethodTarget(Invoke.Type.VIRTUAL);

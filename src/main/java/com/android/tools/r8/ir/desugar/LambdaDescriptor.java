@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
+import com.android.tools.r8.graph.DexMethodHandle.MethodHandleType;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
@@ -91,6 +92,7 @@ final class LambdaDescriptor {
     // Find the lambda's impl-method target.
     DexMethod method = implHandle.asMethod();
     switch (implHandle.type) {
+      case INVOKE_DIRECT:
       case INVOKE_INSTANCE: {
         AppInfo appInfo = rewriter.converter.appInfo;
         DexEncodedMethod target = appInfo.lookupVirtualTarget(getImplReceiverType(), method);
@@ -98,7 +100,8 @@ final class LambdaDescriptor {
           target = appInfo.lookupDirectTarget(method);
         }
         assert target == null ||
-            (!target.accessFlags.isConstructor() && !target.accessFlags.isStatic());
+            (implHandle.type.isInvokeInstance() && isInstanceMethod(target)) ||
+            (implHandle.type.isInvokeDirect() && isPrivateInstanceMethod(target));
         return target;
       }
 
@@ -119,14 +122,23 @@ final class LambdaDescriptor {
       case INVOKE_INTERFACE: {
         AppInfo appInfo = rewriter.converter.appInfo;
         DexEncodedMethod target = appInfo.lookupVirtualTarget(getImplReceiverType(), method);
-        assert target == null ||
-            (!target.accessFlags.isConstructor() && !target.accessFlags.isStatic());
+        assert target == null || isInstanceMethod(target);
         return target;
       }
 
       default:
         throw new Unreachable("Unexpected method handle kind in " + implHandle);
     }
+  }
+
+  private boolean isInstanceMethod(DexEncodedMethod encodedMethod) {
+    assert encodedMethod != null;
+    return !encodedMethod.accessFlags.isConstructor() && !encodedMethod.accessFlags.isStatic();
+  }
+
+  private boolean isPrivateInstanceMethod(DexEncodedMethod encodedMethod) {
+    assert encodedMethod != null;
+    return encodedMethod.accessFlags.isPrivate() && isInstanceMethod(encodedMethod);
   }
 
   final DexAccessFlags getAccessibility() {
@@ -159,10 +171,12 @@ final class LambdaDescriptor {
       return false;
     }
 
+
     boolean staticTarget = implHandle.type.isInvokeStatic();
-    boolean instanceTarget = implHandle.type.isInvokeInstance();
+    boolean instanceTarget = implHandle.type.isInvokeInstance() || implHandle.type.isInvokeDirect();
     boolean initTarget = implHandle.type.isInvokeConstructor();
     assert instanceTarget || staticTarget || initTarget;
+    assert !implHandle.type.isInvokeDirect() || isPrivateInstanceMethod(targetMethod);
 
     if (targetMethod == null) {
       // The target cannot be a private method, since otherwise it

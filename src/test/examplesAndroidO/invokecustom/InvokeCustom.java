@@ -102,74 +102,15 @@ public class InvokeCustom extends Super implements I {
     System.out.println("targetMethodTest4");
   }
 
-  public static CallSite bsmCreateCallSite(
-      MethodHandles.Lookup caller, String name, MethodType type, MethodHandle mh)
-      throws Throwable {
-    // Using mh to create the call site fails when run on Art. See b/36957105 for details.
-    final MethodHandle targetMH = MethodHandles.lookup().findSpecial(Super.class,
-                "targetMethodTest5", MethodType.methodType(void.class), InvokeCustom.class);
-    return new ConstantCallSite(targetMH);
-  }
-
-  public static CallSite bsmCreateCallCallingtargetMethodTest6(
-      MethodHandles.Lookup caller, String name, MethodType type, MethodHandle mh)
-      throws Throwable {
-    // Using mh to create the call site fails when run on Art. See b/36957105 for details.
-    final MethodHandle targetMH =
-        MethodHandles.lookup().findVirtual(
-            I.class, "targetMethodTest6", MethodType.methodType(void.class));
-    return new ConstantCallSite(targetMH);
-  }
-
-  public static CallSite bsmCreateCallCallingtargetMethodTest7(
-      MethodHandles.Lookup caller, String name, MethodType type, MethodHandle mh)
-      throws Throwable {
-    // Using mh to create the call site fails when run on Art. See b/36957105 for details.
-    final MethodHandle targetMH =
-        MethodHandles.lookup().findVirtual(
-            J.class, "targetMethodTest7", MethodType.methodType(void.class));
-    return new ConstantCallSite(targetMH);
-  }
-
   public void targetMethodTest8() {
     System.out.println("targetMethodTest8 from InvokeCustom");
-  }
-
-  public static CallSite bsmCreateCallCallingtargetMethodTest8(
-      MethodHandles.Lookup caller, String name, MethodType type, MethodHandle mh)
-      throws Throwable {
-    // Using mh to create the call site fails when run on Art. See b/36957105 for details.
-    final MethodHandle targetMH =
-        MethodHandles.lookup().findVirtual(
-            J.class, "targetMethodTest8", MethodType.methodType(void.class));
-    return new ConstantCallSite(targetMH);
-  }
-
-  public static CallSite bsmCreateCallCallingtargetMethodTest9(
-      MethodHandles.Lookup caller, String name, MethodType type, MethodHandle mh)
-      throws Throwable {
-    // Using mh to create the call site fails when run on Art. See b/36957105 for details.
-    final MethodHandle targetMH =
-        MethodHandles.lookup().findVirtual(
-            InvokeCustom.class, "targetMethodTest9", MethodType.methodType(void.class));
-    return new ConstantCallSite(targetMH);
   }
 
   public void targetMethodTest10() {
     System.out.println("targetMethodTest10 from InvokeCustom");
   }
 
-  public static CallSite bsmCreateCallCallingtargetMethodTest10(
-      MethodHandles.Lookup caller, String name, MethodType type, MethodHandle mh)
-      throws Throwable {
-    // Using mh to create the call site fails when run on Art. See b/36957105 for details.
-    final MethodHandle targetMH =
-        MethodHandles.lookup().findVirtual(
-            InvokeCustom.class, "targetMethodTest10", MethodType.methodType(void.class));
-    return new ConstantCallSite(targetMH);
-  }
-
-  public static CallSite bsmCreateCallCallingtargetMethod(
+  public static CallSite bsmCreateCallSite(
       MethodHandles.Lookup caller, String name, MethodType type, MethodHandle mh)
       throws Throwable {
     return new ConstantCallSite(mh);

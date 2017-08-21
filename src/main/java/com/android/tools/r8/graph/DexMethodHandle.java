@@ -8,18 +8,17 @@ import com.android.tools.r8.dex.IndexedItemCollection;
 public class DexMethodHandle extends IndexedDexItem {
 
   public enum MethodHandleType {
-    // Method handle dex type.
     STATIC_PUT((short) 0x00),
     STATIC_GET((short) 0x01),
     INSTANCE_PUT((short) 0x02),
     INSTANCE_GET((short) 0x03),
     INVOKE_STATIC((short) 0x04),
     INVOKE_INSTANCE((short) 0x05),
-    // Upcoming method handle dex type.
     INVOKE_CONSTRUCTOR((short) 0x06),
+    INVOKE_DIRECT((short) 0x07),
+    INVOKE_INTERFACE((short) 0x08),
     // Internal method handle needed by lambda desugaring.
-    INVOKE_INTERFACE((short) 0x07),
-    INVOKE_SUPER((short) 0x08);
+    INVOKE_SUPER((short) 0x09);
 
     private final short value;
 
@@ -57,9 +56,12 @@ public class DexMethodHandle extends IndexedDexItem {
           kind = INVOKE_CONSTRUCTOR;
           break;
         case 0x07:
-          kind = INVOKE_INTERFACE;
+          kind = INVOKE_DIRECT;
           break;
         case 0x08:
+          kind = INVOKE_INTERFACE;
+          break;
+        case 0x09:
           kind = INVOKE_SUPER;
           break;
         default:
@@ -76,7 +78,7 @@ public class DexMethodHandle extends IndexedDexItem {
 
     public boolean isMethodType() {
       return isInvokeStatic() || isInvokeInstance() || isInvokeInterface() || isInvokeSuper()
-          || isInvokeConstructor();
+          || isInvokeConstructor() || isInvokeDirect();
     }
 
     public boolean isStaticPut() {
@@ -97,6 +99,10 @@ public class DexMethodHandle extends IndexedDexItem {
 
     public boolean isInvokeStatic() {
       return this == MethodHandleType.INVOKE_STATIC;
+    }
+
+    public boolean isInvokeDirect() {
+      return this == MethodHandleType.INVOKE_DIRECT;
     }
 
     public boolean isInvokeInstance() {

@@ -644,6 +644,7 @@ public abstract class R8RunArtTestsTest {
           // Invoke-custom is supported by D8 and R8, but it can only run on our newest version
           // of art.
           .put("952-invoke-custom", beforeAndroidO)
+          .put("952-invoke-custom-kinds", beforeAndroidO)
           // Invoke-polymorphic is supported by D8 and R8, but it can only run on our newest version
           // of art.
           .put("953-invoke-polymorphic-compiler", beforeAndroidO)
@@ -773,6 +774,8 @@ public abstract class R8RunArtTestsTest {
               TestCondition.tools(DexTool.NONE, DexTool.DX),
               TestCondition.runtimes(
                   DexVm.ART_4_4_4, DexVm.ART_5_1_1, DexVm.ART_6_0_1, DexVm.ART_7_0_0)))
+          // No input dex files for DX
+          .put("952-invoke-custom-kinds", TestCondition.match(TestCondition.tools(DexTool.DX)))
           .build();
 
   public static List<String> requireInliningToBeDisabled = ImmutableList.of(
@@ -838,11 +841,7 @@ public abstract class R8RunArtTestsTest {
 
       // These two fail with missing *-hostdex.jar files.
       "648-inline-caches-unresolved",
-      "998-redefine-use-after-free",
-
-      // (b/63608437) This test uses method handle kind unsupported by R8 and trigger a R8 bug
-      // that shared call site entries when it should not.
-      "952-invoke-custom-kinds"
+      "998-redefine-use-after-free"
   );
 
   private static class TestSpecification {

@@ -168,7 +168,8 @@ public abstract class RunExamplesAndroidOTest<B> {
               "repeat_annotations_new_api",
               // Dex version not supported
               "invokepolymorphic",
-              "invokecustom"
+              "invokecustom",
+              "invokecustom2"
           ),
           DexVm.ART_5_1_1, ImmutableList.of(
               // API not supported
@@ -176,7 +177,8 @@ public abstract class RunExamplesAndroidOTest<B> {
               "repeat_annotations_new_api",
               // Dex version not supported
               "invokepolymorphic",
-              "invokecustom"
+              "invokecustom",
+              "invokecustom2"
           ),
           DexVm.ART_6_0_1, ImmutableList.of(
               // API not supported
@@ -184,14 +186,16 @@ public abstract class RunExamplesAndroidOTest<B> {
               "repeat_annotations_new_api",
               // Dex version not supported
               "invokepolymorphic",
-              "invokecustom"
+              "invokecustom",
+              "invokecustom2"
           ),
           DexVm.ART_7_0_0, ImmutableList.of(
               // API not supported
               "paramnames",
               // Dex version not supported
               "invokepolymorphic",
-              "invokecustom"
+              "invokecustom",
+              "invokecustom2"
           ),
           DexVm.ART_DEFAULT, ImmutableList.of(
           )
@@ -223,6 +227,13 @@ public abstract class RunExamplesAndroidOTest<B> {
   @Test
   public void invokeCustom() throws Throwable {
     test("invokecustom", "invokecustom", "InvokeCustom")
+        .withMinApiLevel(ANDROID_O_API)
+        .run();
+  }
+
+  @Test
+  public void invokeCustom2() throws Throwable {
+    test("invokecustom2", "invokecustom2", "InvokeCustom")
         .withMinApiLevel(ANDROID_O_API)
         .run();
   }

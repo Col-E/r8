@@ -37,7 +37,7 @@ final class AccessorMethodSourceCode extends SynthesizedLambdaSourceCode {
     DexType[] implParams = implProto.parameters.values;
 
     int index = 0;
-    if (implHandle.type.isInvokeInstance()) {
+    if (implHandle.type.isInvokeInstance() || implHandle.type.isInvokeDirect()) {
       assert accessorParams[index] == descriptor().getImplReceiverType();
       index++;
     }
@@ -69,9 +69,10 @@ final class AccessorMethodSourceCode extends SynthesizedLambdaSourceCode {
   private Invoke.Type inferInvokeType() {
     switch (descriptor().implHandle.type) {
       case INVOKE_INSTANCE:
-        return isPrivateMethod() ? Invoke.Type.DIRECT : Invoke.Type.VIRTUAL;
+        return Invoke.Type.VIRTUAL;
       case INVOKE_STATIC:
         return Invoke.Type.STATIC;
+      case INVOKE_DIRECT:
       case INVOKE_CONSTRUCTOR:
         return Invoke.Type.DIRECT;
       case INVOKE_INTERFACE:

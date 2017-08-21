@@ -48,13 +48,9 @@ public final class DexCallSite extends IndexedDexItem {
   }
 
   public boolean computeEquals(Object other) {
-    if (other instanceof DexCallSite) {
-      DexCallSite o = (DexCallSite) other;
-      return methodName.equals(o.methodName)
-          && methodProto.equals(o.methodProto)
-          && bootstrapMethod.equals(o.bootstrapMethod)
-          && bootstrapArgs.equals(o.bootstrapArgs);
-    }
+    // Call sites are equal only when this == other, which was already computed by the caller of
+    // computeEquals. Do not share call site entries, each invoke-custom must have its own
+    // call site, but the content of the entry (encoded array) in the data section can be shared.
     return false;
   }
 

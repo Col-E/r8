@@ -927,6 +927,9 @@ public class DexFileReader {
         fieldOrMethod = indexedItems.getField(indexFieldOrMethod);
         break;
       }
+      case INVOKE_CONSTRUCTOR:
+      case INVOKE_DIRECT:
+      case INVOKE_INTERFACE:
       case INVOKE_INSTANCE:
       case INVOKE_STATIC: {
         fieldOrMethod = indexedItems.getMethod(indexFieldOrMethod);
