@@ -36,6 +36,10 @@ public class D8Command extends BaseCommand {
 
     private boolean intermediate = false;
 
+    protected Builder(boolean ignoreDexInArchive) {
+      super(CompilationMode.DEBUG, ignoreDexInArchive);
+    }
+
     protected Builder() {
       super(CompilationMode.DEBUG);
     }

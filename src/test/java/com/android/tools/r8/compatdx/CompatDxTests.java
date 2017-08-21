@@ -6,33 +6,33 @@ package com.android.tools.r8.compatdx;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.dex.Constants;
-import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.maindexlist.MainDexListTests;
-import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.FileUtils;
-import com.android.tools.r8.utils.OutputMode;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
+import java.net.URI;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 public class CompatDxTests {
@@ -100,38 +100,26 @@ public class CompatDxTests {
   }
 
   @Test
-  public void singleDexProgramFull() throws IOException, ExecutionException {
-    // Generate an application that fills the whole dex file.
-    AndroidApp generated =
-        MainDexListTests.generateApplication(
-            ImmutableList.of("A"), Constants.ANDROID_L_API, MAX_METHOD_COUNT + 1);
-    Path applicationJar = temp.newFile("application.jar").toPath();
-    generated.write(applicationJar, OutputMode.Indexed);
-    runDexer(applicationJar.toString());
-  }
-
-  @Test
-  public void singleDexProgramIsTooLarge() throws IOException, ExecutionException {
-    // Generate an application that will not fit into a single dex file.
-    AndroidApp generated = MainDexListTests.generateApplication(
-        ImmutableList.of("A", "B"), Constants.ANDROID_L_API, MAX_METHOD_COUNT / 2 + 2);
-    Path applicationJar = temp.newFile("application.jar").toPath();
-    generated.write(applicationJar, OutputMode.Indexed);
-    try {
-      runDexer(applicationJar.toString());
-      fail("Expect to fail, for there are many classes while multidex is not enabled.");
-    } catch (CompilationError e) {
-      // Make sure {@link MonoDexDistributor} was used.
-      assertTrue(e.getMessage().contains("single dex file"));
-      // Make sure what exceeds the limit is the number of methods.
-      assertTrue(e.getMessage().contains("# methods: "
-          + String.valueOf((MAX_METHOD_COUNT / 2 + 2) * 2)));
-    }
-  }
-
-  @Test
   public void keepClassesTest() throws IOException {
     runDexerWithOutput("out.zip", "--keep-classes", EXAMPLE_JAR_FILE1);
+  }
+
+  @Test
+  public void ignoreDexInArchiveTest() throws IOException {
+    // Create a JAR with both a .class and a .dex file (the .dex file is just empty).
+    Path jarWithClassesAndDex = temp.newFile("test.jar").toPath();
+    Files.copy(Paths.get(EXAMPLE_JAR_FILE1), jarWithClassesAndDex,
+        StandardCopyOption.REPLACE_EXISTING);
+    URI uri = URI.create("jar:" + jarWithClassesAndDex.toUri());
+    FileSystem fileSystem = FileSystems.newFileSystem(uri, ImmutableMap.of("create", "true"));
+    Path dexFile = fileSystem.getPath("classes.dex");
+    Files.newOutputStream(dexFile, StandardOpenOption.CREATE).close();
+    fileSystem.close();
+
+    // Only test this with CompatDx, as dx does not like the empty .dex file.
+    List<String> d8Args =ImmutableList.of(
+        "--output=" + temp.newFolder("out").toString(), jarWithClassesAndDex.toString());
+    CompatDx.main(d8Args.toArray(new String[d8Args.size()]));
   }
 
   private void runDexer(String... args) throws IOException {
@@ -178,7 +166,8 @@ public class CompatDxTests {
     }
     Collections.addAll(dxArgs, args);
     System.out.println("running: dx " + StringUtils.join(dxArgs, " "));
-    ToolHelper.runDX(dxArgs.toArray(new String[dxArgs.size()]));
+    ProcessResult result = ToolHelper.runDX(dxArgs.toArray(new String[dxArgs.size()]));
+    assertEquals(result.stderr, 0, result.exitCode);
 
     if (out == null) {
       // Can't check output if explicitly not writing any.
