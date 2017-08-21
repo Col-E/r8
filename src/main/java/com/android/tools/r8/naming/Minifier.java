@@ -36,10 +36,6 @@ public class Minifier {
 
   public NamingLens run(Timing timing) {
     assert !options.skipMinification;
-    // TODO(b/62048823): Minifier should not depend on -allowaccessmodification.
-    if (!options.proguardConfiguration.isAccessModificationAllowed()) {
-      throw new CompilationError("Minification requires allowaccessmodification.");
-    }
     timing.begin("MinifyClasses");
     Map<DexType, DexString> classRenaming =
         new ClassNameMinifier(appInfo, rootSet, options).computeRenaming(timing);
