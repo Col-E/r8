@@ -912,13 +912,21 @@ task supportLibList() {
     }
 }
 
+task AospJarTest(type: Exec) {
+    dependsOn CompatDx, downloadDeps
+    def script = "tools/test_aosp_jar.py"
+    inputs.file script
+    commandLine "python", script, "--no-build"
+    workingDir = projectDir
+}
+
 test {
     dependsOn supportLibList
     testLogging.exceptionFormat = 'full'
     if (project.hasProperty('print_test_stdout')) {
         testLogging.showStandardStreams = true
     }
-    if (project.hasProperty('dex_vm')) {
+    if (project.hasProperty('dex_vm') && project.property('dex_vm') != 'default') {
         println "Running with non default vm: " + project.property('dex_vm')
         systemProperty 'dex_vm', project.property('dex_vm')
         if (project.property('dex_vm') == '5.1.1' || project.property('dex_vm') == '6.0.1') {
@@ -928,6 +936,7 @@ test {
             exclude "com/android/tools/r8/art/jack/**"
         }
     }
+
     if (project.hasProperty('one_line_per_test')) {
         beforeTest { desc ->
             println "Start executing test ${desc.name} [${desc.className}]"
@@ -969,6 +978,9 @@ test {
     }
     if (project.hasProperty('test_dir')) {
         systemProperty 'test_dir', project.property('test_dir')
+    }
+    if (project.hasProperty('aosp_jar')) {
+        dependsOn AospJarTest
     }
 
     if (OperatingSystem.current().isLinux()
