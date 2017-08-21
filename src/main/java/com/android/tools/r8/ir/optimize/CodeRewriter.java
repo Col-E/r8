@@ -632,6 +632,7 @@ public class CodeRewriter {
       InvokeVirtual invoke = put.inValue().definition.asInvokeVirtual();
       if ((invoke.getInvokedMethod() == dexItemFactory.classMethods.getSimpleName
           || invoke.getInvokedMethod() == dexItemFactory.classMethods.getName)
+          && !invoke.inValues().get(0).isPhi()
           && invoke.inValues().get(0).definition.isConstClass()
           && invoke.inValues().get(0).definition.asConstClass().getValue()
           == method.method.getHolder()) {
