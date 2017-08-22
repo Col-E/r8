@@ -345,7 +345,8 @@ public class R8 {
       }
 
       // Only perform discard-checking if tree-shaking is turned on.
-      if (options.useTreeShaking && !rootSet.checkDiscarded.isEmpty()) {
+      if (options.useTreeShaking && !rootSet.checkDiscarded.isEmpty()
+          && options.useDiscardedChecker) {
         new DiscardedChecker(rootSet, application).run();
       }
 

@@ -31,6 +31,7 @@ public class R8Command extends BaseCommand {
     private Consumer<ProguardConfiguration.Builder> proguardConfigurationConsumer = null;
     private final List<Path> proguardConfigFiles = new ArrayList<>();
     private Optional<Boolean> treeShaking = Optional.empty();
+    private Optional<Boolean> discardedChecker = Optional.empty();
     private Optional<Boolean> minification = Optional.empty();
     private boolean ignoreMissingClasses = false;
     private Path packageDistributionFile = null;
@@ -53,6 +54,14 @@ public class R8Command extends BaseCommand {
      */
     public Builder setTreeShaking(boolean useTreeShaking) {
       treeShaking = Optional.of(useTreeShaking);
+      return self();
+    }
+
+    /**
+     * Enable/disable discareded checker.
+     */
+    public Builder setDiscardedChecker(boolean useDiscardedChecker) {
+      discardedChecker = Optional.of(useDiscardedChecker);
       return self();
     }
 
@@ -200,6 +209,7 @@ public class R8Command extends BaseCommand {
       }
 
       boolean useTreeShaking = treeShaking.orElse(configuration.isShrinking());
+      boolean useDiscardedChecker = discardedChecker.orElse(true);
       boolean useMinification = minification.orElse(configuration.isObfuscating());
 
       return new R8Command(
@@ -212,6 +222,7 @@ public class R8Command extends BaseCommand {
           getMode(),
           getMinApiLevel(),
           useTreeShaking,
+          useDiscardedChecker,
           useMinification,
           ignoreMissingClasses);
     }
@@ -237,6 +248,7 @@ public class R8Command extends BaseCommand {
       "                           # shaking/minification).",
       "  --pg-map <file>          # Proguard map <file>.",
       "  --no-tree-shaking        # Force disable tree shaking of unreachable classes.",
+      "  --no-discarded-checker   # Force disable the discarded checker (when tree shaking).",
       "  --no-minification        # Force disable minification of names.",
       "  --main-dex-rules <file>  # Proguard keep rules for classes to place in the",
       "                           # primary dex file.",
@@ -249,6 +261,7 @@ public class R8Command extends BaseCommand {
   private final Path mainDexListOutput;
   private final ProguardConfiguration proguardConfiguration;
   private final boolean useTreeShaking;
+  private final boolean useDiscardedChecker;
   private final boolean useMinification;
   private final boolean ignoreMissingClasses;
 
@@ -306,6 +319,8 @@ public class R8Command extends BaseCommand {
         builder.setMinApiLevel(Integer.valueOf(args[++i]));
       } else if (arg.equals("--no-tree-shaking")) {
         builder.setTreeShaking(false);
+      } else if (arg.equals("--no-discarded-checker")) {
+        builder.setDiscardedChecker(false);
       } else if (arg.equals("--no-minification")) {
         builder.setMinification(false);
       } else if (arg.equals("--main-dex-rules")) {
@@ -360,6 +375,7 @@ public class R8Command extends BaseCommand {
       CompilationMode mode,
       int minApiLevel,
       boolean useTreeShaking,
+      boolean useDiscardedChecker,
       boolean useMinification,
       boolean ignoreMissingClasses) {
     super(inputApp, outputPath, outputMode, mode, minApiLevel);
@@ -370,6 +386,7 @@ public class R8Command extends BaseCommand {
     this.mainDexListOutput = mainDexListOutput;
     this.proguardConfiguration = proguardConfiguration;
     this.useTreeShaking = useTreeShaking;
+    this.useDiscardedChecker = useDiscardedChecker;
     this.useMinification = useMinification;
     this.ignoreMissingClasses = ignoreMissingClasses;
   }
@@ -380,12 +397,17 @@ public class R8Command extends BaseCommand {
     mainDexListOutput = null;
     proguardConfiguration = null;
     useTreeShaking = false;
+    useDiscardedChecker = false;
     useMinification = false;
     ignoreMissingClasses = false;
   }
 
   public boolean useTreeShaking() {
     return useTreeShaking;
+  }
+
+  public boolean useDiscardedChecker() {
+    return useDiscardedChecker;
   }
 
   public boolean useMinification() {
@@ -402,6 +424,8 @@ public class R8Command extends BaseCommand {
     internal.skipMinification = !useMinification() || !proguardConfiguration.isObfuscating();
     assert internal.useTreeShaking;
     internal.useTreeShaking = useTreeShaking();
+    assert internal.useDiscardedChecker;
+    internal.useDiscardedChecker = useDiscardedChecker();
     assert !internal.ignoreMissingClasses;
     internal.ignoreMissingClasses = ignoreMissingClasses;
     for (String pattern : proguardConfiguration.getAttributesRemovalPatterns()) {

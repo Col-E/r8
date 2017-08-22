@@ -91,6 +91,7 @@ public class InternalOptions {
   public OutputMode outputMode = OutputMode.Indexed;
 
   public boolean useTreeShaking = true;
+  public boolean useDiscardedChecker = true;
 
   public boolean printCfg = false;
   public String printCfgFile;
