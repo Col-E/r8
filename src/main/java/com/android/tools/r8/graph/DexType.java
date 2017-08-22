@@ -288,8 +288,12 @@ public class DexType extends IndexedDexItem implements PresortedComparable<DexTy
   }
 
   public boolean isPrimitiveType() {
-    char firstChar = (char) descriptor.content[0];
-    return firstChar != 'L' && firstChar != '[';
+    return isPrimitiveType((char) descriptor.content[0]);
+  }
+
+  private boolean isPrimitiveType(char c) {
+    return c == 'Z' || c == 'B' || c == 'S' || c == 'C' || c == 'I' || c == 'F' || c == 'J'
+        || c == 'D';
   }
 
   public boolean isVoidType() {
@@ -310,19 +314,7 @@ public class DexType extends IndexedDexItem implements PresortedComparable<DexTy
     if (!isArrayType()) {
       return false;
     }
-    switch (descriptor.content[1]) {
-      case 'Z':  // boolean
-      case 'B':  // byte
-      case 'S':  // short
-      case 'C':  // char
-      case 'I':  // int
-      case 'F':  // float
-      case 'J':  // long
-      case 'D':  // double
-        return true;
-      default:
-        return false;
-    }
+    return isPrimitiveType((char) descriptor.content[1]);
   }
 
   public int elementSizeForPrimitiveArrayType() {
