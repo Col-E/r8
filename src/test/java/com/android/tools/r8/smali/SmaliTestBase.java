@@ -7,6 +7,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.R8;
+import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfo;
@@ -45,17 +46,12 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import org.antlr.runtime.RecognitionException;
-import org.junit.Rule;
-import org.junit.rules.TemporaryFolder;
 
-public class SmaliTestBase {
+public class SmaliTestBase extends TestBase {
 
   public static final String DEFAULT_CLASS_NAME = "Test";
   public static final String DEFAULT_MAIN_CLASS_NAME = DEFAULT_CLASS_NAME;
   public static final String DEFAULT_METHOD_NAME = "method";
-
-  @Rule
-  public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
   public static class MethodSignature {
 

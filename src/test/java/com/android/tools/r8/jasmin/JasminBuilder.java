@@ -5,7 +5,6 @@ package com.android.tools.r8.jasmin;
 
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.DexApplication;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.AndroidApp;
@@ -141,11 +140,17 @@ public class JasminBuilder {
     return out.toByteArray();
   }
 
+  public List<byte[]> buildClasses() throws Exception {
+    List<byte[]> result = new ArrayList<>();
+    for (ClassBuilder clazz : classes) {
+      result.add(compile(clazz));
+    }
+    return result;
+  }
+
   public AndroidApp build() throws Exception {
     AndroidApp.Builder builder = AndroidApp.builder();
-    for (ClassBuilder clazz : classes) {
-      builder.addClassProgramData(compile(clazz));
-    }
+    builder.addClassProgramData(buildClasses());
     return builder.build();
   }
 
@@ -154,7 +159,6 @@ public class JasminBuilder {
   }
 
   public DexApplication read(InternalOptions options) throws Exception {
-    DexItemFactory factory = new DexItemFactory();
     Timing timing = new Timing("JasminTest");
     return new ApplicationReader(build(), options, timing).read();
   }

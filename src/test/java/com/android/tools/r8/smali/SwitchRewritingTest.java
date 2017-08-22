@@ -21,9 +21,14 @@ import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.jasmin.JasminBuilder;
+import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.DexInspector;
+import com.android.tools.r8.utils.DexInspector.MethodSubject;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.junit.Test;
 
 public class SwitchRewritingTest extends SmaliTestBase {
@@ -455,5 +460,78 @@ public class SwitchRewritingTest extends SmaliTestBase {
     // the source, so making smaller source can raise this limit. However we never get close to the
     // class file max.
     runLargerSwitchJarTest(0, 1, 5503, null);
+  }
+
+  private void runConvertCasesToIf(List<Integer> keys, int defaultValue, int expectedIfs)
+      throws Exception {
+    JasminBuilder builder = new JasminBuilder();
+    JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
+
+    StringBuilder x = new StringBuilder();
+    StringBuilder y = new StringBuilder();
+    for (Integer key : keys) {
+      x.append(key).append(" : case_").append(key).append("\n");
+      y.append("case_").append(key).append(":\n");
+      y.append("    ldc ").append(key).append("\n");
+      y.append("    goto return_\n");
+    }
+
+    clazz.addStaticMethod("test", ImmutableList.of("I"), "I",
+        "    .limit stack 1",
+        "    .limit locals 1",
+        "    iload_0",
+        "    lookupswitch",
+        x.toString(),
+        "      default : case_default",
+        y.toString(),
+        "  case_default:",
+        "    ldc " + defaultValue,
+        "  return_:",
+        "    ireturn");
+
+    // Add the Jasmin class and a class from Java source with the main method.
+    AndroidApp.Builder appBuilder = AndroidApp.builder();
+    appBuilder.addClassProgramData(builder.buildClasses());
+    appBuilder.addProgramFiles(ToolHelper.getClassFileForTestClass(CheckSwitchInTestClass.class));
+    AndroidApp app = compileWithR8(appBuilder.build());
+
+    DexInspector inspector = new DexInspector(app);
+    MethodSubject method = inspector.clazz("Test").method("int", "test", ImmutableList.of("int"));
+    DexCode code = method.getMethod().getCode().asDexCode();
+
+    int packedSwitches = 0;
+    int sparseSwitches = 0;
+    int ifs = 0;
+    for (Instruction instruction : code.instructions) {
+      if (instruction instanceof PackedSwitch) {
+        packedSwitches++;
+      }
+      if (instruction instanceof SparseSwitch) {
+        sparseSwitches++;
+      }
+      if (instruction instanceof IfEq || instruction instanceof IfEqz) {
+        ifs++;
+      }
+    }
+
+    assertEquals(1, packedSwitches);
+    assertEquals(0, sparseSwitches);
+    assertEquals(expectedIfs, ifs);
+
+    // Run the code
+    List<String> args = keys.stream().map(Object::toString).collect(Collectors.toList());
+    args.add(Integer.toString(defaultValue));
+    runOnArt(app, CheckSwitchInTestClass.class, args);
+  }
+
+  @Test
+  public void convertCasesToIf() throws Exception {
+    runConvertCasesToIf(ImmutableList.of(0, 1000, 1001, 1002, 1003, 1004), -100, 1);
+    runConvertCasesToIf(ImmutableList.of(1000, 1001, 1002, 1003, 1004, 2000), -100, 1);
+    runConvertCasesToIf(ImmutableList.of(Integer.MIN_VALUE, 1000, 1001, 1002, 1003, 1004), -100, 1);
+    runConvertCasesToIf(ImmutableList.of(1000, 1001, 1002, 1003, 1004, Integer.MAX_VALUE), -100, 1);
+    runConvertCasesToIf(ImmutableList.of(0, 1000, 1001, 1002, 1003, 1004, 2000), -100, 2);
+    runConvertCasesToIf(ImmutableList.of(
+        Integer.MIN_VALUE, 1000, 1001, 1002, 1003, 1004, Integer.MAX_VALUE), -100, 2);
   }
 }

@@ -12,6 +12,8 @@ import com.android.tools.r8.code.SparseSwitchPayload;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.utils.CfgPrinter;
+import com.google.common.primitives.Ints;
+import java.util.List;
 
 public class Switch extends JumpInstruction {
 
@@ -48,29 +50,73 @@ public class Switch extends JumpInstruction {
   }
 
   // Number of targets if this switch is emitted as a packed switch.
-  private long numberOfTargetsIfPacked() {
+  private static long numberOfTargetsIfPacked(int keys[]) {
     return ((long) keys[keys.length - 1]) - ((long) keys[0]) + 1;
   }
 
-  private boolean canBePacked() {
+  public static boolean canBePacked(int keys[]) {
     // The size of a switch payload is stored in an ushort in the Dex file.
-    return numberOfTargetsIfPacked() <= Constants.U16BIT_MAX;
+    return numberOfTargetsIfPacked(keys) <= Constants.U16BIT_MAX;
+  }
+
+  // Number of targets if this switch is emitted as a packed switch.
+  public static int numberOfTargetsForPacked(int keys[]) {
+    assert canBePacked(keys);
+    return (int) numberOfTargetsIfPacked(keys);
+  }
+
+  // Size of the switch payload if emitted as packed (in code units).
+  static public long packedPayloadSize(int keys[]) {
+    return (numberOfTargetsForPacked(keys) * 2) + 4;
+  }
+
+  // Size of the switch payload if emitted as sparse (in code units).
+  public static long sparsePayloadSize(int keys[]) {
+    return (keys.length * 4) + 2;
+  }
+
+  /**
+   * Size of the switch payload instruction for the given keys. This will be the payload
+   * size for the smallest encoding of the provided keys.
+   *
+   * @param keys the switch keys
+   * @return Size of the switch payload instruction in code units
+   */
+  public static long payloadSize(List<Integer> keys) {
+    return payloadSize(Ints.toArray(keys));
+  }
+
+  /**
+   * Size of the switch payload instruction for the given keys.
+   *
+   * @see #payloadSize(List)
+   */
+  public static long payloadSize(int keys[]) {
+    long sparse = sparsePayloadSize(keys);
+    if (canBePacked(keys)) {
+      return Math.min(sparse, packedPayloadSize(keys));
+    } else {
+      return sparse;
+    }
+  }
+
+  private boolean canBePacked() {
+    return canBePacked(keys);
   }
 
   // Number of targets if this switch is emitted as a packed switch.
   private int numberOfTargetsForPacked() {
-    assert canBePacked();
-    return (int) numberOfTargetsIfPacked();
+    return numberOfTargetsForPacked(keys);
   }
 
   // Size of the switch payload if emitted as packed (in code units).
   private long packedPayloadSize() {
-    return (numberOfTargetsForPacked() * 2) + 4;
+    return packedPayloadSize(keys);
   }
 
   // Size of the switch payload if emitted as sparse (in code units).
   private long sparsePayloadSize() {
-    return (keys.length * 4) + 2;
+    return sparsePayloadSize(keys);
   }
 
   private boolean emitPacked() {
@@ -119,6 +165,10 @@ public class Switch extends JumpInstruction {
 
   public int getKey(int index) {
     return keys[index];
+  }
+
+  public int[] getKeys() {
+    return keys;
   }
 
   public int[] targetBlockIndices() {
@@ -192,6 +242,7 @@ public class Switch extends JumpInstruction {
     StringBuilder builder = new StringBuilder(super.toString()+ "\n");
     for (int i = 0; i < numberOfKeys(); i++) {
       builder.append("          ");
+      builder.append(getKey(i));
       builder.append(" -> ");
       builder.append(targetBlock(i).getNumber());
       builder.append("\n");

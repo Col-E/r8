@@ -543,6 +543,13 @@ public class BasicBlock {
     return unlinkSingleSuccessor();
   }
 
+  public void detachAllSuccessors() {
+    for (BasicBlock successor : successors) {
+      successor.predecessors.remove(this);
+    }
+    successors.clear();
+  }
+
   public List<BasicBlock> unlink(BasicBlock successor, DominatorTree dominator) {
     assert successors.contains(successor);
     assert successor.predecessors.contains(this);
@@ -935,11 +942,38 @@ public class BasicBlock {
    *
    * <p>The constructed basic block has no predecessors and no successors.
    *
-   * @param blockNumber the block number of the goto block
+   * @param blockNumber the block number of the block
+   * @param theIf the if instruction
    */
   public static BasicBlock createIfBlock(int blockNumber, If theIf) {
     BasicBlock block = new BasicBlock();
     block.add(theIf);
+    block.close(null);
+    block.setNumber(blockNumber);
+    return block;
+  }
+
+  /**
+   * Create a new basic block with an instruction followed by an if instruction.
+   *
+   * <p>The constructed basic block has no predecessors and no successors.
+   *
+   * @param blockNumber the block number of the block
+   * @param theIf the if instruction
+   * @param instruction the instruction to place before the if instruction
+   */
+  public static BasicBlock createIfBlock(int blockNumber, If theIf, Instruction instruction) {
+    BasicBlock block = new BasicBlock();
+    block.add(instruction);
+    block.add(theIf);
+    block.close(null);
+    block.setNumber(blockNumber);
+    return block;
+  }
+
+  public static BasicBlock createSwitchBlock(int blockNumber, Switch theSwitch) {
+    BasicBlock block = new BasicBlock();
+    block.add(theSwitch);
     block.close(null);
     block.setNumber(blockNumber);
     return block;
