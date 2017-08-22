@@ -308,25 +308,50 @@ public class Value {
     }
     if (debugData != null) {
       for (Instruction user : debugUsers()) {
-        user.getDebugValues().replaceAll(v -> {
-          if (v == this) {
-            newValue.addDebugUser(user);
-            return newValue;
-          }
-          return v;
-        });
+        if (user.getDebugValues().remove(this)) {
+          user.addDebugValue(newValue);
+        }
       }
       for (Phi user : debugPhiUsers()) {
-        user.getDebugValues().replaceAll(v -> {
-          if (v == this) {
-            newValue.addDebugPhiUser(user);
-            return newValue;
-          }
-          return v;
-        });
+        if (user.getDebugValues().remove(this)) {
+          user.addDebugValue(newValue);
+        }
       }
     }
     clearUsers();
+  }
+
+  public void replaceInUsers(Value newValue) {
+    if (!uniqueUsers().isEmpty()) {
+      List<Instruction> toRemove = new ArrayList<>(uniqueUsers().size());
+      for (Instruction user : uniqueUsers()) {
+        user.replaceValue(this, newValue, toRemove);
+      }
+      toRemove.forEach(this::removeUser);
+    }
+    if (!uniquePhiUsers().isEmpty()) {
+      List<Phi> toRemove = new ArrayList<>(uniquePhiUsers().size());
+      for (Phi user : uniquePhiUsers()) {
+        user.replaceTrivialPhi(this, newValue, toRemove);
+      }
+      toRemove.forEach(this::removePhiUser);
+    }
+    if (debugData != null) {
+      if (!debugUsers().isEmpty()) {
+        List<Instruction> toRemove = new ArrayList<>(debugUsers().size());
+        for (Instruction user : debugUsers()) {
+          user.replaceDebugValue(this, newValue, toRemove);
+        }
+        toRemove.forEach(this::removeDebugUser);
+      }
+      if (!debugPhiUsers().isEmpty()) {
+        List<Phi> toRemove = new ArrayList<>(debugPhiUsers().size());
+        for (Phi user : debugPhiUsers()) {
+          user.replaceTrivialDebugPhi(this, newValue, toRemove);
+        }
+        toRemove.forEach(this::removeDebugPhiUser);
+      }
+    }
   }
 
   public void setLiveIntervals(LiveIntervals intervals) {

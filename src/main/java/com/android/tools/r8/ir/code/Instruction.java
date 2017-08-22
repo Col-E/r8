@@ -14,9 +14,11 @@ import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public abstract class Instruction {
 
@@ -24,7 +26,7 @@ public abstract class Instruction {
   protected final List<Value> inValues = new ArrayList<>();
   private BasicBlock block = null;
   private int number = -1;
-  private List<Value> debugValues = null;
+  private Set<Value> debugValues = null;
 
   protected Instruction(Value outValue) {
     setOutValue(outValue);
@@ -70,7 +72,7 @@ public abstract class Instruction {
   public void addDebugValue(Value value) {
     assert value.getLocalInfo() != null;
     if (debugValues == null) {
-      debugValues = new ArrayList<>();
+      debugValues = new HashSet<>();
     }
     debugValues.add(value);
     value.addDebugUser(this);
@@ -92,39 +94,25 @@ public abstract class Instruction {
 
   public abstract void buildDex(DexBuilder builder);
 
-  public void replaceValue(Value oldValue, Value newValue) {
+  public void replaceValue(Value oldValue, Value newValue, List<Instruction> toRemove) {
     for (int i = 0; i < inValues.size(); i++) {
       if (oldValue == inValues.get(i)) {
         inValues.set(i, newValue);
         newValue.addUser(this);
-        oldValue.removeUser(this);
+        toRemove.add(this);
       }
     }
   }
 
-  // Similar to Phi::replaceTrivialPhi, removal can cause a concurrent modification error.
-  // TODO(ager): Consider unifying with other replace methods and avoid the C.M.E.
-  public boolean replaceDebugValue(Value oldValue, Value newValue) {
-    if (debugValues == null) {
-      return false;
-    }
-    int found = -1;
-    for (int i = 0; i < debugValues.size(); i++) {
-      if (oldValue == debugValues.get(i)) {
-        assert found == -1;
-        found = i;
-        if (newValue.getLocalInfo() != null) {
-          // TODO(zerny): Insert a write if replacing a phi with different debug-local info.
-          debugValues.set(i, newValue);
-          newValue.addDebugUser(this);
-        }
+  public void replaceDebugValue(Value oldValue, Value newValue, List<Instruction> toRemove) {
+    if (debugValues.remove(oldValue)) {
+      toRemove.add(this);
+      if (newValue.getLocalInfo() != null) {
+        // TODO(zerny): Insert a write if replacing a phi with different debug-local info.
+        addDebugValue(newValue);
       }
+      // TODO(zerny): Else: Insert a write if replacing a phi with associated debug-local info.
     }
-    if (found >= 0 && newValue.getLocalInfo() == null) {
-      // TODO(zerny): Insert a write if replacing a phi with associated debug-local info.
-      debugValues.remove(found);
-    }
-    return found >= 0;
   }
 
   /**
@@ -324,8 +312,8 @@ public abstract class Instruction {
     return outValue == null ? null : outValue.getLocalInfo();
   }
 
-  public List<Value> getDebugValues() {
-    return debugValues != null ? debugValues : ImmutableList.of();
+  public Set<Value> getDebugValues() {
+    return debugValues != null ? debugValues : ImmutableSet.of();
   }
 
   public boolean isArrayGet() {

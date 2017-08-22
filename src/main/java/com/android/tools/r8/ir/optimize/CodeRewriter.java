@@ -1103,13 +1103,15 @@ public class CodeRewriter {
             assert instruction.outValue().numberOfUsers() != 0;
             ConstNumber constNumber = instruction.asConstNumber();
             Value constantValue = instruction.outValue();
+            List<Instruction> toRemove = new ArrayList<>(constantValue.uniqueUsers().size());
             for (Instruction user : constantValue.uniqueUsers()) {
               ConstNumber newCstNum = ConstNumber.copyOf(code, constNumber);
               InstructionListIterator iterator = user.getBlock().listIterator(user);
               iterator.previous();
               iterator.add(newCstNum);
-              user.replaceValue(constantValue, newCstNum.outValue());
+              user.replaceValue(constantValue, newCstNum.outValue(), toRemove);
             }
+            toRemove.forEach(constantValue::removeUser);
           }
         }
       } else {
