@@ -95,7 +95,8 @@ public interface InstructionListIterator extends ListIterator<Instruction>,
    * @param code the IR code for the block this iterator originates from.
    * @param blockIterator basic block iterator used to iterate the blocks. This must be positioned
    * just after the block for which this is the instruction iterator. After this method returns it
-   * will be positioned just after the basic block returned.
+   * will be positioned just after the basic block returned. Calling {@link #remove} without
+   * further navigation will remove that block.
    * @return Returns the new block with the instructions after the cursor.
    */
   BasicBlock split(IRCode code, ListIterator<BasicBlock> blockIterator);
@@ -118,9 +119,9 @@ public interface InstructionListIterator extends ListIterator<Instruction>,
    * @param code the IR code for the block this iterator originates from.
    * @param blockIterator basic block iterator used to iterate the blocks. This must be positioned
    * just after the block for this is the instruction iterator. After this method returns it will be
-   * positioned just after the second block inserted. That is after the successor of the block
-   * returned.
-   * @return Returns the new block with the instructions right after the cursor.
+   * positioned just after the second block inserted. Calling {@link #remove} without further
+   * navigation will remove that block.
+   * @return Returns the new block with the instructions after the cursor.
    */
   // TODO(sgjesse): Refactor to avoid the need for passing code and blockIterator.
   BasicBlock split(int instructions, IRCode code, ListIterator<BasicBlock> blockIterator);
