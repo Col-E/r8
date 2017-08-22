@@ -19,6 +19,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
@@ -30,7 +31,7 @@ import org.junit.rules.TemporaryFolder;
 public class TestBase {
 
   @Rule
-  public TemporaryFolder temp = new TemporaryFolder();
+  public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
   /**
    * Write lines of text to a temporary file.
@@ -109,6 +110,15 @@ public class TestBase {
       throws CompilationException, ProguardRuleParserException, ExecutionException, IOException {
     R8Command command = ToolHelper.prepareR8CommandBuilder(readClasses(classes)).build();
     return ToolHelper.runR8(command, optionsConsumer);
+  }
+
+  /**
+   * Compile an application with R8.
+   */
+  protected AndroidApp compileWithR8(AndroidApp app)
+      throws CompilationException, ProguardRuleParserException, ExecutionException, IOException {
+    R8Command command = ToolHelper.prepareR8CommandBuilder(app).build();
+    return ToolHelper.runR8(command);
   }
 
   /**
@@ -215,6 +225,13 @@ public class TestBase {
    * Run application on Art with the specified main class and provided arguments.
    */
   protected String runOnArt(AndroidApp app, Class mainClass, String... args) throws IOException {
+    return runOnArt(app, mainClass, Arrays.asList(args));
+  }
+
+  /**
+   * Run application on Art with the specified main class and provided arguments.
+   */
+  protected String runOnArt(AndroidApp app, Class mainClass, List<String> args) throws IOException {
     Path out = File.createTempFile("junit", ".zip", temp.getRoot()).toPath();
     app.writeToZip(out, OutputMode.Indexed);
     return ToolHelper.runArtNoVerificationErrors(

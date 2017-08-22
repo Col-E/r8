@@ -37,6 +37,7 @@ import com.android.tools.r8.ir.code.Cmp.Bias;
 import com.android.tools.r8.ir.code.ConstInstruction;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.ConstString;
+import com.android.tools.r8.ir.code.ConstType;
 import com.android.tools.r8.ir.code.DominatorTree;
 import com.android.tools.r8.ir.code.Goto;
 import com.android.tools.r8.ir.code.IRCode;
@@ -63,6 +64,7 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.SwitchUtils.EnumSwitchInfo;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.LongInterval;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
@@ -72,8 +74,13 @@ import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Maps;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntIterator;
 import it.unimi.dsi.fastutil.ints.IntList;
+import it.unimi.dsi.fastutil.objects.Object2IntLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -336,8 +343,130 @@ public class CodeRewriter {
     }
   }
 
+  // TODO(sgjesse); Move this somewhere else, and reuse it for some of the other switch rewritings.
+  public static class SwitchBuilder {
+    private Value value;
+    private Int2ObjectSortedMap<BasicBlock> keyToTarget = new Int2ObjectAVLTreeMap<>();
+    private BasicBlock fallthrough;
+    private int blockNumber;
+
+    public SwitchBuilder setValue(Value value) {
+      this.value = value;
+      return  this;
+    }
+
+    public SwitchBuilder addKeyAndTarget(int key, BasicBlock target) {
+      keyToTarget.put(key, target);
+      return this;
+    }
+
+    public SwitchBuilder setFallthrough(BasicBlock fallthrough) {
+      this.fallthrough = fallthrough;
+      return this;
+    }
+
+    public SwitchBuilder setBlockNumber(int blockNumber) {
+      this.blockNumber = blockNumber;
+      return  this;
+    }
+
+    public BasicBlock build() {
+      final int NOT_FOUND = -1;
+      Object2IntMap<BasicBlock> targetToSuccessorIndex = new Object2IntLinkedOpenHashMap<>();
+      targetToSuccessorIndex.defaultReturnValue(NOT_FOUND);
+
+      int[] keys = new int[keyToTarget.size()];
+      int[] targetBlockIndices = new int[keyToTarget.size()];
+      // Sort keys descending.
+      int count = 0;
+      IntIterator iter = keyToTarget.keySet().iterator();
+      while (iter.hasNext()) {
+        int key = iter.nextInt();
+        BasicBlock target = keyToTarget.get(key);
+        Integer targetIndex =
+            targetToSuccessorIndex.computeIfAbsent(target, b -> targetToSuccessorIndex.size());
+        keys[count] = key;
+        targetBlockIndices[count] = targetIndex;
+        count++;
+      }
+      Integer fallthroughIndex =
+          targetToSuccessorIndex.computeIfAbsent(fallthrough, b -> targetToSuccessorIndex.size());
+      Switch newSwitch = new Switch(value, keys, targetBlockIndices, fallthroughIndex);
+      BasicBlock newSwitchBlock = BasicBlock.createSwitchBlock(blockNumber, newSwitch);
+      for (BasicBlock successor : targetToSuccessorIndex.keySet()) {
+        newSwitchBlock.link(successor);
+      }
+      return newSwitchBlock;
+    }
+  }
+
+  /**
+   * Covert the switch instruction to a sequence of if instructions checking for a specified
+   * set of keys, followed by a new switch with the remaining keys.
+   */
+  private void convertSwitchToSwitchAndIfs(
+      IRCode code, ListIterator<BasicBlock> blocksIterator, BasicBlock originalBlock,
+      InstructionListIterator iterator, Switch theSwitch, List<Integer> keysToRemove) {
+    // Split the switch instruction into its own block and remove it.
+    iterator.previous();
+    BasicBlock originalSwitchBlock = iterator.split(code, blocksIterator);
+    assert !originalSwitchBlock.hasCatchHandlers();
+    assert originalSwitchBlock.getInstructions().size() == 1;
+    BasicBlock block = blocksIterator.previous();
+    assert block == originalSwitchBlock;
+    blocksIterator.remove();
+
+    int nextBlockNumber = code.getHighestBlockNumber() + 1;
+
+    // Collect targets for the keys to peel off, and create a new switch instruction without
+    // these keys.
+    SwitchBuilder switchBuilder = new SwitchBuilder();
+    List<BasicBlock> peeledOffTargets = new ArrayList<>();
+    for (int i = 0; i < theSwitch.numberOfKeys(); i++) {
+      BasicBlock target = theSwitch.targetBlock(i);
+      if (!keysToRemove.contains(theSwitch.getKey(i))) {
+        switchBuilder.addKeyAndTarget(theSwitch.getKey(i), theSwitch.targetBlock(i));
+      } else {
+        peeledOffTargets.add(target);
+      }
+    }
+    assert peeledOffTargets.size() == keysToRemove.size();
+    switchBuilder.setValue(theSwitch.value());
+    switchBuilder.setFallthrough(theSwitch.fallthroughBlock());
+    switchBuilder.setBlockNumber(nextBlockNumber++);
+    theSwitch.getBlock().detachAllSuccessors();
+    block = theSwitch.getBlock().unlinkSinglePredecessor();
+    assert theSwitch.getBlock().getPredecessors().size() == 0;
+    assert theSwitch.getBlock().getSuccessors().size() == 0;
+    assert block == originalBlock;
+
+    BasicBlock newSwitchBlock = switchBuilder.build();
+
+    // Create if blocks for each of the peeled off keys, and link them into the graph.
+    BasicBlock predecessor = originalBlock;
+    for (int i = 0; i < keysToRemove.size(); i++) {
+      int key = keysToRemove.get(i);
+      BasicBlock peeledOffTarget = peeledOffTargets.get(i);
+      ConstNumber keyConst = code.createIntConstant(key);
+      If theIf = new If(Type.EQ, ImmutableList.of(keyConst.dest(), theSwitch.value()));
+      BasicBlock ifBlock = BasicBlock.createIfBlock(nextBlockNumber++, theIf, keyConst);
+      predecessor.link(ifBlock);
+      ifBlock.link(peeledOffTarget);
+      predecessor = ifBlock;
+      blocksIterator.add(ifBlock);
+      assert !peeledOffTarget.getPredecessors().contains(theSwitch.getBlock());
+    }
+    predecessor.link(newSwitchBlock);
+    blocksIterator.add(newSwitchBlock);
+
+    // The switch fallthrough block is still the same, and it is right after the new switch block.
+    IteratorUtils.peekNext(blocksIterator, newSwitchBlock.exit().fallthroughBlock());
+  }
+
   public void rewriteSwitch(IRCode code) {
-    for (BasicBlock block : code.blocks) {
+    ListIterator<BasicBlock> blocksIterator = code.listIterator();
+    while (blocksIterator.hasNext()) {
+      BasicBlock block = blocksIterator.next();
       InstructionListIterator iterator = block.listIterator();
       while (iterator.hasNext()) {
         Instruction instruction = iterator.next();
@@ -360,6 +489,54 @@ public class CodeRewriter {
               assert dummy == theSwitch;
               If theIf = new If(Type.EQ, ImmutableList.of(theSwitch.value(), labelConst.dest()));
               iterator.replaceCurrentInstruction(theIf);
+            }
+          } else {
+            // Split keys into outliers and sequences.
+            List<List<Integer>> sequences = new ArrayList<>();
+            List<Integer> outliers = new ArrayList<>();
+
+            List<Integer> current = new ArrayList<>();
+            int[] keys = theSwitch.getKeys();
+            int previousKey = keys[0];
+            current.add(previousKey);
+            for (int i = 1; i < keys.length; i++) {
+              assert current.size() > 0;
+              assert current.get(current.size() - 1) == previousKey;
+              int key = keys[i];
+              if (((long) key - (long) previousKey) > 1) {
+                if (current.size() == 1) {
+                  outliers.add(previousKey);
+                } else {
+                  sequences.add(current);;
+                }
+                current = new ArrayList<>();
+              }
+              current.add(key);
+              previousKey = key;
+            }
+            if (current.size() == 1) {
+              outliers.add(previousKey);
+            } else {
+              sequences.add(current);
+            }
+
+            // Only check for rewrite if there is one sequence and one or two outliers.
+            if (sequences.size() == 1 && outliers.size() <= 2) {
+              // Get the existing dex size for the payload (excluding the switch itself).
+              long currentSize = Switch.payloadSize(keys);
+              // Estimate the dex size of the rewritten payload and the additional if instructions.
+              long rewrittenSize = Switch.payloadSize(sequences.get(0));
+              for (Integer outlier : outliers) {
+                rewrittenSize += ConstNumber.estimatedDexSize(
+                    ConstType.fromMoveType(theSwitch.value().outType()), outlier);
+                rewrittenSize += If.estimatedDexSize();
+              }
+              // Rewrite if smaller.
+              if (rewrittenSize < currentSize) {
+                convertSwitchToSwitchAndIfs(
+                    code, blocksIterator, block, iterator, theSwitch, outliers);
+                assert code.isConsistentSSA();
+              }
             }
           }
         }

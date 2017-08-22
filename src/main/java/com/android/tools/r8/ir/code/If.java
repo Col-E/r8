@@ -115,6 +115,11 @@ public class If extends JumpInstruction {
     builder.addIf(this);
   }
 
+  // Estimated size of the resulting dex instruction in code units.
+  public static int estimatedDexSize() {
+    return 2;
+  }
+
   @Override
   public String toString() {
     return super.toString() + " " + type + " block " + getTrueTarget().getNumber()

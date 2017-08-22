@@ -5,6 +5,8 @@ package com.android.tools.r8.code;
 
 public abstract class Base4Format extends Instruction {
 
+  public static final int SIZE = 4;
+
   protected Base4Format() {}
 
   public Base4Format(BytecodeStream stream) {
@@ -12,6 +14,6 @@ public abstract class Base4Format extends Instruction {
   }
 
   public int getSize() {
-    return 4;
+    return SIZE;
   }
 }
