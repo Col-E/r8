@@ -412,8 +412,6 @@ public class CodeRewriter {
     BasicBlock originalSwitchBlock = iterator.split(code, blocksIterator);
     assert !originalSwitchBlock.hasCatchHandlers();
     assert originalSwitchBlock.getInstructions().size() == 1;
-    BasicBlock block = blocksIterator.previous();
-    assert block == originalSwitchBlock;
     blocksIterator.remove();
 
     int nextBlockNumber = code.getHighestBlockNumber() + 1;
@@ -435,7 +433,7 @@ public class CodeRewriter {
     switchBuilder.setFallthrough(theSwitch.fallthroughBlock());
     switchBuilder.setBlockNumber(nextBlockNumber++);
     theSwitch.getBlock().detachAllSuccessors();
-    block = theSwitch.getBlock().unlinkSinglePredecessor();
+    BasicBlock block = theSwitch.getBlock().unlinkSinglePredecessor();
     assert theSwitch.getBlock().getPredecessors().size() == 0;
     assert theSwitch.getBlock().getSuccessors().size() == 0;
     assert block == originalBlock;
@@ -460,7 +458,7 @@ public class CodeRewriter {
     blocksIterator.add(newSwitchBlock);
 
     // The switch fallthrough block is still the same, and it is right after the new switch block.
-    IteratorUtils.peekNext(blocksIterator, newSwitchBlock.exit().fallthroughBlock());
+    assert newSwitchBlock.exit().fallthroughBlock() == IteratorUtils.peekNext(blocksIterator);
   }
 
   public void rewriteSwitch(IRCode code) {
