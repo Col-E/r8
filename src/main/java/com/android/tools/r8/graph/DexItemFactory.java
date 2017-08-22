@@ -317,6 +317,8 @@ public class DexItemFactory {
     DexType result = types.get(descriptor);
     if (result == null) {
       result = new DexType(descriptor);
+      assert result.isArrayType() || result.isClassType() || result.isPrimitiveType() ||
+          result.isVoidType();
       assert !internalSentinels.contains(result);
       types.put(descriptor, result);
     }
