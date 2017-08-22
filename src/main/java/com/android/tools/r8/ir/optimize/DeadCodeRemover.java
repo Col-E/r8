@@ -61,10 +61,6 @@ public class DeadCodeRemover {
     for (Value debugValue : instruction.getDebugValues()) {
       updateWorklist(worklist, debugValue);
     }
-    Value previousLocalValue = instruction.getPreviousLocalValue();
-    if (previousLocalValue != null) {
-      updateWorklist(worklist, previousLocalValue);
-    }
   }
 
   private static void removeDeadPhis(

@@ -575,10 +575,6 @@ public class BasicBlock {
           for (Value value : instruction.getDebugValues()) {
             value.removeDebugUser(instruction);
           }
-          Value previousLocalValue = instruction.getPreviousLocalValue();
-          if (previousLocalValue != null) {
-            previousLocalValue.removeDebugUser(instruction);
-          }
         }
       }
     }
@@ -1144,7 +1140,7 @@ public class BasicBlock {
       // Remove the move-exception instruction.
       move = entry().asMoveException();
       position = move.getPosition();
-      assert move.getPreviousLocalValue() == null;
+      assert move.getDebugValues().isEmpty();
       getInstructions().remove(0);
     }
     // Create new predecessor blocks.
@@ -1158,8 +1154,7 @@ public class BasicBlock {
       BasicBlock newBlock = new BasicBlock();
       newPredecessors.add(newBlock);
       if (hasMoveException) {
-        Value value = new Value(
-            valueNumberGenerator.next(), MoveType.OBJECT, move.getDebugInfo());
+        Value value = new Value(valueNumberGenerator.next(), MoveType.OBJECT, move.getLocalInfo());
         values.add(value);
         MoveException newMove = new MoveException(value);
         newBlock.add(newMove);

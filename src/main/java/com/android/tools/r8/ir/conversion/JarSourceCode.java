@@ -260,7 +260,8 @@ public class JarSourceCode implements SourceCode {
   @Override
   public void buildPrelude(IRBuilder builder) {
     // Record types for arguments.
-    Map<Integer, MoveType> initializedLocals = recordArgumentTypes();
+    Int2ReferenceMap<MoveType> argumentLocals = recordArgumentTypes();
+    Int2ReferenceMap<MoveType> initializedLocals = new Int2ReferenceOpenHashMap<>(argumentLocals);
     // Initialize all non-argument locals to ensure safe insertion of debug-local instructions.
     for (Object o : node.localVariables) {
       LocalVariableNode local = (LocalVariableNode) o;
@@ -294,7 +295,11 @@ public class JarSourceCode implements SourceCode {
     }
     // Add debug information for all locals at the initial label.
     if (initialLabel != null) {
-      state.openLocals(initialLabel);
+      for (Local local : state.openLocals(initialLabel)) {
+        if (!argumentLocals.containsKey(local.slot.register)) {
+          builder.addDebugLocalStart(local.slot.register, local.info);
+        }
+      }
     }
     // Build the actual argument instructions now that type and debug information is known
     // for arguments.

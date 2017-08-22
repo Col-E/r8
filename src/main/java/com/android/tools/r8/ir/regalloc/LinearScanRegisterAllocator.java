@@ -1841,6 +1841,8 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
         int predIndex = succ.getPredecessors().indexOf(block);
         for (Phi phi : succ.getPhis()) {
           live.add(phi.getOperand(predIndex));
+          assert phi.getDebugValues().stream().allMatch(Value::needsRegister);
+          live.addAll(phi.getDebugValues());
         }
       }
       ListIterator<Instruction> iterator =
@@ -1855,17 +1857,8 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
             live.add(use);
           }
         }
-        if (options.debug) {
-          for (Value use : instruction.getDebugValues()) {
-            assert use.needsRegister();
-            live.add(use);
-          }
-          Value use = instruction.getPreviousLocalValue();
-          if (use != null) {
-            assert use.needsRegister();
-            live.add(use);
-          }
-        }
+        assert instruction.getDebugValues().stream().allMatch(Value::needsRegister);
+        live.addAll(instruction.getDebugValues());
       }
       for (Phi phi : block.getPhis()) {
         live.remove(phi);
@@ -1942,6 +1935,8 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
         for (Phi phi : successor.getPhis()) {
           live.remove(phi);
           phiOperands.add(phi.getOperand(successor.getPredecessors().indexOf(block)));
+          assert phi.getDebugValues().stream().allMatch(Value::needsRegister);
+          phiOperands.addAll(phi.getDebugValues());
         }
       }
       live.addAll(phiOperands);
@@ -1984,14 +1979,6 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
         if (options.debug) {
           int number = instruction.getNumber();
           for (Value use : instruction.getDebugValues()) {
-            assert use.needsRegister();
-            if (!live.contains(use)) {
-              live.add(use);
-              addLiveRange(use, block, number);
-            }
-          }
-          Value use = instruction.getPreviousLocalValue();
-          if (use != null) {
             assert use.needsRegister();
             if (!live.contains(use)) {
               live.add(use);

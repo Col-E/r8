@@ -10,6 +10,7 @@ import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.StringUtils;
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -20,6 +21,7 @@ public class Phi extends Value {
 
   private final BasicBlock block;
   private final List<Value> operands = new ArrayList<>();
+  private List<Value> debugValues = null;
 
   // Trivial phis are eliminated during IR construction. When a trivial phi is eliminated
   // we need to update all references to it. A phi can be referenced from phis, instructions
@@ -36,7 +38,7 @@ public class Phi extends Value {
   private MoveType outType = null;
 
   public Phi(int number, BasicBlock block, MoveType type, DebugLocalInfo local) {
-    super(number, type, local == null ? null : new DebugInfo(local, null));
+    super(number, type, local);
     this.block = block;
     block.addPhi(this);
   }
@@ -94,6 +96,15 @@ public class Phi extends Value {
       markNeverNull();
     }
     removeTrivialPhi();
+  }
+
+  public void addDebugValue(Value value) {
+    assert value.getLocalInfo() != null;
+    if (debugValues == null) {
+      debugValues = new ArrayList<>();
+    }
+    debugValues.add(value);
+    value.addDebugPhiUser(this);
   }
 
   private void throwUndefinedValueError() {
@@ -157,6 +168,20 @@ public class Phi extends Value {
     }
   }
 
+  private void replaceTrivialDebugPhi(Value current, Value newValue) {
+    if (debugValues == null) {
+      return;
+    }
+    assert current.getLocalInfo() != null;
+    assert current.getLocalInfo() == newValue.getLocalInfo();
+    for (int i = 0; i < debugValues.size(); i++) {
+      if (debugValues.get(i) == current) {
+        debugValues.set(i, newValue);
+        newValue.addDebugPhiUser(this);
+      }
+    }
+  }
+
   public boolean isTrivialPhi() {
     Value same = null;
     for (Value op : operands) {
@@ -202,8 +227,15 @@ public class Phi extends Value {
       user.replaceTrivialPhi(this, same);
     }
     if (debugUsers() != null) {
+      List<Instruction> removed = new ArrayList<>();
       for (Instruction user : debugUsers()) {
-        user.replaceDebugPhi(this, same);
+        if (user.replaceDebugValue(this, same)) {
+          removed.add(user);
+        }
+      }
+      removed.forEach(this::removeDebugUser);
+      for (Phi user : debugPhiUsers()) {
+        user.replaceTrivialDebugPhi(this, same);
       }
     }
     // If IR construction is taking place, update the definition users.
@@ -315,5 +347,9 @@ public class Phi extends Value {
 
   public boolean needsRegister() {
     return true;
+  }
+
+  public List<Value> getDebugValues() {
+    return debugValues != null ? debugValues : ImmutableList.of();
   }
 }

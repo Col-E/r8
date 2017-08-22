@@ -7,7 +7,6 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.code.Value.DebugInfo;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
@@ -65,10 +64,6 @@ public abstract class Instruction {
     outValue = value;
     if (outValue != null) {
       outValue.definition = this;
-      Value previousLocalValue = getPreviousLocalValue();
-      if (previousLocalValue != null) {
-        previousLocalValue.addDebugUser(this);
-      }
     }
   }
 
@@ -107,27 +102,29 @@ public abstract class Instruction {
     }
   }
 
-  public void replaceDebugPhi(Phi phi, Value value) {
-    if (debugValues != null) {
-      for (int i = 0; i < debugValues.size(); i++) {
-        if (phi == debugValues.get(i)) {
-          if (value.getLocalInfo() == null) {
-            debugValues.remove(i);
-          } else {
-            debugValues.set(i, value);
-            value.addDebugUser(this);
-          }
+  // Similar to Phi::replaceTrivialPhi, removal can cause a concurrent modification error.
+  // TODO(ager): Consider unifying with other replace methods and avoid the C.M.E.
+  public boolean replaceDebugValue(Value oldValue, Value newValue) {
+    if (debugValues == null) {
+      return false;
+    }
+    int found = -1;
+    for (int i = 0; i < debugValues.size(); i++) {
+      if (oldValue == debugValues.get(i)) {
+        assert found == -1;
+        found = i;
+        if (newValue.getLocalInfo() != null) {
+          // TODO(zerny): Insert a write if replacing a phi with different debug-local info.
+          debugValues.set(i, newValue);
+          newValue.addDebugUser(this);
         }
       }
     }
-    if (phi == getPreviousLocalValue()) {
-      if (value.getDebugInfo() == null) {
-        replacePreviousLocalValue(null);
-      } else {
-        replacePreviousLocalValue(value);
-        value.addDebugUser(this);
-      }
+    if (found >= 0 && newValue.getLocalInfo() == null) {
+      // TODO(zerny): Insert a write if replacing a phi with associated debug-local info.
+      debugValues.remove(found);
     }
+    return found >= 0;
   }
 
   /**
@@ -323,24 +320,12 @@ public abstract class Instruction {
 
   public abstract int maxOutValueRegister();
 
-  public DebugInfo getDebugInfo() {
-    return outValue == null ? null : outValue.getDebugInfo();
-  }
-
   public DebugLocalInfo getLocalInfo() {
     return outValue == null ? null : outValue.getLocalInfo();
   }
 
-  public Value getPreviousLocalValue() {
-    return outValue == null ? null : outValue.getPreviousLocalValue();
-  }
-
   public List<Value> getDebugValues() {
     return debugValues != null ? debugValues : ImmutableList.of();
-  }
-
-  public void replacePreviousLocalValue(Value value) {
-    outValue.replacePreviousLocalValue(value);
   }
 
   public boolean isArrayGet() {

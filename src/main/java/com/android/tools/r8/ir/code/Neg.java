@@ -31,20 +31,20 @@ public class Neg extends Unop {
     assert canBeFolded();
     if (type == NumericType.INT) {
       int result = -source().getConstInstruction().asConstNumber().getIntValue();
-      Value value = code.createValue(MoveType.SINGLE, getDebugInfo());
+      Value value = code.createValue(MoveType.SINGLE, getLocalInfo());
       return new ConstNumber(ConstType.INT, value, result);
     } else if (type == NumericType.LONG) {
       long result = -source().getConstInstruction().asConstNumber().getLongValue();
-      Value value = code.createValue(MoveType.WIDE, getDebugInfo());
+      Value value = code.createValue(MoveType.WIDE, getLocalInfo());
       return new ConstNumber(ConstType.LONG, value, result);
     } else if (type == NumericType.FLOAT) {
       float result = -source().getConstInstruction().asConstNumber().getFloatValue();
-      Value value = code.createValue(MoveType.SINGLE, getDebugInfo());
+      Value value = code.createValue(MoveType.SINGLE, getLocalInfo());
       return new ConstNumber(ConstType.FLOAT, value, Float.floatToIntBits(result));
     } else {
       assert type == NumericType.DOUBLE;
       double result = -source().getConstInstruction().asConstNumber().getDoubleValue();
-      Value value = code.createValue(MoveType.WIDE, getDebugInfo());
+      Value value = code.createValue(MoveType.WIDE, getLocalInfo());
       return new ConstNumber(ConstType.DOUBLE, value, Double.doubleToLongBits(result));
     }
   }

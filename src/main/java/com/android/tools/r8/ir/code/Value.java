@@ -18,39 +18,17 @@ import java.util.Set;
 
 public class Value {
 
-  /**
-   * Immutable view of the debug info associated with an SSA value.
-   *
-   * Used during IR building and to construct replacement values.
-   */
-  public static class DebugInfo {
-    private final DebugLocalInfo local;
-    private final Value previousLocalValue;
-
-    public DebugInfo(DebugLocalInfo local, Value previousLocalValue) {
-      assert local != null;
-      this.local = local;
-      this.previousLocalValue = previousLocalValue;
-    }
-  }
-
-  // Actual internal data for the debug information of locals.
+  // Lazily allocated internal data for the debug information of locals.
   // This is wrapped in a class to avoid multiple pointers in the value structure.
   private static class DebugData {
     final DebugLocalInfo local;
-    Value previousLocalValue;
-    Set<Instruction> debugUsers = new HashSet<>();
+    Set<Instruction> users = new HashSet<>();
+    Set<Phi> phiUsers = new HashSet<>();
     List<Instruction> localStarts = new ArrayList<>();
     List<Instruction> localEnds = new ArrayList<>();
 
-    DebugData(DebugInfo info) {
-      this(info.local, info.previousLocalValue);
-    }
-
-    DebugData(DebugLocalInfo local, Value previousLocalValue) {
-      assert previousLocalValue == null || !previousLocalValue.isUninitializedLocal();
+    DebugData(DebugLocalInfo local) {
       this.local = local;
-      this.previousLocalValue = previousLocalValue;
     }
   }
 
@@ -73,10 +51,10 @@ public class Value {
   private LongInterval valueRange;
   private final DebugData debugData;
 
-  public Value(int number, MoveType type, DebugInfo debugInfo) {
+  public Value(int number, MoveType type, DebugLocalInfo local) {
     this.number = number;
     this.type = type;
-    this.debugData = debugInfo == null ? null : new DebugData(debugInfo);
+    this.debugData = local == null ? null : new DebugData(local);
   }
 
   public boolean isFixedRegisterValue() {
@@ -95,24 +73,8 @@ public class Value {
     return type.requiredRegisters();
   }
 
-  public DebugInfo getDebugInfo() {
-    return debugData == null ? null : new DebugInfo(debugData.local, debugData.previousLocalValue);
-  }
-
   public DebugLocalInfo getLocalInfo() {
     return debugData == null ? null : debugData.local;
-  }
-
-  public Value getPreviousLocalValue() {
-    return debugData == null ? null : debugData.previousLocalValue;
-  }
-
-  public void replacePreviousLocalValue(Value value) {
-    if (value == null || value.isUninitializedLocal()) {
-      debugData.previousLocalValue = null;
-    } else {
-      debugData.previousLocalValue = value;
-    }
   }
 
   public List<Instruction> getDebugLocalStarts() {
@@ -189,10 +151,11 @@ public class Value {
   }
 
   public Set<Instruction> debugUsers() {
-    if (debugData == null) {
-      return null;
-    }
-    return Collections.unmodifiableSet(debugData.debugUsers);
+    return debugData == null ? null : Collections.unmodifiableSet(debugData.users);
+  }
+
+  public Set<Phi> debugPhiUsers() {
+    return debugData == null ? null : Collections.unmodifiableSet(debugData.phiUsers);
   }
 
   public int numberOfUsers() {
@@ -211,18 +174,30 @@ public class Value {
     return uniquePhiUsers().size();
   }
 
+  public int numberOfAllNonDebugUsers() {
+    return numberOfUsers() + numberOfPhiUsers();
+  }
+
   public int numberOfDebugUsers() {
-    return debugData == null ? 0 : debugData.debugUsers.size();
+    return debugData == null ? 0 : debugData.users.size();
+  }
+
+  public int numberOfDebugPhiUsers() {
+    return debugData == null ? 0 : debugData.phiUsers.size();
+  }
+
+  public int numberOfAllDebugUsers() {
+    return numberOfDebugUsers() + numberOfDebugPhiUsers();
   }
 
   public int numberOfAllUsers() {
-    return numberOfUsers() + numberOfPhiUsers() + numberOfDebugUsers();
+    return numberOfAllNonDebugUsers() + numberOfAllDebugUsers();
   }
 
   public boolean isUsed() {
     return !users.isEmpty()
         || !phiUsers.isEmpty()
-        || ((debugData != null) && !debugData.debugUsers.isEmpty());
+        || ((debugData != null) && !debugData.users.isEmpty());
   }
 
   public boolean usedInMonitorOperation() {
@@ -250,7 +225,7 @@ public class Value {
     phiUsers.clear();
     uniquePhiUsers = null;
     if (debugData != null) {
-      debugData.debugUsers.clear();
+      debugData.users.clear();
     }
   }
 
@@ -268,7 +243,14 @@ public class Value {
     if (isUninitializedLocal()) {
       return;
     }
-    debugData.debugUsers.add(user);
+    debugData.users.add(user);
+  }
+
+  public void addDebugPhiUser(Phi user) {
+    if (isUninitializedLocal()) {
+      return;
+    }
+    debugData.phiUsers.add(user);
   }
 
   public boolean isUninitializedLocal() {
@@ -280,7 +262,11 @@ public class Value {
   }
 
   public void removeDebugUser(Instruction user) {
-    debugData.debugUsers.remove(user);
+    debugData.users.remove(user);
+  }
+
+  public void removeDebugPhiUser(Phi user) {
+    debugData.phiUsers.remove(user);
   }
 
   public boolean hasUsersInfo() {
@@ -293,7 +279,8 @@ public class Value {
     phiUsers = null;
     uniquePhiUsers = null;
     if (debugData != null) {
-      debugData.debugUsers = null;
+      debugData.users = null;
+      debugData.phiUsers = null;
     }
   }
 
@@ -328,10 +315,15 @@ public class Value {
           }
           return v;
         });
-        if (user.getPreviousLocalValue() == this) {
-          newValue.addDebugUser(user);
-          user.replacePreviousLocalValue(newValue);
-        }
+      }
+      for (Phi user : debugPhiUsers()) {
+        user.getDebugValues().replaceAll(v -> {
+          if (v == this) {
+            newValue.addDebugPhiUser(user);
+            return newValue;
+          }
+          return v;
+        });
       }
     }
     clearUsers();

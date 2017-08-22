@@ -33,10 +33,7 @@ public class ConstNumber extends ConstInstruction {
 
   public static ConstNumber copyOf(IRCode code, ConstNumber original) {
     Value newValue =
-        new Value(
-            code.valueNumberGenerator.next(),
-            original.outType(),
-            original.getDebugInfo());
+        new Value(code.valueNumberGenerator.next(), original.outType(), original.getLocalInfo());
     return new ConstNumber(original.type, newValue, original.getRawValue());
   }
 

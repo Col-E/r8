@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
@@ -155,14 +156,11 @@ public class IRCode {
         values.add(phi);
         for (Value value : phi.getOperands()) {
           values.add(value);
-          if (value.isPhi()) {
-            Phi phiOperand = value.asPhi();
-            assert phiOperand.getBlock().getPhis().contains(phiOperand);
-            assert phiOperand.uniquePhiUsers().contains(phi);
-          } else {
-            Instruction definition = value.definition;
-            assert definition.outValue() == value;
-          }
+          assert value.uniquePhiUsers().contains(phi);
+        }
+        for (Value value : phi.getDebugValues()) {
+          values.add(value);
+          value.debugPhiUsers().contains(phi);
         }
       }
       for (Instruction instruction : block.getInstructions()) {
@@ -171,30 +169,38 @@ public class IRCode {
         if (outValue != null) {
           values.add(outValue);
           assert outValue.definition == instruction;
-          Value previousLocalValue = outValue.getPreviousLocalValue();
-          if (previousLocalValue != null) {
-            values.add(previousLocalValue);
-            assert previousLocalValue.debugUsers().contains(instruction);
-          }
         }
         for (Value value : instruction.inValues()) {
           values.add(value);
           assert value.uniqueUsers().contains(instruction);
-          if (value.isPhi()) {
-            Phi phi = value.asPhi();
-            assert phi.getBlock().getPhis().contains(phi);
-          } else {
-            Instruction definition = value.definition;
-            assert definition.outValue() == value;
-          }
+        }
+        for (Value value : instruction.getDebugValues()) {
+          values.add(value);
+          assert value.debugUsers().contains(instruction);
         }
       }
     }
 
     for (Value value : values) {
+      assert verifyValue(value);
       assert consistentValueUses(value);
     }
 
+    return true;
+  }
+
+  private boolean verifyValue(Value value) {
+    assert value.isPhi() ? verifyPhi(value.asPhi()) : verifyDefinition(value);
+    return true;
+  }
+
+  private boolean verifyPhi(Phi phi) {
+    assert phi.getBlock().getPhis().contains(phi);
+    return true;
+  }
+
+  private boolean verifyDefinition(Value value) {
+    assert value.definition.outValue() == value;
     return true;
   }
 
@@ -206,10 +212,13 @@ public class IRCode {
       assert phiUser.getOperands().contains(value);
       assert phiUser.getBlock().getPhis().contains(phiUser);
     }
-    if (value.debugUsers() != null) {
+    if (value.getLocalInfo() != null) {
       for (Instruction debugUser : value.debugUsers()) {
-        assert debugUser.getPreviousLocalValue() == value
-            || debugUser.getDebugValues().contains(value);
+        assert debugUser.getDebugValues().contains(value);
+      }
+      for (Phi phiUser : value.debugPhiUsers()) {
+        assert verifyPhi(phiUser);
+        assert phiUser.getDebugValues().contains(value);
       }
     }
     return true;
@@ -367,8 +376,8 @@ public class IRCode {
     return arguments;
   }
 
-  public Value createValue(MoveType moveType, Value.DebugInfo debugInfo) {
-    return new Value(valueNumberGenerator.next(), moveType, debugInfo);
+  public Value createValue(MoveType moveType, DebugLocalInfo local) {
+    return new Value(valueNumberGenerator.next(), moveType, local);
   }
 
   public Value createValue(MoveType moveType) {

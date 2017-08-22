@@ -59,26 +59,26 @@ public abstract class ArithmeticBinop extends Binop {
       int left = leftValue().getConstInstruction().asConstNumber().getIntValue();
       int right = rightValue().getConstInstruction().asConstNumber().getIntValue();
       int result = foldIntegers(left, right);
-      Value value = code.createValue(MoveType.SINGLE, getDebugInfo());
+      Value value = code.createValue(MoveType.SINGLE, getLocalInfo());
       return new ConstNumber(ConstType.INT, value, result);
     } else if (type == NumericType.LONG) {
       long left = leftValue().getConstInstruction().asConstNumber().getLongValue();
       long right = rightValue().getConstInstruction().asConstNumber().getLongValue();
       long result = foldLongs(left, right);
-      Value value = code.createValue(MoveType.WIDE, getDebugInfo());
+      Value value = code.createValue(MoveType.WIDE, getLocalInfo());
       return new ConstNumber(ConstType.LONG, value, result);
     } else if (type == NumericType.FLOAT) {
       float left = leftValue().getConstInstruction().asConstNumber().getFloatValue();
       float right = rightValue().getConstInstruction().asConstNumber().getFloatValue();
       float result = foldFloat(left, right);
-      Value value = code.createValue(MoveType.SINGLE, getDebugInfo());
+      Value value = code.createValue(MoveType.SINGLE, getLocalInfo());
       return new ConstNumber(ConstType.FLOAT, value, Float.floatToIntBits(result));
     } else {
       assert type == NumericType.DOUBLE;
       double left = leftValue().getConstInstruction().asConstNumber().getDoubleValue();
       double right = rightValue().getConstInstruction().asConstNumber().getDoubleValue();
       double result = foldDouble(left, right);
-      Value value = code.createValue(MoveType.WIDE, getDebugInfo());
+      Value value = code.createValue(MoveType.WIDE, getLocalInfo());
       return new ConstNumber(ConstType.DOUBLE, value, Double.doubleToLongBits(result));
     }
   }
