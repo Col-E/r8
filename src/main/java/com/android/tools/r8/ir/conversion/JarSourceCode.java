@@ -4,6 +4,7 @@
 package com.android.tools.r8.ir.conversion;
 
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.Descriptor;
@@ -1735,9 +1736,10 @@ public class JarSourceCode implements SourceCode {
       state.push(Type.DOUBLE_TYPE);
     } else if (insn.cst instanceof Integer) {
       state.push(Type.INT_TYPE);
-    } else {
-      assert insn.cst instanceof Float;
+    } else if (insn.cst instanceof Float) {
       state.push(Type.FLOAT_TYPE);
+    } else {
+      throw new CompilationError("Unsupported constant: " + insn.cst.toString());
     }
   }
 
@@ -2721,10 +2723,11 @@ public class JarSourceCode implements SourceCode {
     } else if (insn.cst instanceof Integer) {
       int dest = state.push(Type.INT_TYPE);
       builder.addIntConst(dest, (Integer) insn.cst);
-    } else {
-      assert insn.cst instanceof Float;
+    } else if (insn.cst instanceof Float) {
       int dest = state.push(Type.FLOAT_TYPE);
       builder.addFloatConst(dest, Float.floatToRawIntBits((Float) insn.cst));
+    } else {
+      throw new CompilationError("Unsupported constant: " + insn.cst.toString());
     }
   }
 
