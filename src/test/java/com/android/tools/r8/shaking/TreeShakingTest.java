@@ -478,6 +478,12 @@ public class TreeShakingTest {
     inspector.forAllClasses((clazz) -> checkClassAndMemberInDictionary(clazz));
   }
 
+  private static void abstractMethodRemains(DexInspector inspector) {
+    ClassSubject programClass = inspector.clazz("shaking17.AbstractProgramClass");
+    Assert.assertTrue(programClass.isPresent());
+    Assert.assertTrue(
+        programClass.method("int", "abstractMethod", Collections.emptyList()).isPresent());
+  }
 
   private static void assumenosideeffects1CheckOutput(String output1, String output2) {
     Assert.assertEquals("noSideEffectVoid\nnoSideEffectInt\n", output1);
@@ -620,6 +626,7 @@ public class TreeShakingTest {
             "shaking14",
             "shaking15",
             "shaking16",
+            "shaking17",
             "inlining",
             "minification",
             "minifygeneric",
@@ -684,22 +691,17 @@ public class TreeShakingTest {
         .put("shaking11:keep-rules.txt", TreeShakingTest::shaking11OnlyOneClassKept);
     inspections
         .put("shaking11:keep-rules-keep-method.txt", TreeShakingTest::shaking11BothMethodsKept);
-    inspections
-        .put("shaking12:keep-rules.txt",
+    inspections.put("shaking12:keep-rules.txt",
             TreeShakingTest::shaking12OnlyInstantiatedClassesHaveConstructors);
-    inspections
-        .put("shaking13:keep-rules.txt",
+    inspections.put("shaking13:keep-rules.txt",
             TreeShakingTest::shaking13EnsureFieldWritesCorrect);
-    inspections
-        .put("shaking14:keep-rules.txt",
+    inspections.put("shaking14:keep-rules.txt",
             TreeShakingTest::shaking14EnsureRightStaticMethodsLive);
-    inspections.put("shaking15:keep-rules.txt",
-        TreeShakingTest::shaking15testDictionary);
-    inspections
-        .put("annotationremoval:keep-rules.txt",
+    inspections.put("shaking15:keep-rules.txt", TreeShakingTest::shaking15testDictionary);
+    inspections.put("shaking17:keep-rules.txt", TreeShakingTest::abstractMethodRemains);
+    inspections.put("annotationremoval:keep-rules.txt",
             TreeShakingTest::annotationRemovalHasNoInnerClassAnnotations);
-    inspections
-        .put("annotationremoval:keep-rules-keep-innerannotation.txt",
+    inspections.put("annotationremoval:keep-rules-keep-innerannotation.txt",
             TreeShakingTest::annotationRemovalHasAllInnerClassAnnotations);
     inspections
         .put("simpleproto1:keep-rules.txt", TreeShakingTest::simpleproto1UnusedFieldIsGone);
