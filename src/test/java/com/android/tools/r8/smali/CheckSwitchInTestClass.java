@@ -5,9 +5,8 @@
 package com.android.tools.r8.smali;
 
 import java.lang.reflect.Method;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class CheckSwitchInTestClass {
   public static void main(String[] args) throws Exception {
@@ -16,10 +15,10 @@ public class CheckSwitchInTestClass {
     Method method = test.getMethod("test", int.class);
 
     // Get keys and default value from arguments.
-    List<Integer> keys = Arrays.stream(Arrays.copyOfRange(args, 0, args.length - 1))
-        .map(Integer::parseInt)
-        .sorted()
-        .collect(Collectors.toList());
+    List<Integer> keys = new ArrayList<>();
+    for (int i = 0; i < args.length - 1; i++) {
+      keys.add(Integer.parseInt(args[i]));
+    }
     int defaultValue = Integer.parseInt(args[args.length - 1]);
 
     // Run over all keys and test a small interval around each.
