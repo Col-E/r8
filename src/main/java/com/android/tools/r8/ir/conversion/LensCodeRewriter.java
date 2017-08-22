@@ -51,7 +51,7 @@ public class LensCodeRewriter {
     if (insn.outValue() == null) {
       return null;
     } else {
-      return code.createValue(insn.outType(), insn.getDebugInfo());
+      return code.createValue(insn.outType(), insn.getLocalInfo());
     }
   }
 
@@ -105,7 +105,7 @@ public class LensCodeRewriter {
             // Fix up the return type if needed.
             if (actualTarget.proto.returnType != invokedMethod.proto.returnType
                 && newInvoke.outValue() != null) {
-              Value newValue = code.createValue(newInvoke.outType(), invoke.getDebugInfo());
+              Value newValue = code.createValue(newInvoke.outType(), invoke.getLocalInfo());
               newInvoke.outValue().replaceUsers(newValue);
               CheckCast cast = new CheckCast(
                   newValue,

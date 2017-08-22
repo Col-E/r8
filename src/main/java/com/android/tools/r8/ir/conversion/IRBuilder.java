@@ -75,7 +75,6 @@ import com.android.tools.r8.ir.code.Switch;
 import com.android.tools.r8.ir.code.Throw;
 import com.android.tools.r8.ir.code.Ushr;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.code.Value.DebugInfo;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.code.Xor;
 import com.android.tools.r8.utils.InternalOptions;
@@ -269,6 +268,7 @@ public class IRBuilder {
   private final InternalOptions options;
 
   // Pending local changes.
+  private Value previousLocalValue = null;
   private List<Value> debugLocalStarts = new ArrayList<>();
   private List<Value> debugLocalReads = new ArrayList<>();
   private List<Value> debugLocalEnds = new ArrayList<>();
@@ -489,16 +489,14 @@ public class IRBuilder {
 
   public void addThisArgument(int register) {
     DebugLocalInfo local = getCurrentLocal(register);
-    DebugInfo info = local == null ? null : new DebugInfo(local, null);
-    Value value = writeRegister(register, MoveType.OBJECT, ThrowingInfo.NO_THROW, info);
+    Value value = writeRegister(register, MoveType.OBJECT, ThrowingInfo.NO_THROW, local);
     addInstruction(new Argument(value));
     value.markAsThis();
   }
 
   public void addNonThisArgument(int register, MoveType moveType) {
     DebugLocalInfo local = getCurrentLocal(register);
-    DebugInfo info = local == null ? null : new DebugInfo(local, null);
-    Value value = writeRegister(register, moveType, ThrowingInfo.NO_THROW, info);
+    Value value = writeRegister(register, moveType, ThrowingInfo.NO_THROW, local);
     addInstruction(new Argument(value));
   }
 
@@ -1096,7 +1094,7 @@ public class IRBuilder {
 
   public void addMoveException(int dest) {
     Value out = writeRegister(dest, MoveType.OBJECT, ThrowingInfo.NO_THROW);
-    assert out.getDebugInfo() == null;
+    assert out.getLocalInfo() == null;
     MoveException instruction = new MoveException(out);
     assert !instruction.instructionTypeCanThrow();
     if (!currentBlock.getInstructions().isEmpty()) {
@@ -1501,21 +1499,18 @@ public class IRBuilder {
 
   // This special write register is needed when changing the scoping of a local variable.
   // See addDebugLocalStart and addDebugLocalEnd.
-  private Value writeRegister(int register, MoveType type, ThrowingInfo throwing, DebugInfo info) {
+  private Value writeRegister(
+      int register, MoveType type, ThrowingInfo throwing, DebugLocalInfo local) {
     checkRegister(register);
-    Value value = new Value(valueNumberGenerator.next(), type, info);
+    Value value = new Value(valueNumberGenerator.next(), type, local);
     currentBlock.writeCurrentDefinition(register, value, throwing);
     return value;
   }
 
   public Value writeRegister(int register, MoveType type, ThrowingInfo throwing) {
     DebugLocalInfo local = getCurrentLocal(register);
-    DebugInfo info = null;
-    if (local != null) {
-      Value previousLocal = readRegisterIgnoreLocal(register, type);
-      info = new DebugInfo(local, previousLocal.getLocalInfo() != local ? null : previousLocal);
-    }
-    return writeRegister(register, type, throwing, info);
+    previousLocalValue = local == null ? null : readRegisterIgnoreLocal(register, type);
+    return writeRegister(register, type, throwing, local);
   }
 
   public Value writeNumericRegister(int register, NumericType type, ThrowingInfo throwing) {
@@ -1596,6 +1591,12 @@ public class IRBuilder {
     if (!options.debug) {
       return;
     }
+    // Add a use if this instruction is overwriting a previous value of the same local.
+    if (previousLocalValue != null && previousLocalValue.getLocalInfo() == ir.getLocalInfo()) {
+      assert ir.outValue() != null;
+      ir.addDebugValue(previousLocalValue);
+    }
+    previousLocalValue = null;
     if (debugLocalStarts.isEmpty() && debugLocalReads.isEmpty() && debugLocalEnds.isEmpty()) {
       return;
     }

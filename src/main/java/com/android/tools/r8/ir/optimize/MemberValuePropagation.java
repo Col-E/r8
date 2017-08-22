@@ -75,7 +75,7 @@ public class MemberValuePropagation {
     MoveType moveType = instruction.outValue().outType();
     if (rule != null && rule.hasReturnValue() && rule.getReturnValue().isSingleValue()) {
       assert moveType != MoveType.OBJECT;
-      Value value = code.createValue(moveType, instruction.getDebugInfo());
+      Value value = code.createValue(moveType, instruction.getLocalInfo());
       replacement = new ConstNumber(
           ConstType.fromMoveType(moveType), value, rule.getReturnValue().getSingleValue());
     }
@@ -84,7 +84,7 @@ public class MemberValuePropagation {
       DexField field = rule.getReturnValue().getField();
       DexEncodedField staticField = appInfo.lookupStaticTarget(field.clazz, field);
       if (staticField != null) {
-        Value value = code.createValue(moveType, instruction.getDebugInfo());
+        Value value = code.createValue(moveType, instruction.getLocalInfo());
         replacement = staticField.staticValue.asConstInstruction(false, value);
       } else {
         throw new CompilationError(field.clazz.toSourceString() + "." + field.name.toString() +

@@ -27,12 +27,12 @@ public class Not extends Unop {
     assert canBeFolded();
     if (type == NumericType.INT) {
       int result = ~(source().getConstInstruction().asConstNumber().getIntValue());
-      Value value = code.createValue(MoveType.SINGLE, getDebugInfo());
+      Value value = code.createValue(MoveType.SINGLE, getLocalInfo());
       return new ConstNumber(ConstType.INT, value, result);
     } else {
       assert type == NumericType.LONG;
       long result = ~source().getConstInstruction().asConstNumber().getLongValue();
-      Value value = code.createValue(MoveType.WIDE, getDebugInfo());
+      Value value = code.createValue(MoveType.WIDE, getLocalInfo());
       return new ConstNumber(ConstType.LONG, value, result);
     }
   }

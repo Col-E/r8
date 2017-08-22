@@ -114,10 +114,6 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
     for (Value value : current.getDebugValues()) {
       value.removeDebugUser(current);
     }
-    Value previousLocalValue = current.getPreviousLocalValue();
-    if (previousLocalValue != null) {
-      previousLocalValue.removeDebugUser(current);
-    }
     listIterator.remove();
     current = null;
   }
@@ -350,7 +346,7 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
     assert invoke.inValues().size() == arguments.size();
     for (int i = 0; i < invoke.inValues().size(); i++) {
       // TODO(zerny): Support inlining in --debug mode.
-      assert arguments.get(i).getDebugInfo() == null;
+      assert arguments.get(i).getLocalInfo() == null;
       if ((i == 0) && (downcast != null)) {
         Value invokeValue = invoke.inValues().get(0);
         Value receiverValue = arguments.get(0);
