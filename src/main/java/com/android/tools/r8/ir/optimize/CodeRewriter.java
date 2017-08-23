@@ -972,6 +972,7 @@ public class CodeRewriter {
     while (it.hasNext()) {
       Instruction current = it.next();
       if (current.isCheckCast()
+          && current.getLocalInfo() == null
           && current.outValue() != null && current.outValue().isUsed()
           && current.outValue().numberOfPhiUsers() == 0) {
         CheckCast checkCast = current.asCheckCast();
