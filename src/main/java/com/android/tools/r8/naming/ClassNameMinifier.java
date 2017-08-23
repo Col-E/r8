@@ -9,7 +9,10 @@ import static com.android.tools.r8.utils.DescriptorUtils.getPackageBinaryNameFro
 
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
@@ -78,7 +81,7 @@ class ClassNameMinifier {
     // Collect names we have to keep.
     timing.begin("reserve");
     for (DexClass clazz : classes) {
-      if (rootSet.noObfuscation.contains(clazz)) {
+      if (rootSet.noObfuscation.contains(clazz.type)) {
         assert !renaming.containsKey(clazz.type);
         registerClassAsUsed(clazz.type);
       }
@@ -94,6 +97,12 @@ class ClassNameMinifier {
     }
     timing.end();
 
+    timing.begin("rename-dangling-types");
+    for (DexClass clazz : classes) {
+      renameDanglingTypes(clazz);
+    }
+    timing.end();
+
     timing.begin("rename-generic");
     renameTypesInGenericSignatures();
     timing.end();
@@ -103,6 +112,35 @@ class ClassNameMinifier {
     timing.end();
 
     return Collections.unmodifiableMap(renaming);
+  }
+
+  private void renameDanglingTypes(DexClass clazz) {
+    clazz.forEachMethod(this::renameDanglingTypesInMethod);
+    clazz.forEachField(this::renameDanglingTypesInField);
+  }
+
+  private void renameDanglingTypesInField(DexEncodedField field) {
+    renameDanglingType(field.field.type);
+  }
+
+  private void renameDanglingTypesInMethod(DexEncodedMethod method) {
+    DexProto proto = method.method.proto;
+    renameDanglingType(proto.returnType);
+    for (DexType type : proto.parameters.values) {
+      renameDanglingType(type);
+    }
+  }
+
+  private void renameDanglingType(DexType type) {
+    if (appInfo.wasPruned(type)
+        && !renaming.containsKey(type)
+        && !rootSet.noObfuscation.contains(type)) {
+      // We have a type that is defined in the program source but is only used in a proto or
+      // return type. As we don't need the class, we can rename it to anything as long as it is
+      // unique.
+      assert appInfo.definitionFor(type) == null;
+      renaming.put(type, topLevelState.nextTypeName());
+    }
   }
 
   private void renameTypesInGenericSignatures() {

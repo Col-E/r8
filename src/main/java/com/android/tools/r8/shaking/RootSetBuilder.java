@@ -452,7 +452,7 @@ public class RootSetBuilder {
     dependentNoShrinking.computeIfAbsent(item, x -> new IdentityHashMap<>())
         .put(definition, context);
     // Unconditionally add to no-obfuscation, as that is only checked for surviving items.
-    noObfuscation.add(definition);
+    noObfuscation.add(type);
   }
 
   private void includeDescriptorClasses(DexItem item, ProguardKeepRule context) {
@@ -487,7 +487,11 @@ public class RootSetBuilder {
         noOptimization.add(item);
       }
       if (!modifiers.allowsObfuscation) {
-        noObfuscation.add(item);
+        if (item instanceof DexClass) {
+          noObfuscation.add(((DexClass) item).type);
+        } else {
+          noObfuscation.add(item);
+        }
       }
       if (modifiers.includeDescriptorClasses) {
         includeDescriptorClasses(item, keepRule);
@@ -520,38 +524,24 @@ public class RootSetBuilder {
     public final Map<DexItem, ProguardMemberRule> assumedValues;
     private final Map<DexItem, Map<DexItem, ProguardKeepRule>> dependentNoShrinking;
 
-    private boolean legalNoObfuscationItem(DexItem item) {
-      if (!(item instanceof DexProgramClass
-          || item instanceof DexLibraryClass
-          || item instanceof DexEncodedMethod
-          || item instanceof DexEncodedField)) {
-      }
-      assert item instanceof DexProgramClass
-          || item instanceof DexLibraryClass
-          || item instanceof DexEncodedMethod
-          || item instanceof DexEncodedField;
-      return true;
-    }
-
-    private boolean legalNoObfuscationItems(Set<DexItem> items) {
-      items.forEach(this::legalNoObfuscationItem);
-      return true;
-    }
-
-    private boolean legalDependentNoShrinkingItem(DexItem item) {
-      if (!(item instanceof DexType
-          || item instanceof DexEncodedMethod
-          || item instanceof DexEncodedField)) {
-      }
+    private boolean isTypeEncodedMethodOrEncodedField(DexItem item) {
       assert item instanceof DexType
           || item instanceof DexEncodedMethod
           || item instanceof DexEncodedField;
+      return item instanceof DexType
+          || item instanceof DexEncodedMethod
+          || item instanceof DexEncodedField;
+    }
+
+    private boolean legalNoObfuscationItems(Set<DexItem> items) {
+      assert items.stream().allMatch(this::isTypeEncodedMethodOrEncodedField);
       return true;
     }
 
     private boolean legalDependentNoShrinkingItems(
         Map<DexItem, Map<DexItem, ProguardKeepRule>> dependentNoShrinking) {
-      dependentNoShrinking.keySet().forEach(this::legalDependentNoShrinkingItem);
+      assert dependentNoShrinking.keySet().stream()
+          .allMatch(this::isTypeEncodedMethodOrEncodedField);
       return true;
     }
 

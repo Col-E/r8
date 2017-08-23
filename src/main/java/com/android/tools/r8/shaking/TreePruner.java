@@ -8,13 +8,17 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.KeyedDexItem;
 import com.android.tools.r8.graph.PresortedComparable;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
+import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -23,7 +27,8 @@ public class TreePruner {
   private DexApplication application;
   private final AppInfoWithLiveness appInfo;
   private final InternalOptions options;
-  private UsagePrinter usagePrinter;
+  private final UsagePrinter usagePrinter;
+  private final Set<DexType> prunedTypes = Sets.newIdentityHashSet();
 
   public TreePruner(
       DexApplication application, AppInfoWithLiveness appInfo, InternalOptions options) {
@@ -64,6 +69,7 @@ public class TreePruner {
         if (Log.ENABLED) {
           Log.debug(getClass(), "Removing class: " + clazz);
         }
+        prunedTypes.add(clazz.type);
         usagePrinter.printUnusedClass(clazz);
       } else {
         newClasses.add(clazz);
@@ -189,5 +195,9 @@ public class TreePruner {
       }
     }
     return reachableFields.toArray(new DexEncodedField[reachableFields.size()]);
+  }
+
+  public Collection<DexType> getRemovedClasses() {
+    return Collections.unmodifiableCollection(prunedTypes);
   }
 }

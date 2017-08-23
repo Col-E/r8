@@ -270,9 +270,10 @@ public class R8 {
           proguardSeedsData = bytes.toByteArray();
         }
         if (options.useTreeShaking) {
-          application = new TreePruner(application, appInfo.withLiveness(), options).run();
+          TreePruner pruner = new TreePruner(application, appInfo.withLiveness(), options);
+          application = pruner.run();
           // Recompute the subtyping information.
-          appInfo = appInfo.withLiveness().prunedCopyFrom(application);
+          appInfo = appInfo.withLiveness().prunedCopyFrom(application, pruner.getRemovedClasses());
           new AbstractMethodRemover(appInfo).run();
           new AnnotationRemover(appInfo.withLiveness(), options).run();
         }
@@ -295,11 +296,13 @@ public class R8 {
         // Class merging requires inlining.
         if (!options.skipClassMerging && options.inlineAccessors) {
           timing.begin("ClassMerger");
-          graphLense = new SimpleClassMerger(application, appInfo.withLiveness(), graphLense,
-              timing).run();
+          SimpleClassMerger classMerger = new SimpleClassMerger(application,
+              appInfo.withLiveness(), graphLense, timing);
+          graphLense = classMerger.run();
           timing.end();
+          appInfo = appInfo.withLiveness()
+              .prunedCopyFrom(application, classMerger.getRemovedClasses());
         }
-        appInfo = appInfo.withLiveness().prunedCopyFrom(application);
         appInfo = appInfo.withLiveness().rewrittenWithLense(graphLense);
         // Collect switch maps and ordinals maps.
         new SwitchMapCollector(appInfo.withLiveness(), options).run();
@@ -333,8 +336,10 @@ public class R8 {
           Enqueuer enqueuer = new Enqueuer(appInfo);
           appInfo = enqueuer.traceApplication(rootSet, timing);
           if (options.useTreeShaking) {
-            application = new TreePruner(application, appInfo.withLiveness(), options).run();
-            appInfo = appInfo.withLiveness().prunedCopyFrom(application);
+            TreePruner pruner = new TreePruner(application, appInfo.withLiveness(), options);
+            application = pruner.run();
+            appInfo = appInfo.withLiveness()
+                .prunedCopyFrom(application, pruner.getRemovedClasses());
             // Print reasons on the application after pruning, so that we reflect the actual result.
             ReasonPrinter reasonPrinter = enqueuer.getReasonPrinter(rootSet.reasonAsked);
             reasonPrinter.run(application);
