@@ -17,7 +17,7 @@ public class Argument extends Instruction {
 
   public Argument(Value outValue) {
     super(outValue);
-    outValue.markAsArgument();;
+    outValue.markAsArgument();
   }
 
   @Override

@@ -500,6 +500,13 @@ public class IRBuilder {
     addInstruction(new Argument(value));
   }
 
+  public void addBooleanNonThisArgument(int register) {
+    DebugLocalInfo local = getCurrentLocal(register);
+    Value value = writeRegister(register, MoveType.SINGLE, ThrowingInfo.NO_THROW, local);
+    value.setKnownToBeBoolean(true);
+    addInstruction(new Argument(value));
+  }
+
   public void addDebugUninitialized(int register, ConstType type) {
     if (!options.debug) {
       return;
@@ -613,6 +620,7 @@ public class IRBuilder {
     Value in1 = readRegister(array, MoveType.OBJECT);
     Value in2 = readRegister(index, MoveType.SINGLE);
     Value out = writeRegister(dest, MoveType.fromMemberType(type), ThrowingInfo.CAN_THROW);
+    out.setKnownToBeBoolean(type == MemberType.BOOLEAN);
     ArrayGet instruction = new ArrayGet(type, out, in1, in2);
     assert instruction.instructionTypeCanThrow();
     add(instruction);
@@ -883,6 +891,7 @@ public class IRBuilder {
       DexField field) {
     Value in = readRegister(object, MoveType.OBJECT);
     Value out = writeRegister(dest, MoveType.fromMemberType(type), ThrowingInfo.CAN_THROW);
+    out.setKnownToBeBoolean(type == MemberType.BOOLEAN);
     InstanceGet instruction = new InstanceGet(type, out, in, field);
     assert instruction.instructionTypeCanThrow();
     addInstruction(instruction);
@@ -1114,6 +1123,16 @@ public class IRBuilder {
     invoke.setOutValue(writeRegister(dest, type, ThrowingInfo.CAN_THROW));
   }
 
+  public void addBooleanMoveResult(MoveType type, int dest) {
+    List<Instruction> instructions = currentBlock.getInstructions();
+    Invoke invoke = instructions.get(instructions.size() - 1).asInvoke();
+    assert invoke.outValue() == null;
+    assert invoke.instructionTypeCanThrow();
+    Value outValue = writeRegister(dest, type, ThrowingInfo.CAN_THROW);
+    outValue.setKnownToBeBoolean(true);
+    invoke.setOutValue(outValue);
+  }
+
   public void addNeg(NumericType type, int dest, int value) {
     Value in = readNumericRegister(value, type);
     Value out = writeNumericRegister(dest, type, ThrowingInfo.NO_THROW);
@@ -1165,6 +1184,7 @@ public class IRBuilder {
 
   public void addStaticGet(MemberType type, int dest, DexField field) {
     Value out = writeRegister(dest, MoveType.fromMemberType(type), ThrowingInfo.CAN_THROW);
+    out.setKnownToBeBoolean(type == MemberType.BOOLEAN);
     StaticGet instruction = new StaticGet(type, out, field);
     assert instruction.instructionTypeCanThrow();
     addInstruction(instruction);

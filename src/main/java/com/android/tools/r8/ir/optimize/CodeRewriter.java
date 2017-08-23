@@ -1434,10 +1434,16 @@ public class CodeRewriter {
         // First rewrite zero comparison.
         rewriteIfWithConstZero(block);
 
+        if (simplifyKnownBooleanCondition(dominator, block)) {
+          continue;
+        }
+
         // Simplify if conditions when possible.
         If theIf = block.exit().asIf();
         List<Value> inValues = theIf.inValues();
+
         int cond;
+
         if (inValues.get(0).isConstNumber()
             && (theIf.isZeroTest() || inValues.get(1).isConstNumber())) {
           // Zero test with a constant of comparison between between two constants.
@@ -1474,20 +1480,81 @@ public class CodeRewriter {
         BasicBlock target = theIf.targetFromCondition(cond);
         BasicBlock deadTarget =
             target == theIf.getTrueTarget() ? theIf.fallthroughBlock() : theIf.getTrueTarget();
-        List<BasicBlock> removedBlocks = block.unlink(deadTarget, dominator);
-        for (BasicBlock removedBlock : removedBlocks) {
-          if (!removedBlock.isMarked()) {
-            removedBlock.mark();
-          }
-        }
-        assert theIf == block.exit();
-        block.replaceLastInstruction(new Goto());
-        assert block.exit().isGoto();
-        assert block.exit().asGoto().getTarget() == target;
+        rewriteIfToGoto(dominator, block, theIf, target, deadTarget);
       }
     }
     code.removeMarkedBlocks();
     assert code.isConsistentSSA();
+  }
+
+
+  /* Identify simple diamond shapes converting boolean true/false to 1/0. We consider the forms:
+   *
+   *   ifeqz booleanValue       ifnez booleanValue
+   *      /        \              /        \
+   *      \        /              \        /
+   *      phi(0, 1)                phi(1, 0)
+   *
+   * which can be replaced by a fallthrough and the phi value can be replaced
+   * with the boolean value itself.
+   */
+  private boolean simplifyKnownBooleanCondition(DominatorTree dominator, BasicBlock block) {
+    If theIf = block.exit().asIf();
+    Value testValue = theIf.inValues().get(0);
+    if (theIf.isZeroTest() && testValue.knownToBeBoolean()) {
+      BasicBlock trueBlock = theIf.getTrueTarget();
+      BasicBlock falseBlock = theIf.fallthroughBlock();
+      if (trueBlock.isTrivialGoto() &&
+          falseBlock.isTrivialGoto() &&
+          trueBlock.getSuccessors().get(0) == falseBlock.getSuccessors().get(0)) {
+        BasicBlock targetBlock = trueBlock.getSuccessors().get(0);
+        if (targetBlock.getPredecessors().size() == 2) {
+          int trueIndex = targetBlock.getPredecessors().indexOf(trueBlock);
+          int falseIndex = trueIndex == 0 ? 1 : 0;
+          int deadPhis = 0;
+          // Locate the phis that have the same value as the boolean and replace them
+          // by the boolean in all users.
+          for (Phi phi : targetBlock.getPhis()) {
+            Value trueValue = phi.getOperand(trueIndex);
+            Value falseValue = phi.getOperand(falseIndex);
+            if (trueValue.isConstNumber() && falseValue.isConstNumber()) {
+              ConstNumber trueNumber = trueValue.getConstInstruction().asConstNumber();
+              ConstNumber falseNumber = falseValue.getConstInstruction().asConstNumber();
+              if ((theIf.getType() == Type.EQ &&
+                  trueNumber.isIntegerZero() &&
+                  falseNumber.isIntegerOne()) ||
+                  (theIf.getType() == Type.NE &&
+                      trueNumber.isIntegerOne() &&
+                      falseNumber.isIntegerZero())) {
+                phi.replaceUsers(testValue);
+                deadPhis++;
+              }
+            }
+          }
+          // If all phis were removed, there is no need for the diamond shape anymore
+          // and it can be rewritten to a goto to one of the branches.
+          if (deadPhis == targetBlock.getPhis().size()) {
+            rewriteIfToGoto(dominator, block, theIf, trueBlock, falseBlock);
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+
+  private void rewriteIfToGoto(DominatorTree dominator, BasicBlock block, If theIf,
+      BasicBlock target, BasicBlock deadTarget) {
+    List<BasicBlock> removedBlocks = block.unlink(deadTarget, dominator);
+    for (BasicBlock removedBlock : removedBlocks) {
+      if (!removedBlock.isMarked()) {
+        removedBlock.mark();
+      }
+    }
+    assert theIf == block.exit();
+    block.replaceLastInstruction(new Goto());
+    assert block.exit().isGoto();
+    assert block.exit().asGoto().getTarget() == target;
   }
 
   private void rewriteIfWithConstZero(BasicBlock block) {

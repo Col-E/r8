@@ -337,7 +337,11 @@ public class JarSourceCode implements SourceCode {
     for (Type type : parameterTypes) {
       MoveType moveType = moveType(type);
       Slot slot = state.readLocal(argumentRegister, type);
-      builder.addNonThisArgument(slot.register, moveType);
+      if (type == Type.BOOLEAN_TYPE) {
+        builder.addBooleanNonThisArgument(slot.register);
+      } else {
+        builder.addNonThisArgument(slot.register, moveType);
+      }
       argumentRegister += moveType.requiredRegisters();
     }
   }
@@ -2551,7 +2555,11 @@ public class JarSourceCode implements SourceCode {
     // Move the result to the "top of stack".
     Type returnType = Type.getReturnType(methodDesc);
     if (returnType != Type.VOID_TYPE) {
-      builder.addMoveResult(moveType(returnType), state.push(returnType));
+      if (returnType == Type.BOOLEAN_TYPE) {
+        builder.addBooleanMoveResult(moveType(returnType), state.push(returnType));
+      } else {
+        builder.addMoveResult(moveType(returnType), state.push(returnType));
+      }
     }
   }
 

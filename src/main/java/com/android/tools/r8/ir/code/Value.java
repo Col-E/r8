@@ -48,6 +48,7 @@ public class Value {
   private boolean neverNull = false;
   private boolean isThis = false;
   private boolean isArgument = false;
+  private boolean knownToBeBoolean = false;
   private LongInterval valueRange;
   private final DebugData debugData;
 
@@ -492,6 +493,14 @@ public class Value {
 
   public boolean isArgument() {
     return isArgument;
+  }
+
+  public void setKnownToBeBoolean(boolean knownToBeBoolean) {
+    this.knownToBeBoolean = knownToBeBoolean;
+  }
+
+  public boolean knownToBeBoolean() {
+    return knownToBeBoolean;
   }
 
   public void markAsThis() {
