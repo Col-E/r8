@@ -125,6 +125,7 @@ VERSIONS = {
     },
     'proguarded' : {
       'inputs': ['%s_proguard.jar' % LATEST_PREFIX],
+      'main-dex-list': os.path.join(LATEST_BASE, 'main_dex_list.txt') ,
       'pgmap': '%s_proguard.map' % LATEST_PREFIX,
       'min-api' : ANDROID_L_API,
     }

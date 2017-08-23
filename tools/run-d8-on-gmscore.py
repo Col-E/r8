@@ -25,7 +25,7 @@ def ParseOptions():
   result.add_option('--version',
                     help = '',
                     default = 'v9',
-                    choices = ['v9', 'v10'])
+                    choices = ['v9', 'v10', 'latest'])
   result.add_option('--type',
                     help = '',
                     default = 'proguarded',
