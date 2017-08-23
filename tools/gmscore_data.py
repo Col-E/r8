@@ -123,5 +123,10 @@ VERSIONS = {
           '%s/proguardsettings/GmsCore_proguard.config' % THIRD_PARTY],
       'min-api' : ANDROID_L_API,
     },
+    'proguarded' : {
+      'inputs': ['%s_proguard.jar' % LATEST_PREFIX],
+      'pgmap': '%s_proguard.map' % LATEST_PREFIX,
+      'min-api' : ANDROID_L_API,
+    }
   },
 }
