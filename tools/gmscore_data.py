@@ -90,6 +90,7 @@ VERSIONS = {
     },
     'proguarded' : {
       'inputs': ['%s_proguard.jar' % V9_PREFIX],
+      'main-dex-list': os.path.join(V9_BASE, 'main_dex_list.txt'),
       'pgmap': '%s_proguard.map' % V9_PREFIX,
       'min-api' : ANDROID_L_API,
      }
@@ -109,6 +110,7 @@ VERSIONS = {
     },
     'proguarded' : {
       'inputs': ['%s_proguard.jar' % V10_PREFIX],
+      'main-dex-list': os.path.join(V10_BASE, 'main_dex_list.txt') ,
       'pgmap': '%s_proguard.map' % V10_PREFIX,
       'min-api' : ANDROID_L_API,
     }

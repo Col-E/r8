@@ -58,6 +58,9 @@ def main():
   if not os.path.exists(outdir):
     os.makedirs(outdir)
 
+  if 'main-dex-list' in values:
+    args.extend(['--main-dex-list', values['main-dex-list']])
+
   if options.d8_flags:
     args.extend(options.d8_flags.split(' '))
 
