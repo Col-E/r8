@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.desugar;
 
+import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.Resource;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unimplemented;
@@ -193,7 +194,7 @@ public final class InterfaceMethodRewriter {
    * Move static and default interface methods to companion classes,
    * add missing methods to forward to moved default methods implementation.
    */
-  public void desugarInterfaceMethods(Builder builder, Flavor flavour) {
+  public void desugarInterfaceMethods(Builder builder, Flavor flavour) throws ApiLevelException {
     // Process all classes first. Add missing forwarding methods to
     // replace desugared default interface methods.
     forwardingMethods.addAll(processClasses(builder, flavour));

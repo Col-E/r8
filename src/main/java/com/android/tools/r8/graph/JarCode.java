@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.errors.InvalidDebugInfoException;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
@@ -80,7 +81,8 @@ public class JarCode extends Code {
   }
 
   @Override
-  public IRCode buildIR(DexEncodedMethod encodedMethod, InternalOptions options) {
+  public IRCode buildIR(DexEncodedMethod encodedMethod, InternalOptions options)
+      throws ApiLevelException {
     triggerDelayedParsingIfNeccessary();
     return options.debug
         ? internalBuildWithLocals(encodedMethod, null, options)
@@ -88,7 +90,8 @@ public class JarCode extends Code {
   }
 
   public IRCode buildIR(
-      DexEncodedMethod encodedMethod, ValueNumberGenerator generator, InternalOptions options) {
+      DexEncodedMethod encodedMethod, ValueNumberGenerator generator, InternalOptions options)
+      throws ApiLevelException {
     assert generator != null;
     triggerDelayedParsingIfNeccessary();
     return options.debug
@@ -97,7 +100,8 @@ public class JarCode extends Code {
   }
 
   private IRCode internalBuildWithLocals(
-      DexEncodedMethod encodedMethod, ValueNumberGenerator generator, InternalOptions options) {
+      DexEncodedMethod encodedMethod, ValueNumberGenerator generator, InternalOptions options)
+      throws ApiLevelException {
     try {
       return internalBuild(encodedMethod, generator, options);
     } catch (InvalidDebugInfoException e) {
@@ -108,7 +112,8 @@ public class JarCode extends Code {
   }
 
   private IRCode internalBuild(
-      DexEncodedMethod encodedMethod, ValueNumberGenerator generator, InternalOptions options) {
+      DexEncodedMethod encodedMethod, ValueNumberGenerator generator, InternalOptions options)
+      throws ApiLevelException {
     if (!options.debug) {
       node.localVariables.clear();
     }

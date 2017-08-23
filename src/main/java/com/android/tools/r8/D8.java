@@ -210,7 +210,7 @@ public final class D8 {
   private static DexApplication optimize(
       DexApplication application, AppInfo appInfo, InternalOptions options,
       Timing timing, ExecutorService executor)
-      throws IOException, ExecutionException {
+      throws IOException, ExecutionException, ApiLevelException {
     final CfgPrinter printer = options.printCfg ? new CfgPrinter() : null;
 
     IRConverter converter = new IRConverter(timing, application, appInfo, options, printer);

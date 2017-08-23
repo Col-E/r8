@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.conversion;
 
+import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.ir.code.CatchHandlers;
 
@@ -46,7 +47,7 @@ public interface SourceCode {
 
   // Delegates for IR building.
   void buildPrelude(IRBuilder builder);
-  void buildInstruction(IRBuilder builder, int instructionIndex);
+  void buildInstruction(IRBuilder builder, int instructionIndex) throws ApiLevelException;
   void buildPostlude(IRBuilder builder);
 
   // Helper to resolve switch payloads and build switch instructions (dex code only).

@@ -49,6 +49,7 @@ import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.LebUtils;
+import com.android.tools.r8.utils.ThrowingConsumer;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.objects.Object2IntLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
@@ -365,19 +366,11 @@ public class FileWriter {
   }
 
   private <T extends DexItem> void writeFixedSectionItems(T[] items, int offset,
-      ItemWriter<T> writer) throws ApiLevelException {
+      ThrowingConsumer<T, ApiLevelException> writer) throws ApiLevelException {
     assert dest.position() == offset;
     for (T item : items) {
       writer.accept(item);
     }
-  }
-
-  /**
-   * Similar to a {@link Consumer} but throws an {@link ApiLevelException}.
-   */
-  @FunctionalInterface
-  private interface ItemWriter<T> {
-    void accept(T t) throws ApiLevelException;
   }
 
   private <T extends DexItem> void writeItems(Collection<T> items, Consumer<Integer> offsetSetter,

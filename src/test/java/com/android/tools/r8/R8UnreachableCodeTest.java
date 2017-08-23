@@ -28,7 +28,7 @@ public class R8UnreachableCodeTest {
   private static final Path SMALI_DIR = Paths.get(ToolHelper.SMALI_BUILD_DIR);
 
   @Test
-  public void UnreachableCode() throws IOException, ExecutionException {
+  public void UnreachableCode() throws IOException, ExecutionException, CompilationException {
     String name = "unreachable-code-1";
     AndroidApp input = AndroidApp.fromProgramFiles(SMALI_DIR.resolve(name).resolve(name + ".dex"));
     ExecutorService executorService = Executors.newSingleThreadExecutor();

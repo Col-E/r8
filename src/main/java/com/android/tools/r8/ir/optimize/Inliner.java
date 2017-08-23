@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
+import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexAccessFlags;
 import com.android.tools.r8.graph.DexClass;
@@ -127,7 +128,7 @@ public class Inliner {
   }
 
   public synchronized void processDoubleInlineCallers(IRConverter converter,
-      OptimizationFeedback feedback) {
+      OptimizationFeedback feedback) throws ApiLevelException {
     if (doubleInlineCallers.size() > 0) {
       applyDoubleInlining = true;
       List<DexEncodedMethod> methods = doubleInlineCallers
@@ -226,7 +227,7 @@ public class Inliner {
     }
 
     public IRCode buildIR(ValueNumberGenerator generator, AppInfoWithSubtyping appInfo,
-        GraphLense graphLense, InternalOptions options) {
+        GraphLense graphLense, InternalOptions options) throws ApiLevelException {
       if (target.isProcessed()) {
         assert target.getCode().isDexCode();
         return target.buildIR(generator, options);
@@ -314,7 +315,8 @@ public class Inliner {
     return true;
   }
 
-  public void performInlining(DexEncodedMethod method, IRCode code, CallGraph callGraph) {
+  public void performInlining(DexEncodedMethod method, IRCode code, CallGraph callGraph)
+      throws ApiLevelException {
     int instruction_allowance = 1500;
     instruction_allowance -= numberOfInstructions(code);
     if (instruction_allowance < 0) {

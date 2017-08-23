@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.conversion;
 
+import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.code.FillArrayData;
 import com.android.tools.r8.code.FillArrayDataPayload;
 import com.android.tools.r8.code.FilledNewArray;
@@ -148,7 +149,7 @@ public class DexSourceCode implements SourceCode {
   }
 
   @Override
-  public void buildInstruction(IRBuilder builder, int instructionIndex) {
+  public void buildInstruction(IRBuilder builder, int instructionIndex) throws ApiLevelException {
     updateCurrentCatchHandlers(instructionIndex);
     emitDebugPosition(instructionIndex, builder);
     currentDexInstruction = code.instructions[instructionIndex];

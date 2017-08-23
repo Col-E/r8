@@ -106,9 +106,6 @@ public abstract class RunExamplesAndroidOTest<B> {
     }
 
     void run() throws Throwable {
-      if (compilationErrorExpected(testName)) {
-        thrown.expect(CompilationError.class);
-      }
       if (minSdkErrorExpected(testName)) {
         thrown.expect(ApiLevelException.class);
       }
@@ -154,11 +151,9 @@ public abstract class RunExamplesAndroidOTest<B> {
     abstract void build(Path inputFile, Path out) throws Throwable;
   }
 
-  private static List<String> compilationErrorExpected =
-      ImmutableList.of("invokepolymorphic-error-due-to-min-sdk");
-
   private static List<String> minSdkErrorExpected =
-      ImmutableList.of("invokecustom-error-due-to-min-sdk");
+      ImmutableList.of(
+          "invokepolymorphic-error-due-to-min-sdk", "invokecustom-error-due-to-min-sdk");
 
   private static Map<DexVm, List<String>> failsOn =
       ImmutableMap.of(
@@ -214,10 +209,6 @@ public abstract class RunExamplesAndroidOTest<B> {
 
   boolean expectedToFail(String name) {
     return failsOn(failsOn, name);
-  }
-
-  boolean compilationErrorExpected(String testName) {
-    return compilationErrorExpected.contains(testName);
   }
 
   boolean minSdkErrorExpected(String testName) {

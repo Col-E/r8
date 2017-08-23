@@ -5,6 +5,7 @@ package com.android.tools.r8.jasmin;
 
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.R8;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
@@ -131,7 +132,7 @@ public class JasminTestBase {
   }
 
   protected static DexApplication process(DexApplication app, InternalOptions options)
-      throws IOException, ProguardRuleParserException, ExecutionException {
+      throws IOException, CompilationException, ExecutionException {
     return ToolHelper.optimizeWithR8(app, new AppInfoWithSubtyping(app), options);
   }
 }

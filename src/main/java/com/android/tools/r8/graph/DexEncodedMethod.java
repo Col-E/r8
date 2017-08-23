@@ -9,6 +9,7 @@ import static com.android.tools.r8.graph.DexEncodedMethod.CompilationState.PROCE
 import static com.android.tools.r8.graph.DexEncodedMethod.CompilationState.PROCESSED_INLINING_CANDIDATE_SUBCLASS;
 import static com.android.tools.r8.graph.DexEncodedMethod.CompilationState.PROCESSED_NOT_INLINING_CANDIDATE;
 
+import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.code.Const;
 import com.android.tools.r8.code.ConstString;
 import com.android.tools.r8.code.ConstStringJumbo;
@@ -155,11 +156,12 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
     compilationState = CompilationState.NOT_PROCESSED;
   }
 
-  public IRCode buildIR(InternalOptions options) {
+  public IRCode buildIR(InternalOptions options) throws ApiLevelException {
     return code == null ? null : code.buildIR(this, options);
   }
 
-  public IRCode buildIR(ValueNumberGenerator valueNumberGenerator, InternalOptions options) {
+  public IRCode buildIR(ValueNumberGenerator valueNumberGenerator, InternalOptions options)
+      throws ApiLevelException {
     return code == null
         ? null
         : code.asDexCode().buildIR(this, valueNumberGenerator, options);

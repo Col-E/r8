@@ -114,12 +114,12 @@ public class R8 {
       DexApplication application,
       AppInfoWithSubtyping appInfo,
       InternalOptions options)
-      throws ProguardRuleParserException, ExecutionException, IOException {
+      throws ApiLevelException, ExecutionException, IOException {
     return new R8(options).optimize(application, appInfo);
   }
 
   private DexApplication optimize(DexApplication application, AppInfoWithSubtyping appInfo)
-      throws IOException, ProguardRuleParserException, ExecutionException {
+      throws IOException, ApiLevelException, ExecutionException {
     return optimize(application, appInfo, GraphLense.getIdentityLense(),
         Executors.newSingleThreadExecutor());
   }
@@ -129,7 +129,7 @@ public class R8 {
       AppInfoWithSubtyping appInfo,
       GraphLense graphLense,
       ExecutorService executorService)
-      throws IOException, ProguardRuleParserException, ExecutionException {
+      throws IOException, ApiLevelException, ExecutionException {
     final CfgPrinter printer = options.printCfg ? new CfgPrinter() : null;
 
     timing.begin("Create IR");

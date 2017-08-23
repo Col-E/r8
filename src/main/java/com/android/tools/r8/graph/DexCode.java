@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.ReturnVoid;
 import com.android.tools.r8.code.SwitchPayload;
@@ -147,7 +148,8 @@ public class DexCode extends Code {
   }
 
   @Override
-  public IRCode buildIR(DexEncodedMethod encodedMethod, InternalOptions options) {
+  public IRCode buildIR(DexEncodedMethod encodedMethod, InternalOptions options)
+      throws ApiLevelException {
     DexSourceCode source = new DexSourceCode(this, encodedMethod);
     IRBuilder builder = new IRBuilder(encodedMethod, source, options);
     return builder.build();
@@ -156,7 +158,8 @@ public class DexCode extends Code {
   public IRCode buildIR(
       DexEncodedMethod encodedMethod,
       ValueNumberGenerator valueNumberGenerator,
-      InternalOptions options) {
+      InternalOptions options)
+      throws ApiLevelException {
     DexSourceCode source = new DexSourceCode(this, encodedMethod);
     IRBuilder builder = new IRBuilder(encodedMethod, source, valueNumberGenerator, options);
     return builder.build();

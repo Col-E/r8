@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.conversion;
 
+import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.InternalCompilerError;
@@ -311,7 +312,7 @@ public class IRBuilder {
    *
    * @return The list of basic blocks. First block is the main entry.
    */
-  public IRCode build() {
+  public IRCode build() throws ApiLevelException {
     assert source != null;
     source.setUp();
 
@@ -441,7 +442,7 @@ public class IRBuilder {
     return true;
   }
 
-  private void processWorklist() {
+  private void processWorklist() throws ApiLevelException {
     for (WorklistItem item = ssaWorklist.poll(); item != null; item = ssaWorklist.poll()) {
       if (item.block.isFilled()) {
         continue;
@@ -910,12 +911,14 @@ public class IRBuilder {
     add(instruction);
   }
 
-  public void addInvoke(
-      Type type, DexItem item, DexProto callSiteProto, List<Value> arguments) {
+  public void addInvoke(Type type, DexItem item, DexProto callSiteProto, List<Value> arguments)
+      throws ApiLevelException {
     if (type == Invoke.Type.POLYMORPHIC && !options.canUseInvokePolymorphic()) {
-      throw new CompilationError(
-          "MethodHandle.invoke and MethodHandle.invokeExact is unsupported before "
-              + "Android O (--min-api " + Constants.ANDROID_O_API + ")");
+      throw new ApiLevelException(
+          Constants.ANDROID_O_API,
+          "Android O",
+          "MethodHandle.invoke and MethodHandle.invokeExact",
+          null /* sourceString */);
     }
     add(Invoke.create(type, item, callSiteProto, null, arguments));
   }
@@ -925,7 +928,8 @@ public class IRBuilder {
       DexItem item,
       DexProto callSiteProto,
       List<MoveType> types,
-      List<Integer> registers) {
+      List<Integer> registers)
+      throws ApiLevelException {
     assert types.size() == registers.size();
     List<Value> arguments = new ArrayList<>(types.size());
     for (int i = 0; i < types.size(); i++) {
@@ -993,7 +997,8 @@ public class IRBuilder {
       DexMethod method,
       DexProto callSiteProto,
       int argumentRegisterCount,
-      int[] argumentRegisters) {
+      int[] argumentRegisters)
+      throws ApiLevelException {
     // The value of argumentRegisterCount is the number of registers - not the number of values,
     // but it is an upper bound on the number of arguments.
     List<Value> arguments = new ArrayList<>(argumentRegisterCount);
@@ -1020,7 +1025,8 @@ public class IRBuilder {
     addInvoke(type, method, callSiteProto, arguments);
   }
 
-  public void addInvokeNewArray(DexType type, int argumentCount, int[] argumentRegisters) {
+  public void addInvokeNewArray(DexType type, int argumentCount, int[] argumentRegisters)
+      throws ApiLevelException {
     String descriptor = type.descriptor.toString();
     assert descriptor.charAt(0) == '[';
     assert descriptor.length() >= 2;
@@ -1044,7 +1050,8 @@ public class IRBuilder {
       DexMethod method,
       DexProto callSiteProto,
       int argumentCount,
-      int firstArgumentRegister) {
+      int firstArgumentRegister)
+      throws ApiLevelException {
     // The value of argumentCount is the number of registers - not the number of values, but it
     // is an upper bound on the number of arguments.
     List<Value> arguments = new ArrayList<>(argumentCount);
@@ -1071,7 +1078,8 @@ public class IRBuilder {
     addInvoke(type, method, callSiteProto, arguments);
   }
 
-  public void addInvokeRangeNewArray(DexType type, int argumentCount, int firstArgumentRegister) {
+  public void addInvokeRangeNewArray(DexType type, int argumentCount, int firstArgumentRegister)
+      throws ApiLevelException {
     String descriptor = type.descriptor.toString();
     assert descriptor.charAt(0) == '[';
     assert descriptor.length() >= 2;
