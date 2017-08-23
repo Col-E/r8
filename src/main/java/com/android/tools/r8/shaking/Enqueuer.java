@@ -41,6 +41,7 @@ import com.google.common.collect.Sets.SetView;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -927,13 +928,13 @@ public class Enqueuer {
   SortedSet<DexField> collectFieldsRead() {
     return ImmutableSortedSet.copyOf(PresortedComparable::slowCompareTo,
         Sets.union(collectReachedFields(instanceFieldsRead, this::tryLookupInstanceField),
-        collectReachedFields(staticFieldsRead, this::tryLookupStaticField)));
+            collectReachedFields(staticFieldsRead, this::tryLookupStaticField)));
   }
 
   SortedSet<DexField> collectFieldsWritten() {
     return ImmutableSortedSet.copyOf(PresortedComparable::slowCompareTo,
         Sets.union(collectReachedFields(instanceFieldsWritten, this::tryLookupInstanceField),
-        collectReachedFields(staticFieldsWritten, this::tryLookupStaticField)));
+            collectReachedFields(staticFieldsWritten, this::tryLookupStaticField)));
   }
 
   private static class Action {
@@ -1099,6 +1100,10 @@ public class Enqueuer {
      * Map from the class of an extension to the state it produced.
      */
     public final Map<Class, Object> extensions;
+    /**
+     * A set of types that have been removed by the {@link TreePruner}.
+     */
+    public final Set<DexType> prunedTypes;
 
     private AppInfoWithLiveness(AppInfoWithSubtyping appInfo, Enqueuer enqueuer) {
       super(appInfo);
@@ -1124,11 +1129,13 @@ public class Enqueuer {
       this.assumedValues = enqueuer.rootSet.assumedValues;
       this.alwaysInline = enqueuer.rootSet.alwaysInline;
       this.extensions = enqueuer.extensionsState;
+      this.prunedTypes = Collections.emptySet();
       assert Sets.intersection(instanceFieldReads, staticFieldReads).size() == 0;
       assert Sets.intersection(instanceFieldWrites, staticFieldWrites).size() == 0;
     }
 
-    private AppInfoWithLiveness(AppInfoWithLiveness previous, DexApplication application) {
+    private AppInfoWithLiveness(AppInfoWithLiveness previous, DexApplication application,
+        Collection<DexType> removedClasses) {
       super(application);
       this.liveTypes = previous.liveTypes;
       this.instantiatedTypes = previous.instantiatedTypes;
@@ -1151,6 +1158,7 @@ public class Enqueuer {
       this.staticInvokes = previous.staticInvokes;
       this.extensions = previous.extensions;
       this.alwaysInline = previous.alwaysInline;
+      this.prunedTypes = mergeSets(previous.prunedTypes, removedClasses);
       assert Sets.intersection(instanceFieldReads, staticFieldReads).size() == 0;
       assert Sets.intersection(instanceFieldWrites, staticFieldWrites).size() == 0;
     }
@@ -1178,6 +1186,7 @@ public class Enqueuer {
       this.staticInvokes = rewriteItems(previous.staticInvokes, lense::lookupMethod);
       this.alwaysInline = previous.alwaysInline;
       this.extensions = previous.extensions;
+      this.prunedTypes = rewriteItems(previous.prunedTypes, lense::lookupType);
       assert Sets.intersection(instanceFieldReads, staticFieldReads).size() == 0;
       assert Sets.intersection(instanceFieldWrites, staticFieldWrites).size() == 0;
     }
@@ -1209,6 +1218,13 @@ public class Enqueuer {
       return builder.build();
     }
 
+    private static <T> Set<T> mergeSets(Collection<T> first, Collection<T> second) {
+      ImmutableSet.Builder<T> builder = ImmutableSet.builder();
+      builder.addAll(first);
+      builder.addAll(second);
+      return builder.build();
+    }
+
     @SuppressWarnings("unchecked")
     public <T> T getExtension(Class extension, T defaultValue) {
       if (extensions.containsKey(extension)) {
@@ -1237,13 +1253,22 @@ public class Enqueuer {
      * Returns a copy of this AppInfoWithLiveness where the set of classes is pruned using the
      * given DexApplication object.
      */
-    public AppInfoWithLiveness prunedCopyFrom(DexApplication application) {
-      return new AppInfoWithLiveness(this, application);
+    public AppInfoWithLiveness prunedCopyFrom(DexApplication application,
+        Collection<DexType> removedClasses) {
+      return new AppInfoWithLiveness(this, application, removedClasses);
     }
 
     public AppInfoWithLiveness rewrittenWithLense(GraphLense lense) {
       assert lense.isContextFree();
       return new AppInfoWithLiveness(this, lense);
+    }
+
+    /**
+     * Returns true if the given type was part of the original program but has been removed during
+     * tree shaking.
+     */
+    public boolean wasPruned(DexType type) {
+      return prunedTypes.contains(type);
     }
   }
 

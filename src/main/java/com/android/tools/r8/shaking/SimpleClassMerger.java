@@ -655,4 +655,8 @@ public class SimpleClassMerger {
       return result;
     }
   }
+
+  public Collection<DexType> getRemovedClasses() {
+    return Collections.unmodifiableCollection(mergedClasses.keySet());
+  }
 }
