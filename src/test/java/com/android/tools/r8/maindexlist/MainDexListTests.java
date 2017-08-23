@@ -302,7 +302,7 @@ public class MainDexListTests extends TestBase {
         Path secondaryDexFile = testDir.resolve("classes2.dex");
         assertTrue(Files.exists(primaryDexFile));
         boolean hasSecondaryDexFile = !allClasses && mode == CompilationMode.DEBUG;
-        assertEquals(hasSecondaryDexFile, Files.exists(testDir.resolve(secondaryDexFile)));
+        assertEquals(hasSecondaryDexFile, Files.exists(secondaryDexFile));
         byte[] content = Files.readAllBytes(primaryDexFile);
         if (ref == null) {
           ref = content;
