@@ -220,6 +220,12 @@ public class IRCode {
         assert verifyPhi(phiUser);
         assert phiUser.getDebugValues().contains(value);
       }
+      for (Instruction instruction : value.getDebugLocalStarts()) {
+        assert value.debugUsers().contains(instruction);
+      }
+      for (Instruction instruction : value.getDebugLocalEnds()) {
+        assert value.debugUsers().contains(instruction);
+      }
     }
     return true;
   }
