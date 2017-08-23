@@ -10,18 +10,19 @@ import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.StringUtils;
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 public class Phi extends Value {
 
   private final BasicBlock block;
   private final List<Value> operands = new ArrayList<>();
-  private List<Value> debugValues = null;
+  private Set<Value> debugValues = null;
 
   // Trivial phis are eliminated during IR construction. When a trivial phi is eliminated
   // we need to update all references to it. A phi can be referenced from phis, instructions
@@ -101,7 +102,7 @@ public class Phi extends Value {
   public void addDebugValue(Value value) {
     assert value.getLocalInfo() != null;
     if (debugValues == null) {
-      debugValues = new ArrayList<>();
+      debugValues = new HashSet<>();
     }
     debugValues.add(value);
     value.addDebugPhiUser(this);
@@ -154,31 +155,22 @@ public class Phi extends Value {
     current.removePhiUser(this);
   }
 
-  // Removing the phi user from the current value leads to concurrent modification errors
-  // during trivial phi elimination. It is safe to not remove the phi user from current
-  // since current will be unreachable after trivial phi elimination.
-  // TODO(ager): can we unify the these replace methods and avoid the concurrent modification
-  // issue?
-  private void replaceTrivialPhi(Value current, Value newValue) {
+  void replaceTrivialPhi(Value current, Value newValue, List<Phi> toRemove) {
     for (int i = 0; i < operands.size(); i++) {
       if (operands.get(i) == current) {
         operands.set(i, newValue);
         newValue.addPhiUser(this);
+        toRemove.add(this);
       }
     }
   }
 
-  private void replaceTrivialDebugPhi(Value current, Value newValue) {
-    if (debugValues == null) {
-      return;
-    }
+  void replaceTrivialDebugPhi(Value current, Value newValue, List<Phi> toRemove) {
     assert current.getLocalInfo() != null;
     assert current.getLocalInfo() == newValue.getLocalInfo();
-    for (int i = 0; i < debugValues.size(); i++) {
-      if (debugValues.get(i) == current) {
-        debugValues.set(i, newValue);
-        newValue.addDebugPhiUser(this);
-      }
+    if (debugValues.remove(current)) {
+      addDebugValue(newValue);
+      toRemove.add(this);
     }
   }
 
@@ -213,35 +205,17 @@ public class Phi extends Value {
       same = op;
     }
     assert isTrivialPhi();
+    assert same != null : "ill-defined phi";
     // Removing this phi, so get rid of it as a phi user from all of the operands to avoid
     // recursively getting back here with the same phi. If the phi has itself as an operand
     // that also removes the self-reference.
     for (Value op : operands) {
       op.removePhiUser(this);
     }
-    // Replace this phi with the unique value in all users.
-    for (Instruction user : uniqueUsers()) {
-      user.replaceValue(this, same);
-    }
-    for (Phi user : uniquePhiUsers()) {
-      user.replaceTrivialPhi(this, same);
-    }
-    if (debugUsers() != null) {
-      List<Instruction> removed = new ArrayList<>();
-      for (Instruction user : debugUsers()) {
-        if (user.replaceDebugValue(this, same)) {
-          removed.add(user);
-        }
-      }
-      removed.forEach(this::removeDebugUser);
-      for (Phi user : debugPhiUsers()) {
-        user.replaceTrivialDebugPhi(this, same);
-      }
-    }
     // If IR construction is taking place, update the definition users.
     if (definitionUsers != null) {
       for (Map<Integer, Value> user : definitionUsers) {
-        for (Map.Entry<Integer, Value> entry : user.entrySet()) {
+        for (Entry<Integer, Value> entry : user.entrySet()) {
           if (entry.getValue() == this) {
             entry.setValue(same);
             if (same.isPhi()) {
@@ -251,9 +225,14 @@ public class Phi extends Value {
         }
       }
     }
-    // Try to simplify phi users that might now have become trivial.
-    for (Phi user : uniquePhiUsers()) {
-      user.removeTrivialPhi();
+    {
+      Set<Phi> phiUsersToSimplify = uniquePhiUsers();
+      // Replace this phi with the unique value in all users.
+      replaceInUsers(same);
+      // Try to simplify phi users that might now have become trivial.
+      for (Phi user : phiUsersToSimplify) {
+        user.removeTrivialPhi();
+      }
     }
     // Get rid of the phi itself.
     block.removePhi(this);
@@ -349,7 +328,7 @@ public class Phi extends Value {
     return true;
   }
 
-  public List<Value> getDebugValues() {
-    return debugValues != null ? debugValues : ImmutableList.of();
+  public Set<Value> getDebugValues() {
+    return debugValues != null ? debugValues : ImmutableSet.of();
   }
 }
