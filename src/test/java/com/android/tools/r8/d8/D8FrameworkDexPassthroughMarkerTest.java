@@ -16,7 +16,12 @@ import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
-
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.concurrent.ExecutionException;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -24,20 +29,12 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.concurrent.ExecutionException;
-
 /**
- * Simple test that compiles framework.jar with D8 a number of times with
- * various number of threads available to the compiler.
- * This test also tests the hidden marker inserted into classes.dex.
+ * Simple test that compiles framework.jar with D8 a number of times with various number of threads
+ * available to the compiler. This test also tests the hidden marker inserted into classes.dex.
  */
-@RunWith( Parameterized.class )
-public class D8FrameworkTest {
+@RunWith(Parameterized.class)
+public class D8FrameworkDexPassthroughMarkerTest {
 
   private static final Path FRAMEWORK_JAR =
       Paths.get("tools/linux/art-5.1.1/product/mako/system/framework/framework.jar");
@@ -52,7 +49,7 @@ public class D8FrameworkTest {
 
   private final int threads;
 
-  public D8FrameworkTest(int threads) {
+  public D8FrameworkDexPassthroughMarkerTest(int threads) {
     this.threads = threads;
   }
 
@@ -72,7 +69,9 @@ public class D8FrameworkTest {
       options.numberOfThreads = threads;
     });
     DexApplication dexApp =
-        new ApplicationReader(app, new InternalOptions(), new Timing("D8FrameworkTest")).read();
+        new ApplicationReader(
+                app, new InternalOptions(), new Timing("D8FrameworkDexPassthroughMarkerTest"))
+            .read();
     Marker readMarker = dexApp.dexItemFactory.extractMarker();
     assertEquals(marker, readMarker);
   }
