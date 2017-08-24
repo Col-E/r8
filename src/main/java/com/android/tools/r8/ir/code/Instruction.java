@@ -95,19 +95,17 @@ public abstract class Instruction {
 
   public abstract void buildDex(DexBuilder builder);
 
-  public void replaceValue(Value oldValue, Value newValue, List<Instruction> toRemove) {
+  public void replaceValue(Value oldValue, Value newValue) {
     for (int i = 0; i < inValues.size(); i++) {
       if (oldValue == inValues.get(i)) {
         inValues.set(i, newValue);
         newValue.addUser(this);
-        toRemove.add(this);
       }
     }
   }
 
-  public void replaceDebugValue(Value oldValue, Value newValue, List<Instruction> toRemove) {
+  public void replaceDebugValue(Value oldValue, Value newValue) {
     if (debugValues.remove(oldValue)) {
-      toRemove.add(this);
       if (newValue.getLocalInfo() != null) {
         // TODO(zerny): Insert a write if replacing a phi with different debug-local info.
         addDebugValue(newValue);
