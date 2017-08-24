@@ -14,6 +14,7 @@ import subprocess
 import sys
 import utils
 import uuid
+import notify
 
 ALL_ART_VMS = ["default", "7.0.0", "6.0.1", "5.1.1"]
 BUCKET = 'r8-test-results'
@@ -149,4 +150,9 @@ def Main():
       return return_code
 
 if __name__ == '__main__':
-  sys.exit(Main())
+  return_code = Main()
+  if return_code != 0:
+    notify.notify("Tests failed.")
+  else:
+    notify.notify("Tests passed.")
+  sys.exit(return_code)
