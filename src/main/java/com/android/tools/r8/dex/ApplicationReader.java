@@ -35,7 +35,6 @@ import com.android.tools.r8.utils.LibraryClassCollection;
 import com.android.tools.r8.utils.MainDexList;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
-import com.google.common.io.Closer;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -130,8 +129,7 @@ public class ApplicationReader {
   }
 
   private void readProguardMap(DexApplication.Builder builder, ExecutorService executorService,
-      List<Future<?>> futures)
-      throws IOException {
+      List<Future<?>> futures) {
     // Read the Proguard mapping file in parallel with DexCode and DexProgramClass items.
     if (inputApp.hasProguardMap()) {
       futures.add(executorService.submit(() -> {
@@ -145,8 +143,7 @@ public class ApplicationReader {
   }
 
   private void readMainDexList(DexApplication.Builder builder, ExecutorService executorService,
-      List<Future<?>> futures)
-      throws IOException {
+      List<Future<?>> futures) {
     if (inputApp.hasMainDexList()) {
       futures.add(executorService.submit(() -> {
         for (Resource resource : inputApp.getMainDexListResources()) {
@@ -184,7 +181,7 @@ public class ApplicationReader {
     }
 
     private <T extends DexClass> void readDexSources(List<Resource> dexSources,
-        ClassKind classKind, Queue<T> classes) throws IOException, ExecutionException {
+        ClassKind classKind, Queue<T> classes) throws IOException {
       if (dexSources.size() > 0) {
         List<DexFileReader> fileReaders = new ArrayList<>(dexSources.size());
         int computedMinApiLevel = options.minApiLevel;
@@ -211,7 +208,7 @@ public class ApplicationReader {
     }
 
     private <T extends DexClass> void readClassSources(List<Resource> classSources,
-        ClassKind classKind, Queue<T> classes) throws IOException, ExecutionException {
+        ClassKind classKind, Queue<T> classes) {
       JarClassFileReader reader = new JarClassFileReader(
           application, classKind.bridgeConsumer(classes::add));
       // Read classes in parallel.
@@ -227,7 +224,7 @@ public class ApplicationReader {
       }
     }
 
-    void readSources() throws IOException, ExecutionException {
+    void readSources() throws IOException {
       readDexSources(inputApp.getDexProgramResources(), PROGRAM, programClasses);
       readClassSources(inputApp.getClassProgramResources(), PROGRAM, programClasses);
     }

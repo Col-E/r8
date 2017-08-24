@@ -5,7 +5,6 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.dex.DexFileReader;
 import com.android.tools.r8.dex.Segment;
-import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OutputMode;
@@ -16,7 +15,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 
 public class DexSegments {
   private static class Command extends BaseCommand {
@@ -99,7 +97,7 @@ public class DexSegments {
   }
 
   public static void main(String[] args)
-      throws IOException, ProguardRuleParserException, CompilationException, ExecutionException {
+      throws IOException, CompilationException {
     Command.Builder builder = Command.parse(args);
     Command command = builder.build();
     if (command.isPrintHelp()) {

@@ -8,7 +8,6 @@ import com.google.common.collect.ImmutableList;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.graph.DexApplication;
-import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OutputMode;
@@ -100,7 +99,7 @@ public class ExtractMarker {
   }
 
   public static void main(String[] args)
-      throws IOException, ProguardRuleParserException, CompilationException, ExecutionException {
+      throws IOException, CompilationException, ExecutionException {
     ExtractMarker.Command.Builder builder = ExtractMarker.Command.parse(args);
     ExtractMarker.Command command = builder.build();
     if (command.isPrintHelp()) {

@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
-import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OutputMode;
@@ -133,7 +132,7 @@ public class Disassemble {
   }
 
   public static void main(String[] args)
-      throws IOException, ProguardRuleParserException, CompilationException, ExecutionException {
+      throws IOException, CompilationException, ExecutionException {
     DisassembleCommand.Builder builder = DisassembleCommand.parse(args);
     DisassembleCommand command = builder.build();
     if (command.isPrintHelp()) {

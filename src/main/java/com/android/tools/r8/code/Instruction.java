@@ -228,6 +228,7 @@ public abstract class Instruction {
     throw new InternalCompilerError("Instruction " + payloadUser + " is not a payload user");
   }
 
+  @Override
   public String toString() {
     return toString(null);
   }

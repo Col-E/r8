@@ -64,13 +64,14 @@ public class ProguardMapReader implements AutoCloseable {
 
   private final BufferedReader reader;
 
+  @Override
   public void close() throws IOException {
     if (reader != null) {
       reader.close();
     }
   }
 
-  private ProguardMapReader(BufferedReader reader) throws IOException {
+  private ProguardMapReader(BufferedReader reader) {
     this.reader = reader;
   }
 
