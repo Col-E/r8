@@ -35,6 +35,7 @@ import com.android.tools.r8.ir.conversion.JarState.Slot;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.utils.ThrowingBiConsumer;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceMap.Entry;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import java.io.PrintWriter;
@@ -264,6 +265,7 @@ public class JarSourceCode implements SourceCode {
     // Record types for arguments.
     Int2ReferenceMap<MoveType> argumentLocals = recordArgumentTypes();
     Int2ReferenceMap<MoveType> initializedLocals = new Int2ReferenceOpenHashMap<>(argumentLocals);
+    Int2ReferenceMap<ConstType> uninitializedLocals = new Int2ReferenceOpenHashMap<>();
     // Initialize all non-argument locals to ensure safe insertion of debug-local instructions.
     for (Object o : node.localVariables) {
       LocalVariableNode local = (LocalVariableNode) o;
@@ -292,20 +294,34 @@ public class JarSourceCode implements SourceCode {
         int localRegister2 = state.writeLocal(local.index, localType);
         assert localRegister == localRegister2;
         initializedLocals.put(localRegister, moveType(localType));
-        builder.addDebugUninitialized(localRegister, constType(localType));
+        uninitializedLocals.put(localRegister, constType(localType));
       }
     }
+
+    // TODO(zerny): This is getting a little out of hands. Clean it up.
+
     // Add debug information for all locals at the initial label.
+    List<Local> locals = null;
     if (initialLabel != null) {
-      for (Local local : state.openLocals(initialLabel)) {
+      locals = state.openLocals(initialLabel);
+    }
+
+    // Build the actual argument instructions now that type and debug information is known
+    // for arguments.
+    buildArgumentInstructions(builder);
+
+    for (Entry<ConstType> entry : uninitializedLocals.int2ReferenceEntrySet()) {
+      builder.addDebugUninitialized(entry.getIntKey(), entry.getValue());
+    }
+
+    if (locals != null) {
+      for (Local local : locals) {
         if (!argumentLocals.containsKey(local.slot.register)) {
           builder.addDebugLocalStart(local.slot.register, local.info);
         }
       }
     }
-    // Build the actual argument instructions now that type and debug information is known
-    // for arguments.
-    buildArgumentInstructions(builder);
+
     if (isSynchronized()) {
       generatingMethodSynchronization = true;
       Type clazzType = Type.getType(clazz.toDescriptorString());
