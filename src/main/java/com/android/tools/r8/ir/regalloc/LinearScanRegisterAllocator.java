@@ -197,7 +197,6 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       }
     }
 
-    clearUserInfo();
     assert code.isConsistentGraph();
     if (Log.ENABLED) {
       Log.debug(this.getClass(), toString());
@@ -206,6 +205,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     if (debug) {
       computeDebugInfo(blocks);
     }
+    clearUserInfo();
     clearState();
   }
 

@@ -1800,12 +1800,7 @@ public class IRBuilder {
         }
         Goto gotoExit = new Goto();
         gotoExit.setBlock(block);
-        if (options.debug) {
-          for (Value value : ret.getDebugValues()) {
-            gotoExit.addDebugValue(value);
-            value.removeDebugUser(ret);
-          }
-        }
+        ret.moveDebugValues(gotoExit);
         instructions.set(instructions.size() - 1, gotoExit);
         block.link(normalExitBlock);
         gotoExit.setTarget(normalExitBlock);

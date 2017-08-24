@@ -140,27 +140,11 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
       assert newInstruction.outValue() != null;
       current.outValue().replaceUsers(newInstruction.outValue());
     }
-    for (Value value : current.getDebugValues()) {
-      replaceInstructionInList(current, newInstruction, value.getDebugLocalStarts());
-      replaceInstructionInList(current, newInstruction, value.getDebugLocalEnds());
-      value.removeDebugUser(current);
-      newInstruction.addDebugValue(value);
-    }
+    current.moveDebugValues(newInstruction);
     newInstruction.setBlock(block);
     listIterator.remove();
     listIterator.add(newInstruction);
     current.clearBlock();
-  }
-
-  private static void replaceInstructionInList(
-      Instruction instruction,
-      Instruction newInstruction,
-      List<Instruction> instructions) {
-    for (int i = 0; i < instructions.size(); i++) {
-      if (instructions.get(i) == instruction) {
-        instructions.set(i, newInstruction);
-      }
-    }
   }
 
   public BasicBlock split(IRCode code, ListIterator<BasicBlock> blocksIterator) {
