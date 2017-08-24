@@ -74,8 +74,9 @@ public abstract class Instruction {
     if (debugValues == null) {
       debugValues = new HashSet<>();
     }
-    debugValues.add(value);
-    value.addDebugUser(this);
+    if (debugValues.add(value)) {
+      value.addDebugUser(this);
+    }
   }
 
   public static void clearUserInfo(Instruction instruction) {
@@ -113,6 +114,16 @@ public abstract class Instruction {
       }
       // TODO(zerny): Else: Insert a write if replacing a phi with associated debug-local info.
     }
+  }
+
+  public void moveDebugValues(Instruction target) {
+    if (debugValues == null) {
+      return;
+    }
+    for (Value value : debugValues) {
+      value.replaceDebugUser(this, target);
+    }
+    debugValues.clear();
   }
 
   /**

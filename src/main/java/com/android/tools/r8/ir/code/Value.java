@@ -4,6 +4,7 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.ir.regalloc.LiveIntervals;
 import com.android.tools.r8.utils.InternalOptions;
@@ -11,9 +12,12 @@ import com.android.tools.r8.utils.LongInterval;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 public class Value {
@@ -21,14 +25,46 @@ public class Value {
   // Lazily allocated internal data for the debug information of locals.
   // This is wrapped in a class to avoid multiple pointers in the value structure.
   private static class DebugData {
+
     final DebugLocalInfo local;
-    Set<Instruction> users = new HashSet<>();
+    Map<Instruction, DebugUse> users = new HashMap<>();
     Set<Phi> phiUsers = new HashSet<>();
-    List<Instruction> localStarts = new ArrayList<>();
-    List<Instruction> localEnds = new ArrayList<>();
 
     DebugData(DebugLocalInfo local) {
       this.local = local;
+    }
+  }
+
+  // A debug-value user represents a point where the value is live, ends or starts.
+  // If a point is marked as both ending and starting then it is simply live, but we maintain
+  // the marker so as not to unintentionally end it if marked again.
+  private enum DebugUse {
+    LIVE, START, END, LIVE_FINAL;
+
+    DebugUse start() {
+      switch (this) {
+        case LIVE:
+        case START:
+          return START;
+        case END:
+        case LIVE_FINAL:
+          return LIVE_FINAL;
+        default:
+          throw new Unreachable();
+      }
+    }
+
+    DebugUse end() {
+      switch (this) {
+        case LIVE:
+        case END:
+          return END;
+        case START:
+        case LIVE_FINAL:
+          return LIVE_FINAL;
+        default:
+          throw new Unreachable();
+      }
     }
   }
 
@@ -79,21 +115,49 @@ public class Value {
   }
 
   public List<Instruction> getDebugLocalStarts() {
-    return debugData.localStarts;
+    if (debugData == null) {
+      return Collections.emptyList();
+    }
+    List<Instruction> starts = new ArrayList<>(debugData.users.size());
+    for (Entry<Instruction, DebugUse> entry : debugData.users.entrySet()) {
+      if (entry.getValue() == DebugUse.START) {
+        starts.add(entry.getKey());
+      }
+    }
+    return starts;
   }
 
   public List<Instruction> getDebugLocalEnds() {
-    return debugData.localEnds;
+    if (debugData == null) {
+      return Collections.emptyList();
+    }
+    List<Instruction> ends = new ArrayList<>(debugData.users.size());
+    for (Entry<Instruction, DebugUse> entry : debugData.users.entrySet()) {
+      if (entry.getValue() == DebugUse.END) {
+        ends.add(entry.getKey());
+      }
+    }
+    return ends;
   }
 
   public void addDebugLocalStart(Instruction start) {
     assert start != null;
-    debugData.localStarts.add(start);
+    debugData.users.put(start, markStart(debugData.users.get(start)));
+  }
+
+  private DebugUse markStart(DebugUse use) {
+    assert use != null;
+    return use == null ? DebugUse.START : use.start();
   }
 
   public void addDebugLocalEnd(Instruction end) {
     assert end != null;
-    debugData.localEnds.add(end);
+    debugData.users.put(end, markEnd(debugData.users.get(end)));
+  }
+
+  private DebugUse markEnd(DebugUse use) {
+    assert use != null;
+    return use == null ? DebugUse.END : use.end();
   }
 
   public void linkTo(Value other) {
@@ -152,7 +216,7 @@ public class Value {
   }
 
   public Set<Instruction> debugUsers() {
-    return debugData == null ? null : Collections.unmodifiableSet(debugData.users);
+    return debugData == null ? null : Collections.unmodifiableSet(debugData.users.keySet());
   }
 
   public Set<Phi> debugPhiUsers() {
@@ -244,7 +308,7 @@ public class Value {
     if (isUninitializedLocal()) {
       return;
     }
-    debugData.users.add(user);
+    debugData.users.putIfAbsent(user, DebugUse.LIVE);
   }
 
   public void addDebugPhiUser(Phi user) {
@@ -263,11 +327,19 @@ public class Value {
   }
 
   public void removeDebugUser(Instruction user) {
-    debugData.users.remove(user);
+    if (debugData != null && debugData.users != null) {
+      debugData.users.remove(user);
+      return;
+    }
+    assert false;
   }
 
   public void removeDebugPhiUser(Phi user) {
-    debugData.phiUsers.remove(user);
+    if (debugData != null && debugData.phiUsers != null) {
+      debugData.phiUsers.remove(user);
+      return;
+    }
+    assert false;
   }
 
   public boolean hasUsersInfo() {
@@ -352,6 +424,14 @@ public class Value {
         }
         toRemove.forEach(this::removeDebugPhiUser);
       }
+    }
+  }
+
+  public void replaceDebugUser(Instruction oldUser, Instruction newUser) {
+    DebugUse use = debugData.users.remove(oldUser);
+    if (use != null) {
+      newUser.addDebugValue(this);
+      debugData.users.put(newUser, use);
     }
   }
 
