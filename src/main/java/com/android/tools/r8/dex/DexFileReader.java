@@ -81,7 +81,7 @@ public class DexFileReader {
     return parseMapFrom(new DexFile(stream));
   }
 
-  private static Segment[] parseMapFrom(DexFile dex) throws IOException {
+  private static Segment[] parseMapFrom(DexFile dex) {
     DexFileReader reader = new DexFileReader(dex, ClassKind.PROGRAM, new DexItemFactory());
     return reader.segments;
   }

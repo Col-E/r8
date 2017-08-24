@@ -226,7 +226,8 @@ public class VirtualFile {
       super(writer);
     }
 
-    public Map<Integer, VirtualFile> run() throws ExecutionException, IOException {
+    @Override
+    public Map<Integer, VirtualFile> run() {
       // Assign dedicated virtual files for all program classes.
       for (DexProgramClass clazz : application.classes()) {
         VirtualFile file = new VirtualFile(nameToFileMap.size(), writer.namingLens);
@@ -322,7 +323,8 @@ public class VirtualFile {
       this.fillStrategy = FillStrategy.FILL_MAX;
     }
 
-    public Map<Integer, VirtualFile> run() throws ExecutionException, IOException {
+    @Override
+    public Map<Integer, VirtualFile> run() throws IOException {
       // First fill required classes into the main dex file.
       fillForMainDexList(classes);
       if (classes.isEmpty()) {
@@ -381,6 +383,7 @@ public class VirtualFile {
       this.executorService = executorService;
     }
 
+    @Override
     public Map<Integer, VirtualFile> run() throws ExecutionException, IOException {
       // Strategy for distributing classes for write out:
       // 1. Place all files in the package distribution file in the proposed files (if any).

@@ -60,7 +60,7 @@ public class JSR45Tests {
   }
 
   void compileWithR8(Path inputPath, Path outputPath, Path keepRulesPath)
-      throws IOException, CompilationException, ExecutionException, ProguardRuleParserException {
+      throws IOException, CompilationException, ProguardRuleParserException {
     AndroidApp androidApp =
         R8.run(
             R8Command.builder()

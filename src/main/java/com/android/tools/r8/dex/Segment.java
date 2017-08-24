@@ -71,6 +71,7 @@ public class Segment {
     }
   }
 
+  @Override
   public String toString() {
     return typeName() + " @" + offset + " " + length;
   }

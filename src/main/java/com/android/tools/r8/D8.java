@@ -118,7 +118,7 @@ public final class D8 {
   }
 
   /** Command-line entry to D8. */
-  public static void main(String[] args) throws IOException {
+  public static void main(String[] args) {
     if (args.length == 0) {
       System.err.println(USAGE_MESSAGE);
       System.exit(STATUS_ERROR);

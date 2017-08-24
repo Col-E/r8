@@ -207,7 +207,7 @@ public class R8 {
   }
 
   static CompilationResult runForTesting(AndroidApp app, InternalOptions options)
-      throws ProguardRuleParserException, IOException, CompilationException {
+      throws IOException, CompilationException {
     ExecutorService executor = ThreadUtils.getExecutorService(options);
     try {
       return runForTesting(app, options, executor);
@@ -220,12 +220,12 @@ public class R8 {
       AndroidApp app,
       InternalOptions options,
       ExecutorService executor)
-      throws ProguardRuleParserException, IOException, CompilationException {
+      throws IOException, CompilationException {
     return new R8(options).run(app, executor);
   }
 
   private CompilationResult run(AndroidApp inputApp, ExecutorService executorService)
-      throws IOException, ProguardRuleParserException, CompilationException {
+      throws IOException, CompilationException {
     if (options.quiet) {
       System.setOut(new PrintStream(ByteStreams.nullOutputStream()));
     }
@@ -445,7 +445,7 @@ public class R8 {
    * @return the compilation result.
    */
   public static AndroidApp run(R8Command command)
-      throws IOException, CompilationException, ProguardRuleParserException {
+      throws IOException, CompilationException {
     ExecutorService executorService = ThreadUtils.getExecutorService(command.getInternalOptions());
     try {
       return run(command, executorService);
@@ -516,7 +516,7 @@ public class R8 {
    * @return the compilation result.
    */
   public static AndroidApp run(R8Command command, ExecutorService executor)
-      throws IOException, CompilationException, ProguardRuleParserException {
+      throws IOException, CompilationException {
     InternalOptions options = command.getInternalOptions();
     AndroidApp outputApp =
         runForTesting(command.getInputApp(), options, executor).androidApp;

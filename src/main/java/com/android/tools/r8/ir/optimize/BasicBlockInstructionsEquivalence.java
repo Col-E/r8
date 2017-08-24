@@ -11,7 +11,6 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.google.common.base.Equivalence;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.List;
 
 class BasicBlockInstructionsEquivalence extends Equivalence<BasicBlock> {

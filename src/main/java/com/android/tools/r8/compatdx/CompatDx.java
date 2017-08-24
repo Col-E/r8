@@ -250,7 +250,7 @@ public class CompatDx {
       }
     }
 
-    private DxCompatOptions(OptionSet options, Spec spec) throws DxParseError {
+    private DxCompatOptions(OptionSet options, Spec spec) {
       help = options.has(spec.help);
       debug = options.has(spec.debug);
       verbose = options.has(spec.verbose);

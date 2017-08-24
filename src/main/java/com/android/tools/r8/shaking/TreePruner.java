@@ -15,7 +15,6 @@ import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Sets;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -39,7 +38,7 @@ public class TreePruner {
         ? new UsagePrinter() : UsagePrinter.DONT_PRINT;
   }
 
-  public DexApplication run() throws IOException {
+  public DexApplication run() {
     application.timing.begin("Pruning application...");
     if (options.debugKeepRules && !options.skipMinification) {
       System.out.println(

@@ -121,8 +121,7 @@ public class BisectOptions {
     return new BisectOptions(goodBuild, badBuild, stateFile, command, output, result);
   }
 
-  private static <T> T require(OptionSet options, OptionSpec<T> option, String flag)
-      throws IOException {
+  private static <T> T require(OptionSet options, OptionSpec<T> option, String flag) {
     T value = options.valueOf(option);
     if (value != null) {
       return value;
@@ -130,7 +129,7 @@ public class BisectOptions {
     throw new CompilationError("Missing required option: --" + flag);
   }
 
-  private static File exists(String path, String flag) throws IOException {
+  private static File exists(String path, String flag) {
     File file = new File(path);
     if (file.exists()) {
       return file;
@@ -138,7 +137,7 @@ public class BisectOptions {
     throw new CompilationError("File --" + flag + ": " + file + " does not exist");
   }
 
-  private static File directoryExists(String path, String flag) throws IOException {
+  private static File directoryExists(String path, String flag) {
     File file = new File(path);
     if (file.exists() && file.isDirectory()) {
       return file;
