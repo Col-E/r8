@@ -3,97 +3,160 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.debug;
 
+import static org.junit.Assert.assertEquals;
+
 import org.apache.harmony.jpda.tests.framework.jdwp.Value;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class KotlinTest extends DebugTestBase {
 
+  // TODO(shertz) simplify test
+  // TODO(shertz) add more variables ?
   @Test
-  public void testKotlinApp() throws Throwable {
-    final String inliningMethodName = "invokeInlinedFunctions";
+  public void testStepOver() throws Throwable {
     runDebugTestKotlin("KotlinApp",
         breakpoint("KotlinApp$Companion", "main"),
         run(),
         inspect(s -> {
-          Assert.assertEquals("KotlinApp.kt", s.getSourceFile());
-          Assert.assertEquals(8, s.getLineNumber());
+          assertEquals("KotlinApp$Companion", s.getClassName());
+          assertEquals("KotlinApp.kt", s.getSourceFile());
+          assertEquals(24, s.getLineNumber());
           s.checkLocal("this");
           s.checkLocal("args");
+          checkNoLocal("instance");
         }),
         stepOver(),
         inspect(s -> {
-          Assert.assertEquals(9, s.getLineNumber());
-          s.checkLocal("this");
-          s.checkLocal("args");
-        }),
-        stepOver(),
-        inspect(s -> {
-          Assert.assertEquals(10, s.getLineNumber());
+          assertEquals(25, s.getLineNumber());
           s.checkLocal("this");
           s.checkLocal("args");
           s.checkLocal("instance");
         }),
         stepOver(),
         inspect(s -> {
-          Assert.assertEquals(11, s.getLineNumber());
+          assertEquals(26, s.getLineNumber());
           s.checkLocal("this");
           s.checkLocal("args");
           s.checkLocal("instance");
         }),
+        run());
+  }
+
+  @Test
+  public void testStepIntoAndOut() throws Throwable {
+    runDebugTestKotlin("KotlinApp",
+        breakpoint("KotlinApp$Companion", "main"),
+        run(),
+        inspect(s -> {
+          assertEquals("KotlinApp$Companion", s.getClassName());
+          assertEquals("KotlinApp.kt", s.getSourceFile());
+          assertEquals(24, s.getLineNumber());
+          s.checkLocal("this");
+          s.checkLocal("args");
+          checkNoLocal("instance");
+        }),
+        stepOver(),
+        inspect(s -> {
+          assertEquals(25, s.getLineNumber());
+          s.checkLocal("this");
+          s.checkLocal("args");
+          s.checkLocal("instance");
+        }),
+        // Step into 1st invoke of ifElse
         stepInto(),
         inspect(s -> {
-          Assert.assertEquals(inliningMethodName, s.getMethodName());
-          Assert.assertEquals(24, s.getLineNumber());
+          assertEquals("KotlinApp", s.getClassName());
+          assertEquals("KotlinApp.kt", s.getSourceFile());
+          assertEquals(8, s.getLineNumber());
           s.checkLocal("this");
+          s.checkLocal("cond", Value.createBoolean(true));
+          checkNoLocal("a");
+          checkNoLocal("b");
+          checkNoLocal("c");
         }),
         stepInto(),
         inspect(s -> {
-          // We must have stepped into the code of the inlined method but the actual current method
-          // did not change.
-          Assert.assertEquals(inliningMethodName, s.getMethodName());
-          // TODO(shertz) get the original line if JSR45 is supported by the targeted ART runtime.
+          assertEquals("KotlinApp", s.getClassName());
+          assertEquals(9, s.getLineNumber());
           s.checkLocal("this");
+          s.checkLocal("cond", Value.createBoolean(true));
+          s.checkLocal("a", Value.createInt(10));
+          checkNoLocal("b");
+          checkNoLocal("c");
         }),
         stepInto(),
         inspect(s -> {
-          Assert.assertEquals(inliningMethodName, s.getMethodName());
-          Assert.assertEquals(25, s.getLineNumber());
+          // We should be into the 'then' statement.
+          assertEquals("KotlinApp", s.getClassName());
+          assertEquals(10, s.getLineNumber());
           s.checkLocal("this");
+          s.checkLocal("cond", Value.createBoolean(true));
+          s.checkLocal("a", Value.createInt(10));
+          checkNoLocal("b");
+          checkNoLocal("c");
         }),
         stepInto(),
         inspect(s -> {
-          Assert.assertEquals(inliningMethodName, s.getMethodName());
-          Assert.assertEquals(26, s.getLineNumber());
+          assertEquals("KotlinApp", s.getClassName());
+          assertEquals(11, s.getLineNumber());
           s.checkLocal("this");
-          s.checkLocal("inA", Value.createInt(1));
-          // This is a "hidden" lv added by Kotlin (which is neither initialized nor used).
-          s.checkLocal("$i$f$inlinedA");
-          s.checkLocal("$i$a$1$inlinedA");
+          s.checkLocal("cond", Value.createBoolean(true));
+          s.checkLocal("a", Value.createInt(10));
+          s.checkLocal("b", Value.createInt(20));
+          checkNoLocal("c");
+        }),
+        // Go back to the main method
+        stepOut(),
+        inspect(s -> {
+          assertEquals("KotlinApp$Companion", s.getClassName());
+          assertEquals("KotlinApp.kt", s.getSourceFile());
+          assertEquals(26, s.getLineNumber());
+          s.checkLocal("this");
+          s.checkLocal("args");
+          checkNoLocal("instance");
+        }),
+        // Step into 2nd invoke of ifElse
+        stepInto(),
+        inspect(s -> {
+          assertEquals("KotlinApp", s.getClassName());
+          assertEquals("KotlinApp.kt", s.getSourceFile());
+          assertEquals(8, s.getLineNumber());
+          s.checkLocal("this");
+          s.checkLocal("cond", Value.createBoolean(false));
+          checkNoLocal("a");
+          checkNoLocal("b");
+          checkNoLocal("c");
         }),
         stepInto(),
         inspect(s -> {
-          // We must have stepped into the code of the second inlined method but the actual current
-          // method did not change.
-          Assert.assertEquals(inliningMethodName, s.getMethodName());
-          // TODO(shertz) get the original line if JSR45 is supported by the targeted ART runtime.
+          assertEquals("KotlinApp", s.getClassName());
+          assertEquals(9, s.getLineNumber());
           s.checkLocal("this");
+          s.checkLocal("cond", Value.createBoolean(false));
+          s.checkLocal("a", Value.createInt(10));
+          checkNoLocal("b");
+          checkNoLocal("c");
         }),
         stepInto(),
         inspect(s -> {
-          Assert.assertEquals(inliningMethodName, s.getMethodName());
-          Assert.assertEquals(27, s.getLineNumber());
+          // We should be into the 'else' statement this time.
+          assertEquals("KotlinApp", s.getClassName());
+          assertEquals(13, s.getLineNumber());
           s.checkLocal("this");
+          s.checkLocal("cond", Value.createBoolean(false));
+          s.checkLocal("a", Value.createInt(10));
+          checkNoLocal("b");
+          checkNoLocal("c");
         }),
         stepInto(),
         inspect(s -> {
-          Assert.assertEquals(inliningMethodName, s.getMethodName());
-          Assert.assertEquals(28, s.getLineNumber());
+          assertEquals("KotlinApp", s.getClassName());
+          assertEquals(14, s.getLineNumber());
           s.checkLocal("this");
-          s.checkLocal("inB", Value.createInt(2));
-          // This is a "hidden" lv added by Kotlin (which is neither initialized nor used).
-          s.checkLocal("$i$f$inlinedB");
-          s.checkLocal("$i$a$1$inlinedB");
+          s.checkLocal("cond", Value.createBoolean(false));
+          s.checkLocal("a", Value.createInt(10));
+          checkNoLocal("b");
+          s.checkLocal("c", Value.createInt(5));
         }),
         run());
   }
