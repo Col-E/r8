@@ -11,10 +11,11 @@ import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.InvokePolymorphic;
 import com.android.tools.r8.ir.code.InvokeStatic;
-import com.android.tools.r8.ir.conversion.CallGraph;
+import com.android.tools.r8.ir.conversion.CallSiteInformation;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.logging.Log;
+import java.util.function.Predicate;
 
 /**
  * The InliningOracle contains information needed for when inlining
@@ -26,16 +27,19 @@ public class InliningOracle {
 
   private final Inliner inliner;
   private final DexEncodedMethod method;
-  private final CallGraph callGraph;
+  private final CallSiteInformation callSiteInformation;
+  private final Predicate<DexEncodedMethod> isProcessedConcurrently;
   private final InliningInfo info;
 
   InliningOracle(
       Inliner inliner,
       DexEncodedMethod method,
-      CallGraph callGraph) {
+      CallSiteInformation callSiteInformation,
+      Predicate<DexEncodedMethod> isProcessedConcurrently) {
     this.inliner = inliner;
     this.method = method;
-    this.callGraph = callGraph;
+    this.callSiteInformation = callSiteInformation;
+    this.isProcessedConcurrently = isProcessedConcurrently;
     info = Log.ENABLED ? new InliningInfo(method) : null;
   }
 
@@ -66,7 +70,7 @@ public class InliningOracle {
         && inliner.appInfo.withLiveness().alwaysInline.contains(target)) {
       return Reason.ALWAYS;
     }
-    if (callGraph.hasSingleCallSite(target)) {
+    if (callSiteInformation.hasSingleCallSite(target)) {
       return Reason.SINGLE_CALLER;
     }
     if (isDoubleInliningTarget(target)) {
@@ -91,24 +95,26 @@ public class InliningOracle {
 
   private synchronized boolean isDoubleInliningTarget(DexEncodedMethod candidate) {
     // 10 is found from measuring.
-    return callGraph.hasDoubleCallSite(candidate)
+    return callSiteInformation.hasDoubleCallSite(candidate)
         && candidate.getCode().isDexCode()
         && (candidate.getCode().asDexCode().instructions.length <= 10);
   }
 
   private boolean passesInliningConstraints(InvokeMethod invoke, DexEncodedMethod candidate,
       Reason reason) {
-    if (callGraph.isBreaker(method, candidate)) {
-      // Cycle breaker so abort to preserve compilation order.
-      return false;
-    }
-
     if (method == candidate) {
       // Cannot handle recursive inlining at this point.
       // Force inlined method should never be recursive.
       assert !candidate.getOptimizationInfo().forceInline();
       if (info != null) {
         info.exclude(invoke, "direct recursion");
+      }
+      return false;
+    }
+
+    if (reason != Reason.FORCE && isProcessedConcurrently.test(candidate)) {
+      if (info != null) {
+        info.exclude(invoke, "is processed in parallel");
       }
       return false;
     }
@@ -176,7 +182,7 @@ public class InliningOracle {
     }
 
     Reason reason = computeInliningReason(candidate);
-    if (!candidate.isInliningCandidate(method, reason == Reason.FORCE, inliner.appInfo)) {
+    if (!candidate.isInliningCandidate(method, reason, inliner.appInfo)) {
       // Abort inlining attempt if the single target is not an inlining candidate.
       if (info != null) {
         info.exclude(invoke, "target is not identified for inlining");
@@ -202,7 +208,7 @@ public class InliningOracle {
 
     Reason reason = computeInliningReason(candidate);
     // Determine if this should be inlined no matter how big it is.
-    if (!candidate.isInliningCandidate(method, reason == Reason.FORCE, inliner.appInfo)) {
+    if (!candidate.isInliningCandidate(method, reason, inliner.appInfo)) {
       // Abort inlining attempt if the single target is not an inlining candidate.
       if (info != null) {
         info.exclude(invoke, "target is not identified for inlining");

@@ -23,7 +23,7 @@ import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
-import com.android.tools.r8.ir.conversion.CallGraph;
+import com.android.tools.r8.ir.conversion.CallSiteInformation;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.LensCodeRewriter;
 import com.android.tools.r8.ir.conversion.OptimizationFeedback;
@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class Inliner {
@@ -136,7 +137,8 @@ public class Inliner {
           .sorted(DexEncodedMethod::slowCompare)
           .collect(Collectors.toList());
       for (DexEncodedMethod method : methods) {
-        converter.processMethod(method, feedback, Outliner::noProcessing);
+        converter.processMethod(method, feedback, x -> false, CallSiteInformation.empty(),
+            Outliner::noProcessing);
         assert method.isProcessed();
       }
     }
@@ -222,7 +224,7 @@ public class Inliner {
       this.reason = reason;
     }
 
-    boolean forceInline() {
+    boolean ignoreInstructionBudget() {
       return reason != Reason.SIMPLE;
     }
 
@@ -315,7 +317,9 @@ public class Inliner {
     return true;
   }
 
-  public void performInlining(DexEncodedMethod method, IRCode code, CallGraph callGraph)
+  public void performInlining(DexEncodedMethod method, IRCode code,
+      Predicate<DexEncodedMethod> isProcessedConcurrently,
+      CallSiteInformation callSiteInformation)
       throws ApiLevelException {
     int instruction_allowance = 1500;
     instruction_allowance -= numberOfInstructions(code);
@@ -323,7 +327,8 @@ public class Inliner {
       return;
     }
     computeReceiverMustBeNonNull(code);
-    InliningOracle oracle = new InliningOracle(this, method, callGraph);
+    InliningOracle oracle = new InliningOracle(this, method, callSiteInformation,
+        isProcessedConcurrently);
 
     List<BasicBlock> blocksToRemove = new ArrayList<>();
     ListIterator<BasicBlock> blockIterator = code.listIterator();
@@ -339,24 +344,12 @@ public class Inliner {
           InvokeMethod invoke = current.asInvokeMethod();
           InlineAction result = invoke.computeInlining(oracle);
           if (result != null) {
-            DexEncodedMethod target = appInfo.lookup(invoke.getType(), invoke.getInvokedMethod());
-            if (target == null) {
-              // The declared target cannot be found so skip inlining.
-              continue;
-            }
-            if (!(target.isProcessed() || result.reason == Reason.FORCE)) {
-              // Do not inline code that was not processed unless we have to force inline.
-              continue;
-            }
+            DexEncodedMethod target = result.target;
             IRCode inlinee = result
                 .buildIR(code.valueNumberGenerator, appInfo, graphLense, options);
             if (inlinee != null) {
               // TODO(64432527): Get rid of this additional check by improved inlining.
               if (block.hasCatchHandlers() && inlinee.getNormalExitBlock() == null) {
-                continue;
-              }
-              if (callGraph.isBreaker(method, target)) {
-                // Make sure we don't inline a call graph breaker.
                 continue;
               }
               // If this code did not go through the full pipeline, apply inlining to make sure
@@ -366,7 +359,8 @@ public class Inliner {
                 if (Log.ENABLED) {
                   Log.verbose(getClass(), "Forcing extra inline on " + target.toSourceString());
                 }
-                performInlining(target, inlinee, callGraph);
+                performInlining(target, inlinee, isProcessedConcurrently,
+                    callSiteInformation);
               }
               // Make sure constructor inlining is legal.
               assert !target.isClassInitializer();
@@ -378,7 +372,7 @@ public class Inliner {
               if (invoke.isInvokeMethodWithReceiver()) {
                 // If the invoke has a receiver but the declared method holder is different
                 // from the computed target holder, inlining requires a downcast of the receiver.
-                if (result.target.method.getHolder() != target.method.getHolder()) {
+                if (target.method.getHolder() != invoke.getInvokedMethod().getHolder()) {
                   downcast = result.target.method.getHolder();
                 }
               }
@@ -386,7 +380,7 @@ public class Inliner {
               // Back up before the invoke instruction.
               iterator.previous();
               instruction_allowance -= numberOfInstructions(inlinee);
-              if (instruction_allowance >= 0 || result.forceInline()) {
+              if (instruction_allowance >= 0 || result.ignoreInstructionBudget()) {
                 iterator.inlineInvoke(code, inlinee, blockIterator, blocksToRemove, downcast);
               }
               // If we inlined the invoke from a bridge method, it is no longer a bridge method.

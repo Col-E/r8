@@ -18,12 +18,11 @@ import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThreadUtils;
-import com.android.tools.r8.utils.ThrowingConsumer;
+import com.android.tools.r8.utils.ThrowingBiConsumer;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -32,8 +31,8 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -51,7 +50,7 @@ import java.util.stream.Collectors;
  * <p>
  * Recursive calls are not present.
  */
-public class CallGraph {
+public class CallGraph extends CallSiteInformation {
 
   private CallGraph(InternalOptions options) {
     this.shuffle = options.testing.irOrdering;
@@ -132,15 +131,7 @@ public class CallGraph {
   }
 
   private final Map<DexEncodedMethod, Node> nodes = new LinkedHashMap<>();
-  private final Map<DexEncodedMethod, Set<DexEncodedMethod>> breakers = new HashMap<>();
-  private final Function<List<DexEncodedMethod>, List<DexEncodedMethod>> shuffle;
-
-  // Returns whether the method->callee edge has been removed from the call graph
-  // to break a cycle in the call graph.
-  public boolean isBreaker(DexEncodedMethod method, DexEncodedMethod callee) {
-    Set<DexEncodedMethod> value = breakers.get(method);
-    return (value != null) && value.contains(callee);
-  }
+  private final Function<Set<DexEncodedMethod>, Set<DexEncodedMethod>> shuffle;
 
   private Set<DexEncodedMethod> singleCallSite = Sets.newIdentityHashSet();
   private Set<DexEncodedMethod> doubleCallSite = Sets.newIdentityHashSet();
@@ -170,10 +161,12 @@ public class CallGraph {
    * For pinned methods (methods kept through Proguard keep rules) this will always answer
    * <code>false</code>.
    */
+  @Override
   public boolean hasSingleCallSite(DexEncodedMethod method) {
     return singleCallSite.contains(method);
   }
 
+  @Override
   public boolean hasDoubleCallSite(DexEncodedMethod method) {
     return doubleCallSite.contains(method);
   }
@@ -211,12 +204,10 @@ public class CallGraph {
    * All nodes in the graph are extracted if called repeatedly until null is returned.
    * Please note that there are no cycles in this graph (see {@link #breakCycles}).
    * <p>
-   *
-   * @return List of {@link DexEncodedMethod}.
    */
-  private List<DexEncodedMethod> extractLeaves() {
+  private Set<DexEncodedMethod> extractLeaves() {
     if (isEmpty()) {
-      return Collections.emptyList();
+      return Collections.emptySet();
     }
     // First identify all leaves before removing them from the graph.
     List<Node> leaves = nodes.values().stream().filter(Node::isLeaf).collect(Collectors.toList());
@@ -224,7 +215,8 @@ public class CallGraph {
       leaf.callers.forEach(caller -> caller.callees.remove(leaf));
       nodes.remove(leaf.method);
     });
-    return shuffle.apply(leaves.stream().map(leaf -> leaf.method).collect(Collectors.toList()));
+    return shuffle.apply(leaves.stream().map(leaf -> leaf.method)
+        .collect(Collectors.toCollection(LinkedHashSet::new)));
   }
 
   private int traverse(Node node, Set<Node> stack, Set<Node> marked) {
@@ -246,8 +238,6 @@ public class CallGraph {
           // We have a cycle; break it by removing node->callee.
           toBeRemoved.add(callee);
           callee.callers.remove(node);
-          breakers.computeIfAbsent(node.method,
-              ignore -> Sets.newIdentityHashSet()).add(callee.method);
         } else {
           numberOfCycles += traverse(callee, stack, marked);
         }
@@ -264,7 +254,6 @@ public class CallGraph {
 
   private int breakCycles() {
     // Break cycles in this call graph by removing edges causing cycles.
-    // The remove edges are stored in @breakers.
     int numberOfCycles = 0;
     Set<Node> stack = Sets.newIdentityHashSet();
     Set<Node> marked = Sets.newIdentityHashSet();
@@ -294,16 +283,23 @@ public class CallGraph {
     return nodes.size() == 0;
   }
 
+  /**
+   * Applies the given method to all leaf nodes of the graph.
+   * <p>
+   * As second parameter, a predicate that can be used to decide whether another method is
+   * processed at the same time is passed. This can be used to avoid races in concurrent processing.
+   */
   public <E extends Exception> void forEachMethod(
-      ThrowingConsumer<DexEncodedMethod, E> consumer, ExecutorService executorService)
+      ThrowingBiConsumer<DexEncodedMethod, Predicate<DexEncodedMethod>, E> consumer,
+      ExecutorService executorService)
       throws ExecutionException {
     while (!isEmpty()) {
-      List<DexEncodedMethod> methods = extractLeaves();
+      Set<DexEncodedMethod> methods = extractLeaves();
       assert methods.size() > 0;
       List<Future<?>> futures = new ArrayList<>();
       for (DexEncodedMethod method : methods) {
         futures.add(executorService.submit(() -> {
-          consumer.accept(method);
+          consumer.accept(method, methods::contains);
           return null; // we want a Callable not a Runnable to be able to throw
         }));
       }

@@ -11,19 +11,23 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.OutputMode;
+import com.beust.jcommander.internal.Lists;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 
 public class R8GMSCoreDeterministicTest extends GMSCoreCompilationTestBase {
 
-  public List<DexEncodedMethod> shuffle(List<DexEncodedMethod> methods) {
-    Collections.shuffle(methods);
-    return methods;
+  public Set<DexEncodedMethod> shuffle(Set<DexEncodedMethod> methods) {
+    List<DexEncodedMethod> toShuffle = Lists.newArrayList(methods);
+    Collections.shuffle(toShuffle);
+    return new LinkedHashSet<>(toShuffle);
   }
 
   private AndroidApp doRun()
