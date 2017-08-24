@@ -155,22 +155,20 @@ public class Phi extends Value {
     current.removePhiUser(this);
   }
 
-  void replaceTrivialPhi(Value current, Value newValue, List<Phi> toRemove) {
+  void replaceOperand(Value current, Value newValue) {
     for (int i = 0; i < operands.size(); i++) {
       if (operands.get(i) == current) {
         operands.set(i, newValue);
         newValue.addPhiUser(this);
-        toRemove.add(this);
       }
     }
   }
 
-  void replaceTrivialDebugPhi(Value current, Value newValue, List<Phi> toRemove) {
+  void replaceDebugValue(Value current, Value newValue) {
     assert current.getLocalInfo() != null;
     assert current.getLocalInfo() == newValue.getLocalInfo();
     if (debugValues.remove(current)) {
       addDebugValue(newValue);
-      toRemove.add(this);
     }
   }
 
@@ -228,7 +226,7 @@ public class Phi extends Value {
     {
       Set<Phi> phiUsersToSimplify = uniquePhiUsers();
       // Replace this phi with the unique value in all users.
-      replaceInUsers(same);
+      replaceUsers(same);
       // Try to simplify phi users that might now have become trivial.
       for (Phi user : phiUsersToSimplify) {
         user.removeTrivialPhi();

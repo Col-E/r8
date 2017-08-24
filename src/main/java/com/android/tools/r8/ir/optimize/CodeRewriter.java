@@ -1101,18 +1101,18 @@ public class CodeRewriter {
             // Add constant into the dominator block of usages.
             insertConstantInBlock(instruction, entry.getKey());
           } else {
-            assert instruction.outValue().numberOfUsers() != 0;
             ConstNumber constNumber = instruction.asConstNumber();
             Value constantValue = instruction.outValue();
-            List<Instruction> toRemove = new ArrayList<>(constantValue.uniqueUsers().size());
+            assert constantValue.numberOfUsers() != 0;
+            assert constantValue.numberOfUsers() == constantValue.numberOfAllUsers();
             for (Instruction user : constantValue.uniqueUsers()) {
               ConstNumber newCstNum = ConstNumber.copyOf(code, constNumber);
               InstructionListIterator iterator = user.getBlock().listIterator(user);
               iterator.previous();
               iterator.add(newCstNum);
-              user.replaceValue(constantValue, newCstNum.outValue(), toRemove);
+              user.replaceValue(constantValue, newCstNum.outValue());
             }
-            toRemove.forEach(constantValue::removeUser);
+            constantValue.clearUsers();
           }
         }
       } else {

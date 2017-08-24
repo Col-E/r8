@@ -362,69 +362,20 @@ public class Value {
       return;
     }
     for (Instruction user : uniqueUsers()) {
-      user.inValues.replaceAll(v -> {
-        if (v == this) {
-          newValue.addUser(user);
-          return newValue;
-        }
-        return v;
-      });
+      user.replaceValue(this, newValue);
     }
     for (Phi user : uniquePhiUsers()) {
-      user.getOperands().replaceAll(v -> {
-        if (v == this) {
-          newValue.addPhiUser(user);
-          return newValue;
-        }
-        return v;
-      });
+      user.replaceOperand(this, newValue);
     }
     if (debugData != null) {
       for (Instruction user : debugUsers()) {
-        if (user.getDebugValues().remove(this)) {
-          user.addDebugValue(newValue);
-        }
+        user.replaceDebugValue(this, newValue);
       }
       for (Phi user : debugPhiUsers()) {
-        if (user.getDebugValues().remove(this)) {
-          user.addDebugValue(newValue);
-        }
+        user.replaceDebugValue(this, newValue);
       }
     }
     clearUsers();
-  }
-
-  public void replaceInUsers(Value newValue) {
-    if (!uniqueUsers().isEmpty()) {
-      List<Instruction> toRemove = new ArrayList<>(uniqueUsers().size());
-      for (Instruction user : uniqueUsers()) {
-        user.replaceValue(this, newValue, toRemove);
-      }
-      toRemove.forEach(this::removeUser);
-    }
-    if (!uniquePhiUsers().isEmpty()) {
-      List<Phi> toRemove = new ArrayList<>(uniquePhiUsers().size());
-      for (Phi user : uniquePhiUsers()) {
-        user.replaceTrivialPhi(this, newValue, toRemove);
-      }
-      toRemove.forEach(this::removePhiUser);
-    }
-    if (debugData != null) {
-      if (!debugUsers().isEmpty()) {
-        List<Instruction> toRemove = new ArrayList<>(debugUsers().size());
-        for (Instruction user : debugUsers()) {
-          user.replaceDebugValue(this, newValue, toRemove);
-        }
-        toRemove.forEach(this::removeDebugUser);
-      }
-      if (!debugPhiUsers().isEmpty()) {
-        List<Phi> toRemove = new ArrayList<>(debugPhiUsers().size());
-        for (Phi user : debugPhiUsers()) {
-          user.replaceTrivialDebugPhi(this, newValue, toRemove);
-        }
-        toRemove.forEach(this::removeDebugPhiUser);
-      }
-    }
   }
 
   public void replaceDebugUser(Instruction oldUser, Instruction newUser) {
