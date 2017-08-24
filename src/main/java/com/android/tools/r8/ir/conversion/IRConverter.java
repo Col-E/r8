@@ -49,6 +49,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.function.BiConsumer;
+import java.util.function.Predicate;
 
 public class IRConverter {
 
@@ -68,7 +69,6 @@ public class IRConverter {
   private final LensCodeRewriter lensCodeRewriter;
   private final Inliner inliner;
   private final ProtoLitePruner protoLiteRewriter;
-  private CallGraph callGraph;
 
   private OptimizationFeedback ignoreOptimizationFeedback = new OptimizationFeedbackIgnore();
   private DexString highestSortingString;
@@ -251,7 +251,9 @@ public class IRConverter {
       boolean matchesMethodFilter = options.methodMatchesFilter(method);
       if (matchesMethodFilter) {
         if (method.getCode().isJarCode()) {
-          rewriteCode(method, ignoreOptimizationFeedback, Outliner::noProcessing);
+          // We do not process in call graph order, so anything could be a leaf.
+          rewriteCode(method, ignoreOptimizationFeedback, x -> true, CallSiteInformation.empty(),
+              Outliner::noProcessing);
         }
         updateHighestSortingStrings(method);
       }
@@ -271,10 +273,6 @@ public class IRConverter {
       throws ExecutionException, ApiLevelException {
     removeLambdaDeserializationMethods();
 
-    timing.begin("Build call graph");
-    callGraph = CallGraph.build(application, appInfo.withSubtyping(), graphLense, options);
-    timing.end();
-
     // The process is in two phases.
     // 1) Subject all DexEncodedMethods to optimization (except outlining).
     //    - a side effect is candidates for outlining are identified.
@@ -282,13 +280,19 @@ public class IRConverter {
     // Ideally, we should outline eagerly when threshold for a template has been reached.
 
     // Process the application identifying outlining candidates.
-    timing.begin("IR conversion phase 1");
     OptimizationFeedback directFeedback = new OptimizationFeedbackDirect();
-    callGraph.forEachMethod(method -> {
-          processMethod(method, directFeedback,
-              outliner == null ? Outliner::noProcessing : outliner::identifyCandidates);
-    }, executorService);
-    timing.end();
+    {
+      timing.begin("Build call graph");
+      CallGraph callGraph = CallGraph
+          .build(application, appInfo.withSubtyping(), graphLense, options);
+      timing.end();
+      timing.begin("IR conversion phase 1");
+      callGraph.forEachMethod((method, isProcessedConcurrently) -> {
+        processMethod(method, directFeedback, isProcessedConcurrently, callGraph,
+            outliner == null ? Outliner::noProcessing : outliner::identifyCandidates);
+      }, executorService);
+      timing.end();
+    }
 
     // Get rid of <clinit> methods with no code.
     removeEmptyClassInitializers();
@@ -313,16 +317,17 @@ public class IRConverter {
       if (outlineClass != null) {
         // We need a new call graph to ensure deterministic order and also processing inside out
         // to get maximal inlining. Use a identity lense, as the code has been rewritten.
-        callGraph = CallGraph
+        CallGraph callGraph = CallGraph
             .build(application, appInfo.withSubtyping(), GraphLense.getIdentityLense(), options);
         Set<DexEncodedMethod> outlineMethods = outliner.getMethodsSelectedForOutlining();
-        callGraph.forEachMethod(method -> {
+        callGraph.forEachMethod((method, isProcessedConcurrently) -> {
           if (!outlineMethods.contains(method)) {
             return;
           }
           // This is the second time we compile this method first mark it not processed.
           assert !method.getCode().isOutlineCode();
-          processMethod(method, ignoreOptimizationFeedback, outliner::applyOutliningCandidate);
+          processMethod(method, ignoreOptimizationFeedback, isProcessedConcurrently, callGraph,
+              outliner::applyOutliningCandidate);
           assert method.isProcessed();
         }, executorService);
         builder.addSynthesizedClass(outlineClass, true);
@@ -405,7 +410,8 @@ public class IRConverter {
 
   public void optimizeSynthesizedMethod(DexEncodedMethod method) throws ApiLevelException {
     // Process the generated method, but don't apply any outlining.
-    processMethod(method, ignoreOptimizationFeedback, Outliner::noProcessing);
+    processMethod(method, ignoreOptimizationFeedback, x -> false, CallSiteInformation.empty(),
+        Outliner::noProcessing);
   }
 
   private String logCode(InternalOptions options, DexEncodedMethod method) {
@@ -414,12 +420,14 @@ public class IRConverter {
 
   public void processMethod(DexEncodedMethod method,
       OptimizationFeedback feedback,
+      Predicate<DexEncodedMethod> isProcessedConcurrently,
+      CallSiteInformation callSiteInformation,
       BiConsumer<IRCode, DexEncodedMethod> outlineHandler)
           throws ApiLevelException {
     Code code = method.getCode();
     boolean matchesMethodFilter = options.methodMatchesFilter(method);
     if (code != null && matchesMethodFilter) {
-      rewriteCode(method, feedback, outlineHandler);
+      rewriteCode(method, feedback, isProcessedConcurrently, callSiteInformation, outlineHandler);
     } else {
       // Mark abstract methods as processed as well.
       method.markProcessed(Constraint.NEVER);
@@ -428,6 +436,8 @@ public class IRConverter {
 
   private void rewriteCode(DexEncodedMethod method,
       OptimizationFeedback feedback,
+      Predicate<DexEncodedMethod> isProcessedConcurrently,
+      CallSiteInformation callSiteInformation,
       BiConsumer<IRCode, DexEncodedMethod> outlineHandler)
       throws ApiLevelException {
     if (options.verbose) {
@@ -473,7 +483,7 @@ public class IRConverter {
     if (options.inlineAccessors && inliner != null) {
       // TODO(zerny): Should we support inlining in debug mode? b/62937285
       assert !options.debug;
-      inliner.performInlining(method, code, callGraph);
+      inliner.performInlining(method, code, isProcessedConcurrently, callSiteInformation);
     }
     codeRewriter.removeCastChains(code);
     codeRewriter.rewriteLongCompareAndRequireNonNull(code, options);

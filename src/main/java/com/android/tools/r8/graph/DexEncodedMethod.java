@@ -26,6 +26,7 @@ import com.android.tools.r8.ir.code.MoveType;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
+import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
@@ -107,13 +108,13 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
     return accessFlags.isConstructor() && accessFlags.isStatic();
   }
 
-  public boolean isInliningCandidate(DexEncodedMethod container, boolean alwaysInline,
+  public boolean isInliningCandidate(DexEncodedMethod container, Reason inliningReason,
       AppInfoWithSubtyping appInfo) {
     if (isClassInitializer()) {
       // This will probably never happen but never inline a class initializer.
       return false;
     }
-    if (alwaysInline) {
+    if (inliningReason == Reason.FORCE) {
       return true;
     }
     switch (compilationState) {

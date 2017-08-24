@@ -14,6 +14,7 @@ import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Function;
 
 public class InternalOptions {
@@ -197,7 +198,7 @@ public class InternalOptions {
 
   public static class TestingOptions {
 
-    public Function<List<DexEncodedMethod>, List<DexEncodedMethod>> irOrdering =
+    public Function<Set<DexEncodedMethod>, Set<DexEncodedMethod>> irOrdering =
         Function.identity();
   }
 
