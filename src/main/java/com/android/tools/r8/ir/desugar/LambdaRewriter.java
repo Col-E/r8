@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.desugar;
 
+import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexApplication.Builder;
@@ -191,7 +192,7 @@ public class LambdaRewriter {
    * Adjust accessibility of referenced application symbols or
    * creates necessary accessors.
    */
-  public void adjustAccessibility() {
+  public void adjustAccessibility() throws ApiLevelException {
     // For each lambda class perform necessary adjustment of the
     // referenced symbols to make them accessible. This can result in
     // method access relaxation or creation of accessor method.
@@ -201,7 +202,7 @@ public class LambdaRewriter {
   }
 
   /** Generates lambda classes and adds them to the builder. */
-  public void synthesizeLambdaClasses(Builder builder) {
+  public void synthesizeLambdaClasses(Builder builder) throws ApiLevelException {
     for (LambdaClass lambdaClass : knownLambdaClasses.values()) {
       DexProgramClass synthesizedClass = lambdaClass.synthesizeLambdaClass();
       converter.optimizeSynthesizedClass(synthesizedClass);

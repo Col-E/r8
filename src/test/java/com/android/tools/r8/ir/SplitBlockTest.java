@@ -29,7 +29,7 @@ import org.junit.Test;
 
 public class SplitBlockTest extends SmaliTestBase {
 
-  TestApplication codeWithoutCatchHandlers() {
+  TestApplication codeWithoutCatchHandlers() throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     String returnType = "int";
@@ -68,7 +68,7 @@ public class SplitBlockTest extends SmaliTestBase {
   }
 
   @Test
-  public void noCatchHandlers() {
+  public void noCatchHandlers() throws Exception {
     final int initialBlockCount = 1;
     final int argumentInstructions = 2;
     final int firstBlockInstructions = 6;
@@ -102,7 +102,7 @@ public class SplitBlockTest extends SmaliTestBase {
   }
 
   @Test
-  public void noCatchHandlersSplitThree() {
+  public void noCatchHandlersSplitThree() throws Exception {
     final int initialBlockCount = 1;
     final int argumentInstructions = 2;
     final int firstBlockInstructions = 6;
@@ -136,7 +136,7 @@ public class SplitBlockTest extends SmaliTestBase {
     }
   }
 
-  TestApplication codeWithCatchHandlers(boolean shouldThrow, boolean twoGuards) {
+  TestApplication codeWithCatchHandlers(boolean shouldThrow, boolean twoGuards) throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     String secondGuard = twoGuards ?
@@ -192,7 +192,7 @@ public class SplitBlockTest extends SmaliTestBase {
     assertEquals(throwing, block.hasCatchHandlers());
   }
 
-  public void runCatchHandlerTest(boolean codeThrows, boolean twoGuards) {
+  public void runCatchHandlerTest(boolean codeThrows, boolean twoGuards) throws Exception {
     final int secondBlockInstructions = 4;
     final int initialBlockCount = 5;
     // Try split between all instructions in second block.
@@ -223,14 +223,15 @@ public class SplitBlockTest extends SmaliTestBase {
   }
 
   @Test
-  public void catchHandlers() {
+  public void catchHandlers() throws Exception {
     runCatchHandlerTest(false, false);
     runCatchHandlerTest(true, false);
     runCatchHandlerTest(false, true);
     runCatchHandlerTest(true, true);
   }
 
-  public void runCatchHandlerSplitThreeTest(boolean codeThrows, boolean twoGuards) {
+  public void runCatchHandlerSplitThreeTest(boolean codeThrows, boolean twoGuards)
+      throws Exception {
     final int secondBlockInstructions = 4;
     final int initialBlockCount = 5;
     // Try split out all instructions in second block.
@@ -262,14 +263,14 @@ public class SplitBlockTest extends SmaliTestBase {
   }
 
   @Test
-  public void catchHandlersSplitThree() {
+  public void catchHandlersSplitThree() throws Exception {
     runCatchHandlerSplitThreeTest(false, false);
     runCatchHandlerSplitThreeTest(true, false);
     runCatchHandlerSplitThreeTest(false, true);
     runCatchHandlerSplitThreeTest(true, true);
   }
 
-  TestApplication codeWithIf(boolean hitTrueBranch) {
+  TestApplication codeWithIf(boolean hitTrueBranch) throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     String returnType = "int";
@@ -309,7 +310,7 @@ public class SplitBlockTest extends SmaliTestBase {
     return new TestApplication(application, method, code, valueNumberGenerator, options);
   }
 
-  public void runWithIfTest(boolean hitTrueBranch) {
+  public void runWithIfTest(boolean hitTrueBranch) throws Exception {
     final int initialBlockCount = 4;
     final int argumentInstructions = 2;
     final int firstBlockInstructions = 3;
@@ -343,12 +344,12 @@ public class SplitBlockTest extends SmaliTestBase {
   }
 
   @Test
-  public void withIf() {
+  public void withIf() throws Exception {
     runWithIfTest(false);
     runWithIfTest(true);
   }
 
-  public void splitBeforeReturn(boolean hitTrueBranch) {
+  public void splitBeforeReturn(boolean hitTrueBranch) throws Exception {
     TestApplication test = codeWithIf(hitTrueBranch);
     IRCode code = test.code;
     // Locate the exit block and split before the return (the first instruction in the block).
@@ -375,12 +376,12 @@ public class SplitBlockTest extends SmaliTestBase {
   }
 
   @Test
-  public void splitBeforeReturn() {
+  public void splitBeforeReturn() throws Exception {
     splitBeforeReturn(false);
     splitBeforeReturn(true);
   }
 
-  TestApplication codeWithSwitch(boolean hitCase) {
+  TestApplication codeWithSwitch(boolean hitCase) throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     String returnType = "int";
@@ -428,7 +429,7 @@ public class SplitBlockTest extends SmaliTestBase {
     return new TestApplication(application, method, code, valueNumberGenerator, options);
   }
 
-  public void runWithSwitchTest(boolean hitCase) {
+  public void runWithSwitchTest(boolean hitCase) throws Exception {
     final int initialBlockCount = 5;
     final int argumentInstructions = 1;
     final int firstBlockInstructions = 2;
@@ -462,7 +463,7 @@ public class SplitBlockTest extends SmaliTestBase {
   }
 
   @Test
-  public void withSwitch() {
+  public void withSwitch() throws Exception {
     runWithSwitchTest(false);
     runWithSwitchTest(true);
   }

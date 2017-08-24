@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.synthetic;
 
 import static com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo.NO_THROW;
 
+import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexProto;
@@ -16,9 +17,9 @@ import com.android.tools.r8.ir.code.MoveType;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.SourceCode;
+import com.android.tools.r8.utils.ThrowingConsumer;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
 
 public abstract class SingleBlockSourceCode implements SourceCode {
 
@@ -38,7 +39,7 @@ public abstract class SingleBlockSourceCode implements SourceCode {
   private Value[] paramValues;
 
   // Instruction constructors
-  private List<Consumer<IRBuilder>> constructors = new ArrayList<>();
+  private List<ThrowingConsumer<IRBuilder, ApiLevelException>> constructors = new ArrayList<>();
 
   protected SingleBlockSourceCode(DexType receiver, DexProto proto) {
     assert proto != null;
@@ -57,7 +58,7 @@ public abstract class SingleBlockSourceCode implements SourceCode {
     }
   }
 
-  protected final void add(Consumer<IRBuilder> constructor) {
+  protected final void add(ThrowingConsumer<IRBuilder, ApiLevelException> constructor) {
     constructors.add(constructor);
   }
 
@@ -174,7 +175,8 @@ public abstract class SingleBlockSourceCode implements SourceCode {
   }
 
   @Override
-  public final void buildInstruction(IRBuilder builder, int instructionIndex) {
+  public final void buildInstruction(IRBuilder builder, int instructionIndex)
+      throws ApiLevelException {
     constructors.get(instructionIndex).accept(builder);
   }
 

@@ -523,7 +523,7 @@ public class ToolHelper {
       DexApplication application,
       AppInfoWithSubtyping appInfo,
       InternalOptions options)
-      throws ProguardRuleParserException, ExecutionException, IOException {
+      throws CompilationException, ExecutionException, IOException {
     return R8.optimize(application, appInfo, options);
   }
 

@@ -6,6 +6,7 @@ package com.android.tools.r8.smali;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.R8;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
@@ -431,7 +432,7 @@ public class SmaliTestBase extends TestBase {
   protected DexApplication processApplication(DexApplication application, InternalOptions options) {
     try {
       return ToolHelper.optimizeWithR8(application, new AppInfoWithSubtyping(application), options);
-    } catch (IOException | ProguardRuleParserException | ExecutionException e) {
+    } catch (IOException | CompilationException | ExecutionException e) {
       throw new RuntimeException(e);
     }
   }

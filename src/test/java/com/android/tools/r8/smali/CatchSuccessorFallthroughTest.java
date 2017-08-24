@@ -26,7 +26,7 @@ import org.junit.Test;
 public class CatchSuccessorFallthroughTest extends SmaliTestBase {
 
   @Test
-  public void catchSuccessorFallthroughTest() {
+  public void catchSuccessorFallthroughTest() throws Exception {
 
     SmaliBuilder builder = new SmaliBuilder("Test");
 

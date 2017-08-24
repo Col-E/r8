@@ -3,10 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.Resource;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.utils.ThrowingConsumer;
 import com.google.common.base.MoreObjects;
 import java.util.Arrays;
 import java.util.function.Consumer;
@@ -83,6 +85,16 @@ public abstract class DexClass extends DexItem {
 
 
   public void forEachMethod(Consumer<DexEncodedMethod> consumer) {
+    for (DexEncodedMethod method : directMethods()) {
+      consumer.accept(method);
+    }
+    for (DexEncodedMethod method : virtualMethods()) {
+      consumer.accept(method);
+    }
+  }
+
+  public <E extends Throwable> void forEachMethodThrowing(
+      ThrowingConsumer<DexEncodedMethod, E> consumer) throws E {
     for (DexEncodedMethod method : directMethods()) {
       consumer.accept(method);
     }

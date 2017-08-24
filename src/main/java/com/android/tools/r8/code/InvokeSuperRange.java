@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.code;
 
+import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.OffsetToObjectMapping;
 import com.android.tools.r8.graph.UseRegistry;
@@ -46,7 +47,7 @@ public class InvokeSuperRange extends Format3rc {
   }
 
   @Override
-  public void buildIR(IRBuilder builder) {
+  public void buildIR(IRBuilder builder) throws ApiLevelException {
     builder.addInvokeRange(Type.SUPER, getMethod(), getProto(), AA, CCCC);
   }
 

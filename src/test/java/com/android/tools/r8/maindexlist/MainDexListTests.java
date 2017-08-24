@@ -538,13 +538,13 @@ public class MainDexListTests extends TestBase {
   }
 
   public static AndroidApp generateApplication(List<String> classes, int minApi, int methodCount)
-      throws IOException, ExecutionException {
+      throws IOException, ExecutionException, CompilationException {
     return generateApplication(classes, minApi, false, methodCount);
   }
 
   private static AndroidApp generateApplication(
       List<String> classes, int minApi, boolean intermediate, int methodCount)
-      throws IOException, ExecutionException {
+      throws IOException, ExecutionException, CompilationException {
     Timing timing = new Timing("MainDexListTests");
     InternalOptions options = new InternalOptions();
     options.minApiLevel = minApi;

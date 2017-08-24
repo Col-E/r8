@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir;
 
+import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -31,7 +32,7 @@ public class BasicBlockIteratorTest extends SmaliTestBase {
    * Third block: Return instruction
    *
    */
-  IRCode simpleCode() {
+  IRCode simpleCode() throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     String returnType = "int";
@@ -61,7 +62,7 @@ public class BasicBlockIteratorTest extends SmaliTestBase {
   }
 
   @Test
-  public void removeBeforeNext() {
+  public void removeBeforeNext() throws Exception {
     IRCode code = simpleCode();
 
     ListIterator<BasicBlock> blocks = code.listIterator();
@@ -70,7 +71,7 @@ public class BasicBlockIteratorTest extends SmaliTestBase {
   }
 
   @Test
-  public void removeTwice() {
+  public void removeTwice() throws Exception {
     IRCode code = simpleCode();
 
     ListIterator<BasicBlock> blocks = code.listIterator();

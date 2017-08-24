@@ -32,7 +32,7 @@ public class InstructionIteratorTest extends SmaliTestBase {
    * Third block: Return instruction
    *
    */
-  IRCode simpleCode() {
+  IRCode simpleCode() throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     String returnType = "int";
@@ -62,7 +62,7 @@ public class InstructionIteratorTest extends SmaliTestBase {
   }
 
   @Test
-  public void removeBeforeNext() {
+  public void removeBeforeNext() throws Exception {
     IRCode code = simpleCode();
 
     ListIterator<BasicBlock> blocks = code.listIterator();
@@ -72,7 +72,7 @@ public class InstructionIteratorTest extends SmaliTestBase {
   }
 
   @Test
-  public void removeTwice() {
+  public void removeTwice() throws Exception {
     IRCode code = simpleCode();
 
     ListIterator<BasicBlock> blocks = code.listIterator();

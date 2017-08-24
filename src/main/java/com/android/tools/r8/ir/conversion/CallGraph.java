@@ -18,6 +18,7 @@ import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThreadUtils;
+import com.android.tools.r8.utils.ThrowingConsumer;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -293,7 +294,8 @@ public class CallGraph {
     return nodes.size() == 0;
   }
 
-  public void forEachMethod(Consumer<DexEncodedMethod> consumer, ExecutorService executorService)
+  public <E extends Exception> void forEachMethod(
+      ThrowingConsumer<DexEncodedMethod, E> consumer, ExecutorService executorService)
       throws ExecutionException {
     while (!isEmpty()) {
       List<DexEncodedMethod> methods = extractLeaves();
@@ -302,6 +304,7 @@ public class CallGraph {
       for (DexEncodedMethod method : methods) {
         futures.add(executorService.submit(() -> {
           consumer.accept(method);
+          return null; // we want a Callable not a Runnable to be able to throw
         }));
       }
       ThreadUtils.awaitFutures(futures);

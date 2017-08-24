@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.Unreachable;
@@ -13,7 +14,8 @@ import com.android.tools.r8.utils.InternalOptions;
 
 public abstract class Code extends CachedHashValueDexItem {
 
-  public abstract IRCode buildIR(DexEncodedMethod encodedMethod, InternalOptions options);
+  public abstract IRCode buildIR(DexEncodedMethod encodedMethod, InternalOptions options)
+      throws ApiLevelException;
 
   public abstract void registerReachableDefinitions(UseRegistry registry);
 

@@ -24,7 +24,7 @@ import org.junit.Test;
 
 public class InlineTest extends SmaliTestBase {
 
-  TestApplication codeForMethodReplaceTest(int a, int b) {
+  TestApplication codeForMethodReplaceTest(int a, int b) throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     MethodSignature signature = builder.addStaticMethod(
@@ -88,7 +88,7 @@ public class InlineTest extends SmaliTestBase {
         ImmutableList.of(codeA, codeB), valueNumberGenerator, options);
   }
 
-  public void runInlineTest(int a, int b, int expectedA, int expectedB) {
+  public void runInlineTest(int a, int b, int expectedA, int expectedB) throws Exception {
     // Run code without inlining.
     TestApplication test = codeForMethodReplaceTest(a, b);
     String result = test.run();
@@ -116,12 +116,12 @@ public class InlineTest extends SmaliTestBase {
   }
 
   @Test
-  public void inline() {
+  public void inline() throws Exception {
     runInlineTest(1, 1, 2, 0);
     runInlineTest(1, 2, 3, 1);
   }
 
-  TestApplication codeForMethodReplaceReturnVoidTest(int a, int b) {
+  TestApplication codeForMethodReplaceReturnVoidTest(int a, int b) throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     MethodSignature signature = builder.addStaticMethod(
@@ -169,7 +169,7 @@ public class InlineTest extends SmaliTestBase {
   }
 
   @Test
-  public void inlineReturnVoid() {
+  public void inlineReturnVoid() throws Exception {
     // Run code without inlining.
     TestApplication test = codeForMethodReplaceReturnVoidTest(1, 2);
     String result = test.run();
@@ -187,7 +187,7 @@ public class InlineTest extends SmaliTestBase {
     assertEquals(Integer.toString(1), result);
   }
 
-  TestApplication codeForMultipleMethodReplaceTest(int a, int b) {
+  TestApplication codeForMultipleMethodReplaceTest(int a, int b) throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     MethodSignature signature = builder.addStaticMethod(
@@ -259,7 +259,7 @@ public class InlineTest extends SmaliTestBase {
         additionalCode, valueNumberGenerator, options);
   }
 
-  public void runInlineMultipleTest(int a, int b, int expectedA, int expectedB) {
+  public void runInlineMultipleTest(int a, int b, int expectedA, int expectedB) throws Exception {
     // Run code without inlining.
     TestApplication test = codeForMultipleMethodReplaceTest(a, b);
     String result = test.run();
@@ -304,12 +304,13 @@ public class InlineTest extends SmaliTestBase {
   }
 
   @Test
-  public void inlineMultiple() {
+  public void inlineMultiple() throws Exception {
     runInlineMultipleTest(1, 1, 4, 1);
     runInlineMultipleTest(1, 2, 7, 8);
   }
 
-  TestApplication codeForMethodReplaceTestWithCatchHandler(int a, int b, boolean twoGuards) {
+  TestApplication codeForMethodReplaceTestWithCatchHandler(int a, int b, boolean twoGuards)
+      throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     String secondGuard = twoGuards ?
@@ -385,7 +386,7 @@ public class InlineTest extends SmaliTestBase {
   }
 
   public void runInlineCallerHasCatchHandlersTest(
-      int a, int b, boolean twoGuards, int expectedA, int expectedB) {
+      int a, int b, boolean twoGuards, int expectedA, int expectedB) throws Exception {
     // Run code without inlining.
     TestApplication test = codeForMethodReplaceTestWithCatchHandler(a, b, twoGuards);
     String result = test.run();
@@ -413,14 +414,14 @@ public class InlineTest extends SmaliTestBase {
   }
 
   @Test
-  public void inlineCallerHasCatchHandlers() {
+  public void inlineCallerHasCatchHandlers() throws Exception {
     runInlineCallerHasCatchHandlersTest(1, 1, false, 2, 0);
     runInlineCallerHasCatchHandlersTest(1, 2, false, 3, 1);
     runInlineCallerHasCatchHandlersTest(1, 1, true, 2, 0);
     runInlineCallerHasCatchHandlersTest(1, 2, true, 3, 1);
   }
 
-  TestApplication codeForInlineCanThrow(int a, int b, boolean twoGuards) {
+  TestApplication codeForInlineCanThrow(int a, int b, boolean twoGuards) throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     String secondGuard = twoGuards ?
@@ -499,7 +500,7 @@ public class InlineTest extends SmaliTestBase {
   }
 
   public void runInlineCanThrow(
-      int a, int b, boolean twoGuards, int expectedA, int expectedB) {
+      int a, int b, boolean twoGuards, int expectedA, int expectedB) throws Exception {
     // Run code without inlining.
     TestApplication test = codeForInlineCanThrow(a, b, twoGuards);
     String result = test.run();
@@ -527,14 +528,14 @@ public class InlineTest extends SmaliTestBase {
   }
 
   @Test
-  public void inlineCanThrow() {
+  public void inlineCanThrow() throws Exception {
     runInlineCanThrow(2, 2, false, 1, 1);
     runInlineCanThrow(2, 0, false, -2, -1);
     runInlineCanThrow(2, 2, true, 1, 1);
     runInlineCanThrow(2, 0, true, -2, -1);
   }
 
-  private TestApplication codeForInlineAlwaysThrows(boolean twoGuards) {
+  private TestApplication codeForInlineAlwaysThrows(boolean twoGuards) throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     String secondGuard = twoGuards ?
@@ -611,7 +612,8 @@ public class InlineTest extends SmaliTestBase {
         ImmutableList.of(codeA, codeB), valueNumberGenerator, options);
   }
 
-  private void runInlineAlwaysThrows(boolean twoGuards, int expectedA, int expectedB) {
+  private void runInlineAlwaysThrows(boolean twoGuards, int expectedA, int expectedB)
+      throws Exception {
     // Run code without inlining.
     TestApplication test = codeForInlineAlwaysThrows(twoGuards);
     String result = test.run();
@@ -640,12 +642,12 @@ public class InlineTest extends SmaliTestBase {
   }
 
   @Test
-  public void inlineAlwaysThrows() {
+  public void inlineAlwaysThrows() throws Exception {
     runInlineAlwaysThrows(false, -2, -2);
     runInlineAlwaysThrows(true, -2, -1);
   }
 
-  private TestApplication codeForInlineAlwaysThrowsMultiple(boolean twoGuards) {
+  private TestApplication codeForInlineAlwaysThrowsMultiple(boolean twoGuards) throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     String secondGuard = twoGuards ?
@@ -732,7 +734,8 @@ public class InlineTest extends SmaliTestBase {
         application, method, code, additionalCode, valueNumberGenerator, options);
   }
 
-  private void runInlineAlwaysThrowsMultiple(boolean twoGuards, int expectedA, int expectedB) {
+  private void runInlineAlwaysThrowsMultiple(boolean twoGuards, int expectedA, int expectedB)
+      throws Exception {
     // Run code without inlining.
     TestApplication test = codeForInlineAlwaysThrows(twoGuards);
     String result = test.run();
@@ -785,13 +788,13 @@ public class InlineTest extends SmaliTestBase {
   }
 
   @Test
-  public void inlineAlwaysThrowsMultiple() {
+  public void inlineAlwaysThrowsMultiple() throws Exception {
     runInlineAlwaysThrowsMultiple(false, -2, -2);
     runInlineAlwaysThrowsMultiple(true, -2, -1);
   }
 
   private TestApplication codeForInlineAlwaysThrowsMultipleWithControlFlow(
-      int a, boolean twoGuards) {
+      int a, boolean twoGuards) throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     String secondGuard = twoGuards ?
@@ -886,7 +889,7 @@ public class InlineTest extends SmaliTestBase {
   }
 
   private void runInlineAlwaysThrowsMultipleWithControlFlow(
-      int a, boolean twoGuards, int expectedA, int expectedB) {
+      int a, boolean twoGuards, int expectedA, int expectedB) throws Exception {
     // Run code without inlining.
     TestApplication test = codeForInlineAlwaysThrows(twoGuards);
     String result = test.run();
@@ -939,7 +942,7 @@ public class InlineTest extends SmaliTestBase {
   }
 
   @Test
-  public void inlineAlwaysThrowsMultipleWithControlFlow() {
+  public void inlineAlwaysThrowsMultipleWithControlFlow() throws Exception {
     runInlineAlwaysThrowsMultipleWithControlFlow(0, false, -2, -2);
     runInlineAlwaysThrowsMultipleWithControlFlow(0, true, -2, -1);
     runInlineAlwaysThrowsMultipleWithControlFlow(1, false, -2, -2);
@@ -948,8 +951,9 @@ public class InlineTest extends SmaliTestBase {
     runInlineAlwaysThrowsMultipleWithControlFlow(2, true, -2, -1);
   }
 
-  private TestApplication codeForInlineWithHandlersCanThrow(int a, int b, int c,
-      boolean twoGuards, boolean callerHasCatchAll, boolean inlineeHasCatchAll) {
+  private TestApplication codeForInlineWithHandlersCanThrow(
+      int a, int b, int c, boolean twoGuards, boolean callerHasCatchAll, boolean inlineeHasCatchAll)
+      throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     String secondGuard = "";
@@ -1122,7 +1126,7 @@ public class InlineTest extends SmaliTestBase {
 
   private void runInlineWithHandlersCanThrow(int a, int b, int c,
       boolean twoGuards, boolean callerHasCatchAll, boolean inlineeHasCatchAll,
-      int expectedA, int expectedB) {
+      int expectedA, int expectedB) throws Exception {
     // Run code without inlining.
     TestApplication test = codeForInlineWithHandlersCanThrow(
         a, b, c, twoGuards, callerHasCatchAll, inlineeHasCatchAll);
@@ -1153,7 +1157,7 @@ public class InlineTest extends SmaliTestBase {
   }
 
   @Test
-  public void inlineCanWithHandlersThrow() {
+  public void inlineCanWithHandlersThrow() throws Exception {
     // The base generated code will be:
     //
     //  int method(int a, int b, int c) {
