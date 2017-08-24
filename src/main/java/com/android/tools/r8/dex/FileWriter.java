@@ -445,10 +445,10 @@ public class FileWriter {
 
   private void writeFieldItem(DexField field) {
     int classIdx = mapping.getOffsetFor(field.clazz);
-    assert (short) classIdx == classIdx;
+    assert (classIdx & 0xFFFF) == classIdx;
     dest.putShort((short) classIdx);
     int typeIdx = mapping.getOffsetFor(field.type);
-    assert (short) typeIdx == typeIdx;
+    assert (typeIdx & 0xFFFF) == typeIdx;
     dest.putShort((short) typeIdx);
     DexString name = namingLens.lookupName(field);
     dest.putInt(mapping.getOffsetFor(name));
@@ -456,10 +456,10 @@ public class FileWriter {
 
   private void writeMethodItem(DexMethod method) {
     int classIdx = mapping.getOffsetFor(method.holder);
-    assert (short) classIdx == classIdx;
+    assert (classIdx & 0xFFFF) == classIdx;
     dest.putShort((short) classIdx);
     int protoIdx = mapping.getOffsetFor(method.proto);
-    assert (short) protoIdx == protoIdx;
+    assert (protoIdx & 0xFFFF) == protoIdx;
     dest.putShort((short) protoIdx);
     DexString name = namingLens.lookupName(method);
     dest.putInt(mapping.getOffsetFor(name));
@@ -694,7 +694,7 @@ public class FileWriter {
       assert methodHandle.isFieldHandle();
       fieldOrMethodIdx = mapping.getOffsetFor(methodHandle.asField());
     }
-    assert (short) fieldOrMethodIdx == fieldOrMethodIdx;
+    assert (fieldOrMethodIdx & 0xFFFF) == fieldOrMethodIdx;
     dest.putShort((short) fieldOrMethodIdx);
     dest.putShort((short) 0); // unused
   }
