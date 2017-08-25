@@ -134,8 +134,7 @@ public class JarState {
       return (sort == Type.OBJECT && otherSort == Type.ARRAY)
           || (sort == Type.ARRAY && otherSort == Type.OBJECT)
           || (sort == Type.OBJECT && otherSort == Type.OBJECT)
-          || (sort == Type.ARRAY && otherSort == Type.ARRAY
-              && isReferenceCompatible(getArrayElementType(type), getArrayElementType(other)));
+          || (sort == Type.ARRAY && otherSort == Type.ARRAY);
     }
   }
 

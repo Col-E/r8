@@ -300,6 +300,14 @@ public class Locals {
     return -1;
   }
 
+  public static String regression65039701(boolean createIntNotLong) {
+    Object a = createIntNotLong ? new int[1] : new long[1];
+    if (a instanceof int []) {
+      ((int [])a)[0] = 0;
+    }
+    return "OK";
+  }
+
   public static void main(String[] args) {
     noLocals();
     unusedLocals();
@@ -318,5 +326,6 @@ public class Locals {
     argumentLiveAtReturn(-1);
     switchRewriteToIfs(1);
     switchRewriteToSwitches(1);
+    regression65039701(true);
   }
 }
