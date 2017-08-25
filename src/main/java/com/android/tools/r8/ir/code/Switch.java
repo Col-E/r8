@@ -13,6 +13,8 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.google.common.primitives.Ints;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import java.util.List;
 
 public class Switch extends JumpInstruction {
@@ -159,6 +161,11 @@ public class Switch extends JumpInstruction {
     }
   }
 
+  // Estimated size of the resulting dex instruction in code units (excluding the payload).
+  public static int estimatedDexSize() {
+    return 3;
+  }
+
   public int numberOfKeys() {
     return keys.length;
   }
@@ -173,6 +180,14 @@ public class Switch extends JumpInstruction {
 
   public int[] targetBlockIndices() {
     return targetBlockIndices;
+  }
+
+  public Int2ReferenceSortedMap<BasicBlock> getKeyToTargetMap() {
+    Int2ReferenceSortedMap<BasicBlock> result = new Int2ReferenceAVLTreeMap<>();
+    for (int i = 0; i < keys.length; i++) {
+      result.put(getKey(i), targetBlock(i));
+    }
+    return result;
   }
 
   @Override

@@ -262,6 +262,44 @@ public class Locals {
     return -1;
   }
 
+  public static int switchRewriteToIfs(int x) {
+    {
+      int t = x + 1;
+      x = t;
+      x = x + x;
+    }
+    switch (x) {
+      case 0:
+        return 0;
+      case 100:
+        return 1;
+    }
+    return -1;
+  }
+
+  public static int switchRewriteToSwitches(int x) {
+    {
+      int t = x + 1;
+      x = t;
+      x = x + x;
+    }
+    switch (x) {
+      case 0:
+        return 0;
+      case 1:
+        return 0;
+      case 2:
+        return 0;
+      case 100:
+        return 1;
+      case 101:
+        return 1;
+      case 102:
+        return 1;
+    }
+    return -1;
+  }
+
   public static void main(String[] args) {
     noLocals();
     unusedLocals();
@@ -278,5 +316,7 @@ public class Locals {
     tempInCase(42);
     localSwap(1, 2);
     argumentLiveAtReturn(-1);
+    switchRewriteToIfs(1);
+    switchRewriteToSwitches(1);
   }
 }

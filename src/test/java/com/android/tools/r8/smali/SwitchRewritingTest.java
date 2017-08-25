@@ -34,7 +34,8 @@ import org.junit.Test;
 public class SwitchRewritingTest extends SmaliTestBase {
 
   private boolean twoCaseWillUsePackedSwitch(int key1, int key2) {
-    return Math.abs((long) key1 - (long) key2) <= 2;
+    assert key1 != key2;
+    return Math.abs((long) key1 - (long) key2) == 1;
   }
 
   private boolean some16BitConst(Instruction instruction) {
@@ -114,7 +115,7 @@ public class SwitchRewritingTest extends SmaliTestBase {
     }
   }
 
-  private void runTwoCaseSparseToPackedDexTest(int key1, int key2) {
+  private void runTwoCaseSparseToPackedOrIfsDexTest(int key1, int key2) {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     MethodSignature signature = builder.addStaticMethod(
@@ -156,24 +157,29 @@ public class SwitchRewritingTest extends SmaliTestBase {
     if (twoCaseWillUsePackedSwitch(key1, key2)) {
       assertTrue(code.instructions[0] instanceof PackedSwitch);
     } else {
-      assertTrue(code.instructions[0] instanceof SparseSwitch);
+      if (key1 == 0) {
+        assertTrue(code.instructions[0] instanceof IfEqz);
+      } else {
+        // Const instruction before if.
+        assertTrue(code.instructions[1] instanceof IfEq);
+      }
     }
   }
 
   @Test
-  public void twoCaseSparseToPackedDex() {
+  public void twoCaseSparseToPackedOrIfsDex() {
     for (int delta = 1; delta <= 3; delta++) {
-      runTwoCaseSparseToPackedDexTest(0, delta);
-      runTwoCaseSparseToPackedDexTest(-delta, 0);
-      runTwoCaseSparseToPackedDexTest(Integer.MIN_VALUE, Integer.MIN_VALUE + delta);
-      runTwoCaseSparseToPackedDexTest(Integer.MAX_VALUE - delta, Integer.MAX_VALUE);
+      runTwoCaseSparseToPackedOrIfsDexTest(0, delta);
+      runTwoCaseSparseToPackedOrIfsDexTest(-delta, 0);
+      runTwoCaseSparseToPackedOrIfsDexTest(Integer.MIN_VALUE, Integer.MIN_VALUE + delta);
+      runTwoCaseSparseToPackedOrIfsDexTest(Integer.MAX_VALUE - delta, Integer.MAX_VALUE);
     }
-    runTwoCaseSparseToPackedDexTest(-1, 1);
-    runTwoCaseSparseToPackedDexTest(-2, 1);
-    runTwoCaseSparseToPackedDexTest(-1, 2);
-    runTwoCaseSparseToPackedDexTest(Integer.MIN_VALUE, Integer.MAX_VALUE);
-    runTwoCaseSparseToPackedDexTest(Integer.MIN_VALUE + 1, Integer.MAX_VALUE);
-    runTwoCaseSparseToPackedDexTest(Integer.MIN_VALUE, Integer.MAX_VALUE - 1);
+    runTwoCaseSparseToPackedOrIfsDexTest(-1, 1);
+    runTwoCaseSparseToPackedOrIfsDexTest(-2, 1);
+    runTwoCaseSparseToPackedOrIfsDexTest(-1, 2);
+    runTwoCaseSparseToPackedOrIfsDexTest(Integer.MIN_VALUE, Integer.MAX_VALUE);
+    runTwoCaseSparseToPackedOrIfsDexTest(Integer.MIN_VALUE + 1, Integer.MAX_VALUE);
+    runTwoCaseSparseToPackedOrIfsDexTest(Integer.MIN_VALUE, Integer.MAX_VALUE - 1);
   }
 
   private void runLargerSwitchDexTest(int firstKey, int keyStep, int totalKeys,
@@ -356,7 +362,12 @@ public class SwitchRewritingTest extends SmaliTestBase {
     if (twoCaseWillUsePackedSwitch(key1, key2)) {
       assertTrue(code.instructions[3] instanceof PackedSwitch);
     } else {
-      assertTrue(code.instructions[3] instanceof SparseSwitch);
+      if (key1 == 0) {
+        assertTrue(code.instructions[3] instanceof IfEqz);
+      } else {
+        // Const instruction before if.
+        assertTrue(code.instructions[4] instanceof IfEq);
+      }
     }
   }
 
@@ -462,8 +473,8 @@ public class SwitchRewritingTest extends SmaliTestBase {
     runLargerSwitchJarTest(0, 1, 5503, null);
   }
 
-  private void runConvertCasesToIf(List<Integer> keys, int defaultValue, int expectedIfs)
-      throws Exception {
+  private void runConvertCasesToIf(List<Integer> keys, int defaultValue, int expectedIfs,
+      int expectedPackedSwitches, int expectedSparceSwitches) throws Exception {
     JasminBuilder builder = new JasminBuilder();
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
 
@@ -514,8 +525,8 @@ public class SwitchRewritingTest extends SmaliTestBase {
       }
     }
 
-    assertEquals(1, packedSwitches);
-    assertEquals(0, sparseSwitches);
+    assertEquals(expectedPackedSwitches, packedSwitches);
+    assertEquals(expectedSparceSwitches, sparseSwitches);
     assertEquals(expectedIfs, ifs);
 
     // Run the code
@@ -526,12 +537,34 @@ public class SwitchRewritingTest extends SmaliTestBase {
 
   @Test
   public void convertCasesToIf() throws Exception {
-    runConvertCasesToIf(ImmutableList.of(0, 1000, 1001, 1002, 1003, 1004), -100, 1);
-    runConvertCasesToIf(ImmutableList.of(1000, 1001, 1002, 1003, 1004, 2000), -100, 1);
-    runConvertCasesToIf(ImmutableList.of(Integer.MIN_VALUE, 1000, 1001, 1002, 1003, 1004), -100, 1);
-    runConvertCasesToIf(ImmutableList.of(1000, 1001, 1002, 1003, 1004, Integer.MAX_VALUE), -100, 1);
-    runConvertCasesToIf(ImmutableList.of(0, 1000, 1001, 1002, 1003, 1004, 2000), -100, 2);
+    // Switches that are completely converted to ifs.
+    runConvertCasesToIf(ImmutableList.of(0, 1000), -100, 2, 0, 0);
+    runConvertCasesToIf(ImmutableList.of(0, 1000, 2000), -100, 3, 0, 0);
+    runConvertCasesToIf(ImmutableList.of(0, 1000, 2000, 3000), -100, 4, 0, 0);
+
+    // Switches that are completely converted to ifs and one switch.
+    runConvertCasesToIf(ImmutableList.of(0, 1000, 1001, 1002, 1003, 1004), -100, 1, 1, 0);
+    runConvertCasesToIf(ImmutableList.of(1000, 1001, 1002, 1003, 1004, 2000), -100, 1, 1, 0);
     runConvertCasesToIf(ImmutableList.of(
-        Integer.MIN_VALUE, 1000, 1001, 1002, 1003, 1004, Integer.MAX_VALUE), -100, 2);
+        Integer.MIN_VALUE, 1000, 1001, 1002, 1003, 1004), -100, 1, 1, 0);
+    runConvertCasesToIf(ImmutableList.of(
+        1000, 1001, 1002, 1003, 1004, Integer.MAX_VALUE), -100, 1, 1, 0);
+    runConvertCasesToIf(ImmutableList.of(0, 1000, 1001, 1002, 1003, 1004, 2000), -100, 2, 1, 0);
+    runConvertCasesToIf(ImmutableList.of(
+        Integer.MIN_VALUE, 1000, 1001, 1002, 1003, 1004, Integer.MAX_VALUE), -100, 2, 1, 0);
+
+    // Switches that are completely converted to ifs and two switches.
+    runConvertCasesToIf(ImmutableList.of(
+        0, 1, 2, 3, 4, 1000, 1001, 1002, 1003, 1004), -100, 0, 2, 0);
+    runConvertCasesToIf(ImmutableList.of(
+        -1000, 0, 1, 2, 3, 4, 1000, 1001, 1002, 1003, 1004), -100, 1, 2, 0);
+    runConvertCasesToIf(ImmutableList.of(
+        -1000, 0, 1, 2, 3, 4, 1000, 1001, 1002, 1003, 1004, 2000), -100, 2, 2, 0);
+
+    // Switches that are completely converted two switches (one sparse and one packed).
+    runConvertCasesToIf(ImmutableList.of(
+        -1000, -900, -800, -700, -600, -500, -400, -300,
+        1000, 1001, 1002, 1003, 1004,
+        2000, 2100, 2200, 2300, 2400, 2500), -100, 0, 1, 1);
   }
 }

@@ -484,4 +484,48 @@ public class LocalsTest extends DebugTestBase {
         checkNoLocal("t"),
         run());
   }
+
+  @Test
+  public void switchRewriteToIfs() throws Throwable {
+    runDebugTest(
+        "Locals",
+        breakpoint("Locals", "switchRewriteToIfs"),
+        run(),
+        checkLine(SOURCE_FILE, 267),
+        stepOver(),
+        checkLine(SOURCE_FILE, 268),
+        checkLocal("x", Value.createInt(1)),
+        checkLocal("t", Value.createInt(2)),
+        stepOver(),
+        checkLine(SOURCE_FILE, 269),
+        checkLocal("x", Value.createInt(2)),
+        checkLocal("t", Value.createInt(2)),
+        stepOver(),
+        checkLine(SOURCE_FILE, 271),
+        checkLocal("x", Value.createInt(4)),
+        checkNoLocal("t"),
+        run());
+  }
+
+  @Test
+  public void switchRewriteToSwitches() throws Throwable {
+    runDebugTest(
+        "Locals",
+        breakpoint("Locals", "switchRewriteToSwitches"),
+        run(),
+        checkLine(SOURCE_FILE, 282),
+        stepOver(),
+        checkLine(SOURCE_FILE, 283),
+        checkLocal("x", Value.createInt(1)),
+        checkLocal("t", Value.createInt(2)),
+        stepOver(),
+        checkLine(SOURCE_FILE, 284),
+        checkLocal("x", Value.createInt(2)),
+        checkLocal("t", Value.createInt(2)),
+        stepOver(),
+        checkLine(SOURCE_FILE, 286),
+        checkLocal("x", Value.createInt(4)),
+        checkNoLocal("t"),
+        run());
+  }
 }
