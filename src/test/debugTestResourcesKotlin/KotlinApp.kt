@@ -3,42 +3,27 @@
 // BSD-style license that can be found in the LICENSE file.
 
 class KotlinApp {
+
+    fun ifElse(cond: Boolean) {
+        val a = 10
+        if (cond) {
+            val b = a * 2
+            printInt(b)
+        } else {
+            val c = a / 2
+            print(c)
+        }
+    }
+
+    fun printInt(i: Int) {
+        println(i)
+    }
+
     companion object {
         @JvmStatic fun main(args: Array<String>) {
-            println("Hello world!")
             val instance = KotlinApp()
-            instance.processObject(instance, instance::printObject)
-            instance.invokeInlinedFunctions()
+            instance.ifElse(true)
+            instance.ifElse(false)
         }
-    }
-
-    fun processObject(obj: Any, func: (Any) -> Unit) {
-        func(obj)
-    }
-
-    fun printObject(obj: Any) {
-        println(obj)
-    }
-
-    fun invokeInlinedFunctions() {
-        inlinedA {
-            val inA = 1
-            inlinedB {
-                val inB = 2
-                foo(inA, inB)
-            }
-        }
-    }
-
-    inline fun inlinedA(f: () -> Unit) {
-        f()
-    }
-
-    inline fun inlinedB(f: () -> Unit) {
-        f()
-    }
-
-    fun foo(a: Int, b: Int) {
-        println("a=$a, b=$b")
     }
 }
