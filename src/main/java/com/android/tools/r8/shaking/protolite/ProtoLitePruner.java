@@ -137,8 +137,7 @@ public class ProtoLitePruner extends ProtoLiteBase {
   }
 
   private boolean isDefinedAsNull(Value value) {
-    return value.definition != null && value.definition.isConstNumber()
-        && value.definition.asConstNumber().isZero();
+    return value.definition != null && value.isZero();
   }
 
   private boolean isComputeSizeMethod(DexMethod invokedMethod) {
