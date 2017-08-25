@@ -565,6 +565,7 @@ task buildDebugTestResourcesJars {
             executable file("third_party/kotlin/kotlinc/bin/kotlinc");
         }
         args "-include-runtime"
+        args "-nowarn"
         args "-d"
         args "build/test/${kotlinHostJar}"
         args fileTree(dir: kotlinResourcesDir, include: '**/*.kt')
