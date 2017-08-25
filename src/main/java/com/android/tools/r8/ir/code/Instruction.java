@@ -124,6 +124,12 @@ public abstract class Instruction {
     debugValues.clear();
   }
 
+  public void moveDebugValue(Value value, Instruction target) {
+    assert debugValues.contains(value);
+    value.replaceDebugUser(this, target);
+    debugValues.remove(value);
+  }
+
   /**
    * Returns the basic block containing this instruction.
    */

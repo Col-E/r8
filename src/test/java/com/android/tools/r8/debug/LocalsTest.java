@@ -470,4 +470,18 @@ public class LocalsTest extends DebugTestBase {
         checkNoLocal("t"),
         run());
   }
+
+  @Test
+  public void argumentLiveAtReturn() throws Throwable {
+    runDebugTest(
+        "Locals",
+        breakpoint("Locals", "argumentLiveAtReturn"),
+        run(),
+        checkLine(SOURCE_FILE, 248),
+        stepOver(),
+        checkLine(SOURCE_FILE, 262),
+        checkLocal("x", Value.createInt(-1)),
+        checkNoLocal("t"),
+        run());
+  }
 }

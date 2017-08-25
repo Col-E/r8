@@ -79,6 +79,7 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.code.Xor;
 import com.android.tools.r8.utils.InternalOptions;
+import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
@@ -1789,6 +1790,26 @@ public class IRBuilder {
         assert returnType == MoveType.fromDexType(method.method.proto.returnType);
       }
       closeCurrentBlock();
+
+      // Collect the debug values which are live on all returns.
+      Set<Value> debugValuesForReturn = Sets.newIdentityHashSet();
+      for (Value value : exitBlocks.get(0).exit().getDebugValues()) {
+        boolean include = true;
+        for (int i = 1; i < exitBlocks.size() && include; i++) {
+          include = exitBlocks.get(i).exit().getDebugValues().contains(value);
+        }
+        if (include) {
+          debugValuesForReturn.add(value);
+        }
+      }
+
+      // Move all these debug values to the new return.
+      for (Value value : debugValuesForReturn) {
+        for (BasicBlock block : exitBlocks) {
+          block.exit().moveDebugValue(value, normalExitBlock.exit());
+        }
+      }
+
       // Replace each return instruction with a goto to the new exit block.
       List<Value> operands = new ArrayList<>();
       for (BasicBlock block : exitBlocks) {

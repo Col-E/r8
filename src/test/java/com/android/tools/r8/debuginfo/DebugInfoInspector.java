@@ -18,6 +18,7 @@ import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.DexInspector;
+import com.android.tools.r8.utils.StringUtils;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
@@ -102,7 +103,8 @@ public class DebugInfoInspector {
     DexDebugEntry previousEntry = null;
     for (DexDebugEntry entry : entries) {
       if (previousEntry != null) {
-        assertTrue("More than one entry defined for PC " + entry.address,
+        assertTrue(
+            "More than one entry defined for PC " + StringUtils.hexString(entry.address, 2),
             entry.address > previousEntry.address);
       }
       previousEntry = entry;
