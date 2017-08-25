@@ -383,7 +383,7 @@ public class CompatDx {
     }
 
     if (dexArgs.dumpTo != null) {
-      throw new Unimplemented("dump-to file not yet supported");
+      System.out.println("dump-to file not yet supported");
     }
 
     if (dexArgs.positions == PositionInfo.NONE) {
