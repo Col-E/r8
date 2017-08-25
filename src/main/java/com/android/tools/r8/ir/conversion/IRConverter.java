@@ -569,7 +569,6 @@ public class IRConverter {
     LinearScanRegisterAllocator registerAllocator = new LinearScanRegisterAllocator(code, options);
     registerAllocator.allocateRegisters(options.debug);
     printMethod(code, "After register allocation (non-SSA)");
-    printLiveRanges(registerAllocator, "Final live ranges.");
     if (!options.debug) {
       CodeRewriter.removedUnneededDebugPositions(code);
     }
@@ -602,12 +601,6 @@ public class IRConverter {
       printer.print("name \"").append(title).append("\"\n");
       code.print(printer);
       printer.end("cfg");
-    }
-  }
-
-  private void printLiveRanges(LinearScanRegisterAllocator allocator, String title) {
-    if (printer != null) {
-      allocator.print(printer, title);
     }
   }
 }

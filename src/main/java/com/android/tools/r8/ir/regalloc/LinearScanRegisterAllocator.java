@@ -2216,25 +2216,6 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     return true;
   }
 
-  public void print(CfgPrinter printer, String title) {
-    printer.begin("intervals");
-    printer.print("name \"").append(title).append("\"").ln();
-    PriorityQueue<LiveIntervals> sortedIntervals =
-        new PriorityQueue<>((o1, o2) -> Integer.compare(o1.getStart(), o2.getStart()));
-    sortedIntervals.addAll(liveIntervals);
-    for (LiveIntervals interval = sortedIntervals.poll();
-        interval != null;
-        interval = sortedIntervals.poll()) {
-      Value value = interval.getValue();
-      if (interval.getRanges().get(0).isInfinite()) {
-        // Skip argument sentinels.
-        continue;
-      }
-      interval.print(printer, value.getNumber(), value.getNumber());
-    }
-    printer.end("intervals");
-  }
-
   @Override
   public String toString() {
     StringBuilder builder = new StringBuilder("Live ranges:\n");
