@@ -57,16 +57,22 @@ def parse_arguments():
              ' peak resident set size (VmHWM) in bytes.',
       default = False,
       action = 'store_true')
+  parser.add_argument('--output',
+                      help = 'Output directory to keep the generated files')
   return parser.parse_args()
 
 def Main():
   utils.check_java_version()
   args = parse_arguments()
+  output_dir = args.output
 
   with utils.TempDir() as temp_dir:
 
+    if not output_dir:
+      output_dir = temp_dir
+
     if args.tool in ['dx', 'goyt', 'goyt-release']:
-      tool_args = ['--dex', '--output=' + temp_dir, '--multi-dex',
+      tool_args = ['--dex', '--output=' + output_dir, '--multi-dex',
           '--min-sdk-version=' + MIN_SDK_VERSION]
 
     xmx = None
@@ -80,7 +86,7 @@ def Main():
       xmx = '-Xmx1600m'
     else:
       tool_file = D8_JAR
-      tool_args = ['--output', temp_dir, '--min-api', MIN_SDK_VERSION]
+      tool_args = ['--output', output_dir, '--min-api', MIN_SDK_VERSION]
       if args.tool == 'd8-release':
         tool_args.append('--release')
       xmx = '-Xmx600m'
@@ -89,7 +95,7 @@ def Main():
 
     track_memory_file = None
     if args.print_memoryuse:
-      track_memory_file = os.path.join(temp_dir, utils.MEMORY_USE_TMP_FILE)
+      track_memory_file = os.path.join(output_dir, utils.MEMORY_USE_TMP_FILE)
       cmd.extend(['tools/track_memory.sh', track_memory_file])
 
     if tool_file.endswith('.jar'):
@@ -108,7 +114,7 @@ def Main():
       print('{}-Total(MemoryUse): {}'
           .format(args.name, utils.grep_memoryuse(track_memory_file)))
 
-    dex_files = [f for f in glob(os.path.join(temp_dir, '*.dex'))]
+    dex_files = [f for f in glob(os.path.join(output_dir, '*.dex'))]
     code_size = 0
     for dex_file in dex_files:
       code_size += os.path.getsize(dex_file)
