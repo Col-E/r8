@@ -479,6 +479,9 @@ public class CodeRewriter {
     Int2ReferenceSortedMap<BasicBlock> keyToTarget = theSwitch.getKeyToTargetMap();
     Set<Value> originalDebugValues = ImmutableSet.copyOf(theSwitch.getDebugValues());
 
+    // Keep track of the current fallthrough, starting with the original.
+    BasicBlock fallthroughBlock = theSwitch.fallthroughBlock();
+
     // Split the switch instruction into its own block and remove it.
     iterator.previous();
     BasicBlock originalSwitchBlock = iterator.split(code, blocksIterator);
@@ -494,9 +497,6 @@ public class CodeRewriter {
     // Collect the new blocks for adding to the block list.
     int nextBlockNumber = code.getHighestBlockNumber() + 1;
     LinkedList<BasicBlock> newBlocks = new LinkedList<>();
-
-    // Keep track of the current fallthrough, starting with the original.
-    BasicBlock fallthroughBlock = theSwitch.fallthroughBlock();
 
     // Build the switch-blocks backwards, to always have the fallthrough block in hand.
     for (int i = switches.size() - 1; i >= 0; i--) {
