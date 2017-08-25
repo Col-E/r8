@@ -36,11 +36,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipException;
-import java.util.zip.ZipInputStream;
+import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
@@ -529,16 +529,16 @@ public class CompatDx {
         // For each input archive file, add all class files within.
         for (Path input : inputs) {
           if (isArchive(input)) {
-            try (ZipInputStream in = new ZipInputStream(Files.newInputStream(input))) {
-              ZipEntry entry;
-              while ((entry = in.getNextEntry()) != null) {
+            try (ZipFile zipFile = new ZipFile(input.toFile())) {
+              final Enumeration<? extends ZipEntry> entries = zipFile.entries();
+              while (entries.hasMoreElements()) {
+                ZipEntry entry = entries.nextElement();
                 if (isClassFile(Paths.get(entry.getName()))) {
-                  addEntry(entry.getName(), in, out);
+                  try (InputStream entryStream = zipFile.getInputStream(entry)) {
+                    addEntry(entry.getName(), entryStream, out);
+                  }
                 }
               }
-            } catch (ZipException e) {
-              throw new CompilationError(
-                  "Zip error while reading '" + input + "': " + e.getMessage(), e);
             }
           }
         }
