@@ -10,17 +10,18 @@ import static com.android.tools.r8.utils.FileUtils.isDexFile;
 import com.android.tools.r8.Resource;
 import com.android.tools.r8.errors.CompilationError;
 import com.google.common.io.ByteStreams;
-import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
-import java.util.zip.ZipInputStream;
+import java.util.zip.ZipFile;
 
 class ProgramFileArchiveReader {
 
@@ -38,21 +39,24 @@ class ProgramFileArchiveReader {
     assert isArchive(archive);
     dexResources = new ArrayList<>();
     classResources = new ArrayList<>();
-    try (ZipInputStream stream = new ZipInputStream(new FileInputStream(archive.toFile()))) {
-      ZipEntry entry;
-      while ((entry = stream.getNextEntry()) != null) {
-        Path name = Paths.get(entry.getName());
-        if (isDexFile(name)) {
-          if (!ignoreDexInArchive) {
-            Resource resource =
-                new OneShotByteResource(Resource.Kind.DEX, ByteStreams.toByteArray(stream), null);
-            dexResources.add(resource);
+    try (ZipFile zipFile = new ZipFile(archive.toFile())) {
+      final Enumeration<? extends ZipEntry> entries = zipFile.entries();
+      while (entries.hasMoreElements()) {
+        ZipEntry entry = entries.nextElement();
+        try (InputStream stream = zipFile.getInputStream(entry)) {
+          Path name = Paths.get(entry.getName());
+          if (isDexFile(name)) {
+            if (!ignoreDexInArchive) {
+              Resource resource =
+                  new OneShotByteResource(Resource.Kind.DEX, ByteStreams.toByteArray(stream), null);
+              dexResources.add(resource);
+            }
+          } else if (isClassFile(name)) {
+            String descriptor = PreloadedClassFileProvider.guessTypeDescriptor(name);
+            Resource resource = new OneShotByteResource(Resource.Kind.CLASSFILE,
+                ByteStreams.toByteArray(stream), Collections.singleton(descriptor));
+            classResources.add(resource);
           }
-        } else if (isClassFile(name)) {
-          String descriptor = PreloadedClassFileProvider.guessTypeDescriptor(name);
-          Resource resource = new OneShotByteResource(Resource.Kind.CLASSFILE,
-              ByteStreams.toByteArray(stream), Collections.singleton(descriptor));
-          classResources.add(resource);
         }
       }
     } catch (ZipException e) {

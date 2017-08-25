@@ -13,15 +13,15 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.DexInspector;
 import com.google.common.collect.ImmutableList;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
+import java.util.zip.ZipFile;
 import org.junit.Test;
 
 public class IncludeDescriptorClassesTest extends TestBase {
@@ -51,14 +51,14 @@ public class IncludeDescriptorClassesTest extends TestBase {
 
   private Set<String> readJarClasses(Path jar) throws IOException {
     Set<String> result = new HashSet<>();
-    try (ZipInputStream in = new ZipInputStream(new FileInputStream(jar.toFile()))) {
-      ZipEntry entry = in.getNextEntry();
-      while (entry != null) {
+    try (ZipFile zipFile = new ZipFile(jar.toFile())) {
+      final Enumeration<? extends ZipEntry> entries = zipFile.entries();
+      while (entries.hasMoreElements()) {
+        ZipEntry entry = entries.nextElement();
         String name = entry.getName();
         if (name.endsWith(".class")) {
           result.add(name.substring(0, name.length() - ".class".length()).replace('/', '.'));
         }
-        entry = in.getNextEntry();
       }
     }
     return result;

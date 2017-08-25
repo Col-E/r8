@@ -16,15 +16,16 @@ import com.google.common.io.ByteStreams;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipException;
-import java.util.zip.ZipInputStream;
+import java.util.zip.ZipFile;
 
 /** Lazy Java class file resource provider based on preloaded/prebuilt context. */
 public final class PreloadedClassFileProvider implements ClassFileResourceProvider {
@@ -52,17 +53,17 @@ public final class PreloadedClassFileProvider implements ClassFileResourceProvid
   public static ClassFileResourceProvider fromArchive(Path archive) throws IOException {
     assert isArchive(archive);
     Builder builder = builder();
-    try (ZipInputStream stream = new ZipInputStream(new FileInputStream(archive.toFile()))) {
-      ZipEntry entry;
-      while ((entry = stream.getNextEntry()) != null) {
+    try (ZipFile zipFile = new ZipFile(archive.toFile())) {
+      final Enumeration<? extends ZipEntry> entries = zipFile.entries();
+      while (entries.hasMoreElements()) {
+        ZipEntry entry = entries.nextElement();
         String name = entry.getName();
         if (isClassFile(Paths.get(name))) {
-          builder.addResource(guessTypeDescriptor(name), ByteStreams.toByteArray(stream));
+          try (InputStream entryStream = zipFile.getInputStream(entry)) {
+            builder.addResource(guessTypeDescriptor(name), ByteStreams.toByteArray(entryStream));
+          }
         }
       }
-    } catch (ZipException e) {
-      throw new CompilationError(
-          "Zip error while reading '" + archive + "': " + e.getMessage(), e);
     }
 
     return builder.build();

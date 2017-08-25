@@ -6,27 +6,31 @@ package com.android.tools.r8.utils;
 import com.android.tools.r8.errors.CompilationError;
 import com.google.common.io.ByteStreams;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
+import java.util.zip.ZipFile;
 
 public class ZipUtils {
 
   public interface OnEntryHandler {
-    void onEntry(ZipEntry entry, ZipInputStream input) throws IOException;
+    void onEntry(ZipEntry entry, InputStream input) throws IOException;
   }
 
-  public static void iter(String zipFile, OnEntryHandler handler) throws IOException {
-    try (ZipInputStream input = new ZipInputStream(new FileInputStream(zipFile))){
-      ZipEntry entry;
-      while ((entry = input.getNextEntry()) != null) {
-        handler.onEntry(entry, input);
+  public static void iter(String zipFileStr, OnEntryHandler handler) throws IOException {
+    try (ZipFile zipFile = new ZipFile(zipFileStr)) {
+      final Enumeration<? extends ZipEntry> entries = zipFile.entries();
+      while (entries.hasMoreElements()) {
+        ZipEntry entry = entries.nextElement();
+        try (InputStream entryStream = zipFile.getInputStream(entry)) {
+          handler.onEntry(entry, entryStream);
+        }
       }
     }
   }
