@@ -973,7 +973,7 @@ public abstract class DebugTestBase {
             .filter(m -> methodSignature.equals(m.methodSignature)).collect(
                 Collectors.toList());
       }
-      Assert.assertFalse("No method found", methodInfos.isEmpty());
+      Assert.assertFalse("No method named " + methodName + " found", methodInfos.isEmpty());
       // There must be only one matching method
       Assert.assertEquals("More than 1 method found: please specify a signature", 1,
           methodInfos.size());

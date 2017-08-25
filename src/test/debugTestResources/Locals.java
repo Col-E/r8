@@ -244,6 +244,24 @@ public class Locals {
     return sum + x + y;
   }
 
+  public static int argumentLiveAtReturn(int x) {
+    switch (x) {
+      case 0:
+        return 0;
+      case 1:
+        return 0;
+      case 2:
+        return 0;
+      case 100:
+        return 1;
+      case 101:
+        return 1;
+      case 102:
+        return 1;
+    }
+    return -1;
+  }
+
   public static void main(String[] args) {
     noLocals();
     unusedLocals();
@@ -259,5 +277,6 @@ public class Locals {
     stepNonEmptyForLoopBody(3);
     tempInCase(42);
     localSwap(1, 2);
+    argumentLiveAtReturn(-1);
   }
 }

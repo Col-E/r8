@@ -336,4 +336,105 @@ public class DebugLocalTests extends JasminTestBase {
     info.checkLineHasExactLocals(8, "param", "int", "x", "int");
     info.checkLineHasExactLocals(9, "param", "int");
   }
+
+  @Test
+  public void argumentLiveAtReturn() throws Exception {
+    JasminBuilder builder = new JasminBuilder();
+    JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
+
+    /*
+     This is the original Java source code.
+
+     public static int argumentLiveAtReturn(int x) {  // Line 1
+       switch (x) {
+         case 0:
+           return 0;
+         case 1:
+           return 0;
+         case 2:
+           return 0;
+         case 100:
+           return 1;
+         case 101:
+           return 1;
+         case 102:
+           return 1;
+       }
+       return -1;
+     }
+   */
+    MethodSignature foo = clazz.addStaticMethod("argumentLiveAtReturn", ImmutableList.of("I"), "I",
+        ".limit stack 2",
+        ".limit locals 1",
+        ".var 0 is x I from L0 to L8",
+        "L0:",
+        ".line 2",
+        "  iload 0",
+        "lookupswitch",
+        "  0: L1",
+        "  1: L2",
+        "  2: L3",
+        "  100: L4",
+        "  101: L5",
+        "  102: L6",
+        "  default: L7",
+        "L1:",
+        ".line 4",
+        "  iconst_0",
+        "  ireturn",
+        "L2:",
+        ".line 6",
+        "  iconst_0",
+        "  ireturn",
+        "L3:",
+        ".line 8",
+        "  iconst_0",
+        "  ireturn",
+        "L4:",
+        ".line 10",
+        "  iconst_1",
+        "  ireturn",
+        "L5:",
+        ".line 12",
+        "  iconst_1",
+        "  ireturn",
+        "L6:",
+        ".line 14",
+        "  iconst_1",
+        "  ireturn",
+        "L7:",
+        ".line 16",
+        "  iconst_m1",
+        "  ireturn",
+        "L8:"
+    );
+
+    clazz.addMainMethod(
+        ".limit stack 2",
+        ".limit locals 1",
+        "  getstatic java/lang/System/out Ljava/io/PrintStream;",
+        "  ldc -1",
+        "  invokestatic Test/argumentLiveAtReturn(I)I",
+        "  invokevirtual java/io/PrintStream/print(I)V",
+        "  return");
+
+    String expected = "-1";
+    String javaResult = runOnJava(builder, clazz.name);
+    assertEquals(expected, javaResult);
+
+    AndroidApp jasminApp = builder.build();
+    AndroidApp d8App = ToolHelper.runD8(jasminApp);
+    String artResult = runOnArt(d8App, clazz.name);
+    assertEquals(expected, artResult);
+    DebugInfoInspector info = new DebugInfoInspector(d8App, clazz.name, foo);
+    info.checkStartLine(2);
+    info.checkLineHasExactLocals(2, "x", "int");
+    info.checkLineHasExactLocals(4, "x", "int");
+    info.checkLineHasExactLocals(6, "x", "int");
+    info.checkLineHasExactLocals(8, "x", "int");
+    info.checkLineHasExactLocals(10, "x", "int");
+    info.checkLineHasExactLocals(12, "x", "int");
+    info.checkLineHasExactLocals(14, "x", "int");
+    info.checkLineHasExactLocals(16, "x", "int");
+  }
 }
