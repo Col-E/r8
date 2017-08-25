@@ -886,100 +886,6 @@ public abstract class DebugTestBase {
       setState(State.WaitForEvent);
     }
 
-    private boolean installBreakpoint(BreakpointInfo breakpointInfo) {
-      String classSignature = getClassSignature(breakpointInfo.className);
-      byte typeTag = TypeTag.CLASS;
-      long classId = getMirror().getClassID(classSignature);
-      if (classId == -1) {
-        // Is it an interface ?
-        classId = getMirror().getInterfaceID(classSignature);
-        typeTag = TypeTag.INTERFACE;
-      }
-      if (classId == -1) {
-        // The class is not ready yet. Request a CLASS_PREPARE to delay the installation of the
-        // breakpoint.
-        ReplyPacket replyPacket = getMirror().setClassPrepared(breakpointInfo.className);
-        int classPrepareRequestId = replyPacket.getNextValueAsInt();
-        assertAllDataRead(replyPacket);
-        events.put(Integer.valueOf(classPrepareRequestId),
-            new ClassPrepareHandler(breakpointInfo, classPrepareRequestId));
-        return false;
-      } else {
-        // Find the method.
-        long breakpointMethodId = findMethod(classId, breakpointInfo.methodName,
-            breakpointInfo.methodSignature);
-        long index = getMethodFirstCodeIndex(classId, breakpointMethodId);
-        Assert.assertTrue("No code in method", index >= 0);
-        // Install the breakpoint.
-        ReplyPacket replyPacket = getMirror()
-            .setBreakpoint(new Location(typeTag, classId, breakpointMethodId, index),
-                SuspendPolicy.ALL);
-        checkReplyPacket(replyPacket, "Breakpoint");
-        int breakpointId = replyPacket.getNextValueAsInt();
-        // Nothing to do on breakpoint
-        events.put(Integer.valueOf(breakpointId), new DefaultEventHandler());
-        return true;
-      }
-    }
-
-    private long findMethod(long classId, String methodName, String methodSignature) {
-      class MethodInfo {
-
-        final long methodId;
-        final String methodName;
-        final String methodSignature;
-
-        MethodInfo(long methodId, String methodName, String methodSignature) {
-          this.methodId = methodId;
-          this.methodName = methodName;
-          this.methodSignature = methodSignature;
-        }
-      }
-
-      boolean withGenericSignature = true;
-      CommandPacket commandPacket = new CommandPacket(ReferenceTypeCommandSet.CommandSetID,
-          ReferenceTypeCommandSet.MethodsWithGenericCommand);
-      commandPacket.setNextValueAsReferenceTypeID(classId);
-      ReplyPacket replyPacket = getMirror().performCommand(commandPacket);
-      if (replyPacket.getErrorCode() != Error.NONE) {
-        // Retry with older command ReferenceType.Methods
-        withGenericSignature = false;
-        commandPacket.setCommand(ReferenceTypeCommandSet.MethodsCommand);
-        replyPacket = getMirror().performCommand(commandPacket);
-        assert replyPacket.getErrorCode() == Error.NONE;
-      }
-
-      int methodsCount = replyPacket.getNextValueAsInt();
-      List<MethodInfo> methodInfos = new ArrayList<>(methodsCount);
-      for (int i = 0; i < methodsCount; ++i) {
-        long currentMethodId = replyPacket.getNextValueAsMethodID();
-        String currentMethodName = replyPacket.getNextValueAsString();
-        String currentMethodSignature = replyPacket.getNextValueAsString();
-        if (withGenericSignature) {
-          replyPacket.getNextValueAsString(); // skip generic signature
-        }
-        replyPacket.getNextValueAsInt(); // skip modifiers
-        methodInfos
-            .add(new MethodInfo(currentMethodId, currentMethodName, currentMethodSignature));
-      }
-      Assert.assertTrue(replyPacket.isAllDataRead());
-
-      // Only keep methods with the expected name.
-      methodInfos = methodInfos.stream()
-          .filter(m -> m.methodName.equals(methodName)).collect(
-              Collectors.toList());
-      if (methodSignature != null) {
-        methodInfos = methodInfos.stream()
-            .filter(m -> methodSignature.equals(m.methodSignature)).collect(
-                Collectors.toList());
-      }
-      Assert.assertFalse("No method named " + methodName + " found", methodInfos.isEmpty());
-      // There must be only one matching method
-      Assert.assertEquals("More than 1 method found: please specify a signature", 1,
-          methodInfos.size());
-      return methodInfos.get(0).methodId;
-    }
-
     private long getMethodFirstCodeIndex(long classId, long breakpointMethodId) {
       ReplyPacket replyPacket = getMirror().getLineTable(classId, breakpointMethodId);
       checkReplyPacket(replyPacket, "Failed to get method line table");
@@ -1019,6 +925,7 @@ public abstract class DebugTestBase {
         private final String className;
         private final String methodName;
         private final String methodSignature;
+        private boolean requestedClassPrepare = false;
 
         public BreakpointCommand(String className, String methodName,
             String methodSignature) {
@@ -1031,7 +938,90 @@ public abstract class DebugTestBase {
 
         @Override
         public void perform(JUnit3Wrapper testBase) {
-          testBase.installBreakpoint(new BreakpointInfo(className, methodName, methodSignature));
+          VmMirror mirror = testBase.getMirror();
+          String classSignature = getClassSignature(className);
+          byte typeTag = TypeTag.CLASS;
+          long classId = mirror.getClassID(classSignature);
+          if (classId == -1) {
+            // Is it an interface ?
+            classId = mirror.getInterfaceID(classSignature);
+            typeTag = TypeTag.INTERFACE;
+          }
+          if (classId == -1) {
+            // The class is not ready yet. Request a CLASS_PREPARE to delay the installation of the
+            // breakpoint.
+            assert requestedClassPrepare == false : "Already requested class prepare";
+            requestedClassPrepare = true;
+            ReplyPacket replyPacket = mirror.setClassPrepared(className);
+            final int classPrepareRequestId = replyPacket.getNextValueAsInt();
+            testBase.events.put(Integer.valueOf(classPrepareRequestId), wrapper -> {
+              // Remove the CLASS_PREPARE
+              wrapper.events.remove(Integer.valueOf(classPrepareRequestId));
+              wrapper.getMirror().clearEvent(JDWPConstants.EventKind.CLASS_PREPARE,
+                  classPrepareRequestId);
+
+              // Breakpoint then resume. Note: we add them at the beginning of the queue (to be the
+              // next commands to be processed), thus they need to be pushed in reverse order.
+              wrapper.commandsQueue.addFirst(new JUnit3Wrapper.Command.RunCommand());
+              wrapper.commandsQueue.addFirst(BreakpointCommand.this);
+
+              // Set wrapper ready to process next command.
+              wrapper.setState(State.ProcessCommand);
+            });
+          } else {
+            // The class is available: lookup the method then set the breakpoint.
+            long breakpointMethodId = findMethod(mirror, classId, methodName, methodSignature);
+            long index = testBase.getMethodFirstCodeIndex(classId, breakpointMethodId);
+            Assert.assertTrue("No code in method", index >= 0);
+            ReplyPacket replyPacket = testBase.getMirror().setBreakpoint(
+                new Location(typeTag, classId, breakpointMethodId, index), SuspendPolicy.ALL);
+            assert replyPacket.getErrorCode() == Error.NONE;
+            int breakpointId = replyPacket.getNextValueAsInt();
+            testBase.events.put(Integer.valueOf(breakpointId), new DefaultEventHandler());
+          }
+        }
+
+        private static long findMethod(VmMirror mirror, long classId, String methodName,
+            String methodSignature) {
+
+          boolean withGenericSignature = true;
+          CommandPacket commandPacket = new CommandPacket(ReferenceTypeCommandSet.CommandSetID,
+              ReferenceTypeCommandSet.MethodsWithGenericCommand);
+          commandPacket.setNextValueAsReferenceTypeID(classId);
+          ReplyPacket replyPacket = mirror.performCommand(commandPacket);
+          if (replyPacket.getErrorCode() != Error.NONE) {
+            // Retry with older command ReferenceType.Methods
+            withGenericSignature = false;
+            commandPacket.setCommand(ReferenceTypeCommandSet.MethodsCommand);
+            replyPacket = mirror.performCommand(commandPacket);
+            assert replyPacket.getErrorCode() == Error.NONE;
+          }
+
+          int methodsCount = replyPacket.getNextValueAsInt();
+          List<Long> matchingMethodIds = new ArrayList<>();
+          for (int i = 0; i < methodsCount; ++i) {
+            long currentMethodId = replyPacket.getNextValueAsMethodID();
+            String currentMethodName = replyPacket.getNextValueAsString();
+            String currentMethodSignature = replyPacket.getNextValueAsString();
+            if (withGenericSignature) {
+              replyPacket.getNextValueAsString(); // skip generic signature
+            }
+            replyPacket.getNextValueAsInt(); // skip modifiers
+
+            // Filter methods based on name (and signature if there is).
+            if (methodName.equals(currentMethodName)) {
+              if (methodSignature == null || methodSignature.equals(currentMethodSignature)) {
+                matchingMethodIds.add(Long.valueOf(currentMethodId));
+              }
+            }
+          }
+          Assert.assertTrue(replyPacket.isAllDataRead());
+
+          Assert.assertFalse("No method named " + methodName + " found", matchingMethodIds.isEmpty());
+          // There must be only one matching method
+          Assert.assertEquals("More than 1 method found: please specify a signature", 1,
+              matchingMethodIds.size());
+          return matchingMethodIds.get(0);
         }
 
         @Override
@@ -1178,47 +1168,6 @@ public abstract class DebugTestBase {
       }
     }
 
-    private static class BreakpointInfo {
-
-      private final String className;
-      private final String methodName;
-      private final String methodSignature;
-
-      private BreakpointInfo(String className, String methodName, String methodSignature) {
-        this.className = className;
-        this.methodName = methodName;
-        this.methodSignature = methodSignature;
-      }
-    }
-
-    /**
-     * CLASS_PREPARE signals us that we can install a breakpoint
-     */
-    private static class ClassPrepareHandler implements EventHandler {
-
-      private final BreakpointInfo breakpointInfo;
-      private final int classPrepareRequestId;
-
-      private ClassPrepareHandler(BreakpointInfo breakpointInfo, int classPrepareRequestId) {
-        this.breakpointInfo = breakpointInfo;
-        this.classPrepareRequestId = classPrepareRequestId;
-      }
-
-      @Override
-      public void handle(JUnit3Wrapper testBase) {
-        // Remove the CLASS_PREPARE
-        testBase.events.remove(Integer.valueOf(classPrepareRequestId));
-        testBase.getMirror().clearEvent(JDWPConstants.EventKind.CLASS_PREPARE,
-            classPrepareRequestId);
-
-        // Install breakpoint now.
-        boolean success = testBase.installBreakpoint(breakpointInfo);
-        Assert.assertTrue("Failed to insert breakpoint after class has been prepared", success);
-
-        // Resume now
-        testBase.resume();
-      }
-    }
   }
 
   //
