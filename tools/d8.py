@@ -9,7 +9,8 @@ import subprocess
 import sys
 import utils
 
-def run(args, build = True, debug = True, profile = False, track_memory_file=None):
+def run(args, build = True, debug = True, profile = False,
+        track_memory_file=None):
   if build:
     gradle.RunGradle(['D8'])
   cmd = []
@@ -23,7 +24,9 @@ def run(args, build = True, debug = True, profile = False, track_memory_file=Non
   cmd.extend(['-jar', utils.D8_JAR])
   cmd.extend(args)
   utils.PrintCmd(cmd)
-  return subprocess.check_output(cmd)
+  result = subprocess.check_output(cmd)
+  print(result)
+  return result
 
 def main():
   build = True
