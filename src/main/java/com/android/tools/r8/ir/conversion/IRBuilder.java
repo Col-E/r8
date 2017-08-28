@@ -724,7 +724,7 @@ public class IRBuilder {
   }
 
   public void addNullConst(int dest, long value) {
-    canonicalizeAndAddConst(ConstType.INT, dest, value, nullConstants);
+    canonicalizeAndAddConst(ConstType.OBJECT, dest, value, nullConstants);
   }
 
   public void addConstClass(int dest, DexType type) {

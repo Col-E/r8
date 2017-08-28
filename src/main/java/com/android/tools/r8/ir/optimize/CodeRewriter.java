@@ -87,6 +87,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -1122,7 +1123,7 @@ public class CodeRewriter {
         if (current.isInvoke() && current.asInvoke().requiredArgumentRegisters() > 5) {
           Invoke invoke = current.asInvoke();
           it.previous();
-          Map<ConstNumber, ConstNumber> oldToNew = new HashMap<>();
+          Map<ConstNumber, ConstNumber> oldToNew = new IdentityHashMap<>();
           for (int i = 0; i < invoke.inValues().size(); i++) {
             Value value = invoke.inValues().get(i);
             if (value.isConstNumber() && value.numberOfUsers() > 1) {

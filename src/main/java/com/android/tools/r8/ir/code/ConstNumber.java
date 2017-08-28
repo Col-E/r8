@@ -26,7 +26,6 @@ public class ConstNumber extends ConstInstruction {
     // are all for fixed register values. All other values that are used as the destination for
     // const number instructions should be marked as constants.
     assert dest.isFixedRegisterValue() || dest.definition.isConstNumber();
-    assert type != ConstType.OBJECT;
     this.type = type;
     this.value = value;
   }
@@ -50,7 +49,7 @@ public class ConstNumber extends ConstInstruction {
   }
 
   public int getIntValue() {
-    assert type == ConstType.INT || type == ConstType.INT_OR_FLOAT;
+    assert type == ConstType.INT || type == ConstType.INT_OR_FLOAT || type == ConstType.OBJECT;
     return (int) value;
   }
 
@@ -101,7 +100,7 @@ public class ConstNumber extends ConstInstruction {
     }
 
     int register = builder.allocatedRegister(dest(), getNumber());
-    if (MoveType.fromConstType(type) == MoveType.SINGLE) {
+    if (MoveType.fromConstType(type) == MoveType.SINGLE || type == ConstType.OBJECT) {
       assert NumberUtils.is32Bit(value);
       if ((register & 0xf) == register && NumberUtils.is4Bit(value)) {
         builder.add(this, new Const4(register, (int) value));
