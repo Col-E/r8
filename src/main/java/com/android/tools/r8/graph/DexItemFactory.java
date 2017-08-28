@@ -162,7 +162,7 @@ public class DexItemFactory {
       "Ldalvik/annotation/SourceDebugExtension;");
   public final DexType annotationThrows = createType("Ldalvik/annotation/Throws;");
 
-  public void clearSubtypeInformation() {
+  public synchronized void clearSubtypeInformation() {
     types.values().forEach(DexType::clearSubtypeInformation);
   }
 
