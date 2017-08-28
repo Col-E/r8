@@ -118,18 +118,21 @@ public abstract class GraphLense {
     @Override
     public DexType lookupType(DexType type, DexEncodedMethod context) {
       if (type.isArrayType()) {
-        DexType result = arrayTypeCache.get(type);
-        if (result == null) {
-          DexType baseType = type.toBaseType(dexItemFactory);
-          DexType newType = lookupType(baseType, context);
-          if (baseType == newType) {
-            result = type;
-          } else {
-            result = type.replaceBaseType(newType, dexItemFactory);
+        synchronized(this) {
+          // This block need to be synchronized due to arrayTypeCache.
+          DexType result = arrayTypeCache.get(type);
+          if (result == null) {
+            DexType baseType = type.toBaseType(dexItemFactory);
+            DexType newType = lookupType(baseType, context);
+            if (baseType == newType) {
+              result = type;
+            } else {
+              result = type.replaceBaseType(newType, dexItemFactory);
+            }
+            arrayTypeCache.put(type, result);
           }
-          arrayTypeCache.put(type, result);
+          return result;
         }
-        return result;
       }
       DexType previous = previousLense.lookupType(type, context);
       return typeMap.getOrDefault(previous, previous);
