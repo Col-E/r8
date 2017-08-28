@@ -151,6 +151,10 @@ public abstract class DexValue extends DexItem {
       return value == DEFAULT.value ? DEFAULT : new DexValueByte(value);
     }
 
+    public byte getValue() {
+      return value;
+    }
+
     @Override
     public void writeTo(DexOutputBuffer dest, ObjectToOffsetMapping mapping) {
       writeHeader(VALUE_BYTE, 0, dest);
@@ -196,6 +200,10 @@ public abstract class DexValue extends DexItem {
       return value == DEFAULT.value ? DEFAULT : new DexValueShort(value);
     }
 
+    public short getValue() {
+      return value;
+    }
+
     @Override
     public void writeTo(DexOutputBuffer dest, ObjectToOffsetMapping mapping) {
       writeIntegerTo(VALUE_SHORT, value, Short.BYTES, dest);
@@ -238,6 +246,10 @@ public abstract class DexValue extends DexItem {
 
     public static DexValueChar create(char value) {
       return value == DEFAULT.value ? DEFAULT : new DexValueChar(value);
+    }
+
+    public char getValue() {
+      return value;
     }
 
     @Override
@@ -288,6 +300,10 @@ public abstract class DexValue extends DexItem {
       return value == DEFAULT.value ? DEFAULT : new DexValueInt(value);
     }
 
+    public int getValue() {
+      return value;
+    }
+
     @Override
     public void writeTo(DexOutputBuffer dest, ObjectToOffsetMapping mapping) {
       writeIntegerTo(VALUE_INT, value, Integer.BYTES, dest);
@@ -330,6 +346,10 @@ public abstract class DexValue extends DexItem {
 
     public static DexValueLong create(long value) {
       return value == DEFAULT.value ? DEFAULT : new DexValueLong(value);
+    }
+
+    public long getValue() {
+      return value;
     }
 
     @Override
@@ -376,6 +396,10 @@ public abstract class DexValue extends DexItem {
       return Float.compare(value, DEFAULT.value) == 0 ? DEFAULT : new DexValueFloat(value);
     }
 
+    public float getValue() {
+      return value;
+    }
+
     @Override
     public void writeTo(DexOutputBuffer dest, ObjectToOffsetMapping mapping) {
       dest.forward(1);
@@ -418,6 +442,10 @@ public abstract class DexValue extends DexItem {
 
     public static DexValueDouble create(double value) {
       return Double.compare(value, DEFAULT.value) == 0 ? DEFAULT : new DexValueDouble(value);
+    }
+
+    public double getValue() {
+      return value;
     }
 
     @Override
@@ -506,6 +534,10 @@ public abstract class DexValue extends DexItem {
 
     public DexValueString(DexString value) {
       super(value);
+    }
+
+    public DexString getValue() {
+      return value;
     }
 
     @Override
@@ -710,6 +742,10 @@ public abstract class DexValue extends DexItem {
     private DexValueNull() {
     }
 
+    public Object getValue() {
+      return null;
+    }
+
     @Override
     public void writeTo(DexOutputBuffer dest, ObjectToOffsetMapping mapping) {
       writeHeader(VALUE_NULL, 0, dest);
@@ -749,6 +785,10 @@ public abstract class DexValue extends DexItem {
 
     public static DexValueBoolean create(boolean value) {
       return value ? TRUE : FALSE;
+    }
+
+    public boolean getValue() {
+      return value;
     }
 
     @Override

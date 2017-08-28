@@ -7,7 +7,21 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.code.Instruction;
+import com.android.tools.r8.code.Sput;
+import com.android.tools.r8.code.SputObject;
 import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.graph.DexCode;
+import com.android.tools.r8.graph.DexValue;
+import com.android.tools.r8.graph.DexValue.DexValueBoolean;
+import com.android.tools.r8.graph.DexValue.DexValueByte;
+import com.android.tools.r8.graph.DexValue.DexValueChar;
+import com.android.tools.r8.graph.DexValue.DexValueDouble;
+import com.android.tools.r8.graph.DexValue.DexValueFloat;
+import com.android.tools.r8.graph.DexValue.DexValueInt;
+import com.android.tools.r8.graph.DexValue.DexValueLong;
+import com.android.tools.r8.graph.DexValue.DexValueShort;
+import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.smali.SmaliTestBase;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.MethodSubject;
@@ -81,6 +95,52 @@ public class StaticValuesTest extends SmaliTestBase {
 
     DexInspector inspector = new DexInspector(processedApplication);
     assertFalse(inspector.clazz("Test").clinit().isPresent());
+
+    DexValue value;
+    assertTrue(inspector.clazz("Test").field("boolean", "booleanField").hasStaticValue());
+    value = inspector.clazz("Test").field("boolean", "booleanField").getStaticValue();
+    assertTrue(value instanceof DexValueBoolean);
+    assertEquals(true, ((DexValueBoolean) value).getValue());
+
+    assertTrue(inspector.clazz("Test").field("byte", "byteField").hasStaticValue());
+    value = inspector.clazz("Test").field("byte", "byteField").getStaticValue();
+    assertTrue(value instanceof DexValueByte);
+    assertEquals(1, ((DexValueByte) value).getValue());
+
+    assertTrue(inspector.clazz("Test").field("short", "shortField").hasStaticValue());
+    value = inspector.clazz("Test").field("short", "shortField").getStaticValue();
+    assertTrue(value instanceof DexValueShort);
+    assertEquals(2, ((DexValueShort) value).getValue());
+
+    assertTrue(inspector.clazz("Test").field("int", "intField").hasStaticValue());
+    value = inspector.clazz("Test").field("int", "intField").getStaticValue();
+    assertTrue(value instanceof DexValueInt);
+    assertEquals(3, ((DexValueInt) value).getValue());
+
+    assertTrue(inspector.clazz("Test").field("long", "longField").hasStaticValue());
+    value = inspector.clazz("Test").field("long", "longField").getStaticValue();
+    assertTrue(value instanceof DexValueLong);
+    assertEquals(4, ((DexValueLong) value).getValue());
+
+    assertTrue(inspector.clazz("Test").field("float", "floatField").hasStaticValue());
+    value = inspector.clazz("Test").field("float", "floatField").getStaticValue();
+    assertTrue(value instanceof DexValueFloat);
+    assertEquals(5.0f, ((DexValueFloat) value).getValue(), 0.0);
+
+    assertTrue(inspector.clazz("Test").field("double", "doubleField").hasStaticValue());
+    value = inspector.clazz("Test").field("double", "doubleField").getStaticValue();
+    assertTrue(value instanceof DexValueDouble);
+    assertEquals(6.0f, ((DexValueDouble) value).getValue(), 0.0);
+
+    assertTrue(inspector.clazz("Test").field("char", "charField").hasStaticValue());
+    value = inspector.clazz("Test").field("char", "charField").getStaticValue();
+    assertTrue(value instanceof DexValueChar);
+    assertEquals(0x30 + 7, ((DexValueChar) value).getValue());
+
+    assertTrue(inspector.clazz("Test").field("java.lang.String", "stringField").hasStaticValue());
+    value = inspector.clazz("Test").field("java.lang.String", "stringField").getStaticValue();
+    assertTrue(value instanceof DexValueString);
+    assertEquals(("8"), ((DexValueString) value).getValue().toString());
 
     String result = runArt(processedApplication, options);
 
@@ -205,6 +265,150 @@ public class StaticValuesTest extends SmaliTestBase {
     String result = runArt(processedApplication, options);
 
     assertEquals("Value1\nValue2\nValue2\n", result);
+  }
+
+  @Test
+  public void testMultiplePuts() {
+    SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
+
+    builder.addStaticField("intField", "I");
+    builder.addStaticField("stringField", "Ljava/lang/String;");
+
+    builder.addStaticInitializer(
+        1,
+        "const               v0, 0",
+        "sput                v0, LTest;->intField:I",
+        "const-string        v0, \"4\"",
+        "sput-object         v0, LTest;->stringField:Ljava/lang/String;",
+        "const               v0, 1",
+        "sput                v0, LTest;->intField:I",
+        "const-string        v0, \"5\"",
+        "sput-object         v0, LTest;->stringField:Ljava/lang/String;",
+        "const               v0, 2",
+        "sput                v0, LTest;->intField:I",
+        "const-string        v0, \"6\"",
+        "sput-object         v0, LTest;->stringField:Ljava/lang/String;",
+        "const               v0, 3",
+        "sput                v0, LTest;->intField:I",
+        "const-string        v0, \"7\"",
+        "sput-object         v0, LTest;->stringField:Ljava/lang/String;",
+        "return-void"
+    );
+    builder.addMainMethod(
+        2,
+        "sget-object         v0, Ljava/lang/System;->out:Ljava/io/PrintStream;",
+        "sget                v1, LTest;->intField:I",
+        "invoke-virtual      { v0, v1 }, Ljava/io/PrintStream;->println(I)V",
+        "sget-object         v1, LTest;->stringField:Ljava/lang/String;",
+        "invoke-virtual      { v0, v1 }, Ljava/io/PrintStream;->println(Ljava/lang/String;)V",
+        "return-void"
+    );
+
+    InternalOptions options = new InternalOptions();
+    DexApplication originalApplication = buildApplication(builder, options);
+    DexApplication processedApplication = processApplication(originalApplication, options);
+
+    DexInspector inspector = new DexInspector(processedApplication);
+    assertFalse(inspector.clazz("Test").clinit().isPresent());
+
+    DexValue value;
+    assertTrue(inspector.clazz("Test").field("int", "intField").hasStaticValue());
+    value = inspector.clazz("Test").field("int", "intField").getStaticValue();
+    assertTrue(value instanceof DexValueInt);
+    assertEquals(3, ((DexValueInt) value).getValue());
+
+    assertTrue(inspector.clazz("Test").field("java.lang.String", "stringField").hasStaticValue());
+    value = inspector.clazz("Test").field("java.lang.String", "stringField").getStaticValue();
+    assertTrue(value instanceof DexValueString);
+    assertEquals(("7"), ((DexValueString) value).getValue().toString());
+
+    String result = runArt(processedApplication, options);
+
+    assertEquals("3\n7\n", result);
+  }
+
+
+  @Test
+  public void testMultiplePutsWithControlFlow() {
+    SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
+
+    builder.addStaticField("booleanField", "Z");
+    builder.addStaticField("intField", "I");
+    builder.addStaticField("intField2", "I");
+    builder.addStaticField("stringField", "Ljava/lang/String;");
+
+    builder.addStaticInitializer(
+        1,
+        "const               v0, 0",
+        "sput                v0, LTest;->intField:I",
+        "const-string        v0, \"4\"",
+        "sput-object         v0, LTest;->stringField:Ljava/lang/String;",
+        "const               v0, 1",
+        "sput                v0, LTest;->intField:I",
+        "const-string        v0, \"5\"",
+        "sput-object         v0, LTest;->stringField:Ljava/lang/String;",
+        "sget-boolean        v0, LTest;->booleanField:Z",
+        "if-eqz              v0, :label_1",
+        "const               v0, 8",
+        "sput                v0, LTest;->intField2:I",
+        ":label_1",
+        "const               v0, 9",
+        "sput                v0, LTest;->intField2:I",
+        "goto                :label_2",
+        ":label_2",
+        "const               v0, 2",
+        "sput                v0, LTest;->intField:I",
+        "const-string        v0, \"6\"",
+        "sput-object         v0, LTest;->stringField:Ljava/lang/String;",
+        "const               v0, 3",
+        "sput                v0, LTest;->intField:I",
+        "const-string        v0, \"7\"",
+        "sput-object         v0, LTest;->stringField:Ljava/lang/String;",
+        "return-void"
+    );
+    builder.addMainMethod(
+        2,
+        "sget-object         v0, Ljava/lang/System;->out:Ljava/io/PrintStream;",
+        "sget                v1, LTest;->intField:I",
+        "invoke-virtual      { v0, v1 }, Ljava/io/PrintStream;->println(I)V",
+        "sget-object         v1, LTest;->stringField:Ljava/lang/String;",
+        "invoke-virtual      { v0, v1 }, Ljava/io/PrintStream;->println(Ljava/lang/String;)V",
+        "return-void"
+    );
+
+    InternalOptions options = new InternalOptions();
+    DexApplication originalApplication = buildApplication(builder, options);
+    DexApplication processedApplication = processApplication(originalApplication, options);
+
+    DexInspector inspector = new DexInspector(processedApplication);
+    assertTrue(inspector.clazz("Test").clinit().isPresent());
+
+    DexValue value;
+    assertTrue(inspector.clazz("Test").field("int", "intField").hasStaticValue());
+    value = inspector.clazz("Test").field("int", "intField").getStaticValue();
+    assertTrue(value instanceof DexValueInt);
+    assertEquals(3, ((DexValueInt) value).getValue());
+
+    assertTrue(inspector.clazz("Test").field("java.lang.String", "stringField").hasStaticValue());
+    value = inspector.clazz("Test").field("java.lang.String", "stringField").getStaticValue();
+    assertTrue(value instanceof DexValueString);
+    assertEquals(("7"), ((DexValueString) value).getValue().toString());
+
+    DexCode code = inspector.clazz("Test").clinit().getMethod().getCode().asDexCode();
+    for (Instruction instruction : code.instructions) {
+      if (instruction instanceof Sput) {
+        Sput put = (Sput) instruction;
+        // Only int put ot intField2.
+        assertEquals(put.getField().name.toString(), "intField2");
+      } else {
+        // No Object (String) puts.
+        assertFalse(instruction instanceof SputObject);
+      }
+    }
+
+    String result = runArt(processedApplication, options);
+
+    assertEquals("3\n7\n", result);
   }
 
   @Test
