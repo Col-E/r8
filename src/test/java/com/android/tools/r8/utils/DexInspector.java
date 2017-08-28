@@ -56,6 +56,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.ClassNaming;
 import com.android.tools.r8.naming.MemberNaming;
@@ -691,8 +692,11 @@ public class DexInspector {
   }
 
   public abstract class FieldSubject extends MemberSubject {
+    public abstract boolean hasStaticValue();
 
     public abstract DexEncodedField getField();
+
+    public abstract DexValue getStaticValue();
   }
 
   public class AbsentFieldSubject extends FieldSubject {
@@ -729,6 +733,16 @@ public class DexInspector {
 
     @Override
     public Signature getFinalSignature() {
+      return null;
+    }
+
+    @Override
+    public boolean hasStaticValue() {
+      return false;
+    }
+
+    @Override
+    public DexValue getStaticValue() {
       return null;
     }
 
@@ -788,6 +802,16 @@ public class DexInspector {
     @Override
     public FieldSignature getFinalSignature() {
       return MemberNaming.FieldSignature.fromDexField(dexField.field);
+    }
+
+    @Override
+    public boolean hasStaticValue() {
+      return dexField.staticValue != null;
+    }
+
+    @Override
+    public DexValue getStaticValue() {
+      return dexField.staticValue;
     }
 
     @Override

@@ -70,8 +70,10 @@ import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap;
@@ -938,7 +940,8 @@ public class CodeRewriter {
     if (exit == null) {
       return;
     }
-    Map<DexField, StaticPut> puts = Maps.newIdentityHashMap();
+    Set<StaticPut> puts = Sets.newIdentityHashSet();
+    Map<DexField, StaticPut> dominatingPuts = Maps.newIdentityHashMap();
     for (BasicBlock block : dominatorTree.dominatorBlocks(exit)) {
       InstructionListIterator iterator = block.listIterator(block.getInstructions().size());
       while (iterator.hasPrevious()) {
@@ -951,22 +954,27 @@ public class CodeRewriter {
               if ((field.type.isClassType() || field.type.isArrayType())
                   && put.inValue().isZero()) {
                 // Collect put of zero as a potential default value.
-                puts.put(put.getField(), put);
+                dominatingPuts.putIfAbsent(put.getField(), put);
+                puts.add(put);
               } else if (field.type.isPrimitiveType() || field.type == dexItemFactory.stringType) {
                 // Collect put as a potential default value.
-                puts.put(put.getField(), put);
+                dominatingPuts.putIfAbsent(put.getField(), put);
+                puts.add(put);
               }
             } else if (isClassNameConstant(method, put)) {
               // Collect put of class name constant as a potential default value.
-              puts.put(put.getField(), put);
+              dominatingPuts.putIfAbsent(put.getField(), put);
+              puts.add(put);
             }
           }
         }
         if (current.isStaticGet()) {
           // If a static field is read, any collected potential default value cannot be a
           // default value.
-          if (puts.containsKey(current.asStaticGet().getField())) {
-            puts.remove(current.asStaticGet().getField());
+          DexField field = current.asStaticGet().getField();
+          if (dominatingPuts.containsKey(field)) {
+            dominatingPuts.remove(field);
+            Iterables.removeIf(puts, put -> put.getField() == field);
           }
         }
       }
@@ -974,7 +982,7 @@ public class CodeRewriter {
 
     if (!puts.isEmpty()) {
       // Set initial values for static fields from the definitive static put instructions collected.
-      for (StaticPut put : puts.values()) {
+      for (StaticPut put : dominatingPuts.values()) {
         DexField field = put.getField();
         DexEncodedField encodedField = appInfo.definitionFor(field);
         if (field.type == dexItemFactory.stringType) {
@@ -1034,7 +1042,7 @@ public class CodeRewriter {
         InstructionListIterator iterator = block.listIterator();
         while (iterator.hasNext()) {
           Instruction current = iterator.next();
-          if (current.isStaticPut() && puts.values().contains(current.asStaticPut())) {
+          if (current.isStaticPut() && puts.contains(current.asStaticPut())) {
             iterator.remove();
             // Collect, for removal, the instruction that created the value for the static put,
             // if all users are gone. This is done even if these instructions can throw as for
