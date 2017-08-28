@@ -7,6 +7,7 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.StringUtils;
+import java.util.Arrays;
 import org.junit.Test;
 
 public class SynchronizedMethodTestRunner extends DebugInfoTestBase {
@@ -18,7 +19,7 @@ public class SynchronizedMethodTestRunner extends DebugInfoTestBase {
     AndroidApp d8App = compileWithD8(clazz);
     AndroidApp dxApp = getDxCompiledSources();
 
-    String expected = StringUtils.lines("42", "42", "2");
+    String expected = StringUtils.lines("42", "42", "2", "2");
     assertEquals(expected, runOnJava(clazz));
     assertEquals(expected, runOnArt(d8App, clazz.getCanonicalName()));
     assertEquals(expected, runOnArt(dxApp, clazz.getCanonicalName()));
@@ -29,8 +30,13 @@ public class SynchronizedMethodTestRunner extends DebugInfoTestBase {
     checkSyncInstance(inspectMethod(d8App, clazz, "int", "syncInstance", "int"));
     checkSyncInstance(inspectMethod(dxApp, clazz, "int", "syncInstance", "int"));
 
-    checkThrowing(inspectMethod(dxApp, clazz, "int", "throwing", "int"), true);
     checkThrowing(inspectMethod(d8App, clazz, "int", "throwing", "int"), false);
+    checkThrowing(inspectMethod(dxApp, clazz, "int", "throwing", "int"), true);
+
+    checkMonitorExitRegression(
+        inspectMethod(d8App, clazz, "int", "monitorExitRegression", "int"), false);
+    checkMonitorExitRegression(
+        inspectMethod(dxApp, clazz, "int", "monitorExitRegression", "int"), true);
   }
 
   private void checkSyncStatic(DebugInfoInspector info) {
@@ -61,5 +67,15 @@ public class SynchronizedMethodTestRunner extends DebugInfoTestBase {
     info.checkLineHasExactLocals(25, "cond", "int", "x", "int");
     info.checkNoLine(26);
     info.checkLineHasExactLocals(27, "cond", "int", "x", "int");
+  }
+
+  private void checkMonitorExitRegression(DebugInfoInspector info, boolean dx) {
+    info.checkStartLine(31);
+    for (int line : Arrays.asList(32, 34, 36, 38, 40, 42, 44, 48, 50, 52)) {
+      if (dx && line == 40) {
+        continue;
+      }
+      info.checkLineHasExactLocals(line, "cond", "int", "x", "int");
+    }
   }
 }
