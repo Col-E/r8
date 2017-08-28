@@ -2669,8 +2669,10 @@ public class JarSourceCode implements SourceCode {
       case Opcodes.H_PUTSTATIC:
         return MethodHandleType.STATIC_PUT;
       case Opcodes.H_INVOKESPECIAL:
+        assert !handle.getName().equals(Constants.INSTANCE_INITIALIZER_NAME);
+        assert !handle.getName().equals(Constants.CLASS_INITIALIZER_NAME);
         DexType owner = application.getTypeFromName(handle.getOwner());
-        if (owner == clazz || handle.getName().equals(Constants.INSTANCE_INITIALIZER_NAME)) {
+        if (owner == clazz) {
           return MethodHandleType.INVOKE_DIRECT;
         } else {
           return MethodHandleType.INVOKE_SUPER;
