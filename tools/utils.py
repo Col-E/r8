@@ -19,6 +19,8 @@ DEX_SEGMENTS_JAR = os.path.join(REPO_ROOT, 'build', 'libs',
     'dexsegments.jar')
 DEX_SEGMENTS_RESULT_PATTERN = re.compile('- ([^:]+): ([0-9]+)')
 COMPATDX_JAR = os.path.join(REPO_ROOT, 'build', 'libs', 'compatdx.jar')
+D8_JAR = os.path.join(REPO_ROOT, 'build', 'libs', 'd8.jar')
+R8_JAR = os.path.join(REPO_ROOT, 'build', 'libs', 'r8.jar')
 
 def PrintCmd(s):
   if type(s) is list:
@@ -55,10 +57,15 @@ def makedirs_if_needed(path):
     if not os.path.isdir(path):
         raise
 
-def upload_html_to_cloud_storage(directory, destination):
+def upload_dir_to_cloud_storage(directory, destination):
   # Upload and make the content encoding right for viewing directly
   cmd = ['gsutil.py', 'cp', '-z', 'html', '-a',
          'public-read', '-R', directory, destination]
+  PrintCmd(cmd)
+  subprocess.check_call(cmd)
+
+def upload_file_to_cloud_storage(source, destination):
+  cmd = ['gsutil.py', 'cp', '-a', 'public-read', source, destination]
   PrintCmd(cmd)
   subprocess.check_call(cmd)
 

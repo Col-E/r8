@@ -39,7 +39,6 @@ AOSP_MANIFEST_XML = join(utils.REPO_ROOT, 'third_party',
   'aosp_manifest.xml')
 AOSP_HELPER_SH = join(utils.REPO_ROOT, 'scripts', 'aosp_helper.sh')
 
-D8_JAR = join(utils.REPO_ROOT, 'build/libs/d8.jar')
 D8LOGGER_JAR = join(utils.REPO_ROOT, 'build/libs/d8logger.jar')
 
 AOSP_ROOT = join(utils.REPO_ROOT, 'build/aosp')
@@ -133,7 +132,7 @@ def setup_and_clean(tool_is_d8, clean_dex):
   counter = 0
   if tool_is_d8 or clean_dex:
     if not clean_dex:
-      d8jar_mtime = os.path.getmtime(D8_JAR)
+      d8jar_mtime = os.path.getmtime(utils.D8_JAR)
     dex_files = (chain.from_iterable(glob(join(x[0], '*.dex'))
       for x in os.walk(OUT_IMG)))
     for f in dex_files:

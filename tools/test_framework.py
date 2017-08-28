@@ -30,7 +30,6 @@ import utils
 
 DX_JAR = os.path.join(utils.REPO_ROOT, 'tools', 'linux', 'dx', 'framework',
     'dx.jar')
-D8_JAR = os.path.join(utils.REPO_ROOT, 'build', 'libs', 'd8.jar')
 GOYT_EXE = os.path.join('third_party', 'goyt',
     'goyt_164843480')
 FRAMEWORK_JAR = os.path.join('third_party', 'framework',
@@ -85,7 +84,7 @@ def Main():
       tool_file = DX_JAR
       xmx = '-Xmx1600m'
     else:
-      tool_file = D8_JAR
+      tool_file = utils.D8_JAR
       tool_args = ['--output', output_dir, '--min-api', MIN_SDK_VERSION]
       if args.tool == 'd8-release':
         tool_args.append('--release')

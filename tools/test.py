@@ -76,7 +76,7 @@ def archive_failures():
   upload_dir = os.path.join(utils.REPO_ROOT, 'build', 'reports', 'tests')
   u_dir = uuid.uuid4()
   destination = 'gs://%s/%s' % (BUCKET, u_dir)
-  utils.upload_html_to_cloud_storage(upload_dir, destination)
+  utils.upload_dir_to_cloud_storage(upload_dir, destination)
   url = 'http://storage.googleapis.com/%s/%s/test/index.html' % (BUCKET, u_dir)
   print 'Test results available at: %s' % url
   print '@@@STEP_LINK@Test failures@%s@@@' % url

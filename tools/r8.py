@@ -9,8 +9,6 @@ import subprocess
 import sys
 import utils
 
-R8_JAR = os.path.join(utils.REPO_ROOT, 'build', 'libs', 'r8.jar')
-
 def run(args, build = True, debug = True, profile = False, track_memory_file=None):
   if build:
     gradle.RunGradle(['r8'])
@@ -22,10 +20,10 @@ def run(args, build = True, debug = True, profile = False, track_memory_file=Non
     cmd.append('-ea')
   if profile:
     cmd.append('-agentlib:hprof=cpu=samples,interval=1,depth=8')
-  cmd.extend(['-jar', R8_JAR])
+  cmd.extend(['-jar', utils.R8_JAR])
   cmd.extend(args)
   utils.PrintCmd(cmd)
-  subprocess.check_call(cmd)
+  return subprocess.check_output(cmd)
 
 def main():
   build = True
