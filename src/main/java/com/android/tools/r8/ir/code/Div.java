@@ -88,7 +88,7 @@ public class Div extends ArithmeticBinop {
 
   @Override
   public boolean canBeFolded() {
-    return super.canBeFolded() && !rightValue().getConstInstruction().asConstNumber().isZero();
+    return super.canBeFolded() && !rightValue().isZero();
   }
 
   @Override

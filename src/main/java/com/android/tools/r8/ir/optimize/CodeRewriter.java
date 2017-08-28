@@ -825,7 +825,7 @@ public class CodeRewriter {
                   assert (invoke.outType() == argument.outType()) ||
                       (invoke.outType() == MoveType.OBJECT
                           && argument.outType() == MoveType.SINGLE
-                          && argument.getConstInstruction().asConstNumber().isZero());
+                          && argument.isZero());
                   invoke.outValue().replaceUsers(argument);
                   invoke.setOutValue(null);
                 }
@@ -948,8 +948,7 @@ public class CodeRewriter {
           if (field.getHolder() == method.method.getHolder()) {
             if (put.inValue().isConstant()) {
               if ((field.type.isClassType() || field.type.isArrayType())
-                  && put.inValue().getConstInstruction().isConstNumber() &&
-                  put.inValue().getConstInstruction().asConstNumber().isZero()) {
+                  && put.inValue().isZero()) {
                 // Collect put of zero as a potential default value.
                 puts.put(put.getField(), put);
               } else if (field.type.isPrimitiveType() || field.type == dexItemFactory.stringType) {
@@ -979,8 +978,8 @@ public class CodeRewriter {
         DexEncodedField encodedField = appInfo.definitionFor(field);
         if (field.type == dexItemFactory.stringType) {
           if (put.inValue().isConstant()) {
-            if (put.inValue().getConstInstruction().isConstNumber()) {
-              assert put.inValue().getConstInstruction().asConstNumber().isZero();
+            if (put.inValue().isConstNumber()) {
+              assert put.inValue().isZero();
               encodedField.staticValue = DexValueNull.NULL;
             } else {
               ConstString cnst = put.inValue().getConstInstruction().asConstString();
@@ -999,8 +998,7 @@ public class CodeRewriter {
             }
           }
         } else if (field.type.isClassType() || field.type.isArrayType()) {
-          if (put.inValue().getConstInstruction().isConstNumber()
-              && put.inValue().getConstInstruction().asConstNumber().isZero()) {
+          if (put.inValue().isZero()) {
             encodedField.staticValue = DexValueNull.NULL;
           } else {
             throw new Unreachable("Unexpected default value for field type " + field.type + ".");

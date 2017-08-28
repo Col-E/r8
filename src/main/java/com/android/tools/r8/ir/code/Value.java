@@ -614,4 +614,10 @@ public class Value {
     }
     return true;
   }
+
+  public boolean isZero() {
+    return isConstant()
+        && getConstInstruction().isConstNumber()
+        && getConstInstruction().asConstNumber().isZero();
+  }
 }

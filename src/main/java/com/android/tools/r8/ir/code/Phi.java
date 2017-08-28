@@ -273,9 +273,9 @@ public class Phi extends Value {
   }
 
   private boolean isSingleConstZero(Value value) {
-    return value.definition != null && value.definition.isConstNumber() &&
-        value.definition.asConstNumber().isZero() &&
-        value.outType() == MoveType.SINGLE;
+    return value.definition != null
+        && value.outType() == MoveType.SINGLE
+        && value.isZero();
   }
 
   private MoveType computeOutType(Set<Phi> active) {
