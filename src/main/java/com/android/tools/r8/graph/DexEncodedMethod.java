@@ -209,6 +209,11 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
     code = null;
   }
 
+  public boolean hasDebugPositions() {
+    assert code != null && code.isDexCode();
+    return code.asDexCode().hasDebugPositions();
+  }
+
   public String qualifiedName() {
     return method.qualifiedName();
   }

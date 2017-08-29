@@ -343,7 +343,8 @@ public class IRConverter {
   }
 
   private void removeEmptyClassInitializer(DexProgramClass clazz) {
-    if (clazz.hasTrivialClassInitializer()) {
+    if (clazz.hasTrivialClassInitializer()
+        && !clazz.getClassInitializer().hasDebugPositions()) {
       clazz.removeStaticMethod(clazz.getClassInitializer());
     }
   }
@@ -493,7 +494,9 @@ public class IRConverter {
     codeRewriter.foldConstants(code);
     codeRewriter.rewriteSwitch(code);
     codeRewriter.simplifyIf(code);
-    codeRewriter.collectClassInitializerDefaults(method, code);
+    if (!options.debug) {
+      codeRewriter.collectClassInitializerDefaults(method, code);
+    }
     if (Log.ENABLED) {
       Log.debug(getClass(), "Intermediate (SSA) flow graph for %s:\n%s",
           method.toSourceString(), code);

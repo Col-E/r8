@@ -82,6 +82,17 @@ public class DexCode extends Code {
     this.debugInfo = debugInfo;
   }
 
+  public boolean hasDebugPositions() {
+    if (debugInfo != null) {
+      for (DexDebugEvent event : debugInfo.events) {
+        if (event instanceof DexDebugEvent.Default) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   public DexDebugInfo debugInfoWithAdditionalFirstParameter(DexString name) {
     if (debugInfo == null) {
       return null;

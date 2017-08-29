@@ -10,9 +10,12 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OffOrAuto;
 import com.google.common.collect.ImmutableList;
+import it.unimi.dsi.fastutil.longs.LongArrayList;
+import it.unimi.dsi.fastutil.longs.LongList;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -62,8 +65,10 @@ import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
 
 /**
+ * Base class for debugging tests.
  *
- * Base class for debugging tests
+ * The protocol messages are described here:
+ * https://docs.oracle.com/javase/8/docs/platform/jpda/jdwp/jdwp-protocol.html
  */
 public abstract class DebugTestBase {
 
@@ -347,6 +352,27 @@ public abstract class DebugTestBase {
     });
   }
 
+  protected final JUnit3Wrapper.Command checkStaticFieldClinitSafe(
+      String className, String fieldName, String fieldSignature, Value expectedValue) {
+    return inspect(t -> {
+      // TODO(65148874): The current Art from AOSP master hangs when requesting static fields
+      // when breaking in <clinit>. Last known good version is 7.0.0.
+      Assume.assumeTrue(
+          "Skipping test " + testName.getMethodName() + " because ART version is not supported",
+          isRunningJava() || ToolHelper.getDexVm().isOlderThanOrEqual(DexVm.ART_7_0_0));
+      checkStaticField(className, fieldName, fieldSignature, expectedValue);
+    });
+  }
+
+  protected final JUnit3Wrapper.Command checkStaticField(
+      String className, String fieldName, String fieldSignature, Value expectedValue) {
+    return inspect(t -> {
+      Value value = t.getStaticField(className, fieldName, fieldSignature);
+      Assert.assertEquals("Incorrect value for static '" + className + "." + fieldName + "'",
+          expectedValue, value);
+    });
+  }
+
   protected final JUnit3Wrapper.Command inspect(Consumer<JUnit3Wrapper.DebuggeeState> inspector) {
     return t -> inspector.accept(t.debuggeeState);
   }
@@ -561,6 +587,7 @@ public abstract class DebugTestBase {
     public static class DebuggeeState implements FrameInspector {
 
       private class DebuggeeFrame implements FrameInspector {
+
         private final long frameId;
         private final Location location;
 
@@ -819,6 +846,77 @@ public abstract class DebugTestBase {
       public String getMethodSignature() {
         return getTopFrame().getMethodSignature();
       }
+
+      public Value getStaticField(String className, String fieldName, String fieldSignature) {
+        String classSignature = DescriptorUtils.javaTypeToDescriptor(className);
+        byte typeTag = TypeTag.CLASS;
+        long classId = getMirror().getClassID(classSignature);
+        Assert.assertFalse("No class named " + className + " found", classId == -1);
+
+        // The class is available, lookup and read the field.
+        long fieldId = findField(getMirror(), classId, fieldName, fieldSignature);
+        return getField(getMirror(), classId, fieldId);
+      }
+
+      private long findField(VmMirror mirror, long classId, String fieldName,
+          String fieldSignature) {
+
+        boolean withGenericSignature = true;
+        CommandPacket commandPacket = new CommandPacket(ReferenceTypeCommandSet.CommandSetID,
+            ReferenceTypeCommandSet.FieldsWithGenericCommand);
+        commandPacket.setNextValueAsReferenceTypeID(classId);
+        ReplyPacket replyPacket = mirror.performCommand(commandPacket);
+        if (replyPacket.getErrorCode() != Error.NONE) {
+          // Retry with older command ReferenceType.Fields.
+          withGenericSignature = false;
+          commandPacket.setCommand(ReferenceTypeCommandSet.FieldsCommand);
+          replyPacket = mirror.performCommand(commandPacket);
+          assert replyPacket.getErrorCode() == Error.NONE;
+        }
+
+        int fieldsCount = replyPacket.getNextValueAsInt();
+        LongList matchingFieldIds = new LongArrayList();
+        for (int i = 0; i < fieldsCount; ++i) {
+          long currentFieldId = replyPacket.getNextValueAsFieldID();
+          String currentFieldName = replyPacket.getNextValueAsString();
+          String currentFieldSignature = replyPacket.getNextValueAsString();
+          if (withGenericSignature) {
+            replyPacket.getNextValueAsString(); // Skip generic signature.
+          }
+          replyPacket.getNextValueAsInt(); // Skip modifiers.
+
+          // Filter fields based on name (and signature if there is).
+          if (fieldName.equals(currentFieldName)) {
+            if (fieldSignature == null || fieldSignature.equals(currentFieldSignature)) {
+              matchingFieldIds.add(currentFieldId);
+            }
+          }
+        }
+        Assert.assertTrue(replyPacket.isAllDataRead());
+
+        Assert.assertFalse("No field named " + fieldName + " found", matchingFieldIds.isEmpty());
+        // There must be only one matching field.
+        Assert.assertEquals("More than 1 field found: please specify a signature", 1,
+            matchingFieldIds.size());
+        return matchingFieldIds.getLong(0);
+      }
+
+      private Value getField(VmMirror mirror, long classId, long fieldId) {
+
+        CommandPacket commandPacket = new CommandPacket(ReferenceTypeCommandSet.CommandSetID,
+            ReferenceTypeCommandSet.GetValuesCommand);
+        commandPacket.setNextValueAsReferenceTypeID(classId);
+        commandPacket.setNextValueAsInt(1);
+        commandPacket.setNextValueAsFieldID(fieldId);
+        ReplyPacket replyPacket = mirror.performCommand(commandPacket);
+        assert replyPacket.getErrorCode() == Error.NONE;
+
+        int fieldsCount = replyPacket.getNextValueAsInt();
+        assert fieldsCount == 1;
+        Value result = replyPacket.getNextValueAsValue();
+        Assert.assertTrue(replyPacket.isAllDataRead());
+        return result;
+      }
     }
 
     private static boolean inScope(long index, Variable var) {
@@ -1017,7 +1115,8 @@ public abstract class DebugTestBase {
           }
           Assert.assertTrue(replyPacket.isAllDataRead());
 
-          Assert.assertFalse("No method named " + methodName + " found", matchingMethodIds.isEmpty());
+          Assert
+              .assertFalse("No method named " + methodName + " found", matchingMethodIds.isEmpty());
           // There must be only one matching method
           Assert.assertEquals("More than 1 method found: please specify a signature", 1,
               matchingMethodIds.size());
