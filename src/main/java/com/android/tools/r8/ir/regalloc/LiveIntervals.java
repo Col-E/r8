@@ -15,7 +15,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.TreeSet;
 
-public class LiveIntervals {
+public class LiveIntervals implements Comparable<LiveIntervals> {
 
   private final Value value;
   private LiveIntervals nextConsecutive;
@@ -451,6 +451,12 @@ public class LiveIntervals {
       }
     }
     return count;
+  }
+
+  @Override
+  public int compareTo(LiveIntervals other) {
+    int startDiff = getStart() - other.getStart();
+    return startDiff != 0 ? startDiff : (value.getNumber() - other.value.getNumber());
   }
 
   @Override

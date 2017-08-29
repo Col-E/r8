@@ -14,15 +14,15 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 public class RegisterMoveScheduler {
   // The set of moves to schedule.
-  private Set<RegisterMove> moveSet = new LinkedHashSet<>();
+  private Set<RegisterMove> moveSet = new TreeSet<>();
   // Mapping to keep track of which values currently corresponds to each other.
   // This is initially an identity map but changes as we insert moves.
   private Map<Integer, Integer> valueMap = new HashMap<>();

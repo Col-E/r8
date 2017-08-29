@@ -10,7 +10,7 @@ import java.util.Set;
 
 // Register moves used by the spilling register allocator. These are used both for spill and
 // for phi moves and they are moves between actual registers represented by their register number.
-public class RegisterMove {
+public class RegisterMove implements Comparable<RegisterMove> {
   MoveType type;
   int dst;
   int src;
@@ -69,5 +69,31 @@ public class RegisterMove {
     }
     RegisterMove o = (RegisterMove) other;
     return o.src == src && o.dst == dst && o.type == type && o.definition == definition;
+  }
+
+  @Override
+  public int compareTo(RegisterMove o) {
+    int srcDiff = src - o.src;
+    if (srcDiff != 0) {
+      return srcDiff;
+    }
+    int dstDiff = dst - o.dst;
+    if (dstDiff != 0) {
+      return dstDiff;
+    }
+    int typeDiff = o.type.ordinal() - type.ordinal();
+    if (typeDiff != 0) {
+      return typeDiff;
+    }
+    if (definition == null) {
+      if (o.definition != null) {
+        return -1;
+      }
+      return 0;
+    }
+    if (o.definition == null) {
+      return 1;
+    }
+    return definition.getNumber() - o.definition.getNumber();
   }
 }

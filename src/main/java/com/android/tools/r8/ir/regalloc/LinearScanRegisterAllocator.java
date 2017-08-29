@@ -24,7 +24,6 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.Xor;
 import com.android.tools.r8.ir.regalloc.RegisterPositions.Type;
 import com.android.tools.r8.logging.Log;
-import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -39,7 +38,6 @@ import it.unimi.dsi.fastutil.ints.IntArraySet;
 import it.unimi.dsi.fastutil.ints.IntIterator;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
@@ -139,8 +137,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   // List of intervals where the current instruction falls into one of their live range holes.
   private List<LiveIntervals> inactive = new LinkedList<>();
   // List of intervals that no register has been allocated to sorted by first live range.
-  private PriorityQueue<LiveIntervals> unhandled =
-      new PriorityQueue<>(Comparator.comparingInt(LiveIntervals::getStart));
+  private PriorityQueue<LiveIntervals> unhandled = new PriorityQueue<>();
 
   // The first register used for parallel moves. After register allocation the parallel move
   // temporary registers are [firstParallelMoveTemporary, maxRegisterNumber].
