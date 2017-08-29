@@ -5,8 +5,8 @@ package com.android.tools.r8.debuginfo;
 
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.StringUtils;
 import org.junit.Test;
 
 public class SynchronizedMethodTestRunner extends DebugInfoTestBase {
@@ -18,7 +18,7 @@ public class SynchronizedMethodTestRunner extends DebugInfoTestBase {
     AndroidApp d8App = compileWithD8(clazz);
     AndroidApp dxApp = getDxCompiledSources();
 
-    String expected = "42" + ToolHelper.LINE_SEPARATOR + "42" + ToolHelper.LINE_SEPARATOR;
+    String expected = StringUtils.lines("42", "42", "2");
     assertEquals(expected, runOnJava(clazz));
     assertEquals(expected, runOnArt(d8App, clazz.getCanonicalName()));
     assertEquals(expected, runOnArt(dxApp, clazz.getCanonicalName()));
@@ -28,6 +28,9 @@ public class SynchronizedMethodTestRunner extends DebugInfoTestBase {
 
     checkSyncInstance(inspectMethod(d8App, clazz, "int", "syncInstance", "int"));
     checkSyncInstance(inspectMethod(dxApp, clazz, "int", "syncInstance", "int"));
+
+    checkThrowing(inspectMethod(dxApp, clazz, "int", "throwing", "int"), true);
+    checkThrowing(inspectMethod(d8App, clazz, "int", "throwing", "int"), false);
   }
 
   private void checkSyncStatic(DebugInfoInspector info) {
@@ -47,5 +50,16 @@ public class SynchronizedMethodTestRunner extends DebugInfoTestBase {
     info.checkNoLine(18);
     info.checkLineHasExactLocals(19, locals);
     info.checkNoLine(20);
+  }
+
+  private void checkThrowing(DebugInfoInspector info, boolean dx) {
+    info.checkStartLine(23);
+    if (!dx) {
+      info.checkLineHasExactLocals(23, "cond", "int");
+    }
+    info.checkLineHasExactLocals(24, "cond", "int", "x", "int");
+    info.checkLineHasExactLocals(25, "cond", "int", "x", "int");
+    info.checkNoLine(26);
+    info.checkLineHasExactLocals(27, "cond", "int", "x", "int");
   }
 }

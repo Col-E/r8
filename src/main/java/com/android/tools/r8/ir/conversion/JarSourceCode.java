@@ -2307,8 +2307,19 @@ public class JarSourceCode implements SourceCode {
     }
   }
 
+  private boolean isExitingThrow(InsnNode insn) {
+    List<TryCatchBlock> handlers = getTryHandlers(insn);
+    if (handlers.isEmpty()) {
+      return true;
+    }
+    if (!isSynchronized() || handlers.size() > 1) {
+      return false;
+    }
+    return handlers.get(0) == EXCEPTIONAL_SYNC_EXIT;
+  }
+
   private void addThrow(InsnNode insn, int register, IRBuilder builder) {
-    if (getTryHandlers(insn).isEmpty()) {
+    if (isExitingThrow(insn)) {
       processLocalVariablesAtExit(insn, builder);
     } else {
       processLocalVariablesAtControlEdge(insn, builder);

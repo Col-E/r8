@@ -19,8 +19,17 @@ public class SynchronizedMethodTest {
     return -Math.abs(x);
   }
 
+  private static synchronized int throwing(int cond) {
+    int x = 42;
+    if (cond < 0) {
+      throw new IllegalStateException();
+    }
+    return 2;
+  }
+
   public static void main(String[] args) {
     System.out.println(syncStatic(1234));
     System.out.println(new SynchronizedMethodTest().syncInstance(1234));
+    System.out.println(throwing(1234));
   }
 }
