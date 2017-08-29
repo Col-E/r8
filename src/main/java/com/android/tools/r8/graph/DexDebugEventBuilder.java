@@ -91,8 +91,8 @@ public class DexDebugEventBuilder {
       // If this is the end of the block clear out the pending state.
       pendingLocals = null;
       pendingLocalChanges = false;
-    } else {
-      // For non-exit / pc-advancing instructions emit any pending changes.
+    } else if (pc != emittedPc) {
+      // For non-exit / pc-advancing instructions emit any pending changes once possible.
       emitLocalChanges(pc);
     }
   }
@@ -224,6 +224,7 @@ public class DexDebugEventBuilder {
       DexString nextFile,
       List<DexDebugEvent> events,
       DexItemFactory factory) {
+    assert previousPc != nextPc;
     int pcDelta = previousPc == NO_PC_INFO ? nextPc : nextPc - previousPc;
     int lineDelta = nextLine == NO_LINE_INFO ? 0 : nextLine - previousLine;
     assert pcDelta >= 0;
