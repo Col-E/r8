@@ -308,6 +308,16 @@ public class Locals {
     return "OK";
   }
 
+  public static void regression65066975(boolean bit) {
+    nop();
+    if (bit) {
+      nop();
+    } else {
+      nop();
+    }
+    nop();
+  }
+
   public static void main(String[] args) {
     noLocals();
     unusedLocals();
@@ -327,5 +337,6 @@ public class Locals {
     switchRewriteToIfs(1);
     switchRewriteToSwitches(1);
     regression65039701(true);
+    regression65066975(false);
   }
 }

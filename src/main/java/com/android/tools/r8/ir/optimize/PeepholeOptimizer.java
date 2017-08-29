@@ -84,7 +84,9 @@ public class PeepholeOptimizer {
             commonSuffixSize = Math.min(
                 commonSuffixSize, sharedSuffixSizeExcludingExit(firstPred, pred, allocator));
           }
-          assert commonSuffixSize >= 1;
+          if (commonSuffixSize == 0) {
+            continue;
+          }
           int blockNumber = startNumberOfNewBlock + newBlocks.size();
           BasicBlock newBlock = createAndInsertBlockForSuffix(
               blockNumber, commonSuffixSize, predsWithSameLastInstruction, block);
@@ -160,7 +162,9 @@ public class PeepholeOptimizer {
       Instruction i0 = it0.previous();
       Instruction i1 = it1.previous();
       if (!i0.identicalAfterRegisterAllocation(i1, allocator)) {
-        return suffixSize;
+        // If the shared suffix follows a debug position at least one instruction must remain
+        // unshared to ensure the debug position is at a different pc than the shared suffix.
+        return i0.isDebugPosition() || i1.isDebugPosition() ? suffixSize - 1 : suffixSize;
       }
       suffixSize++;
     }

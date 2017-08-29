@@ -546,4 +546,23 @@ public class LocalsTest extends DebugTestBase {
         checkLine(SOURCE_FILE, 308),
         run());
   }
+
+  @Test
+  public void regression65066975() throws Throwable {
+    runDebugTest(
+        "Locals",
+        breakpoint("Locals", "regression65066975"),
+        run(),
+        checkLine(SOURCE_FILE, 312),
+        checkLocal("bit", Value.createBoolean(false)),
+        stepOver(),
+        checkLine(SOURCE_FILE, 313),
+        stepOver(),
+        checkLine(SOURCE_FILE, 316),
+        stepOver(),
+        checkLine(SOURCE_FILE, 318),
+        stepOver(),
+        checkLine(SOURCE_FILE, 319),
+        run());
+  }
 }
