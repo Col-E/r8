@@ -32,6 +32,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -302,9 +303,11 @@ public class AndroidApp {
    */
   public void writeToDirectory(Path directory, OutputMode outputMode) throws IOException {
     if (outputMode == OutputMode.Indexed) {
-      for (Path path : Files.list(directory).collect(Collectors.toList())) {
-        if (isClassesDexFile(path)) {
-          Files.delete(path);
+      try (Stream<Path> filesInDir = Files.list(directory)) {
+        for (Path path : filesInDir.collect(Collectors.toList())) {
+          if (isClassesDexFile(path)) {
+            Files.delete(path);
+          }
         }
       }
     }
