@@ -78,6 +78,7 @@ import com.android.tools.r8.ir.code.Ushr;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.code.Xor;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
@@ -923,8 +924,7 @@ public class IRBuilder {
       throws ApiLevelException {
     if (type == Invoke.Type.POLYMORPHIC && !options.canUseInvokePolymorphic()) {
       throw new ApiLevelException(
-          Constants.ANDROID_O_API,
-          "Android O",
+          AndroidApiLevel.O,
           "MethodHandle.invoke and MethodHandle.invokeExact",
           null /* sourceString */);
     }
