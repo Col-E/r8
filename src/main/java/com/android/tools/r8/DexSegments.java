@@ -7,11 +7,9 @@ import com.android.tools.r8.dex.DexFileReader;
 import com.android.tools.r8.dex.Segment;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.OutputMode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.Closer;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
@@ -21,10 +19,6 @@ public class DexSegments {
 
     public static class Builder
         extends BaseCommand.Builder<Command, Builder> {
-
-      private Builder() {
-        super(CompilationMode.RELEASE);
-      }
 
       @Override
       Command.Builder self() {
@@ -38,8 +32,7 @@ public class DexSegments {
           return new Command(isPrintHelp());
         }
         validate();
-        return new Command(
-            getAppBuilder().build(), getOutputPath(), getOutputMode(), getMode(), getMinApiLevel());
+        return new Command(getAppBuilder().build());
       }
     }
 
@@ -77,13 +70,8 @@ public class DexSegments {
       }
     }
 
-    private Command(
-        AndroidApp inputApp,
-        Path outputPath,
-        OutputMode outputMode,
-        CompilationMode mode,
-        int minApiLevel) {
-      super(inputApp, outputPath, outputMode, mode, minApiLevel);
+    private Command(AndroidApp inputApp) {
+      super(inputApp);
     }
 
     private Command(boolean printHelp) {

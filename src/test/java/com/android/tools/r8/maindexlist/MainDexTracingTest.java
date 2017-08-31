@@ -9,16 +9,18 @@ import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.ZIP_EXTENSION;
 
 import com.android.tools.r8.CompilationResult;
+import com.android.tools.r8.GenerateMainDexList;
+import com.android.tools.r8.GenerateMainDexListCommand;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
@@ -107,7 +109,6 @@ public class MainDexTracingTest {
         mainDexRules,
         expectedMainDexList,
         minSdk,
-        R8Command.builder(),
         (options) -> {
           options.inlineAccessors = false;
         });
@@ -120,46 +121,84 @@ public class MainDexTracingTest {
       Path mainDexRules,
       Path expectedMainDexList,
       int minSdk,
-      R8Command.Builder builder,
       Consumer<InternalOptions> optionsConsumer)
       throws Throwable {
     Path out = temp.getRoot().toPath().resolve(testName + ZIP_EXTENSION);
 
     Path inputJar = Paths.get(buildDir, packageName + JAR_EXTENSION);
-    builder.setMinApiLevel(minSdk);
     try {
-      R8Command command = builder
+      // Build main-dex list using GenerateMainDexList.
+      GenerateMainDexListCommand.Builder mdlCommandBuilder = GenerateMainDexListCommand.builder();
+      GenerateMainDexListCommand command2 = mdlCommandBuilder
           .addProgramFiles(inputJar)
-          .addLibraryFiles(Paths.get(EXAMPLE_BUILD_DIR, "multidexfakeframeworks" + JAR_EXTENSION),
-              Paths.get(ToolHelper.getAndroidJar(minSdk)))
+          .addProgramFiles(Paths.get(EXAMPLE_BUILD_DIR, "multidexfakeframeworks" + JAR_EXTENSION))
+          .addMainDexRules(mainDexRules)
+          .build();
+      List<String> mainDexGeneratorMainDexList =
+          GenerateMainDexList.run(command2).stream()
+              .map(this::mainDexStringToDescriptor)
+              .sorted()
+              .collect(Collectors.toList());
+
+      // Build main-dex list using R8.
+      R8Command.Builder r8CommandBuilder = R8Command.builder();
+      R8Command command = r8CommandBuilder
+          .setMinApiLevel(minSdk)
+          .addProgramFiles(inputJar)
+          .addProgramFiles(Paths.get(EXAMPLE_BUILD_DIR, "multidexfakeframeworks" + JAR_EXTENSION))
+          .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(minSdk)))
           .setOutputPath(out)
           .addMainDexRules(mainDexRules)
           .build();
       CompilationResult result = ToolHelper.runR8WithFullResult(command, optionsConsumer);
-      List<String> resultMainDexList =
+      List<String> r8MainDexList =
           result.dexApplication.mainDexList.stream()
               .filter(dexType -> isApplicationClass(dexType, result))
               .map(dexType -> dexType.descriptor.toString())
+              .sorted()
               .collect(Collectors.toList());
-      Collections.sort(resultMainDexList);
+
+      // Check that both generated lists are the same as the reference list, except for lambda
+      // classes which are only produced when running R8.
       String[] refList = new String(Files.readAllBytes(
           expectedMainDexList), StandardCharsets.UTF_8).split("\n");
+      int nonLambdaOffset = 0;
       for (int i = 0; i < refList.length; i++) {
         String reference = refList[i].trim();
-        String computed = resultMainDexList.get(i);
-        if (reference.contains("-$$Lambda$")) {
-          // For lambda classes we check that there is a lambda class for the right containing
-          // class. However, we do not check the hash for the generated lambda class. The hash
-          // changes for different compiler versions because different compiler versions generate
-          // different lambda implementation method names.
-          reference = reference.substring(0, reference.lastIndexOf('$'));
-          computed = computed.substring(0, computed.lastIndexOf('$'));
+        checkSameMainDexEntry(reference, r8MainDexList.get(i));
+        // The main dex list generator does not do any lambda desugaring.
+        if (!isLambda(reference)) {
+          checkSameMainDexEntry(reference, mainDexGeneratorMainDexList.get(i - nonLambdaOffset));
+        } else {
+          nonLambdaOffset++;
         }
-        Assert.assertEquals(reference, computed);
       }
     } catch (ExecutionException e) {
       throw e.getCause();
     }
+  }
+
+  private boolean isLambda(String mainDexEntry) {
+    return mainDexEntry.contains("-$$Lambda$");
+  }
+
+  private String mainDexStringToDescriptor(String mainDexString) {
+    final String CLASS_EXTENSION = ".class";
+    Assert.assertTrue(mainDexString.endsWith(CLASS_EXTENSION));
+    return DescriptorUtils.getDescriptorFromClassBinaryName(
+        mainDexString.substring(0, mainDexString.length() - CLASS_EXTENSION.length()));
+  }
+
+  private void checkSameMainDexEntry(String reference, String computed) {
+    if (isLambda(reference)) {
+      // For lambda classes we check that there is a lambda class for the right containing
+      // class. However, we do not check the hash for the generated lambda class. The hash
+      // changes for different compiler versions because different compiler versions generate
+      // different lambda implementation method names.
+      reference = reference.substring(0, reference.lastIndexOf('$'));
+      computed = computed.substring(0, computed.lastIndexOf('$'));
+    }
+    Assert.assertEquals(reference, computed);
   }
 
   private boolean isApplicationClass(DexType dexType, CompilationResult result) {
