@@ -9,7 +9,7 @@ import r8
 import sys
 import utils
 
-ARCHIVE_BUCKET = 'r8-release'
+ARCHIVE_BUCKET = 'r8-releases'
 
 def GetVersion():
   r8_version = r8.run(['--version'], build = False).strip()
