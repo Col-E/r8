@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import static com.android.tools.r8.TestCondition.R8_COMPILER;
 import static com.android.tools.r8.TestCondition.compilers;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -527,8 +528,6 @@ public abstract class R8RunArtTestsTest {
           // keeps the instances alive is dead and could be garbage collected. The compiler reuses
           // the register for the list and therefore there are no live instances.
           .put("099-vmdebug", TestCondition.any())
-          // This test relies on output on stderr, which we currently do not collect.
-          .put("143-string-value", TestCondition.any())
           .put(
               "800-smali",
               TestCondition.match(
@@ -703,10 +702,6 @@ public abstract class R8RunArtTestsTest {
           .put("121-modifiers", TestCondition.match(TestCondition.tools(DexTool.NONE)))
           // This test uses register r1 in method that is declared to only use 1 register (r0).
           .put("142-classloader2", TestCondition.match(TestCondition.R8_COMPILER))
-          // When starting from the Dex frontend we see two definitions of the same class coming
-          // from two differents dex files.
-          .put("162-method-resolution",
-              TestCondition.match(TestCondition.tools(DexTool.DX, DexTool.JACK)))
           // This test uses an uninitialized register.
           .put("471-uninitialized-locals", TestCondition.match(TestCondition.R8_COMPILER))
           // When starting from the Dex frontend we see two definitions of the same class coming
@@ -732,7 +727,6 @@ public abstract class R8RunArtTestsTest {
   private static List<String> noInputJar = ImmutableList.of(
       "064-field-access", // Missing classes2 dir (has src2)
       "097-duplicate-method", // No input class files.
-      "162-method-resolution", // Based on multiple jasmin files
       "630-safecast-array", // No input class files.
       "801-VoidCheckCast", // No input class files.
       "804-class-extends-itself", // No input class files.
@@ -768,6 +762,11 @@ public abstract class R8RunArtTestsTest {
   // Tests to skip on some conditions
   private static final Multimap<String, TestCondition> testToSkip =
       new ImmutableListMultimap.Builder<String, TestCondition>()
+          // When running R8 on dex input (D8, DX or JACK) this test non-deterministically fails
+          // with a compiler exception, due to invoke-virtual on an interface, or it completes but
+          // the output when run on Art is not as expected. b/65233869
+          .put("162-method-resolution",
+              TestCondition.match(TestCondition.tools(DexTool.DX, DexTool.JACK), R8_COMPILER))
           // Old runtimes used the legacy test directory which does not contain input for tools
           // NONE and DX.
           .put("952-invoke-custom", TestCondition.match(
@@ -1446,25 +1445,20 @@ public abstract class R8RunArtTestsTest {
 
     File[] inputFiles;
     if (toolchain == DexTool.NONE) {
-      File classes = new File(specification.directory, "classes");
-      inputFiles =
-          com.google.common.io.Files.fileTreeTraverser().breadthFirstTraversal(classes).filter(
-              (File f) -> !f.isDirectory()).toArray(File.class);
+      inputFiles = addFileTree(new File[0], new File(specification.directory, "classes"));
+      inputFiles = addFileTree(inputFiles, new File(specification.directory, "jasmin_classes"));
       File smali = new File(specification.directory, "smali");
       if (smali.exists()) {
         File smaliDex = new File(smali, "out.dex");
         assert smaliDex.exists();
         inputFiles = ObjectArrays.concat(inputFiles, smaliDex);
       }
-      File classes2 = new File(specification.directory, "classes2");
-      if (classes2.exists()) {
-        inputFiles = ObjectArrays.concat(inputFiles,
-            com.google.common.io.Files.fileTreeTraverser().breadthFirstTraversal(classes2).filter(
-                (File f) -> !f.isDirectory()).toArray(File.class), File.class);
-      }
+      inputFiles = addFileTree(inputFiles, new File(specification.directory, "classes2"));
+      inputFiles = addFileTree(inputFiles, new File(specification.directory, "jasmin_classes2"));
     } else {
       inputFiles =
-          specification.directory.listFiles((File file) -> file.getName().endsWith(".dex"));
+          specification.directory.listFiles((File file) ->
+              file.getName().endsWith(".dex") && !file.getName().startsWith("jasmin"));
     }
     List<String> fileNames = new ArrayList<>();
     for (File file : inputFiles) {
@@ -1501,6 +1495,18 @@ public abstract class R8RunArtTestsTest {
       runArtTestDoRunOnArt(
           version, CompilerUnderTest.R8, specification, fileNames, resultDir, compilationMode);
     }
+  }
+
+  private File[] addFileTree(File[] files, File directory) {
+    if (!directory.exists()) {
+      return files;
+    }
+    return ObjectArrays.concat(
+        files,
+        com.google.common.io.Files.fileTreeTraverser().breadthFirstTraversal(directory)
+            .filter(f -> !f.isDirectory())
+            .toArray(File.class),
+        File.class);
   }
 
   private void runArtTestDoRunOnArt(
