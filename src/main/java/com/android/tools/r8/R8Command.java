@@ -7,6 +7,9 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationParser;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
+import com.android.tools.r8.shaking.ProguardConfigurationSource;
+import com.android.tools.r8.shaking.ProguardConfigurationSourceFile;
+import com.android.tools.r8.shaking.ProguardConfigurationSourceStrings;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.FileUtils;
@@ -17,7 +20,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -26,10 +28,10 @@ public class R8Command extends BaseCommand {
 
   public static class Builder extends BaseCommand.Builder<R8Command, Builder> {
 
-    private final List<Path> mainDexRules = new ArrayList<>();
+    private final List<ProguardConfigurationSource> mainDexRules = new ArrayList<>();
     private Path mainDexListOutput = null;
     private Consumer<ProguardConfiguration.Builder> proguardConfigurationConsumer = null;
-    private final List<Path> proguardConfigFiles = new ArrayList<>();
+    private final List<ProguardConfigurationSource> proguardConfigs = new ArrayList<>();
     private Optional<Boolean> treeShaking = Optional.empty();
     private Optional<Boolean> discardedChecker = Optional.empty();
     private Optional<Boolean> minification = Optional.empty();
@@ -76,16 +78,28 @@ public class R8Command extends BaseCommand {
     /**
      * Add proguard configuration file resources for automatic main dex list calculation.
      */
-    public Builder addMainDexRules(Path... paths) {
-      Collections.addAll(mainDexRules, paths);
+    public Builder addMainDexRulesFiles(Path... paths) {
+      for (Path path : paths) {
+        mainDexRules.add(new ProguardConfigurationSourceFile(path));
+      }
       return self();
     }
 
     /**
      * Add proguard configuration file resources for automatic main dex list calculation.
      */
-    public Builder addMainDexRules(List<Path> paths) {
-      mainDexRules.addAll(paths);
+    public Builder addMainDexRulesFiles(List<Path> paths) {
+      for (Path path : paths) {
+        mainDexRules.add(new ProguardConfigurationSourceFile(path));
+      }
+      return self();
+    }
+
+    /**
+     * Add proguard configuration file resources for automatic main dex list calculation.
+     */
+    public Builder addMainDexRules(List<String> lines) {
+      mainDexRules.add(new ProguardConfigurationSourceStrings(lines));
       return self();
     }
 
@@ -98,7 +112,9 @@ public class R8Command extends BaseCommand {
      * Add proguard configuration file resources.
      */
     public Builder addProguardConfigurationFiles(Path... paths) {
-      Collections.addAll(proguardConfigFiles, paths);
+      for (Path path : paths) {
+        proguardConfigs.add(new ProguardConfigurationSourceFile(path));
+      }
       return self();
     }
 
@@ -106,7 +122,17 @@ public class R8Command extends BaseCommand {
      * Add proguard configuration file resources.
      */
     public Builder addProguardConfigurationFiles(List<Path> paths) {
-      proguardConfigFiles.addAll(paths);
+      for (Path path : paths) {
+        proguardConfigs.add(new ProguardConfigurationSourceFile(path));
+      }
+      return self();
+    }
+
+    /**
+     * Add proguard configuration.
+     */
+    public Builder addProguardConfiguration(List<String> lines) {
+      proguardConfigs.add(new ProguardConfigurationSourceStrings(lines));
       return self();
     }
 
@@ -184,12 +210,12 @@ public class R8Command extends BaseCommand {
         mainDexKeepRules = parser.getConfig().getRules();
       }
       ProguardConfiguration configuration;
-      if (proguardConfigFiles.isEmpty()) {
+      if (proguardConfigs.isEmpty()) {
         configuration = ProguardConfiguration.defaultConfiguration(factory);
       } else {
         ProguardConfigurationParser parser = new ProguardConfigurationParser(factory);
         try {
-          parser.parse(proguardConfigFiles);
+          parser.parse(proguardConfigs);
         } catch (ProguardRuleParserException e) {
           throw new CompilationException(e.getMessage(), e.getCause());
         }
@@ -324,7 +350,7 @@ public class R8Command extends BaseCommand {
       } else if (arg.equals("--no-minification")) {
         builder.setMinification(false);
       } else if (arg.equals("--main-dex-rules")) {
-        builder.addMainDexRules(Paths.get(args[++i]));
+        builder.addMainDexRulesFiles(Paths.get(args[++i]));
       } else if (arg.equals("--main-dex-list")) {
         builder.addMainDexListFiles(Paths.get(args[++i]));
       } else if (arg.equals("--main-dex-list-output")) {

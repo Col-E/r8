@@ -38,7 +38,7 @@ public class MainDexListOutputTest extends TestBase {
     Path mainDexListOutput = temp.getRoot().toPath().resolve("main-dex-output.txt");
     R8Command command =
         ToolHelper.prepareR8CommandBuilder(readClasses(HelloWorldMain.class))
-            .addMainDexRules(mainDexRules)
+            .addMainDexRulesFiles(mainDexRules)
             .setMainDexListOutputPath(mainDexListOutput)
             .build();
     ToolHelper.runR8(command);

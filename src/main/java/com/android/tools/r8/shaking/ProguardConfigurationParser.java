@@ -22,11 +22,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.CharBuffer;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -85,31 +82,32 @@ public class ProguardConfigurationParser {
   }
 
   public void parse(Path path) throws ProguardRuleParserException, IOException {
-    parse(Collections.singletonList(path));
+    parse(ImmutableList.of(new ProguardConfigurationSourceFile(path)));
   }
 
-  public void parse(List<Path> pathList) throws ProguardRuleParserException, IOException {
-    for (Path path : pathList) {
-      new ProguardFileParser(path).parse();
+  public void parse(ProguardConfigurationSource source)
+      throws ProguardRuleParserException, IOException {
+    parse(ImmutableList.of(source));
+  }
+
+  public void parse(List<ProguardConfigurationSource> sources)
+      throws ProguardRuleParserException, IOException {
+    for (ProguardConfigurationSource source : sources) {
+      new ProguardFileParser(source).parse();
     }
   }
 
   private class ProguardFileParser {
 
-    private final Path path;
+    private final String name;
     private final String contents;
     private int position = 0;
     private Path baseDirectory;
 
-    ProguardFileParser(Path path) throws IOException {
-      this.path = path;
-      contents = new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
-      baseDirectory = path.getParent();
-      if (baseDirectory == null) {
-        // path parent can be null only if it's root dir or if its a one element path relative to
-        // current directory.
-        baseDirectory = Paths.get(".");
-      }
+    ProguardFileParser(ProguardConfigurationSource source) throws IOException {
+      contents = source.get();
+      baseDirectory = source.getBaseDirectory();
+      name = source.getName();
     }
 
     public void parse() throws ProguardRuleParserException {
@@ -271,7 +269,7 @@ public class ProguardConfigurationParser {
     private void parseInclude() throws ProguardRuleParserException {
       Path included = parseFileName();
       try {
-        new ProguardFileParser(included).parse();
+        new ProguardFileParser(new ProguardConfigurationSourceFile(included)).parse();
       } catch (FileNotFoundException | NoSuchFileException e) {
         throw parseError("Included file '" + included.toString() + "' not found", e);
       } catch (IOException e) {
@@ -1037,12 +1035,12 @@ public class ProguardConfigurationParser {
         String line = lines[lineNumber];
         if (remaining <= line.length() || lineNumber == lines.length - 1) {
           String arrow = CharBuffer.allocate(remaining).toString().replace( '\0', ' ' ) + '^';
-          return path.toString() + ":" + (lineNumber + 1) + ":" + remaining + "\n" + line
+          return name + ":" + (lineNumber + 1) + ":" + remaining + "\n" + line
               + '\n' + arrow;
         }
         remaining -= (line.length() + 1); // Include newline.
       }
-      return path.toString();
+      return name;
     }
 
     private ProguardRuleParserException parseError(String message) {

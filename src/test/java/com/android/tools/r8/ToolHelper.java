@@ -448,7 +448,9 @@ public class ToolHelper {
       return ProguardConfiguration.defaultConfiguration(factory);
     }
     ProguardConfigurationParser parser = new ProguardConfigurationParser(factory);
-    parser.parse(configPaths);
+    for (Path configPath : configPaths) {
+      parser.parse(configPath);
+    }
     return parser.getConfig();
   }
 

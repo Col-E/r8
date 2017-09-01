@@ -14,6 +14,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexAccessFlags;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions.PackageObfuscationMode;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -102,9 +103,20 @@ public class ProguardConfigurationParserTest extends TestBase {
 
   @Test
   public void parse() throws IOException, ProguardRuleParserException {
-    ProguardConfigurationParser parser = new ProguardConfigurationParser(new DexItemFactory());
+    ProguardConfigurationParser parser;
+
+    // Parse from file.
+    parser = new ProguardConfigurationParser(new DexItemFactory());
     parser.parse(Paths.get(PROGUARD_SPEC_FILE));
     List<ProguardConfigurationRule> rules = parser.getConfig().getRules();
+    assertEquals(24, rules.size());
+    assertEquals(1, rules.get(0).getMemberRules().size());
+
+    // Parse from strings.
+    parser = new ProguardConfigurationParser(new DexItemFactory());
+    List<String> lines = FileUtils.readTextFile(Paths.get(PROGUARD_SPEC_FILE));
+    parser.parse(new ProguardConfigurationSourceStrings(lines));
+    rules = parser.getConfig().getRules();
     assertEquals(24, rules.size());
     assertEquals(1, rules.get(0).getMemberRules().size());
   }

@@ -133,7 +133,7 @@ public class MainDexTracingTest {
           .addLibraryFiles(Paths.get(EXAMPLE_BUILD_DIR, "multidexfakeframeworks" + JAR_EXTENSION),
               Paths.get(ToolHelper.getAndroidJar(minSdk)))
           .setOutputPath(out)
-          .addMainDexRules(mainDexRules)
+          .addMainDexRulesFiles(mainDexRules)
           .build();
       CompilationResult result = ToolHelper.runR8WithFullResult(command, optionsConsumer);
       List<String> resultMainDexList =
