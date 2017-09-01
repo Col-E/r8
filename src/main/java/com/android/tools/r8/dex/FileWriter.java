@@ -47,6 +47,7 @@ import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.LebUtils;
 import com.android.tools.r8.utils.ThrowingConsumer;
@@ -296,8 +297,7 @@ public class FileWriter {
     if (method.accessFlags.isStatic()) {
       if (!options.canUseDefaultAndStaticInterfaceMethods()) {
         throw new ApiLevelException(
-            Constants.ANDROID_N_API,
-            "Android N",
+            AndroidApiLevel.N,
             "Static interface methods",
             method.method.toSourceString());
       }
@@ -310,8 +310,7 @@ public class FileWriter {
       if (!method.accessFlags.isAbstract() && !method.accessFlags.isPrivate() &&
           !options.canUseDefaultAndStaticInterfaceMethods()) {
         throw new ApiLevelException(
-            Constants.ANDROID_N_API,
-            "Android N",
+            AndroidApiLevel.N,
             "Default interface methods",
             method.method.toSourceString());
       }
@@ -322,8 +321,7 @@ public class FileWriter {
         return;
       }
       throw new ApiLevelException(
-          Constants.ANDROID_N_API,
-          "Android N",
+          AndroidApiLevel.N,
           "Private interface methods",
           method.method.toSourceString());
     }
@@ -1352,8 +1350,7 @@ public class FileWriter {
   private void checkThatInvokeCustomIsAllowed() throws ApiLevelException {
     if (!options.canUseInvokeCustom()) {
       throw new ApiLevelException(
-          Constants.ANDROID_O_API,
-          "Android O",
+          AndroidApiLevel.O,
           "Invoke-customs",
           null /* sourceString */);
     }

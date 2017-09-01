@@ -7,7 +7,6 @@ import static com.android.tools.r8.R8Command.USAGE_MESSAGE;
 
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.ApplicationWriter;
-import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.errors.CompilationError;
@@ -41,6 +40,7 @@ import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.shaking.SimpleClassMerger;
 import com.android.tools.r8.shaking.TreePruner;
 import com.android.tools.r8.shaking.protolite.ProtoLiteExtension;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.FileUtils;
@@ -230,10 +230,11 @@ public class R8 {
       System.setOut(new PrintStream(ByteStreams.nullOutputStream()));
     }
     try {
-      if (options.minApiLevel >= Constants.ANDROID_O_API
+      AndroidApiLevel oLevel = AndroidApiLevel.O;
+      if (options.minApiLevel >= oLevel.getLevel()
           && !options.mainDexKeepRules.isEmpty()) {
-        throw new CompilationError("Automatic main dex list is not supported when compiling for"
-            + " android O and later (--min-api " + Constants.ANDROID_O_API + ")");
+        throw new CompilationError("Automatic main dex list is not supported when compiling for "
+            + oLevel.getName() + " and later (--min-api " + oLevel.getLevel() + ")");
       }
       DexApplication application =
           new ApplicationReader(inputApp, options, timing).read(executorService);

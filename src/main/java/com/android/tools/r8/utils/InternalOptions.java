@@ -322,37 +322,37 @@ public class InternalOptions {
   }
 
   public boolean canUseInvokePolymorphic() {
-    return minApiLevel >= Constants.ANDROID_O_API;
+    return minApiLevel >= AndroidApiLevel.O.getLevel();
   }
 
   public boolean canUseInvokeCustom() {
-    return minApiLevel >= Constants.ANDROID_O_API;
+    return minApiLevel >= AndroidApiLevel.O.getLevel();
   }
 
   public boolean canUseDefaultAndStaticInterfaceMethods() {
-    return minApiLevel >= Constants.ANDROID_N_API;
+    return minApiLevel >= AndroidApiLevel.N.getLevel();
   }
 
   public boolean canUsePrivateInterfaceMethods() {
-    return minApiLevel >= Constants.ANDROID_N_API;
+    return minApiLevel >= AndroidApiLevel.N.getLevel();
   }
 
   public boolean canUseMultidex() {
-    return intermediate || minApiLevel >= Constants.ANDROID_L_API;
+    return intermediate || minApiLevel >= AndroidApiLevel.L.getLevel();
   }
 
   public boolean canUseLongCompareAndObjectsNonNull() {
-    return minApiLevel >= Constants.ANDROID_K_API;
+    return minApiLevel >= AndroidApiLevel.K.getLevel();
   }
 
   public boolean canUseSuppressedExceptions() {
-    return minApiLevel >= Constants.ANDROID_K_API;
+    return minApiLevel >= AndroidApiLevel.K.getLevel();
   }
 
   // APIs for accessing parameter names annotations are not available before Android O, thus does
   // not emit them to avoid wasting space in Dex files because runtimes before Android O will ignore
   // them.
   public boolean canUseParameterNameAnnotations() {
-    return minApiLevel >= Constants.ANDROID_O_API;
+    return minApiLevel >= AndroidApiLevel.O.getLevel();
   }
 }
