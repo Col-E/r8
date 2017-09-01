@@ -4,8 +4,13 @@
 package com.android.tools.r8.jasmin;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.debuginfo.DebugInfoInspector;
+import com.android.tools.r8.naming.MemberNaming.MethodSignature;
+import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import org.junit.Test;
@@ -128,7 +133,7 @@ public class InvalidDebugInfoTests extends JasminTestBase {
   public void invalidInfoBug63412730_onWrite() throws Throwable {
     JasminBuilder builder = new JasminBuilder();
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
-    clazz.addStaticMethod("bar", ImmutableList.of(), "V",
+    MethodSignature method = clazz.addStaticMethod("bar", ImmutableList.of(), "V",
         ".limit stack 3",
         ".limit locals 2",
         ".var 1 is i I from LI to End",
@@ -136,9 +141,11 @@ public class InvalidDebugInfoTests extends JasminTestBase {
         "Init:",
         "  ldc 42",
         "  istore 0",
+        ".line 1",
         "LI:",
         "  ldc 7.5",
         "  fstore 1",
+        ".line 2",
         "LF:",
         "  getstatic java/lang/System/out Ljava/io/PrintStream;",
         "  dup",
@@ -146,6 +153,7 @@ public class InvalidDebugInfoTests extends JasminTestBase {
         "  invokevirtual java/io/PrintStream/println(I)V",
         "  fload 1",
         "  invokevirtual java/io/PrintStream/println(F)V",
+        ".line 3",
         "  return",
         "End:");
 
@@ -158,15 +166,18 @@ public class InvalidDebugInfoTests extends JasminTestBase {
     String expected = StringUtils.lines("42", "7.5");
     String javaResult = runOnJava(builder, clazz.name);
     assertEquals(expected, javaResult);
-    String artResult = runOnArtD8(builder, clazz.name);
+    AndroidApp app = compileWithD8(builder);
+    String artResult = runOnArt(app, clazz.name);
     assertEquals(expected, artResult);
+    DebugInfoInspector info = new DebugInfoInspector(app, clazz.name, method);
+    assertFalse(info.hasLocalsInfo());
   }
 
   @Test
   public void invalidInfoBug63412730_onRead() throws Throwable {
     JasminBuilder builder = new JasminBuilder();
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
-    clazz.addStaticMethod("bar", ImmutableList.of(), "V",
+    MethodSignature method = clazz.addStaticMethod("bar", ImmutableList.of(), "V",
         ".limit stack 3",
         ".limit locals 2",
         ".var 1 is i I from Locals to End",
@@ -174,8 +185,10 @@ public class InvalidDebugInfoTests extends JasminTestBase {
         "Init:",
         "  ldc 42",
         "  istore 0",
+        ".line 1",
         "  ldc 7.5",
         "  fstore 1",
+        ".line 2",
         "Locals:",
         "  getstatic java/lang/System/out Ljava/io/PrintStream;",
         "  dup",
@@ -183,6 +196,7 @@ public class InvalidDebugInfoTests extends JasminTestBase {
         "  invokevirtual java/io/PrintStream/println(I)V",
         "  fload 1",
         "  invokevirtual java/io/PrintStream/println(F)V",
+        ".line 3",
         "  return",
         "End:");
 
@@ -195,15 +209,18 @@ public class InvalidDebugInfoTests extends JasminTestBase {
     String expected = StringUtils.lines("42", "7.5");
     String javaResult = runOnJava(builder, clazz.name);
     assertEquals(expected, javaResult);
-    String artResult = runOnArtD8(builder, clazz.name);
+    AndroidApp app = compileWithD8(builder);
+    String artResult = runOnArt(app, clazz.name);
     assertEquals(expected, artResult);
+    DebugInfoInspector info = new DebugInfoInspector(app, clazz.name, method);
+    assertFalse(info.hasLocalsInfo());
   }
 
   @Test
   public void invalidInfoBug63412730_onMove() throws Throwable {
     JasminBuilder builder = new JasminBuilder();
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
-    clazz.addStaticMethod("bar", ImmutableList.of(), "V",
+    MethodSignature method = clazz.addStaticMethod("bar", ImmutableList.of(), "V",
         ".limit stack 3",
         ".limit locals 2",
         ".var 1 is i I from LI to End",
@@ -211,21 +228,25 @@ public class InvalidDebugInfoTests extends JasminTestBase {
         "Init:",
         "  ldc 42",
         "  istore 0",
+        ".line 1",
         "LI:",
         "  ldc 0",
         "  ldc 0",
         "  ifeq LZ",
         "  ldc 75",
         "  istore 1",
+        ".line 2",
         "LJ:",
         "  getstatic java/lang/System/out Ljava/io/PrintStream;",
         "  iload 1",
         "  invokevirtual java/io/PrintStream/println(I)V",
+        ".line 3",
         "  return",
         "LZ:",
         "  getstatic java/lang/System/out Ljava/io/PrintStream;",
         "  iload 0",
         "  invokevirtual java/io/PrintStream/println(I)V",
+        ".line 4",
         "  return",
         "End:");
 
@@ -238,15 +259,18 @@ public class InvalidDebugInfoTests extends JasminTestBase {
     String expected = StringUtils.lines("42");
     String javaResult = runOnJava(builder, clazz.name);
     assertEquals(expected, javaResult);
-    String artResult = runOnArtD8(builder, clazz.name);
+    AndroidApp app = compileWithD8(builder);
+    String artResult = runOnArt(app, clazz.name);
     assertEquals(expected, artResult);
+    DebugInfoInspector info = new DebugInfoInspector(app, clazz.name, method);
+    assertFalse(info.hasLocalsInfo());
   }
 
   @Test
   public void invalidInfoBug63412730_onPop() throws Throwable {
     JasminBuilder builder = new JasminBuilder();
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
-    clazz.addStaticMethod("bar", ImmutableList.of(), "V",
+    MethodSignature method = clazz.addStaticMethod("bar", ImmutableList.of(), "V",
         ".limit stack 3",
         ".limit locals 2",
         ".var 1 is a [Ljava/lang/Object; from Locals to End",
@@ -255,21 +279,25 @@ public class InvalidDebugInfoTests extends JasminTestBase {
         "  ldc 1",
         "  anewarray java/lang/Object",
         "  astore 0",
+        ".line 1",
         "  new java/lang/Integer",
         "  dup",
         "  ldc 42",
         "  invokespecial java/lang/Integer/<init>(I)V",
         "  astore 1",
+        ".line 2",
         "Locals:",
         "  aload 0",
         "  ldc 0",
         "  aload 1",
         "  aastore",
+        ".line 3",
         "  getstatic java/lang/System/out Ljava/io/PrintStream;",
         "  aload 0",
         "  ldc 0",
         "  aaload",
         "  invokevirtual java/io/PrintStream/println(Ljava/lang/Object;)V",
+        ".line 4",
         "  return",
         "End:");
 
@@ -282,7 +310,12 @@ public class InvalidDebugInfoTests extends JasminTestBase {
     String expected = StringUtils.lines("42");
     String javaResult = runOnJava(builder, clazz.name);
     assertEquals(expected, javaResult);
-    String artResult = runOnArtD8(builder, clazz.name);
+    AndroidApp app = compileWithD8(builder);
+    String artResult = runOnArt(app, clazz.name);
     assertEquals(expected, artResult);
+    DebugInfoInspector info = new DebugInfoInspector(app, clazz.name, method);
+    // Note: This code is actually invalid debug info, but we do not reject it because both types
+    // are reference types. If we ever change that we should update this test.
+    assertTrue(info.hasLocalsInfo());
   }
 }

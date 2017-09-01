@@ -343,6 +343,11 @@ public class JarState {
 
   private Local setLocalInfoForRegister(int register, DebugLocalInfo info) {
     Local existingLocal = getLocalForRegister(register);
+    Type type = Type.getType(info.type.toDescriptorString());
+    if (!existingLocal.slot.isCompatibleWith(type)) {
+      throw new InvalidDebugInfoException(
+          "Attempt to define local of type " + prettyType(existingLocal.slot.type) + " as " + info);
+    }
     Local local = new Local(existingLocal.slot, info);
     locals[register] = local;
     return local;
@@ -419,12 +424,7 @@ public class JarState {
 
   public Slot pop(Type type) {
     Slot slot = pop();
-    boolean compatible = slot.isCompatibleWith(type);
-    if (!compatible && !localVariables.isEmpty()) {
-      throw new InvalidDebugInfoException("Expected to read stack value of type " + prettyType(type)
-          + " but found value of type " + prettyType(slot.type));
-    }
-    assert compatible;
+    assert slot.isCompatibleWith(type);
     return slot;
   }
 
