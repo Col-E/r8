@@ -10,7 +10,7 @@ import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.errors.MainDexError;
+import com.android.tools.r8.errors.DexOverflowException;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.ClassAndMemberPublicizer;
@@ -99,7 +99,7 @@ public class R8 {
       byte[] proguardSeedsData,
       PackageDistribution packageDistribution,
       InternalOptions options)
-      throws ExecutionException {
+      throws ExecutionException, DexOverflowException {
     try {
       Marker marker = getMarker(options);
       return new ApplicationWriter(
@@ -393,8 +393,6 @@ public class R8 {
 
       options.printWarnings();
       return new CompilationResult(androidApp, application, appInfo);
-    } catch (MainDexError mainDexError) {
-      throw new CompilationError(mainDexError.getMessageForR8());
     } catch (ExecutionException e) {
       unwrapExecutionException(e);
       throw new AssertionError(e); // unwrapping method should have thrown
@@ -563,8 +561,7 @@ public class R8 {
       cause.printStackTrace();
       System.exit(1);
     } catch (CompilationException e) {
-      System.err.println("Compilation failed: " + e.getMessage());
-      System.err.println(USAGE_MESSAGE);
+      System.err.println("Compilation failed: " + e.getMessageForR8());
       System.exit(1);
     }
   }

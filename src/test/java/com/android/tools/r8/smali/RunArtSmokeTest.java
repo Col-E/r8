@@ -21,7 +21,7 @@ import org.junit.Test;
 public class RunArtSmokeTest extends SmaliTestBase {
 
   @Test
-  public void test() {
+  public void test() throws Exception {
     // Build simple "Hello, world!" application.
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
     MethodSignature mainSignature = builder.addMainMethod(

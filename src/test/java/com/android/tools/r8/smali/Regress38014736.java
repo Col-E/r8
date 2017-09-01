@@ -12,7 +12,7 @@ import org.junit.Test;
 public class Regress38014736 extends SmaliTestBase {
 
   @Test
-  public void handlerRangeStartingOnMoveResult() {
+  public void handlerRangeStartingOnMoveResult() throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     builder.addMainMethod(

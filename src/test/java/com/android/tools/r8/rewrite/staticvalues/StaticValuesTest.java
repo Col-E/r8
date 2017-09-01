@@ -31,7 +31,7 @@ import org.junit.Test;
 public class StaticValuesTest extends SmaliTestBase {
 
   @Test
-  public void testAllTypes() {
+  public void testAllTypes() throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     builder.addStaticField("booleanField", "Z");
@@ -148,7 +148,7 @@ public class StaticValuesTest extends SmaliTestBase {
   }
 
   @Test
-  public void getBeforePut() {
+  public void getBeforePut() throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     builder.addStaticField("field1", "I", "1");
@@ -187,7 +187,7 @@ public class StaticValuesTest extends SmaliTestBase {
   }
 
   @Test
-  public void testNull() {
+  public void testNull() throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     builder.addStaticField("stringField", "Ljava/lang/String;", "Hello");
@@ -227,7 +227,7 @@ public class StaticValuesTest extends SmaliTestBase {
   }
 
   @Test
-  public void testString() {
+  public void testString() throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     builder.addStaticField("stringField1", "Ljava/lang/String;", "Hello");
@@ -268,7 +268,7 @@ public class StaticValuesTest extends SmaliTestBase {
   }
 
   @Test
-  public void testMultiplePuts() {
+  public void testMultiplePuts() throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     builder.addStaticField("intField", "I");
@@ -329,7 +329,7 @@ public class StaticValuesTest extends SmaliTestBase {
 
 
   @Test
-  public void testMultiplePutsWithControlFlow() {
+  public void testMultiplePutsWithControlFlow() throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     builder.addStaticField("booleanField", "Z");
@@ -412,7 +412,7 @@ public class StaticValuesTest extends SmaliTestBase {
   }
 
   @Test
-  public void testInitializationToOwnClassName() {
+  public void testInitializationToOwnClassName() throws Exception {
     String className = "org.example.Test";
     SmaliBuilder builder = new SmaliBuilder(className);
 
@@ -479,7 +479,7 @@ public class StaticValuesTest extends SmaliTestBase {
   }
 
   @Test
-  public void testInitializationToOtherClassName() {
+  public void testInitializationToOtherClassName() throws Exception {
     String className = "org.example.Test";
     SmaliBuilder builder = new SmaliBuilder(className);
 
@@ -526,7 +526,7 @@ public class StaticValuesTest extends SmaliTestBase {
   }
 
   @Test
-  public void fieldOnOtherClass() {
+  public void fieldOnOtherClass() throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     builder.addStaticInitializer(

@@ -20,6 +20,7 @@ import com.android.tools.r8.code.Return;
 import com.android.tools.r8.code.ReturnObject;
 import com.android.tools.r8.code.ReturnVoid;
 import com.android.tools.r8.code.ReturnWide;
+import com.android.tools.r8.errors.DexOverflowException;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -88,7 +89,7 @@ public class OutlineTest extends SmaliTestBase {
   }
 
   @Test
-  public void a() {
+  public void a() throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     String returnType = "java.lang.String";
@@ -150,7 +151,7 @@ public class OutlineTest extends SmaliTestBase {
   }
 
   @Test
-  public void b() {
+  public void b() throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     String returnType = "java.lang.String";
@@ -220,7 +221,7 @@ public class OutlineTest extends SmaliTestBase {
   }
 
   @Test
-  public void c() {
+  public void c() throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     // Method with const instructions after the outline.
@@ -277,7 +278,7 @@ public class OutlineTest extends SmaliTestBase {
   }
 
   @Test
-  public void d() {
+  public void d() throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     // Method with mixed use of arguments and locals.
@@ -416,7 +417,7 @@ public class OutlineTest extends SmaliTestBase {
   }
 
   @Test
-  public void doubleArguments() {
+  public void doubleArguments() throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     String returnType = "java.lang.String";
@@ -490,7 +491,7 @@ public class OutlineTest extends SmaliTestBase {
   }
 
   @Test
-  public void invokeStatic() {
+  public void invokeStatic() throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     String returnType = "void";
@@ -563,7 +564,7 @@ public class OutlineTest extends SmaliTestBase {
   }
 
   @Test
-  public void constructor() throws IOException, RecognitionException {
+  public void constructor() throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     MethodSignature signature1 = builder.addStaticMethod(
@@ -648,7 +649,7 @@ public class OutlineTest extends SmaliTestBase {
   }
 
   @Test
-  public void constructorDontSplitNewInstanceAndInit() {
+  public void constructorDontSplitNewInstanceAndInit() throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     MethodSignature signature = builder.addStaticMethod(
@@ -718,7 +719,7 @@ public class OutlineTest extends SmaliTestBase {
   }
 
   @Test
-  public void outlineWithoutArguments() {
+  public void outlineWithoutArguments() throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     MethodSignature signature1 = builder.addStaticMethod(
@@ -763,7 +764,7 @@ public class OutlineTest extends SmaliTestBase {
   }
 
   @Test
-  public void outlineDifferentReturnType() {
+  public void outlineDifferentReturnType() throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     List<String> parameters = Collections.singletonList("java.lang.StringBuilder");
@@ -850,7 +851,7 @@ public class OutlineTest extends SmaliTestBase {
   }
 
   @Test
-  public void outlineMultipleTimes() {
+  public void outlineMultipleTimes() throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     String returnType = "java.lang.String";
@@ -923,7 +924,7 @@ public class OutlineTest extends SmaliTestBase {
   }
 
   @Test
-  public void outlineReturnLong() {
+  public void outlineReturnLong() throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     MethodSignature signature = builder.addStaticMethod(
@@ -976,7 +977,7 @@ public class OutlineTest extends SmaliTestBase {
   }
 
   @Test
-  public void outlineArrayType() {
+  public void outlineArrayType() throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     builder.addStaticMethod(
@@ -1034,7 +1035,7 @@ public class OutlineTest extends SmaliTestBase {
   }
 
   @Test
-  public void outlineArithmeticBinop() {
+  public void outlineArithmeticBinop() throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     builder.addStaticMethod(
@@ -1115,7 +1116,7 @@ public class OutlineTest extends SmaliTestBase {
   }
 
   @Test
-  public void outlineWithHandler() {
+  public void outlineWithHandler() throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     builder.addStaticMethod(
@@ -1188,7 +1189,7 @@ public class OutlineTest extends SmaliTestBase {
   }
 
   @Test
-  public void outlineUnusedOutValue() {
+  public void outlineUnusedOutValue() throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     // The result from neither the div-int is never used.
@@ -1235,7 +1236,7 @@ public class OutlineTest extends SmaliTestBase {
   }
 
   @Test
-  public void outlineUnusedNewInstanceOutValue() {
+  public void outlineUnusedNewInstanceOutValue() throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     // The result from the new-instance instructions are never used (<init> is not even called).
@@ -1280,7 +1281,7 @@ public class OutlineTest extends SmaliTestBase {
   }
 
   @Test
-  public void regress33733666() {
+  public void regress33733666() throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     builder.addStaticMethod(
