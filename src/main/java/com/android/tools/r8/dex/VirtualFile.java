@@ -5,7 +5,7 @@ package com.android.tools.r8.dex;
 
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.InternalCompilerError;
-import com.android.tools.r8.errors.MainDexError;
+import com.android.tools.r8.errors.DexOverflowException;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
@@ -173,11 +173,11 @@ public class VirtualFile {
     return isFull(transaction.getNumberOfMethods(), transaction.getNumberOfFields(), MAX_ENTRIES);
   }
 
-  void throwIfFull(boolean hasMainDexList) {
+  void throwIfFull(boolean hasMainDexList) throws DexOverflowException {
     if (!isFull()) {
       return;
     }
-    throw new MainDexError(
+    throw new DexOverflowException(
         hasMainDexList,
         transaction.getNumberOfMethods(),
         transaction.getNumberOfFields(),
@@ -217,7 +217,8 @@ public class VirtualFile {
       this.writer = writer;
     }
 
-    public abstract Map<Integer, VirtualFile> run() throws ExecutionException, IOException;
+    public abstract Map<Integer, VirtualFile> run()
+        throws ExecutionException, IOException, DexOverflowException;
   }
 
   public static class FilePerClassDistributor extends Distributor {
@@ -259,7 +260,7 @@ public class VirtualFile {
       originalNames = computeOriginalNameMapping(classes, application.getProguardMap());
     }
 
-    protected void fillForMainDexList(Set<DexProgramClass> classes) {
+    protected void fillForMainDexList(Set<DexProgramClass> classes) throws DexOverflowException {
       if (!application.mainDexList.isEmpty()) {
         VirtualFile mainDexFile = nameToFileMap.get(0);
         for (DexType type : application.mainDexList) {
@@ -324,7 +325,7 @@ public class VirtualFile {
     }
 
     @Override
-    public Map<Integer, VirtualFile> run() throws IOException {
+    public Map<Integer, VirtualFile> run() throws IOException, DexOverflowException {
       // First fill required classes into the main dex file.
       fillForMainDexList(classes);
       if (classes.isEmpty()) {
@@ -359,7 +360,8 @@ public class VirtualFile {
     }
 
     @Override
-    public Map<Integer, VirtualFile> run() throws ExecutionException, IOException {
+    public Map<Integer, VirtualFile> run()
+        throws ExecutionException, IOException, DexOverflowException {
       // Add all classes to the main dex file.
       for (DexProgramClass programClass : classes) {
         mainDexFile.addClass(programClass);
@@ -384,7 +386,8 @@ public class VirtualFile {
     }
 
     @Override
-    public Map<Integer, VirtualFile> run() throws ExecutionException, IOException {
+    public Map<Integer, VirtualFile> run()
+        throws ExecutionException, IOException, DexOverflowException {
       // Strategy for distributing classes for write out:
       // 1. Place all files in the package distribution file in the proposed files (if any).
       // 2. Place the remaining files based on their packages in sorted order.

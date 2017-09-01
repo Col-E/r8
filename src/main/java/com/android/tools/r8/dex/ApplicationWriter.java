@@ -5,6 +5,7 @@ package com.android.tools.r8.dex;
 
 import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.errors.DexOverflowException;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationDirectory;
@@ -126,7 +127,7 @@ public class ApplicationWriter {
   }
 
   public AndroidApp write(PackageDistribution packageDistribution, ExecutorService executorService)
-      throws IOException, ExecutionException {
+      throws IOException, ExecutionException, DexOverflowException {
     application.timing.begin("DexApplication.write");
     try {
       application.dexItemFactory.sort(namingLens);

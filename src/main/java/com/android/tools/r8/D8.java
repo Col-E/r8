@@ -10,7 +10,7 @@ import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.errors.MainDexError;
+import com.android.tools.r8.errors.DexOverflowException;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.ir.conversion.IRConverter;
@@ -140,8 +140,7 @@ public final class D8 {
       cause.printStackTrace();
       System.exit(STATUS_ERROR);
     } catch (CompilationException e) {
-      System.err.println("Compilation failed: " + e.getMessage());
-      System.err.println(USAGE_MESSAGE);
+      System.err.println("Compilation failed: " + e.getMessageForD8());
       System.exit(STATUS_ERROR);
     }
   }
@@ -199,8 +198,6 @@ public final class D8 {
 
       options.printWarnings();
       return output;
-    } catch (MainDexError mainDexError) {
-      throw new CompilationError(mainDexError.getMessageForD8());
     } catch (ExecutionException e) {
       R8.unwrapExecutionException(e);
       throw new AssertionError(e); // unwrapping method should have thrown

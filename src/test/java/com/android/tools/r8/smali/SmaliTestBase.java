@@ -11,6 +11,7 @@ import com.android.tools.r8.R8;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationReader;
+import com.android.tools.r8.errors.DexOverflowException;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexApplication;
@@ -387,7 +388,7 @@ public class SmaliTestBase extends TestBase {
       return iterator;
     }
 
-    public String run() {
+    public String run() throws DexOverflowException {
       AppInfo appInfo = new AppInfo(application);
       IRConverter converter = new IRConverter(application, appInfo, options);
       converter.replaceCodeForTesting(method, code);
@@ -514,11 +515,13 @@ public class SmaliTestBase extends TestBase {
         processdApplication, DEFAULT_CLASS_NAME, returnType, DEFAULT_METHOD_NAME, parameters);
   }
 
-  public String runArt(DexApplication application, InternalOptions options) {
+  public String runArt(DexApplication application, InternalOptions options)
+      throws DexOverflowException {
     return runArt(application, options, DEFAULT_MAIN_CLASS_NAME);
   }
 
-  public String runArt(DexApplication application, InternalOptions options, String mainClass) {
+  public String runArt(DexApplication application, InternalOptions options, String mainClass)
+      throws DexOverflowException {
     try {
       AndroidApp app = writeDex(application, options);
       Path out = temp.getRoot().toPath().resolve("run-art-input.zip");
@@ -530,7 +533,8 @@ public class SmaliTestBase extends TestBase {
     }
   }
 
-  public void runDex2Oat(DexApplication application, InternalOptions options) {
+  public void runDex2Oat(DexApplication application, InternalOptions options)
+      throws DexOverflowException {
     try {
       AndroidApp app = writeDex(application, options);
       Path dexOut = temp.getRoot().toPath().resolve("run-dex2oat-input.zip");
@@ -542,7 +546,8 @@ public class SmaliTestBase extends TestBase {
     }
   }
 
-  public AndroidApp writeDex(DexApplication application, InternalOptions options) {
+  public AndroidApp writeDex(DexApplication application, InternalOptions options)
+      throws DexOverflowException {
     AppInfo appInfo = new AppInfo(application);
     try {
       return R8.writeApplication(

@@ -36,5 +36,17 @@ public class CompilationException extends Exception {
   public CompilationException(Throwable cause) {
     super(cause.getMessage(), cause);
   }
+
+  protected CompilationException() {
+    super();
+  }
+
+  public String getMessageForD8() {
+    return super.getMessage();
+  }
+
+  public String getMessageForR8() {
+    return super.getMessage();
+  }
 }
 

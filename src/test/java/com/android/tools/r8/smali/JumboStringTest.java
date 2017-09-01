@@ -15,7 +15,7 @@ import org.junit.Test;
 public class JumboStringTest extends SmaliTestBase {
 
   @Test
-  public void test() {
+  public void test() throws Exception {
     StringBuilder builder = new StringBuilder();
     StringBuilder expectedBuilder = new StringBuilder();
     builder.append("    new-instance         v0, Ljava/lang/StringBuilder;\n");

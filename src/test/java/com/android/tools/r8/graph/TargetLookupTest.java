@@ -16,7 +16,7 @@ import org.junit.Test;
 public class TargetLookupTest extends SmaliTestBase {
 
   @Test
-  public void lookupDirect() {
+  public void lookupDirect() throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     builder.addDefaultConstructor();
@@ -71,7 +71,7 @@ public class TargetLookupTest extends SmaliTestBase {
   }
 
   @Test
-  public void lookupDirectSuper() {
+  public void lookupDirectSuper() throws Exception {
     SmaliBuilder builder = new SmaliBuilder("TestSuper");
 
     builder.addDefaultConstructor();

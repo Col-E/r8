@@ -3,36 +3,35 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.errors;
 
+import com.android.tools.r8.CompilationException;
+
 /**
- * Exception regarding main-dex list and main dex rules.
- *
- * Depending on tool kind, this exception should be massaged, e.g., adding appropriate suggestions,
- * and re-thrown as {@link CompilationError}, which will be in turn informed to the user as an
- * expected compilation error.
+ * Signals when there were too many items to fit in a given dex file.
  */
-public class MainDexError extends RuntimeException {
+public class DexOverflowException extends CompilationException {
 
   private final boolean hasMainDexList;
   private final long numOfMethods;
   private final long numOfFields;
   private final long maxNumOfEntries;
 
-  public MainDexError(
+  public DexOverflowException(
       boolean hasMainDexList, long numOfMethods, long numOfFields, long maxNumOfEntries) {
+    super();
     this.hasMainDexList = hasMainDexList;
     this.numOfMethods = numOfMethods;
     this.numOfFields = numOfFields;
     this.maxNumOfEntries = maxNumOfEntries;
   }
 
-  private String getGeneralMessage() {
+  private StringBuilder getGeneralMessage() {
     StringBuilder messageBuilder = new StringBuilder();
     // General message: Cannot fit.
     messageBuilder.append("Cannot fit requested classes in ");
     messageBuilder.append(hasMainDexList ? "the main-" : "a single ");
-    messageBuilder.append("dex file.\n");
+    messageBuilder.append("dex file");
 
-    return messageBuilder.toString();
+    return messageBuilder;
   }
 
   private String getNumberRelatedMessage() {
@@ -41,12 +40,15 @@ public class MainDexError extends RuntimeException {
     if (numOfMethods > maxNumOfEntries) {
       messageBuilder.append("# methods: ");
       messageBuilder.append(numOfMethods);
-      messageBuilder.append(" > ").append(maxNumOfEntries).append('\n');
+      messageBuilder.append(" > ").append(maxNumOfEntries);
+      if (numOfFields > maxNumOfEntries) {
+        messageBuilder.append(" ; ");
+      }
     }
     if (numOfFields > maxNumOfEntries) {
       messageBuilder.append("# fields: ");
       messageBuilder.append(numOfFields);
-      messageBuilder.append(" > ").append(maxNumOfEntries).append('\n');
+      messageBuilder.append(" > ").append(maxNumOfEntries);
     }
 
     return messageBuilder.toString();
@@ -54,34 +56,34 @@ public class MainDexError extends RuntimeException {
 
   @Override
   public String getMessage() {
-    // Placeholder to generate a general error message for other (minor) utilities:
-    //   Bisect, disassembler, dexsegments.
-    // Implement tool-specific error message generator, like D8 and R8 below, if necessary.
-    return getGeneralMessage() + getNumberRelatedMessage();
+    // Default message
+    return getGeneralMessage()
+        .append(" (")
+        .append(getNumberRelatedMessage())
+        .append(")")
+        .toString();
   }
 
+  @Override
   public String getMessageForD8() {
-    StringBuilder messageBuilder = new StringBuilder();
-    messageBuilder.append(getGeneralMessage());
-    if (hasMainDexList) {
-      messageBuilder.append("Classes required by the main-dex list ");
-      messageBuilder.append("do not fit in one dex.\n");
-    } else {
-      messageBuilder.append("Try supplying a main-dex list.\n");
+    StringBuilder messageBuilder = getGeneralMessage();
+    if (!hasMainDexList) {
+      messageBuilder.append(". ");
+      messageBuilder.append("Try supplying a main-dex list");
     }
+    messageBuilder.append(".").append(System.getProperty("line.separator"));
     messageBuilder.append(getNumberRelatedMessage());
     return messageBuilder.toString();
   }
 
+  @Override
   public String getMessageForR8() {
-    StringBuilder messageBuilder = new StringBuilder();
-    messageBuilder.append(getGeneralMessage());
-    if (hasMainDexList) {
-      messageBuilder.append("Classes required by main dex rules and the main-dex list ");
-      messageBuilder.append("do not fit in one dex.\n");
-    } else {
-      messageBuilder.append("Try supplying a main-dex list or main dex rules.\n");
+    StringBuilder messageBuilder = getGeneralMessage();
+    if (!hasMainDexList) {
+      messageBuilder.append(". ");
+      messageBuilder.append("Try supplying a main-dex list or main dex rules");
     }
+    messageBuilder.append(".").append(System.getProperty("line.separator"));
     messageBuilder.append(getNumberRelatedMessage());
     return messageBuilder.toString();
   }

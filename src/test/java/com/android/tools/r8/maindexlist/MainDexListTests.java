@@ -19,7 +19,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.errors.MainDexError;
+import com.android.tools.r8.errors.DexOverflowException;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.Code;
@@ -161,7 +161,7 @@ public class MainDexListTests extends TestBase {
     try {
       verifyMainDexContains(TWO_LARGE_CLASSES, getTwoLargeClassesAppPath(), false);
       fail("Expect to fail, for there are too many classes for the main-dex list.");
-    } catch (CompilationError e) {
+    } catch (DexOverflowException e) {
       // Make sure {@link MonoDexDistributor} was _not_ used.
       assertFalse(e.getMessage().contains("single dex file"));
       // Make sure what exceeds the limit is the number of methods.
@@ -202,7 +202,7 @@ public class MainDexListTests extends TestBase {
     try {
       verifyMainDexContains(MANY_CLASSES, getManyClassesMultiDexAppPath(), false);
       fail("Expect to fail, for there are too many classes for the main-dex list.");
-    } catch (CompilationError e) {
+    } catch (DexOverflowException e) {
       // Make sure {@link MonoDexDistributor} was _not_ used.
       assertFalse(e.getMessage().contains("single dex file"));
       // Make sure what exceeds the limit is the number of methods.
@@ -402,7 +402,7 @@ public class MainDexListTests extends TestBase {
       generateApplication(
           MANY_CLASSES, Constants.ANDROID_K_API, false, MANY_CLASSES_MULTI_DEX_METHODS_PER_CLASS);
       fail("Expect to fail, for there are many classes while multidex is not enabled.");
-    } catch (MainDexError e) {
+    } catch (DexOverflowException e) {
       // Make sure {@link MonoDexDistributor} was used.
       assertTrue(e.getMessage().contains("single dex file"));
       // Make sure what exceeds the limit is the number of methods.
