@@ -150,6 +150,9 @@ public class TreeShakingTest {
         used.method("java.lang.String", "aMethodThatIsNotUsedButKept", Collections.emptyList())
             .isPresent());
     Assert.assertTrue(used.field("int", "aStaticFieldThatIsNotUsedButKept").isPresent());
+    // Rewriting of <clinit> moves the initialization of aStaticFieldThatIsNotUsedButKept
+    // from <clinit> code into statics value section of the dex file.
+    Assert.assertFalse(used.clinit().isPresent());
   }
 
   public static void shaking1IsCorrectlyRepackaged(DexInspector inspector) {

@@ -240,9 +240,6 @@ public class IRConverter {
               }));
     }
     ThreadUtils.awaitFutures(futures);
-
-    // Get rid of <clinit> methods with no code.
-    removeEmptyClassInitializers();
   }
 
   void convertMethodToDex(DexEncodedMethod method) throws ApiLevelException {
@@ -293,9 +290,6 @@ public class IRConverter {
       timing.end();
     }
 
-    // Get rid of <clinit> methods with no code.
-    removeEmptyClassInitializers();
-
     // Build a new application with jumbo string info.
     Builder builder = new Builder(application);
     builder.setHighestSortingString(highestSortingString);
@@ -336,17 +330,6 @@ public class IRConverter {
     }
     clearDexMethodCompilationState();
     return builder.build();
-  }
-
-  private void removeEmptyClassInitializers() {
-    application.classes().forEach(this::removeEmptyClassInitializer);
-  }
-
-  private void removeEmptyClassInitializer(DexProgramClass clazz) {
-    if (clazz.hasTrivialClassInitializer()
-        && !clazz.getClassInitializer().hasDebugPositions()) {
-      clazz.removeStaticMethod(clazz.getClassInitializer());
-    }
   }
 
   private void clearDexMethodCompilationState() {
