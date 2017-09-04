@@ -13,7 +13,6 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.CatchHandlers;
-import com.android.tools.r8.ir.code.DebugPosition;
 import com.android.tools.r8.ir.code.MoveType;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.IRBuilder;
@@ -196,16 +195,6 @@ public abstract class SingleBlockSourceCode implements SourceCode {
   @Override
   public final CatchHandlers<Integer> getCurrentCatchHandlers() {
     return null;
-  }
-
-  @Override
-  public int getMoveExceptionRegister() {
-    throw new Unreachable();
-  }
-
-  @Override
-  public DebugPosition getDebugPositionAtOffset(int offset) {
-    throw new Unreachable();
   }
 
   @Override

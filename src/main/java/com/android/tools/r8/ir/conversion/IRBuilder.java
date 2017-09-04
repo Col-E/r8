@@ -95,7 +95,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.IdentityHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -124,15 +123,6 @@ public class IRBuilder {
       assert block != null;
       this.block = block;
       this.firstInstructionIndex = firstInstructionIndex;
-    }
-  }
-
-  private static class MoveExceptionWorklistItem extends WorklistItem {
-    private final int targetOffset;
-
-    private MoveExceptionWorklistItem(BasicBlock block, int targetOffset) {
-      super(block, -1);
-      this.targetOffset = targetOffset;
     }
   }
 
@@ -462,11 +452,6 @@ public class IRBuilder {
       setCurrentBlock(item.block);
       blocks.add(currentBlock);
       currentBlock.setNumber(nextBlockNumber++);
-      // Process synthesized move-exception block specially.
-      if (item instanceof MoveExceptionWorklistItem) {
-        processMoveExceptionItem((MoveExceptionWorklistItem) item);
-        continue;
-      }
       // Build IR for each dex instruction in the block.
       for (int i = item.firstInstructionIndex; i < source.instructionCount(); ++i) {
         if (currentBlock == null) {
@@ -483,22 +468,6 @@ public class IRBuilder {
         source.buildInstruction(this, i);
       }
     }
-  }
-
-  private void processMoveExceptionItem(MoveExceptionWorklistItem moveExceptionItem) {
-    // TODO(zerny): Link with outer try-block handlers, if any. b/65203529
-    int moveExceptionDest = source.getMoveExceptionRegister();
-    assert moveExceptionDest >= 0;
-    int targetIndex = source.instructionIndex(moveExceptionItem.targetOffset);
-    Value out = writeRegister(moveExceptionDest, MoveType.OBJECT, ThrowingInfo.NO_THROW, null);
-    MoveException moveException = new MoveException(out);
-    moveException.setPosition(source.getDebugPositionAtOffset(moveExceptionItem.targetOffset));
-    currentBlock.add(moveException);
-    currentBlock.add(new Goto());
-    BasicBlock targetBlock = getTarget(moveExceptionItem.targetOffset);
-    currentBlock.link(targetBlock);
-    addToWorklist(targetBlock, targetIndex);
-    closeCurrentBlock();
   }
 
   // Helper to resolve switch payloads and build switch instructions (dex code only).
@@ -1622,7 +1591,9 @@ public class IRBuilder {
   // Private instruction helpers.
   private void addInstruction(Instruction ir) {
     attachLocalChanges(ir);
-    flushCurrentDebugPosition(ir);
+    if (currentDebugPosition != null && !ir.isMoveException()) {
+      flushCurrentDebugPosition();
+    }
     currentBlock.add(ir);
     if (ir.instructionTypeCanThrow()) {
       assert source.verifyCurrentInstructionCanThrow();
@@ -1631,32 +1602,17 @@ public class IRBuilder {
         assert !throwingInstructionInCurrentBlock;
         throwingInstructionInCurrentBlock = true;
         List<BasicBlock> targets = new ArrayList<>(catchHandlers.getAllTargets().size());
-        int moveExceptionDest = source.getMoveExceptionRegister();
-        if (moveExceptionDest < 0) {
-          for (int targetOffset : catchHandlers.getAllTargets()) {
-            BasicBlock target = getTarget(targetOffset);
-            addToWorklist(target, source.instructionIndex(targetOffset));
-            targets.add(target);
-          }
-        } else {
-          // If there is a well-defined move-exception destination register (eg, compiling from
-          // Java-bytecode) then we construct move-exception header blocks for each unique target.
-          Map<BasicBlock, BasicBlock> moveExceptionHeaders =
-              new IdentityHashMap<>(catchHandlers.getUniqueTargets().size());
-          for (int targetOffset : catchHandlers.getAllTargets()) {
-            BasicBlock target = getTarget(targetOffset);
-            BasicBlock header = moveExceptionHeaders.get(target);
-            if (header == null) {
-              header = new BasicBlock();
-              header.incrementUnfilledPredecessorCount();
-              moveExceptionHeaders.put(target, header);
-              ssaWorklist.add(new MoveExceptionWorklistItem(header, targetOffset));
-            }
-            targets.add(header);
-          }
+        for (int targetOffset : catchHandlers.getAllTargets()) {
+          BasicBlock target = getTarget(targetOffset);
+          addToWorklist(target, source.instructionIndex(targetOffset));
+          targets.add(target);
         }
         currentBlock.linkCatchSuccessors(catchHandlers.getGuards(), targets);
       }
+    }
+    if (currentDebugPosition != null) {
+      assert ir.isMoveException();
+      flushCurrentDebugPosition();
     }
   }
 
@@ -2065,23 +2021,26 @@ public class IRBuilder {
 
   public void updateCurrentDebugPosition(int line, DexString file) {
     // Stack-trace support requires position information in both debug and release mode.
-    flushCurrentDebugPosition(null);
+    flushCurrentDebugPosition();
     currentDebugPosition = new DebugPosition(line, file);
     attachLocalChanges(currentDebugPosition);
   }
 
-  private void flushCurrentDebugPosition(Instruction instruction) {
+  private void flushCurrentDebugPosition() {
     if (currentDebugPosition != null) {
       DebugPosition position = currentDebugPosition;
       currentDebugPosition = null;
-      if (instruction != null && instruction.isMoveException()) {
-        // Set the position on the move-exception instruction.
-        // ART/DX associates the move-exception pc with the catch-declaration line.
-        // See debug.ExceptionTest.testStepOnCatch().
-        instruction.asMoveException().setPosition(position);
-      } else {
-        addInstruction(position);
+      if (!currentBlock.getInstructions().isEmpty()) {
+        MoveException move = currentBlock.getInstructions().getLast().asMoveException();
+        if (move != null && move.getPosition() == null) {
+          // Set the position on the move-exception instruction.
+          // ART/DX associates the move-exception pc with the catch-declaration line.
+          // See debug.ExceptionTest.testStepOnCatch().
+          move.setPosition(position);
+          return;
+        }
       }
+      addInstruction(position);
     }
   }
 
