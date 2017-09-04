@@ -12,6 +12,7 @@ import com.android.tools.r8.code.ConstString;
 import com.android.tools.r8.code.ConstWide;
 import com.android.tools.r8.code.ConstWideHigh16;
 import com.android.tools.r8.code.DivInt;
+import com.android.tools.r8.code.DivInt2Addr;
 import com.android.tools.r8.code.InvokeStatic;
 import com.android.tools.r8.code.InvokeVirtual;
 import com.android.tools.r8.code.MoveResult;
@@ -1176,7 +1177,7 @@ public class OutlineTest extends SmaliTestBase {
     assertTrue(code.instructions[0] instanceof DivInt);
     assertTrue(code.instructions[1] instanceof InvokeStatic);
     assertTrue(code.instructions[2] instanceof MoveResult);
-    assertTrue(code.instructions[3] instanceof DivInt);
+    assertTrue(code.instructions[3] instanceof DivInt2Addr);
     assertTrue(code.instructions[4] instanceof Return);
     assertTrue(code.instructions[5] instanceof Const4);
     assertTrue(code.instructions[6] instanceof Return);
