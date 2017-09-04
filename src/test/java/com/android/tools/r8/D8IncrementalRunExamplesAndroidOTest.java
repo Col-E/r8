@@ -38,14 +38,14 @@ import org.junit.Test;
 public abstract class D8IncrementalRunExamplesAndroidOTest
     extends RunExamplesAndroidOTest<D8Command.Builder> {
 
-  abstract class D8IncrementalTestRunner extends TestRunner<D8IncrementalTestRunner> {
+  abstract class D8IncrementalTestRunner extends TestRunner {
 
     D8IncrementalTestRunner(String testName, String packageName, String mainClass) {
       super(testName, packageName, mainClass);
     }
 
     @Override
-    D8IncrementalTestRunner withMinApiLevel(int minApiLevel) {
+    TestRunner withMinApiLevel(int minApiLevel) {
       return withBuilderTransformation(builder -> builder.setMinApiLevel(minApiLevel));
     }
 
@@ -154,11 +154,12 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
         builder = transformation.apply(builder);
       }
       builder = builder.setOutputMode(outputMode);
+      builder = builder.addLibraryFiles(
+          Paths.get(ToolHelper.getAndroidJar(builder.getMinApiLevel())));
       if (output != null) {
         builder = builder.setOutputPath(output);
       }
-      addLibraryReference(builder, Paths.get(ToolHelper.getAndroidJar(
-          androidJarVersion == null ? builder.getMinApiLevel() : androidJarVersion)));
+      addLibraryReference(builder, Paths.get(ToolHelper.getAndroidJar(builder.getMinApiLevel())));
       D8Command command = builder.build();
       try {
         return ToolHelper.runD8(command, this::combinedOptionConsumer);
@@ -287,7 +288,6 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
     Assert.assertArrayEquals(expectedFileNames, dexFiles);
   }
 
-  @Override
   abstract D8IncrementalTestRunner test(String testName, String packageName, String mainClass);
 
   static byte[] readFromResource(Resource resource) throws IOException {
