@@ -94,7 +94,9 @@ public class StaticValuesTest extends SmaliTestBase {
     DexApplication processedApplication = processApplication(originalApplication, options);
 
     DexInspector inspector = new DexInspector(processedApplication);
-    assertFalse(inspector.clazz("Test").clinit().isPresent());
+    // Test is running without tree-shaking, so the empty <clinit> is not removed.
+    assertTrue(
+        inspector.clazz("Test").clinit().getMethod().getCode().asDexCode().isEmptyVoidMethod());
 
     DexValue value;
     assertTrue(inspector.clazz("Test").field("boolean", "booleanField").hasStaticValue());
@@ -219,7 +221,9 @@ public class StaticValuesTest extends SmaliTestBase {
     DexApplication processedApplication = processApplication(originalApplication, options);
 
     DexInspector inspector = new DexInspector(processedApplication);
-    assertFalse(inspector.clazz("Test").clinit().isPresent());
+    // Test is running without tree-shaking, so the empty <clinit> is not removed.
+    assertTrue(
+        inspector.clazz("Test").clinit().getMethod().getCode().asDexCode().isEmptyVoidMethod());
 
     String result = runArt(processedApplication, options);
 
@@ -260,7 +264,9 @@ public class StaticValuesTest extends SmaliTestBase {
     DexApplication processedApplication = processApplication(originalApplication, options);
 
     DexInspector inspector = new DexInspector(processedApplication);
-    assertFalse(inspector.clazz("Test").clinit().isPresent());
+    // Test is running without tree-shaking, so the empty <clinit> is not removed.
+    assertTrue(
+        inspector.clazz("Test").clinit().getMethod().getCode().asDexCode().isEmptyVoidMethod());
 
     String result = runArt(processedApplication, options);
 
@@ -309,7 +315,9 @@ public class StaticValuesTest extends SmaliTestBase {
     DexApplication processedApplication = processApplication(originalApplication, options);
 
     DexInspector inspector = new DexInspector(processedApplication);
-    assertFalse(inspector.clazz("Test").clinit().isPresent());
+    // Test is running without tree-shaking, so the empty <clinit> is not removed.
+    assertTrue(
+        inspector.clazz("Test").clinit().getMethod().getCode().asDexCode().isEmptyVoidMethod());
 
     DexValue value;
     assertTrue(inspector.clazz("Test").field("int", "intField").hasStaticValue());
@@ -470,7 +478,9 @@ public class StaticValuesTest extends SmaliTestBase {
 
     DexInspector inspector = new DexInspector(processedApplication);
     assertTrue(inspector.clazz(className).isPresent());
-    assertFalse(inspector.clazz(className).clinit().isPresent());
+    // Test is running without tree-shaking, so the empty <clinit> is not removed.
+    assertTrue(
+        inspector.clazz(className).clinit().getMethod().getCode().asDexCode().isEmptyVoidMethod());
 
     String result = runArt(processedApplication, options, className);
 

@@ -154,7 +154,7 @@ public class DexCode extends Code {
     return false;
   }
 
-  boolean isEmptyVoidMethod() {
+  public boolean isEmptyVoidMethod() {
     return instructions.length == 1 && instructions[0] instanceof ReturnVoid;
   }
 
