@@ -142,6 +142,21 @@ public abstract class R8RunArtTestsTest {
           .put("975-iface-private", Constants.ANDROID_N_API)
           .build();
 
+  // Tests requiring interface method desugaring because they explicitly or
+  // implicitly define static or default interface methods and are enabled
+  // on pre-N Android.
+  private static List<String> enableInterfaceMethodDesugaring =
+      ImmutableList.of(
+          "563-checker-invoke-super",
+          "604-hot-static-interface",
+          "961-default-iface-resolution-gen",
+          "963-default-range-smali",
+          "965-default-verify",
+          "967-default-ame",
+          "969-iface-super",
+          "978-virtual-interface"
+      );
+
   // Tests that timeout when run with Art.
   private static final Multimap<String, TestCondition> timeoutOrSkipRunWithArt =
       new ImmutableListMultimap.Builder<String, TestCondition>()
@@ -190,9 +205,8 @@ public abstract class R8RunArtTestsTest {
 
   // Tests that are never compiled or run.
   private static List<String> skipAltogether = ImmutableList.of(
-      // Those tests contains an invalid type hierarchy, which we cannot currently handle.
+      // This test contains an invalid type hierarchy, which we cannot currently handle.
       "065-mismatched-implements",
-      "066-mismatched-super",
       // This test contains invalid dex code that reads uninitialized registers after an
       // an instruction that would in any case throw (implicit via aget null 0).
       "706-jit-skip-compilation",
@@ -1116,12 +1130,7 @@ public abstract class R8RunArtTestsTest {
         Integer minSdkVersion = needMinSdkVersion.get(name);
         if (minSdkVersion != null) {
           builder.setMinApiLevel(minSdkVersion);
-          builder.addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(minSdkVersion)));
-        } else {
-          builder.addLibraryFiles(Paths.get(
-              ToolHelper.getAndroidJar(Constants.DEFAULT_ANDROID_API)));
         }
-
         D8Output output = D8.run(builder.build());
         output.write(Paths.get(resultPath));
         break;
@@ -1144,6 +1153,9 @@ public abstract class R8RunArtTestsTest {
         ToolHelper.runR8(
             builder.build(),
             options -> {
+              if (enableInterfaceMethodDesugaring.contains(name)) {
+                options.interfaceMethodDesugaring = OffOrAuto.Auto;
+              }
               if (disableInlining) {
                 options.inlineAccessors = false;
               }
