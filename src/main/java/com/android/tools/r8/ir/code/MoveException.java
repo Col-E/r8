@@ -27,6 +27,7 @@ public class MoveException extends Instruction {
   }
 
   public void setPosition(DebugPosition position) {
+    assert this.position == null;
     this.position = position;
   }
 

@@ -23,6 +23,7 @@ import com.android.tools.r8.graph.JarApplicationReader;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.Cmp.Bias;
 import com.android.tools.r8.ir.code.ConstType;
+import com.android.tools.r8.ir.code.DebugPosition;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.MemberType;
@@ -137,10 +138,10 @@ public class JarSourceCode implements SourceCode {
       "([Ljava/lang/Object;)Ljava/lang/Object;";
 
   // Language types.
-  private static final Type CLASS_TYPE = Type.getObjectType("java/lang/Class");
-  private static final Type STRING_TYPE = Type.getObjectType("java/lang/String");
-  private static final Type INT_ARRAY_TYPE = Type.getObjectType(INT_ARRAY_DESC);
-  private static final Type THROWABLE_TYPE = Type.getObjectType("java/lang/Throwable");
+  static final Type CLASS_TYPE = Type.getObjectType("java/lang/Class");
+  static final Type STRING_TYPE = Type.getObjectType("java/lang/String");
+  static final Type INT_ARRAY_TYPE = Type.getObjectType(INT_ARRAY_DESC);
+  static final Type THROWABLE_TYPE = Type.getObjectType("java/lang/Throwable");
 
   private static final int[] NO_TARGETS = {};
 
@@ -392,14 +393,6 @@ public class JarSourceCode implements SourceCode {
     state.recordStateForTarget(0, this);
     for (JarStateWorklistItem item = worklist.poll(); item != null; item = worklist.poll()) {
       state.restoreState(item.instructionIndex);
-      // If the block being restored is a try-catch handler push the exception on the stack.
-      for (int i = 0; i < node.tryCatchBlocks.size(); i++) {
-        TryCatchBlockNode tryCatchBlockNode = (TryCatchBlockNode) node.tryCatchBlocks.get(i);
-        if (tryCatchBlockNode.handler == getInstruction(item.instructionIndex)) {
-          state.push(THROWABLE_TYPE);
-          break;
-        }
-      }
       // Iterate each of the instructions in the block to compute the outgoing JarState.
       for (int i = item.instructionIndex; i <= instructionCount(); ++i) {
         // If we are at the end of the instruction stream or if we have reached the start
@@ -457,10 +450,8 @@ public class JarSourceCode implements SourceCode {
   private void buildExceptionalPostlude(IRBuilder builder) {
     assert isSynchronized();
     generatingMethodSynchronization = true;
-    int exceptionRegister = 0; // We are exiting the method so we just overwrite register 0.
-    builder.addMoveException(exceptionRegister);
     buildMonitorExit(builder);
-    builder.addThrow(exceptionRegister);
+    builder.addThrow(getMoveExceptionRegister());
     generatingMethodSynchronization = false;
   }
 
@@ -490,14 +481,6 @@ public class JarSourceCode implements SourceCode {
     // If a new block is starting here, we restore the computed JarState.
     if (builder.getCFG().containsKey(instructionIndex) || instructionIndex == 0) {
       state.restoreState(instructionIndex);
-      // If the block being restored is a try-catch handler push the exception on the stack.
-      for (int i = 0; i < node.tryCatchBlocks.size(); i++) {
-        TryCatchBlockNode tryCatchBlockNode = (TryCatchBlockNode) node.tryCatchBlocks.get(i);
-        if (tryCatchBlockNode.handler == insn) {
-          builder.addMoveException(state.push(THROWABLE_TYPE));
-          break;
-        }
-      }
     }
 
     String preInstructionState;
@@ -565,6 +548,11 @@ public class JarSourceCode implements SourceCode {
     return new CatchHandlers<>(
         getTryHandlerGuards(tryCatchBlocks),
         getTryHandlerOffsets(tryCatchBlocks));
+  }
+
+  @Override
+  public int getMoveExceptionRegister() {
+    return state.startOfStack;
   }
 
   @Override
@@ -2844,6 +2832,23 @@ public class JarSourceCode implements SourceCode {
 
   private void build(LineNumberNode insn, IRBuilder builder) {
     builder.updateCurrentDebugPosition(insn.line, null);
+  }
+
+  @Override
+  public DebugPosition getDebugPositionAtOffset(int offset) {
+    int index = instructionIndex(offset);
+    if (index < 0 || instructionCount() <= index) {
+      return null;
+    }
+    AbstractInsnNode insn = node.instructions.get(index);
+    if (insn instanceof LabelNode) {
+      insn = insn.getNext();
+    }
+    if (insn instanceof LineNumberNode) {
+      LineNumberNode line = (LineNumberNode) insn;
+      return new DebugPosition(line.line, null);
+    }
+    return null;
   }
 
   // Printing helpers.
