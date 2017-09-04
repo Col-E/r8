@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexApplication.Builder;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
@@ -24,6 +25,7 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeSuper;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.logging.Log;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.ListIterator;
@@ -67,6 +69,11 @@ public final class InterfaceMethodRewriter {
   // to this collection since it is only filled in ClassProcessor running synchronously.
   private final Set<DexEncodedMethod> forwardingMethods = Sets.newIdentityHashSet();
 
+  /**
+   * A set of dexitems we have reported missing to dedupe warnings.
+   */
+  private Set<DexItem> reportedMissing = Sets.newIdentityHashSet();
+
   /** Defines a minor variation in desugaring. */
   public enum Flavor {
     /** Process all application resources. */
@@ -99,10 +106,11 @@ public final class InterfaceMethodRewriter {
           // Check that static interface methods are not referenced
           // from invoke-custom instructions via method handles.
           DexCallSite callSite = instruction.asInvokeCustom().getCallSite();
-          reportStaticInterfaceMethodHandle(callSite.bootstrapMethod);
+          reportStaticInterfaceMethodHandle(encodedMethod.method, callSite.bootstrapMethod);
           for (DexValue arg : callSite.bootstrapArgs) {
             if (arg instanceof DexValue.DexValueMethodHandle) {
-              reportStaticInterfaceMethodHandle(((DexValue.DexValueMethodHandle) arg).value);
+              reportStaticInterfaceMethodHandle(encodedMethod.method,
+                  ((DexValue.DexValueMethodHandle) arg).value);
             }
           }
           continue;
@@ -111,7 +119,17 @@ public final class InterfaceMethodRewriter {
         if (instruction.isInvokeStatic()) {
           InvokeStatic invokeStatic = instruction.asInvokeStatic();
           DexMethod method = invokeStatic.getInvokedMethod();
-          if (isInterfaceClass(method.holder)) {
+          DexClass clazz = findDefinitionFor(method.holder);
+          if (clazz == null) {
+            // NOTE: leave unchanged those calls to undefined targets. This may lead to runtime
+            // exception but we can not report it as error since it can also be the intended
+            // behavior.
+            warnMissingClass(encodedMethod.method, method.holder);
+          } else if (clazz.isInterface() && !clazz.isLibraryClass()) {
+            // NOTE: we intentionally don't desugar static calls into static interface
+            // methods coming from android.jar since it is only possible in case v24+
+            // version of android.jar is provided.
+            // WARNING: This may result in incorrect code on older platforms!
             // Retarget call to an appropriate method of companion class.
             instructions.replaceCurrentInstruction(
                 new InvokeStatic(staticAsMethodOfCompanionClass(method),
@@ -123,7 +141,17 @@ public final class InterfaceMethodRewriter {
         if (instruction.isInvokeSuper()) {
           InvokeSuper invokeSuper = instruction.asInvokeSuper();
           DexMethod method = invokeSuper.getInvokedMethod();
-          if (isInterfaceClass(method.holder)) {
+          DexClass clazz = findDefinitionFor(method.holder);
+          if (clazz == null) {
+            // NOTE: leave unchanged those calls to undefined targets. This may lead to runtime
+            // exception but we can not report it as error since it can also be the intended
+            // behavior.
+            warnMissingClass(encodedMethod.method, method.holder);
+          } else if (clazz != null && (clazz.isInterface() && !clazz.isLibraryClass())) {
+            // NOTE: we intentionally don't desugar super calls into interface methods
+            // coming from android.jar since it is only possible in case v24+ version
+            // of android.jar is provided.
+            // WARNING: This may result in incorrect code on older platforms!
             // Retarget call to an appropriate method of companion class.
             instructions.replaceCurrentInstruction(
                 new InvokeStatic(defaultAsMethodOfCompanionClass(method),
@@ -134,25 +162,27 @@ public final class InterfaceMethodRewriter {
     }
   }
 
-  private void reportStaticInterfaceMethodHandle(DexMethodHandle handle) {
-    if (handle.type.isInvokeStatic() && isInterfaceClass(handle.asMethod().holder)) {
-      throw new Unimplemented(
-          "Desugaring of static interface method handle in is not yet supported.");
+  private void reportStaticInterfaceMethodHandle(DexMethod referencedFrom, DexMethodHandle handle) {
+    if (handle.type.isInvokeStatic()) {
+      DexClass holderClass = findDefinitionFor(handle.asMethod().holder);
+      // NOTE: If the class definition is missing we can't check. Let it be handled as any other
+      // missing call target.
+      if (holderClass == null) {
+        warnMissingClass(referencedFrom, handle.asMethod().holder);
+      } else if (holderClass.isInterface()) {
+        throw new Unimplemented(
+            "Desugaring of static interface method handle as in `"
+            + referencedFrom.toSourceString() + "` in is not yet supported.");
+      }
     }
   }
 
-  private boolean isInterfaceClass(DexType type) {
-    return findRequiredClass(type).isInterface();
-  }
-
-  // Returns the class for the type specified, report errors for missing classes.
-  final DexClass findRequiredClass(DexType type) {
-    DexClass clazz = converter.appInfo.definitionFor(type);
-    if (clazz != null) {
-      return clazz;
-    }
-    throw new CompilationError("Type '" + type.toSourceString() +
-        "' required for default and static interface methods desugaring not found.");
+  /**
+   * Returns the class definition for the specified type.
+   * @return may return null if no definition for the given type is available.
+   */
+  final DexClass findDefinitionFor(DexType type) {
+    return converter.appInfo.definitionFor(type);
   }
 
   // Gets the companion class for the interface `type`.
@@ -260,5 +290,19 @@ public final class InterfaceMethodRewriter {
       throw new Unimplemented("Non public default interface methods are not yet supported.");
     }
     return true;
+  }
+
+  void warnMissingClass(DexType missing, String message) {
+    // TODO replace by a proper warning mechanic (see b/65154707).
+    // TODO think about using a common deduplicating mechanic with Enqueuer
+    if (reportedMissing.add(missing)) {
+      System.err.println(message);
+    }
+  }
+
+  private void warnMissingClass(DexItem referencedFrom, DexType clazz) {
+      warnMissingClass(clazz,
+          "Type `" + clazz.toSourceString() + "` was not found, it is required for default or"
+          + " static interface methods desugaring of `" + referencedFrom.toSourceString() + "`");
   }
 }

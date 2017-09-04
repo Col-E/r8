@@ -22,28 +22,34 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OffOrAuto;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
-public abstract class RunExamplesAndroidOTest<B> {
+public abstract class RunExamplesAndroidOTest
+      <B extends BaseCommand.Builder<? extends BaseCommand, B>> {
   static final String EXAMPLE_DIR = ToolHelper.EXAMPLES_ANDROID_O_BUILD_DIR;
 
-  abstract class TestRunner {
+  abstract class TestRunner<C extends TestRunner<C>> {
     final String testName;
     final String packageName;
     final String mainClass;
+
+    Integer androidJarVersion = null;
 
     final List<Consumer<InternalOptions>> optionConsumers = new ArrayList<>();
     final List<Consumer<DexInspector>> dexInspectorChecks = new ArrayList<>();
@@ -55,20 +61,22 @@ public abstract class RunExamplesAndroidOTest<B> {
       this.mainClass = mainClass;
     }
 
-    TestRunner withDexCheck(Consumer<DexInspector> check) {
+    abstract C self();
+
+    C withDexCheck(Consumer<DexInspector> check) {
       dexInspectorChecks.add(check);
-      return this;
+      return self();
     }
 
-    TestRunner withClassCheck(Consumer<FoundClassSubject> check) {
+    C withClassCheck(Consumer<FoundClassSubject> check) {
       return withDexCheck(inspector -> inspector.forAllClasses(check));
     }
 
-    TestRunner withMethodCheck(Consumer<FoundMethodSubject> check) {
+    C withMethodCheck(Consumer<FoundMethodSubject> check) {
       return withClassCheck(clazz -> clazz.forAllMethods(check));
     }
 
-    <T extends InstructionSubject> TestRunner withInstructionCheck(
+    <T extends InstructionSubject> C withInstructionCheck(
         Predicate<InstructionSubject> filter, Consumer<T> check) {
       return withMethodCheck(method -> {
         if (method.isAbstract()) {
@@ -81,28 +89,40 @@ public abstract class RunExamplesAndroidOTest<B> {
       });
     }
 
-    TestRunner withOptionConsumer(Consumer<InternalOptions> consumer) {
+    C withOptionConsumer(Consumer<InternalOptions> consumer) {
       optionConsumers.add(consumer);
-      return this;
+      return self();
     }
 
-    TestRunner withInterfaceMethodDesugaring(OffOrAuto behavior) {
+    C withInterfaceMethodDesugaring(OffOrAuto behavior) {
       return withOptionConsumer(o -> o.interfaceMethodDesugaring = behavior);
     }
 
-    TestRunner withTryWithResourcesDesugaring(OffOrAuto behavior) {
+    C withTryWithResourcesDesugaring(OffOrAuto behavior) {
       return withOptionConsumer(o -> o.tryWithResourcesDesugaring = behavior);
     }
 
-    TestRunner withBuilderTransformation(UnaryOperator<B> builderTransformation) {
+    C withBuilderTransformation(UnaryOperator<B> builderTransformation) {
       builderTransformations.add(builderTransformation);
-      return this;
+      return self();
     }
 
     void combinedOptionConsumer(InternalOptions options) {
       for (Consumer<InternalOptions> consumer : optionConsumers) {
         consumer.accept(options);
       }
+    }
+
+    Path build() throws Throwable {
+      Path inputFile = getInputJar();
+      Path out = temp.getRoot().toPath().resolve(testName + ZIP_EXTENSION);
+
+      build(inputFile, out);
+      return out;
+    }
+
+    Path getInputJar() {
+      return Paths.get(EXAMPLE_DIR, packageName + JAR_EXTENSION);
     }
 
     void run() throws Throwable {
@@ -114,18 +134,13 @@ public abstract class RunExamplesAndroidOTest<B> {
       }
 
       String qualifiedMainClass = packageName + "." + mainClass;
-      Path inputFile = Paths.get(EXAMPLE_DIR, packageName + JAR_EXTENSION);
+      Path inputFile = getInputJar();
       Path out = temp.getRoot().toPath().resolve(testName + ZIP_EXTENSION);
 
       build(inputFile, out);
 
       if (!ToolHelper.artSupported()) {
         return;
-      }
-
-      boolean expectedToFail = expectedToFail(testName);
-      if (expectedToFail) {
-        thrown.expect(Throwable.class);
       }
 
       if (!dexInspectorChecks.isEmpty()) {
@@ -135,21 +150,16 @@ public abstract class RunExamplesAndroidOTest<B> {
         }
       }
 
-      String output = ToolHelper.runArtNoVerificationErrors(out.toString(), qualifiedMainClass);
-      if (!expectedToFail) {
-        ToolHelper.ProcessResult javaResult =
-            ToolHelper.runJava(ImmutableList.of(inputFile.toString()), qualifiedMainClass);
-        assertEquals("JVM run failed", javaResult.exitCode, 0);
-        assertTrue(
-            "JVM output does not match art output.\n\tjvm: "
-                + javaResult.stdout
-                + "\n\tart: "
-                + output,
-            output.equals(javaResult.stdout));
-      }
+      execute(testName, qualifiedMainClass, new Path[]{inputFile}, new Path[]{out});
     }
 
-    abstract TestRunner withMinApiLevel(int minApiLevel);
+    abstract C withMinApiLevel(int minApiLevel);
+
+    C withAndroidJar(int androidJarVersion) {
+      assert this.androidJarVersion == null;
+      this.androidJarVersion = androidJarVersion;
+      return self();
+    }
 
     abstract void build(Path inputFile, Path out) throws Throwable;
   }
@@ -169,7 +179,11 @@ public abstract class RunExamplesAndroidOTest<B> {
               // Dex version not supported
               "invokepolymorphic",
               "invokecustom",
-              "invokecustom2"
+              "invokecustom2",
+              "DefaultMethodInAndroidJar25",
+              "StaticMethodInAndroidJar25",
+              "testMissingInterfaceDesugared2AndroidO",
+              "testCallToMissingSuperInterfaceDesugaredAndroidO"
           ),
           DexVm.ART_5_1_1, ImmutableList.of(
               // API not supported
@@ -178,7 +192,11 @@ public abstract class RunExamplesAndroidOTest<B> {
               // Dex version not supported
               "invokepolymorphic",
               "invokecustom",
-              "invokecustom2"
+              "invokecustom2",
+              "DefaultMethodInAndroidJar25",
+              "StaticMethodInAndroidJar25",
+              "testMissingInterfaceDesugared2AndroidO",
+              "testCallToMissingSuperInterfaceDesugaredAndroidO"
           ),
           DexVm.ART_6_0_1, ImmutableList.of(
               // API not supported
@@ -187,7 +205,11 @@ public abstract class RunExamplesAndroidOTest<B> {
               // Dex version not supported
               "invokepolymorphic",
               "invokecustom",
-              "invokecustom2"
+              "invokecustom2",
+              "DefaultMethodInAndroidJar25",
+              "StaticMethodInAndroidJar25",
+              "testMissingInterfaceDesugared2AndroidO",
+              "testCallToMissingSuperInterfaceDesugaredAndroidO"
           ),
           DexVm.ART_7_0_0, ImmutableList.of(
               // API not supported
@@ -195,7 +217,9 @@ public abstract class RunExamplesAndroidOTest<B> {
               // Dex version not supported
               "invokepolymorphic",
               "invokecustom",
-              "invokecustom2"
+              "invokecustom2",
+              "testMissingInterfaceDesugared2AndroidO",
+              "testCallToMissingSuperInterfaceDesugaredAndroidO"
           ),
           DexVm.ART_DEFAULT, ImmutableList.of(
           )
@@ -275,6 +299,24 @@ public abstract class RunExamplesAndroidOTest<B> {
   }
 
   @Test
+  public void desugarDefaultMethodInAndroidJar25() throws Throwable {
+    test("DefaultMethodInAndroidJar25", "desugaringwithandroidjar25", "DefaultMethodInAndroidJar25")
+        .withMinApiLevel(ANDROID_K_API)
+        .withAndroidJar(ANDROID_O_API)
+        .withInterfaceMethodDesugaring(OffOrAuto.Auto)
+        .run();
+  }
+
+  @Test
+  public void desugarStaticMethodInAndroidJar25() throws Throwable {
+    test("StaticMethodInAndroidJar25", "desugaringwithandroidjar25", "StaticMethodInAndroidJar25")
+        .withMinApiLevel(ANDROID_K_API)
+        .withAndroidJar(ANDROID_O_API)
+        .withInterfaceMethodDesugaring(OffOrAuto.Auto)
+        .run();
+  }
+
+  @Test
   public void lambdaDesugaringValueAdjustments() throws Throwable {
     test("lambdadesugaring-value-adjustments", "lambdadesugaring", "ValueAdjustments")
         .withMinApiLevel(ANDROID_K_API)
@@ -324,5 +366,34 @@ public abstract class RunExamplesAndroidOTest<B> {
         .run();
   }
 
-  abstract TestRunner test(String testName, String packageName, String mainClass);
+  abstract RunExamplesAndroidOTest<B>.TestRunner<?> test(String testName, String packageName, String mainClass);
+
+  void execute(
+      String testName,
+      String qualifiedMainClass, Path[] jars, Path[] dexes)
+      throws IOException {
+
+    boolean expectedToFail = expectedToFail(testName);
+    if (expectedToFail) {
+      thrown.expect(Throwable.class);
+    }
+    String output = ToolHelper.runArtNoVerificationErrors(
+        Arrays.stream(dexes).map(path -> path.toString()).collect(Collectors.toList()),
+        qualifiedMainClass,
+        null);
+    if (!expectedToFail) {
+      ToolHelper.ProcessResult javaResult =
+          ToolHelper.runJava(
+              Arrays.stream(jars).map(path -> path.toString()).collect(Collectors.toList()),
+              qualifiedMainClass);
+      assertEquals("JVM run failed", javaResult.exitCode, 0);
+      assertTrue(
+          "JVM output does not match art output.\n\tjvm: "
+              + javaResult.stdout
+              + "\n\tart: "
+              + output,
+          output.equals(javaResult.stdout));
+    }
+  }
+
 }

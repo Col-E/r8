@@ -133,7 +133,8 @@ public abstract class RunExamplesAndroidNTest<B> {
     thrown.expect(ApiLevelException.class);
     test("staticinterfacemethods-error-due-to-min-sdk", "interfacemethods",
         "StaticInterfaceMethods")
-        .run();
+        .withInterfaceMethodDesugaring(OffOrAuto.Off)
+       .run();
   }
 
   @Test
@@ -149,6 +150,7 @@ public abstract class RunExamplesAndroidNTest<B> {
     thrown.expect(ApiLevelException.class);
     test("defaultmethods-error-due-to-min-sdk", "interfacemethods",
         "DefaultMethods")
+        .withInterfaceMethodDesugaring(OffOrAuto.Off)
         .run();
   }
 
