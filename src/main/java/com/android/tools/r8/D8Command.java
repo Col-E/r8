@@ -27,12 +27,12 @@ import java.util.Collection;
  *     .build();
  * </pre>
  */
-public class D8Command extends BaseCompilerCommand {
+public class D8Command extends BaseCommand {
 
   /**
    * Builder for constructing a D8Command.
    */
-  public static class Builder extends BaseCompilerCommand.Builder<D8Command, Builder> {
+  public static class Builder extends BaseCommand.Builder<D8Command, Builder> {
 
     private boolean intermediate = false;
 

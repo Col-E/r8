@@ -28,7 +28,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -572,30 +571,6 @@ public class RootSetBuilder {
           || item instanceof DexEncodedField;
       return Collections
           .unmodifiableMap(dependentNoShrinking.getOrDefault(item, Collections.emptyMap()));
-    }
-
-    @Override
-    public String toString() {
-      StringBuilder builder = new StringBuilder();
-      builder.append("RootSet");
-
-      builder.append("\nnoShrinking: " + noShrinking.size());
-      builder.append("\nnoOptimization: " + noOptimization.size());
-      builder.append("\nnoObfuscation: " + noObfuscation.size());
-      builder.append("\nreasonAsked: " + reasonAsked.size());
-      builder.append("\nkeepPackageName: " + keepPackageName.size());
-      builder.append("\ncheckDiscarded: " + checkDiscarded.size());
-      builder.append("\nnoSideEffects: " + noSideEffects.size());
-      builder.append("\nassumedValues: " + assumedValues.size());
-      builder.append("\ndependentNoShrinking: " + dependentNoShrinking.size());
-
-      builder.append("\n\nNo Shrinking:");
-      noShrinking.keySet().stream()
-          .sorted(Comparator.comparing(DexItem::toSourceString))
-          .forEach(a -> builder
-              .append("\n").append(a.toSourceString()).append(" ").append(noShrinking.get(a)));
-      builder.append("\n");
-      return builder.toString();
     }
   }
 }

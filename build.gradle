@@ -435,20 +435,6 @@ task DexSegments(type: Jar) {
     }
 }
 
-task maindex(type: Jar) {
-    from sourceSets.main.output
-    baseName 'maindex'
-    manifest {
-      attributes 'Main-Class': 'com.android.tools.r8.GenerateMainDexList'
-    }
-    // In order to build without dependencies, pass the exclude_deps property using:
-    // gradle -Pexclude_deps maindex
-    if (!project.hasProperty('exclude_deps')) {
-        // Also include dependencies
-        from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
-    }
-}
-
 task ExtractMarker(type: Jar) {
     from sourceSets.main.output
     baseName 'extractmarker'

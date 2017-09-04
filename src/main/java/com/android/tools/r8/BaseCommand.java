@@ -3,33 +3,51 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.OutputMode;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
 
-/**
- * Base class for commands and command builders for applications/tools which take an Android
- * application (and a main-dex list) as input.
- */
 abstract class BaseCommand {
 
   private final boolean printHelp;
   private final boolean printVersion;
 
   private final AndroidApp app;
+  private final Path outputPath;
+  private final OutputMode outputMode;
+  private final CompilationMode mode;
+  private final int minApiLevel;
 
   BaseCommand(boolean printHelp, boolean printVersion) {
     this.printHelp = printHelp;
     this.printVersion = printVersion;
     // All other fields are initialized with stub/invalid values.
     this.app = null;
+    this.outputPath = null;
+    this.outputMode = OutputMode.Indexed;
+    this.mode = null;
+    this.minApiLevel = 0;
   }
 
-  BaseCommand(AndroidApp app) {
+  BaseCommand(
+      AndroidApp app,
+      Path outputPath,
+      OutputMode outputMode,
+      CompilationMode mode,
+      int minApiLevel) {
     assert app != null;
+    assert mode != null;
+    assert minApiLevel > 0;
     this.app = app;
+    this.outputPath = outputPath;
+    this.outputMode = outputMode;
+    this.mode = mode;
+    this.minApiLevel = minApiLevel;
     // Print options are not set.
     printHelp = false;
     printVersion = false;
@@ -51,27 +69,52 @@ abstract class BaseCommand {
   // Internal access to the internal options.
   abstract InternalOptions getInternalOptions();
 
-  abstract public static class Builder<C extends BaseCommand, B extends Builder<C, B>> {
+  public Path getOutputPath() {
+    return outputPath;
+  }
+
+  public CompilationMode getMode() {
+    return mode;
+  }
+
+  public int getMinApiLevel() {
+    return minApiLevel;
+  }
+
+  public OutputMode getOutputMode() {
+    return outputMode;
+  }
+
+  abstract static class Builder<C extends BaseCommand, B extends Builder<C, B>> {
 
     private boolean printHelp = false;
     private boolean printVersion = false;
     private final AndroidApp.Builder app;
+    private Path outputPath = null;
+    private OutputMode outputMode = OutputMode.Indexed;
+    private CompilationMode mode;
+    private int minApiLevel = Constants.DEFAULT_ANDROID_API;
 
-    protected Builder() {
-      this(AndroidApp.builder(), false);
+    // Internal flag used by CompatDx to ignore dex files in archives.
+    protected boolean ignoreDexInArchive = false;
+
+    protected Builder(CompilationMode mode) {
+      this(AndroidApp.builder(), mode, false);
     }
 
-    protected Builder(boolean ignoreDexInArchive) {
-      this(AndroidApp.builder(), ignoreDexInArchive);
+    protected Builder(CompilationMode mode, boolean ignoreDexInArchive) {
+      this(AndroidApp.builder(), mode, ignoreDexInArchive);
     }
 
     // Internal constructor for testing.
     Builder(AndroidApp app, CompilationMode mode) {
-      this(AndroidApp.builder(app), false);
+      this(AndroidApp.builder(app), mode, false);
     }
 
-    protected Builder(AndroidApp.Builder builder, boolean ignoreDexInArchive) {
+    private Builder(AndroidApp.Builder builder, CompilationMode mode, boolean ignoreDexInArchive) {
+      assert mode != null;
       this.app = builder;
+      this.mode = mode;
       app.setIgnoreDexInArchive(ignoreDexInArchive);
     }
 
@@ -135,6 +178,52 @@ abstract class BaseCommand {
     /** Add dex program-data. */
     public B addDexProgramData(Collection<byte[]> data) {
       app.addDexProgramData(data);
+      return self();
+    }
+
+    /** Get current compilation mode. */
+    public CompilationMode getMode() {
+      return mode;
+    }
+
+    /** Set compilation mode. */
+    public B setMode(CompilationMode mode) {
+      assert mode != null;
+      this.mode = mode;
+      return self();
+    }
+
+    /** Get the output path. Null if not set. */
+    public Path getOutputPath() {
+      return outputPath;
+    }
+
+    /** Get the output mode. */
+    public OutputMode getOutputMode() {
+      return outputMode;
+    }
+
+    /** Set an output path. Must be an existing directory or a zip file. */
+    public B setOutputPath(Path outputPath) {
+      this.outputPath = outputPath;
+      return self();
+    }
+
+    /** Set an output mode. */
+    public B setOutputMode(OutputMode outputMode) {
+      this.outputMode = outputMode;
+      return self();
+    }
+
+    /** Get the minimum API level (aka SDK version). */
+    public int getMinApiLevel() {
+      return minApiLevel;
+    }
+
+    /** Set the minimum required API level (aka SDK version). */
+    public B setMinApiLevel(int minApiLevel) {
+      assert minApiLevel > 0;
+      this.minApiLevel = minApiLevel;
       return self();
     }
 
@@ -211,7 +300,11 @@ abstract class BaseCommand {
     }
 
     protected void validate() throws CompilationException {
-      // Currently does nothing.
+      if (app.hasMainDexList() && outputMode == OutputMode.FilePerClass) {
+        throw new CompilationException(
+            "Option --main-dex-list cannot be used with --file-per-class");
+      }
+      FileUtils.validateOutputFile(outputPath);
     }
   }
 }
