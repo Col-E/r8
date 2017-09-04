@@ -28,7 +28,6 @@ import com.android.tools.r8.ir.code.Add;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.code.CatchHandlers;
-import com.android.tools.r8.ir.code.DebugPosition;
 import com.android.tools.r8.ir.code.Div;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -927,16 +926,6 @@ public class Outliner {
     @Override
     public CatchHandlers<Integer> getCurrentCatchHandlers() {
       return null;
-    }
-
-    @Override
-    public int getMoveExceptionRegister() {
-      throw new Unreachable();
-    }
-
-    @Override
-    public DebugPosition getDebugPositionAtOffset(int offset) {
-      throw new Unreachable();
     }
 
     @Override
