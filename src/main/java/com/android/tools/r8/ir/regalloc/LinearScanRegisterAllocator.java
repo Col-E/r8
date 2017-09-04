@@ -8,6 +8,7 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.ir.code.Add;
 import com.android.tools.r8.ir.code.And;
+import com.android.tools.r8.ir.code.ArithmeticBinop;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.DebugLocalsChange;
 import com.android.tools.r8.ir.code.IRCode;
@@ -811,6 +812,9 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     // Go through each unhandled live interval and find a register for it.
     while (!unhandled.isEmpty()) {
       LiveIntervals unhandledInterval = unhandled.poll();
+
+      setHintToPromote2AddrInstruction(unhandledInterval);
+
       // If this interval value is the src of an argument move. Fix the registers for the
       // consecutive arguments now and add hints to the move sources. This looks forward
       // and propagate hints backwards to avoid many moves in connection with ranged invokes.
@@ -860,6 +864,31 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       }
     }
     return true;
+  }
+
+  /*
+   * This method tries to promote arithmetic binary instruction to use the 2Addr form.
+   * To achieve this goal the output interval of the binary instruction is set with an hint
+   * that is the left interval or the right interval if possible when intervals do not overlap.
+   */
+  private void setHintToPromote2AddrInstruction(LiveIntervals unhandledInterval) {
+    if (unhandledInterval.getHint() == null &&
+        unhandledInterval.getValue().definition instanceof ArithmeticBinop) {
+      ArithmeticBinop binOp = unhandledInterval.getValue().definition.asArithmeticBinop();
+      Value left = binOp.leftValue();
+      assert left != null;
+      if (left.getLiveIntervals() != null &&
+          !left.getLiveIntervals().overlaps(unhandledInterval)) {
+        unhandledInterval.setHint(left.getLiveIntervals());
+      } else {
+        Value right = binOp.rightValue();
+        assert right != null;
+        if (binOp.isCommutative() && right.getLiveIntervals() != null &&
+            !right.getLiveIntervals().overlaps(unhandledInterval)) {
+          unhandledInterval.setHint(right.getLiveIntervals());
+        }
+      }
+    }
   }
 
   /**
