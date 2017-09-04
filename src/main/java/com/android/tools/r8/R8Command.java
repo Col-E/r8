@@ -24,9 +24,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-public class R8Command extends BaseCommand {
+public class R8Command extends BaseCompilerCommand {
 
-  public static class Builder extends BaseCommand.Builder<R8Command, Builder> {
+  public static class Builder extends BaseCompilerCommand.Builder<R8Command, Builder> {
 
     private final List<ProguardConfigurationSource> mainDexRules = new ArrayList<>();
     private Path mainDexListOutput = null;
@@ -96,7 +96,7 @@ public class R8Command extends BaseCommand {
     }
 
     /**
-     * Add proguard configuration file resources for automatic main dex list calculation.
+     * Add proguard configuration for automatic main dex list calculation.
      */
     public Builder addMainDexRules(List<String> lines) {
       mainDexRules.add(new ProguardConfigurationSourceStrings(lines));
