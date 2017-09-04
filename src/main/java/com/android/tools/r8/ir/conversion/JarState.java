@@ -165,7 +165,7 @@ public class JarState {
     }
   }
 
-  private final int startOfStack;
+  final int startOfStack;
   private int topOfStack;
 
   // Locals are split into three parts based on types:
@@ -463,7 +463,10 @@ public class JarState {
   }
 
   public boolean recordStateForExceptionalTarget(int target, JarSourceCode source) {
-    return recordStateForTarget(target, locals.clone(), ImmutableList.of(), source);
+    return recordStateForTarget(target,
+        locals.clone(),
+        ImmutableList.of(new Slot(startOfStack, JarSourceCode.THROWABLE_TYPE)),
+        source);
   }
 
   private boolean recordStateForTarget(int target, Local[] locals, ImmutableList<Slot> stack,

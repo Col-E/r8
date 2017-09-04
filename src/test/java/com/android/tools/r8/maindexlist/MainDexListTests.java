@@ -36,6 +36,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.ir.code.CatchHandlers;
+import com.android.tools.r8.ir.code.DebugPosition;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.SourceCode;
@@ -686,6 +687,16 @@ public class MainDexListTests extends TestBase {
     @Override
     public CatchHandlers<Integer> getCurrentCatchHandlers() {
       return null;
+    }
+
+    @Override
+    public int getMoveExceptionRegister() {
+      throw new Unreachable();
+    }
+
+    @Override
+    public DebugPosition getDebugPositionAtOffset(int offset) {
+      throw new Unreachable();
     }
 
     @Override

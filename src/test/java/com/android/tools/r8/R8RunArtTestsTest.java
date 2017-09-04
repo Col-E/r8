@@ -533,8 +533,6 @@ public abstract class R8RunArtTestsTest {
           // keeps the instances alive is dead and could be garbage collected. The compiler reuses
           // the register for the list and therefore there are no live instances.
           .put("099-vmdebug", TestCondition.any())
-          // This test relies on output on stderr, which we currently do not collect.
-          .put("143-string-value", TestCondition.any())
           .put(
               "800-smali",
               TestCondition.match(
@@ -683,9 +681,6 @@ public abstract class R8RunArtTestsTest {
       new ImmutableListMultimap.Builder<String, TestCondition>()
           // Contains two methods with the same name and signature but different code.
           .put("097-duplicate-method", TestCondition.any())
-          // Failure to merge exceptional and normal flow edges. b/65060345
-          .put("162-method-resolution", TestCondition.match(
-              TestCondition.tools(DexTool.NONE), TestCondition.D8_COMPILER))
           // Contains a method (B.<init>) which pass too few arguments to invoke. Also, contains an
           // iput on a static field.
           .put("600-verifier-fails", TestCondition.match(TestCondition.R8_COMPILER))
