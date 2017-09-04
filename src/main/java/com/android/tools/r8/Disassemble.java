@@ -5,6 +5,7 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.OutputMode;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -14,13 +15,13 @@ import java.util.concurrent.ExecutionException;
 public class Disassemble {
   public static class DisassembleCommand extends BaseCommand {
 
-    private final Path outputPath;
-
     public static class Builder
         extends BaseCommand.Builder<DisassembleCommand, DisassembleCommand.Builder> {
-
-      private Path outputPath = null;
       private boolean useSmali = false;
+
+      private Builder() {
+        super(CompilationMode.RELEASE);
+      }
 
       @Override
       DisassembleCommand.Builder self() {
@@ -29,15 +30,6 @@ public class Disassemble {
 
       public DisassembleCommand.Builder setProguardMapFile(Path path) {
         getAppBuilder().setProguardMapFile(path);
-        return this;
-      }
-
-      public Path getOutputPath() {
-        return outputPath;
-      }
-
-      public DisassembleCommand.Builder setOutputPath(Path outputPath) {
-        this.outputPath = outputPath;
         return this;
       }
 
@@ -54,7 +46,13 @@ public class Disassemble {
         }
 
         validate();
-        return new DisassembleCommand(getAppBuilder().build(), getOutputPath(), useSmali);
+        return new DisassembleCommand(
+            getAppBuilder().build(),
+            getOutputPath(),
+            getOutputMode(),
+            getMode(),
+            getMinApiLevel(),
+            useSmali);
       }
     }
 
@@ -95,9 +93,6 @@ public class Disassemble {
           builder.setUseSmali(true);
         } else if (arg.equals("--pg-map")) {
           builder.setProguardMapFile(Paths.get(args[++i]));
-        } else if (arg.equals("--output")) {
-          String outputPath = args[++i];
-          builder.setOutputPath(Paths.get(outputPath));
         } else {
           if (arg.startsWith("--")) {
             throw new CompilationException("Unknown option: " + arg);
@@ -107,20 +102,21 @@ public class Disassemble {
       }
     }
 
-    private DisassembleCommand(AndroidApp inputApp, Path outputPath, boolean useSmali) {
-      super(inputApp);
-      this.outputPath = outputPath;
+    private DisassembleCommand(
+        AndroidApp inputApp,
+        Path outputPath,
+        OutputMode outputMode,
+        CompilationMode mode,
+        int minApiLevel,
+        boolean useSmali) {
+      super(inputApp, outputPath, outputMode, mode, minApiLevel);
+      assert getOutputMode() == OutputMode.Indexed : "Only regular mode is supported in R8";
       this.useSmali = useSmali;
     }
 
     private DisassembleCommand(boolean printHelp, boolean printVersion) {
       super(printHelp, printVersion);
-      this.outputPath = null;
       this.useSmali = false;
-    }
-
-    public Path getOutputPath() {
-      return outputPath;
     }
 
     public boolean useSmali() {
