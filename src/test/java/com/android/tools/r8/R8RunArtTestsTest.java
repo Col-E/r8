@@ -3,11 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
-import static com.android.tools.r8.TestCondition.compilers;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import com.android.tools.r8.JctfTestSpecifications.Outcome;
+import com.android.tools.r8.TestCondition.RuntimeSet;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.ProcessResult;
@@ -81,6 +81,12 @@ public abstract class R8RunArtTestsTest {
   private static final String ART_LEGACY_TESTS_DIR = "tests/2016-12-19/art/";
   private static final String ART_TESTS_NATIVE_LIBRARY_DIR = "tests/2017-07-27/art/lib64";
   private static final String ART_LEGACY_TESTS_NATIVE_LIBRARY_DIR = "tests/2016-12-19/art/lib64";
+
+  private static final RuntimeSet LEGACY_RUNTIME = TestCondition.runtimes(
+      DexVm.ART_4_4_4,
+      DexVm.ART_5_1_1,
+      DexVm.ART_6_0_1,
+      DexVm.ART_7_0_0);
 
   // Input jar for jctf tests.
   private static final String JCTF_COMMON_JAR = "build/libs/jctfCommon.jar";
@@ -577,7 +583,7 @@ public abstract class R8RunArtTestsTest {
               "370-dex-v37",
               TestCondition.match(
                   TestCondition.tools(DexTool.JACK, DexTool.DX),
-                  compilers(CompilerUnderTest.R8, CompilerUnderTest.D8),
+                  TestCondition.compilers(CompilerUnderTest.R8, CompilerUnderTest.D8),
                   TestCondition.runtimes(DexVm.ART_4_4_4, DexVm.ART_5_1_1, DexVm.ART_6_0_1)))
           // Array index out of bounds exception.
           .put("449-checker-bce", TestCondition.any())
@@ -677,25 +683,22 @@ public abstract class R8RunArtTestsTest {
       new ImmutableListMultimap.Builder<String, TestCondition>()
           // Contains two methods with the same name and signature but different code.
           .put("097-duplicate-method", TestCondition.any())
+          // Failure to merge exceptional and normal flow edges. b/65060345
+          .put("162-method-resolution", TestCondition.match(
+              TestCondition.tools(DexTool.NONE), TestCondition.D8_COMPILER))
           // Contains a method (B.<init>) which pass too few arguments to invoke. Also, contains an
           // iput on a static field.
           .put("600-verifier-fails", TestCondition.match(TestCondition.R8_COMPILER))
           // Contains a method that falls off the end without a return.
-          .put("606-erroneous-class", TestCondition
-              .match(TestCondition.tools(DexTool.DX, DexTool.JACK),
-                  TestCondition.R8_NOT_AFTER_D8_COMPILER))
-          .put("064-field-access", TestCondition
-              .match(TestCondition.tools(DexTool.NONE), TestCondition.D8_COMPILER))
+          .put("606-erroneous-class", TestCondition.match(
+              TestCondition.tools(DexTool.DX, DexTool.JACK),
+              TestCondition.R8_NOT_AFTER_D8_COMPILER,
+              LEGACY_RUNTIME))
           .build();
 
   // Tests that are invalid dex files and on which R8/D8 fails and that is OK.
   private static final Multimap<String, TestCondition> expectedToFailWithCompiler =
       new ImmutableListMultimap.Builder<String, TestCondition>()
-          // When starting from the Dex frontend we see two definitions of the same class coming
-          // from two differents dex files.
-          .put("064-field-access",
-              TestCondition.match(TestCondition.tools(DexTool.DX, DexTool.JACK),
-                  TestCondition.runtimes(DexVm.ART_DEFAULT)))
           // When starting from the Jar frontend we see the A$B class both from the Java source
           // code and from the smali dex code. We reject that because there are then two definitions
           // of the same class in the application. When running from the final dex files there is
@@ -703,18 +706,8 @@ public abstract class R8RunArtTestsTest {
           .put("121-modifiers", TestCondition.match(TestCondition.tools(DexTool.NONE)))
           // This test uses register r1 in method that is declared to only use 1 register (r0).
           .put("142-classloader2", TestCondition.match(TestCondition.R8_COMPILER))
-          // When starting from the Dex frontend we see two definitions of the same class coming
-          // from two differents dex files.
-          .put("162-method-resolution",
-              TestCondition.match(TestCondition.tools(DexTool.DX, DexTool.JACK)))
           // This test uses an uninitialized register.
           .put("471-uninitialized-locals", TestCondition.match(TestCondition.R8_COMPILER))
-          // When starting from the Dex frontend we see two definitions of the same class coming
-          // from two differents dex files.
-          .put("606-erroneous-class",
-              TestCondition
-                  .match(TestCondition.tools(DexTool.DX, DexTool.JACK), TestCondition.D8_COMPILER,
-                      TestCondition.runtimes(DexVm.ART_DEFAULT)))
           // This test is starting from invalid dex code. It splits up a double value and uses
           // the first register of a double with the second register of another double.
           .put("800-smali", TestCondition.match(TestCondition.R8_COMPILER))
@@ -730,9 +723,7 @@ public abstract class R8RunArtTestsTest {
 
   // Tests that does not have valid input for us to be compatible with jack/dx running.
   private static List<String> noInputJar = ImmutableList.of(
-      "064-field-access", // Missing classes2 dir (has src2)
       "097-duplicate-method", // No input class files.
-      "162-method-resolution", // Based on multiple jasmin files
       "630-safecast-array", // No input class files.
       "801-VoidCheckCast", // No input class files.
       "804-class-extends-itself", // No input class files.
@@ -768,12 +759,17 @@ public abstract class R8RunArtTestsTest {
   // Tests to skip on some conditions
   private static final Multimap<String, TestCondition> testToSkip =
       new ImmutableListMultimap.Builder<String, TestCondition>()
+          // When running R8 on dex input (D8, DX or JACK) this test non-deterministically fails
+          // with a compiler exception, due to invoke-virtual on an interface, or it completes but
+          // the output when run on Art is not as expected. b/65233869
+          .put("162-method-resolution",
+              TestCondition.match(
+                  TestCondition.tools(DexTool.DX, DexTool.JACK), TestCondition.R8_COMPILER))
           // Old runtimes used the legacy test directory which does not contain input for tools
           // NONE and DX.
           .put("952-invoke-custom", TestCondition.match(
               TestCondition.tools(DexTool.NONE, DexTool.DX),
-              TestCondition.runtimes(
-                  DexVm.ART_4_4_4, DexVm.ART_5_1_1, DexVm.ART_6_0_1, DexVm.ART_7_0_0)))
+              LEGACY_RUNTIME))
           // No input dex files for DX
           .put("952-invoke-custom-kinds", TestCondition.match(TestCondition.tools(DexTool.DX)))
           .build();
@@ -955,7 +951,7 @@ public abstract class R8RunArtTestsTest {
   private static Map<SpecificationKey, TestSpecification> getTestsMap(
       CompilerUnderTest compilerUnderTest, CompilationMode compilationMode, DexVm dexVm) {
     File artTestDir = new File(ART_TESTS_DIR);
-    if (dexVm != DexVm.ART_DEFAULT) {
+    if (LEGACY_RUNTIME.set.contains(dexVm)) {
       artTestDir = new File(ART_LEGACY_TESTS_DIR);
     }
     if (!artTestDir.exists()) {
@@ -1446,25 +1442,20 @@ public abstract class R8RunArtTestsTest {
 
     File[] inputFiles;
     if (toolchain == DexTool.NONE) {
-      File classes = new File(specification.directory, "classes");
-      inputFiles =
-          com.google.common.io.Files.fileTreeTraverser().breadthFirstTraversal(classes).filter(
-              (File f) -> !f.isDirectory()).toArray(File.class);
+      inputFiles = addFileTree(new File[0], new File(specification.directory, "classes"));
+      inputFiles = addFileTree(inputFiles, new File(specification.directory, "jasmin_classes"));
       File smali = new File(specification.directory, "smali");
       if (smali.exists()) {
         File smaliDex = new File(smali, "out.dex");
         assert smaliDex.exists();
         inputFiles = ObjectArrays.concat(inputFiles, smaliDex);
       }
-      File classes2 = new File(specification.directory, "classes2");
-      if (classes2.exists()) {
-        inputFiles = ObjectArrays.concat(inputFiles,
-            com.google.common.io.Files.fileTreeTraverser().breadthFirstTraversal(classes2).filter(
-                (File f) -> !f.isDirectory()).toArray(File.class), File.class);
-      }
+      inputFiles = addFileTree(inputFiles, new File(specification.directory, "classes2"));
+      inputFiles = addFileTree(inputFiles, new File(specification.directory, "jasmin_classes2"));
     } else {
       inputFiles =
-          specification.directory.listFiles((File file) -> file.getName().endsWith(".dex"));
+          specification.directory.listFiles((File file) ->
+              file.getName().endsWith(".dex") && !file.getName().startsWith("jasmin"));
     }
     List<String> fileNames = new ArrayList<>();
     for (File file : inputFiles) {
@@ -1501,6 +1492,18 @@ public abstract class R8RunArtTestsTest {
       runArtTestDoRunOnArt(
           version, CompilerUnderTest.R8, specification, fileNames, resultDir, compilationMode);
     }
+  }
+
+  private File[] addFileTree(File[] files, File directory) {
+    if (!directory.exists()) {
+      return files;
+    }
+    return ObjectArrays.concat(
+        files,
+        com.google.common.io.Files.fileTreeTraverser().breadthFirstTraversal(directory)
+            .filter(f -> !f.isDirectory())
+            .toArray(File.class),
+        File.class);
   }
 
   private void runArtTestDoRunOnArt(
