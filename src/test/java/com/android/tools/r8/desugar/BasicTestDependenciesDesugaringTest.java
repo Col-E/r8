@@ -45,14 +45,6 @@ public class BasicTestDependenciesDesugaringTest {
   }
 
   private static Set<String> knownIssues = Sets.newHashSet(new String[]{
-      "espresso-core-3.0.0.jar",
-      "hamcrest-integration-1.3.jar",
-      "hamcrest-library-1.3.jar",
-      "junit-4.12.jar",
-      "support-core-ui-25.4.0.jar",
-      "support-media-compat-25.4.0.jar",
-      "support-fragment-25.4.0.jar",
-      "support-compat-25.4.0.jar"
   });
 
   @Rule
@@ -97,5 +89,19 @@ public class BasicTestDependenciesDesugaringTest {
         .setMinApiLevel(Constants.ANDROID_K_API)
         .build(),
         options -> options.interfaceMethodDesugaring = OffOrAuto.Auto);
+  }
+
+  @Test
+  public void testCompileDontDesugarDefault() throws IOException, CompilationException {
+    if (knownIssues.contains(name)) {
+      thrown.expect(CompilationError.class);
+    }
+    ToolHelper.runD8(
+        D8Command.builder().addClasspathFiles(classpath)
+        .addProgramFiles(toCompile)
+        .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(Constants.ANDROID_K_API)))
+        .setMinApiLevel(Constants.ANDROID_K_API)
+        .build(),
+        options -> options.interfaceMethodDesugaring = OffOrAuto.Off);
   }
 }

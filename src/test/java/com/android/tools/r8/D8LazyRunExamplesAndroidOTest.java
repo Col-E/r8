@@ -52,6 +52,11 @@ public class D8LazyRunExamplesAndroidOTest
       builder.addLibraryResourceProvider(
           PreloadedClassFileProvider.fromArchive(location));
     }
+
+    @Override
+    D8LazyTestRunner self() {
+      return this;
+    }
   }
 
   @Override
