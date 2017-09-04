@@ -599,13 +599,31 @@ public class ToolHelper {
         .toArray(new String[0]));
   }
 
+  public static ProcessResult forkGenerateMainDexList(Path dir, List<String> args1, String... args2)
+      throws IOException, InterruptedException {
+    List<String> args = new ArrayList<>();
+    args.addAll(args1);
+    args.addAll(Arrays.asList(args2));
+    return forkJava(dir, GenerateMainDexList.class, args);
+  }
+
+  public static ProcessResult forkGenerateMainDexList(Path dir, String... args)
+      throws IOException, InterruptedException {
+    return forkJava(dir, GenerateMainDexList.class, args);
+  }
+
   private static ProcessResult forkJava(Path dir, Class clazz, String... args)
+      throws IOException, InterruptedException {
+    return forkJava(dir, clazz, Arrays.asList(args));
+  }
+
+  private static ProcessResult forkJava(Path dir, Class clazz, List<String> args)
       throws IOException, InterruptedException {
     List<String> command = new ImmutableList.Builder<String>()
         .add(getJavaExecutable())
         .add("-cp").add(System.getProperty("java.class.path"))
         .add(clazz.getCanonicalName())
-        .addAll(Arrays.asList(args))
+        .addAll(args)
         .build();
     return runProcess(new ProcessBuilder(command).directory(dir.toFile()));
   }
