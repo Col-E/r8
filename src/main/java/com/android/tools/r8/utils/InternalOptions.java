@@ -84,9 +84,9 @@ public class InternalOptions {
   public List<String> logArgumentsFilter = ImmutableList.of();
 
   // Defines interface method rewriter behavior.
-  public OffOrAuto interfaceMethodDesugaring = OffOrAuto.Off;
+  public OffOrAuto interfaceMethodDesugaring = OffOrAuto.Auto;
   // Defines try-with-resources rewriter behavior.
-  public OffOrAuto tryWithResourcesDesugaring = OffOrAuto.Off;
+  public OffOrAuto tryWithResourcesDesugaring = OffOrAuto.Auto;
 
   // Application writing mode.
   public OutputMode outputMode = OutputMode.Indexed;
