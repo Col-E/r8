@@ -219,6 +219,27 @@ public class JarState {
     }
   }
 
+  public boolean localLiveAt(Local local, int offset, JarSourceCode source) {
+    // TODO(zerny): Precompute and sort the local ranges.
+    for (Entry<LocalVariableNode, DebugLocalInfo> entry : localVariables.entrySet()) {
+      LocalVariableNode node = entry.getKey();
+      if (entry.getValue() != local.info) {
+        continue;
+      }
+      Type type = Type.getType(node.desc);
+      int register = getLocalRegister(node.index, type);
+      if (register != local.slot.register) {
+        continue;
+      }
+      int startOffset = source.getOffset(node.start);
+      int endOffset = source.getOffset(node.end);
+      if (offset < startOffset || endOffset <= offset) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   public void setBuilding() {
     assert stack.isEmpty();
     building = true;
