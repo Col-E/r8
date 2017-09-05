@@ -135,7 +135,7 @@ public class TestBase {
    */
   protected AndroidApp compileWithR8(List<Class> classes, String proguardConfig)
       throws CompilationException, ProguardRuleParserException, ExecutionException, IOException {
-    return compileWithR8(readClasses(classes), writeTextToTempFile(proguardConfig));
+    return compileWithR8(readClasses(classes), proguardConfig);
   }
 
   /**
@@ -170,10 +170,22 @@ public class TestBase {
   /**
    * Compile an application with R8 using the supplied proguard configuration.
    */
+  protected AndroidApp compileWithR8(AndroidApp app, String proguardConfig)
+      throws CompilationException, ProguardRuleParserException, ExecutionException, IOException {
+    return compileWithR8(app, proguardConfig, null);
+  }
+
+  /**
+   * Compile an application with R8 using the supplied proguard configuration.
+   */
   protected AndroidApp compileWithR8(
       AndroidApp app, String proguardConfig, Consumer<InternalOptions> optionsConsumer)
       throws CompilationException, ProguardRuleParserException, ExecutionException, IOException {
-    return compileWithR8(app, writeTextToTempFile(proguardConfig), optionsConsumer);
+    R8Command command =
+        ToolHelper.prepareR8CommandBuilder(app)
+            .addProguardConfiguration(ImmutableList.of(proguardConfig))
+            .build();
+    return ToolHelper.runR8(command, optionsConsumer);
   }
 
   /**
@@ -194,7 +206,15 @@ public class TestBase {
    * of the specified class.
    */
   public String keepMainProguardConfiguration(Class clazz) {
-    return "-keep public class " + clazz.getCanonicalName() + " {\n"
+    return keepMainProguardConfiguration(clazz.getCanonicalName());
+  }
+
+  /**
+   * Generate a Proguard configuration for keeping the "public static void main(String[])" method
+   * of the specified class.
+   */
+  public String keepMainProguardConfiguration(String clazz) {
+    return "-keep public class " + clazz + " {\n"
         + "  public static void main(java.lang.String[]);\n"
         + "}\n";
   }

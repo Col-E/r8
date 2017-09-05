@@ -24,7 +24,6 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.naming.NamingLens;
-import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.DexInspector;
@@ -235,6 +234,45 @@ public class SmaliTestBase extends TestBase {
       addStaticField(name, type, null);
     }
 
+    public void addInstanceField(String name, String type) {
+      StringBuilder builder = new StringBuilder();
+      builder.append(".field ");
+      builder.append(name);
+      builder.append(":");
+      builder.append(type);
+      getSource(currentClassName).add(builder.toString());
+    }
+
+    private MethodSignature addMethod(String flags, String returnType, String name,
+        List<String> parameters, int locals, String code) {
+      StringBuilder builder = new StringBuilder();
+      builder.append(".method ");
+      if (flags != null && flags.length() > 0) {
+        builder.append(flags);
+        builder.append(" ");
+      }
+      builder.append(name);
+      builder.append("(");
+      for (String parameter : parameters) {
+        builder.append(DescriptorUtils.javaTypeToDescriptor(parameter));
+      }
+      builder.append(")");
+      builder.append(DescriptorUtils.javaTypeToDescriptor(returnType));
+      builder.append("\n");
+      if (locals >= 0) {
+        builder.append(".locals ");
+        builder.append(locals);
+        builder.append("\n\n");
+        assert code != null;
+        builder.append(code);
+      } else {
+        assert code == null;
+      }
+      builder.append(".end method");
+      getSource(currentClassName).add(builder.toString());
+      return new MethodSignature(currentClassName, name, returnType, parameters);
+    }
+
     public MethodSignature addStaticMethod(String returnType, String name, List<String> parameters,
         int locals, String... instructions) {
       StringBuilder builder = new StringBuilder();
@@ -266,43 +304,27 @@ public class SmaliTestBase extends TestBase {
     private MethodSignature addStaticMethod(String flags, String returnType, String name,
         List<String> parameters, int locals, String code) {
       StringBuilder builder = new StringBuilder();
-      builder.append(".method public static ");
-      if (flags != null && flags.length() > 0) {
-        builder.append(flags);
-        builder.append(" ");
-      }
-      builder.append(name);
-      builder.append("(");
-      for (String parameter : parameters) {
-        builder.append(DescriptorUtils.javaTypeToDescriptor(parameter));
-      }
-      builder.append(")");
-      builder.append(DescriptorUtils.javaTypeToDescriptor(returnType));
-      builder.append("\n");
-      builder.append(".locals ");
-      builder.append(locals);
-      builder.append("\n\n");
-      builder.append(code);
-      builder.append(".end method");
-      getSource(currentClassName).add(builder.toString());
-      return new MethodSignature(currentClassName, name, returnType, parameters);
+      return addMethod("public static " + flags, returnType, name, parameters, locals, code);
     }
 
     public MethodSignature addAbstractMethod(
         String returnType, String name, List<String> parameters) {
+      return addMethod("public abstract", returnType, name, parameters, -1, null);
+    }
+
+    public MethodSignature addInstanceMethod(String returnType, String name, List<String> parameters,
+        int locals, String... instructions) {
       StringBuilder builder = new StringBuilder();
-      builder.append(".method public abstract ");
-      builder.append(name);
-      builder.append("(");
-      for (String parameter : parameters) {
-        builder.append(DescriptorUtils.javaTypeToDescriptor(parameter));
+      for (String instruction : instructions) {
+        builder.append(instruction);
+        builder.append("\n");
       }
-      builder.append(")");
-      builder.append(DescriptorUtils.javaTypeToDescriptor(returnType));
-      builder.append("\n");
-      builder.append(".end method");
-      getSource(currentClassName).add(builder.toString());
-      return new MethodSignature(currentClassName, name, returnType, parameters);
+      return addInstanceMethod(returnType, name, parameters, locals, builder.toString());
+    }
+
+    public MethodSignature addInstanceMethod(String returnType, String name, List<String> parameters,
+        int locals, String code) {
+      return addMethod("public", returnType, name, parameters, locals, code);
     }
 
     public MethodSignature addMainMethod(int locals, String... instructions) {
