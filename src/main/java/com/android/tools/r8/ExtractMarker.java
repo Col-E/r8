@@ -3,18 +3,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
-import com.google.common.collect.ImmutableList;
-
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.OutputMode;
 import com.android.tools.r8.utils.Timing;
-
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.ExecutionException;
 
@@ -23,10 +19,6 @@ public class ExtractMarker {
 
     public static class Builder
         extends BaseCommand.Builder<ExtractMarker.Command, ExtractMarker.Command.Builder> {
-
-      private Builder() {
-        super(CompilationMode.RELEASE);
-      }
 
       @Override
       ExtractMarker.Command.Builder self() {
@@ -40,8 +32,7 @@ public class ExtractMarker {
           return new ExtractMarker.Command(isPrintHelp());
         }
         validate();
-        return new ExtractMarker.Command(
-            getAppBuilder().build(), getOutputPath(), getOutputMode(), getMode(), getMinApiLevel());
+        return new ExtractMarker.Command(getAppBuilder().build());
       }
     }
 
@@ -79,13 +70,8 @@ public class ExtractMarker {
       }
     }
 
-    private Command(
-        AndroidApp inputApp,
-        Path outputPath,
-        OutputMode outputMode,
-        CompilationMode mode,
-        int minApiLevel) {
-      super(inputApp, outputPath, outputMode, mode, minApiLevel);
+    private Command(AndroidApp inputApp) {
+      super(inputApp);
     }
 
     private Command(boolean printHelp) {
