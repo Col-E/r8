@@ -50,7 +50,9 @@ import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.InvokeVirtual;
+import com.android.tools.r8.ir.code.JumpInstruction;
 import com.android.tools.r8.ir.code.MemberType;
+import com.android.tools.r8.ir.code.Move;
 import com.android.tools.r8.ir.code.MoveType;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.NewArrayFilledData;
@@ -61,6 +63,7 @@ import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Switch;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.code.Xor;
 import com.android.tools.r8.ir.conversion.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.SwitchUtils.EnumSwitchInfo;
 import com.android.tools.r8.utils.InternalOptions;
@@ -1545,7 +1548,7 @@ public class CodeRewriter {
         // First rewrite zero comparison.
         rewriteIfWithConstZero(block);
 
-        if (simplifyKnownBooleanCondition(dominator, block)) {
+        if (simplifyKnownBooleanCondition(code, dominator, block)) {
           continue;
         }
 
@@ -1608,8 +1611,19 @@ public class CodeRewriter {
    *
    * which can be replaced by a fallthrough and the phi value can be replaced
    * with the boolean value itself.
+   *
+   * We also consider the forms:
+   *
+   *    ifeqz booleanValue       ifnez booleanValue
+   *      /        \              /        \
+   *      \        /              \        /
+   *      phi(1, 0)                phi(0, 1)
+   *
+   *  which can be replaced by a fallthrough and the phi value can be replaced
+   * by an xor instruction which is smaller.
    */
-  private boolean simplifyKnownBooleanCondition(DominatorTree dominator, BasicBlock block) {
+  private boolean simplifyKnownBooleanCondition(IRCode code, DominatorTree dominator,
+      BasicBlock block) {
     If theIf = block.exit().asIf();
     Value testValue = theIf.inValues().get(0);
     if (theIf.isZeroTest() && testValue.knownToBeBoolean()) {
@@ -1638,6 +1652,19 @@ public class CodeRewriter {
                       trueNumber.isIntegerOne() &&
                       falseNumber.isIntegerZero())) {
                 phi.replaceUsers(testValue);
+                deadPhis++;
+              } else if ((theIf.getType() == Type.NE &&
+                           trueNumber.isIntegerZero() &&
+                           falseNumber.isIntegerOne()) ||
+                         (theIf.getType() == Type.EQ &&
+                           trueNumber.isIntegerOne() &&
+                           falseNumber.isIntegerZero())) {
+                Value newOutValue = code.createValue(phi.outType(), phi.getLocalInfo());
+                phi.replaceUsers(newOutValue);
+                Instruction newInstruction = new Xor(NumericType.INT, newOutValue, testValue,
+                    trueNumber.isIntegerOne() ? trueValue : falseValue);
+                newInstruction.setBlock(phi.getBlock());
+                phi.getBlock().getInstructions().add(0, newInstruction);
                 deadPhis++;
               }
             }
