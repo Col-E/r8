@@ -31,8 +31,6 @@ class SpillMoveSet {
   // The register allocator generating moves.
   private LinearScanRegisterAllocator allocator;
   // All registers below this number are arguments.
-  // TODO(ager): Get rid of this field, we should deal with arguments and other values that can
-  // be rematerialized differently.
   private final int argumentRegisterLimit;
   // Mapping from instruction numbers to the block that start with that instruction if any.
   private final Map<Integer, BasicBlock> blockStartMap = new HashMap<>();
@@ -257,6 +255,10 @@ class SpillMoveSet {
   // disallowed at this point we know that argument registers do not change value and
   // therefore we don't have to perform spill moves. Performing spill moves will also
   // make art reject the code because it loses type information for the argument.
+  //
+  // TODO(ager): We are dealing with some of these moves as rematerialization. However,
+  // we are still generating actual moves back to the original argument register.
+  // We should get rid of this method and avoid generating the moves in the first place.
   private void removeArgumentRestores(Set<SpillMove> moves) {
     Iterator<SpillMove> moveIterator = moves.iterator();
     while (moveIterator.hasNext()) {

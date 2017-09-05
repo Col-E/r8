@@ -26,7 +26,7 @@ public class RegisterMove implements Comparable<RegisterMove> {
     this.dst = dst;
     this.src = LinearScanRegisterAllocator.NO_REGISTER;
     this.type = type;
-    assert definition.isConstInstruction();
+    assert definition.isConstInstruction() || definition.isArgument();
     this.definition = definition;
   }
 
