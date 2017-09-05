@@ -88,6 +88,9 @@ public class LiveIntervals implements Comparable<LiveIntervals> {
   }
 
   public boolean isRematerializable(LinearScanRegisterAllocator registerAllocator) {
+    if (value.isArgument()) {
+      return true;
+    }
     // TODO(ager): rematerialize const string as well.
     if (!value.isConstNumber()) {
       return false;

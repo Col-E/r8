@@ -1018,9 +1018,6 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   }
 
   private int getSpillRegister(LiveIntervals intervals) {
-    if (intervals.isArgumentInterval()) {
-      return intervals.getSplitParent().getRegister();
-    }
     int registerNumber = nextUnusedRegisterNumber++;
     maxRegisterNumber = registerNumber;
     if (intervals.getType() == MoveType.WIDE) {
@@ -1572,17 +1569,19 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       LiveIntervals unhandledInterval,
       boolean needsRegisterPair,
       int candidate) {
+    List<LiveIntervals> newInactive = new ArrayList<>();
     Iterator<LiveIntervals> inactiveIterator = inactive.iterator();
     while (inactiveIterator.hasNext()) {
       LiveIntervals intervals = inactiveIterator.next();
       if ((intervals.usesRegister(candidate) ||
           (needsRegisterPair && intervals.usesRegister(candidate + 1))) &&
           intervals.overlaps(unhandledInterval)) {
-        // If these assertions trigger we have changed the way blocked parts of intervals
-        // are handled. If we ever get intervals with fixed registers in here, we need
-        // to split them before the first use in the same way that we do when spilling
-        // overlapping active intervals.
-        assert !intervals.isLinked() || intervals.isArgumentInterval();
+        if (intervals.isLinked() && !intervals.isArgumentInterval()) {
+          int nextUsePosition = intervals.firstUseAfter(unhandledInterval.getStart());
+          LiveIntervals split = intervals.splitBefore(nextUsePosition);
+          split.setRegister(intervals.getRegister());
+          newInactive.add(split);
+        }
         if (intervals.getStart() > unhandledInterval.getStart()) {
           // The inactive live intervals hasn't started yet. Clear the temporary register
           // assignment and move back to unhandled for register reassignment.
@@ -1597,6 +1596,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
         }
       }
     }
+    inactive.addAll(newInactive);
   }
 
   private void spillOverlappingActiveIntervals(

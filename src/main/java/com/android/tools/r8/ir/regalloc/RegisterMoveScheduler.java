@@ -121,8 +121,14 @@ public class RegisterMoveScheduler {
     Instruction instruction;
     Value to = new FixedRegisterValue(move.type, move.dst);
     if (move.definition != null) {
-      ConstNumber number = move.definition.asConstNumber();
-      instruction = new ConstNumber(number.type, to, number.getRawValue());
+      if (move.definition.isArgument()) {
+        int argumentRegister = move.definition.outValue().getLiveIntervals().getRegister();
+        Value from = new FixedRegisterValue(move.type, argumentRegister);
+        instruction = new Move(to, from);
+      } else {
+        ConstNumber number = move.definition.asConstNumber();
+        instruction = new ConstNumber(number.type, to, number.getRawValue());
+      }
     } else {
       Value from = new FixedRegisterValue(move.type, valueMap.get(move.src));
       instruction = new Move(to, from);
