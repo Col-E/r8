@@ -318,6 +318,26 @@ public class Locals {
     nop();
   }
 
+  public static int localConstant(boolean b) {
+    if (b) {
+      int result1 = 1;
+      return result1;
+    } else {
+      int result2 = 2;
+      return result2;
+    }
+  }
+
+  public static int localConstantBis(boolean b) {
+    int result = 0;
+    if (b) {
+      result = 1;
+    } else {
+      result = 2;
+    }
+    return result;
+  }
+
   public static void main(String[] args) {
     noLocals();
     unusedLocals();
@@ -338,5 +358,7 @@ public class Locals {
     switchRewriteToSwitches(1);
     regression65039701(true);
     regression65066975(false);
+    System.out.println(localConstant(true));
+    System.out.println(localConstantBis(true));
   }
 }
