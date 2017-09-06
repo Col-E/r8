@@ -46,14 +46,14 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .run();
   }
 
-  class R8TestRunner extends TestRunner {
+  class R8TestRunner extends TestRunner<R8TestRunner> {
 
     R8TestRunner(String testName, String packageName, String mainClass) {
       super(testName, packageName, mainClass);
     }
 
     @Override
-    TestRunner withMinApiLevel(int minApiLevel) {
+    R8TestRunner withMinApiLevel(int minApiLevel) {
       return withBuilderTransformation(builder -> builder.setMinApiLevel(minApiLevel));
     }
 
@@ -64,16 +64,23 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         for (UnaryOperator<R8Command.Builder> transformation : builderTransformations) {
           builder = transformation.apply(builder);
         }
+        builder.addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(
+            androidJarVersion == null ? builder.getMinApiLevel() : androidJarVersion)));
         R8Command command = builder.addProgramFiles(inputFile).setOutputPath(out).build();
         ToolHelper.runR8(command, this::combinedOptionConsumer);
       } catch (ExecutionException e) {
         throw e.getCause();
       }
     }
+
+    @Override
+    R8TestRunner self() {
+      return this;
+    }
   }
 
   @Override
-  TestRunner test(String testName, String packageName, String mainClass) {
+  R8TestRunner test(String testName, String packageName, String mainClass) {
     return new R8TestRunner(testName, packageName, mainClass);
   }
 
