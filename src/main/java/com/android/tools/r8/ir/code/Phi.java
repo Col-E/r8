@@ -278,6 +278,40 @@ public class Phi extends Value {
         && value.isZero();
   }
 
+  /**
+   * Determine if the only possible values for the phi are the integers 0 or 1.
+   */
+  public boolean knownToBeBoolean() {
+    return knownToBeBoolean(new HashSet<>());
+  }
+
+  private boolean knownToBeBoolean(HashSet<Phi> active) {
+    active.add(this);
+
+    for (Value operand : operands) {
+      if (!operand.isPhi()) {
+        if (operand.isConstNumber()) {
+          ConstNumber number = operand.getConstInstruction().asConstNumber();
+          if (!number.isIntegerOne() && !number.isIntegerZero()) {
+            return false;
+          }
+        } else {
+          return false;
+        }
+      }
+    }
+
+    for (Value operand : operands) {
+      if (operand.isPhi() && !active.contains(operand.asPhi())) {
+        if (!operand.asPhi().knownToBeBoolean(active)) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
+
   private MoveType computeOutType(Set<Phi> active) {
     if (outType != null) {
       return outType;
@@ -293,7 +327,7 @@ public class Phi extends Value {
     }
     // We did not find a non-phi operand that dictates the type. Recurse on phi arguments.
     for (Value operand : operands) {
-      if (operand.isPhi() && !active.contains(operand)) {
+      if (operand.isPhi() && !active.contains(operand.asPhi())) {
         MoveType phiType = operand.asPhi().computeOutType(active);
         // TODO(zerny): If we had a CONST_ZERO type element, we could often avoid going through
         // all phis. We would only have to recurse until we got a non CONST_ZERO out type.
