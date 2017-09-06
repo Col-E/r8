@@ -6,10 +6,8 @@ package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -102,18 +100,6 @@ final class DefaultMethodsHelper {
       }
     }
     return candidates;
-  }
-
-  final List<DexEncodedMethod> createFullList() {
-    if (candidates.isEmpty() && hidden.isEmpty()) {
-      return Collections.emptyList();
-    }
-
-    List<DexEncodedMethod> fullList =
-        new ArrayList<DexEncodedMethod>(candidates.size() + hidden.size());
-    fullList.addAll(candidates);
-    fullList.addAll(hidden);
-    return fullList;
   }
 
   // Create default interface collection based on collected information.

@@ -15,8 +15,6 @@ import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -44,7 +42,9 @@ final class ClassProcessor {
   }
 
   final void process(DexClass clazz) {
-    assert !clazz.isInterface();
+    if (clazz.isInterface()) {
+      throw new CompilationError("Interface in superclass chain.");
+    }
     if (!clazz.isProgramClass()) {
       // We assume that library classes don't need to be processed, since they
       // are provided by a runtime not supporting default interface methods.
@@ -61,15 +61,8 @@ final class ClassProcessor {
     // about methods added to superclasses when we decide if we want to add a default
     // method to class `clazz`.
     DexType superType = clazz.superType;
-    // If superClass definition is missing, just skip this part and let real processing of its
-    // subclasses report the error if it is required.
-    DexClass superClass = superType == null ? null : rewriter.findDefinitionFor(superType);
-    if (superClass != null && superType != rewriter.factory.objectType) {
-      if (superClass.isInterface()) {
-        throw new CompilationError("Interface `" + superClass.toSourceString()
-        + "` used as super class of `" + clazz.toSourceString() + "`.");
-      }
-      process(superClass);
+    if (superType != null && superType != rewriter.factory.objectType) {
+      process(rewriter.findRequiredClass(superType));
     }
 
     if (clazz.interfaces.isEmpty()) {
@@ -102,10 +95,7 @@ final class ClassProcessor {
 
   private DexEncodedMethod addForwardingMethod(DexEncodedMethod defaultMethod, DexClass clazz) {
     DexMethod method = defaultMethod.method;
-    // NOTE: Never add a forwarding method to methods of classes unknown or coming from android.jar
-    // even if this results in invalid code, these classes are never desugared.
-    assert rewriter.findDefinitionFor(method.holder) != null
-        && !rewriter.findDefinitionFor(method.holder).isLibraryClass();
+    assert !rewriter.findRequiredClass(method.holder).isLibraryClass();
     // New method will have the same name, proto, and also all the flags of the
     // default method, including bridge flag.
     DexMethod newMethod = rewriter.factory.createMethod(clazz.type, method.proto, method.name);
@@ -123,62 +113,23 @@ final class ClassProcessor {
   // in this class.
   private List<DexEncodedMethod> collectMethodsToImplement(DexClass clazz) {
     DefaultMethodsHelper helper = new DefaultMethodsHelper();
-    DexClass current = clazz;
-    List<DexEncodedMethod> accumulatedVirtualMethods = new ArrayList<>();
+
     // Collect candidate default methods by inspecting interfaces implemented
     // by this class as well as its superclasses.
-    //
-    // We assume here that interfaces implemented by java.lang.Object don't
-    // have default methods to desugar since they are library interfaces. And we assume object
-    // methods don't hide any default interface methods. Default interface method matching Object's
-    // methods is supposed to fail with a compilation error.
-    // Note that this last assumption will be broken if Object API is augmented with a new method in
-    // the future.
-    while (current.type != rewriter.factory.objectType) {
+    DexClass current = clazz;
+    while (true) {
       for (DexType type : current.interfaces.values) {
-        helper.merge(getOrCreateInterfaceInfo(clazz, current, type));
+        helper.merge(getOrCreateInterfaceInfo(type));
       }
 
-      accumulatedVirtualMethods.addAll(Arrays.asList(clazz.virtualMethods()));
-
-      List<DexEncodedMethod> defaultMethodsInDirectInterface = helper.createFullList();
-      List<DexEncodedMethod> toBeImplementedFromDirectInterface =
-          new ArrayList<>(defaultMethodsInDirectInterface.size());
-      hideCandidates(accumulatedVirtualMethods,
-          defaultMethodsInDirectInterface,
-          toBeImplementedFromDirectInterface);
-      // toBeImplementedFromDirectInterface are those that we know for sure we need to implement by
-      // looking at the already desugared super classes.
-      // Remaining methods in defaultMethodsInDirectInterface are those methods we need to look at
-      // the hierarchy to know how they should be handled.
-      if (toBeImplementedFromDirectInterface.isEmpty()
-          && defaultMethodsInDirectInterface.isEmpty()) {
-        // No interface with default in direct hierarchy, nothing to do: super already has all that
-        // is needed.
-        return Collections.emptyList();
-      }
-
-      if (current.superType == null) {
+      DexType superType = current.superType;
+      if (superType == null || superType == rewriter.factory.objectType) {
+        // We assume here that interfaces implemented by java.lang.Object don't
+        // have default methods and don't hide any default interface methods since
+        // they must be library interfaces.
         break;
-      } else {
-        DexClass superClass = rewriter.findDefinitionFor(current.superType);
-        if (superClass != null) {
-          current = superClass;
-        } else {
-          String message = "Default method desugaring of `" + clazz.toSourceString() + "` failed";
-          if (current == clazz) {
-            message += " because its super class `" + clazz.superType.toSourceString()
-            + "` is missing";
-          } else {
-            message +=
-                " because it's hierarchy is incomplete. The class `"
-                    + current.superType.toSourceString()
-                    + "` is missing and it is the declared super class of `"
-                    + current.toSourceString() + "`";
-          }
-          throw new CompilationError(message);
-        }
       }
+      current = rewriter.findRequiredClass(superType);
     }
 
     List<DexEncodedMethod> candidates = helper.createCandidatesList();
@@ -191,41 +142,25 @@ final class ClassProcessor {
     current = clazz;
     while (true) {
       // Hide candidates by virtual method of the class.
-      hideCandidates(Arrays.asList(current.virtualMethods()), candidates, toBeImplemented);
+      hideCandidates(current.virtualMethods(), candidates, toBeImplemented);
       if (candidates.isEmpty()) {
         return toBeImplemented;
       }
 
       DexType superType = current.superType;
-      DexClass superClass = null;
-      if (superType != null) {
-        superClass = rewriter.findDefinitionFor(superType);
-        // It's available or we would have failed while analyzing the hierarchy for interfaces.
-        assert superClass != null;
-      }
-      if (superClass == null || superType == rewriter.factory.objectType) {
+      if (superType == null || superType == rewriter.factory.objectType) {
         // Note that default interface methods must never have same
         // name/signature as any method in java.lang.Object (JLS §9.4.1.2).
 
         // Everything still in candidate list is not hidden.
         toBeImplemented.addAll(candidates);
-        // NOTE: we also intentionally remove all candidates coming from android.jar
-        // since it is only possible in case v24+ version of android.jar is provided.
-        // WARNING: This may result in incorrect code on older platforms!
-        toBeImplemented.removeIf(
-            method -> {
-              DexClass holder = rewriter.findDefinitionFor(method.method.holder);
-              // Holder of a found method to implement is a defined interface.
-              assert holder != null;
-              return holder.isLibraryClass();
-            });
         return toBeImplemented;
       }
-      current = superClass;
+      current = rewriter.findRequiredClass(superType);
     }
   }
 
-  private void hideCandidates(List<DexEncodedMethod> virtualMethods,
+  private void hideCandidates(DexEncodedMethod[] virtualMethods,
       List<DexEncodedMethod> candidates, List<DexEncodedMethod> toBeImplemented) {
     Iterator<DexEncodedMethod> it = candidates.iterator();
     while (it.hasNext()) {
@@ -253,56 +188,42 @@ final class ClassProcessor {
     }
   }
 
-  private DefaultMethodsHelper.Collection getOrCreateInterfaceInfo(
-      DexClass classToDesugar,
-      DexClass implementing,
-      DexType iface) {
+  private DefaultMethodsHelper.Collection getOrCreateInterfaceInfo(DexType iface) {
     DefaultMethodsHelper.Collection collection = cache.get(iface);
     if (collection != null) {
       return collection;
     }
-    collection = createInterfaceInfo(classToDesugar, implementing, iface);
+    collection = createInterfaceInfo(iface);
     cache.put(iface, collection);
     return collection;
   }
 
-  private DefaultMethodsHelper.Collection createInterfaceInfo(
-      DexClass classToDesugar,
-      DexClass implementing,
-      DexType iface) {
+  private DefaultMethodsHelper.Collection createInterfaceInfo(DexType iface) {
     DefaultMethodsHelper helper = new DefaultMethodsHelper();
-    DexClass definedInterface = rewriter.findDefinitionFor(iface);
-    if (definedInterface == null) {
-      String message = "Interface `" + iface.toSourceString()
-              + "` not found. It's needed to make sure desugaring of `"
-              + classToDesugar.toSourceString() + "` is correct. Desugaring will assume that this"
-              + " interface has no default method";
-      if (classToDesugar != implementing) {
-        message += ". This missing interface is declared in the direct hierarchy of `"
-              + implementing.toString() + "`";
-      }
-      rewriter.warnMissingClass(iface, message);
-      return helper.wrapInCollection();
-    }
-
-    if (!definedInterface.isInterface()) {
+    DexClass clazz = rewriter.findRequiredClass(iface);
+    if (!clazz.isInterface()) {
       throw new CompilationError(
-          "Type " + iface.toSourceString() + " is referenced as an interface of `"
-          + implementing.toString() + "`.");
+          "Type " + iface.toSourceString() + " is expected to be an interface.");
+    }
+    if (clazz.isLibraryClass()) {
+      // For library interfaces we always assume there are no default
+      // methods, since the interface is part of framework provided by
+      // runtime which does not support default interface methods.
+      return DefaultMethodsHelper.Collection.EMPTY;
     }
 
     // Merge information from all superinterfaces.
-    for (DexType superinterface : definedInterface.interfaces.values) {
-      helper.merge(getOrCreateInterfaceInfo(classToDesugar, definedInterface, superinterface));
+    for (DexType superinterface : clazz.interfaces.values) {
+      helper.merge(getOrCreateInterfaceInfo(superinterface));
     }
 
     // Hide by virtual methods of this interface.
-    for (DexEncodedMethod virtual : definedInterface.virtualMethods()) {
+    for (DexEncodedMethod virtual : clazz.virtualMethods()) {
       helper.hideMatches(virtual.method);
     }
 
     // Add all default methods of this interface.
-    for (DexEncodedMethod encoded : definedInterface.virtualMethods()) {
+    for (DexEncodedMethod encoded : clazz.virtualMethods()) {
       if (rewriter.isDefaultMethod(encoded)) {
         helper.addDefaultMethod(encoded);
       }
