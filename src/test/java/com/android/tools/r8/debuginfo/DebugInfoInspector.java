@@ -98,7 +98,7 @@ public class DebugInfoInspector {
 
   public int checkLineHasAtLeastLocals(int line, String... pairs) {
     int lines = checkLines(line, entry -> checkLocalsDefined(entry, pairs));
-    assertTrue(lines > 0);
+    assertTrue("No entries found for line: " + line, lines > 0);
     return lines;
   }
 

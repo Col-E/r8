@@ -1850,14 +1850,29 @@ public class JarSourceCode implements SourceCode {
 
   private void processLocalVariablesAtControlEdge(AbstractInsnNode insn, IRBuilder builder) {
     assert isControlFlowInstruction(insn) && !isReturn(insn);
-    if (!(insn.getNext() instanceof LabelNode)) {
-      return;
+    int offset = getOffset(insn);
+    int blockOffset = builder.getCFG().headMap(offset).lastIntKey();
+    BlockInfo blockInfo = builder.getCFG().get(blockOffset);
+    // Read all locals that are not live on all successors to ensure liveness.
+    for (Local local : state.getLocals()) {
+      if (!liveAtAllSuccessors(blockInfo, local)) {
+        builder.addDebugLocalRead(local.slot.register, local.info);
+      }
     }
-    // If the label is the end of any local-variable scopes read the locals to ensure liveness.
-    LabelNode label = (LabelNode) insn.getNext();
-    for (Local local : state.getLocalsToClose(label)) {
-      builder.addDebugLocalRead(local.slot.register, local.info);
+  }
+
+  private boolean liveAtAllSuccessors(BlockInfo blockInfo, Local local) {
+    for (int successor : blockInfo.normalSuccessors) {
+      if (!state.localLiveAt(local, successor, this)) {
+        return false;
+      }
     }
+    for (int successor : blockInfo.exceptionalSuccessors) {
+      if (!state.localLiveAt(local, successor, this)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   private void processLocalVariablesAtExit(AbstractInsnNode insn, IRBuilder builder) {

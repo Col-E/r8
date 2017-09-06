@@ -130,6 +130,12 @@ public abstract class Instruction {
     debugValues.remove(value);
   }
 
+  public void removeDebugValue(Value value) {
+    assert debugValues.contains(value);
+    value.removeDebugUser(this);
+    debugValues.remove(value);
+  }
+
   /**
    * Returns the basic block containing this instruction.
    */
