@@ -260,9 +260,7 @@ public class Value {
   }
 
   public boolean isUsed() {
-    return !users.isEmpty()
-        || !phiUsers.isEmpty()
-        || ((debugData != null) && !debugData.users.isEmpty());
+    return !users.isEmpty() || !phiUsers.isEmpty() || numberOfAllDebugUsers() > 0;
   }
 
   public boolean usedInMonitorOperation() {
@@ -291,6 +289,7 @@ public class Value {
     uniquePhiUsers = null;
     if (debugData != null) {
       debugData.users.clear();
+      debugData.phiUsers.clear();
     }
   }
 

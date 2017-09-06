@@ -74,6 +74,11 @@ public class RegisterMoveSchedulerTest {
     }
 
     @Override
+    public void removeOrReplaceByNop() {
+      remove();
+    }
+
+    @Override
     public void detach() {
       remove();
     }

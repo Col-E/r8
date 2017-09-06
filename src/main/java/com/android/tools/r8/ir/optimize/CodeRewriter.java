@@ -50,9 +50,7 @@ import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.InvokeVirtual;
-import com.android.tools.r8.ir.code.JumpInstruction;
 import com.android.tools.r8.ir.code.MemberType;
-import com.android.tools.r8.ir.code.Move;
 import com.android.tools.r8.ir.code.MoveType;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.NewArrayFilledData;
@@ -72,7 +70,6 @@ import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Maps;
@@ -423,7 +420,6 @@ public class CodeRewriter {
     private int right;
     private BasicBlock target;
     private BasicBlock fallthrough;
-    private int blockNumber;
 
     public IfBuilder(IRCode code) {
       this.code = code;
@@ -483,7 +479,6 @@ public class CodeRewriter {
 
     // Extract the information from the switch before removing it.
     Int2ReferenceSortedMap<BasicBlock> keyToTarget = theSwitch.getKeyToTargetMap();
-    Set<Value> originalDebugValues = ImmutableSet.copyOf(theSwitch.getDebugValues());
 
     // Keep track of the current fallthrough, starting with the original.
     BasicBlock fallthroughBlock = theSwitch.fallthroughBlock();
@@ -493,6 +488,8 @@ public class CodeRewriter {
     BasicBlock originalSwitchBlock = iterator.split(code, blocksIterator);
     assert !originalSwitchBlock.hasCatchHandlers();
     assert originalSwitchBlock.getInstructions().size() == 1;
+    assert originalBlock.exit().isGoto();
+    theSwitch.moveDebugValues(originalBlock.exit());
     blocksIterator.remove();
     theSwitch.getBlock().detachAllSuccessors();
     BasicBlock block = theSwitch.getBlock().unlinkSinglePredecessor();
@@ -536,9 +533,6 @@ public class CodeRewriter {
       newBlocks.addFirst(ifBlock);
       fallthroughBlock = ifBlock;
     }
-
-    // Attach the debug values from the original switch to the first of the new instructions,
-    originalDebugValues.forEach(fallthroughBlock.exit()::addDebugValue);
 
     // Finally link the block before the original switch to the new block sequence.
     originalBlock.link(fallthroughBlock);
@@ -1770,16 +1764,15 @@ public class CodeRewriter {
         Instruction current = iterator.next();
         if (current.isInvokeMethod()) {
           DexMethod invokedMethod = current.asInvokeMethod().getInvokedMethod();
-
           if (matchesMethodOfThrowable(invokedMethod, throwableMethods.addSuppressed)) {
             // Remove Throwable::addSuppressed(Throwable) call.
-            iterator.remove();
+            iterator.removeOrReplaceByNop();
           } else if (matchesMethodOfThrowable(invokedMethod, throwableMethods.getSuppressed)) {
             Value destValue = current.outValue();
             if (destValue == null) {
               // If the result of the call was not used we don't create
               // an empty array and just remove the call.
-              iterator.remove();
+              iterator.removeOrReplaceByNop();
               continue;
             }
 
