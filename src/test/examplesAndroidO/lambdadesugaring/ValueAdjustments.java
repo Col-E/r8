@@ -21,7 +21,7 @@ public class ValueAdjustments {
     boolean f();
   }
 
-  interface iZ {
+  interface iBoolean {
     Boolean f();
   }
 
@@ -29,15 +29,15 @@ public class ValueAdjustments {
     byte f();
   }
 
-  interface iO {
+  interface iObject {
     Object f();
   }
 
-  interface iN {
+  interface iNumber {
     Number f();
   }
 
-  interface iB {
+  interface iByte {
     Byte f();
   }
 
@@ -45,7 +45,7 @@ public class ValueAdjustments {
     char f();
   }
 
-  interface iC {
+  interface iCharacter {
     Character f();
   }
 
@@ -53,7 +53,7 @@ public class ValueAdjustments {
     short f();
   }
 
-  interface iS {
+  interface iShort {
     Short f();
   }
 
@@ -61,7 +61,7 @@ public class ValueAdjustments {
     int f();
   }
 
-  interface iI {
+  interface iInteger {
     Integer f();
   }
 
@@ -69,7 +69,7 @@ public class ValueAdjustments {
     long f();
   }
 
-  interface iJ {
+  interface iLong {
     Long f();
   }
 
@@ -77,7 +77,7 @@ public class ValueAdjustments {
     float f();
   }
 
-  interface iF {
+  interface iFloat {
     Float f();
   }
 
@@ -85,56 +85,56 @@ public class ValueAdjustments {
     double f();
   }
 
-  interface iD {
+  interface iDouble {
     Double f();
   }
 
   private static void checkObject(StringBuffer builder) {
     builder
-        .append(((iO) ValueAdjustments::z).f()).append(' ')
-        .append(((iO) ValueAdjustments::Z).f()).append(' ')
-        .append(((iO) ValueAdjustments::b).f()).append(' ')
-        .append(((iO) ValueAdjustments::B).f()).append(' ')
-        .append(((iO) ValueAdjustments::c).f()).append(' ')
-        .append(((iO) ValueAdjustments::C).f()).append(' ')
-        .append(((iO) ValueAdjustments::s).f()).append(' ')
-        .append(((iO) ValueAdjustments::S).f()).append(' ')
-        .append(((iO) ValueAdjustments::i).f()).append(' ')
-        .append(((iO) ValueAdjustments::I).f()).append(' ')
-        .append(((iO) ValueAdjustments::j).f()).append(' ')
-        .append(((iO) ValueAdjustments::J).f()).append(' ')
-        .append(((iO) ValueAdjustments::f).f()).append(' ')
-        .append(((iO) ValueAdjustments::F).f()).append(' ')
-        .append(((iO) ValueAdjustments::d).f()).append(' ')
-        .append(((iO) ValueAdjustments::D).f()).append('\n');
+        .append(((iObject) ValueAdjustments::z).f()).append(' ')
+        .append(((iObject) ValueAdjustments::Z).f()).append(' ')
+        .append(((iObject) ValueAdjustments::b).f()).append(' ')
+        .append(((iObject) ValueAdjustments::B).f()).append(' ')
+        .append(((iObject) ValueAdjustments::c).f()).append(' ')
+        .append(((iObject) ValueAdjustments::C).f()).append(' ')
+        .append(((iObject) ValueAdjustments::s).f()).append(' ')
+        .append(((iObject) ValueAdjustments::S).f()).append(' ')
+        .append(((iObject) ValueAdjustments::i).f()).append(' ')
+        .append(((iObject) ValueAdjustments::I).f()).append(' ')
+        .append(((iObject) ValueAdjustments::j).f()).append(' ')
+        .append(((iObject) ValueAdjustments::J).f()).append(' ')
+        .append(((iObject) ValueAdjustments::f).f()).append(' ')
+        .append(((iObject) ValueAdjustments::F).f()).append(' ')
+        .append(((iObject) ValueAdjustments::d).f()).append(' ')
+        .append(((iObject) ValueAdjustments::D).f()).append('\n');
   }
 
   private static void checkNumber(StringBuffer builder) {
     builder
-        .append(((iN) ValueAdjustments::b).f()).append(' ')
-        .append(((iN) ValueAdjustments::B).f()).append(' ')
-        .append(((iN) ValueAdjustments::s).f()).append(' ')
-        .append(((iN) ValueAdjustments::S).f()).append(' ')
-        .append(((iN) ValueAdjustments::i).f()).append(' ')
-        .append(((iN) ValueAdjustments::I).f()).append(' ')
-        .append(((iN) ValueAdjustments::j).f()).append(' ')
-        .append(((iN) ValueAdjustments::J).f()).append(' ')
-        .append(((iN) ValueAdjustments::f).f()).append(' ')
-        .append(((iN) ValueAdjustments::F).f()).append(' ')
-        .append(((iN) ValueAdjustments::d).f()).append(' ')
-        .append(((iN) ValueAdjustments::D).f()).append('\n');
+        .append(((iNumber) ValueAdjustments::b).f()).append(' ')
+        .append(((iNumber) ValueAdjustments::B).f()).append(' ')
+        .append(((iNumber) ValueAdjustments::s).f()).append(' ')
+        .append(((iNumber) ValueAdjustments::S).f()).append(' ')
+        .append(((iNumber) ValueAdjustments::i).f()).append(' ')
+        .append(((iNumber) ValueAdjustments::I).f()).append(' ')
+        .append(((iNumber) ValueAdjustments::j).f()).append(' ')
+        .append(((iNumber) ValueAdjustments::J).f()).append(' ')
+        .append(((iNumber) ValueAdjustments::f).f()).append(' ')
+        .append(((iNumber) ValueAdjustments::F).f()).append(' ')
+        .append(((iNumber) ValueAdjustments::d).f()).append(' ')
+        .append(((iNumber) ValueAdjustments::D).f()).append('\n');
   }
 
   private static void checkBoxes(StringBuffer builder) {
     builder
-        .append(((iZ) ValueAdjustments::z).f()).append(' ')
-        .append(((iB) ValueAdjustments::b).f()).append(' ')
-        .append(((iC) ValueAdjustments::c).f()).append(' ')
-        .append(((iS) ValueAdjustments::s).f()).append(' ')
-        .append(((iI) ValueAdjustments::i).f()).append(' ')
-        .append(((iJ) ValueAdjustments::j).f()).append(' ')
-        .append(((iF) ValueAdjustments::f).f()).append(' ')
-        .append(((iD) ValueAdjustments::d).f()).append('\n');
+        .append(((iBoolean) ValueAdjustments::z).f()).append(' ')
+        .append(((iByte) ValueAdjustments::b).f()).append(' ')
+        .append(((iCharacter) ValueAdjustments::c).f()).append(' ')
+        .append(((iShort) ValueAdjustments::s).f()).append(' ')
+        .append(((iInteger) ValueAdjustments::i).f()).append(' ')
+        .append(((iLong) ValueAdjustments::j).f()).append(' ')
+        .append(((iFloat) ValueAdjustments::f).f()).append(' ')
+        .append(((iDouble) ValueAdjustments::d).f()).append('\n');
   }
 
   private static void checkDouble(StringBuffer builder) {
