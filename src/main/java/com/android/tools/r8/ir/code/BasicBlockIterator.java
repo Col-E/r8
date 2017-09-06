@@ -81,7 +81,8 @@ public class BasicBlockIterator implements ListIterator<BasicBlock> {
     // Remove all instructions from the block before removing the block.
     Iterator<Instruction> iterator = current.iterator();
     while (iterator.hasNext()) {
-      iterator.next();
+      Instruction instruction = iterator.next();
+      instruction.clearDebugValues();
       iterator.remove();
     }
     listIterator.remove();

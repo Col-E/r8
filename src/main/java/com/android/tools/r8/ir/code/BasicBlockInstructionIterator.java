@@ -108,6 +108,7 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
       throw new IllegalStateException();
     }
     assert current.outValue() == null || !current.outValue().isUsed();
+    assert current.getDebugValues().isEmpty();
     for (int i = 0; i < current.inValues().size(); i++) {
       Value value = current.inValues().get(i);
       value.removeUser(current);
@@ -115,8 +116,25 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
     for (Value value : current.getDebugValues()) {
       value.removeDebugUser(current);
     }
+    if (current.getLocalInfo() != null) {
+      for (Instruction user : current.outValue().debugUsers()) {
+        user.removeDebugValue(current.outValue());
+      }
+    }
     listIterator.remove();
     current = null;
+  }
+
+  @Override
+  public void removeOrReplaceByNop() {
+    if (current == null) {
+      throw new IllegalStateException();
+    }
+    if (current.getDebugValues().isEmpty()) {
+      remove();
+    } else {
+      replaceCurrentInstruction(new Nop());
+    }
   }
 
   @Override

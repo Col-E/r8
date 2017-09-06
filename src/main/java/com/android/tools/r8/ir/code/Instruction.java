@@ -131,9 +131,19 @@ public abstract class Instruction {
   }
 
   public void removeDebugValue(Value value) {
-    assert debugValues.contains(value);
-    value.removeDebugUser(this);
-    debugValues.remove(value);
+    assert value.getLocalInfo() != null;
+    if (debugValues != null) {
+      assert debugValues.contains(value);
+      debugValues.remove(value);
+      return;
+    }
+    assert false;
+  }
+
+  public void clearDebugValues() {
+    if (debugValues != null) {
+      debugValues.clear();
+    }
   }
 
   /**
@@ -821,6 +831,14 @@ public abstract class Instruction {
   }
 
   public InvokePolymorphic asInvokePolymorphic() {
+    return null;
+  }
+
+  public boolean isNop() {
+    return false;
+  }
+
+  public Nop asNop() {
     return null;
   }
 
