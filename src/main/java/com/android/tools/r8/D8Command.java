@@ -217,6 +217,8 @@ public class D8Command extends BaseCompilerCommand {
     internal.skipMinification = true;
     assert internal.useTreeShaking;
     internal.useTreeShaking = false;
+    assert internal.interfaceMethodDesugaring == OffOrAuto.Off;
+    assert internal.tryWithResourcesDesugaring == OffOrAuto.Off;
     assert internal.inlineAccessors;
     internal.inlineAccessors = false;
     assert internal.removeSwitchMaps;

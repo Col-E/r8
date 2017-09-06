@@ -135,7 +135,6 @@ public abstract class DebugTestBase {
             .setOutputPath(dexOutputDir)
             .setMinApiLevel(minSdk)
             .setMode(CompilationMode.DEBUG)
-            .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(minSdk)))
             .build(),
         optionsConsumer);
     return dexOutputDir.resolve("classes.dex");
