@@ -9,6 +9,7 @@ import java.util.Map;
 import org.apache.harmony.jpda.tests.framework.jdwp.JDWPConstants.Tag;
 import org.apache.harmony.jpda.tests.framework.jdwp.Value;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -17,6 +18,50 @@ import org.junit.Test;
 public class LocalsTest extends DebugTestBase {
 
   public static final String SOURCE_FILE = "Locals.java";
+
+  @Test
+  // TODO(b/65402086) Remove @ignore when debug behavior will be fixed.
+  @Ignore
+  public void testLocalConstantBis() throws Throwable {
+    final String className = "Locals";
+    final String methodName = "localConstantBis";
+    runDebugTest(className,
+        breakpoint(className, methodName),
+        run(),
+        checkLine(SOURCE_FILE, 332),
+        checkNoLocal("result"),
+        stepOver(),
+        checkLine(SOURCE_FILE, 333),
+        checkLocal("result", Value.createInt(0)),
+        stepOver(),
+        checkLine(SOURCE_FILE, 334),
+        checkLocal("result", Value.createInt(0)),
+        stepOver(),
+        checkLine(SOURCE_FILE, 338),
+        checkLocal("result", Value.createInt(1)),
+        run());
+  }
+
+  @Test
+  public void testLocalConstant() throws Throwable {
+    final String className = "Locals";
+    final String methodName = "localConstant";
+    runDebugTest(className,
+        breakpoint(className, methodName),
+        run(),
+        checkLine(SOURCE_FILE, 322),
+        checkNoLocal("result1"),
+        checkNoLocal("result2"),
+        stepOver(),
+        checkLine(SOURCE_FILE, 323),
+        checkNoLocal("result1"),
+        checkNoLocal("result2"),
+        stepOver(),
+        checkLine(SOURCE_FILE, 324),
+        checkLocal("result1"),
+        checkNoLocal("result2"),
+        run());
+  }
 
   @Test
   public void testNoLocal() throws Throwable {
