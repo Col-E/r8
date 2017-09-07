@@ -8,7 +8,7 @@ import static org.junit.Assert.assertEquals;
 import org.apache.harmony.jpda.tests.framework.jdwp.Value;
 import org.junit.Test;
 
-public class KotlinTest extends DebugTestBase {
+public class KotlinTest extends KotlinDebugTestBase {
 
   // TODO(shertz) simplify test
   // TODO(shertz) add more variables ?

@@ -12,8 +12,10 @@ import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.OffOrAuto;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongList;
 import java.io.File;
@@ -269,6 +271,12 @@ public abstract class DebugTestBase {
     return step(StepKind.INTO, stepFilter);
   }
 
+  protected static List<Variable> getVisibleKotlinInlineVariables(
+      JUnit3Wrapper.DebuggeeState debuggeeState) {
+    return debuggeeState.getVisibleVariables().stream()
+        .filter(v -> v.getName().matches("^\\$i\\$f\\$.*$")).collect(Collectors.toList());
+  }
+
   public enum StepKind {
     INTO(StepDepth.INTO),
     OVER(StepDepth.OVER),
@@ -317,10 +325,7 @@ public abstract class DebugTestBase {
   }
 
   protected final JUnit3Wrapper.Command checkNoLocal(String localName) {
-    return inspect(t -> {
-      List<String> localNames = t.getLocalNames();
-      Assert.assertFalse("Unexpected local: " + localName, localNames.contains(localName));
-    });
+    return inspect(t -> t.checkNoLocal(localName));
   }
 
   protected final JUnit3Wrapper.Command checkNoLocal() {
@@ -508,8 +513,9 @@ public abstract class DebugTestBase {
               .getMethodSignature(debuggeeState.getLocation().classID,
                   debuggeeState.getLocation().methodID);
           System.out.println(String
-              .format("Suspended in %s#%s%s@0x%x", classSig, methodName, methodSig,
-                  Long.valueOf(debuggeeState.getLocation().index)));
+              .format("Suspended in %s#%s%s@0x%x (line=%d)", classSig, methodName, methodSig,
+                  Long.valueOf(debuggeeState.getLocation().index),
+                  Integer.valueOf(debuggeeState.getLineNumber())));
         }
 
         // Handle event.
@@ -555,6 +561,16 @@ public abstract class DebugTestBase {
       return new ArtTestOptions(debuggeePath);
     }
 
+    public void enqueueCommandFirst(Command command) {
+      commandsQueue.addFirst(command);
+    }
+
+    public void enqueueCommandsFirst(List<Command> commands) {
+      for (int i = commands.size() - 1; i >= 0; --i) {
+        enqueueCommandFirst(commands.get(i));
+      }
+    }
+
     //
     // Inspection
     //
@@ -572,6 +588,8 @@ public abstract class DebugTestBase {
 
       // Locals
 
+      List<Variable> getVisibleVariables();
+
       /**
        * Returns the names of all local variables visible at the current location
        */
@@ -581,6 +599,7 @@ public abstract class DebugTestBase {
        * Returns the values of all locals visible at the current location.
        */
       Map<String, Value> getLocalValues();
+      void checkNoLocal(String localName);
       void checkLocal(String localName);
       void checkLocal(String localName, Value expectedValue);
     }
@@ -624,7 +643,7 @@ public abstract class DebugTestBase {
             // Code indices are in ascending order.
             assert currentLineCodeIndex >= startCodeIndex;
             assert currentLineCodeIndex <= endCodeIndex;
-            assert currentLineCodeIndex > previousLineCodeIndex;
+            assert currentLineCodeIndex >= previousLineCodeIndex;
             previousLineCodeIndex = currentLineCodeIndex;
 
             if (location.index >= currentLineCodeIndex) {
@@ -652,11 +671,17 @@ public abstract class DebugTestBase {
           }
         }
 
-        public List<String> getLocalNames() {
-          Location location = getLocation();
-          return JUnit3Wrapper.getVariablesAt(mirror, location).stream()
-              .map(v -> v.getName())
+        @Override
+        public List<Variable> getVisibleVariables() {
+          // Get variable table and keep only variables visible at this location.
+          Location frameLocation = getLocation();
+          return getVariables(getMirror(), frameLocation.classID, frameLocation.methodID).stream()
+              .filter(v -> inScope(frameLocation.index, v))
               .collect(Collectors.toList());
+        }
+
+        public List<String> getLocalNames() {
+          return getVisibleVariables().stream().map(v -> v.getName()).collect(Collectors.toList());
         }
 
         @Override
@@ -685,6 +710,13 @@ public abstract class DebugTestBase {
         private void failNoLocal(String localName) {
           Assert.fail(
               "line " + getLineNumber() + ": Expected local '" + localName + "' not present");
+        }
+
+        @Override
+        public void checkNoLocal(String localName) {
+          Optional<Variable> localVar = JUnit3Wrapper
+              .getVariableAt(mirror, getLocation(), localName);
+          Assert.assertFalse("Unexpected local: " + localName, localVar.isPresent());
         }
 
         public void checkLocal(String localName) {
@@ -780,6 +812,10 @@ public abstract class DebugTestBase {
         return threadId;
       }
 
+      public int getFrameDepth() {
+        return frames.size();
+      }
+
       public FrameInspector getFrame(int index) {
         return frames.get(index);
       }
@@ -796,6 +832,11 @@ public abstract class DebugTestBase {
       @Override
       public Location getLocation() {
         return frames.isEmpty() ? null : getTopFrame().getLocation();
+      }
+
+      @Override
+      public void checkNoLocal(String localName) {
+        getTopFrame().checkNoLocal(localName);
       }
 
       @Override
@@ -846,6 +887,11 @@ public abstract class DebugTestBase {
       @Override
       public String getMethodSignature() {
         return getTopFrame().getMethodSignature();
+      }
+
+      @Override
+      public List<Variable> getVisibleVariables() {
+        return getTopFrame().getVisibleVariables();
       }
 
       public Value getStaticField(String className, String fieldName, String fieldSignature) {
@@ -920,17 +966,17 @@ public abstract class DebugTestBase {
       }
     }
 
-    private static boolean inScope(long index, Variable var) {
-      long varStart = var.getCodeIndex();
-      long varEnd = varStart + var.getLength();
-      return index >= varStart && index < varEnd;
-    }
-
-    private static Optional<Variable> getVariableAt(VmMirror mirror, Location location,
+    public static Optional<Variable> getVariableAt(VmMirror mirror, Location location,
         String localName) {
       return getVariablesAt(mirror, location).stream()
           .filter(v -> localName.equals(v.getName()))
           .findFirst();
+    }
+
+    protected static boolean inScope(long index, Variable var) {
+      long varStart = var.getCodeIndex();
+      long varEnd = varStart + var.getLength();
+      return index >= varStart && index < varEnd;
     }
 
     private static List<Variable> getVariablesAt(VmMirror mirror, Location location) {
@@ -1059,10 +1105,9 @@ public abstract class DebugTestBase {
               wrapper.getMirror().clearEvent(JDWPConstants.EventKind.CLASS_PREPARE,
                   classPrepareRequestId);
 
-              // Breakpoint then resume. Note: we add them at the beginning of the queue (to be the
-              // next commands to be processed), thus they need to be pushed in reverse order.
-              wrapper.commandsQueue.addFirst(new JUnit3Wrapper.Command.RunCommand());
-              wrapper.commandsQueue.addFirst(BreakpointCommand.this);
+              // Breakpoint then resume.
+              wrapper.enqueueCommandsFirst(
+                  Arrays.asList(BreakpointCommand.this, new JUnit3Wrapper.Command.RunCommand()));
 
               // Set wrapper ready to process next command.
               wrapper.setState(State.ProcessCommand);
@@ -1262,7 +1307,7 @@ public abstract class DebugTestBase {
         }
         if (repeatStep) {
           // In order to repeat the step now, we need to add it at the beginning of the queue.
-          testBase.commandsQueue.addFirst(stepCommand);
+          testBase.enqueueCommandFirst(stepCommand);
         }
         super.handle(testBase);
       }

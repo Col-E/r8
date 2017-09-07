@@ -10,9 +10,9 @@ import org.apache.harmony.jpda.tests.framework.jdwp.Value;
 import org.junit.Ignore;
 import org.junit.Test;
 
-public class KotlinInlineTest extends DebugTestBase {
+// TODO check double-depth inline (an inline in another inline)
+public class KotlinInlineTest extends KotlinDebugTestBase {
 
-  @Ignore("Requires kotlin-specific stepping behavior")
   @Test
   public void testStepOverInline() throws Throwable {
     String methodName = "singleInline";
@@ -26,7 +26,6 @@ public class KotlinInlineTest extends DebugTestBase {
           assertEquals(41, s.getLineNumber());
           s.checkLocal("this");
         }),
-        // TODO(shertz) stepping over must take kotlin inline range into account.
         stepOver(),
         inspect(s -> {
           assertEquals("KotlinInline", s.getClassName());
@@ -35,7 +34,7 @@ public class KotlinInlineTest extends DebugTestBase {
           assertEquals(42, s.getLineNumber());
           s.checkLocal("this");
         }),
-        stepOver(),
+        kotlinStepOver(),
         inspect(s -> {
           assertEquals("KotlinInline", s.getClassName());
           assertEquals(methodName, s.getMethodName());
@@ -46,7 +45,6 @@ public class KotlinInlineTest extends DebugTestBase {
         run());
   }
 
-  @Ignore("Requires kotlin-specific stepping behavior")
   @Test
   public void testStepIntoInline() throws Throwable {
     String methodName = "singleInline";
@@ -60,7 +58,14 @@ public class KotlinInlineTest extends DebugTestBase {
           assertEquals(41, s.getLineNumber());
           s.checkLocal("this");
         }),
-        // TODO(shertz) stepping over must take kotlin inline range into account.
+        stepOver(),
+        inspect(s -> {
+          assertEquals("KotlinInline", s.getClassName());
+          assertEquals(methodName, s.getMethodName());
+          assertEquals("KotlinInline.kt", s.getSourceFile());
+          assertEquals(42, s.getLineNumber());
+          s.checkLocal("this");
+        }),
         stepInto(),
         inspect(s -> {
           assertEquals("KotlinInline", s.getClassName());
@@ -76,7 +81,6 @@ public class KotlinInlineTest extends DebugTestBase {
         run());
   }
 
-  @Ignore("Requires kotlin-specific stepping behavior")
   @Test
   public void testStepOutInline() throws Throwable {
     String methodName = "singleInline";
@@ -90,13 +94,20 @@ public class KotlinInlineTest extends DebugTestBase {
           assertEquals(41, s.getLineNumber());
           s.checkLocal("this");
         }),
-        // TODO(shertz) stepping out must take kotlin inline range into account.
+        stepOver(),
+        inspect(s -> {
+          assertEquals("KotlinInline", s.getClassName());
+          assertEquals(methodName, s.getMethodName());
+          assertEquals("KotlinInline.kt", s.getSourceFile());
+          assertEquals(42, s.getLineNumber());
+          s.checkLocal("this");
+        }),
         stepInto(),
         inspect(s -> {
           assertEquals("KotlinInline", s.getClassName());
           assertEquals(methodName, s.getMethodName());
         }),
-        stepOut(),
+        kotlinStepOut(),
         inspect(s -> {
           assertEquals("KotlinInline", s.getClassName());
           assertEquals(methodName, s.getMethodName());
