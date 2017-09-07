@@ -91,7 +91,6 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
@@ -1088,7 +1087,7 @@ public class CodeRewriter {
             user -> user.isCheckCast()
                 && user.asCheckCast().getType().isSubtypeOf(checkCast.getType(), appInfo))) {
           checkCast.outValue().replaceUsers(checkCast.inValues().get(0));
-          it.remove();
+          it.removeOrReplaceByNop();
         }
       }
     }
@@ -1537,7 +1536,7 @@ public class CodeRewriter {
 
     for (int i = 0; i < dominatorTree.getSortedBlocks().length; i++) {
       BasicBlock block = dominatorTree.getSortedBlocks()[i];
-      Iterator<Instruction> iterator = block.iterator();
+      InstructionListIterator iterator = block.listIterator();
       while (iterator.hasNext()) {
         Instruction instruction = iterator.next();
         if (instruction.isBinop()
@@ -1552,7 +1551,7 @@ public class CodeRewriter {
                   shareCatchHandlers(instruction, candidate.definition)) {
                 instruction.outValue().replaceUsers(candidate);
                 eliminated = true;
-                iterator.remove();
+                iterator.removeOrReplaceByNop();
                 break;  // Don't try any more candidates.
               }
             }
