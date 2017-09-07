@@ -86,7 +86,7 @@ public class Value {
   private boolean isArgument = false;
   private boolean knownToBeBoolean = false;
   private LongInterval valueRange;
-  private final DebugData debugData;
+  private DebugData debugData;
 
   public Value(int number, MoveType type, DebugLocalInfo local) {
     this.number = number;
@@ -112,6 +112,11 @@ public class Value {
 
   public DebugLocalInfo getLocalInfo() {
     return debugData == null ? null : debugData.local;
+  }
+
+  public void setLocalInfo(DebugLocalInfo local) {
+    assert debugData == null;
+    debugData = new DebugData(local);
   }
 
   public List<Instruction> getDebugLocalStarts() {

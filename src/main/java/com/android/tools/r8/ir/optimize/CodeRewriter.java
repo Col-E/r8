@@ -38,6 +38,7 @@ import com.android.tools.r8.ir.code.ConstInstruction;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.ConstType;
+import com.android.tools.r8.ir.code.DebugLocalWrite;
 import com.android.tools.r8.ir.code.DominatorTree;
 import com.android.tools.r8.ir.code.Goto;
 import com.android.tools.r8.ir.code.IRCode;
@@ -1428,6 +1429,40 @@ public class CodeRewriter {
           }
           block = block.exit().isGoto() ? block.exit().asGoto().getTarget() : null;
         } while (block != null);
+      }
+    }
+  }
+
+  public void simplifyDebugLocals(IRCode code) {
+    for (BasicBlock block : code.blocks) {
+      for (Phi phi : block.getPhis()) {
+        if (phi.getLocalInfo() == null && phi.numberOfUsers() == 1 && phi.numberOfAllUsers() == 1) {
+          Instruction instruction = phi.uniqueUsers().iterator().next();
+          if (instruction.isDebugLocalWrite()) {
+            removeDebugWriteOfPhi(phi, instruction.asDebugLocalWrite());
+          }
+        }
+      }
+    }
+  }
+
+  private void removeDebugWriteOfPhi(Phi phi, DebugLocalWrite write) {
+    assert write.src() == phi;
+    for (InstructionListIterator iterator = phi.getBlock().listIterator(); iterator.hasNext(); ) {
+      Instruction next = iterator.next();
+      if (!next.isDebugLocalWrite()) {
+        // If the debug write is not in the block header bail out.
+        return;
+      }
+      if (next == write) {
+        // Associate the phi with the local.
+        phi.setLocalInfo(write.getLocalInfo());
+        // Replace uses of the write with the phi.
+        write.outValue().replaceUsers(phi);
+        // Safely remove the write.
+        // TODO(zerny): Once phis become instructions, move debug values there instead of a nop.
+        iterator.removeOrReplaceByNop();
+        return;
       }
     }
   }
