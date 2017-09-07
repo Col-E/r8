@@ -86,6 +86,7 @@ public abstract class Instruction {
     instruction.inValues.forEach(Value::clearUsersInfo);
     if (instruction.debugValues != null) {
       instruction.debugValues.forEach(Value::clearUsersInfo);
+      instruction.debugValues = null;
     }
   }
 

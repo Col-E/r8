@@ -50,6 +50,15 @@ public class DebugPosition extends Instruction {
   }
 
   @Override
+  public boolean equals(Object other) {
+    if (other instanceof DebugPosition) {
+      DebugPosition o = (DebugPosition) other;
+      return line == o.line && file == o.file;
+    }
+    return false;
+  }
+
+  @Override
   public int maxInValueRegister() {
     throw new Unreachable();
   }

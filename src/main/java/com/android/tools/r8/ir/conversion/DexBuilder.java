@@ -48,6 +48,7 @@ import com.android.tools.r8.ir.code.DebugPosition;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.InstructionIterator;
+import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Move;
 import com.android.tools.r8.ir.code.NewArrayFilledData;
 import com.android.tools.r8.ir.code.Switch;
@@ -148,6 +149,11 @@ public class DexBuilder {
 
       // Populate the builder info objects.
       numberOfInstructions = 0;
+
+      // Remove redundant debug position instructions. They would otherwise materialize as
+      // unnecessary nops.
+      removeRedundantDebugPositions();
+
       ListIterator<BasicBlock> iterator = ir.listIterator();
       assert iterator.hasNext();
       BasicBlock block = iterator.next();
@@ -233,6 +239,26 @@ public class DexBuilder {
         highestSortingReferencedString);
 
     return code;
+  }
+
+  private void removeRedundantDebugPositions() {
+    ListIterator<BasicBlock> iterator = ir.listIterator();
+    DebugPosition lastMoveExceptionPosition = null;
+    while (iterator.hasNext()) {
+      BasicBlock next = iterator.next();
+      InstructionListIterator it = next.listIterator();
+      while (it.hasNext()) {
+        com.android.tools.r8.ir.code.Instruction instruction = it.next();
+        if (instruction.isDebugPosition()) {
+          if (instruction.asDebugPosition().equals(lastMoveExceptionPosition)) {
+            it.remove();
+          }
+          lastMoveExceptionPosition = null;
+        } else if (instruction.isMoveException()) {
+          lastMoveExceptionPosition = instruction.asMoveException().getPosition();
+        }
+      }
+    }
   }
 
   // Rewrite ifs with offsets that are too large for the if encoding. The rewriting transforms:
