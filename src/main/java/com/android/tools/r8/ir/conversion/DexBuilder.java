@@ -48,8 +48,10 @@ import com.android.tools.r8.ir.code.DebugPosition;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.InstructionIterator;
+import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Move;
 import com.android.tools.r8.ir.code.NewArrayFilledData;
+import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.Switch;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
@@ -316,7 +318,7 @@ public class DexBuilder {
     add(instruction, new FallThroughInfo(instruction));
   }
 
-  private boolean isNopInstruction(com.android.tools.r8.ir.code.Instruction instruction) {
+  private static boolean isNopInstruction(com.android.tools.r8.ir.code.Instruction instruction) {
     return instruction.isNop()
         || instruction.isDebugLocalsChange()
         || (instruction.isConstNumber() && !instruction.outValue().needsRegister());
@@ -813,7 +815,7 @@ public class DexBuilder {
       } else {
         size = 3;
       }
-      if (targetInfo.getIR().isReturn()) {
+      if (targetInfo.getIR().isReturn() && canTargetReturn(targetInfo.getIR().asReturn())) {
         // Set the size to the min of the size of the return and the size of the goto. When
         // adding instructions, we use the return if the computed size matches the size of the
         // return.
@@ -834,8 +836,9 @@ public class DexBuilder {
       Instruction dex;
       // Emit a return if the target is a return and the size of the return is the computed
       // size of this instruction.
-      if (targetInfo.getIR().isReturn() && size == targetInfo.getSize()) {
-        dex = targetInfo.getIR().asReturn().createDexInstruction(builder);
+      Return ret = targetInfo.getIR().asReturn();
+      if (ret != null && size == targetInfo.getSize() && canTargetReturn(ret)) {
+        dex = ret.createDexInstruction(builder);
       } else {
         switch (size) {
           case 1:
@@ -860,6 +863,18 @@ public class DexBuilder {
       }
       dex.setOffset(getOffset()); // for better printing of the dex code.
       instructions.add(dex);
+    }
+
+    private static boolean canTargetReturn(Return ret) {
+      InstructionListIterator it = ret.getBlock().listIterator(ret);
+      com.android.tools.r8.ir.code.Instruction prev = it.previous();
+      while (it.hasPrevious()) {
+        prev = it.previous();
+        if (!DexBuilder.isNopInstruction(prev)) {
+          break;
+        }
+      }
+      return !prev.isDebugPosition();
     }
   }
 
