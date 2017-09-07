@@ -154,7 +154,7 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
     for (Value value : current.inValues()) {
       value.removeUser(current);
     }
-    if (current.outValue() != null) {
+    if (current.outValue() != null && current.outValue().isUsed()) {
       assert newInstruction.outValue() != null;
       current.outValue().replaceUsers(newInstruction.outValue());
     }
