@@ -3,9 +3,19 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.utils.DescriptorUtils;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 
 public class DebugLocalInfo {
+  public enum PrintLevel {
+    NONE,
+    NAME,
+    FULL
+  }
+
+  public static final PrintLevel PRINT_LEVEL = PrintLevel.NAME;
+
   public final DexString name;
   public final DexType type;
   public final DexString signature;
@@ -58,6 +68,17 @@ public class DebugLocalInfo {
 
   @Override
   public String toString() {
-    return name + ":" + type + (signature == null ? "" : signature);
+    switch (PRINT_LEVEL) {
+      case NONE:
+        return "";
+      case NAME:
+        return name.toString();
+      case FULL:
+        return name + ":" + (signature == null
+            ? type
+            : DescriptorUtils.descriptorToJavaType(signature.toString()));
+      default:
+        throw new Unreachable();
+    }
   }
 }

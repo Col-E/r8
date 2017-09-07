@@ -335,9 +335,10 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
         ListIterator<LocalRange> it = openRanges.listIterator(0);
         Int2ReferenceMap<DebugLocalInfo> ending = new Int2ReferenceOpenHashMap<>();
         Int2ReferenceMap<DebugLocalInfo> starting = new Int2ReferenceOpenHashMap<>();
+        int endPositionCorrection = instruction.isDebugPosition() ? 1 : 0;
         while (it.hasNext()) {
           LocalRange openRange = it.next();
-          if (openRange.end <= index) {
+          if (openRange.end <= index - endPositionCorrection) {
             it.remove();
             assert currentLocals.get(openRange.register) == openRange.local;
             currentLocals.remove(openRange.register);

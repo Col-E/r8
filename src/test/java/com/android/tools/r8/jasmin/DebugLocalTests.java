@@ -15,6 +15,7 @@ import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.DexInspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class DebugLocalTests extends JasminTestBase {
@@ -116,6 +117,7 @@ public class DebugLocalTests extends JasminTestBase {
   }
 
   @Test
+  @Ignore("b/65430598")
   public void testNoLocalInfoOnStack() throws Exception {
     JasminBuilder builder = new JasminBuilder();
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");

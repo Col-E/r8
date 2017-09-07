@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.code;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DebugLocalInfo;
+import com.android.tools.r8.graph.DebugLocalInfo.PrintLevel;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.conversion.IRBuilder;
@@ -767,9 +768,6 @@ public class BasicBlock {
     StringBuilder builder = new StringBuilder();
     builder.append("block ");
     builder.append(number);
-    builder.append(" (");
-    builder.append(System.identityHashCode(this));
-    builder.append(')');
     builder.append(", pred-counts: " + predecessors.size());
     if (unfilledPredecessorsCount > 0) {
       builder.append(" (" + unfilledPredecessorsCount + " unfilled)");
@@ -813,9 +811,35 @@ public class BasicBlock {
       StringUtils.appendLeftPadded(builder, Integer.toString(instruction.getNumber()), 6);
       builder.append(": ");
       StringUtils.appendRightPadded(builder, instruction.toString(), 20);
-      builder.append('\n');
+      if (DebugLocalInfo.PRINT_LEVEL != PrintLevel.NONE) {
+        List<Value> localEnds = new ArrayList<>(instruction.getDebugValues().size());
+        List<Value> localStarts = new ArrayList<>(instruction.getDebugValues().size());
+        List<Value> localLive = new ArrayList<>(instruction.getDebugValues().size());
+        for (Value value : instruction.getDebugValues()) {
+          if (value.getDebugLocalEnds().contains(instruction)) {
+            localEnds.add(value);
+          } else if (value.getDebugLocalStarts().contains(instruction)) {
+            localStarts.add(value);
+          } else {
+            assert value.debugUsers().contains(instruction);
+            localLive.add(value);
+          }
+        }
+        printDebugValueSet("live", localLive, builder);
+        printDebugValueSet("end", localEnds, builder);
+        printDebugValueSet("start", localStarts, builder);
+      }
+      builder.append("\n");
     }
     return builder.toString();
+  }
+
+  private void printDebugValueSet(String header, List<Value> locals, StringBuilder builder) {
+    if (!locals.isEmpty()) {
+      builder.append(" [").append(header).append(": ");
+      StringUtils.append(builder, locals, ", ", BraceType.NONE);
+      builder.append("]");
+    }
   }
 
   public void print(CfgPrinter printer) {
