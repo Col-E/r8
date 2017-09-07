@@ -51,4 +51,9 @@ public class IRCodeInstructionsIterator implements InstructionIterator {
   public void replaceCurrentInstruction(Instruction newInstruction) {
     instructionIterator.replaceCurrentInstruction(newInstruction);
   }
+
+  @Override
+  public void removeOrReplaceByNop() {
+    instructionIterator.removeOrReplaceByNop();
+  }
 }
