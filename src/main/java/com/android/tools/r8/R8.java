@@ -71,7 +71,6 @@ import java.util.concurrent.Executors;
 
 public class R8 {
 
-  private static final String VERSION = "v0.2.0";
   private final Timing timing = new Timing("R8");
   private final InternalOptions options;
 
@@ -86,7 +85,7 @@ public class R8 {
       return options.getMarker();
     }
     return new Marker(Tool.R8)
-        .put("version", VERSION)
+        .put("version", Version.LABEL)
         .put("min-api", options.minApiLevel);
   }
 
@@ -535,7 +534,7 @@ public class R8 {
       return;
     }
     if (command.isPrintVersion()) {
-      System.out.println("R8 " + VERSION);
+      System.out.println("R8 " + Version.LABEL);
       return;
     }
     run(command);

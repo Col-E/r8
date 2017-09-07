@@ -28,7 +28,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 
 public class GenerateMainDexList {
-  private static final String VERSION = "v0.2.0";
   private final Timing timing = new Timing("maindex");
   private final InternalOptions options;
 
@@ -113,7 +112,7 @@ public class GenerateMainDexList {
       return;
     }
     if (command.isPrintVersion()) {
-      System.out.println("MainDexListGenerator " + VERSION);
+      System.out.println("MainDexListGenerator " + Version.LABEL);
       return;
     }
     List<String> result = run(command);
