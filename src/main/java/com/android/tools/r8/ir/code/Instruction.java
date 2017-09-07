@@ -142,6 +142,9 @@ public abstract class Instruction {
 
   public void clearDebugValues() {
     if (debugValues != null) {
+      for (Value debugValue : debugValues) {
+        debugValue.removeDebugUser(this);
+      }
       debugValues.clear();
     }
   }

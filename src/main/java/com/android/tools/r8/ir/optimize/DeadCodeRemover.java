@@ -120,7 +120,7 @@ public class DeadCodeRemover {
       // All users will be removed for this instruction. Eagerly clear them so further inspection
       // of this instruction during dead code elimination will terminate here.
       outValue.clearUsers();
-      iterator.remove();
+      iterator.removeOrReplaceByNop();
     }
   }
 
