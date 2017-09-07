@@ -144,7 +144,7 @@ public class Disassemble {
       return;
     }
     if (command.isPrintVersion()) {
-      System.out.println("R8 v0.0.1");
+      System.out.println("R8 " + Version.LABEL);
       return;
     }
     R8.disassemble(command);
