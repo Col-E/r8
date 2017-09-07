@@ -5,7 +5,6 @@
 package com.android.tools.r8.ir.conversion;
 
 import com.android.tools.r8.ApiLevelException;
-import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.InvalidDebugInfoException;
