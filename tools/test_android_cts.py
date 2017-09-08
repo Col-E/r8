@@ -30,6 +30,7 @@ import re
 import sys
 import time
 
+import checkout_aosp
 import gradle
 import utils
 
@@ -53,7 +54,8 @@ RESULTS_DIR_BASE = join(OUT_CTS, 'host/linux-x86/cts/android-cts/results')
 CTS_TRADEFED = join(OUT_CTS,
   'host/linux-x86/cts/android-cts/tools/cts-tradefed')
 
-J_OPTION = '-j8'
+J_DEFAULT = '8'
+J_OPTION = '-j' + J_DEFAULT
 
 EXIT_FAILURE = 1
 
@@ -142,17 +144,6 @@ def setup_and_clean(tool_is_d8, clean_dex):
   if counter > 0:
     print('Removed {} dex files.'.format(counter))
 
-def checkout_aosp():
-  # checkout AOSP source
-  manifests_dir = join(AOSP_ROOT, '.repo', 'manifests')
-  utils.makedirs_if_needed(manifests_dir)
-
-  copy2(AOSP_MANIFEST_XML, manifests_dir)
-  check_call(['repo', 'init', '-u', AOSP_MANIFEST_URL, '-m',
-    'aosp_manifest.xml', '--depth=1'], cwd = AOSP_ROOT)
-
-  check_call(['repo', 'sync', '-dq', J_OPTION], cwd = AOSP_ROOT)
-
 def Main():
   args = parse_arguments()
 
@@ -179,7 +170,7 @@ def Main():
 
   setup_and_clean(args.tool == 'd8', args.clean_dex)
 
-  checkout_aosp()
+  checkout_aosp.checkout_aosp(AOSP_ROOT, AOSP_MANIFEST_XML, J_DEFAULT)
 
   # activate OUT_CTS and build Android CTS
   # AOSP has no clean way to set the output directory.
