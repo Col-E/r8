@@ -531,8 +531,6 @@ public abstract class DebugTestBase {
             if (ToolHelper.getDexVm().isNewerThan(DexVm.ART_5_1_1)) {
               artCommandBuilder.appendArtOption("-Xcompiler-option");
               artCommandBuilder.appendArtOption("--debuggable");
-              artCommandBuilder.appendArtOption("-Xcompiler-option");
-              artCommandBuilder.appendArtOption("--compiler-filter=interpret-only");
             }
             if (DEBUG_TESTS) {
               artCommandBuilder.appendArtOption("-verbose:jdwp");

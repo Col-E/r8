@@ -58,7 +58,6 @@ LD_LIBRARY_PATH=$TOOLSDIR/art/lib $TOOLSDIR/art/bin/dex2oat \
   --boot-image=$TOOLSDIR/art/product/angler/system/framework/boot.art \
   --dex-file=$JARFILE \
   --oat-file=$OATFILE \
-  --instruction-set=arm64 \
-  --compiler-filter=interpret-only
+  --instruction-set=arm64
 
 rm -rf $TMPDIR
