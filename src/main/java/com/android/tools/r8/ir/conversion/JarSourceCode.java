@@ -257,11 +257,6 @@ public class JarSourceCode implements SourceCode {
   }
 
   @Override
-  public boolean needsPrelude() {
-    return isSynchronized() || actualArgumentCount() > 0 || !node.localVariables.isEmpty();
-  }
-
-  @Override
   public void buildPrelude(IRBuilder builder) {
     // Record types for arguments.
     Int2ReferenceMap<MoveType> argumentLocals = recordArgumentTypes();
@@ -418,24 +413,9 @@ public class JarSourceCode implements SourceCode {
 
         AbstractInsnNode insn = getInstruction(i);
         updateState(insn);
-
-        if (!isControlFlowInstruction(insn)) {
-          updateStateForLocalVariableEnd(insn);
-        }
       }
     }
     state.restoreState(0);
-  }
-
-  private void updateStateForLocalVariableEnd(AbstractInsnNode insn) {
-    assert !isControlFlowInstruction(insn);
-    if (!(insn.getNext() instanceof LabelNode)) {
-      return;
-    }
-    // If the label is the end of any local-variable scopes end the locals.
-    LabelNode label = (LabelNode) insn.getNext();
-    List<Local> locals = state.getLocalsToClose(label);
-    state.closeLocals(locals);
   }
 
   @Override
@@ -461,11 +441,14 @@ public class JarSourceCode implements SourceCode {
   }
 
   @Override
-  public void closedCurrentBlockWithFallthrough(int fallthroughInstructionIndex) {
-  }
-
-  @Override
-  public void closedCurrentBlock() {
+  public void closingCurrentBlockWithFallthrough(
+      int fallthroughInstructionIndex, IRBuilder builder) {
+    AbstractInsnNode insn = node.instructions.get(fallthroughInstructionIndex);
+    if (insn instanceof LabelNode) {
+      for (Local local : state.getLocalsToClose((LabelNode) insn)) {
+        builder.addDebugLocalEnd(local.slot.register, local.info);
+      }
+    }
   }
 
   @Override
@@ -486,12 +469,6 @@ public class JarSourceCode implements SourceCode {
     String preInstructionState;
     if (Log.ENABLED) {
       preInstructionState = state.toString();
-    }
-
-    // Process local-variable end scopes if this instruction is not a control-flow instruction.
-    // For control-flow instructions, processing takes place before closing their respective blocks.
-    if (!isControlFlowInstruction(insn)) {
-      processLocalVariableEnd(insn, builder);
     }
 
     build(insn, builder);
@@ -1727,6 +1704,9 @@ public class JarSourceCode implements SourceCode {
   }
 
   private void updateState(LabelNode insn) {
+    // Close scope of locals ending at this point.
+    List<Local> locals = state.getLocalsToClose(insn);
+    state.closeLocals(locals);
     // Open the scope of locals starting at this point.
     if (insn != initialLabel) {
       state.openLocals(insn);
@@ -1832,20 +1812,6 @@ public class JarSourceCode implements SourceCode {
       default:
         throw new Unreachable("Unexpected instruction " + insn);
     }
-  }
-
-  private void processLocalVariableEnd(AbstractInsnNode insn, IRBuilder builder) {
-    assert !isControlFlowInstruction(insn);
-    if (!(insn.getNext() instanceof LabelNode)) {
-      return;
-    }
-    // If the label is the end of any local-variable scopes end the locals.
-    LabelNode label = (LabelNode) insn.getNext();
-    List<Local> locals = state.getLocalsToClose(label);
-    for (Local local : locals) {
-      builder.addDebugLocalEnd(local.slot.register, local.info);
-    }
-    state.closeLocals(locals);
   }
 
   private void processLocalVariablesAtControlEdge(AbstractInsnNode insn, IRBuilder builder) {
@@ -2743,6 +2709,13 @@ public class JarSourceCode implements SourceCode {
   }
 
   private void build(LabelNode insn, IRBuilder builder) {
+    // Close locals starting at this point.
+    List<Local> locals = state.getLocalsToClose(insn);
+    for (Local local : locals) {
+      builder.addDebugLocalEnd(local.slot.register, local.info);
+    }
+    state.closeLocals(locals);
+
     // Open the scope of locals starting at this point.
     if (insn != initialLabel) {
       for (Local local : state.openLocals(insn)) {
@@ -2846,7 +2819,7 @@ public class JarSourceCode implements SourceCode {
   }
 
   private void build(LineNumberNode insn, IRBuilder builder) {
-    builder.updateCurrentDebugPosition(insn.line, null);
+    builder.addDebugPosition(insn.line, null);
   }
 
   @Override

@@ -638,6 +638,12 @@ public class BasicBlock {
     return currentDefinitions.get(register);
   }
 
+  public void replaceCurrentDefinitions(Value oldValue, Value newValue) {
+    assert oldValue.definition.getBlock() == this;
+    assert !oldValue.isUsed();
+    currentDefinitions.replaceAll((index, value) -> value == oldValue ? newValue : value);
+  }
+
   public void updateCurrentDefinition(int register, Value value, EdgeType readingEdge) {
     // If the reading/writing block is a catch successor, possibly update the on-throw value.
     if (isOnThrowValue(register, readingEdge)) {

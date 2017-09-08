@@ -88,11 +88,6 @@ public class DexSourceCode implements SourceCode {
   }
 
   @Override
-  public boolean needsPrelude() {
-    return !accessFlags.isStatic() || !argumentTypes.isEmpty();
-  }
-
-  @Override
   public int instructionCount() {
     return code.instructions.length;
   }
@@ -143,11 +138,9 @@ public class DexSourceCode implements SourceCode {
   }
 
   @Override
-  public void closedCurrentBlockWithFallthrough(int fallthroughInstructionIndex) {
-  }
-
-  @Override
-  public void closedCurrentBlock() {
+  public void closingCurrentBlockWithFallthrough(
+      int fallthroughInstructionIndex, IRBuilder builder) {
+    // Intentionally empty.
   }
 
   @Override
@@ -206,7 +199,7 @@ public class DexSourceCode implements SourceCode {
     int offset = instructionOffset(instructionIndex);
     for (DexDebugEntry entry : debugEntries) {
       if (entry.address == offset) {
-        builder.updateCurrentDebugPosition(entry.line, entry.sourceFile);
+        builder.addDebugPosition(entry.line, entry.sourceFile);
         return;
       }
       if (entry.address > offset) {

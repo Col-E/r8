@@ -788,11 +788,6 @@ public class Outliner {
     }
 
     @Override
-    public boolean needsPrelude() {
-      return outline.argumentCount() > 0;
-    }
-
-    @Override
     public int instructionCount() {
       return outline.templateInstructions.size() + 1;
     }
@@ -819,11 +814,8 @@ public class Outliner {
     }
 
     @Override
-    public void closedCurrentBlockWithFallthrough(int fallthroughInstructionIndex) {
-    }
-
-    @Override
-    public void closedCurrentBlock() {
+    public void closingCurrentBlockWithFallthrough(
+        int fallthroughInstructionIndex, IRBuilder builder) {
     }
 
     @Override
