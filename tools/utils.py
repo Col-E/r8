@@ -216,7 +216,7 @@ def verify_with_dex2oat(dex_file):
         '--dex-file=' + dex_file,
         '--oat-file=' + oat_file,
         '--instruction-set=arm64',
-        '--compiler-filter=interpret-only'
+        '--compiler-filter=quicken'
     ]
 
     PrintCmd(cmd)

@@ -736,7 +736,6 @@ public class ToolHelper {
     command.add("--dex-file=" + file.toAbsolutePath());
     command.add("--oat-file=" + outFile.toAbsolutePath());
     command.add("--instruction-set=arm64");
-    command.add("--compiler-filter=interpret-only");
     ProcessBuilder builder = new ProcessBuilder(command);
     builder.environment().put("LD_LIBRARY_PATH", LIB_PATH);
     ProcessResult result = runProcess(builder);

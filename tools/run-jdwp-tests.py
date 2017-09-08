@@ -84,8 +84,6 @@ def get_common_flags(version):
   flags = ['-Ximage:%s' % IMAGE]
   if version != '5.1.1':
     flags.extend(['-Xcompiler-option', '--debuggable'])
-    if version != '6.0.1':
-      flags.extend(['-Xcompiler-option', '--compiler-filter=interpret-only'])
   return flags
 
 def get_debuggee_flags(version):
