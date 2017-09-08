@@ -317,6 +317,7 @@ compileJctfTestsJava {
 
 task R8(type: com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar) {
     from sourceSets.main.output
+    from files('LICENSE')
     baseName 'r8'
     classifier = null
     version = null
@@ -342,6 +343,7 @@ task R8(type: com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar) {
 
 task D8(type: com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar) {
     from sourceSets.main.output
+    from files('LICENSE')
     baseName 'd8'
     classifier = null
     version = null
