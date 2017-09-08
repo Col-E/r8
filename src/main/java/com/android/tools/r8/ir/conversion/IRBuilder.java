@@ -5,7 +5,6 @@
 package com.android.tools.r8.ir.conversion;
 
 import com.android.tools.r8.ApiLevelException;
-import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.InvalidDebugInfoException;
@@ -60,6 +59,7 @@ import com.android.tools.r8.ir.code.Neg;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.NewArrayFilledData;
 import com.android.tools.r8.ir.code.NewInstance;
+import com.android.tools.r8.ir.code.Nop;
 import com.android.tools.r8.ir.code.Not;
 import com.android.tools.r8.ir.code.NumberConversion;
 import com.android.tools.r8.ir.code.NumericType;
@@ -269,8 +269,6 @@ public class IRBuilder {
 
   final private ValueNumberGenerator valueNumberGenerator;
 
-  private DebugPosition currentDebugPosition = null;
-
   private DexEncodedMethod method;
 
   // Source code to build IR from. Null if already built.
@@ -280,11 +278,9 @@ public class IRBuilder {
 
   private final InternalOptions options;
 
-  // Pending local changes.
+  // Pending local reads.
   private Value previousLocalValue = null;
-  private List<Value> debugLocalStarts = new ArrayList<>();
   private List<Value> debugLocalReads = new ArrayList<>();
-  private List<Value> debugLocalEnds = new ArrayList<>();
 
   private int nextBlockNumber = 0;
 
@@ -470,13 +466,12 @@ public class IRBuilder {
       // Build IR for each dex instruction in the block.
       for (int i = item.firstInstructionIndex; i < source.instructionCount(); ++i) {
         if (currentBlock == null) {
-          source.closedCurrentBlock();
           break;
         }
         BlockInfo info = targets.get(source.instructionOffset(i));
         if (info != null && info.block != currentBlock) {
+          source.closingCurrentBlockWithFallthrough(i, this);
           closeCurrentBlockWithFallThrough(info.block);
-          source.closedCurrentBlockWithFallthrough(i);
           addToWorklist(info.block, i);
           break;
         }
@@ -551,26 +546,13 @@ public class IRBuilder {
     addInstruction(new DebugLocalUninitialized(type, value));
   }
 
-  public void addDebugLocalStart(int register, DebugLocalInfo local) {
-    if (!options.debug) {
-      return;
-    }
-    assert local != null;
-    assert local == getCurrentLocal(register);
-    MoveType moveType = MoveType.fromDexType(local.type);
-    Value in = readRegisterIgnoreLocal(register, moveType);
-    if (in.isPhi() || in.getLocalInfo() != local) {
-      // We cannot shortcut if the local is defined by a phi as it could end up being trivial.
-      addDebugLocalWrite(moveType, register, in);
-    } else {
-      Value value = getLocalValue(register, local);
-      if (value != null) {
-        debugLocalStarts.add(value);
-      }
-    }
+  public void addDebugPosition(int line, DexString file) {
+    // Always add positions as they influence release builds (ie, stack traces).
+    addInstruction(new DebugPosition(line, file));
   }
 
   private void addDebugLocalWrite(MoveType type, int dest, Value in) {
+    assert options.debug;
     Value out = writeRegister(dest, type, ThrowingInfo.NO_THROW);
     DebugLocalWrite write = new DebugLocalWrite(out, in);
     assert !write.instructionTypeCanThrow();
@@ -578,17 +560,17 @@ public class IRBuilder {
   }
 
   private Value getLocalValue(int register, DebugLocalInfo local) {
+    assert options.debug;
     assert local != null;
     assert local == getCurrentLocal(register);
     MoveType moveType = MoveType.fromDexType(local.type);
+    return readRegisterIgnoreLocal(register, moveType);
+  }
+
+  private static boolean isValidFor(Value value, DebugLocalInfo local) {
     // Invalid debug-info may cause attempt to read a local that is not actually alive.
     // See b/37722432 and regression test {@code jasmin.InvalidDebugInfoTests::testInvalidInfoThrow}
-    Value in = readRegisterIgnoreLocal(register, moveType);
-    if (in.isUninitializedLocal() || in.getLocalInfo() != local) {
-      return null;
-    }
-    assert in.getLocalInfo() == local;
-    return in;
+    return !value.isUninitializedLocal() && value.getLocalInfo() == local;
   }
 
   public void addDebugLocalRead(int register, DebugLocalInfo local) {
@@ -596,9 +578,38 @@ public class IRBuilder {
       return;
     }
     Value value = getLocalValue(register, local);
-    if (value != null) {
+    if (isValidFor(value, local)) {
       debugLocalReads.add(value);
     }
+  }
+
+  public void addDebugLocalStart(int register, DebugLocalInfo local) {
+    if (!options.debug) {
+      return;
+    }
+    Value value = getLocalValue(register, local);
+
+    // If the value is for a different local, introduce the new local. We cannot shortcut if the
+    // local is defined by a phi as it could end up being trivial.
+    if (value.isPhi() || value.getLocalInfo() != local) {
+      addDebugLocalWrite(MoveType.fromDexType(local.type), register, value);
+      return;
+    }
+
+    if (!isValidFor(value, local)) {
+      return;
+    }
+
+    // When inserting a start there are two possibilities:
+    // 1. The block is empty (eg, instructions from block entry until now materialized to nothing).
+    // 2. The block is non-empty (and the last instruction does not define the local to start).
+    if (currentBlock.getInstructions().isEmpty()) {
+      addInstruction(new Nop());
+    }
+    Instruction instruction = currentBlock.getInstructions().getLast();
+    assert instruction.outValue() != value;
+    instruction.addDebugValue(value);
+    value.addDebugLocalStart(instruction);
   }
 
   public void addDebugLocalEnd(int register, DebugLocalInfo local) {
@@ -606,8 +617,33 @@ public class IRBuilder {
       return;
     }
     Value value = getLocalValue(register, local);
-    if (value != null) {
-      debugLocalEnds.add(value);
+    if (!isValidFor(value, local)) {
+      return;
+    }
+
+    // When inserting an end there are three possibilities:
+    // 1. The block is empty (eg, instructions from block entry until now materialized to nothing).
+    // 2. The block has an instruction not defining the local being ended.
+    // 3. The block has an instruction defining the local being ended.
+    if (currentBlock.getInstructions().isEmpty()) {
+      addInstruction(new Nop());
+    }
+    Instruction instruction = currentBlock.getInstructions().getLast();
+    if (instruction.outValue() != value) {
+      instruction.addDebugValue(value);
+      value.addDebugLocalEnd(instruction);
+      return;
+    }
+    // In case 3. there are two cases:
+    // a. The defining instruction is a debug-write, in which case it should be removed.
+    // b. The defining instruction is overwriting the local value, in which case we de-associate it.
+    assert !instruction.outValue().isUsed();
+    if (instruction.isDebugLocalWrite()) {
+      DebugLocalWrite write = instruction.asDebugLocalWrite();
+      currentBlock.replaceCurrentDefinitions(value, write.src());
+      currentBlock.listIterator(write).removeOrReplaceByNop();
+    } else {
+      instruction.outValue().clearLocalInfo();
     }
   }
 
@@ -1146,6 +1182,13 @@ public class IRBuilder {
     assert out.getLocalInfo() == null;
     MoveException instruction = new MoveException(out);
     assert !instruction.instructionTypeCanThrow();
+    if (!currentBlock.getInstructions().isEmpty()
+        && currentBlock.getInstructions().getLast().isDebugPosition()) {
+      DebugPosition position = currentBlock.getInstructions().getLast().asDebugPosition();
+      position.moveDebugValues(instruction);
+      instruction.setPosition(position);
+      currentBlock.removeInstruction(position);
+    }
     if (!currentBlock.getInstructions().isEmpty()) {
       throw new CompilationError("Invalid MoveException instruction encountered. "
           + "The MoveException instruction is not the first instruction in the block in "
@@ -1621,8 +1664,7 @@ public class IRBuilder {
 
   // Private instruction helpers.
   private void addInstruction(Instruction ir) {
-    attachLocalChanges(ir);
-    flushCurrentDebugPosition(ir);
+    attachLocalValues(ir);
     currentBlock.add(ir);
     if (ir.instructionTypeCanThrow()) {
       assert source.verifyCurrentInstructionCanThrow();
@@ -1660,8 +1702,10 @@ public class IRBuilder {
     }
   }
 
-  private void attachLocalChanges(Instruction ir) {
+  private void attachLocalValues(Instruction ir) {
     if (!options.debug) {
+      assert previousLocalValue == null;
+      assert debugLocalReads.isEmpty();
       return;
     }
     // Add a use if this instruction is overwriting a previous value of the same local.
@@ -1669,24 +1713,12 @@ public class IRBuilder {
       assert ir.outValue() != null;
       ir.addDebugValue(previousLocalValue);
     }
+    // Add reads of locals if any are pending.
+    for (Value value : debugLocalReads) {
+      ir.addDebugValue(value);
+    }
     previousLocalValue = null;
-    if (debugLocalStarts.isEmpty() && debugLocalReads.isEmpty() && debugLocalEnds.isEmpty()) {
-      return;
-    }
-    for (Value debugLocalStart : debugLocalStarts) {
-      ir.addDebugValue(debugLocalStart);
-      debugLocalStart.addDebugLocalStart(ir);
-    }
-    for (Value debugLocalRead : debugLocalReads) {
-      ir.addDebugValue(debugLocalRead);
-    }
-    for (Value debugLocalEnd : debugLocalEnds) {
-      ir.addDebugValue(debugLocalEnd);
-      debugLocalEnd.addDebugLocalEnd(ir);
-    }
-    debugLocalStarts.clear();
     debugLocalReads.clear();
-    debugLocalEnds.clear();
   }
 
   // Package (ie, SourceCode accessed) helpers.
@@ -1787,7 +1819,6 @@ public class IRBuilder {
     // insert reads before closing the block. It is unclear if we can rely on a local-end to ensure
     // liveness in all blocks where the local should be live.
     assert currentBlock != null;
-    assert currentDebugPosition == null;
     currentBlock.close(this);
     setCurrentBlock(null);
     throwingInstructionInCurrentBlock = false;
@@ -2059,30 +2090,6 @@ public class IRBuilder {
       }
     }
     code.blocks = tracedBlocks;
-  }
-
-  // Debug info helpers.
-
-  public void updateCurrentDebugPosition(int line, DexString file) {
-    // Stack-trace support requires position information in both debug and release mode.
-    flushCurrentDebugPosition(null);
-    currentDebugPosition = new DebugPosition(line, file);
-    attachLocalChanges(currentDebugPosition);
-  }
-
-  private void flushCurrentDebugPosition(Instruction instruction) {
-    if (currentDebugPosition != null) {
-      DebugPosition position = currentDebugPosition;
-      currentDebugPosition = null;
-      if (instruction != null && instruction.isMoveException()) {
-        // Set the position on the move-exception instruction.
-        // ART/DX associates the move-exception pc with the catch-declaration line.
-        // See debug.ExceptionTest.testStepOnCatch().
-        instruction.asMoveException().setPosition(position);
-      } else {
-        addInstruction(position);
-      }
-    }
   }
 
   // Other stuff.

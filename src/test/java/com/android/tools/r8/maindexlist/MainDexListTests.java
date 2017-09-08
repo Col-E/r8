@@ -622,11 +622,6 @@ public class MainDexListTests extends TestBase {
     }
 
     @Override
-    public boolean needsPrelude() {
-      return false;
-    }
-
-    @Override
     public DebugLocalInfo getCurrentLocal(int register) {
       return null;
     }
@@ -637,13 +632,9 @@ public class MainDexListTests extends TestBase {
     }
 
     @Override
-    public void closedCurrentBlockWithFallthrough(int fallthroughInstructionIndex) {
+    public void closingCurrentBlockWithFallthrough(
+        int fallthroughInstructionIndex, IRBuilder builder) {
       throw new Unreachable();
-    }
-
-    @Override
-    public void closedCurrentBlock() {
-      // Intentionally empty.
     }
 
     @Override

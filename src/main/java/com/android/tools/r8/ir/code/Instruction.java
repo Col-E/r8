@@ -134,7 +134,9 @@ public abstract class Instruction {
     assert value.getLocalInfo() != null;
     if (debugValues != null) {
       assert debugValues.contains(value);
-      debugValues.remove(value);
+      if (debugValues.remove(value)) {
+        value.removeDebugUser(this);
+      }
       return;
     }
     assert false;

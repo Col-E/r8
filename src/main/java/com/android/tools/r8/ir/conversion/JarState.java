@@ -294,7 +294,9 @@ public class JarState {
       int register = getLocalRegister(node.index, type);
       Local local = getLocalForRegister(register);
       assert local != null;
-      locals.add(local);
+      if (local.info != null) {
+        locals.add(local);
+      }
     }
     // Sort to ensure deterministic instruction ordering (correctness is unaffected).
     locals.sort(Comparator.comparingInt(local -> local.slot.register));

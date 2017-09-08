@@ -115,8 +115,15 @@ public class Value {
   }
 
   public void setLocalInfo(DebugLocalInfo local) {
+    assert local != null;
     assert debugData == null;
     debugData = new DebugData(local);
+  }
+
+  public void clearLocalInfo() {
+    assert debugData.users.isEmpty();
+    assert debugData.phiUsers.isEmpty();
+    debugData = null;
   }
 
   public List<Instruction> getDebugLocalStarts() {

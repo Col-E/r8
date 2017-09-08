@@ -22,10 +22,6 @@ public interface SourceCode {
   int instructionIndex(int instructionOffset);
   int instructionOffset(int instructionIndex);
 
-  // True if the method needs a special entry block (prelude) that is not a targetable block.
-  // This is the case for methods with arguments or that need additional synchronization support.
-  boolean needsPrelude();
-
   DebugLocalInfo getCurrentLocal(int register);
 
   DebugPosition getDebugPositionAtOffset(int offset);
@@ -41,8 +37,7 @@ public interface SourceCode {
    */
   int traceInstruction(int instructionIndex, IRBuilder builder);
 
-  void closedCurrentBlockWithFallthrough(int fallthroughInstructionIndex);
-  void closedCurrentBlock();
+  void closingCurrentBlockWithFallthrough(int fallthroughInstructionIndex, IRBuilder builder);
 
   // Setup and release resources used temporarily during trace/build.
   void setUp();

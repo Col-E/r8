@@ -15,7 +15,6 @@ import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.DexInspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class DebugLocalTests extends JasminTestBase {
@@ -117,7 +116,6 @@ public class DebugLocalTests extends JasminTestBase {
   }
 
   @Test
-  @Ignore("b/65430598")
   public void testNoLocalInfoOnStack() throws Exception {
     JasminBuilder builder = new JasminBuilder();
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
@@ -489,11 +487,11 @@ public class DebugLocalTests extends JasminTestBase {
         "L3_ORIGINAL:",  // This is where javac normally ends t.
         ".line 7",
         "  iload 0",
-        "L3:",           // Moved L3 here to end t on the switch instruction.
         "lookupswitch",
         "  0: L4",
         "  100: L5",
         "  default: L6",
+        "L3:",           // Moved L3 here to end t on the switch instruction.
         "L4:",
         ".line 9",
         "  iconst_0",
@@ -595,7 +593,6 @@ public class DebugLocalTests extends JasminTestBase {
         "L3_ORIGINAL:",  // This is where javac normally ends t.
         ".line 7",
         "  iload 0",
-        "L3:",           // Moved L3 here to end t on the switch instruction.
         "lookupswitch",
         "  0: L4",
         "  1: L5",
@@ -604,6 +601,7 @@ public class DebugLocalTests extends JasminTestBase {
         "  101: L8",
         "  102: L9",
         "  default: L10",
+        "L3:",           // Moved L3 here to end t on the switch instruction.
         "L4:",
         ".line 9",
         "  iconst_0",
@@ -662,5 +660,65 @@ public class DebugLocalTests extends JasminTestBase {
     info.checkLineHasExactLocals(9, "x", "int");
     info.checkLineHasExactLocals(11, "x", "int");
     info.checkLineHasExactLocals(13, "x", "int");
+  }
+
+  @Test
+  public void testLocalEndAfterLine() throws Exception {
+    JasminBuilder builder = new JasminBuilder();
+    JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
+    MethodSignature foo = clazz.addStaticMethod("foo", ImmutableList.of("I"), "I",
+        ".limit stack 2",
+        ".limit locals 2",
+        ".var 0 is x I from L0 to L4",
+        ".var 1 is t I from L1 to L3",
+        "L0:",
+        ".line 1",
+        "  iload 0",
+        "  iconst_1",
+        "  iadd",
+        "  istore 1",
+        "L1:",
+        ".line 2",
+        "  iload 1",
+        "  istore 0",
+        "L2:",
+        ".line 3",
+        "  iload 0",
+        "  iload 0",
+        "  iadd",
+        "  istore 0",
+        ".line 4",
+        "  iload 0",
+        "L3:", // This should not end t on line 4!
+        ".line 5",
+        "  ireturn",
+        "L4:"
+    );
+
+    clazz.addMainMethod(
+        ".limit stack 2",
+        ".limit locals 1",
+        "  getstatic java/lang/System/out Ljava/io/PrintStream;",
+        "  ldc 1",
+        "  invokestatic Test/foo(I)I",
+        "  invokevirtual java/io/PrintStream/print(I)V",
+        "  return");
+
+    String expected = "4";
+    String javaResult = runOnJava(builder, clazz.name);
+    assertEquals(expected, javaResult);
+
+    AndroidApp jasminApp = builder.build();
+    AndroidApp d8App = ToolHelper.runD8(jasminApp);
+    String artResult = runOnArt(d8App, clazz.name);
+    assertEquals(expected, artResult);
+
+    DebugInfoInspector info = new DebugInfoInspector(d8App, clazz.name, foo);
+    info.checkStartLine(1);
+    info.checkLineHasExactLocals(1, "x", "int");
+    info.checkLineHasExactLocals(2, "x", "int", "t", "int");
+    info.checkLineHasExactLocals(3, "x", "int", "t", "int");
+    info.checkLineHasExactLocals(4, "x", "int", "t", "int");
+    info.checkLineHasExactLocals(5, "x", "int");
   }
 }

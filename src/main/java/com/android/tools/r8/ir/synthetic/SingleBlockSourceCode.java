@@ -100,11 +100,6 @@ public abstract class SingleBlockSourceCode implements SourceCode {
   protected abstract void prepareInstructions();
 
   @Override
-  public final boolean needsPrelude() {
-    return receiver != null || paramRegisters.length > 0;
-  }
-
-  @Override
   public final int instructionCount() {
     return constructors.size();
   }
@@ -130,11 +125,8 @@ public abstract class SingleBlockSourceCode implements SourceCode {
   }
 
   @Override
-  public final void closedCurrentBlockWithFallthrough(int fallthroughInstructionIndex) {
-  }
-
-  @Override
-  public final void closedCurrentBlock() {
+  public final void closingCurrentBlockWithFallthrough(
+      int fallthroughInstructionIndex, IRBuilder builder) {
   }
 
   @Override
