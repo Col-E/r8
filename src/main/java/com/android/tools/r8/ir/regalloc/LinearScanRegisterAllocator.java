@@ -1756,8 +1756,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     for (LiveIntervals intervals : liveIntervals) {
       if (intervals.hasSplits()) {
         LiveIntervals current = intervals;
-        PriorityQueue<LiveIntervals> sortedChildren =
-            new PriorityQueue<>((o1, o2) -> Integer.compare(o1.getStart(), o2.getStart()));
+        PriorityQueue<LiveIntervals> sortedChildren = new PriorityQueue<>();
         sortedChildren.addAll(current.getSplitChildren());
         for (LiveIntervals split = sortedChildren.poll();
             split != null;
