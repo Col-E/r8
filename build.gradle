@@ -136,7 +136,7 @@ dependencies {
     supportLibs 'com.android.support:support-v4:25.4.0'
     supportLibs 'junit:junit:4.12'
     supportLibs 'com.android.support.test.espresso:espresso-core:3.0.0'
-    debugTestResourcesKotlinCompileOnly 'org.jetbrains.kotlin:kotlin-stdlib:1.1.3'
+    debugTestResourcesKotlinCompileOnly 'org.jetbrains.kotlin:kotlin-stdlib:1.1.4-3'
 }
 
 protobuf {
@@ -588,17 +588,9 @@ task buildDebugTestResourcesJars {
     }
     def kotlinResourcesDir = file("src/test/debugTestResourcesKotlin")
     def kotlinHostJar = "debug_test_resources_kotlin.jar"
-    task "jar_debugTestResourcesKotlin"(type: Exec) {
-        if (OperatingSystem.current().isWindows()) {
-            executable file("third_party/kotlin/kotlinc/bin/kotlinc.bat")
-        } else {
-            executable file("third_party/kotlin/kotlinc/bin/kotlinc");
-        }
-        args "-include-runtime"
-        args "-nowarn"
-        args "-d"
-        args "build/test/${kotlinHostJar}"
-        args fileTree(dir: kotlinResourcesDir, include: '**/*.kt')
+    task "jar_debugTestResourcesKotlin"(type: kotlin.Kotlinc) {
+        source = fileTree(dir: kotlinResourcesDir, include: '**/*.kt')
+        destination = file("build/test/${kotlinHostJar}")
     }
     dependsOn downloadDeps
     dependsOn jar_debugTestResources
