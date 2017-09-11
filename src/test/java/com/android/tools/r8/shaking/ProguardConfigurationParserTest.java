@@ -129,8 +129,7 @@ public class ProguardConfigurationParserTest extends TestBase {
     assertEquals(1, rules.size());
     ProguardConfigurationRule rule = rules.get(0);
     assertEquals(1, rule.getMemberRules().size());
-    assertEquals("com.company.hello.**", rule.getClassNames().get(0).toString());
-    assertEquals("com.company.world.**", rule.getClassNames().get(1).toString());
+    assertEquals("com.company.hello.**,com.company.world.**", rule.getClassNames().toString());
     assertEquals(ProguardKeepRuleType.KEEP, ((ProguardKeepRule) rule).getType());
     assertTrue(rule.getInheritanceIsExtends());
     assertEquals("some.library.Class", rule.getInheritanceClassName().toString());
@@ -188,7 +187,7 @@ public class ProguardConfigurationParserTest extends TestBase {
     assertEquals(1, rules.size());
     ProguardConfigurationRule rule = rules.get(0);
     assertEquals(1, rule.getClassNames().size());
-    assertEquals("*", rule.getClassNames().get(0).toString());
+    assertEquals("*", rule.getClassNames().toString());
     assertTrue(rule.getInheritanceIsExtends());
     assertEquals("foo.bar", rule.getInheritanceClassName().toString());
   }

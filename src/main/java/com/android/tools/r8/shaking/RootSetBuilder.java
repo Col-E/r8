@@ -108,22 +108,6 @@ public class RootSetBuilder {
     return anyImplementedInterfaceMatches(superClass, className, annotation);
   }
 
-  // Returns a list of types iff the keep rule only contains specific type matches.
-  // Otherwise, null is returned.
-  private DexType[] specificDexTypes(ProguardConfigurationRule rule) {
-    for (ProguardTypeMatcher matcher : rule.getClassNames()) {
-      if (!(matcher instanceof MatchSpecificType)) {
-        return null;
-      }
-    }
-    final int length = rule.getClassNames().size();
-    DexType[] result = new DexType[length];
-    for (int i = 0; i < length; i++) {
-      result[i] = ((MatchSpecificType) rule.getClassNames().get(i)).type;
-    }
-    return result;
-  }
-
   // Process a class with the keep rule.
   private void process(DexClass clazz, ProguardConfigurationRule rule) {
     if (!clazz.accessFlags.containsAllOf(rule.getClassAccessFlags())) {
@@ -168,51 +152,49 @@ public class RootSetBuilder {
       }
     }
 
-    for (ProguardTypeMatcher className : rule.getClassNames()) {
-      if (className.matches(clazz.type)) {
-        Collection<ProguardMemberRule> memberKeepRules = rule.getMemberRules();
-        if (rule instanceof ProguardKeepRule) {
-          switch (((ProguardKeepRule) rule).getType()) {
-            case KEEP_CLASS_MEMBERS: {
-              markMatchingVisibleMethods(clazz, memberKeepRules, rule, clazz.type);
-              markMatchingFields(clazz, memberKeepRules, rule, clazz.type);
-              break;
-            }
-            case KEEP_CLASSES_WITH_MEMBERS: {
-              if (!allRulesSatisfied(memberKeepRules, clazz)) {
-                break;
-              }
-              // fallthrough;
-            }
-            case KEEP: {
-              markClass(clazz, rule);
-              markMatchingVisibleMethods(clazz, memberKeepRules, rule, null);
-              markMatchingFields(clazz, memberKeepRules, rule, null);
-              break;
-            }
-          }
-        } else if (rule instanceof ProguardCheckDiscardRule) {
-          if (memberKeepRules.isEmpty()) {
-            markClass(clazz, rule);
-          } else {
+    if (rule.getClassNames().matches(clazz.type)) {
+      Collection<ProguardMemberRule> memberKeepRules = rule.getMemberRules();
+      if (rule instanceof ProguardKeepRule) {
+        switch (((ProguardKeepRule) rule).getType()) {
+          case KEEP_CLASS_MEMBERS: {
+            markMatchingVisibleMethods(clazz, memberKeepRules, rule, clazz.type);
             markMatchingFields(clazz, memberKeepRules, rule, clazz.type);
-            markMatchingMethods(clazz, memberKeepRules, rule, clazz.type);
+            break;
           }
-        } else if (rule instanceof ProguardWhyAreYouKeepingRule
-            || rule instanceof ProguardKeepPackageNamesRule) {
-          markClass(clazz, rule);
-          markMatchingVisibleMethods(clazz, memberKeepRules, rule, null);
-          markMatchingFields(clazz, memberKeepRules, rule, null);
-        } else if (rule instanceof ProguardAssumeNoSideEffectRule) {
-          markMatchingVisibleMethods(clazz, memberKeepRules, rule, null);
-          markMatchingFields(clazz, memberKeepRules, rule, null);
-        } else if (rule instanceof ProguardAlwaysInlineRule) {
-          markMatchingMethods(clazz, memberKeepRules, rule, null);
-        } else {
-          assert rule instanceof ProguardAssumeValuesRule;
-          markMatchingVisibleMethods(clazz, memberKeepRules, rule, null);
-          markMatchingFields(clazz, memberKeepRules, rule, null);
+          case KEEP_CLASSES_WITH_MEMBERS: {
+            if (!allRulesSatisfied(memberKeepRules, clazz)) {
+              break;
+            }
+            // fallthrough;
+          }
+          case KEEP: {
+            markClass(clazz, rule);
+            markMatchingVisibleMethods(clazz, memberKeepRules, rule, null);
+            markMatchingFields(clazz, memberKeepRules, rule, null);
+            break;
+          }
         }
+      } else if (rule instanceof ProguardCheckDiscardRule) {
+        if (memberKeepRules.isEmpty()) {
+          markClass(clazz, rule);
+        } else {
+          markMatchingFields(clazz, memberKeepRules, rule, clazz.type);
+          markMatchingMethods(clazz, memberKeepRules, rule, clazz.type);
+        }
+      } else if (rule instanceof ProguardWhyAreYouKeepingRule
+          || rule instanceof ProguardKeepPackageNamesRule) {
+        markClass(clazz, rule);
+        markMatchingVisibleMethods(clazz, memberKeepRules, rule, null);
+        markMatchingFields(clazz, memberKeepRules, rule, null);
+      } else if (rule instanceof ProguardAssumeNoSideEffectRule) {
+        markMatchingVisibleMethods(clazz, memberKeepRules, rule, null);
+        markMatchingFields(clazz, memberKeepRules, rule, null);
+      } else if (rule instanceof ProguardAlwaysInlineRule) {
+        markMatchingMethods(clazz, memberKeepRules, rule, null);
+      } else {
+        assert rule instanceof ProguardAssumeValuesRule;
+        markMatchingVisibleMethods(clazz, memberKeepRules, rule, null);
+        markMatchingFields(clazz, memberKeepRules, rule, null);
       }
     }
   }
@@ -224,7 +206,7 @@ public class RootSetBuilder {
       // Mark all the things explicitly listed in keep rules.
       if (rules != null) {
         for (ProguardConfigurationRule rule : rules) {
-          DexType[] specifics = specificDexTypes(rule);
+          List<DexType> specifics = rule.getClassNames().asSpecificDexTypes();
           if (specifics != null) {
             // This keep rule only lists specific type matches.
             // This means there is no need to iterate over all classes.

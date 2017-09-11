@@ -41,7 +41,7 @@ public class ProguardKeepRule extends ProguardConfigurationRule {
       DexAccessFlags negatedClassAccessFlags,
       boolean classTypeNegated,
       ProguardClassType classType,
-      List<ProguardTypeMatcher> classNames,
+      ProguardClassNameList classNames,
       ProguardTypeMatcher inheritanceAnnotation,
       ProguardTypeMatcher inheritanceClassName,
       boolean inheritanceIsExtends,

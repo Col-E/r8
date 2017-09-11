@@ -132,9 +132,9 @@ public class ProguardConfigurationParser {
           || parseOptimizationOption()) {
         // Intentionally left empty.
       } else if (
-             (option = Iterables.find(warnedSingleArgOptions,
-                 this::skipOptionWithSingleArg, null)) != null
-          || (option = Iterables.find(warnedFlagOptions, this::skipFlag, null)) != null) {
+          (option = Iterables.find(warnedSingleArgOptions,
+              this::skipOptionWithSingleArg, null)) != null
+              || (option = Iterables.find(warnedFlagOptions, this::skipFlag, null)) != null) {
         warnIgnoringOptions(option);
       } else if ((option = Iterables.find(unsupportedFlagOptions, this::skipFlag, null)) != null) {
         throw parseError("Unsupported option: -" + option);
@@ -515,7 +515,7 @@ public class ProguardConfigurationParser {
         } else {
           DexAccessFlags flags =
               parseNegation() ? builder.getNegatedClassAccessFlags() :
-                builder.getClassAccessFlags();
+                  builder.getClassAccessFlags();
           skipWhitespace();
           if (acceptString("public")) {
             flags.setPublic();
@@ -992,26 +992,20 @@ public class ProguardConfigurationParser {
       }
     }
 
-    private void checkNotNegatedPattern() throws ProguardRuleParserException {
+    private ProguardClassNameList parseClassNames() throws ProguardRuleParserException {
+      ProguardClassNameList.Builder builder = ProguardClassNameList.builder();
       skipWhitespace();
-      if (acceptChar('!')) {
-        throw parseError("Negated filters are not supported");
-      }
-    }
-
-    private List<ProguardTypeMatcher> parseClassNames() throws ProguardRuleParserException {
-      List<ProguardTypeMatcher> classNames = new ArrayList<>();
-      checkNotNegatedPattern();
-      classNames
-          .add(ProguardTypeMatcher.create(parseClassName(), ClassOrType.CLASS, dexItemFactory));
+      boolean negated = acceptChar('!');
+      builder.addClassName(negated,
+          ProguardTypeMatcher.create(parseClassName(), ClassOrType.CLASS, dexItemFactory));
       skipWhitespace();
       while (acceptChar(',')) {
-        checkNotNegatedPattern();
-        classNames
-            .add(ProguardTypeMatcher.create(parseClassName(), ClassOrType.CLASS, dexItemFactory));
+        negated = acceptChar('!');
+        builder.addClassName(negated,
+            ProguardTypeMatcher.create(parseClassName(), ClassOrType.CLASS, dexItemFactory));
         skipWhitespace();
       }
-      return classNames;
+      return builder.build();
     }
 
     private String parsePackageNameOrEmptyString() {
@@ -1034,7 +1028,7 @@ public class ProguardConfigurationParser {
       for (int lineNumber = 0; lineNumber < lines.length; lineNumber++) {
         String line = lines[lineNumber];
         if (remaining <= line.length() || lineNumber == lines.length - 1) {
-          String arrow = CharBuffer.allocate(remaining).toString().replace( '\0', ' ' ) + '^';
+          String arrow = CharBuffer.allocate(remaining).toString().replace('\0', ' ') + '^';
           return name + ":" + (lineNumber + 1) + ":" + remaining + "\n" + line
               + '\n' + arrow;
         }

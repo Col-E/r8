@@ -65,6 +65,10 @@ public abstract class ProguardTypeMatcher {
   @Override
   public abstract int hashCode();
 
+  public DexType getSpecificType() {
+    return null;
+  }
+
   private static class MatchAllTypes extends ProguardTypeMatcher {
 
     private static final ProguardTypeMatcher MATCH_ALL_TYPES = new MatchAllTypes();
@@ -209,6 +213,11 @@ public abstract class ProguardTypeMatcher {
     @Override
     public int hashCode() {
       return type.hashCode();
+    }
+
+    @Override
+    public DexType getSpecificType() {
+      return type;
     }
   }
 
