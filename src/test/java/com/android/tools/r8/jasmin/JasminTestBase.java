@@ -4,21 +4,29 @@
 package com.android.tools.r8.jasmin;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.R8;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.dex.ApplicationReader;
+import com.android.tools.r8.errors.DexOverflowException;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
+import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.NamingLens;
-import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.DexInspector;
+import com.android.tools.r8.utils.DexInspector.ClassSubject;
+import com.android.tools.r8.utils.DexInspector.MethodSubject;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OutputMode;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
 import jasmin.ClassFile;
 import java.io.File;
@@ -28,6 +36,7 @@ import java.io.StringReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
@@ -134,5 +143,66 @@ public class JasminTestBase {
   protected static DexApplication process(DexApplication app, InternalOptions options)
       throws IOException, CompilationException, ExecutionException {
     return ToolHelper.optimizeWithR8(app, new AppInfoWithSubtyping(app), options);
+  }
+
+  protected DexApplication buildApplication(JasminBuilder builder, InternalOptions options) {
+    try {
+      return buildApplication(AndroidApp.fromClassProgramData(builder.buildClasses()), options);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  protected DexApplication buildApplication(AndroidApp input, InternalOptions options) {
+    try {
+      options.itemFactory.resetSortedIndices();
+      return new ApplicationReader(input, options, new Timing("JasminTest")).read();
+    } catch (IOException | ExecutionException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public String runArt(DexApplication application, InternalOptions options, String mainClass)
+      throws DexOverflowException {
+    try {
+      AndroidApp app = writeDex(application, options);
+      return runOnArt(app, mainClass);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public AndroidApp writeDex(DexApplication application, InternalOptions options)
+      throws DexOverflowException {
+    AppInfo appInfo = new AppInfo(application);
+    try {
+      return R8.writeApplication(
+          Executors.newSingleThreadExecutor(),
+          application,
+          appInfo,
+          null,
+          NamingLens.getIdentityLens(),
+          null,
+          null,
+          options);
+    } catch (ExecutionException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  protected DexEncodedMethod getMethod(DexApplication application, String clazz,
+      MethodSignature signature) {
+    return getMethod(application,
+        clazz, signature.type, signature.name, signature.parameters);
+  }
+
+  protected DexEncodedMethod getMethod(DexApplication application, String className,
+      String returnType, String methodName, String[] parameters) {
+    DexInspector inspector = new DexInspector(application);
+    ClassSubject clazz = inspector.clazz(className);
+    assertTrue(clazz.isPresent());
+    MethodSubject method = clazz.method(returnType, methodName, Arrays.asList(parameters));
+    assertTrue(method.isPresent());
+    return method.getMethod();
   }
 }
