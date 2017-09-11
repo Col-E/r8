@@ -67,7 +67,7 @@ public class Return extends JumpInstruction {
 
   @Override
   public void buildDex(DexBuilder builder) {
-    builder.add(this, createDexInstruction(builder));
+    builder.addReturn(this, createDexInstruction(builder));
   }
 
   @Override

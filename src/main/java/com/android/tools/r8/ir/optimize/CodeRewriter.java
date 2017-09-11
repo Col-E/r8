@@ -87,6 +87,7 @@ import it.unimi.dsi.fastutil.ints.IntLists;
 import it.unimi.dsi.fastutil.objects.Object2IntLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -1464,6 +1465,87 @@ public class CodeRewriter {
         return;
       }
     }
+  }
+
+  /**
+   * Inline the return block at its targets.
+   *
+   * The inlining of return mostly undoes the merge performed at IR build time. This helps avoid
+   * unneeded moves as values are forced into the same register at all returns, which there can be
+   * a lot of when compiling in debug mode. Measurements show that iterating the inlining of returns
+   * does not pay off as it can lead to code size increase, eg, when a sequence of ifs all jump to
+   * a common return.
+   */
+  public void inlineReturnBlock(IRCode code) {
+    BasicBlock block = code.getNormalExitBlock();
+    code.invalidateNormalExitBlock();
+    if (block == null
+        || block.getPredecessors().size() <= 1
+        || block.getInstructions().size() > 1) {
+      return;
+    }
+    int predIndex = 0;
+    for (BasicBlock pred : block.getPredecessors()) {
+      ListIterator<Instruction> iterator = pred.listIterator(pred.exit());
+      iterator.previous();
+      for (Instruction origInstruction : block.getInstructions()) {
+        assert origInstruction.isReturn();
+        // Create an instruction copy replacing phi values of this block by their operands.
+        Instruction instruction;
+        Return ret = origInstruction.asReturn();
+        if (ret.isReturnVoid()) {
+          instruction = new Return();
+        } else {
+          Value origValue = ret.returnValue();
+          Value copyValue = origValue.isPhi() && block.getPhis().contains(origValue)
+              ? origValue.asPhi().getOperand(predIndex)
+              : origValue;
+          instruction = new Return(copyValue, ret.getReturnType());
+        }
+        // Copy over each debug value replacing phi values of this block by their operands.
+        for (Value value : origInstruction.getDebugValues()) {
+          assert value.getLocalInfo() != null;
+          if (value.isPhi() && block.getPhis().contains(value)) {
+            Phi phi = value.asPhi();
+            Value operand = phi.getOperand(predIndex);
+            if (phi.getLocalInfo() == operand.getLocalInfo()) {
+              instruction.addDebugValue(operand);
+            } else {
+              // If the phi and its operand are different locals insert a local write.
+              Value localValue = code.createValue(phi.outType(), phi.getLocalInfo());
+              DebugLocalWrite write = new DebugLocalWrite(localValue, operand);
+              write.setBlock(pred);
+              iterator.add(write);
+              instruction.addDebugValue(localValue);
+            }
+          } else {
+            instruction.addDebugValue(value);
+          }
+        }
+        instruction.setBlock(pred);
+        iterator.add(instruction);
+      }
+      iterator.previous();
+      Instruction ret = iterator.next();
+      Instruction jump = iterator.next();
+      assert !iterator.hasNext();
+      jump.moveDebugValues(ret);
+      iterator.remove();
+      assert pred.exit().isReturn();
+      pred.removeSuccessor(block);
+      predIndex++;
+    }
+    // Clean out all users and remove the inlined block.
+    while (!block.getPredecessors().isEmpty()) {
+      block.removePredecessor(block.getPredecessors().get(0));
+    }
+    for (Instruction instruction : block.getInstructions()) {
+      for (Value value : instruction.inValues()) {
+        value.removeUser(instruction);
+      }
+      instruction.clearDebugValues();
+    }
+    code.removeBlocks(Collections.singletonList(block));
   }
 
   private static class ExpressionEquivalence extends Equivalence<Instruction> {

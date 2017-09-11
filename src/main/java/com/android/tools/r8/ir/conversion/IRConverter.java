@@ -522,6 +522,9 @@ public class IRConverter {
     }
 
     printMethod(code, "Optimized IR (SSA)");
+
+    codeRewriter.inlineReturnBlock(code);
+
     // Perform register allocation.
     RegisterAllocator registerAllocator = performRegisterAllocation(code, method);
     method.setCode(code, registerAllocator, appInfo.dexItemFactory);

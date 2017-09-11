@@ -42,6 +42,41 @@ public class IRCode {
     this.valueNumberGenerator = valueNumberGenerator;
   }
 
+  /**
+   * Trace blocks and attempt to put fallthrough blocks immediately after the block that
+   * falls through. When we fail to do that we create a new fallthrough block with an explicit
+   * goto to the actual fallthrough block.
+   */
+  public void traceBlocks() {
+    BasicBlock[] sorted = topologicallySortedBlocks();
+    clearMarks();
+    int nextBlockNumber = blocks.size();
+    LinkedList<BasicBlock> tracedBlocks = new LinkedList<>();
+    for (BasicBlock block : sorted) {
+      if (!block.isMarked()) {
+        block.mark();
+        tracedBlocks.add(block);
+        BasicBlock current = block;
+        BasicBlock fallthrough = block.exit().fallthroughBlock();
+        while (fallthrough != null && !fallthrough.isMarked()) {
+          fallthrough.mark();
+          tracedBlocks.add(fallthrough);
+          current = fallthrough;
+          fallthrough = fallthrough.exit().fallthroughBlock();
+        }
+        if (fallthrough != null) {
+          BasicBlock newFallthrough = BasicBlock.createGotoBlock(fallthrough, nextBlockNumber++);
+          current.exit().setFallthroughBlock(newFallthrough);
+          newFallthrough.getPredecessors().add(current);
+          fallthrough.replacePredecessor(current, newFallthrough);
+          newFallthrough.mark();
+          tracedBlocks.add(newFallthrough);
+        }
+      }
+    }
+    blocks = tracedBlocks;
+  }
+
   private void ensureBlockNumbering() {
     if (!numbered) {
       numbered = true;
@@ -325,6 +360,10 @@ public class IRCode {
 
   public BasicBlock getNormalExitBlock() {
     return normalExitBlock;
+  }
+
+  public void invalidateNormalExitBlock() {
+    normalExitBlock = null;
   }
 
   public ListIterator<BasicBlock> listIterator() {

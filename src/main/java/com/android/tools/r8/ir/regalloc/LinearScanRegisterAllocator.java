@@ -369,10 +369,10 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
           }
         }
         spillCount = 0;
-        if (localsChanged && shouldEmitChangesAtInstruction(instruction)) {
+        if (localsChanged && instruction.getBlock().exit() != instruction) {
           DebugLocalsChange change = createLocalsChange(ending, starting);
           if (change != null) {
-            if (instruction.isDebugPosition() || instruction.isJumpInstruction()) {
+            if (instruction.isDebugPosition()) {
               instructionIterator.previous();
               instructionIterator.add(change);
               instructionIterator.next();
@@ -503,14 +503,6 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       starting.remove(key);
     }
     return new DebugLocalsChange(ending, starting);
-  }
-
-  private boolean shouldEmitChangesAtInstruction(Instruction instruction) {
-    BasicBlock block = instruction.getBlock();
-    // We emit local changes on all non-exit instructions or, since we have only a singe return
-    // block, any exits directly targeting that.
-    return instruction != block.exit()
-        || (instruction.isGoto() && instruction.asGoto().getTarget() == code.getNormalExitBlock());
   }
 
   private void clearState() {

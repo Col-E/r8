@@ -443,6 +443,7 @@ public class IfSimplificationTest extends SmaliTestBase {
     DexCode code = method.getCode().asDexCode();
     // TODO(sgjesse): Maybe this test is too fragile, as it leaves quite a lot of code, so the
     // expectation might need changing with other optimizations.
-    assertEquals(27, code.instructions.length);
+    // TODO(zerny): Consider optimizing the fallthrough branch of conditionals to not be return.
+    assertEquals(28, code.instructions.length);
   }
 }

@@ -402,6 +402,33 @@ public class DexBuilder {
     add(argument, new FallThroughInfo(argument));
   }
 
+  public void addReturn(Return ret, Instruction dex) {
+    if (nextBlock != null) {
+      Return followingRet = nextBlock.exit().asReturn();
+      if (nextBlock.getInstructions().size() == 1
+          && followingRet != null
+          && ret.getReturnType() == followingRet.getReturnType()) {
+        if (ret.isReturnVoid() && followingRet.isReturnVoid()) {
+          addNop(ret);
+          return;
+        }
+        if (!ret.isReturnVoid()
+            && !followingRet.isReturnVoid()
+            && ret.returnValue().outType() == followingRet.returnValue().outType()) {
+          int thisRegister = registerAllocator.getRegisterForValue(
+              ret.returnValue(), ret.getNumber());
+          int otherRegister = registerAllocator.getRegisterForValue(
+              followingRet.returnValue(), followingRet.getNumber());
+          if (thisRegister == otherRegister) {
+            addNop(ret);
+            return;
+          }
+        }
+      }
+    }
+    add(ret, dex);
+  }
+
   private void add(com.android.tools.r8.ir.code.Instruction ir, Info info) {
     assert ir != null;
     assert info != null;
@@ -436,8 +463,22 @@ public class DexBuilder {
         return info;
       }
     }
-    assert instruction != null && instruction.isGoto();
+    assert instruction != null;
+    if (instruction.isReturn()) {
+      assert getInfo(instruction) instanceof FallThroughInfo;
+      return getTargetInfo(computeNextBlock(block));
+    }
+    assert instruction.isGoto();
     return getTargetInfo(instruction.asGoto().getTarget());
+  }
+
+  private BasicBlock computeNextBlock(BasicBlock block) {
+    ListIterator<BasicBlock> it = ir.listIterator();
+    BasicBlock current = it.next();
+    while (current != block) {
+      current = it.next();
+    }
+    return it.next();
   }
 
   // Helper for computing switch payloads.
@@ -844,8 +885,10 @@ public class DexBuilder {
         // Set the size to the min of the size of the return and the size of the goto. When
         // adding instructions, we use the return if the computed size matches the size of the
         // return.
+        assert !(targetInfo instanceof FallThroughInfo);
         size = Math.min(targetInfo.getSize(), size);
       }
+      assert size != 0;
       return size;
     }
 
