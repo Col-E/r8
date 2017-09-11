@@ -26,7 +26,7 @@ public class ProguardAssumeNoSideEffectRule extends ProguardConfigurationRule {
       DexAccessFlags negatedClassAccessFlags,
       boolean classTypeNegated,
       ProguardClassType classType,
-      List<ProguardTypeMatcher> classNames,
+      ProguardClassNameList classNames,
       ProguardTypeMatcher inheritanceAnnotation,
       ProguardTypeMatcher inheritanceClassName,
       boolean inheritanceIsExtends,

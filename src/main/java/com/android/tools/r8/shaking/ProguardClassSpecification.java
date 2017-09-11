@@ -20,7 +20,7 @@ public abstract class ProguardClassSpecification {
     protected DexAccessFlags negatedClassAccessFlags = new DexAccessFlags(0);
     protected boolean classTypeNegated = false;
     protected ProguardClassType classType;
-    protected List<ProguardTypeMatcher> classNames;
+    protected ProguardClassNameList classNames;
     protected ProguardTypeMatcher inheritanceAnnotation;
     protected ProguardTypeMatcher inheritanceClassName;
     protected boolean inheritanceIsExtends = false;
@@ -65,11 +65,11 @@ public abstract class ProguardClassSpecification {
       this.inheritanceAnnotation = inheritanceAnnotation;
     }
 
-    public List<ProguardTypeMatcher> getClassNames() {
+    public ProguardClassNameList getClassNames() {
       return classNames;
     }
 
-    public void setClassNames(List<ProguardTypeMatcher> classNames) {
+    public void setClassNames(ProguardClassNameList classNames) {
       this.classNames = classNames;
     }
 
@@ -114,7 +114,7 @@ public abstract class ProguardClassSpecification {
     }
 
     protected void matchAllSpecification() {
-      setClassNames(Collections.singletonList(ProguardTypeMatcher.defaultAllMatcher()));
+      setClassNames(ProguardClassNameList.singletonList(ProguardTypeMatcher.defaultAllMatcher()));
       setMemberRules(Collections.singleton(ProguardMemberRule.defaultKeepAllRule()));
     }
   }
@@ -124,7 +124,7 @@ public abstract class ProguardClassSpecification {
   private final DexAccessFlags negatedClassAccessFlags;
   private final boolean classTypeNegated;
   private final ProguardClassType classType;
-  private final List<ProguardTypeMatcher> classNames;
+  private final ProguardClassNameList classNames;
   private final ProguardTypeMatcher inheritanceAnnotation;
   private final ProguardTypeMatcher inheritanceClassName;
   private final boolean inheritanceIsExtends;
@@ -136,7 +136,7 @@ public abstract class ProguardClassSpecification {
       DexAccessFlags negatedClassAccessFlags,
       boolean classTypeNegated,
       ProguardClassType classType,
-      List<ProguardTypeMatcher> classNames,
+      ProguardClassNameList classNames,
       ProguardTypeMatcher inheritanceAnnotation,
       ProguardTypeMatcher inheritanceClassName,
       boolean inheritanceIsExtends,
@@ -173,7 +173,7 @@ public abstract class ProguardClassSpecification {
     return inheritanceAnnotation;
   }
 
-  public List<ProguardTypeMatcher> getClassNames() {
+  public ProguardClassNameList getClassNames() {
     return classNames;
   }
 
@@ -262,14 +262,7 @@ public abstract class ProguardClassSpecification {
     }
     builder.append(classType);
     builder.append(' ');
-    boolean first = true;
-    for (ProguardTypeMatcher className : classNames) {
-      builder.append(className);
-      if (!first) {
-        builder.append(',');
-      }
-      first = false;
-    }
+    classNames.writeTo(builder);
     if (hasInheritanceClassName()) {
       builder.append(inheritanceIsExtends ? " extends" : " implements");
       StringUtils.appendNonEmpty(builder, " @", inheritanceAnnotation, null);

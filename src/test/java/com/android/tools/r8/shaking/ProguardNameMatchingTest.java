@@ -18,87 +18,86 @@ public class ProguardNameMatchingTest {
 
   private static final DexItemFactory dexItemFactory = new DexItemFactory();
 
-  private static boolean matchTypeName(String pattern, String typeName,
-      DexItemFactory dexItemFactory) {
+  private static boolean matchTypeName(String typeName, String pattern) {
     return ProguardTypeMatcher.create(pattern, ClassOrType.TYPE, dexItemFactory)
         .matches(dexItemFactory.createType(DescriptorUtils.javaTypeToDescriptor(typeName)));
   }
 
-  private static boolean matchClassName(String pattern, String className,
-      DexItemFactory dexItemFactory) {
-    return ProguardTypeMatcher.create(pattern, ClassOrType.CLASS, dexItemFactory)
+  private static boolean matchClassName(String className, String... patterns) {
+    ProguardClassNameList.Builder builder = ProguardClassNameList.builder();
+    for (String pattern : patterns) {
+      boolean isNegated = pattern.startsWith("!");
+      String actualPattern = isNegated ? pattern.substring(1) : pattern;
+      builder.addClassName(isNegated,
+          ProguardTypeMatcher.create(actualPattern, ClassOrType.CLASS, dexItemFactory));
+    }
+    return builder.build()
         .matches(dexItemFactory.createType(DescriptorUtils.javaTypeToDescriptor(className)));
   }
 
   @Test
   public void matchClassNames() {
-    assertTrue(matchClassName("**", "", dexItemFactory));
-    assertTrue(matchClassName("**", "a", dexItemFactory));
-    assertTrue(matchClassName("*", "", dexItemFactory));
-    assertTrue(matchClassName("*", "a", dexItemFactory));
-    assertFalse(matchClassName("?", "", dexItemFactory));
-    assertTrue(matchClassName("?", "a", dexItemFactory));
+    assertTrue(matchClassName("", "**"));
+    assertTrue(matchClassName("a", "**"));
+    assertTrue(matchClassName("", "*"));
+    assertTrue(matchClassName("a", "*"));
+    assertFalse(matchClassName("", "?"));
+    assertTrue(matchClassName("a", "?"));
 
-    assertTrue(matchClassName("**", "java.lang.Object", dexItemFactory));
-    assertFalse(
-        matchClassName("ja*", "java.lang.Object", dexItemFactory));
-    assertTrue(
-        matchClassName("ja**", "java.lang.Object", dexItemFactory));
-    assertTrue(matchClassName("ja**ject", "java.lang.Object",
-        dexItemFactory));
+    assertTrue(matchClassName("java.lang.Object", "**"));
+    assertFalse(matchClassName("java.lang.Object", "ja*"));
+    assertTrue(matchClassName("java.lang.Object", "ja**"));
+    assertTrue(matchClassName("java.lang.Object", "ja**ject"));
     // Oddly, the proguard specification for this makes a lonely * synonymous with **.
-    assertTrue(matchClassName("*", "java.lang.Object", dexItemFactory));
-    assertFalse(matchClassName("ja*ject", "java.lang.Object",
-        dexItemFactory));
+    assertTrue(matchClassName("java.lang.Object", "*"));
+    assertFalse(matchClassName("java.lang.Object", "ja*ject"));
 
-    assertTrue(matchClassName("java.*g.O*", "java.lang.Object",
-        dexItemFactory));
-    assertTrue(matchClassName("java.*g.O?je?t", "java.lang.Object",
-        dexItemFactory));
-    assertFalse(matchClassName("java.*g.O?je?t?", "java.lang.Object",
-        dexItemFactory));
-    assertFalse(matchClassName("java?lang.Object", "java.lang.Object",
-        dexItemFactory));
-    assertTrue(matchClassName("*a*.*a**", "java.lang.Object",
-        dexItemFactory));
-    assertTrue(matchClassName("*a**a**", "java.lang.Object",
-        dexItemFactory));
+    assertTrue(matchClassName("java.lang.Object", "java.*g.O*"));
+    assertTrue(matchClassName("java.lang.Object", "java.*g.O?je?t"));
+    assertFalse(matchClassName("java.lang.Object", "java.*g.O?je?t?"));
+    assertFalse(matchClassName("java.lang.Object", "java?lang.Object"));
+    assertTrue(matchClassName("java.lang.Object", "*a*.*a**"));
+    assertTrue(matchClassName("java.lang.Object", "*a**a**"));
+
+    assertTrue(matchClassName("java.lang.Object", "!java.util.**", "java**"));
+    assertFalse(matchClassName("java.lang.Object", "!java.**", "java.lang.*"));
+    assertTrue(matchClassName("java.lang.Object", "java.lang.*", "!java.**"));
   }
 
   private void assertMatchesBasicTypes(String pattern) {
     for (String type : BASIC_TYPES) {
-      assertTrue(matchTypeName(pattern, type, dexItemFactory));
+      assertTrue(matchTypeName(type, pattern));
     }
   }
 
   private void assertDoesNotMatchBasicTypes(String pattern) {
     for (String type : BASIC_TYPES) {
-      assertFalse(matchTypeName(pattern, type, dexItemFactory));
+      assertFalse(matchTypeName(type, pattern));
     }
   }
 
   @Test
   public void matchTypeNames() {
-    assertTrue(matchTypeName("**", "java.lang.Object", dexItemFactory));
+    assertTrue(matchTypeName("java.lang.Object", "**"));
     assertDoesNotMatchBasicTypes("**");
     assertDoesNotMatchBasicTypes("*");
     assertFalse(
-        matchTypeName("**", "java.lang.Object[]", dexItemFactory));
+        matchTypeName("java.lang.Object[]", "**"));
     assertFalse(
-        matchTypeName("**z", "java.lang.Object", dexItemFactory));
-    assertFalse(matchTypeName("java.**", "java.lang.Object[]",
-        dexItemFactory));
+        matchTypeName("java.lang.Object", "**z"));
+    assertFalse(matchTypeName("java.lang.Object[]", "java.**"
+    ));
     assertTrue(
-        matchTypeName("***", "java.lang.Object[]", dexItemFactory));
-    assertTrue(matchTypeName("***", "java.lang.Object[][]",
-        dexItemFactory));
-    assertFalse(matchTypeName("%", "java.lang.Object", dexItemFactory));
-    assertTrue(matchTypeName("**", "a", dexItemFactory));
-    assertTrue(matchTypeName("**[]", "java.lang.Object[]",
-        dexItemFactory));
-    assertFalse(matchTypeName("**[]", "java.lang.Object[][]",
-        dexItemFactory));
-    assertTrue(matchTypeName("*", "abc", dexItemFactory));
+        matchTypeName("java.lang.Object[]", "***"));
+    assertTrue(matchTypeName("java.lang.Object[][]", "***"
+    ));
+    assertFalse(matchTypeName("java.lang.Object", "%"));
+    assertTrue(matchTypeName("a", "**"));
+    assertTrue(matchTypeName("java.lang.Object[]", "**[]"
+    ));
+    assertFalse(matchTypeName("java.lang.Object[][]", "**[]"
+    ));
+    assertTrue(matchTypeName("abc", "*"));
     assertMatchesBasicTypes("***");
     assertMatchesBasicTypes("%");
   }
