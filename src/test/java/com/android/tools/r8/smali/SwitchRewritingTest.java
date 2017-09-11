@@ -302,11 +302,10 @@ public class SwitchRewritingTest extends SmaliTestBase {
     DexCode code = method.getCode().asDexCode();
     if (key == 0) {
       assertEquals(5, code.instructions.length);
-      assertTrue(code.instructions[2] instanceof IfEqz);
+      assertTrue(code.instructions[0] instanceof IfEqz);
     } else {
       assertEquals(6, code.instructions.length);
-      assertTrue(some16BitConst(code.instructions[2]));
-      assertTrue(code.instructions[3] instanceof IfEq);
+      assertTrue(code.instructions[1] instanceof IfEq);
     }
   }
 
@@ -360,13 +359,13 @@ public class SwitchRewritingTest extends SmaliTestBase {
     DexEncodedMethod method = getMethod(app, signature);
     DexCode code = method.getCode().asDexCode();
     if (twoCaseWillUsePackedSwitch(key1, key2)) {
-      assertTrue(code.instructions[3] instanceof PackedSwitch);
+      assertTrue(code.instructions[0] instanceof PackedSwitch);
     } else {
       if (key1 == 0) {
-        assertTrue(code.instructions[3] instanceof IfEqz);
+        assertTrue(code.instructions[0] instanceof IfEqz);
       } else {
         // Const instruction before if.
-        assertTrue(code.instructions[4] instanceof IfEq);
+        assertTrue(code.instructions[1] instanceof IfEq);
       }
     }
   }

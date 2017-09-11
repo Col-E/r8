@@ -363,4 +363,8 @@ public class Phi extends Value {
   public Set<Value> getDebugValues() {
     return debugValues != null ? debugValues : ImmutableSet.of();
   }
+
+  public boolean usesValueOneTime(Value usedValue) {
+    return operands.indexOf(usedValue) == operands.lastIndexOf(usedValue);
+  }
 }

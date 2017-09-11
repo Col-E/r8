@@ -1178,7 +1178,16 @@ public class CodeRewriter {
         // needs to go in the immediate dominator block so that it is available for phi moves.
         for (Phi phi : instruction.outValue().uniquePhiUsers()) {
           if (phi.getBlock() == dominator) {
-            dominator = dominatorTree.immediateDominator(dominator);
+            if (instruction.outValue().numberOfAllUsers() == 1 &&
+                  phi.usesValueOneTime(instruction.outValue())) {
+              // Out value is used only one time, move the constant directly to the corresponding
+              // branch rather than into the dominator to avoid to generate a const on paths which
+              // does not required it.
+              int predIndex = phi.getOperands().indexOf(instruction.outValue());
+              dominator = dominator.getPredecessors().get(predIndex);
+            } else {
+              dominator = dominatorTree.immediateDominator(dominator);
+            }
             break;
           }
         }
