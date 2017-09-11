@@ -58,6 +58,13 @@ public abstract class ProguardClassNameList {
 
   public abstract void writeTo(StringBuilder builder);
 
+  @Override
+  public String toString() {
+    StringBuilder builder = new StringBuilder();
+    writeTo(builder);
+    return builder.toString();
+  }
+
   public abstract List<DexType> asSpecificDexTypes();
 
   public abstract boolean matches(DexType type);
@@ -109,10 +116,10 @@ public abstract class ProguardClassNameList {
     public void writeTo(StringBuilder builder) {
       boolean first = true;
       for (ProguardTypeMatcher className : classNames) {
-        builder.append(className);
         if (!first) {
           builder.append(',');
         }
+        builder.append(className);
         first = false;
       }
     }
@@ -149,13 +156,13 @@ public abstract class ProguardClassNameList {
     public void writeTo(StringBuilder builder) {
       boolean first = true;
       for (Entry<ProguardTypeMatcher> className : classNames.object2BooleanEntrySet()) {
+        if (!first) {
+          builder.append(',');
+        }
         if (className.getBooleanValue()) {
           builder.append('!');
         }
         builder.append(className.getKey().toString());
-        if (!first) {
-          builder.append(',');
-        }
         first = false;
       }
     }
