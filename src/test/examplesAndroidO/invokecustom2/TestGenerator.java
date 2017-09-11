@@ -182,17 +182,17 @@ public class TestGenerator {
     mv.visitFieldInsn(Opcodes.GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
     mv.visitTypeInsn(Opcodes.NEW, "java/lang/StringBuilder");
     mv.visitInsn(Opcodes.DUP);
-    mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/StringBuilder", "<init>", "()V");
+    mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/StringBuilder", "<init>", "()V", false);
     mv.visitLdcInsn("targetMethodTest5 returned: ");
     mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "append",
-        "(Ljava/lang/String;)Ljava/lang/StringBuilder;");
+        "(Ljava/lang/String;)Ljava/lang/StringBuilder;", false);
     mv.visitVarInsn(Opcodes.ILOAD, 0);
     mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "append",
-        "(I)Ljava/lang/StringBuilder;");
+        "(I)Ljava/lang/StringBuilder;", false);
     mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "toString",
-        "()Ljava/lang/String;");
+        "()Ljava/lang/String;", false);
     mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/io/PrintStream", "println",
-        "(Ljava/lang/String;)V");
+        "(Ljava/lang/String;)V", false);
     mv.visitInsn(Opcodes.RETURN);
     mv.visitMaxs(-1, -1);
   }
@@ -216,17 +216,17 @@ public class TestGenerator {
     mv.visitFieldInsn(Opcodes.GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
     mv.visitTypeInsn(Opcodes.NEW, "java/lang/StringBuilder");
     mv.visitInsn(Opcodes.DUP);
-    mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/StringBuilder", "<init>", "()V");
+    mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/StringBuilder", "<init>", "()V", false);
     mv.visitLdcInsn("targetMethodTest6 returned: ");
     mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "append",
-        "(Ljava/lang/String;)Ljava/lang/StringBuilder;");
+        "(Ljava/lang/String;)Ljava/lang/StringBuilder;", false);
     mv.visitVarInsn(Opcodes.LLOAD, 0);
     mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "append",
-        "(J)Ljava/lang/StringBuilder;");
+        "(J)Ljava/lang/StringBuilder;", false);
     mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "toString",
-        "()Ljava/lang/String;");
+        "()Ljava/lang/String;", false);
     mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/io/PrintStream", "println",
-        "(Ljava/lang/String;)V");
+        "(Ljava/lang/String;)V", false);
     mv.visitInsn(Opcodes.RETURN);
     mv.visitMaxs(-1, -1);
   }
@@ -252,17 +252,17 @@ public class TestGenerator {
     mv.visitFieldInsn(Opcodes.GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
     mv.visitTypeInsn(Opcodes.NEW, "java/lang/StringBuilder");
     mv.visitInsn(Opcodes.DUP);
-    mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/StringBuilder", "<init>", "()V");
+    mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/StringBuilder", "<init>", "()V", false);
     mv.visitLdcInsn("targetMethodTest6 returned: ");
     mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "append",
-        "(Ljava/lang/String;)Ljava/lang/StringBuilder;");
+        "(Ljava/lang/String;)Ljava/lang/StringBuilder;", false);
     mv.visitVarInsn(Opcodes.DLOAD, 0);
     mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "append",
-        "(D)Ljava/lang/StringBuilder;");
+        "(D)Ljava/lang/StringBuilder;", false);
     mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "toString",
-        "()Ljava/lang/String;");
+        "()Ljava/lang/String;", false);
     mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/io/PrintStream", "println",
-        "(Ljava/lang/String;)V");
+        "(Ljava/lang/String;)V", false);
     mv.visitInsn(Opcodes.RETURN);
     mv.visitMaxs(-1, -1);
   }
