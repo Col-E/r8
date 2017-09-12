@@ -10,6 +10,7 @@ import static com.android.tools.r8.utils.FileUtils.isDexFile;
 import com.android.tools.r8.ClassFileResourceProvider;
 import com.android.tools.r8.Resource;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.shaking.FilteredClassPath;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.Closer;
@@ -48,6 +49,7 @@ public class AndroidApp {
   private final ImmutableList<Resource> programResources;
   private final ImmutableList<ClassFileResourceProvider> classpathResourceProviders;
   private final ImmutableList<ClassFileResourceProvider> libraryResourceProviders;
+
   private final ImmutableList<ProgramFileArchiveReader> programFileArchiveReaders;
   private final Resource deadCode;
   private final Resource proguardMap;
@@ -108,7 +110,7 @@ public class AndroidApp {
    * Create an app from program files @code{files}. See also Builder::addProgramFiles.
    */
   public static AndroidApp fromProgramFiles(List<Path> files) throws IOException {
-    return builder().addProgramFiles(files).build();
+    return builder().addProgramFiles(ListUtils.map(files, FilteredClassPath::unfiltered)).build();
   }
 
   /**
@@ -177,6 +179,10 @@ public class AndroidApp {
   /** Get library resource providers. */
   public List<ClassFileResourceProvider> getLibraryResourceProviders() {
     return libraryResourceProviders;
+  }
+
+  public List<ProgramFileArchiveReader> getProgramFileArchiveReaders() {
+    return programFileArchiveReaders;
   }
 
   private List<Resource> filter(List<Resource> resources, Resource.Kind kind) {
@@ -459,9 +465,9 @@ public class AndroidApp {
      * @param directory Directory containing dex program files and optional proguard-map file.
      */
     public Builder addProgramDirectory(Path directory) throws IOException {
-      List<Path> resources =
+      List<FilteredClassPath> resources =
           Arrays.asList(directory.toFile().listFiles(file -> isDexFile(file.toPath()))).stream()
-          .map(file -> file.toPath()).collect(Collectors.toList());
+              .map(file -> FilteredClassPath.unfiltered(file)).collect(Collectors.toList());
       addProgramFiles(resources);
       File mapFile = new File(directory.toFile(), DEFAULT_PROGUARD_MAP_FILE);
       if (mapFile.exists()) {
@@ -473,15 +479,15 @@ public class AndroidApp {
     /**
      * Add program file resources.
      */
-    public Builder addProgramFiles(Path... files) throws IOException {
+    public Builder addProgramFiles(FilteredClassPath... files) throws IOException {
       return addProgramFiles(Arrays.asList(files));
     }
 
     /**
      * Add program file resources.
      */
-    public Builder addProgramFiles(Collection<Path> files) throws IOException {
-      for (Path file : files) {
+    public Builder addProgramFiles(Collection<FilteredClassPath> files) throws IOException {
+      for (FilteredClassPath file : files) {
         addProgramFile(file);
       }
       return this;
@@ -499,7 +505,7 @@ public class AndroidApp {
      */
     public Builder addClasspathFiles(Collection<Path> files) throws IOException {
       for (Path file : files) {
-        addClassProvider(file, classpathResourceProviders);
+        addClassProvider(FilteredClassPath.unfiltered(file), classpathResourceProviders);
       }
       return this;
     }
@@ -515,15 +521,15 @@ public class AndroidApp {
     /**
      * Add library file resources.
      */
-    public Builder addLibraryFiles(Path... files) throws IOException {
+    public Builder addLibraryFiles(FilteredClassPath... files) throws IOException {
       return addLibraryFiles(Arrays.asList(files));
     }
 
     /**
      * Add library file resources.
      */
-    public Builder addLibraryFiles(Collection<Path> files) throws IOException {
-      for (Path file : files) {
+    public Builder addLibraryFiles(Collection<FilteredClassPath> files) throws IOException {
+      for (FilteredClassPath file : files) {
         addClassProvider(file, libraryResourceProviders);
       }
       return this;
@@ -712,7 +718,8 @@ public class AndroidApp {
           mainDexListOutput);
     }
 
-    private void addProgramFile(Path file) throws IOException {
+    private void addProgramFile(FilteredClassPath filteredClassPath) throws IOException {
+      Path file = filteredClassPath.getPath();
       if (!Files.exists(file)) {
         throw new FileNotFoundException("Non-existent input file: " + file);
       }
@@ -721,20 +728,25 @@ public class AndroidApp {
       } else if (isClassFile(file)) {
         programResources.add(Resource.fromFile(Resource.Kind.CLASSFILE, file));
       } else if (isArchive(file)) {
-        programFileArchiveReaders.add(new ProgramFileArchiveReader(file, ignoreDexInArchive));
+        programFileArchiveReaders
+            .add(new ProgramFileArchiveReader(filteredClassPath, ignoreDexInArchive));
       } else {
         throw new CompilationError("Unsupported source file type for file: " + file);
       }
     }
 
-    private void addClassProvider(Path file, List<ClassFileResourceProvider> providerList)
+    private void addClassProvider(FilteredClassPath classPath,
+        List<ClassFileResourceProvider> providerList)
         throws IOException {
+      Path file = classPath.getPath();
       if (!Files.exists(file)) {
         throw new FileNotFoundException("Non-existent input file: " + file);
       }
       if (isArchive(file)) {
-        providerList.add(PreloadedClassFileProvider.fromArchive(file));
+        providerList.add(PreloadedClassFileProvider.fromArchive(classPath));
       } else if (Files.isDirectory(file) ) {
+        // This is only used for D8 incremental compilation.
+        assert classPath.isUnfiltered();
         providerList.add(DirectoryClassFileProvider.fromDirectory(file));
       } else {
         throw new CompilationError("Unsupported source file type for file: " + file);

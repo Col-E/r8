@@ -21,6 +21,7 @@ import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.jasmin.JasminBuilder;
+import com.android.tools.r8.shaking.FilteredClassPath;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.MethodSubject;
@@ -502,7 +503,8 @@ public class SwitchRewritingTest extends SmaliTestBase {
     // Add the Jasmin class and a class from Java source with the main method.
     AndroidApp.Builder appBuilder = AndroidApp.builder();
     appBuilder.addClassProgramData(builder.buildClasses());
-    appBuilder.addProgramFiles(ToolHelper.getClassFileForTestClass(CheckSwitchInTestClass.class));
+    appBuilder.addProgramFiles(FilteredClassPath
+        .unfiltered(ToolHelper.getClassFileForTestClass(CheckSwitchInTestClass.class)));
     AndroidApp app = compileWithR8(appBuilder.build());
 
     DexInspector inspector = new DexInspector(app);

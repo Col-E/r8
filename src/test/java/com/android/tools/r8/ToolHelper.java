@@ -12,6 +12,7 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.shaking.FilteredClassPath;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationParser;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
@@ -315,10 +316,13 @@ public class ToolHelper {
   }
 
   static class RetainedTemporaryFolder extends TemporaryFolder {
+
     RetainedTemporaryFolder(java.io.File parentFolder) {
       super(parentFolder);
     }
-    protected void after() {} // instead of remove, do nothing
+
+    protected void after() {
+    } // instead of remove, do nothing
   }
 
   // For non-Linux platforms create the temporary directory in the repository root to simplify
@@ -435,9 +439,9 @@ public class ToolHelper {
   public static DexApplication buildApplication(List<String> fileNames)
       throws IOException, ExecutionException {
     return new ApplicationReader(
-            AndroidApp.fromProgramFiles(ListUtils.map(fileNames, Paths::get)),
-            new InternalOptions(),
-            new Timing("ToolHelper buildApplication"))
+        AndroidApp.fromProgramFiles(ListUtils.map(fileNames, Paths::get)),
+        new InternalOptions(),
+        new Timing("ToolHelper buildApplication"))
         .read();
   }
 
@@ -485,14 +489,15 @@ public class ToolHelper {
   }
 
   public static CompilationResult runR8WithFullResult(
-        R8Command command, Consumer<InternalOptions> optionsConsumer)
-        throws ProguardRuleParserException, ExecutionException, IOException, CompilationException {
-   // TODO(zerny): Should we really be adding the android library in ToolHelper?
+      R8Command command, Consumer<InternalOptions> optionsConsumer)
+      throws ProguardRuleParserException, ExecutionException, IOException, CompilationException {
+    // TODO(zerny): Should we really be adding the android library in ToolHelper?
     AndroidApp app = command.getInputApp();
     if (app.getLibraryResourceProviders().isEmpty()) {
       app =
           AndroidApp.builder(app)
-              .addLibraryFiles(Paths.get(getAndroidJar(command.getMinApiLevel())))
+              .addLibraryFiles(
+                  FilteredClassPath.unfiltered(getAndroidJar(command.getMinApiLevel())))
               .build();
     }
     InternalOptions options = command.getInternalOptions();

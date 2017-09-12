@@ -6,6 +6,7 @@ package com.android.tools.r8.rewrite.switchmaps;
 import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.shaking.FilteredClassPath;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DexInspector;
@@ -27,8 +28,10 @@ public class RewriteSwitchMapsTest extends TestBase {
   public void checkSwitchMapsRemoved()
       throws IOException, ProguardRuleParserException, ExecutionException, CompilationException {
     AndroidApp.Builder builder = AndroidApp.builder();
-    builder.addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()));
-    builder.addProgramFiles(Paths.get(ToolHelper.EXAMPLES_BUILD_DIR).resolve(JAR_FILE));
+    builder.addLibraryFiles(
+        FilteredClassPath.unfiltered(ToolHelper.getDefaultAndroidJar()));
+    builder.addProgramFiles(
+        FilteredClassPath.unfiltered(Paths.get(ToolHelper.EXAMPLES_BUILD_DIR).resolve(JAR_FILE)));
     AndroidApp result = compileWithR8(builder.build(), writeTextToTempFile(PG_CONFIG));
     DexInspector inspector = new DexInspector(result);
     Assert.assertFalse(inspector.clazz(SWITCHMAP_CLASS_NAME).isPresent());

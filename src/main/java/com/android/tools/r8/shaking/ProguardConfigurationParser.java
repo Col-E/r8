@@ -772,7 +772,9 @@ public class ProguardConfigurationParser {
       int end = position;
       while (!eof(end)) {
         char current = contents.charAt(end);
-        if (current != File.pathSeparatorChar && !Character.isWhitespace(current)) {
+        if (current != File.pathSeparatorChar
+            && !Character.isWhitespace(current)
+            && current != '(') {
           end++;
         } else {
           break;
@@ -785,16 +787,58 @@ public class ProguardConfigurationParser {
       return baseDirectory.resolve(contents.substring(start, end));
     }
 
-    private List<Path> parseClassPath() throws ProguardRuleParserException {
-      List<Path> classPath = new ArrayList<>();
+    private List<FilteredClassPath> parseClassPath() throws ProguardRuleParserException {
+      List<FilteredClassPath> classPath = new ArrayList<>();
       skipWhitespace();
       Path file = parseFileName();
-      classPath.add(file);
+      ImmutableList<String> filters = parseClassPathFilters();
+      classPath.add(new FilteredClassPath(file, filters));
       while (acceptChar(File.pathSeparatorChar)) {
         file = parseFileName();
-        classPath.add(file);
+        filters = parseClassPathFilters();
+        classPath.add(new FilteredClassPath(file, filters));
       }
       return classPath;
+    }
+
+    private ImmutableList<String> parseClassPathFilters() throws ProguardRuleParserException {
+      skipWhitespace();
+      if (acceptChar('(')) {
+        ImmutableList.Builder<String> filters = new ImmutableList.Builder<>();
+        filters.add(parseFileFilter());
+        skipWhitespace();
+        while (acceptChar(',')) {
+          filters.add(parseFileFilter());
+          skipWhitespace();
+        }
+        if (acceptChar(';')) {
+          throw parseError("Only class file filters are supported in classpath");
+        }
+        expectChar(')');
+        return filters.build();
+      } else {
+        return ImmutableList.of();
+      }
+    }
+
+    private String parseFileFilter() throws ProguardRuleParserException {
+      skipWhitespace();
+      int start = position;
+      int end = position;
+      while (!eof(end)) {
+        char current = contents.charAt(end);
+        if (current != ',' && current != ';' && current != ')' && !Character
+            .isWhitespace(current)) {
+          end++;
+        } else {
+          break;
+        }
+      }
+      if (start == end) {
+        throw parseError("file filter expected");
+      }
+      position = end;
+      return contents.substring(start, end);
     }
 
     private ProguardAssumeNoSideEffectRule parseAssumeNoSideEffectsRule()

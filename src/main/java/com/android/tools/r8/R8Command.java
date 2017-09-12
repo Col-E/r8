@@ -178,7 +178,8 @@ public class R8Command extends BaseCompilerCommand {
 
     protected void validate() throws CompilationException {
       super.validate();
-      if (mainDexListOutput != null && mainDexRules.isEmpty() && !getAppBuilder().hasMainDexList()) {
+      if (mainDexListOutput != null && mainDexRules.isEmpty() && !getAppBuilder()
+          .hasMainDexList()) {
         throw new CompilationException(
             "Option --main-dex-list-output require --main-dex-rules and/or --main-dex-list");
       }
@@ -224,8 +225,8 @@ public class R8Command extends BaseCompilerCommand {
           proguardConfigurationConsumer.accept(configurationBuilder);
         }
         configuration = configurationBuilder.build();
-        addProgramFiles(configuration.getInjars());
-        addLibraryFiles(configuration.getLibraryjars());
+        getAppBuilder().addProgramFiles(configuration.getInjars());
+        getAppBuilder().addLibraryFiles(configuration.getLibraryjars());
       }
 
       // TODO(b/64802420): setProguardMapFile if configuration.hasApplyMappingFile
