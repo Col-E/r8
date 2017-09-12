@@ -44,8 +44,12 @@ public class FilteredClassPathTest {
   }
 
   private static FilteredClassPath makeFilteredClassPath(List<String> filters) {
+    return makeFilteredClassPath(Paths.get("foo"), filters);
+  }
+
+  private static FilteredClassPath makeFilteredClassPath(Path path, List<String> filters) {
     // TODO(herhut): Move to stream API once updated to guava 23.
-    return new FilteredClassPath(Paths.get("foo"),
+    return new FilteredClassPath(path,
         ImmutableList.copyOf(ListUtils.map(filters, FilteredClassPathTest::adaptFileSeparator)));
   }
 
@@ -77,7 +81,7 @@ public class FilteredClassPathTest {
       Function<AndroidApp, List<String>> getter)
       throws IOException {
     Path androidJar = Paths.get(ToolHelper.getDefaultAndroidJar());
-    AndroidApp app = setter.apply(AndroidApp.builder(), new FilteredClassPath(androidJar,
+    AndroidApp app = setter.apply(AndroidApp.builder(), makeFilteredClassPath(androidJar,
         ImmutableList.of("!java/lang/**.class", "java/util/**.class"))).build();
     List<String> descriptors = getter.apply(app);
     Assert.assertTrue(descriptors.stream().noneMatch(s -> s.startsWith("Ljava/lang")));
