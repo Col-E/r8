@@ -195,7 +195,7 @@ public class IRCode {
         }
         for (Value value : phi.getDebugValues()) {
           values.add(value);
-          value.debugPhiUsers().contains(phi);
+          assert value.debugPhiUsers().contains(phi);
         }
       }
       for (Instruction instruction : block.getInstructions()) {
