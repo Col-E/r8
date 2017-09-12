@@ -559,12 +559,16 @@ public class IRConverter {
     // Always perform dead code elimination before register allocation. The register allocator
     // does not allow dead code (to make sure that we do not waste registers for unneeded values).
     DeadCodeRemover.removeDeadCode(code, codeRewriter, options);
+    if (!options.debug) {
+      // Remove unneeded debug positions before register allocation to avoid to process useless
+      // instructions. These is safe because the register allocator can not generate new
+      // instructions that will throw exceptions and thus apply removedUnneededDebugPositions before
+      // register allocator will produce the same result.
+      CodeRewriter.removedUnneededDebugPositions(code);
+    }
     LinearScanRegisterAllocator registerAllocator = new LinearScanRegisterAllocator(code, options);
     registerAllocator.allocateRegisters(options.debug);
     printMethod(code, "After register allocation (non-SSA)");
-    if (!options.debug) {
-      CodeRewriter.removedUnneededDebugPositions(code);
-    }
     for (int i = 0; i < PEEPHOLE_OPTIMIZATION_PASSES; i++) {
       CodeRewriter.collapsTrivialGotos(method, code);
       PeepholeOptimizer.optimize(code, registerAllocator);
