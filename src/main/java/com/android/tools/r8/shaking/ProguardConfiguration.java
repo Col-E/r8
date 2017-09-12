@@ -113,8 +113,8 @@ public class ProguardConfiguration {
       this.verbose = verbose;
     }
 
-    public void addAttributeRemovalPattern(String attributesRemovalPattern) {
-      this.attributesRemovalPatterns.add(attributesRemovalPattern);
+    public void addAttributeRemovalPatterns(List<String> attributesRemovalPatterns) {
+      this.attributesRemovalPatterns.addAll(attributesRemovalPatterns);
     }
 
     public void addRule(ProguardConfigurationRule rule) {

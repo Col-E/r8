@@ -243,7 +243,7 @@ public class InternalOptions {
 
     public static AttributeRemovalOptions filterOnlySignatures() {
       AttributeRemovalOptions result = new AttributeRemovalOptions();
-      result.applyPattern("*");
+      result.applyPatterns(ImmutableList.of("*"));
       result.signature = false;
       return result;
     }
@@ -253,7 +253,7 @@ public class InternalOptions {
      *
      * @see <a href="https://www.guardsquare.com/en/proguard/manual/attributes">ProGuard manual</a>.
      */
-    private boolean update(boolean previous, String text, String[] patterns) {
+    private boolean update(boolean previous, String text, List<String> patterns) {
       for (String pattern : patterns) {
         if (previous) {
           return true;
@@ -289,8 +289,7 @@ public class InternalOptions {
       return textPos == text.length();
     }
 
-    public void applyPattern(String pattern) {
-      String[] patterns = pattern.split(",");
+    public void applyPatterns(List<String> patterns) {
       innerClasses = update(innerClasses, INNER_CLASSES, patterns);
       enclosingMethod = update(enclosingMethod, ENCLOSING_METHOD, patterns);
       signature = update(signature, SIGNATURE, patterns);

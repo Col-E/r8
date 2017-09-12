@@ -289,11 +289,11 @@ public class ProguardConfigurationParser {
     }
 
     private void parseKeepAttributes() throws ProguardRuleParserException {
-      String attributesPattern = acceptPatternList();
-      if (attributesPattern == null) {
+      List<String> attributesPatterns = acceptPatternList();
+      if (attributesPatterns.isEmpty()) {
         throw parseError("Expected attribute pattern list");
       }
-      configurationBuilder.addAttributeRemovalPattern(attributesPattern);
+      configurationBuilder.addAttributeRemovalPatterns(attributesPatterns);
     }
 
     private boolean skipFlag(String name) {
@@ -1006,7 +1006,25 @@ public class ProguardConfigurationParser {
       return contents.substring(start, end);
     }
 
-    private String acceptPatternList() {
+    private List<String> acceptPatternList() throws ProguardRuleParserException {
+      List<String> patterns = new ArrayList<>();
+      String pattern = acceptPattern();
+      while (pattern != null) {
+        patterns.add(pattern);
+        skipWhitespace();
+        if (acceptChar(',')) {
+          pattern = acceptPattern();
+          if (pattern == null) {
+            throw parseError("Expected list element");
+          }
+        } else {
+          pattern = null;
+        }
+      }
+      return patterns;
+    }
+
+    private String acceptPattern() {
       skipWhitespace();
       int start = position;
       int end = position;
@@ -1014,8 +1032,7 @@ public class ProguardConfigurationParser {
         char current = contents.charAt(end);
         if (Character.isJavaIdentifierPart(current) ||
             current == '!' ||
-            current == '*' ||
-            current == ',') {
+            current == '*') {
           end++;
         } else {
           break;
