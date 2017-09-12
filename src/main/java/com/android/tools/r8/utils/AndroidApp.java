@@ -6,9 +6,13 @@ package com.android.tools.r8.utils;
 import static com.android.tools.r8.utils.FileUtils.isArchive;
 import static com.android.tools.r8.utils.FileUtils.isClassFile;
 import static com.android.tools.r8.utils.FileUtils.isDexFile;
+import static com.android.tools.r8.utils.FileUtils.isVDexFile;
 
 import com.android.tools.r8.ClassFileResourceProvider;
 import com.android.tools.r8.Resource;
+import com.android.tools.r8.Resource.Kind;
+import com.android.tools.r8.dex.VDexFile;
+import com.android.tools.r8.dex.VDexFileReader;
 import com.android.tools.r8.errors.CompilationError;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.ByteStreams;
@@ -149,6 +153,12 @@ public class AndroidApp {
   /** Get input streams for all dex program resources. */
   public List<Resource> getDexProgramResources() throws IOException {
     List<Resource> dexResources = filter(programResources, Resource.Kind.DEX);
+    for (Resource resource : filter(programResources, Kind.VDEX)) {
+      VDexFileReader reader = new VDexFileReader(new VDexFile(resource));
+      dexResources.addAll(reader.getDexFiles().stream()
+          .map(bytes -> Resource.fromBytes(Kind.DEX, bytes))
+          .collect(Collectors.toList()));
+    }
     for (ProgramFileArchiveReader reader : programFileArchiveReaders) {
       dexResources.addAll(reader.getDexProgramResources());
     }
@@ -718,6 +728,8 @@ public class AndroidApp {
       }
       if (isDexFile(file)) {
         programResources.add(Resource.fromFile(Resource.Kind.DEX, file));
+      } else if (isVDexFile(file)) {
+        programResources.add(Resource.fromFile(Resource.Kind.VDEX, file));
       } else if (isClassFile(file)) {
         programResources.add(Resource.fromFile(Resource.Kind.CLASSFILE, file));
       } else if (isArchive(file)) {

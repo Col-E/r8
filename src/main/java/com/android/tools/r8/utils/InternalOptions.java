@@ -120,6 +120,10 @@ public class InternalOptions {
 
   public int warningInvalidDebugInfoCount = 0;
 
+  // Don't read code from dex files. Used to extract non-code information from vdex files where
+  // the code contains unsupported byte codes.
+  public boolean skipReadingDexCode = false;
+
   public void warningInvalidDebugInfo(DexEncodedMethod method, InvalidDebugInfoException e) {
     warningInvalidDebugInfoCount++;
   }
