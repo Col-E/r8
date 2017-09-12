@@ -15,7 +15,7 @@ import java.util.Set;
 public abstract class Resource {
   /** Kind of the resource describing the resource content. */
   public enum Kind {
-    DEX, CLASSFILE
+    DEX, CLASSFILE, VDEX
   }
 
   protected Resource(Kind kind) {

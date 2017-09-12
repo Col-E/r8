@@ -197,12 +197,14 @@ public class ApplicationReader {
           DexFileReader.populateIndexTables(reader);
         }
         // Read the DexCode items and DexProgramClass items in parallel.
-        for (DexFileReader reader : fileReaders) {
-          futures.add(executorService.submit(() -> {
-            reader.addCodeItemsTo();  // Depends on Everything for parsing.
-            reader.addClassDefsTo(
-                classKind.bridgeConsumer(classes::add)); // Depends on Methods, Code items etc.
-          }));
+        if (!options.skipReadingDexCode) {
+          for (DexFileReader reader : fileReaders) {
+            futures.add(executorService.submit(() -> {
+              reader.addCodeItemsTo();  // Depends on Everything for parsing.
+              reader.addClassDefsTo(
+                  classKind.bridgeConsumer(classes::add)); // Depends on Methods, Code items etc.
+            }));
+          }
         }
       }
     }

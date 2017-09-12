@@ -38,7 +38,7 @@ public class ExtractMarker {
 
     static final String USAGE_MESSAGE = String.join("\n", ImmutableList.of(
         "Usage: extractmarker [options] <input-files>",
-        " where <input-files> are dex files",
+        " where <input-files> are dex or vdex files",
         "  --version               # Print the version of r8.",
         "  --help                  # Print this message."));
 
@@ -93,8 +93,11 @@ public class ExtractMarker {
       return;
     }
     AndroidApp app = command.getInputApp();
-    DexApplication dexApp =
-        new ApplicationReader(app, new InternalOptions(), new Timing("ExtractMarker")).read();
+    InternalOptions options = new InternalOptions();
+    // Dex code is not needed for getting the marker. VDex files typically contains quickened byte
+    // codes which cannot be read, and we want to get the marker from vdex files as well.
+    options.skipReadingDexCode = true;
+    DexApplication dexApp = new ApplicationReader(app, options, new Timing("ExtractMarker")).read();
     Marker readMarker = dexApp.dexItemFactory.extractMarker();
     if (readMarker == null) {
       System.out.println("D8/R8 marker not found.");
