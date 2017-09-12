@@ -9,6 +9,7 @@ import static com.android.tools.r8.utils.FileUtils.isDexFile;
 
 import com.android.tools.r8.Resource;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.shaking.FilteredClassPath;
 import com.google.common.io.ByteStreams;
 import java.io.IOException;
 import java.io.InputStream;
@@ -23,39 +24,42 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
 
-class ProgramFileArchiveReader {
+public class ProgramFileArchiveReader {
 
-  private final Path archive;
+  private final FilteredClassPath archive;
   private boolean ignoreDexInArchive;
   private List<Resource> dexResources = null;
   private List<Resource> classResources = null;
 
-  ProgramFileArchiveReader(Path archive, boolean ignoreDexInArchive) {
+  ProgramFileArchiveReader(FilteredClassPath archive, boolean ignoreDexInArchive) {
     this.archive = archive;
     this.ignoreDexInArchive = ignoreDexInArchive;
   }
 
   private void readArchive() throws IOException {
-    assert isArchive(archive);
+    assert isArchive(archive.getPath());
     dexResources = new ArrayList<>();
     classResources = new ArrayList<>();
-    try (ZipFile zipFile = new ZipFile(archive.toFile())) {
+    try (ZipFile zipFile = new ZipFile(archive.getPath().toFile())) {
       final Enumeration<? extends ZipEntry> entries = zipFile.entries();
       while (entries.hasMoreElements()) {
         ZipEntry entry = entries.nextElement();
         try (InputStream stream = zipFile.getInputStream(entry)) {
           Path name = Paths.get(entry.getName());
-          if (isDexFile(name)) {
-            if (!ignoreDexInArchive) {
-              Resource resource =
-                  new OneShotByteResource(Resource.Kind.DEX, ByteStreams.toByteArray(stream), null);
-              dexResources.add(resource);
+          if (archive.matchesFile(name)) {
+            if (isDexFile(name)) {
+              if (!ignoreDexInArchive) {
+                Resource resource =
+                    new OneShotByteResource(Resource.Kind.DEX, ByteStreams.toByteArray(stream),
+                        null);
+                dexResources.add(resource);
+              }
+            } else if (isClassFile(name)) {
+              String descriptor = PreloadedClassFileProvider.guessTypeDescriptor(name);
+              Resource resource = new OneShotByteResource(Resource.Kind.CLASSFILE,
+                  ByteStreams.toByteArray(stream), Collections.singleton(descriptor));
+              classResources.add(resource);
             }
-          } else if (isClassFile(name)) {
-            String descriptor = PreloadedClassFileProvider.guessTypeDescriptor(name);
-            Resource resource = new OneShotByteResource(Resource.Kind.CLASSFILE,
-                ByteStreams.toByteArray(stream), Collections.singleton(descriptor));
-            classResources.add(resource);
           }
         }
       }

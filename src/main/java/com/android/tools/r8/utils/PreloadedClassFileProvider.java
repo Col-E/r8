@@ -10,11 +10,10 @@ import static com.android.tools.r8.utils.FileUtils.isClassFile;
 import com.android.tools.r8.ClassFileResourceProvider;
 import com.android.tools.r8.Resource;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.shaking.FilteredClassPath;
 import com.google.common.collect.Sets;
 import com.google.common.io.ByteStreams;
-
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
@@ -27,8 +26,11 @@ import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
-/** Lazy Java class file resource provider based on preloaded/prebuilt context. */
+/**
+ * Lazy Java class file resource provider based on preloaded/prebuilt context.
+ */
 public final class PreloadedClassFileProvider implements ClassFileResourceProvider {
+
   private final Map<String, byte[]> content;
 
   private PreloadedClassFileProvider(Map<String, byte[]> content) {
@@ -49,16 +51,20 @@ public final class PreloadedClassFileProvider implements ClassFileResourceProvid
     return Resource.fromBytes(Resource.Kind.CLASSFILE, bytes, Collections.singleton(descriptor));
   }
 
-  /** Create preloaded content resource provider from archive file. */
-  public static ClassFileResourceProvider fromArchive(Path archive) throws IOException {
-    assert isArchive(archive);
+  /**
+   * Create preloaded content resource provider from archive file.
+   */
+  public static ClassFileResourceProvider fromArchive(FilteredClassPath archive)
+      throws IOException {
+    assert isArchive(archive.getPath());
     Builder builder = builder();
-    try (ZipFile zipFile = new ZipFile(archive.toFile())) {
+    try (ZipFile zipFile = new ZipFile(archive.getPath().toFile())) {
       final Enumeration<? extends ZipEntry> entries = zipFile.entries();
       while (entries.hasMoreElements()) {
         ZipEntry entry = entries.nextElement();
         String name = entry.getName();
-        if (isClassFile(Paths.get(name))) {
+        Path entryPath = Paths.get(name);
+        if (isClassFile(entryPath) && archive.matchesFile(entryPath)) {
           try (InputStream entryStream = zipFile.getInputStream(entry)) {
             builder.addResource(guessTypeDescriptor(name), ByteStreams.toByteArray(entryStream));
           }
@@ -80,8 +86,8 @@ public final class PreloadedClassFileProvider implements ClassFileResourceProvid
     assert name.endsWith(CLASS_EXTENSION) :
         "Name " + name + " must have " + CLASS_EXTENSION + " suffix";
     String fileName =
-            File.separatorChar == '/' ? name.toString() :
-                    name.toString().replace(File.separatorChar, '/');
+        File.separatorChar == '/' ? name.toString() :
+            name.toString().replace(File.separatorChar, '/');
     String descriptor = fileName.substring(0, fileName.length() - CLASS_EXTENSION.length());
     if (descriptor.contains(".")) {
       throw new CompilationError("Unexpected file name in the archive: " + fileName);
@@ -94,12 +100,15 @@ public final class PreloadedClassFileProvider implements ClassFileResourceProvid
     return content.size() + " preloaded resources";
   }
 
-  /** Create a new empty builder. */
+  /**
+   * Create a new empty builder.
+   */
   public static Builder builder() {
     return new Builder();
   }
 
   public static final class Builder {
+
     private Map<String, byte[]> content = new HashMap<>();
 
     private Builder() {

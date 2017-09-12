@@ -8,12 +8,12 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.shaking.FilteredClassPath;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.InternalOptions;
 import java.io.IOException;
-import java.nio.file.Paths;
 import org.antlr.runtime.RecognitionException;
 import org.junit.Test;
 
@@ -61,7 +61,7 @@ public class SmaliBuildTest extends SmaliTestBase {
     InternalOptions options = new InternalOptions();
     AndroidApp app = AndroidApp.builder()
         .addDexProgramData(builder.compile())
-        .addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()))
+        .addLibraryFiles(FilteredClassPath.unfiltered(ToolHelper.getDefaultAndroidJar()))
         .build();
 
     // Java standard library added - java.lang.String is present.

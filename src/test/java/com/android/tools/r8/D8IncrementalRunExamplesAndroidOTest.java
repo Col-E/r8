@@ -7,6 +7,7 @@ package com.android.tools.r8;
 import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.D8Command.Builder;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unimplemented;
@@ -195,8 +196,7 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
     abstract void addClasspathReference(
         Path testJarFile, D8Command.Builder builder) throws IOException;
 
-    abstract void addLibraryReference(
-        D8Command.Builder builder, Path location) throws IOException;
+    abstract void addLibraryReference(Builder builder, Path location) throws IOException;
   }
 
   @Test

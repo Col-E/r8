@@ -24,6 +24,7 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.shaking.FilteredClassPath;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.DexInspector;
@@ -37,7 +38,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -435,7 +435,7 @@ public class SmaliTestBase extends TestBase {
     try {
       AndroidApp input = AndroidApp.builder()
           .addDexProgramData(builder.compile())
-          .addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()))
+          .addLibraryFiles(FilteredClassPath.unfiltered(ToolHelper.getDefaultAndroidJar()))
           .build();
       return buildApplication(input, options);
     } catch (IOException | RecognitionException e) {

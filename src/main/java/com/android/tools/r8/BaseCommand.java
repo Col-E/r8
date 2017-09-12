@@ -3,10 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.shaking.FilteredClassPath;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.ListUtils;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Collection;
 
 /**
@@ -86,13 +89,13 @@ abstract class BaseCommand {
 
     /** Add program file resources. */
     public B addProgramFiles(Path... files) throws IOException {
-      app.addProgramFiles(files);
+      addProgramFiles(Arrays.asList(files));
       return self();
     }
 
     /** Add program file resources. */
     public B addProgramFiles(Collection<Path> files) throws IOException {
-      app.addProgramFiles(files);
+      app.addProgramFiles(ListUtils.map(files, FilteredClassPath::unfiltered));
       return self();
     }
 
@@ -104,13 +107,13 @@ abstract class BaseCommand {
 
     /** Add library file resources. */
     public B addLibraryFiles(Path... files) throws IOException {
-      app.addLibraryFiles(files);
+      addLibraryFiles(Arrays.asList(files));
       return self();
     }
 
     /** Add library file resources. */
     public B addLibraryFiles(Collection<Path> files) throws IOException {
-      app.addLibraryFiles(files);
+      app.addLibraryFiles(ListUtils.map(files, FilteredClassPath::unfiltered));
       return self();
     }
 

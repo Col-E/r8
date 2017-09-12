@@ -18,8 +18,8 @@ public class ProguardConfiguration {
 
   public static class Builder {
 
-    private final List<Path> injars = new ArrayList<>();
-    private final List<Path> libraryjars = new ArrayList<>();
+    private final List<FilteredClassPath> injars = new ArrayList<>();
+    private final List<FilteredClassPath> libraryjars = new ArrayList<>();
     private PackageObfuscationMode packageObfuscationMode = PackageObfuscationMode.NONE;
     private String packagePrefix = "";
     private boolean allowAccessModification = false;
@@ -47,11 +47,11 @@ public class ProguardConfiguration {
       this.dexItemFactory = dexItemFactory;
     }
 
-    public void addInjars(List<Path> injars) {
+    public void addInjars(List<FilteredClassPath> injars) {
       this.injars.addAll(injars);
     }
 
-    public void addLibraryJars(List<Path> libraryJars) {
+    public void addLibraryJars(List<FilteredClassPath> libraryJars) {
       this.libraryjars.addAll(libraryJars);
     }
 
@@ -174,8 +174,8 @@ public class ProguardConfiguration {
   }
 
   private final DexItemFactory dexItemFactory;
-  private final ImmutableList<Path> injars;
-  private final ImmutableList<Path> libraryjars;
+  private final ImmutableList<FilteredClassPath> injars;
+  private final ImmutableList<FilteredClassPath> libraryjars;
   private final PackageObfuscationMode packageObfuscationMode;
   private final String packagePrefix;
   private final boolean allowAccessModification;
@@ -199,8 +199,8 @@ public class ProguardConfiguration {
 
   private ProguardConfiguration(
       DexItemFactory factory,
-      List<Path> injars,
-      List<Path> libraryjars,
+      List<FilteredClassPath> injars,
+      List<FilteredClassPath> libraryjars,
       PackageObfuscationMode packageObfuscationMode,
       String packagePrefix,
       boolean allowAccessModification,
@@ -261,11 +261,11 @@ public class ProguardConfiguration {
     return false;
   }
 
-  public ImmutableList<Path> getInjars() {
+  public ImmutableList<FilteredClassPath> getInjars() {
     return injars;
   }
 
-  public ImmutableList<Path> getLibraryjars() {
+  public ImmutableList<FilteredClassPath> getLibraryjars() {
     return libraryjars;
   }
 

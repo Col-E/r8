@@ -19,6 +19,7 @@ import com.android.tools.r8.utils.InternalOptions.PackageObfuscationMode;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.List;
 import org.junit.Test;
 
@@ -411,6 +412,18 @@ public class ProguardConfigurationParserTest extends TestBase {
       parser.parse(Paths.get(LIBRARY_JARS));
     }
     assertEquals(4, parser.getConfig().getLibraryjars().size());
+  }
+
+  @Test
+  public void parseInvalidFilePattern() throws IOException {
+    try {
+      ProguardConfigurationParser parser = new ProguardConfigurationParser(new DexItemFactory());
+      parser.parse(new ProguardConfigurationSourceStrings(
+          Collections.singletonList("-injars abc.jar(*.zip;*.class)")));
+    } catch (ProguardRuleParserException e) {
+      return;
+    }
+    fail();
   }
 
   @Test
