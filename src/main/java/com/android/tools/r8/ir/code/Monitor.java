@@ -8,6 +8,7 @@ import static com.android.tools.r8.dex.Constants.U8BIT_MAX;
 
 import com.android.tools.r8.code.MonitorEnter;
 import com.android.tools.r8.code.MonitorExit;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.DexBuilder;
@@ -88,5 +89,17 @@ public class Monitor extends Instruction {
   public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType holder) {
     // Conservative choice.
     return Constraint.NEVER;
+  }
+
+  @Override
+  public String getInstructionName() {
+    switch (type) {
+      case ENTER:
+        return "MonitorEnter";
+      case EXIT:
+        return "MonitorExit";
+      default:
+        throw new Unreachable("Unknown monitor type:" + type);
+    }
   }
 }
