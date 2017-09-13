@@ -23,6 +23,8 @@ elif [[ "$TASK" == "emulator" ]]; then
   emulator_pid=$!
   trap "kill $emulator_pid; exit 1" 2 15
   while true; do sleep 5; done
+elif [[ "$TASK" == "emulator_fg" ]]; then
+  emulator "$@"
 elif [[ "$TASK" == "run-cts" ]]; then
   adb wait-for-device
   adb shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done; input keyevent 82'
