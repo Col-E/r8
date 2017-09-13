@@ -397,6 +397,10 @@ public class IRBuilder {
     // Package up the IR code.
     IRCode ir = new IRCode(method, blocks, normalExitBlock, valueNumberGenerator);
 
+    if (options.testing.invertConditionals) {
+      invertConditionalsForTesting(ir);
+    }
+
     // Create block order and make sure that all blocks are immediately followed by their
     // fallthrough block if any.
     ir.traceBlocks();
@@ -2057,41 +2061,6 @@ public class IRBuilder {
     blocks.addAll(newBlocks);
   }
 
-  /**
-   * Trace blocks and attempt to put fallthrough blocks immediately after the block that
-   * falls through. When we fail to do that we create a new fallthrough block with an explicit
-   * goto to the actual fallthrough block.
-   */
-  private void traceBlocks(IRCode code) {
-    BasicBlock[] sorted = code.topologicallySortedBlocks();
-    code.clearMarks();
-    int nextBlockNumber = blocks.size();
-    LinkedList<BasicBlock> tracedBlocks = new LinkedList<>();
-    for (BasicBlock block : sorted) {
-      if (!block.isMarked()) {
-        block.mark();
-        tracedBlocks.add(block);
-        BasicBlock current = block;
-        BasicBlock fallthrough = block.exit().fallthroughBlock();
-        while (fallthrough != null && !fallthrough.isMarked()) {
-          fallthrough.mark();
-          tracedBlocks.add(fallthrough);
-          current = fallthrough;
-          fallthrough = fallthrough.exit().fallthroughBlock();
-        }
-        if (fallthrough != null) {
-          BasicBlock newFallthrough = BasicBlock.createGotoBlock(fallthrough, nextBlockNumber++);
-          current.exit().setFallthroughBlock(newFallthrough);
-          newFallthrough.getPredecessors().add(current);
-          fallthrough.replacePredecessor(current, newFallthrough);
-          newFallthrough.mark();
-          tracedBlocks.add(newFallthrough);
-        }
-      }
-    }
-    code.blocks = tracedBlocks;
-  }
-
   // Other stuff.
 
   boolean isIntegerType(NumericType type) {
@@ -2100,6 +2069,14 @@ public class IRBuilder {
 
   boolean isNonLongIntegerType(NumericType type) {
     return type != NumericType.FLOAT && type != NumericType.DOUBLE && type != NumericType.LONG;
+  }
+
+  private static void invertConditionalsForTesting(IRCode code) {
+    for (BasicBlock block : code.blocks) {
+      if (block.exit().isIf()) {
+        block.exit().asIf().invert();
+      }
+    }
   }
 
   @Override
@@ -2113,3 +2090,4 @@ public class IRBuilder {
     return builder.toString();
   }
 }
+

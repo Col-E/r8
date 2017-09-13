@@ -204,6 +204,8 @@ public class InternalOptions {
 
     public Function<Set<DexEncodedMethod>, Set<DexEncodedMethod>> irOrdering =
         Function.identity();
+
+    public boolean invertConditionals = false;
   }
 
   public static class AttributeRemovalOptions {

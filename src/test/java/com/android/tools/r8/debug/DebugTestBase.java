@@ -112,14 +112,21 @@ public abstract class DebugTestBase {
 
   @BeforeClass
   public static void setUp() throws Exception {
+    setUp(null);
+  }
+
+  protected static void setUp(Consumer<InternalOptions> optionsConsumer) throws Exception {
     // Convert jar to dex with d8 with debug info
     jdwpDexD8 = compileToDex(null, JDWP_JAR);
-    debuggeeDexD8 = compileToDex(null, DEBUGGEE_JAR);
+    debuggeeDexD8 = compileToDex(optionsConsumer, DEBUGGEE_JAR);
     debuggeeJava8DexD8 = compileToDex(options -> {
           // Enable desugaring for preN runtimes
           options.interfaceMethodDesugaring = OffOrAuto.Auto;
+          if (optionsConsumer != null) {
+            optionsConsumer.accept(options);
+          }
         }, DEBUGGEE_JAVA8_JAR);
-    debuggeeKotlinDexD8 = compileToDex(null, DEBUGGEE_KOTLIN_JAR);
+    debuggeeKotlinDexD8 = compileToDex(optionsConsumer, DEBUGGEE_KOTLIN_JAR);
   }
 
   protected static Path compileToDex(Consumer<InternalOptions> optionsConsumer,
