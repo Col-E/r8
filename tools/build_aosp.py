@@ -6,7 +6,6 @@
 from os.path import join
 from glob import glob
 from itertools import chain
-from subprocess import check_call
 import argparse
 import multiprocessing
 import os
@@ -14,10 +13,7 @@ import sys
 
 import gradle
 import utils
-
-AOSP_HELPER_SH = join(utils.REPO_ROOT, 'scripts', 'aosp_helper.sh')
-
-DEFAULT_LUNCH = 'aosp_x86-eng'
+import utils_aosp
 
 J_DEFAULT = multiprocessing.cpu_count() - 2
 
@@ -26,30 +22,25 @@ EXIT_FAILURE = 1
 def parse_arguments():
   parser = argparse.ArgumentParser(
       description = 'Checkout the AOSP source tree.')
-  parser.add_argument('--aosp-root',
-                      help='Root of the AOSP checkout. ' +
-                           'Defaults to current working directory.',
-                      default=os.getcwd())
-  parser.add_argument('--lunch',
-                      help='Build menu. ' +
-                           'Defaults to ' + DEFAULT_LUNCH + '.',
-                      default=DEFAULT_LUNCH)
+  utils_aosp.add_common_arguments(parser)
   parser.add_argument('--tool',
-                      choices = ['jack', 'd8', 'default'],
-                      default = 'd8',
-                      help='Compiler tool to use. Defaults to d8.')
+      choices = ['jack', 'd8', 'default'],
+      default = 'd8',
+      help='Compiler tool to use. Defaults to d8.')
   parser.add_argument('--clean-dex',
       action = 'store_true',
       help = 'Remove all dex files before the build. By default they'
       " are removed only if '--tool=d8' and if they are older than the D8 tool")
   parser.add_argument('-j',
-                      help='Projects to fetch simultaneously. ' +
-                           'Defaults to ' + str(J_DEFAULT) + '.',
-                      type=int,
-                      default=J_DEFAULT)
+      help='Projects to fetch simultaneously. ' +
+      'Defaults to ' + str(J_DEFAULT) + '.',
+      type=int,
+      default=J_DEFAULT)
   return parser.parse_args()
 
 def setup_and_clean_dex(aosp_root, tool, clean_dex):
+  print "Running AOSP build in " + aosp_root
+
   out = join(aosp_root, 'out')
   utils.makedirs_if_needed(out)
 
@@ -79,15 +70,15 @@ def build_aosp(aosp_root, lunch, tool, concurrency):
   j_option = '-j' + str(concurrency);
   print("-- Building Android image with 'make {} {} {}'." \
     .format(j_option, jack_option, alt_jar_option))
-  check_call([AOSP_HELPER_SH, lunch, 'make', j_option,
-              jack_option, alt_jar_option], cwd = aosp_root)
+  utils_aosp.run_through_aosp_helper(lunch,
+      ['make', j_option, jack_option, alt_jar_option], aosp_root)
 
 def Main():
   args = parse_arguments()
 
   # Build the required tools.
   if args.tool == 'd8':
-    gradle.RunGradle(['d8', 'd8logger', 'compatdx'])
+    gradle.RunGradle(['d8', 'r8', 'compatdx', 'compatproguard'])
 
   setup_and_clean_dex(args.aosp_root, args.tool, args.clean_dex)
 
