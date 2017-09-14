@@ -443,6 +443,7 @@ public class AndroidApp {
     private List<String> mainDexListClasses = new ArrayList<>();
     private Resource mainDexListOutput;
     private boolean ignoreDexInArchive = false;
+    private boolean vdexAllowed = false;
 
     // See AndroidApp::builder().
     private Builder() {
@@ -706,8 +707,18 @@ public class AndroidApp {
      * dex resources. Setting this flag ignores the dex resources and reads the class resources
      * only.
      */
-    public void setIgnoreDexInArchive(boolean value) {
+    public Builder setIgnoreDexInArchive(boolean value) {
       ignoreDexInArchive = value;
+      return this;
+    }
+
+    public Builder setVdexAllowed() {
+      vdexAllowed = true;
+      return this;
+    }
+
+    public boolean isVdexAllowed() {
+      return vdexAllowed;
     }
 
     /**
@@ -735,7 +746,7 @@ public class AndroidApp {
       }
       if (isDexFile(file)) {
         programResources.add(Resource.fromFile(Resource.Kind.DEX, file));
-      } else if (isVDexFile(file)) {
+      } else if (isVDexFile(file) && isVdexAllowed()) {
         programResources.add(Resource.fromFile(Resource.Kind.VDEX, file));
       } else if (isClassFile(file)) {
         programResources.add(Resource.fromFile(Resource.Kind.CLASSFILE, file));

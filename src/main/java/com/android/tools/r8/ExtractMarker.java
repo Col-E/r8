@@ -54,7 +54,8 @@ public class ExtractMarker {
         "  --help                  # Print this message."));
 
     public static ExtractMarker.Command.Builder builder() {
-      return new ExtractMarker.Command.Builder();
+      // Allow vdex files for the extract marker tool.
+      return new ExtractMarker.Command.Builder().setVdexAllowed();
     }
 
     public static ExtractMarker.Command.Builder parse(String[] args)
