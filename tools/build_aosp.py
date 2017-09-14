@@ -38,6 +38,7 @@ def parse_arguments():
       'Defaults to ' + str(J_DEFAULT) + '.',
       type=int,
       default=J_DEFAULT)
+  parser.add_argument('target', nargs='?')
   return parser.parse_args()
 
 def setup_and_clean_dex(aosp_root, tool, clean_dex):
@@ -105,7 +106,7 @@ def prepare_for_r8(aosp_root):
     f.write('java -jar ' + compat_proguard_jar + ' "$@" --min-api 10000')
   os.chmod(proguard_script, S_IRWXU)
 
-def build_aosp(aosp_root, lunch, tool, concurrency):
+def build_aosp(aosp_root, lunch, tool, concurrency, target):
   jack_option = 'ANDROID_COMPILE_WITH_JACK=' \
       + ('true' if tool == 'jack' else 'false')
 
@@ -125,8 +126,11 @@ def build_aosp(aosp_root, lunch, tool, concurrency):
   print("-- Building Android image with 'make {} {} {}'." \
     .format(j_option, jack_option, alt_jar_option))
 
-  utils_aosp.run_through_aosp_helper(lunch,
-      ['make', j_option, jack_option, alt_jar_option], aosp_root)
+  command = ['make', j_option, jack_option, alt_jar_option]
+  if target:
+    command.append(target)
+
+  utils_aosp.run_through_aosp_helper(lunch, command, aosp_root)
 
 def Main():
   args = parse_arguments()
@@ -137,7 +141,7 @@ def Main():
 
   setup_and_clean_dex(args.aosp_root, args.tool, args.clean_dex)
 
-  build_aosp(args.aosp_root, args.lunch, args.tool, args.j)
+  build_aosp(args.aosp_root, args.lunch, args.tool, args.j, args.target)
 
 if __name__ == '__main__':
   sys.exit(Main())
