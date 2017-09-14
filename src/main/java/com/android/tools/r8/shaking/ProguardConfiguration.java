@@ -42,6 +42,7 @@ public class ProguardConfiguration {
     private Path obfuscationDictionary;
     private Path classObfuscationDictionary;
     private Path packageObfuscationDictionary;
+    private boolean useUniqueClassMemberNames;
 
     private Builder(DexItemFactory dexItemFactory) {
       this.dexItemFactory = dexItemFactory;
@@ -83,6 +84,10 @@ public class ProguardConfiguration {
 
     public void setObfuscating(boolean obfuscate) {
       this.obfuscating = obfuscate;
+    }
+
+    boolean isObfuscating() {
+      return obfuscating;
     }
 
     public void setShrinking(boolean shrinking) {
@@ -145,6 +150,14 @@ public class ProguardConfiguration {
       this.packageObfuscationDictionary = packageObfuscationDictionary;
     }
 
+    public void setUseUniqueClassMemberNames(boolean useUniqueClassMemberNames) {
+      this.useUniqueClassMemberNames = useUniqueClassMemberNames;
+    }
+
+    boolean isUseUniqueClassMemberNames() {
+      return useUniqueClassMemberNames;
+    }
+
     public ProguardConfiguration build() {
       return new ProguardConfiguration(
           dexItemFactory,
@@ -169,7 +182,8 @@ public class ProguardConfiguration {
           seedFile,
           DictionaryReader.readAllNames(obfuscationDictionary),
           DictionaryReader.readAllNames(classObfuscationDictionary),
-          DictionaryReader.readAllNames(packageObfuscationDictionary));
+          DictionaryReader.readAllNames(packageObfuscationDictionary),
+          useUniqueClassMemberNames);
     }
   }
 
@@ -196,6 +210,7 @@ public class ProguardConfiguration {
   private final ImmutableList<String> obfuscationDictionary;
   private final ImmutableList<String> classObfuscationDictionary;
   private final ImmutableList<String> packageObfuscationDictionary;
+  private boolean useUniqueClassMemberNames;
 
   private ProguardConfiguration(
       DexItemFactory factory,
@@ -220,7 +235,8 @@ public class ProguardConfiguration {
       Path seedFile,
       ImmutableList<String> obfuscationDictionary,
       ImmutableList<String> classObfuscationDictionary,
-      ImmutableList<String> packageObfuscationDictionary) {
+      ImmutableList<String> packageObfuscationDictionary,
+      boolean useUniqueClassMemberNames) {
     this.dexItemFactory = factory;
     this.injars = ImmutableList.copyOf(injars);
     this.libraryjars = ImmutableList.copyOf(libraryjars);
@@ -244,6 +260,7 @@ public class ProguardConfiguration {
     this.obfuscationDictionary = obfuscationDictionary;
     this.classObfuscationDictionary = classObfuscationDictionary;
     this.packageObfuscationDictionary = packageObfuscationDictionary;
+    this.useUniqueClassMemberNames = useUniqueClassMemberNames;
   }
 
   /**
@@ -345,6 +362,10 @@ public class ProguardConfiguration {
     return packageObfuscationDictionary;
   }
 
+  public boolean isUseUniqueClassMemberNames() {
+    return useUniqueClassMemberNames;
+  }
+
   public static ProguardConfiguration defaultConfiguration(DexItemFactory dexItemFactory) {
     return new DefaultProguardConfiguration(dexItemFactory);
   }
@@ -372,9 +393,10 @@ public class ProguardConfiguration {
           ImmutableList.of(ProguardKeepRule.defaultKeepAllRule()),
           false                 /* printSeeds */,
           null                  /* seedFile */,
-          ImmutableList.of()     /* obfuscationDictionary */,
-          ImmutableList.of()     /* classObfuscationDictionary */,
-          ImmutableList.of()     /* packageObfuscationDictionary */);
+          ImmutableList.of()    /* obfuscationDictionary */,
+          ImmutableList.of()    /* classObfuscationDictionary */,
+          ImmutableList.of()    /* packageObfuscationDictionary */,
+          false                 /* useUniqueClassMemberNames*/);
     }
 
     @Override

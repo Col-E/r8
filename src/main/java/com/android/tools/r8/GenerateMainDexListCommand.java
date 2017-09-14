@@ -104,10 +104,10 @@ public class GenerateMainDexListCommand extends BaseCommand {
         ProguardConfigurationParser parser = new ProguardConfigurationParser(factory);
         try {
           parser.parse(mainDexRules);
+          mainDexKeepRules = parser.getConfig().getRules();
         } catch (ProguardRuleParserException e) {
           throw new CompilationException(e.getMessage(), e.getCause());
         }
-        mainDexKeepRules = parser.getConfig().getRules();
       }
 
       return new GenerateMainDexListCommand(

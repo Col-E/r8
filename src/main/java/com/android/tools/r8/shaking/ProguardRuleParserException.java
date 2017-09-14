@@ -4,6 +4,10 @@
 package com.android.tools.r8.shaking;
 
 public class ProguardRuleParserException extends Exception {
+  public ProguardRuleParserException(String message) {
+    super(message);
+  }
+
   public ProguardRuleParserException(String message, String snippet) {
     this(message, snippet, null);
   }
