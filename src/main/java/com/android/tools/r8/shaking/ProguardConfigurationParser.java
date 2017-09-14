@@ -77,7 +77,14 @@ public class ProguardConfigurationParser {
     return configurationBuilder;
   }
 
-  public ProguardConfiguration getConfig() {
+  public ProguardConfiguration getConfig() throws ProguardRuleParserException {
+    if (configurationBuilder.isUseUniqueClassMemberNames()
+        && configurationBuilder.isObfuscating()) {
+      // The flag -useuniqueulassmembernames has only effect when minifying, so ignore it if we
+      // are not.
+      throw new ProguardRuleParserException("-useuniqueulassmembernames is not supported");
+    }
+
     return configurationBuilder.build();
   }
 
@@ -252,6 +259,8 @@ public class ProguardConfigurationParser {
       } else if (acceptString("alwaysinline")) {
         ProguardAlwaysInlineRule rule = parseAlwaysInlineRule();
         configurationBuilder.addRule(rule);
+      } else if (acceptString("useuniqueclassmembernames")) {
+        configurationBuilder.setUseUniqueClassMemberNames(true);
       } else {
         throw parseError("Unknown option");
       }
