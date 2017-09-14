@@ -9,8 +9,10 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 
 /**
  * Base class for commands and command builders for applications/tools which take an Android
@@ -60,6 +62,8 @@ abstract class BaseCommand {
     private boolean printVersion = false;
     private final AndroidApp.Builder app;
 
+    protected List<Path> programFiles = new ArrayList<>();
+
     protected Builder() {
       this(AndroidApp.builder(), false);
     }
@@ -96,6 +100,7 @@ abstract class BaseCommand {
     /** Add program file resources. */
     public B addProgramFiles(Collection<Path> files) throws IOException {
       app.addProgramFiles(ListUtils.map(files, FilteredClassPath::unfiltered));
+      programFiles.addAll(files);
       return self();
     }
 
