@@ -27,6 +27,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Predicate;
 
 public class ProguardConfigurationParser {
 
@@ -53,8 +54,7 @@ public class ProguardConfigurationParser {
           "whyarenotsimple");
 
   private static final List<String> warnedSingleArgOptions = ImmutableList
-      .of("renamesourcefileattribute",
-          "dontnote",
+      .of("dontnote",
           "printconfiguration",
           // TODO -outjars (http://b/37137994) and -adaptresourcefilecontents (http://b/37139570)
           // should be reported as errors, not just as warnings!
@@ -105,7 +105,6 @@ public class ProguardConfigurationParser {
   }
 
   private class ProguardFileParser {
-
     private final String name;
     private final String contents;
     private int position = 0;
@@ -145,6 +144,15 @@ public class ProguardConfigurationParser {
         warnIgnoringOptions(option);
       } else if ((option = Iterables.find(unsupportedFlagOptions, this::skipFlag, null)) != null) {
         throw parseError("Unsupported option: -" + option);
+      } else if (acceptString("renamesourcefileattribute")) {
+        skipWhitespace();
+        if (isOptionalArgumentGiven()) {
+          configurationBuilder.setRenameSourceFileAttribute(acceptString());
+        } else {
+          configurationBuilder.setRenameSourceFileAttribute("");
+        }
+        // TODO(b/36799675): warn until it is fully implemented.
+        warnIgnoringOptions("renamesourcefileattribute");
       } else if (acceptString("keepattributes")) {
         parseKeepAttributes();
       } else if (acceptString("keeppackagenames")) {
@@ -777,23 +785,14 @@ public class ProguardConfigurationParser {
 
     private Path parseFileName() throws ProguardRuleParserException {
       skipWhitespace();
-      int start = position;
-      int end = position;
-      while (!eof(end)) {
-        char current = contents.charAt(end);
-        if (current != File.pathSeparatorChar
-            && !Character.isWhitespace(current)
-            && current != '(') {
-          end++;
-        } else {
-          break;
-        }
-      }
-      if (start == end) {
+      String fileName = acceptString(character ->
+          character != File.pathSeparatorChar
+              && !Character.isWhitespace(character)
+              && character != '(');
+      if (fileName == null) {
         throw parseError("File name expected");
       }
-      position = end;
-      return baseDirectory.resolve(contents.substring(start, end));
+      return baseDirectory.resolve(fileName);
     }
 
     private List<FilteredClassPath> parseClassPath() throws ProguardRuleParserException {
@@ -832,22 +831,13 @@ public class ProguardConfigurationParser {
 
     private String parseFileFilter() throws ProguardRuleParserException {
       skipWhitespace();
-      int start = position;
-      int end = position;
-      while (!eof(end)) {
-        char current = contents.charAt(end);
-        if (current != ',' && current != ';' && current != ')' && !Character
-            .isWhitespace(current)) {
-          end++;
-        } else {
-          break;
-        }
-      }
-      if (start == end) {
+      String fileFilter = acceptString(character ->
+          character != ',' && character != ';' && character != ')'
+              && !Character.isWhitespace(character));
+      if (fileFilter == null) {
         throw parseError("file filter expected");
       }
-      position = end;
-      return contents.substring(start, end);
+      return fileFilter;
     }
 
     private ProguardAssumeNoSideEffectRule parseAssumeNoSideEffectsRule()
@@ -951,48 +941,27 @@ public class ProguardConfigurationParser {
       return true;
     }
 
+    private String acceptString() {
+      return acceptString(character -> character != '-' && character != '\n');
+    }
+
     private Integer acceptInteger() {
-      skipWhitespace();
-      int start = position;
-      int end = position;
-      while (!eof(end)) {
-        char current = contents.charAt(end);
-        if (Character.isDigit(current)) {
-          end++;
-        } else {
-          break;
-        }
-      }
-      if (start == end) {
+      String s = acceptString(Character::isDigit);
+      if (s == null) {
         return null;
       }
-      position = end;
-      return Integer.parseInt(contents.substring(start, end));
+      return Integer.parseInt(s);
     }
 
     private String acceptClassName() {
-      skipWhitespace();
-      int start = position;
-      int end = position;
-      while (!eof(end)) {
-        char current = contents.charAt(end);
-        if (Character.isJavaIdentifierPart(current) ||
-            current == '.' ||
-            current == '*' ||
-            current == '?' ||
-            current == '%' ||
-            current == '[' ||
-            current == ']') {
-          end++;
-        } else {
-          break;
-        }
-      }
-      if (start == end) {
-        return null;
-      }
-      position = end;
-      return contents.substring(start, end);
+      return acceptString(character ->
+          Character.isJavaIdentifierPart(character)
+              || character == '.'
+              || character == '*'
+              || character == '?'
+              || character == '%'
+              || character == '['
+              || character == ']');
     }
 
     private String acceptFieldName() {
@@ -1034,14 +1003,17 @@ public class ProguardConfigurationParser {
     }
 
     private String acceptPattern() {
+      return acceptString(character ->
+          Character.isJavaIdentifierPart(character) || character == '!' || character == '*');
+    }
+
+    private String acceptString(Predicate<Character> characterAcceptor) {
       skipWhitespace();
       int start = position;
       int end = position;
       while (!eof(end)) {
         char current = contents.charAt(end);
-        if (Character.isJavaIdentifierPart(current) ||
-            current == '!' ||
-            current == '*') {
+        if (characterAcceptor.test(current)) {
           end++;
         } else {
           break;

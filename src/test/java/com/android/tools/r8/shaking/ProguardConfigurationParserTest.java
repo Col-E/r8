@@ -15,6 +15,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexAccessFlags;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.InternalOptions.AttributeRemovalOptions;
 import com.android.tools.r8.utils.InternalOptions.PackageObfuscationMode;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
@@ -587,6 +588,29 @@ public class ProguardConfigurationParserTest extends TestBase {
         "-laststageoutput /some/file/name  "
     );
     parser.parse(proguardConfig);
+  }
+
+  @Test
+  public void testRenameSourceFileAttribute() throws IOException, ProguardRuleParserException {
+    ProguardConfigurationParser parser = new ProguardConfigurationParser(new DexItemFactory());
+    String config1 = "-renamesourcefileattribute PG\n";
+    String config2 = "-keepattributes SourceFile,SourceDir\n";
+    parser.parse(new ProguardConfigurationSourceStrings(ImmutableList.of(config1, config2)));
+    ProguardConfiguration config = parser.getConfig();
+    assertEquals("PG", config.getRenameSourceFileAttribute());
+    assertTrue(config.getAttributesRemovalPatterns().contains(AttributeRemovalOptions.SOURCE_FILE));
+    assertTrue(config.getAttributesRemovalPatterns().contains(AttributeRemovalOptions.SOURCE_DIR));
+  }
+
+  @Test
+  public void testRenameSourceFileAttributeEmpty() throws IOException, ProguardRuleParserException {
+    ProguardConfigurationParser parser = new ProguardConfigurationParser(new DexItemFactory());
+    String config1 = "-renamesourcefileattribute\n";
+    String config2 = "-keepattributes SourceFile\n";
+    parser.parse(new ProguardConfigurationSourceStrings(ImmutableList.of(config1, config2)));
+    ProguardConfiguration config = parser.getConfig();
+    assertEquals("", config.getRenameSourceFileAttribute());
+    assertTrue(config.getAttributesRemovalPatterns().contains(AttributeRemovalOptions.SOURCE_FILE));
   }
 
   private void testKeepattributes(List<String> expected, String config) throws Exception {

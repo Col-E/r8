@@ -33,6 +33,7 @@ public class ProguardConfiguration {
     private Path printMappingFile;
     private Path applyMappingFile = null;
     private boolean verbose = false;
+    private String renameSourceFileAttribute = null;
     private final List<String> attributesRemovalPatterns = new ArrayList<>();
     private final Set<ProguardTypeMatcher> dontWarnPatterns = new HashSet<>();
     protected final List<ProguardConfigurationRule> rules = new ArrayList<>();
@@ -118,6 +119,10 @@ public class ProguardConfiguration {
       this.verbose = verbose;
     }
 
+    public void setRenameSourceFileAttribute(String renameSourceFileAttribute) {
+      this.renameSourceFileAttribute = renameSourceFileAttribute;
+    }
+
     public void addAttributeRemovalPatterns(List<String> attributesRemovalPatterns) {
       this.attributesRemovalPatterns.addAll(attributesRemovalPatterns);
     }
@@ -175,6 +180,7 @@ public class ProguardConfiguration {
           printMappingFile,
           applyMappingFile,
           verbose,
+          renameSourceFileAttribute,
           attributesRemovalPatterns,
           dontWarnPatterns,
           rules,
@@ -202,6 +208,7 @@ public class ProguardConfiguration {
   private final Path printMappingFile;
   private final Path applyMappingFile;
   private final boolean verbose;
+  private final String renameSourceFileAttribute;
   private final ImmutableList<String> attributesRemovalPatterns;
   private final ImmutableSet<ProguardTypeMatcher> dontWarnPatterns;
   protected final ImmutableList<ProguardConfigurationRule> rules;
@@ -228,6 +235,7 @@ public class ProguardConfiguration {
       Path printMappingFile,
       Path applyMappingFile,
       boolean verbose,
+      String renameSourceFileAttribute,
       List<String> attributesRemovalPatterns,
       Set<ProguardTypeMatcher> dontWarnPatterns,
       List<ProguardConfigurationRule> rules,
@@ -252,6 +260,7 @@ public class ProguardConfiguration {
     this.printMappingFile = printMappingFile;
     this.applyMappingFile = applyMappingFile;
     this.verbose = verbose;
+    this.renameSourceFileAttribute = renameSourceFileAttribute;
     this.attributesRemovalPatterns = ImmutableList.copyOf(attributesRemovalPatterns);
     this.dontWarnPatterns = ImmutableSet.copyOf(dontWarnPatterns);
     this.rules = ImmutableList.copyOf(rules);
@@ -338,6 +347,10 @@ public class ProguardConfiguration {
     return verbose;
   }
 
+  public String getRenameSourceFileAttribute() {
+    return renameSourceFileAttribute;
+  }
+
   public ImmutableList<String> getAttributesRemovalPatterns() {
     return attributesRemovalPatterns;
   }
@@ -388,6 +401,7 @@ public class ProguardConfiguration {
           null                  /* printMappingFile */,
           null                  /* applyMapping */,
           false                 /* verbose */,
+          null                  /* renameSourceFileAttribute */,
           ImmutableList.of()    /* attributesRemovalPatterns */,
           ImmutableSet.of()     /* dontWarnPatterns */,
           ImmutableList.of(ProguardKeepRule.defaultKeepAllRule()),
