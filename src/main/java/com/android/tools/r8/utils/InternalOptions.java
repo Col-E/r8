@@ -208,6 +208,8 @@ public class InternalOptions {
 
   public static class AttributeRemovalOptions {
 
+    public static final String SOURCE_FILE = "SourceFile";
+    public static final String SOURCE_DIR = "SourceDir";
     public static final String INNER_CLASSES = "InnerClasses";
     public static final String ENCLOSING_METHOD = "EnclosingMethod";
     public static final String SIGNATURE = "Signature";
@@ -224,6 +226,8 @@ public class InternalOptions {
         "RuntimeInvisibleTypeAnnotations";
     public static final String ANNOTATION_DEFAULT = "AnnotationDefault";
 
+    public boolean sourceFile = false;
+    public boolean sourceDir = false;
     public boolean innerClasses = false;
     public boolean enclosingMethod = false;
     public boolean signature = false;
@@ -290,6 +294,8 @@ public class InternalOptions {
     }
 
     public void applyPatterns(List<String> patterns) {
+      sourceFile = update(sourceFile, SOURCE_FILE, patterns);
+      sourceDir = update(sourceDir, SOURCE_DIR, patterns);
       innerClasses = update(innerClasses, INNER_CLASSES, patterns);
       enclosingMethod = update(enclosingMethod, ENCLOSING_METHOD, patterns);
       signature = update(signature, SIGNATURE, patterns);
