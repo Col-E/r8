@@ -15,6 +15,7 @@ import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.errors.CompilationError;
 import com.google.common.collect.ImmutableList;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -237,6 +238,13 @@ public class D8CommandTest {
   public void nonExistingOutputJar() throws Throwable {
     Path nonExistingJar = temp.getRoot().toPath().resolve("non-existing-archive.jar");
     D8Command.builder().setOutputPath(nonExistingJar).build();
+  }
+
+  @Test
+  public void vdexFileUnsupported() throws Throwable {
+    thrown.expect(CompilationError.class);
+    Path vdexFile = temp.newFile("test.vdex").toPath();
+    D8Command.builder().addProgramFiles(vdexFile).build();
   }
 
   private D8Command parse(String... args) throws IOException, CompilationException {

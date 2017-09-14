@@ -91,6 +91,17 @@ abstract class BaseCommand {
       return app;
     }
 
+    /**
+     * This is not part of the public API of a command, but allows subclasses to add vdex
+     * files as allowed input.
+     *
+     * Default is that vdex is not allowed.
+     */
+    B setVdexAllowed() {
+      getAppBuilder().setVdexAllowed();
+      return self();
+    }
+
     /** Add program file resources. */
     public B addProgramFiles(Path... files) throws IOException {
       addProgramFiles(Arrays.asList(files));

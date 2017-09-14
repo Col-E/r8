@@ -43,7 +43,8 @@ public class DexSegments {
         "  --help                  # Print this message."));
 
     public static Command.Builder builder() {
-      return new Command.Builder();
+      // Allow vdex files for the dex segments tool.
+      return new Command.Builder().setVdexAllowed();
     }
 
     public static Command.Builder parse(String[] args)
