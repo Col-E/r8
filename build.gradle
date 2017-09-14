@@ -8,6 +8,7 @@ apply plugin: 'java'
 apply plugin: 'idea'
 apply plugin: 'com.google.protobuf'
 apply plugin: 'com.github.johnrengelman.shadow'
+apply plugin: 'com.cookpad.android.licensetools'
 
 apply from: 'copyAdditionalJctfCommonFiles.gradle'
 
@@ -29,6 +30,7 @@ buildscript {
     dependencies {
         classpath 'com.google.protobuf:protobuf-gradle-plugin:0.8.1'
         classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.1'
+        classpath 'com.cookpad.android.licensetools:license-tools-plugin:0.23.0'
     }
 }
 
@@ -137,6 +139,10 @@ dependencies {
     supportLibs 'junit:junit:4.12'
     supportLibs 'com.android.support.test.espresso:espresso-core:3.0.0'
     debugTestResourcesKotlinCompileOnly 'org.jetbrains.kotlin:kotlin-stdlib:1.1.4-3'
+}
+
+licenseTools {
+    licensesYaml = file('LIBRARY-LICENSE')
 }
 
 protobuf {
@@ -315,9 +321,43 @@ compileJctfTestsJava {
     options.compilerArgs = ['-Xlint:none']
 }
 
+task consolidatedLicense {
+    // checkLicenses verifies that the list of libraries referenced in 'LIBRARY-LICENSE' is
+    // corresponding to the effective list of embedded libraries.
+    dependsOn 'checkLicenses'
+    def license = new File(new File(buildDir, 'generatedLicense'), 'LICENSE')
+    inputs.files files('LICENSE', 'LIBRARY-LICENSE') + fileTree(dir: 'library-licensing')
+    outputs.files license
+    doLast {
+        license.getParentFile().mkdirs()
+        license.createNewFile()
+        license.text = "This file lists all licenses for code distributed.\n"
+        license.text += "All non-library code has the following 3-Clause BSD license.\n"
+        license.text += "\n"
+        license.text += "\n"
+        license.text += file('LICENSE').text
+        license.text += "\n"
+        license.text += "\n"
+        license.text += "Summary of distributed libraries:\n"
+        license.text += "\n"
+        license.text += file('LIBRARY-LICENSE').text
+        license.text += "\n"
+        license.text += "\n"
+        license.text += "Licenses details:\n"
+        fileTree(dir: 'library-licensing').getFiles().stream().sorted().forEach { file ->
+            license.text += "\n"
+            license.text += "\n"
+            license.text += file.text
+        }
+    }
+}
+
 task R8(type: com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar) {
     from sourceSets.main.output
-    from files('LICENSE')
+    from consolidatedLicense.outputs.files
+    exclude { path ->
+      path.getRelativePath().getPathString().startsWith("META-INF")
+    }
     baseName 'r8'
     classifier = null
     version = null
@@ -343,7 +383,10 @@ task R8(type: com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar) {
 
 task D8(type: com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar) {
     from sourceSets.main.output
-    from files('LICENSE')
+    from consolidatedLicense.outputs.files
+    exclude { path ->
+      path.getRelativePath().getPathString().startsWith("META-INF")
+    }
     baseName 'd8'
     classifier = null
     version = null
