@@ -898,16 +898,26 @@ public class DexBuilder {
       int source = builder.getInfo(jump).getOffset();
       Info targetInfo = builder.getTargetInfo(jump.getTarget());
       int relativeOffset = targetInfo.getOffset() - source;
-      // We should never generate a goto to the following instruction or two consecutive returns.
-      // TODO(b/34726595): We might have a goto to the following instruction if we fail to DCE.
-      // assert relativeOffset != size;
-      Instruction dex;
       // Emit a return if the target is a return and the size of the return is the computed
       // size of this instruction.
       Return ret = targetInfo.getIR().asReturn();
       if (ret != null && size == targetInfo.getSize() && canTargetReturn(ret)) {
-        dex = ret.createDexInstruction(builder);
+        Instruction dex = ret.createDexInstruction(builder);
+        dex.setOffset(getOffset()); // for better printing of the dex code.
+        instructions.add(dex);
+      } else if (size == relativeOffset) {
+        // We should never generate a goto targeting the next instruction. However, if we do
+        // we replace it with nops. This works around a dalvik bug where the dalvik tracing
+        // jit crashes on 'goto next instruction' on Android 4.1.1.
+        // TODO(b/34726595): We currently do hit this case and we should see if we can avoid that.
+        for (int i = 0; i < size; i++) {
+          Instruction dex = new Nop();
+          assert dex.getSize() == 1;
+          dex.setOffset(getOffset() + i); // for better printing of the dex code.
+          instructions.add(dex);
+        }
       } else {
+        Instruction dex;
         switch (size) {
           case 1:
             assert relativeOffset != 0;
@@ -928,9 +938,9 @@ public class DexBuilder {
           default:
             throw new Unreachable("Unexpected size for goto instruction: " + size);
         }
+        dex.setOffset(getOffset()); // for better printing of the dex code.
+        instructions.add(dex);
       }
-      dex.setOffset(getOffset()); // for better printing of the dex code.
-      instructions.add(dex);
     }
 
     private static boolean canTargetReturn(Return ret) {
