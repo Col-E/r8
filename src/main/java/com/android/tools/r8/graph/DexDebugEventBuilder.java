@@ -184,9 +184,17 @@ public class DexDebugEventBuilder {
   }
 
   private void emitDebugPosition(int pc, int line, DexString file) {
-    // The position requires a pc change event and possible events for line, file and local changes.
-    // Verify that we do not ever produce two subsequent positions at the same pc.
-    assert emittedPc != pc;
+    if (emittedPc == pc) {
+      // The pc is unchanged then this must be the same position as the previous and we do nothing.
+      // If this assert fails, we have likely forgotten to insert a "nop" instruction between two
+      // successive yet distinct debug positions.
+      assert emittedLine == line && emittedFile == file;
+      return;
+    }
+    boolean changedLocals = localsChanged();
+    if (!changedLocals && emittedLine == line && emittedFile == file) {
+      return;
+    }
     if (startLine == NO_LINE_INFO) {
       assert emittedLine == NO_LINE_INFO;
       startLine = line;
@@ -196,7 +204,7 @@ public class DexDebugEventBuilder {
     emittedPc = pc;
     emittedLine = line;
     emittedFile = file;
-    if (localsChanged()) {
+    if (changedLocals) {
       emitLocalChangeEvents(emittedLocals, pendingLocals, lastKnownLocals, events, factory);
       assert localsEqual(emittedLocals, pendingLocals);
     }

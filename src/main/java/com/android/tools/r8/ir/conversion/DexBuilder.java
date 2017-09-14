@@ -369,7 +369,7 @@ public class DexBuilder {
         }
       }
     }
-    if (next.isDebugPosition()) {
+    if (next.isDebugPosition() && !position.equals(next.asDebugPosition())) {
       add(position, new FixedSizeInfo(position, new Nop()));
     } else {
       addNop(position);
