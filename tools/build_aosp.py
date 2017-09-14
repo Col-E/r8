@@ -102,7 +102,7 @@ def prepare_for_r8(aosp_root):
       utils.REPO_ROOT, 'build', 'libs', 'compatproguard.jar')
   proguard_script = join(aosp_root, 'external', 'proguard', 'bin', 'proguard.sh')
   with open(proguard_script, 'w') as f:
-    f.write('java -jar ' + compat_proguard_jar + ' "$@"')
+    f.write('java -jar ' + compat_proguard_jar + ' "$@" --min-api 10000')
   os.chmod(proguard_script, S_IRWXU)
 
 def build_aosp(aosp_root, lunch, tool, concurrency):
