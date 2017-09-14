@@ -7,6 +7,7 @@ package com.android.tools.r8.smali;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.dex.ApplicationReader;
+import com.android.tools.r8.errors.DexOverflowException;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
@@ -32,7 +33,7 @@ public class SmaliDisassembleTest extends SmaliTestBase {
                   new Timing("SmaliTest"))
               .read();
       assertEquals(smali, application.smali(new InternalOptions()));
-    } catch (IOException | RecognitionException | ExecutionException e) {
+    } catch (IOException | RecognitionException | ExecutionException | DexOverflowException e) {
       throw new RuntimeException(e);
     }
   }

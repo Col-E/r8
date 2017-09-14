@@ -196,4 +196,12 @@ public class DebugInfoInspector {
             String.join(",", remaining.stream().map(Object::toString).collect(Collectors.toList())),
         expected, expected + remaining.size());
   }
+
+  public DexEncodedMethod getMethod() {
+    return method;
+  }
+
+  public List<DexDebugEntry> getEntries() {
+    return entries;
+  }
 }

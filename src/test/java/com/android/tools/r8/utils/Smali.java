@@ -3,12 +3,20 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
+import com.android.tools.r8.dex.ApplicationReader;
+import com.android.tools.r8.dex.ApplicationWriter;
+import com.android.tools.r8.errors.DexOverflowException;
+import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.naming.NamingLens;
 import com.google.common.collect.ImmutableList;
+import com.google.common.io.ByteStreams;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import org.antlr.runtime.CommonTokenStream;
 import org.antlr.runtime.RecognitionException;
 import org.antlr.runtime.TokenSource;
@@ -25,26 +33,28 @@ import org.jf.smali.smaliTreeWalker;
 // Adapted from org.jf.smali.SmaliTestUtils.
 public class Smali {
 
-  public static byte[] compile(String smaliText) throws RecognitionException, IOException {
+  public static byte[] compile(String smaliText)
+      throws RecognitionException, IOException, DexOverflowException, ExecutionException {
     return compile(smaliText, 15);
   }
 
-  public static byte[] compile(String... smaliText) throws RecognitionException, IOException {
+  public static byte[] compile(String... smaliText)
+      throws RecognitionException, IOException, DexOverflowException, ExecutionException {
     return compile(Arrays.asList(smaliText), 15);
   }
 
   public static byte[] compile(String smaliText, int apiLevel)
-      throws IOException, RecognitionException {
+      throws IOException, RecognitionException, DexOverflowException, ExecutionException {
     return compile(ImmutableList.of(smaliText), apiLevel);
   }
 
   public static byte[] compile(List<String> smaliTexts)
-      throws RecognitionException, IOException {
+      throws RecognitionException, IOException, DexOverflowException, ExecutionException {
     return compile(smaliTexts, 15);
   }
 
   public static byte[] compile(List<String> smaliTexts, int apiLevel)
-      throws RecognitionException, IOException {
+      throws RecognitionException, IOException, ExecutionException, DexOverflowException {
     DexBuilder dexBuilder = new DexBuilder(Opcodes.forApi(apiLevel));
 
     for (String smaliText : smaliTexts) {
@@ -85,8 +95,21 @@ public class Smali {
 
     dexBuilder.writeTo(dataStore);
 
-    // TODO(sgjesse): This returns the full backingstore from MemoryDataStore, which by default
-    // is 1024k bytes. Our dex file reader does not complain though.
-    return dataStore.getData();
+    // This returns the full backingstore from MemoryDataStore, which by default is 1024k bytes.
+    // We process it via our reader and writer to trim it to the exact size and update its checksum.
+    byte[] data = dataStore.getData();
+    AndroidApp app = AndroidApp.fromDexProgramData(data);
+    InternalOptions options = new InternalOptions();
+    ExecutorService executor = ThreadUtils.getExecutorService(1);
+    try {
+      DexApplication dexApp = new ApplicationReader(
+          app, options, new Timing("smali")).read(executor);
+      ApplicationWriter writer = new ApplicationWriter(
+          dexApp, null, options, null, null, NamingLens.getIdentityLens(), null);
+      AndroidApp trimmed = writer.write(null, executor);
+      return ByteStreams.toByteArray(trimmed.getDexProgramResources().get(0).getStream());
+    } finally {
+      executor.shutdown();
+    }
   }
 }

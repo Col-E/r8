@@ -80,6 +80,7 @@ public class SmaliTestBase extends TestBase {
       String name;
       String superName;
       List<String> implementedInterfaces;
+      String sourceFile = null;
       List<String> source = new ArrayList<>();
 
       Builder(String name, String superName, List<String> implementedInterfaces) {
@@ -124,6 +125,9 @@ public class SmaliTestBase extends TestBase {
         appendSuper(builder);
         appendImplementedInterfaces(builder);
         builder.append("\n");
+        if (sourceFile != null) {
+          builder.append(".source \"").append(sourceFile).append("\"\n");
+        }
         writeSource(builder);
         return builder.toString();
       }
@@ -197,6 +201,10 @@ public class SmaliTestBase extends TestBase {
       assert !classes.containsKey(name);
       currentClassName = name;
       classes.put(name, new InterfaceBuilder(name, superName));
+    }
+
+    public void setSourceFile(String file) {
+      classes.get(currentClassName).sourceFile = file;
     }
 
     public void addDefaultConstructor() {
@@ -350,7 +358,8 @@ public class SmaliTestBase extends TestBase {
       return result;
     }
 
-    public byte[] compile() throws IOException, RecognitionException {
+    public byte[] compile()
+        throws IOException, RecognitionException, DexOverflowException, ExecutionException {
       return Smali.compile(build());
     }
 
@@ -425,7 +434,7 @@ public class SmaliTestBase extends TestBase {
   protected DexApplication buildApplication(SmaliBuilder builder, InternalOptions options) {
     try {
       return buildApplication(AndroidApp.fromDexProgramData(builder.compile()), options);
-    } catch (IOException | RecognitionException e) {
+    } catch (IOException | RecognitionException | ExecutionException | DexOverflowException e) {
       throw new RuntimeException(e);
     }
   }
@@ -438,7 +447,7 @@ public class SmaliTestBase extends TestBase {
           .addLibraryFiles(FilteredClassPath.unfiltered(ToolHelper.getDefaultAndroidJar()))
           .build();
       return buildApplication(input, options);
-    } catch (IOException | RecognitionException e) {
+    } catch (IOException | RecognitionException | ExecutionException | DexOverflowException e) {
       throw new RuntimeException(e);
     }
   }

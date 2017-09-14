@@ -152,8 +152,12 @@ public abstract class DebugTestBase {
         ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm()) >= Constants.ANDROID_N_API;
   }
 
-  protected final boolean isRunningJava() {
+  protected static boolean isRunningJava() {
     return RUNTIME_KIND == RuntimeKind.JAVA;
+  }
+
+  protected static boolean isRunningArt() {
+    return RUNTIME_KIND == RuntimeKind.ART;
   }
 
   protected final void runDebugTest(String debuggeeClass, JUnit3Wrapper.Command... commands)

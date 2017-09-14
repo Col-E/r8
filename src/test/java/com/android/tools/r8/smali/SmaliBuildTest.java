@@ -13,8 +13,6 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.InternalOptions;
-import java.io.IOException;
-import org.antlr.runtime.RecognitionException;
 import org.junit.Test;
 
 public class SmaliBuildTest extends SmaliTestBase {
@@ -47,7 +45,7 @@ public class SmaliBuildTest extends SmaliTestBase {
   }
 
   @Test
-  public void buildWithLibrary() throws IOException, RecognitionException {
+  public void buildWithLibrary() throws Throwable {
     // Build simple "Hello, world!" application.
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
     builder.addMainMethod(
