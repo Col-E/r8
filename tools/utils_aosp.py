@@ -17,11 +17,14 @@ DEFAULT_LUNCH = 'aosp_x86-eng'
 
 DEFAULT_ROOT = join(utils.REPO_ROOT, 'build', 'aosp')
 
-def add_common_arguments(parser):
+def add_root_argument(parser):
   parser.add_argument('--aosp-root',
       help='Root of the AOSP checkout. ' +
            'Defaults to ' +  DEFAULT_ROOT +'.',
       default=DEFAULT_ROOT)
+
+def add_common_arguments(parser):
+  add_root_argument(parser)
   parser.add_argument('--lunch',
       help='Build menu. ' +
            'Defaults to ' + DEFAULT_LUNCH + '.',

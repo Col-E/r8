@@ -12,6 +12,7 @@ import os
 import sys
 
 import utils
+import utils_aosp
 
 AOSP_MANIFEST_XML = join(utils.REPO_ROOT, 'third_party',
   'aosp_manifest.xml')
@@ -33,10 +34,7 @@ def checkout_aosp(aosp_root, manifest_xml, concurrency):
 def parse_arguments():
   parser = argparse.ArgumentParser(
       description = 'Checkout the AOSP source tree.')
-  parser.add_argument('--aosp-root',
-                      help='Root of the AOSP checkout. ' +
-                           'Defaults to current working directory.',
-                      default=os.getcwd())
+  utils_aosp.add_root_argument(parser)
   parser.add_argument('--manifest',
                       help='Manifest to use for the checkout. ' +
                            'Defaults to ' + AOSP_MANIFEST_XML + '.',
