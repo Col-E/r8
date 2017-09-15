@@ -32,6 +32,7 @@ import com.android.tools.r8.ir.code.DebugPosition;
 import com.android.tools.r8.ir.code.Div;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.code.InvokeMethod;
@@ -104,14 +105,13 @@ public class Outliner {
 
     // Build an outline over the instructions [start, end[.
     // The arguments are the arguments to pass to an outline of these instructions.
-    Outline(BasicBlock block, List<Value> arguments, List<DexType> argumentTypes,
+    Outline(List<Instruction> instructions, List<Value> arguments, List<DexType> argumentTypes,
         List<Integer> argumentMap, DexType returnType, int start, int end) {
       this.arguments = arguments;
       this.argumentTypes = argumentTypes;
       this.argumentMap = argumentMap;
       this.returnType = returnType;
 
-      List<Instruction> instructions = block.getInstructions();
       for (int i = start; i < end; i++) {
         Instruction current = instructions.get(i);
         if (current.isInvoke() || current.isNewInstance() || current.isArithmeticBinop()) {
@@ -300,7 +300,8 @@ public class Outliner {
 
     final DexEncodedMethod method;
     final BasicBlock block;
-    final List<Instruction> instructions;
+    // instructionArrayCache is block.getInstructions() copied to an ArrayList.
+    private List<Instruction> instructionArrayCache = null;
 
     int start;
     int index;
@@ -317,15 +318,29 @@ public class Outliner {
     OutlineSpotter(DexEncodedMethod method, BasicBlock block) {
       this.method = method;
       this.block = block;
-      this.instructions = block.getInstructions();
       reset(0);
     }
 
+    protected List<Instruction> getInstructionArray() {
+      if (instructionArrayCache == null) {
+        instructionArrayCache = new ArrayList<>(block.getInstructions());
+      }
+      return instructionArrayCache;
+    }
+
+    // Call this before modifying block.getInstructions().
+    protected void invalidateInstructionArray() {
+      instructionArrayCache = null;
+    }
+
     protected void process() {
-      List<Instruction> instructions = block.getInstructions();
-      while (index < instructions.size()) {
-        Instruction current = instructions.get(index);
-        processInstruction(current);
+      List<Instruction> instructions;
+      for (;;) {
+        instructions = getInstructionArray(); // ProcessInstruction may have invalidated it.
+        if (index >= instructions.size()) {
+          break;
+        }
+        processInstruction(instructions.get(index));
       }
     }
 
@@ -475,9 +490,10 @@ public class Outliner {
         assert index > 0;
         int offset = 0;
         Instruction previous;
+        List<Instruction> instructions = getInstructionArray();
         do {
           offset++;
-          previous = block.getInstructions().get(index - offset);
+          previous = instructions.get(index - offset);
         } while (previous.isConstInstruction());
         if (!previous.isNewInstance() || previous.outValue() != returnValue) {
           return false;
@@ -539,12 +555,12 @@ public class Outliner {
               } else {
                 DexProto methodProto;
                 if (instruction.asInvoke().getType() == Type.POLYMORPHIC) {
-                  // Type of argument of a polymorphic call must be take from the call site
+                  // Type of argument of a polymorphic call must be take from the call site.
                   methodProto = instruction.asInvokePolymorphic().getProto();
                 } else {
                   methodProto = invoke.getInvokedMethod().proto;
                 }
-                // -1 due to receiver
+                // -1 due to receiver.
                 argumentTypes.add(methodProto.parameters.values[i - 1]);
               }
               argumentsMap.add(arguments.size() - 1);
@@ -591,6 +607,7 @@ public class Outliner {
     protected abstract void handle(int start, int end, Outline outline);
 
     private void candidate(int start, int index) {
+      List<Instruction> instructions = getInstructionArray();
       assert !instructions.get(start).isConstInstruction();
 
       if (pendingNewInstanceIndex != -1) {
@@ -621,7 +638,7 @@ public class Outliner {
       }
 
       Outline outline = new Outline(
-          block, arguments, argumentTypes, argumentsMap, returnType, start, end);
+          instructions, arguments, argumentTypes, argumentsMap, returnType, start, end);
       handle(start, end, outline);
 
       // Start a new candidate search from the next instruction after this outline.
@@ -681,35 +698,37 @@ public class Outliner {
       if (candidates.containsKey(outline)) {
         DexMethod m = generatedOutlines.get(outline);
         assert m != null;
-        List<Instruction> instructions = block.getInstructions();
         List<Value> in = new ArrayList<>();
         returnValue = null;
         argumentsMapIndex = 0;
-        for (int i = start; i < end; i++) {
-          Instruction current = instructions.get(i);
-          if (current.isConstInstruction()) {
-            // Leave any const instructions.
-            continue;
-          }
-
-          // Prepare to remove the instruction.
-          List<Value> inValues = orderedInValues(current, returnValue);
-          for (int j = 0; j < inValues.size(); j++) {
-            Value value = inValues.get(j);
-            value.removeUser(current);
-            int argumentIndex = outline.argumentMap.get(argumentsMapIndex++);
-            if (argumentIndex >= in.size()) {
-              assert argumentIndex == in.size();
-              in.add(value);
+        { // Scope for 'instructions'.
+          List<Instruction> instructions = getInstructionArray();
+          for (int i = start; i < end; i++) {
+            Instruction current = instructions.get(i);
+            if (current.isConstInstruction()) {
+              // Leave any const instructions.
+              continue;
             }
-          }
-          if (current.outValue() != null) {
-            returnValue = current.outValue();
-          }
-          // The invoke of the outline method will be placed at the last instruction index,
-          // so don't mark that for removal.
-          if (i < end - 1) {
-            toRemove.add(i);
+
+            // Prepare to remove the instruction.
+            List<Value> inValues = orderedInValues(current, returnValue);
+            for (int j = 0; j < inValues.size(); j++) {
+              Value value = inValues.get(j);
+              value.removeUser(current);
+              int argumentIndex = outline.argumentMap.get(argumentsMapIndex++);
+              if (argumentIndex >= in.size()) {
+                assert argumentIndex == in.size();
+                in.add(value);
+              }
+            }
+            if (current.outValue() != null) {
+              returnValue = current.outValue();
+            }
+            // The invoke of the outline method will be placed at the last instruction index,
+            // so don't mark that for removal.
+            if (i < end - 1) {
+              toRemove.add(i);
+            }
           }
         }
         assert m.proto.shorty.toString().length() - 1 == in.size();
@@ -718,13 +737,15 @@ public class Outliner {
         }
         Invoke outlineInvoke = new InvokeStatic(m, returnValue, in);
         outlineInvoke.setBlock(block);
-        instructions.get(end - 1).clearBlock();
-        instructions.set(end - 1, outlineInvoke);
+        InstructionListIterator endIterator = block.listIterator(end - 1);
+        Instruction instructionBeforeEnd = endIterator.next();
+        invalidateInstructionArray(); // Because we're about to modify the original linked list.
+        instructionBeforeEnd.clearBlock();
+        endIterator.set(outlineInvoke); // Replaces instructionBeforeEnd.
         if (block.hasCatchHandlers()) {
           // If the inserted invoke is inserted in a block with handlers, split the block after
           // the inserted invoke.
-          // TODO(sgjesse): Integrate the use of an instruction iterator into the code above.
-          block.listIterator(end).split(code, blocksIterator);
+          endIterator.split(code, blocksIterator);
         }
       }
     }
