@@ -117,7 +117,15 @@ configurations {
 dependencies {
     compile 'net.sf.jopt-simple:jopt-simple:4.6'
     compile 'com.googlecode.json-simple:json-simple:1.1'
-    compile group: 'com.google.guava', name: 'guava', version: '23.0'
+    // Include all of guava when compiling the code, but exclude annotations that we don't
+    // need from the packaging.
+    compileOnly('com.google.guava:guava:23.0')
+    compile('com.google.guava:guava:23.0', {
+        exclude group: 'com.google.errorprone'
+        exclude group: 'com.google.code.findbugs'
+        exclude group: 'com.google.j2objc'
+        exclude group: 'org.codehaus.mojo'
+    })
     compile group: 'it.unimi.dsi', name: 'fastutil', version: '7.2.0'
     compile group: 'org.apache.commons', name: 'commons-compress', version: '1.12'
     compile group: 'org.ow2.asm', name: 'asm', version: '5.1'

@@ -3,24 +3,6 @@
   copyrightHolder: The Guava Authors
   license: The Apache Software License, Version 2.0
   licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
-- artifact: com.google.code.findbugs:jsr305:+
-  name: FindBugs-jsr305
-  license: The Apache Software License, Version 2.0
-  licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
-  url: http://findbugs.sourceforge.net/
-- artifact: com.google.errorprone:error_prone_annotations:+
-  name: error-prone annotations
-  license: The Apache Software License, Version 2.0
-  licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
-- artifact: com.google.j2objc:j2objc-annotations:+
-  name: J2ObjC Annotations
-  license: The Apache Software License, Version 2.0
-  licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
-  url: https://github.com/google/j2objc/
-- artifact: org.codehaus.mojo:animal-sniffer-annotations:+
-  name: Animal Sniffer Annotations
-  license: The MIT License
-  licenseUrl: https://opensource.org/licenses/mit-license.php
 - artifact: com.googlecode.json-simple:json-simple:+
   name: JSON.Simple
   license: The Apache Software License, Version 2.0
