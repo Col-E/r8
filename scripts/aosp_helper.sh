@@ -16,6 +16,10 @@ lunch "$AOSP_PRESET"
 
 if [[ "$TASK" == "make" ]]; then
   make "$@"
+elif [[ "$TASK" == "mmm" ]]; then
+  mmm "$@"
+elif [[ "$TASK" == "mmma" ]]; then
+  mmma "$@"
 elif [[ "$TASK" == "emulator" ]]; then
   # Launch emulator in bg and kill it in a trap
   # otherwise it won't get killed when this parent process is killed
