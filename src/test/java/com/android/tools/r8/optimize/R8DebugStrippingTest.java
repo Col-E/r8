@@ -12,6 +12,7 @@ import static org.junit.Assert.fail;
 import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.naming.ClassNameMapper;
@@ -28,7 +29,6 @@ import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
-import com.google.common.io.Closer;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
@@ -177,6 +177,10 @@ public class R8DebugStrippingTest {
 
   private String extractRangeIndex(String line, ClassNameMapper mapper) {
     int position = line.lastIndexOf(EXAMPLE_JAVA);
+    if (position == -1 && ToolHelper.getDexVm() == DexVm.ART_4_4_4) {
+      assert line.contains("dalvik.system.NativeStart.main(Native Method)");
+      return "Native Method";
+    }
     assertNotSame("Malformed stackframe: " + line, -1, position);
     String numberPart = line.substring(position + EXAMPLE_JAVA.length() + 1, line.lastIndexOf(')'));
     int number = Integer.parseInt(numberPart);
