@@ -678,13 +678,33 @@ task buildExampleJars {
         classpath = sourceSets.examples.compileClasspath
         sourceCompatibility = JavaVersion.VERSION_1_7
         targetCompatibility = JavaVersion.VERSION_1_7
-        options.compilerArgs = ["-Xlint:none"]
+        options.compilerArgs = ["-g:source,lines", "-Xlint:none"]
+    }
+    task "compile_examples_debuginfo_all"(type: JavaCompile, dependsOn: "generateExamplesProto") {
+        source examplesDir, protoSourceDir
+        include "**/*.java"
+        destinationDir = file("build/test/examples/classes_debuginfo_all")
+        classpath = sourceSets.examples.compileClasspath
+        sourceCompatibility = JavaVersion.VERSION_1_7
+        targetCompatibility = JavaVersion.VERSION_1_7
+        options.compilerArgs = ["-g", "-Xlint:none"]
+    }
+    task "compile_examples_debuginfo_none"(type: JavaCompile, dependsOn: "generateExamplesProto") {
+        source examplesDir, protoSourceDir
+        include "**/*.java"
+        destinationDir = file("build/test/examples/classes_debuginfo_none")
+        classpath = sourceSets.examples.compileClasspath
+        sourceCompatibility = JavaVersion.VERSION_1_7
+        targetCompatibility = JavaVersion.VERSION_1_7
+        options.compilerArgs = ["-g:none", "-Xlint:none"]
     }
     examplesDir.eachDir { dir ->
         def name = dir.getName();
         def exampleOutputDir = file("build/test/examples");
         def jarName = "${name}.jar"
         dependsOn "jar_example_${name}"
+        dependsOn "jar_example_${name}_debuginfo_all"
+        dependsOn "jar_example_${name}_debuginfo_none"
         dependsOn "extractExamplesRuntime"
         def runtimeDependencies = copySpec { }
         if (!fileTree(dir: dir, include: '**/*.proto').empty) {
@@ -727,11 +747,36 @@ task buildExampleJars {
                 }
                 outputs.file proguardJarPath
             }
+            // TODO: Consider performing distinct proguard compilations.
+            task "jar_example_${name}_debuginfo_all"(type: Copy, dependsOn: "jar_example_${name}") {
+                from "${exampleOutputDir}/${name}.jar"
+                into "${exampleOutputDir}/${name}_debuginfo_all.jar"
+            }
+            task "jar_example_${name}_debuginfo_none"(type: Copy, dependsOn: "jar_example_${name}") {
+                from "${exampleOutputDir}/${name}.jar"
+                into "${exampleOutputDir}/${name}_debuginfo_none.jar"
+            }
         } else {
             task "jar_example_${name}"(type: Jar, dependsOn: "compile_examples") {
-                archiveName = jarName
+                archiveName = "${name}.jar"
                 destinationDir = exampleOutputDir
                 from "build/test/examples/classes"
+                include name + "/**/*.class"
+                with runtimeDependencies
+                includeEmptyDirs false
+            }
+            task "jar_example_${name}_debuginfo_all"(type: Jar, dependsOn: "compile_examples_debuginfo_all") {
+                archiveName = "${name}_debuginfo_all.jar"
+                destinationDir = exampleOutputDir
+                from "build/test/examples/classes_debuginfo_all"
+                include name + "/**/*.class"
+                with runtimeDependencies
+                includeEmptyDirs false
+            }
+            task "jar_example_${name}_debuginfo_none"(type: Jar, dependsOn: "compile_examples_debuginfo_none") {
+                archiveName = "${name}_debuginfo_none.jar"
+                destinationDir = exampleOutputDir
+                from "build/test/examples/classes_debuginfo_none"
                 include name + "/**/*.class"
                 with runtimeDependencies
                 includeEmptyDirs false
