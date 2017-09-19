@@ -1501,8 +1501,10 @@ public abstract class R8RunArtTestsTest {
     }
 
     ArtCommandBuilder builder = buildArtCommand(processedFile, specification, dexVm);
-    builder.appendArtOption("-Ximage:/system/non/existent/jdwp/image.art");
-    for (String s : ToolHelper.getArtBootLibs()) {
+    if (ToolHelper.getDexVm() != DexVm.ART_4_4_4) {
+      builder.appendArtOption("-Ximage:/system/non/existent/image.art");
+    }
+    for (String s : ToolHelper.getBootLibs()) {
       builder.appendBootClassPath(new File(s).getCanonicalPath());
     }
     builder.setMainClass(JUNIT_TEST_RUNNER);
