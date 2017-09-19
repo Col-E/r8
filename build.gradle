@@ -750,11 +750,13 @@ task buildExampleJars {
             // TODO: Consider performing distinct proguard compilations.
             task "jar_example_${name}_debuginfo_all"(type: Copy, dependsOn: "jar_example_${name}") {
                 from "${exampleOutputDir}/${name}.jar"
-                into "${exampleOutputDir}/${name}_debuginfo_all.jar"
+                into "${exampleOutputDir}"
+                rename(".*", "${name}_debuginfo_all.jar")
             }
             task "jar_example_${name}_debuginfo_none"(type: Copy, dependsOn: "jar_example_${name}") {
                 from "${exampleOutputDir}/${name}.jar"
-                into "${exampleOutputDir}/${name}_debuginfo_none.jar"
+                into "${exampleOutputDir}"
+                rename(".*", "${name}_debuginfo_none.jar")
             }
         } else {
             task "jar_example_${name}"(type: Jar, dependsOn: "compile_examples") {
