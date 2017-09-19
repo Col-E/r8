@@ -158,7 +158,7 @@ public class D8Command extends BaseCompilerCommand {
           builder.setMode(CompilationMode.RELEASE);
           modeSet = CompilationMode.RELEASE;
         } else if (arg.equals("--file-per-class")) {
-          builder.setOutputMode(OutputMode.FilePerClass);
+          builder.setOutputMode(OutputMode.FilePerInputClass);
         } else if (arg.equals("--output")) {
           String output = args[++i];
           if (outputPath != null) {

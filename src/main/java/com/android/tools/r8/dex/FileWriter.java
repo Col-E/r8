@@ -617,7 +617,7 @@ public class FileWriter {
     }
   }
 
-  private void writeEncodedMethods(DexEncodedMethod[] methods) {
+  private void writeEncodedMethods(DexEncodedMethod[] methods, boolean clearBodies) {
     assert isSorted(methods);
     int currentOffset = 0;
     for (DexEncodedMethod method : methods) {
@@ -633,7 +633,9 @@ public class FileWriter {
         dest.putUleb128(mixedSectionOffsets.getOffsetFor(method.getCode().asDexCode()));
         // Writing the methods starts to take up memory so we are going to flush the
         // code objects since they are no longer necessary after this.
-        method.removeCode();
+        if (clearBodies) {
+          method.removeCode();
+        }
       }
     }
   }
@@ -647,8 +649,10 @@ public class FileWriter {
     dest.putUleb128(clazz.virtualMethods().length);
     writeEncodedFields(clazz.staticFields());
     writeEncodedFields(clazz.instanceFields());
-    writeEncodedMethods(clazz.directMethods());
-    writeEncodedMethods(clazz.virtualMethods());
+
+    boolean isSharedSynthetic = clazz.getSynthesizedFrom().size() > 1;
+    writeEncodedMethods(clazz.directMethods(), !isSharedSynthetic);
+    writeEncodedMethods(clazz.virtualMethods(), !isSharedSynthetic);
   }
 
   private void addStaticFieldValues(DexProgramClass clazz) {

@@ -14,8 +14,10 @@ import com.android.tools.r8.Resource.Kind;
 import com.android.tools.r8.dex.VDexFile;
 import com.android.tools.r8.dex.VDexFileReader;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.shaking.FilteredClassPath;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.Closer;
 import java.io.ByteArrayOutputStream;
@@ -34,7 +36,9 @@ import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -51,6 +55,7 @@ public class AndroidApp {
   public static final String DEFAULT_PROGUARD_MAP_FILE = "proguard.map";
 
   private final ImmutableList<Resource> programResources;
+  private final ImmutableMap<Resource, String> programResourcesMainDescriptor;
   private final ImmutableList<ClassFileResourceProvider> classpathResourceProviders;
   private final ImmutableList<ClassFileResourceProvider> libraryResourceProviders;
 
@@ -66,6 +71,7 @@ public class AndroidApp {
   // See factory methods and AndroidApp.Builder below.
   private AndroidApp(
       ImmutableList<Resource> programResources,
+      ImmutableMap<Resource, String> programResourcesMainDescriptor,
       ImmutableList<ProgramFileArchiveReader> programFileArchiveReaders,
       ImmutableList<ClassFileResourceProvider> classpathResourceProviders,
       ImmutableList<ClassFileResourceProvider> libraryResourceProviders,
@@ -77,6 +83,7 @@ public class AndroidApp {
       List<String> mainDexClasses,
       Resource mainDexListOutput) {
     this.programResources = programResources;
+    this.programResourcesMainDescriptor = programResourcesMainDescriptor;
     this.programFileArchiveReaders = programFileArchiveReaders;
     this.classpathResourceProviders = classpathResourceProviders;
     this.libraryResourceProviders = libraryResourceProviders;
@@ -331,12 +338,25 @@ public class AndroidApp {
     try (Closer closer = Closer.create()) {
       List<Resource> dexProgramSources = getDexProgramResources();
       for (int i = 0; i < dexProgramSources.size(); i++) {
-        Path filePath = directory.resolve(outputMode.getOutputPath(dexProgramSources.get(i), i));
+        Path filePath = directory.resolve(getOutputPath(outputMode, dexProgramSources.get(i), i));
         if (!Files.exists(filePath.getParent())) {
           Files.createDirectories(filePath.getParent());
         }
         Files.copy(closer.register(dexProgramSources.get(i).getStream()), filePath, options);
       }
+    }
+  }
+
+  private String getOutputPath(OutputMode outputMode, Resource resource, int index) {
+    switch (outputMode) {
+      case Indexed:
+        return index == 0 ? "classes.dex" : ("classes" + (index + 1) + ".dex");
+      case FilePerInputClass:
+        String classDescriptor = programResourcesMainDescriptor.get(resource);
+        assert classDescriptor!= null && DescriptorUtils.isClassDescriptor(classDescriptor);
+        return classDescriptor.substring(1, classDescriptor.length() - 1) + ".dex";
+      default:
+        throw new Unreachable("Unknown output mode: " + outputMode);
     }
   }
 
@@ -389,7 +409,7 @@ public class AndroidApp {
       try (ZipOutputStream out = new ZipOutputStream(Files.newOutputStream(archive, options))) {
         List<Resource> dexProgramSources = getDexProgramResources();
         for (int i = 0; i < dexProgramSources.size(); i++) {
-          ZipEntry zipEntry = new ZipEntry(outputMode.getOutputPath(dexProgramSources.get(i), i));
+          ZipEntry zipEntry = new ZipEntry(getOutputPath(outputMode, dexProgramSources.get(i), i));
           byte[] bytes =
               ByteStreams.toByteArray(closer.register(dexProgramSources.get(i).getStream()));
           zipEntry.setSize(bytes.length);
@@ -426,12 +446,18 @@ public class AndroidApp {
     out.write(ByteStreams.toByteArray(input));
   }
 
+  // Public for testing.
+  public String getPrimaryClassDescriptor(Resource resource) {
+    return programResourcesMainDescriptor.get(resource);
+  }
+
   /**
    * Builder interface for constructing an AndroidApp.
    */
   public static class Builder {
 
     private final List<Resource> programResources = new ArrayList<>();
+    private final Map<Resource, String> programResourcesMainDescriptor = new HashMap<>();
     private final List<ProgramFileArchiveReader> programFileArchiveReaders = new ArrayList<>();
     private final List<ClassFileResourceProvider> classpathResourceProviders = new ArrayList<>();
     private final List<ClassFileResourceProvider> libraryResourceProviders = new ArrayList<>();
@@ -560,6 +586,19 @@ public class AndroidApp {
     public Builder addDexProgramData(byte[] data, Set<String> classDescriptors) {
       programResources.add(
           Resource.fromBytes(Resource.Kind.DEX, data, classDescriptors));
+      return this;
+    }
+
+    /**
+     * Add dex program-data with class descriptor and primary class.
+     */
+    public Builder addDexProgramData(
+        byte[] data,
+        Set<String> classDescriptors,
+        String primaryClassDescriptor) {
+      Resource resource = Resource.fromBytes(Resource.Kind.DEX, data, classDescriptors);
+      programResources.add(resource);
+      programResourcesMainDescriptor.put(resource, primaryClassDescriptor);
       return this;
     }
 
@@ -727,6 +766,7 @@ public class AndroidApp {
     public AndroidApp build() {
       return new AndroidApp(
           ImmutableList.copyOf(programResources),
+          ImmutableMap.copyOf(programResourcesMainDescriptor),
           ImmutableList.copyOf(programFileArchiveReaders),
           ImmutableList.copyOf(classpathResourceProviders),
           ImmutableList.copyOf(libraryResourceProviders),
