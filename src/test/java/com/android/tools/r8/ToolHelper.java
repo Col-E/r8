@@ -250,6 +250,7 @@ public class ToolHelper {
           DexVm.ART_6_0_1, "art-6.0.1",
           DexVm.ART_5_1_1, "art-5.1.1",
           DexVm.ART_4_4_4, "dalvik");
+
   private static final Map<DexVm, String> ART_BINARY_VERSIONS =
       ImmutableMap.of(
           DexVm.ART_DEFAULT, "bin/art",
@@ -263,12 +264,26 @@ public class ToolHelper {
           DexVm.ART_DEFAULT, "bin/art",
           DexVm.ART_7_0_0, "bin/art",
           DexVm.ART_6_0_1, "bin/art");
+
+  private static final List<String> DALVIK_BOOT_LIBS =
+      ImmutableList.of(
+          "core-libart-hostdex.jar",
+          "core-hostdex.jar",
+          "apache-xml-hostdex.jar");
+
   private static final List<String> ART_BOOT_LIBS =
       ImmutableList.of(
           "core-libart-hostdex.jar",
           "core-oj-hostdex.jar",
-          "apache-xml-hostdex.jar"
-      );
+          "apache-xml-hostdex.jar");
+
+  private static final Map<DexVm, List<String>> BOOT_LIBS =
+      ImmutableMap.of(
+          DexVm.ART_DEFAULT, ART_BOOT_LIBS,
+          DexVm.ART_7_0_0, ART_BOOT_LIBS,
+          DexVm.ART_6_0_1, ART_BOOT_LIBS,
+          DexVm.ART_5_1_1, ART_BOOT_LIBS,
+          DexVm.ART_4_4_4, DALVIK_BOOT_LIBS);
 
   private static final String LIB_PATH = TOOLS + "/linux/art/lib";
   private static final String DX = TOOLS + "/linux/dx/bin/dx";
@@ -357,10 +372,10 @@ public class ToolHelper {
     }
   }
 
-  public static List<String> getArtBootLibs() {
+  public static List<String> getBootLibs() {
     String prefix = getArtDir(getDexVm()) + "/";
     List<String> result = new ArrayList<>();
-    ART_BOOT_LIBS.stream().forEach(x -> result.add(prefix + "framework/" + x));
+    BOOT_LIBS.get(getDexVm()).stream().forEach(x -> result.add(prefix + "framework/" + x));
     return result;
   }
 
