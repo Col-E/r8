@@ -17,7 +17,6 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.OffOrAuto;
 import com.android.tools.r8.utils.OutputMode;
-import com.android.tools.r8.utils.UtilsHelper;
 import com.beust.jcommander.internal.Lists;
 import com.google.common.io.Closer;
 import java.io.ByteArrayOutputStream;
