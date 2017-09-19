@@ -11,9 +11,13 @@ import com.android.tools.r8.D8Command.Builder;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unimplemented;
+import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
+import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.OffOrAuto;
 import com.android.tools.r8.utils.OutputMode;
+import com.android.tools.r8.utils.UtilsHelper;
 import com.beust.jcommander.internal.Lists;
 import com.google.common.io.Closer;
 import java.io.ByteArrayOutputStream;
@@ -77,13 +81,19 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
       TreeMap<String, Resource> fileToResource = new TreeMap<>();
       List<String> classFiles = collectClassFiles(testJarFile);
       AndroidApp app = compileClassFiles(
-          testJarFile, classFiles, output, OutputMode.FilePerClass);
+          testJarFile, classFiles, output, OutputMode.FilePerInputClass);
       for (Resource resource : app.getDexProgramResources()) {
         Set<String> descriptors = resource.getClassDescriptors();
-        Assert.assertNotNull(descriptors);
-        Assert.assertEquals(1, descriptors.size());
-        String classDescriptor = descriptors.iterator().next();
-        classDescriptor = classDescriptor.substring(1, classDescriptor.length() - 1);
+        String mainClassDescriptor = UtilsHelper.getMainClassDescriptor(app, resource);
+        for (String descriptor : descriptors) {
+          // classes are either lambda classes used by the main class, companion classes of the main
+          // interface or the main class/interface
+          Assert.assertTrue(descriptor.contains(LambdaRewriter.LAMBDA_CLASS_NAME_PREFIX)
+              || descriptor.endsWith(InterfaceMethodRewriter.COMPANION_CLASS_NAME_SUFFIX + ";")
+              || descriptor.equals(mainClassDescriptor));
+        }
+        String classDescriptor =
+            DescriptorUtils.getClassBinaryNameFromDescriptor(mainClassDescriptor);
         String classFilePath = classDescriptor + ".class";
         if (File.separatorChar != '/') {
           classFilePath = classFilePath.replace('/', File.separatorChar);
