@@ -5,17 +5,41 @@ package com.android.tools.r8.jasmin;
 
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm;
 import com.google.common.collect.ImmutableList;
 import org.junit.Test;
 
 public class FillBooleanArrayTruncation extends JasminTestBase {
 
+  private void runOnDalvikCheckVerifyError(JasminBuilder builder, String main) throws Exception {
+    try {
+      runOnArt(builder, main);
+    } catch (AssertionError e) {
+      assert e.toString().contains("VerifyError");
+    }
+  }
+
+  private void runOnDalvikDxCheckVerifyError(JasminBuilder builder, String main) throws Exception {
+    try {
+      runOnArtDx(builder, main);
+    } catch (AssertionError e) {
+      assert e.toString().contains("VerifyError");
+    }
+  }
+
   private void runTest(JasminBuilder builder, String main) throws Exception {
     String javaResult = runOnJava(builder, main);
-    String artResult = runOnArt(builder, main);
-    assertEquals(javaResult, artResult);
-    String dxArtResult = runOnArtDx(builder, main);
-    assertEquals(javaResult, dxArtResult);
+    if (ToolHelper.getDexVm() == DexVm.ART_4_4_4) {
+      // On dalvik the need for truncation is treated as a verification error.
+      runOnDalvikCheckVerifyError(builder, main);
+      runOnDalvikDxCheckVerifyError(builder, main);
+    } else {
+      String artResult = runOnArt(builder, main);
+      assertEquals(javaResult, artResult);
+      String dxArtResult = runOnArtDx(builder, main);
+      assertEquals(javaResult, dxArtResult);
+    }
   }
 
   @Test
