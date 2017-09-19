@@ -17,6 +17,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -135,7 +136,8 @@ final class InterfaceProcessor {
         DexEncodedField.EMPTY_ARRAY,
         DexEncodedField.EMPTY_ARRAY,
         companionMethods.toArray(new DexEncodedMethod[companionMethods.size()]),
-        DexEncodedMethod.EMPTY_ARRAY
+        DexEncodedMethod.EMPTY_ARRAY,
+        Collections.singletonList(iface)
     );
     companionClasses.put(iface, companionClass);
   }
