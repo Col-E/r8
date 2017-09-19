@@ -40,6 +40,10 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class R8RunExamplesTest {
 
+  enum Input {
+    DX, JAVAC, JAVAC_ALL, JAVAC_NONE
+  }
+
   private static final String EXAMPLE_DIR = ToolHelper.EXAMPLES_BUILD_DIR;
 
   // For local testing on a specific Art version(s) change this set. e.g. to
@@ -114,23 +118,32 @@ public class R8RunExamplesTest {
 
     List<String[]> fullTestList = new ArrayList<>(tests.length * 2);
     for (String test : tests) {
-      fullTestList.add(makeTest(DexTool.NONE, CompilerUnderTest.D8, CompilationMode.DEBUG, test));
-      fullTestList.add(makeTest(DexTool.NONE, CompilerUnderTest.R8, CompilationMode.RELEASE, test));
-      fullTestList.add(makeTest(DexTool.DX, CompilerUnderTest.R8, CompilationMode.RELEASE, test));
+      fullTestList.add(makeTest(Input.JAVAC, CompilerUnderTest.D8, CompilationMode.DEBUG, test));
+      fullTestList.add(makeTest(Input.JAVAC_ALL, CompilerUnderTest.D8, CompilationMode.DEBUG,
+          test));
+      fullTestList.add(makeTest(Input.JAVAC_NONE, CompilerUnderTest.D8, CompilationMode.DEBUG,
+          test));
+      fullTestList.add(makeTest(Input.JAVAC_ALL, CompilerUnderTest.D8, CompilationMode.RELEASE,
+          test));
+      fullTestList.add(makeTest(Input.JAVAC_ALL, CompilerUnderTest.R8, CompilationMode.RELEASE,
+          test));
+      fullTestList.add(makeTest(Input.JAVAC_ALL, CompilerUnderTest.R8, CompilationMode.DEBUG,
+          test));
+      fullTestList.add(makeTest(Input.DX, CompilerUnderTest.R8, CompilationMode.RELEASE, test));
     }
     return fullTestList;
   }
 
   private static String[] makeTest(
-      DexTool tool, CompilerUnderTest compiler, CompilationMode mode, String clazz) {
+      Input input, CompilerUnderTest compiler, CompilationMode mode, String clazz) {
     String pkg = clazz.substring(0, clazz.lastIndexOf('.'));
-    return new String[]{pkg, tool.name(), compiler.name(), mode.name(), clazz};
+    return new String[]{pkg, input.name(), compiler.name(), mode.name(), clazz};
   }
 
   @Rule
   public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
-  private final DexTool tool;
+  private final Input input;
   private final CompilerUnderTest compiler;
   private final CompilationMode mode;
   private final String pkg;
@@ -138,31 +151,42 @@ public class R8RunExamplesTest {
 
   public R8RunExamplesTest(
       String pkg,
-      String tool,
+      String input,
       String compiler,
       String mode,
       String mainClass) {
     this.pkg = pkg;
-    this.tool = DexTool.valueOf(tool);
+    this.input = Input.valueOf(input);
     this.compiler = CompilerUnderTest.valueOf(compiler);
     this.mode = CompilationMode.valueOf(mode);
     this.mainClass = mainClass;
   }
 
   private Path getInputFile() {
-    if (tool == DexTool.NONE) {
-      return getOriginalJarFile();
+    switch(input) {
+      case DX:
+        return getOriginalDexFile();
+      case JAVAC:
+        return getOriginalJarFile("");
+      case JAVAC_ALL:
+        return getOriginalJarFile("_debuginfo_all");
+      case JAVAC_NONE:
+        return getOriginalJarFile("_debuginfo_none");
+      default:
+        throw new Unreachable();
     }
-    assert tool == DexTool.DX;
-    return getOriginalDexFile();
   }
 
-  public Path getOriginalJarFile() {
-    return Paths.get(EXAMPLE_DIR, pkg + JAR_EXTENSION);
+  public Path getOriginalJarFile(String postFix) {
+    return Paths.get(EXAMPLE_DIR, pkg + postFix + JAR_EXTENSION);
   }
 
   private Path getOriginalDexFile() {
     return Paths.get(EXAMPLE_DIR, pkg, FileUtils.DEFAULT_DEX_FILENAME);
+  }
+
+  private DexTool getTool() {
+    return input == Input.DX ? DexTool.DX : DexTool.NONE;
   }
 
   @Rule
@@ -216,7 +240,7 @@ public class R8RunExamplesTest {
     }
 
     ToolHelper.ProcessResult javaResult =
-        ToolHelper.runJava(ImmutableList.of(getOriginalJarFile().toString()), mainClass);
+        ToolHelper.runJava(ImmutableList.of(getOriginalJarFile("").toString()), mainClass);
     if (javaResult.exitCode != 0) {
       fail("JVM failed for: " + mainClass);
     }
@@ -225,7 +249,7 @@ public class R8RunExamplesTest {
     // this explicit loop to get rid of repeated testing on the buildbots.
     for (DexVm version : artVersions) {
       TestCondition condition = failingRun.get(mainClass);
-      if (condition != null && condition.test(tool, compiler, version, mode)) {
+      if (condition != null && condition.test(getTool(), compiler, version, mode)) {
         thrown.expect(Throwable.class);
       } else {
         thrown = ExpectedException.none();
@@ -248,6 +272,6 @@ public class R8RunExamplesTest {
 
   private boolean shouldMatchJVMOutput(DexVm version) {
     TestCondition condition = outputNotIdenticalToJVMOutput.get(mainClass);
-    return condition == null || !condition.test(tool, compiler, version, mode);
+    return condition == null || !condition.test(getTool(), compiler, version, mode);
   }
 }
