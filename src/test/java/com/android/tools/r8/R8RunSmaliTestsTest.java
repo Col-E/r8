@@ -36,8 +36,34 @@ public class R8RunSmaliTestsTest {
   // Tests where the original smali code fails on Art, but runs after R8 processing.
   private static Map<DexVm, List<String>> originalFailingOnArtVersions = ImmutableMap.of(
       DexVm.ART_5_1_1, ImmutableList.of(
+          // Smali code contains an empty switch payload.
           "sparse-switch",
           "regression/33846227"
+      ),
+      DexVm.ART_4_4_4, ImmutableList.of(
+          // Smali code contains an empty switch payload.
+          "sparse-switch",
+          "regression/33846227"
+      )
+  );
+
+  // Tests where the output has a different output than the original on certain VMs.
+  private static Map<DexVm, Map<String, String>> customProcessedOutputExpectation = ImmutableMap.of(
+      DexVm.ART_4_4_4, ImmutableMap.of(
+          "bad-codegen", "java.lang.NullPointerException\n",
+          "type-confusion-regression2", "java.lang.NullPointerException\n",
+          "type-confusion-regression3", "java.lang.NullPointerException\n",
+          "merge-blocks-regression", "java.lang.NullPointerException\n"
+      )
+  );
+
+  // Tests where the input fails with a verification error on Dalvik instead of the
+  // expected runtime exception.
+  private static Map<DexVm, List<String>> dalvikVerificationError = ImmutableMap.of(
+      DexVm.ART_4_4_4, ImmutableList.of(
+          // The invokes are in fact invalid, but the test expects the current Art behavior
+          // of throwing an IncompatibleClassChange exception. Dalvik fails to verify.
+          "illegal-invokes"
       )
   );
 
@@ -112,11 +138,26 @@ public class R8RunSmaliTestsTest {
 
     String mainClass = "Test";
     String generated = outputPath + "/classes.dex";
-    String output;
+    String output = "";
 
-    // If the original smali code fails on the target VM, only run the code produced by R8.
-    if (originalFailingOnArtVersions.containsKey(ToolHelper.getDexVm())
+    if (dalvikVerificationError.containsKey(ToolHelper.getDexVm())
+        && dalvikVerificationError.get(ToolHelper.getDexVm()).contains(directoryName)) {
+      try {
+        ToolHelper.runArtNoVerificationErrors(generated, mainClass);
+      } catch (AssertionError e) {
+        assert e.toString().contains("VerifyError");
+      }
+      return;
+    } else if (originalFailingOnArtVersions.containsKey(ToolHelper.getDexVm())
         && originalFailingOnArtVersions.get(ToolHelper.getDexVm()).contains(directoryName)) {
+      // If the original smali code fails on the target VM, only run the code produced by R8.
+      output = ToolHelper.runArtNoVerificationErrors(generated, mainClass);
+    } else if (customProcessedOutputExpectation.containsKey(ToolHelper.getDexVm())
+        && customProcessedOutputExpectation.get(ToolHelper.getDexVm()).containsKey(directoryName)) {
+      // If the original and the processed code have different expected output, only run
+      // the code produced by R8.
+      expectedOutput =
+          customProcessedOutputExpectation.get(ToolHelper.getDexVm()).get(directoryName);
       output = ToolHelper.runArtNoVerificationErrors(generated, mainClass);
     } else {
       if (failingOnArtVersions.containsKey(ToolHelper.getDexVm())

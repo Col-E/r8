@@ -8,6 +8,12 @@
 .field private i:I
 .field private o:LTest;
 
+.method public constructor <init>()V
+    .registers 1
+    invoke-direct {p0}, Ljava/lang/Object;-><init>()V
+    return-void
+.end method
+
 .method public final a(LTest;LTest;)I
     .registers 28
     .prologue

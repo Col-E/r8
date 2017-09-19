@@ -5,6 +5,12 @@
 .class public final LTestObject;
 .super Ljava/lang/Object;
 
+.method public constructor <init>()V
+    .registers 1
+    invoke-direct {p0}, Ljava/lang/Object;-><init>()V
+    return-void
+.end method
+
 .method public final a(LTest;LTest;)LTest;
     .registers 7
     .prologue

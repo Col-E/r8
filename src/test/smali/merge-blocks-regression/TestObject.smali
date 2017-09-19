@@ -13,6 +13,12 @@
 .field public i:LTest;
 .field public j:LTest;
 
+.method public constructor <init>()V
+    .registers 1
+    invoke-direct {p0}, Ljava/lang/Object;-><init>()V
+    return-void
+.end method
+
 .method public final f()V
     .registers 15
     const/16 v11, 0xd

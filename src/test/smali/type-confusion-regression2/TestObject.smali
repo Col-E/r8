@@ -19,6 +19,12 @@
 .field public j:I
 .field private k:[D
 
+.method public constructor <init>()V
+    .registers 1
+    invoke-direct {p0}, Ljava/lang/Object;-><init>()V
+    return-void
+.end method
+
 .method public final b()V
     .registers 29
     move-object/from16 v0, p0
