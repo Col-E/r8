@@ -258,6 +258,7 @@ public class Inliner {
 
   private boolean legalConstructorInline(DexEncodedMethod method,
       InvokeMethod invoke, IRCode code) {
+
     // In the Java VM Specification section "4.10.2.4. Instance Initialization Methods and
     // Newly Created Objects" it says:
     //
@@ -301,9 +302,8 @@ public class Inliner {
                   && instruction.asInvokeDirect().getReceiver() == unInitializedObject
                   && receiverOfInnerCallIsThisOfOuter
                   && methodIsConstructor;
+          // TODO(65355452): Calls to init on same class should be OK, but it isn't on Dalvik.
           if (seenSuperInvoke
-              // Calls to init on same class are always OK.
-              && target.holder != methodHolder
               // If we are inlining into a constructor, calls to superclass init are OK on the
               // |this| value in the outer context.
               && !callOnSupertypeOfThisInConstructor) {

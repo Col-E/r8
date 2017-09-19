@@ -534,61 +534,6 @@ public abstract class R8RunArtTestsTest {
           // VFY: args to if-eq/if-ne must both be refs or cat1
           .put("134-reg-promotion",
               TestCondition.match(TestCondition.runtimes(DexVm.ART_4_4_4)))
-          // TODO(65355452): invoke-direct <init> on super only allowed for 'this' in <init>
-          .put("003-omnibus-opcodes",
-              TestCondition.match(
-                  TestCondition.R8_NOT_AFTER_D8_COMPILER,
-                  TestCondition.runtimes(DexVm.ART_4_4_4)))
-          // TODO(65355452): invoke-direct <init> on super only allowed for 'this' in <init>
-          .put("043-privates",
-              TestCondition.match(
-                  TestCondition.R8_NOT_AFTER_D8_COMPILER,
-                  TestCondition.runtimes(DexVm.ART_4_4_4)))
-          // TODO(65355452): invoke-direct <init> on super only allowed for 'this' in <init>
-          .put("589-super-imt",
-              TestCondition.match(
-                  TestCondition.R8_NOT_AFTER_D8_COMPILER,
-                  TestCondition.runtimes(DexVm.ART_4_4_4)))
-          // TODO(65355452): invoke-direct <init> on super only allowed for 'this' in <init>
-          .put("494-checker-instanceof-tests",
-              TestCondition.match(
-                  TestCondition.R8_NOT_AFTER_D8_COMPILER,
-                  TestCondition.runtimes(DexVm.ART_4_4_4)))
-          // TODO(65355452): invoke-direct <init> on super only allowed for 'this' in <init>
-          .put("422-instanceof",
-              TestCondition.match(
-                  TestCondition.R8_NOT_AFTER_D8_COMPILER,
-                  TestCondition.runtimes(DexVm.ART_4_4_4)))
-          // TODO(65355452): invoke-direct <init> on super only allowed for 'this' in <init>
-          .put("424-checkcast",
-              TestCondition.match(
-                  TestCondition.R8_NOT_AFTER_D8_COMPILER,
-                  TestCondition.runtimes(DexVm.ART_4_4_4)))
-          // TODO(65355452): invoke-direct <init> on super only allowed for 'this' in <init>
-          .put("495-checker-checkcast-tests",
-              TestCondition.match(
-                  TestCondition.R8_NOT_AFTER_D8_COMPILER,
-                  TestCondition.runtimes(DexVm.ART_4_4_4)))
-          // TODO(65355452): invoke-direct <init> on super only allowed for 'this' in <init>
-          .put("576-polymorphic-inlining",
-              TestCondition.match(
-                  TestCondition.R8_NOT_AFTER_D8_COMPILER,
-                  TestCondition.runtimes(DexVm.ART_4_4_4)))
-          // TODO(65355452): invoke-direct <init> on super only allowed for 'this' in <init>
-          .put("578-polymorphic-inlining",
-              TestCondition.match(
-                  TestCondition.R8_NOT_AFTER_D8_COMPILER,
-                  TestCondition.runtimes(DexVm.ART_4_4_4)))
-          // TODO(65355452): invoke-direct <init> on super only allowed for 'this' in <init>
-          .put("631-checker-get-class",
-              TestCondition.match(
-                  TestCondition.R8_NOT_AFTER_D8_COMPILER,
-                  TestCondition.runtimes(DexVm.ART_4_4_4)))
-          // TODO(65355452): invoke-direct <init> on super only allowed for 'this' in <init>
-          .put("633-checker-rtp-getclass",
-              TestCondition.match(
-                  TestCondition.R8_NOT_AFTER_D8_COMPILER,
-                  TestCondition.runtimes(DexVm.ART_4_4_4)))
           // VFY: tried to get class from non-ref register.
           .put("506-verify-aput",
               TestCondition.match(TestCondition.runtimes(DexVm.ART_4_4_4)))
