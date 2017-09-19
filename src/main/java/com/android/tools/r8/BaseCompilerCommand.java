@@ -136,7 +136,7 @@ abstract class BaseCompilerCommand extends BaseCommand {
 
     protected void validate() throws CompilationException {
       super.validate();
-      if (getAppBuilder().hasMainDexList() && outputMode == OutputMode.FilePerInputClass) {
+      if (getAppBuilder().hasMainDexList() && outputMode == OutputMode.FilePerClass) {
         throw new CompilationException(
             "Option --main-dex-list cannot be used with --file-per-class");
       }

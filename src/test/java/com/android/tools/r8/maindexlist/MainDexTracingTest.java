@@ -15,7 +15,6 @@ import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import java.nio.charset.StandardCharsets;
@@ -180,7 +179,7 @@ public class MainDexTracingTest {
   }
 
   private boolean isLambda(String mainDexEntry) {
-    return mainDexEntry.contains(LambdaRewriter.LAMBDA_CLASS_NAME_PREFIX);
+    return mainDexEntry.contains("-$$Lambda$");
   }
 
   private String mainDexStringToDescriptor(String mainDexString) {

@@ -54,8 +54,7 @@ public class LambdaRewriter {
   private static final String METAFACTORY_ALT_METHOD_NAME = "altMetafactory";
   private static final String DESERIALIZE_LAMBDA_METHOD_NAME = "$deserializeLambda$";
 
-  // public for testing
-  public static final String LAMBDA_CLASS_NAME_PREFIX = "-$$Lambda$";
+  static final String LAMBDA_CLASS_NAME_PREFIX = "-$$Lambda$";
   static final String EXPECTED_LAMBDA_METHOD_PREFIX = "lambda$";
   static final String LAMBDA_INSTANCE_FIELD_NAME = "INSTANCE";
 
@@ -239,7 +238,6 @@ public class LambdaRewriter {
       lambdaClass = putIfAbsent(knownLambdaClasses, lambdaClassType,
           new LambdaClass(this, accessedFrom, lambdaClassType, descriptor));
     }
-    lambdaClass.addSynthesizedFrom(appInfo.definitionFor(accessedFrom).asProgramClass());
     if (isInMainDexList(accessedFrom)) {
       lambdaClass.addToMainDexList.set(true);
     }
