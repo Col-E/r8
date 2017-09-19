@@ -29,6 +29,15 @@ def parse_arguments():
       choices = ['jack', 'd8', 'r8', 'default'],
       default = 'd8',
       help='Compiler tool to use. Defaults to d8.')
+  parser.add_argument('--mmm',
+      action = 'store_true',
+      help='Use mmm instead of make')
+  parser.add_argument('--mmma',
+      action = 'store_true',
+      help='Use mmma instead of make')
+  parser.add_argument('--rebuild-system-image-after-mmm',
+      action = 'store_true',
+      help='Build the system image after building a package with mmm or mmma')
   parser.add_argument('--clean-dex',
       action = 'store_true',
       help = 'Remove all dex files before the build. By default they'
@@ -106,7 +115,7 @@ def prepare_for_r8(aosp_root):
     f.write('java -jar ' + compat_proguard_jar + ' "$@" --min-api 10000')
   os.chmod(proguard_script, S_IRWXU)
 
-def build_aosp(aosp_root, lunch, tool, concurrency, target):
+def build_aosp(aosp_root, lunch, make, tool, concurrency, target):
   jack_option = 'ANDROID_COMPILE_WITH_JACK=' \
       + ('true' if tool == 'jack' else 'false')
 
@@ -123,10 +132,10 @@ def build_aosp(aosp_root, lunch, tool, concurrency, target):
     prepare_for_proguard(aosp_root)
 
   j_option = '-j' + str(concurrency);
-  print("-- Building Android image with 'make {} {} {}'." \
-    .format(j_option, jack_option, alt_jar_option))
+  print("-- Building Android image with '{} {} {} {}'." \
+    .format(make, j_option, jack_option, alt_jar_option))
 
-  command = ['make', j_option, jack_option, alt_jar_option]
+  command = [make, j_option, jack_option, alt_jar_option]
   if target:
     command.append(target)
 
@@ -141,7 +150,15 @@ def Main():
 
   setup_and_clean_dex(args.aosp_root, args.tool, args.clean_dex)
 
-  build_aosp(args.aosp_root, args.lunch, args.tool, args.j, args.target)
+  make = 'make'
+  if args.mmm:
+    make = 'mmm'
+  if args.mmma:
+    make = 'mmma'
+  build_aosp(args.aosp_root, args.lunch, make, args.tool, args.j, args.target)
+  # Call make to re-build the system image if requested.
+  if args.rebuild_system_image_after_mmm and (args.mmm or args.mmma):
+    build_aosp(args.aosp_root, args.lunch, 'make', 'd8', args.j, None)
 
 if __name__ == '__main__':
   sys.exit(Main())
