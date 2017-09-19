@@ -149,6 +149,8 @@ def Main():
         archive_failures()
       return return_code
 
+  return 0
+
 if __name__ == '__main__':
   return_code = Main()
   if return_code != 0:
@@ -156,3 +158,4 @@ if __name__ == '__main__':
   else:
     notify.notify("Tests passed.")
   sys.exit(return_code)
+
