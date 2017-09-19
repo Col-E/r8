@@ -4,8 +4,8 @@
 package com.android.tools.r8.dex;
 
 import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.errors.DexOverflowException;
 import com.android.tools.r8.errors.InternalCompilerError;
+import com.android.tools.r8.errors.DexOverflowException;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
@@ -76,17 +76,10 @@ public class VirtualFile {
   private final VirtualFileIndexedItemCollection indexedItems;
   private final IndexedItemTransaction transaction;
 
-  private final DexProgramClass primaryClass;
-
   private VirtualFile(int id, NamingLens namingLens) {
-    this(id, namingLens, null);
-  }
-
-  private VirtualFile(int id, NamingLens namingLens, DexProgramClass primaryClass) {
     this.id = id;
     this.indexedItems = new VirtualFileIndexedItemCollection(id);
     this.transaction = new IndexedItemTransaction(indexedItems, namingLens);
-    this.primaryClass = primaryClass;
   }
 
   public int getId() {
@@ -100,10 +93,6 @@ public class VirtualFile {
       assert added;
     }
     return classDescriptors;
-  }
-
-  public String getPrimaryClassDescriptor() {
-    return primaryClass == null ? null : primaryClass.type.descriptor.toString();
   }
 
   public static String deriveCommonPrefixAndSanityCheck(List<String> fileNames) {
@@ -232,40 +221,21 @@ public class VirtualFile {
         throws ExecutionException, IOException, DexOverflowException;
   }
 
-  /**
-   * Distribute each type to its individual virtual except for types synthesized during this
-   * compilation. Synthesized classes are emitted in the individual virtual files
-   * of the input classes they were generated from. Shared synthetic classes
-   * may then be distributed in several individual virtual files.
-   */
-  public static class FilePerInputClassDistributor extends Distributor {
+  public static class FilePerClassDistributor extends Distributor {
 
-    FilePerInputClassDistributor(ApplicationWriter writer) {
+    FilePerClassDistributor(ApplicationWriter writer) {
       super(writer);
     }
 
     @Override
     public Map<Integer, VirtualFile> run() {
-      HashMap<DexProgramClass, VirtualFile> files = new HashMap<>();
-      Collection<DexProgramClass> synthetics = new ArrayList<>();
       // Assign dedicated virtual files for all program classes.
       for (DexProgramClass clazz : application.classes()) {
-        if (clazz.getSynthesizedFrom().isEmpty()) {
-          VirtualFile file = new VirtualFile(nameToFileMap.size(), writer.namingLens, clazz);
-          nameToFileMap.put(nameToFileMap.size(), file);
-          file.addClass(clazz);
-          files.put(clazz, file);
-        } else {
-          synthetics.add(clazz);
-        }
+        VirtualFile file = new VirtualFile(nameToFileMap.size(), writer.namingLens);
+        nameToFileMap.put(nameToFileMap.size(), file);
+        file.addClass(clazz);
+        file.commitTransaction();
       }
-      for (DexProgramClass synthetic : synthetics) {
-        for (DexProgramClass inputType : synthetic.getSynthesizedFrom()) {
-          VirtualFile file = files.get(inputType);
-          file.addClass(synthetic);
-        }
-      }
-      files.values().forEach(file -> file.commitTransaction());
       return nameToFileMap;
     }
   }

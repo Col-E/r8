@@ -138,10 +138,10 @@ public class ApplicationWriter {
 
       // Distribute classes into dex files.
       VirtualFile.Distributor distributor = null;
-      if (options.outputMode == OutputMode.FilePerInputClass) {
+      if (options.outputMode == OutputMode.FilePerClass) {
         assert packageDistribution == null :
             "Cannot combine package distribution definition with file-per-class option.";
-        distributor = new VirtualFile.FilePerInputClassDistributor(this);
+        distributor = new VirtualFile.FilePerClassDistributor(this);
       } else if (!options.canUseMultidex()
           && options.mainDexKeepRules.isEmpty()
           && application.mainDexList.isEmpty()) {
@@ -178,15 +178,7 @@ public class ApplicationWriter {
       AndroidApp.Builder builder = AndroidApp.builder();
       try {
         for (Map.Entry<VirtualFile, Future<byte[]>> entry : dexDataFutures.entrySet()) {
-          VirtualFile virtualFile = entry.getKey();
-          if (virtualFile.getPrimaryClassDescriptor() != null) {
-            builder.addDexProgramData(
-                entry.getValue().get(),
-                virtualFile.getClassDescriptors(),
-                virtualFile.getPrimaryClassDescriptor());
-          } else {
-            builder.addDexProgramData(entry.getValue().get(), virtualFile.getClassDescriptors());
-          }
+          builder.addDexProgramData(entry.getValue().get(), entry.getKey().getClassDescriptors());
         }
       } catch (InterruptedException e) {
         throw new RuntimeException("Interrupted while waiting for future.", e);

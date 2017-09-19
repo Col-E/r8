@@ -27,8 +27,6 @@ import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DexValue.DexValueNull;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -60,7 +58,6 @@ final class LambdaClass {
   final DexField instanceField;
   final Target target;
   final AtomicBoolean addToMainDexList = new AtomicBoolean(false);
-  private Collection<DexProgramClass> synthesizedFrom = new ArrayList<DexProgramClass>(1);
 
   LambdaClass(LambdaRewriter rewriter, DexType accessedFrom,
       DexType lambdaClassType, LambdaDescriptor descriptor) {
@@ -128,8 +125,7 @@ final class LambdaClass {
         synthesizeStaticFields(),
         synthesizeInstanceFields(),
         synthesizeDirectMethods(),
-        synthesizeVirtualMethods(),
-        synthesizedFrom
+        synthesizeVirtualMethods()
     );
   }
 
@@ -140,11 +136,6 @@ final class LambdaClass {
 
   final boolean isStateless() {
     return descriptor.isStateless();
-  }
-
-  synchronized void addSynthesizedFrom(DexProgramClass synthesizedFrom) {
-    assert synthesizedFrom != null;
-    this.synthesizedFrom.add(synthesizedFrom);
   }
 
   // Synthesize virtual methods.

@@ -60,8 +60,7 @@ import java.util.Set;
 //       forward the call to an appropriate method in interface companion class.
 //
 public final class InterfaceMethodRewriter {
-  // public for testing
-  public static final String COMPANION_CLASS_NAME_SUFFIX = "-CC";
+  private static final String COMPANION_CLASS_NAME_SUFFIX = "-CC";
   private static final String DEFAULT_METHOD_PREFIX = "$default$";
 
   private final IRConverter converter;

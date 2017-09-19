@@ -7,16 +7,11 @@ import com.android.tools.r8.Resource;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.function.Supplier;
 
 public class DexProgramClass extends DexClass implements Supplier<DexProgramClass> {
 
   private DexEncodedArray staticValues;
-  private final Collection<DexProgramClass> synthesizedFrom;
 
   public DexProgramClass(DexType type,
       Resource.Kind origin,
@@ -29,36 +24,9 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
       DexEncodedField[] instanceFields,
       DexEncodedMethod[] directMethods,
       DexEncodedMethod[] virtualMethods) {
-    this(type,
-        origin,
-        accessFlags,
-        superType,
-        interfaces,
-        sourceFile,
-        classAnnotations,
-        staticFields,
-        instanceFields,
-        directMethods,
-        virtualMethods,
-        Collections.emptyList());
-  }
-
-  public DexProgramClass(DexType type,
-      Resource.Kind origin,
-      DexAccessFlags accessFlags,
-      DexType superType,
-      DexTypeList interfaces,
-      DexString sourceFile,
-      DexAnnotationSet classAnnotations,
-      DexEncodedField[] staticFields,
-      DexEncodedField[] instanceFields,
-      DexEncodedMethod[] directMethods,
-      DexEncodedMethod[] virtualMethods,
-      Collection<DexProgramClass> synthesizedDirectlyFrom) {
     super(sourceFile, interfaces, accessFlags, superType, type, staticFields,
         instanceFields, directMethods, virtualMethods, classAnnotations, origin);
     assert classAnnotations != null;
-    this.synthesizedFrom = accumulateSynthesizedFrom(new HashSet<>(), synthesizedDirectlyFrom);
   }
 
   @Override
@@ -84,10 +52,6 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
       collectAll(indexedItems, directMethods);
       collectAll(indexedItems, virtualMethods);
     }
-  }
-
-  public Collection<DexProgramClass> getSynthesizedFrom() {
-    return synthesizedFrom;
   }
 
   @Override
@@ -163,19 +127,6 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
 
   private boolean hasAnnotations(DexEncodedMethod[] methods) {
     return methods != null && Arrays.stream(methods).anyMatch(DexEncodedMethod::hasAnnotation);
-  }
-
-  private static Collection<DexProgramClass> accumulateSynthesizedFrom(
-      Set<DexProgramClass> accumulated,
-      Collection<DexProgramClass> toAccumulate) {
-    for (DexProgramClass dexProgramClass : toAccumulate) {
-      if (dexProgramClass.synthesizedFrom.isEmpty()) {
-        accumulated.add(dexProgramClass);
-      } else {
-        accumulateSynthesizedFrom(accumulated, dexProgramClass.synthesizedFrom);
-      }
-    }
-    return accumulated;
   }
 
   public void setStaticValues(DexEncodedArray staticValues) {
