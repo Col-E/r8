@@ -389,7 +389,7 @@ public class ProguardConfiguration {
       super(factory,
           ImmutableList.of()    /* injars */,
           ImmutableList.of()    /* libraryjars */,
-          PackageObfuscationMode.REPACKAGE, /* TODO(b/36799686): should be NONE once implemented */
+          PackageObfuscationMode.NONE,
           ""                    /* package prefix */,
           false                 /* allowAccessModification */,
           false                 /* ignoreWarnings */,
