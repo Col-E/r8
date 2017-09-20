@@ -22,6 +22,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -320,7 +321,7 @@ public class BisectState {
   private static List<DexProgramClass> getSortedClasses(DexApplication app) {
     List<DexProgramClass> classes = new ArrayList<>(app.classes());
     app.dexItemFactory.sort(NamingLens.getIdentityLens());
-    classes.sort((a, b) -> a.type.compareTo(b.type));
+    classes.sort(Comparator.comparing(DexProgramClass::getType));
     app.dexItemFactory.resetSortedIndices();
     return classes;
   }
@@ -331,6 +332,6 @@ public class BisectState {
     for (DexProgramClass clazz : classes) {
       builder.append(clazz.toString()).append(";");
     }
-    return Hashing.sha1().hashString(builder.toString(), Charsets.UTF_8).toString();
+    return Hashing.sha256().hashString(builder.toString(), Charsets.UTF_8).toString();
   }
 }
