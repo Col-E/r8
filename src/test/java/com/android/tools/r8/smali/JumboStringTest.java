@@ -6,6 +6,7 @@ package com.android.tools.r8.smali;
 
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
@@ -18,20 +19,23 @@ public class JumboStringTest extends SmaliTestBase {
   public void test() throws Exception {
     StringBuilder builder = new StringBuilder();
     StringBuilder expectedBuilder = new StringBuilder();
-    builder.append("    new-instance         v0, Ljava/lang/StringBuilder;\n");
-    builder.append("    invoke-direct        { v0 }, Ljava/lang/StringBuilder;-><init>()V\n");
+    builder.append(StringUtils.lines("    new-instance         v0, Ljava/lang/StringBuilder;"));
+    builder.append(StringUtils.lines("    invoke-direct        { v0 }, Ljava/lang/StringBuilder;"
+        + "-><init>()V"));
     for (int i = 0; i <= 0xffff + 2; i++) {
       String prefixed = StringUtils.zeroPrefix(i, 5);
       expectedBuilder.append(prefixed);
-      expectedBuilder.append("\n");
-      builder.append("  const-string         v1, \"" + prefixed + "\\n\"\n");
+      expectedBuilder.append(StringUtils.lines(""));
+      builder.append(StringUtils.lines("  const-string         v1, \"" + prefixed + "\\n\""));
       builder.append(
-          "  invoke-virtual       { v0, v1 }, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;\n");
+          StringUtils.lines("  invoke-virtual       { v0, v1 }, Ljava/lang/StringBuilder;"
+              + "->append(Ljava/lang/String;)Ljava/lang/StringBuilder;"));
     }
     builder.append(
-        "    invoke-virtual       { v0 }, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;\n");
-    builder.append("    move-result-object   v0\n");
-    builder.append("    return-object               v0\n");
+        StringUtils.lines("    invoke-virtual       { v0 }, Ljava/lang/StringBuilder;"
+            + "->toString()Ljava/lang/String;"));
+    builder.append(StringUtils.lines("    move-result-object   v0"));
+    builder.append(StringUtils.lines("    return-object               v0"));
 
     SmaliBuilder smaliBuilder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 

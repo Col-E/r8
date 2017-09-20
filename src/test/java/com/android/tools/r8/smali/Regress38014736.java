@@ -5,8 +5,10 @@ package com.android.tools.r8.smali;
 
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.StringUtils;
 import org.junit.Test;
 
 public class Regress38014736 extends SmaliTestBase {
@@ -52,7 +54,7 @@ public class Regress38014736 extends SmaliTestBase {
     String result = runArt(processedApplication, options);
     // The art runtime changed the way exceptions are printed. Therefore, we only check
     // for the type of the exception and that the message mentions null.
-    assertTrue(result.startsWith("0\njava.lang.NumberFormatException:"));
+    assertTrue(result.startsWith(StringUtils.joinLines("0", "java.lang.NumberFormatException:")));
     assertTrue(result.contains("null"));
   }
 }

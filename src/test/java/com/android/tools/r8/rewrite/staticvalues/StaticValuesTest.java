@@ -7,6 +7,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.Sput;
 import com.android.tools.r8.code.SputObject;
@@ -26,6 +27,7 @@ import com.android.tools.r8.smali.SmaliTestBase;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.MethodSubject;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.StringUtils;
 import org.junit.Test;
 
 public class StaticValuesTest extends SmaliTestBase {
@@ -146,7 +148,7 @@ public class StaticValuesTest extends SmaliTestBase {
 
     String result = runArt(processedApplication, options);
 
-    assertEquals("true\n1\n2\n3\n4\n5.0\n6.0\n7\n8\n", result);
+    assertEquals(StringUtils.lines("true", "1", "2", "3", "4", "5.0", "6.0", "7", "8"), result);
   }
 
   @Test
@@ -185,7 +187,7 @@ public class StaticValuesTest extends SmaliTestBase {
 
     String result = runArt(processedApplication, options);
 
-    assertEquals("0\n1\n", result);
+    assertEquals(StringUtils.lines("0", "1"), result);
   }
 
   @Test
@@ -227,7 +229,7 @@ public class StaticValuesTest extends SmaliTestBase {
 
     String result = runArt(processedApplication, options);
 
-    assertEquals("null\nnull\nnull\n", result);
+    assertEquals(StringUtils.lines("null", "null", "null"), result);
   }
 
   @Test
@@ -270,7 +272,7 @@ public class StaticValuesTest extends SmaliTestBase {
 
     String result = runArt(processedApplication, options);
 
-    assertEquals("Value1\nValue2\nValue2\n", result);
+    assertEquals(StringUtils.lines("Value1", "Value2", "Value2"), result);
   }
 
   @Test
@@ -332,7 +334,7 @@ public class StaticValuesTest extends SmaliTestBase {
 
     String result = runArt(processedApplication, options);
 
-    assertEquals("3\n7\n", result);
+    assertEquals(StringUtils.lines("3", "7") , result);
   }
 
 
@@ -416,7 +418,7 @@ public class StaticValuesTest extends SmaliTestBase {
 
     String result = runArt(processedApplication, options);
 
-    assertEquals("3\n7\n", result);
+    assertEquals(StringUtils.lines("3", "7"), result);
   }
 
   @Test
@@ -484,8 +486,8 @@ public class StaticValuesTest extends SmaliTestBase {
 
     String result = runArt(processedApplication, options, className);
 
-    assertEquals(
-        "Test\n" + className + "\nTest\n" + className + "\nTest\n"  + className + "\n", result);
+    assertEquals(StringUtils.lines("Test", className, "Test", className, "Test", className),
+        result);
   }
 
   @Test
@@ -532,7 +534,7 @@ public class StaticValuesTest extends SmaliTestBase {
 
     String result = runArt(processedApplication, options, className);
 
-    assertEquals("Test2\norg.example.Test2\n", result);
+    assertEquals(StringUtils.lines("Test2", "org.example.Test2"), result);
   }
 
   @Test
@@ -567,7 +569,7 @@ public class StaticValuesTest extends SmaliTestBase {
 
     String result = runArt(processedApplication, options);
 
-    assertEquals("2\n", result);
+    assertEquals(StringUtils.lines("2"), result);
   }
 
 }

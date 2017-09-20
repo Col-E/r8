@@ -13,6 +13,7 @@ import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.DexInspector.InstructionSubject;
 import com.android.tools.r8.utils.DexInspector.InvokeInstructionSubject;
 import com.android.tools.r8.utils.DexInspector.MethodSubject;
+import com.android.tools.r8.utils.StringUtils;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -43,7 +44,9 @@ public class LongCompare {
     builder.setMainClass("rewrite.LongCompare");
     try {
       String output = ToolHelper.runArt(builder);
-      Assert.assertEquals("-1\n1\n-1\n0\ntrue\nfalse\nfalse\nfalse\n", output);
+      Assert
+          .assertEquals(StringUtils.lines("-1", "1", "-1", "0", "true", "false", "false", "false"),
+              output);
     } catch (IOException e) {
       Assert.fail();
     }
