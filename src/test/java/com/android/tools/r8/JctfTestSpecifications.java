@@ -1732,19 +1732,23 @@ public class JctfTestSpecifications {
           // 1) t02
           // java.lang.AssertionError: Failed to load serialization resource file: serialization/com/google/jctf/test/lib/java/lang/Byte/serialization/Byte_serialization_A01.golden.0.ser
 
-          .put("lang.Byte.parseByteLjava_lang_StringI.Byte_parseByte_A02", any())
+          .put("lang.Byte.parseByteLjava_lang_StringI.Byte_parseByte_A02",
+              match(runtimes(DexVm.ART_DEFAULT, DexVm.ART_7_0_0, DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
           // 1) t01
           // java.lang.AssertionError: Parsed Byte instance from string:+1 radix:10
 
-          .put("lang.Byte.valueOfLjava_lang_StringI.Byte_valueOf_A02", any())
+          .put("lang.Byte.valueOfLjava_lang_StringI.Byte_valueOf_A02",
+              match(runtimes(DexVm.ART_DEFAULT, DexVm.ART_7_0_0, DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
           // 1) t01
           // java.lang.AssertionError: Parsed Byte instance from string:+1 radix:10
 
-          .put("lang.Byte.valueOfLjava_lang_String.Byte_ValueOf_A02", any())
+          .put("lang.Byte.valueOfLjava_lang_String.Byte_ValueOf_A02",
+              match(runtimes(DexVm.ART_DEFAULT, DexVm.ART_7_0_0, DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
           // 1) t02
           // java.lang.AssertionError: Parsed Byte instance from string:+1
 
-          .put("lang.Byte.decodeLjava_lang_String.Byte_decode_A04", any())
+          .put("lang.Byte.decodeLjava_lang_String.Byte_decode_A04",
+              match(runtimes(DexVm.ART_DEFAULT, DexVm.ART_7_0_0, DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
           // 1) t01
           // java.lang.AssertionError: Decoded Byte instance from string:+1
 
@@ -1760,11 +1764,13 @@ public class JctfTestSpecifications {
           // 2) t02
           // java.lang.AssertionError: Failed to load serialization resource file: serialization/com/google/jctf/test/lib/java/lang/ClassCastException/serialization/ClassCastException_serialization_A01.golden.0.ser
 
-          .put("lang.Byte.ConstructorLjava_lang_String.Byte_Constructor_A02", any())
+          .put("lang.Byte.ConstructorLjava_lang_String.Byte_Constructor_A02",
+              match(runtimes(DexVm.ART_DEFAULT, DexVm.ART_7_0_0, DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
           // 1) t02
           // java.lang.AssertionError: Parsed Byte instance from string:+1
 
-          .put("lang.Byte.parseByteLjava_lang_String.Byte_parseByte_A02", any())
+          .put("lang.Byte.parseByteLjava_lang_String.Byte_parseByte_A02",
+              match(runtimes(DexVm.ART_DEFAULT, DexVm.ART_7_0_0, DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
           // 1) t02
           // java.lang.AssertionError: Parsed Byte instance from string:+1
 
@@ -1833,7 +1839,8 @@ public class JctfTestSpecifications {
           // 1) t02
           // java.lang.AssertionError: Failed to load serialization resource file: serialization/com/google/jctf/test/lib/java/lang/Boolean/serialization/Boolean_serialization_A01.golden.0.ser
 
-          .put("lang.Integer.valueOfLjava_lang_StringI.Integer_valueOf_A02", any())
+          .put("lang.Integer.valueOfLjava_lang_StringI.Integer_valueOf_A02",
+              match(runtimes(DexVm.ART_DEFAULT, DexVm.ART_7_0_0, DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
           // 1) t07
           // java.lang.AssertionError: NumberFormatException expected for input: +1 and radix: 10
 
@@ -1841,36 +1848,43 @@ public class JctfTestSpecifications {
           // 1) t02
           // java.lang.AssertionError: Failed to load serialization resource file: serialization/com/google/jctf/test/lib/java/lang/Integer/serialization/Integer_serialization_A01.golden.0.ser
 
-          .put("lang.Integer.parseIntLjava_lang_String.Integer_parseInt_A02", any())
+          .put("lang.Integer.parseIntLjava_lang_String.Integer_parseInt_A02",
+              match(runtimes(DexVm.ART_DEFAULT, DexVm.ART_7_0_0, DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
           // 1) t06
           // java.lang.AssertionError: Expected exception: java.lang.NumberFormatException
 
-          .put("lang.Integer.getIntegerLjava_lang_StringI.Integer_getInteger_A02", any())
+          .put("lang.Integer.getIntegerLjava_lang_StringI.Integer_getInteger_A02",
+              match(runtimes(DexVm.ART_DEFAULT, DexVm.ART_7_0_0, DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
           // 1) t03
           // java.lang.AssertionError: expected:<6031769> but was:<1>
 
-          .put("lang.Integer.valueOfLjava_lang_String.Integer_valueOf_A02", any())
+          .put("lang.Integer.valueOfLjava_lang_String.Integer_valueOf_A02",
+              match(runtimes(DexVm.ART_DEFAULT, DexVm.ART_7_0_0, DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
           // 1) t07
           // java.lang.AssertionError: NumberFormatException expected for input: +1
 
-          .put("lang.Integer.decodeLjava_lang_String.Integer_decode_A04", any())
+          .put("lang.Integer.decodeLjava_lang_String.Integer_decode_A04",
+              match(runtimes(DexVm.ART_DEFAULT, DexVm.ART_7_0_0, DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
           // 1) t06
           // java.lang.AssertionError: Expected exception: java.lang.NumberFormatException
 
-          .put("lang.Integer.parseIntLjava_lang_StringI.Integer_parseInt_A02", any())
+          .put("lang.Integer.parseIntLjava_lang_StringI.Integer_parseInt_A02",
+              match(runtimes(DexVm.ART_DEFAULT, DexVm.ART_7_0_0, DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
           // 1) t06
           // java.lang.AssertionError: Expected exception: java.lang.NumberFormatException
 
           .put("lang.Integer.getIntegerLjava_lang_StringLjava_lang_Integer.Integer_getInteger_A02",
-              any())
+              match(runtimes(DexVm.ART_DEFAULT, DexVm.ART_7_0_0, DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
           // 1) t03
           // java.lang.AssertionError: expected:<6031769> but was:<1>
 
-          .put("lang.Integer.ConstructorLjava_lang_String.Integer_Constructor_A02", any())
+          .put("lang.Integer.ConstructorLjava_lang_String.Integer_Constructor_A02",
+              match(runtimes(DexVm.ART_DEFAULT, DexVm.ART_7_0_0, DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
           // 1) t06
           // java.lang.AssertionError: Expected exception: java.lang.NumberFormatException
 
-          .put("lang.Integer.getIntegerLjava_lang_String.Integer_getInteger_A02", any())
+          .put("lang.Integer.getIntegerLjava_lang_String.Integer_getInteger_A02",
+              match(runtimes(DexVm.ART_DEFAULT, DexVm.ART_7_0_0, DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
           // 1) t03
           // java.lang.AssertionError: expected null, but was:<1>
 
@@ -2003,11 +2017,13 @@ public class JctfTestSpecifications {
           // 2) t04
           // org.junit.ComparisonFailure: expected:<0.001[0]> but was:<0.001[]>
 
-          .put("lang.Short.valueOfLjava_lang_StringI.Short_valueOf_A02", any())
+          .put("lang.Short.valueOfLjava_lang_StringI.Short_valueOf_A02",
+              match(runtimes(DexVm.ART_DEFAULT, DexVm.ART_7_0_0, DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
           // 1) t03
           // java.lang.AssertionError: Missing NumberFormatException for radix=10
 
-          .put("lang.Short.valueOfLjava_lang_String.Short_valueOf_A02", any())
+          .put("lang.Short.valueOfLjava_lang_String.Short_valueOf_A02",
+              match(runtimes(DexVm.ART_DEFAULT, DexVm.ART_7_0_0, DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
           // 1) t03
           // java.lang.AssertionError: Missing NumberFormatException for arg="+1"
 
@@ -2015,15 +2031,18 @@ public class JctfTestSpecifications {
           // 1) t02
           // java.lang.AssertionError: Failed to load serialization resource file: serialization/com/google/jctf/test/lib/java/lang/Short/serialization/Short_serialization_A01.golden.0.ser
 
-          .put("lang.Short.parseShortLjava_lang_String.Short_parseShort_A02", any())
+          .put("lang.Short.parseShortLjava_lang_String.Short_parseShort_A02",
+              match(runtimes(DexVm.ART_DEFAULT, DexVm.ART_7_0_0, DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
           // 1) t01
           // java.lang.AssertionError: Parsed Short instance from string:+1
 
-          .put("lang.Short.decodeLjava_lang_String.Short_decode_A04", any())
+          .put("lang.Short.decodeLjava_lang_String.Short_decode_A04",
+              match(runtimes(DexVm.ART_DEFAULT, DexVm.ART_7_0_0, DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
           // 1) t01
           // java.lang.AssertionError: Decoded Short instance from string:+1
 
-          .put("lang.Short.ConstructorLjava_lang_String.Short_Constructor_A02", any())
+          .put("lang.Short.ConstructorLjava_lang_String.Short_Constructor_A02",
+              match(runtimes(DexVm.ART_DEFAULT, DexVm.ART_7_0_0, DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
           // 1) t02
           // java.lang.AssertionError: Created Short instance from string:+1
 
@@ -2042,7 +2061,8 @@ public class JctfTestSpecifications {
           // 2) t02
           // java.lang.AssertionError: Failed to load serialization resource file: serialization/com/google/jctf/test/lib/java/lang/annotation/AnnotationFormatError/serialization/AnnotationFormatError_serialization_A01.golden.0.ser
 
-          .put("lang.Short.parseShortLjava_lang_StringI.Short_parseShort_A02", any())
+          .put("lang.Short.parseShortLjava_lang_StringI.Short_parseShort_A02",
+              match(runtimes(DexVm.ART_DEFAULT, DexVm.ART_7_0_0, DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
           // 1) t01
           // java.lang.AssertionError: Parsed Short instance from string:+1 radix:10
 
@@ -2261,7 +2281,8 @@ public class JctfTestSpecifications {
           // 1) t04
           // java.lang.AssertionError: expected null, but was:<class com.google.jctf.test.lib.java.lang.Class.getDeclaringClass.Class_getDeclaringClass_A01>
 
-          .put("lang.Class.getDeclaredFields.Class_getDeclaredFields_A01", any())
+          .put("lang.Class.getDeclaredFields.Class_getDeclaredFields_A01",
+              match(runtimes(DexVm.ART_DEFAULT, DexVm.ART_7_0_0, DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
           // 1) t02
           // java.lang.AssertionError: array lengths differed, expected.length=0 actual.length=2
 
@@ -2372,7 +2393,7 @@ public class JctfTestSpecifications {
           // java.lang.AssertionError: Vague error message
 
           .put("lang.Class.getClasses.Class_getClasses_A01",
-              match(runtimes(DexVm.ART_DEFAULT, DexVm.ART_7_0_0)))
+              match(runtimes(DexVm.ART_DEFAULT, DexVm.ART_7_0_0, DexVm.ART_4_4_4)))
           // 1) t03
           // java.lang.AssertionError: Array lengths expected:<2> but was:<3>
 
@@ -2548,7 +2569,7 @@ public class JctfTestSpecifications {
           // Caused by: java.lang.AssertionError: Unable to configure default providers
 
           .put("lang.Class.getMethodLjava_lang_String_Ljava_lang_Class.Class_getMethod_A01",
-              match(runtimes(DexVm.ART_DEFAULT, DexVm.ART_7_0_0)))
+              match(runtimes(DexVm.ART_DEFAULT, DexVm.ART_7_0_0, DexVm.ART_4_4_4)))
           // 1) t04
           // java.lang.AssertionError: expected:<interface com.google.jctf.test.lib.java.lang.Class.getMethodLjava_lang_String_Ljava_lang_Class.Class_getMethod_A01$I1> but was:<interface com.google.jctf.test.lib.java.lang.Class.getMethodLjava_lang_String$Ljava_lang_Class.Class_getMethod_A01$I2>
 
@@ -2676,7 +2697,7 @@ public class JctfTestSpecifications {
           // java.lang.AssertionError: Failed to load serialization resource file: serialization/com/google/jctf/test/lib/java/lang/String/CASE_INSENSITIVE_ORDER/serialization/String_serialization_A01.golden.0.ser
 
           .put("lang.String.getBytesLjava_lang_String.String_getBytes_A14",
-              match(runtimes(DexVm.ART_7_0_0, DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
+              match(runtimes(DexVm.ART_7_0_0, DexVm.ART_6_0_1, DexVm.ART_5_1_1, DexVm.ART_4_4_4)))
           // 1) t07
           // arrays first differed at element [0]; expected:<-2> but was:<-1>
           // Caused by: java.lang.AssertionError: expected:<-2> but was:<-1>
@@ -2709,7 +2730,8 @@ public class JctfTestSpecifications {
           // 2) t05
           // java.lang.AssertionError: Should throws IndexOutOfBoundsException: 0
 
-          .put("lang.String.getBytesII_BI.String_getBytes_A02", any())
+          .put("lang.String.getBytesII_BI.String_getBytes_A02",
+              match(runtimes(DexVm.ART_DEFAULT, DexVm.ART_7_0_0, DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
           // 1) t01
           // java.lang.AssertionError: Expected exception: java.lang.NullPointerException
 
@@ -2737,7 +2759,7 @@ public class JctfTestSpecifications {
           // org.junit.ComparisonFailure: Incorrect double string returned expected:<0.001[0]> but was:<0.001[]>
 
           .put("lang.String.getBytesLjava_nio_charset_Charset.String_getBytes_A14",
-              match(runtimes(DexVm.ART_7_0_0, DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
+              match(runtimes(DexVm.ART_7_0_0, DexVm.ART_6_0_1, DexVm.ART_5_1_1, DexVm.ART_4_4_4)))
           // 1) t07
           // arrays first differed at element [0]; expected:<-2> but was:<-1>
           // Caused by: java.lang.AssertionError: expected:<-2> but was:<-1>
@@ -3600,7 +3622,7 @@ public class JctfTestSpecifications {
 
           .put(
               "lang.reflect.Proxy.getInvocationHandlerLjava_lang_Object.Proxy_getInvocationHandler_A02",
-              any())
+              match(runtimes(DexVm.ART_DEFAULT, DexVm.ART_7_0_0, DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
           // 1) t02
           // java.lang.Exception: Unexpected exception, expected<java.lang.IllegalArgumentException> but was<java.lang.NullPointerException>
           // Caused by: java.lang.NullPointerException
@@ -3610,6 +3632,16 @@ public class JctfTestSpecifications {
           // java.lang.NullPointerException: Attempt to invoke virtual method 'int java.io.InputStream.available()' on a null object reference
           // 2) t05
           // java.lang.NullPointerException: Attempt to invoke virtual method 'int java.io.InputStream.available()' on a null object reference
+
+          .put("lang.reflect.Proxy.Class.Proxy_class_A02", match(runtimes(DexVm.ART_4_4_4)))
+          // 1) t02
+          // java.lang.AssertionError: expected array was null
+          // 2) t04
+          // java.lang.AssertionError: expected array was null
+
+          .put("lang.reflect.Proxy.Class.Proxy_class_A03", match(runtimes(DexVm.ART_4_4_4)))
+          // 1) t03
+          // java.lang.AbstractMethodError: abstract method not implemented
 
           .put(
               "lang.reflect.Proxy.getProxyClassLjava_lang_ClassLoader_Ljava_lang_Class.Proxy_getProxyClass_A01",
@@ -3775,6 +3807,12 @@ public class JctfTestSpecifications {
           // Caused by: java.lang.ClassNotFoundException: Didn't find class "com.google.jctf.test.lib.java.lang.reflect.Method.MissingParameterTypeMethod" on path: DexPathList[[dex file "/tmp/junit3534060116722105133/classes.dex"],nativeLibraryDirectories=[r8/tools/linux/art/bin/../lib, r8/tools/linux/art/bin/../lib]]
 
           .put(
+              "lang.reflect.InvocationHandler.invokeLjava_lang_ObjectLjava_lang_reflect_Method_Ljava_lang_Object.InvocationHandler_invoke_A01",
+              match(runtimes(DexVm.ART_4_4_4)))
+          // 1) t04
+          // java.lang.AssertionError: expected array was null
+
+          .put(
               "lang.reflect.InvocationHandler.invokeLjava_lang_ObjectLjava_lang_reflect_Method_Ljava_lang_Object.InvocationHandler_invoke_A02",
               any())
           // 1) t04
@@ -3783,6 +3821,11 @@ public class JctfTestSpecifications {
           .put("lang.reflect.Method.getDefaultValue.Method_getDefaultValue_A02", any())
           // 1) t01
           // java.lang.AssertionError: Expected exception: java.lang.TypeNotPresentException
+
+          .put("lang.reflect.Method.hashCode.Method_hashCode_A01",
+              match(runtimes(DexVm.ART_4_4_4)))
+          // 1)
+          // java.lang.AssertionError: expected:<-1918826964> but was:<-1295482945>
 
           .put("lang.reflect.Method.toString.Method_toString_A01", any())
           // 1) t04
@@ -3838,9 +3881,19 @@ public class JctfTestSpecifications {
           // 1) t02
           // java.lang.AssertionError: Exception is not thrown: field: bytePublicField, object: com.google.jctf.test.lib.java.lang.reflect.Field.TestStaticFinalPrimitiveField@b1b0f3d
 
+          .put("lang.reflect.Field.setByteLjava_lang_ObjectB.Field_setByte_A02",
+              match(runtimes(DexVm.ART_4_4_4)))
+          // 1) t01
+          // java.lang.AssertionError: Illegal exception is thrown: java.lang.IllegalAccessException: field is marked 'final', field: bytePublicField, class: class com.google.jctf.test.lib.java.lang.reflect.Field.TestFinalPrimitiveField
+
           .put("lang.reflect.Field.setBooleanLjava_lang_ObjectZ.Field_setBoolean_A01", any())
           // 1) t02
           // java.lang.AssertionError: Exception is not thrown: field: booleanPublicField, object: com.google.jctf.test.lib.java.lang.reflect.Field.TestStaticFinalPrimitiveField@953cc4f
+
+          .put("lang.reflect.Field.setBooleanLjava_lang_ObjectZ.Field_setBoolean_A02",
+              match(runtimes(DexVm.ART_4_4_4)))
+          // 1) t01
+          // java.lang.AssertionError: Illegal exception is thrown: java.lang.IllegalAccessException: field is marked 'final', field: booleanPublicField, class: class com.google.jctf.test.lib.java.lang.reflect.Field.TestFinalPrimitiveField
 
           .put("lang.reflect.Field.setCharLjava_lang_ObjectC.Field_setChar_A05", any())
           // 1) t01
@@ -3869,6 +3922,11 @@ public class JctfTestSpecifications {
           // 1) t02
           // java.lang.AssertionError: Exception is not thrown: field: charPublicField, object: com.google.jctf.test.lib.java.lang.reflect.Field.TestStaticFinalPrimitiveField@95271f1
 
+          .put("lang.reflect.Field.setCharLjava_lang_ObjectC.Field_setChar_A02",
+              match(runtimes(DexVm.ART_4_4_4)))
+          // 1) t01
+          // java.lang.AssertionError: Illegal exception is thrown: java.lang.IllegalAccessException: field is marked 'final', field: charPublicField, class: class com.google.jctf.test.lib.java.lang.reflect.Field.TestFinalPrimitiveField
+
           .put("lang.reflect.Field.getDoubleLjava_lang_Object.Field_getDouble_A05", any())
           // 1) t01
           // java.lang.Exception: Unexpected exception, expected<java.lang.ExceptionInInitializerError> but was<java.lang.NullPointerException>
@@ -3880,11 +3938,21 @@ public class JctfTestSpecifications {
           // 1) t02
           // java.lang.AssertionError: Exception is not thrown: field: floatPublicField, object: com.google.jctf.test.lib.java.lang.reflect.Field.TestStaticFinalPrimitiveField@3fca927
 
+          .put("lang.reflect.Field.setFloatLjava_lang_ObjectF.Field_setFloat_A02",
+              match(runtimes(DexVm.ART_4_4_4)))
+          // 1) t01
+          // java.lang.AssertionError: Illegal exception is thrown: java.lang.IllegalAccessException: field is marked 'final', field: floatPublicField, class: class com.google.jctf.test.lib.java.lang.reflect.Field.TestFinalPrimitiveField
+
           .put("lang.reflect.Field.getAnnotationLjava_lang_Class.Field_getAnnotation_A01", any())
           // 1) t02
           // java.lang.AssertionError: Misconfiguration: MissingAntn should not be accessible
           // 2) t03
           // java.lang.AssertionError: Misconfiguration: MissingAntn should not be accessible
+
+          .put("lang.reflect.Field.setIntLjava_lang_ObjectI.Field_setInt_A02",
+              match(runtimes(DexVm.ART_4_4_4)))
+          // 1) t01
+          // java.lang.AssertionError: Illegal exception is thrown: java.lang.IllegalAccessException: field is marked 'final', field: intPublicField, class: class com.google.jctf.test.lib.java.lang.reflect.Field.TestFinalPrimitiveField
 
           .put("lang.reflect.Field.getIntLjava_lang_Object.Field_getInt_A05", any())
           // 1) t01
@@ -3961,6 +4029,11 @@ public class JctfTestSpecifications {
           // 1) t02
           // java.lang.AssertionError: Exception is not thrown: field: shortPublicField, object: com.google.jctf.test.lib.java.lang.reflect.Field.TestStaticFinalPrimitiveField@7887a47
 
+          .put("lang.reflect.Field.setLongLjava_lang_ObjectJ.Field_setLong_A02",
+              match(runtimes(DexVm.ART_4_4_4)))
+          // 1) t01
+          // java.lang.AssertionError: Illegal exception is thrown: java.lang.IllegalAccessException: field is marked 'final', field: longPublicField, class: class com.google.jctf.test.lib.java.lang.reflect.Field.TestFinalPrimitiveField
+
           .put("lang.reflect.Field.setLongLjava_lang_ObjectJ.Field_setLong_A05", any())
           // 1) t01
           // java.lang.Exception: Unexpected exception, expected<java.lang.ExceptionInInitializerError> but was<java.lang.NullPointerException>
@@ -3975,6 +4048,11 @@ public class JctfTestSpecifications {
           .put("lang.reflect.Field.setDoubleLjava_lang_ObjectD.Field_setDouble_A01", any())
           // 1) t02
           // java.lang.AssertionError: Exception is not thrown: field: doublePublicField, object: com.google.jctf.test.lib.java.lang.reflect.Field.TestStaticFinalPrimitiveField@4dd95e2
+
+          .put("lang.reflect.Field.setShortLjava_lang_ObjectS.Field_setShort_A02",
+              match(runtimes(DexVm.ART_4_4_4)))
+          // 1) t01
+          // java.lang.AssertionError: Illegal exception is thrown: java.lang.IllegalAccessException: field is marked 'final', field: shortPublicField, class: class com.google.jctf.test.lib.java.lang.reflect.Field.TestFinalPrimitiveField
 
           .put("lang.reflect.Field.setShortLjava_lang_ObjectS.Field_setShort_A05", any())
           // 1) t01
@@ -3996,6 +4074,11 @@ public class JctfTestSpecifications {
           // Caused by: java.lang.NullPointerException: Attempt to invoke virtual method 'int java.io.InputStream.available()' on a null object reference
           // 2) t02
           // java.lang.NullPointerException: Attempt to invoke virtual method 'int java.io.InputStream.available()' on a null object reference
+
+          .put("lang.reflect.Field.setLjava_lang_ObjectLjava_lang_Object.Field_set_A02",
+              match(runtimes(DexVm.ART_4_4_4)))
+          // 1) t01
+          // java.lang.AssertionError: Illegal exception is thrown: java.lang.IllegalAccessException: field is marked 'final', field: bytePublicField, class: class com.google.jctf.test.lib.java.lang.reflect.Field.TestFinalPrimitiveField
 
           .put("lang.reflect.Field.setLjava_lang_ObjectLjava_lang_Object.Field_set_A05", any())
           // 1) t01
@@ -4365,7 +4448,7 @@ public class JctfTestSpecifications {
 
           .put(
               "util.concurrent.ConcurrentHashMap.serialization.ConcurrentHashMap_serialization_A01",
-              any())
+              match(runtimes(DexVm.ART_DEFAULT, DexVm.ART_7_0_0, DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
           // 1) t01
           // java.lang.AssertionError: Unable to configure default providers
 
@@ -4444,51 +4527,51 @@ public class JctfTestSpecifications {
 
           .put(
               "util.concurrent.CopyOnWriteArrayList.lastIndexOfLjava_lang_ObjectI.CopyOnWriteArrayList_lastIndexOf_A02",
-              match(runtimes(DexVm.ART_7_0_0, DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
+              match(runtimes(DexVm.ART_7_0_0, DexVm.ART_6_0_1, DexVm.ART_5_1_1, DexVm.ART_4_4_4)))
           // java.lang.AssertionError: Expected exception: java.lang.IndexOutOfBoundsException
 
           .put(
               "util.concurrent.CopyOnWriteArrayList.lastIndexOfLjava_lang_ObjectI.CopyOnWriteArrayList_lastIndexOf_A01",
-              match(runtimes(DexVm.ART_7_0_0, DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
+              match(runtimes(DexVm.ART_7_0_0, DexVm.ART_6_0_1, DexVm.ART_5_1_1, DexVm.ART_4_4_4)))
           // 1) t01(com.google.jctf.test.lib.java.util.concurrent.CopyOnWriteArrayList.lastIndexOfLjava_lang_ObjectI.CopyOnWriteArrayList_lastIndexOf_A01)
           // java.lang.AssertionError: expected:<3> but was:<1>
           // 2) t02(com.google.jctf.test.lib.java.util.concurrent.CopyOnWriteArrayList.lastIndexOfLjava_lang_ObjectI.CopyOnWriteArrayList_lastIndexOf_A01)
           // java.lang.ArrayIndexOutOfBoundsException: length=3; index=2147483647
 
           .put("lang.StringBuffer.getCharsII_CI.StringBuffer_getChars_A03",
-              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
+              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1, DexVm.ART_4_4_4)))
           // 1) t03
           // java.lang.NullPointerException: dst == null
 
           .put("lang.StringBuffer.appendF.StringBuffer_append_A01",
-              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
+              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1, DexVm.ART_4_4_4)))
           // 1) t02
           // java.lang.AssertionError: Buffer is invalid length after append expected:<26> but was:<25>
 
           .put("lang.StringBuffer.insertI_CII.StringBuffer_insert_A02",
-              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
+              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1, DexVm.ART_4_4_4)))
           // 1) t01
           // java.lang.NullPointerException: Attempt to get length of null array
 
           .put("lang.StrictMath.scalbDI.StrictMath_scalb_A03",
-              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
+              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1, DexVm.ART_4_4_4)))
           // 1) t01
           // java.lang.AssertionError: Wrong result provided for argument: -1.7976931348623157E308 scaleFactor: 2147483647 expected:<-Infinity> but was:<-0.0>
 
           .put("lang.StrictMath.scalbDI.StrictMath_scalb_A01",
-              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
+              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1, DexVm.ART_4_4_4)))
           // 1) t03
           // java.lang.AssertionError: Wrong result provided for argument: -2.2250738585072014E-308 scaleFactor: -2147483647 expected:<-0.0> but was:<-Infinity>
           // 2) t04
           // java.lang.AssertionError: Wrong result provided for argument: 1.7976931348623157E308 scaleFactor: -2046 expected:<2.2250738585072014E-308> but was:<2.225073858507201E-308>
 
           .put("lang.StrictMath.scalbFI.StrictMath_scalb_A03",
-              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
+              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1, DexVm.ART_4_4_4)))
           // 1) t01
           // java.lang.AssertionError: Wrong result provided for argument: -3.4028235E38 scaleFactor: 2147483647 expected:<-Infinity> but was:<-0.0>
 
           .put("lang.StrictMath.scalbFI.StrictMath_scalb_A01",
-              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
+              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1, DexVm.ART_4_4_4)))
           // 1) t02
           // java.lang.AssertionError: Wrong result provided for argument: 3.4028235E38 scaleFactor: -254 expected:<1.1754943508222875E-38> but was:<1.1754942106924411E-38>
           // 2) t03
@@ -4496,96 +4579,96 @@ public class JctfTestSpecifications {
 
           .put(
               "lang.Thread.ConstructorLjava_lang_ThreadGroupLjava_lang_RunnableLjava_lang_StringJ.Thread_Constructor_A07",
-              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
+              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1, DexVm.ART_4_4_4)))
           // 1) t02
           // java.lang.AssertionError: wrong daemonism expected:<true> but was:<false>
 
           .put(
               "lang.Thread.ConstructorLjava_lang_ThreadGroupLjava_lang_RunnableLjava_lang_String.Thread_Constructor_A07",
-              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
+              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1, DexVm.ART_4_4_4)))
           // 1) t02
           // java.lang.AssertionError: wrong daemonism expected:<true> but was:<false>
 
           .put("lang.Thread.toString.Thread_toString_A01",
-              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
+              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1, DexVm.ART_4_4_4)))
           // 1) t02
           // java.lang.AssertionError
 
           .put("lang.Thread.start.Thread_start_A02",
-              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
+              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1, DexVm.ART_4_4_4)))
           // 1) t01
           // java.lang.IllegalThreadStateException: Thread group still contains threads: start
 
           .put("lang.Thread.setPriorityI.Thread_setPriority_A01",
-              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
+              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1, DexVm.ART_4_4_4)))
           // 1) t02
           // java.lang.AssertionError: expected:<5> but was:<10>
 
           .put("lang.ClassLoader.ConstructorLjava_lang_ClassLoader.ClassLoader_Constructor_A01",
-              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
+              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1, DexVm.ART_4_4_4)))
           // 1) t01
           // java.lang.NullPointerException: parentLoader == null && !nullAllowed
           // 2) t03
           // java.lang.NullPointerException: parentLoader == null && !nullAllowed
 
           .put("lang.Enum.compareToLjava_lang_Enum.Enum_compareTo_A03",
-              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
+              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1, DexVm.ART_4_4_4)))
           // 1) t01
           // java.lang.AssertionError: Expected exception: java.lang.ClassCastException
 
           .put("lang.Enum.hashCode.Enum_hashCode_A01",
-              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
+              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1, DexVm.ART_4_4_4)))
           // 1) t02
           // java.lang.AssertionError
 
           .put("lang.StackTraceElement.hashCode.StackTraceElement_hashCode_A01",
-              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
+              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1, DexVm.ART_4_4_4)))
           // 1) t02
           // java.lang.AssertionError
 
           .put("lang.ProcessBuilder.environment.ProcessBuilder_environment_A01",
-              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
+              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1, DexVm.ART_4_4_4)))
           // 1) t01
           // java.lang.AssertionError: should throw ClassCastException.
 
           .put("lang.ProcessBuilder.environment.ProcessBuilder_environment_A03",
-              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
+              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1, DexVm.ART_4_4_4)))
           // 1) t01
           // java.lang.AssertionError: should throw ClassCastException.
 
           .put("lang.Float.toStringF.Float_toString_A04",
-              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
+              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1, DexVm.ART_4_4_4)))
           // 1) t02
           // org.junit.ComparisonFailure: Invalid string produced for bits: 4efffffa expected:<2.147482[88]E9> but was:<2.147482[9]E9>
 
           .put("lang.Float.toStringF.Float_toString_A03",
-              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
+              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1, DexVm.ART_4_4_4)))
           // 1) t02
           // org.junit.ComparisonFailure: expected:<-1.175494[35]E-38> but was:<-1.175494[4]E-38>
 
           .put("lang.ThreadGroup.getMaxPriority.ThreadGroup_getMaxPriority_A01",
-              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
+              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1, DexVm.ART_4_4_4)))
           // 1) t01
           // java.lang.AssertionError: New value should be the same as we set expected:<2> but was:<1>
 
           .put(
               "lang.ThreadGroup.uncaughtExceptionLjava_lang_ThreadLjava_lang_Throwable.ThreadGroup_uncaughtException_A02",
-              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
+              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1, DexVm.ART_4_4_4)))
           // 1) t05
           // java.lang.AssertionError: Non-informative exception info: java.lang.RuntimeException
 
           .put("lang.ThreadGroup.list.ThreadGroup_list_A01",
-              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
+              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1, DexVm.ART_4_4_4)))
           // 1) t04
           // java.lang.IllegalThreadStateException: Thread group still contains threads: Test group(list)
 
           .put("lang.ThreadGroup.setMaxPriorityI.ThreadGroup_setMaxPriority_A01",
-              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
+              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1, DexVm.ART_4_4_4)))
           // 1) t01
           // java.lang.IllegalThreadStateException: Thread group still contains threads: Test root(setMaxPriority)
 
           .put("lang.ThreadGroup.setMaxPriorityI.ThreadGroup_setMaxPriority_A04",
-              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
+              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1, DexVm.ART_4_4_4)))
           // 1) t01
           // java.lang.AssertionError: New value should be the same as we set expected:<2> but was:<1>
           // 2) t02
@@ -4594,40 +4677,46 @@ public class JctfTestSpecifications {
           // java.lang.AssertionError: expected:<7> but was:<1>
 
           .put("lang.ThreadGroup.toString.ThreadGroup_toString_A01",
-              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
+              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1, DexVm.ART_4_4_4)))
           // 1) t01
           // org.junit.ComparisonFailure: toString does not follow the RI expected:<... group(toString),max[pri]=10]> but was:<... group(toString),max[Priority]=10]>
 
           .put("lang.Class.getFieldLjava_lang_String.Class_getField_A01",
-              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
+              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1, DexVm.ART_4_4_4)))
           // 1) t04
           // java.lang.AssertionError: expected:<interface com.google.jctf.test.lib.java.lang.Class.getFieldLjava_lang_String.Class_getField_A01$I1> but was:<class com.google.jctf.test.lib.java.lang.Class.getFieldLjava_lang_String.Class_getField_A01$S1>
 
           .put("lang.String.replaceCC.String_replace_A01",
-              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
+              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1, DexVm.ART_4_4_4)))
           // 1) t04
           // java.lang.AssertionError: expected same:<aaaaaa> was not:<aaaaaa>
 
           .put("lang.Package.isCompatibleWithLjava_lang_String.Package_isCompatibleWith_A02",
-              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
+              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1, DexVm.ART_4_4_4)))
           // 1) t01
           // java.lang.AssertionError: NumberFormatException isn't thrown for desired . and current 1.0
           // 2) t03
           // java.lang.AssertionError: NumberFormatException isn't thrown for desired 1.0 and current .
 
           .put("lang.StringBuilder.appendF.StringBuilder_append_A01",
-              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
+              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1, DexVm.ART_4_4_4)))
           // 1) t01
           // java.lang.AssertionError: Invalid length of created builder expected:<14> but was:<13>
 
           .put("lang.StringBuilder.insertIF.StringBuilder_insert_A01",
-              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
+              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1, DexVm.ART_4_4_4)))
           // 1) t01
           // java.lang.AssertionError: Invalid length of created builder expected:<14> but was:<13>
 
           .put(
+              "lang.reflect.AccessibleObject.setAccessibleZ.AccessibleObject_setAccessible_A04",
+              match(runtimes(DexVm.ART_4_4_4)))
+          // 1) t01
+          // java.lang.AssertionError: SecurityException expected.
+
+          .put(
               "lang.reflect.AccessibleObject.setAccessible_Ljava_lang_reflect_AccessibleObjectZ.AccessibleObject_setAccessible_A04",
-              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
+              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1, DexVm.ART_4_4_4)))
           // 1) t01
           // java.lang.AssertionError: SecurityException expected.
           // 2) t02
@@ -4638,12 +4727,12 @@ public class JctfTestSpecifications {
           // java.lang.AssertionError: SecurityException expected.
 
           .put("lang.Character.UnicodeBlock.forName_java_lang_String.UnicodeBlock_forName_A03",
-              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
+              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1, DexVm.ART_4_4_4)))
           // 1) t01
           // java.lang.AssertionError: Expected exception: java.lang.IllegalArgumentException
 
           .put("lang.System.loadLjava_lang_String.System_load_A02",
-              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
+              match(runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1, DexVm.ART_4_4_4)))
           // 1) t03
           // java.lang.AssertionError: Expected exception: java.lang.UnsatisfiedLinkError
 
@@ -4654,7 +4743,7 @@ public class JctfTestSpecifications {
           // 2) t02
           // java.lang.AssertionError: Wrong value returned for start: -0.0 direction: NaN expected:<-1.4E-45> but was:<NaN>
 
-          .put("lang.Math.hypotDD.Math_hypot_A04", match(runtimes(DexVm.ART_5_1_1)))
+          .put("lang.Math.hypotDD.Math_hypot_A04", match(runtimes(DexVm.ART_5_1_1, DexVm.ART_4_4_4)))
           // 1) t04
           // java.lang.AssertionError
 
