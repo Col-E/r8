@@ -211,6 +211,10 @@ public abstract class DexClass extends DexItem {
     return this.origin;
   }
 
+  public DexType getType() {
+    return this.type;
+  }
+
   public boolean hasClassInitializer() {
     return getClassInitializer() != null;
   }
