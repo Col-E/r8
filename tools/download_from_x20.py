@@ -50,6 +50,8 @@ def Main():
   src = os.path.join(GMSCORE_DEPS, sha1)
   if not os.path.exists(src):
     print 'File (%s) does not exist on x20' % src
+    print 'Maybe pass -Pno_internal to your gradle invocation'
+    return 42
   print 'Downloading %s to %s' % (src, dest)
   shutil.copyfile(src, dest)
   unpack_archive(dest)
