@@ -89,7 +89,6 @@ public class IRCode {
 
   @Override
   public String toString() {
-    ensureBlockNumbering();
     StringBuilder builder = new StringBuilder();
     builder.append("blocks:\n");
     for (BasicBlock block : blocks) {
