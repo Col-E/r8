@@ -1251,11 +1251,10 @@ public class CodeRewriter {
     InstructionListIterator insertAt = block.listIterator();
     // Place the instruction as late in the block as we can. It needs to go before users
     // and if we have catch handlers it needs to be placed before the throwing instruction.
-    insertAt.nextUntil(i -> {
-      return i.inValues().contains(instruction.outValue())
-          || i.isJumpInstruction()
-          || (hasCatchHandlers && i.instructionInstanceCanThrow());
-    });
+    insertAt.nextUntil(i ->
+        i.inValues().contains(instruction.outValue())
+        || i.isJumpInstruction()
+        || (hasCatchHandlers && i.instructionTypeCanThrow()));
     insertAt.previous();
     insertAt.add(instruction);
   }
