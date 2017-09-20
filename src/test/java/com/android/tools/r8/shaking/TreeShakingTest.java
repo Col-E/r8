@@ -60,6 +60,7 @@ public class TreeShakingTest {
   private static final List<Path> JAR_LIBRARIES = ListUtils.map(ImmutableList
       .of(ANDROID_JAR, ToolHelper.EXAMPLES_BUILD_DIR + "shakinglib.jar"), Paths::get);
   private static final String EMPTY_FLAGS = "src/test/proguard/valid/empty.flags";
+
   private static Set<String> IGNORED = ImmutableSet.of(
       // there's no point in running those without obfuscation
       "shaking1:keep-rules-repackaging.txt:DEX:false",
@@ -80,8 +81,11 @@ public class TreeShakingTest {
       "inlining:keep-rules-discard.txt:DEX:true",
       "inlining:keep-rules-discard.txt:JAR:true"
   );
-  private final boolean minify;
 
+  // TODO(65355452): Reenable or remove inlining tests.
+  private static Set<String> SKIPPED = ImmutableSet.of("inlining");
+
+  private final boolean minify;
 
   private enum Frontend {
     DEX, JAR
@@ -630,7 +634,6 @@ public class TreeShakingTest {
             "shaking15",
             "shaking16",
             "shaking17",
-            "inlining",
             "minification",
             "minifygeneric",
             "minifygenericwithinner",
@@ -817,6 +820,9 @@ public class TreeShakingTest {
       String keepName, List<String> keepList, Consumer<DexInspector> inspection,
       BiConsumer<String, String> outputComparator,
       BiConsumer<DexInspector, DexInspector> dexComparator) {
+    if (SKIPPED.contains(test)) {
+      return;
+    }
     addTestCase(testCases, test, Frontend.JAR, mainClass, keepName, keepList, false, inspection,
         outputComparator, dexComparator);
     addTestCase(testCases, test, Frontend.DEX, mainClass, keepName, keepList, false, inspection,
