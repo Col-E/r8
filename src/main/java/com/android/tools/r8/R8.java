@@ -63,7 +63,9 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -452,21 +454,31 @@ public class R8 {
     }
   }
 
+  private static void writeProguardMapToPath(Path path, AndroidApp outputApp) throws IOException {
+    try (Closer closer = Closer.create()) {
+      OutputStream mapOut = FileUtils.openPathWithDefault(
+          closer,
+          path,
+          System.out,
+          StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+      outputApp.writeProguardMap(mapOut);
+    }
+  }
+
   static void writeOutputs(R8Command command, InternalOptions options, AndroidApp outputApp)
       throws IOException {
     if (command.getOutputPath() != null) {
       outputApp.write(command.getOutputPath(), options.outputMode);
     }
 
-    if (options.proguardConfiguration.isPrintMapping() && !options.skipMinification) {
+    if ((options.proguardConfiguration.isPrintMapping() || options.printMappingFile != null)
+        && !options.skipMinification) {
       assert outputApp.hasProguardMap();
-      try (Closer closer = Closer.create()) {
-        OutputStream mapOut = FileUtils.openPathWithDefault(
-            closer,
-            options.proguardConfiguration.getPrintMappingFile(),
-            System.out,
-            StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-        outputApp.writeProguardMap(mapOut);
+      if (options.proguardConfiguration.isPrintMapping()) {
+        writeProguardMapToPath(options.proguardConfiguration.getPrintMappingFile(), outputApp);
+      }
+      if (options.printMappingFile != null) {
+        writeProguardMapToPath(options.printMappingFile, outputApp);
       }
     }
     if (options.proguardConfiguration.isPrintSeeds()) {
