@@ -1888,7 +1888,8 @@ public class JctfTestSpecifications {
           // 1) t03
           // java.lang.AssertionError: expected null, but was:<1>
 
-          .put("lang.ref.PhantomReference.isEnqueued.PhantomReference_isEnqueued_A01", any())
+          .put("lang.ref.PhantomReference.isEnqueued.PhantomReference_isEnqueued_A01",
+              match(runtimes(DexVm.ART_DEFAULT, DexVm.ART_7_0_0, DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
           // 1) t04
           // java.lang.AssertionError: reference is not enqueued after 2 sec
 
@@ -1912,7 +1913,8 @@ public class JctfTestSpecifications {
           // 1) t03
           // java.lang.AssertionError: expected null, but was:<[I@1b32f32>
 
-          .put("lang.ref.WeakReference.isEnqueued.WeakReference_isEnqueued_A01", any())
+          .put("lang.ref.WeakReference.isEnqueued.WeakReference_isEnqueued_A01",
+              match(runtimes(DexVm.ART_DEFAULT, DexVm.ART_7_0_0, DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
           // 1) t03
           // java.lang.AssertionError: reference is not enqueued after 2 sec
 
@@ -2730,8 +2732,7 @@ public class JctfTestSpecifications {
           // 2) t05
           // java.lang.AssertionError: Should throws IndexOutOfBoundsException: 0
 
-          .put("lang.String.getBytesII_BI.String_getBytes_A02",
-              match(runtimes(DexVm.ART_DEFAULT, DexVm.ART_7_0_0, DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
+          .put("lang.String.getBytesII_BI.String_getBytes_A02", any())
           // 1) t01
           // java.lang.AssertionError: Expected exception: java.lang.NullPointerException
 
@@ -4018,6 +4019,11 @@ public class JctfTestSpecifications {
           // 1) t02
           // java.lang.AssertionError: Exception is not thrown: field: intPublicField, object: com.google.jctf.test.lib.java.lang.reflect.Field.TestStaticFinalPrimitiveField@94fbd35
 
+          .put("lang.reflect.Field.setDoubleLjava_lang_ObjectD.Field_setDouble_A02",
+              match(runtimes(DexVm.ART_4_4_4)))
+          // 1) t01
+          // java.lang.AssertionError: Illegal exception is thrown: java.lang.IllegalAccessException: field is marked 'final', field: doublePublicField, class: class com.google.jctf.test.lib.java.lang.reflect.Field.TestFinalPrimitiveField
+
           .put("lang.reflect.Field.setDoubleLjava_lang_ObjectD.Field_setDouble_A05", any())
           // 1) t01
           // java.lang.Exception: Unexpected exception, expected<java.lang.ExceptionInInitializerError> but was<java.lang.NullPointerException>
@@ -4521,7 +4527,7 @@ public class JctfTestSpecifications {
           // java.lang.AssertionError: no IllegalThreadStateException 1
 
           .put("lang.String.getBytesLjava_lang_String.String_getBytes_A02",
-              match(runtimes(DexVm.ART_7_0_0, DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
+              match(runtimes(DexVm.ART_7_0_0, DexVm.ART_6_0_1, DexVm.ART_5_1_1, DexVm.ART_4_4_4)))
           // 1) t01(com.google.jctf.test.lib.java.lang.String.getBytesLjava_lang_String.String_getBytes_A02)
           // java.lang.Exception: Unexpected exception, expected<java.lang.NullPointerException> but was<java.io.UnsupportedEncodingException>
 
@@ -4786,6 +4792,12 @@ public class JctfTestSpecifications {
           // Failed on bot only (R8):
           // 1) t02
           // java.lang.AssertionError: java.lang.AssertionError: expected:<7> but was:<6>
+
+          .put("lang.ref.PhantomReference.isEnqueued.PhantomReference_isEnqueued_A01",
+              match(runtimes(DexVm.ART_4_4_4)))
+          .put("lang.ref.WeakReference.isEnqueued.WeakReference_isEnqueued_A01",
+              match(runtimes(DexVm.ART_4_4_4)))
+          // Passes or fails randomly. Check that something is enqueued after 2 seconds.
 
           .build(); // end of flakyWithArt
 
