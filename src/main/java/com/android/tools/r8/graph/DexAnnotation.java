@@ -5,6 +5,7 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DexValue.DexValueAnnotation;
 import com.android.tools.r8.graph.DexValue.DexValueArray;
 import com.android.tools.r8.graph.DexValue.DexValueInt;
@@ -15,7 +16,6 @@ import com.android.tools.r8.graph.DexValue.DexValueType;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -239,16 +239,40 @@ public class DexAnnotation extends DexItem {
     DexAnnotation foundAnnotation = programClass.annotations.getFirstMatching(
         dexItemFactory.annotationSynthesizedClassMap);
     if (foundAnnotation != null) {
+      if (foundAnnotation.annotation.elements.length != 1) {
+        throw new CompilationError(
+            getInvalidSynthesizedClassMapMessage(programClass, foundAnnotation));
+      }
       DexAnnotationElement value = foundAnnotation.annotation.elements[0];
-      assert value.name.toSourceString().equals("value");
+      if (!value.name.toSourceString().equals("value")) {
+        throw new CompilationError(
+            getInvalidSynthesizedClassMapMessage(programClass, foundAnnotation));
+      }
+      if (!(value.value instanceof DexValueArray)) {
+        throw new CompilationError(
+            getInvalidSynthesizedClassMapMessage(programClass, foundAnnotation));
+      }
       DexValueArray existingList = (DexValueArray) value.value;
       Collection<DexType> synthesized = new ArrayList<>(existingList.values.length);
       for (DexValue element : existingList.getValues()) {
+        if (!(element instanceof DexValueType)) {
+          throw new CompilationError(
+              getInvalidSynthesizedClassMapMessage(programClass, foundAnnotation));
+        }
         synthesized.add(((DexValueType) element).value);
       }
       return synthesized;
     }
     return Collections.emptyList();
+  }
+
+  private static String getInvalidSynthesizedClassMapMessage(
+      DexProgramClass annotatedClass,
+      DexAnnotation invalidAnnotation) {
+    return annotatedClass.toSourceString()
+        + " is annotated with invalid "
+        + invalidAnnotation.annotation.type.toString()
+        + ": " + invalidAnnotation.toString();
   }
 
   public static DexAnnotation createAnnotationSynthesizedClassMap(
