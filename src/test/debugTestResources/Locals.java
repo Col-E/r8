@@ -338,13 +338,6 @@ public class Locals {
     return result;
   }
 
-  public static int intAddition(int a, int b, int c) {
-    a += b;
-    b += c;
-    c = a + b;
-    return c;
-  }
-
   public static void main(String[] args) {
     noLocals();
     unusedLocals();
@@ -367,6 +360,5 @@ public class Locals {
     regression65066975(false);
     System.out.println(localConstant(true));
     System.out.println(localConstantBis(true));
-    System.out.println(intAddition(1, 2, 6));
   }
 }
