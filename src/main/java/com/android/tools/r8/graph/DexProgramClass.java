@@ -9,6 +9,7 @@ import com.android.tools.r8.dex.MixedSectionCollection;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -211,6 +212,21 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
       }
     }
     directMethods = newDirectMethods;
+  }
+
+  public synchronized void sortMembers() {
+    sortEncodedFields(staticFields);
+    sortEncodedFields(instanceFields);
+    sortEncodedMethods(directMethods);
+    sortEncodedMethods(virtualMethods);
+  }
+
+  private void sortEncodedFields(DexEncodedField[] fields) {
+    Arrays.sort(fields, Comparator.comparing(a -> a.field));
+  }
+
+  private void sortEncodedMethods(DexEncodedMethod[] methods) {
+    Arrays.sort(methods, Comparator.comparing(a -> a.method));
   }
 
   @Override

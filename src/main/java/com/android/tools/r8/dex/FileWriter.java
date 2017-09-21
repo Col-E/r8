@@ -133,7 +133,7 @@ public class FileWriter {
 
     // Sort the class members.
     // Needed before adding static-value arrays and writing annotation directories and classes.
-    sortClassData(mixedSectionOffsets.getClassesWithData());
+    mixedSectionOffsets.getClassesWithData().forEach(DexProgramClass::sortMembers);
 
     // Add the static values for all fields now that we have committed to their sorting.
     mixedSectionOffsets.getClassesWithData().forEach(this::addStaticFieldValues);
@@ -252,23 +252,6 @@ public class FileWriter {
 
     // Turn into an array
     return Arrays.copyOf(dest.asArray(), layout.getEndOfFile());
-  }
-
-  private void sortClassData(Collection<DexProgramClass> classesWithData) {
-    for (DexProgramClass clazz : classesWithData) {
-      sortEncodedFields(clazz.instanceFields());
-      sortEncodedFields(clazz.staticFields());
-      sortEncodedMethods(clazz.directMethods());
-      sortEncodedMethods(clazz.virtualMethods());
-    }
-  }
-
-  private void sortEncodedFields(DexEncodedField[] fields) {
-    Arrays.sort(fields, (DexEncodedField a, DexEncodedField b) -> a.field.compareTo(b.field));
-  }
-
-  private void sortEncodedMethods(DexEncodedMethod[] methods) {
-    Arrays.sort(methods, (DexEncodedMethod a, DexEncodedMethod b) -> a.method.compareTo(b.method));
   }
 
   private void checkInterfaceMethods() throws ApiLevelException {
