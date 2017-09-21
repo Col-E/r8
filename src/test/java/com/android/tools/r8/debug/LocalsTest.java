@@ -608,4 +608,37 @@ public class LocalsTest extends DebugTestBase {
         checkNoLocal("result2"),
         run());
   }
+
+  /**
+   * Companion test with dex inspection
+   * {@link com.android.tools.r8.debuginfo.CodeGeneratorTestRunner#test2AddrInstruction}
+   */
+  @Test
+  public void testLocalUsedBy2AddrInstruction() throws Throwable {
+    final String className = "Locals";
+    final String methodName = "intAddition";
+    runDebugTest(className,
+        breakpoint(className, methodName),
+        run(),
+        checkLine(SOURCE_FILE, 342),
+        checkLocal("a", Value.createInt(1)),
+        checkLocal("b", Value.createInt(2)),
+        checkLocal("c", Value.createInt(6)),
+        stepOver(),
+        checkLine(SOURCE_FILE, 343),
+        checkLocal("a", Value.createInt(3)),
+        checkLocal("b", Value.createInt(2)),
+        checkLocal("c", Value.createInt(6)),
+        stepOver(),
+        checkLine(SOURCE_FILE, 344),
+        checkLocal("a", Value.createInt(3)),
+        checkLocal("b", Value.createInt(8)),
+        checkLocal("c", Value.createInt(6)),
+        stepOver(),
+        checkLine(SOURCE_FILE, 345),
+        checkLocal("a", Value.createInt(3)),
+        checkLocal("b", Value.createInt(8)),
+        checkLocal("c", Value.createInt(11)),
+        run());
+  }
 }

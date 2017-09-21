@@ -1441,6 +1441,23 @@ public class CodeRewriter {
     }
   }
 
+  // TODO(mikaelpeltier) Manage that from and to instruction do not belong to the same block.
+  private boolean hasLineChangeBetween(Instruction from, Instruction to) {
+    if (from.getBlock() != to.getBlock()) {
+      return true;
+    }
+    InstructionListIterator iterator = from.getBlock().listIterator(from);
+    while (iterator.hasNext()) {
+      Instruction instruction = iterator.next();
+      if (instruction == to) {
+        return false;
+      } else if (instruction.isDebugPosition()) {
+        return true;
+      }
+    }
+    throw new Unreachable();
+  }
+
   public void simplifyDebugLocals(IRCode code) {
     for (BasicBlock block : code.blocks) {
       for (Phi phi : block.getPhis()) {
@@ -1448,6 +1465,26 @@ public class CodeRewriter {
           Instruction instruction = phi.uniqueUsers().iterator().next();
           if (instruction.isDebugLocalWrite()) {
             removeDebugWriteOfPhi(phi, instruction.asDebugLocalWrite());
+          }
+        }
+      }
+
+      InstructionIterator iterator = code.instructionIterator();
+      while (iterator.hasNext()) {
+        Instruction instruction = iterator.next();
+        if (instruction.isDebugLocalWrite()) {
+          assert instruction.inValues().size() == 1;
+          Value inValue = instruction.inValues().get(0);
+          if (inValue.definition != null &&
+              !inValue.definition.isConstNumber() &&
+              !hasLineChangeBetween(inValue.definition, instruction) &&
+              inValue.getLocalInfo() == null &&
+              inValue.numberOfAllUsers() == 1) {
+            inValue.setLocalInfo(instruction.outValue().getLocalInfo());
+            instruction.moveDebugValues(inValue.definition);
+            instruction.outValue().replaceUsers(inValue);
+            instruction.clearDebugValues();
+            iterator.remove();
           }
         }
       }
