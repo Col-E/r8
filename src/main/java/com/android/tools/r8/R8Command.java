@@ -280,7 +280,6 @@ public class R8Command extends BaseCompilerCommand {
       "  --min-api                # Minimum Android API level compatibility.",
       "  --pg-conf <file>         # Proguard configuration <file> (implies tree",
       "                           # shaking/minification).",
-      "  --pg-map <file>          # Proguard map <file>.",
       "  --print-mapping <file>   # Write name/line mapping to <file>.",
       "  --no-tree-shaking        # Force disable tree shaking of unreachable classes.",
       "  --no-discarded-checker   # Force disable the discarded checker (when tree shaking).",
@@ -367,8 +366,6 @@ public class R8Command extends BaseCompilerCommand {
         builder.setMainDexListOutputPath(Paths.get(args[++i]));
       } else if (arg.equals("--pg-conf")) {
         builder.addProguardConfigurationFiles(Paths.get(args[++i]));
-      } else if (arg.equals("--pg-map")) {
-        builder.setProguardMapFile(Paths.get(args[++i]));
       } else if (arg.equals("--ignore-missing-classes")) {
         builder.setIgnoreMissingClasses(true);
       } else if (arg.equals("--print-mapping")) {
