@@ -597,7 +597,7 @@ public class MainDexListTests extends TestBase {
         application, appInfo, options, null, null, NamingLens.getIdentityLens(), null);
     ExecutorService executor = ThreadUtils.getExecutorService(options);
     try {
-      return writer.write(null, executor);
+      return writer.write(executor);
     } finally {
       executor.shutdown();
     }

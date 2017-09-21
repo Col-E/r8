@@ -179,7 +179,7 @@ public class Bisect {
     InternalOptions options = new InternalOptions();
     AppInfo appInfo = new AppInfo(app);
     ApplicationWriter writer = new ApplicationWriter(app, appInfo, options, null, null, null, null);
-    AndroidApp outApp = writer.write(null, executor);
+    AndroidApp outApp = writer.write(executor);
     outApp.writeToDirectory(output, OutputMode.Indexed);
   }
 

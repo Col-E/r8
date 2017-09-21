@@ -37,7 +37,6 @@ public class R8Command extends BaseCompilerCommand {
     private Optional<Boolean> minification = Optional.empty();
     private boolean ignoreMissingClasses = false;
     private Path printMappingFile = null;
-    private Path packageDistributionFile = null;
 
     private Builder() {
       super(CompilationMode.RELEASE);
@@ -160,14 +159,6 @@ public class R8Command extends BaseCompilerCommand {
     }
 
     /**
-     * Set a package distribution file resource.
-     */
-    public Builder setPackageDistributionFile(Path path) {
-      packageDistributionFile = path;
-      return self();
-    }
-
-    /**
      * Deprecated flag to avoid failing if classes are missing during compilation.
      *
      * <p>TODO: Make compilation safely assume this flag to be true and remove the flag.
@@ -188,10 +179,6 @@ public class R8Command extends BaseCompilerCommand {
           .hasMainDexList()) {
         throw new CompilationException(
             "Option --main-dex-list-output require --main-dex-rules and/or --main-dex-list");
-      }
-      if (getMode() == CompilationMode.DEBUG && packageDistributionFile != null) {
-        throw new CompilationException(
-            "Package distribution file is not supported in debug mode");
       }
     }
 
@@ -236,10 +223,6 @@ public class R8Command extends BaseCompilerCommand {
       }
 
       // TODO(b/64802420): setProguardMapFile if configuration.hasApplyMappingFile
-
-      if (packageDistributionFile != null) {
-        getAppBuilder().setPackageDistributionFile(packageDistributionFile);
-      }
 
       boolean useTreeShaking = treeShaking.orElse(configuration.isShrinking());
       boolean useDiscardedChecker = discardedChecker.orElse(true);

@@ -56,7 +56,6 @@ public class R8CommandTest {
     assertFalse(ToolHelper.getApp(command).hasMainDexListResources());
     assertFalse(ToolHelper.getApp(command).hasProguardMap());
     assertFalse(ToolHelper.getApp(command).hasProguardSeeds());
-    assertFalse(ToolHelper.getApp(command).hasPackageDistribution());
     assertNull(command.getOutputPath());
     assertFalse(command.useMinification());
     assertFalse(command.useTreeShaking());

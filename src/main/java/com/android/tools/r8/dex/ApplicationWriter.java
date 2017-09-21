@@ -26,7 +26,6 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OutputMode;
-import com.android.tools.r8.utils.PackageDistribution;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -126,7 +125,7 @@ public class ApplicationWriter {
     this.proguardSeedsData = proguardSeedsData;
   }
 
-  public AndroidApp write(PackageDistribution packageDistribution, ExecutorService executorService)
+  public AndroidApp write(ExecutorService executorService)
       throws IOException, ExecutionException, DexOverflowException {
     application.timing.begin("DexApplication.write");
     try {
@@ -139,24 +138,11 @@ public class ApplicationWriter {
       // Distribute classes into dex files.
       VirtualFile.Distributor distributor = null;
       if (options.outputMode == OutputMode.FilePerInputClass) {
-        assert packageDistribution == null :
-            "Cannot combine package distribution definition with file-per-class option.";
         distributor = new VirtualFile.FilePerInputClassDistributor(this);
       } else if (!options.canUseMultidex()
           && options.mainDexKeepRules.isEmpty()
           && application.mainDexList.isEmpty()) {
-        if (packageDistribution != null) {
-          throw new CompilationError("Cannot apply package distribution. Multidex is not"
-              + " supported with API level " + options.minApiLevel +"."
-              + " For API level < " + Constants.ANDROID_L_API + ", main dex classes list or"
-              + " rules must be specified.");
-        }
         distributor = new VirtualFile.MonoDexDistributor(this);
-      } else if (packageDistribution != null) {
-        assert !options.minimalMainDex :
-            "Cannot combine package distribution definition with minimal-main-dex option.";
-        distributor =
-            new VirtualFile.PackageMapDistributor(this, packageDistribution, executorService);
       } else {
         distributor = new VirtualFile.FillFilesDistributor(this, options.minimalMainDex);
       }

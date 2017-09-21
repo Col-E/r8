@@ -106,7 +106,7 @@ public class Smali {
           app, options, new Timing("smali")).read(executor);
       ApplicationWriter writer = new ApplicationWriter(
           dexApp, null, options, null, null, NamingLens.getIdentityLens(), null);
-      AndroidApp trimmed = writer.write(null, executor);
+      AndroidApp trimmed = writer.write(executor);
       return ByteStreams.toByteArray(trimmed.getDexProgramResources().get(0).getStream());
     } finally {
       executor.shutdown();
