@@ -117,7 +117,7 @@ public class R8RunSmaliTestsTest {
         {"self-is-catch-block", StringUtils.lines("100", "-1")},
         {"infinite-loop", ""},
         {"regression/33336471",
-            StringUtils.lines("START", "0", "2", "LOOP", "1", "2", "LOOP", "2", "2", "DONE" +
+            StringUtils.lines("START", "0", "2", "LOOP", "1", "2", "LOOP", "2", "2", "DONE",
                 "START", "0", "2", "LOOP", "1", "2", "LOOP", "2", "2", "DONE")},
         {"regression/33846227", ""},
         {"illegal-invokes", StringUtils.lines("ICCE", "ICCE")},
