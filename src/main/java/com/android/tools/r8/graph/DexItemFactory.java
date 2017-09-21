@@ -161,6 +161,8 @@ public class DexItemFactory {
   public final DexType annotationSourceDebugExtension = createType(
       "Ldalvik/annotation/SourceDebugExtension;");
   public final DexType annotationThrows = createType("Ldalvik/annotation/Throws;");
+  public final DexType annotationSynthesizedClassMap =
+      createType("Lcom/android/tools/r8/annotations/SynthesizedClassMap;");
 
   public synchronized void clearSubtypeInformation() {
     types.values().forEach(DexType::clearSubtypeInformation);

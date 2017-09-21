@@ -12,17 +12,20 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ToolHelper.DexVm;
-import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.FoundClassSubject;
 import com.android.tools.r8.utils.DexInspector.FoundMethodSubject;
 import com.android.tools.r8.utils.DexInspector.InstructionSubject;
 import com.android.tools.r8.utils.DexInspector.InvokeInstructionSubject;
+import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OffOrAuto;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.io.ByteStreams;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -30,10 +33,13 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
+import java.util.zip.ZipException;
+import java.util.zip.ZipFile;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
@@ -92,6 +98,10 @@ public abstract class RunExamplesAndroidOTest
     C withOptionConsumer(Consumer<InternalOptions> consumer) {
       optionConsumers.add(consumer);
       return self();
+    }
+
+    C withMainDexClass(String... classes) {
+      return withBuilderTransformation(builder -> builder.addMainDexClasses(classes));
     }
 
     C withInterfaceMethodDesugaring(OffOrAuto behavior) {
@@ -388,6 +398,16 @@ public abstract class RunExamplesAndroidOTest
               + "\n\tart: "
               + output.replace("\r", ""),
           output.equals(javaResult.stdout.replace("\r", "")));
+    }
+  }
+
+  protected DexInspector getMainDexInspector(Path zip)
+      throws ZipException, IOException, ExecutionException {
+    try (ZipFile zipFile = new ZipFile(zip.toFile())) {
+      try (InputStream in =
+          zipFile.getInputStream(zipFile.getEntry(FileUtils.DEFAULT_DEX_FILENAME))) {
+        return new DexInspector(AndroidApp.fromDexProgramData(ByteStreams.toByteArray(in)));
+      }
     }
   }
 

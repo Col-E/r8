@@ -13,7 +13,11 @@ import com.android.tools.r8.graph.DexValue.DexValueNull;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.DexValue.DexValueType;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class DexAnnotation extends DexItem {
   public static final int VISIBILITY_BUILD = 0x00;
@@ -227,5 +231,38 @@ public class DexAnnotation extends DexItem {
 
   private static DexValue toDexValue(String string, DexItemFactory factory) {
     return new DexValueString(factory.createString(string));
+  }
+
+  public static Collection<DexType> readAnnotationSynthesizedClassMap(
+      DexProgramClass programClass,
+      DexItemFactory dexItemFactory) {
+    DexAnnotation foundAnnotation = programClass.annotations.getFirstMatching(
+        dexItemFactory.annotationSynthesizedClassMap);
+    if (foundAnnotation != null) {
+      DexAnnotationElement value = foundAnnotation.annotation.elements[0];
+      assert value.name.toSourceString().equals("value");
+      DexValueArray existingList = (DexValueArray) value.value;
+      Collection<DexType> synthesized = new ArrayList<>(existingList.values.length);
+      for (DexValue element : existingList.getValues()) {
+        synthesized.add(((DexValueType) element).value);
+      }
+      return synthesized;
+    }
+    return Collections.emptyList();
+  }
+
+  public static DexAnnotation createAnnotationSynthesizedClassMap(
+      Set<DexType> synthesized,
+      DexItemFactory dexItemFactory) {
+    DexValueType[] values = synthesized.stream()
+        .map(type -> new DexValueType(type))
+        .toArray(length -> new DexValueType[length]);
+    DexValueArray array = new DexValueArray(values);
+    DexAnnotationElement pair =
+        new DexAnnotationElement(dexItemFactory.createString("value"), array);
+    return new DexAnnotation(
+        VISIBILITY_BUILD,
+        new DexEncodedAnnotation(
+            dexItemFactory.annotationSynthesizedClassMap, new DexAnnotationElement[]{pair}));
   }
 }
