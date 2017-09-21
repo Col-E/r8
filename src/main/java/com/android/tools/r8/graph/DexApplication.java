@@ -315,6 +315,7 @@ public class DexApplication {
     DexString highestSortingString;
     private byte[] deadCode;
     private final Set<DexType> mainDexList = Sets.newIdentityHashSet();
+    private final Collection<DexProgramClass> synthesizedClasses;
 
     public Builder(DexItemFactory dexItemFactory, Timing timing) {
       this.programClasses = new ArrayList<>();
@@ -323,6 +324,7 @@ public class DexApplication {
       this.deadCode = null;
       this.classpathClasses = null;
       this.libraryClasses = null;
+      this.synthesizedClasses = new ArrayList<>();
     }
 
     public Builder(DexApplication application) {
@@ -335,6 +337,7 @@ public class DexApplication {
       dexItemFactory = application.dexItemFactory;
       mainDexList.addAll(application.mainDexList);
       deadCode = application.deadCode;
+      synthesizedClasses = new ArrayList<>();
     }
 
     public synchronized Builder setProguardMap(ClassNameMapper proguardMap) {
@@ -387,6 +390,7 @@ public class DexApplication {
         DexProgramClass synthesizedClass, boolean addToMainDexList) {
       assert synthesizedClass.isProgramClass() : "All synthesized classes must be program classes";
       addProgramClass(synthesizedClass);
+      synthesizedClasses.add(synthesizedClass);
       if (addToMainDexList && !mainDexList.isEmpty()) {
         mainDexList.add(synthesizedClass.type);
       }
@@ -395,6 +399,14 @@ public class DexApplication {
 
     public Collection<DexProgramClass> getProgramClasses() {
       return programClasses;
+    }
+
+    public Collection<DexProgramClass> getSynthesizedClasses() {
+      return synthesizedClasses;
+    }
+
+    public Set<DexType> getMainDexList() {
+      return mainDexList;
     }
 
     public Builder addToMainDexList(Collection<DexType> mainDexList) {

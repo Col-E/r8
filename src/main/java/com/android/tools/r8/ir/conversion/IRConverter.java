@@ -11,6 +11,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.Code;
+import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexApplication.Builder;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -39,16 +40,22 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ListMultimap;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 public class IRConverter {
 
@@ -225,7 +232,70 @@ public class IRConverter {
     synthesizeLambdaClasses(builder);
     desugarInterfaceMethods(builder, ExcludeDexResources);
 
+    if (options.intermediate) {
+      updateSynthesizedClassMapping(builder);
+    }
+
+    updateMainDexListWithSynthesizedClassMap(builder);
+
+    if (!options.intermediate) {
+      clearSynthesizedClassMapping(builder);
+    }
+
     return builder.build();
+  }
+
+  private void updateMainDexListWithSynthesizedClassMap(Builder builder) {
+    Set<DexType> inputMainDexList = builder.getMainDexList();
+    if (!inputMainDexList.isEmpty()) {
+      Map<DexType, DexProgramClass> programClasses = builder.getProgramClasses().stream()
+          .collect(Collectors.toMap(
+            programClass -> programClass.type,
+            Function.identity()));
+      Collection<DexType> synthesized = new ArrayList<>();
+      for (DexType dexType : inputMainDexList) {
+        DexProgramClass programClass = programClasses.get(dexType);
+        if (programClass != null) {
+          synthesized.addAll(DexAnnotation.readAnnotationSynthesizedClassMap(
+              programClass, builder.dexItemFactory));
+        }
+      }
+      builder.addToMainDexList(synthesized);
+    }
+  }
+
+  private void clearSynthesizedClassMapping(Builder builder) {
+    for (DexProgramClass programClass : builder.getProgramClasses()) {
+      programClass.annotations =
+          programClass.annotations.getWithout(builder.dexItemFactory.annotationSynthesizedClassMap);
+    }
+  }
+
+  private void updateSynthesizedClassMapping(Builder builder) {
+    ListMultimap<DexProgramClass, DexProgramClass> originalToSynthesized =
+        ArrayListMultimap.create();
+    for (DexProgramClass synthesized : builder.getSynthesizedClasses()) {
+      for (DexProgramClass original : synthesized.getSynthesizedFrom()) {
+        originalToSynthesized.put(original, synthesized);
+      }
+    }
+
+    for (Map.Entry<DexProgramClass, Collection<DexProgramClass>> entry :
+        originalToSynthesized.asMap().entrySet()) {
+      DexProgramClass original = entry.getKey();
+      Set<DexType> synthesized = new HashSet<>();
+      entry.getValue()
+        .stream()
+        .map(dexProgramClass -> dexProgramClass.type)
+        .forEach(synthesized::add);
+      synthesized.addAll(
+          DexAnnotation.readAnnotationSynthesizedClassMap(original, builder.dexItemFactory));
+
+      DexAnnotation updatedAnnotation =
+          DexAnnotation.createAnnotationSynthesizedClassMap(synthesized, builder.dexItemFactory);
+
+      original.annotations = original.annotations.getWithAddedOrReplaced(updatedAnnotation);
+    }
   }
 
   private void convertClassesToDex(Iterable<DexProgramClass> classes,

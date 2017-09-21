@@ -74,8 +74,44 @@ public class DexAnnotationSet extends CachedHashValueDexItem {
     return null;
   }
 
+  public DexAnnotationSet getWithout(DexType annotationType) {
+    int index = 0;
+    for (DexAnnotation annotation : annotations) {
+      if (annotation.annotation.type == annotationType) {
+        DexAnnotation[] reducedArray = new DexAnnotation[annotations.length - 1];
+        System.arraycopy(annotations, 0, reducedArray, 0, index);
+        if (index < reducedArray.length) {
+          System.arraycopy(annotations, index + 1, reducedArray, index, reducedArray.length - index);
+        }
+        return new DexAnnotationSet(reducedArray);
+      }
+      ++index;
+    }
+    return this;
+  }
+
   private int sortedHashCode() {
     int hashCode = hashCode();
     return hashCode == UNSORTED ? 1 : hashCode;
+  }
+
+  public DexAnnotationSet getWithAddedOrReplaced(DexAnnotation newAnnotation) {
+
+    // Check existing annotation for replacement.
+    int index = 0;
+    for (DexAnnotation annotation : annotations) {
+      if (annotation.annotation.type == newAnnotation.annotation.type) {
+        DexAnnotation[] modifiedArray = annotations.clone();
+        modifiedArray[index] = newAnnotation;
+        return new DexAnnotationSet(modifiedArray);
+      }
+      ++index;
+    }
+
+    // No existing annotation, append.
+    DexAnnotation[] extendedArray = new DexAnnotation[annotations.length + 1];
+    System.arraycopy(annotations, 0, extendedArray, 0, annotations.length);
+    extendedArray[annotations.length] = newAnnotation;
+    return new DexAnnotationSet(extendedArray);
   }
 }
