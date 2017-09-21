@@ -63,11 +63,6 @@ public class DexDebugEventBuilder {
     this.factory = factory;
   }
 
-  // Public method for the DebugStripper.
-  public void setPosition(int pc, int line) {
-    emitDebugPosition(pc, line, null);
-  }
-
   /** Add events at pc for instruction. */
   public void add(int pc, Instruction instruction) {
     // Initialize locals state on block entry.

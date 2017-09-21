@@ -46,7 +46,6 @@ public class InternalOptions {
 
   public boolean printTimes = false;
   // Skipping optimizations.
-  public boolean skipDebugInfoOpt = false;
   public boolean skipDebugLineNumberOpt = false;
   public boolean skipClassMerging = true;
 

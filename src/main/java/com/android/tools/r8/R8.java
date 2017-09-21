@@ -23,7 +23,6 @@ import com.android.tools.r8.ir.optimize.SwitchMapCollector;
 import com.android.tools.r8.naming.Minifier;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.optimize.BridgeMethodAnalysis;
-import com.android.tools.r8.optimize.DebugStripper;
 import com.android.tools.r8.optimize.MemberRebindingAnalysis;
 import com.android.tools.r8.optimize.VisibilityBridgeRemover;
 import com.android.tools.r8.shaking.AbstractMethodRemover;
@@ -140,17 +139,6 @@ public class R8 {
       application = converter.optimize(executorService);
     } finally {
       timing.end();
-    }
-
-    if (!options.skipDebugInfoOpt && (application.getProguardMap() != null)) {
-      try {
-        timing.begin("DebugStripper");
-        DebugStripper stripper =
-            new DebugStripper(application.getProguardMap(), options, appInfo.dexItemFactory);
-        application.classes().forEach(stripper::processClass);
-      } finally {
-        timing.end();
-      }
     }
 
     if (options.printCfg) {
