@@ -440,6 +440,14 @@ public class R8Command extends BaseCompilerCommand {
     assert !internal.debug;
     internal.debug = getMode() == CompilationMode.DEBUG;
     internal.minApiLevel = getMinApiLevel();
+    // -dontoptimize disables optimizations by flipping related flags.
+    if (!proguardConfiguration.isOptimizing()) {
+      internal.skipDebugLineNumberOpt = true;
+      internal.skipClassMerging = true;
+      internal.inlineAccessors = false;
+      internal.removeSwitchMaps = false;
+      internal.outline.enabled = false;
+    }
     assert !internal.skipMinification;
     internal.skipMinification = !useMinification() || !proguardConfiguration.isObfuscating();
     assert internal.useTreeShaking;

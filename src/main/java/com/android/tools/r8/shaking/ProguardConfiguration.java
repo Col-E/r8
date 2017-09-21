@@ -24,7 +24,7 @@ public class ProguardConfiguration {
     private String packagePrefix = "";
     private boolean allowAccessModification = false;
     private boolean ignoreWarnings = false;
-    private boolean optimize = true;
+    private boolean optimizing = true;
     private boolean obfuscating = true;
     private boolean shrinking = true;
     private boolean printUsage = false;
@@ -79,8 +79,8 @@ public class ProguardConfiguration {
       this.ignoreWarnings = ignoreWarnings;
     }
 
-    public void setOptimize(boolean optimize) {
-      this.optimize = optimize;
+    public void setOptimizing(boolean optimizing) {
+      this.optimizing = optimizing;
     }
 
     public void setObfuscating(boolean obfuscate) {
@@ -172,6 +172,7 @@ public class ProguardConfiguration {
           packagePrefix,
           allowAccessModification,
           ignoreWarnings,
+          optimizing,
           obfuscating,
           shrinking,
           printUsage,
@@ -200,6 +201,7 @@ public class ProguardConfiguration {
   private final String packagePrefix;
   private final boolean allowAccessModification;
   private final boolean ignoreWarnings;
+  private final boolean optimizing;
   private final boolean obfuscating;
   private final boolean shrinking;
   private final boolean printUsage;
@@ -227,6 +229,7 @@ public class ProguardConfiguration {
       String packagePrefix,
       boolean allowAccessModification,
       boolean ignoreWarnings,
+      boolean optimizing,
       boolean obfuscating,
       boolean shrinking,
       boolean printUsage,
@@ -252,6 +255,7 @@ public class ProguardConfiguration {
     this.packagePrefix = packagePrefix;
     this.allowAccessModification = allowAccessModification;
     this.ignoreWarnings = ignoreWarnings;
+    this.optimizing = optimizing;
     this.obfuscating = obfuscating;
     this.shrinking = shrinking;
     this.printUsage = printUsage;
@@ -327,6 +331,10 @@ public class ProguardConfiguration {
     return ignoreWarnings;
   }
 
+  public boolean isOptimizing() {
+    return optimizing;
+  }
+
   public boolean isObfuscating() {
     return obfuscating;
   }
@@ -393,6 +401,7 @@ public class ProguardConfiguration {
           ""                    /* package prefix */,
           false                 /* allowAccessModification */,
           false                 /* ignoreWarnings */,
+          true                  /* optimizing */,
           false                 /* obfuscating */,
           false                 /* shrinking */,
           false                 /* printUsage */,

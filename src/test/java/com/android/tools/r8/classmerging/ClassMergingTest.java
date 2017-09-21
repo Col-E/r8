@@ -1,16 +1,21 @@
 package com.android.tools.r8.classmerging;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.DexInspector;
+import com.android.tools.r8.utils.InternalOptions;
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
-import org.junit.Assert;
-import org.junit.Before;
+import java.util.function.Consumer;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -21,54 +26,76 @@ public class ClassMergingTest {
       .resolve("classmerging.jar");
   private static final Path EXAMPLE_KEEP = Paths.get(ToolHelper.EXAMPLES_DIR)
       .resolve("classmerging").resolve("keep-rules.txt");
+  private static final Path DONT_OPTIMIZE = Paths.get(ToolHelper.EXAMPLES_DIR)
+      .resolve("classmerging").resolve("keep-rules-dontoptimize.txt");
 
   @Rule
   public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
-  @Before
-  public void runR8()
+  private void configure(InternalOptions options) {
+    options.skipClassMerging = false;
+  }
+
+  private void runR8(Path proguardConfig, Consumer<InternalOptions> optionsConsumer)
       throws IOException, ProguardRuleParserException, ExecutionException, CompilationException {
-    // Disable access modification, as it otherwise is difficult to test visibility bridge methods.
     ToolHelper.runR8(
         R8Command.builder()
             .setOutputPath(Paths.get(temp.getRoot().getCanonicalPath()))
             .addProgramFiles(EXAMPLE_JAR)
-            .addProguardConfigurationFiles(EXAMPLE_KEEP)
+            .addProguardConfigurationFiles(proguardConfig)
             .setMinification(false)
-            .build(), o -> {
-          o.skipClassMerging = false;
-        });
+            .build(),
+        optionsConsumer);
     inspector = new DexInspector(
         Paths.get(temp.getRoot().getCanonicalPath()).resolve("classes.dex"));
   }
 
   private DexInspector inspector;
 
+  private final List<String> CAN_BE_MERGED = ImmutableList.of(
+      "classmerging.GenericInterface",
+      "classmerging.GenericAbstractClass",
+      "classmerging.Outer$SuperClass",
+      "classmerging.SuperClass"
+  );
+
   @Test
-  public void testClassesHaveBeenMerged() throws IOException, ExecutionException {
+  public void testClassesHaveBeenMerged()
+      throws IOException, ExecutionException, CompilationException, ProguardRuleParserException {
+    runR8(EXAMPLE_KEEP, this::configure);
     // GenericInterface should be merged into GenericInterfaceImpl.
-    Assert.assertFalse(inspector.clazz("classmerging.GenericInterface").isPresent());
-    Assert.assertTrue(inspector.clazz("classmerging.GenericInterfaceImpl").isPresent());
-    Assert.assertFalse(inspector.clazz("classmerging.GenericAbstractClass").isPresent());
-    Assert.assertTrue(inspector.clazz("classmerging.GenericInterfaceImpl").isPresent());
-    Assert.assertFalse(inspector.clazz("classmerging.Outer$SuperClass").isPresent());
-    Assert.assertTrue(inspector.clazz("classmerging.Outer$SubClass").isPresent());
-    Assert.assertFalse(inspector.clazz("classmerging.SuperClass").isPresent());
-    Assert.assertTrue(inspector.clazz("classmerging.SubClass").isPresent());
-  }
-
-
-  @Test
-  public void testConflictWasDetected() throws IOException, ExecutionException {
-    Assert.assertTrue(inspector.clazz("classmerging.ConflictingInterface").isPresent());
-    Assert.assertTrue(inspector.clazz("classmerging.ConflictingInterfaceImpl").isPresent());
+    for (String candidate : CAN_BE_MERGED) {
+      assertFalse(inspector.clazz(candidate).isPresent());
+    }
+    assertTrue(inspector.clazz("classmerging.GenericInterfaceImpl").isPresent());
+    assertTrue(inspector.clazz("classmerging.GenericInterfaceImpl").isPresent());
+    assertTrue(inspector.clazz("classmerging.Outer$SubClass").isPresent());
+    assertTrue(inspector.clazz("classmerging.SubClass").isPresent());
   }
 
   @Test
-  public void testSuperCallWasDetected() throws IOException, ExecutionException {
-    Assert.assertTrue(inspector.clazz("classmerging.SuperClassWithReferencedMethod").isPresent());
-    Assert
-        .assertTrue(inspector.clazz("classmerging.SubClassThatReferencesSuperMethod").isPresent());
+  public void testClassesShouldNotMerged()
+      throws IOException, ExecutionException, CompilationException, ProguardRuleParserException {
+    runR8(DONT_OPTIMIZE, null);
+    for (String candidate : CAN_BE_MERGED) {
+      assertTrue(inspector.clazz(candidate).isPresent());
+    }
+  }
+
+  @Test
+  public void testConflictWasDetected()
+      throws IOException, ExecutionException, CompilationException, ProguardRuleParserException {
+    runR8(EXAMPLE_KEEP, this::configure);
+    assertTrue(inspector.clazz("classmerging.ConflictingInterface").isPresent());
+    assertTrue(inspector.clazz("classmerging.ConflictingInterfaceImpl").isPresent());
+  }
+
+  @Test
+  public void testSuperCallWasDetected()
+      throws IOException, ExecutionException, CompilationException, ProguardRuleParserException {
+    runR8(EXAMPLE_KEEP, this::configure);
+    assertTrue(inspector.clazz("classmerging.SuperClassWithReferencedMethod").isPresent());
+    assertTrue(inspector.clazz("classmerging.SubClassThatReferencesSuperMethod").isPresent());
   }
 
 }

@@ -133,9 +133,9 @@ public class IRConverter {
   }
 
   /**
-   * Create an IR converter for processing methods without full program optimization enabled.
+   * Create an IR converter for processing methods with full program optimization disabled.
    *
-   * The argument <code>enableDesugaring</code> if desugaing is enabled.
+   * The argument <code>enableDesugaring</code> if desugaring is enabled.
    */
   public IRConverter(
       DexApplication application,

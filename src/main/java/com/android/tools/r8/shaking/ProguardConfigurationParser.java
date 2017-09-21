@@ -168,8 +168,7 @@ public class ProguardConfigurationParser {
         ProguardWhyAreYouKeepingRule rule = parseWhyAreYouKeepingRule();
         configurationBuilder.addRule(rule);
       } else if (acceptString("dontoptimize")) {
-        configurationBuilder.setOptimize(false);
-        warnIgnoringOptions("dontoptimize");
+        configurationBuilder.setOptimizing(false);
       } else if (acceptString("optimizationpasses")) {
         skipWhitespace();
         Integer expectedOptimizationPasses = acceptInteger();

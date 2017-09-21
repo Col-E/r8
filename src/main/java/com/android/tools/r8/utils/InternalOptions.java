@@ -45,9 +45,13 @@ public class InternalOptions {
   public final int NOT_SPECIFIED = -1;
 
   public boolean printTimes = false;
-  // Skipping optimizations.
+
+  // Optimization-related flags. These should conform to -dontoptimize.
   public boolean skipDebugLineNumberOpt = false;
   public boolean skipClassMerging = true;
+  public boolean inlineAccessors = true;
+  public boolean removeSwitchMaps = true;
+  public final OutlineOptions outline = new OutlineOptions();
 
   // Number of threads to use while processing the dex files.
   public int numberOfThreads = NOT_SPECIFIED;
@@ -98,10 +102,7 @@ public class InternalOptions {
   public Path printMainDexListFile;
   public boolean ignoreMissingClasses = false;
   public boolean skipMinification = false;
-  public boolean inlineAccessors = true;
-  public boolean removeSwitchMaps = true;
   public boolean disableAssertions = true;
-  public final OutlineOptions outline = new OutlineOptions();
   public boolean debugKeepRules = false;
   public final AttributeRemovalOptions attributeRemoval = new AttributeRemovalOptions();
   public boolean allowParameterName = false;
