@@ -24,16 +24,11 @@ import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
-import com.android.tools.r8.utils.PackageDistribution;
-import com.android.tools.r8.utils.ThreadUtils;
+
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -44,13 +39,10 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 import java.util.function.Function;
 
 public class VirtualFile {
@@ -402,95 +394,6 @@ public class VirtualFile {
     }
   }
 
-  public static class PackageMapDistributor extends DistributorBase {
-    private final PackageDistribution packageDistribution;
-    private final ExecutorService executorService;
-
-    PackageMapDistributor(
-        ApplicationWriter writer,
-        PackageDistribution packageDistribution,
-        ExecutorService executorService) {
-      super(writer);
-      this.packageDistribution = packageDistribution;
-      this.executorService = executorService;
-    }
-
-    @Override
-    public Map<Integer, VirtualFile> run()
-        throws ExecutionException, IOException, DexOverflowException {
-      // Strategy for distributing classes for write out:
-      // 1. Place all files in the package distribution file in the proposed files (if any).
-      // 2. Place the remaining files based on their packages in sorted order.
-
-      assert nameToFileMap.size() == 1;
-      assert nameToFileMap.containsKey(0);
-      int maxReferencedIndex = packageDistribution.maxReferencedIndex();
-      for (int index = 1; index <= maxReferencedIndex; index++) {
-        VirtualFile file = new VirtualFile(index, writer.namingLens);
-        nameToFileMap.put(index, file);
-      }
-
-      // First fill required classes into the main dex file.
-      fillForMainDexList(classes);
-
-      // Sort the remaining classes based on the original names.
-      // This with make classes from the same package be adjacent.
-      classes = sortClassesByPackage(classes, originalNames);
-
-      Set<String> usedPrefixes = fillForDistribution(classes, originalNames);
-
-      // TODO(zerny): Add the package map to AndroidApp and refactor its generation.
-      Map<String, Integer> newAssignments;
-      if (classes.isEmpty()) {
-        newAssignments = Collections.emptyMap();
-      } else {
-        newAssignments =
-            new PackageSplitPopulator(
-                nameToFileMap, classes, originalNames, usedPrefixes, application.dexItemFactory,
-                FillStrategy.LEAVE_SPACE_FOR_GROWTH, writer.namingLens)
-                .call();
-        if (!newAssignments.isEmpty() && nameToFileMap.size() > 1) {
-          System.err.println(" * The used package map is missing entries. The following default "
-              + "mappings have been used:");
-          writeAssignments(newAssignments, new OutputStreamWriter(System.err));
-          System.err.println(" * Consider updating the map.");
-        }
-      }
-
-      Path newPackageMap = Paths.get("package.map");
-      System.out.println(" - " + newPackageMap.toString());
-      PackageDistribution.writePackageToFileMap(newPackageMap, newAssignments, packageDistribution);
-
-      return nameToFileMap;
-    }
-
-    private Set<String> fillForDistribution(Set<DexProgramClass> classes,
-        Map<DexProgramClass, String> originalNames) throws ExecutionException {
-      Set<String> usedPrefixes = null;
-      if (packageDistribution != null) {
-        ArrayList<Future<List<DexProgramClass>>> futures = new ArrayList<>(nameToFileMap.size());
-        usedPrefixes = packageDistribution.getFiles();
-        for (VirtualFile file : nameToFileMap.values()) {
-          PackageMapPopulator populator =
-              new PackageMapPopulator(file, classes, packageDistribution, originalNames);
-          futures.add(executorService.submit(populator));
-        }
-        ThreadUtils.awaitFutures(futures).forEach(classes::removeAll);
-      }
-      return usedPrefixes;
-    }
-
-    private void writeAssignments(Map<String, Integer> assignments, Writer output)
-        throws IOException{
-      for (Entry<String, Integer> entry : assignments.entrySet()) {
-        output.write("    ");
-        PackageDistribution.formatEntry(entry, output);
-        output.write("\n");
-      }
-      output.flush();
-    }
-  }
-
   private static class VirtualFileIndexedItemCollection implements IndexedItemCollection {
 
     final int id;
@@ -719,96 +622,6 @@ public class VirtualFile {
   }
 
   /**
-   * Adds all classes from the given set that are covered by a corresponding package map
-   * specification to the given file.
-   */
-  private static class PackageMapPopulator implements Callable<List<DexProgramClass>> {
-
-    private final VirtualFile file;
-    private final Collection<DexProgramClass> classes;
-    private final PackageDistribution packageDistribution;
-    private final Map<DexProgramClass, String> originalNames;
-
-    PackageMapPopulator(
-        VirtualFile file,
-        Collection<DexProgramClass> classes,
-        PackageDistribution packageDistribution,
-        Map<DexProgramClass, String> originalNames) {
-      this.file = file;
-      this.classes = classes;
-      this.packageDistribution = packageDistribution;
-      this.originalNames = originalNames;
-    }
-
-    @Override
-    public List<DexProgramClass> call() {
-      String currentPrefix = null;
-      int currentFileId = -1;
-      List<DexProgramClass> inserted = new ArrayList<>();
-      for (DexProgramClass clazz : classes) {
-        String originalName = originalNames.get(clazz);
-        assert originalName != null;
-        if (!coveredByPrefix(originalName, currentPrefix)) {
-          if (currentPrefix != null) {
-            file.commitTransaction();
-          }
-          currentPrefix = lookupPrefixFor(originalName);
-          if (currentPrefix == null) {
-            currentFileId = -1;
-          } else {
-            currentFileId = packageDistribution.get(currentPrefix);
-          }
-        }
-        if (currentFileId == file.id) {
-          file.addClass(clazz);
-          inserted.add(clazz);
-        }
-        if (file.isFull()) {
-          throw new CompilationError(
-              "Cannot fit package " + currentPrefix
-                  + " in requested dex file, consider removing mapping.");
-        }
-      }
-      file.commitTransaction();
-      return inserted;
-    }
-
-    private String lookupPrefixFor(String originalName) {
-      // First, check whether we have a match on the full package name.
-      int lastIndexOfDot = originalName.lastIndexOf('.');
-      if (lastIndexOfDot < 0) {
-        return null;
-      }
-      String prefix = originalName.substring(0, lastIndexOfDot);
-      if (packageDistribution.containsFile(prefix)) {
-        return prefix;
-      }
-      // Second, look for .* qualified entries.
-      int index;
-      prefix = originalName;
-      while ((index = prefix.lastIndexOf('.')) != -1) {
-        prefix = prefix.substring(0, index);
-        if (packageDistribution.containsFile(prefix + ".*")) {
-          return prefix + ".*";
-        }
-      }
-      return null;
-    }
-
-    static boolean coveredByPrefix(String originalName, String currentPrefix) {
-      if (currentPrefix == null) {
-        return false;
-      }
-      if (currentPrefix.endsWith(".*")) {
-        return originalName.startsWith(currentPrefix.substring(0, currentPrefix.length() - 2));
-      } else {
-        return originalName.startsWith(currentPrefix)
-            && originalName.lastIndexOf('.') == currentPrefix.length();
-      }
-    }
-  }
-
-  /**
    * Helper class to cycle through the set of virtual files.
    *
    * Iteration starts at the first file and iterates through all files.
@@ -915,6 +728,18 @@ public class VirtualFile {
       this.cycler = new VirtualFileCycler(files, namingLens, fillStrategy);
     }
 
+    static boolean coveredByPrefix(String originalName, String currentPrefix) {
+      if (currentPrefix == null) {
+        return false;
+      }
+      if (currentPrefix.endsWith(".*")) {
+        return originalName.startsWith(currentPrefix.substring(0, currentPrefix.length() - 2));
+      } else {
+        return originalName.startsWith(currentPrefix)
+            && originalName.lastIndexOf('.') == currentPrefix.length();
+      }
+    }
+
     private String getOriginalName(DexProgramClass clazz) {
       return originalNames != null ? originalNames.get(clazz) : clazz.toString();
     }
@@ -931,7 +756,7 @@ public class VirtualFile {
       for (int classIndex = 0; classIndex < classes.size(); classIndex++) {
         DexProgramClass clazz = classes.get(classIndex);
         String originalName = getOriginalName(clazz);
-        if (!PackageMapPopulator.coveredByPrefix(originalName, currentPrefix)) {
+        if (!coveredByPrefix(originalName, currentPrefix)) {
           if (currentPrefix != null) {
             current.commitTransaction();
             // Reset the cycler to again iterate over all files, starting with the current one.

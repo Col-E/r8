@@ -98,7 +98,6 @@ public class JasminTestBase {
             null,
             NamingLens.getIdentityLens(),
             null,
-            null,
             options);
     return runOnArt(outputApp, main);
   }
@@ -182,7 +181,6 @@ public class JasminTestBase {
           appInfo,
           null,
           NamingLens.getIdentityLens(),
-          null,
           null,
           options);
     } catch (ExecutionException e) {

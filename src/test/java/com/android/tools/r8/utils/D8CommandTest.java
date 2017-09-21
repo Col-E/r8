@@ -54,7 +54,6 @@ public class D8CommandTest {
     assertFalse(ToolHelper.getApp(command).hasMainDexListResources());
     assertFalse(ToolHelper.getApp(command).hasProguardMap());
     assertFalse(ToolHelper.getApp(command).hasProguardSeeds());
-    assertFalse(ToolHelper.getApp(command).hasPackageDistribution());
     assertNull(command.getOutputPath());
     assertEquals(CompilationMode.DEBUG, command.getMode());
   }

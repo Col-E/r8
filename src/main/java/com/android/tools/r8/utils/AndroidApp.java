@@ -63,7 +63,6 @@ public class AndroidApp {
   private final Resource deadCode;
   private final Resource proguardMap;
   private final Resource proguardSeeds;
-  private final Resource packageDistribution;
   private final List<Resource> mainDexListResources;
   private final List<String> mainDexClasses;
   private final Resource mainDexListOutput;
@@ -78,7 +77,6 @@ public class AndroidApp {
       Resource deadCode,
       Resource proguardMap,
       Resource proguardSeeds,
-      Resource packageDistribution,
       List<Resource> mainDexListResources,
       List<String> mainDexClasses,
       Resource mainDexListOutput) {
@@ -90,7 +88,6 @@ public class AndroidApp {
     this.deadCode = deadCode;
     this.proguardMap = proguardMap;
     this.proguardSeeds = proguardSeeds;
-    this.packageDistribution = packageDistribution;
     this.mainDexListResources = mainDexListResources;
     this.mainDexClasses = mainDexClasses;
     this.mainDexListOutput = mainDexListOutput;
@@ -252,20 +249,6 @@ public class AndroidApp {
    */
   public InputStream getProguardSeeds(Closer closer) throws IOException {
     return proguardSeeds == null ? null : closer.register(proguardSeeds.getStream());
-  }
-
-  /**
-   * True if the package distribution resource exists.
-   */
-  public boolean hasPackageDistribution() {
-    return packageDistribution != null;
-  }
-
-  /**
-   * Get the input stream of the package distribution resource if it exists.
-   */
-  public InputStream getPackageDistribution(Closer closer) throws IOException {
-    return packageDistribution == null ? null : closer.register(packageDistribution.getStream());
   }
 
   /**
@@ -464,7 +447,6 @@ public class AndroidApp {
     private Resource deadCode;
     private Resource proguardMap;
     private Resource proguardSeeds;
-    private Resource packageDistribution;
     private List<Resource> mainDexListResources = new ArrayList<>();
     private List<String> mainDexListClasses = new ArrayList<>();
     private Resource mainDexListOutput;
@@ -484,7 +466,6 @@ public class AndroidApp {
       deadCode = app.deadCode;
       proguardMap = app.proguardMap;
       proguardSeeds = app.proguardSeeds;
-      packageDistribution = app.packageDistribution;
       mainDexListResources = app.mainDexListResources;
       mainDexListClasses = app.mainDexClasses;
       mainDexListOutput = app.mainDexListOutput;
@@ -685,14 +666,6 @@ public class AndroidApp {
     }
 
     /**
-     * Set the package-distribution file.
-     */
-    public Builder setPackageDistributionFile(Path file) {
-      packageDistribution = file == null ? null : Resource.fromFile(null, file);
-      return this;
-    }
-
-    /**
      * Add a main-dex list file.
      */
     public Builder addMainDexListFiles(Path... files) throws IOException {
@@ -773,7 +746,6 @@ public class AndroidApp {
           deadCode,
           proguardMap,
           proguardSeeds,
-          packageDistribution,
           mainDexListResources,
           mainDexListClasses,
           mainDexListOutput);

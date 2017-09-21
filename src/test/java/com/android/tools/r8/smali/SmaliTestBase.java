@@ -588,7 +588,6 @@ public class SmaliTestBase extends TestBase {
           null,
           NamingLens.getIdentityLens(),
           null,
-          null,
           options);
     } catch (ExecutionException e) {
       throw new RuntimeException(e);

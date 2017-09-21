@@ -9,8 +9,6 @@ import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
-import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.errors.DexOverflowException;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.ir.conversion.IRConverter;
@@ -168,8 +166,6 @@ public final class D8 {
       AndroidApp inputApp, InternalOptions options, ExecutorService executor)
       throws IOException, CompilationException {
     try {
-      assert !inputApp.hasPackageDistribution();
-
       // Disable global optimizations.
       options.skipMinification = true;
       options.inlineAccessors = false;
@@ -191,7 +187,7 @@ public final class D8 {
           new CompilationResult(
               new ApplicationWriter(
                   app, appInfo, options, marker, null, NamingLens.getIdentityLens(), null)
-                  .write(null, executor),
+                  .write(executor),
               app,
               appInfo);
 

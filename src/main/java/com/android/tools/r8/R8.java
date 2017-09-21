@@ -45,7 +45,6 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.PackageDistribution;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.io.ByteStreams;
@@ -63,9 +62,7 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -98,14 +95,13 @@ public class R8 {
       byte[] deadCode,
       NamingLens namingLens,
       byte[] proguardSeedsData,
-      PackageDistribution packageDistribution,
       InternalOptions options)
       throws ExecutionException, DexOverflowException {
     try {
       Marker marker = getMarker(options);
       return new ApplicationWriter(
           application, appInfo, options, marker, deadCode, namingLens, proguardSeedsData)
-          .write(packageDistribution, executorService);
+          .write(executorService);
     } catch (IOException e) {
       throw new RuntimeException("Cannot write dex application", e);
     }
@@ -373,13 +369,6 @@ public class R8 {
         return null;
       }
 
-      PackageDistribution packageDistribution = null;
-      if (inputApp.hasPackageDistribution()) {
-        try (Closer closer = Closer.create()) {
-          packageDistribution = PackageDistribution.load(inputApp.getPackageDistribution(closer));
-        }
-      }
-
       // Generate the resulting application resources.
       AndroidApp androidApp =
           writeApplication(
@@ -389,7 +378,6 @@ public class R8 {
               application.deadCode,
               namingLens,
               proguardSeedsData,
-              packageDistribution,
               options);
 
       options.printWarnings();
