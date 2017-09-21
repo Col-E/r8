@@ -24,6 +24,7 @@ import com.android.tools.r8.utils.DexInspector.FoundMethodSubject;
 import com.android.tools.r8.utils.DexInspector.InstructionSubject;
 import com.android.tools.r8.utils.DexInspector.MethodSubject;
 import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -493,53 +494,59 @@ public class TreeShakingTest {
   }
 
   private static void assumenosideeffects1CheckOutput(String output1, String output2) {
-    Assert.assertEquals("noSideEffectVoid\nnoSideEffectInt\n", output1);
+    Assert.assertEquals(StringUtils.lines("noSideEffectVoid", "noSideEffectInt"), output1);
     Assert.assertEquals("", output2);
   }
 
   private static void assumenosideeffects2CheckOutput(String output1, String output2) {
-    Assert.assertEquals("Hello, world!\n", output1);
+    Assert.assertEquals(StringUtils.lines("Hello, world!"), output1);
     Assert.assertEquals("", output2);
   }
 
   private static void assumenosideeffects3CheckOutput(String output1, String output2) {
-    Assert.assertEquals("0\n1\n0L\n1L\n", output1);
-    Assert.assertEquals("1\n0\n1L\n0L\n", output2);
+    Assert.assertEquals(StringUtils.lines("0", "1", "0L", "1L"), output1);
+    Assert.assertEquals(StringUtils.lines("1", "0", "1L", "0L"), output2);
   }
 
   private static void assumenosideeffects4CheckOutput(String output1, String output2) {
-    Assert.assertEquals("method0\n0\nmethod1\n1\nmethod0L\n0L\nmethod1L\n1L\n", output1);
-    Assert.assertEquals("1\n0\n1L\n0L\n", output2);
+    Assert.assertEquals(
+        StringUtils.lines("method0", "0", "method1", "1", "method0L", "0L", "method1L", "1L"),
+        output1);
+    Assert.assertEquals(StringUtils.lines("1", "0", "1L", "0L"), output2);
   }
 
   private static void assumenosideeffects5CheckOutput(String output1, String output2) {
-    Assert.assertEquals("methodTrue\ntrue\nmethodFalse\nfalse\n", output1);
-    Assert.assertEquals("false\ntrue\n", output2);
+    Assert.assertEquals(StringUtils.lines("methodTrue", "true", "methodFalse", "false"), output1);
+    Assert.assertEquals(StringUtils.lines("false", "true"), output2);
   }
 
   private static void assumevalues1CheckOutput(String output1, String output2) {
-    Assert.assertEquals("3\n3L\n", output1);
-    Assert.assertEquals("1\n1L\n", output2);
+    Assert.assertEquals(StringUtils.lines("3", "3L"), output1);
+    Assert.assertEquals(StringUtils.lines("1", "1L"), output2);
   }
 
   private static void assumevalues2CheckOutput(String output1, String output2) {
-    Assert.assertEquals("1\n2\n3\n4\n1L\n2L\n3L\n4L\n", output1);
-    Assert.assertEquals("2\n3\n2L\n3L\n", output2);
+    Assert.assertEquals(StringUtils.lines("1", "2", "3", "4", "1L", "2L", "3L", "4L"), output1);
+    Assert.assertEquals(StringUtils.lines("2", "3", "2L", "3L"), output2);
   }
 
   private static void assumevalues3CheckOutput(String output1, String output2) {
-    Assert.assertEquals("3\n3L\n", output1);
-    Assert.assertEquals("1\n1L\n", output2);
+    Assert.assertEquals(StringUtils.lines("3", "3L"), output1);
+    Assert.assertEquals(StringUtils.lines("1", "1L"), output2);
   }
 
   private static void assumevalues4CheckOutput(String output1, String output2) {
-    Assert.assertEquals("method0\n0\nmethod1\n1\nmethod0L\n0L\nmethod1L\n1L\n", output1);
-    Assert.assertEquals("method0\n1\nmethod1\n0\nmethod0L\n1L\nmethod1L\n0L\n", output2);
+    Assert.assertEquals(
+        StringUtils.lines("method0", "0", "method1", "1", "method0L", "0L", "method1L", "1L"),
+        output1);
+    Assert.assertEquals(
+        StringUtils.lines("method0", "1", "method1", "0", "method0L", "1L", "method1L", "0L"),
+        output2);
   }
 
   private static void assumevalues5CheckOutput(String output1, String output2) {
-    Assert.assertEquals("methodTrue\ntrue\nmethodFalse\nfalse\n", output1);
-    Assert.assertEquals("methodTrue\nfalse\nmethodFalse\ntrue\n", output2);
+    Assert.assertEquals(StringUtils.lines("methodTrue", "true", "methodFalse", "false"), output1);
+    Assert.assertEquals(StringUtils.lines("methodTrue", "false", "methodFalse", "true"), output2);
   }
 
   private static void annotationRemovalHasAllInnerClassAnnotations(DexInspector inspector) {

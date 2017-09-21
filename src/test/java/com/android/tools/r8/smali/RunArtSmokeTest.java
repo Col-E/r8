@@ -7,6 +7,7 @@ package com.android.tools.r8.smali;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.code.ConstString;
 import com.android.tools.r8.code.InvokeVirtual;
 import com.android.tools.r8.code.ReturnVoid;
@@ -15,6 +16,7 @@ import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.Iterables;
 import org.junit.Test;
 
@@ -49,6 +51,6 @@ public class RunArtSmokeTest extends SmaliTestBase {
 
     // Run the generated code in Art.
     String result = runArt(processedApplication, options);
-    assertEquals("Hello, world!\n", result);
+    assertEquals(StringUtils.lines("Hello, world!"), result);
   }
 }

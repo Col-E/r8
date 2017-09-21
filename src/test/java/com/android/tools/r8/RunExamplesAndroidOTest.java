@@ -386,8 +386,8 @@ public abstract class RunExamplesAndroidOTest
           "JVM output does not match art output.\n\tjvm: "
               + javaResult.stdout
               + "\n\tart: "
-              + output,
-          output.equals(javaResult.stdout));
+              + output.replace("\r", ""),
+          output.equals(javaResult.stdout.replace("\r", "")));
     }
   }
 

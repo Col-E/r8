@@ -7,6 +7,7 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
+import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.io.File;
@@ -78,40 +79,48 @@ public class R8RunSmaliTestsTest {
   @Parameters(name = "{0}")
   public static Collection<String[]> data() {
     return Arrays.asList(new String[][]{
-        {"arithmetic", "-1\n3\n2\n3\n3.0\n1\n0\n-131580\n-131580\n2\n4\n-2\n"},
-        {"controlflow", "2\n1\n2\n1\n2\n1\n2\n1\n2\n1\n2\n1\n2\n"},
-        {"fibonacci", "55\n55\n55\n55\n"},
+        {"arithmetic",
+            StringUtils.lines("-1", "3", "2", "3", "3.0", "1", "0", "-131580", "-131580", "2", "4",
+                "-2")},
+        {"controlflow",
+            StringUtils.lines("2", "1", "2", "1", "2", "1", "2", "1", "2", "1", "2", "1", "2")},
+        {"fibonacci", StringUtils.lines("55", "55", "55", "55")},
         {"fill-array-data", "[1, 2, 3][4, 5, 6]"},
         {"filled-new-array", "[1, 2, 3][4, 5, 6][1, 2, 3, 4, 5, 6][6, 5, 4, 3, 2, 1]"},
         {"packed-switch", "12345"},
         {"sparse-switch", "12345"},
         {"unreachable-code-1", "777"},
-        {"multiple-returns", "TFtf\n1\n4611686018427387904\ntrue\nfalse\n"},
+        {"multiple-returns",
+            StringUtils.lines("TFtf", "1", "4611686018427387904", "true", "false")},
         {"try-catch", ""},
-        {"phi-removal-regression", "returnBoolean\n"},
-        {"overlapping-long-registers", "-9151314442816847872\n-9151314442816319488\n"},
-        {"type-confusion-regression", "java.lang.RuntimeException: Test.<init>()\n"},
+        {"phi-removal-regression", StringUtils.lines("returnBoolean")},
+        {"overlapping-long-registers",
+            StringUtils.lines("-9151314442816847872", "-9151314442816319488")},
+        {"type-confusion-regression",
+            StringUtils.lines("java.lang.RuntimeException: Test.<init>()")},
         {"type-confusion-regression2",
-            "java.lang.NullPointerException: Attempt to read from null array\n"},
+            StringUtils.lines("java.lang.NullPointerException: Attempt to read from null array")},
         {"type-confusion-regression3",
-            "java.lang.NullPointerException: Attempt to read from field 'byte[] Test.a'" +
-                " on a null object reference\n"},
+            StringUtils.lines(
+                "java.lang.NullPointerException: Attempt to read from field 'byte[] Test.a'" +
+                    " on a null object reference")},
         {"type-confusion-regression4", ""},
-        {"type-confusion-regression5", "java.lang.RuntimeException: getId()I\n"},
-        {"chain-of-loops", "java.lang.RuntimeException: f(II)\n"},
-        {"new-instance-and-init", "Test(0)\nTest(0)\nTest(0)\n"},
+        {"type-confusion-regression5", StringUtils.lines("java.lang.RuntimeException: getId()I")},
+        {"chain-of-loops", StringUtils.lines("java.lang.RuntimeException: f(II)")},
+        {"new-instance-and-init", StringUtils.lines("Test(0)", "Test(0)", "Test(0)")},
         {"bad-codegen",
-            "java.lang.NullPointerException: Attempt to read from field " +
-                "'Test Test.a' on a null object reference\n"},
-        {"merge-blocks-regression", "java.lang.NullPointerException: Attempt to invoke virtual"
-            + " method 'Test Test.bW_()' on a null object reference\n"},
-        {"self-is-catch-block", "100\n-1\n"},
+            StringUtils.lines("java.lang.NullPointerException: Attempt to read from field " +
+                "'Test Test.a' on a null object reference")},
+        {"merge-blocks-regression",
+            StringUtils.lines("java.lang.NullPointerException: Attempt to invoke virtual"
+                + " method 'Test Test.bW_()' on a null object reference")},
+        {"self-is-catch-block", StringUtils.lines("100", "-1")},
         {"infinite-loop", ""},
         {"regression/33336471",
-            "START\n0\n2\nLOOP\n1\n2\nLOOP\n2\n2\nDONE\n" +
-                "START\n0\n2\nLOOP\n1\n2\nLOOP\n2\n2\nDONE\n"},
+            StringUtils.lines("START", "0", "2", "LOOP", "1", "2", "LOOP", "2", "2", "DONE" +
+                "START", "0", "2", "LOOP", "1", "2", "LOOP", "2", "2", "DONE")},
         {"regression/33846227", ""},
-        {"illegal-invokes", "ICCE\nICCE\n"},
+        {"illegal-invokes", StringUtils.lines("ICCE", "ICCE")},
     });
   }
 

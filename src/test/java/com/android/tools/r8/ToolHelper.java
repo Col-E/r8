@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.CharStreams;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -60,6 +61,7 @@ public class ToolHelper {
   public static final String SMALI_BUILD_DIR = BUILD_DIR + "test/smali/";
 
   public static final String LINE_SEPARATOR = StringUtils.LINE_SEPARATOR;
+  public final static String PATH_SEPARATOR = File.pathSeparator;
 
   private static final String ANDROID_JAR_PATTERN = "third_party/android_jar/lib-v%d/android.jar";
   private static final int DEFAULT_MIN_SDK = Constants.ANDROID_I_API;
@@ -601,7 +603,7 @@ public class ToolHelper {
 
   public static ProcessResult runJava(List<String> classpath, String mainClass) throws IOException {
     ProcessBuilder builder = new ProcessBuilder(
-        getJavaExecutable(), "-cp", String.join(":", classpath), mainClass);
+        getJavaExecutable(), "-cp", String.join(PATH_SEPARATOR, classpath), mainClass);
     return runProcess(builder);
   }
 
