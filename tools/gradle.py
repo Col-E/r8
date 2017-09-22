@@ -15,10 +15,17 @@ import utils
 GRADLE_DIR = os.path.join(utils.REPO_ROOT, 'third_party', 'gradle')
 GRADLE_SHA1 = os.path.join(GRADLE_DIR, 'gradle.tar.gz.sha1')
 GRADLE_TGZ = os.path.join(GRADLE_DIR, 'gradle.tar.gz')
+
+SHADOW_DIR = os.path.join(utils.REPO_ROOT, 'third_party')
+SHADOW_SHA1 = os.path.join(SHADOW_DIR, 'shadow.tar.gz.sha1')
+SHADOW_TGZ = os.path.join(SHADOW_DIR, 'shadow.tar.gz')
+
 if utils.IsWindows():
   GRADLE = os.path.join(GRADLE_DIR, 'gradle', 'bin', 'gradle.bat')
 else:
   GRADLE = os.path.join(GRADLE_DIR, 'gradle', 'bin', 'gradle')
+
+SHADOW = os.path.join(SHADOW_DIR, 'shadow', 'shadow-2.0.1.jar')
 
 def PrintCmd(s):
   if type(s) is list:
@@ -37,8 +44,19 @@ def EnsureGradle():
   else:
     print 'gradle.py: Gradle binary present'
 
+def EnsureShadow():
+  if not os.path.exists(SHADOW) or os.path.getmtime(SHADOW_TGZ) < os.path.getmtime(SHADOW_SHA1):
+    # Bootstrap or update gradle, everything else is controlled using gradle.
+    utils.DownloadFromGoogleCloudStorage(SHADOW_SHA1)
+    # Update the mtime of the tar file to make sure we do not run again unless
+    # there is an update.
+    os.utime(SHADOW_TGZ, None)
+  else:
+    print 'gradle.py: Shadow library present'
+
 def RunGradle(args, throw_on_failure=True):
   EnsureGradle()
+  EnsureShadow()
   cmd = [GRADLE]
   cmd.extend(args)
   utils.PrintCmd(cmd)
