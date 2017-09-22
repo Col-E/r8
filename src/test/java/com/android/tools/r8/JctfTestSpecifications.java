@@ -4513,7 +4513,7 @@ public class JctfTestSpecifications {
           // java.lang.AssertionError: Destroyed thread group was not finalized
 
           .put("lang.ThreadGroup.destroy.ThreadGroup_destroy_A01",
-              match(D8_COMPILER, runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
+              match(D8_COMPILER, runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1, DexVm.ART_4_4_4)))
           // 1) t02
           // java.lang.IllegalThreadStateException: Thread group still contains threads: Test group
           // 2) t04
@@ -4792,6 +4792,12 @@ public class JctfTestSpecifications {
           // Failed on bot only (R8):
           // 1) t02
           // java.lang.AssertionError: java.lang.AssertionError: expected:<7> but was:<6>
+
+          .put("lang.ref.PhantomReference.clear.PhantomReference_clear_A01",
+              match(runtimes(DexVm.ART_4_4_4)))
+          .put("lang.ref.SoftReference.clear.SoftReference_clear_A01",
+              match(runtimes(DexVm.ART_4_4_4)))
+          // Passes or fails randomly. Have seen out of memory and assertion errors.
 
           .put("lang.ref.PhantomReference.isEnqueued.PhantomReference_isEnqueued_A01",
               match(runtimes(DexVm.ART_4_4_4)))
