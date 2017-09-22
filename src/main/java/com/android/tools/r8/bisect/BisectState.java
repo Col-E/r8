@@ -270,7 +270,7 @@ public class BisectState {
       }
     }
     System.out.println("Class split is good: " + goodClasses + ", bad: " + badClasses);
-    return new Builder(badApp).replaceProgramClasses(programClasses).build();
+    return badApp.builder().replaceProgramClasses(programClasses).build();
   }
 
   private DexProgramClass getGoodClass(DexProgramClass clazz) {
@@ -326,6 +326,7 @@ public class BisectState {
     return classes;
   }
 
+  @SuppressWarnings("deprecation")
   private static String makeSignature(DexApplication app) {
     List<DexProgramClass> classes = getSortedClasses(app);
     StringBuilder builder = new StringBuilder();

@@ -222,7 +222,7 @@ public class R8 {
             + oLevel.getName() + " and later (--min-api " + oLevel.getLevel() + ")");
       }
       DexApplication application =
-          new ApplicationReader(inputApp, options, timing).read(executorService);
+          new ApplicationReader(inputApp, options, timing).read(executorService).toDirect();
 
       AppInfoWithSubtyping appInfo = new AppInfoWithSubtyping(application);
       RootSet rootSet;
@@ -309,7 +309,7 @@ public class R8 {
 
         // Calculate the automatic main dex list according to legacy multidex constraints.
         // Add those classes to an eventual manual list of classes.
-        application = new DexApplication.Builder(application)
+        application = application.builder()
             .addToMainDexList(new MainDexListBuilder(mainDexBaseClasses, application).run())
             .build();
       }

@@ -35,6 +35,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
+import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.DebugPosition;
 import com.android.tools.r8.ir.code.IRCode;
@@ -440,7 +441,7 @@ public class MainDexListTests extends TestBase {
       }
       builder.append("]");
       fail("Class " + clazz + " found in main dex, " +
-          "only expected explicit main dex classes " + builder +" in main dex file");
+          "only expected explicit main dex classes " + builder + " in main dex file");
     }
   }
 
@@ -551,7 +552,7 @@ public class MainDexListTests extends TestBase {
     options.minApiLevel = minApi;
     options.intermediate = intermediate;
     DexItemFactory factory = options.itemFactory;
-    DexApplication.Builder builder = new DexApplication.Builder(factory, timing);
+    DexApplication.Builder builder = DexApplication.builder(factory, timing);
     for (String clazz : classes) {
       DexString desc = factory.createString(DescriptorUtils.javaTypeToDescriptor(clazz));
       DexType type = factory.createType(desc);
@@ -591,7 +592,7 @@ public class MainDexListTests extends TestBase {
               directMethods,
               DexEncodedMethod.EMPTY_ARRAY));
     }
-    DexApplication application = builder.build();
+    DirectMappedDexApplication application = builder.build().toDirect();
     AppInfoWithSubtyping appInfo = new AppInfoWithSubtyping(application);
     ApplicationWriter writer = new ApplicationWriter(
         application, appInfo, options, null, null, NamingLens.getIdentityLens(), null);

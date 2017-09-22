@@ -13,7 +13,6 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.errors.DexOverflowException;
 import com.android.tools.r8.graph.AppInfo;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -463,7 +462,7 @@ public class SmaliTestBase extends TestBase {
 
   protected DexApplication processApplication(DexApplication application, InternalOptions options) {
     try {
-      return ToolHelper.optimizeWithR8(application, new AppInfoWithSubtyping(application), options);
+      return ToolHelper.optimizeWithR8(application, options);
     } catch (IOException | CompilationException | ExecutionException e) {
       throw new RuntimeException(e);
     }

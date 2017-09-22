@@ -52,10 +52,6 @@ public class AppInfo {
     return app.classes();
   }
 
-  public Iterable<DexLibraryClass> libraryClasses() {
-    return app.libraryClasses();
-  }
-
   public DexClass definitionFor(DexType type) {
     return app.definitionFor(type);
   }

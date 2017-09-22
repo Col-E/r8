@@ -25,6 +25,7 @@ import com.android.tools.r8.graph.DexLibraryClass;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.JarApplicationReader;
 import com.android.tools.r8.graph.JarClassFileReader;
+import com.android.tools.r8.graph.LazyLoadedDexApplication;
 import com.android.tools.r8.naming.ProguardMapReader;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ClassProvider;
@@ -73,7 +74,7 @@ public class ApplicationReader {
   public final DexApplication read(ExecutorService executorService)
       throws IOException, ExecutionException {
     timing.begin("DexApplication.read");
-    final DexApplication.Builder builder = new DexApplication.Builder(itemFactory, timing);
+    final LazyLoadedDexApplication.Builder builder = DexApplication.builder(itemFactory, timing);
     try {
       List<Future<?>> futures = new ArrayList<>();
       // Still preload some of the classes, primarily for two reasons:
@@ -142,7 +143,7 @@ public class ApplicationReader {
     }
   }
 
-  private void readMainDexList(DexApplication.Builder builder, ExecutorService executorService,
+  private void readMainDexList(DexApplication.Builder<?> builder, ExecutorService executorService,
       List<Future<?>> futures) {
     if (inputApp.hasMainDexList()) {
       futures.add(executorService.submit(() -> {
@@ -254,7 +255,7 @@ public class ApplicationReader {
           : ClassProvider.combine(classKind, providers);
     }
 
-    void initializeLazyClassCollection(DexApplication.Builder builder) {
+    void initializeLazyClassCollection(LazyLoadedDexApplication.Builder builder) {
       // Add all program classes to the builder.
       for (DexProgramClass clazz : programClasses) {
         builder.addProgramClass(clazz.asProgramClass());

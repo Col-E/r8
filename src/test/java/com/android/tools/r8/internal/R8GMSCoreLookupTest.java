@@ -9,10 +9,10 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
-import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
@@ -29,7 +29,7 @@ public class R8GMSCoreLookupTest {
 
   static final String APP_DIR = "third_party/gmscore/v5/";
   private AndroidApp app;
-  private DexApplication program;
+  private DirectMappedDexApplication program;
   private AppInfoWithSubtyping appInfo;
 
   @Before
@@ -37,7 +37,8 @@ public class R8GMSCoreLookupTest {
     app = AndroidApp.fromProgramDirectory(Paths.get(APP_DIR));
     ExecutorService executorService = Executors.newSingleThreadExecutor();
     Timing timing = new Timing("ReadGMSCore");
-    program = new ApplicationReader(app, new InternalOptions(), timing).read(executorService);
+    program = new ApplicationReader(app, new InternalOptions(), timing)
+        .read(executorService).toDirect();
     appInfo = new AppInfoWithSubtyping(program);
   }
 

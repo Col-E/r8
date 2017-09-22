@@ -37,7 +37,8 @@ public class GenerateMainDexList {
 
   private List<String> run(AndroidApp app) throws IOException, ExecutionException {
     ExecutorService executor = ThreadUtils.getExecutorService(options);
-    DexApplication application = new ApplicationReader(app, options, timing).read(executor);
+    DexApplication application =
+        new ApplicationReader(app, options, timing).read(executor).toDirect();
     AppInfoWithSubtyping appInfo = new AppInfoWithSubtyping(application);
     RootSet mainDexRootSet =
         new RootSetBuilder(application, appInfo, options.mainDexKeepRules).run(executor);

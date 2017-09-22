@@ -254,7 +254,7 @@ public final class InterfaceMethodRewriter {
   }
 
   private Map<DexProgramClass, DexProgramClass> processInterfaces(
-      Builder builder, Flavor flavour) {
+      Builder<?> builder, Flavor flavour) {
     InterfaceProcessor processor = new InterfaceProcessor(this);
     for (DexProgramClass clazz : builder.getProgramClasses()) {
       if (shouldProcess(clazz, flavour, true)) {
@@ -264,7 +264,7 @@ public final class InterfaceMethodRewriter {
     return processor.companionClasses;
   }
 
-  private Set<DexEncodedMethod> processClasses(Builder builder, Flavor flavour) {
+  private Set<DexEncodedMethod> processClasses(Builder<?> builder, Flavor flavour) {
     ClassProcessor processor = new ClassProcessor(this);
     for (DexProgramClass clazz : builder.getProgramClasses()) {
       if (shouldProcess(clazz, flavour, false)) {

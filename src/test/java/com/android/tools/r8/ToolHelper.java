@@ -459,7 +459,8 @@ public class ToolHelper {
         AndroidApp.fromProgramFiles(ListUtils.map(fileNames, Paths::get)),
         new InternalOptions(),
         new Timing("ToolHelper buildApplication"))
-        .read();
+        .read()
+        .toDirect();
   }
 
   public static ProguardConfiguration loadProguardConfiguration(
@@ -545,10 +546,10 @@ public class ToolHelper {
 
   public static DexApplication optimizeWithR8(
       DexApplication application,
-      AppInfoWithSubtyping appInfo,
       InternalOptions options)
       throws CompilationException, ExecutionException, IOException {
-    return R8.optimize(application, appInfo, options);
+    application = application.toDirect();
+    return R8.optimize(application, new AppInfoWithSubtyping(application), options);
   }
 
   public static AndroidApp runD8(AndroidApp app) throws CompilationException, IOException {

@@ -56,7 +56,7 @@ public class TreePruner {
   }
 
   private DexApplication.Builder removeUnused(DexApplication application) {
-    return new DexApplication.Builder(application)
+    return application.builder()
         .replaceProgramClasses(getNewProgramClasses(application.classes()));
   }
 

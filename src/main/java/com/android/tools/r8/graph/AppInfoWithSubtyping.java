@@ -4,7 +4,9 @@
 package com.android.tools.r8.graph;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -21,19 +23,29 @@ public class AppInfoWithSubtyping extends AppInfo {
 
   public AppInfoWithSubtyping(DexApplication application) {
     super(application);
-    populateSubtypeMap(application.getFullClassMap(), application.dexItemFactory);
+    populateSubtypeMap(application.asDirect(), application.dexItemFactory);
   }
 
   protected AppInfoWithSubtyping(AppInfoWithSubtyping previous) {
     super(previous);
     missingClasses.addAll(previous.missingClasses);
     subtypeMap.putAll(previous.subtypeMap);
+    assert app instanceof DirectMappedDexApplication;
   }
 
   protected AppInfoWithSubtyping(AppInfoWithSubtyping previous, GraphLense lense) {
     super(previous, lense);
     // Recompute subtype map if we have modified the graph.
-    populateSubtypeMap(previous.app.getFullClassMap(), dexItemFactory);
+    populateSubtypeMap(previous.getDirectApplication(), dexItemFactory);
+  }
+
+  private DirectMappedDexApplication getDirectApplication() {
+    // TODO(herhut): Remove need for cast.
+    return (DirectMappedDexApplication) app;
+  }
+
+  public Iterable<DexLibraryClass> libraryClasses() {
+    return getDirectApplication().libraryClasses();
   }
 
   public Set<DexType> getMissingClasses() {
@@ -84,17 +96,17 @@ public class AppInfoWithSubtyping extends AppInfo {
     }
   }
 
-  private void populateSubtypeMap(Map<DexType, DexClass> classes, DexItemFactory dexItemFactory) {
+  private void populateSubtypeMap(DirectMappedDexApplication app, DexItemFactory dexItemFactory) {
     dexItemFactory.clearSubtypeInformation();
     dexItemFactory.objectType.tagAsSubtypeRoot();
     Hashtable<DexType, Set<DexType>> map = new Hashtable<>();
-    for (Map.Entry<DexType, DexClass> entry : classes.entrySet()) {
-      populateAllSuperTypes(map, entry.getKey(), entry.getValue(), classes::get);
+    for (DexClass clazz : Iterables.<DexClass>concat(app.classes(), app.libraryClasses())) {
+      populateAllSuperTypes(map, clazz.type, clazz, app::definitionFor);
     }
     for (Map.Entry<DexType, Set<DexType>> entry : map.entrySet()) {
       subtypeMap.put(entry.getKey(), ImmutableSet.copyOf(entry.getValue()));
     }
-    assert DexType.validateLevelsAreCorrect(classes::get, dexItemFactory);
+    assert DexType.validateLevelsAreCorrect(app::definitionFor, dexItemFactory);
   }
 
   // For mapping invoke virtual instruction to target methods.

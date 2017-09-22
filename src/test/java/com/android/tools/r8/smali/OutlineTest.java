@@ -901,8 +901,7 @@ public class OutlineTest extends SmaliTestBase {
     // Process the application several times. Each time will outline the previous outline.
     for (int i = 0; i < count; i++) {
       // Build a new application with the Outliner class.
-      DexApplication.Builder appBuilder =
-          new DexApplication.Builder(processedApplication);
+      DexApplication.Builder appBuilder = processedApplication.builder();
       originalApplication = appBuilder.build();
       processedApplication = processApplication(originalApplication, options);
       assertEquals(i + 3, Iterables.size(processedApplication.classes()));
@@ -912,8 +911,7 @@ public class OutlineTest extends SmaliTestBase {
     options.outline.threshold = 2;
     for (int i = 0; i < count; i++) {
       // Build a new application with the Outliner class.
-      DexApplication.Builder appBuilder =
-          new DexApplication.Builder(processedApplication);
+      DexApplication.Builder appBuilder = processedApplication.builder();
       originalApplication = appBuilder.build();
       processedApplication = processApplication(originalApplication, options);
       assertEquals(count - 1 + 3, Iterables.size(processedApplication.classes()));

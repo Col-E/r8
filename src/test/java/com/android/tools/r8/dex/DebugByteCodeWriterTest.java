@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.dex;
 
+import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexApplication.Builder;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexDebugEvent;
@@ -24,7 +25,7 @@ public class DebugByteCodeWriterTest {
   ObjectToOffsetMapping emptyObjectTObjectMapping() {
     return new ObjectToOffsetMapping(
         0,
-        new Builder(new DexItemFactory(), null).build(),
+        DexApplication.builder(new DexItemFactory(), null).build(),
         new DexProgramClass[] {},
         new DexProto[] {},
         new DexType[] {},

@@ -8,9 +8,9 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
-import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
@@ -33,8 +33,10 @@ public class R8UnreachableCodeTest {
     AndroidApp input = AndroidApp.fromProgramFiles(SMALI_DIR.resolve(name).resolve(name + ".dex"));
     ExecutorService executorService = Executors.newSingleThreadExecutor();
     Timing timing = new Timing("R8UnreachableCodeTest");
-    DexApplication application =
-        new ApplicationReader(input, new InternalOptions(), timing).read(executorService);
+    DirectMappedDexApplication application =
+        new ApplicationReader(input, new InternalOptions(), timing)
+            .read(executorService)
+            .toDirect();
     IRConverter converter =
         new IRConverter(application, new AppInfoWithSubtyping(application), new InternalOptions());
     converter.optimize();

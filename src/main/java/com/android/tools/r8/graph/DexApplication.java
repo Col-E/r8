@@ -6,10 +6,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.naming.ClassNameMapper;
-import com.android.tools.r8.utils.ClasspathClassCollection;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.LibraryClassCollection;
 import com.android.tools.r8.utils.ProgramClassCollection;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.Timing;
@@ -26,17 +25,13 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
-public class DexApplication {
+public abstract class DexApplication {
 
   // Maps type into class, may be used concurrently.
-  private ProgramClassCollection programClasses;
-  private ClasspathClassCollection classpathClasses;
-  private LibraryClassCollection libraryClasses;
+  ProgramClassCollection programClasses;
 
   public final ImmutableSet<DexType> mainDexList;
   public final byte[] deadCode;
@@ -50,12 +45,12 @@ public class DexApplication {
   // Information on the lexicographically largest string referenced from code.
   public final DexString highestSortingString;
 
-  /** Constructor should only be invoked by the DexApplication.Builder. */
-  private DexApplication(
+  /**
+   * Constructor should only be invoked by the DexApplication.Builder.
+   */
+  DexApplication(
       ClassNameMapper proguardMap,
       ProgramClassCollection programClasses,
-      ClasspathClassCollection classpathClasses,
-      LibraryClassCollection libraryClasses,
       ImmutableSet<DexType> mainDexList,
       byte[] deadCode,
       DexItemFactory dexItemFactory,
@@ -64,8 +59,6 @@ public class DexApplication {
     assert programClasses != null;
     this.proguardMap = proguardMap;
     this.programClasses = programClasses;
-    this.classpathClasses = classpathClasses;
-    this.libraryClasses = libraryClasses;
     this.mainDexList = mainDexList;
     this.deadCode = deadCode;
     this.dexItemFactory = dexItemFactory;
@@ -73,10 +66,7 @@ public class DexApplication {
     this.timing = timing;
   }
 
-  /** Force load all classes and return type -> class map containing all the classes */
-  public Map<DexType, DexClass> getFullClassMap() {
-    return forceLoadAllClasses();
-  }
+  public abstract Builder<?> builder();
 
   // Reorder classes randomly. Note that the order of classes in program or library
   // class collections should not matter for compilation of valid code and when running
@@ -96,61 +86,14 @@ public class DexApplication {
     return classes;
   }
 
-  public List<DexLibraryClass> libraryClasses() {
-    assert classpathClasses == null : "Operation is not supported.";
-    Map<DexType, DexClass> classMap = forceLoadAllClasses();
-    List<DexLibraryClass> classes = new ArrayList<>();
-    for (DexClass clazz : classMap.values()) {
-      if (clazz.isLibraryClass()) {
-        classes.add(clazz.asLibraryClass());
-      }
-    }
-    assert reorderClasses(classes);
-    return classes;
-  }
-
-  private Map<DexType, DexClass> forceLoadAllClasses() {
-    Map<DexType, DexClass> loaded = new IdentityHashMap<>();
-
-    // program classes are supposed to be loaded, but force-loading them is no-op.
-    programClasses.forceLoad(type -> true);
-    programClasses.getAllClasses().forEach(clazz -> loaded.put(clazz.type, clazz));
-
-    if (classpathClasses != null) {
-      classpathClasses.forceLoad(type -> !loaded.containsKey(type));
-      classpathClasses.getAllClasses().forEach(clazz -> loaded.putIfAbsent(clazz.type, clazz));
-    }
-
-    if (libraryClasses != null) {
-      libraryClasses.forceLoad(type -> !loaded.containsKey(type));
-      libraryClasses.getAllClasses().forEach(clazz -> loaded.putIfAbsent(clazz.type, clazz));
-    }
-
-    return loaded;
-  }
-
-  public DexClass definitionFor(DexType type) {
-    if (type == null) {
-      return null;
-    }
-    DexClass clazz = programClasses.get(type);
-    if (clazz == null && classpathClasses != null) {
-      clazz = classpathClasses.get(type);
-    }
-    if (clazz == null && libraryClasses != null) {
-      clazz = libraryClasses.get(type);
-    }
-    return clazz;
-  }
+  public abstract DexClass definitionFor(DexType type);
 
   public DexProgramClass programDefinitionFor(DexType type) {
     DexClass clazz = programClasses.get(type);
     return clazz == null ? null : clazz.asProgramClass();
   }
 
-  public String toString() {
-    return "Application (" + programClasses + "; " + classpathClasses + "; " + libraryClasses + ")";
-  }
+  public abstract String toString();
 
   public ClassNameMapper getProguardMap() {
     return proguardMap;
@@ -208,7 +151,9 @@ public class DexApplication {
     }
   }
 
-  /** Return smali source for the application code. */
+  /**
+   * Return smali source for the application code.
+   */
   public String smali(InternalOptions options) {
     ByteArrayOutputStream os = new ByteArrayOutputStream();
     PrintStream ps = new PrintStream(os);
@@ -296,7 +241,7 @@ public class DexApplication {
     }
   }
 
-  public static class Builder {
+  public abstract static class Builder<T extends Builder> {
     // We handle program class collection separately from classpath
     // and library class collections. Since while we assume program
     // class collection should always be fully loaded and thus fully
@@ -304,17 +249,15 @@ public class DexApplication {
     // new or removing existing classes), classpath and library
     // collections will be considered monolithic collections.
 
-    private final List<DexProgramClass> programClasses;
-    private ClasspathClassCollection classpathClasses;
-    private LibraryClassCollection libraryClasses;
+    final List<DexProgramClass> programClasses;
 
     public final DexItemFactory dexItemFactory;
     ClassNameMapper proguardMap;
-    private final Timing timing;
+    final Timing timing;
 
     DexString highestSortingString;
-    private byte[] deadCode;
-    private final Set<DexType> mainDexList = Sets.newIdentityHashSet();
+    byte[] deadCode;
+    final Set<DexType> mainDexList = Sets.newIdentityHashSet();
     private final Collection<DexProgramClass> synthesizedClasses;
 
     public Builder(DexItemFactory dexItemFactory, Timing timing) {
@@ -322,16 +265,14 @@ public class DexApplication {
       this.dexItemFactory = dexItemFactory;
       this.timing = timing;
       this.deadCode = null;
-      this.classpathClasses = null;
-      this.libraryClasses = null;
       this.synthesizedClasses = new ArrayList<>();
     }
 
+    abstract T self();
+
     public Builder(DexApplication application) {
       programClasses = application.programClasses.getAllClasses();
-      classpathClasses = application.classpathClasses;
-      libraryClasses = application.libraryClasses;
-      proguardMap = application.proguardMap;
+      proguardMap = application.getProguardMap();
       timing = application.timing;
       highestSortingString = application.highestSortingString;
       dexItemFactory = application.dexItemFactory;
@@ -340,53 +281,43 @@ public class DexApplication {
       synthesizedClasses = new ArrayList<>();
     }
 
-    public synchronized Builder setProguardMap(ClassNameMapper proguardMap) {
+    public synchronized T setProguardMap(ClassNameMapper proguardMap) {
       assert this.proguardMap == null;
       this.proguardMap = proguardMap;
-      return this;
+      return self();
     }
 
-    public synchronized Builder replaceProgramClasses(List<DexProgramClass> newProgramClasses) {
+    public synchronized T replaceProgramClasses(List<DexProgramClass> newProgramClasses) {
       assert newProgramClasses != null;
       this.programClasses.clear();
       this.programClasses.addAll(newProgramClasses);
-      return this;
+      return self();
     }
 
-    public Builder appendDeadCode(byte[] deadCodeAtAnotherRound) {
+    public T appendDeadCode(byte[] deadCodeAtAnotherRound) {
       if (deadCodeAtAnotherRound == null) {
-        return this;
+        return self();
       }
       if (this.deadCode == null) {
         this.deadCode = deadCodeAtAnotherRound;
-        return this;
+        return self();
       }
       // Concatenate existing byte[] and the given byte[].
       this.deadCode = Bytes.concat(this.deadCode, deadCodeAtAnotherRound);
-      return this;
+      return self();
     }
 
-    public synchronized Builder setHighestSortingString(DexString value) {
+    public synchronized T setHighestSortingString(DexString value) {
       highestSortingString = value;
-      return this;
+      return self();
     }
 
-    public synchronized Builder addProgramClass(DexProgramClass clazz) {
+    public synchronized T addProgramClass(DexProgramClass clazz) {
       programClasses.add(clazz);
-      return this;
+      return self();
     }
 
-    public Builder setClasspathClassCollection(ClasspathClassCollection classes) {
-      this.classpathClasses = classes;
-      return this;
-    }
-
-    public Builder setLibraryClassCollection(LibraryClassCollection classes) {
-      this.libraryClasses = classes;
-      return this;
-    }
-
-    public synchronized Builder addSynthesizedClass(
+    public synchronized T addSynthesizedClass(
         DexProgramClass synthesizedClass, boolean addToMainDexList) {
       assert synthesizedClass.isProgramClass() : "All synthesized classes must be program classes";
       addProgramClass(synthesizedClass);
@@ -394,7 +325,7 @@ public class DexApplication {
       if (addToMainDexList && !mainDexList.isEmpty()) {
         mainDexList.add(synthesizedClass.type);
       }
-      return this;
+      return self();
     }
 
     public Collection<DexProgramClass> getProgramClasses() {
@@ -414,17 +345,17 @@ public class DexApplication {
       return this;
     }
 
-    public DexApplication build() {
-      return new DexApplication(
-          proguardMap,
-          ProgramClassCollection.create(programClasses),
-          classpathClasses,
-          libraryClasses,
-          ImmutableSet.copyOf(mainDexList),
-          deadCode,
-          dexItemFactory,
-          highestSortingString,
-          timing);
-    }
+    public abstract DexApplication build();
   }
+
+  public static LazyLoadedDexApplication.Builder builder(DexItemFactory factory, Timing timing) {
+    return new LazyLoadedDexApplication.Builder(factory, timing);
+  }
+
+  public DirectMappedDexApplication asDirect() {
+    throw new Unreachable("Cannot use a LazyDexApplication where a DirectDexApplication is"
+        + " expected.");
+  }
+
+  public abstract DirectMappedDexApplication toDirect();
 }

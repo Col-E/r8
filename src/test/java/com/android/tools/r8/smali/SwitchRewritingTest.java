@@ -16,7 +16,6 @@ import com.android.tools.r8.code.IfEqz;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.PackedSwitch;
 import com.android.tools.r8.code.SparseSwitch;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -296,7 +295,7 @@ public class SwitchRewritingTest extends SmaliTestBase {
         "    return");
 
     DexApplication app = builder.read();
-    app = ToolHelper.optimizeWithR8(app, new AppInfoWithSubtyping(app), new InternalOptions());
+    app = ToolHelper.optimizeWithR8(app, new InternalOptions());
 
     MethodSignature signature = new MethodSignature("Test", "test", "int", ImmutableList.of("int"));
     DexEncodedMethod method = getMethod(app, signature);
@@ -354,7 +353,7 @@ public class SwitchRewritingTest extends SmaliTestBase {
         "    return");
 
     DexApplication app = builder.read();
-    app = ToolHelper.optimizeWithR8(app, new AppInfoWithSubtyping(app), new InternalOptions());
+    app = ToolHelper.optimizeWithR8(app, new InternalOptions());
 
     MethodSignature signature = new MethodSignature("Test", "test", "int", ImmutableList.of("int"));
     DexEncodedMethod method = getMethod(app, signature);
@@ -432,7 +431,7 @@ public class SwitchRewritingTest extends SmaliTestBase {
         "    return");
 
     DexApplication app = builder.read();
-    app = ToolHelper.optimizeWithR8(app, new AppInfoWithSubtyping(app), new InternalOptions());
+    app = ToolHelper.optimizeWithR8(app, new InternalOptions());
 
     MethodSignature signature = new MethodSignature("Test", "test", "int", ImmutableList.of("int"));
     DexEncodedMethod method = getMethod(app, signature);

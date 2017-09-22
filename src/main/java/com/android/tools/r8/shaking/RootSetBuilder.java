@@ -7,6 +7,7 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -18,7 +19,6 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.logging.Log;
-import com.android.tools.r8.shaking.ProguardTypeMatcher.MatchSpecificType;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.base.Equivalence.Wrapper;
@@ -40,7 +40,7 @@ import java.util.concurrent.Future;
 
 public class RootSetBuilder {
 
-  private DexApplication application;
+  private DirectMappedDexApplication application;
   private final AppInfo appInfo;
   private final List<ProguardConfigurationRule> rules;
   private final Map<DexItem, ProguardKeepRule> noShrinking = new IdentityHashMap<>();
@@ -59,7 +59,7 @@ public class RootSetBuilder {
 
   public RootSetBuilder(DexApplication application, AppInfo appInfo,
       List<ProguardConfigurationRule> rules) {
-    this.application = application;
+    this.application = application.asDirect();
     this.appInfo = appInfo;
     this.rules = rules;
   }

@@ -13,7 +13,6 @@ import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.errors.DexOverflowException;
 import com.android.tools.r8.graph.AppInfo;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
@@ -141,7 +140,7 @@ public class JasminTestBase {
 
   protected static DexApplication process(DexApplication app, InternalOptions options)
       throws IOException, CompilationException, ExecutionException {
-    return ToolHelper.optimizeWithR8(app, new AppInfoWithSubtyping(app), options);
+    return ToolHelper.optimizeWithR8(app, options);
   }
 
   protected DexApplication buildApplication(JasminBuilder builder, InternalOptions options) {

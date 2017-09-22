@@ -226,7 +226,7 @@ public class IRConverter {
     convertClassesToDex(application.classes(), executor);
 
     // Build a new application with jumbo string info,
-    Builder builder = new Builder(application);
+    Builder builder = application.builder();
     builder.setHighestSortingString(highestSortingString);
 
     synthesizeLambdaClasses(builder);
@@ -245,7 +245,7 @@ public class IRConverter {
     return builder.build();
   }
 
-  private void updateMainDexListWithSynthesizedClassMap(Builder builder) {
+  private void updateMainDexListWithSynthesizedClassMap(Builder<?> builder) {
     Set<DexType> inputMainDexList = builder.getMainDexList();
     if (!inputMainDexList.isEmpty()) {
       Map<DexType, DexProgramClass> programClasses = builder.getProgramClasses().stream()
@@ -264,14 +264,14 @@ public class IRConverter {
     }
   }
 
-  private void clearSynthesizedClassMapping(Builder builder) {
+  private void clearSynthesizedClassMapping(Builder<?> builder) {
     for (DexProgramClass programClass : builder.getProgramClasses()) {
       programClass.annotations =
           programClass.annotations.getWithout(builder.dexItemFactory.annotationSynthesizedClassMap);
     }
   }
 
-  private void updateSynthesizedClassMapping(Builder builder) {
+  private void updateSynthesizedClassMapping(Builder<?> builder) {
     ListMultimap<DexProgramClass, DexProgramClass> originalToSynthesized =
         ArrayListMultimap.create();
     for (DexProgramClass synthesized : builder.getSynthesizedClasses()) {
@@ -361,7 +361,7 @@ public class IRConverter {
     }
 
     // Build a new application with jumbo string info.
-    Builder builder = new Builder(application);
+    Builder builder = application.builder();
     builder.setHighestSortingString(highestSortingString);
 
     // Second inlining pass for dealing with double inline callers.
