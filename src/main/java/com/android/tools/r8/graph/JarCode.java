@@ -165,7 +165,7 @@ public class JarCode extends Code {
     private final JarApplicationReader application;
 
     public SecondVisitor(ReparseContext context, JarApplicationReader application) {
-      super(Opcodes.ASM6);
+      super(Opcodes.ASM5);
       this.context = context;
       this.application = application;
     }
