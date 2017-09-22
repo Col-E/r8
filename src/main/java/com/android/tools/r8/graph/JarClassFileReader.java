@@ -5,7 +5,7 @@ package com.android.tools.r8.graph;
 
 import static org.objectweb.asm.ClassReader.SKIP_FRAMES;
 import static org.objectweb.asm.Opcodes.ACC_DEPRECATED;
-import static org.objectweb.asm.Opcodes.ASM6;
+import static org.objectweb.asm.Opcodes.ASM5;
 
 import com.android.tools.r8.Resource;
 import com.android.tools.r8.dex.Constants;
@@ -121,7 +121,7 @@ public class JarClassFileReader {
         byte[] classCache,
         JarApplicationReader application,
         Consumer<DexClass> classConsumer) {
-      super(ASM6);
+      super(ASM5);
       this.file = file;
       this.classKind = classKind;
       this.classConsumer = classConsumer;
@@ -299,7 +299,7 @@ public class JarClassFileReader {
 
     public CreateFieldVisitor(CreateDexClassVisitor parent,
         int access, String name, String desc, String signature, Object value) {
-      super(ASM6);
+      super(ASM5);
       this.parent = parent;
       this.access = access;
       this.name = name;
@@ -401,7 +401,7 @@ public class JarClassFileReader {
 
     public CreateMethodVisitor(int access, String name, String desc, String signature,
         String[] exceptions, CreateDexClassVisitor parent) {
-      super(ASM6);
+      super(ASM5);
       this.access = access;
       this.name = name;
       this.desc = desc;
@@ -588,7 +588,7 @@ public class JarClassFileReader {
 
     public CreateAnnotationVisitor(
         JarApplicationReader application, BiConsumer<List<DexString>, List<DexValue>> onVisitEnd) {
-      super(ASM6);
+      super(ASM5);
       this.application = application;
       this.onVisitEnd = onVisitEnd;
     }

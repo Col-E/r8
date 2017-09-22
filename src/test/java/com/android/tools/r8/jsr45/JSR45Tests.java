@@ -17,6 +17,7 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.AnnotationSubject;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
+import com.google.common.io.Closer;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -157,7 +158,7 @@ public class JSR45Tests {
       throws IOException, ExecutionException {
     ClassReader classReader = new ClassReader(new FileInputStream(inputPath.toFile()));
     ReadSourceDebugExtensionAttribute sourceDebugExtensionReader =
-        new ReadSourceDebugExtensionAttribute(Opcodes.ASM6, null);
+        new ReadSourceDebugExtensionAttribute(Opcodes.ASM5, null);
     classReader.accept(sourceDebugExtensionReader, 0);
 
     DexInspector dexInspector =

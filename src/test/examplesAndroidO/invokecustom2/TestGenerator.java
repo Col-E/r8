@@ -40,7 +40,7 @@ public class TestGenerator {
     ClassReader cr = new ClassReader(new FileInputStream(classNamePath.toFile()));
     ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
     cr.accept(
-        new ClassVisitor(Opcodes.ASM6, cw) {
+        new ClassVisitor(Opcodes.ASM5, cw) {
           @Override
           public void visitEnd() {
             generateMethodTest1(cw);
