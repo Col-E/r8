@@ -7,12 +7,15 @@ package com.android.tools.r8;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.dex.ApplicationReader;
+import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.shaking.FilteredClassPath;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OutputMode;
+import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.ByteStreams;
 import java.io.File;
@@ -85,6 +88,15 @@ public class TestBase {
    */
   protected Path jarTestClasses(List<Class> classes) throws IOException {
     return jarTestClasses(classes.toArray(new Class[classes.size()]));
+  }
+
+  /**
+   * Compile an application with D8.
+   */
+  protected AndroidApp compileWithD8(AndroidApp app)
+      throws CompilationException, ExecutionException, IOException {
+    D8Command command = ToolHelper.prepareD8CommandBuilder(app).build();
+    return ToolHelper.runD8(command);
   }
 
   /**
@@ -279,5 +291,15 @@ public class TestBase {
       assertEquals(0, result.exitCode);
     }
     return result.stdout;
+  }
+
+
+  /**
+   * Disassemble the content of an application. Only works for an application with only dex code.
+   */
+  protected void disassemble(AndroidApp app) throws Exception {
+    InternalOptions options = new InternalOptions();
+    DexApplication dexApplication = new ApplicationReader(app, options, new Timing("XX")).read();
+    System.out.println(dexApplication.smali(options));
   }
 }

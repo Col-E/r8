@@ -75,6 +75,13 @@ public final class PreloadedClassFileProvider implements ClassFileResourceProvid
     return builder.build();
   }
 
+  public static ClassFileResourceProvider fromClassData(String descriptor, byte[] data)
+      throws IOException {
+    Builder builder = builder();
+    builder.addResource(descriptor, data);
+    return builder.build();
+  }
+
   // Guess class descriptor from location of the class file.
   static String guessTypeDescriptor(Path name) {
     return guessTypeDescriptor(name.toString());
