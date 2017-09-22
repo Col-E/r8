@@ -47,7 +47,10 @@ public class MainDexList {
           new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8));
       String line;
       while ((line = file.readLine()) != null) {
-        result.add(parse(line, itemFactory));
+        line = line.trim();
+        if (line.length() > 0) {
+          result.add(parse(line, itemFactory));
+        }
       }
     } catch (IOException e) {
       throw new CompilationError("Cannot load main-dex-list.");

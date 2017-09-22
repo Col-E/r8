@@ -232,6 +232,20 @@ public class MainDexListTests extends TestBase {
   }
 
   @Test
+  public void validList() throws IOException {
+    List<String> list = ImmutableList.of(
+        "A.class ",
+        " a/b/c/D.class",
+        ""
+    );
+    DexItemFactory factory = new DexItemFactory();
+    Path mainDexList = temp.getRoot().toPath().resolve("valid.txt");
+    FileUtils.writeTextFile(mainDexList, list);
+    Set<DexType> types = MainDexList.parse(mainDexList, factory);
+    assertEquals(2, types.size());
+  }
+
+  @Test
   public void invalidQualifiedEntry() throws IOException {
     thrown.expect(CompilationError.class);
     DexItemFactory factory = new DexItemFactory();
