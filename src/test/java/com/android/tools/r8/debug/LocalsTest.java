@@ -608,4 +608,44 @@ public class LocalsTest extends DebugTestBase {
         checkNoLocal("result2"),
         run());
   }
+
+  @Test
+  public void testLocalTriggeringCSE() throws Throwable {
+    final String className = "Locals";
+    final String methodName = "localTriggeringCSE";
+    runDebugTest(className,
+        breakpoint(className, methodName),
+        run(),
+        checkLine(SOURCE_FILE, 342),
+        checkNoLocal("a"),
+        checkNoLocal("b"),
+        checkNoLocal("c"),
+        checkNoLocal("d"),
+        stepOver(),
+        checkLine(SOURCE_FILE, 343),
+        checkLocal("a", Value.createInt(1)),
+        checkNoLocal("b"),
+        checkNoLocal("c"),
+        checkNoLocal("d"),
+        stepOver(),
+        checkLine(SOURCE_FILE, 344),
+        checkLocal("a", Value.createInt(1)),
+        checkLocal("b", Value.createInt(3)),
+        checkNoLocal("c"),
+        checkNoLocal("d"),
+        stepOver(),
+        checkLine(SOURCE_FILE, 345),
+        checkLocal("a", Value.createInt(1)),
+        checkLocal("b", Value.createInt(3)),
+        checkLocal("c", Value.createInt(4)),
+        checkNoLocal("d"),
+        setLocal("a", Value.createInt(2)),
+        stepOver(),
+        checkLine(SOURCE_FILE, 346),
+        checkLocal("a", Value.createInt(2)),
+        checkLocal("b", Value.createInt(3)),
+        checkLocal("c", Value.createInt(4)),
+        checkLocal("d", Value.createInt(5)),
+        run());
+  }
 }
