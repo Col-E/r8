@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.jar;
 
-import static org.objectweb.asm.Opcodes.ASM5;
+import static org.objectweb.asm.Opcodes.ASM6;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
@@ -24,7 +24,7 @@ public class JarRegisterEffectsVisitor extends MethodVisitor {
 
   public JarRegisterEffectsVisitor(DexType clazz, UseRegistry registry,
       JarApplicationReader application) {
-    super(ASM5);
+    super(ASM6);
     this.clazz = clazz;
     this.registry = registry;
     this.application = application;
