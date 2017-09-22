@@ -120,6 +120,8 @@ public class JumboStringRewriter {
     DexDebugInfo newDebugInfo = rewriteDebugInfoOffsets();
     // Set the new code on the method.
     DexCode code = method.getCode().asDexCode();
+    // As we have rewritten the code, we now know that its highest string index that is not
+    // a jumbo-string is firstJumboString (actually the previous string, but we do not have that).
     method.setDexCode(new DexCode(
         code.registerSize,
         code.incomingRegisterSize,
@@ -128,7 +130,7 @@ public class JumboStringRewriter {
         newTries,
         newHandlers,
         newDebugInfo,
-        code.highestSortingString));
+        firstJumboString));
   }
 
   private void rewriteInstructionOffsets(List<Instruction> instructions) {

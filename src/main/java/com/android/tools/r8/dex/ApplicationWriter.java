@@ -20,6 +20,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DexValue;
+import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.naming.MinifiedNameMapPrinter;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.AndroidApp;
@@ -32,6 +33,7 @@ import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.Writer;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -148,16 +150,31 @@ public class ApplicationWriter {
       }
       Map<Integer, VirtualFile> newFiles = distributor.run();
 
-      // Write the dex files and the Proguard mapping file in parallel. Use a linked hash map
-      // as the order matters when addDexProgramData is called below.
-      LinkedHashMap<VirtualFile, Future<byte[]>> dexDataFutures = new LinkedHashMap<>();
+      // Collect the indexed items sets for all files and perform JumboString processing.
+      // This is required to ensure that shared code blocks have a single and consistent code
+      // item that is valid for all dex files.
+      // Use a linked hash map as the order matters when addDexProgramData is called below.
+      Map<VirtualFile, Future<ObjectToOffsetMapping>> offsetMappingFutures = new LinkedHashMap<>();
       for (int i = 0; i < newFiles.size(); i++) {
         VirtualFile newFile = newFiles.get(i);
         assert newFile.getId() == i;
         assert !newFile.isEmpty();
         if (!newFile.isEmpty()) {
-          dexDataFutures.put(newFile, executorService.submit(() -> writeDexFile(newFile)));
+          offsetMappingFutures
+              .put(newFile, executorService.submit(() -> {
+                ObjectToOffsetMapping mapping = newFile.computeMapping(application);
+                rewriteCodeWithJumboStrings(mapping, newFile.classes(), application);
+                return mapping;
+              }));
         }
+      }
+
+      // Generate the dex file contents.
+      LinkedHashMap<VirtualFile, Future<byte[]>> dexDataFutures = new LinkedHashMap<>();
+      for (VirtualFile newFile : offsetMappingFutures.keySet()) {
+        assert !newFile.isEmpty();
+        dexDataFutures.put(newFile,
+            executorService.submit(() -> writeDexFile(offsetMappingFutures.get(newFile).get())));
       }
 
       // Wait for all the spawned futures to terminate.
@@ -199,12 +216,34 @@ public class ApplicationWriter {
     }
   }
 
-  private byte[] writeDexFile(VirtualFile vfile) throws ApiLevelException {
-    FileWriter fileWriter =
-        new FileWriter(
-            vfile.computeMapping(application), application, appInfo, options, namingLens);
-    // The file writer now knows the indexes of the fixed sections including strings.
-    fileWriter.rewriteCodeWithJumboStrings(vfile.classes());
+
+  /**
+   * Rewrites the code for all methods in the given file so that they use JumboString for at
+   * least the strings that require it in mapping.
+   * <p>
+   * If run multiple times on a class, the lowest index that is required to be a JumboString will
+   * be used.
+   */
+  private static void rewriteCodeWithJumboStrings(ObjectToOffsetMapping mapping,
+      List<DexProgramClass> classes, DexApplication application) {
+    // If there are no strings with jumbo indices at all this is a no-op.
+    if (!mapping.hasJumboStrings()) {
+      return;
+    }
+    // If the globally highest sorting string is not a jumbo string this is also a no-op.
+    if (application.highestSortingString != null &&
+        application.highestSortingString.slowCompareTo(mapping.getFirstJumboString()) < 0) {
+      return;
+    }
+    // At least one method needs a jumbo string.
+    for (DexProgramClass clazz : classes) {
+      clazz.forEachMethod(method -> method.rewriteCodeWithJumboStrings(mapping, application));
+    }
+  }
+
+  private byte[] writeDexFile(ObjectToOffsetMapping mapping)
+      throws ApiLevelException {
+    FileWriter fileWriter = new FileWriter(mapping, application, appInfo, options, namingLens);
     // Collect the non-fixed sections.
     fileWriter.collect();
     // Generate and write the bytes.

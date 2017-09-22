@@ -155,37 +155,6 @@ public class FileWriter {
     return this;
   }
 
-  private void rewriteCodeWithJumboStrings(DexEncodedMethod method) {
-    if (method.getCode() == null) {
-      return;
-    }
-    DexCode code = method.getCode().asDexCode();
-    if (code.highestSortingString != null) {
-      if (mapping.getOffsetFor(code.highestSortingString) > Constants.MAX_NON_JUMBO_INDEX) {
-        JumboStringRewriter rewriter =
-            new JumboStringRewriter(method, mapping.getFirstJumboString(), options.itemFactory);
-        rewriter.rewrite();
-      }
-    }
-  }
-
-  public FileWriter rewriteCodeWithJumboStrings(List<DexProgramClass> classes) {
-    // If there are no strings with jumbo indices at all this is a no-op.
-    if (!mapping.hasJumboStrings()) {
-      return this;
-    }
-    // If the globally highest sorting string is not a jumbo string this is also a no-op.
-    if (application.highestSortingString != null &&
-        application.highestSortingString.slowCompareTo(mapping.getFirstJumboString()) < 0) {
-      return this;
-    }
-    // At least one method needs a jumbo string.
-    for (DexProgramClass clazz : classes) {
-      clazz.forEachMethod(method -> rewriteCodeWithJumboStrings(method));
-    }
-    return this;
-  }
-
   public byte[] generate() throws ApiLevelException {
     // Check restrictions on interface methods.
     checkInterfaceMethods();

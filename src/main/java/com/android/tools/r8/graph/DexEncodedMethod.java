@@ -18,7 +18,9 @@ import com.android.tools.r8.code.InvokeDirect;
 import com.android.tools.r8.code.InvokeStatic;
 import com.android.tools.r8.code.NewInstance;
 import com.android.tools.r8.code.Throw;
+import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.IndexedItemCollection;
+import com.android.tools.r8.dex.JumboStringRewriter;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Invoke;
@@ -390,6 +392,30 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
     }
     builder.accessFlags.setSynthetic();
     return builder.build();
+  }
+
+  /**
+   * Rewrites the code in this method to have JumboString bytecode if required by mapping.
+   * <p>
+   * Synchronized such that it can be called concurrently for different mappings. As a side-effect,
+   * this will also update the highestSortingString to the index of the strings up to which the
+   * code was rewritten to avoid rewriting again unless needed.
+   */
+  public synchronized void rewriteCodeWithJumboStrings(ObjectToOffsetMapping mapping,
+      DexApplication application) {
+    assert code == null || code.isDexCode();
+    if (code == null) {
+      return;
+    }
+    DexCode code = this.code.asDexCode();
+    if (code.highestSortingString != null) {
+      if (mapping.getOffsetFor(code.highestSortingString) > Constants.MAX_NON_JUMBO_INDEX) {
+        JumboStringRewriter rewriter =
+            new JumboStringRewriter(this, mapping.getFirstJumboString(),
+                application.dexItemFactory);
+        rewriter.rewrite();
+      }
+    }
   }
 
   public String codeToString() {
