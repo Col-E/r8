@@ -4,6 +4,7 @@
 package com.android.tools.r8.utils;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -12,7 +13,7 @@ import java.util.concurrent.Future;
 
 public class ThreadUtils {
 
-  public static <T> List<T> awaitFutures(List<? extends Future<? extends T>> futures)
+  public static <T> List<T> awaitFutures(Collection<? extends Future<? extends T>> futures)
       throws ExecutionException {
     ArrayList<T> result = new ArrayList<>(futures.size());
     for (Future<? extends T> f : futures) {
