@@ -476,6 +476,10 @@ public class ToolHelper {
     return parser.getConfig();
   }
 
+  public static D8Command.Builder prepareD8CommandBuilder(AndroidApp app) {
+    return D8Command.builder(app);
+  }
+
   public static R8Command.Builder prepareR8CommandBuilder(AndroidApp app) {
     return R8Command.builder(app);
   }

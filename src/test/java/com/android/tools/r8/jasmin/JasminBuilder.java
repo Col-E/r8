@@ -86,10 +86,18 @@ public class JasminBuilder {
       return new MethodSignature(name, returnJavaType, argumentJavaTypes);
     }
 
-    public FieldSignature addStaticField(String name, String type, String value) {
+    public FieldSignature addField(String flags, String name, String type, String value) {
       fields.add(
-          ".field public static " + name + " " + type + (value != null ? (" = " + value) : ""));
+          ".field " + flags + " " + name + " " + type + (value != null ? (" = " + value) : ""));
       return new FieldSignature(name, type);
+    }
+
+    public FieldSignature addStaticField(String name, String type, String value) {
+      return addField("public static", name, type, value);
+    }
+
+    public FieldSignature addStaticFinalField(String name, String type, String value) {
+      return addField("public static final", name, type, value);
     }
 
     @Override

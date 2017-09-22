@@ -17,6 +17,8 @@ import java.util.Arrays;
 
 public abstract class DexValue extends DexItem {
 
+  public static final UnknownDexValue UNKNOWN = UnknownDexValue.UNKNOWN;
+
   public static final byte VALUE_BYTE = 0x00;
   public static final byte VALUE_SHORT = 0x02;
   public static final byte VALUE_CHAR = 0x03;
@@ -43,7 +45,7 @@ public abstract class DexValue extends DexItem {
   @Override
   void collectMixedSectionItems(MixedSectionCollection mixedItems) {
     // Should never be visited.
-    assert false;
+    throw new Unreachable();
   }
 
   public abstract void sort();
@@ -106,6 +108,55 @@ public abstract class DexValue extends DexItem {
    */
   public boolean mayTriggerAllocation() {
     return true;
+  }
+
+  static public class UnknownDexValue extends DexValue {
+
+    // Singleton instance.
+    public static final UnknownDexValue UNKNOWN = new UnknownDexValue();
+
+    private UnknownDexValue() {
+    }
+
+    @Override
+    public void collectIndexedItems(IndexedItemCollection indexedItems) {
+      throw new Unreachable();
+    }
+
+    @Override
+    public void sort() {
+      throw new Unreachable();
+    }
+
+    @Override
+    public boolean mayTriggerAllocation() {
+      return true;
+    }
+
+    @Override
+    public void writeTo(DexOutputBuffer dest, ObjectToOffsetMapping mapping) {
+      throw new Unreachable();
+    }
+
+    @Override
+    public int hashCode() {
+      return System.identityHashCode(this);
+    }
+
+    @Override
+    public boolean equals(Object other) {
+      return other == this;
+    }
+
+    @Override
+    public String toString() {
+      return "UNKNOWN";
+    }
+
+    @Override
+    public Instruction asConstInstruction(boolean hasClassInitializer, Value dest) {
+      return null;
+    }
   }
 
   static private abstract class SimpleDexValue extends DexValue {
