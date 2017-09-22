@@ -57,6 +57,15 @@ public abstract class Instruction {
     }
   }
 
+  public boolean hasInValueWithLocalInfo() {
+    for (Value inValue : inValues()) {
+      if (inValue.getLocalInfo() != null) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   public Value outValue() {
     return outValue;
   }

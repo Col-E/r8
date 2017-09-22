@@ -1646,7 +1646,7 @@ public class CodeRewriter {
               }
             }
           }
-          if (!eliminated) {
+          if (!eliminated && !instruction.hasInValueWithLocalInfo()) {
             instructionToValue.put(equivalence.wrap(instruction), instruction.outValue());
           }
         }

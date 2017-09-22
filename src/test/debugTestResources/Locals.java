@@ -338,6 +338,14 @@ public class Locals {
     return result;
   }
 
+  public static int localTriggeringCSE() {
+    int a = 1;
+    int b = 3;
+    int c = a + b;
+    int d = a + b;
+    return c + d;
+  }
+
   public static void main(String[] args) {
     noLocals();
     unusedLocals();
@@ -360,5 +368,6 @@ public class Locals {
     regression65066975(false);
     System.out.println(localConstant(true));
     System.out.println(localConstantBis(true));
+    System.out.println(localTriggeringCSE());
   }
 }
