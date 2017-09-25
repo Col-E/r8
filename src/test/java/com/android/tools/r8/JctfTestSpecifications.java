@@ -4797,6 +4797,8 @@ public class JctfTestSpecifications {
               match(runtimes(DexVm.ART_4_4_4)))
           .put("lang.ref.SoftReference.clear.SoftReference_clear_A01",
               match(runtimes(DexVm.ART_4_4_4)))
+          .put("lang.ref.WeakReference.clear.WeakReference_clear_A01",
+              match(runtimes(DexVm.ART_4_4_4)))
           // Passes or fails randomly. Have seen out of memory and assertion errors.
 
           .put("lang.ref.PhantomReference.isEnqueued.PhantomReference_isEnqueued_A01",
