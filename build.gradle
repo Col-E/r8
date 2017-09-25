@@ -596,6 +596,8 @@ task buildDebugInfoExamplesDex {
             dependsOn: ["jar_debuginfo_examples", "downloadDeps"]) {
         if (OperatingSystem.current().isWindows()) {
             executable file("tools/windows/dx/bin/dx.bat")
+        } else if (OperatingSystem.current().isMacOsX()) {
+            executable file("tools/mac/dx/bin/dx");
         } else {
             executable file("tools/linux/dx/bin/dx");
         }
