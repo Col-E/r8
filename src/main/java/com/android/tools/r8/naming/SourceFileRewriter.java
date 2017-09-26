@@ -48,7 +48,7 @@ public class SourceFileRewriter {
         }
         Code code = encodedMethod.getCode();
         // Other kinds of {@link Code} do not have debug_info_item.
-        if (code == null || !code.isDexCode()) {
+        if (!code.isDexCode()) {
           return;
         }
         if (code.asDexCode().getDebugInfo() == null) {
