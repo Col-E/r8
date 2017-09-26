@@ -546,6 +546,10 @@ public abstract class R8RunArtTestsTest {
           // TODO(ager): unclear what is failing here.
           .put("098-ddmc",
               TestCondition.match(TestCondition.runtimes(DexVm.ART_4_4_4)))
+          // Get unexpected modifier bits on dalvik.
+          .put("121-modifiers", TestCondition.match(
+              TestCondition.tools(DexTool.DX),
+              TestCondition.runtimes(DexVm.ART_4_4_4)))
           // Unsatisfiable link error:
           // libarttest.so: undefined symbol: _ZN3art6Thread18RunEmptyCheckpointEv
           .put(
@@ -580,9 +584,16 @@ public abstract class R8RunArtTestsTest {
   // checked into the Art repo.
   private static final Multimap<String, TestCondition> failingRunWithArtOutput =
       new ImmutableListMultimap.Builder<String, TestCondition>()
-          // On Art 4.4.4 we have 7 refs instead of 9.
+          // On Art 4.4.4 we have fewer refs than expected (except for d8 when compiled with dx).
           .put("072-precise-gc",
-              TestCondition.match(TestCondition.runtimes(DexVm.ART_4_4_4)))
+              TestCondition.match(
+                  TestCondition.R8_COMPILER,
+                  TestCondition.runtimes(DexVm.ART_4_4_4)))
+          .put("072-precise-gc",
+              TestCondition.match(
+                  TestCondition.tools(DexTool.JACK, DexTool.NONE),
+                  TestCondition.D8_COMPILER,
+                  TestCondition.runtimes(DexVm.ART_4_4_4)))
           // This one is expected to have different output. It counts instances, but the list that
           // keeps the instances alive is dead and could be garbage collected. The compiler reuses
           // the register for the list and therefore there are no live instances.
@@ -1080,7 +1091,7 @@ public abstract class R8RunArtTestsTest {
         String name = testDir.getName();
         // Skip all tests compiled to dex with jack on Dalvik. They have a too high dex
         // version number in the generated output.
-        boolean skipArtRun = skipArt.contains(name) ||
+        boolean skip = skipTest.contains(name) ||
             (dexTool == DexTool.JACK && dexVm == DexVm.ART_4_4_4);
         // All the native code for all Art tests is currently linked into the
         // libarttest.so file.
@@ -1090,8 +1101,8 @@ public abstract class R8RunArtTestsTest {
                 name,
                 dexTool,
                 testDir,
-                skipArtRun,
-                skipTest.contains(name),
+                skipArt.contains(name),
+                skip,
                 failsWithCompiler.contains(name),
                 failsWithArt.contains(name),
                 failsRunWithArtOutput.contains(name),

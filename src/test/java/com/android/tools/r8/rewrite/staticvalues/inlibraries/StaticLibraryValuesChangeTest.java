@@ -14,6 +14,7 @@ import com.android.tools.r8.smali.SmaliTestBase.SmaliBuilder;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.PreloadedClassFileProvider;
 import com.google.common.collect.ImmutableList;
+import org.junit.Assume;
 import org.junit.Test;
 
 public class StaticLibraryValuesChangeTest extends TestBase {
@@ -35,6 +36,9 @@ public class StaticLibraryValuesChangeTest extends TestBase {
      *
      * The third version is used for running the R8 compiled TestMain on Art.
      */
+
+    // TODO(66944616): Can we make this work on Dalvik as well?
+    Assume.assumeTrue("Skipping on 4.4.4", ToolHelper.getDexVm() != ToolHelper.DexVm.ART_4_4_4);
 
     // Build the second version of LibraryClass
     JasminBuilder compileTimeLibrary = new JasminBuilder();
