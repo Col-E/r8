@@ -580,11 +580,6 @@ public abstract class R8RunArtTestsTest {
   // checked into the Art repo.
   private static final Multimap<String, TestCondition> failingRunWithArtOutput =
       new ImmutableListMultimap.Builder<String, TestCondition>()
-          // TODO(ager): Different output on R8 but only from jar frontend.
-          .put("068-classloader",
-              TestCondition.match(
-                  TestCondition.R8_NOT_AFTER_D8_COMPILER,
-                  TestCondition.runtimes(DexVm.ART_4_4_4)))
           // On Art 4.4.4 we have 7 refs instead of 9.
           .put("072-precise-gc",
               TestCondition.match(TestCondition.runtimes(DexVm.ART_4_4_4)))
@@ -1083,11 +1078,19 @@ public abstract class R8RunArtTestsTest {
       assert testDirs != null;
       for (File testDir : testDirs) {
         String name = testDir.getName();
+        // Skip all tests compiled to dex with jack on Dalvik. They have a too high dex
+        // version number in the generated output.
+        boolean skipArtRun = skipArt.contains(name) ||
+            (dexTool == DexTool.JACK && dexVm == DexVm.ART_4_4_4);
         // All the native code for all Art tests is currently linked into the
         // libarttest.so file.
         data.put(
             new SpecificationKey(name, dexTool),
-            new TestSpecification(name, dexTool, testDir, skipArt.contains(name),
+            new TestSpecification(
+                name,
+                dexTool,
+                testDir,
+                skipArtRun,
                 skipTest.contains(name),
                 failsWithCompiler.contains(name),
                 failsWithArt.contains(name),
