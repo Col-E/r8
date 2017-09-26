@@ -147,10 +147,10 @@ public class ToolHelper {
       List<String> result = new ArrayList<>();
       // The art script _must_ be run with bash, bots default to /bin/dash for /bin/sh, so
       // explicitly set it;
-      if (isLinux()) {
-        result.add("/bin/bash");
-      } else {
+      if (shouldUseDocker()) {
         result.add("tools/docker/run.sh");
+      } else {
+        result.add("/bin/bash");
       }
       result.add(getExecutable());
       for (String option : options) {
@@ -187,6 +187,8 @@ public class ToolHelper {
       return String.join(" ", command());
     }
 
+    protected abstract boolean shouldUseDocker();
+
     protected abstract String getExecutable();
   }
 
@@ -203,6 +205,11 @@ public class ToolHelper {
     }
 
     @Override
+    protected boolean shouldUseDocker() {
+      return !isLinux();
+    }
+
+    @Override
     protected String getExecutable() {
       return version != null ? getArtBinary(version) : getArtBinary();
     }
@@ -212,6 +219,11 @@ public class ToolHelper {
 
     public DXCommandBuilder() {
       appendProgramArgument("--dex");
+    }
+
+    @Override
+    protected boolean shouldUseDocker() {
+      return false;
     }
 
     @Override
@@ -245,6 +257,8 @@ public class ToolHelper {
   }
 
   private static final String TOOLS = "tools";
+  private static final String OS_STRING = isLinux() ? "linux" : (isMac() ? "mac" : "windows");
+
   private static final Map<DexVm, String> ART_DIRS =
       ImmutableMap.of(
           DexVm.ART_DEFAULT, "art",
@@ -288,7 +302,7 @@ public class ToolHelper {
           DexVm.ART_4_4_4, DALVIK_BOOT_LIBS);
 
   private static final String LIB_PATH = TOOLS + "/linux/art/lib";
-  private static final String DX = TOOLS + "/linux/dx/bin/dx";
+  private static final String DX = TOOLS + "/" + OS_STRING + "/dx/bin/dx";
   private static final String DEX2OAT = TOOLS + "/linux/art/bin/dex2oat";
   private static final String ANGLER_DIR = TOOLS + "/linux/art/product/angler";
   private static final String ANGLER_BOOT_IMAGE = ANGLER_DIR + "/system/framework/boot.art";
