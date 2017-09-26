@@ -12,7 +12,7 @@ public class DexDebugInfo extends CachedHashValueDexItem {
 
   public final int startLine;
   public final DexString[] parameters;
-  public DexDebugEvent[] events;
+  public final DexDebugEvent[] events;
 
   public DexDebugInfo(int startLine, DexString[] parameters, DexDebugEvent[] events) {
     assert startLine >= 0;

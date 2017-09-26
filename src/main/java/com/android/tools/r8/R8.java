@@ -22,7 +22,6 @@ import com.android.tools.r8.ir.optimize.EnumOrdinalMapCollector;
 import com.android.tools.r8.ir.optimize.SwitchMapCollector;
 import com.android.tools.r8.naming.Minifier;
 import com.android.tools.r8.naming.NamingLens;
-import com.android.tools.r8.naming.SourceFileRewriter;
 import com.android.tools.r8.optimize.BridgeMethodAnalysis;
 import com.android.tools.r8.optimize.MemberRebindingAnalysis;
 import com.android.tools.r8.optimize.VisibilityBridgeRemover;
@@ -299,11 +298,6 @@ public class R8 {
       graphLense = new BridgeMethodAnalysis(graphLense, appInfo.withSubtyping()).run();
 
       application = optimize(application, appInfo, graphLense, executorService);
-
-      // Overwrite SourceFile if specified. This step should be done after IR conversion.
-      timing.begin("Rename SourceFile");
-      new SourceFileRewriter(appInfo, options).run();
-      timing.end();
 
       if (!options.mainDexKeepRules.isEmpty()) {
         appInfo = new AppInfoWithSubtyping(application);

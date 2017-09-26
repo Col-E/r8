@@ -6,13 +6,10 @@ package com.android.tools.r8.debug;
 import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8Command;
-import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.dex.Constants;
-import com.android.tools.r8.shaking.ProguardConfiguration;
-import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OffOrAuto;
@@ -32,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.TreeMap;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -108,7 +104,6 @@ public abstract class DebugTestBase {
   public static TemporaryFolder temp = new TemporaryFolder();
   private static Path jdwpDexD8 = null;
   private static Path debuggeeDexD8 = null;
-  private static Path debuggeeDexR8 = null;
   private static Path debuggeeJava8DexD8 = null;
   private static Path debuggeeKotlinDexD8 = null;
 
@@ -117,30 +112,25 @@ public abstract class DebugTestBase {
 
   @BeforeClass
   public static void setUp() throws Exception {
-    setUp(null, null);
+    setUp(null);
   }
 
-  protected static void setUp(
-      Consumer<InternalOptions> optionsConsumer,
-      Consumer<ProguardConfiguration.Builder> pgConsumer)
-      throws Exception {
+  protected static void setUp(Consumer<InternalOptions> optionsConsumer) throws Exception {
     // Convert jar to dex with d8 with debug info
     jdwpDexD8 = compileToDex(null, JDWP_JAR);
-    // TODO(zerny): supply a set of compilers to run with.
     debuggeeDexD8 = compileToDex(optionsConsumer, DEBUGGEE_JAR);
-    debuggeeDexR8 = compileToDexViaR8(optionsConsumer, pgConsumer, DEBUGGEE_JAR);
     debuggeeJava8DexD8 = compileToDex(options -> {
-      // Enable desugaring for preN runtimes
-      options.interfaceMethodDesugaring = OffOrAuto.Auto;
-      if (optionsConsumer != null) {
-        optionsConsumer.accept(options);
-      }
-    }, DEBUGGEE_JAVA8_JAR);
+          // Enable desugaring for preN runtimes
+          options.interfaceMethodDesugaring = OffOrAuto.Auto;
+          if (optionsConsumer != null) {
+            optionsConsumer.accept(options);
+          }
+        }, DEBUGGEE_JAVA8_JAR);
     debuggeeKotlinDexD8 = compileToDex(optionsConsumer, DEBUGGEE_KOTLIN_JAR);
   }
 
-  static Path compileToDex(Consumer<InternalOptions> optionsConsumer, Path jarToCompile)
-      throws IOException, CompilationException {
+  protected static Path compileToDex(Consumer<InternalOptions> optionsConsumer,
+      Path jarToCompile) throws IOException, CompilationException {
     int minSdk = ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm());
     assert jarToCompile.toFile().exists();
     Path dexOutputDir = temp.newFolder().toPath();
@@ -154,29 +144,7 @@ public abstract class DebugTestBase {
             .build(),
         optionsConsumer);
     return dexOutputDir.resolve("classes.dex");
-  }
 
-  static Path compileToDexViaR8(
-      Consumer<InternalOptions> optionsConsumer,
-      Consumer<ProguardConfiguration.Builder> pgConsumer,
-      Path jarToCompile)
-      throws IOException, CompilationException, ExecutionException, ProguardRuleParserException {
-    int minSdk = ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm());
-    assert jarToCompile.toFile().exists();
-    Path dexOutputDir = temp.newFolder().toPath();
-    ToolHelper.runR8(
-        R8Command.builder()
-            .addProgramFiles(jarToCompile)
-            .setOutputPath(dexOutputDir)
-            .setMinApiLevel(minSdk)
-            .setMode(CompilationMode.DEBUG)
-            .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(minSdk)))
-            .addProguardConfiguration(
-                ImmutableList.of("-keepattributes SourceFile,LineNumberTable"))
-            .addProguardConfigurationConsumer(pgConsumer)
-            .build(),
-        optionsConsumer);
-    return dexOutputDir.resolve("classes.dex");
   }
 
   protected final boolean supportsDefaultMethod() {
@@ -232,16 +200,6 @@ public abstract class DebugTestBase {
     runDebugTest(Collections.emptyList(), LanguageFeatures.KOTLIN, debuggeeClass, commands);
   }
 
-  protected final void runDebugTestR8(String debuggeeClass, JUnit3Wrapper.Command... commands)
-      throws Throwable {
-    runDebugTestR8(debuggeeClass, Arrays.asList(commands));
-  }
-
-  protected final void runDebugTestR8(String debuggeeClass, List<JUnit3Wrapper.Command> commands)
-      throws Throwable {
-    runDebugTest(Collections.emptyList(), LanguageFeatures.R8, debuggeeClass, commands);
-  }
-
   protected enum LanguageFeatures {
     JAVA_7(DEBUGGEE_JAR) {
       @Override
@@ -259,12 +217,6 @@ public abstract class DebugTestBase {
       @Override
       public Path getDexPath() {
         return debuggeeKotlinDexD8;
-      }
-    },
-    R8(DEBUGGEE_JAR) {
-      @Override
-      public Path getDexPath() {
-        return debuggeeDexR8;
       }
     };
 
