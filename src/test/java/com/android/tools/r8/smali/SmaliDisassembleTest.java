@@ -9,7 +9,6 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.errors.DexOverflowException;
 import com.android.tools.r8.graph.DexApplication;
-import com.android.tools.r8.graph.SmaliWriter;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Smali;
@@ -33,7 +32,7 @@ public class SmaliDisassembleTest extends SmaliTestBase {
                   new InternalOptions(),
                   new Timing("SmaliTest"))
               .read();
-      assertEquals(smali, SmaliWriter.smali(application, new InternalOptions()));
+      assertEquals(smali, application.smali(new InternalOptions()));
     } catch (IOException | RecognitionException | ExecutionException | DexOverflowException e) {
       throw new RuntimeException(e);
     }
@@ -74,7 +73,7 @@ public class SmaliDisassembleTest extends SmaliTestBase {
             "\n" +
             "# End of class LTest;\n";
 
-    assertEquals(expected, SmaliWriter.smali(application, new InternalOptions()));
+    assertEquals(expected, application.smali(new InternalOptions()));
 
     roundTripRawSmali(expected);
   }
@@ -130,7 +129,7 @@ public class SmaliDisassembleTest extends SmaliTestBase {
             "\n" +
             "# End of class LTest;\n";
 
-    assertEquals(expected, SmaliWriter.smali(application, new InternalOptions()));
+    assertEquals(expected, application.smali(new InternalOptions()));
 
     roundTripRawSmali(expected);
   }
@@ -186,7 +185,7 @@ public class SmaliDisassembleTest extends SmaliTestBase {
             "\n" +
             "# End of class LTest;\n";
 
-    assertEquals(expected, SmaliWriter.smali(application, new InternalOptions()));
+    assertEquals(expected, application.smali(new InternalOptions()));
 
     roundTripRawSmali(expected);
   }
@@ -229,7 +228,7 @@ public class SmaliDisassembleTest extends SmaliTestBase {
             "\n" +
             "# End of class LTest;\n";
 
-    assertEquals(expected, SmaliWriter.smali(application, new InternalOptions()));
+    assertEquals(expected, application.smali(new InternalOptions()));
 
     roundTripRawSmali(expected);
   }
@@ -272,7 +271,7 @@ public class SmaliDisassembleTest extends SmaliTestBase {
             "\n" +
             "# End of class LTest;\n";
 
-    assertEquals(expected, SmaliWriter.smali(application, new InternalOptions()));
+    assertEquals(expected, application.smali(new InternalOptions()));
 
     roundTripRawSmali(expected);
   }
@@ -315,7 +314,7 @@ public class SmaliDisassembleTest extends SmaliTestBase {
             "\n" +
             "# End of class LTest;\n";
 
-    assertEquals(expected, SmaliWriter.smali(application, new InternalOptions()));
+    assertEquals(expected, application.smali(new InternalOptions()));
 
     roundTripRawSmali(expected);
   }
@@ -358,7 +357,7 @@ public class SmaliDisassembleTest extends SmaliTestBase {
             "\n" +
             "# End of class LTest;\n";
 
-    assertEquals(expected, SmaliWriter.smali(application, new InternalOptions()));
+    assertEquals(expected, application.smali(new InternalOptions()));
 
     roundTripRawSmali(expected);
   }
@@ -381,7 +380,7 @@ public class SmaliDisassembleTest extends SmaliTestBase {
             "\n" +
             "# End of class LTest;\n";
 
-    assertEquals(expected, SmaliWriter.smali(application, new InternalOptions()));
+    assertEquals(expected, application.smali(new InternalOptions()));
 
     roundTripRawSmali(expected);
   }
@@ -405,7 +404,7 @@ public class SmaliDisassembleTest extends SmaliTestBase {
             "\n" +
             "# End of class LTest;\n";
 
-    assertEquals(expected, SmaliWriter.smali(application, new InternalOptions()));
+    assertEquals(expected, application.smali(new InternalOptions()));
 
     roundTripRawSmali(expected);
   }
