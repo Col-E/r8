@@ -5,9 +5,9 @@
 package com.android.tools.r8.smali;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.code.ConstString;
 import com.android.tools.r8.code.InvokeVirtual;
 import com.android.tools.r8.code.ReturnVoid;
@@ -41,7 +41,7 @@ public class RunArtSmokeTest extends SmaliTestBase {
 
     // Return the processed method for inspection.
     DexEncodedMethod main = getMethod(processedApplication, mainSignature);
-    assert main != null;
+    assertNotNull(main);
 
     DexCode code = main.getCode().asDexCode();
     assertTrue(code.instructions[0] instanceof SgetObject);

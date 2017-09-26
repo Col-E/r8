@@ -7,7 +7,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.CompilationException;
+import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.R8;
+import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationReader;
@@ -25,6 +27,8 @@ import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.FilteredClassPath;
+import com.android.tools.r8.shaking.ProguardConfiguration;
+import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.DexInspector;
@@ -33,11 +37,13 @@ import com.android.tools.r8.utils.DexInspector.MethodSubject;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OutputMode;
 import com.android.tools.r8.utils.Smali;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -46,6 +52,7 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
+import java.util.function.Consumer;
 import org.antlr.runtime.RecognitionException;
 
 public class SmaliTestBase extends TestBase {
@@ -71,6 +78,12 @@ public class SmaliTestBase extends TestBase {
 
     public static MethodSignature staticInitializer(String clazz) {
       return new MethodSignature(clazz, "<clinit>", "void", ImmutableList.of());
+    }
+
+    @Override
+    public String toString() {
+      return returnType + " " + clazz + "." + name
+          + "(" + StringUtils.join(parameterTypes, ",") + ")";
     }
   }
 
@@ -469,6 +482,30 @@ public class SmaliTestBase extends TestBase {
     }
   }
 
+  protected Path runR8(
+      SmaliBuilder builder,
+      List<String> proguardConfigurations,
+      Consumer<ProguardConfiguration.Builder> pgConsumer,
+      Consumer<InternalOptions> optionsConsumer) {
+    try {
+      Path dexOutputDir = temp.newFolder().toPath();
+      R8Command command =
+          R8Command.builder()
+              .addDexProgramData(builder.compile())
+              .setOutputPath(dexOutputDir)
+              .setMode(CompilationMode.DEBUG)
+              .addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()))
+              .addProguardConfiguration(proguardConfigurations)
+              .addProguardConfigurationConsumer(pgConsumer)
+              .build();
+      ToolHelper.runR8WithFullResult(command, optionsConsumer);
+      return dexOutputDir.resolve("classes.dex");
+    } catch (CompilationException | IOException | RecognitionException | ExecutionException
+        | ProguardRuleParserException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   protected DexClass getClass(DexApplication application, String className) {
     DexInspector inspector = new DexInspector(application);
     ClassSubject clazz = inspector.clazz(className);
@@ -480,14 +517,52 @@ public class SmaliTestBase extends TestBase {
     return getClass(application, signature.clazz);
   }
 
-  protected DexEncodedMethod getMethod(DexApplication application, String className,
-      String returnType, String methodName, List<String> parameters) {
-    DexInspector inspector = new DexInspector(application);
+  protected DexClass getClass(Path appPath, String className) {
+    try {
+      DexInspector inspector = new DexInspector(appPath);
+      ClassSubject clazz = inspector.clazz(className);
+      assertTrue(clazz.isPresent());
+      return clazz.getDexClass();
+    } catch (IOException | ExecutionException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  protected DexEncodedMethod getMethod(
+      DexInspector inspector,
+      String className,
+      String returnType,
+      String methodName,
+      List<String> parameters) {
     ClassSubject clazz = inspector.clazz(className);
     assertTrue(clazz.isPresent());
     MethodSubject method = clazz.method(returnType, methodName, parameters);
     assertTrue(method.isPresent());
     return method.getMethod();
+  }
+
+  protected DexEncodedMethod getMethod(
+      DexApplication application,
+      String className,
+      String returnType,
+      String methodName,
+      List<String> parameters) {
+    DexInspector inspector = new DexInspector(application);
+    return getMethod(inspector, className, returnType, methodName, parameters);
+  }
+
+  protected DexEncodedMethod getMethod(Path appPath, MethodSignature signature) {
+    try {
+      DexInspector inspector = new DexInspector(appPath);
+      return getMethod(
+          inspector,
+          signature.clazz,
+          signature.returnType,
+          signature.name,
+          signature.parameterTypes);
+    } catch (IOException | ExecutionException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   protected DexEncodedMethod getMethod(DexApplication application, MethodSignature signature) {
@@ -559,6 +634,14 @@ public class SmaliTestBase extends TestBase {
       // TODO(sgjesse): Pass in a unique temp directory for each run.
       app.writeToZip(out, OutputMode.Indexed);
       return ToolHelper.runArtNoVerificationErrors(out.toString(), mainClass);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public static String runArt(Path path, String mainClass) {
+    try {
+      return ToolHelper.runArtNoVerificationErrors(path.toString(), mainClass);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
