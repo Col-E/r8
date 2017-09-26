@@ -26,6 +26,7 @@ public class FileUtils {
   public static final String JAR_EXTENSION = ".jar";
   public static final String ZIP_EXTENSION = ".zip";
   public static final String DEFAULT_DEX_FILENAME = "classes.dex";
+  public static final String JAVA_EXTENSION = ".java";
 
   public static boolean isDexFile(Path path) {
     String name = path.getFileName().toString().toLowerCase();

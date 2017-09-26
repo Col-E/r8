@@ -19,7 +19,7 @@ public class BlockReorderingTest extends DebugTestBase {
   public static void setUp() throws Exception {
     // Force inversion of all conditionals to reliably construct a regression test for incorrect
     // line information when reording blocks.
-    setUp(options -> options.testing.invertConditionals = true);
+    setUp(options -> options.testing.invertConditionals = true, null);
   }
 
   @Test
