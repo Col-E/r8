@@ -9,7 +9,7 @@ import subprocess
 import sys
 import utils
 
-def run(args, build = True, debug = True, profile = False,
+def run(args, build=True, debug=True, profile=False,
         track_memory_file=None):
   if build:
     gradle.RunGradle(['r8'])
