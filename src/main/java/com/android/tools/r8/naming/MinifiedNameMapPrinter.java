@@ -6,6 +6,7 @@ package com.android.tools.r8.naming;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexEncodedMethod.DebugPositionRange;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -84,16 +85,38 @@ public class MinifiedNameMapPrinter {
     }
   }
 
+  private void writeMethod(
+      MethodSignature signature,
+      String renamed,
+      PrintStream out,
+      DexEncodedMethod.DebugPositionRange range) {
+    out.print("    ");
+    if (range != null) {
+      out.printf("%d:%d:", range.emittedFirst, range.getEmittedLast());
+    }
+    out.print(signature);
+    if (range != null && range.originalFirst != range.emittedFirst) {
+      out.printf(":%d:%d", range.originalFirst, range.getOriginalLast());
+    }
+    out.print(" -> ");
+    out.println(renamed);
+  }
+
   private void write(DexEncodedMethod[] methods, PrintStream out) {
     for (DexEncodedMethod encodedMethod : methods) {
       DexMethod method = encodedMethod.method;
       DexString renamed = namingLens.lookupName(method);
       if (renamed != method.name) {
         MethodSignature signature = MethodSignature.fromDexMethod(method);
-        out.print("    ");
-        out.print(signature);
-        out.print(" -> ");
-        out.println(renamed.toSourceString());
+        String renamedSourceString = renamed.toSourceString();
+        if (encodedMethod.debugPositionRangeList == null
+            || encodedMethod.debugPositionRangeList.isEmpty()) {
+          writeMethod(signature, renamedSourceString, out, null);
+        } else {
+          for (DebugPositionRange range : encodedMethod.debugPositionRangeList) {
+            writeMethod(signature, renamedSourceString, out, range);
+          }
+        }
       }
     }
   }

@@ -38,6 +38,7 @@ import com.android.tools.r8.graph.DexCode.Try;
 import com.android.tools.r8.graph.DexCode.TryHandler;
 import com.android.tools.r8.graph.DexCode.TryHandler.TypeAddrPair;
 import com.android.tools.r8.graph.DexDebugEventBuilder;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
@@ -180,8 +181,14 @@ public class DexBuilder {
     List<Instruction> dexInstructions = new ArrayList<>(numberOfInstructions);
     int instructionOffset = 0;
     InstructionIterator instructionIterator = ir.instructionIterator();
+    DexEncodedMethod.DebugPositionRangeList.Builder debugPositionListBuilder =
+        new DexEncodedMethod.DebugPositionRangeList.Builder();
     while (instructionIterator.hasNext()) {
       com.android.tools.r8.ir.code.Instruction ir = instructionIterator.next();
+      if (ir.isDebugPosition()) {
+        int line = ir.asDebugPosition().line;
+        debugPositionListBuilder.add(line, line);
+      }
       Info info = getInfo(ir);
       int previousInstructionCount = dexInstructions.size();
       info.addInstructions(this, dexInstructions);
@@ -194,6 +201,8 @@ public class DexBuilder {
         }
       }
     }
+
+    ir.method.debugPositionRangeList = debugPositionListBuilder.build();
 
     // Compute switch payloads.
     for (SwitchPayloadInfo switchPayloadInfo : switchPayloadInfos) {
