@@ -36,7 +36,7 @@ public class R8Command extends BaseCompilerCommand {
     private Optional<Boolean> discardedChecker = Optional.empty();
     private Optional<Boolean> minification = Optional.empty();
     private boolean ignoreMissingClasses = false;
-    private Path printMappingFile = null;
+    private Path proguardMapOutput = null;
 
     private Builder() {
       super(CompilationMode.RELEASE);
@@ -168,8 +168,8 @@ public class R8Command extends BaseCompilerCommand {
       return self();
     }
 
-    Builder setPrintMappingFile(Path path) {
-      this.printMappingFile = path;
+    Builder setProguardMapOutput(Path path) {
+      this.proguardMapOutput = path;
       return self();
     }
 
@@ -241,7 +241,7 @@ public class R8Command extends BaseCompilerCommand {
           useDiscardedChecker,
           useMinification,
           ignoreMissingClasses,
-          printMappingFile);
+          proguardMapOutput);
     }
   }
 
@@ -263,7 +263,7 @@ public class R8Command extends BaseCompilerCommand {
       "  --min-api                # Minimum Android API level compatibility.",
       "  --pg-conf <file>         # Proguard configuration <file> (implies tree",
       "                           # shaking/minification).",
-      "  --print-mapping <file>   # Write name/line mapping to <file>.",
+      "  --pg-map-output <file>   # Output the resulting name and line mapping to <file>.",
       "  --no-tree-shaking        # Force disable tree shaking of unreachable classes.",
       "  --no-discarded-checker   # Force disable the discarded checker (when tree shaking).",
       "  --no-minification        # Force disable minification of names.",
@@ -281,7 +281,7 @@ public class R8Command extends BaseCompilerCommand {
   private final boolean useDiscardedChecker;
   private final boolean useMinification;
   private final boolean ignoreMissingClasses;
-  private final Path printMappingFile;
+  private final Path proguardMapOutput;
 
   public static Builder builder() {
     return new Builder();
@@ -351,8 +351,8 @@ public class R8Command extends BaseCompilerCommand {
         builder.addProguardConfigurationFiles(Paths.get(args[++i]));
       } else if (arg.equals("--ignore-missing-classes")) {
         builder.setIgnoreMissingClasses(true);
-      } else if (arg.equals("--print-mapping")) {
-        builder.setPrintMappingFile(Paths.get(args[++i]));
+      } else if (arg.equals("--pg-map-output")) {
+        builder.setProguardMapOutput(Paths.get(args[++i]));
       } else if (arg.startsWith("@")) {
         // TODO(zerny): Replace this with pipe reading.
         String argsFile = arg.substring(1);
@@ -396,7 +396,7 @@ public class R8Command extends BaseCompilerCommand {
       boolean useDiscardedChecker,
       boolean useMinification,
       boolean ignoreMissingClasses,
-      Path printMappingFile) {
+      Path proguardMapOutput) {
     super(inputApp, outputPath, outputMode, mode, minApiLevel);
     assert proguardConfiguration != null;
     assert mainDexKeepRules != null;
@@ -408,7 +408,7 @@ public class R8Command extends BaseCompilerCommand {
     this.useDiscardedChecker = useDiscardedChecker;
     this.useMinification = useMinification;
     this.ignoreMissingClasses = ignoreMissingClasses;
-    this.printMappingFile = printMappingFile;
+    this.proguardMapOutput = proguardMapOutput;
   }
 
   private R8Command(boolean printHelp, boolean printVersion) {
@@ -420,7 +420,7 @@ public class R8Command extends BaseCompilerCommand {
     useDiscardedChecker = false;
     useMinification = false;
     ignoreMissingClasses = false;
-    printMappingFile = null;
+    proguardMapOutput = null;
   }
   public boolean useTreeShaking() {
     return useTreeShaking;
@@ -472,7 +472,7 @@ public class R8Command extends BaseCompilerCommand {
       // TODO(zerny): Should we support inlining in debug mode? b/62937285
       internal.inlineAccessors = false;
     }
-    internal.printMappingFile = printMappingFile;
+    internal.proguardMapOutput = proguardMapOutput;
     return internal;
   }
 }

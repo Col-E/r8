@@ -124,7 +124,7 @@ public class InternalOptions {
   // the code contains unsupported byte codes.
   public boolean skipReadingDexCode = false;
 
-  public Path printMappingFile = null;
+  public Path proguardMapOutput = null;
 
   public void warningInvalidDebugInfo(DexEncodedMethod method, InvalidDebugInfoException e) {
     warningInvalidDebugInfoCount++;

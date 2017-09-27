@@ -447,14 +447,14 @@ public class R8 {
       outputApp.write(command.getOutputPath(), options.outputMode);
     }
 
-    if ((options.proguardConfiguration.isPrintMapping() || options.printMappingFile != null)
+    if ((options.proguardConfiguration.isPrintMapping() || options.proguardMapOutput != null)
         && !options.skipMinification) {
       assert outputApp.hasProguardMap();
       if (options.proguardConfiguration.isPrintMapping()) {
         writeProguardMapToPath(options.proguardConfiguration.getPrintMappingFile(), outputApp);
       }
-      if (options.printMappingFile != null) {
-        writeProguardMapToPath(options.printMappingFile, outputApp);
+      if (options.proguardMapOutput != null) {
+        writeProguardMapToPath(options.proguardMapOutput, outputApp);
       }
     }
     if (options.proguardConfiguration.isPrintSeeds()) {
