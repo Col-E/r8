@@ -30,8 +30,6 @@ def parse_arguments():
   return parser.parse_args()
 
 def Main():
-
-  utils.check_java_version()
   args = parse_arguments()
 
   if not args.no_build:
@@ -51,4 +49,3 @@ def Main():
 
 if __name__ == '__main__':
   sys.exit(Main())
-
