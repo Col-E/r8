@@ -3,13 +3,21 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.dex.ApplicationReader;
+import com.android.tools.r8.graph.AssemblyWriter;
+import com.android.tools.r8.graph.DexByteCodeWriter;
+import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.graph.SmaliWriter;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.ThreadUtils;
+import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 
 public class Disassemble {
   public static class DisassembleCommand extends BaseCommand {
@@ -64,6 +72,7 @@ public class Disassemble {
         " and options are:",
         "  --smali                 # Disassemble using smali syntax.",
         "  --pg-map <file>         # Proguard map <file> for mapping names.",
+        "  --output                # Specify a file or directory to write to.",
         "  --version               # Print the version of r8.",
         "  --help                  # Print this message."));
 
@@ -144,9 +153,30 @@ public class Disassemble {
       return;
     }
     if (command.isPrintVersion()) {
-      System.out.println("R8 " + Version.LABEL);
+      System.out.println("Disassemble (R8) " + Version.LABEL);
       return;
     }
-    R8.disassemble(command);
+    disassemble(command);
+  }
+
+  public static void disassemble(DisassembleCommand command)
+      throws IOException, ExecutionException {
+    AndroidApp app = command.getInputApp();
+    InternalOptions options = command.getInternalOptions();
+    ExecutorService executor = ThreadUtils.getExecutorService(options);
+    Timing timing = new Timing("disassemble");
+    try {
+      DexApplication application = new ApplicationReader(app, options, timing).read(executor);
+      DexByteCodeWriter writer = command.useSmali()
+          ? new SmaliWriter(application, options)
+          : new AssemblyWriter(application, options);
+      if (command.getOutputPath() != null) {
+        writer.write(command.getOutputPath());
+      } else {
+        writer.write(System.out);
+      }
+    } finally {
+      executor.shutdown();
+    }
   }
 }

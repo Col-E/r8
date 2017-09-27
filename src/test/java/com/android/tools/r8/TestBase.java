@@ -9,6 +9,7 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.graph.SmaliWriter;
 import com.android.tools.r8.shaking.FilteredClassPath;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApp;
@@ -300,6 +301,6 @@ public class TestBase {
   protected void disassemble(AndroidApp app) throws Exception {
     InternalOptions options = new InternalOptions();
     DexApplication dexApplication = new ApplicationReader(app, options, new Timing("XX")).read();
-    System.out.println(dexApplication.smali(options));
+    System.out.println(SmaliWriter.smali(dexApplication, options));
   }
 }

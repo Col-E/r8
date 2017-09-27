@@ -164,33 +164,6 @@ public class R8 {
     return result;
   }
 
-  public static void disassemble(Disassemble.DisassembleCommand command)
-      throws IOException, ExecutionException {
-    Path output = command.getOutputPath();
-    AndroidApp app = command.getInputApp();
-    InternalOptions options = command.getInternalOptions();
-    ExecutorService executor = ThreadUtils.getExecutorService(options);
-    Timing timing = new Timing("disassemble");
-    try {
-      DexApplication application = new ApplicationReader(app, options, timing).read(executor);
-      if (options.useSmaliSyntax) {
-        if (output != null) {
-          Files.createDirectories(output);
-          try (PrintStream ps = new PrintStream(
-              Files.newOutputStream(output.resolve("classes.smali")))) {
-            application.smali(options, ps);
-          }
-        } else {
-          application.smali(options, System.out);
-        }
-      } else {
-        application.disassemble(output, options);
-      }
-    } finally {
-      executor.shutdown();
-    }
-  }
-
   static CompilationResult runForTesting(AndroidApp app, InternalOptions options)
       throws IOException, CompilationException {
     ExecutorService executor = ThreadUtils.getExecutorService(options);
