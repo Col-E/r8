@@ -294,9 +294,17 @@ abstract public class DexDebugEvent extends DexItem {
 
   public static class SetFile extends DexDebugEvent {
 
-    final DexString fileName;
+    DexString fileName;
 
     SetFile(DexString fileName) {
+      this.fileName = fileName;
+    }
+
+    public DexString getFileName() {
+      return fileName;
+    }
+
+    public void setFileName(DexString fileName) {
       this.fileName = fileName;
     }
 
