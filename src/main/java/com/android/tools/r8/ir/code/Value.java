@@ -316,16 +316,12 @@ public class Value {
   }
 
   public void addDebugUser(Instruction user) {
-    if (isUninitializedLocal()) {
-      return;
-    }
+    assert getLocalInfo() != null;
     debugData.users.putIfAbsent(user, DebugUse.LIVE);
   }
 
   public void addDebugPhiUser(Phi user) {
-    if (isUninitializedLocal()) {
-      return;
-    }
+    assert getLocalInfo() != null;
     debugData.phiUsers.add(user);
   }
 
@@ -461,7 +457,7 @@ public class Value {
     if (isConstant || hasLocalInfo) {
       builder.append("(");
       if (isConstant) {
-        ConstNumber constNumber = getConstInstruction().asConstNumber();
+        ConstNumber constNumber = definition.asConstNumber();
         if (constNumber.outType() == MoveType.SINGLE) {
           builder.append((int) constNumber.getRawValue());
         } else {
