@@ -15,7 +15,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexAccessFlags;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.utils.FileUtils;
-import com.android.tools.r8.utils.InternalOptions.AttributeRemovalOptions;
+import com.android.tools.r8.utils.InternalOptions.KeepAttributeOptions;
 import com.android.tools.r8.utils.InternalOptions.PackageObfuscationMode;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
@@ -598,8 +598,8 @@ public class ProguardConfigurationParserTest extends TestBase {
     parser.parse(new ProguardConfigurationSourceStrings(ImmutableList.of(config1, config2)));
     ProguardConfiguration config = parser.getConfig();
     assertEquals("PG", config.getRenameSourceFileAttribute());
-    assertTrue(config.getAttributesRemovalPatterns().contains(AttributeRemovalOptions.SOURCE_FILE));
-    assertTrue(config.getAttributesRemovalPatterns().contains(AttributeRemovalOptions.SOURCE_DIR));
+    assertTrue(config.getKeepAttributesPatterns().contains(KeepAttributeOptions.SOURCE_FILE));
+    assertTrue(config.getKeepAttributesPatterns().contains(KeepAttributeOptions.SOURCE_DIR));
   }
 
   @Test
@@ -610,13 +610,13 @@ public class ProguardConfigurationParserTest extends TestBase {
     parser.parse(new ProguardConfigurationSourceStrings(ImmutableList.of(config1, config2)));
     ProguardConfiguration config = parser.getConfig();
     assertEquals("", config.getRenameSourceFileAttribute());
-    assertTrue(config.getAttributesRemovalPatterns().contains(AttributeRemovalOptions.SOURCE_FILE));
+    assertTrue(config.getKeepAttributesPatterns().contains(KeepAttributeOptions.SOURCE_FILE));
   }
 
   private void testKeepattributes(List<String> expected, String config) throws Exception {
     ProguardConfigurationParser parser = new ProguardConfigurationParser(new DexItemFactory());
     parser.parse(new ProguardConfigurationSourceStrings(ImmutableList.of(config)));
-    assertEquals(expected, parser.getConfig().getAttributesRemovalPatterns());
+    assertEquals(expected, parser.getConfig().getKeepAttributesPatterns());
   }
 
   @Test

@@ -309,7 +309,7 @@ public class ProguardConfigurationParser {
       if (attributesPatterns.isEmpty()) {
         throw parseError("Expected attribute pattern list");
       }
-      configurationBuilder.addAttributeRemovalPatterns(attributesPatterns);
+      configurationBuilder.addKeepAttributePatterns(attributesPatterns);
     }
 
     private boolean skipFlag(String name) {

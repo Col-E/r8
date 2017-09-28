@@ -13,7 +13,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.InternalOptions.AttributeRemovalOptions;
+import com.android.tools.r8.utils.InternalOptions.KeepAttributeOptions;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.function.Predicate;
@@ -21,14 +21,14 @@ import java.util.function.Predicate;
 public class AnnotationRemover {
 
   private final AppInfoWithLiveness appInfo;
-  private final AttributeRemovalOptions keep;
+  private final KeepAttributeOptions keep;
 
   public AnnotationRemover(AppInfoWithLiveness appInfo, InternalOptions options) {
-    this(appInfo, options.attributeRemoval);
+    this(appInfo, options.keepAttributes);
   }
 
   public AnnotationRemover(AppInfoWithLiveness appInfo,
-      AttributeRemovalOptions keep) {
+      KeepAttributeOptions keep) {
     this.appInfo = appInfo;
     this.keep = keep;
   }

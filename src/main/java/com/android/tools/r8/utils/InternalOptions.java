@@ -104,7 +104,7 @@ public class InternalOptions {
   public boolean skipMinification = false;
   public boolean disableAssertions = true;
   public boolean debugKeepRules = false;
-  public final AttributeRemovalOptions attributeRemoval = new AttributeRemovalOptions();
+  public final KeepAttributeOptions keepAttributes = new KeepAttributeOptions();
   public boolean allowParameterName = false;
 
   public boolean debug = false;
@@ -210,7 +210,7 @@ public class InternalOptions {
     public boolean invertConditionals = false;
   }
 
-  public static class AttributeRemovalOptions {
+  public static class KeepAttributeOptions {
 
     public static final String SOURCE_FILE = "SourceFile";
     public static final String SOURCE_DIR = "SourceDir";
@@ -220,7 +220,7 @@ public class InternalOptions {
     public static final String EXCEPTIONS = "Exceptions";
     public static final String SOURCE_DEBUG_EXTENSION = "SourceDebugExtension";
     public static final String RUNTIME_VISIBLE_ANNOTATIONS = "RuntimeVisibleAnnotations";
-    public static final String RUNTIME_INVISBLE_ANNOTATIONS = "RuntimeInvisibleAnnotations";
+    public static final String RUNTIME_INVISIBLE_ANNOTATIONS = "RuntimeInvisibleAnnotations";
     public static final String RUNTIME_VISIBLE_PARAMETER_ANNOTATIONS =
         "RuntimeVisibleParameterAnnotations";
     public static final String RUNTIME_INVISIBLE_PARAMETER_ANNOTATIONS =
@@ -229,6 +229,8 @@ public class InternalOptions {
     public static final String RUNTIME_INVISIBLE_TYPE_ANNOTATIONS =
         "RuntimeInvisibleTypeAnnotations";
     public static final String ANNOTATION_DEFAULT = "AnnotationDefault";
+
+    public static final List<String> KEEP_ALL = ImmutableList.of("*");
 
     public boolean sourceFile = false;
     public boolean sourceDir = false;
@@ -245,12 +247,12 @@ public class InternalOptions {
     public boolean runtimeInvisibleTypeAnnotations = false;
     public boolean annotationDefault = false;
 
-    private AttributeRemovalOptions() {
+    private KeepAttributeOptions() {
 
     }
 
-    public static AttributeRemovalOptions filterOnlySignatures() {
-      AttributeRemovalOptions result = new AttributeRemovalOptions();
+    public static KeepAttributeOptions filterOnlySignatures() {
+      KeepAttributeOptions result = new KeepAttributeOptions();
       result.applyPatterns(ImmutableList.of("*"));
       result.signature = false;
       return result;
@@ -308,7 +310,7 @@ public class InternalOptions {
       runtimeVisibleAnnotations = update(runtimeVisibleAnnotations, RUNTIME_VISIBLE_ANNOTATIONS,
           patterns);
       runtimeInvisibleAnnotations = update(runtimeInvisibleAnnotations,
-          RUNTIME_INVISBLE_ANNOTATIONS, patterns);
+          RUNTIME_INVISIBLE_ANNOTATIONS, patterns);
       runtimeVisibleParameterAnnotations = update(runtimeVisibleParameterAnnotations,
           RUNTIME_VISIBLE_PARAMETER_ANNOTATIONS, patterns);
       runtimeInvisibleParamterAnnotations = update(runtimeInvisibleParamterAnnotations,

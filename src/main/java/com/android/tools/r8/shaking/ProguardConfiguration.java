@@ -5,6 +5,7 @@ package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.naming.DictionaryReader;
+import com.android.tools.r8.utils.InternalOptions.KeepAttributeOptions;
 import com.android.tools.r8.utils.InternalOptions.PackageObfuscationMode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -34,7 +35,7 @@ public class ProguardConfiguration {
     private Path applyMappingFile = null;
     private boolean verbose = false;
     private String renameSourceFileAttribute = null;
-    private final List<String> attributesRemovalPatterns = new ArrayList<>();
+    private final List<String> keepAttributePatterns = new ArrayList<>();
     private final Set<ProguardTypeMatcher> dontWarnPatterns = new HashSet<>();
     protected final List<ProguardConfigurationRule> rules = new ArrayList<>();
     private final DexItemFactory dexItemFactory;
@@ -123,8 +124,8 @@ public class ProguardConfiguration {
       this.renameSourceFileAttribute = renameSourceFileAttribute;
     }
 
-    public void addAttributeRemovalPatterns(List<String> attributesRemovalPatterns) {
-      this.attributesRemovalPatterns.addAll(attributesRemovalPatterns);
+    public void addKeepAttributePatterns(List<String> keepAttributePatterns) {
+      this.keepAttributePatterns.addAll(keepAttributePatterns);
     }
 
     public void addRule(ProguardConfigurationRule rule) {
@@ -182,7 +183,7 @@ public class ProguardConfiguration {
           applyMappingFile,
           verbose,
           renameSourceFileAttribute,
-          attributesRemovalPatterns,
+          keepAttributePatterns,
           dontWarnPatterns,
           rules,
           printSeeds,
@@ -211,7 +212,7 @@ public class ProguardConfiguration {
   private final Path applyMappingFile;
   private final boolean verbose;
   private final String renameSourceFileAttribute;
-  private final ImmutableList<String> attributesRemovalPatterns;
+  private final ImmutableList<String> keepAttributesPatterns;
   private final ImmutableSet<ProguardTypeMatcher> dontWarnPatterns;
   protected final ImmutableList<ProguardConfigurationRule> rules;
   private final boolean printSeeds;
@@ -239,7 +240,7 @@ public class ProguardConfiguration {
       Path applyMappingFile,
       boolean verbose,
       String renameSourceFileAttribute,
-      List<String> attributesRemovalPatterns,
+      List<String> keepAttributesPatterns,
       Set<ProguardTypeMatcher> dontWarnPatterns,
       List<ProguardConfigurationRule> rules,
       boolean printSeeds,
@@ -265,7 +266,7 @@ public class ProguardConfiguration {
     this.applyMappingFile = applyMappingFile;
     this.verbose = verbose;
     this.renameSourceFileAttribute = renameSourceFileAttribute;
-    this.attributesRemovalPatterns = ImmutableList.copyOf(attributesRemovalPatterns);
+    this.keepAttributesPatterns = ImmutableList.copyOf(keepAttributesPatterns);
     this.dontWarnPatterns = ImmutableSet.copyOf(dontWarnPatterns);
     this.rules = ImmutableList.copyOf(rules);
     this.printSeeds = printSeeds;
@@ -359,8 +360,8 @@ public class ProguardConfiguration {
     return renameSourceFileAttribute;
   }
 
-  public ImmutableList<String> getAttributesRemovalPatterns() {
-    return attributesRemovalPatterns;
+  public ImmutableList<String> getKeepAttributesPatterns() {
+    return keepAttributesPatterns;
   }
 
   public ImmutableSet<ProguardTypeMatcher> getDontWarnPatterns() {
@@ -411,7 +412,7 @@ public class ProguardConfiguration {
           null                  /* applyMapping */,
           false                 /* verbose */,
           null                  /* renameSourceFileAttribute */,
-          ImmutableList.of()    /* attributesRemovalPatterns */,
+          KeepAttributeOptions.KEEP_ALL,
           ImmutableSet.of()     /* dontWarnPatterns */,
           ImmutableList.of(ProguardKeepRule.defaultKeepAllRule()),
           false                 /* printSeeds */,
