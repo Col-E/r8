@@ -456,7 +456,7 @@ public class R8Command extends BaseCompilerCommand {
     internal.useDiscardedChecker = useDiscardedChecker();
     assert !internal.ignoreMissingClasses;
     internal.ignoreMissingClasses = ignoreMissingClasses;
-    internal.attributeRemoval.applyPatterns(proguardConfiguration.getAttributesRemovalPatterns());
+    internal.keepAttributes.applyPatterns(proguardConfiguration.getKeepAttributesPatterns());
     internal.ignoreMissingClasses |= proguardConfiguration.isIgnoreWarnings();
     assert !internal.verbose;
     internal.verbose |= proguardConfiguration.isVerbose();
