@@ -80,6 +80,8 @@ def Main():
       tool_args = ['--num-threads=8'] + tool_args
       if args.tool == 'goyt-release':
         tool_args.append('--no-locals')
+      else:
+        tool_args.append('--no-optimize')
     elif args.tool == 'dx':
       tool_file = DX_JAR
       xmx = '-Xmx1600m'
