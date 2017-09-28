@@ -31,7 +31,7 @@ import utils
 DX_JAR = os.path.join(utils.REPO_ROOT, 'tools', 'linux', 'dx', 'framework',
     'dx.jar')
 GOYT_EXE = os.path.join('third_party', 'goyt',
-    'goyt_164843480')
+    'goyt_170197324')
 FRAMEWORK_JAR = os.path.join('third_party', 'framework',
     'framework_14082017_desugared.jar')
 MIN_SDK_VERSION = '24'
