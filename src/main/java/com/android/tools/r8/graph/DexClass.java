@@ -22,7 +22,7 @@ public abstract class DexClass extends DexItem {
   public final DexAccessFlags accessFlags;
   public DexType superType;
   public DexTypeList interfaces;
-  public final DexString sourceFile;
+  public DexString sourceFile;
   protected DexEncodedField[] staticFields;
   protected DexEncodedField[] instanceFields;
   protected DexEncodedMethod[] directMethods;
