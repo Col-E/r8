@@ -77,6 +77,28 @@ The `tools/test.py` script will use depot_tools to download a lot of tests
 and test dependencies on the first run. This includes prebuilt version of the
 art runtime on which to validate the produced dex code.
 
+## Contributing
+
+In order to contribute to D8/R8 you have to sign the
+[Contributor License Agreement](https://cla.developers.google.com/about/google-individual).
+If your contribution is owned by your employer you need the
+[Corporate Contributor License Agreement](https://cla.developers.google.com/about/google-corporate).
+
+Once the license agreement is in place, you can upload your patches
+using 'git cl' which is available in depot_tools. Once you have a
+change that you are happy with you should make sure that it passes
+all tests and then upload the change to our code review tool using:
+
+    $ git cl upload
+
+On your first upload you will be asked to acquire credentials. Follow the
+instructions given by `git cl upload`.
+
+On successful uploads a link to the code review is printed in the
+output of the upload command. In the code review tool you can
+assign reviewers and mark the change ready for review. At that
+point the code review tool will send emails to reviewers.
+
 ## Getting help
 
 For questions, bug reports and other issues reach out to us at
