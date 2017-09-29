@@ -157,37 +157,43 @@ public abstract class R8RunArtTestsTest {
 
   // Tests that are flaky with the Art version we currently use.
   // TODO(zerny): Amend flaky tests with an expected flaky result to track issues.
-  private static List<String> flakyRunWithArt = ImmutableList.of(
-      // Can crash but mostly passes
-      // Crashes:
-      // check_reference_map_visitor.h:44] At Main.f
-      // Check failed: size() >= sizeof(T) (size()=0, sizeof(T)=1)
-      // If art is passed -Xrelocate instead of -Xnorelocate the test passes.
-      "004-ReferenceMap",
-      // Also marked flaky in the art repo, sometimes hangs, sometimes fails with a segfault:
-      // line 105: 23283 Segmentation fault
-      "004-ThreadStress",
-      // When it fails:
-      // stack_walk_jni.cc:57] Check failed: 0xdU == GetDexPc() (0xdU=13, GetDexPc()=23)
-      // The R8/D8 code does not produce code with the same instructions.
-      "004-StackWalk",
-      // Nothing ensures the weak-ref is not cleared between makeRef and printWeakReference on lines
-      // Main.java:78-79. An expected flaky result contains: "but was:<wimp: [null]".
-      "036-finalizer",
-      // Can lead to art-master crash: concurrent_copying.cc:2135] Check failed:
-      // to_ref != nullptr Fall-back non-moving space allocation failed
-      "080-oom-fragmentation",
-      // Seen crash: currently no more information
-      "144-static-field-sigquit",
-      // Opens a lot of file descriptors and depending on the state of the machine this
-      // can crash art or not. Skip the run on art.
-      "151-OpenFileLimit",
-      // Can cause a segfault in the art vm 7.0.0
-      // tools/linux/art-7.0.0/bin/art: line 105: 14395 Segmentation fault
-      "607-daemon-stress",
-      // Marked as flaky in the Art repository.
-      "149-suspend-all-stress"
-  );
+  private static Multimap<String, TestCondition> flakyRunWithArt =
+      new ImmutableListMultimap.Builder<String, TestCondition>()
+          // Can crash but mostly passes
+          // Crashes:
+          // check_reference_map_visitor.h:44] At Main.f
+          // Check failed: size() >= sizeof(T) (size()=0, sizeof(T)=1)
+          // If art is passed -Xrelocate instead of -Xnorelocate the test passes.
+          .put("004-ReferenceMap", TestCondition.any())
+          // Also marked flaky in the art repo, sometimes hangs, sometimes fails with a segfault:
+          // line 105: 23283 Segmentation fault
+          .put("004-ThreadStress", TestCondition.any())
+          // When it fails:
+          // stack_walk_jni.cc:57] Check failed: 0xdU == GetDexPc() (0xdU=13, GetDexPc()=23)
+          // The R8/D8 code does not produce code with the same instructions.
+          .put("004-StackWalk", TestCondition.any())
+          // Nothing ensures the weak-ref is not cleared between makeRef and
+          // printWeakReference on lines Main.java:78-79. An expected flaky
+          // result contains: "but was:<wimp: [null]".
+          .put("036-finalizer", TestCondition.any())
+          // Can lead to art-master crash: concurrent_copying.cc:2135] Check failed:
+          // to_ref != nullptr Fall-back non-moving space allocation failed
+          .put("080-oom-fragmentation", TestCondition.any())
+          // Failed on buildbot with: terminate called after throwing an instance
+          // of '__gnu_cxx::recursive_init_error'
+          .put("096-array-copy-concurrent-gc",
+              TestCondition.match(TestCondition.runtimes(DexVm.ART_4_4_4)))
+          // Seen crash: currently no more information
+          .put("144-static-field-sigquit", TestCondition.any())
+          // Opens a lot of file descriptors and depending on the state of the machine this
+          // can crash art or not. Skip the run on art.
+          .put("151-OpenFileLimit", TestCondition.any())
+          // Can cause a segfault in the art vm 7.0.0
+          // tools/linux/art-7.0.0/bin/art: line 105: 14395 Segmentation fault
+          .put("607-daemon-stress", TestCondition.any())
+          // Marked as flaky in the Art repository.
+          .put("149-suspend-all-stress", TestCondition.any())
+          .build();
 
   // Tests that are never compiled or run.
   private static List<String> skipAltogether = ImmutableList.of(
@@ -1030,8 +1036,7 @@ public abstract class R8RunArtTestsTest {
     Map<SpecificationKey, TestSpecification> data = new HashMap<>();
 
     // Collect tests where running Art is skipped (we still run R8/D8 on these).
-    Set<String> skipArt = Sets.newHashSet(flakyRunWithArt);
-    skipArt.addAll(customRun);
+    Set<String> skipArt = new HashSet<>(customRun);
 
     Set<String> skipTest = Sets.newHashSet(skipAltogether);
     skipTest.addAll(usesNativeAgentCode);
@@ -1045,6 +1050,10 @@ public abstract class R8RunArtTestsTest {
       Set<String> failsWithCompiler =
           collectTestsMatchingConditions(
               dexTool, compilerUnderTest, dexVm, compilationMode, failingWithCompiler);
+
+      // Collect the tests that are flaky.
+      skipArt.addAll(collectTestsMatchingConditions(
+              dexTool, compilerUnderTest, dexVm, compilationMode, flakyRunWithArt));
 
       // Collect tests that has no input:
       if (dexTool == DexTool.NONE) {
