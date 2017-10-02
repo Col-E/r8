@@ -68,7 +68,7 @@ def Main():
     print 'On master, using git hash for archiving'
     version = GetGitHash()
 
-  for jar in [utils.D8_JAR, utils.R8_JAR]:
+  for jar in [utils.D8_JAR, utils.R8_JAR, utils.COMPATDX_JAR]:
     file_name = os.path.basename(jar)
     destination = GetUploadDestination(version, file_name, is_master)
     print('Uploading %s to %s' % (jar, destination))

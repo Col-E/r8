@@ -19,8 +19,10 @@ DEX_SEGMENTS_JAR = os.path.join(REPO_ROOT, 'build', 'libs',
     'dexsegments.jar')
 DEX_SEGMENTS_RESULT_PATTERN = re.compile('- ([^:]+): ([0-9]+)')
 COMPATDX_JAR = os.path.join(REPO_ROOT, 'build', 'libs', 'compatdx.jar')
-D8_JAR = os.path.join(REPO_ROOT, 'build', 'libs', 'd8.jar')
-R8_JAR = os.path.join(REPO_ROOT, 'build', 'libs', 'r8.jar')
+LIBS = os.path.join(REPO_ROOT, 'build', 'libs')
+D8_JAR = os.path.join(LIBS, 'd8.jar')
+R8_JAR = os.path.join(LIBS, 'r8.jar')
+COMPATDX_JAR = os.path.join(LIBS, 'compatdx.jar')
 
 def PrintCmd(s):
   if type(s) is list:
