@@ -324,6 +324,12 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       int spillCount = 0;
       while (instructionIterator.hasNext()) {
         Instruction instruction = instructionIterator.next();
+        if (instruction.isDebugLocalRead()) {
+          // Remove debug local reads now that local liveness is computed.
+          assert !instruction.getDebugValues().isEmpty();
+          instruction.clearDebugValues();
+          instructionIterator.remove();
+        }
         int index = instruction.getNumber();
         if (index == -1) {
           spillCount++;

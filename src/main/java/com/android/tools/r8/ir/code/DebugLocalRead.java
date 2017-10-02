@@ -10,25 +10,25 @@ import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.utils.InternalOptions;
 
-public class Nop extends Instruction {
+public class DebugLocalRead extends Instruction {
 
-  public Nop() {
+  public DebugLocalRead() {
     super(null);
   }
 
   @Override
-  public boolean isNop() {
+  public boolean isDebugLocalRead() {
     return true;
   }
 
   @Override
-  public Nop asNop() {
+  public DebugLocalRead asDebugLocalRead() {
     return this;
   }
 
   @Override
   public void buildDex(DexBuilder builder) {
-    builder.addNop(this);
+    throw new Unreachable("Unexpected attempt to emit debug-local read.");
   }
 
   @Override
@@ -58,6 +58,8 @@ public class Nop extends Instruction {
 
   @Override
   public boolean canBeDeadCode(IRCode code, InternalOptions options) {
-    return getDebugValues().isEmpty();
+    // Reads are never dead code.
+    // They should also have a non-empty set of debug values (see RegAlloc::computeDebugInfo)
+    return false;
   }
 }

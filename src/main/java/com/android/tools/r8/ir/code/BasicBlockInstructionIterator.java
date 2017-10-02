@@ -126,14 +126,14 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
   }
 
   @Override
-  public void removeOrReplaceByNop() {
+  public void removeOrReplaceByDebugLocalRead() {
     if (current == null) {
       throw new IllegalStateException();
     }
     if (current.getDebugValues().isEmpty()) {
       remove();
     } else {
-      replaceCurrentInstruction(new Nop());
+      replaceCurrentInstruction(new DebugLocalRead());
     }
   }
 

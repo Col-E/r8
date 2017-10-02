@@ -353,8 +353,7 @@ public class DexBuilder {
   }
 
   private static boolean isNopInstruction(com.android.tools.r8.ir.code.Instruction instruction) {
-    return instruction.isNop()
-        || instruction.isDebugLocalsChange()
+    return instruction.isDebugLocalsChange()
         || (instruction.isConstNumber() && !instruction.outValue().needsRegister());
   }
 

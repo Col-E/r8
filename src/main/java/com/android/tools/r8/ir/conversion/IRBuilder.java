@@ -35,6 +35,7 @@ import com.android.tools.r8.ir.code.ConstClass;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.ConstType;
+import com.android.tools.r8.ir.code.DebugLocalRead;
 import com.android.tools.r8.ir.code.DebugLocalUninitialized;
 import com.android.tools.r8.ir.code.DebugLocalWrite;
 import com.android.tools.r8.ir.code.DebugPosition;
@@ -59,7 +60,6 @@ import com.android.tools.r8.ir.code.Neg;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.NewArrayFilledData;
 import com.android.tools.r8.ir.code.NewInstance;
-import com.android.tools.r8.ir.code.Nop;
 import com.android.tools.r8.ir.code.Not;
 import com.android.tools.r8.ir.code.NumberConversion;
 import com.android.tools.r8.ir.code.NumericType;
@@ -608,7 +608,7 @@ public class IRBuilder {
     // 1. The block is empty (eg, instructions from block entry until now materialized to nothing).
     // 2. The block is non-empty (and the last instruction does not define the local to start).
     if (currentBlock.getInstructions().isEmpty()) {
-      addInstruction(new Nop());
+      addInstruction(new DebugLocalRead());
     }
     Instruction instruction = currentBlock.getInstructions().getLast();
     assert instruction.outValue() != value;
@@ -630,7 +630,7 @@ public class IRBuilder {
     // 2. The block has an instruction not defining the local being ended.
     // 3. The block has an instruction defining the local being ended.
     if (currentBlock.getInstructions().isEmpty()) {
-      addInstruction(new Nop());
+      addInstruction(new DebugLocalRead());
     }
     Instruction instruction = currentBlock.getInstructions().getLast();
     if (instruction.outValue() != value) {
@@ -645,7 +645,7 @@ public class IRBuilder {
     if (instruction.isDebugLocalWrite()) {
       DebugLocalWrite write = instruction.asDebugLocalWrite();
       currentBlock.replaceCurrentDefinitions(value, write.src());
-      currentBlock.listIterator(write).removeOrReplaceByNop();
+      currentBlock.listIterator(write).removeOrReplaceByDebugLocalRead();
     } else {
       instruction.outValue().clearLocalInfo();
     }

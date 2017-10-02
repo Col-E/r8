@@ -86,7 +86,7 @@ public class DexDebugEventBuilder {
       // If this is the end of the block clear out the pending state.
       pendingLocals = null;
       pendingLocalChanges = false;
-    } else if (pc != emittedPc && !instruction.isNop()) {
+    } else if (pc != emittedPc && !instruction.isDebugLocalRead()) {
       // For non-exit / pc-advancing instructions emit any pending changes once possible.
       emitLocalChanges(pc);
     }

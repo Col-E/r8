@@ -1088,7 +1088,7 @@ public class CodeRewriter {
             user -> user.isCheckCast()
                 && user.asCheckCast().getType().isSubtypeOf(checkCast.getType(), appInfo))) {
           checkCast.outValue().replaceUsers(checkCast.inValues().get(0));
-          it.removeOrReplaceByNop();
+          it.removeOrReplaceByDebugLocalRead();
         }
       }
     }
@@ -1506,7 +1506,7 @@ public class CodeRewriter {
         write.outValue().replaceUsers(phi);
         // Safely remove the write.
         // TODO(zerny): Once phis become instructions, move debug values there instead of a nop.
-        iterator.removeOrReplaceByNop();
+        iterator.removeOrReplaceByDebugLocalRead();
         return;
       }
     }
@@ -1678,7 +1678,7 @@ public class CodeRewriter {
                   shareCatchHandlers(instruction, candidate.definition)) {
                 instruction.outValue().replaceUsers(candidate);
                 eliminated = true;
-                iterator.removeOrReplaceByNop();
+                iterator.removeOrReplaceByDebugLocalRead();
                 break;  // Don't try any more candidates.
               }
             }
@@ -1927,13 +1927,13 @@ public class CodeRewriter {
           DexMethod invokedMethod = current.asInvokeMethod().getInvokedMethod();
           if (matchesMethodOfThrowable(invokedMethod, throwableMethods.addSuppressed)) {
             // Remove Throwable::addSuppressed(Throwable) call.
-            iterator.removeOrReplaceByNop();
+            iterator.removeOrReplaceByDebugLocalRead();
           } else if (matchesMethodOfThrowable(invokedMethod, throwableMethods.getSuppressed)) {
             Value destValue = current.outValue();
             if (destValue == null) {
               // If the result of the call was not used we don't create
               // an empty array and just remove the call.
-              iterator.removeOrReplaceByNop();
+              iterator.removeOrReplaceByDebugLocalRead();
               continue;
             }
 
