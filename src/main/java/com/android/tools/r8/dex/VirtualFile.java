@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.dex;
 
-import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.DexOverflowException;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.graph.DexApplication;
@@ -24,7 +23,6 @@ import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
-
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
