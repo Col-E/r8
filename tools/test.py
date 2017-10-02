@@ -84,9 +84,6 @@ def archive_failures():
 
 def Main():
   (options, args) = ParseOptions()
-  if len(args) > 1:
-    print("test.py takes at most one argument, the pattern for tests to run")
-    return -1
 
   gradle_args = []
   # Set all necessary Gradle properties and options first.
@@ -131,10 +128,10 @@ def Main():
   # Add Gradle tasks
   gradle_args.append('cleanTest')
   gradle_args.append('test')
-  if len(args) > 0:
-    # Test filtering. Must always follow the 'test' task.
+  # Test filtering. Must always follow the 'test' task.
+  for testFilter in args:
     gradle_args.append('--tests')
-    gradle_args.append(args[0])
+    gradle_args.append(testFilter)
   if options.with_code_coverage:
     # Create Jacoco report after tests.
     gradle_args.append('jacocoTestReport')
