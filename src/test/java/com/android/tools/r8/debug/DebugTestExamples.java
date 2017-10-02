@@ -12,12 +12,15 @@ import org.junit.Test;
  */
 public class DebugTestExamples extends DebugTestBase {
 
+  public static final String SOURCE_FILE = "Arithmetic.java";
+  public static final String DEBUGGEE_CLASS = "Arithmetic";
+
   /**
    * Simple test that runs the debuggee until it exits.
    */
   @Test
   public void testRun() throws Throwable {
-    runDebugTest("Arithmetic", Collections.singletonList(run()));
+    runDebugTest(DEBUGGEE_CLASS, Collections.singletonList(run()));
   }
 
   /**
@@ -25,9 +28,10 @@ public class DebugTestExamples extends DebugTestBase {
    */
   @Test
   public void testBreakpoint_Hit() throws Throwable {
-    runDebugTest("Arithmetic",
-        breakpoint("Arithmetic", "bitwiseInts"),
+    runDebugTest(DEBUGGEE_CLASS,
+        breakpoint(DEBUGGEE_CLASS, "bitwiseInts"),
         run(),
+        checkLine(SOURCE_FILE, 12),
         run());
   }
 
@@ -36,9 +40,10 @@ public class DebugTestExamples extends DebugTestBase {
    */
   @Test
   public void testLocalsOnBreakpoint() throws Throwable {
-    runDebugTest("Arithmetic",
-        breakpoint("Arithmetic", "bitwiseInts"),
+    runDebugTest(DEBUGGEE_CLASS,
+        breakpoint(DEBUGGEE_CLASS, "bitwiseInts"),
         run(),
+        checkLine(SOURCE_FILE, 12),
         checkLocal("x", Value.createInt(12345)),
         checkLocal("y", Value.createInt(54321)),
         run());
@@ -49,9 +54,10 @@ public class DebugTestExamples extends DebugTestBase {
    */
   @Test
   public void testLocalsOnBreakpointThenStep() throws Throwable {
-    runDebugTest("Arithmetic",
-        breakpoint("Arithmetic", "bitwiseInts"),
+    runDebugTest(DEBUGGEE_CLASS,
+        breakpoint(DEBUGGEE_CLASS, "bitwiseInts"),
         run(),
+        checkLine(SOURCE_FILE, 12),
         checkLocal("x", Value.createInt(12345)),
         checkLocal("y", Value.createInt(54321)),
         stepOver(),
