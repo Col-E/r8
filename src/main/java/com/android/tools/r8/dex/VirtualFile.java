@@ -245,6 +245,9 @@ public class VirtualFile {
           nameToFileMap.put(nameToFileMap.size(), file);
           file.addClass(clazz);
           files.put(clazz, file);
+          // Commit this early, so that we do not keep the transaction state around longer than
+          // needed and clear the underlying sets.
+          file.commitTransaction();
         } else {
           synthetics.add(clazz);
         }
@@ -253,9 +256,9 @@ public class VirtualFile {
         for (DexProgramClass inputType : synthetic.getSynthesizedFrom()) {
           VirtualFile file = files.get(inputType);
           file.addClass(synthetic);
+          file.commitTransaction();
         }
       }
-      files.values().forEach(file -> file.commitTransaction());
       return nameToFileMap;
     }
   }
