@@ -74,7 +74,7 @@ public class RegisterMoveSchedulerTest {
     }
 
     @Override
-    public void removeOrReplaceByNop() {
+    public void removeOrReplaceByDebugLocalRead() {
       remove();
     }
 

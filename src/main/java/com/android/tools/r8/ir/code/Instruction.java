@@ -849,11 +849,11 @@ public abstract class Instruction {
     return null;
   }
 
-  public boolean isNop() {
+  public boolean isDebugLocalRead() {
     return false;
   }
 
-  public Nop asNop() {
+  public DebugLocalRead asDebugLocalRead() {
     return null;
   }
 

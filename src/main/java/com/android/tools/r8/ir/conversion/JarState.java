@@ -176,7 +176,7 @@ public class JarState {
   // without conflating locals that are shared among different types. This issue arises because a
   // debugging range can be larger than the definite-assignment scope of a local (eg, a local
   // introduced in an unscoped switch case). To ensure that the SSA graph is valid we must introduce
-  // the local before inserting any DebugLocalReads (we do so in the method prelude, but that can
+  // the local before inserting any DebugLocalRead (we do so in the method prelude, but that can
   // potentially lead to phi functions merging locals of different move-types. Thus we allocate
   // registers from the three distinct spaces.
   private final int localsSize;

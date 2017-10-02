@@ -53,7 +53,7 @@ public class IRCodeInstructionsIterator implements InstructionIterator {
   }
 
   @Override
-  public void removeOrReplaceByNop() {
-    instructionIterator.removeOrReplaceByNop();
+  public void removeOrReplaceByDebugLocalRead() {
+    instructionIterator.removeOrReplaceByDebugLocalRead();
   }
 }

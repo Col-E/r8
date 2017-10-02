@@ -60,10 +60,10 @@ public interface InstructionListIterator extends ListIterator<Instruction>,
   }
 
   /**
-   * Safe removal function that will insert a Nop to take over the debug values if any are
-   * associated with the current instruction.
+   * Safe removal function that will insert a DebugLocalRead to take over the debug values if any
+   * are associated with the current instruction.
    */
-  void removeOrReplaceByNop();
+  void removeOrReplaceByDebugLocalRead();
 
   /**
    * Remove the current instruction (aka the {@link Instruction} returned by the previous call to
