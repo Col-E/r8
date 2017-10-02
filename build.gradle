@@ -184,44 +184,46 @@ def osString = OperatingSystem.current().isLinux() ? "linux" :
 
 def cloudDependencies = [
         "tests"      : [
-                "2017-07-27/art.tar.gz",
-                "2016-12-19/art.tar.gz"
+                "2017-07-27/art",
+                "2016-12-19/art"
         ],
         "third_party": [
-                "android_jar/lib-v14.tar.gz",
-                "android_jar/lib-v19.tar.gz",
-                "android_jar/lib-v21.tar.gz",
-                "android_jar/lib-v24.tar.gz",
-                "android_jar/lib-v25.tar.gz",
-                "android_jar/lib-v26.tar.gz",
-                "proguard/proguard5.2.1.tar.gz",
-                "gradle/gradle.tar.gz",
-                "jdwp-tests.tar.gz",
-                "jasmin.tar.gz",
-                "jctf.tar.gz",
-                "kotlin.tar.gz",
-                "android_cts_baseline.tar.gz",
-                "shadow.tar.gz",
+                "android_jar/lib-v14",
+                "android_jar/lib-v19",
+                "android_jar/lib-v21",
+                "android_jar/lib-v24",
+                "android_jar/lib-v25",
+                "android_jar/lib-v26",
+                "proguard/proguard5.2.1",
+                "gradle/gradle",
+                "jdwp-tests",
+                "jasmin",
+                "jctf",
+                "kotlin",
+                "android_cts_baseline",
+                "shadow",
         ],
         // All dex-vms have a fixed OS of Linux, as they are only supported on Linux, and will be run in a Docker
         // container on other platforms where supported.
         "tools"      : [
-                "linux/art.tar.gz",
-                "linux/art-5.1.1.tar.gz",
-                "linux/art-6.0.1.tar.gz",
-                "linux/art-7.0.0.tar.gz",
-                "linux/dalvik.tar.gz",
-                "${osString}/dx.tar.gz",
+                "linux/art",
+                "linux/art-5.1.1",
+                "linux/art-6.0.1",
+                "linux/art-7.0.0",
+                "linux/dalvik",
+                "${osString}/dx",
         ]
 ]
 
 cloudDependencies.each { entry ->
     entry.value.each { entryFile ->
         task "download_deps_${entry.key}/${entryFile}"(type: Exec) {
-            def gzFile = "${entry.key}/${entryFile}"
+            def outputDir = "${entry.key}/${entryFile}"
+            def gzFile = "${outputDir}.tar.gz"
             def sha1File = "${gzFile}.sha1"
             inputs.file sha1File
             outputs.file gzFile
+            outputs.dir outputDir
             List<String> dlFromStorageArgs = ["-n", "-b", "r8-deps", "-u", "-s", "${sha1File}"]
             if (OperatingSystem.current().isWindows()) {
                 executable "download_from_google_storage.bat"
@@ -236,33 +238,35 @@ cloudDependencies.each { entry ->
 
 def x20Dependencies = [
     "third_party": [
-        "gmail/gmail_android_170604.16.tar.gz",
-        "gmscore/v4.tar.gz",
-        "gmscore/v5.tar.gz",
-        "gmscore/v6.tar.gz",
-        "gmscore/v7.tar.gz",
-        "gmscore/v8.tar.gz",
-        "gmscore/gmscore_v9.tar.gz",
-        "gmscore/gmscore_v10.tar.gz",
-        "gmscore/latest.tar.gz",
-        "photos/2017-06-06.tar.gz",
-        "youtube/youtube.android_12.10.tar.gz",
-        "youtube/youtube.android_12.17.tar.gz",
-        "youtube/youtube.android_12.22.tar.gz",
-        "proguardsettings.tar.gz",
-        "proguard/proguard_internal_159423826.tar.gz",
-        "framework.tar.gz",
-        "goyt.tar.gz",
+        "gmail/gmail_android_170604.16",
+        "gmscore/v4",
+        "gmscore/v5",
+        "gmscore/v6",
+        "gmscore/v7",
+        "gmscore/v8",
+        "gmscore/gmscore_v9",
+        "gmscore/gmscore_v10",
+        "gmscore/latest",
+        "photos/2017-06-06",
+        "youtube/youtube.android_12.10",
+        "youtube/youtube.android_12.17",
+        "youtube/youtube.android_12.22",
+        "proguardsettings",
+        "proguard/proguard_internal_159423826",
+        "framework",
+        "goyt",
     ],
 ]
 
 x20Dependencies.each { entry ->
     entry.value.each { entryFile ->
         task "download_deps_${entry.key}/${entryFile}"(type: Exec) {
-            def gzFile = "${entry.key}/${entryFile}"
+            def outputDir = "${entry.key}/${entryFile}"
+            def gzFile = "${outputDir}.tar.gz"
             def sha1File = "${gzFile}.sha1"
             inputs.file sha1File
             outputs.file gzFile
+            outputs.dir outputDir
             executable "bash"
             args "-c", "tools/download_from_x20.py ${sha1File}"
         }
