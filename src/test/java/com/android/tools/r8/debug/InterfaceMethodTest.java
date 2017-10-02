@@ -4,9 +4,15 @@
 
 package com.android.tools.r8.debug;
 
+import static org.junit.Assert.assertEquals;
+
+import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.Command;
+import com.android.tools.r8.debug.DebugTestBase.StepFilter.IntelliJStepFilter;
 import java.util.ArrayList;
 import java.util.List;
+import org.junit.Assume;
 import org.junit.Test;
 
 public class InterfaceMethodTest extends DebugTestBase {
@@ -15,6 +21,10 @@ public class InterfaceMethodTest extends DebugTestBase {
 
   @Test
   public void testDefaultMethod() throws Throwable {
+    // TODO(b/67225390) Dalvik steps into class loader first.
+    Assume.assumeTrue("Dalvik suspends in class loader",
+        ToolHelper.getDexVm().isNewerThan(DexVm.ART_4_4_4));
+
     String debuggeeClass = "DebugInterfaceMethod";
     String parameterName = "msg";
     String localVariableName = "name";
@@ -30,6 +40,7 @@ public class InterfaceMethodTest extends DebugTestBase {
       commands.add(stepInto());
     }
     commands.add(stepInto());
+    commands.add(checkLine(SOURCE_FILE, 9));
     // TODO(shertz) we should see the local variable this even when desugaring.
     if (supportsDefaultMethod()) {
       commands.add(checkLocal("this"));

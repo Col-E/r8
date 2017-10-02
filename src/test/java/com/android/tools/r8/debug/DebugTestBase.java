@@ -52,6 +52,7 @@ import org.apache.harmony.jpda.tests.framework.jdwp.JDWPConstants.StepSize;
 import org.apache.harmony.jpda.tests.framework.jdwp.JDWPConstants.SuspendPolicy;
 import org.apache.harmony.jpda.tests.framework.jdwp.JDWPConstants.TypeTag;
 import org.apache.harmony.jpda.tests.framework.jdwp.Location;
+import org.apache.harmony.jpda.tests.framework.jdwp.Method;
 import org.apache.harmony.jpda.tests.framework.jdwp.ParsedEvent;
 import org.apache.harmony.jpda.tests.framework.jdwp.ParsedEvent.EventThread;
 import org.apache.harmony.jpda.tests.framework.jdwp.ReplyPacket;
@@ -91,9 +92,7 @@ public abstract class DebugTestBase {
   // Set to true to enable verbose logs
   private static final boolean DEBUG_TESTS = false;
 
-  // Dalvik does not support command ReferenceType.Methods which is used to set breakpoint.
-  // TODO(shertz) use command ReferenceType.MethodsWithGeneric instead
-  private static final List<DexVm> UNSUPPORTED_ART_VERSIONS = ImmutableList.of(DexVm.ART_4_4_4);
+  private static final List<DexVm> UNSUPPORTED_ART_VERSIONS = ImmutableList.of();
 
   private static final Path JDWP_JAR = ToolHelper
       .getJdwpTestsJarPath(ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm()));
@@ -579,16 +578,19 @@ public abstract class DebugTestBase {
         if (DEBUG_TESTS && debuggeeState.getLocation() != null) {
           // Dump location
           String classSig = getMirror().getClassSignature(debuggeeState.getLocation().classID);
-          String methodName = getMirror()
-              .getMethodName(debuggeeState.getLocation().classID,
+          String methodName = VmMirrorUtils
+              .getMethodName(getMirror(), debuggeeState.getLocation().classID,
                   debuggeeState.getLocation().methodID);
-          String methodSig = getMirror()
-              .getMethodSignature(debuggeeState.getLocation().classID,
+          String methodSig = VmMirrorUtils
+              .getMethodSignature(getMirror(), debuggeeState.getLocation().classID,
                   debuggeeState.getLocation().methodID);
-          System.out.println(String
-              .format("Suspended in %s#%s%s@0x%x (line=%d)", classSig, methodName, methodSig,
-                  Long.valueOf(debuggeeState.getLocation().index),
-                  Integer.valueOf(debuggeeState.getLineNumber())));
+          String msg = String
+              .format("Suspended in %s#%s%s@0x%x", classSig, methodName, methodSig,
+                  Long.valueOf(debuggeeState.getLocation().index));
+          if (debuggeeState.getLocation().index >= 0) {
+            msg += " (line " + debuggeeState.getLineNumber() + ")";
+          }
+          System.out.println(msg);
         }
 
         // Handle event.
@@ -611,7 +613,7 @@ public abstract class DebugTestBase {
               artCommandBuilder.appendArtOption("-Xcompiler-option");
               artCommandBuilder.appendArtOption("--debuggable");
             }
-            if (DEBUG_TESTS) {
+            if (DEBUG_TESTS && ToolHelper.getDexVm().isNewerThan(DexVm.ART_4_4_4)) {
               artCommandBuilder.appendArtOption("-verbose:jdwp");
             }
             setProperty("jpda.settings.debuggeeJavaPath", artCommandBuilder.build());
@@ -1450,7 +1452,7 @@ public abstract class DebugTestBase {
 
       @Override
       public boolean skipLocation(VmMirror mirror, Location location) {
-        // TODO(shertz) we also need to skip class loaders to act like IntelliJ.
+        // TODO(b/67225390) we also need to skip class loaders to act like IntelliJ.
         // Skip synthetic methods.
         if (isLambdaMethod(mirror, location)) {
           // Lambda methods are synthetic but we do want to stop there.
@@ -1478,15 +1480,10 @@ public abstract class DebugTestBase {
       private static boolean isSyntheticMethod(VmMirror mirror, Location location) {
         // We must gather the modifiers of the method. This is only possible using
         // ReferenceType.Methods command which gather information about all methods in a class.
-        ReplyPacket reply = mirror.getMethods(location.classID);
-        int methodsCount = reply.getNextValueAsInt();
-        for (int i = 0; i < methodsCount; ++i) {
-          long methodId = reply.getNextValueAsMethodID();
-          reply.getNextValueAsString();  // skip method name
-          reply.getNextValueAsString();  // skip method signature
-          int modifiers = reply.getNextValueAsInt();
-          if (methodId == location.methodID &&
-              ((modifiers & SYNTHETIC_FLAG) != 0)) {
+        Method[] methods = mirror.getMethods(location.classID);
+        for (Method method : methods) {
+          if (method.getMethodID() == location.methodID &&
+              ((method.getModBits() & SYNTHETIC_FLAG) != 0)) {
             return true;
           }
         }
