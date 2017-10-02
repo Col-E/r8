@@ -1369,7 +1369,8 @@ public class CodeRewriter {
       InstructionListIterator it = block.listIterator();
       while (it.hasNext()) {
         Instruction instruction = it.next();
-        if (!isPrimitiveOrStringNewArrayWithPositiveSize(instruction)) {
+        if (instruction.getLocalInfo() != null
+            || !isPrimitiveOrStringNewArrayWithPositiveSize(instruction)) {
           continue;
         }
         NewArrayEmpty newArray = instruction.asNewArrayEmpty();
@@ -1671,6 +1672,10 @@ public class CodeRewriter {
             || instruction.isUnop()
             || instruction.isInstanceOf()
             || instruction.isCheckCast()) {
+          if (instruction.getLocalInfo() != null || instruction.hasInValueWithLocalInfo()) {
+            // If the instruction has input or output values then it is not safe to share it.
+            continue;
+          }
           List<Value> candidates = instructionToValue.get(equivalence.wrap(instruction));
           boolean eliminated = false;
           if (candidates.size() > 0) {
@@ -1684,7 +1689,7 @@ public class CodeRewriter {
               }
             }
           }
-          if (!eliminated && !instruction.hasInValueWithLocalInfo()) {
+          if (!eliminated) {
             instructionToValue.put(equivalence.wrap(instruction), instruction.outValue());
           }
         }
