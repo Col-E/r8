@@ -151,8 +151,6 @@ public class ProguardConfigurationParser {
         } else {
           configurationBuilder.setRenameSourceFileAttribute("");
         }
-        // TODO(b/36799675): warn until it is fully implemented.
-        warnIgnoringOptions("renamesourcefileattribute");
       } else if (acceptString("keepattributes")) {
         parseKeepAttributes();
       } else if (acceptString("keeppackagenames")) {

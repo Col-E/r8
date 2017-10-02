@@ -253,7 +253,7 @@ public class InternalOptions {
 
     public static KeepAttributeOptions filterOnlySignatures() {
       KeepAttributeOptions result = new KeepAttributeOptions();
-      result.applyPatterns(ImmutableList.of("*"));
+      result.applyPatterns(KEEP_ALL);
       result.signature = false;
       return result;
     }
