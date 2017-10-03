@@ -50,6 +50,7 @@ public enum DexVersion {
     switch (androidApiLevel) {
       case P:
         return DexVersion.V39;
+      case LATEST:
       case O:
         return DexVersion.V38;
       case N_MR1:
