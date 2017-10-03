@@ -59,7 +59,7 @@ public abstract class Instruction {
 
   public boolean hasInValueWithLocalInfo() {
     for (Value inValue : inValues()) {
-      if (inValue.getLocalInfo() != null) {
+      if (inValue.hasLocalInfo()) {
         return true;
       }
     }
@@ -79,7 +79,7 @@ public abstract class Instruction {
   }
 
   public void addDebugValue(Value value) {
-    assert value.getLocalInfo() != null;
+    assert value.hasLocalInfo();
     if (debugValues == null) {
       debugValues = new HashSet<>();
     }
@@ -116,7 +116,7 @@ public abstract class Instruction {
 
   public void replaceDebugValue(Value oldValue, Value newValue) {
     if (debugValues.remove(oldValue)) {
-      if (newValue.getLocalInfo() != null) {
+      if (newValue.hasLocalInfo()) {
         // TODO(zerny): Insert a write if replacing a phi with different debug-local info.
         addDebugValue(newValue);
       }
@@ -141,7 +141,7 @@ public abstract class Instruction {
   }
 
   public void removeDebugValue(Value value) {
-    assert value.getLocalInfo() != null;
+    assert value.hasLocalInfo();
     if (debugValues != null) {
       assert debugValues.contains(value);
       if (debugValues.remove(value)) {

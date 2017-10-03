@@ -114,6 +114,10 @@ public class Value {
     return debugData == null ? null : debugData.local;
   }
 
+  public boolean hasLocalInfo() {
+    return getLocalInfo() != null;
+  }
+
   public void setLocalInfo(DebugLocalInfo local) {
     assert local != null;
     assert debugData == null;
@@ -316,12 +320,12 @@ public class Value {
   }
 
   public void addDebugUser(Instruction user) {
-    assert getLocalInfo() != null;
+    assert hasLocalInfo();
     debugData.users.putIfAbsent(user, DebugUse.LIVE);
   }
 
   public void addDebugPhiUser(Phi user) {
-    assert getLocalInfo() != null;
+    assert hasLocalInfo();
     debugData.phiUsers.add(user);
   }
 
@@ -453,8 +457,7 @@ public class Value {
     builder.append("v");
     builder.append(number);
     boolean isConstant = definition != null && definition.isConstNumber();
-    boolean hasLocalInfo = getLocalInfo() != null;
-    if (isConstant || hasLocalInfo) {
+    if (isConstant || hasLocalInfo()) {
       builder.append("(");
       if (isConstant) {
         ConstNumber constNumber = definition.asConstNumber();
@@ -464,10 +467,10 @@ public class Value {
           builder.append(constNumber.getRawValue());
         }
       }
-      if (isConstant && hasLocalInfo) {
+      if (isConstant && hasLocalInfo()) {
         builder.append(", ");
       }
-      if (hasLocalInfo) {
+      if (hasLocalInfo()) {
         builder.append(getLocalInfo());
       }
       builder.append(")");
@@ -496,7 +499,7 @@ public class Value {
   }
 
   public boolean isConstant() {
-    return definition.isOutConstant() && getLocalInfo() == null;
+    return definition.isOutConstant() && !hasLocalInfo();
   }
 
   public boolean isPhi() {

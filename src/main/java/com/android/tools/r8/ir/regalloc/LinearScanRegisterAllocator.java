@@ -83,7 +83,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     final int end;
 
     LocalRange(Value value, int register, int start, int end) {
-      assert value.getLocalInfo() != null;
+      assert value.hasLocalInfo();
       this.value = value;
       this.local = value.getLocalInfo();
       this.register = register;
@@ -228,7 +228,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     List<LocalRange> ranges = new ArrayList<>();
     for (LiveIntervals interval : liveIntervals) {
       Value value = interval.getValue();
-      if (value.getLocalInfo() == null) {
+      if (!value.hasLocalInfo()) {
         continue;
       }
       List<Integer> starts = ListUtils.map(value.getDebugLocalStarts(), Instruction::getNumber);

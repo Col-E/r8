@@ -546,7 +546,7 @@ public class IRBuilder {
     }
     Value value = writeRegister(register, MoveType.fromConstType(type), ThrowingInfo.NO_THROW,
         null);
-    assert value.getLocalInfo() == null;
+    assert !value.hasLocalInfo();
     addInstruction(new DebugLocalUninitialized(type, value));
   }
 
@@ -1183,7 +1183,7 @@ public class IRBuilder {
 
   public void addMoveException(int dest) {
     Value out = writeRegister(dest, MoveType.OBJECT, ThrowingInfo.NO_THROW);
-    assert out.getLocalInfo() == null;
+    assert !out.hasLocalInfo();
     MoveException instruction = new MoveException(out);
     assert !instruction.instructionTypeCanThrow();
     if (!currentBlock.getInstructions().isEmpty()
@@ -1549,7 +1549,7 @@ public class IRBuilder {
     // If this assert triggers, the probable cause is that we end up reading an SSA value
     // after it should have been ended on a fallthrough from a conditional jump or a trivial-phi
     // removal resurrected the local.
-    assert value.getLocalInfo() == null
+    assert !value.hasLocalInfo()
         || value.getDebugLocalEnds() != null
         || source.verifyLocalInScope(value.getLocalInfo());
     return value;

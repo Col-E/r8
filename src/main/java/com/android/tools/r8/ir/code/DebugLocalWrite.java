@@ -18,7 +18,7 @@ public class DebugLocalWrite extends Move {
 
   public DebugLocalWrite(Value dest, Value src) {
     super(dest, src);
-    assert dest.getLocalInfo() != null;
+    assert dest.hasLocalInfo();
     assert dest.getLocalInfo() != src.getLocalInfo() || src.isPhi();
   }
 

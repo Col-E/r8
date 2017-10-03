@@ -803,7 +803,7 @@ public class CodeRewriter {
       Instruction current = iterator.next();
       if (current.isInvokeMethod()) {
         InvokeMethod invoke = current.asInvokeMethod();
-        if (invoke.outValue() != null && invoke.outValue().getLocalInfo() == null) {
+        if (invoke.outValue() != null && !invoke.outValue().hasLocalInfo()) {
           boolean isLibraryMethodReturningReceiver =
               libraryMethodsReturningReceiver.contains(invoke.getInvokedMethod());
           if (isLibraryMethodReturningReceiver) {
@@ -1165,7 +1165,7 @@ public class CodeRewriter {
       Instruction instruction = it.next();
       if (instruction.isConstNumber() &&
           instruction.outValue().numberOfAllUsers() != 0 &&
-          instruction.outValue().getLocalInfo() == null) {
+          !instruction.outValue().hasLocalInfo()) {
         // Collect the blocks for all users of the constant.
         List<BasicBlock> userBlocks = new LinkedList<>();
         for (Instruction user : instruction.outValue().uniqueUsers()) {
@@ -1464,7 +1464,7 @@ public class CodeRewriter {
   public void simplifyDebugLocals(IRCode code) {
     for (BasicBlock block : code.blocks) {
       for (Phi phi : block.getPhis()) {
-        if (phi.getLocalInfo() == null && phi.numberOfUsers() == 1 && phi.numberOfAllUsers() == 1) {
+        if (!phi.hasLocalInfo() && phi.numberOfUsers() == 1 && phi.numberOfAllUsers() == 1) {
           Instruction instruction = phi.uniqueUsers().iterator().next();
           if (instruction.isDebugLocalWrite()) {
             removeDebugWriteOfPhi(phi, instruction.asDebugLocalWrite());
@@ -1480,7 +1480,7 @@ public class CodeRewriter {
           Value inValue = instruction.inValues().get(0);
           if (inValue.definition != null &&
               !hasLineChangeBetween(inValue.definition, instruction) &&
-              inValue.getLocalInfo() == null &&
+              !inValue.hasLocalInfo() &&
               inValue.numberOfAllUsers() == 1) {
             inValue.setLocalInfo(instruction.outValue().getLocalInfo());
             instruction.moveDebugValues(inValue.definition);
@@ -1551,7 +1551,7 @@ public class CodeRewriter {
         }
         // Copy over each debug value replacing phi values of this block by their operands.
         for (Value value : origInstruction.getDebugValues()) {
-          assert value.getLocalInfo() != null;
+          assert value.hasLocalInfo();
           if (value.isPhi() && block.getPhis().contains(value)) {
             Phi phi = value.asPhi();
             Value operand = phi.getOperand(predIndex);

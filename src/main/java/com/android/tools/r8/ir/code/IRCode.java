@@ -246,7 +246,7 @@ public class IRCode {
       assert phiUser.getOperands().contains(value);
       assert phiUser.getBlock().getPhis().contains(phiUser);
     }
-    if (value.getLocalInfo() != null) {
+    if (value.hasLocalInfo()) {
       for (Instruction debugUser : value.debugUsers()) {
         assert debugUser.getDebugValues().contains(value);
       }

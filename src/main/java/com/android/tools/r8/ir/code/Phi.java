@@ -100,7 +100,7 @@ public class Phi extends Value {
   }
 
   public void addDebugValue(Value value) {
-    assert value.getLocalInfo() != null;
+    assert value.hasLocalInfo();
     if (debugValues == null) {
       debugValues = new HashSet<>();
     }
@@ -165,7 +165,7 @@ public class Phi extends Value {
   }
 
   void replaceDebugValue(Value current, Value newValue) {
-    assert current.getLocalInfo() != null;
+    assert current.hasLocalInfo();
     assert current.getLocalInfo() == newValue.getLocalInfo();
     if (debugValues.remove(current)) {
       addDebugValue(newValue);
@@ -240,7 +240,7 @@ public class Phi extends Value {
     StringBuilder builder = new StringBuilder();
     builder.append("v");
     builder.append(number);
-    if (getLocalInfo() != null) {
+    if (hasLocalInfo()) {
       builder.append("(").append(getLocalInfo()).append(")");
     }
     builder.append(" <- phi");
