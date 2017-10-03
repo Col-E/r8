@@ -12,6 +12,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.FieldAccessInstructionSubject;
 import com.android.tools.r8.utils.DexInspector.InstructionSubject;
@@ -294,9 +295,9 @@ public class MemberRebindingTest {
     public int getMinApiLevel() {
       switch (version) {
         case PRE_N:
-          return Constants.DEFAULT_ANDROID_API;
+          return AndroidApiLevel.getDefault().getLevel();
         case N:
-          return Constants.ANDROID_N_API;
+          return AndroidApiLevel.N.getLevel();
         default:
           Assert.fail();
           return -1;

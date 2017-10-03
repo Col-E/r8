@@ -8,6 +8,7 @@ import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.OffOrAuto;
 import java.nio.file.Path;
@@ -22,7 +23,7 @@ public class Regress63935662 extends TestBase {
     R8Command command =
         ToolHelper.prepareR8CommandBuilder(app)
             .addProguardConfigurationFiles(proguardConfig)
-            .setMinApiLevel(Constants.ANDROID_L_API)
+            .setMinApiLevel(AndroidApiLevel.L.getLevel())
             .build();
     String resultFromJava = runOnJava(mainClass);
     app = ToolHelper.runR8(command, options -> options.interfaceMethodDesugaring = OffOrAuto.Auto);

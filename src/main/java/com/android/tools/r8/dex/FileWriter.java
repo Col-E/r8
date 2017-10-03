@@ -734,10 +734,10 @@ public class FileWriter {
   }
 
   private static byte[] convertApiLevelToDexVersion(int apiLevel) {
-    if (apiLevel >= Constants.ANDROID_O_API) {
+    if (apiLevel >= AndroidApiLevel.O.getLevel()) {
       return Constants.ANDROID_O_DEX_VERSION_BYTES;
     }
-    if (apiLevel >= Constants.ANDROID_N_API) {
+    if (apiLevel >= AndroidApiLevel.N.getLevel()) {
       return Constants.ANDROID_N_DEX_VERSION_BYTES;
     }
     return Constants.ANDROID_PRE_N_DEX_VERSION_BYTES;

@@ -13,6 +13,7 @@ import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OffOrAuto;
 import com.google.common.collect.ImmutableList;
@@ -123,7 +124,7 @@ public abstract class RunExamplesAndroidNTest<B> {
   @Test
   public void staticInterfaceMethods() throws Throwable {
     test("staticinterfacemethods", "interfacemethods", "StaticInterfaceMethods")
-        .withMinApiLevel(Constants.ANDROID_K_API)
+        .withMinApiLevel(AndroidApiLevel.K.getLevel())
         .withInterfaceMethodDesugaring(OffOrAuto.Auto)
         .run();
   }
@@ -140,7 +141,7 @@ public abstract class RunExamplesAndroidNTest<B> {
   @Test
   public void defaultMethods() throws Throwable {
     test("defaultmethods", "interfacemethods", "DefaultMethods")
-        .withMinApiLevel(Constants.ANDROID_K_API)
+        .withMinApiLevel(AndroidApiLevel.K.getLevel())
         .withInterfaceMethodDesugaring(OffOrAuto.Auto)
         .run();
   }

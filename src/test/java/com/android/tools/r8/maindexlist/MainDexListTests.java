@@ -47,6 +47,7 @@ import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.DexInspector;
@@ -105,17 +106,19 @@ public class MainDexListTests extends TestBase {
     // Generates an application with many classes, every even in one package and every odd in
     // another. Keep the number of methods low enough for single dex application.
     AndroidApp generated = generateApplication(
-        MANY_CLASSES, Constants.DEFAULT_ANDROID_API, MANY_CLASSES_SINGLE_DEX_METHODS_PER_CLASS);
+        MANY_CLASSES, AndroidApiLevel.getDefault().getLevel(),
+        MANY_CLASSES_SINGLE_DEX_METHODS_PER_CLASS);
     generated.write(getManyClassesSingleDexAppPath(), OutputMode.Indexed);
 
     // Generates an application with many classes, every even in one package and every odd in
     // another. Add enough methods so the application cannot fit into one dex file.
     generated = generateApplication(
-        MANY_CLASSES, Constants.ANDROID_L_API, MANY_CLASSES_MULTI_DEX_METHODS_PER_CLASS);
+        MANY_CLASSES, AndroidApiLevel.L.getLevel(), MANY_CLASSES_MULTI_DEX_METHODS_PER_CLASS);
     generated.write(getManyClassesMultiDexAppPath(), OutputMode.Indexed);
 
     // Generates an application with two classes, each with the maximum possible number of methods.
-    generated = generateApplication(TWO_LARGE_CLASSES, Constants.ANDROID_N_API, MAX_METHOD_COUNT);
+    generated = generateApplication(TWO_LARGE_CLASSES, AndroidApiLevel.N.getLevel(),
+        MAX_METHOD_COUNT);
     generated.write(getTwoLargeClassesAppPath(), OutputMode.Indexed);
   }
 
@@ -403,7 +406,7 @@ public class MainDexListTests extends TestBase {
     // another. Add enough methods so the application cannot fit into one dex file.
     // Notice that this one allows multidex while using lower API.
     AndroidApp generated = generateApplication(
-        MANY_CLASSES, Constants.ANDROID_K_API, true, MANY_CLASSES_MULTI_DEX_METHODS_PER_CLASS);
+        MANY_CLASSES, AndroidApiLevel.K.getLevel(), true, MANY_CLASSES_MULTI_DEX_METHODS_PER_CLASS);
     generated.write(getManyClassesForceMultiDexAppPath(), OutputMode.Indexed);
     // Make sure the generated app indeed has multiple dex files.
     assertTrue(generated.getDexProgramResources().size() > 1);
@@ -416,7 +419,8 @@ public class MainDexListTests extends TestBase {
     // Notice that this one fails due to the min API.
     try {
       generateApplication(
-          MANY_CLASSES, Constants.ANDROID_K_API, false, MANY_CLASSES_MULTI_DEX_METHODS_PER_CLASS);
+          MANY_CLASSES, AndroidApiLevel.K.getLevel(), false,
+          MANY_CLASSES_MULTI_DEX_METHODS_PER_CLASS);
       fail("Expect to fail, for there are many classes while multidex is not enabled.");
     } catch (DexOverflowException e) {
       // Make sure {@link MonoDexDistributor} was used.

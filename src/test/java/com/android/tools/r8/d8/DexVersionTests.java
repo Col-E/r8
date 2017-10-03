@@ -10,6 +10,7 @@ import com.android.tools.r8.D8Output;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -39,15 +40,15 @@ public class DexVersionTests {
     D8Command.Builder arrayAccessBuilder = D8Command.builder().addProgramFiles(ARRAYACCESS_JAR);
     D8Output output = D8.run(arrayAccessBuilder.build());
     output.write(defaultApiFolder1.getRoot().toPath());
-    output = D8.run(arrayAccessBuilder.setMinApiLevel(Constants.ANDROID_O_API).build());
+    output = D8.run(arrayAccessBuilder.setMinApiLevel(AndroidApiLevel.O.getLevel()).build());
     output.write(androidOApiFolder1.getRoot().toPath());
-    output = D8.run(arrayAccessBuilder.setMinApiLevel(Constants.ANDROID_N_API).build());
+    output = D8.run(arrayAccessBuilder.setMinApiLevel(AndroidApiLevel.N.getLevel()).build());
     output.write(androidNApiFolder1.getRoot().toPath());
     output = D8.run(arithmeticBuilder.build());
     output.write(defaultApiFolder2.getRoot().toPath());
-    output = D8.run(arithmeticBuilder.setMinApiLevel(Constants.ANDROID_O_API).build());
+    output = D8.run(arithmeticBuilder.setMinApiLevel(AndroidApiLevel.O.getLevel()).build());
     output.write(androidOApiFolder2.getRoot().toPath());
-    output = D8.run(arithmeticBuilder.setMinApiLevel(Constants.ANDROID_N_API).build());
+    output = D8.run(arithmeticBuilder.setMinApiLevel(AndroidApiLevel.N.getLevel()).build());
     output.write(androidNApiFolder2.getRoot().toPath());
   }
 
@@ -88,37 +89,37 @@ public class DexVersionTests {
     // set to Android O.
     D8.run(
         D8Command.builder()
-            .setMinApiLevel(Constants.ANDROID_O_API)
+            .setMinApiLevel(AndroidApiLevel.O.getLevel())
             .addProgramFiles(default1())
             .addProgramFiles(default2())
             .build());
     D8.run(
         D8Command.builder()
-            .setMinApiLevel(Constants.ANDROID_O_API)
+            .setMinApiLevel(AndroidApiLevel.O.getLevel())
             .addProgramFiles(default1())
             .addProgramFiles(androidO2())
             .build());
     D8.run(
         D8Command.builder()
-            .setMinApiLevel(Constants.ANDROID_O_API)
+            .setMinApiLevel(AndroidApiLevel.O.getLevel())
             .addProgramFiles(default1())
             .addProgramFiles(androidN2())
             .build());
     D8.run(
         D8Command.builder()
-            .setMinApiLevel(Constants.ANDROID_O_API)
+            .setMinApiLevel(AndroidApiLevel.O.getLevel())
             .addProgramFiles(androidO1())
             .addProgramFiles(androidN2())
             .build());
     D8.run(
         D8Command.builder()
-            .setMinApiLevel(Constants.ANDROID_O_API)
+            .setMinApiLevel(AndroidApiLevel.O.getLevel())
             .addProgramFiles(androidO1())
             .addProgramFiles(androidO2())
             .build());
     D8.run(
         D8Command.builder()
-            .setMinApiLevel(Constants.ANDROID_O_API)
+            .setMinApiLevel(AndroidApiLevel.O.getLevel())
             .addProgramFiles(androidN1())
             .addProgramFiles(androidN2())
             .build());
@@ -126,19 +127,19 @@ public class DexVersionTests {
     // Android N.
     D8.run(
         D8Command.builder()
-            .setMinApiLevel(Constants.ANDROID_N_API)
+            .setMinApiLevel(AndroidApiLevel.N.getLevel())
             .addProgramFiles(default1())
             .addProgramFiles(default2())
             .build());
     D8.run(
         D8Command.builder()
-            .setMinApiLevel(Constants.ANDROID_N_API)
+            .setMinApiLevel(AndroidApiLevel.N.getLevel())
             .addProgramFiles(default1())
             .addProgramFiles(androidN2())
             .build());
     D8.run(
         D8Command.builder()
-            .setMinApiLevel(Constants.ANDROID_N_API)
+            .setMinApiLevel(AndroidApiLevel.N.getLevel())
             .addProgramFiles(androidN1())
             .addProgramFiles(androidN2())
             .build());
@@ -146,7 +147,7 @@ public class DexVersionTests {
     // Android K.
     D8.run(
         D8Command.builder()
-            .setMinApiLevel(Constants.ANDROID_K_API)
+            .setMinApiLevel(AndroidApiLevel.K.getLevel())
             .addProgramFiles(default1())
             .addProgramFiles(default2())
             .build());
@@ -156,7 +157,7 @@ public class DexVersionTests {
   public void mergeErrorVersionNWithVersionOInput() throws CompilationException, IOException {
     D8.run(
         D8Command.builder()
-            .setMinApiLevel(Constants.ANDROID_N_API)
+            .setMinApiLevel(AndroidApiLevel.N.getLevel())
             .addProgramFiles(default1())
             .addProgramFiles(androidO2())
             .build());
@@ -166,7 +167,7 @@ public class DexVersionTests {
   public void mergeErrorVersionKWithVersionOInput() throws CompilationException, IOException {
     D8.run(
         D8Command.builder()
-            .setMinApiLevel(Constants.ANDROID_K_API)
+            .setMinApiLevel(AndroidApiLevel.K.getLevel())
             .addProgramFiles(default1())
             .addProgramFiles(androidO2())
             .build());
@@ -176,7 +177,7 @@ public class DexVersionTests {
   public void mergeErrorVersionKWithVersionNInput() throws CompilationException, IOException {
     D8.run(
         D8Command.builder()
-            .setMinApiLevel(Constants.ANDROID_K_API)
+            .setMinApiLevel(AndroidApiLevel.K.getLevel())
             .addProgramFiles(default1())
             .addProgramFiles(androidN2())
             .build());

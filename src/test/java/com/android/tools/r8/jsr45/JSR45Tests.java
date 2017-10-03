@@ -13,6 +13,7 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.DexAnnotationElement;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.AnnotationSubject;
@@ -52,7 +53,7 @@ public class JSR45Tests {
   void compileWithD8(Path intputPath, Path outputPath) throws IOException, CompilationException {
     D8.run(
         D8Command.builder()
-            .setMinApiLevel(Constants.ANDROID_O_API)
+            .setMinApiLevel(AndroidApiLevel.O.getLevel())
             .addProgramFiles(intputPath)
             .setOutputPath(outputPath)
             .build());

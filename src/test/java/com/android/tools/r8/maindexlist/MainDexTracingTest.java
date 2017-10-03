@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.maindexlist;
 
-import static com.android.tools.r8.dex.Constants.ANDROID_I_API;
 import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.ZIP_EXTENSION;
 
@@ -16,6 +15,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import java.nio.charset.StandardCharsets;
@@ -48,7 +48,7 @@ public class MainDexTracingTest {
         EXAMPLE_BUILD_DIR,
         Paths.get(EXAMPLE_SRC_DIR, "multidex", "main-dex-rules.txt"),
         Paths.get(EXAMPLE_SRC_DIR, "multidex001", "ref-list-1.txt"),
-        ANDROID_I_API);
+        AndroidApiLevel.I.getLevel());
   }
 
   @Test
@@ -59,7 +59,7 @@ public class MainDexTracingTest {
         EXAMPLE_BUILD_DIR,
         Paths.get(EXAMPLE_SRC_DIR, "multidex001", "main-dex-rules-2.txt"),
         Paths.get(EXAMPLE_SRC_DIR, "multidex001", "ref-list-2.txt"),
-        ANDROID_I_API);
+        AndroidApiLevel.I.getLevel());
   }
 
   @Test
@@ -70,7 +70,7 @@ public class MainDexTracingTest {
         EXAMPLE_BUILD_DIR,
         Paths.get(EXAMPLE_SRC_DIR, "multidex", "main-dex-rules.txt"),
         Paths.get(EXAMPLE_SRC_DIR, "multidex002", "ref-list-1.txt"),
-        ANDROID_I_API);
+        AndroidApiLevel.I.getLevel());
   }
 
   @Test
@@ -81,7 +81,7 @@ public class MainDexTracingTest {
         EXAMPLE_BUILD_DIR,
         Paths.get(EXAMPLE_SRC_DIR, "multidex", "main-dex-rules.txt"),
         Paths.get(EXAMPLE_SRC_DIR, "multidex003", "ref-list-1.txt"),
-        ANDROID_I_API);
+        AndroidApiLevel.I.getLevel());
   }
 
   @Test
@@ -92,7 +92,7 @@ public class MainDexTracingTest {
         EXAMPLE_O_BUILD_DIR,
         Paths.get(EXAMPLE_SRC_DIR, "multidex", "main-dex-rules.txt"),
         Paths.get(EXAMPLE_O_SRC_DIR, "multidex004", "ref-list-1.txt"),
-        ANDROID_I_API);
+        AndroidApiLevel.I.getLevel());
   }
 
   private void doTest(

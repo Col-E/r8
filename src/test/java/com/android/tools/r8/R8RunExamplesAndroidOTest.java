@@ -6,6 +6,7 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.nio.file.Path;
@@ -39,7 +40,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
   @Test
   public void invokeCustomWithShrinking() throws Throwable {
     test("invokecustom-with-shrinking", "invokecustom", "InvokeCustom")
-        .withMinApiLevel(Constants.ANDROID_O_API)
+        .withMinApiLevel(AndroidApiLevel.O.getLevel())
         .withBuilderTransformation(builder ->
             builder.addProguardConfigurationFiles(
                 Paths.get(ToolHelper.EXAMPLES_ANDROID_O_DIR, "invokecustom/keep-rules.txt")))

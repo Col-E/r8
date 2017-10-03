@@ -4,14 +4,13 @@
 
 package com.android.tools.r8;
 
-import static com.android.tools.r8.dex.Constants.ANDROID_K_API;
-import static com.android.tools.r8.dex.Constants.ANDROID_O_API;
 import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.ZIP_EXTENSION;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.FoundClassSubject;
@@ -256,14 +255,14 @@ public abstract class RunExamplesAndroidOTest
   @Test
   public void invokeCustom() throws Throwable {
     test("invokecustom", "invokecustom", "InvokeCustom")
-        .withMinApiLevel(ANDROID_O_API)
+        .withMinApiLevel(AndroidApiLevel.O.getLevel())
         .run();
   }
 
   @Test
   public void invokeCustom2() throws Throwable {
     test("invokecustom2", "invokecustom2", "InvokeCustom")
-        .withMinApiLevel(ANDROID_O_API)
+        .withMinApiLevel(AndroidApiLevel.O.getLevel())
         .run();
   }
 
@@ -277,7 +276,7 @@ public abstract class RunExamplesAndroidOTest
   @Test
   public void invokePolymorphic() throws Throwable {
     test("invokepolymorphic", "invokepolymorphic", "InvokePolymorphic")
-        .withMinApiLevel(ANDROID_O_API)
+        .withMinApiLevel(AndroidApiLevel.O.getLevel())
         .run();
   }
 
@@ -291,14 +290,14 @@ public abstract class RunExamplesAndroidOTest
   @Test
   public void lambdaDesugaring() throws Throwable {
     test("lambdadesugaring", "lambdadesugaring", "LambdaDesugaring")
-        .withMinApiLevel(ANDROID_K_API)
+        .withMinApiLevel(AndroidApiLevel.K.getLevel())
         .run();
   }
 
   @Test
   public void lambdaDesugaringNPlus() throws Throwable {
     test("lambdadesugaringnplus", "lambdadesugaringnplus", "LambdasWithStaticAndDefaultMethods")
-        .withMinApiLevel(ANDROID_K_API)
+        .withMinApiLevel(AndroidApiLevel.K.getLevel())
         .withInterfaceMethodDesugaring(OffOrAuto.Auto)
         .run();
   }
@@ -306,8 +305,8 @@ public abstract class RunExamplesAndroidOTest
   @Test
   public void desugarDefaultMethodInAndroidJar25() throws Throwable {
     test("DefaultMethodInAndroidJar25", "desugaringwithandroidjar25", "DefaultMethodInAndroidJar25")
-        .withMinApiLevel(ANDROID_K_API)
-        .withAndroidJar(ANDROID_O_API)
+        .withMinApiLevel(AndroidApiLevel.K.getLevel())
+        .withAndroidJar(AndroidApiLevel.O.getLevel())
         .withInterfaceMethodDesugaring(OffOrAuto.Auto)
         .run();
   }
@@ -315,8 +314,8 @@ public abstract class RunExamplesAndroidOTest
   @Test
   public void desugarStaticMethodInAndroidJar25() throws Throwable {
     test("StaticMethodInAndroidJar25", "desugaringwithandroidjar25", "StaticMethodInAndroidJar25")
-        .withMinApiLevel(ANDROID_K_API)
-        .withAndroidJar(ANDROID_O_API)
+        .withMinApiLevel(AndroidApiLevel.K.getLevel())
+        .withAndroidJar(AndroidApiLevel.O.getLevel())
         .withInterfaceMethodDesugaring(OffOrAuto.Auto)
         .run();
   }
@@ -324,14 +323,14 @@ public abstract class RunExamplesAndroidOTest
   @Test
   public void lambdaDesugaringValueAdjustments() throws Throwable {
     test("lambdadesugaring-value-adjustments", "lambdadesugaring", "ValueAdjustments")
-        .withMinApiLevel(ANDROID_K_API)
+        .withMinApiLevel(AndroidApiLevel.K.getLevel())
         .run();
   }
 
   @Test
   public void paramNames() throws Throwable {
     test("paramnames", "paramnames", "ParameterNames")
-        .withMinApiLevel(ANDROID_O_API)
+        .withMinApiLevel(AndroidApiLevel.O.getLevel())
         .withOptionConsumer((internalOptions) -> internalOptions.allowParameterName = true)
         .run();
   }

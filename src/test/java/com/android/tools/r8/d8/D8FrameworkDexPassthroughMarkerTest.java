@@ -13,6 +13,7 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
@@ -56,7 +57,7 @@ public class D8FrameworkDexPassthroughMarkerTest {
   @Test
   public void compile() throws CompilationException, IOException, ExecutionException {
     D8Command command = D8Command.builder()
-        .setMinApiLevel(Constants.ANDROID_N_API)
+        .setMinApiLevel(AndroidApiLevel.N.getLevel())
         .addProgramFiles(FRAMEWORK_JAR)
         .build();
     Marker marker = new Marker(Tool.D8)
