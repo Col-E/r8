@@ -6,6 +6,7 @@ package com.android.tools.r8.dex;
 import static com.android.tools.r8.dex.Constants.DEX_FILE_MAGIC_PREFIX;
 
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.utils.DexVersion;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -54,14 +55,17 @@ public class DexFile extends BaseFile {
     byte versionByte = buffer.get(index++);
     int version;
     switch (versionByte) {
+      case '9':
+        version = DexVersion.V39.getIntValue();
+        break;
       case '8':
-        version = Constants.ANDROID_O_DEX_VERSION;
+        version =  DexVersion.V38.getIntValue();
         break;
       case '7':
-        version = Constants.ANDROID_N_DEX_VERSION;
+        version =  DexVersion.V37.getIntValue();
         break;
       case '5':
-        version = Constants.ANDROID_PRE_N_DEX_VERSION;
+        version =  DexVersion.V35.getIntValue();
         break;
       default:
         throw new CompilationError("Dex file has invalid version number: " + name);

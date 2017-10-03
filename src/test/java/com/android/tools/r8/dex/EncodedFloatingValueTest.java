@@ -7,6 +7,8 @@ import static com.android.tools.r8.dex.Constants.DEX_MAGIC_SIZE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.DexVersion;
 import com.android.tools.r8.utils.EncodedValueUtils;
 import java.util.Arrays;
 import java.util.Collection;
@@ -45,7 +47,7 @@ public class EncodedFloatingValueTest {
   private DexFile createDexFileWithContent(byte[] bytes) {
     DexOutputBuffer buffer = new DexOutputBuffer();
     buffer.putBytes(Constants.DEX_FILE_MAGIC_PREFIX);
-    buffer.putBytes(Constants.ANDROID_PRE_N_DEX_VERSION_BYTES);
+    buffer.putBytes(AndroidApiLevel.B.getDexVersion().getBytes());
     buffer.putByte(Constants.DEX_FILE_MAGIC_SUFFIX);
     buffer.putBytes(bytes);
     DexFile dexFile = new DexFile(buffer.asArray());

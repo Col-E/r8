@@ -48,6 +48,7 @@ import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.DexVersion;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.LebUtils;
 import com.android.tools.r8.utils.ThrowingConsumer;
@@ -733,20 +734,13 @@ public class FileWriter {
     dest.forward(size * Constants.TYPE_MAP_LIST_ITEM_SIZE);
   }
 
-  private static byte[] convertApiLevelToDexVersion(int apiLevel) {
-    if (apiLevel >= AndroidApiLevel.O.getLevel()) {
-      return Constants.ANDROID_O_DEX_VERSION_BYTES;
-    }
-    if (apiLevel >= AndroidApiLevel.N.getLevel()) {
-      return Constants.ANDROID_N_DEX_VERSION_BYTES;
-    }
-    return Constants.ANDROID_PRE_N_DEX_VERSION_BYTES;
-  }
-
   private void writeHeader(Layout layout) {
     dest.moveTo(0);
     dest.putBytes(Constants.DEX_FILE_MAGIC_PREFIX);
-    dest.putBytes(convertApiLevelToDexVersion(options.minApiLevel));
+    dest.putBytes(
+        DexVersion
+            .getDexVersion(AndroidApiLevel.getAndroidApiLevel(options.minApiLevel))
+            .getBytes());
     dest.putByte(Constants.DEX_FILE_MAGIC_SUFFIX);
     // Leave out checksum and signature for now.
     dest.moveTo(Constants.FILE_SIZE_OFFSET);

@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.dex;
 
-import static com.android.tools.r8.dex.Constants.ANDROID_N_DEX_VERSION;
-import static com.android.tools.r8.dex.Constants.ANDROID_O_DEX_VERSION;
 import static com.android.tools.r8.graph.ClassKind.CLASSPATH;
 import static com.android.tools.r8.graph.ClassKind.LIBRARY;
 import static com.android.tools.r8.graph.ClassKind.PROGRAM;
@@ -26,6 +24,7 @@ import com.android.tools.r8.graph.LazyLoadedDexApplication;
 import com.android.tools.r8.naming.ProguardMapReader;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.DexVersion;
 import com.android.tools.r8.utils.ClassProvider;
 import com.android.tools.r8.utils.ClasspathClassCollection;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -95,36 +94,16 @@ public class ApplicationReader {
   }
 
   private int verifyOrComputeMinApiLevel(int computedMinApiLevel, DexFile file) {
-    int version = file.getDexVersion();
+    DexVersion version = DexVersion.getDexVersion(file.getDexVersion());
     if (options.minApiLevel == AndroidApiLevel.getDefault().getLevel()) {
-      computedMinApiLevel = Math.max(computedMinApiLevel, dexVersionToMinSdk(version));
-    } else if (!minApiMatchesDexVersion(version)) {
-      throw new CompilationError("Dex file with version '" + version +
+      computedMinApiLevel = Math
+          .max(computedMinApiLevel, AndroidApiLevel.getMinAndroidApiLevel(version).getLevel());
+    } else if (!version
+        .matchesApiLevel(AndroidApiLevel.getAndroidApiLevel(options.minApiLevel))) {
+      throw new CompilationError("Dex file with version '" + version.getIntValue() +
           "' cannot be used with min sdk level '" + options.minApiLevel + "'.");
     }
     return computedMinApiLevel;
-  }
-
-  private boolean minApiMatchesDexVersion(int version) {
-    switch (version) {
-      case ANDROID_O_DEX_VERSION:
-        return options.minApiLevel >= AndroidApiLevel.O.getLevel();
-      case ANDROID_N_DEX_VERSION:
-        return options.minApiLevel >= AndroidApiLevel.N.getLevel();
-      default:
-        return true;
-    }
-  }
-
-  private int dexVersionToMinSdk(int version) {
-    switch (version) {
-      case ANDROID_O_DEX_VERSION:
-        return AndroidApiLevel.O.getLevel();
-      case ANDROID_N_DEX_VERSION:
-        return AndroidApiLevel.N.getLevel();
-      default:
-        return AndroidApiLevel.getDefault().getLevel();
-    }
   }
 
   private void readProguardMap(DexApplication.Builder builder, ExecutorService executorService,
