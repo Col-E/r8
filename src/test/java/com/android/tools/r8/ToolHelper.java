@@ -31,6 +31,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -816,6 +817,23 @@ public class ToolHelper {
       builder.append("\n");
       return builder.toString();
     }
+  }
+
+  // Process.pid() is added in Java 9. Until we use Java 9 this can be used on Linux and Mac OS.
+  // https://docs.oracle.com/javase/9/docs/api/java/lang/Process.html#pid--
+  private static synchronized long getPidOfProcess(Process p) {
+    long pid = -1;
+    try {
+      if (p.getClass().getName().equals("java.lang.UNIXProcess")) {
+        Field f = p.getClass().getDeclaredField("pid");
+        f.setAccessible(true);
+        pid = f.getLong(p);
+        f.setAccessible(false);
+      }
+    } catch (Exception e) {
+      pid = -1;
+    }
+    return pid;
   }
 
   public static ProcessResult runProcess(ProcessBuilder builder) throws IOException {
