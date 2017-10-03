@@ -60,18 +60,26 @@ public final class D8 {
   /**
    * Main API entry for the D8 dexer.
    *
+   * <p>If the D8Command contains a DiagnosticsHandler that does not throw a CompilationException
+   * on error this method returns null if the run fails.
+   *
    * @param command D8 command.
    * @return the compilation result.
    */
   public static D8Output run(D8Command command) throws IOException, CompilationException {
     InternalOptions options = command.getInternalOptions();
-    CompilationResult result = runForTesting(command.getInputApp(), options);
-    assert result != null;
-    D8Output output = new D8Output(result.androidApp, command.getOutputMode());
-    if (command.getOutputPath() != null) {
-      output.write(command.getOutputPath());
+    try {
+      CompilationResult result = runForTesting(command.getInputApp(), options);
+      assert result != null;
+      D8Output output = new D8Output(result.androidApp, command.getOutputMode());
+      if (command.getOutputPath() != null) {
+        output.write(command.getOutputPath());
+      }
+      return output;
+    } catch (CompilationException e) {
+      options.diagnosticsHandler.error(e);
+      return null;
     }
-    return output;
   }
 
   /**
@@ -80,21 +88,29 @@ public final class D8 {
    * <p>The D8 dexer API is intentionally limited and should "do the right thing" given a set of
    * inputs. If the API does not suffice please contact the R8 team.
    *
+   * <p>If the D8Command contains a DiagnosticsHandler that does not throw a CompilationException
+   * on error this method returns null if the run fails.
+   *
    * @param command D8 command.
    * @param executor executor service from which to get threads for multi-threaded processing.
-   * @return the compilation result.
+   * @return the compilation result
    */
   public static D8Output run(D8Command command, ExecutorService executor)
       throws IOException, CompilationException {
     InternalOptions options = command.getInternalOptions();
-    CompilationResult result = runForTesting(
-        command.getInputApp(), options, executor);
-    assert result != null;
-    D8Output output = new D8Output(result.androidApp, command.getOutputMode());
-    if (command.getOutputPath() != null) {
-      output.write(command.getOutputPath());
+    try {
+      CompilationResult result = runForTesting(
+          command.getInputApp(), options, executor);
+      assert result != null;
+      D8Output output = new D8Output(result.androidApp, command.getOutputMode());
+      if (command.getOutputPath() != null) {
+        output.write(command.getOutputPath());
+      }
+      return output;
+    } catch (CompilationException e) {
+      options.diagnosticsHandler.error(e);
+      return null;
     }
-    return output;
   }
 
   private static void run(String[] args) throws IOException, CompilationException {

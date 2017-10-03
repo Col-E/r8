@@ -101,7 +101,7 @@ public class IRConverter {
     this.lambdaRewriter = enableDesugaring ? new LambdaRewriter(this) : null;
     this.interfaceMethodRewriter =
         (enableDesugaring && enableInterfaceMethodDesugaring())
-            ? new InterfaceMethodRewriter(this) : null;
+            ? new InterfaceMethodRewriter(this, options) : null;
     if (enableWholeProgramOptimizations) {
       assert appInfo.hasSubtyping();
       this.inliner = new Inliner(appInfo.withSubtyping(), graphLense, options);

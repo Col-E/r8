@@ -7,7 +7,6 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.OffOrAuto;
 import com.android.tools.r8.utils.OutputMode;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
@@ -99,6 +98,7 @@ public class D8Command extends BaseCompilerCommand {
           getOutputMode(),
           getMode(),
           getMinApiLevel(),
+          getDiagnosticsHandler(),
           intermediate);
     }
   }
@@ -195,8 +195,9 @@ public class D8Command extends BaseCompilerCommand {
       OutputMode outputMode,
       CompilationMode mode,
       int minApiLevel,
+      DiagnosticsHandler diagnosticsHandler,
       boolean intermediate) {
-    super(inputApp, outputPath, outputMode, mode, minApiLevel);
+    super(inputApp, outputPath, outputMode, mode, minApiLevel, diagnosticsHandler);
     this.intermediate = intermediate;
   }
 
@@ -224,6 +225,7 @@ public class D8Command extends BaseCompilerCommand {
     assert internal.outline.enabled;
     internal.outline.enabled = false;
     internal.outputMode = getOutputMode();
+    internal.diagnosticsHandler = getDiagnosticsHandler();
     return internal;
   }
 }

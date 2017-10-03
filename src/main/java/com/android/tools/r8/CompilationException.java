@@ -9,7 +9,7 @@ package com.android.tools.r8;
  * This is always an expected error and considered a user input issue.
  * A user-understandable message must be provided.
  */
-public class CompilationException extends Exception {
+public class CompilationException extends Exception implements Diagnostic {
   private static final long serialVersionUID = 1L;
 
   /**

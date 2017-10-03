@@ -3,9 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
-import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.OutputMode;
 import java.nio.file.Path;
@@ -21,14 +21,15 @@ abstract class BaseCompilerCommand extends BaseCommand {
   private final OutputMode outputMode;
   private final CompilationMode mode;
   private final int minApiLevel;
+  private final DiagnosticsHandler diagnosticsHandler;
 
   BaseCompilerCommand(boolean printHelp, boolean printVersion) {
     super(printHelp, printVersion);
-
-    this.outputPath = null;
-    this.outputMode = OutputMode.Indexed;
-    this.mode = null;
-    this.minApiLevel = 0;
+    outputPath = null;
+    outputMode = OutputMode.Indexed;
+    mode = null;
+    minApiLevel = 0;
+    diagnosticsHandler = new DefaultDiagnosticsHandler();
   }
 
   BaseCompilerCommand(
@@ -36,7 +37,8 @@ abstract class BaseCompilerCommand extends BaseCommand {
       Path outputPath,
       OutputMode outputMode,
       CompilationMode mode,
-      int minApiLevel) {
+      int minApiLevel,
+      DiagnosticsHandler diagnosticsHandler) {
     super(app);
     assert mode != null;
     assert minApiLevel > 0;
@@ -44,6 +46,7 @@ abstract class BaseCompilerCommand extends BaseCommand {
     this.outputMode = outputMode;
     this.mode = mode;
     this.minApiLevel = minApiLevel;
+    this.diagnosticsHandler = diagnosticsHandler;
   }
 
   public Path getOutputPath() {
@@ -62,6 +65,10 @@ abstract class BaseCompilerCommand extends BaseCommand {
     return outputMode;
   }
 
+  public DiagnosticsHandler getDiagnosticsHandler() {
+    return diagnosticsHandler;
+  }
+
   abstract public static class Builder<C extends BaseCompilerCommand, B extends Builder<C, B>>
       extends BaseCommand.Builder<C, B> {
 
@@ -69,6 +76,7 @@ abstract class BaseCompilerCommand extends BaseCommand {
     private OutputMode outputMode = OutputMode.Indexed;
     private CompilationMode mode;
     private int minApiLevel = AndroidApiLevel.getDefault().getLevel();
+    private DiagnosticsHandler diagnosticsHandler = new DefaultDiagnosticsHandler();
 
     protected Builder(CompilationMode mode) {
       this(AndroidApp.builder(), mode, false);
@@ -132,6 +140,15 @@ abstract class BaseCompilerCommand extends BaseCommand {
     public B setMinApiLevel(int minApiLevel) {
       assert minApiLevel > 0;
       this.minApiLevel = minApiLevel;
+      return self();
+    }
+
+    public DiagnosticsHandler getDiagnosticsHandler() {
+      return diagnosticsHandler;
+    }
+
+    public B setDiagnosticsHandler(DiagnosticsHandler diagnosticsHandler) {
+      this.diagnosticsHandler = diagnosticsHandler;
       return self();
     }
 
