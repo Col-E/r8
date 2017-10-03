@@ -183,6 +183,9 @@ public abstract class R8RunArtTestsTest {
           // of '__gnu_cxx::recursive_init_error'
           .put("096-array-copy-concurrent-gc",
               TestCondition.match(TestCondition.runtimes(DexVm.ART_4_4_4)))
+          // Sometimes fails with out of memory on Dalvik.
+          .put("114-ParallelGC",
+              TestCondition.match(TestCondition.runtimes(DexVm.ART_4_4_4)))
           // Seen crash: currently no more information
           .put("144-static-field-sigquit", TestCondition.any())
           // Opens a lot of file descriptors and depending on the state of the machine this
