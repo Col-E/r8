@@ -1893,7 +1893,8 @@ public class JctfTestSpecifications {
           // 1) t04
           // java.lang.AssertionError: reference is not enqueued after 2 sec
 
-          .put("lang.ref.SoftReference.isEnqueued.SoftReference_isEnqueued_A01", any())
+          .put("lang.ref.SoftReference.isEnqueued.SoftReference_isEnqueued_A01",
+              match(runtimes(DexVm.ART_DEFAULT, DexVm.ART_7_0_0, DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
           // 1) t03
           // java.lang.AssertionError: reference is not enqueued after 2 sec
 
@@ -1901,7 +1902,8 @@ public class JctfTestSpecifications {
           // 1) t03
           // java.lang.AssertionError: expected null, but was:<[I@e2603b4>
 
-          .put("lang.ref.ReferenceQueue.poll.ReferenceQueue_poll_A01", any())
+          .put("lang.ref.ReferenceQueue.poll.ReferenceQueue_poll_A01",
+              match(runtimes(DexVm.ART_DEFAULT, DexVm.ART_7_0_0, DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
           // 1) t03
           // java.lang.AssertionError: reference is not enqueued after 2 sec
 
@@ -4805,7 +4807,13 @@ public class JctfTestSpecifications {
               match(runtimes(DexVm.ART_4_4_4)))
           .put("lang.ref.WeakReference.isEnqueued.WeakReference_isEnqueued_A01",
               match(runtimes(DexVm.ART_4_4_4)))
+          .put("lang.ref.SoftReference.isEnqueued.SoftReference_isEnqueued_A01",
+              match(runtimes(DexVm.ART_4_4_4)))
           // Passes or fails randomly. Check that something is enqueued after 2 seconds.
+
+          .put("lang.ref.ReferenceQueue.poll.ReferenceQueue_poll_A01",
+              match(runtimes(DexVm.ART_4_4_4)))
+          // Passes or fails randomly.
 
           .build(); // end of flakyWithArt
 
