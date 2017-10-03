@@ -11,16 +11,6 @@ public class Constants {
   public static final byte[] VDEX_FILE_MAGIC_PREFIX = {'v', 'd', 'e', 'x'};
   public static final byte[] VDEX_FILE_VERSION = {'0', '1', '0', '\0'};
 
-  /** dex file version number for Android O (API level 26) */
-  public static final int ANDROID_O_DEX_VERSION = 38;
-  public static final byte[] ANDROID_O_DEX_VERSION_BYTES = {'0', '3', '8'};
-  /** dex file version number for Android N (API level 24) */
-  public static final int ANDROID_N_DEX_VERSION = 37;
-  public static final byte[] ANDROID_N_DEX_VERSION_BYTES = {'0', '3', '7'};
-  /** dex file version number for all releases prior to Android N */
-  public static final int ANDROID_PRE_N_DEX_VERSION = 35;
-  public static final byte[] ANDROID_PRE_N_DEX_VERSION_BYTES = {'0', '3', '5'};
-
   /** vdex file version number for Android O (API level 26) */
   public static final int ANDROID_O_VDEX_VERSION = 10;
 
