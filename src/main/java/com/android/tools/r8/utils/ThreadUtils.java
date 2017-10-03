@@ -35,14 +35,12 @@ public class ThreadUtils {
   }
 
   public static ExecutorService getExecutorService(InternalOptions options) {
-    if (options.numberOfThreads == options.NOT_SPECIFIED) {
+    int threads = options.numberOfThreads;
+    if (threads == options.NOT_SPECIFIED) {
       // This heuristic is based on measurements on a 32 core (hyper-threaded) machine.
-      int threads = Integer.min(Runtime.getRuntime().availableProcessors(), 16) / 2;
-      return Executors.newWorkStealingPool(threads);
-    } else if (options.numberOfThreads == 1) {
-      return Executors.newSingleThreadExecutor();
-    } else {
-      return Executors.newWorkStealingPool(options.numberOfThreads);
+      threads = Integer.min(Runtime.getRuntime().availableProcessors(), 16) / 2;
     }
+    // Don't use Executors.newSingleThreadExecutor() when threads == 1, see b/67338394.
+    return Executors.newWorkStealingPool(threads);
   }
 }
