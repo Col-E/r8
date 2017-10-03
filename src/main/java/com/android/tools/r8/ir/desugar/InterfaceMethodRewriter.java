@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.Resource;
-import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.DexApplication.Builder;
 import com.android.tools.r8.graph.DexCallSite;
@@ -26,7 +25,8 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeSuper;
 import com.android.tools.r8.ir.conversion.IRConverter;
-import com.android.tools.r8.logging.Log;
+import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.ListIterator;
@@ -65,6 +65,7 @@ public final class InterfaceMethodRewriter {
   private static final String DEFAULT_METHOD_PREFIX = "$default$";
 
   private final IRConverter converter;
+  private final InternalOptions options;
   final DexItemFactory factory;
 
   // All forwarding methods generated during desugaring. We don't synchronize access
@@ -84,10 +85,11 @@ public final class InterfaceMethodRewriter {
     ExcludeDexResources
   }
 
-  public InterfaceMethodRewriter(IRConverter converter) {
+  public InterfaceMethodRewriter(IRConverter converter, InternalOptions options) {
     assert converter != null;
     this.converter = converter;
-    this.factory = converter.application.dexItemFactory;
+    this.options = options;
+    this.factory = options.itemFactory;
   }
 
   // Rewrites the references to static and default interface methods.
@@ -298,7 +300,7 @@ public final class InterfaceMethodRewriter {
     // TODO replace by a proper warning mechanic (see b/65154707).
     // TODO think about using a common deduplicating mechanic with Enqueuer
     if (reportedMissing.add(missing)) {
-      System.err.println(message);
+      options.diagnosticsHandler.warning(new StringDiagnostic(message));
     }
   }
 

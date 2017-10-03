@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
-import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.InvalidDebugInfoException;
@@ -125,6 +125,8 @@ public class InternalOptions {
   public boolean skipReadingDexCode = false;
 
   public Path proguardMapOutput = null;
+
+  public DiagnosticsHandler diagnosticsHandler = new DefaultDiagnosticsHandler();
 
   public void warningInvalidDebugInfo(DexEncodedMethod method, InvalidDebugInfoException e) {
     warningInvalidDebugInfoCount++;
