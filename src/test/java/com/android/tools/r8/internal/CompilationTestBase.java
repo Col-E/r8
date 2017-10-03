@@ -16,6 +16,7 @@ import com.android.tools.r8.Resource;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ArtErrorParser;
 import com.android.tools.r8.utils.ArtErrorParser.ArtErrorInfo;
@@ -82,7 +83,7 @@ public abstract class CompilationTestBase {
         builder.addProguardConfigurationFiles(Paths.get(pgConf));
       }
       builder.setMode(mode);
-      builder.setMinApiLevel(Constants.ANDROID_L_API);
+      builder.setMinApiLevel(AndroidApiLevel.L.getLevel());
       builder.addProguardConfigurationConsumer(b -> {
         b.setPrintSeeds(false);
       });
@@ -94,7 +95,7 @@ public abstract class CompilationTestBase {
               D8Command.builder()
                   .addProgramFiles(ListUtils.map(inputs, Paths::get))
                   .setMode(mode)
-                  .setMinApiLevel(Constants.ANDROID_L_API)
+                  .setMinApiLevel(AndroidApiLevel.L.getLevel())
                   .build());
     }
     return checkVerification(outputApp, referenceApk);

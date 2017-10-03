@@ -9,6 +9,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.OutputMode;
 import com.beust.jcommander.internal.Lists;
@@ -40,7 +41,7 @@ public class R8GMSCoreDeterministicTest extends GMSCoreCompilationTestBase {
           options.testing.irOrdering = this::shuffle;
           // Only use one thread to process to process in the order decided by the callback.
           options.numberOfThreads = 1;
-          options.minApiLevel = Constants.ANDROID_L_API;
+          options.minApiLevel = AndroidApiLevel.L.getLevel();
         });
   }
 

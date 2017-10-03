@@ -47,4 +47,8 @@ public enum AndroidApiLevel {
   public String getName() {
     return "Android " + name();
   }
+
+  public static AndroidApiLevel getDefault() {
+    return AndroidApiLevel.B;
+  }
 }

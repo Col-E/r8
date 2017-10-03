@@ -4,12 +4,12 @@
 
 package com.android.tools.r8;
 
-import static com.android.tools.r8.dex.Constants.ANDROID_K_API;
 import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.D8Command.Builder;
 import com.android.tools.r8.shaking.FilteredClassPath;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DirectoryClassFileProvider;
 import com.android.tools.r8.utils.FileUtils;
@@ -70,7 +70,7 @@ public class D8LazyRunExamplesAndroidOTest
 
   @Test
   public void dexPerClassFileWithDesugaringAndFolderClasspath() throws Throwable {
-    int minAPILevel = ANDROID_K_API;
+    int minAPILevel = AndroidApiLevel.K.getLevel();
     Path inputFile =
         Paths.get(ToolHelper.EXAMPLES_ANDROID_N_BUILD_DIR, "interfacemethods" + JAR_EXTENSION);
     Path tmpClassesDir = temp.newFolder().toPath();

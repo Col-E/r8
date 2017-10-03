@@ -14,6 +14,7 @@ import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.ArtErrorParser;
 import com.android.tools.r8.utils.ArtErrorParser.ArtErrorInfo;
 import com.android.tools.r8.utils.DexInspector;
@@ -103,42 +104,42 @@ public abstract class R8RunArtTestsTest {
   private static Map<String, Integer> needMinSdkVersion =
       new ImmutableMap.Builder<String, Integer>()
           // Android O
-          .put("952-invoke-custom", Constants.ANDROID_O_API)
-          .put("952-invoke-custom-kinds", Constants.ANDROID_O_API)
-          .put("953-invoke-polymorphic-compiler", Constants.ANDROID_O_API)
-          .put("957-methodhandle-transforms", Constants.ANDROID_O_API)
-          .put("958-methodhandle-stackframe", Constants.ANDROID_O_API)
-          .put("959-invoke-polymorphic-accessors", Constants.ANDROID_O_API)
-          .put("990-method-handle-and-mr", Constants.ANDROID_O_API)
+          .put("952-invoke-custom", AndroidApiLevel.O.getLevel())
+          .put("952-invoke-custom-kinds", AndroidApiLevel.O.getLevel())
+          .put("953-invoke-polymorphic-compiler", AndroidApiLevel.O.getLevel())
+          .put("957-methodhandle-transforms", AndroidApiLevel.O.getLevel())
+          .put("958-methodhandle-stackframe", AndroidApiLevel.O.getLevel())
+          .put("959-invoke-polymorphic-accessors", AndroidApiLevel.O.getLevel())
+          .put("990-method-handle-and-mr", AndroidApiLevel.O.getLevel())
           // Test intentionally asserts presence of bridge default methods desugar removes.
-          .put("044-proxy", Constants.ANDROID_N_API)
+          .put("044-proxy", AndroidApiLevel.N.getLevel())
           // Test intentionally asserts absence of default interface method in a class.
-          .put("048-reflect-v8", Constants.ANDROID_N_API)
+          .put("048-reflect-v8", AndroidApiLevel.N.getLevel())
           // Uses default interface methods.
-          .put("162-method-resolution", Constants.ANDROID_N_API)
-          .put("616-cha-interface-default", Constants.ANDROID_N_API)
-          .put("1910-transform-with-default", Constants.ANDROID_N_API)
+          .put("162-method-resolution", AndroidApiLevel.N.getLevel())
+          .put("616-cha-interface-default", AndroidApiLevel.N.getLevel())
+          .put("1910-transform-with-default", AndroidApiLevel.N.getLevel())
           // Interface initializer is not triggered after desugaring.
-          .put("962-iface-static", Constants.ANDROID_N_API)
+          .put("962-iface-static", AndroidApiLevel.N.getLevel())
           // Interface initializer is not triggered after desugaring.
-          .put("964-default-iface-init-gen", Constants.ANDROID_N_API)
+          .put("964-default-iface-init-gen",AndroidApiLevel.N.getLevel())
           // AbstractMethodError (for method not implemented in class) instead of
           // IncompatibleClassChangeError (for conflict of default interface methods).
-          .put("968-default-partial-compile-gen", Constants.ANDROID_N_API)
+          .put("968-default-partial-compile-gen",AndroidApiLevel.N.getLevel())
           // NoClassDefFoundError (for companion class) instead of NoSuchMethodError.
-          .put("970-iface-super-resolution-gen", Constants.ANDROID_N_API)
+          .put("970-iface-super-resolution-gen", AndroidApiLevel.N.getLevel())
           // NoClassDefFoundError (for companion class) instead of AbstractMethodError.
-          .put("971-iface-super", Constants.ANDROID_N_API)
+          .put("971-iface-super", AndroidApiLevel.N.getLevel())
           // Test for miranda methods is not relevant for desugaring scenario.
-          .put("972-default-imt-collision", Constants.ANDROID_N_API)
+          .put("972-default-imt-collision", AndroidApiLevel.N.getLevel())
           // Uses default interface methods.
-          .put("972-iface-super-multidex", Constants.ANDROID_N_API)
+          .put("972-iface-super-multidex", AndroidApiLevel.N.getLevel())
           // java.util.Objects is missing and test has default methods.
-          .put("973-default-multidex", Constants.ANDROID_N_API)
+          .put("973-default-multidex", AndroidApiLevel.N.getLevel())
           // a.klass.that.does.not.Exist is missing and test has default methods.
-          .put("974-verify-interface-super", Constants.ANDROID_N_API)
+          .put("974-verify-interface-super", AndroidApiLevel.N.getLevel())
           // Desugaring of interface private methods is not yet supported.
-          .put("975-iface-private", Constants.ANDROID_N_API)
+          .put("975-iface-private", AndroidApiLevel.N.getLevel())
           .build();
 
   // Tests that timeout when run with Art.
@@ -1224,7 +1225,7 @@ public abstract class R8RunArtTestsTest {
           builder.addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(minSdkVersion)));
         } else {
           builder.addLibraryFiles(Paths.get(
-              ToolHelper.getAndroidJar(Constants.DEFAULT_ANDROID_API)));
+              ToolHelper.getAndroidJar(AndroidApiLevel.getDefault().getLevel())));
         }
 
         D8Output output = D8.run(builder.build());

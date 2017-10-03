@@ -4,6 +4,7 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.OutputMode;
@@ -67,7 +68,7 @@ abstract class BaseCompilerCommand extends BaseCommand {
     private Path outputPath = null;
     private OutputMode outputMode = OutputMode.Indexed;
     private CompilationMode mode;
-    private int minApiLevel = Constants.DEFAULT_ANDROID_API;
+    private int minApiLevel = AndroidApiLevel.getDefault().getLevel();
 
     protected Builder(CompilationMode mode) {
       this(AndroidApp.builder(), mode, false);

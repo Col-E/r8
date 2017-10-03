@@ -16,6 +16,7 @@ import com.android.tools.r8.shaking.FilteredClassPath;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationParser;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
@@ -64,7 +65,7 @@ public class ToolHelper {
   public final static String PATH_SEPARATOR = File.pathSeparator;
 
   private static final String ANDROID_JAR_PATTERN = "third_party/android_jar/lib-v%d/android.jar";
-  private static final int DEFAULT_MIN_SDK = Constants.ANDROID_I_API;
+  private static final int DEFAULT_MIN_SDK = AndroidApiLevel.I.getLevel();
 
   public enum DexVm {
     ART_4_4_4("4.4.4"),
@@ -329,17 +330,17 @@ public class ToolHelper {
   }
 
   public static String getDefaultAndroidJar() {
-    return getAndroidJar(Constants.DEFAULT_ANDROID_API);
+    return getAndroidJar(AndroidApiLevel.getDefault().getLevel());
   }
 
   public static String getAndroidJar(int minSdkVersion) {
     return String.format(
         ANDROID_JAR_PATTERN,
-        minSdkVersion == Constants.DEFAULT_ANDROID_API ? DEFAULT_MIN_SDK : minSdkVersion);
+        minSdkVersion == AndroidApiLevel.getDefault().getLevel() ? DEFAULT_MIN_SDK : minSdkVersion);
   }
 
   public static Path getJdwpTestsJarPath(int minSdk) {
-    if (minSdk >= Constants.ANDROID_N_API) {
+    if (minSdk >= AndroidApiLevel.N.getLevel()) {
       return Paths.get("third_party", "jdwp-tests", "apache-harmony-jdwp-tests-host.jar");
     } else {
       return Paths.get(ToolHelper.BUILD_DIR, "libs", "jdwp-tests-preN.jar");
@@ -417,11 +418,11 @@ public class ToolHelper {
   public static int getMinApiLevelForDexVm(DexVm dexVm) {
     switch (dexVm) {
       case ART_DEFAULT:
-        return Constants.ANDROID_O_API;
+        return AndroidApiLevel.O.getLevel();
       case ART_7_0_0:
-        return Constants.ANDROID_N_API;
+        return AndroidApiLevel.N.getLevel();
       default:
-        return Constants.DEFAULT_ANDROID_API;
+        return AndroidApiLevel.getDefault().getLevel();
     }
   }
 

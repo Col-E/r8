@@ -22,6 +22,7 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.logging.Log;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.collect.ImmutableList;
@@ -298,7 +299,7 @@ public class CompatDx {
         List<Integer> allMinApiLevels = options.valuesOf(spec.minApiLevel);
         minApiLevel = allMinApiLevels.get(allMinApiLevels.size() - 1);
       } else {
-        minApiLevel = Constants.DEFAULT_ANDROID_API;
+        minApiLevel = AndroidApiLevel.getDefault().getLevel();
       }
       inputList = options.valueOf(spec.inputList);
       inputs = ImmutableList.copyOf(options.valuesOf(spec.inputs));

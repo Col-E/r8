@@ -13,6 +13,7 @@ import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OffOrAuto;
@@ -182,7 +183,7 @@ public abstract class DebugTestBase {
 
   protected final boolean supportsDefaultMethod() {
     return RUNTIME_KIND == RuntimeKind.JAVA ||
-        ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm()) >= Constants.ANDROID_N_API;
+        ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm()) >= AndroidApiLevel.N.getLevel();
   }
 
   protected static boolean isRunningJava() {

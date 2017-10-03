@@ -8,6 +8,7 @@ import com.android.tools.r8.D8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.OffOrAuto;
 import com.google.common.collect.Sets;
 import java.io.File;
@@ -85,8 +86,8 @@ public class BasicTestDependenciesDesugaringTest {
     ToolHelper.runD8(
         D8Command.builder().addClasspathFiles(classpath)
         .addProgramFiles(toCompile)
-        .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(Constants.ANDROID_K_API)))
-        .setMinApiLevel(Constants.ANDROID_K_API)
+        .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(AndroidApiLevel.K.getLevel())))
+        .setMinApiLevel(AndroidApiLevel.K.getLevel())
         .build(),
         options -> options.interfaceMethodDesugaring = OffOrAuto.Auto);
   }
@@ -99,8 +100,8 @@ public class BasicTestDependenciesDesugaringTest {
     ToolHelper.runD8(
         D8Command.builder().addClasspathFiles(classpath)
         .addProgramFiles(toCompile)
-        .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(Constants.ANDROID_K_API)))
-        .setMinApiLevel(Constants.ANDROID_K_API)
+        .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(AndroidApiLevel.K.getLevel())))
+        .setMinApiLevel(AndroidApiLevel.K.getLevel())
         .build(),
         options -> options.interfaceMethodDesugaring = OffOrAuto.Off);
   }
