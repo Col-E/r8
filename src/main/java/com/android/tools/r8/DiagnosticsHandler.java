@@ -6,21 +6,9 @@ package com.android.tools.r8;
 /**
  * A DiagnosticsHandler can be provided to customize handling of diagnostics information.
  *
- * <p>During compilation the error, warning and info methods will be called.
+ * <p>During compilation the warning and info methods will be called.
  */
 public interface DiagnosticsHandler {
-
-  /**
-   * Handle error diagnostics.
-   *
-   * <p>By default this throws the exception.
-   *
-   * @param error CompilationException containing error information.
-   * @throws CompilationException
-   */
-  default void error(CompilationException error) throws CompilationException {
-    throw error;
-  }
 
   /**
    * Handle warning diagnostics.
