@@ -13,6 +13,7 @@ import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -57,15 +58,15 @@ public class RunJdwpTests {
   }
 
   static boolean isAndroidMOrAbove(DexVm dexVm, Tool tool) {
-    return dexVm.isNewerThan(DexVm.ART_5_1_1);
+    return dexVm.getVersion().isNewerThan(Version.V5_1_1);
   }
 
   static boolean isAndroidNOrAbove(DexVm dexVm, Tool tool) {
-    return dexVm.isNewerThan(DexVm.ART_6_0_1);
+    return dexVm.getVersion().isNewerThan(Version.V6_0_1);
   }
 
   static boolean isAndroidOOrAbove(DexVm dexVm, Tool tool) {
-    return dexVm.isNewerThan(DexVm.ART_7_0_0);
+    return dexVm.getVersion().isNewerThan(Version.V7_0_0);
   }
 
   static boolean isLatestRuntime(DexVm dexVm, Tool tool) {
@@ -208,8 +209,13 @@ public class RunJdwpTests {
           "-cp", System.getProperty("java.class.path") + File.pathSeparator + lib,
           run, pkg + "." + test);
     } else {
+      // TODO(jmhenaff): fix issue with python scripts
+      Assume
+          .assumeTrue("Python script fails because of library names conflicts. Skipping",
+              !ToolHelper.isWindows());
       command = Arrays.asList(
-          RUN_SCRIPT, "--classpath=" + lib, "--version=" + ToolHelper.getDexVm(), test);
+          RUN_SCRIPT, "--classpath=" + lib, "--version=" + ToolHelper.getDexVm().getVersion(),
+          test);
     }
     ProcessBuilder builder = new ProcessBuilder(command);
     ProcessResult result = ToolHelper.runProcess(builder);

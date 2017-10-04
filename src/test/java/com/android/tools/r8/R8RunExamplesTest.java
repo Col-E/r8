@@ -12,6 +12,7 @@ import static org.junit.Assert.fail;
 import com.android.tools.r8.R8RunArtTestsTest.CompilerUnderTest;
 import com.android.tools.r8.R8RunArtTestsTest.DexTool;
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.FileUtils;
@@ -64,7 +65,7 @@ public class R8RunExamplesTest {
           .put(
               "filledarray.FilledArray",
               TestCondition.match(
-                  TestCondition.runtimes(DexVm.ART_6_0_1, DexVm.ART_5_1_1, DexVm.ART_4_4_4)))
+                  TestCondition.runtimes(Version.V6_0_1, Version.V5_1_1, Version.V4_4_4)))
           .build();
 
   @Parameters(name = "{0}_{1}_{2}_{3}")
@@ -250,7 +251,7 @@ public class R8RunExamplesTest {
     // this explicit loop to get rid of repeated testing on the buildbots.
     for (DexVm version : artVersions) {
       TestCondition condition = failingRun.get(mainClass);
-      if (condition != null && condition.test(getTool(), compiler, version, mode)) {
+      if (condition != null && condition.test(getTool(), compiler, version.getVersion(), mode)) {
         thrown.expect(Throwable.class);
       } else {
         thrown = ExpectedException.none();
@@ -261,17 +262,17 @@ public class R8RunExamplesTest {
           ToolHelper.checkArtOutputIdentical(original, generated.toString(), mainClass, version);
 
       // Check output against JVM output.
-      if (shouldMatchJVMOutput(version)) {
+      if (shouldMatchJVMOutput(version.getVersion())) {
         String javaOutput = javaResult.stdout;
         assertEquals(
             "JVM and Art output differ:\n" + "JVM:\n" + javaOutput + "\nArt:\n" + output,
-            output,
-            javaOutput);
+            javaOutput,
+            output);
       }
     }
   }
 
-  private boolean shouldMatchJVMOutput(DexVm version) {
+  private boolean shouldMatchJVMOutput(DexVm.Version version) {
     TestCondition condition = outputNotIdenticalToJVMOutput.get(mainClass);
     return condition == null || !condition.test(getTool(), compiler, version, mode);
   }

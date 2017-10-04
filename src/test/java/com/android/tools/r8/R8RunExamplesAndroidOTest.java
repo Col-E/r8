@@ -5,6 +5,7 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
@@ -19,21 +20,21 @@ import org.junit.Test;
 
 public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command.Builder> {
 
-  private static Map<DexVm, List<String>> alsoFailsOn =
+  private static Map<DexVm.Version, List<String>> alsoFailsOn =
       ImmutableMap.of(
-          DexVm.ART_4_4_4, ImmutableList.of(
+          Version.V4_4_4, ImmutableList.of(
               "invokecustom-with-shrinking"
           ),
-          DexVm.ART_5_1_1, ImmutableList.of(
+          Version.V5_1_1, ImmutableList.of(
               "invokecustom-with-shrinking"
           ),
-          DexVm.ART_6_0_1, ImmutableList.of(
+          Version.V6_0_1, ImmutableList.of(
               "invokecustom-with-shrinking"
           ),
-          DexVm.ART_7_0_0, ImmutableList.of(
+          Version.V7_0_0, ImmutableList.of(
               "invokecustom-with-shrinking"
           ),
-          DexVm.ART_DEFAULT, ImmutableList.of(
+          Version.DEFAULT, ImmutableList.of(
           )
       );
 

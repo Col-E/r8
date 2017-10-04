@@ -8,6 +8,7 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.shaking.FilteredClassPath;
 import com.android.tools.r8.smali.SmaliTestBase.SmaliBuilder;
@@ -38,7 +39,7 @@ public class StaticLibraryValuesChangeTest extends TestBase {
      */
 
     // TODO(66944616): Can we make this work on Dalvik as well?
-    Assume.assumeTrue("Skipping on 4.4.4", ToolHelper.getDexVm() != ToolHelper.DexVm.ART_4_4_4);
+    Assume.assumeTrue("Skipping on 4.4.4", ToolHelper.getDexVm().getVersion() != Version.V4_4_4);
 
     // Build the second version of LibraryClass
     JasminBuilder compileTimeLibrary = new JasminBuilder();

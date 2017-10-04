@@ -8,6 +8,7 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.Command;
 import com.android.tools.r8.debug.DebugTestBase.StepFilter.IntelliJStepFilter;
 import java.util.ArrayList;
@@ -23,7 +24,7 @@ public class InterfaceMethodTest extends DebugTestBase {
   public void testDefaultMethod() throws Throwable {
     // TODO(b/67225390) Dalvik steps into class loader first.
     Assume.assumeTrue("Dalvik suspends in class loader",
-        ToolHelper.getDexVm().isNewerThan(DexVm.ART_4_4_4));
+        ToolHelper.getDexVm().getVersion().isNewerThan(Version.V4_4_4));
 
     String debuggeeClass = "DebugInterfaceMethod";
     String parameterName = "msg";

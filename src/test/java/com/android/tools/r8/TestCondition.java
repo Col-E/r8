@@ -31,9 +31,9 @@ public class TestCondition {
 
   static class RuntimeSet {
 
-    final EnumSet<DexVm> set;
+    final EnumSet<DexVm.Version> set;
 
-    public RuntimeSet(EnumSet<DexVm> set) {
+    public RuntimeSet(EnumSet<DexVm.Version> set) {
       this.set = set;
     }
   }
@@ -64,19 +64,19 @@ public class TestCondition {
   private static final ToolSet ANY_TOOL = new ToolSet(EnumSet.allOf(DexTool.class));
   private static final CompilerSet ANY_COMPILER =
       new CompilerSet(EnumSet.allOf(CompilerUnderTest.class));
-  private static final RuntimeSet ANY_RUNTIME = new RuntimeSet(EnumSet.allOf(DexVm.class));
+  private static final RuntimeSet ANY_RUNTIME = new RuntimeSet(EnumSet.allOf(DexVm.Version.class));
   private static final CompilationModeSet ANY_MODE =
       new CompilationModeSet(EnumSet.allOf(CompilationMode.class));
 
   private final EnumSet<DexTool> dexTools;
   private final EnumSet<CompilerUnderTest> compilers;
-  private final EnumSet<DexVm> dexVms;
+  private final EnumSet<DexVm.Version> dexVms;
   private final EnumSet<CompilationMode> compilationModes;
 
   public TestCondition(
       EnumSet<DexTool> dexTools,
       EnumSet<CompilerUnderTest> compilers,
-      EnumSet<DexVm> dexVms,
+      EnumSet<DexVm.Version> dexVms,
       EnumSet<CompilationMode> compilationModes) {
     this.dexTools = dexTools;
     this.compilers = compilers;
@@ -94,7 +94,7 @@ public class TestCondition {
     return new CompilerSet(EnumSet.copyOf(Arrays.asList(compilers)));
   }
 
-  public static RuntimeSet runtimes(DexVm... runtimes) {
+  public static RuntimeSet runtimes(DexVm.Version... runtimes) {
     assert runtimes.length > 0;
     return new RuntimeSet(EnumSet.copyOf(Arrays.asList(runtimes)));
   }
@@ -146,11 +146,11 @@ public class TestCondition {
   public boolean test(
       DexTool dexTool,
       CompilerUnderTest compilerUnderTest,
-      DexVm dexVm,
+      DexVm.Version dexVmVersion,
       CompilationMode compilationMode) {
     return dexTools.contains(dexTool)
         && compilers.contains(compilerUnderTest)
-        && dexVms.contains(dexVm)
+        && dexVms.contains(dexVmVersion)
         && compilationModes.contains(compilationMode);
   }
 }

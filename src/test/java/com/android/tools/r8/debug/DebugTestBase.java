@@ -10,6 +10,8 @@ import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.ToolHelper.DexVm.Kind;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
@@ -288,6 +290,9 @@ public abstract class DebugTestBase {
     // Skip test due to unsupported runtime.
     Assume.assumeTrue("Skipping test " + testName.getMethodName() + " because ART is not supported",
         ToolHelper.artSupported());
+    Assume.assumeTrue("Skipping test " + testName.getMethodName()
+            + " because debug tests are not yet supported on Windows",
+        !ToolHelper.isWindows());
     Assume.assumeFalse(
         "Skipping failing test " + testName.getMethodName() + " for runtime " + ToolHelper
             .getDexVm(), UNSUPPORTED_ART_VERSIONS.contains(ToolHelper.getDexVm()));
@@ -438,7 +443,7 @@ public abstract class DebugTestBase {
       // when breaking in <clinit>. Last known good version is 7.0.0.
       Assume.assumeTrue(
           "Skipping test " + testName.getMethodName() + " because ART version is not supported",
-          isRunningJava() || ToolHelper.getDexVm().isOlderThanOrEqual(DexVm.ART_7_0_0));
+          isRunningJava() || ToolHelper.getDexVm().getVersion().isOlderThanOrEqual(Version.V7_0_0));
       checkStaticField(className, fieldName, fieldSignature, expectedValue);
     });
   }
@@ -610,11 +615,11 @@ public abstract class DebugTestBase {
           // Set debuggee command-line.
           if (RUNTIME_KIND == RuntimeKind.ART) {
             ArtCommandBuilder artCommandBuilder = new ArtCommandBuilder(ToolHelper.getDexVm());
-            if (ToolHelper.getDexVm().isNewerThan(DexVm.ART_5_1_1)) {
+            if (ToolHelper.getDexVm().getVersion().isNewerThan(DexVm.Version.V5_1_1)) {
               artCommandBuilder.appendArtOption("-Xcompiler-option");
               artCommandBuilder.appendArtOption("--debuggable");
             }
-            if (DEBUG_TESTS && ToolHelper.getDexVm().isNewerThan(DexVm.ART_4_4_4)) {
+            if (DEBUG_TESTS && ToolHelper.getDexVm().getVersion().isNewerThan(Version.V4_4_4)) {
               artCommandBuilder.appendArtOption("-verbose:jdwp");
             }
             setProperty("jpda.settings.debuggeeJavaPath", artCommandBuilder.build());

@@ -16,6 +16,7 @@ import utils
 import uuid
 import notify
 
+
 ALL_ART_VMS = ["default", "7.0.0", "6.0.1", "5.1.1", "4.4.4"]
 BUCKET = 'r8-test-results'
 
@@ -41,6 +42,11 @@ def ParseOptions():
            'all art vm versions (stopping after first failed execution)',
       default="default",
       choices=ALL_ART_VMS + ["all"])
+  result.add_option('--dex_vm_kind',
+                    help='Whether to use host or target version of runtime',
+                    default="host",
+                    nargs=1,
+                    choices=["host", "target"])
   result.add_option('--one_line_per_test',
       help='Print a line before a tests starts and after it ends to stdout.',
       default=False, action='store_true')
@@ -139,7 +145,8 @@ def Main():
   # Now run tests on selected runtime(s).
   vms_to_test = [options.dex_vm] if options.dex_vm != "all" else ALL_ART_VMS
   for art_vm in vms_to_test:
-    return_code = gradle.RunGradle(gradle_args + ['-Pdex_vm=%s' % art_vm],
+    vm_kind_to_test = "_" + options.dex_vm_kind if art_vm != "default" else ""
+    return_code = gradle.RunGradle(gradle_args + ['-Pdex_vm=%s' % (art_vm + vm_kind_to_test)],
                                    throw_on_failure=False)
     if return_code != 0:
       if options.archive_failures and os.name != 'nt':

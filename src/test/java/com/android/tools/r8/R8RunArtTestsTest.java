@@ -10,6 +10,8 @@ import com.android.tools.r8.JctfTestSpecifications.Outcome;
 import com.android.tools.r8.TestCondition.RuntimeSet;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.ToolHelper.DexVm.Kind;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
@@ -83,10 +85,10 @@ public abstract class R8RunArtTestsTest {
   private static final String ART_LEGACY_TESTS_NATIVE_LIBRARY_DIR = "tests/2016-12-19/art/lib64";
 
   private static final RuntimeSet LEGACY_RUNTIME = TestCondition.runtimes(
-      DexVm.ART_4_4_4,
-      DexVm.ART_5_1_1,
-      DexVm.ART_6_0_1,
-      DexVm.ART_7_0_0);
+      DexVm.Version.V4_4_4,
+      DexVm.Version.V5_1_1,
+      DexVm.Version.V6_0_1,
+      DexVm.Version.V7_0_0);
 
   // Input jar for jctf tests.
   private static final String JCTF_COMMON_JAR = "build/libs/jctfCommon.jar";
@@ -146,14 +148,16 @@ public abstract class R8RunArtTestsTest {
   private static final Multimap<String, TestCondition> timeoutOrSkipRunWithArt =
       new ImmutableListMultimap.Builder<String, TestCondition>()
           // Loops on art - timeout.
-          .put("109-suspend-check", TestCondition.match(TestCondition.runtimes(DexVm.ART_5_1_1)))
+          .put("109-suspend-check",
+              TestCondition.match(TestCondition.runtimes(DexVm.Version.V5_1_1)))
           // Flaky loops on art.
-          .put("129-ThreadGetId", TestCondition.match(TestCondition.runtimes(DexVm.ART_5_1_1)))
+          .put("129-ThreadGetId", TestCondition.match(TestCondition.runtimes(DexVm.Version.V5_1_1)))
           // Takes ages to run on art 5.1.1 and behaves the same as on 6.0.1. Running this
           // tests on 5.1.1 makes our buildbot cycles time too long.
-          .put("800-smali", TestCondition.match(TestCondition.runtimes(DexVm.ART_5_1_1)))
+          .put("800-smali", TestCondition.match(TestCondition.runtimes(DexVm.Version.V5_1_1)))
           // Hangs on dalvik.
-          .put("802-deoptimization", TestCondition.match(TestCondition.runtimes(DexVm.ART_4_4_4)))
+          .put("802-deoptimization",
+              TestCondition.match(TestCondition.runtimes(DexVm.Version.V4_4_4)))
           .build();
 
   // Tests that are flaky with the Art version we currently use.
@@ -183,10 +187,10 @@ public abstract class R8RunArtTestsTest {
           // Failed on buildbot with: terminate called after throwing an instance
           // of '__gnu_cxx::recursive_init_error'
           .put("096-array-copy-concurrent-gc",
-              TestCondition.match(TestCondition.runtimes(DexVm.ART_4_4_4)))
+              TestCondition.match(TestCondition.runtimes(DexVm.Version.V4_4_4)))
           // Sometimes fails with out of memory on Dalvik.
           .put("114-ParallelGC",
-              TestCondition.match(TestCondition.runtimes(DexVm.ART_4_4_4)))
+              TestCondition.match(TestCondition.runtimes(DexVm.Version.V4_4_4)))
           // Seen crash: currently no more information
           .put("144-static-field-sigquit", TestCondition.any())
           // Opens a lot of file descriptors and depending on the state of the machine this
@@ -417,8 +421,8 @@ public abstract class R8RunArtTestsTest {
       "617-clinit-oome"
   );
 
-  private static Map<DexVm, List<String>> expectedToFailRunWithArtVersion = ImmutableMap.of(
-      DexVm.ART_7_0_0, ImmutableList.of(
+  private static Map<DexVm.Version, List<String>> expectedToFailRunWithArtVersion = ImmutableMap.of(
+      DexVm.Version.V7_0_0, ImmutableList.of(
           // Generally fails on non-R8/D8 running.
           "412-new-array",
           "610-arraycopy",
@@ -426,7 +430,7 @@ public abstract class R8RunArtTestsTest {
           // Crashes the VM, cause is unclear.
           "080-oom-throw"
       ),
-      DexVm.ART_6_0_1, ImmutableList.of(
+      DexVm.Version.V6_0_1, ImmutableList.of(
           // Generally fails on non-R8/D8 running.
           "004-checker-UnsafeTest18",
           "005-annotations",
@@ -445,7 +449,7 @@ public abstract class R8RunArtTestsTest {
           // Crashes the VM, cause is unclear.
           "080-oom-throw"
       ),
-      DexVm.ART_5_1_1, ImmutableList.of(
+      DexVm.Version.V5_1_1, ImmutableList.of(
           // Generally fails on non R8/D8 running.
           "004-checker-UnsafeTest18",
           "004-NativeAllocations",
@@ -463,7 +467,7 @@ public abstract class R8RunArtTestsTest {
           "605-new-string-from-bytes",
           "626-const-class-linking"
       ),
-      DexVm.ART_4_4_4, ImmutableList.of(
+      DexVm.Version.V4_4_4, ImmutableList.of(
           // Generally fails on non R8/D8 running.
           "004-checker-UnsafeTest18",
           "004-NativeAllocations",
@@ -494,12 +498,13 @@ public abstract class R8RunArtTestsTest {
           .put("064-field-access",
               TestCondition.match(
                   TestCondition.R8_NOT_AFTER_D8_COMPILER,
-                  TestCondition.runtimes(DexVm.ART_4_4_4)))
+                  TestCondition.runtimes(DexVm.Version.V4_4_4)))
           .put("064-field-access",
               TestCondition.match(
                   TestCondition.R8_COMPILER,
                   TestCondition.runtimes(
-                      DexVm.ART_DEFAULT, DexVm.ART_7_0_0, DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
+                      DexVm.Version.DEFAULT, DexVm.Version.V7_0_0, DexVm.Version.V6_0_1,
+                      DexVm.Version.V5_1_1)))
           // The growth limit test fails after processing by R8 because R8 will eliminate an
           // "unneeded" const store. The following reflective call to the VM's GC will then see the
           // large array as still live and the subsequent allocations will fail to reach the desired
@@ -512,71 +517,73 @@ public abstract class R8RunArtTestsTest {
               "461-get-reference-vreg",
               TestCondition.match(
                   TestCondition.D8_COMPILER,
-                  TestCondition.runtimes(DexVm.ART_7_0_0, DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
+                  TestCondition
+                      .runtimes(DexVm.Version.V7_0_0, DexVm.Version.V6_0_1, DexVm.Version.V5_1_1)))
           // Dalvik fails on reading an uninitialized local.
           .put(
               "471-uninitialized-locals",
-              TestCondition.match(TestCondition.runtimes(DexVm.ART_4_4_4)))
+              TestCondition.match(TestCondition.runtimes(DexVm.Version.V4_4_4)))
           // Out of memory.
           .put("152-dead-large-object",
-              TestCondition.match(TestCondition.runtimes(DexVm.ART_4_4_4)))
+              TestCondition.match(TestCondition.runtimes(DexVm.Version.V4_4_4)))
           // Cannot resolve exception handler. Interestingly, D8 generates different code in
           // release mode (which is also the code generated by R8) which passes.
           .put("111-unresolvable-exception",
               TestCondition.match(
                   TestCondition.D8_COMPILER,
-                  TestCondition.runtimes(DexVm.ART_4_4_4)))
+                  TestCondition.runtimes(DexVm.Version.V4_4_4)))
           // Type not present.
           .put("124-missing-classes",
-              TestCondition.match(TestCondition.runtimes(DexVm.ART_4_4_4)))
+              TestCondition.match(TestCondition.runtimes(DexVm.Version.V4_4_4)))
           // Failed creating vtable.
           .put("587-inline-class-error",
-              TestCondition.match(TestCondition.runtimes(DexVm.ART_4_4_4)))
+              TestCondition.match(TestCondition.runtimes(DexVm.Version.V4_4_4)))
           // Failed creating vtable.
           .put("595-error-class",
-              TestCondition.match(TestCondition.runtimes(DexVm.ART_4_4_4)))
+              TestCondition.match(TestCondition.runtimes(DexVm.Version.V4_4_4)))
           // NoSuchFieldException: systemThreadGroup on Art 4.4.4.
           .put("129-ThreadGetId",
-              TestCondition.match(TestCondition.runtimes(DexVm.ART_4_4_4)))
+              TestCondition.match(TestCondition.runtimes(DexVm.Version.V4_4_4)))
           // Verifier says: can't modify final field LMain;.staticFinalField.
           .put("600-verifier-fails",
-              TestCondition.match(TestCondition.runtimes(DexVm.ART_4_4_4)))
+              TestCondition.match(TestCondition.runtimes(DexVm.Version.V4_4_4)))
           // VFY: args to if-eq/if-ne must both be refs or cat1.
           .put("134-reg-promotion",
               TestCondition.match(
                   TestCondition.R8_COMPILER,
-                  TestCondition.runtimes(DexVm.ART_4_4_4)))
+                  TestCondition.runtimes(DexVm.Version.V4_4_4)))
           .put("134-reg-promotion",
               TestCondition.match(
                   TestCondition.tools(DexTool.NONE, DexTool.JACK),
                   TestCondition.D8_COMPILER,
-                  TestCondition.runtimes(DexVm.ART_4_4_4)))
+                  TestCondition.runtimes(DexVm.Version.V4_4_4)))
           // VFY: tried to get class from non-ref register.
           .put("506-verify-aput",
-              TestCondition.match(TestCondition.runtimes(DexVm.ART_4_4_4)))
+              TestCondition.match(TestCondition.runtimes(DexVm.Version.V4_4_4)))
           // NoSuchMethod: startMethodTracing.
           .put("545-tracing-and-jit",
-              TestCondition.match(TestCondition.runtimes(DexVm.ART_4_4_4)))
+              TestCondition.match(TestCondition.runtimes(DexVm.Version.V4_4_4)))
           // filled-new-array arg 0(1) not valid.
           .put("412-new-array",
-              TestCondition.match(TestCondition.runtimes(DexVm.ART_4_4_4)))
+              TestCondition.match(TestCondition.runtimes(DexVm.Version.V4_4_4)))
           // TODO(ager): unclear what is failing here.
           .put("098-ddmc",
-              TestCondition.match(TestCondition.runtimes(DexVm.ART_4_4_4)))
+              TestCondition.match(TestCondition.runtimes(DexVm.Version.V4_4_4)))
           // Get unexpected modifier bits on dalvik.
           .put("121-modifiers", TestCondition.match(
               TestCondition.tools(DexTool.DX),
-              TestCondition.runtimes(DexVm.ART_4_4_4)))
+              TestCondition.runtimes(DexVm.Version.V4_4_4)))
           // Unsatisfiable link error:
           // libarttest.so: undefined symbol: _ZN3art6Thread18RunEmptyCheckpointEv
           .put(
               "543-env-long-ref",
               TestCondition.match(
                   TestCondition.D8_COMPILER,
-                  TestCondition.runtimes(DexVm.ART_7_0_0, DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
+                  TestCondition
+                      .runtimes(DexVm.Version.V7_0_0, DexVm.Version.V6_0_1, DexVm.Version.V5_1_1)))
           // lib64 libarttest.so: wrong ELF class ELFCLASS64.
           .put("543-env-long-ref",
-              TestCondition.match(TestCondition.runtimes(DexVm.ART_4_4_4)))
+              TestCondition.match(TestCondition.runtimes(DexVm.Version.V4_4_4)))
           // Regression test for an issue that is not fixed on version 5.1.1. Throws an Exception
           // instance instead of the expected NullPointerException. This bug is only tickled when
           // running the R8 generated code when starting from jar or from dex code generated with
@@ -587,14 +594,15 @@ public abstract class R8RunArtTestsTest {
               TestCondition.match(
                   TestCondition.tools(DexTool.NONE, DexTool.DX),
                   TestCondition.R8_COMPILER,
-                  TestCondition.runtimes(DexVm.ART_5_1_1)))
+                  TestCondition.runtimes(DexVm.Version.V5_1_1)))
           // Contains a method (B.<init>) which pass too few arguments to invoke. Also, contains an
           // iput on a static field.
           .put(
               "600-verifier-fails",
               TestCondition.match(
                   TestCondition.D8_COMPILER,
-                  TestCondition.runtimes(DexVm.ART_7_0_0, DexVm.ART_6_0_1, DexVm.ART_5_1_1)))
+                  TestCondition.runtimes(DexVm.Version.V7_0_0, DexVm.Version.V6_0_1,
+                      DexVm.Version.V5_1_1)))
           .build();
 
   // Tests where the output of R8/D8 runs in Art but produces different output than the expected.txt
@@ -605,12 +613,12 @@ public abstract class R8RunArtTestsTest {
           .put("072-precise-gc",
               TestCondition.match(
                   TestCondition.R8_COMPILER,
-                  TestCondition.runtimes(DexVm.ART_4_4_4)))
+                  TestCondition.runtimes(DexVm.Version.V4_4_4)))
           .put("072-precise-gc",
               TestCondition.match(
                   TestCondition.tools(DexTool.JACK, DexTool.NONE),
                   TestCondition.D8_COMPILER,
-                  TestCondition.runtimes(DexVm.ART_4_4_4)))
+                  TestCondition.runtimes(DexVm.Version.V4_4_4)))
           // This one is expected to have different output. It counts instances, but the list that
           // keeps the instances alive is dead and could be garbage collected. The compiler reuses
           // the register for the list and therefore there are no live instances.
@@ -621,23 +629,25 @@ public abstract class R8RunArtTestsTest {
               "800-smali",
               TestCondition.match(
                   TestCondition.D8_COMPILER,
-                  TestCondition.runtimes(DexVm.ART_5_1_1, DexVm.ART_6_0_1)))
+                  TestCondition.runtimes(DexVm.Version.V5_1_1, DexVm.Version.V6_0_1)))
           // Triggers regression test in 6.0.1 when using R8/D8 in debug mode.
           .put(
               "474-fp-sub-neg",
               TestCondition.match(
                   TestCondition.tools(DexTool.NONE, DexTool.JACK),
                   TestCondition.D8_COMPILER,
-                  TestCondition.runtimes(DexVm.ART_6_0_1)))
+                  TestCondition.runtimes(DexVm.Version.V6_0_1)))
           .build();
 
   private static final TestCondition beforeAndroidN =
       TestCondition
-          .match(TestCondition.runtimes(DexVm.ART_4_4_4, DexVm.ART_5_1_1, DexVm.ART_6_0_1));
+          .match(TestCondition
+              .runtimes(DexVm.Version.V4_4_4, DexVm.Version.V5_1_1, DexVm.Version.V6_0_1));
   private static final TestCondition beforeAndroidO =
       TestCondition.match(
           TestCondition.runtimes(
-              DexVm.ART_4_4_4, DexVm.ART_5_1_1, DexVm.ART_6_0_1, DexVm.ART_7_0_0));
+              DexVm.Version.V4_4_4, DexVm.Version.V5_1_1, DexVm.Version.V6_0_1,
+              DexVm.Version.V7_0_0));
 
   // TODO(ager): Could we test that these fail in the way that we expect?
   private static final Multimap<String, TestCondition> expectedToFailRunWithArt =
@@ -666,7 +676,8 @@ public abstract class R8RunArtTestsTest {
               TestCondition.match(
                   TestCondition.tools(DexTool.JACK, DexTool.DX),
                   TestCondition.compilers(CompilerUnderTest.R8, CompilerUnderTest.D8),
-                  TestCondition.runtimes(DexVm.ART_4_4_4, DexVm.ART_5_1_1, DexVm.ART_6_0_1)))
+                  TestCondition
+                      .runtimes(DexVm.Version.V4_4_4, DexVm.Version.V5_1_1, DexVm.Version.V6_0_1)))
           // Array index out of bounds exception.
           .put("449-checker-bce", TestCondition.any())
           // Fails: get_vreg_jni.cc:46] Check failed: value == 42u (value=314630384, 42u=42)
@@ -675,28 +686,28 @@ public abstract class R8RunArtTestsTest {
           .put(
               "454-get-vreg",
               TestCondition.match(
-                  TestCondition.runtimes(DexVm.ART_4_4_4, DexVm.ART_5_1_1,
-                      DexVm.ART_6_0_1, DexVm.ART_7_0_0)))
+                  TestCondition.runtimes(DexVm.Version.V4_4_4, DexVm.Version.V5_1_1,
+                      DexVm.Version.V6_0_1, DexVm.Version.V7_0_0)))
           .put(
               "454-get-vreg",
               TestCondition.match(
                   TestCondition.tools(DexTool.NONE),
                   TestCondition.D8_COMPILER,
-                  TestCondition.runtimes(DexVm.ART_DEFAULT)))
+                  TestCondition.runtimes(DexVm.Version.DEFAULT)))
           .put("454-get-vreg", TestCondition.match(TestCondition.R8_COMPILER))
           // Fails: regs_jni.cc:42] Check failed: GetVReg(m, 0, kIntVReg, &value)
           // The R8/D8 code does not put values in the same registers as the tests expects.
           .put(
               "457-regs",
               TestCondition.match(
-                  TestCondition.runtimes(DexVm.ART_4_4_4, DexVm.ART_5_1_1,
-                      DexVm.ART_6_0_1, DexVm.ART_7_0_0)))
+                  TestCondition.runtimes(DexVm.Version.V4_4_4, DexVm.Version.V5_1_1,
+                      DexVm.Version.V6_0_1, DexVm.Version.V7_0_0)))
           .put(
               "457-regs",
               TestCondition.match(
                   TestCondition.tools(DexTool.NONE),
                   TestCondition.D8_COMPILER,
-                  TestCondition.runtimes(DexVm.ART_DEFAULT)))
+                  TestCondition.runtimes(DexVm.Version.DEFAULT)))
           .put("457-regs", TestCondition.match(TestCondition.R8_COMPILER))
           // Class not found.
           .put("529-checker-unresolved", TestCondition.any())
@@ -753,11 +764,13 @@ public abstract class R8RunArtTestsTest {
           // Uses dex file version 37 and therefore only runs on Android N and above.
           .put("972-iface-super-multidex",
               TestCondition.match(TestCondition.tools(DexTool.JACK, DexTool.DX),
-                  TestCondition.runtimes(DexVm.ART_4_4_4, DexVm.ART_5_1_1, DexVm.ART_6_0_1)))
+                  TestCondition
+                      .runtimes(DexVm.Version.V4_4_4, DexVm.Version.V5_1_1, DexVm.Version.V6_0_1)))
           // Uses dex file version 37 and therefore only runs on Android N and above.
           .put("978-virtual-interface",
               TestCondition.match(TestCondition.tools(DexTool.JACK, DexTool.DX),
-                  TestCondition.runtimes(DexVm.ART_4_4_4, DexVm.ART_5_1_1, DexVm.ART_6_0_1)))
+                  TestCondition
+                      .runtimes(DexVm.Version.V4_4_4, DexVm.Version.V5_1_1, DexVm.Version.V6_0_1)))
           .build();
 
   // Tests where code generation fails.
@@ -1015,12 +1028,12 @@ public abstract class R8RunArtTestsTest {
   private static Set<String> collectTestsMatchingConditions(
       DexTool dexTool,
       CompilerUnderTest compilerUnderTest,
-      DexVm dexVm,
+      DexVm.Version dexVmVersion,
       CompilationMode mode,
       Multimap<String, TestCondition> testConditionsMap) {
     Set<String> set = Sets.newHashSet();
     for (Map.Entry<String, TestCondition> kv : testConditionsMap.entries()) {
-      if (kv.getValue().test(dexTool, compilerUnderTest, dexVm, mode)) {
+      if (kv.getValue().test(dexTool, compilerUnderTest, dexVmVersion, mode)) {
         set.add(kv.getKey());
       }
     }
@@ -1028,9 +1041,9 @@ public abstract class R8RunArtTestsTest {
   }
 
   private static Map<SpecificationKey, TestSpecification> getTestsMap(
-      CompilerUnderTest compilerUnderTest, CompilationMode compilationMode, DexVm dexVm) {
+      CompilerUnderTest compilerUnderTest, CompilationMode compilationMode, DexVm.Version version) {
     File artTestDir = new File(ART_TESTS_DIR);
-    if (LEGACY_RUNTIME.set.contains(dexVm)) {
+    if (LEGACY_RUNTIME.set.contains(version)) {
       artTestDir = new File(ART_LEGACY_TESTS_DIR);
     }
     if (!artTestDir.exists()) {
@@ -1053,11 +1066,11 @@ public abstract class R8RunArtTestsTest {
       // Collect the tests failing code generation.
       Set<String> failsWithCompiler =
           collectTestsMatchingConditions(
-              dexTool, compilerUnderTest, dexVm, compilationMode, failingWithCompiler);
+              dexTool, compilerUnderTest, version, compilationMode, failingWithCompiler);
 
       // Collect the tests that are flaky.
       skipArt.addAll(collectTestsMatchingConditions(
-              dexTool, compilerUnderTest, dexVm, compilationMode, flakyRunWithArt));
+              dexTool, compilerUnderTest, version, compilationMode, flakyRunWithArt));
 
       // Collect tests that has no input:
       if (dexTool == DexTool.NONE) {
@@ -1066,43 +1079,44 @@ public abstract class R8RunArtTestsTest {
 
       // Collect the test that we should skip in this configuration
       skipTest.addAll(collectTestsMatchingConditions(
-          dexTool, compilerUnderTest, dexVm, compilationMode, testToSkip));
+          dexTool, compilerUnderTest, version, compilationMode, testToSkip));
 
       // Collect the test that we should skip in this configuration.
       skipArt.addAll(
           collectTestsMatchingConditions(
-              dexTool, compilerUnderTest, dexVm, compilationMode, timeoutOrSkipRunWithArt));
+              dexTool, compilerUnderTest, version, compilationMode, timeoutOrSkipRunWithArt));
 
       // Collect the tests failing to run in Art (we still run R8/D8 on these).
       Set<String> failsWithArt =
           collectTestsMatchingConditions(
-              dexTool, compilerUnderTest, dexVm, compilationMode, failingRunWithArt);
+              dexTool, compilerUnderTest, version, compilationMode, failingRunWithArt);
       {
         Set<String> tmpSet =
             collectTestsMatchingConditions(
-                dexTool, compilerUnderTest, dexVm, compilationMode, expectedToFailRunWithArt);
+                dexTool, compilerUnderTest, version, compilationMode, expectedToFailRunWithArt);
         failsWithArt.addAll(tmpSet);
       }
 
-      if (!ToolHelper.isDefaultDexVm(dexVm)) {
+      if (!ToolHelper.isDefaultDexVm(ToolHelper.getDexVm())) {
         // Generally failing when not TOT art.
         failsWithArt.addAll(expectedToFailRunWithArtNonDefault);
         // Version specific failures
-        failsWithArt.addAll(expectedToFailRunWithArtVersion.get(dexVm));
+        failsWithArt
+            .addAll(expectedToFailRunWithArtVersion.get(ToolHelper.getDexVm().getVersion()));
       }
 
       // Collect the tests failing with output differences in Art.
       Set<String> failsRunWithArtOutput =
           collectTestsMatchingConditions(
-              dexTool, compilerUnderTest, dexVm, compilationMode, failingRunWithArtOutput);
+              dexTool, compilerUnderTest, version, compilationMode, failingRunWithArtOutput);
       Set<String> expectedToFailWithCompilerSet =
           collectTestsMatchingConditions(
-              dexTool, compilerUnderTest, dexVm, compilationMode, expectedToFailWithCompiler);
+              dexTool, compilerUnderTest, version, compilationMode, expectedToFailWithCompiler);
 
       // Collect the tests where the original works in Art and the R8/D8 generated output does not.
       Set<String> failsRunWithArtOriginalOnly =
           collectTestsMatchingConditions(
-              dexTool, compilerUnderTest, dexVm, compilationMode, failingRunWithArtOriginalOnly);
+              dexTool, compilerUnderTest, version, compilationMode, failingRunWithArtOriginalOnly);
 
       File compilerTestDir = artTestDir.toPath().resolve(dexToolDirectory(dexTool)).toFile();
       File[] testDirs = compilerTestDir.listFiles();
@@ -1112,7 +1126,7 @@ public abstract class R8RunArtTestsTest {
         // Skip all tests compiled to dex with jack on Dalvik. They have a too high dex
         // version number in the generated output.
         boolean skip = skipTest.contains(name) ||
-            (dexTool == DexTool.JACK && dexVm == DexVm.ART_4_4_4);
+            (dexTool == DexTool.JACK && version == DexVm.Version.V4_4_4);
         // All the native code for all Art tests is currently linked into the
         // libarttest.so file.
         data.put(
@@ -1177,9 +1191,7 @@ public abstract class R8RunArtTestsTest {
       if (artVersion != DexVm.ART_DEFAULT) {
         artTestNativeLibraryDir = new File(ART_LEGACY_TESTS_NATIVE_LIBRARY_DIR);
       }
-      builder.appendArtSystemProperty(
-          "java.library.path",
-          artTestNativeLibraryDir.getAbsolutePath());
+      builder.addToJavaLibraryPath(artTestNativeLibraryDir);
       builder.appendProgramArgument(specification.nativeLibrary);
     }
     return builder;
@@ -1480,7 +1492,7 @@ public abstract class R8RunArtTestsTest {
     }
 
     ArtCommandBuilder builder = buildArtCommand(processedFile, specification, dexVm);
-    if (ToolHelper.getDexVm() != DexVm.ART_4_4_4) {
+    if (ToolHelper.getDexVm() != DexVm.ART_4_4_4_HOST) {
       builder.appendArtOption("-Ximage:/system/non/existent/image.art");
     }
     for (String s : ToolHelper.getBootLibs()) {
@@ -1516,11 +1528,11 @@ public abstract class R8RunArtTestsTest {
     CompilationMode compilationMode = defaultCompilationMode(compilerUnderTest);
 
     TestSpecification specification =
-        getTestsMap(firstCompilerUnderTest, compilationMode, version)
+        getTestsMap(firstCompilerUnderTest, compilationMode, version.getVersion())
             .get(new SpecificationKey(name, toolchain));
 
     if (specification == null) {
-      if (version == DexVm.ART_DEFAULT) {
+      if (version.getVersion() == DexVm.Version.DEFAULT) {
         throw new RuntimeException("Test " + name + " has no specification for toolchain"
             + toolchain + ".");
       } else {
@@ -1531,6 +1543,11 @@ public abstract class R8RunArtTestsTest {
     }
 
     if (specification.skipTest) {
+      return;
+    }
+
+    if (specification.nativeLibrary != null && ToolHelper.getDexVm().getKind() == Kind.TARGET) {
+      // JNI tests not yet supported for devices
       return;
     }
 
@@ -1564,7 +1581,7 @@ public abstract class R8RunArtTestsTest {
     if (compilerUnderTest == CompilerUnderTest.R8_AFTER_D8) {
       compilationMode = CompilationMode.DEBUG;
       specification =
-          getTestsMap(CompilerUnderTest.R8_AFTER_D8, compilationMode, version)
+          getTestsMap(CompilerUnderTest.R8_AFTER_D8, compilationMode, version.getVersion())
               .get(new SpecificationKey(name, DexTool.DX));
 
       if (specification == null) {
@@ -1673,7 +1690,7 @@ public abstract class R8RunArtTestsTest {
       }
 
       File checkCommand = specification.resolveFile("check");
-      if (checkCommand.exists()) {
+      if (checkCommand.exists() && !ToolHelper.isWindows()) {
         // Run the Art test custom check command.
         File actualFile = temp.newFile();
         com.google.common.io.Files.asByteSink(actualFile).write(output.getBytes(Charsets.UTF_8));

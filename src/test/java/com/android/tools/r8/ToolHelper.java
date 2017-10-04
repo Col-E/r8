@@ -7,6 +7,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import com.android.tools.r8.DeviceRunner.DeviceRunnerConfigurationException;
+import com.android.tools.r8.ToolHelper.DexVm.Kind;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
@@ -69,11 +71,15 @@ public class ToolHelper {
   private static final int DEFAULT_MIN_SDK = AndroidApiLevel.I.getLevel();
 
   public enum DexVm {
-    ART_4_4_4("4.4.4"),
-    ART_5_1_1("5.1.1"),
-    ART_6_0_1("6.0.1"),
-    ART_7_0_0("7.0.0"),
-    ART_DEFAULT("default");
+    ART_4_4_4_TARGET(Version.V4_4_4, Kind.TARGET),
+    ART_4_4_4_HOST(Version.V4_4_4, Kind.HOST),
+    ART_5_1_1_TARGET(Version.V5_1_1, Kind.TARGET),
+    ART_5_1_1_HOST(Version.V5_1_1, Kind.HOST),
+    ART_6_0_1_TARGET(Version.V6_0_1, Kind.TARGET),
+    ART_6_0_1_HOST(Version.V6_0_1, Kind.HOST),
+    ART_7_0_0_TARGET(Version.V7_0_0, Kind.TARGET),
+    ART_7_0_0_HOST(Version.V7_0_0, Kind.HOST),
+    ART_DEFAULT(Version.DEFAULT, Kind.HOST);
 
     private static final ImmutableMap<String, DexVm> SHORT_NAME_MAP =
         new ImmutableMap.Builder<String, DexVm>()
@@ -82,8 +88,45 @@ public class ToolHelper {
                     Collectors.toMap(a -> a.toString(), a -> a)))
             .build();
 
+    public enum Version {
+      V4_4_4("4.4.4"),
+      V5_1_1("5.1.1"),
+      V6_0_1("6.0.1"),
+      V7_0_0("7.0.0"),
+      DEFAULT("default");
+
+      Version (String shortName) { this.shortName = shortName; }
+
+      public boolean isNewerThan(Version other) {
+        return compareTo(other) > 0;
+      }
+
+      public boolean isOlderThanOrEqual(Version other) {
+        return compareTo(other) <= 0;
+      }
+
+      public String toString() {
+        return shortName;
+      }
+
+      private String shortName;
+    }
+
+    public enum Kind {
+      HOST("host"),
+      TARGET("target");
+
+      Kind (String shortName) { this.shortName = shortName; }
+
+      public String toString() {
+        return shortName;
+      }
+
+      private String shortName;
+    }
+
     public String toString() {
-      return shortName;
+      return version.shortName + '_' + kind.shortName;
     }
 
     public static DexVm fromShortName(String shortName) {
@@ -91,29 +134,33 @@ public class ToolHelper {
     }
 
     public boolean isNewerThan(DexVm other) {
-      return compareTo(other) > 0;
+      return version.isNewerThan(other.version);
     }
 
     public boolean isOlderThanOrEqual(DexVm other) {
-      return compareTo(other) <= 0;
+      return version.isOlderThanOrEqual(other.version);
+    }
+    DexVm(Version version, Kind kind) {
+      this.version = version;
+      this.kind = kind;
     }
 
-    private DexVm(String shortName) {
-      this.shortName = shortName;
-    }
+    public Version getVersion() { return version; }
+    public Kind getKind() { return kind; }
 
-    private final String shortName;
+    private final Version version;
+    private final Kind kind;
   }
 
 
   public abstract static class CommandBuilder {
 
-    private List<String> options = new ArrayList<>();
-    private Map<String, String> systemProperties = new LinkedHashMap<>();
-    private List<String> classpaths = new ArrayList<>();
-    private String mainClass;
-    private List<String> programArguments = new ArrayList<>();
-    private List<String> bootClassPaths = new ArrayList<>();
+    protected List<String> options = new ArrayList<>();
+    protected Map<String, String> systemProperties = new LinkedHashMap<>();
+    protected List<String> classpaths = new ArrayList<>();
+    protected String mainClass;
+    protected List<String> programArguments = new ArrayList<>();
+    protected List<String> bootClassPaths = new ArrayList<>();
 
     public CommandBuilder appendArtOption(String option) {
       options.add(option);
@@ -151,8 +198,10 @@ public class ToolHelper {
       // explicitly set it;
       if (shouldUseDocker()) {
         result.add("tools/docker/run.sh");
-      } else {
+      } else if (isLinux())  {
         result.add("/bin/bash");
+      } else {
+        assert isWindows();
       }
       result.add(getExecutable());
       for (String option : options) {
@@ -199,22 +248,49 @@ public class ToolHelper {
     private DexVm version;
 
     public ArtCommandBuilder() {
+      this.version = getDexVm();
     }
 
     public ArtCommandBuilder(DexVm version) {
-      assert ART_BINARY_VERSIONS.containsKey(version);
+      if (version.getKind() == Kind.HOST) {
+        assert ART_BINARY_VERSIONS.containsKey(version);
+      }
       this.version = version;
     }
 
     @Override
     protected boolean shouldUseDocker() {
-      return !isLinux();
+      return isMac();
     }
 
     @Override
     protected String getExecutable() {
       return version != null ? getArtBinary(version) : getArtBinary();
     }
+
+    public boolean isForDevice() {
+      return version.getKind() == Kind.TARGET;
+    }
+
+    public ArtCommandBuilder addToJavaLibraryPath(File file) {
+      Assume.assumeTrue("JNI tests are not yet supported on devices", !isForDevice());
+      appendArtSystemProperty("java.library.path", file.getAbsolutePath());
+      return this;
+    }
+
+    public DeviceRunner asDeviceRunner() {
+      return new DeviceRunner()
+              .setVmOptions(options)
+              .setSystemProperties(systemProperties)
+              .setClasspath(toFileList(classpaths))
+              .setBootClasspath(toFileList(bootClassPaths))
+              .setMainClass(mainClass)
+              .setProgramArguments(programArguments);
+    }
+  }
+
+  private static List<File> toFileList(List<String> filePathList) {
+    return filePathList.stream().map(path -> new File(path)).collect(Collectors.toList());
   }
 
   public static class DXCommandBuilder extends CommandBuilder {
@@ -259,29 +335,27 @@ public class ToolHelper {
   }
 
   private static final String TOOLS = "tools";
-  private static final String OS_STRING = isLinux() ? "linux" : (isMac() ? "mac" : "windows");
 
   private static final Map<DexVm, String> ART_DIRS =
-      ImmutableMap.of(
-          DexVm.ART_DEFAULT, "art",
-          DexVm.ART_7_0_0, "art-7.0.0",
-          DexVm.ART_6_0_1, "art-6.0.1",
-          DexVm.ART_5_1_1, "art-5.1.1",
-          DexVm.ART_4_4_4, "dalvik");
-
+      ImmutableMap.<DexVm, String>builder()
+          .put(DexVm.ART_DEFAULT, "art")
+              .put(DexVm.ART_7_0_0_HOST, "art-7.0.0")
+              .put(DexVm.ART_6_0_1_HOST, "art-6.0.1")
+              .put(DexVm.ART_5_1_1_HOST, "art-5.1.1")
+              .put(DexVm.ART_4_4_4_HOST, "dalvik").build();
   private static final Map<DexVm, String> ART_BINARY_VERSIONS =
-      ImmutableMap.of(
-          DexVm.ART_DEFAULT, "bin/art",
-          DexVm.ART_7_0_0, "bin/art",
-          DexVm.ART_6_0_1, "bin/art",
-          DexVm.ART_5_1_1, "bin/art",
-          DexVm.ART_4_4_4, "bin/dalvik");
+      ImmutableMap.<DexVm, String>builder()
+              .put(DexVm.ART_DEFAULT, "bin/art")
+              .put(DexVm.ART_7_0_0_HOST, "bin/art")
+              .put(DexVm.ART_6_0_1_HOST, "bin/art")
+              .put(DexVm.ART_5_1_1_HOST, "bin/art")
+              .put(DexVm.ART_4_4_4_HOST, "bin/dalvik").build();
 
   private static final Map<DexVm, String> ART_BINARY_VERSIONS_X64 =
       ImmutableMap.of(
           DexVm.ART_DEFAULT, "bin/art",
-          DexVm.ART_7_0_0, "bin/art",
-          DexVm.ART_6_0_1, "bin/art");
+          DexVm.ART_7_0_0_HOST, "bin/art",
+          DexVm.ART_6_0_1_HOST, "bin/art");
 
   private static final List<String> DALVIK_BOOT_LIBS =
       ImmutableList.of(
@@ -298,13 +372,13 @@ public class ToolHelper {
   private static final Map<DexVm, List<String>> BOOT_LIBS =
       ImmutableMap.of(
           DexVm.ART_DEFAULT, ART_BOOT_LIBS,
-          DexVm.ART_7_0_0, ART_BOOT_LIBS,
-          DexVm.ART_6_0_1, ART_BOOT_LIBS,
-          DexVm.ART_5_1_1, ART_BOOT_LIBS,
-          DexVm.ART_4_4_4, DALVIK_BOOT_LIBS);
+          DexVm.ART_7_0_0_HOST, ART_BOOT_LIBS,
+          DexVm.ART_6_0_1_HOST, ART_BOOT_LIBS,
+          DexVm.ART_5_1_1_HOST, ART_BOOT_LIBS,
+          DexVm.ART_4_4_4_HOST, DALVIK_BOOT_LIBS);
 
   private static final String LIB_PATH = TOOLS + "/linux/art/lib";
-  private static final String DX = TOOLS + "/" + OS_STRING + "/dx/bin/dx";
+  private static final String DX = getDxExecutablePath();
   private static final String DEX2OAT = TOOLS + "/linux/art/bin/dex2oat";
   private static final String ANGLER_DIR = TOOLS + "/linux/art/product/angler";
   private static final String ANGLER_BOOT_IMAGE = ANGLER_DIR + "/system/framework/boot.art";
@@ -320,6 +394,23 @@ public class ToolHelper {
     }
     fail("Unsupported platform, we currently only support mac and linux: " + getPlatform());
     return ""; //never here
+  }
+
+  public static String toolsDir() {
+    String osName = System.getProperty("os.name");
+    if (osName.equals("Mac OS X")) {
+      return "mac";
+    } else if (osName.contains("Windows")) {
+      return "windows";
+    } else {
+      return "linux";
+    }
+  }
+
+  private static String getDxExecutablePath() {
+    String toolsDir = toolsDir();
+    String executableName = toolsDir.equals("windows") ? "dx.bat" : "dx";
+    return TOOLS + "/" + toolsDir() + "/dx/bin/" + executableName;
   }
 
   public static String getArtBinary(DexVm version) {
@@ -377,12 +468,15 @@ public class ToolHelper {
     String artVersion = System.getProperty("dex_vm");
     if (artVersion != null) {
       DexVm artVersionEnum = getDexVm();
-      if (!ART_BINARY_VERSIONS.containsKey(artVersionEnum)) {
+      if (artVersionEnum.getKind() == Kind.HOST
+          && !ART_BINARY_VERSIONS.containsKey(artVersionEnum)) {
         throw new RuntimeException("Unsupported Art version " + artVersion);
       }
       return ImmutableSet.of(artVersionEnum);
     } else {
-      if (isLinux()) {
+      if (isWindows()) {
+        throw new RuntimeException("You need to specify a runtime with 'dex_vm' property");
+      } else if (isLinux()) {
         return ART_BINARY_VERSIONS.keySet();
       } else {
         return ART_BINARY_VERSIONS_X64.keySet();
@@ -405,6 +499,11 @@ public class ToolHelper {
   public static DexVm getDexVm() {
     String artVersion = System.getProperty("dex_vm");
     if (artVersion == null) {
+      if (isWindows()) {
+        throw new RuntimeException(
+            "Default Art version is not supported on Windows. Please specify a non-host runtime "
+                + "with property 'dex_vm'");
+      }
       return DexVm.ART_DEFAULT;
     } else {
       DexVm artVersionEnum = DexVm.fromShortName(artVersion);
@@ -417,10 +516,10 @@ public class ToolHelper {
   }
 
   public static int getMinApiLevelForDexVm(DexVm dexVm) {
-    switch (dexVm) {
-      case ART_DEFAULT:
+    switch (dexVm.version) {
+      case DEFAULT:
         return AndroidApiLevel.O.getLevel();
-      case ART_7_0_0:
+      case V7_0_0:
         return AndroidApiLevel.N.getLevel();
       default:
         return AndroidApiLevel.getDefault().getLevel();
@@ -444,7 +543,7 @@ public class ToolHelper {
   }
 
   public static boolean artSupported() {
-    if (!isLinux() && !isMac()) {
+    if (!isLinux() && !isMac()  && !isWindows()) {
       System.err.println("Testing on your platform is not fully supported. " +
           "Art does not work on on your platform.");
       return false;
@@ -710,7 +809,16 @@ public class ToolHelper {
 
   private static ProcessResult runArtProcess(ArtCommandBuilder builder) throws IOException {
     Assume.assumeTrue(ToolHelper.artSupported());
-    ProcessResult result = runProcess(builder.asProcessBuilder());
+    ProcessResult result;
+    if (builder.isForDevice()) {
+      try {
+        result = builder.asDeviceRunner().run();
+      } catch (DeviceRunnerConfigurationException e) {
+        throw new RuntimeException(e);
+      }
+    } else {
+      result = runProcess(builder.asProcessBuilder());
+    }
     if (result.exitCode != 0) {
       fail("Unexpected art failure: '" + result.stderr + "'\n" + result.stdout);
     }
@@ -768,6 +876,8 @@ public class ToolHelper {
 
   public static void runDex2Oat(Path file, Path outFile) throws IOException {
     Assume.assumeTrue(ToolHelper.artSupported());
+    // TODO(jmhenaff): find a way to run this on windows (push dex and run on device/emulator?)
+    Assume.assumeTrue(!ToolHelper.isWindows());
     assert Files.exists(file);
     assert ByteStreams.toByteArray(Files.newInputStream(file)).length > 0;
     List<String> command = new ArrayList<>();

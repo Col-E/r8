@@ -104,17 +104,17 @@ public abstract class RunExamplesAndroidNTest<B> {
     abstract void build(Path inputFile, Path out) throws Throwable;
   }
 
-  private static Map<DexVm, List<String>> failsOn =
+  private static Map<DexVm.Version, List<String>> failsOn =
       ImmutableMap.of(
-          DexVm.ART_4_4_4,
+          DexVm.Version.V4_4_4,
           ImmutableList.of(),
-          DexVm.ART_5_1_1,
+          DexVm.Version.V5_1_1,
           ImmutableList.of(),
-          DexVm.ART_6_0_1,
+          DexVm.Version.V6_0_1,
           ImmutableList.of(),
-          DexVm.ART_7_0_0,
+          DexVm.Version.V7_0_0,
           ImmutableList.of(),
-          DexVm.ART_DEFAULT,
+          DexVm.Version.DEFAULT,
           ImmutableList.of());
 
   @Rule public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();

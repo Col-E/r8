@@ -6,6 +6,7 @@ package com.android.tools.r8;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
@@ -35,13 +36,13 @@ public class R8RunSmaliTestsTest {
   private static final String SMALI_DIR = ToolHelper.SMALI_BUILD_DIR;
 
   // Tests where the original smali code fails on Art, but runs after R8 processing.
-  private static Map<DexVm, List<String>> originalFailingOnArtVersions = ImmutableMap.of(
-      DexVm.ART_5_1_1, ImmutableList.of(
+  private static Map<DexVm.Version, List<String>> originalFailingOnArtVersions = ImmutableMap.of(
+      Version.V5_1_1, ImmutableList.of(
           // Smali code contains an empty switch payload.
           "sparse-switch",
           "regression/33846227"
       ),
-      DexVm.ART_4_4_4, ImmutableList.of(
+      Version.V4_4_4, ImmutableList.of(
           // Smali code contains an empty switch payload.
           "sparse-switch",
           "regression/33846227"
@@ -49,19 +50,20 @@ public class R8RunSmaliTestsTest {
   );
 
   // Tests where the output has a different output than the original on certain VMs.
-  private static Map<DexVm, Map<String, String>> customProcessedOutputExpectation = ImmutableMap.of(
-      DexVm.ART_4_4_4, ImmutableMap.of(
-          "bad-codegen", "java.lang.NullPointerException\n",
-          "type-confusion-regression2", "java.lang.NullPointerException\n",
-          "type-confusion-regression3", "java.lang.NullPointerException\n",
-          "merge-blocks-regression", "java.lang.NullPointerException\n"
-      )
-  );
+  private static Map<DexVm.Version, Map<String, String>> customProcessedOutputExpectation =
+      ImmutableMap.of(
+          Version.V4_4_4, ImmutableMap.of(
+              "bad-codegen", "java.lang.NullPointerException\n",
+              "type-confusion-regression2", "java.lang.NullPointerException\n",
+              "type-confusion-regression3", "java.lang.NullPointerException\n",
+              "merge-blocks-regression", "java.lang.NullPointerException\n"
+          )
+      );
 
   // Tests where the input fails with a verification error on Dalvik instead of the
   // expected runtime exception.
-  private static Map<DexVm, List<String>> dalvikVerificationError = ImmutableMap.of(
-      DexVm.ART_4_4_4, ImmutableList.of(
+  private static Map<DexVm.Version, List<String>> dalvikVerificationError = ImmutableMap.of(
+      Version.V4_4_4, ImmutableList.of(
           // The invokes are in fact invalid, but the test expects the current Art behavior
           // of throwing an IncompatibleClassChange exception. Dalvik fails to verify.
           "illegal-invokes"

@@ -3,14 +3,16 @@
 # for details. All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
+import os
 from os import makedirs, listdir
 from os.path import join, exists, isdir
 from string import Template, upper
 from sys import exit
 from shutil import rmtree
 
-OUTPUT_DIR = "build/generated/test/java/com/android/tools/r8/art"
-TEST_DIR = "tests/2017-07-27/art"
+OUTPUT_DIR = os.path.join('build', 'generated', 'test', 'java', 'com',
+                          'android', 'tools', 'r8', 'art')
+TEST_DIR = os.path.join('tests', '2017-07-27', 'art')
 TOOLCHAINS = ["dx", "jack", "none"]
 TOOLS = ["r8", "d8"]
 TEMPLATE = Template(

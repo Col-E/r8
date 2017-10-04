@@ -12,6 +12,7 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.FoundClassSubject;
 import com.android.tools.r8.utils.DexInspector.FoundMethodSubject;
@@ -174,9 +175,9 @@ public abstract class RunExamplesAndroidOTest
       ImmutableList.of(
           "invokepolymorphic-error-due-to-min-sdk", "invokecustom-error-due-to-min-sdk");
 
-  private static Map<DexVm, List<String>> failsOn =
+  private static Map<DexVm.Version, List<String>> failsOn =
       ImmutableMap.of(
-          DexVm.ART_4_4_4, ImmutableList.of(
+          DexVm.Version.V4_4_4, ImmutableList.of(
               // API not supported
               "paramnames",
               "repeat_annotations_new_api",
@@ -190,7 +191,7 @@ public abstract class RunExamplesAndroidOTest
               "testCallToMissingSuperInterfaceDesugaredAndroidO",
               "testMissingSuperDesugaredAndroidO"
           ),
-          DexVm.ART_5_1_1, ImmutableList.of(
+          DexVm.Version.V5_1_1, ImmutableList.of(
               // API not supported
               "paramnames",
               "repeat_annotations_new_api",
@@ -204,7 +205,7 @@ public abstract class RunExamplesAndroidOTest
               "testCallToMissingSuperInterfaceDesugaredAndroidO",
               "testMissingSuperDesugaredAndroidO"
           ),
-          DexVm.ART_6_0_1, ImmutableList.of(
+          DexVm.Version.V6_0_1, ImmutableList.of(
               // API not supported
               "paramnames",
               "repeat_annotations_new_api",
@@ -218,7 +219,7 @@ public abstract class RunExamplesAndroidOTest
               "testCallToMissingSuperInterfaceDesugaredAndroidO",
               "testMissingSuperDesugaredAndroidO"
           ),
-          DexVm.ART_7_0_0, ImmutableList.of(
+          DexVm.Version.V7_0_0, ImmutableList.of(
               // API not supported
               "paramnames",
               // Dex version not supported
@@ -229,8 +230,7 @@ public abstract class RunExamplesAndroidOTest
               "testCallToMissingSuperInterfaceDesugaredAndroidO",
               "testMissingSuperDesugaredAndroidO"
           ),
-          DexVm.ART_DEFAULT, ImmutableList.of(
-          )
+          DexVm.Version.DEFAULT, ImmutableList.of()
       );
 
   @Rule
@@ -239,9 +239,10 @@ public abstract class RunExamplesAndroidOTest
   @Rule
   public ExpectedException thrown = ExpectedException.none();
 
-  boolean failsOn(Map<ToolHelper.DexVm, List<String>> failsOn, String name) {
-    return failsOn.containsKey(ToolHelper.getDexVm())
-        && failsOn.get(ToolHelper.getDexVm()).contains(name);
+  boolean failsOn(Map<ToolHelper.DexVm.Version, List<String>> failsOn, String name) {
+    Version vmVersion = ToolHelper.getDexVm().getVersion();
+    return failsOn.containsKey(vmVersion)
+        && failsOn.get(vmVersion).contains(name);
   }
 
   boolean expectedToFail(String name) {
@@ -395,8 +396,8 @@ public abstract class RunExamplesAndroidOTest
           "JVM output does not match art output.\n\tjvm: "
               + javaResult.stdout
               + "\n\tart: "
-              + output.replace("\r", ""),
-          output.equals(javaResult.stdout.replace("\r", "")));
+              + output,
+          output.replace("\r", "").equals(javaResult.stdout.replace("\r", "")));
     }
   }
 

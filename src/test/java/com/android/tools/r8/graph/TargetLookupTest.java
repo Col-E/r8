@@ -10,6 +10,7 @@ import static org.junit.Assert.assertNull;
 
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.smali.SmaliTestBase;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
@@ -69,7 +70,7 @@ public class TargetLookupTest extends SmaliTestBase {
     assertNull(appInfo.lookupDirectTarget(method.method));
     assertNotNull(appInfo.lookupStaticTarget(method.method));
 
-    if (ToolHelper.getDexVm() == DexVm.ART_4_4_4) {
+    if (ToolHelper.getDexVm().getVersion() == DexVm.Version.V4_4_4) {
       // Dalvik rejects at verification time instead of producing the
       // expected IncompatibleClassChangeError.
       try {

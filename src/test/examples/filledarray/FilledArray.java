@@ -10,8 +10,7 @@ public class FilledArray {
   private static byte[] bytes = new byte[] {
       0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, -19, -20, -96,
       Byte.MAX_VALUE, Byte.MIN_VALUE };
-  private static char[] chars = new char[] {
-      Character.MAX_VALUE, 'a', 'b', 'c', 'd', Character.MIN_VALUE };
+  private static char[] chars = new char[] {'a', 'b', 'c', 'd'};
   private static int[] ints = new int[] { Integer.MAX_VALUE, 0, -42, 42, Integer.MIN_VALUE };
   private static short[] shorts = new short[] { Short.MAX_VALUE, 0, -42, 42, Short.MIN_VALUE };
   private static long[] longs = new long[] {

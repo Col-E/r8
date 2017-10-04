@@ -140,6 +140,7 @@ dependencies {
     testCompile group: 'org.smali', name: 'smali', version: '2.2b4'
     testCompile files('third_party/jasmin/jasmin-2.4.jar')
     testCompile files('third_party/jdwp-tests/apache-harmony-jdwp-tests-host.jar')
+    testCompile files('third_party/ddmlib/ddmlib.jar')
     jctfCommonCompile 'junit:junit:4.12'
     jctfTestsCompile 'junit:junit:4.12'
     jctfTestsCompile sourceSets.jctfCommon.output
@@ -202,6 +203,7 @@ def cloudDependencies = [
                 "kotlin",
                 "android_cts_baseline",
                 "shadow",
+                "ddmlib",
         ],
         // All dex-vms have a fixed OS of Linux, as they are only supported on Linux, and will be run in a Docker
         // container on other platforms where supported.

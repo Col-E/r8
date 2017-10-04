@@ -30,7 +30,7 @@ public class FillBooleanArrayTruncation extends JasminTestBase {
 
   private void runTest(JasminBuilder builder, String main) throws Exception {
     String javaResult = runOnJava(builder, main);
-    if (ToolHelper.getDexVm() == DexVm.ART_4_4_4) {
+    if (ToolHelper.getDexVm().getVersion() == DexVm.Version.V4_4_4) {
       // On dalvik the need for truncation is treated as a verification error.
       runOnDalvikCheckVerifyError(builder, main);
       runOnDalvikDxCheckVerifyError(builder, main);

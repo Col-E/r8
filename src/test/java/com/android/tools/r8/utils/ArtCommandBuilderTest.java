@@ -8,6 +8,7 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.ToolHelper.DexVm.Kind;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
@@ -21,6 +22,7 @@ public class ArtCommandBuilderTest {
   @Before
   public void setUp() {
     Assume.assumeTrue(ToolHelper.artSupported());
+    Assume.assumeTrue(ToolHelper.getDexVm().getKind() == Kind.HOST);
   }
 
   @Test
