@@ -7,6 +7,7 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
@@ -151,28 +152,29 @@ public class R8RunSmaliTestsTest {
     String generated = outputPath + "/classes.dex";
     String output = "";
 
-    if (dalvikVerificationError.containsKey(ToolHelper.getDexVm())
-        && dalvikVerificationError.get(ToolHelper.getDexVm()).contains(directoryName)) {
+    DexVm.Version dexVmVersion = ToolHelper.getDexVm().getVersion();
+    if (dalvikVerificationError.containsKey(dexVmVersion)
+        && dalvikVerificationError.get(dexVmVersion).contains(directoryName)) {
       try {
         ToolHelper.runArtNoVerificationErrors(generated, mainClass);
       } catch (AssertionError e) {
         assert e.toString().contains("VerifyError");
       }
       return;
-    } else if (originalFailingOnArtVersions.containsKey(ToolHelper.getDexVm())
-        && originalFailingOnArtVersions.get(ToolHelper.getDexVm()).contains(directoryName)) {
+    } else if (originalFailingOnArtVersions.containsKey(dexVmVersion)
+        && originalFailingOnArtVersions.get(dexVmVersion).contains(directoryName)) {
       // If the original smali code fails on the target VM, only run the code produced by R8.
       output = ToolHelper.runArtNoVerificationErrors(generated, mainClass);
-    } else if (customProcessedOutputExpectation.containsKey(ToolHelper.getDexVm())
-        && customProcessedOutputExpectation.get(ToolHelper.getDexVm()).containsKey(directoryName)) {
+    } else if (customProcessedOutputExpectation.containsKey(dexVmVersion)
+        && customProcessedOutputExpectation.get(dexVmVersion).containsKey(directoryName)) {
       // If the original and the processed code have different expected output, only run
       // the code produced by R8.
       expectedOutput =
-          customProcessedOutputExpectation.get(ToolHelper.getDexVm()).get(directoryName);
+          customProcessedOutputExpectation.get(dexVmVersion).get(directoryName);
       output = ToolHelper.runArtNoVerificationErrors(generated, mainClass);
     } else {
-      if (failingOnArtVersions.containsKey(ToolHelper.getDexVm())
-          && failingOnArtVersions.get(ToolHelper.getDexVm()).contains(directoryName)) {
+      if (failingOnArtVersions.containsKey(dexVmVersion)
+          && failingOnArtVersions.get(dexVmVersion).contains(directoryName)) {
         thrown.expect(Throwable.class);
       }
       output =
