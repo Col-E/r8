@@ -395,9 +395,6 @@ public class R8 {
    * <p>The R8 API is intentionally limited and should "do the right thing" given a command. If this
    * API does not suffice please contact the R8 team.
    *
-   * <p>If the R8Command contains a DiagnosticsHandler that does not throw a CompilationException
-   * on error this method returns null if the run fails.
-   *
    * @param command R8 command.
    * @return the compilation result.
    */
@@ -478,9 +475,6 @@ public class R8 {
    * <p>The R8 API is intentionally limited and should "do the right thing" given a command. If this
    * API does not suffice please contact the R8 team.
    *
-   * <p>If the R8Command contains a DiagnosticsHandler that does not throw a CompilationException
-   * on error this method returns null if the run fails.
-   *
    * @param command R8 command.
    * @param executor executor service from which to get threads for multi-threaded processing.
    * @return the compilation result.
@@ -488,15 +482,10 @@ public class R8 {
   public static AndroidApp run(R8Command command, ExecutorService executor)
       throws IOException, CompilationException {
     InternalOptions options = command.getInternalOptions();
-    try {
-      AndroidApp outputApp =
-          runForTesting(command.getInputApp(), options, executor).androidApp;
-      writeOutputs(command, options, outputApp);
-      return outputApp;
-    } catch (CompilationException e) {
-      options.diagnosticsHandler.error(e);
-      return null;
-    }
+    AndroidApp outputApp =
+        runForTesting(command.getInputApp(), options, executor).androidApp;
+    writeOutputs(command, options, outputApp);
+    return outputApp;
   }
 
   private static void run(String[] args)
