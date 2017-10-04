@@ -12,6 +12,16 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.List;
 
+/**
+ * Proguard + Dx compatibility interface for r8.
+ *
+ * This should become a mostly drop-in replacement for uses of Proguard followed by Dx.
+ *
+ * It accepts all Proguard flags supported by r8, except -outjars.
+ *
+ * The flag -outjars does not make sense as r8 (like Proguard + Dx) produces Dex output.
+ * For output use --output as for R8 proper.
+ */
 public class CompatProguard {
   public static class CompatProguardOptions {
     public final String output;
@@ -24,7 +34,7 @@ public class CompatProguard {
       this.proguardConfig = proguardConfig;
     }
 
-    public static CompatProguardOptions parse(String[] args) {
+    public static CompatProguardOptions parse(String[] args) throws CompilationException {
       String output = null;
       int minApi = 1;
       ImmutableList.Builder<String> builder = ImmutableList.builder();
@@ -35,8 +45,11 @@ public class CompatProguard {
           if (arg.charAt(0) == '-') {
             if (arg.equals("--min-api")) {
               minApi = Integer.valueOf(args[++i]);
-            } else if (arg.equals("-outjars")) {
+            } else if (arg.equals("--output")) {
               output = args[++i];
+            } else if (arg.equals("-outjars")) {
+              throw new CompilationException(
+                  "Proguard argument -outjar is not supported. Use R8 compatible --output flag");
             } else {
               builder.add(currentLine.toString());
               currentLine = new StringBuilder(arg);

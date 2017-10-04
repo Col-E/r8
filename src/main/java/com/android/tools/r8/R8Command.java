@@ -461,7 +461,6 @@ public class R8Command extends BaseCompilerCommand {
     internal.keepAttributes.applyPatterns(proguardConfiguration.getKeepAttributesPatterns());
     internal.ignoreMissingClasses |= proguardConfiguration.isIgnoreWarnings();
     assert !internal.verbose;
-    internal.verbose |= proguardConfiguration.isVerbose();
     internal.mainDexKeepRules = mainDexKeepRules;
     internal.minimalMainDex = internal.debug;
     if (mainDexListOutput != null) {
