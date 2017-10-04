@@ -38,6 +38,7 @@ import com.android.tools.r8.shaking.protolite.ProtoLitePruner;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ArrayListMultimap;
@@ -494,7 +495,8 @@ public class IRConverter {
       BiConsumer<IRCode, DexEncodedMethod> outlineHandler)
       throws ApiLevelException {
     if (options.verbose) {
-      System.out.println("Processing: " + method.toSourceString());
+      options.diagnosticsHandler.info(
+          new StringDiagnostic("Processing: " + method.toSourceString()));
     }
     if (Log.ENABLED) {
       Log.debug(getClass(), "Original code for %s:\n%s",

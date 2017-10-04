@@ -136,27 +136,31 @@ public class InternalOptions {
     boolean printed = false;
     boolean printOutdatedToolchain = false;
     if (warningInvalidParameterAnnotations != null) {
-      System.out.println("Warning: " + warningInvalidParameterAnnotations);
+      diagnosticsHandler.warning(
+          new StringDiagnostic(warningInvalidParameterAnnotations));
       printed = true;
     }
     if (warningInvalidDebugInfoCount > 0) {
-      System.out.println("Warning: stripped invalid locals information from "
+      diagnosticsHandler.warning(
+          new StringDiagnostic("Stripped invalid locals information from "
           + warningInvalidDebugInfoCount
-          + (warningInvalidDebugInfoCount == 1 ? " method." : " methods."));
+          + (warningInvalidDebugInfoCount == 1 ? " method." : " methods.")));
       printed = true;
       printOutdatedToolchain = true;
     }
     if (warningMissingEnclosingMember) {
-      System.out.println(
-          "Warning: InnerClass annotations are missing corresponding EnclosingMember annotations."
-              + " Such InnerClass annotations are ignored.");
+      diagnosticsHandler.warning(
+          new StringDiagnostic(
+              "InnerClass annotations are missing corresponding EnclosingMember annotations."
+                  + " Such InnerClass annotations are ignored."));
       printed = true;
       printOutdatedToolchain = true;
     }
     if (printOutdatedToolchain) {
-      System.out.println(
-          "Some warnings are typically a sign of using an outdated Java toolchain."
-              + " To fix, recompile the source with an updated toolchain.");
+      diagnosticsHandler.warning(
+          new StringDiagnostic(
+              "Some warnings are typically a sign of using an outdated Java toolchain."
+                  + " To fix, recompile the source with an updated toolchain."));
     }
     return printed;
   }

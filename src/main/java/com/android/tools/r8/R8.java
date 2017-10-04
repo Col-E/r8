@@ -216,8 +216,10 @@ public class R8 {
                 "Shrinking can't be performed because some library classes are missing.");
           }
         }
-        rootSet = new RootSetBuilder(application, appInfo, options.proguardConfiguration.getRules())
-            .run(executorService);
+        rootSet =
+            new RootSetBuilder(
+                    application, appInfo, options.proguardConfiguration.getRules(), options)
+                .run(executorService);
         Enqueuer enqueuer = new Enqueuer(appInfo);
         enqueuer.addExtension(new ProtoLiteExtension(appInfo));
         appInfo = enqueuer.traceApplication(rootSet, timing);
@@ -282,7 +284,8 @@ public class R8 {
         Enqueuer enqueuer = new Enqueuer(appInfo);
         // Lets find classes which may have code executed before secondary dex files installation.
         RootSet mainDexRootSet =
-            new RootSetBuilder(application, appInfo, options.mainDexKeepRules).run(executorService);
+            new RootSetBuilder(application, appInfo, options.mainDexKeepRules, options)
+                .run(executorService);
         Set<DexType> mainDexBaseClasses = enqueuer.traceMainDex(mainDexRootSet, timing);
 
         // Calculate the automatic main dex list according to legacy multidex constraints.
@@ -316,7 +319,7 @@ public class R8 {
       // Only perform discard-checking if tree-shaking is turned on.
       if (options.useTreeShaking && !rootSet.checkDiscarded.isEmpty()
           && options.useDiscardedChecker) {
-        new DiscardedChecker(rootSet, application).run();
+        new DiscardedChecker(rootSet, application, options).run();
       }
 
       timing.begin("Minification");

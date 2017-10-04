@@ -70,7 +70,7 @@ abstract class NamingTestBase {
       ClassAndMemberPublicizer.run(program);
     }
 
-    RootSet rootSet = new RootSetBuilder(program, appInfo, configuration.getRules())
+    RootSet rootSet = new RootSetBuilder(program, appInfo, configuration.getRules(), options)
         .run(ThreadUtils.getExecutorService(options));
     Enqueuer enqueuer = new Enqueuer(appInfo);
     appInfo = enqueuer.traceApplication(rootSet, timing);
