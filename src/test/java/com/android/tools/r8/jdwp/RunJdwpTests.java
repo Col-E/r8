@@ -57,6 +57,10 @@ public class RunJdwpTests {
     boolean test(DexVm dexVm, Tool tool);
   }
 
+  static boolean isAndroidLOrAbove(DexVm dexVm, Tool tool) {
+    return dexVm.getVersion().isNewerThan(Version.V4_4_4);
+  }
+
   static boolean isAndroidMOrAbove(DexVm dexVm, Tool tool) {
     return dexVm.getVersion().isNewerThan(Version.V5_1_1);
   }
@@ -67,6 +71,10 @@ public class RunJdwpTests {
 
   static boolean isAndroidOOrAbove(DexVm dexVm, Tool tool) {
     return dexVm.getVersion().isNewerThan(Version.V7_0_0);
+  }
+
+  static boolean isNotAndroidL(DexVm dexVm, Tool tool) {
+    return dexVm.getVersion() != Version.V5_1_1;
   }
 
   static boolean isLatestRuntime(DexVm dexVm, Tool tool) {
@@ -85,46 +93,123 @@ public class RunJdwpTests {
 
   static final Map<String, TestPredicate> FAILING_TESTS =
       ImmutableMap.<String, TestPredicate>builder()
+          .put("ArrayReference.GetValuesTest", RunJdwpTests::isAndroidLOrAbove)
+          .put("ArrayReference.LengthTest", RunJdwpTests::isAndroidLOrAbove)
           .put("ArrayReference.SetValues003Test", RunJdwpTests::isAndroidNOrAbove)
+          .put("ClassObjectReference.ReflectedTypeTest", RunJdwpTests::isAndroidLOrAbove)
+          .put("ClassObjectReference.ReflectedType002Test", RunJdwpTests::isAndroidLOrAbove)
+          .put("ClassType.InvokeMethodTest", RunJdwpTests::isAndroidLOrAbove)
+          .put("ClassType.InvokeMethod002Test", RunJdwpTests::isAndroidLOrAbove)
           .put("ClassType.InvokeMethodAfterMultipleThreadSuspensionTest",
               RunJdwpTests::isAndroidNOrAbove)
           .put("ClassType.InvokeMethodWithSuspensionTest", RunJdwpTests::isAndroidMOrAbove)
+          .put("ClassType.NewInstanceTest", RunJdwpTests::isAndroidLOrAbove)
           .put("ClassType.NewInstanceAfterMultipleThreadSuspensionTest",
               RunJdwpTests::isAndroidNOrAbove)
           .put("ClassType.NewInstanceStringTest", RunJdwpTests::isAndroidOOrAbove)
           .put("ClassType.NewInstanceTagTest", RunJdwpTests::isAndroidNOrAbove)
           .put("ClassType.NewInstanceWithSuspensionTest", RunJdwpTests::isAndroidMOrAbove)
+          .put("ClassType.SetValues002Test", RunJdwpTests::isAndroidLOrAbove)
+          .put("ClassType.SuperClassTest", RunJdwpTests::isAndroidLOrAbove)
           .put("Events.BreakpointTest", RunJdwpTests::isAndroidMOrAbove)
           .put("Events.Breakpoint002Test", RunJdwpTests::isAndroidMOrAbove)
           .put("Events.BreakpointOnCatchTest", RunJdwpTests::isAndroidMOrAbove)
+          .put("Events.ClassPrepareTest", RunJdwpTests::isAndroidLOrAbove)
           .put("Events.ClassPrepare002Test", RunJdwpTests::isAndroidOOrAbove)
+          .put("Events.CombinedEvents002Test", RunJdwpTests::isAndroidLOrAbove)
           .put("Events.CombinedExceptionEventsTest", RunJdwpTests::isAndroidMOrAbove)
           .put("Events.ExceptionCaughtTest", RunJdwpTests::isAndroidMOrAbove)
-          .put("Events.ExceptionUncaughtTest", RunJdwpTests::isAndroidMOrAbove)
+          .put("Events.ExceptionUncaughtTest", RunJdwpTests::isNotAndroidL)
+          .put("Events.ExceptionWithLocationTest", RunJdwpTests::isAndroidLOrAbove)
           .put("Events.EventWithExceptionTest", RunJdwpTests::isAndroidNOrAbove)
           .put("Events.FieldAccessTest", RunJdwpTests::isAndroidMOrAbove)
           .put("Events.FieldModificationTest", RunJdwpTests::isAndroidMOrAbove)
+          .put("Events.FieldModification002Test", RunJdwpTests::isAndroidLOrAbove)
+          .put("Events.FieldWithLocationTest", RunJdwpTests::isAndroidLOrAbove)
           .put("Events.MethodEntryTest", RunJdwpTests::isAndroidMOrAbove)
           .put("Events.MethodExitTest", RunJdwpTests::isAndroidMOrAbove)
           .put("Events.MethodExitWithReturnValueTest", RunJdwpTests::isAndroidMOrAbove)
-          .put("Events.SingleStepTest", RunJdwpTests::isAndroidMOrAbove)
+          .put("Events.SingleStepTest", RunJdwpTests::isNotAndroidL)
           .put("Events.SingleStepWithPendingExceptionTest", RunJdwpTests::isAndroidNOrAbove)
+          .put("EventModifiers.CountModifierTest", RunJdwpTests::isAndroidLOrAbove)
+          .put("EventModifiers.ThreadOnlyModifierTest", RunJdwpTests::isAndroidLOrAbove)
           .put("InterfaceType.InvokeMethodTest", RunJdwpTests::isAndroidNOrAbove)
+          .put("Method.BytecodesTest", RunJdwpTests::isAndroidLOrAbove)
           .put("Method.IsObsoleteTest", RunJdwpTests::isAndroidNOrAbove)
           .put("Method.VariableTableWithGenericTest", RunJdwpTests::isAndroidOOrAbove)
+          .put("MultiSession.AttachConnectorTest", RunJdwpTests::isAndroidLOrAbove)
+          .put("MultiSession.BreakpointTest", RunJdwpTests::isAndroidLOrAbove)
+          .put("MultiSession.ClassObjectIDTest", RunJdwpTests::isAndroidLOrAbove)
+          .put("MultiSession.ClassPrepareTest", RunJdwpTests::isAndroidLOrAbove)
+          .put("MultiSession.EnableCollectionTest", RunJdwpTests::isAndroidLOrAbove)
+          .put("MultiSession.ExceptionTest", RunJdwpTests::isAndroidLOrAbove)
+          .put("MultiSession.FieldAccessTest", RunJdwpTests::isAndroidLOrAbove)
+          .put("MultiSession.FieldModificationTest", RunJdwpTests::isAndroidLOrAbove)
+          .put("MultiSession.MethodEntryExitTest", RunJdwpTests::isAndroidLOrAbove)
+          .put("MultiSession.RefTypeIDTest", RunJdwpTests::isAndroidLOrAbove)
+          .put("MultiSession.ResumeTest", RunJdwpTests::isAndroidLOrAbove)
+          .put("MultiSession.SingleStepTest", RunJdwpTests::isAndroidLOrAbove)
+          .put("MultiSession.VMDeathTest", RunJdwpTests::isAndroidLOrAbove)
+          .put("ObjectReference.DisableCollectionTest", RunJdwpTests::isAndroidLOrAbove)
+          .put("ObjectReference.EnableCollectionTest", RunJdwpTests::isAndroidLOrAbove)
+          .put("ObjectReference.GetValues002Test", RunJdwpTests::isAndroidLOrAbove)
           .put("ObjectReference.InvokeMethodDefaultTest", RunJdwpTests::isAndroidNOrAbove)
           .put("ObjectReference.InvokeMethodDefault002Test", RunJdwpTests::isAndroidNOrAbove)
           .put("ObjectReference.InvokeMethodAfterMultipleThreadSuspensionTest",
               RunJdwpTests::isAndroidNOrAbove)
           .put("ObjectReference.InvokeMethodWithSuspensionTest", RunJdwpTests::isAndroidMOrAbove)
-          .put("ReferenceType.GetValues006Test", RunJdwpTests::isAndroidOOrAbove)
+          .put("ObjectReference.IsCollectedTest", RunJdwpTests::isAndroidLOrAbove)
+          .put("ObjectReference.MonitorInfoTest", RunJdwpTests::isAndroidLOrAbove)
+          .put("ObjectReference.SetValuesTest", RunJdwpTests::isAndroidLOrAbove)
+          .put("ObjectReference.SetValues002Test", RunJdwpTests::isAndroidLOrAbove)
+          .put("ObjectReference.SetValues003Test", RunJdwpTests::isAndroidLOrAbove)
           .put("ReferenceType.ClassLoaderTest", RunJdwpTests::isAndroidNOrAbove)
+          .put("ReferenceType.FieldsTest", RunJdwpTests::isAndroidLOrAbove)
+          .put("ReferenceType.GetValues002Test", RunJdwpTests::isAndroidLOrAbove)
+          .put("ReferenceType.GetValues004Test", RunJdwpTests::isAndroidLOrAbove)
+          .put("ReferenceType.GetValues006Test", RunJdwpTests::isAndroidOOrAbove)
+          .put("ReferenceType.MethodsTest", RunJdwpTests::isAndroidLOrAbove)
+          .put("ReferenceType.ModifiersTest", RunJdwpTests::isAndroidLOrAbove)
+          .put("ReferenceType.Signature002Test", RunJdwpTests::isAndroidLOrAbove)
+          .put("ReferenceType.SourceDebugExtensionTest", RunJdwpTests::isAndroidLOrAbove)
+          .put("ReferenceType.SyntheticFieldsTest", RunJdwpTests::isAndroidLOrAbove)
+          .put("ReferenceType.SyntheticMethodsTest", RunJdwpTests::isAndroidLOrAbove)
           .put("StackFrame.GetValuesTest", RunJdwpTests::isAndroidMOrAbove)
+          .put("StackFrame.ProxyThisObjectTest", RunJdwpTests::isAndroidLOrAbove)
           .put("StackFrame.SetValuesTest", RunJdwpTests::isAndroidMOrAbove)
           .put("StackFrame.SetValues002Test", RunJdwpTests::isAndroidMOrAbove)
+          .put("StackFrame.ThisObjectTest", RunJdwpTests::isAndroidLOrAbove)
+          .put("StringReference.ValueTest", RunJdwpTests::isAndroidLOrAbove)
+          .put("ThreadGroupReference.ChildrenTest", RunJdwpTests::isAndroidLOrAbove)
+          .put("ThreadGroupReference.NameTest", RunJdwpTests::isAndroidLOrAbove)
+          .put("ThreadGroupReference.ParentTest", RunJdwpTests::isAndroidLOrAbove)
+          .put("ThreadReference.CurrentContendedMonitorTest", RunJdwpTests::isAndroidLOrAbove)
+          .put("ThreadReference.FrameCountTest", RunJdwpTests::isAndroidLOrAbove)
+          .put("ThreadReference.FramesTest", RunJdwpTests::isAndroidLOrAbove)
+          .put("ThreadReference.InterruptTest", RunJdwpTests::isAndroidLOrAbove)
+          .put("ThreadReference.OwnedMonitorsStackDepthInfoTest", RunJdwpTests::isAndroidLOrAbove)
+          .put("ThreadReference.OwnedMonitorsTest", RunJdwpTests::isAndroidLOrAbove)
+          .put("ThreadReference.ResumeTest", RunJdwpTests::isAndroidLOrAbove)
+          .put("ThreadReference.Status002Test", RunJdwpTests::isAndroidLOrAbove)
+          .put("ThreadReference.Status003Test", RunJdwpTests::isAndroidLOrAbove)
+          .put("ThreadReference.Status004Test", RunJdwpTests::isAndroidLOrAbove)
+          .put("ThreadReference.Status005Test", RunJdwpTests::isAndroidLOrAbove)
+          .put("ThreadReference.Status006Test", RunJdwpTests::isAndroidLOrAbove)
+          .put("ThreadReference.StatusTest", RunJdwpTests::isAndroidLOrAbove)
+          .put("ThreadReference.SuspendCountTest", RunJdwpTests::isAndroidLOrAbove)
+          .put("ThreadReference.SuspendTest", RunJdwpTests::isAndroidLOrAbove)
+          .put("ThreadReference.ThreadGroup002Test", RunJdwpTests::isAndroidLOrAbove)
+          .put("ThreadReference.ThreadGroupTest", RunJdwpTests::isAndroidLOrAbove)
+          .put("VirtualMachine.AllClassesTest", RunJdwpTests::isAndroidLOrAbove)
+          .put("VirtualMachine.AllThreadsTest", RunJdwpTests::isAndroidLOrAbove)
+          .put("VirtualMachine.CapabilitiesTest", RunJdwpTests::isAndroidLOrAbove)
           .put("VirtualMachine.CapabilitiesNewTest", RunJdwpTests::isLatestRuntime)
           .put("VirtualMachine.ClassPathsTest", RunJdwpTests::isAndroidMOrAbove)
+          .put("VirtualMachine.DisposeTest", RunJdwpTests::isAndroidLOrAbove)
           .put("VirtualMachine.DisposeDuringInvokeTest", RunJdwpTests::isAndroidMOrAbove)
+          .put("VirtualMachine.DisposeObjectsTest", RunJdwpTests::isAndroidLOrAbove)
+          .put("VirtualMachine.ExitTest", RunJdwpTests::isAndroidLOrAbove)
+          .put("VirtualMachine.ResumeTest", RunJdwpTests::isAndroidLOrAbove)
           .build();
 
   // The smoke tests are the set of tests that fail if there is no debugging info in the dex files.
