@@ -45,6 +45,7 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.io.ByteStreams;
@@ -206,11 +207,11 @@ public class R8 {
         missingClasses = filterMissingClasses(
             missingClasses, options.proguardConfiguration.getDontWarnPatterns());
         if (!missingClasses.isEmpty()) {
-          System.err.println();
-          System.err.println("WARNING, some classes are missing:");
-          missingClasses.forEach(clazz -> {
-            System.err.println(" - " + clazz.toSourceString());
-          });
+          missingClasses.forEach(
+              clazz -> {
+                options.diagnosticsHandler.warning(
+                    new StringDiagnostic("Missing class: " + clazz.toSourceString()));
+              });
           if (!options.ignoreMissingClasses) {
             throw new CompilationError(
                 "Shrinking can't be performed because some library classes are missing.");
