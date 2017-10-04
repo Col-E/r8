@@ -54,6 +54,8 @@ third_party/framework
 third_party/framework.tar.gz
 third_party/goyt
 third_party/goyt.tar.gz
+third_party/ddmlib
+third_party/ddmlib.tar.gz
 src/test/jack/ub-jack
 gradle-app.setting
 gradlew
