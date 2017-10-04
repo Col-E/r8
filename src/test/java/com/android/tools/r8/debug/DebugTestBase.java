@@ -10,9 +10,7 @@ import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.DexVm;
-import com.android.tools.r8.ToolHelper.DexVm.Kind;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
-import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -39,6 +37,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.apache.harmony.jpda.tests.framework.TestErrorException;
 import org.apache.harmony.jpda.tests.framework.jdwp.CommandPacket;
 import org.apache.harmony.jpda.tests.framework.jdwp.Event;
 import org.apache.harmony.jpda.tests.framework.jdwp.EventBuilder;
@@ -514,7 +513,24 @@ public abstract class DebugTestBase {
             if (DEBUG_TESTS) {
               logWriter.println("Process command " + command.toString());
             }
-            command.perform(this);
+            try {
+              command.perform(this);
+            } catch (TestErrorException e) {
+              boolean ignoreException = false;
+              if (ToolHelper.getDexVm().getVersion() == Version.V4_4_4) {
+                // Dalvik has flaky synchronization issue on shutdown. The workaround is to ignore
+                // the exception if and only if we know that it's the final resume command.
+                if (debuggeeState == null && commandsQueue.isEmpty()) {
+                  // We should receive the VMDeath event and transition to the Exit state here.
+                  processEvents();
+                  assert state == State.Exit;
+                  ignoreException = true;
+                }
+              }
+              if (!ignoreException) {
+                throw e;
+              }
+            }
             break;
           }
           case WaitForEvent:
