@@ -19,7 +19,9 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.logging.Log;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
+import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.Sets;
@@ -56,12 +58,14 @@ public class RootSetBuilder {
       new IdentityHashMap<>();
   private final Map<DexItem, ProguardMemberRule> noSideEffects = new IdentityHashMap<>();
   private final Map<DexItem, ProguardMemberRule> assumedValues = new IdentityHashMap<>();
+  private final InternalOptions options;
 
   public RootSetBuilder(DexApplication application, AppInfo appInfo,
-      List<ProguardConfigurationRule> rules) {
+      List<ProguardConfigurationRule> rules, InternalOptions options) {
     this.application = application.asDirect();
     this.appInfo = appInfo;
     this.rules = rules;
+    this.options = options;
   }
 
   private boolean anySuperTypeMatches(DexType type, ProguardTypeMatcher name,
@@ -141,13 +145,15 @@ public class RootSetBuilder {
       // Warn if users got it wrong, but only warn once.
       if (extendsExpected && !rule.getInheritanceIsExtends()) {
         if (rulesThatUseExtendsOrImplementsWrong.add(rule)) {
-          System.err.println(
-              "The rule `" + rule + "` uses implements but actually matches extends.");
+          options.diagnosticsHandler.warning(
+              new StringDiagnostic(
+                  "The rule `" + rule + "` uses implements but actually matches extends."));
         }
       } else if (implementsExpected && rule.getInheritanceIsExtends()) {
         if (rulesThatUseExtendsOrImplementsWrong.add(rule)) {
-          System.err.println(
-              "The rule `" + rule + "` uses extends but actually matches implements.");
+          options.diagnosticsHandler.warning(
+              new StringDiagnostic(
+                  "The rule `" + rule + "` uses extends but actually matches implements."));
         }
       }
     }

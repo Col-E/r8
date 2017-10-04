@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.PresortedComparable;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -41,10 +42,12 @@ public class TreePruner {
   public DexApplication run() {
     application.timing.begin("Pruning application...");
     if (options.debugKeepRules && !options.skipMinification) {
-      System.out.println(
-          "NOTE: Debugging keep rules on a minified build might yield broken builds, as\n"
-              + "      minification also depends on the used keep rules. We recommend using\n"
-              + "      --skip-minification.");
+
+      options.diagnosticsHandler.info(
+          new StringDiagnostic(
+              "Debugging keep rules on a minified build might yield broken builds, as "
+                  + "minification also depends on the used keep rules. We recommend using "
+                  + "--skip-minification."));
     }
     DexApplication result;
     try {

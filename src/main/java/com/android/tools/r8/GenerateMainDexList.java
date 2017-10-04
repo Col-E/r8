@@ -41,7 +41,7 @@ public class GenerateMainDexList {
         new ApplicationReader(app, options, timing).read(executor).toDirect();
     AppInfoWithSubtyping appInfo = new AppInfoWithSubtyping(application);
     RootSet mainDexRootSet =
-        new RootSetBuilder(application, appInfo, options.mainDexKeepRules).run(executor);
+        new RootSetBuilder(application, appInfo, options.mainDexKeepRules, options).run(executor);
     Set<DexType> mainDexBaseClasses = new Enqueuer(appInfo).traceMainDex(mainDexRootSet, timing);
     Set<DexType> mainDexClasses = new MainDexListBuilder(mainDexBaseClasses, application).run();
 
