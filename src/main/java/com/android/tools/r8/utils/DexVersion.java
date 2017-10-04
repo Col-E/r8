@@ -51,6 +51,7 @@ public enum DexVersion {
       case P:
         return DexVersion.V39;
       case LATEST:
+      case O_MR1:
       case O:
         return DexVersion.V38;
       case N_MR1:

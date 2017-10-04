@@ -10,7 +10,8 @@ import com.android.tools.r8.errors.Unreachable;
  */
 public enum AndroidApiLevel {
   LATEST(-1),
-  P(27),
+  P(28),
+  O_MR1(27),
   O(26),
   N_MR1(25),
   N(24),
@@ -133,6 +134,8 @@ public enum AndroidApiLevel {
       case 26:
         return O;
       case 27:
+        return O_MR1;
+      case 28:
         return P;
       default:
         return LATEST;
