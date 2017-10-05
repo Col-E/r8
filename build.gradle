@@ -1185,6 +1185,8 @@ test {
 //    out/host/linux-x86/bin directory of the android checkout. Currently this is version pre 2.2.1,
 //    if that is updated the call to smali in "task "${smaliToDexTask}"(type: Exec)" below might
 //    need to change as smali got a completely new command line interface in version 2.2.1.
+//    After Android O, Jack is no longer alive, do not forget to uncomment call to buildArtTest for
+//    Jack if you build an android version using Jack.
 //
 //    PATH=$HOME/android/master/out/host/linux-x86/bin:$PATH tools/gradle.py -Pandroid_source buildArtTests
 //
@@ -1303,7 +1305,8 @@ if (project.hasProperty('android_source')) {
                     if (!(name in skippedTestsDx)) {
                         dependsOn buildArtTest(androidCheckoutDir, artTestBuildDir, dir, DexTool.DX);
                     }
-                    dependsOn buildArtTest(androidCheckoutDir, artTestBuildDir, dir, DexTool.JACK);
+                    // After Android O, Jack is no longer alive
+                    //dependsOn buildArtTest(androidCheckoutDir, artTestBuildDir, dir, DexTool.JACK);
                 }
             }
         }
@@ -1426,7 +1429,13 @@ def buildArtTest(androidCheckoutDir, artTestBuildDir, dir, dexTool) {
     }
 
     task "${smaliToDexTask}"(type: Exec) {
-        workingDir "${testDir}/smali"
+        // Directory that contains smali files is either smali, or smali/art
+        def smali_dir = file("${dir}/smali/art")
+        if (smali_dir.exists()) {
+            workingDir "${testDir}/smali/art"
+        } else  {
+            workingDir "${testDir}/smali"
+        }
         executable "/bin/bash"
         // This is the command line options for smali prior to 2.2.1, where smali got a new
         // command line interface.
