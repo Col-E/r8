@@ -1068,7 +1068,9 @@ test {
     if (project.hasProperty('dex_vm') && project.property('dex_vm') != 'default') {
         println "Running with non default vm: " + project.property('dex_vm')
         systemProperty 'dex_vm', project.property('dex_vm')
-        if (project.property('dex_vm') == '5.1.1' || project.property('dex_vm') == '6.0.1') {
+        if (project.property('dex_vm').startsWith('4.4.4') ||
+            project.property('dex_vm').startsWith('5.1.1') ||
+            project.property('dex_vm').startsWith('6.0.1')) {
             // R8 and D8 compute the dex file version number based on the input.
             // Jack generates dex files with version 37 which art 5.1.1 and 6.0.1 will not run.
             // Therefore we skip the jack generated art tests with those art versions.
