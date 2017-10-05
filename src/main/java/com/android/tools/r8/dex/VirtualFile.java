@@ -23,6 +23,8 @@ import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -267,9 +269,11 @@ public class VirtualFile {
     protected Set<DexProgramClass> classes;
     protected Map<DexProgramClass, String> originalNames;
     protected final VirtualFile mainDexFile;
+    protected final InternalOptions options;
 
-    DistributorBase(ApplicationWriter writer) {
+    DistributorBase(ApplicationWriter writer, InternalOptions options) {
       super(writer);
+      this.options = options;
 
       // Create the primary dex file. The distribution will add more if needed.
       mainDexFile = new VirtualFile(0, writer.namingLens);
@@ -293,10 +297,11 @@ public class VirtualFile {
             mainDexFile.addClass(programClass);
             classes.remove(programClass);
           } else {
-            System.out.println(
-                "WARNING: Application does not contain `"
-                    + type.toSourceString()
-                    + "` as referenced in main-dex-list.");
+            options.diagnosticsHandler.warning(
+                new StringDiagnostic(
+                    "Application does not contain `"
+                        + type.toSourceString()
+                        + "` as referenced in main-dex-list."));
           }
           mainDexFile.commitTransaction();
         }
@@ -338,12 +343,10 @@ public class VirtualFile {
   }
 
   public static class FillFilesDistributor extends DistributorBase {
-    boolean minimalMainDex;
     private final FillStrategy fillStrategy;
 
-    FillFilesDistributor(ApplicationWriter writer, boolean minimalMainDex) {
-      super(writer);
-      this.minimalMainDex = minimalMainDex;
+    FillFilesDistributor(ApplicationWriter writer, InternalOptions options) {
+      super(writer, options);
       this.fillStrategy = FillStrategy.FILL_MAX;
     }
 
@@ -357,7 +360,7 @@ public class VirtualFile {
       }
 
       Map<Integer, VirtualFile> filesForDistribution = nameToFileMap;
-      if (minimalMainDex && !mainDexFile.isEmpty()) {
+      if (options.minimalMainDex && !mainDexFile.isEmpty()) {
         assert !nameToFileMap.get(0).isEmpty();
         // The main dex file is filtered out, so create ensure at least one file for the remaining
         // classes
@@ -378,8 +381,8 @@ public class VirtualFile {
   }
 
   public static class MonoDexDistributor extends DistributorBase {
-    MonoDexDistributor(ApplicationWriter writer) {
-      super(writer);
+    MonoDexDistributor(ApplicationWriter writer, InternalOptions options) {
+      super(writer, options);
     }
 
     @Override

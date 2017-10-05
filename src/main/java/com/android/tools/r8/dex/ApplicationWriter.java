@@ -144,9 +144,9 @@ public class ApplicationWriter {
       } else if (!options.canUseMultidex()
           && options.mainDexKeepRules.isEmpty()
           && application.mainDexList.isEmpty()) {
-        distributor = new VirtualFile.MonoDexDistributor(this);
+        distributor = new VirtualFile.MonoDexDistributor(this, options);
       } else {
-        distributor = new VirtualFile.FillFilesDistributor(this, options.minimalMainDex);
+        distributor = new VirtualFile.FillFilesDistributor(this, options);
       }
       Map<Integer, VirtualFile> newFiles = distributor.run();
 
