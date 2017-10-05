@@ -3,9 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
-import com.android.tools.r8.utils.StringUtils;
-import com.google.common.base.Joiner;
-
 import com.android.ddmlib.AdbCommandRejectedException;
 import com.android.ddmlib.AndroidDebugBridge;
 import com.android.ddmlib.FileListingService;
@@ -14,7 +11,8 @@ import com.android.ddmlib.IShellOutputReceiver;
 import com.android.ddmlib.ShellCommandUnresponsiveException;
 import com.android.ddmlib.SyncException;
 import com.android.ddmlib.TimeoutException;
-
+import com.android.tools.r8.utils.StringUtils;
+import com.google.common.base.Joiner;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -320,6 +318,7 @@ public class DeviceRunner {
     }
   }
 
+  @SuppressWarnings("deprecation")
   private void executeShellCommand(
       String command,
       IDevice device,
