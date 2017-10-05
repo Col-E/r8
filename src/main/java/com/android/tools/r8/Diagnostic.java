@@ -7,5 +7,5 @@ package com.android.tools.r8;
  * Interface for all diagnostic message produced by D8 and R8.
  */
 public interface Diagnostic {
-  String toString();
+  String getDiagnosticMessage();
 }

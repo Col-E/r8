@@ -16,7 +16,7 @@ public interface DiagnosticsHandler {
    * @param warning Diagnostic containing warning information.
    */
   default void warning(Diagnostic warning) {
-    System.err.println(warning.toString());
+    System.err.println(warning.getDiagnosticMessage());
   }
 
   /**
@@ -25,6 +25,6 @@ public interface DiagnosticsHandler {
    * @param info Diagnostic containing the information.
    */
   default void info(Diagnostic info) {
-    System.out.println(info.toString());
+    System.out.println(info.getDiagnosticMessage());
   }
 }

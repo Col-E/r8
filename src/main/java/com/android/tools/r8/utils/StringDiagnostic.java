@@ -13,7 +13,7 @@ public class StringDiagnostic implements Diagnostic {
   }
 
   @Override
-  public String toString() {
+  public String getDiagnosticMessage() {
     return message;
   }
 }
