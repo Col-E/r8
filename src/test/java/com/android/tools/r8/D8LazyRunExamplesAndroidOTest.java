@@ -11,6 +11,7 @@ import com.android.tools.r8.D8Command.Builder;
 import com.android.tools.r8.shaking.FilteredClassPath;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.ArchiveClassFileProvider;
 import com.android.tools.r8.utils.DirectoryClassFileProvider;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.OffOrAuto;
@@ -52,7 +53,7 @@ public class D8LazyRunExamplesAndroidOTest
     @Override
     void addLibraryReference(Builder builder, Path location) throws IOException {
       builder.addLibraryResourceProvider(
-          PreloadedClassFileProvider.fromArchive(FilteredClassPath.unfiltered(location)));
+          ArchiveClassFileProvider.fromArchive(FilteredClassPath.unfiltered(location)));
     }
 
     @Override
