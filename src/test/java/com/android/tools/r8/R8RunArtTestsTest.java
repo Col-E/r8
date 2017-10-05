@@ -48,6 +48,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
+import org.junit.AssumptionViolatedException;
 import org.junit.ComparisonFailure;
 import org.junit.Rule;
 import org.junit.rules.ExpectedException;
@@ -973,7 +974,8 @@ public abstract class R8RunArtTestsTest {
       this.nativeLibrary = nativeLibrary;
       this.directory = directory;
       this.skipArt = skipArt;
-      this.skipTest = skipTest;
+      this.skipTest =
+          skipTest || (ToolHelper.isWindows() && ToolHelper.getDexVm().getKind() == Kind.HOST);
       this.failsWithX8 = failsWithX8;
       this.failsWithArt = failsWithArt;
       this.failsWithArtOutput = failsWithArtOutput;
