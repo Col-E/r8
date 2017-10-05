@@ -94,8 +94,6 @@ public abstract class DebugTestBase {
   // Set to true to enable verbose logs
   private static final boolean DEBUG_TESTS = false;
 
-  private static final List<DexVm> UNSUPPORTED_ART_VERSIONS = ImmutableList.of();
-
   private static final Path JDWP_JAR = ToolHelper
       .getJdwpTestsJarPath(ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm()));
   private static final Path DEBUGGEE_JAR = Paths
@@ -292,9 +290,6 @@ public abstract class DebugTestBase {
     Assume.assumeTrue("Skipping test " + testName.getMethodName()
             + " because debug tests are not yet supported on Windows",
         !ToolHelper.isWindows());
-    Assume.assumeFalse(
-        "Skipping failing test " + testName.getMethodName() + " for runtime " + ToolHelper
-            .getDexVm(), UNSUPPORTED_ART_VERSIONS.contains(ToolHelper.getDexVm()));
 
     String[] paths = new String[extraPaths.size() + 2];
     int indexPath = 0;
