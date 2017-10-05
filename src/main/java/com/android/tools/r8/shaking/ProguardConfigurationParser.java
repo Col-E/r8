@@ -85,6 +85,13 @@ public class ProguardConfigurationParser {
       throw new ProguardRuleParserException("-useuniqueulassmembernames is not supported");
     }
 
+    if (configurationBuilder.isKeepParameterNames()
+        && configurationBuilder.isObfuscating()) {
+      // The flag -keepparameternames has only effect when minifying, so ignore it if we
+      // are not.
+      throw new ProguardRuleParserException("-keepparameternames is not supported");
+    }
+
     return configurationBuilder.build();
   }
 
@@ -156,6 +163,8 @@ public class ProguardConfigurationParser {
       } else if (acceptString("keeppackagenames")) {
         ProguardKeepPackageNamesRule rule = parseKeepPackageNamesRule();
         configurationBuilder.addRule(rule);
+      } else if (acceptString("keepparameternames")) {
+        configurationBuilder.setKeepParameterNames(true);
       } else if (acceptString("checkdiscard")) {
         ProguardCheckDiscardRule rule = parseCheckDiscardRule();
         configurationBuilder.addRule(rule);

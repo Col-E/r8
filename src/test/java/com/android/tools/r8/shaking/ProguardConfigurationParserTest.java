@@ -680,4 +680,40 @@ public class ProguardConfigurationParserTest extends TestBase {
     config = parser.getConfig();
     assertTrue(config.isUseUniqueClassMemberNames());
   }
+
+  @Test
+  public void parseKeepParameterNames() throws Exception {
+    try {
+      ProguardConfigurationParser parser = new ProguardConfigurationParser(new DexItemFactory());
+      parser.parse(new ProguardConfigurationSourceStrings(ImmutableList.of(
+          "-keepparameternames"
+      )));
+      parser.getConfig();
+      fail();
+    } catch (ProguardRuleParserException e) {
+      System.out.println(e);
+      assertTrue(e.getMessage().contains("-keepparameternames is not supported"));
+    }
+  }
+
+  @Test
+  public void parseKeepParameterNamesWithoutMinification() throws Exception {
+    ProguardConfigurationParser parser = new ProguardConfigurationParser(new DexItemFactory());
+    parser.parse(new ProguardConfigurationSourceStrings(ImmutableList.of(
+        "-keepparameternames",
+        "-dontobfuscate"
+    )));
+    ProguardConfiguration config = parser.getConfig();
+    assertTrue(config.isKeepParameterNames());
+
+    parser = new ProguardConfigurationParser(new DexItemFactory());
+    parser.parse(new ProguardConfigurationSourceStrings(ImmutableList.of(
+        "-keepparameternames"
+    )));
+    parser.parse(new ProguardConfigurationSourceStrings(ImmutableList.of(
+        "-dontobfuscate"
+    )));
+    config = parser.getConfig();
+    assertTrue(config.isKeepParameterNames());
+  }
 }

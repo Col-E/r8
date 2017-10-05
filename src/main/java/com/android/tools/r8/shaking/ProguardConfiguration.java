@@ -45,6 +45,7 @@ public class ProguardConfiguration {
     private Path classObfuscationDictionary;
     private Path packageObfuscationDictionary;
     private boolean useUniqueClassMemberNames;
+    private boolean keepParameterNames;
 
     private Builder(DexItemFactory dexItemFactory) {
       this.dexItemFactory = dexItemFactory;
@@ -164,6 +165,14 @@ public class ProguardConfiguration {
       return useUniqueClassMemberNames;
     }
 
+    public void setKeepParameterNames(boolean keepParameterNames) {
+      this.keepParameterNames = keepParameterNames;
+    }
+
+    boolean isKeepParameterNames() {
+      return keepParameterNames;
+    }
+
     public ProguardConfiguration build() {
       return new ProguardConfiguration(
           dexItemFactory,
@@ -191,7 +200,8 @@ public class ProguardConfiguration {
           DictionaryReader.readAllNames(obfuscationDictionary),
           DictionaryReader.readAllNames(classObfuscationDictionary),
           DictionaryReader.readAllNames(packageObfuscationDictionary),
-          useUniqueClassMemberNames);
+          useUniqueClassMemberNames,
+          keepParameterNames);
     }
   }
 
@@ -221,6 +231,7 @@ public class ProguardConfiguration {
   private final ImmutableList<String> classObfuscationDictionary;
   private final ImmutableList<String> packageObfuscationDictionary;
   private boolean useUniqueClassMemberNames;
+  private boolean keepParameterNames;
 
   private ProguardConfiguration(
       DexItemFactory factory,
@@ -248,7 +259,8 @@ public class ProguardConfiguration {
       ImmutableList<String> obfuscationDictionary,
       ImmutableList<String> classObfuscationDictionary,
       ImmutableList<String> packageObfuscationDictionary,
-      boolean useUniqueClassMemberNames) {
+      boolean useUniqueClassMemberNames,
+      boolean keepParameterNames) {
     this.dexItemFactory = factory;
     this.injars = ImmutableList.copyOf(injars);
     this.libraryjars = ImmutableList.copyOf(libraryjars);
@@ -275,6 +287,7 @@ public class ProguardConfiguration {
     this.classObfuscationDictionary = classObfuscationDictionary;
     this.packageObfuscationDictionary = packageObfuscationDictionary;
     this.useUniqueClassMemberNames = useUniqueClassMemberNames;
+    this.keepParameterNames = keepParameterNames;
   }
 
   /**
@@ -388,6 +401,10 @@ public class ProguardConfiguration {
     return useUniqueClassMemberNames;
   }
 
+  public boolean isKeepParameterNames() {
+    return keepParameterNames;
+  }
+
   public static ProguardConfiguration defaultConfiguration(DexItemFactory dexItemFactory) {
     return new DefaultProguardConfiguration(dexItemFactory);
   }
@@ -420,7 +437,8 @@ public class ProguardConfiguration {
           ImmutableList.of()    /* obfuscationDictionary */,
           ImmutableList.of()    /* classObfuscationDictionary */,
           ImmutableList.of()    /* packageObfuscationDictionary */,
-          false                 /* useUniqueClassMemberNames*/);
+          false                 /* useUniqueClassMemberNames*/,
+          false                 /* keepParameterNames */);
     }
 
     @Override
