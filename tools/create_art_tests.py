@@ -12,7 +12,9 @@ from shutil import rmtree
 
 OUTPUT_DIR = os.path.join('build', 'generated', 'test', 'java', 'com',
                           'android', 'tools', 'r8', 'art')
-TEST_DIR = os.path.join('tests', '2017-07-27', 'art')
+# Test that comes from Jack are generated from the legacy snapshot.
+JACK_TEST = os.path.join('tests', '2016-12-19', 'art')
+TEST_DIR = os.path.join('tests', '2017-10-04', 'art')
 TOOLCHAINS = ["dx", "jack", "none"]
 TOOLS = ["r8", "d8"]
 TEMPLATE = Template(
@@ -60,6 +62,9 @@ def write_file(toolchain, tool, class_name, contents):
 
 def create_tests(toolchain):
   source_dir = join(TEST_DIR, "dx" if toolchain == "none" else toolchain)
+  # For the toolchain "jack" tests are generated from a previous snapshot.
+  if (toolchain == "jack"):
+    source_dir = join(JACK_TEST, toolchain)
   dirs = [d for d in listdir(source_dir)
           if isdir(join(source_dir, d))]
   for dir in dirs:
