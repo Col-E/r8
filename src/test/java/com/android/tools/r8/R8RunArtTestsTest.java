@@ -80,9 +80,9 @@ public abstract class R8RunArtTestsTest {
     R8_AFTER_D8 // refers to the R8 (default: debug) step but implies a previous D8 step as well
   }
 
-  private static final String ART_TESTS_DIR = "tests/2017-07-27/art";
+  private static final String ART_TESTS_DIR = "tests/2017-10-04/art";
   private static final String ART_LEGACY_TESTS_DIR = "tests/2016-12-19/art/";
-  private static final String ART_TESTS_NATIVE_LIBRARY_DIR = "tests/2017-07-27/art/lib64";
+  private static final String ART_TESTS_NATIVE_LIBRARY_DIR = "tests/2017-10-04/art/lib64";
   private static final String ART_LEGACY_TESTS_NATIVE_LIBRARY_DIR = "tests/2016-12-19/art/lib64";
 
   private static final RuntimeSet LEGACY_RUNTIME = TestCondition.runtimes(
@@ -113,6 +113,7 @@ public abstract class R8RunArtTestsTest {
           .put("957-methodhandle-transforms", AndroidApiLevel.O.getLevel())
           .put("958-methodhandle-stackframe", AndroidApiLevel.O.getLevel())
           .put("959-invoke-polymorphic-accessors", AndroidApiLevel.O.getLevel())
+          .put("979-const-method-handle", AndroidApiLevel.O.getLevel())
           .put("990-method-handle-and-mr", AndroidApiLevel.O.getLevel())
           // Test intentionally asserts presence of bridge default methods desugar removes.
           .put("044-proxy", AndroidApiLevel.N.getLevel())
@@ -233,7 +234,8 @@ public abstract class R8RunArtTestsTest {
       "073-mismatched-field"
   );
 
-  // Tests that make use of agents/native code. Our test setup does handle flags/linking of these.
+  // Tests that make use of agents/native code.
+  // Our test setup does not handle flags/linking of these.
   private static List<String> usesNativeAgentCode = ImmutableList.of(
       "497-inlining-and-class-loader",
       "626-const-class-linking",
@@ -287,7 +289,39 @@ public abstract class R8RunArtTestsTest {
       "1906-suspend-list-me-first",
       "1907-suspend-list-self-twice",
       "1909-per-agent-tls",
-      "1910-transform-with-default"
+      "1910-transform-with-default",
+      "1911-get-local-var-table",
+      "1912-get-set-local-primitive",
+      "1913-get-set-local-objects",
+      "1914-get-local-instance",
+      "1915-get-set-local-current-thread",
+      "1916-get-set-current-frame",
+      "1917-get-stack-frame",
+      "1919-vminit-thread-start-timing",
+      "1920-suspend-native-monitor",
+      "1921-suspend-native-recursive-monitor",
+      "1922-owned-monitors-info",
+      "1923-frame-pop",
+      "1924-frame-pop-toggle",
+      "1925-self-frame-pop",
+      "1926-missed-frame-pop",
+      "1927-exception-event",
+      "1928-exception-event-exception",
+      "1929-exception-catch-exception",
+      "1930-monitor-info",
+      "1931-monitor-events",
+      "1932-monitor-events-misc",
+      "1933-monitor-current-contended",
+      "1934-jvmti-signal-thread",
+      "1935-get-set-current-frame-jit",
+      "1936-thread-end-events",
+      // These tests need a library name as parameter
+      "164-resolution-trampoline-dex-cache",
+      "597-deopt-invoke-stub",
+      "597-deopt-busy-loop",
+      "661-oat-writer-layout",
+      "661-classloader-allocator",
+      "664-aget-verifier"
   );
 
   // Tests with custom run.
@@ -825,7 +859,11 @@ public abstract class R8RunArtTestsTest {
       "974-verify-interface-super", // No input class files.
       "975-iface-private", // No input class files.
       "976-conflict-no-methods", // No input class files
-      "978-virtual-interface" // No input class files
+      "978-virtual-interface", // No input class files
+      "663-odd-dex-size", // No input class files
+      "663-odd-dex-size2", // No input class files
+      "663-odd-dex-size3", // No input class files
+      "663-odd-dex-size4" // No input class files
   );
 
   // Some JCTF test cases require test classes from other tests. These are listed here.
@@ -893,6 +931,9 @@ public abstract class R8RunArtTestsTest {
   );
 
   private static List<String> failuresToTriage = ImmutableList.of(
+      // const-method-handle and const-method-type
+      "979-const-method-handle",
+
       // This is flaky.
       "104-growth-limit",
 
@@ -907,6 +948,7 @@ public abstract class R8RunArtTestsTest {
       "655-jit-clinit",
       "656-annotation-lookup-generic-jni",
       "656-loop-deopt",
+      "707-checker-invalid-profile",
       "708-jit-cache-churn",
 
       // These use "native trace".
@@ -1044,11 +1086,9 @@ public abstract class R8RunArtTestsTest {
 
   private static Map<SpecificationKey, TestSpecification> getTestsMap(
       CompilerUnderTest compilerUnderTest, CompilationMode compilationMode, DexVm.Version version) {
-    File artTestDir = new File(ART_TESTS_DIR);
-    if (LEGACY_RUNTIME.set.contains(version)) {
-      artTestDir = new File(ART_LEGACY_TESTS_DIR);
-    }
-    if (!artTestDir.exists()) {
+    File defaultArtTestDir = new File(ART_TESTS_DIR);
+    File legacyArtTestDir = new File(ART_LEGACY_TESTS_DIR);
+    if (!defaultArtTestDir.exists() || !legacyArtTestDir.exists()) {
       // Don't run any tests if the directory does not exist.
       return Collections.emptyMap();
     }
@@ -1063,8 +1103,10 @@ public abstract class R8RunArtTestsTest {
 
     // Collect the tests requiring the native library.
     Set<String> useNativeLibrary = Sets.newHashSet(useJNI);
-
     for (DexTool dexTool : DexTool.values()) {
+      File artTestDir =
+          dexTool == DexTool.JACK || LEGACY_RUNTIME.set.contains(version) ? legacyArtTestDir
+              : defaultArtTestDir;
       // Collect the tests failing code generation.
       Set<String> failsWithCompiler =
           collectTestsMatchingConditions(
