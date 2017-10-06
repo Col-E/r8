@@ -586,7 +586,7 @@ public class ToolHelper {
 
   public static ProguardConfiguration loadProguardConfiguration(
       DexItemFactory factory, List<Path> configPaths)
-      throws IOException, ProguardRuleParserException {
+      throws IOException, ProguardRuleParserException, CompilationException {
     if (configPaths.isEmpty()) {
       return ProguardConfiguration.defaultConfiguration(factory);
     }

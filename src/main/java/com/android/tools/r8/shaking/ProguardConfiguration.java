@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.naming.DictionaryReader;
 import com.android.tools.r8.utils.InternalOptions.KeepAttributeOptions;
@@ -170,7 +171,7 @@ public class ProguardConfiguration {
       return keepParameterNames;
     }
 
-    public ProguardConfiguration build() {
+    public ProguardConfiguration build() throws CompilationException {
       return new ProguardConfiguration(
           dexItemFactory,
           injars,

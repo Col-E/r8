@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.DexAccessFlags;
 import com.android.tools.r8.graph.DexField;
@@ -76,7 +77,8 @@ public class ProguardConfigurationParser {
     return configurationBuilder;
   }
 
-  public ProguardConfiguration getConfig() throws ProguardRuleParserException {
+  public ProguardConfiguration getConfig()
+      throws ProguardRuleParserException, CompilationException {
     if (configurationBuilder.isKeepParameterNames()
         && configurationBuilder.isObfuscating()) {
       // The flag -keepparameternames has only effect when minifying, so ignore it if we
