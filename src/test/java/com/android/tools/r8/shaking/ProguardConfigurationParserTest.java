@@ -693,36 +693,11 @@ public class ProguardConfigurationParserTest extends TestBase {
 
   @Test
   public void parseUseUniqueClassMemberNames() throws Exception {
-    try {
-      ProguardConfigurationParser parser = new ProguardConfigurationParser(new DexItemFactory());
-      parser.parse(new ProguardConfigurationSourceStrings(ImmutableList.of(
-          "-useuniqueclassmembernames"
-      )));
-      parser.getConfig();
-      fail();
-    } catch (ProguardRuleParserException e) {
-      assertTrue(e.getMessage().contains("-useuniqueulassmembernames is not supported"));
-    }
-  }
-
-  @Test
-  public void parseUseUniqueClassMemberNamesWithoutMinification() throws Exception {
     ProguardConfigurationParser parser = new ProguardConfigurationParser(new DexItemFactory());
-    parser.parse(new ProguardConfigurationSourceStrings(ImmutableList.of(
-        "-useuniqueclassmembernames",
-        "-dontobfuscate"
-    )));
-    ProguardConfiguration config = parser.getConfig();
-    assertTrue(config.isUseUniqueClassMemberNames());
-
-    parser = new ProguardConfigurationParser(new DexItemFactory());
     parser.parse(new ProguardConfigurationSourceStrings(ImmutableList.of(
         "-useuniqueclassmembernames"
     )));
-    parser.parse(new ProguardConfigurationSourceStrings(ImmutableList.of(
-        "-dontobfuscate"
-    )));
-    config = parser.getConfig();
+    ProguardConfiguration config = parser.getConfig();
     assertTrue(config.isUseUniqueClassMemberNames());
   }
 

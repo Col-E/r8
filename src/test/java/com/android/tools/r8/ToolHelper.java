@@ -569,12 +569,19 @@ public class ToolHelper {
 
   public static DexApplication buildApplication(List<String> fileNames)
       throws IOException, ExecutionException {
+    return buildApplicationWithAndroidJar(fileNames, getDefaultAndroidJar());
+  }
+
+  public static DexApplication buildApplicationWithAndroidJar(
+      List<String> fileNames, String androidJar)
+      throws IOException, ExecutionException {
+    AndroidApp input = AndroidApp.builder()
+        .addProgramFiles(ListUtils.map(fileNames, FilteredClassPath::unfiltered))
+        .addLibraryFiles(FilteredClassPath.unfiltered(androidJar))
+        .build();
     return new ApplicationReader(
-        AndroidApp.fromProgramFiles(ListUtils.map(fileNames, Paths::get)),
-        new InternalOptions(),
-        new Timing("ToolHelper buildApplication"))
-        .read()
-        .toDirect();
+        input, new InternalOptions(), new Timing("ToolHelper buildApplication"))
+        .read().toDirect();
   }
 
   public static ProguardConfiguration loadProguardConfiguration(

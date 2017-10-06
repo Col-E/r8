@@ -70,11 +70,6 @@ public class MinifierTest extends NamingTestBase {
         a, dexItemFactory.createProto(dexItemFactory.voidType), "privateFunc");
     // method naming001.A.privateFunc would be renamed.
     assertNotEquals("privateFunc", naming.lookupName(p).toSourceString());
-
-    DexType k = dexItemFactory.createType("Lnaming001/K;");
-    DexField h = dexItemFactory.createField(k, dexItemFactory.intType, "h");
-    // field naming001.K.h is dead, not renamed; hence returned as same via identityLens.
-    assertEquals("h", naming.lookupName(h).toSourceString());
   }
 
   private static void test001_rule002(DexItemFactory dexItemFactory, NamingLens naming) {
@@ -170,12 +165,6 @@ public class MinifierTest extends NamingTestBase {
         reflect, dexItemFactory.createProto(dexItemFactory.voidType), "keep6");
     // method naming001.Reflect.keep6 should be kept, according to the keep rule.
     assertEquals("keep6", naming.lookupName(keep6).toSourceString());
-
-    DexType reflect2 = dexItemFactory.createType("Lnaming001/Reflect2;");
-    DexField fieldPublic = dexItemFactory.createField(
-        reflect2, dexItemFactory.intType, "fieldPublic");
-    // method naming001.Reflect.keep6 accesses to naming001.Reflect2.fieldPublic via reflection.
-    assertEquals("fieldPublic", naming.lookupName(fieldPublic).toSourceString());
   }
 
   private static void test001_rule017(DexItemFactory dexItemFactory, NamingLens naming) {
@@ -189,12 +178,12 @@ public class MinifierTest extends NamingTestBase {
     assertEquals("keep", naming.lookupName(keep).toSourceString());
 
     DexField i = dexItemFactory.createField(k, dexItemFactory.intType, "i");
-    // field naming001.K.i
-    assertEquals("i", naming.lookupName(i).toSourceString());
+    // field naming001.K.i would be renamed
+    assertNotEquals("i", naming.lookupName(i).toSourceString());
 
     DexField j = dexItemFactory.createField(k, dexItemFactory.intType, "j");
-    // field naming001.K.j
-    assertEquals("j", naming.lookupName(j).toSourceString());
+    // field naming001.K.j would be renamed
+    assertNotEquals("j", naming.lookupName(j).toSourceString());
   }
 
 }

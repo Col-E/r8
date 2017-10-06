@@ -16,33 +16,24 @@ import com.google.common.collect.ImmutableList;
 import java.util.IdentityHashMap;
 import java.util.Map;
 
-class FieldNameMinifier {
-
-  private final AppInfoWithSubtyping appInfo;
-  private final RootSet rootSet;
-  private final Map<DexField, DexString> renaming = new IdentityHashMap<>();
-  private final ImmutableList<String> dictionary;
-  private final Map<DexType, NamingState<DexType>> states = new IdentityHashMap<>();
+class FieldNameMinifier extends MemberNameMinifier<DexField, DexType> {
 
   FieldNameMinifier(AppInfoWithSubtyping appInfo, RootSet rootSet, InternalOptions options) {
-    this.appInfo = appInfo;
-    this.rootSet = rootSet;
-    this.dictionary = options.proguardConfiguration.getObfuscationDictionary();
+    super(appInfo, rootSet, options);
   }
 
   Map<DexField, DexString> computeRenaming(Timing timing) {
-    NamingState<DexType> rootState = NamingState.createRoot(appInfo.dexItemFactory, dictionary);
     // Reserve names in all classes first. We do this in subtyping order so we do not
     // shadow a reserved field in subclasses. While there is no concept of virtual field
     // dispatch in Java, field resolution still traverses the super type chain and external
     // code might use a subtype to reference the field.
     timing.begin("reserve-classes");
-    reserveNamesInSubtypes(appInfo.dexItemFactory.objectType, rootState);
+    reserveNamesInSubtypes(appInfo.dexItemFactory.objectType, globalState);
     timing.end();
     // Next, reserve field names in interfaces. These should only be static.
     timing.begin("reserve-interfaces");
     DexType.forAllInterfaces(appInfo.dexItemFactory,
-        iface -> reserveNamesInSubtypes(iface, rootState));
+        iface -> reserveNamesInSubtypes(iface, globalState));
     timing.end();
     // Now rename the rest.
     timing.begin("rename");
@@ -57,7 +48,7 @@ class FieldNameMinifier {
     if (holder == null) {
       return;
     }
-    NamingState<DexType> newState = states.computeIfAbsent(type, t -> state.createChild());
+    NamingState<DexType> newState = computeStateIfAbsent(type, t -> state.createChild());
     holder.forEachField(field -> reserveFieldName(field, newState, holder.isLibraryClass()));
     type.forAllExtendsSubtypes(subtype -> reserveNamesInSubtypes(subtype, newState));
   }
@@ -77,7 +68,7 @@ class FieldNameMinifier {
     if (clazz == null) {
       return;
     }
-    NamingState<DexType> state = states.get(clazz.type);
+    NamingState<DexType> state = getState(clazz.type);
     assert state != null;
     clazz.forEachField(field -> renameField(field, state));
     type.forAllExtendsSubtypes(this::renameFieldsInSubtypes);

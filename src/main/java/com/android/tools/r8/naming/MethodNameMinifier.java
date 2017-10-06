@@ -86,20 +86,12 @@ import java.util.Set;
  * TODO(herhut): Currently, we do not minify members of annotation interfaces, as this would require
  * parsing and minification of the string arguments to annotations.
  */
-class MethodNameMinifier {
+class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
 
-  private final AppInfoWithSubtyping appInfo;
-  private final RootSet rootSet;
-  private final Map<DexType, NamingState<DexProto>> states = new IdentityHashMap<>();
-  private final NamingState<DexProto> globalState;
   private MethodSignatureEquivalence equivalence = MethodSignatureEquivalence.get();
-  private final ImmutableList<String> dictionary;
 
   MethodNameMinifier(AppInfoWithSubtyping appInfo, RootSet rootSet, InternalOptions options) {
-    this.appInfo = appInfo;
-    this.rootSet = rootSet;
-    this.dictionary = options.proguardConfiguration.getObfuscationDictionary();
-    this.globalState = NamingState.createRoot(appInfo.dexItemFactory, dictionary);
+    super(appInfo, rootSet, options);
   }
 
   Map<DexMethod, DexString> computeRenaming(Timing timing) {
@@ -120,35 +112,32 @@ class MethodNameMinifier {
     // Phase 3: Assign names to interface methods. These are assigned by finding a name that is
     //          free in all naming states that may hold an implementation.
     timing.begin("Phase 3");
-    Map<DexMethod, DexString> renaming = new IdentityHashMap<>();
-    assignNamesToInterfaceMethods(frontierMap, renaming, timing);
+    assignNamesToInterfaceMethods(frontierMap, timing);
     timing.end();
     // Phase 4: Assign names top-down by traversing the subtype hierarchy.
     timing.begin("Phase 4");
-    assignNamesToClassesMethods(appInfo.dexItemFactory.objectType, false, renaming);
+    assignNamesToClassesMethods(appInfo.dexItemFactory.objectType, false);
     timing.end();
     // Phase 4: Do the same for private methods.
     timing.begin("Phase 5");
-    assignNamesToClassesMethods(appInfo.dexItemFactory.objectType, true, renaming);
+    assignNamesToClassesMethods(appInfo.dexItemFactory.objectType, true);
     timing.end();
 
     return renaming;
   }
 
-  private void assignNamesToClassesMethods(DexType type, boolean doPrivates,
-      Map<DexMethod, DexString> renaming) {
+  private void assignNamesToClassesMethods(DexType type, boolean doPrivates) {
     DexClass holder = appInfo.definitionFor(type);
     if (holder != null && !holder.isLibraryClass()) {
-      NamingState<DexProto> state = states
-          .computeIfAbsent(type, k -> states.get(holder.superType).createChild());
-      holder.forEachMethod(method -> assignNameToMethod(method, state, doPrivates, renaming));
+      NamingState<DexProto> state =
+          computeStateIfAbsent(type, k -> getState(holder.superType).createChild());
+      holder.forEachMethod(method -> assignNameToMethod(method, state, doPrivates));
     }
-    type.forAllExtendsSubtypes(
-        subtype -> assignNamesToClassesMethods(subtype, doPrivates, renaming));
+    type.forAllExtendsSubtypes(subtype -> assignNamesToClassesMethods(subtype, doPrivates));
   }
 
-  private void assignNameToMethod(DexEncodedMethod encodedMethod,
-      NamingState<DexProto> state, boolean doPrivates, Map<DexMethod, DexString> renaming) {
+  private void assignNameToMethod(
+      DexEncodedMethod encodedMethod, NamingState<DexProto> state, boolean doPrivates) {
     if (encodedMethod.accessFlags.isPrivate() != doPrivates) {
       return;
     }
@@ -168,10 +157,10 @@ class MethodNameMinifier {
     Set<NamingState<DexProto>> reachableStates = new HashSet<>();
     for (DexType iface : interfaces) {
       // Add the interface itself
-      reachableStates.add(states.get(iface));
+      reachableStates.add(getState(iface));
       // And the frontiers that correspond to the classes that implement the interface.
       iface.forAllImplementsSubtypes(t -> {
-        NamingState<DexProto> state = states.get(frontierMap.get(t));
+        NamingState<DexProto> state = getState(frontierMap.get(t));
         assert state != null;
         reachableStates.add(state);
       });
@@ -179,8 +168,7 @@ class MethodNameMinifier {
     return reachableStates;
   }
 
-  private void assignNamesToInterfaceMethods(Map<DexType, DexType> frontierMap,
-      Map<DexMethod, DexString> renaming, Timing timing) {
+  private void assignNamesToInterfaceMethods(Map<DexType, DexType> frontierMap, Timing timing) {
     // First compute a map from method signatures to a set of naming states for interfaces and
     // frontier states of classes that implement them. We add the frontier states so that we can
     // reserve the names for later method naming.
@@ -209,10 +197,10 @@ class MethodNameMinifier {
     methods.sort((a, b) -> globalStateMap.get(b).size() - globalStateMap.get(a).size());
     for (Wrapper<DexMethod> key : methods) {
       DexMethod method = key.get();
-      assignNameForInterfaceMethodInAllStates(method,
+      assignNameForInterfaceMethodInAllStates(
+          method,
           globalStateMap.get(key),
           sourceMethodsMap.get(key),
-          renaming,
           originStates.get(key));
     }
     timing.end();
@@ -230,7 +218,6 @@ class MethodNameMinifier {
       }
     }
   }
-
 
   private void collectSubInterfaces(DexType iface, Set<DexType> interfaces) {
     iface.forAllExtendsSubtypes(subtype -> {
@@ -251,13 +238,14 @@ class MethodNameMinifier {
         globalStateMap.computeIfAbsent(key, k -> new HashSet<>());
     stateSet.addAll(collectedStates);
     sourceMethodsMap.computeIfAbsent(key, k -> new HashSet<>()).add(method.method);
-    originStates.putIfAbsent(key, states.get(originInterface));
+    originStates.putIfAbsent(key, getState(originInterface));
   }
 
-  private void assignNameForInterfaceMethodInAllStates(DexMethod method,
+  private void assignNameForInterfaceMethodInAllStates(
+      DexMethod method,
       Set<NamingState<DexProto>> collectedStates,
       Set<DexMethod> sourceMethods,
-      Map<DexMethod, DexString> renaming, NamingState<DexProto> originState) {
+      NamingState<DexProto> originState) {
     boolean isReserved = false;
     if (globalState.isReserved(method.name, method.proto)) {
       for (NamingState<DexProto> state : collectedStates) {
@@ -326,7 +314,8 @@ class MethodNameMinifier {
       Map<DexType, DexType> frontierMap) {
     frontierMap.put(type, libraryFrontier);
     NamingState<DexProto> state =
-        states.computeIfAbsent(libraryFrontier,
+        computeStateIfAbsent(
+            libraryFrontier,
             ignore -> parent == null
                 ? NamingState.createRoot(appInfo.dexItemFactory, dictionary)
                 : parent.createChild());
