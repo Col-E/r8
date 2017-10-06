@@ -32,8 +32,8 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.Writer;
+import java.util.Collection;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -229,7 +229,7 @@ public class ApplicationWriter {
    * be used.
    */
   private static void rewriteCodeWithJumboStrings(ObjectToOffsetMapping mapping,
-      List<DexProgramClass> classes, DexApplication application) {
+      Collection<DexProgramClass> classes, DexApplication application) {
     // If there are no strings with jumbo indices at all this is a no-op.
     if (!mapping.hasJumboStrings()) {
       return;
