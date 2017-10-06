@@ -10,7 +10,6 @@ import static org.junit.Assert.fail;
 import com.android.tools.r8.DeviceRunner.DeviceRunnerConfigurationException;
 import com.android.tools.r8.ToolHelper.DexVm.Kind;
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -773,18 +772,29 @@ public class ToolHelper {
     return Paths.get(System.getProperty("java.home"), "bin", "java").toString();
   }
 
+  public static ProcessResult runArtNoVerificationErrorsRaw(String file, String mainClass)
+      throws IOException {
+    return runArtNoVerificationErrorsRaw(Collections.singletonList(file), mainClass, null);
+  }
+
   public static String runArtNoVerificationErrors(String file, String mainClass)
       throws IOException {
-    return runArtNoVerificationErrors(Collections.singletonList(file), mainClass, null);
+    return runArtNoVerificationErrorsRaw(file, mainClass).stdout;
+  }
+
+  public static ProcessResult runArtNoVerificationErrorsRaw(List<String> files, String mainClass,
+      Consumer<ArtCommandBuilder> extras)
+      throws IOException {
+    return runArtNoVerificationErrorsRaw(files, mainClass, extras, null);
   }
 
   public static String runArtNoVerificationErrors(List<String> files, String mainClass,
       Consumer<ArtCommandBuilder> extras)
       throws IOException {
-    return runArtNoVerificationErrors(files, mainClass, extras, null);
+    return runArtNoVerificationErrorsRaw(files, mainClass, extras).stdout;
   }
 
-  public static String runArtNoVerificationErrors(List<String> files, String mainClass,
+  public static ProcessResult runArtNoVerificationErrorsRaw(List<String> files, String mainClass,
       Consumer<ArtCommandBuilder> extras,
       DexVm version)
       throws IOException {
@@ -795,18 +805,30 @@ public class ToolHelper {
     if (extras != null) {
       extras.accept(builder);
     }
-    return runArtNoVerificationErrors(builder);
+    return runArtNoVerificationErrorsRaw(builder);
   }
 
-  public static String runArtNoVerificationErrors(ArtCommandBuilder builder) throws IOException {
-    ProcessResult result = runArtProcess(builder);
+  public static String runArtNoVerificationErrors(List<String> files, String mainClass,
+      Consumer<ArtCommandBuilder> extras,
+      DexVm version)
+      throws IOException {
+    return runArtNoVerificationErrorsRaw(files, mainClass, extras, version).stdout;
+  }
+
+  public static ProcessResult runArtNoVerificationErrorsRaw(ArtCommandBuilder builder)
+      throws IOException {
+    ProcessResult result = runArtProcessRaw(builder);
     if (result.stderr.contains("Verification error")) {
       fail("Verification error: \n" + result.stderr);
     }
-    return result.stdout;
+    return result;
   }
 
-  private static ProcessResult runArtProcess(ArtCommandBuilder builder) throws IOException {
+  public static String runArtNoVerificationErrors(ArtCommandBuilder builder) throws IOException {
+    return runArtNoVerificationErrorsRaw(builder).stdout;
+  }
+
+  private static ProcessResult runArtProcessRaw(ArtCommandBuilder builder) throws IOException {
     Assume.assumeTrue(ToolHelper.artSupported());
     ProcessResult result;
     if (builder.isForDevice()) {
@@ -818,6 +840,11 @@ public class ToolHelper {
     } else {
       result = runProcess(builder.asProcessBuilder());
     }
+    return result;
+  }
+
+  private static ProcessResult runArtProcess(ArtCommandBuilder builder) throws IOException {
+    ProcessResult result = runArtProcessRaw(builder);
     if (result.exitCode != 0) {
       fail("Unexpected art failure: '" + result.stderr + "'\n" + result.stdout);
     }
