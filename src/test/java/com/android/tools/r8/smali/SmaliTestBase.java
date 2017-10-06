@@ -361,7 +361,7 @@ public class SmaliTestBase extends TestBase {
       getSource(currentClassName).add(builder.toString());
     }
 
-    public List<String> buildSource() {
+    public List<String> build() {
       List<String> result = new ArrayList<>(classes.size());
       for (String clazz : classes.keySet()) {
         Builder classBuilder = classes.get(clazz);
@@ -372,18 +372,12 @@ public class SmaliTestBase extends TestBase {
 
     public byte[] compile()
         throws IOException, RecognitionException, DexOverflowException, ExecutionException {
-      return Smali.compile(buildSource());
+      return Smali.compile(build());
     }
-
-    public AndroidApp build()
-        throws IOException, RecognitionException, DexOverflowException, ExecutionException {
-      return AndroidApp.fromDexProgramData(compile());
-    }
-
 
     @Override
     public String toString() {
-      return String.join("\n\n", buildSource());
+      return String.join("\n\n", build());
     }
   }
 
