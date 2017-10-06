@@ -475,7 +475,7 @@ public class ToolHelper {
       return ImmutableSet.of(artVersionEnum);
     } else {
       if (isWindows()) {
-        throw new RuntimeException("You need to specify a runtime with 'dex_vm' property");
+        return Collections.emptySet();
       } else if (isLinux()) {
         return ART_BINARY_VERSIONS.keySet();
       } else {
@@ -499,11 +499,6 @@ public class ToolHelper {
   public static DexVm getDexVm() {
     String artVersion = System.getProperty("dex_vm");
     if (artVersion == null) {
-      if (isWindows()) {
-        throw new RuntimeException(
-            "Default Art version is not supported on Windows. Please specify a non-host runtime "
-                + "with property 'dex_vm'");
-      }
       return DexVm.ART_DEFAULT;
     } else {
       DexVm artVersionEnum = DexVm.fromShortName(artVersion);
@@ -543,9 +538,13 @@ public class ToolHelper {
   }
 
   public static boolean artSupported() {
-    if (!isLinux() && !isMac()  && !isWindows()) {
+    if (!isLinux() && !isMac() && !isWindows()) {
       System.err.println("Testing on your platform is not fully supported. " +
           "Art does not work on on your platform.");
+      return false;
+    }
+    if (isWindows() && getDexVm().getKind() == Kind.HOST) {
+      System.err.println("Testing on host is not supported on Windows.");
       return false;
     }
     return true;
