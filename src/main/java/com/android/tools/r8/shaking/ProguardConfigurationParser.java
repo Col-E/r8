@@ -78,13 +78,6 @@ public class ProguardConfigurationParser {
   }
 
   public ProguardConfiguration getConfig() throws ProguardRuleParserException {
-    if (configurationBuilder.isUseUniqueClassMemberNames()
-        && configurationBuilder.isObfuscating()) {
-      // The flag -useuniqueulassmembernames has only effect when minifying, so ignore it if we
-      // are not.
-      throw new ProguardRuleParserException("-useuniqueulassmembernames is not supported");
-    }
-
     if (configurationBuilder.isKeepParameterNames()
         && configurationBuilder.isObfuscating()) {
       // The flag -keepparameternames has only effect when minifying, so ignore it if we
