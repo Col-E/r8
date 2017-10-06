@@ -778,7 +778,7 @@ public class AndroidApp {
         throw new FileNotFoundException("Non-existent input file: " + file);
       }
       if (isArchive(file)) {
-        providerList.add(PreloadedClassFileProvider.fromArchive(classPath));
+        providerList.add(ArchiveClassFileProvider.fromArchive(classPath));
       } else if (Files.isDirectory(file) ) {
         // This is only used for D8 incremental compilation.
         assert classPath.isUnfiltered();

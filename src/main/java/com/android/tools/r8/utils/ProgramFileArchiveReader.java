@@ -55,7 +55,7 @@ public class ProgramFileArchiveReader {
                 dexResources.add(resource);
               }
             } else if (isClassFile(name)) {
-              String descriptor = PreloadedClassFileProvider.guessTypeDescriptor(name);
+              String descriptor = ArchiveClassFileProvider.guessTypeDescriptor(name);
               Resource resource = new OneShotByteResource(Resource.Kind.CLASSFILE,
                   ByteStreams.toByteArray(stream), Collections.singleton(descriptor));
               classResources.add(resource);

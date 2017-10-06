@@ -3,28 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
-import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
-import static com.android.tools.r8.utils.FileUtils.isArchive;
-import static com.android.tools.r8.utils.FileUtils.isClassFile;
-
 import com.android.tools.r8.ClassFileResourceProvider;
 import com.android.tools.r8.Resource;
-import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.shaking.FilteredClassPath;
 import com.google.common.collect.Sets;
-import com.google.common.io.ByteStreams;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collections;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
 
 /**
  * Lazy Java class file resource provider based on preloaded/prebuilt context.
@@ -51,55 +36,10 @@ public final class PreloadedClassFileProvider implements ClassFileResourceProvid
     return Resource.fromBytes(Resource.Kind.CLASSFILE, bytes, Collections.singleton(descriptor));
   }
 
-  /**
-   * Create preloaded content resource provider from archive file.
-   */
-  public static ClassFileResourceProvider fromArchive(FilteredClassPath archive)
-      throws IOException {
-    assert isArchive(archive.getPath());
-    Builder builder = builder();
-    try (ZipFile zipFile = new ZipFile(archive.getPath().toFile())) {
-      final Enumeration<? extends ZipEntry> entries = zipFile.entries();
-      while (entries.hasMoreElements()) {
-        ZipEntry entry = entries.nextElement();
-        String name = entry.getName();
-        Path entryPath = Paths.get(name);
-        if (isClassFile(entryPath) && archive.matchesFile(entryPath)) {
-          try (InputStream entryStream = zipFile.getInputStream(entry)) {
-            builder.addResource(guessTypeDescriptor(name), ByteStreams.toByteArray(entryStream));
-          }
-        }
-      }
-    }
-
-    return builder.build();
-  }
-
-  public static ClassFileResourceProvider fromClassData(String descriptor, byte[] data)
-      throws IOException {
+  public static ClassFileResourceProvider fromClassData(String descriptor, byte[] data) {
     Builder builder = builder();
     builder.addResource(descriptor, data);
     return builder.build();
-  }
-
-  // Guess class descriptor from location of the class file.
-  static String guessTypeDescriptor(Path name) {
-    return guessTypeDescriptor(name.toString());
-  }
-
-  // Guess class descriptor from location of the class file.
-  private static String guessTypeDescriptor(String name) {
-    assert name != null;
-    assert name.endsWith(CLASS_EXTENSION) :
-        "Name " + name + " must have " + CLASS_EXTENSION + " suffix";
-    String fileName =
-        File.separatorChar == '/' ? name.toString() :
-            name.toString().replace(File.separatorChar, '/');
-    String descriptor = fileName.substring(0, fileName.length() - CLASS_EXTENSION.length());
-    if (descriptor.contains(".")) {
-      throw new CompilationError("Unexpected file name in the archive: " + fileName);
-    }
-    return 'L' + descriptor + ';';
   }
 
   @Override
