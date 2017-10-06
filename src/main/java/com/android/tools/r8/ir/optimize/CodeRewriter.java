@@ -995,6 +995,10 @@ public class CodeRewriter {
       for (StaticPut put : dominatingPuts.values()) {
         DexField field = put.getField();
         DexEncodedField encodedField = appInfo.definitionFor(field);
+        if (encodedField == null) {
+          // See b/67468748.
+          continue;
+        }
         if (field.type == dexItemFactory.stringType) {
           if (put.inValue().isConstant()) {
             if (put.inValue().isConstNumber()) {
