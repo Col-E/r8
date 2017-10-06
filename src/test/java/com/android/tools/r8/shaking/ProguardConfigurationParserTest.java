@@ -332,6 +332,50 @@ public class ProguardConfigurationParserTest extends TestBase {
   }
 
   @Test
+  public void testIdentifierNameString() throws Exception {
+    ProguardConfigurationParser parser = new ProguardConfigurationParser(new DexItemFactory());
+    String config1 =
+        "-identifiernamestring class a.b.c.*GeneratedClass {\n"
+        + "  static java.lang.String CONTAINING_TYPE_*;\n"
+        + "}";
+    String config2 =
+        "-identifiernamestring class x.y.z.ReflectionBasedFactory {\n"
+        + "  private static java.lang.reflect.Field field(java.lang.Class,java.lang.String);\n"
+        + "}";
+    String config3 =
+        "-identifiernamestring class * {\n"
+        + "  @my.annotations.IdentifierNameString *;\n"
+        + "}";
+    parser.parse(
+        new ProguardConfigurationSourceStrings(ImmutableList.of(config1, config2, config3)));
+    ProguardConfiguration config = parser.getConfig();
+    List<ProguardConfigurationRule> identifierNameStrings = config.getRules();
+    assertEquals(3, identifierNameStrings.size());
+    assertEquals(1, identifierNameStrings.get(0).getClassNames().size());
+    assertEquals(
+        "a.b.c.*GeneratedClass",
+        identifierNameStrings.get(0).getClassNames().toString());
+    identifierNameStrings.get(0).getMemberRules().forEach(memberRule -> {
+      assertTrue(memberRule.getRuleType().includesFields());
+      assertTrue(memberRule.getName().matches("CONTAINING_TYPE_ABC"));
+    });
+    assertEquals(1, identifierNameStrings.get(1).getClassNames().size());
+    assertEquals(
+        "x.y.z.ReflectionBasedFactory",
+        identifierNameStrings.get(1).getClassNames().toString());
+    identifierNameStrings.get(1).getMemberRules().forEach(memberRule -> {
+      assertTrue(memberRule.getRuleType().includesMethods());
+      assertTrue(memberRule.getName().matches("field"));
+    });
+    assertEquals(1, identifierNameStrings.get(2).getClassNames().size());
+    assertEquals("*", identifierNameStrings.get(2).getClassNames().toString());
+    identifierNameStrings.get(2).getMemberRules().forEach(memberRule -> {
+      assertEquals(ProguardMemberType.ALL, memberRule.getRuleType());
+      assertTrue(memberRule.getAnnotation().toString().endsWith("IdentifierNameString"));
+    });
+  }
+
+  @Test
   public void parseDontobfuscate() throws IOException, ProguardRuleParserException {
     ProguardConfigurationParser parser = new ProguardConfigurationParser(new DexItemFactory());
     parser.parse(Paths.get(DONT_OBFUSCATE));

@@ -50,7 +50,6 @@ public class ProguardConfigurationParser {
           "invokebasemethod");
   private static final List<String> ignoredClassDescriptorOptions = ImmutableList
       .of("isclassnamestring",
-          "identifiernamestring",
           "whyarenotsimple");
 
   private static final List<String> warnedSingleArgOptions = ImmutableList
@@ -269,6 +268,10 @@ public class ProguardConfigurationParser {
         configurationBuilder.addRule(rule);
       } else if (acceptString("useuniqueclassmembernames")) {
         configurationBuilder.setUseUniqueClassMemberNames(true);
+      } else if (acceptString("identifiernamestring")) {
+        configurationBuilder.addRule(parseIdentifierNameStringRule());
+        // TODO(b/36799092): warn until it is fully implemented.
+        warnIgnoringOptions("identifiernamestring");
       } else {
         throw parseError("Unknown option");
       }
@@ -355,11 +358,7 @@ public class ProguardConfigurationParser {
         }
         try {
           ProguardKeepRule.Builder keepRuleBuilder = ProguardKeepRule.builder();
-          parseClassFlagsAndAnnotations(keepRuleBuilder);
-          keepRuleBuilder.setClassType(parseClassType());
-          keepRuleBuilder.setClassNames(parseClassNames());
-          parseInheritance(keepRuleBuilder);
-          parseMemberRules(keepRuleBuilder, true);
+          parseClassSpec(keepRuleBuilder, true);
           return true;
         } catch (ProguardRuleParserException e) {
           System.out.println(e);
@@ -441,6 +440,14 @@ public class ProguardConfigurationParser {
     private ProguardAlwaysInlineRule parseAlwaysInlineRule()
         throws ProguardRuleParserException {
       ProguardAlwaysInlineRule.Builder keepRuleBuilder = ProguardAlwaysInlineRule.builder();
+      parseClassSpec(keepRuleBuilder, false);
+      return keepRuleBuilder.build();
+    }
+
+    private ProguardIdentifierNameStringRule parseIdentifierNameStringRule()
+        throws ProguardRuleParserException {
+      ProguardIdentifierNameStringRule.Builder keepRuleBuilder =
+          ProguardIdentifierNameStringRule.builder();
       parseClassSpec(keepRuleBuilder, false);
       return keepRuleBuilder.build();
     }
