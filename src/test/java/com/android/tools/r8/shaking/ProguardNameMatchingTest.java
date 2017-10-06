@@ -62,6 +62,9 @@ public class ProguardNameMatchingTest {
     assertTrue(matchClassName("java.lang.Object", "!java.util.**", "java**"));
     assertFalse(matchClassName("java.lang.Object", "!java.**", "java.lang.*"));
     assertTrue(matchClassName("java.lang.Object", "java.lang.*", "!java.**"));
+
+    assertTrue(matchClassName("boobar", "!foobar", "*bar"));
+    assertFalse(matchClassName("foobar", "!foobar", "*bar"));
   }
 
   private void assertMatchesBasicTypes(String pattern) {

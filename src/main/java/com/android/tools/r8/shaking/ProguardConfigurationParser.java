@@ -198,11 +198,12 @@ public class ProguardConfigurationParser {
       } else if (acceptString("ignorewarnings")) {
         configurationBuilder.setIgnoreWarnings(true);
       } else if (acceptString("dontwarn")) {
-        do {
-          ProguardTypeMatcher pattern = ProguardTypeMatcher.create(parseClassName(),
-              ClassOrType.CLASS, dexItemFactory);
-          configurationBuilder.addDontWarnPattern(pattern);
-        } while (acceptChar(','));
+        if (isOptionalArgumentGiven()) {
+          configurationBuilder.setDontWarnPatterns(parseClassNames());
+        } else {
+          configurationBuilder.setDontWarnPatterns(
+              ProguardClassNameList.singletonList(ProguardTypeMatcher.defaultAllMatcher()));
+        }
       } else if (acceptString("repackageclasses")) {
         if (configurationBuilder.getPackageObfuscationMode() == PackageObfuscationMode.FLATTEN) {
           warnOverridingOptions("repackageclasses", "flattenpackagehierarchy");

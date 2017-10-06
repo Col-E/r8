@@ -145,6 +145,51 @@ public class ProguardConfigurationParserTest extends TestBase {
   }
 
   @Test
+  public void testDontWarn() throws Exception {
+    DexItemFactory dexItemFactory = new DexItemFactory();
+    ProguardConfigurationParser parser = new ProguardConfigurationParser(dexItemFactory);
+    String dontwarn = "-dontwarn !foobar,*bar";
+    parser.parse(new ProguardConfigurationSourceStrings(ImmutableList.of(dontwarn)));
+    ProguardConfiguration config = parser.getConfig();
+    assertFalse(
+        config.getDontWarnPatterns().matches(dexItemFactory.createType("Lboobaz;")));
+    assertTrue(
+        config.getDontWarnPatterns().matches(dexItemFactory.createType("Lboobar;")));
+    assertFalse(
+        config.getDontWarnPatterns().matches(dexItemFactory.createType("Lfoobar;")));
+  }
+
+  @Test
+  public void testDontWarnAllExplicitly() throws Exception {
+    DexItemFactory dexItemFactory = new DexItemFactory();
+    ProguardConfigurationParser parser = new ProguardConfigurationParser(dexItemFactory);
+    String dontwarnAll = "-dontwarn *";
+    parser.parse(new ProguardConfigurationSourceStrings(ImmutableList.of(dontwarnAll)));
+    ProguardConfiguration config = parser.getConfig();
+    assertTrue(
+        config.getDontWarnPatterns().matches(dexItemFactory.createType("Lboobaz;")));
+    assertTrue(
+        config.getDontWarnPatterns().matches(dexItemFactory.createType("Lboobar;")));
+    assertTrue(
+        config.getDontWarnPatterns().matches(dexItemFactory.createType("Lfoobar;")));
+  }
+
+  @Test
+  public void testDontWarnAllImplicitly() throws Exception {
+    DexItemFactory dexItemFactory = new DexItemFactory();
+    ProguardConfigurationParser parser = new ProguardConfigurationParser(dexItemFactory);
+    String dontwarnAll = "-dontwarn";
+    parser.parse(new ProguardConfigurationSourceStrings(ImmutableList.of(dontwarnAll)));
+    ProguardConfiguration config = parser.getConfig();
+    assertTrue(
+        config.getDontWarnPatterns().matches(dexItemFactory.createType("Lboobaz;")));
+    assertTrue(
+        config.getDontWarnPatterns().matches(dexItemFactory.createType("Lboobar;")));
+    assertTrue(
+        config.getDontWarnPatterns().matches(dexItemFactory.createType("Lfoobar;")));
+  }
+
+  @Test
   public void parseAccessFlags() throws IOException, ProguardRuleParserException {
     ProguardConfigurationParser parser = new ProguardConfigurationParser(new DexItemFactory());
     parser.parse(Paths.get(ACCESS_FLAGS_FILE));

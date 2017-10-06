@@ -31,8 +31,8 @@ import com.android.tools.r8.shaking.AnnotationRemover;
 import com.android.tools.r8.shaking.DiscardedChecker;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.MainDexListBuilder;
+import com.android.tools.r8.shaking.ProguardClassNameList;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
-import com.android.tools.r8.shaking.ProguardTypeMatcher;
 import com.android.tools.r8.shaking.ProguardTypeMatcher.MatchSpecificType;
 import com.android.tools.r8.shaking.ReasonPrinter;
 import com.android.tools.r8.shaking.RootSetBuilder;
@@ -153,15 +153,15 @@ public class R8 {
   }
 
   private Set<DexType> filterMissingClasses(Set<DexType> missingClasses,
-      Set<ProguardTypeMatcher> dontWarnPatterns) {
+      ProguardClassNameList dontWarnPatterns) {
     Set<DexType> result = new HashSet<>(missingClasses);
-    for (ProguardTypeMatcher matcher : dontWarnPatterns) {
+    dontWarnPatterns.forEachTypeMatcher(matcher -> {
       if (matcher instanceof MatchSpecificType) {
         result.remove(((MatchSpecificType) matcher).type);
       } else {
         result.removeIf(matcher::matches);
       }
-    }
+    });
     return result;
   }
 
