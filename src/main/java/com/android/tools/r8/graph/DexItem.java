@@ -5,7 +5,6 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
-import java.util.Collection;
 import java.util.function.Consumer;
 
 public abstract class DexItem {
@@ -16,11 +15,6 @@ public abstract class DexItem {
 
   public static <T extends DexItem> void collectAll(MixedSectionCollection mixedItems, T[] items) {
     consumeArray(items, (T item) -> item.collectMixedSectionItems(mixedItems));
-  }
-
-  public static <T extends DexItem> void collectAll(MixedSectionCollection mixedItems,
-      Collection<T> items) {
-    items.forEach((T item) -> item.collectMixedSectionItems(mixedItems));
   }
 
   /**

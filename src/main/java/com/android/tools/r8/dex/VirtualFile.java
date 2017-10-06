@@ -17,6 +17,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.IndexedDexItem;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.NamingLens;
@@ -73,7 +74,7 @@ public class VirtualFile {
 
   private VirtualFile(int id, NamingLens namingLens, DexProgramClass primaryClass) {
     this.id = id;
-    this.indexedItems = new VirtualFileIndexedItemCollection(namingLens);
+    this.indexedItems = new VirtualFileIndexedItemCollection(id);
     this.transaction = new IndexedItemTransaction(indexedItems, namingLens);
     this.primaryClass = primaryClass;
   }
@@ -149,15 +150,16 @@ public class VirtualFile {
   public ObjectToOffsetMapping computeMapping(DexApplication application) {
     assert transaction.isEmpty();
     return new ObjectToOffsetMapping(
+        id,
         application,
-        indexedItems.classes,
-        indexedItems.protos,
-        indexedItems.types,
-        indexedItems.methods,
-        indexedItems.fields,
-        indexedItems.strings,
-        indexedItems.callSites,
-        indexedItems.methodHandles);
+        indexedItems.classes.toArray(new DexProgramClass[indexedItems.classes.size()]),
+        indexedItems.protos.toArray(new DexProto[indexedItems.protos.size()]),
+        indexedItems.types.toArray(new DexType[indexedItems.types.size()]),
+        indexedItems.methods.toArray(new DexMethod[indexedItems.methods.size()]),
+        indexedItems.fields.toArray(new DexField[indexedItems.fields.size()]),
+        indexedItems.strings.toArray(new DexString[indexedItems.strings.size()]),
+        indexedItems.callSites.toArray(new DexCallSite[indexedItems.callSites.size()]),
+        indexedItems.methodHandles.toArray(new DexMethodHandle[indexedItems.methodHandles.size()]));
   }
 
   private void addClass(DexProgramClass clazz) {
@@ -202,7 +204,7 @@ public class VirtualFile {
     return indexedItems.classes.isEmpty();
   }
 
-  public Collection<DexProgramClass> classes() {
+  public List<DexProgramClass> classes() {
     return indexedItems.classes;
   }
 
@@ -395,89 +397,86 @@ public class VirtualFile {
 
   private static class VirtualFileIndexedItemCollection implements IndexedItemCollection {
 
-    private final NamingLens namingLens;
+    final int id;
 
-    private final Set<DexProgramClass> classes = Sets.newIdentityHashSet();
-    private final Set<DexProto> protos = Sets.newIdentityHashSet();
-    private final Set<DexType> types = Sets.newIdentityHashSet();
-    private final Set<DexMethod> methods = Sets.newIdentityHashSet();
-    private final Set<DexField> fields = Sets.newIdentityHashSet();
-    private final Set<DexString> strings = Sets.newIdentityHashSet();
-    private final Set<DexCallSite> callSites = Sets.newIdentityHashSet();
-    private final Set<DexMethodHandle> methodHandles = Sets.newIdentityHashSet();
+    private final List<DexProgramClass> classes = new ArrayList<>();
+    private final List<DexProto> protos = new ArrayList<>();
+    private final List<DexType> types = new ArrayList<>();
+    private final List<DexMethod> methods = new ArrayList<>();
+    private final List<DexField> fields = new ArrayList<>();
+    private final List<DexString> strings = new ArrayList<>();
+    private final List<DexCallSite> callSites = new ArrayList<>();
+    private final List<DexMethodHandle> methodHandles = new ArrayList<>();
 
-    public VirtualFileIndexedItemCollection(
-        NamingLens namingLens) {
-      this.namingLens = namingLens;
+    private final Set<DexClass> seenClasses = Sets.newIdentityHashSet();
 
+    private VirtualFileIndexedItemCollection(int id) {
+      this.id = id;
+    }
+
+    private <T extends IndexedDexItem> boolean addItem(T item, List<T> itemList) {
+      assert item != null;
+      if (item.assignToVirtualFile(id)) {
+        itemList.add(item);
+        return true;
+      }
+      return false;
     }
 
     @Override
     public boolean addClass(DexProgramClass clazz) {
-      return classes.add(clazz);
+      if (seenClasses.add(clazz)) {
+        classes.add(clazz);
+        return true;
+      }
+      return false;
     }
 
     @Override
     public boolean addField(DexField field) {
-      return fields.add(field);
+      return addItem(field, fields);
     }
 
     @Override
     public boolean addMethod(DexMethod method) {
-      return methods.add(method);
+      return addItem(method, methods);
     }
 
     @Override
     public boolean addString(DexString string) {
-      return strings.add(string);
+      return addItem(string, strings);
     }
 
     @Override
     public boolean addProto(DexProto proto) {
-      return protos.add(proto);
-    }
-
-    @Override
-    public boolean addType(DexType type) {
-      return types.add(type);
+      return addItem(proto, protos);
     }
 
     @Override
     public boolean addCallSite(DexCallSite callSite) {
-      return callSites.add(callSite);
+      return addItem(callSite, callSites);
     }
 
     @Override
     public boolean addMethodHandle(DexMethodHandle methodHandle) {
-      return methodHandles.add(methodHandle);
+      return addItem(methodHandle, methodHandles);
     }
 
-    int getNumberOfMethods() {
+    @Override
+    public boolean addType(DexType type) {
+      return addItem(type, types);
+    }
+
+    public int getNumberOfMethods() {
       return methods.size();
     }
 
-    int getNumberOfFields() {
+    public int getNumberOfFields() {
       return fields.size();
     }
 
-    int getNumberOfStrings() {
+    public int getNumberOfStrings() {
       return strings.size();
-    }
-
-    @Override
-    public DexString getRenamedDescriptor(DexType type) {
-      return namingLens.lookupDescriptor(type);
-    }
-
-    @Override
-    public DexString getRenamedName(DexMethod method) {
-      assert namingLens.checkTargetCanBeTranslated(method);
-      return namingLens.lookupName(method);
-    }
-
-    @Override
-    public DexString getRenamedName(DexField field) {
-      return namingLens.lookupName(field);
     }
   }
 
@@ -501,8 +500,8 @@ public class VirtualFile {
       this.namingLens = namingLens;
     }
 
-    private <T extends DexItem> boolean maybeInsert(T item, Set<T> set, Set<T> baseSet) {
-      if (baseSet.contains(item) || set.contains(item)) {
+    private <T extends IndexedDexItem> boolean maybeInsert(T item, Set<T> set) {
+      if (item.hasVirtualFileData(base.id) || set.contains(item)) {
         return false;
       }
       set.add(item);
@@ -515,42 +514,46 @@ public class VirtualFile {
 
     @Override
     public boolean addClass(DexProgramClass dexProgramClass) {
-      return maybeInsert(dexProgramClass, classes, base.classes);
+      if (base.seenClasses.contains(dexProgramClass) || classes.contains(dexProgramClass)) {
+        return false;
+      }
+      classes.add(dexProgramClass);
+      return true;
     }
 
     @Override
     public boolean addField(DexField field) {
-      return maybeInsert(field, fields, base.fields);
+      return maybeInsert(field, fields);
     }
 
     @Override
     public boolean addMethod(DexMethod method) {
-      return maybeInsert(method, methods, base.methods);
+      return maybeInsert(method, methods);
     }
 
     @Override
     public boolean addString(DexString string) {
-      return maybeInsert(string, strings, base.strings);
+      return maybeInsert(string, strings);
     }
 
     @Override
     public boolean addProto(DexProto proto) {
-      return maybeInsert(proto, protos, base.protos);
+      return maybeInsert(proto, protos);
     }
 
     @Override
     public boolean addType(DexType type) {
-      return maybeInsert(type, types, base.types);
+      return maybeInsert(type, types);
     }
 
     @Override
     public boolean addCallSite(DexCallSite callSite) {
-      return maybeInsert(callSite, callSites, base.callSites);
+      return maybeInsert(callSite, callSites);
     }
 
     @Override
     public boolean addMethodHandle(DexMethodHandle methodHandle) {
-      return maybeInsert(methodHandle, methodHandles, base.methodHandles);
+      return maybeInsert(methodHandle, methodHandles);
     }
 
     @Override
