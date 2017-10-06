@@ -17,6 +17,7 @@ import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
 import com.android.tools.r8.ir.regalloc.LiveIntervals;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.google.common.base.Equivalence.Wrapper;
+import com.google.common.collect.ImmutableList;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap.Entry;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
@@ -46,6 +47,14 @@ public class PeepholeOptimizer {
    */
   private static void shareIdenticalBlockSuffix(IRCode code, RegisterAllocator allocator) {
     Collection<BasicBlock> blocks = code.blocks;
+    BasicBlock normalExit = null;
+    ImmutableList<BasicBlock> normalExits = code.computeNormalExitBlocks();
+    if (normalExits.size() > 1) {
+      normalExit = new BasicBlock();
+      normalExit.getPredecessors().addAll(normalExits);
+      blocks = new ArrayList<>(code.blocks);
+      blocks.add(normalExit);
+    }
     do {
       int startNumberOfNewBlock = code.getHighestBlockNumber() + 1;
       Map<BasicBlock, BasicBlock> newBlocks = new IdentityHashMap<>();
@@ -60,13 +69,21 @@ public class PeepholeOptimizer {
           // and allow both a goto edge and exception edges when the target does not start with a
           // MoveException instruction. However, that would require us to require rewriting of
           // catch handlers as well.
-          if (pred.exit().isGoto() &&
-              pred.getSuccessors().size() == 1 &&
-              pred.getInstructions().size() > 1) {
+          if (pred.exit().isGoto()
+              && pred.getSuccessors().size() == 1
+              && pred.getInstructions().size() > 1) {
             List<Instruction> instructions = pred.getInstructions();
             Instruction lastInstruction = instructions.get(instructions.size() - 2);
             List<BasicBlock> value = lastInstructionToBlocks.computeIfAbsent(
                 equivalence.wrap(lastInstruction), (k) -> new ArrayList<>());
+            value.add(pred);
+          } else if (pred.exit().isReturn()
+              && pred.getSuccessors().isEmpty()
+              && pred.getInstructions().size() > 2) {
+            Instruction lastInstruction = pred.exit();
+            List<BasicBlock> value =
+                lastInstructionToBlocks.computeIfAbsent(
+                    equivalence.wrap(lastInstruction), (k) -> new ArrayList<>());
             value.add(pred);
           }
         }
@@ -80,16 +97,20 @@ public class PeepholeOptimizer {
           int commonSuffixSize = firstPred.getInstructions().size();
           for (int i = 1; i < predsWithSameLastInstruction.size(); i++) {
             BasicBlock pred = predsWithSameLastInstruction.get(i);
-            assert pred.exit().isGoto();
-            commonSuffixSize = Math.min(
-                commonSuffixSize, sharedSuffixSizeExcludingExit(firstPred, pred, allocator));
+            assert pred.exit().isGoto() || pred.exit().isReturn();
+            commonSuffixSize =
+                Math.min(commonSuffixSize, sharedSuffixSize(firstPred, pred, allocator));
           }
-          if (commonSuffixSize == 0) {
+          if (commonSuffixSize <= 1) {
             continue;
           }
           int blockNumber = startNumberOfNewBlock + newBlocks.size();
-          BasicBlock newBlock = createAndInsertBlockForSuffix(
-              blockNumber, commonSuffixSize, predsWithSameLastInstruction, block);
+          BasicBlock newBlock =
+              createAndInsertBlockForSuffix(
+                  blockNumber,
+                  commonSuffixSize,
+                  predsWithSameLastInstruction,
+                  block == normalExit ? null : block);
           newBlocks.put(predsWithSameLastInstruction.get(0), newBlock);
         }
       }
@@ -109,19 +130,26 @@ public class PeepholeOptimizer {
       int blockNumber, int suffixSize, List<BasicBlock> preds, BasicBlock successorBlock) {
     BasicBlock newBlock = BasicBlock.createGotoBlock(blockNumber);
     BasicBlock first = preds.get(0);
-    InstructionListIterator from = first.listIterator(first.getInstructions().size() - 1);
-    Int2ReferenceMap<DebugLocalInfo> newBlockEntryLocals = successorBlock.getLocalsAtEntry() == null
-        ? null
-        : new Int2ReferenceOpenHashMap<>(successorBlock.getLocalsAtEntry());
+    assert (successorBlock != null && first.exit().isGoto())
+        || (successorBlock == null && first.exit().isReturn());
+    int offsetFromEnd = successorBlock == null ? 0 : 1;
+    if (successorBlock == null) {
+      newBlock.getInstructions().removeLast();
+    }
+    InstructionListIterator from =
+        first.listIterator(first.getInstructions().size() - offsetFromEnd);
+    Int2ReferenceMap<DebugLocalInfo> newBlockEntryLocals =
+        (successorBlock == null || successorBlock.getLocalsAtEntry() == null)
+            ? new Int2ReferenceOpenHashMap<>()
+            : new Int2ReferenceOpenHashMap<>(successorBlock.getLocalsAtEntry());
     boolean movedThrowingInstruction = false;
-    for (int i = 0; i < suffixSize; i++) {
+    for (int i = offsetFromEnd; i < suffixSize; i++) {
       Instruction instruction = from.previous();
       movedThrowingInstruction = movedThrowingInstruction || instruction.instructionTypeCanThrow();
       newBlock.getInstructions().addFirst(instruction);
       instruction.setBlock(newBlock);
       if (instruction.isDebugLocalsChange()) {
         // Replay the debug local changes backwards to compute the entry state.
-        assert newBlockEntryLocals != null;
         DebugLocalsChange change = instruction.asDebugLocalsChange();
         for (int starting : change.getStarting().keySet()) {
           newBlockEntryLocals.remove(starting);
@@ -136,27 +164,35 @@ public class PeepholeOptimizer {
     }
     for (BasicBlock pred : preds) {
       LinkedList<Instruction> instructions = pred.getInstructions();
-      Instruction exit = instructions.removeLast();
       for (int i = 0; i < suffixSize; i++) {
         instructions.removeLast();
       }
-      instructions.add(exit);
+      Goto jump = new Goto();
+      jump.setBlock(pred);
+      instructions.add(jump);
       newBlock.getPredecessors().add(pred);
-      pred.replaceSuccessor(successorBlock, newBlock);
-      successorBlock.getPredecessors().remove(pred);
+      if (successorBlock != null) {
+        pred.replaceSuccessor(successorBlock, newBlock);
+        successorBlock.getPredecessors().remove(pred);
+      } else {
+        pred.getSuccessors().add(newBlock);
+      }
       if (movedThrowingInstruction) {
         pred.clearCatchHandlers();
       }
     }
     newBlock.setLocalsAtEntry(newBlockEntryLocals);
-    newBlock.link(successorBlock);
+    if (successorBlock != null) {
+      newBlock.link(successorBlock);
+    }
     return newBlock;
   }
 
-  private static int sharedSuffixSizeExcludingExit(
+  private static int sharedSuffixSize(
       BasicBlock block0, BasicBlock block1, RegisterAllocator allocator) {
-    InstructionListIterator it0 = block0.listIterator(block0.getInstructions().size() - 1);
-    InstructionListIterator it1 = block1.listIterator(block1.getInstructions().size() - 1);
+    assert block0.exit().isGoto() || block0.exit().isReturn();
+    InstructionListIterator it0 = block0.listIterator(block0.getInstructions().size());
+    InstructionListIterator it1 = block1.listIterator(block1.getInstructions().size());
     int suffixSize = 0;
     while (it0.hasPrevious() && it1.hasPrevious()) {
       Instruction i0 = it0.previous();

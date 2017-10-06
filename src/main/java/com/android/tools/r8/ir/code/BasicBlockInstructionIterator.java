@@ -6,6 +6,8 @@ package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.IteratorUtils;
+import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
@@ -192,11 +194,6 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
       listIterator.remove();
     }
 
-    // If splitting the normal exit block, the new block is now the normal exit block.
-    if (code.getNormalExitBlock() == block) {
-      code.setNormalExitBlock(newBlock);
-    }
-
     // Insert the new block in the block list right after the current block.
     if (blocksIterator == null) {
       blocks.add(blocks.indexOf(block) + 1, newBlock);
@@ -371,22 +368,22 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
     BasicBlock inlineEntry = inlinee.blocks.getFirst();
 
     BasicBlock inlineExit = null;
-    if (inlinee.getNormalExitBlock() == null) {
+    ImmutableList<BasicBlock> normalExits = inlinee.computeNormalExitBlocks();
+    if (normalExits.isEmpty()) {
       assert inlineeCanThrow;
       // TODO(sgjesse): Remove this restriction.
       assert !invokeBlock.hasCatchHandlers();
       blocksToRemove.addAll(
           invokePredecessor.unlink(invokeBlock, new DominatorTree(code, blocksToRemove)));
     } else {
-      // Locate inlinee return.
-      InstructionListIterator inlineeIterator = inlinee.getNormalExitBlock().listIterator();
-      inlineeIterator.nextUntil(Instruction::isReturn);
-      Return ret = inlineeIterator.previous().asReturn();
+      // Ensure and locate the single return instruction of the inlinee.
+      InstructionListIterator inlineeIterator = ensureSingleReturnInstruction(inlinee, normalExits);
 
-      // Map return value if used.
+      // Replace the invoke value with the return value if non-void.
+      assert inlineeIterator.peekNext().isReturn();
       if (invoke.outValue() != null) {
-        assert !ret.isReturnVoid();
-        invoke.outValue().replaceUsers(ret.returnValue());
+        Return returnInstruction = inlineeIterator.peekNext().asReturn();
+        invoke.outValue().replaceUsers(returnInstruction.returnValue());
       }
 
       // Split before return and unlink return.
@@ -438,5 +435,56 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
     }
 
     return invokeSuccessor;
+  }
+
+  private InstructionListIterator ensureSingleReturnInstruction(
+      IRCode code,
+      ImmutableList<BasicBlock> normalExits) {
+    if (normalExits.size() == 1) {
+      InstructionListIterator it = normalExits.get(0).listIterator();
+      it.nextUntil(Instruction::isReturn);
+      it.previous();
+      return it;
+    }
+    BasicBlock newExitBlock = new BasicBlock();
+    newExitBlock.setNumber(code.getHighestBlockNumber() + 1);
+    Return newReturn;
+    if (normalExits.get(0).exit().asReturn().isReturnVoid()) {
+      newReturn = new Return();
+    } else {
+      boolean same = true;
+      List<Value> operands = new ArrayList<>(normalExits.size());
+      for (BasicBlock exitBlock : normalExits) {
+        Value retValue = exitBlock.exit().asReturn().returnValue();
+        operands.add(retValue);
+        same = same && retValue == operands.get(0);
+      }
+      Value value;
+      if (same) {
+        value = operands.get(0);
+      } else {
+        Phi phi =
+            new Phi(
+                code.valueNumberGenerator.next(),
+                newExitBlock,
+                operands.get(0).outType(),
+                null);
+        phi.addOperands(operands);
+        value = phi;
+      }
+      newReturn = new Return(value, value.outType());
+    }
+    newExitBlock.add(newReturn);
+    for (BasicBlock exitBlock : normalExits) {
+      InstructionListIterator it = exitBlock.listIterator(exitBlock.getInstructions().size());
+      Instruction oldExit = it.previous();
+      assert oldExit.isReturn();
+      it.replaceCurrentInstruction(new Goto());
+      exitBlock.link(newExitBlock);
+    }
+    newExitBlock.close(null);
+    code.blocks.add(newExitBlock);
+    assert code.isConsistentSSA();
+    return newExitBlock.listIterator();
   }
 }

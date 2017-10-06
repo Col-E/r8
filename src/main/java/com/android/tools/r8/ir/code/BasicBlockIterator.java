@@ -86,9 +86,6 @@ public class BasicBlockIterator implements ListIterator<BasicBlock> {
       iterator.remove();
     }
     listIterator.remove();
-    if (current == code.getNormalExitBlock()) {
-      code.setNormalExitBlock(null);
-    }
     current = null;
   }
 }

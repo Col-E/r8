@@ -736,55 +736,58 @@ public class InlineTest extends SmaliTestBase {
 
   private void runInlineAlwaysThrowsMultiple(boolean twoGuards, int expectedA, int expectedB)
       throws Exception {
-    // Run code without inlining.
-    TestApplication test = codeForInlineAlwaysThrows(twoGuards);
-    String result = test.run();
-    assertEquals(Integer.toString(expectedA), result);
-
-    InstructionListIterator iterator;
-
-    // Run code inlining all invokes with a.
-    test = codeForInlineAlwaysThrowsMultiple(twoGuards);
-    ListIterator<BasicBlock> blocksIterator = test.code.blocks.listIterator();
-    Iterator<IRCode> inlinee = test.additionalCode.listIterator();  // IR code for a's.
-    List<BasicBlock> blocksToRemove = new ArrayList<>();
-    while (blocksIterator.hasNext()) {
-      BasicBlock block = blocksIterator.next();
-      if (blocksToRemove.contains(block)) {
-        continue;
-      }
-      iterator = block.listIterator();
-      Instruction invoke = iterator.nextUntil(Instruction::isInvoke);
-      if (invoke != null) {
-        iterator.previous();
-        iterator.inlineInvoke(test.code, inlinee.next(), blocksIterator, blocksToRemove, null);
-        assert !blocksToRemove.isEmpty();
-      }
+    {
+      // Run code without inlining.
+      TestApplication test = codeForInlineAlwaysThrows(twoGuards);
+      String result = test.run();
+      assertEquals(Integer.toString(expectedA), result);
     }
-    test.code.removeBlocks(blocksToRemove);
-    result = test.run();
-    assertEquals(Integer.toString(expectedA), result);
-
-    // Run code inlining all invokes with b.
-    test = codeForInlineAlwaysThrowsMultiple(twoGuards);
-    blocksIterator = test.code.blocks.listIterator();
-    inlinee = test.additionalCode.listIterator(3);  // IR code for b's.
-    while (blocksIterator.hasNext()) {
-      BasicBlock block = blocksIterator.next();
-      if (blocksToRemove.contains(block)) {
-        continue;
+    {
+      // Run code inlining all invokes with a.
+      TestApplication test = codeForInlineAlwaysThrowsMultiple(twoGuards);
+      ListIterator<BasicBlock> blocksIterator = test.code.blocks.listIterator();
+      Iterator<IRCode> inlinee = test.additionalCode.listIterator(); // IR code for a's.
+      List<BasicBlock> blocksToRemove = new ArrayList<>();
+      InstructionListIterator iterator;
+      while (blocksIterator.hasNext()) {
+        BasicBlock block = blocksIterator.next();
+        if (blocksToRemove.contains(block)) {
+          continue;
+        }
+        iterator = block.listIterator();
+        Instruction invoke = iterator.nextUntil(Instruction::isInvoke);
+        if (invoke != null) {
+          iterator.previous();
+          iterator.inlineInvoke(test.code, inlinee.next(), blocksIterator, blocksToRemove, null);
+        }
       }
-      iterator = block.listIterator();
-      Instruction invoke = iterator.nextUntil(Instruction::isInvoke);
-      if (invoke != null) {
-        iterator.previous();
-        iterator.inlineInvoke(test.code, inlinee.next(), blocksIterator, blocksToRemove, null);
-        assert !blocksToRemove.isEmpty();
-      }
+      test.code.removeBlocks(blocksToRemove);
+      String result = test.run();
+      assertEquals(Integer.toString(expectedA), result);
     }
-    test.code.removeBlocks(blocksToRemove);
-    result = test.run();
-    assertEquals(Integer.toString(expectedB), result);
+    {
+      // Run code inlining all invokes with b.
+      TestApplication test = codeForInlineAlwaysThrowsMultiple(twoGuards);
+      ListIterator<BasicBlock> blocksIterator = test.code.blocks.listIterator();
+      Iterator<IRCode> inlinee = test.additionalCode.listIterator(3); // IR code for b's.
+      List<BasicBlock> blocksToRemove = new ArrayList<>();
+      InstructionListIterator iterator;
+      while (blocksIterator.hasNext()) {
+        BasicBlock block = blocksIterator.next();
+        if (blocksToRemove.contains(block)) {
+          continue;
+        }
+        iterator = block.listIterator();
+        Instruction invoke = iterator.nextUntil(Instruction::isInvoke);
+        if (invoke != null) {
+          iterator.previous();
+          iterator.inlineInvoke(test.code, inlinee.next(), blocksIterator, blocksToRemove, null);
+        }
+      }
+      test.code.removeBlocks(blocksToRemove);
+      String result = test.run();
+      assertEquals(Integer.toString(expectedB), result);
+    }
   }
 
   @Test
@@ -890,55 +893,58 @@ public class InlineTest extends SmaliTestBase {
 
   private void runInlineAlwaysThrowsMultipleWithControlFlow(
       int a, boolean twoGuards, int expectedA, int expectedB) throws Exception {
-    // Run code without inlining.
-    TestApplication test = codeForInlineAlwaysThrows(twoGuards);
-    String result = test.run();
-    assertEquals(Integer.toString(expectedA), result);
-
-    InstructionListIterator iterator;
-
-    // Run code inlining all invokes with a.
-    test = codeForInlineAlwaysThrowsMultipleWithControlFlow(a, twoGuards);
-    ListIterator<BasicBlock> blocksIterator = test.code.blocks.listIterator();
-    Iterator<IRCode> inlinee = test.additionalCode.listIterator();  // IR code for a's.
-    List<BasicBlock> blocksToRemove = new ArrayList<>();
-    while (blocksIterator.hasNext()) {
-      BasicBlock block = blocksIterator.next();
-      if (blocksToRemove.contains(block)) {
-        continue;
-      }
-      iterator = block.listIterator();
-      Instruction invoke = iterator.nextUntil(Instruction::isInvoke);
-      if (invoke != null) {
-        iterator.previous();
-        iterator.inlineInvoke(test.code, inlinee.next(), blocksIterator, blocksToRemove, null);
-        assert !blocksToRemove.isEmpty();
-      }
+    {
+      // Run code without inlining.
+      TestApplication test = codeForInlineAlwaysThrows(twoGuards);
+      String result = test.run();
+      assertEquals(Integer.toString(expectedA), result);
     }
-    test.code.removeBlocks(blocksToRemove);
-    result = test.run();
-    assertEquals(Integer.toString(expectedA), result);
-
-    // Run code inlining all invokes with b.
-    test = codeForInlineAlwaysThrowsMultipleWithControlFlow(a, twoGuards);
-    blocksIterator = test.code.blocks.listIterator();
-    inlinee = test.additionalCode.listIterator(3);  // IR code for b's.
-    while (blocksIterator.hasNext()) {
-      BasicBlock block = blocksIterator.next();
-      if (blocksToRemove.contains(block)) {
-        continue;
+    {
+      // Run code inlining all invokes with a.
+      TestApplication test = codeForInlineAlwaysThrowsMultipleWithControlFlow(a, twoGuards);
+      ListIterator<BasicBlock> blocksIterator = test.code.blocks.listIterator();
+      Iterator<IRCode> inlinee = test.additionalCode.listIterator(); // IR code for a's.
+      List<BasicBlock> blocksToRemove = new ArrayList<>();
+      InstructionListIterator iterator;
+      while (blocksIterator.hasNext()) {
+        BasicBlock block = blocksIterator.next();
+        if (blocksToRemove.contains(block)) {
+          continue;
+        }
+        iterator = block.listIterator();
+        Instruction invoke = iterator.nextUntil(Instruction::isInvoke);
+        if (invoke != null) {
+          iterator.previous();
+          iterator.inlineInvoke(test.code, inlinee.next(), blocksIterator, blocksToRemove, null);
+        }
       }
-      iterator = block.listIterator();
-      Instruction invoke = iterator.nextUntil(Instruction::isInvoke);
-      if (invoke != null) {
-        iterator.previous();
-        iterator.inlineInvoke(test.code, inlinee.next(), blocksIterator, blocksToRemove, null);
-        assert !blocksToRemove.isEmpty();
-      }
+      test.code.removeBlocks(blocksToRemove);
+      String result = test.run();
+      assertEquals(Integer.toString(expectedA), result);
     }
-    test.code.removeBlocks(blocksToRemove);
-    result = test.run();
-    assertEquals(Integer.toString(expectedB), result);
+    {
+      // Run code inlining all invokes with b.
+      TestApplication test = codeForInlineAlwaysThrowsMultipleWithControlFlow(a, twoGuards);
+      ListIterator<BasicBlock> blocksIterator = test.code.blocks.listIterator();
+      Iterator<IRCode> inlinee = test.additionalCode.listIterator(3); // IR code for b's.
+      List<BasicBlock> blocksToRemove = new ArrayList<>();
+      InstructionListIterator iterator;
+      while (blocksIterator.hasNext()) {
+        BasicBlock block = blocksIterator.next();
+        if (blocksToRemove.contains(block)) {
+          continue;
+        }
+        iterator = block.listIterator();
+        Instruction invoke = iterator.nextUntil(Instruction::isInvoke);
+        if (invoke != null) {
+          iterator.previous();
+          iterator.inlineInvoke(test.code, inlinee.next(), blocksIterator, blocksToRemove, null);
+        }
+      }
+      test.code.removeBlocks(blocksToRemove);
+      String result = test.run();
+      assertEquals(Integer.toString(expectedB), result);
+    }
   }
 
   @Test

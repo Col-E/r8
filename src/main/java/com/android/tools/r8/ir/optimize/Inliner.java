@@ -20,7 +20,6 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Invoke;
-import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
@@ -361,7 +360,7 @@ public class Inliner {
                 .buildIR(code.valueNumberGenerator, appInfo, graphLense, options);
             if (inlinee != null) {
               // TODO(64432527): Get rid of this additional check by improved inlining.
-              if (block.hasCatchHandlers() && inlinee.getNormalExitBlock() == null) {
+              if (block.hasCatchHandlers() && inlinee.computeNormalExitBlocks().isEmpty()) {
                 continue;
               }
               // If this code did not go through the full pipeline, apply inlining to make sure

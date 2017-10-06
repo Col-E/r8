@@ -613,7 +613,7 @@ public class ProtoLitePruner extends ProtoLiteBase {
         if (needsCleanup) {
           DominatorTree updatedTree = new DominatorTree(code);
           BasicBlock fallThrough = switchInstr.fallthroughBlock();
-          List<BasicBlock> successors = ImmutableList.copyOf(current.getNormalSucessors());
+          List<BasicBlock> successors = ImmutableList.copyOf(current.getNormalSuccessors());
           for (BasicBlock successor : successors) {
             if (successor != fallThrough && !liveBlocks.contains(successor)) {
               deadBlocks.addAll(current.unlink(successor, updatedTree));

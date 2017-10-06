@@ -13,6 +13,7 @@ public class DominatorTree {
 
   private BasicBlock[] sorted;
   private BasicBlock[] doms;
+  private final BasicBlock normalExitBlock = new BasicBlock();
 
   public DominatorTree(IRCode code) {
     this(code, Collections.emptyList());
@@ -20,7 +21,15 @@ public class DominatorTree {
 
   // TODO(sgjesse) Get rid of this constructor and blocksToIgnore.
   DominatorTree(IRCode code, List<BasicBlock> blocksToIgnore) {
-    this.sorted = code.topologicallySortedBlocks(blocksToIgnore);
+    BasicBlock[] blocks = code.topologicallySortedBlocks(blocksToIgnore);
+    // Add the internal exit block to the block list.
+    sorted = new BasicBlock[blocks.length + 1];
+    System.arraycopy(blocks, 0, sorted, 0, blocks.length);
+    sorted[blocks.length] = normalExitBlock;
+    // Link internal exit block to each actual exit block.
+    for (BasicBlock block : code.computeNormalExitBlocks()) {
+      normalExitBlock.getPredecessors().add(block);
+    }
     numberBlocks();
     build();
   }
@@ -54,7 +63,7 @@ public class DominatorTree {
    * @return wether {@code subject} is strictly dominated by {@code dominator}
    */
   public boolean strictlyDominatedBy(BasicBlock subject, BasicBlock dominator) {
-    if (subject.getNumber() == 0) {
+    if (subject.getNumber() == 0 || subject == normalExitBlock) {
       return false;
     }
     while (true) {
@@ -87,27 +96,26 @@ public class DominatorTree {
     return dominator;
   }
 
-  /**
-   * Returns an iterator over all blocks dominated by dominator, including dominator itself.
-   */
-  public Iterable<BasicBlock> dominatedBlocks(BasicBlock domintator) {
-    return () -> new Iterator<BasicBlock>() {
-      private int current = domintator.getNumber();
+  /** Returns an iterator over all blocks dominated by dominator, including dominator itself. */
+  public Iterable<BasicBlock> dominatedBlocks(BasicBlock dominator) {
+    return () ->
+        new Iterator<BasicBlock>() {
+          private int current = dominator.getNumber();
 
-      @Override
-      public boolean hasNext() {
-        return dominatedBy(sorted[current], domintator);
-      }
+          @Override
+          public boolean hasNext() {
+            return dominatedBy(sorted[current], dominator);
+          }
 
-      @Override
-      public BasicBlock next() {
-        if (!hasNext()) {
-          return null;
-        } else {
-          return sorted[current++];
-        }
-      }
-    };
+          @Override
+          public BasicBlock next() {
+            if (!hasNext()) {
+              return null;
+            } else {
+              return sorted[current++];
+            }
+          }
+        };
   }
 
   /**
@@ -141,6 +149,10 @@ public class DominatorTree {
         }
       }
     };
+  }
+
+  public Iterable<BasicBlock> normalExitDominatorBlocks() {
+    return dominatorBlocks(normalExitBlock);
   }
 
   public BasicBlock[] getSortedBlocks() {

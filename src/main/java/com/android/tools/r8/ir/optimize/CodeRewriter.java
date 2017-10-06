@@ -87,7 +87,6 @@ import it.unimi.dsi.fastutil.ints.IntLists;
 import it.unimi.dsi.fastutil.objects.Object2IntLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -206,7 +205,7 @@ public class CodeRewriter {
 
   private static int getThrowsColorForSuccessors(BasicBlock block) {
     int color = CANNOT_THROW;
-    for (BasicBlock successor : block.getNormalSucessors()) {
+    for (BasicBlock successor : block.getNormalSuccessors()) {
       if (successor.hasColor(CAN_THROW)) {
         return CAN_THROW;
       }
@@ -760,24 +759,38 @@ public class CodeRewriter {
 
   public void identifyReturnsArgument(
       DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
-    if (code.getNormalExitBlock() != null) {
-      Return ret = code.getNormalExitBlock().exit().asReturn();
-      if (!ret.isReturnVoid()) {
-        Value returnValue = ret.returnValue();
-        if (returnValue.isArgument()) {
-          // Find the argument number.
-          int index = code.collectArguments().indexOf(returnValue);
-          assert index != -1;
-          feedback.methodReturnsArgument(method, index);
-        }
-        if (returnValue.isConstant() && returnValue.definition.isConstNumber()) {
-          long value = returnValue.definition.asConstNumber().getRawValue();
-          feedback.methodReturnsConstant(method, value);
-        }
-        if (returnValue.isNeverNull()) {
-          feedback.methodNeverReturnsNull(method);
-        }
+    List<BasicBlock> normalExits = code.computeNormalExitBlocks();
+    if (normalExits.isEmpty()) {
+      return;
+    }
+    Return firstExit = normalExits.get(0).exit().asReturn();
+    if (firstExit.isReturnVoid()) {
+      return;
+    }
+    Value returnValue = firstExit.returnValue();
+    boolean isNeverNull = returnValue.isNeverNull();
+    for (int i = 1; i < normalExits.size(); i++) {
+      Return exit = normalExits.get(i).exit().asReturn();
+      Value value = exit.returnValue();
+      if (value != returnValue) {
+        returnValue = null;
       }
+      isNeverNull = isNeverNull && value.isNeverNull();
+    }
+    if (returnValue != null) {
+      if (returnValue.isArgument()) {
+        // Find the argument number.
+        int index = code.collectArguments().indexOf(returnValue);
+        assert index != -1;
+        feedback.methodReturnsArgument(method, index);
+      }
+      if (returnValue.isConstant() && returnValue.definition.isConstNumber()) {
+        long value = returnValue.definition.asConstNumber().getRawValue();
+        feedback.methodReturnsConstant(method, value);
+      }
+    }
+    if (isNeverNull) {
+      feedback.methodNeverReturnsNull(method);
     }
   }
 
@@ -933,14 +946,13 @@ public class CodeRewriter {
     // section 5.5, https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-5.html#jvms-5.5), this
     // does not matter (except maybe for removal of const-string instructions, but that is
     // acceptable).
-    DominatorTree dominatorTree = new DominatorTree(code);
-    BasicBlock exit = code.getNormalExitBlock();
-    if (exit == null) {
+    if (code.computeNormalExitBlocks().isEmpty()) {
       return;
     }
+    DominatorTree dominatorTree = new DominatorTree(code);
     Set<StaticPut> puts = Sets.newIdentityHashSet();
     Map<DexField, StaticPut> dominatingPuts = Maps.newIdentityHashMap();
-    for (BasicBlock block : dominatorTree.dominatorBlocks(exit)) {
+    for (BasicBlock block : dominatorTree.normalExitDominatorBlocks()) {
       InstructionListIterator iterator = block.listIterator(block.getInstructions().size());
       while (iterator.hasPrevious()) {
         Instruction current = iterator.previous();
@@ -1036,7 +1048,7 @@ public class CodeRewriter {
 
       // Remove the static put instructions now replaced by static filed initial values.
       List<Instruction> toRemove = new ArrayList<>();
-      for (BasicBlock block : dominatorTree.dominatorBlocks(exit)) {
+      for (BasicBlock block : dominatorTree.normalExitDominatorBlocks()) {
         InstructionListIterator iterator = block.listIterator();
         while (iterator.hasNext()) {
           Instruction current = iterator.next();
@@ -1059,7 +1071,7 @@ public class CodeRewriter {
 
       // Remove the instructions collected for removal.
       if (toRemove.size() > 0) {
-        for (BasicBlock block : dominatorTree.dominatorBlocks(exit)) {
+        for (BasicBlock block : dominatorTree.normalExitDominatorBlocks()) {
           InstructionListIterator iterator = block.listIterator();
           while (iterator.hasNext()) {
             if (toRemove.contains(iterator.next())) {
@@ -1512,87 +1524,6 @@ public class CodeRewriter {
         return;
       }
     }
-  }
-
-  /**
-   * Inline the return block at its targets.
-   *
-   * The inlining of return mostly undoes the merge performed at IR build time. This helps avoid
-   * unneeded moves as values are forced into the same register at all returns, which there can be
-   * a lot of when compiling in debug mode. Measurements show that iterating the inlining of returns
-   * does not pay off as it can lead to code size increase, eg, when a sequence of ifs all jump to
-   * a common return.
-   */
-  public void inlineReturnBlock(IRCode code) {
-    BasicBlock block = code.getNormalExitBlock();
-    code.invalidateNormalExitBlock();
-    if (block == null
-        || block.getPredecessors().size() <= 1
-        || block.getInstructions().size() > 1) {
-      return;
-    }
-    int predIndex = 0;
-    for (BasicBlock pred : block.getPredecessors()) {
-      ListIterator<Instruction> iterator = pred.listIterator(pred.exit());
-      iterator.previous();
-      for (Instruction origInstruction : block.getInstructions()) {
-        assert origInstruction.isReturn();
-        // Create an instruction copy replacing phi values of this block by their operands.
-        Instruction instruction;
-        Return ret = origInstruction.asReturn();
-        if (ret.isReturnVoid()) {
-          instruction = new Return();
-        } else {
-          Value origValue = ret.returnValue();
-          Value copyValue = origValue.isPhi() && block.getPhis().contains(origValue)
-              ? origValue.asPhi().getOperand(predIndex)
-              : origValue;
-          instruction = new Return(copyValue, ret.getReturnType());
-        }
-        // Copy over each debug value replacing phi values of this block by their operands.
-        for (Value value : origInstruction.getDebugValues()) {
-          assert value.hasLocalInfo();
-          if (value.isPhi() && block.getPhis().contains(value)) {
-            Phi phi = value.asPhi();
-            Value operand = phi.getOperand(predIndex);
-            if (phi.getLocalInfo() == operand.getLocalInfo()) {
-              instruction.addDebugValue(operand);
-            } else {
-              // If the phi and its operand are different locals insert a local write.
-              Value localValue = code.createValue(phi.outType(), phi.getLocalInfo());
-              DebugLocalWrite write = new DebugLocalWrite(localValue, operand);
-              write.setBlock(pred);
-              iterator.add(write);
-              instruction.addDebugValue(localValue);
-            }
-          } else {
-            instruction.addDebugValue(value);
-          }
-        }
-        instruction.setBlock(pred);
-        iterator.add(instruction);
-      }
-      iterator.previous();
-      Instruction ret = iterator.next();
-      Instruction jump = iterator.next();
-      assert !iterator.hasNext();
-      jump.moveDebugValues(ret);
-      iterator.remove();
-      assert pred.exit().isReturn();
-      pred.removeSuccessor(block);
-      predIndex++;
-    }
-    // Clean out all users and remove the inlined block.
-    while (!block.getPredecessors().isEmpty()) {
-      block.removePredecessor(block.getPredecessors().get(0));
-    }
-    for (Instruction instruction : block.getInstructions()) {
-      for (Value value : instruction.inValues()) {
-        value.removeUser(instruction);
-      }
-      instruction.clearDebugValues();
-    }
-    code.removeBlocks(Collections.singletonList(block));
   }
 
   private static class ExpressionEquivalence extends Equivalence<Instruction> {

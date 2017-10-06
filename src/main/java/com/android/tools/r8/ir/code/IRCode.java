@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
 import com.android.tools.r8.utils.CfgPrinter;
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -27,18 +28,15 @@ public class IRCode {
   public LinkedList<BasicBlock> blocks;
   public final ValueNumberGenerator valueNumberGenerator;
 
-  private BasicBlock normalExitBlock;
   private boolean numbered = false;
   private int nextInstructionNumber = 0;
 
   public IRCode(
       DexEncodedMethod method,
       LinkedList<BasicBlock> blocks,
-      BasicBlock normalExitBlock,
       ValueNumberGenerator valueNumberGenerator) {
     this.method = method;
     this.blocks = blocks;
-    this.normalExitBlock = normalExitBlock;
     this.valueNumberGenerator = valueNumberGenerator;
   }
 
@@ -110,18 +108,12 @@ public class IRCode {
       BasicBlock block = blockIterator.next();
       if (block.isMarked()) {
         blockIterator.remove();
-        if (block == normalExitBlock) {
-          normalExitBlock = null;
-        }
       }
     }
   }
 
   public void removeBlocks(List<BasicBlock> blocksToRemove) {
     blocks.removeAll(blocksToRemove);
-    if (blocksToRemove.contains(normalExitBlock)) {
-      normalExitBlock = null;
-    }
   }
 
   /**
@@ -175,7 +167,6 @@ public class IRCode {
     assert consistentPredecessorSuccessors();
     assert consistentCatchHandlers();
     assert consistentBlockInstructions();
-    assert normalExitBlock == null || normalExitBlock.exit().isReturn();
     return true;
   }
 
@@ -353,16 +344,14 @@ public class IRCode {
     return new IRCodeInstructionsIterator(this);
   }
 
-  void setNormalExitBlock(BasicBlock block) {
-    normalExitBlock = block;
-  }
-
-  public BasicBlock getNormalExitBlock() {
-    return normalExitBlock;
-  }
-
-  public void invalidateNormalExitBlock() {
-    normalExitBlock = null;
+  public ImmutableList<BasicBlock> computeNormalExitBlocks() {
+    ImmutableList.Builder<BasicBlock> builder = ImmutableList.builder();
+    for (BasicBlock block : blocks) {
+      if (block.exit().isReturn()) {
+        builder.add(block);
+      }
+    }
+    return builder.build();
   }
 
   public ListIterator<BasicBlock> listIterator() {

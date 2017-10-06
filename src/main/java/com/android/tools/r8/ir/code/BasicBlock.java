@@ -119,7 +119,7 @@ public class BasicBlock {
     return successors;
   }
 
-  public List<BasicBlock> getNormalSucessors() {
+  public List<BasicBlock> getNormalSuccessors() {
     if (!hasCatchHandlers()) {
       return successors;
     }

@@ -80,7 +80,6 @@ import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.code.Xor;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions;
-import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
@@ -262,9 +261,6 @@ public class IRBuilder {
   private Long2ObjectMap<ConstNumber> doubleConstants = new Long2ObjectArrayMap<>();
   private Long2ObjectMap<ConstNumber> nullConstants = new Long2ObjectArrayMap<>();
 
-  private List<BasicBlock> exitBlocks = new ArrayList<>();
-  private BasicBlock normalExitBlock;
-
   private List<BasicBlock.Pair> needGotoToCatchBlocks = new ArrayList<>();
 
   final private ValueNumberGenerator valueNumberGenerator;
@@ -378,9 +374,6 @@ public class IRBuilder {
     // but before handle-exit (which does not maintain predecessor counts).
     assert verifyFilledPredecessors();
 
-    // If there are multiple returns create an exit block.
-    handleExitBlock();
-
     // Clear all reaching definitions to free up memory (and avoid invalid use).
     for (BasicBlock block : blocks) {
       block.clearCurrentDefinitions();
@@ -395,7 +388,7 @@ public class IRBuilder {
     splitCriticalEdges();
 
     // Package up the IR code.
-    IRCode ir = new IRCode(method, blocks, normalExitBlock, valueNumberGenerator);
+    IRCode ir = new IRCode(method, blocks, valueNumberGenerator);
 
     if (options.testing.invertConditionals) {
       invertConditionalsForTesting(ir);
@@ -436,7 +429,7 @@ public class IRBuilder {
     for (BlockInfo info : targets.values()) {
       if (info != null && info.block == block) {
         assert info.predecessorCount() == block.getPredecessors().size();
-        assert info.normalSuccessors.size() == block.getNormalSucessors().size();
+        assert info.normalSuccessors.size() == block.getNormalSuccessors().size();
         if (block.hasCatchHandlers()) {
           assert info.exceptionalSuccessors.size()
               == block.getCatchHandlers().getUniqueTargets().size();
@@ -1258,14 +1251,14 @@ public class IRBuilder {
 
   public void addReturn(MoveType type, int value) {
     Value in = readRegister(value, type);
+    source.buildPostlude(this);
     addInstruction(new Return(in, type));
-    exitBlocks.add(currentBlock);
     closeCurrentBlock();
   }
 
   public void addReturn() {
+    source.buildPostlude(this);
     addInstruction(new Return());
-    exitBlocks.add(currentBlock);
     closeCurrentBlock();
   }
 
@@ -1837,78 +1830,6 @@ public class IRBuilder {
       currentBlock.link(nextBlock);
     }
     closeCurrentBlock();
-  }
-
-  void handleExitBlock() {
-    if (exitBlocks.size() > 0) {
-      // Create and populate the exit block if needed (eg, synchronized support for jar).
-      setCurrentBlock(new BasicBlock());
-      source.buildPostlude(this);
-      // If the new exit block is empty and we only have one exit, abort building a new exit block.
-      if (currentBlock.getInstructions().isEmpty() && exitBlocks.size() == 1) {
-        normalExitBlock = exitBlocks.get(0);
-        setCurrentBlock(null);
-        return;
-      }
-      // Commit to creating the new exit block.
-      normalExitBlock = currentBlock;
-      normalExitBlock.setNumber(nextBlockNumber++);
-      blocks.add(normalExitBlock);
-      // Add the return instruction possibly creating a phi of return values.
-      Return origReturn = exitBlocks.get(0).exit().asReturn();
-      Phi phi = null;
-      if (origReturn.isReturnVoid()) {
-        normalExitBlock.add(new Return());
-      } else {
-        Value returnValue = origReturn.returnValue();
-        MoveType returnType = origReturn.getReturnType();
-        assert origReturn.getLocalInfo() == null;
-        phi = new Phi(
-            valueNumberGenerator.next(), normalExitBlock, returnValue.outType(), null);
-        normalExitBlock.add(new Return(phi, returnType));
-        assert returnType == MoveType.fromDexType(method.method.proto.returnType);
-      }
-      closeCurrentBlock();
-
-      // Collect the debug values which are live on all returns.
-      Set<Value> debugValuesForReturn = Sets.newIdentityHashSet();
-      for (Value value : exitBlocks.get(0).exit().getDebugValues()) {
-        boolean include = true;
-        for (int i = 1; i < exitBlocks.size() && include; i++) {
-          include = exitBlocks.get(i).exit().getDebugValues().contains(value);
-        }
-        if (include) {
-          debugValuesForReturn.add(value);
-        }
-      }
-
-      // Move all these debug values to the new return.
-      for (Value value : debugValuesForReturn) {
-        for (BasicBlock block : exitBlocks) {
-          block.exit().moveDebugValue(value, normalExitBlock.exit());
-        }
-      }
-
-      // Replace each return instruction with a goto to the new exit block.
-      List<Value> operands = new ArrayList<>();
-      for (BasicBlock block : exitBlocks) {
-        List<Instruction> instructions = block.getInstructions();
-        Return ret = block.exit().asReturn();
-        if (!ret.isReturnVoid()) {
-          operands.add(ret.returnValue());
-          ret.returnValue().removeUser(ret);
-        }
-        Goto gotoExit = new Goto();
-        gotoExit.setBlock(block);
-        ret.moveDebugValues(gotoExit);
-        instructions.set(instructions.size() - 1, gotoExit);
-        block.link(normalExitBlock);
-        gotoExit.setTarget(normalExitBlock);
-      }
-      if (phi != null) {
-        phi.addOperands(operands);
-      }
-    }
   }
 
   private void handleFallthroughToCatchBlock() {

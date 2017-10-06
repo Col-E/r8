@@ -24,6 +24,7 @@ import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.smali.SmaliTestBase;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
 import java.util.List;
 import org.junit.Test;
 
@@ -311,7 +312,7 @@ public class SplitBlockTest extends SmaliTestBase {
   }
 
   public void runWithIfTest(boolean hitTrueBranch) throws Exception {
-    final int initialBlockCount = 4;
+    final int initialBlockCount = 3;
     final int argumentInstructions = 2;
     final int firstBlockInstructions = 3;
     // Try split between all non-argument instructions in the first block.
@@ -352,24 +353,27 @@ public class SplitBlockTest extends SmaliTestBase {
   public void splitBeforeReturn(boolean hitTrueBranch) throws Exception {
     TestApplication test = codeWithIf(hitTrueBranch);
     IRCode code = test.code;
-    // Locate the exit block and split before the return (the first instruction in the block).
-    BasicBlock originalReturnBlock = code.getNormalExitBlock();
-    BasicBlock newReturnBlock = originalReturnBlock.listIterator().split(code);
-    // Modify the code to make the inserted block add the constant 10 to the original return value.
-    Value newConstValue = new Value(test.valueNumberGenerator.next(), MoveType.SINGLE, null);
-    Value newReturnValue = new Value(test.valueNumberGenerator.next(), MoveType.SINGLE, null);
-    Value oldReturnValue = newReturnBlock.listIterator().next().asReturn().returnValue();
-    newReturnBlock.listIterator().next().asReturn().returnValue().replaceUsers(newReturnValue);
-    Instruction constInstruction = new ConstNumber(ConstType.INT, newConstValue, 10);
-    Instruction addInstruction = new Add(
-        NumericType.INT,
-        newReturnValue,
-        oldReturnValue,
-        newConstValue);
-    InstructionListIterator iterator = originalReturnBlock.listIterator();
-    iterator.add(constInstruction);
-    iterator.add(addInstruction);
-
+    // Locate the exit blocks and split before the return.
+    List<BasicBlock> exitBlocks = new ArrayList<>(code.computeNormalExitBlocks());
+    for (BasicBlock originalReturnBlock : exitBlocks) {
+      InstructionListIterator iterator =
+          originalReturnBlock.listIterator(originalReturnBlock.getInstructions().size());
+      Instruction ret = iterator.previous();
+      assert ret.isReturn();
+      BasicBlock newReturnBlock = iterator.split(code);
+      // Modify the code to make the inserted block add the constant 10 to the original return
+      // value.
+      Value newConstValue = new Value(test.valueNumberGenerator.next(), MoveType.SINGLE, null);
+      Value newReturnValue = new Value(test.valueNumberGenerator.next(), MoveType.SINGLE, null);
+      Value oldReturnValue = newReturnBlock.listIterator().next().asReturn().returnValue();
+      newReturnBlock.listIterator().next().asReturn().returnValue().replaceUsers(newReturnValue);
+      Instruction constInstruction = new ConstNumber(ConstType.INT, newConstValue, 10);
+      Instruction addInstruction =
+          new Add(NumericType.INT, newReturnValue, oldReturnValue, newConstValue);
+      iterator.previous();
+      iterator.add(constInstruction);
+      iterator.add(addInstruction);
+    }
     // Run code and check result (code in the test object is updated).
     String result = test.run();
     assertEquals(hitTrueBranch ? "10" : "11", result);
