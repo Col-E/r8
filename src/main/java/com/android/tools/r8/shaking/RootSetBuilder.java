@@ -197,10 +197,12 @@ public class RootSetBuilder {
         markMatchingFields(clazz, memberKeepRules, rule, null);
       } else if (rule instanceof ProguardAlwaysInlineRule) {
         markMatchingMethods(clazz, memberKeepRules, rule, null);
-      } else {
-        assert rule instanceof ProguardAssumeValuesRule;
+      } else if (rule instanceof ProguardAssumeValuesRule) {
         markMatchingVisibleMethods(clazz, memberKeepRules, rule, null);
         markMatchingFields(clazz, memberKeepRules, rule, null);
+      } else {
+        assert rule instanceof ProguardIdentifierNameStringRule;
+        // TODO(b/36799092): collect string literals while marking matching methods/fields.
       }
     }
   }
