@@ -10,4 +10,9 @@ public class CompatDxCommandBuilder extends D8Command.Builder {
   CompatDxCommandBuilder() {
     super(true);
   }
+
+  @Override
+  protected boolean getEnableDesugaring() {
+    return false;
+  }
 }

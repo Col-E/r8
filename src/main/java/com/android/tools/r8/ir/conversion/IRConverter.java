@@ -87,7 +87,6 @@ public class IRConverter {
       GraphLense graphLense,
       InternalOptions options,
       CfgPrinter printer,
-      boolean enableDesugaring,
       boolean enableWholeProgramOptimizations) {
     assert application != null;
     assert appInfo != null;
@@ -99,9 +98,9 @@ public class IRConverter {
     this.options = options;
     this.printer = printer;
     this.codeRewriter = new CodeRewriter(appInfo, libraryMethodsReturningReceiver());
-    this.lambdaRewriter = enableDesugaring ? new LambdaRewriter(this) : null;
+    this.lambdaRewriter = options.enableDesugaring ? new LambdaRewriter(this) : null;
     this.interfaceMethodRewriter =
-        (enableDesugaring && enableInterfaceMethodDesugaring())
+        (options.enableDesugaring && enableInterfaceMethodDesugaring())
             ? new InterfaceMethodRewriter(this, options) : null;
     if (enableWholeProgramOptimizations) {
       assert appInfo.hasSubtyping();
@@ -130,20 +129,7 @@ public class IRConverter {
       DexApplication application,
       AppInfo appInfo,
       InternalOptions options) {
-    this(null, application, appInfo, null, options, null, true, false);
-  }
-
-  /**
-   * Create an IR converter for processing methods with full program optimization disabled.
-   *
-   * The argument <code>enableDesugaring</code> if desugaring is enabled.
-   */
-  public IRConverter(
-      DexApplication application,
-      AppInfo appInfo,
-      InternalOptions options,
-      boolean enableDesugaring) {
-    this(null, application, appInfo, null, options, null, enableDesugaring, false);
+    this(null, application, appInfo, null, options, null, false);
   }
 
   /**
@@ -155,7 +141,7 @@ public class IRConverter {
       AppInfo appInfo,
       InternalOptions options,
       CfgPrinter printer) {
-    this(timing, application, appInfo, null, options, printer, true, false);
+    this(timing, application, appInfo, null, options, printer, false);
   }
 
   /**
@@ -168,7 +154,7 @@ public class IRConverter {
       InternalOptions options,
       CfgPrinter printer,
       GraphLense graphLense) {
-    this(timing, application, appInfo, graphLense, options, printer, true, true);
+    this(timing, application, appInfo, graphLense, options, printer, true);
   }
 
   private boolean enableInterfaceMethodDesugaring() {
@@ -566,7 +552,7 @@ public class IRConverter {
     DeadCodeRemover.removeDeadCode(code, codeRewriter, options);
     assert code.isConsistentSSA();
 
-    if (enableTryWithResourcesDesugaring()) {
+    if (options.enableDesugaring && enableTryWithResourcesDesugaring()) {
       codeRewriter.rewriteThrowableAddAndGetSuppressed(code);
     }
 

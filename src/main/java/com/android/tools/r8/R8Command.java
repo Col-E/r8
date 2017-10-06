@@ -238,6 +238,7 @@ public class R8Command extends BaseCompilerCommand {
           getMode(),
           getMinApiLevel(),
           getDiagnosticsHandler(),
+          getEnableDesugaring(),
           useTreeShaking,
           useDiscardedChecker,
           useMinification,
@@ -394,12 +395,14 @@ public class R8Command extends BaseCompilerCommand {
       CompilationMode mode,
       int minApiLevel,
       DiagnosticsHandler diagnosticsHandler,
+      boolean enableDesugaring,
       boolean useTreeShaking,
       boolean useDiscardedChecker,
       boolean useMinification,
       boolean ignoreMissingClasses,
       Path proguardMapOutput) {
-    super(inputApp, outputPath, outputMode, mode, minApiLevel, diagnosticsHandler);
+    super(inputApp, outputPath, outputMode, mode, minApiLevel, diagnosticsHandler,
+        enableDesugaring);
     assert proguardConfiguration != null;
     assert mainDexKeepRules != null;
     assert getOutputMode() == OutputMode.Indexed : "Only regular mode is supported in R8";

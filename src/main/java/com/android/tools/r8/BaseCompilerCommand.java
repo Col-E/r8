@@ -22,6 +22,7 @@ abstract class BaseCompilerCommand extends BaseCommand {
   private final CompilationMode mode;
   private final int minApiLevel;
   private final DiagnosticsHandler diagnosticsHandler;
+  private final boolean enableDesugaring;
 
   BaseCompilerCommand(boolean printHelp, boolean printVersion) {
     super(printHelp, printVersion);
@@ -30,6 +31,7 @@ abstract class BaseCompilerCommand extends BaseCommand {
     mode = null;
     minApiLevel = 0;
     diagnosticsHandler = new DefaultDiagnosticsHandler();
+    enableDesugaring = true;
   }
 
   BaseCompilerCommand(
@@ -38,7 +40,8 @@ abstract class BaseCompilerCommand extends BaseCommand {
       OutputMode outputMode,
       CompilationMode mode,
       int minApiLevel,
-      DiagnosticsHandler diagnosticsHandler) {
+      DiagnosticsHandler diagnosticsHandler,
+      boolean enableDesugaring) {
     super(app);
     assert mode != null;
     assert minApiLevel > 0;
@@ -47,6 +50,7 @@ abstract class BaseCompilerCommand extends BaseCommand {
     this.mode = mode;
     this.minApiLevel = minApiLevel;
     this.diagnosticsHandler = diagnosticsHandler;
+    this.enableDesugaring = enableDesugaring;
   }
 
   public Path getOutputPath() {
@@ -67,6 +71,10 @@ abstract class BaseCompilerCommand extends BaseCommand {
 
   public DiagnosticsHandler getDiagnosticsHandler() {
     return diagnosticsHandler;
+  }
+
+  boolean getEnableDesugaring() {
+    return enableDesugaring;
   }
 
   abstract public static class Builder<C extends BaseCompilerCommand, B extends Builder<C, B>>
@@ -150,6 +158,10 @@ abstract class BaseCompilerCommand extends BaseCommand {
     public B setDiagnosticsHandler(DiagnosticsHandler diagnosticsHandler) {
       this.diagnosticsHandler = diagnosticsHandler;
       return self();
+    }
+
+    protected boolean getEnableDesugaring() {
+      return true;
     }
 
     protected void validate() throws CompilationException {

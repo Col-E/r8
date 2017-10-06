@@ -99,6 +99,7 @@ public class D8Command extends BaseCompilerCommand {
           getMode(),
           getMinApiLevel(),
           getDiagnosticsHandler(),
+          getEnableDesugaring(),
           intermediate);
     }
   }
@@ -196,8 +197,10 @@ public class D8Command extends BaseCompilerCommand {
       CompilationMode mode,
       int minApiLevel,
       DiagnosticsHandler diagnosticsHandler,
+      boolean enableDesugaring,
       boolean intermediate) {
-    super(inputApp, outputPath, outputMode, mode, minApiLevel, diagnosticsHandler);
+    super(inputApp, outputPath, outputMode, mode, minApiLevel, diagnosticsHandler,
+        enableDesugaring);
     this.intermediate = intermediate;
   }
 
@@ -226,6 +229,7 @@ public class D8Command extends BaseCompilerCommand {
     internal.outline.enabled = false;
     internal.outputMode = getOutputMode();
     internal.diagnosticsHandler = getDiagnosticsHandler();
+    internal.enableDesugaring = getEnableDesugaring();
     return internal;
   }
 }

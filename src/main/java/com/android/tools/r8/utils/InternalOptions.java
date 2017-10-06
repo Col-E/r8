@@ -86,6 +86,8 @@ public class InternalOptions {
   public boolean intermediate = false;
   public List<String> logArgumentsFilter = ImmutableList.of();
 
+  // Flag to turn on/off desugaring in D8/R8.
+  public boolean enableDesugaring = true;
   // Defines interface method rewriter behavior.
   public OffOrAuto interfaceMethodDesugaring = OffOrAuto.Auto;
   // Defines try-with-resources rewriter behavior.
