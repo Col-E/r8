@@ -29,7 +29,7 @@ def GetGitHash():
   return subprocess.check_output(['git', 'rev-parse', 'HEAD']).strip()
 
 def IsMaster(version):
-  branches = subprocess.check_output(['git', 'show', '-s', '--pretty=%d',
+  branches = subprocess.check_output(['git', 'branch', '-r', '--contains',
                                       'HEAD'])
   if not version.endswith('-dev'):
     # Sanity check, we don't want to archive on top of release builds EVER
