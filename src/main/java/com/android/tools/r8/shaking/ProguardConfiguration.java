@@ -8,12 +8,9 @@ import com.android.tools.r8.naming.DictionaryReader;
 import com.android.tools.r8.utils.InternalOptions.KeepAttributeOptions;
 import com.android.tools.r8.utils.InternalOptions.PackageObfuscationMode;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 public class ProguardConfiguration {
 
@@ -36,7 +33,7 @@ public class ProguardConfiguration {
     private boolean verbose = false;
     private String renameSourceFileAttribute = null;
     private final List<String> keepAttributePatterns = new ArrayList<>();
-    private final Set<ProguardTypeMatcher> dontWarnPatterns = new HashSet<>();
+    private ProguardClassNameList dontWarnPatterns = ProguardClassNameList.emptyList();
     protected final List<ProguardConfigurationRule> rules = new ArrayList<>();
     private final DexItemFactory dexItemFactory;
     private boolean printSeeds;
@@ -133,8 +130,8 @@ public class ProguardConfiguration {
       this.rules.add(rule);
     }
 
-    public void addDontWarnPattern(ProguardTypeMatcher pattern) {
-      dontWarnPatterns.add(pattern);
+    public void setDontWarnPatterns(ProguardClassNameList patterns) {
+      dontWarnPatterns = patterns;
     }
 
     public void setSeedFile(Path seedFile) {
@@ -223,7 +220,7 @@ public class ProguardConfiguration {
   private final boolean verbose;
   private final String renameSourceFileAttribute;
   private final ImmutableList<String> keepAttributesPatterns;
-  private final ImmutableSet<ProguardTypeMatcher> dontWarnPatterns;
+  private final ProguardClassNameList dontWarnPatterns;
   protected final ImmutableList<ProguardConfigurationRule> rules;
   private final boolean printSeeds;
   private final Path seedFile;
@@ -252,7 +249,7 @@ public class ProguardConfiguration {
       boolean verbose,
       String renameSourceFileAttribute,
       List<String> keepAttributesPatterns,
-      Set<ProguardTypeMatcher> dontWarnPatterns,
+      ProguardClassNameList dontWarnPatterns,
       List<ProguardConfigurationRule> rules,
       boolean printSeeds,
       Path seedFile,
@@ -279,7 +276,7 @@ public class ProguardConfiguration {
     this.verbose = verbose;
     this.renameSourceFileAttribute = renameSourceFileAttribute;
     this.keepAttributesPatterns = ImmutableList.copyOf(keepAttributesPatterns);
-    this.dontWarnPatterns = ImmutableSet.copyOf(dontWarnPatterns);
+    this.dontWarnPatterns = dontWarnPatterns;
     this.rules = ImmutableList.copyOf(rules);
     this.printSeeds = printSeeds;
     this.seedFile = seedFile;
@@ -377,7 +374,7 @@ public class ProguardConfiguration {
     return keepAttributesPatterns;
   }
 
-  public ImmutableSet<ProguardTypeMatcher> getDontWarnPatterns() {
+  public ProguardClassNameList getDontWarnPatterns() {
     return dontWarnPatterns;
   }
 
@@ -430,7 +427,7 @@ public class ProguardConfiguration {
           false                 /* verbose */,
           null                  /* renameSourceFileAttribute */,
           KeepAttributeOptions.KEEP_ALL,
-          ImmutableSet.of()     /* dontWarnPatterns */,
+          ProguardClassNameList.emptyList(),
           ImmutableList.of(ProguardKeepRule.defaultKeepAllRule()),
           false                 /* printSeeds */,
           null                  /* seedFile */,

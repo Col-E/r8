@@ -12,12 +12,17 @@ import it.unimi.dsi.fastutil.objects.Object2BooleanMap.Entry;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public abstract class ProguardClassNameList {
 
   public static Builder builder() {
     return new Builder();
+  }
+
+  public static ProguardClassNameList emptyList() {
+    return new EmptyClassNameList();
   }
 
   public static ProguardClassNameList singletonList(ProguardTypeMatcher matcher) {
@@ -69,6 +74,37 @@ public abstract class ProguardClassNameList {
 
   public abstract boolean matches(DexType type);
 
+  public abstract void forEachTypeMatcher(Consumer<ProguardTypeMatcher> consumer);
+
+  private static class EmptyClassNameList extends ProguardClassNameList {
+
+    private EmptyClassNameList() {
+    }
+
+    @Override
+    public int size() {
+      return 0;
+    }
+
+    @Override
+    public void writeTo(StringBuilder builder) {
+    }
+
+    @Override
+    public List<DexType> asSpecificDexTypes() {
+      return null;
+    }
+
+    @Override
+    public boolean matches(DexType type) {
+      return false;
+    }
+
+    @Override
+    public void forEachTypeMatcher(Consumer<ProguardTypeMatcher> consumer) {
+    }
+  }
+
   private static class SingleClassNameList extends ProguardClassNameList {
 
     private final ProguardTypeMatcher className;
@@ -96,6 +132,11 @@ public abstract class ProguardClassNameList {
     @Override
     public boolean matches(DexType type) {
       return className.matches(type);
+    }
+
+    @Override
+    public void forEachTypeMatcher(Consumer<ProguardTypeMatcher> consumer) {
+      consumer.accept(className);
     }
   }
 
@@ -136,6 +177,11 @@ public abstract class ProguardClassNameList {
     @Override
     public boolean matches(DexType type) {
       return classNames.stream().anyMatch(name -> name.matches(type));
+    }
+
+    @Override
+    public void forEachTypeMatcher(Consumer<ProguardTypeMatcher> consumer) {
+      classNames.forEach(consumer);
     }
   }
 
@@ -181,6 +227,11 @@ public abstract class ProguardClassNameList {
         }
       }
       return false;
+    }
+
+    @Override
+    public void forEachTypeMatcher(Consumer<ProguardTypeMatcher> consumer) {
+      classNames.object2BooleanEntrySet().forEach(entry -> consumer.accept(entry.getKey()));
     }
   }
 }
