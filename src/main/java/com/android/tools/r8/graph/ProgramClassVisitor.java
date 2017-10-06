@@ -68,14 +68,10 @@ public abstract class ProgramClassVisitor {
     }
   }
 
-  public void run(Iterable<DexProgramClass> classes) {
-    for (DexProgramClass clazz : classes) {
+  public void run() {
+    for (DexProgramClass clazz : application.classes()) {
       accept(clazz);
     }
-  }
-
-  public void run() {
-    run(application.classes());
   }
 
   /**

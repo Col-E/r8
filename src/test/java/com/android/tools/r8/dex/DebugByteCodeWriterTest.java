@@ -4,33 +4,41 @@
 package com.android.tools.r8.dex;
 
 import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.graph.DexApplication.Builder;
+import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexDebugEvent;
 import com.android.tools.r8.graph.DexDebugInfo;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexMethodHandle;
+import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
-import java.util.Collections;
 import org.junit.Assert;
 import org.junit.Test;
 
 public class DebugByteCodeWriterTest {
 
-  private ObjectToOffsetMapping emptyObjectTObjectMapping() {
+  ObjectToOffsetMapping emptyObjectTObjectMapping() {
     return new ObjectToOffsetMapping(
+        0,
         DexApplication.builder(new DexItemFactory(), null).build(),
-        Collections.emptyList(),
-        Collections.emptyList(),
-        Collections.emptyList(),
-        Collections.emptyList(),
-        Collections.emptyList(),
-        Collections.emptyList(),
-        Collections.emptyList(),
-        Collections.emptyList());
+        new DexProgramClass[] {},
+        new DexProto[] {},
+        new DexType[] {},
+        new DexMethod[] {},
+        new DexField[] {},
+        new DexString[] {},
+        new DexCallSite[] {},
+        new DexMethodHandle[] {});
   }
 
   @Test
   public void testEmptyDebugInfo() {
-    DexDebugInfo debugInfo = new DexDebugInfo(1, DexString.EMPTY_ARRAY, new DexDebugEvent[]{});
+    DexDebugInfo debugInfo = new DexDebugInfo(1, new DexString[]{}, new DexDebugEvent[]{});
     DebugBytecodeWriter writer = new DebugBytecodeWriter(debugInfo, emptyObjectTObjectMapping());
     Assert.assertEquals(3, writer.generate().length);
   }

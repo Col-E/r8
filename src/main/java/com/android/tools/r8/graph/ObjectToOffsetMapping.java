@@ -4,41 +4,36 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.dex.Constants;
-import com.android.tools.r8.errors.CompilationError;
 import com.google.common.collect.Sets;
-import it.unimi.dsi.fastutil.objects.Reference2IntLinkedOpenHashMap;
-import it.unimi.dsi.fastutil.objects.Reference2IntMap;
-import java.util.Collection;
-import java.util.Comparator;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Set;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 public class ObjectToOffsetMapping {
 
-  private final static int NOT_FOUND = -1;
-  private final static int NOT_SET = -2;
+  private final int virtualFileId;
 
   private final DexProgramClass[] classes;
-  private final Reference2IntMap<DexProto> protos;
-  private final Reference2IntMap<DexType> types;
-  private final Reference2IntMap<DexMethod> methods;
-  private final Reference2IntMap<DexField> fields;
-  private final Reference2IntMap<DexString> strings;
-  private final Reference2IntMap<DexCallSite> callSites;
-  private final Reference2IntMap<DexMethodHandle> methodHandles;
+  private final DexProto[] protos;
+  private final DexType[] types;
+  private final DexMethod[] methods;
+  private final DexField[] fields;
+  private final DexString[] strings;
+  private final DexCallSite[] callSites;
+  private final DexMethodHandle[] methodHandles;
   private DexString firstJumboString;
 
   public ObjectToOffsetMapping(
+      int virtualFileId,
       DexApplication application,
-      Collection<DexProgramClass> classes,
-      Collection<DexProto> protos,
-      Collection<DexType> types,
-      Collection<DexMethod> methods,
-      Collection<DexField> fields,
-      Collection<DexString> strings,
-      Collection<DexCallSite> callSites,
-      Collection<DexMethodHandle> methodHandles) {
+      DexProgramClass[] classes,
+      DexProto[] protos,
+      DexType[] types,
+      DexMethod[] methods,
+      DexField[] fields,
+      DexString[] strings,
+      DexCallSite[] callSites,
+      DexMethodHandle[] methodHandles) {
     assert application != null;
     assert classes != null;
     assert protos != null;
@@ -49,83 +44,91 @@ public class ObjectToOffsetMapping {
     assert callSites != null;
     assert methodHandles != null;
 
+    this.virtualFileId = virtualFileId;
     this.classes = sortClasses(application, classes);
-    this.protos = createMap(protos, true, this::failOnOverflow);
-    this.types = createMap(types, true, this::failOnOverflow);
-    this.methods = createMap(methods, true, this::failOnOverflow);
-    this.fields = createMap(fields, true, this::failOnOverflow);
-    this.strings = createMap(strings, true, this::setFirstJumboString);
+    this.protos = protos;
+    this.types = types;
+    this.methods = methods;
+    this.fields = fields;
+    this.strings = strings;
+    this.callSites = callSites;
+    this.methodHandles = methodHandles;
+
+    Arrays.sort(protos);
+    setIndexes(protos);
+
+    Arrays.sort(types);
+    setIndexes(types);
+
+    Arrays.sort(methods);
+    setIndexes(methods);
+
+    Arrays.sort(fields);
+    setIndexes(fields);
+
+    Arrays.sort(strings);
+    setIndexes(strings);
+
     // No need to sort CallSite, they will be written in data section in the callSites order,
     // consequently offset of call site used into the call site section will be in ascending order.
-    this.callSites = createMap(callSites, false, this::failOnOverflow);
+    setIndexes(callSites);
+
     // No need to sort method handle
-    this.methodHandles = createMap(methodHandles, false, this::failOnOverflow);
+    setIndexes(methodHandles);
   }
 
-  private void setFirstJumboString(DexString string) {
-    assert firstJumboString == null;
-    firstJumboString = string;
-  }
-
-  private void failOnOverflow(DexItem item) {
-    throw new CompilationError("Index overflow for " + item.getClass());
-  }
-
-  private <T extends IndexedDexItem> Reference2IntMap<T> createMap(Collection<T> items,
-      boolean sort, Consumer<T> onUInt16Overflow) {
-    Reference2IntMap<T> map = new Reference2IntLinkedOpenHashMap<>();
-    map.defaultReturnValue(NOT_FOUND);
-    Collection<T> sorted = sort ? items.stream().sorted().collect(Collectors.toList()) : items;
-    int index = 0;
-    for (T item : sorted) {
-      if (index == Constants.U16BIT_MAX + 1) {
-        onUInt16Overflow.accept(item);
-      }
-      map.put(item, index++);
-    }
-    return map;
-  }
-
-  private static DexProgramClass[] sortClasses(DexApplication application,
-      Collection<DexProgramClass> classes) {
+  private static DexProgramClass[] sortClasses(
+      DexApplication application, DexProgramClass[] classes) {
+    Arrays.sort(classes, (o1, o2) -> o1.type.descriptor.slowCompareTo(o2.type.descriptor));
     SortingProgramClassVisitor classVisitor = new SortingProgramClassVisitor(application, classes);
-    // Collect classes in subtyping order, based on a sorted list of classes to start with.
-    classVisitor.run(
-        classes.stream().sorted(Comparator.comparing(DexClass::getType))
-            .collect(Collectors.toList()));
+    classVisitor.run(classes);
     return classVisitor.getSortedClasses();
   }
 
-  public Collection<DexMethod> getMethods() {
-    return methods.keySet();
+  private void setIndexes(IndexedDexItem[] items) {
+    int index = 0;
+    for (IndexedDexItem item : items) {
+      item.assignVirtualFileIndex(virtualFileId, index);
+      // For strings collect the first jumbo string (if any).
+      if ((index > Constants.MAX_NON_JUMBO_INDEX) && (item instanceof DexString)) {
+        if (index == Constants.FIRST_JUMBO_INDEX) {
+          firstJumboString = (DexString) item;
+        }
+      }
+      index++;
+    }
+  }
+
+  public DexMethod[] getMethods() {
+    return methods;
   }
 
   public DexProgramClass[] getClasses() {
     return classes;
   }
 
-  public Collection<DexType> getTypes() {
-    return types.keySet();
+  public DexType[] getTypes() {
+    return types;
   }
 
-  public Collection<DexProto> getProtos() {
-    return protos.keySet();
+  public DexProto[] getProtos() {
+    return protos;
   }
 
-  public Collection<DexField> getFields() {
-    return fields.keySet();
+  public DexField[] getFields() {
+    return fields;
   }
 
-  public Collection<DexString> getStrings() {
-    return strings.keySet();
+  public DexString[] getStrings() {
+    return strings;
   }
 
-  public Collection<DexCallSite> getCallSites() {
-    return callSites.keySet();
+  public DexCallSite[] getCallSites() {
+    return callSites;
   }
 
-  public Collection<DexMethodHandle> getMethodHandles() {
-    return methodHandles.keySet();
+  public DexMethodHandle[] getMethodHandles() {
+    return methodHandles;
   }
 
   public boolean hasJumboStrings() {
@@ -136,39 +139,43 @@ public class ObjectToOffsetMapping {
     return firstJumboString;
   }
 
-  private <T extends IndexedDexItem> int getOffsetFor(T item, Reference2IntMap<T> map) {
-    int index = map.getInt(item);
-    assert index != NOT_SET : "Index was not set: " + item;
-    assert index != NOT_FOUND : "Missing dependency: " + item;
-    return index;
+  private boolean isContainedInMapping(IndexedDexItem item) {
+    return item.getVirtualFileIndex(virtualFileId) != IndexedDexItem.UNASSOCIATED_VALUE;
   }
 
   public int getOffsetFor(DexProto proto) {
-    return getOffsetFor(proto, protos);
+    assert isContainedInMapping(proto) : "Missing dependency: " + proto;
+    return proto.getVirtualFileIndex(virtualFileId);
   }
 
   public int getOffsetFor(DexField field) {
-    return getOffsetFor(field, fields);
+    assert isContainedInMapping(field) : "Missing dependency: " + field;
+    return field.getVirtualFileIndex(virtualFileId);
   }
 
   public int getOffsetFor(DexMethod method) {
-    return getOffsetFor(method, methods);
+    assert isContainedInMapping(method) : "Missing dependency: " + method;
+    return method.getVirtualFileIndex(virtualFileId);
   }
 
   public int getOffsetFor(DexString string) {
-    return getOffsetFor(string, strings);
+    assert isContainedInMapping(string) : "Missing dependency: " + string;
+    return string.getVirtualFileIndex(virtualFileId);
   }
 
   public int getOffsetFor(DexType type) {
-    return getOffsetFor(type, types);
+    assert isContainedInMapping(type) : "Missing dependency: " + type;
+    return type.getVirtualFileIndex(virtualFileId);
   }
 
   public int getOffsetFor(DexCallSite callSite) {
-    return getOffsetFor(callSite, callSites);
+    assert isContainedInMapping(callSite) : "Missing dependency: " + callSite;
+    return callSite.getVirtualFileIndex(virtualFileId);
   }
 
   public int getOffsetFor(DexMethodHandle methodHandle) {
-    return getOffsetFor(methodHandle, methodHandles);
+    assert isContainedInMapping(methodHandle) : "Missing dependency: " + methodHandle;
+    return methodHandle.getVirtualFileIndex(virtualFileId);
   }
 
   private static class SortingProgramClassVisitor extends ProgramClassVisitor {
@@ -177,11 +184,10 @@ public class ObjectToOffsetMapping {
 
     private int index = 0;
 
-    public SortingProgramClassVisitor(DexApplication application,
-        Collection<DexProgramClass> classes) {
+    public SortingProgramClassVisitor(DexApplication application, DexProgramClass[] classes) {
       super(application);
-      this.sortedClasses = new DexProgramClass[classes.size()];
-      classSet.addAll(classes);
+      this.sortedClasses = new DexProgramClass[classes.length];
+      Collections.addAll(classSet, classes);
     }
 
     @Override

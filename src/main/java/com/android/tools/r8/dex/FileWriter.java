@@ -38,7 +38,6 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DexValue;
-import com.android.tools.r8.graph.IndexedDexItem;
 import com.android.tools.r8.graph.KeyedDexItem;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.PresortedComparable;
@@ -317,18 +316,10 @@ public class FileWriter {
     }
   }
 
-  private <T extends IndexedDexItem> void writeFixedSectionItems(Collection<T> items, int offset,
+  private <T extends DexItem> void writeFixedSectionItems(T[] items, int offset,
       ThrowingConsumer<T, ApiLevelException> writer) throws ApiLevelException {
     assert dest.position() == offset;
     for (T item : items) {
-      writer.accept(item);
-    }
-  }
-
-  private void writeFixedSectionItems(DexProgramClass[] items, int offset,
-      ThrowingConsumer<DexProgramClass, ApiLevelException> writer) throws ApiLevelException {
-    assert dest.position() == offset;
-    for (DexProgramClass item : items) {
       writer.accept(item);
     }
   }
@@ -700,21 +691,21 @@ public class FileWriter {
     int size = 0;
     size += writeMapItem(Constants.TYPE_HEADER_ITEM, 0, 1);
     size += writeMapItem(Constants.TYPE_STRING_ID_ITEM, layout.stringIdsOffset,
-        mapping.getStrings().size());
+        mapping.getStrings().length);
     size += writeMapItem(Constants.TYPE_TYPE_ID_ITEM, layout.typeIdsOffset,
-        mapping.getTypes().size());
+        mapping.getTypes().length);
     size += writeMapItem(Constants.TYPE_PROTO_ID_ITEM, layout.protoIdsOffset,
-        mapping.getProtos().size());
+        mapping.getProtos().length);
     size += writeMapItem(Constants.TYPE_FIELD_ID_ITEM, layout.fieldIdsOffset,
-        mapping.getFields().size());
+        mapping.getFields().length);
     size += writeMapItem(Constants.TYPE_METHOD_ID_ITEM, layout.methodIdsOffset,
-        mapping.getMethods().size());
+        mapping.getMethods().length);
     size += writeMapItem(Constants.TYPE_CLASS_DEF_ITEM, layout.classDefsOffset,
         mapping.getClasses().length);
     size += writeMapItem(Constants.TYPE_CALL_SITE_ID_ITEM, layout.callSiteIdsOffset,
-        mapping.getCallSites().size());
+        mapping.getCallSites().length);
     size += writeMapItem(Constants.TYPE_METHOD_HANDLE_ITEM, layout.methodHandleIdsOffset,
-        mapping.getMethodHandles().size());
+        mapping.getMethodHandles().length);
     size += writeMapItem(Constants.TYPE_CODE_ITEM, layout.getCodesOffset(),
         mixedSectionOffsets.getCodes().size());
     size += writeMapItem(Constants.TYPE_DEBUG_INFO_ITEM, layout.getDebugInfosOffset(),
@@ -759,19 +750,19 @@ public class FileWriter {
     dest.putInt(0);
     dest.putInt(0);
     dest.putInt(layout.getMapOffset());
-    int numberOfStrings = mapping.getStrings().size();
+    int numberOfStrings = mapping.getStrings().length;
     dest.putInt(numberOfStrings);
     dest.putInt(numberOfStrings == 0 ? 0 : layout.stringIdsOffset);
-    int numberOfTypes = mapping.getTypes().size();
+    int numberOfTypes = mapping.getTypes().length;
     dest.putInt(numberOfTypes);
     dest.putInt(numberOfTypes == 0 ? 0 : layout.typeIdsOffset);
-    int numberOfProtos = mapping.getProtos().size();
+    int numberOfProtos = mapping.getProtos().length;
     dest.putInt(numberOfProtos);
     dest.putInt(numberOfProtos == 0 ? 0 : layout.protoIdsOffset);
-    int numberOfFields = mapping.getFields().size();
+    int numberOfFields = mapping.getFields().length;
     dest.putInt(numberOfFields);
     dest.putInt(numberOfFields == 0 ? 0 : layout.fieldIdsOffset);
-    int numberOfMethods = mapping.getMethods().size();
+    int numberOfMethods = mapping.getMethods().length;
     dest.putInt(numberOfMethods);
     dest.putInt(numberOfMethods == 0 ? 0 : layout.methodIdsOffset);
     int numberOfClasses = mapping.getClasses().length;
@@ -862,14 +853,14 @@ public class FileWriter {
       int offset = 0;
       return new Layout(
           offset = Constants.TYPE_HEADER_ITEM_SIZE,
-          offset += mapping.getStrings().size() * Constants.TYPE_STRING_ID_ITEM_SIZE,
-          offset += mapping.getTypes().size() * Constants.TYPE_TYPE_ID_ITEM_SIZE,
-          offset += mapping.getProtos().size() * Constants.TYPE_PROTO_ID_ITEM_SIZE,
-          offset += mapping.getFields().size() * Constants.TYPE_FIELD_ID_ITEM_SIZE,
-          offset += mapping.getMethods().size() * Constants.TYPE_METHOD_ID_ITEM_SIZE,
+          offset += mapping.getStrings().length * Constants.TYPE_STRING_ID_ITEM_SIZE,
+          offset += mapping.getTypes().length * Constants.TYPE_TYPE_ID_ITEM_SIZE,
+          offset += mapping.getProtos().length * Constants.TYPE_PROTO_ID_ITEM_SIZE,
+          offset += mapping.getFields().length * Constants.TYPE_FIELD_ID_ITEM_SIZE,
+          offset += mapping.getMethods().length * Constants.TYPE_METHOD_ID_ITEM_SIZE,
           offset += mapping.getClasses().length * Constants.TYPE_CLASS_DEF_ITEM_SIZE,
-          offset += mapping.getCallSites().size() * Constants.TYPE_CALL_SITE_ID_ITEM_SIZE,
-          offset += mapping.getMethodHandles().size() * Constants.TYPE_METHOD_HANDLE_ITEM_SIZE);
+          offset += mapping.getCallSites().length * Constants.TYPE_CALL_SITE_ID_ITEM_SIZE,
+          offset += mapping.getMethodHandles().length * Constants.TYPE_METHOD_HANDLE_ITEM_SIZE);
     }
 
     int getDataSectionSize() {

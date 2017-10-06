@@ -135,6 +135,7 @@ public class Constants {
   public static final String CLASS_INITIALIZER_NAME = "<clinit>";
 
   public static final int MAX_NON_JUMBO_INDEX = U16BIT_MAX;
+  public static final int FIRST_JUMBO_INDEX = MAX_NON_JUMBO_INDEX + 1;
 
   public static final int KILOBYTE = 1 << 10;
 }
