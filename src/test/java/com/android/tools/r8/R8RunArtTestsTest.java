@@ -931,8 +931,18 @@ public abstract class R8RunArtTestsTest {
   );
 
   private static List<String> failuresToTriage = ImmutableList.of(
+      // Contains a method that falls off the end without a return, the test should not be excluded
+      // for all configurations but for all using a jar file as input
+      "606-erroneous-class",
+
       // const-method-handle and const-method-type
       "979-const-method-handle",
+
+      // Dex file input into a jar file, not yet supported by the test framework.
+      "663-odd-dex-size",
+      "663-odd-dex-size2",
+      "663-odd-dex-size3",
+      "663-odd-dex-size4",
 
       // This is flaky.
       "104-growth-limit",
