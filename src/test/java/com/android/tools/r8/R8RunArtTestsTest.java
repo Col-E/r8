@@ -895,7 +895,8 @@ public abstract class R8RunArtTestsTest {
           // the output when run on Art is not as expected. b/65233869
           .put("162-method-resolution",
               TestCondition.match(
-                  TestCondition.tools(DexTool.DX, DexTool.JACK), TestCondition.R8_COMPILER))
+                  TestCondition.tools(DexTool.DX, DexTool.JACK, DexTool.NONE),
+                  TestCondition.R8_COMPILER))
           // Old runtimes used the legacy test directory which does not contain input for tools
           // NONE and DX.
           .put("952-invoke-custom", TestCondition.match(
@@ -1103,13 +1104,13 @@ public abstract class R8RunArtTestsTest {
     // Collect tests where running Art is skipped (we still run R8/D8 on these).
     Set<String> skipArt = new HashSet<>(customRun);
 
-    Set<String> skipTest = Sets.newHashSet(skipAltogether);
-    skipTest.addAll(usesNativeAgentCode);
-    skipTest.addAll(failuresToTriage);
-
     // Collect the tests requiring the native library.
     Set<String> useNativeLibrary = Sets.newHashSet(useJNI);
     for (DexTool dexTool : DexTool.values()) {
+      Set<String> skipTest = Sets.newHashSet(skipAltogether);
+      skipTest.addAll(usesNativeAgentCode);
+      skipTest.addAll(failuresToTriage);
+
       File artTestDir =
           dexTool == DexTool.JACK || LEGACY_RUNTIME.set.contains(version) ? legacyArtTestDir
               : defaultArtTestDir;
