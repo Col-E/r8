@@ -11,9 +11,7 @@ import com.android.tools.r8.TestCondition.RuntimeSet;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.DexVm.Kind;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -48,7 +46,6 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
-import org.junit.AssumptionViolatedException;
 import org.junit.ComparisonFailure;
 import org.junit.Rule;
 import org.junit.rules.ExpectedException;
@@ -818,7 +815,10 @@ public abstract class R8RunArtTestsTest {
           .put("600-verifier-fails", TestCondition.match(TestCondition.R8_COMPILER))
           // Contains a method that falls off the end without a return.
           .put("606-erroneous-class", TestCondition.match(
-              TestCondition.tools(DexTool.DX, DexTool.JACK),
+              TestCondition.tools(DexTool.JACK),
+              TestCondition.R8_NOT_AFTER_D8_COMPILER))
+          .put("606-erroneous-class", TestCondition.match(
+              TestCondition.tools(DexTool.DX),
               TestCondition.R8_NOT_AFTER_D8_COMPILER,
               LEGACY_RUNTIME))
           .build();
@@ -931,10 +931,6 @@ public abstract class R8RunArtTestsTest {
   );
 
   private static List<String> failuresToTriage = ImmutableList.of(
-      // Contains a method that falls off the end without a return, the test should not be excluded
-      // for all configurations but for all using a jar file as input
-      "606-erroneous-class",
-
       // const-method-handle and const-method-type
       "979-const-method-handle",
 
