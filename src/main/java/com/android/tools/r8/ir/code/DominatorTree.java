@@ -10,10 +10,9 @@ import java.util.Iterator;
 import java.util.List;
 
 public class DominatorTree {
-
   private BasicBlock[] sorted;
   private BasicBlock[] doms;
-  private final BasicBlock normalExitBlock = new BasicBlock();
+  private BasicBlock normalExitBlock = new BasicBlock();
 
   public DominatorTree(IRCode code) {
     this(code, Collections.emptyList());
@@ -23,13 +22,14 @@ public class DominatorTree {
   DominatorTree(IRCode code, List<BasicBlock> blocksToIgnore) {
     BasicBlock[] blocks = code.topologicallySortedBlocks(blocksToIgnore);
     // Add the internal exit block to the block list.
+    for (BasicBlock block : blocks) {
+      if (block.exit().isReturn()) {
+        normalExitBlock.getPredecessors().add(block);
+      }
+    }
     sorted = new BasicBlock[blocks.length + 1];
     System.arraycopy(blocks, 0, sorted, 0, blocks.length);
     sorted[blocks.length] = normalExitBlock;
-    // Link internal exit block to each actual exit block.
-    for (BasicBlock block : code.computeNormalExitBlocks()) {
-      normalExitBlock.getPredecessors().add(block);
-    }
     numberBlocks();
     build();
   }
