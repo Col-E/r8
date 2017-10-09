@@ -88,6 +88,12 @@ sourceSets {
         }
         output.resourcesDir = 'build/classes/examplesAndroidO'
     }
+    examplesAndroidP {
+        java {
+            srcDirs = ['src/test/examplesAndroidP']
+        }
+        output.resourcesDir = 'build/classes/examplesAndroidP'
+    }
     jctfCommon {
         java {
             srcDirs = [
@@ -145,6 +151,7 @@ dependencies {
     jctfTestsCompile 'junit:junit:4.12'
     jctfTestsCompile sourceSets.jctfCommon.output
     examplesAndroidOCompile group: 'org.ow2.asm', name: 'asm', version: '6.0_BETA'
+    examplesAndroidPCompile group: 'org.ow2.asm', name: 'asm', version: '6.0_BETA'
     examplesCompile 'com.google.protobuf:protobuf-lite:3.0.0'
     examplesRuntime 'com.google.protobuf:protobuf-lite:3.0.0'
     supportLibs 'com.android.support:support-v4:25.4.0'
@@ -887,6 +894,51 @@ task buildExampleAndroidOJars {
     }
 }
 
+task buildExampleAndroidPJars {
+    dependsOn downloadDeps
+    def examplesDir = file("src/test/examplesAndroidP")
+
+    task "compile_examplesAndroidP"(type: JavaCompile) {
+        source = fileTree(dir: examplesDir, include: '**/*.java')
+        destinationDir = file("build/test/examplesAndroidP/classes")
+        classpath = sourceSets.main.compileClasspath
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+        options.compilerArgs += ["-Xlint:-options"]
+    }
+    examplesDir.eachDir { dir ->
+        def name = dir.getName();
+        def destinationDir = file("build/test/examplesAndroidP/classes");
+        if (file("src/test/examplesAndroidP/" + name + "/TestGenerator.java").isFile()) {
+            task "generate_examplesAndroidP_${name}"(type: JavaExec,
+                    dependsOn: "compile_examplesAndroidP") {
+                main = name + ".TestGenerator"
+                classpath = files(destinationDir, sourceSets.main.compileClasspath)
+                args destinationDir
+            }
+        } else {
+            task "generate_examplesAndroidP_${name}" () {}
+        }
+    }
+    examplesDir.eachDir { dir ->
+        def name = dir.getName();
+        def exampleOutputDir = file("build/test/examplesAndroidP");
+        def jarName = "${name}.jar"
+        dependsOn "jar_examplesAndroidP_${name}"
+        task "jar_examplesAndroidP_${name}"(type: Jar,
+                dependsOn: ["compile_examplesAndroidP",
+                            "generate_examplesAndroidP_${name}"]) {
+            archiveName = jarName
+            destinationDir = exampleOutputDir
+            from "build/test/examplesAndroidP/classes"  // Java 1.8 classes
+            include "**/" + name + "/**/*.class"
+            // Do not include generator into the test runtime jar, it is not useful.
+            // Otherwise, shrinking will need ASM jars.
+            exclude "**/TestGenerator*"
+        }
+    }
+}
+
 task buildExamples {
     if (OperatingSystem.current().isMacOsX() || OperatingSystem.current().isWindows()) {
         logger.lifecycle("WARNING: Testing (including building examples) is only partially supported on your " +
@@ -900,6 +952,7 @@ task buildExamples {
     dependsOn buildExampleJars
     dependsOn buildExampleAndroidNJars
     dependsOn buildExampleAndroidOJars
+    dependsOn buildExampleAndroidPJars
     def examplesDir = file("src/test/examples")
     def noDexTests = [
         "multidex",
