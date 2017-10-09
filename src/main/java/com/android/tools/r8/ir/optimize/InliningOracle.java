@@ -45,7 +45,7 @@ public class InliningOracle {
 
   void finish() {
     if (Log.ENABLED) {
-      System.out.println(info.toString());
+      Log.debug(getClass(), info.toString());
     }
   }
 
