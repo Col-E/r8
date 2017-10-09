@@ -43,4 +43,11 @@ public class ProguardIdentifierNameStringRule extends ProguardConfigurationRule 
     return "identifiernamestring";
   }
 
+  public static ProguardIdentifierNameStringRule defaultAllRule() {
+    ProguardIdentifierNameStringRule.Builder builder = ProguardIdentifierNameStringRule.builder();
+    builder.setClassNames(
+        ProguardClassNameList.singletonList(ProguardTypeMatcher.defaultAllMatcher()));
+    return builder.build();
+  }
+
 }

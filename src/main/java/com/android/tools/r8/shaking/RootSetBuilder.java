@@ -202,7 +202,7 @@ public class RootSetBuilder {
         markMatchingFields(clazz, memberKeepRules, rule, null);
       } else {
         assert rule instanceof ProguardIdentifierNameStringRule;
-        // TODO(b/36799092): collect string literals while marking matching methods/fields.
+        // TODO(b/36799092): collect string literals while marking class and matching members.
       }
     }
   }
