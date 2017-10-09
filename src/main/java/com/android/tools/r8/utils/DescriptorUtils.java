@@ -4,9 +4,14 @@
 
 package com.android.tools.r8.utils;
 
+import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
+
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.google.common.collect.ImmutableMap;
+import java.io.File;
+import java.nio.file.Path;
 import java.util.Map;
 
 public class DescriptorUtils {
@@ -249,4 +254,23 @@ public class DescriptorUtils {
     }
   }
 
+  // Guess class descriptor from location of the class file.
+  public static String guessTypeDescriptor(Path name) {
+    return guessTypeDescriptor(name.toString());
+  }
+
+  // Guess class descriptor from location of the class file.
+  public static String guessTypeDescriptor(String name) {
+    assert name != null;
+    assert name.endsWith(CLASS_EXTENSION) :
+        "Name " + name + " must have " + CLASS_EXTENSION + " suffix";
+    String fileName =
+        File.separatorChar == '/' ? name.toString() :
+            name.toString().replace(File.separatorChar, '/');
+    String descriptor = fileName.substring(0, fileName.length() - CLASS_EXTENSION.length());
+    if (descriptor.contains(".")) {
+      throw new CompilationError("Unexpected class file name: " + fileName);
+    }
+    return 'L' + descriptor + ';';
+  }
 }

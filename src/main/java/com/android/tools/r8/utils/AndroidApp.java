@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.FileUtils.isClassFile;
 import static com.android.tools.r8.utils.FileUtils.isDexFile;
 import static com.android.tools.r8.utils.FileUtils.isVDexFile;
 
+import com.android.tools.r8.ArchiveClassFileProvider;
 import com.android.tools.r8.ClassFileResourceProvider;
 import com.android.tools.r8.Resource;
 import com.android.tools.r8.Resource.Kind;
