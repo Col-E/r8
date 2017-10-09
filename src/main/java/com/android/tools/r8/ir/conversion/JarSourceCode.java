@@ -142,6 +142,7 @@ public class JarSourceCode implements SourceCode {
   static final Type STRING_TYPE = Type.getObjectType("java/lang/String");
   static final Type INT_ARRAY_TYPE = Type.getObjectType(INT_ARRAY_DESC);
   static final Type THROWABLE_TYPE = Type.getObjectType("java/lang/Throwable");
+  static final Type METHOD_HANDLE_TYPE = Type.getObjectType("java/lang/invoke/MethodHandle");
 
   private static final int[] NO_TARGETS = {};
 
@@ -619,7 +620,7 @@ public class JarSourceCode implements SourceCode {
       case Opcodes.LDC: {
         // const-class and const-string* may throw in dex.
         LdcInsnNode ldc = (LdcInsnNode) insn;
-        return ldc.cst instanceof String || ldc.cst instanceof Type;
+        return ldc.cst instanceof String || ldc.cst instanceof Type || ldc.cst instanceof Handle;
       }
       default:
         return false;
@@ -1727,6 +1728,8 @@ public class JarSourceCode implements SourceCode {
       state.push(Type.INT_TYPE);
     } else if (insn.cst instanceof Float) {
       state.push(Type.FLOAT_TYPE);
+    } else if (insn.cst instanceof Handle) {
+      state.push(METHOD_HANDLE_TYPE);
     } else {
       throw new CompilationError("Unsupported constant: " + insn.cst.toString());
     }
@@ -2724,7 +2727,7 @@ public class JarSourceCode implements SourceCode {
     }
   }
 
-  private void build(LdcInsnNode insn, IRBuilder builder) {
+  private void build(LdcInsnNode insn, IRBuilder builder) throws ApiLevelException {
     if (insn.cst instanceof Type) {
       Type type = (Type) insn.cst;
       int dest = state.push(type);
@@ -2744,6 +2747,10 @@ public class JarSourceCode implements SourceCode {
     } else if (insn.cst instanceof Float) {
       int dest = state.push(Type.FLOAT_TYPE);
       builder.addFloatConst(dest, Float.floatToRawIntBits((Float) insn.cst));
+    } else if (insn.cst instanceof Handle) {
+      Handle handle = (Handle) insn.cst;
+      int dest = state.push(METHOD_HANDLE_TYPE);
+      builder.addConstMethodHandle(dest, getMethodHandle(application, handle));
     } else {
       throw new CompilationError("Unsupported constant: " + insn.cst.toString());
     }

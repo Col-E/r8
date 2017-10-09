@@ -348,6 +348,10 @@ public class InternalOptions {
     return minApiLevel >= AndroidApiLevel.O.getLevel();
   }
 
+  public boolean canUseConstantMethodHandle() {
+    return minApiLevel >= AndroidApiLevel.P.getLevel();
+  }
+
   public boolean canUseInvokeCustom() {
     return minApiLevel >= AndroidApiLevel.O.getLevel();
   }

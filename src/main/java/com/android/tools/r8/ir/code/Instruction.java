@@ -450,6 +450,14 @@ public abstract class Instruction {
     return null;
   }
 
+  public boolean isConstMethodHandle() {
+    return false;
+  }
+
+  public ConstMethodHandle asConstMethodHandle() {
+    return null;
+  }
+
   public boolean isConstString() {
     return false;
   }

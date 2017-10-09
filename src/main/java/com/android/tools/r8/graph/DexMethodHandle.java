@@ -4,8 +4,10 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
+import com.android.tools.r8.naming.NamingLens;
 
-public class DexMethodHandle extends IndexedDexItem {
+public class DexMethodHandle extends IndexedDexItem implements
+    PresortedComparable<DexMethodHandle> {
 
   public enum MethodHandleType {
     STATIC_PUT((short) 0x00),
@@ -189,5 +191,52 @@ public class DexMethodHandle extends IndexedDexItem {
   public DexField asField() {
     assert isFieldHandle();
     return (DexField) fieldOrMethod;
+  }
+
+  @Override
+  public int slowCompareTo(DexMethodHandle other) {
+    int result = type.getValue() - other.type.getValue();
+    if (result == 0) {
+      if (isFieldHandle()) {
+        result = asField().slowCompareTo(other.asField());
+      } else {
+        assert isMethodHandle();
+        result = asMethod().slowCompareTo(other.asMethod());
+      }
+    }
+    return result;
+  }
+
+  @Override
+  public int slowCompareTo(DexMethodHandle other, NamingLens namingLens) {
+    int result = type.getValue() - other.type.getValue();
+    if (result == 0) {
+      if (isFieldHandle()) {
+        result = asField().slowCompareTo(other.asField(), namingLens);
+      } else {
+        assert isMethodHandle();
+        result = asMethod().slowCompareTo(other.asMethod(), namingLens);
+      }
+    }
+    return result;
+  }
+
+  @Override
+  public int layeredCompareTo(DexMethodHandle other, NamingLens namingLens) {
+    int result = type.getValue() - other.type.getValue();
+    if (result == 0) {
+      if (isFieldHandle()) {
+        result = asField().layeredCompareTo(other.asField(), namingLens);
+      } else {
+        assert isMethodHandle();
+        result = asMethod().layeredCompareTo(other.asMethod(), namingLens);
+      }
+    }
+    return result;
+  }
+
+  @Override
+  public int compareTo(DexMethodHandle other) {
+    return sortedCompareTo(other.getSortedIndex());
   }
 }
