@@ -73,7 +73,7 @@ abstract class BaseCompilerCommand extends BaseCommand {
     return diagnosticsHandler;
   }
 
-  boolean getEnableDesugaring() {
+  public boolean getEnableDesugaring() {
     return enableDesugaring;
   }
 
@@ -85,6 +85,7 @@ abstract class BaseCompilerCommand extends BaseCommand {
     private CompilationMode mode;
     private int minApiLevel = AndroidApiLevel.getDefault().getLevel();
     private DiagnosticsHandler diagnosticsHandler = new DefaultDiagnosticsHandler();
+    private boolean enableDesugaring = true;
 
     protected Builder(CompilationMode mode) {
       this(AndroidApp.builder(), mode, false);
@@ -160,8 +161,13 @@ abstract class BaseCompilerCommand extends BaseCommand {
       return self();
     }
 
-    protected boolean getEnableDesugaring() {
-      return true;
+    public B setEnableDesugaring(boolean enableDesugaring) {
+      this.enableDesugaring = enableDesugaring;
+      return self();
+    }
+
+    public boolean getEnableDesugaring() {
+      return enableDesugaring;
     }
 
     protected void validate() throws CompilationException {

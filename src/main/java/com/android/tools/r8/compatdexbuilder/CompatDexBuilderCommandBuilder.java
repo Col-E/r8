@@ -8,10 +8,7 @@ import com.android.tools.r8.D8Command;
 public class CompatDexBuilderCommandBuilder extends D8Command.Builder {
   CompatDexBuilderCommandBuilder() {
     super(true);
+    setEnableDesugaring(false);
   }
 
-  @Override
-  protected boolean getEnableDesugaring() {
-    return false;
-  }
 }
