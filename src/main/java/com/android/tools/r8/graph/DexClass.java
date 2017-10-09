@@ -239,6 +239,19 @@ public abstract class DexClass extends DexItem {
     return true;
   }
 
+  public boolean hasDefaultInitializer() {
+    return getDefaultInitializer() != null;
+  }
+
+  public DexEncodedMethod getDefaultInitializer() {
+    for (DexEncodedMethod method : directMethods()) {
+      if (method.isDefaultInitializer()) {
+        return method;
+      }
+    }
+    return null;
+  }
+
   public boolean defaultValuesForStaticFieldsMayTriggerAllocation() {
     return Arrays.stream(staticFields())
         .anyMatch(field -> !field.staticValue.mayTriggerAllocation());

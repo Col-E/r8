@@ -48,7 +48,7 @@ public class JarRegisterEffectsVisitor extends MethodVisitor {
   @Override
   public void visitLdcInsn(Object cst) {
     if (cst instanceof Type) {
-      registry.registerTypeReference(application.getType((Type) cst));
+      registry.registerConstClass(application.getType((Type) cst));
     } else if (cst instanceof Handle) {
       registerMethodHandleType((Handle) cst);
     }

@@ -103,6 +103,8 @@ public class InternalOptions {
   public String printCfgFile;
   public Path printMainDexListFile;
   public boolean ignoreMissingClasses = false;
+  // EXPERIMENTAL flag to get behaviour as close to Proguard as possible.
+  public boolean forceProguardCompatibility = false;
   public boolean skipMinification = false;
   public boolean disableAssertions = true;
   public boolean debugKeepRules = false;

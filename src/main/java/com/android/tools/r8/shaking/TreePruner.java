@@ -76,7 +76,7 @@ public class TreePruner {
       } else {
         newClasses.add(clazz);
         if (!appInfo.instantiatedTypes.contains(clazz.type) &&
-            (!options.debugKeepRules || !hasDefaultConstructor(clazz))) {
+            (!options.debugKeepRules || !clazz.hasDefaultInitializer())) {
           // The class is only needed as a type but never instantiated. Make it abstract to reflect
           // this.
           if (clazz.accessFlags.isFinal()) {
@@ -100,15 +100,6 @@ public class TreePruner {
       }
     }
     return newClasses;
-  }
-
-  private boolean hasDefaultConstructor(DexProgramClass clazz) {
-    for (DexEncodedMethod method : clazz.directMethods()) {
-      if (isDefaultConstructor(method)) {
-        return true;
-      }
-    }
-    return false;
   }
 
   private <S extends PresortedComparable<S>, T extends KeyedDexItem<S>> int firstUnreachableIndex(

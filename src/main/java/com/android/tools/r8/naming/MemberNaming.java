@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
+import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
@@ -278,6 +279,10 @@ public class MemberNaming {
       }
       return new MethodSignature(method.name.toSourceString(),
           method.proto.returnType.toSourceString(), paramNames);
+    }
+
+    public static MethodSignature initializer(String[] parameters) {
+      return new MethodSignature(Constants.INSTANCE_INITIALIZER_NAME, "void", parameters);
     }
 
     @Override

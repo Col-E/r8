@@ -221,7 +221,7 @@ public class R8 {
             new RootSetBuilder(
                     application, appInfo, options.proguardConfiguration.getRules(), options)
                 .run(executorService);
-        Enqueuer enqueuer = new Enqueuer(appInfo);
+        Enqueuer enqueuer = new Enqueuer(appInfo, options);
         enqueuer.addExtension(new ProtoLiteExtension(appInfo));
         appInfo = enqueuer.traceApplication(rootSet, timing);
         if (options.proguardConfiguration.isPrintSeeds()) {
@@ -282,7 +282,7 @@ public class R8 {
 
       if (!options.mainDexKeepRules.isEmpty()) {
         appInfo = new AppInfoWithSubtyping(application);
-        Enqueuer enqueuer = new Enqueuer(appInfo);
+        Enqueuer enqueuer = new Enqueuer(appInfo, options);
         // Lets find classes which may have code executed before secondary dex files installation.
         RootSet mainDexRootSet =
             new RootSetBuilder(application, appInfo, options.mainDexKeepRules, options)
@@ -301,7 +301,7 @@ public class R8 {
       if (options.useTreeShaking || !options.skipMinification) {
         timing.begin("Post optimization code stripping");
         try {
-          Enqueuer enqueuer = new Enqueuer(appInfo);
+          Enqueuer enqueuer = new Enqueuer(appInfo, options);
           appInfo = enqueuer.traceApplication(rootSet, timing);
           if (options.useTreeShaking) {
             TreePruner pruner = new TreePruner(application, appInfo.withLiveness(), options);

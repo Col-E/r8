@@ -26,17 +26,21 @@ public class CompatProguard {
   public static class CompatProguardOptions {
     public final String output;
     public final int minApi;
+    public final boolean forceProguardCompatibility;
     public final List<String> proguardConfig;
 
-    CompatProguardOptions(List<String> proguardConfig, String output, int minApi) {
+    CompatProguardOptions(List<String> proguardConfig, String output, int minApi,
+        boolean forceProguardCompatibility) {
       this.output = output;
       this.minApi = minApi;
+      this.forceProguardCompatibility = forceProguardCompatibility;
       this.proguardConfig = proguardConfig;
     }
 
     public static CompatProguardOptions parse(String[] args) throws CompilationException {
       String output = null;
       int minApi = 1;
+      boolean forceProguardCompatibility = false;
       ImmutableList.Builder<String> builder = ImmutableList.builder();
       if (args.length > 0) {
         StringBuilder currentLine = new StringBuilder(args[0]);
@@ -45,6 +49,8 @@ public class CompatProguard {
           if (arg.charAt(0) == '-') {
             if (arg.equals("--min-api")) {
               minApi = Integer.valueOf(args[++i]);
+            } else if (arg.equals("--force-proguard-compatibility")) {
+              forceProguardCompatibility = true;
             } else if (arg.equals("--output")) {
               output = args[++i];
             } else if (arg.equals("-outjars")) {
@@ -60,7 +66,7 @@ public class CompatProguard {
         }
         builder.add(currentLine.toString());
       }
-      return new CompatProguardOptions(builder.build(), output, minApi);
+      return new CompatProguardOptions(builder.build(), output, minApi, forceProguardCompatibility);
     }
   }
 
@@ -68,11 +74,12 @@ public class CompatProguard {
     System.out.println("CompatProguard " + String.join(" ", args));
     // Run R8 passing all the options from the command line as a Proguard configuration.
     CompatProguardOptions options = CompatProguardOptions.parse(args);
-    R8.run(R8Command.builder()
-        .setOutputPath(Paths.get(options.output))
+    R8Command.Builder builder =
+        new CompatProguardCommandBuilder(options.forceProguardCompatibility);
+    builder.setOutputPath(Paths.get(options.output))
         .addProguardConfiguration(options.proguardConfig)
-        .setMinApiLevel(options.minApi)
-        .build());
+        .setMinApiLevel(options.minApi);
+    R8.run(builder.build());
   }
 
   public static void main(String[] args) throws IOException {

@@ -204,6 +204,10 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
     return accessFlags.isConstructor() && !accessFlags.isStatic();
   }
 
+  public boolean isDefaultInitializer() {
+    return isInstanceInitializer() && method.proto.parameters.isEmpty();
+  }
+
   public boolean isClassInitializer() {
     return accessFlags.isConstructor() && accessFlags.isStatic();
   }

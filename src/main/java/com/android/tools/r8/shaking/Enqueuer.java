@@ -28,6 +28,7 @@ import com.android.tools.r8.graph.KeyedDexItem;
 import com.android.tools.r8.graph.PresortedComparable;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.base.Equivalence.Wrapper;
@@ -69,6 +70,7 @@ import java.util.stream.Collectors;
 public class Enqueuer {
 
   private final AppInfoWithSubtyping appInfo;
+  private final InternalOptions options;
   private RootSet rootSet;
 
   private Map<DexType, Set<DexMethod>> virtualInvokes = Maps.newIdentityHashMap();
@@ -156,8 +158,9 @@ public class Enqueuer {
    */
   private final Map<DexType, Set<DexAnnotation>> deferredAnnotations = new IdentityHashMap<>();
 
-  public Enqueuer(AppInfoWithSubtyping appInfo) {
+  public Enqueuer(AppInfoWithSubtyping appInfo, InternalOptions options) {
     this.appInfo = appInfo;
+    this.options = options;
   }
 
   public void addExtension(SemanticsProvider extension) {
@@ -331,6 +334,30 @@ public class Enqueuer {
         return true;
       }
       return false;
+    }
+
+    @Override
+    public boolean registerConstClass(DexType type) {
+      boolean result = registerTypeReference(type);
+      // For Proguard compatibility mark default initializer for live type as live.
+      if (options.forceProguardCompatibility) {
+        if (type.isArrayType()) {
+          return result;
+        }
+        assert type.isClassType();
+        DexClass holder = appInfo.definitionFor(type);
+        if (holder == null) {
+          // Don't call reportMissingClass(type) here. That already happened in the call to
+          // registerTypeReference(type).
+          return result;
+        }
+        if (holder.hasDefaultInitializer()) {
+          registerNewInstance(type);
+          DexEncodedMethod init = holder.getDefaultInitializer();
+          markDirectStaticOrConstructorMethodAsLive(init, KeepReason.reachableFromLiveType(type));
+        }
+      }
+      return result;
     }
   }
 

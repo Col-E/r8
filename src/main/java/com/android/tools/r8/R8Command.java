@@ -36,10 +36,16 @@ public class R8Command extends BaseCompilerCommand {
     private Optional<Boolean> discardedChecker = Optional.empty();
     private Optional<Boolean> minification = Optional.empty();
     private boolean ignoreMissingClasses = false;
+    private boolean forceProguardCompatibility = false;
     private Path proguardMapOutput = null;
 
     private Builder() {
       super(CompilationMode.RELEASE);
+    }
+
+    protected Builder(boolean forceProguardCompatibility) {
+      super(CompilationMode.RELEASE);
+      this.forceProguardCompatibility = forceProguardCompatibility;
     }
 
     private Builder(AndroidApp app) {
@@ -243,6 +249,7 @@ public class R8Command extends BaseCompilerCommand {
           useDiscardedChecker,
           useMinification,
           ignoreMissingClasses,
+          forceProguardCompatibility,
           proguardMapOutput);
     }
   }
@@ -283,6 +290,7 @@ public class R8Command extends BaseCompilerCommand {
   private final boolean useDiscardedChecker;
   private final boolean useMinification;
   private final boolean ignoreMissingClasses;
+  private final boolean forceProguardCompatibility;
   private final Path proguardMapOutput;
 
   public static Builder builder() {
@@ -400,6 +408,7 @@ public class R8Command extends BaseCompilerCommand {
       boolean useDiscardedChecker,
       boolean useMinification,
       boolean ignoreMissingClasses,
+      boolean forceProguardCompatibility,
       Path proguardMapOutput) {
     super(inputApp, outputPath, outputMode, mode, minApiLevel, diagnosticsHandler,
         enableDesugaring);
@@ -413,6 +422,7 @@ public class R8Command extends BaseCompilerCommand {
     this.useDiscardedChecker = useDiscardedChecker;
     this.useMinification = useMinification;
     this.ignoreMissingClasses = ignoreMissingClasses;
+    this.forceProguardCompatibility = forceProguardCompatibility;
     this.proguardMapOutput = proguardMapOutput;
   }
 
@@ -425,6 +435,7 @@ public class R8Command extends BaseCompilerCommand {
     useDiscardedChecker = false;
     useMinification = false;
     ignoreMissingClasses = false;
+    forceProguardCompatibility = false;
     proguardMapOutput = null;
   }
   public boolean useTreeShaking() {
@@ -477,6 +488,11 @@ public class R8Command extends BaseCompilerCommand {
       internal.inlineAccessors = false;
     }
     internal.proguardMapOutput = proguardMapOutput;
+
+    // EXPERIMENTAL flags.
+    assert !internal.forceProguardCompatibility;
+    internal.forceProguardCompatibility = forceProguardCompatibility;
+
     return internal;
   }
 }
