@@ -10,7 +10,6 @@ import static org.junit.Assert.fail;
 import com.android.tools.r8.DeviceRunner.DeviceRunnerConfigurationException;
 import com.android.tools.r8.ToolHelper.DexVm.Kind;
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -782,9 +781,54 @@ public class ToolHelper {
     return Paths.get(System.getProperty("java.home"), "bin", "java").toString();
   }
 
+  public static ProcessResult runArtRaw(String file, String mainClass)
+      throws IOException {
+    return runArtRaw(Collections.singletonList(file), mainClass, null);
+  }
+
+  public static ProcessResult runArtRaw(List<String> files, String mainClass,
+      Consumer<ArtCommandBuilder> extras)
+      throws IOException {
+    return runArtRaw(files, mainClass, extras, null);
+  }
+
+  public static ProcessResult runArtRaw(List<String> files, String mainClass,
+      Consumer<ArtCommandBuilder> extras, DexVm version)
+      throws IOException {
+    ArtCommandBuilder builder =
+        version != null ? new ArtCommandBuilder(version) : new ArtCommandBuilder();
+    files.forEach(builder::appendClasspath);
+    builder.setMainClass(mainClass);
+    if (extras != null) {
+      extras.accept(builder);
+    }
+    return runArtProcessRaw(builder);
+  }
+
+  public static ProcessResult runArtNoVerificationErrorsRaw(String file, String mainClass)
+      throws IOException {
+    return runArtNoVerificationErrorsRaw(Collections.singletonList(file), mainClass, null);
+  }
+
+  public static ProcessResult runArtNoVerificationErrorsRaw(List<String> files, String mainClass,
+      Consumer<ArtCommandBuilder> extras)
+      throws IOException {
+    return runArtNoVerificationErrorsRaw(files, mainClass, extras, null);
+  }
+
+  public static ProcessResult runArtNoVerificationErrorsRaw(List<String> files, String mainClass,
+      Consumer<ArtCommandBuilder> extras,
+      DexVm version)
+      throws IOException {
+    ProcessResult result = runArtRaw(files, mainClass, extras, version);
+    failOnProcessFailure(result);
+    failOnVerificationErrors(result);
+    return result;
+  }
+
   public static String runArtNoVerificationErrors(String file, String mainClass)
       throws IOException {
-    return runArtNoVerificationErrors(Collections.singletonList(file), mainClass, null);
+    return runArtNoVerificationErrorsRaw(file, mainClass).stdout;
   }
 
   public static String runArtNoVerificationErrors(List<String> files, String mainClass,
@@ -797,25 +841,22 @@ public class ToolHelper {
       Consumer<ArtCommandBuilder> extras,
       DexVm version)
       throws IOException {
-    ArtCommandBuilder builder =
-        version != null ? new ArtCommandBuilder(version) : new ArtCommandBuilder();
-    files.forEach(builder::appendClasspath);
-    builder.setMainClass(mainClass);
-    if (extras != null) {
-      extras.accept(builder);
-    }
-    return runArtNoVerificationErrors(builder);
+    return runArtNoVerificationErrorsRaw(files, mainClass, extras, version).stdout;
   }
 
-  public static String runArtNoVerificationErrors(ArtCommandBuilder builder) throws IOException {
-    ProcessResult result = runArtProcess(builder);
+  private static void failOnProcessFailure(ProcessResult result) {
+    if (result.exitCode != 0) {
+      fail("Unexpected art failure: '" + result.stderr + "'\n" + result.stdout);
+    }
+  }
+
+  private static void failOnVerificationErrors(ProcessResult result) {
     if (result.stderr.contains("Verification error")) {
       fail("Verification error: \n" + result.stderr);
     }
-    return result.stdout;
   }
 
-  private static ProcessResult runArtProcess(ArtCommandBuilder builder) throws IOException {
+  private static ProcessResult runArtProcessRaw(ArtCommandBuilder builder) throws IOException {
     Assume.assumeTrue(ToolHelper.artSupported());
     ProcessResult result;
     if (builder.isForDevice()) {
@@ -827,14 +868,12 @@ public class ToolHelper {
     } else {
       result = runProcess(builder.asProcessBuilder());
     }
-    if (result.exitCode != 0) {
-      fail("Unexpected art failure: '" + result.stderr + "'\n" + result.stdout);
-    }
     return result;
   }
 
   public static String runArt(ArtCommandBuilder builder) throws IOException {
-    ProcessResult result = runArtProcess(builder);
+    ProcessResult result = runArtProcessRaw(builder);
+    failOnProcessFailure(result);
     return result.stdout;
   }
 
