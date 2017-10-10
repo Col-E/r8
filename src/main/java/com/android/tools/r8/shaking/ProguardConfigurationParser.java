@@ -4,6 +4,7 @@
 package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.CompilationException;
+import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.DexAccessFlags;
 import com.android.tools.r8.graph.DexField;
@@ -17,6 +18,7 @@ import com.android.tools.r8.shaking.ProguardTypeMatcher.MatchSpecificType;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions.PackageObfuscationMode;
 import com.android.tools.r8.utils.LongInterval;
+import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.io.File;
@@ -35,6 +37,8 @@ public class ProguardConfigurationParser {
   private final Builder configurationBuilder;
 
   private final DexItemFactory dexItemFactory;
+
+  private final DiagnosticsHandler diagnosticsHandler;
 
   private static final List<String> ignoredSingleArgOptions = ImmutableList
       .of("protomapping",
@@ -68,9 +72,11 @@ public class ProguardConfigurationParser {
   private static final List<String> unsupportedFlagOptions = ImmutableList
       .of("skipnonpubliclibraryclasses");
 
-  public ProguardConfigurationParser(DexItemFactory dexItemFactory) {
+  public ProguardConfigurationParser(
+      DexItemFactory dexItemFactory, DiagnosticsHandler diagnosticsHandler) {
     this.dexItemFactory = dexItemFactory;
     configurationBuilder = ProguardConfiguration.builder(dexItemFactory);
+    this.diagnosticsHandler = diagnosticsHandler;
   }
 
   public ProguardConfiguration.Builder getConfigurationBuilder() {
@@ -101,7 +107,7 @@ public class ProguardConfigurationParser {
   public void parse(List<ProguardConfigurationSource> sources)
       throws ProguardRuleParserException, IOException {
     for (ProguardConfigurationSource source : sources) {
-      new ProguardFileParser(source).parse();
+      new ProguardFileParser(source, diagnosticsHandler).parse();
     }
   }
 
@@ -111,7 +117,8 @@ public class ProguardConfigurationParser {
     private int position = 0;
     private Path baseDirectory;
 
-    ProguardFileParser(ProguardConfigurationSource source) throws IOException {
+    ProguardFileParser(ProguardConfigurationSource source, DiagnosticsHandler diagnosticsHandler)
+        throws IOException {
       contents = source.get();
       baseDirectory = source.getBaseDirectory();
       name = source.getName();
@@ -123,7 +130,8 @@ public class ProguardConfigurationParser {
       } while (parseOption());
     }
 
-    private boolean parseOption() throws ProguardRuleParserException {
+    private boolean parseOption()
+        throws ProguardRuleParserException {
       if (eof()) {
         return false;
       }
@@ -281,17 +289,19 @@ public class ProguardConfigurationParser {
     }
 
     private void warnIgnoringOptions(String optionName) {
-      System.out.println("WARNING: Ignoring option: -" + optionName);
+      diagnosticsHandler.warning(new StringDiagnostic("Ignoring option: -" + optionName));
     }
 
     private void warnOverridingOptions(String optionName, String victim) {
-      System.out.println("WARNING: option -" + optionName + " overrides -" + victim);
+      diagnosticsHandler.warning(
+          new StringDiagnostic("Option -" + optionName + " overrides -" + victim));
     }
 
     private void parseInclude() throws ProguardRuleParserException {
       Path included = parseFileName();
       try {
-        new ProguardFileParser(new ProguardConfigurationSourceFile(included)).parse();
+        new ProguardFileParser(new ProguardConfigurationSourceFile(included), diagnosticsHandler)
+            .parse();
       } catch (FileNotFoundException | NoSuchFileException e) {
         throw parseError("Included file '" + included.toString() + "' not found", e);
       } catch (IOException e) {

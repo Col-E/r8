@@ -20,6 +20,7 @@ import com.android.tools.r8.shaking.ProguardConfigurationParser;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -590,7 +591,8 @@ public class ToolHelper {
     if (configPaths.isEmpty()) {
       return ProguardConfiguration.defaultConfiguration(factory);
     }
-    ProguardConfigurationParser parser = new ProguardConfigurationParser(factory);
+    ProguardConfigurationParser parser =
+        new ProguardConfigurationParser(factory, new DefaultDiagnosticsHandler());
     for (Path configPath : configPaths) {
       parser.parse(configPath);
     }

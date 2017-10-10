@@ -195,7 +195,8 @@ public class R8Command extends BaseCompilerCommand {
       if (this.mainDexRules.isEmpty()) {
         mainDexKeepRules = ImmutableList.of();
       } else {
-        ProguardConfigurationParser parser = new ProguardConfigurationParser(factory);
+        ProguardConfigurationParser parser =
+            new ProguardConfigurationParser(factory, getDiagnosticsHandler());
         try {
           parser.parse(mainDexRules);
           mainDexKeepRules = parser.getConfig().getRules();
@@ -207,7 +208,8 @@ public class R8Command extends BaseCompilerCommand {
       if (proguardConfigs.isEmpty()) {
         configuration = ProguardConfiguration.defaultConfiguration(factory);
       } else {
-        ProguardConfigurationParser parser = new ProguardConfigurationParser(factory);
+        ProguardConfigurationParser parser =
+            new ProguardConfigurationParser(factory, getDiagnosticsHandler());
         try {
           parser.parse(proguardConfigs);
         } catch (ProguardRuleParserException e) {
