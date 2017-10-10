@@ -35,8 +35,7 @@ public class R8CodeCanonicalizationTest {
   public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
   @Test
-  public void testNumberOfCodeItemsUnchanged()
-      throws IOException, ExecutionException, ProguardRuleParserException, CompilationException {
+  public void testNumberOfCodeItemsUnchanged() throws Exception {
     int numberOfCodes = readNumberOfCodes(Paths.get(ToolHelper.EXAMPLES_BUILD_DIR + SOURCE_DEX));
     ToolHelper.runR8(ToolHelper.EXAMPLES_BUILD_DIR + SOURCE_DEX, temp.getRoot().getCanonicalPath());
     int newNumberOfCodes = readNumberOfCodes(

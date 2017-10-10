@@ -9,7 +9,6 @@ import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.MainDexListBuilder;
-import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.shaking.RootSetBuilder;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.utils.AndroidApp;
@@ -106,7 +105,7 @@ public class GenerateMainDexList {
   }
 
   public static void main(String[] args)
-      throws IOException, ProguardRuleParserException, CompilationException, ExecutionException {
+      throws IOException, CompilationException, ExecutionException {
     GenerateMainDexListCommand.Builder builder = GenerateMainDexListCommand.parse(args);
     GenerateMainDexListCommand command = builder.build();
     if (command.isPrintHelp()) {

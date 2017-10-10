@@ -5,7 +5,6 @@
 package com.android.tools.r8;
 
 import java.nio.file.Path;
-import java.util.concurrent.ExecutionException;
 import java.util.function.UnaryOperator;
 
 public class R8RunExamplesAndroidNTest extends RunExamplesAndroidNTest<R8Command.Builder> {
@@ -23,16 +22,12 @@ public class R8RunExamplesAndroidNTest extends RunExamplesAndroidNTest<R8Command
 
     @Override
     void build(Path inputFile, Path out) throws Throwable {
-      try {
-        R8Command.Builder builder = R8Command.builder();
-        for (UnaryOperator<R8Command.Builder> transformation : builderTransformations) {
-          builder = transformation.apply(builder);
-        }
-        R8Command command = builder.addProgramFiles(inputFile).setOutputPath(out).build();
-        ToolHelper.runR8(command, this::combinedOptionConsumer);
-      } catch (ExecutionException e) {
-        throw e.getCause();
+      R8Command.Builder builder = R8Command.builder();
+      for (UnaryOperator<R8Command.Builder> transformation : builderTransformations) {
+        builder = transformation.apply(builder);
       }
+      R8Command command = builder.addProgramFiles(inputFile).setOutputPath(out).build();
+      ToolHelper.runR8(command, this::combinedOptionConsumer);
     }
   }
 

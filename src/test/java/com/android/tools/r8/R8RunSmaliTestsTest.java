@@ -138,8 +138,7 @@ public class R8RunSmaliTestsTest {
   }
 
   @Test
-  public void SmaliTest()
-      throws IOException, ProguardRuleParserException, ExecutionException, CompilationException {
+  public void SmaliTest() throws Exception {
     File originalDexFile = Paths.get(SMALI_DIR, directoryName, dexFileName).toFile();
     String outputPath = temp.getRoot().getCanonicalPath();
     ToolHelper.runR8(originalDexFile.getCanonicalPath(), outputPath);

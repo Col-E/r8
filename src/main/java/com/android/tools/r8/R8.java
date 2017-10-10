@@ -32,7 +32,6 @@ import com.android.tools.r8.shaking.DiscardedChecker;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.MainDexListBuilder;
 import com.android.tools.r8.shaking.ProguardClassNameList;
-import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.shaking.ProguardTypeMatcher.MatchSpecificType;
 import com.android.tools.r8.shaking.ReasonPrinter;
 import com.android.tools.r8.shaking.RootSetBuilder;
@@ -492,8 +491,7 @@ public class R8 {
     return outputApp;
   }
 
-  private static void run(String[] args)
-      throws IOException, ProguardRuleParserException, CompilationException {
+  private static void run(String[] args) throws IOException, CompilationException {
     R8Command.Builder builder = R8Command.parse(args);
     if (builder.getOutputPath() == null) {
       builder.setOutputPath(Paths.get("."));
@@ -520,9 +518,6 @@ public class R8 {
       System.err.println("File already exists: " + e.getFile());
     } catch (IOException e) {
       System.err.println("Failed to read or write Android app: " + e.getMessage());
-      System.exit(1);
-    } catch (ProguardRuleParserException e) {
-      System.err.println("Failed parsing proguard keep rules: " + e.getMessage());
       System.exit(1);
     } catch (RuntimeException e) {
       System.err.println("Compilation failed with an internal error.");

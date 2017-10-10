@@ -3,13 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.internal;
 
-import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8Command;
-import com.android.tools.r8.shaking.ProguardRuleParserException;
-import java.io.IOException;
 import java.nio.file.Paths;
-import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 
 public class D8Framework14082017DesugaredVerificationTest extends CompilationTestBase {
@@ -17,8 +13,7 @@ public class D8Framework14082017DesugaredVerificationTest extends CompilationTes
   private static final String JAR = "third_party/framework/framework_14082017_desugared.jar";
 
   @Test
-  public void verifyDebugBuild()
-      throws ExecutionException, IOException, ProguardRuleParserException, CompilationException {
+  public void verifyDebugBuild() throws Exception {
     runAndCheckVerification(
         D8Command.builder()
             .addProgramFiles(Paths.get(JAR))
@@ -29,8 +24,7 @@ public class D8Framework14082017DesugaredVerificationTest extends CompilationTes
   }
 
   @Test
-  public void verifyReleaseBuild()
-      throws ExecutionException, IOException, ProguardRuleParserException, CompilationException {
+  public void verifyReleaseBuild() throws Exception {
     runAndCheckVerification(
         D8Command.builder()
             .addProgramFiles(Paths.get(JAR))

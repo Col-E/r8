@@ -505,8 +505,7 @@ public class SmaliTestBase extends TestBase {
               .build();
       ToolHelper.runR8WithFullResult(command, optionsConsumer);
       return dexOutputDir.resolve("classes.dex");
-    } catch (CompilationException | IOException | RecognitionException | ExecutionException
-        | ProguardRuleParserException e) {
+    } catch (CompilationException | IOException | RecognitionException | ExecutionException e) {
       throw new RuntimeException(e);
     }
   }

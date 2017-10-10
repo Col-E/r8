@@ -7,11 +7,9 @@ import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApp;
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 
 public class D8FrameworkDeterministicTest extends CompilationTestBase {
@@ -23,8 +21,7 @@ public class D8FrameworkDeterministicTest extends CompilationTestBase {
   }
 
   @Test
-  public void verifyDebugBuild()
-      throws ExecutionException, IOException, ProguardRuleParserException, CompilationException {
+  public void verifyDebugBuild() throws Exception {
     D8Command command = D8Command.builder()
         .addProgramFiles(Paths.get(JAR))
         .setMode(CompilationMode.DEBUG)
@@ -36,8 +33,7 @@ public class D8FrameworkDeterministicTest extends CompilationTestBase {
   }
 
   @Test
-  public void verifyReleaseBuild()
-      throws ExecutionException, IOException, ProguardRuleParserException, CompilationException {
+  public void verifyReleaseBuild() throws Exception {
     D8Command command = D8Command.builder()
         .addProgramFiles(Paths.get(JAR))
         .setMode(CompilationMode.RELEASE)

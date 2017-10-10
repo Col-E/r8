@@ -6,7 +6,6 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
-import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -14,7 +13,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 import java.util.function.UnaryOperator;
 import org.junit.Test;
 
@@ -61,18 +59,14 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
 
     @Override
     void build(Path inputFile, Path out) throws Throwable {
-      try {
-        R8Command.Builder builder = R8Command.builder();
-        for (UnaryOperator<R8Command.Builder> transformation : builderTransformations) {
-          builder = transformation.apply(builder);
-        }
-        builder.addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(
-            androidJarVersion == null ? builder.getMinApiLevel() : androidJarVersion)));
-        R8Command command = builder.addProgramFiles(inputFile).setOutputPath(out).build();
-        ToolHelper.runR8(command, this::combinedOptionConsumer);
-      } catch (ExecutionException e) {
-        throw e.getCause();
+      R8Command.Builder builder = R8Command.builder();
+      for (UnaryOperator<R8Command.Builder> transformation : builderTransformations) {
+        builder = transformation.apply(builder);
       }
+      builder.addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(
+          androidJarVersion == null ? builder.getMinApiLevel() : androidJarVersion)));
+      R8Command command = builder.addProgramFiles(inputFile).setOutputPath(out).build();
+      ToolHelper.runR8(command, this::combinedOptionConsumer);
     }
 
     @Override

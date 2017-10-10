@@ -9,10 +9,8 @@ import com.android.tools.r8.D8Command;
 import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.DexAnnotationElement;
 import com.android.tools.r8.graph.DexValue.DexValueString;
-import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DexInspector;
@@ -60,7 +58,7 @@ public class JSR45Tests {
   }
 
   void compileWithR8(Path inputPath, Path outputPath, Path keepRulesPath)
-      throws IOException, CompilationException, ProguardRuleParserException {
+      throws IOException, CompilationException {
     AndroidApp androidApp =
         R8.run(
             R8Command.builder()
@@ -105,7 +103,7 @@ public class JSR45Tests {
    */
   @Test
   public void testSourceDebugExtensionWithShriking1()
-      throws IOException, CompilationException, ExecutionException, ProguardRuleParserException {
+      throws IOException, CompilationException, ExecutionException {
     Path outputPath = tmpOutputDir.newFolder().toPath();
     compileWithR8(INPUT_PATH, outputPath, DONT_SHRINK_DONT_OBFUSCATE_CONFIG);
     checkAnnotationContent(INPUT_PATH, outputPath);
@@ -116,7 +114,7 @@ public class JSR45Tests {
    */
   @Test
   public void testSourceDebugExtensionWithShrinking2()
-      throws IOException, CompilationException, ExecutionException, ProguardRuleParserException {
+      throws IOException, CompilationException, ExecutionException {
     Path outputPath = tmpOutputDir.newFolder().toPath();
     compileWithR8(INPUT_PATH, outputPath, DONT_SHRINK_CONFIG);
     checkAnnotationContent(INPUT_PATH, outputPath);
@@ -127,7 +125,7 @@ public class JSR45Tests {
    */
   @Test
   public void testSourceDebugExtensionWithShrinking3()
-      throws IOException, CompilationException, ExecutionException, ProguardRuleParserException {
+      throws IOException, CompilationException, ExecutionException {
     Path outputPath = tmpOutputDir.newFolder().toPath();
 
     compileWithR8(INPUT_PATH, outputPath, SHRINK_KEEP_CONFIG);
@@ -141,7 +139,7 @@ public class JSR45Tests {
    */
   @Test
   public void testSourceDebugExtensionWithShrinking4()
-      throws IOException, CompilationException, ExecutionException, ProguardRuleParserException {
+      throws IOException, CompilationException, ExecutionException {
     Path outputPath = tmpOutputDir.newFolder().toPath();
 
     compileWithR8(INPUT_PATH, outputPath, SHRINK_NO_KEEP_CONFIG);
