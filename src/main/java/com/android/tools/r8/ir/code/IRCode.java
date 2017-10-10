@@ -40,6 +40,42 @@ public class IRCode {
     this.valueNumberGenerator = valueNumberGenerator;
   }
 
+  public void splitCriticalEdges() {
+    List<BasicBlock> newBlocks = new ArrayList<>();
+    int nextBlockNumber = getHighestBlockNumber() + 1;
+    for (BasicBlock block : blocks) {
+      // We are using a spilling register allocator that might need to insert moves at
+      // all critical edges, so we always split them all.
+      List<BasicBlock> predecessors = block.getPredecessors();
+      if (predecessors.size() <= 1) {
+        continue;
+      }
+      // If any of the edges to the block are critical, we need to insert new blocks on each
+      // containing the move-exception instruction which must remain the first instruction.
+      if (block.entry() instanceof MoveException) {
+        nextBlockNumber = block.splitCriticalExceptionEdges(
+            nextBlockNumber, valueNumberGenerator, newBlocks::add);
+        continue;
+      }
+      for (int predIndex = 0; predIndex < predecessors.size(); predIndex++) {
+        BasicBlock pred = predecessors.get(predIndex);
+        if (!pred.hasOneNormalExit()) {
+          // Critical edge: split it and inject a new block into which the
+          // phi moves can be inserted. The new block is created with the
+          // correct predecessor and successor structure. It is inserted
+          // at the end of the list of blocks disregarding branching
+          // structure.
+          BasicBlock newBlock = BasicBlock.createGotoBlock(block, nextBlockNumber++);
+          newBlocks.add(newBlock);
+          pred.replaceSuccessor(block, newBlock);
+          newBlock.getPredecessors().add(pred);
+          predecessors.set(predIndex, newBlock);
+        }
+      }
+    }
+    blocks.addAll(newBlocks);
+  }
+
   /**
    * Trace blocks and attempt to put fallthrough blocks immediately after the block that
    * falls through. When we fail to do that we create a new fallthrough block with an explicit
@@ -158,7 +194,10 @@ public class IRCode {
   }
 
   public boolean isConsistentSSA() {
-    assert isConsistentGraph() && consistentDefUseChains() && validThrowingInstructions();
+    assert isConsistentGraph();
+    assert consistentDefUseChains();
+    assert validThrowingInstructions();
+    assert noCriticalEdges();
     return true;
   }
 
@@ -167,6 +206,26 @@ public class IRCode {
     assert consistentPredecessorSuccessors();
     assert consistentCatchHandlers();
     assert consistentBlockInstructions();
+    return true;
+  }
+
+  private boolean noCriticalEdges() {
+    for (BasicBlock block : blocks) {
+      List<BasicBlock> predecessors = block.getPredecessors();
+      if (predecessors.size() <= 1) {
+        continue;
+      }
+      if (block.entry() instanceof MoveException) {
+        assert false;
+        return false;
+      }
+      for (int predIndex = 0; predIndex < predecessors.size(); predIndex++) {
+        if (!predecessors.get(predIndex).hasOneNormalExit()) {
+          assert false;
+          return false;
+        }
+      }
+    }
     return true;
   }
 
