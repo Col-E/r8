@@ -976,9 +976,6 @@ public abstract class R8RunArtTestsTest {
   );
 
   private static List<String> failuresToTriage = ImmutableList.of(
-      // const-method-handle and const-method-type
-      "979-const-method-handle",
-
       // Dex file input into a jar file, not yet supported by the test framework.
       "663-odd-dex-size",
       "663-odd-dex-size2",
@@ -1667,6 +1664,7 @@ public abstract class R8RunArtTestsTest {
           specification.directory.listFiles((File file) ->
               file.getName().endsWith(".dex") && !file.getName().startsWith("jasmin"));
     }
+
     List<String> fileNames = new ArrayList<>();
     for (File file : inputFiles) {
       fileNames.add(file.getCanonicalPath());

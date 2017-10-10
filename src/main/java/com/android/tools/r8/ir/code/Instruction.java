@@ -458,6 +458,14 @@ public abstract class Instruction {
     return null;
   }
 
+  public boolean isConstMethodType() {
+    return false;
+  }
+
+  public ConstMethodType asConstMethodType() {
+    return null;
+  }
+
   public boolean isConstString() {
     return false;
   }

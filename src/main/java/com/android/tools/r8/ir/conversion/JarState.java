@@ -122,7 +122,7 @@ public class JarState {
 
       // Catch all matching.
       if (other == REFERENCE_TYPE) {
-        return sort == Type.OBJECT || sort == Type.ARRAY;
+        return sort == Type.OBJECT || sort == Type.ARRAY || sort == Type.METHOD;
       }
       if (other == OBJECT_TYPE) {
         return sort == Type.OBJECT;

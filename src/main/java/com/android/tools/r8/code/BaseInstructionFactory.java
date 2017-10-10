@@ -456,6 +456,8 @@ abstract class BaseInstructionFactory {
         return new InvokeCustomRange(high, stream, mapping);
       case ConstMethodHandle.OPCODE:
         return new ConstMethodHandle(high, stream, mapping);
+      case ConstMethodType.OPCODE:
+        return new ConstMethodType(high, stream, mapping);
       default:
         throw new IllegalArgumentException("Illegal Opcode: 0x" + Integer.toString(opcode, 16));
     }

@@ -143,6 +143,7 @@ public class JarSourceCode implements SourceCode {
   static final Type INT_ARRAY_TYPE = Type.getObjectType(INT_ARRAY_DESC);
   static final Type THROWABLE_TYPE = Type.getObjectType("java/lang/Throwable");
   static final Type METHOD_HANDLE_TYPE = Type.getObjectType("java/lang/invoke/MethodHandle");
+  static final Type METHOD_TYPE_TYPE = Type.getObjectType("java/lang/invoke/MethodType");
 
   private static final int[] NO_TARGETS = {};
 
@@ -2730,8 +2731,13 @@ public class JarSourceCode implements SourceCode {
   private void build(LdcInsnNode insn, IRBuilder builder) throws ApiLevelException {
     if (insn.cst instanceof Type) {
       Type type = (Type) insn.cst;
-      int dest = state.push(type);
-      builder.addConstClass(dest, application.getTypeFromDescriptor(type.getDescriptor()));
+      if (type.getSort() == Type.METHOD) {
+        int dest = state.push(METHOD_TYPE_TYPE);
+        builder.addConstMethodType(dest, application.getProto(type.getDescriptor()));
+      } else {
+        int dest = state.push(type);
+        builder.addConstClass(dest, application.getTypeFromDescriptor(type.getDescriptor()));
+      }
     } else if (insn.cst instanceof String) {
       int dest = state.push(STRING_TYPE);
       builder.addConstString(dest, application.getString((String) insn.cst));

@@ -33,6 +33,7 @@ import com.android.tools.r8.ir.code.Cmp;
 import com.android.tools.r8.ir.code.Cmp.Bias;
 import com.android.tools.r8.ir.code.ConstClass;
 import com.android.tools.r8.ir.code.ConstMethodHandle;
+import com.android.tools.r8.ir.code.ConstMethodType;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.ConstType;
@@ -810,6 +811,19 @@ public class IRBuilder {
     }
     Value out = writeRegister(dest, MoveType.OBJECT, ThrowingInfo.CAN_THROW);
     ConstMethodHandle instruction = new ConstMethodHandle(out, methodHandle);
+    add(instruction);
+  }
+
+  public void addConstMethodType(int dest, DexProto methodType)
+      throws ApiLevelException {
+    if (!options.canUseConstantMethodType()) {
+      throw new ApiLevelException(
+          AndroidApiLevel.P,
+          "Const-method-type",
+          null /* sourceString */);
+    }
+    Value out = writeRegister(dest, MoveType.OBJECT, ThrowingInfo.CAN_THROW);
+    ConstMethodType instruction = new ConstMethodType(out, methodType);
     add(instruction);
   }
 

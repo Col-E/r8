@@ -43,6 +43,7 @@ public class TestGenerator {
           @Override
           public void visitEnd() {
             generateMethodTest1(cw);
+            generateMethodTest2(cw);
             generateMethodMain(cw);
             super.visitEnd();
           }
@@ -56,6 +57,8 @@ public class TestGenerator {
             Opcodes.ACC_PUBLIC + Opcodes.ACC_STATIC, "main", "([Ljava/lang/String;)V", null, null);
     mv.visitMethodInsn(
         Opcodes.INVOKESTATIC, Type.getInternalName(InvokeCustom.class), "test1", "()V", false);
+    mv.visitMethodInsn(
+        Opcodes.INVOKESTATIC, Type.getInternalName(InvokeCustom.class), "test2", "()V", false);
     mv.visitInsn(Opcodes.RETURN);
     mv.visitMaxs(-1, -1);
   }
@@ -77,6 +80,24 @@ public class TestGenerator {
         "staticField1", "Ljava/lang/String;", false));
     mv.visitInvokeDynamicInsn("targetMethodTest2",
         "(Ljava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodHandle;)V",
+        bootstrap);
+    mv.visitInsn(Opcodes.RETURN);
+    mv.visitMaxs(-1, -1);
+  }
+
+  /**
+   *  Generate test with an invokedynamic, a static bootstrap method without extra args and
+   *  args to the target method.
+   */
+  private void generateMethodTest2(ClassVisitor cv) {
+    MethodVisitor mv = cv.visitMethod(Opcodes.ACC_PUBLIC + Opcodes.ACC_STATIC, "test2", "()V",
+        null, null);
+    MethodType mt = MethodType.methodType(
+        CallSite.class, MethodHandles.Lookup.class, String.class, MethodType.class);
+    Handle bootstrap = new Handle( Opcodes.H_INVOKESTATIC, Type.getInternalName(InvokeCustom.class),
+        "bsmLookupStatic", mt.toMethodDescriptorString(), false);
+    mv.visitLdcInsn(Type.getMethodType("(ZBSCIFJDLjava/lang/String;)Ljava/lang/Object;"));
+    mv.visitInvokeDynamicInsn("targetMethodTest3", "(Ljava/lang/invoke/MethodType;)V",
         bootstrap);
     mv.visitInsn(Opcodes.RETURN);
     mv.visitMaxs(-1, -1);

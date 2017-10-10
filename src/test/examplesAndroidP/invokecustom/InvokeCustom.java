@@ -24,11 +24,15 @@ public class InvokeCustom {
     System.out.println(mhGetStatic.invoke());
   }
 
+  private static void targetMethodTest3(MethodType mt)
+      throws Throwable {
+    System.out.println("MethodType: " + mt.toString());
+  }
+
   public static CallSite bsmLookupStatic(MethodHandles.Lookup caller, String name, MethodType type)
       throws NoSuchMethodException, IllegalAccessException {
     final MethodHandles.Lookup lookup = MethodHandles.lookup();
     final MethodHandle targetMH = lookup.findStatic(lookup.lookupClass(), name, type);
     return new ConstantCallSite(targetMH.asType(type));
   }
-
 }
