@@ -41,8 +41,8 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.CatchHandlers;
-import com.android.tools.r8.ir.code.DebugPosition;
 import com.android.tools.r8.ir.code.MoveType;
+import com.android.tools.r8.ir.code.Position;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -67,6 +67,9 @@ public class DexSourceCode implements SourceCode {
   private CatchHandlers<Integer> currentCatchHandlers = null;
   private Instruction currentDexInstruction = null;
 
+  private Position currentPosition = null;
+  private Map<Position, Position> canonicalPositions = null;
+
   private final List<MoveType> argumentTypes;
 
   private List<DexDebugEntry> debugEntries = null;
@@ -79,6 +82,7 @@ public class DexSourceCode implements SourceCode {
     DexDebugInfo info = code.getDebugInfo();
     if (info != null) {
       debugEntries = info.computeEntries();
+      canonicalPositions = new HashMap<>(debugEntries.size());
     }
   }
 
@@ -116,6 +120,7 @@ public class DexSourceCode implements SourceCode {
 
   @Override
   public void buildPrelude(IRBuilder builder) {
+    currentPosition = Position.none();
     if (code.incomingRegisterSize == 0) {
       return;
     }
@@ -146,7 +151,7 @@ public class DexSourceCode implements SourceCode {
   @Override
   public void buildInstruction(IRBuilder builder, int instructionIndex) throws ApiLevelException {
     updateCurrentCatchHandlers(instructionIndex);
-    emitDebugPosition(instructionIndex, builder);
+    updateDebugPosition(instructionIndex, builder);
     currentDexInstruction = code.instructions[instructionIndex];
     currentDexInstruction.buildIR(builder);
   }
@@ -163,8 +168,13 @@ public class DexSourceCode implements SourceCode {
   }
 
   @Override
-  public DebugPosition getDebugPositionAtOffset(int offset) {
+  public Position getDebugPositionAtOffset(int offset) {
     throw new Unreachable();
+  }
+
+  @Override
+  public Position getCurrentPosition() {
+    return currentPosition;
   }
 
   @Override
@@ -192,20 +202,30 @@ public class DexSourceCode implements SourceCode {
     }
   }
 
-  private void emitDebugPosition(int instructionIndex, IRBuilder builder) {
+  private void updateDebugPosition(int instructionIndex, IRBuilder builder) {
     if (debugEntries == null || debugEntries.isEmpty()) {
       return;
     }
+    DexDebugEntry current = null;
     int offset = instructionOffset(instructionIndex);
     for (DexDebugEntry entry : debugEntries) {
-      if (entry.address == offset) {
-        builder.addDebugPosition(entry.line, entry.sourceFile);
-        return;
-      }
       if (entry.address > offset) {
-        return;
+        break;
+      }
+      current = entry;
+    }
+    if (current == null) {
+      currentPosition = Position.none();
+    } else {
+      currentPosition = getCanonicalPosition(current);
+      if (current.address == offset) {
+        builder.addDebugPosition(currentPosition);
       }
     }
+  }
+
+  private Position getCanonicalPosition(DexDebugEntry entry) {
+    return canonicalPositions.computeIfAbsent(new Position(entry.line, entry.sourceFile), p -> p);
   }
 
   @Override

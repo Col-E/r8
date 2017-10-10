@@ -120,7 +120,7 @@ public class ArrayPut extends Instruction {
   }
 
   @Override
-  public boolean identicalNonValueParts(Instruction other) {
+  public boolean identicalNonValueNonPositionParts(Instruction other) {
     return other.asArrayPut().type == type;
   }
 

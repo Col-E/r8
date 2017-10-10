@@ -196,21 +196,23 @@ public class DebugLocalTests extends JasminTestBase {
         "  default: CaseDefault",
 
         "Case1:",
+        ".line 3",
         "  ldc 42",
         "  istore 1",
         "LabelYStart:",
-        ".line 3",
+        ".line 4",
         "  invokestatic Test/ensureLine()V",
         "  goto AfterSwitch",
 
         "CaseDefault:",
+        ".line 5",
         "  ldc -42",
         "  istore 1",
-        ".line 4",
+        ".line 6",
         "  invokestatic Test/ensureLine()V",
 
         "AfterSwitch:",
-        ".line 5",
+        ".line 7",
         "  iload 1",
         "  ireturn",
         "LabelYEnd:",
@@ -246,9 +248,9 @@ public class DebugLocalTests extends JasminTestBase {
     info.checkStartLine(1);
     info.checkLineHasExactLocals(1, "param", "int");
     info.checkLineHasExactLocals(2, "param", "int", "x", "int");
-    info.checkLineHasExactLocals(3, "param", "int", "y", "int");
     info.checkLineHasExactLocals(4, "param", "int", "y", "int");
-    info.checkLineHasExactLocals(5, "param", "int", "y", "int");
+    info.checkLineHasExactLocals(6, "param", "int", "y", "int");
+    info.checkLineHasExactLocals(7, "param", "int", "y", "int");
   }
 
   @Test

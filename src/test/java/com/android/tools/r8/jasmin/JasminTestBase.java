@@ -52,7 +52,7 @@ public class JasminTestBase {
     File out = temp.newFolder("classes");
     for (ClassBuilder clazz : builder.getClasses()) {
       ClassFile file = new ClassFile();
-      file.readJasmin(new StringReader(clazz.toString()), clazz.name, true);
+      file.readJasmin(new StringReader(clazz.toString()), clazz.name, false);
       Path path = out.toPath().resolve(clazz.name + ".class");
       Files.createDirectories(path.getParent());
       file.write(new FileOutputStream(path.toFile()));
@@ -110,7 +110,7 @@ public class JasminTestBase {
   private ProcessResult runDx(JasminBuilder builder, File classes, Path dex) throws Exception {
     for (ClassBuilder clazz : builder.getClasses()) {
       ClassFile file = new ClassFile();
-      file.readJasmin(new StringReader(clazz.toString()), clazz.name, true);
+      file.readJasmin(new StringReader(clazz.toString()), clazz.name, false);
       file.write(new FileOutputStream(classes.toPath().resolve(clazz.name + ".class").toFile()));
     }
     List<String> args = new ArrayList<>();

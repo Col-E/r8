@@ -27,6 +27,7 @@ public abstract class Instruction {
   private BasicBlock block = null;
   private int number = -1;
   private Set<Value> debugValues = null;
+  private Position position = null;
 
   protected Instruction(Value outValue) {
     setOutValue(outValue);
@@ -44,6 +45,20 @@ public abstract class Instruction {
       }
     }
     setOutValue(outValue);
+  }
+
+  public final Position getPosition() {
+    assert position != null;
+    return position;
+  }
+
+  public void setPosition(Position position) {
+    assert this.position == null;
+    this.position = position;
+  }
+
+  public final void forceSetPosition(Position position) {
+    this.position = position;
   }
 
   public List<Value> inValues() {
@@ -244,11 +259,16 @@ public abstract class Instruction {
   }
 
   /**
-   * Compare equality of two class-equivalent instructions modulo their values.
+   * Compare equality of two class-equivalent instructions modulo their values and positions.
    *
    * <p>It is a precondition to this method that this.getClass() == other.getClass().
    */
-  public abstract boolean identicalNonValueParts(Instruction other);
+  public abstract boolean identicalNonValueNonPositionParts(Instruction other);
+
+  public boolean identicalNonValueParts(Instruction other) {
+    assert getClass() == other.getClass();
+    return position.equals(other.position) && identicalNonValueNonPositionParts(other);
+  }
 
   public abstract int compareNonValueParts(Instruction other);
 
@@ -264,7 +284,7 @@ public abstract class Instruction {
     } else {
       ConstNumber aNum = a.getConstInstruction().asConstNumber();
       ConstNumber bNum = b.getConstInstruction().asConstNumber();
-      if (!aNum.identicalNonValueParts(bNum)) {
+      if (!aNum.identicalNonValueNonPositionParts(bNum)) {
         return false;
       }
     }

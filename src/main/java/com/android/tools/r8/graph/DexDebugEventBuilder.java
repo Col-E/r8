@@ -5,11 +5,13 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.DexDebugEvent.StartLocal;
+import com.android.tools.r8.graph.DexEncodedMethod.DebugPositionRange;
 import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.DebugLocalsChange;
-import com.android.tools.r8.ir.code.DebugPosition;
+import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
-import com.android.tools.r8.ir.code.MoveException;
+import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.utils.InternalOptions;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap.Entry;
@@ -32,6 +34,7 @@ public class DexDebugEventBuilder {
 
   private final DexEncodedMethod method;
   private final DexItemFactory factory;
+  private final InternalOptions options;
 
   // In order list of non-this argument locals.
   private ArrayList<DebugLocalInfo> arguments;
@@ -48,8 +51,7 @@ public class DexDebugEventBuilder {
 
   // State of pc, line, file and locals in the emitted event stream.
   private int emittedPc = NO_PC_INFO;
-  private int emittedLine = NO_LINE_INFO;
-  private DexString emittedFile = null;
+  private Position emittedPosition = Position.none();
   private Int2ReferenceMap<DebugLocalInfo> emittedLocals;
 
   // Emitted events.
@@ -58,37 +60,65 @@ public class DexDebugEventBuilder {
   // Initial known line for the method.
   private int startLine = NO_LINE_INFO;
 
-  public DexDebugEventBuilder(DexEncodedMethod method, DexItemFactory factory) {
-    this.method = method;
-    this.factory = factory;
+  // True if running in debug-mode with input code that contains line information, otherwise false.
+  private boolean hasDebugPositions;
+
+  private DexEncodedMethod.DebugPositionRangeList.Builder debugPositionListBuilder =
+      new DexEncodedMethod.DebugPositionRangeList.Builder();
+
+  public DexDebugEventBuilder(IRCode code, InternalOptions options) {
+    this.method = code.method;
+    this.factory = options.itemFactory;
+    this.options = options;
+    hasDebugPositions = code.hasDebugPositions;
   }
 
   /** Add events at pc for instruction. */
-  public void add(int pc, Instruction instruction) {
+  public void add(int pc, int postPc, Instruction instruction) {
+    boolean isBlockEntry = instruction.getBlock().entry() == instruction;
+    boolean isBlockExit = instruction.getBlock().exit() == instruction;
+
     // Initialize locals state on block entry.
-    if (instruction.getBlock().entry() == instruction) {
+    if (isBlockEntry) {
       updateBlockEntry(instruction);
     }
     assert pendingLocals != null;
 
-    if (instruction.isDebugPosition()) {
-      emitDebugPosition(pc, instruction.asDebugPosition());
-    } else if (instruction.isMoveException()) {
-      MoveException move = instruction.asMoveException();
-      if (move.getPosition() != null) {
-        emitDebugPosition(pc, move.getPosition());
-      }
-    } else if (instruction.isArgument()) {
+    Position position = instruction.getPosition();
+    boolean pcAdvancing = pc != postPc;
+
+    // In release mode we can only check that all throwing instructions have positions.
+    // See IRCode's isConsistentGraph and computeAllThrowingInstructionsHavePositions.
+
+    // In debug mode check that all non-nop instructions have positions.
+    assert startLine == NO_LINE_INFO || !hasDebugPositions || !pcAdvancing || position.isSome()
+        : "PC-advancing instruction " + instruction + " expected to have an associated position.";
+
+    // In any mode check that nop instructions have no position info.
+    assert pcAdvancing || position.isNone()
+        : "Nop instruction " + instruction + " must never have an associated position.";
+
+    if (instruction.isArgument()) {
       startArgument(instruction.asArgument());
     } else if (instruction.isDebugLocalsChange()) {
       updateLocals(instruction.asDebugLocalsChange());
-    } else if (instruction.getBlock().exit() == instruction) {
+    }
+
+    if (!position.isNone() && !position.equals(emittedPosition)) {
+      if (options.debug || instruction.instructionInstanceCanThrow()) {
+        emitDebugPosition(pc, position);
+      }
+    }
+
+    if (!isBlockExit && emittedPc != pc && pcAdvancing) {
+      // For non-exit / pc-advancing instructions emit any pending changes.
+      emitLocalChanges(pc);
+    }
+
+    if (isBlockExit) {
       // If this is the end of the block clear out the pending state.
       pendingLocals = null;
       pendingLocalChanges = false;
-    } else if (pc != emittedPc && !instruction.isDebugLocalRead()) {
-      // For non-exit / pc-advancing instructions emit any pending changes once possible.
-      emitLocalChanges(pc);
     }
   }
 
@@ -108,6 +138,10 @@ public class DexDebugEventBuilder {
       }
     }
     return new DexDebugInfo(startLine, params, events.toArray(new DexDebugEvent[events.size()]));
+  }
+
+  public List<DebugPositionRange> buildPositionRanges() {
+    return debugPositionListBuilder.build();
   }
 
   private void updateBlockEntry(Instruction instruction) {
@@ -156,14 +190,7 @@ public class DexDebugEventBuilder {
 
   private void updateLocals(DebugLocalsChange change) {
     pendingLocalChanges = true;
-    for (Entry<DebugLocalInfo> end : change.getEnding().int2ReferenceEntrySet()) {
-      assert pendingLocals.get(end.getIntKey()) == end.getValue();
-      pendingLocals.remove(end.getIntKey());
-    }
-    for (Entry<DebugLocalInfo> start : change.getStarting().int2ReferenceEntrySet()) {
-      assert !pendingLocals.containsKey(start.getIntKey());
-      pendingLocals.put(start.getIntKey(), start.getValue());
-    }
+    change.apply(pendingLocals);
   }
 
   private boolean localsChanged() {
@@ -174,32 +201,22 @@ public class DexDebugEventBuilder {
     return pendingLocalChanges;
   }
 
-  private void emitDebugPosition(int pc, DebugPosition position) {
-    emitDebugPosition(pc, position.line, position.file);
-  }
-
-  private void emitDebugPosition(int pc, int line, DexString file) {
-    if (emittedPc == pc) {
-      // The pc is unchanged then this must be the same position as the previous and we do nothing.
-      // If this assert fails, we have likely forgotten to insert a "nop" instruction between two
-      // successive yet distinct debug positions.
-      assert emittedLine == line && emittedFile == file;
-      return;
-    }
-    boolean changedLocals = localsChanged();
-    if (!changedLocals && emittedLine == line && emittedFile == file) {
-      return;
-    }
+  private void emitDebugPosition(int pc, Position position) {
+    assert !position.equals(emittedPosition);
     if (startLine == NO_LINE_INFO) {
-      assert emittedLine == NO_LINE_INFO;
-      startLine = line;
-      emittedLine = line;
+      if (position.synthetic) {
+        // Ignore synthetic positions prior to any actual position.
+        return;
+      }
+      assert emittedPosition.isNone();
+      startLine = position.line;
+      emittedPosition = position;
     }
-    emitAdvancementEvents(emittedPc, emittedLine, emittedFile, pc, line, file, events, factory);
+    debugPositionListBuilder.add(position.line, position.line);
+    emitAdvancementEvents(emittedPc, emittedPosition, pc, position, events, factory);
     emittedPc = pc;
-    emittedLine = line;
-    emittedFile = file;
-    if (changedLocals) {
+    emittedPosition = position;
+    if (localsChanged()) {
       emitLocalChangeEvents(emittedLocals, pendingLocals, lastKnownLocals, events, factory);
       assert localsEqual(emittedLocals, pendingLocals);
     }
@@ -209,8 +226,7 @@ public class DexDebugEventBuilder {
   private void emitLocalChanges(int pc) {
     // If pc advanced since the locals changed and locals indeed have changed, emit the changes.
     if (localsChanged()) {
-      emitAdvancementEvents(
-          emittedPc, emittedLine, emittedFile, pc, emittedLine, emittedFile, events, factory);
+      emitAdvancementEvents(emittedPc, emittedPosition, pc, emittedPosition, events, factory);
       emittedPc = pc;
       emitLocalChangeEvents(emittedLocals, pendingLocals, lastKnownLocals, events, factory);
       pendingLocalChanges = false;
@@ -220,19 +236,19 @@ public class DexDebugEventBuilder {
 
   private static void emitAdvancementEvents(
       int previousPc,
-      int previousLine,
-      DexString previousFile,
+      Position previousPosition,
       int nextPc,
-      int nextLine,
-      DexString nextFile,
+      Position nextPosition,
       List<DexDebugEvent> events,
       DexItemFactory factory) {
     assert previousPc != nextPc;
     int pcDelta = previousPc == NO_PC_INFO ? nextPc : nextPc - previousPc;
-    int lineDelta = nextLine == NO_LINE_INFO ? 0 : nextLine - previousLine;
+    assert !previousPosition.isNone() || nextPosition.isNone();
+    assert nextPosition.isNone() || nextPosition.line >= 0;
+    int lineDelta = nextPosition.isNone() ? 0 : nextPosition.line - previousPosition.line;
     assert pcDelta >= 0;
-    if (nextFile != previousFile) {
-      events.add(factory.createSetFile(nextFile));
+    if (nextPosition.file != previousPosition.file) {
+      events.add(factory.createSetFile(nextPosition.file));
     }
     if (lineDelta < Constants.DBG_LINE_BASE
         || lineDelta - Constants.DBG_LINE_BASE >= Constants.DBG_LINE_RANGE) {

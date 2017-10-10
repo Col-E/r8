@@ -19,6 +19,7 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.MoveType;
 import com.android.tools.r8.ir.code.NumericType;
+import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.smali.SmaliTestBase;
@@ -373,6 +374,8 @@ public class SplitBlockTest extends SmaliTestBase {
       iterator.previous();
       iterator.add(constInstruction);
       iterator.add(addInstruction);
+      addInstruction.setPosition(Position.none());
+      constInstruction.setPosition(Position.none());
     }
     // Run code and check result (code in the test object is updated).
     String result = test.run();

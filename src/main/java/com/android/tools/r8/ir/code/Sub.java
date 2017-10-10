@@ -80,7 +80,7 @@ public class Sub extends ArithmeticBinop {
   }
 
   @Override
-  public boolean identicalNonValueParts(Instruction other) {
+  public boolean identicalNonValueNonPositionParts(Instruction other) {
     return other.asSub().type == type;
   }
 

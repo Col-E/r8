@@ -31,13 +31,22 @@ public class IRCode {
   private boolean numbered = false;
   private int nextInstructionNumber = 0;
 
+  // Initial value indicating if the code does have actual positions on all throwing instructions.
+  // If this is the case, which holds for javac code, then we want to ensure that it remains so.
+  private boolean allThrowingInstructionsHavePositions;
+
+  public final boolean hasDebugPositions;
+
   public IRCode(
       DexEncodedMethod method,
       LinkedList<BasicBlock> blocks,
-      ValueNumberGenerator valueNumberGenerator) {
+      ValueNumberGenerator valueNumberGenerator,
+      boolean hasDebugPositions) {
     this.method = method;
     this.blocks = blocks;
     this.valueNumberGenerator = valueNumberGenerator;
+    this.hasDebugPositions = hasDebugPositions;
+    allThrowingInstructionsHavePositions = computeAllThrowingInstructionsHavePositions();
   }
 
   /**
@@ -167,6 +176,7 @@ public class IRCode {
     assert consistentPredecessorSuccessors();
     assert consistentCatchHandlers();
     assert consistentBlockInstructions();
+    assert !allThrowingInstructionsHavePositions || computeAllThrowingInstructionsHavePositions();
     return true;
   }
 
@@ -308,6 +318,7 @@ public class IRCode {
   private boolean consistentBlockInstructions() {
     for (BasicBlock block : blocks) {
       for (Instruction instruction : block.getInstructions()) {
+        assert instruction.getPosition() != null;
         assert instruction.getBlock() == block;
       }
     }
@@ -430,5 +441,24 @@ public class IRCode {
   public Instruction createConstNull(Instruction from) {
     Value newValue = createValue(from.outType());
     return new ConstNumber(ConstType.fromMoveType(from.outType()), newValue, 0);
+  }
+
+  public boolean doAllThrowingInstructionsHavePositions() {
+    return allThrowingInstructionsHavePositions;
+  }
+
+  public void setAllThrowingInstructionsHavePositions(boolean value) {
+    this.allThrowingInstructionsHavePositions = value;
+  }
+
+  private boolean computeAllThrowingInstructionsHavePositions() {
+    InstructionIterator it = instructionIterator();
+    while (it.hasNext()) {
+      Instruction instruction = it.next();
+      if (instruction.instructionTypeCanThrow() && instruction.getPosition().isNone()) {
+        return false;
+      }
+    }
+    return true;
   }
 }

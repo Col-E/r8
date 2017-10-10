@@ -101,6 +101,7 @@ public class PeepholeOptimizer {
             commonSuffixSize =
                 Math.min(commonSuffixSize, sharedSuffixSize(firstPred, pred, allocator));
           }
+          // Don't share a suffix that is just a single goto or return instruction.
           if (commonSuffixSize <= 1) {
             continue;
           }
@@ -198,9 +199,7 @@ public class PeepholeOptimizer {
       Instruction i0 = it0.previous();
       Instruction i1 = it1.previous();
       if (!i0.identicalAfterRegisterAllocation(i1, allocator)) {
-        // If the shared suffix follows a debug position at least one instruction must remain
-        // unshared to ensure the debug position is at a different pc than the shared suffix.
-        return i0.isDebugPosition() || i1.isDebugPosition() ? suffixSize - 1 : suffixSize;
+        return suffixSize;
       }
       suffixSize++;
     }
@@ -287,8 +286,9 @@ public class PeepholeOptimizer {
             }
             int outRegister = allocator.getRegisterForValue(outValue, instructionNumber);
             ConstNumber numberInRegister = registerToNumber.get(outRegister);
-            if (numberInRegister != null && numberInRegister.identicalNonValueParts(current)) {
+            if (numberInRegister != null && numberInRegister.identicalNonValueNonPositionParts(current)) {
               // This instruction is not needed, the same constant is already in this register.
+              // We don't consider the positions of the two (non-throwing) instructions.
               iterator.remove();
             } else {
               // Insert the current constant in the mapping. Make sure to clobber the second

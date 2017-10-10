@@ -68,7 +68,7 @@ public class Ushr extends LogicalBinop {
   }
 
   @Override
-  public boolean identicalNonValueParts(Instruction other) {
+  public boolean identicalNonValueNonPositionParts(Instruction other) {
     return other.asUshr().type == type;
   }
 

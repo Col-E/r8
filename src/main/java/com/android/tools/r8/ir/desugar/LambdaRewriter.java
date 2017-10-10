@@ -315,6 +315,7 @@ public class LambdaRewriter {
     InvokeDirect constructorCall = new InvokeDirect(
         lambdaClass.constructor, null /* no return value */, arguments);
     instructions.add(constructorCall);
+    constructorCall.setPosition(newInstance.getPosition());
 
     // If we don't have catch handlers we are done.
     if (!constructorCall.getBlock().hasCatchHandlers()) {

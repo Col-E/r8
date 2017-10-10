@@ -50,7 +50,7 @@ public class Neg extends Unop {
   }
 
   @Override
-  public boolean identicalNonValueParts(Instruction other) {
+  public boolean identicalNonValueNonPositionParts(Instruction other) {
     return other.asNeg().type == type;
   }
 

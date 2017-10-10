@@ -59,6 +59,10 @@ public interface InstructionListIterator extends ListIterator<Instruction>,
     return null;
   }
 
+  default void setInsertionPosition(Position position) {
+    // Intentionally empty.
+  }
+
   /**
    * Safe removal function that will insert a DebugLocalRead to take over the debug values if any
    * are associated with the current instruction.

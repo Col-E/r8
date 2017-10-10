@@ -5,7 +5,6 @@ package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
-import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
@@ -13,13 +12,8 @@ import com.android.tools.r8.utils.InternalOptions;
 
 public class DebugPosition extends Instruction {
 
-  public final int line;
-  public final DexString file;
-
-  public DebugPosition(int line, DexString file) {
+  public DebugPosition() {
     super(null);
-    this.line = line;
-    this.file = file;
   }
 
   @Override
@@ -38,24 +32,15 @@ public class DebugPosition extends Instruction {
   }
 
   @Override
-  public boolean identicalNonValueParts(Instruction other) {
+  public boolean identicalNonValueNonPositionParts(Instruction other) {
     assert other.isDebugPosition();
-    return false;
+    return true;
   }
 
   @Override
   public int compareNonValueParts(Instruction other) {
     assert other.isDebugPosition();
     return 0;
-  }
-
-  @Override
-  public boolean equals(Object other) {
-    if (other instanceof DebugPosition) {
-      DebugPosition o = (DebugPosition) other;
-      return line == o.line && file == o.file;
-    }
-    return false;
   }
 
   @Override
@@ -69,26 +54,12 @@ public class DebugPosition extends Instruction {
   }
 
   @Override
-  public boolean canBeDeadCode(IRCode code, InternalOptions options) {
-    return false;
-  }
-
-  @Override
-  public String toString() {
-    StringBuilder builder = new StringBuilder(super.toString());
-    printLineInfo(builder);
-    return builder.toString();
-  }
-
-  public void printLineInfo(StringBuilder builder) {
-    if (file != null) {
-      builder.append(file).append(":");
-    }
-    builder.append(line);
-  }
-
-  @Override
   public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType holder) {
     return Constraint.ALWAYS;
+  }
+
+  @Override
+  public boolean canBeDeadCode(IRCode code, InternalOptions options) {
+    return false;
   }
 }

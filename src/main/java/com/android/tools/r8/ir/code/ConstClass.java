@@ -50,7 +50,7 @@ public class ConstClass extends ConstInstruction {
     return true;
   }
 
-  public boolean identicalNonValueParts(Instruction other) {
+  public boolean identicalNonValueNonPositionParts(Instruction other) {
     return other.asConstClass().clazz == clazz;
   }
 

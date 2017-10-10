@@ -43,7 +43,7 @@ public class Move extends Instruction {
   }
 
   @Override
-  public boolean identicalNonValueParts(Instruction other) {
+  public boolean identicalNonValueNonPositionParts(Instruction other) {
     assert other.isMove();
     return true;
   }

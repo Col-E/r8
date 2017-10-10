@@ -66,6 +66,7 @@ import com.android.tools.r8.ir.code.NumberConversion;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Or;
 import com.android.tools.r8.ir.code.Phi;
+import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Rem;
 import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.Shl;
@@ -375,6 +376,9 @@ public class IRBuilder {
     // but before handle-exit (which does not maintain predecessor counts).
     assert verifyFilledPredecessors();
 
+    // Insert debug positions so all position changes are marked by an explicit instruction.
+    boolean hasDebugPositions = insertDebugPositions();
+
     // Clear all reaching definitions to free up memory (and avoid invalid use).
     for (BasicBlock block : blocks) {
       block.clearCurrentDefinitions();
@@ -389,7 +393,7 @@ public class IRBuilder {
     splitCriticalEdges();
 
     // Package up the IR code.
-    IRCode ir = new IRCode(method, blocks, valueNumberGenerator);
+    IRCode ir = new IRCode(method, blocks, valueNumberGenerator, hasDebugPositions);
 
     if (options.testing.invertConditionals) {
       invertConditionalsForTesting(ir);
@@ -406,6 +410,41 @@ public class IRBuilder {
 
     assert ir.isConsistentSSA();
     return ir;
+  }
+
+  private boolean insertDebugPositions() {
+    boolean hasDebugPositions = false;
+    if (!options.debug) {
+      return hasDebugPositions;
+    }
+    for (BasicBlock block : blocks) {
+      InstructionListIterator it = block.listIterator();
+      Position current = null;
+      while (it.hasNext()) {
+        Instruction instruction = it.next();
+        Position position = instruction.getPosition();
+        if (instruction.isMoveException()) {
+          assert current == null;
+          current = position;
+          hasDebugPositions = hasDebugPositions || position.isSome();
+        } else if (instruction.isDebugPosition()) {
+          hasDebugPositions = true;
+          if (position.equals(current)) {
+            it.removeOrReplaceByDebugLocalRead();
+          } else {
+            current = position;
+          }
+        } else if (position.isSome() && !position.equals(current)) {
+          DebugPosition positionChange = new DebugPosition();
+          positionChange.setPosition(position);
+          it.previous();
+          it.add(positionChange);
+          it.next();
+          current = position;
+        }
+      }
+    }
+    return hasDebugPositions;
   }
 
   private void clearCanonicalizationMaps() {
@@ -484,10 +523,12 @@ public class IRBuilder {
     assert moveExceptionDest >= 0;
     int targetIndex = source.instructionIndex(moveExceptionItem.targetOffset);
     Value out = writeRegister(moveExceptionDest, MoveType.OBJECT, ThrowingInfo.NO_THROW, null);
+    Position position = source.getDebugPositionAtOffset(moveExceptionItem.targetOffset);
     MoveException moveException = new MoveException(out);
-    moveException.setPosition(source.getDebugPositionAtOffset(moveExceptionItem.targetOffset));
+    moveException.setPosition(position);
     currentBlock.add(moveException);
-    currentBlock.add(new Goto());
+    Goto exit = new Goto();
+    currentBlock.add(exit);
     BasicBlock targetBlock = getTarget(moveExceptionItem.targetOffset);
     currentBlock.link(targetBlock);
     addToWorklist(targetBlock, targetIndex);
@@ -542,11 +583,6 @@ public class IRBuilder {
         null);
     assert !value.hasLocalInfo();
     addInstruction(new DebugLocalUninitialized(type, value));
-  }
-
-  public void addDebugPosition(int line, DexString file) {
-    // Always add positions as they influence release builds (ie, stack traces).
-    addInstruction(new DebugPosition(line, file));
   }
 
   private void addDebugLocalWrite(MoveType type, int dest, Value in) {
@@ -642,6 +678,13 @@ public class IRBuilder {
       currentBlock.listIterator(write).removeOrReplaceByDebugLocalRead();
     } else {
       instruction.outValue().clearLocalInfo();
+    }
+  }
+
+  public void addDebugPosition(Position position) {
+    if (options.debug) {
+      assert source.getCurrentPosition().equals(position);
+      addInstruction(new DebugPosition());
     }
   }
 
@@ -766,6 +809,7 @@ public class IRBuilder {
           }
         }
         it.add(instruction);
+        instruction.setPosition(Position.none());
       } else {
         add(instruction);
       }
@@ -1193,12 +1237,13 @@ public class IRBuilder {
     assert !out.hasLocalInfo();
     MoveException instruction = new MoveException(out);
     assert !instruction.instructionTypeCanThrow();
-    if (!currentBlock.getInstructions().isEmpty()
-        && currentBlock.getInstructions().getLast().isDebugPosition()) {
-      DebugPosition position = currentBlock.getInstructions().getLast().asDebugPosition();
-      position.moveDebugValues(instruction);
-      instruction.setPosition(position);
-      currentBlock.removeInstruction(position);
+    if (currentBlock.getInstructions().size() == 1 && currentBlock.entry().isDebugPosition()) {
+      InstructionListIterator it = currentBlock.listIterator();
+      Instruction entry = it.next();
+      assert entry.getPosition().equals(source.getCurrentPosition());
+      attachLocalValues(instruction);
+      it.replaceCurrentInstruction(instruction);
+      return;
     }
     if (!currentBlock.getInstructions().isEmpty()) {
       throw new CompilationError("Invalid MoveException instruction encountered. "
@@ -1265,14 +1310,18 @@ public class IRBuilder {
 
   public void addReturn(MoveType type, int value) {
     Value in = readRegister(value, type);
-    source.buildPostlude(this);
-    addInstruction(new Return(in, type));
-    closeCurrentBlock();
+    addReturn(new Return(in, type));
   }
 
   public void addReturn() {
+    addReturn(new Return());
+  }
+
+  private void addReturn(Return ret) {
+    // Attach the live locals to the return instruction to avoid a local change on monitor exit.
+    attachLocalValues(ret);
     source.buildPostlude(this);
-    addInstruction(new Return());
+    addInstruction(ret);
     closeCurrentBlock();
   }
 
@@ -1675,6 +1724,11 @@ public class IRBuilder {
 
   // Private instruction helpers.
   private void addInstruction(Instruction ir) {
+    addInstruction(ir, source.getCurrentPosition());
+  }
+
+  private void addInstruction(Instruction ir, Position position) {
+    ir.setPosition(position);
     attachLocalValues(ir);
     currentBlock.add(ir);
     if (ir.instructionTypeCanThrow()) {

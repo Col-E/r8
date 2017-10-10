@@ -28,7 +28,6 @@ import com.android.tools.r8.ir.code.Add;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.code.CatchHandlers;
-import com.android.tools.r8.ir.code.DebugPosition;
 import com.android.tools.r8.ir.code.Div;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -40,6 +39,7 @@ import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.MoveType;
 import com.android.tools.r8.ir.code.Mul;
 import com.android.tools.r8.ir.code.NewInstance;
+import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Rem;
 import com.android.tools.r8.ir.code.Sub;
 import com.android.tools.r8.ir.code.Value;
@@ -154,7 +154,8 @@ public class Outliner {
       for (int i = 0; i < instructions0.size(); i++) {
         Instruction i0 = instructions0.get(i);
         Instruction i1 = instructions1.get(i);
-        if (i0.getClass() != i1.getClass() || !i0.identicalNonValueParts(i1)) {
+        // Note that we don't consider positions as this optimization already breaks stack traces.
+        if (i0.getClass() != i1.getClass() || !i0.identicalNonValueNonPositionParts(i1)) {
           return false;
         }
         if ((i0.outValue() != null) != (i1.outValue() != null)) {
@@ -701,6 +702,7 @@ public class Outliner {
         List<Value> in = new ArrayList<>();
         returnValue = null;
         argumentsMapIndex = 0;
+        Position position = Position.none();
         { // Scope for 'instructions'.
           List<Instruction> instructions = getInstructionArray();
           for (int i = start; i < end; i++) {
@@ -709,7 +711,9 @@ public class Outliner {
               // Leave any const instructions.
               continue;
             }
-
+            if (position.isNone()) {
+              position = current.getPosition();
+            }
             // Prepare to remove the instruction.
             List<Value> inValues = orderedInValues(current, returnValue);
             for (int j = 0; j < inValues.size(); j++) {
@@ -737,6 +741,12 @@ public class Outliner {
         }
         Invoke outlineInvoke = new InvokeStatic(m, returnValue, in);
         outlineInvoke.setBlock(block);
+        outlineInvoke.setPosition(position);
+        if (position.isNone() && code.doAllThrowingInstructionsHavePositions()) {
+          // We have introduced a static invoke, but non of the outlines instructions could throw
+          // and none had a position. The code no longer has the previous property.
+          code.setAllThrowingInstructionsHavePositions(false);
+        }
         InstructionListIterator endIterator = block.listIterator(end - 1);
         Instruction instructionBeforeEnd = endIterator.next();
         invalidateInstructionArray(); // Because we're about to modify the original linked list.
@@ -948,8 +958,13 @@ public class Outliner {
     }
 
     @Override
-    public DebugPosition getDebugPositionAtOffset(int offset) {
+    public Position getDebugPositionAtOffset(int offset) {
       throw new Unreachable();
+    }
+
+    @Override
+    public Position getCurrentPosition() {
+      return Position.none();
     }
 
     @Override

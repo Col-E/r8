@@ -50,7 +50,7 @@ public class Monitor extends Instruction {
   }
 
   @Override
-  public boolean identicalNonValueParts(Instruction other) {
+  public boolean identicalNonValueNonPositionParts(Instruction other) {
     return other.asMonitor().type == type;
   }
 

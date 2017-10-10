@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.debug;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -71,7 +70,6 @@ public class SynchronizedBlockTest extends DebugTestBase {
   }
 
   @Test
-  @Ignore("b/65567013")
   public void testThrowingBlock() throws Throwable {
     final String method = "throwingBlock";
     runDebugTest(CLASS,
@@ -79,22 +77,27 @@ public class SynchronizedBlockTest extends DebugTestBase {
         run(),
         checkLine(FILE, 25),
         checkLocal("obj"),
+        checkNoLocal("x"),
         stepOver(),
         checkLine(FILE, 26),
         checkLocal("obj"),
         checkLocal("x"),
+        checkNoLocal("y"),
         stepOver(),
         checkLine(FILE, 27),
         checkLocal("obj"),
         checkLocal("x"),
+        checkNoLocal("y"),
         stepOver(),
         checkLine(FILE, 28), // synchronized block end
         checkLocal("obj"),
         checkLocal("x"),
+        checkNoLocal("y"),
         stepOver(),
         checkLine(FILE, 31), // catch handler
         checkLocal("obj"),
         checkNoLocal("x"),
+        checkNoLocal("y"),
         stepOver(),
         run());
   }
@@ -153,7 +156,6 @@ public class SynchronizedBlockTest extends DebugTestBase {
   }
 
   @Test
-  @Ignore("b/65567013")
   public void testNestedThrowingBlock() throws Throwable {
     final String method = "nestedThrowingBlock";
     runDebugTest(CLASS,

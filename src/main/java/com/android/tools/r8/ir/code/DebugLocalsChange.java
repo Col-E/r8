@@ -12,6 +12,7 @@ import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceMap.Entry;
 
 public class DebugLocalsChange extends Instruction {
 
@@ -24,6 +25,12 @@ public class DebugLocalsChange extends Instruction {
     assert !ending.isEmpty() || !starting.isEmpty();
     this.ending = ending;
     this.starting = starting;
+    super.setPosition(Position.none());
+  }
+
+  @Override
+  public void setPosition(Position position) {
+    throw new Unreachable();
   }
 
   public Int2ReferenceMap<DebugLocalInfo> getEnding() {
@@ -50,7 +57,7 @@ public class DebugLocalsChange extends Instruction {
   }
 
   @Override
-  public boolean identicalNonValueParts(Instruction other) {
+  public boolean identicalNonValueNonPositionParts(Instruction other) {
     assert other.isDebugLocalsChange();
     DebugLocalsChange o = (DebugLocalsChange) other;
     return DebugLocalInfo.localsInfoMapsEqual(ending, o.ending)
@@ -91,5 +98,16 @@ public class DebugLocalsChange extends Instruction {
   @Override
   public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType holder) {
     return Constraint.ALWAYS;
+  }
+
+  public void apply(Int2ReferenceMap<DebugLocalInfo> locals) {
+    for (Entry<DebugLocalInfo> end : getEnding().int2ReferenceEntrySet()) {
+      assert locals.get(end.getIntKey()) == end.getValue();
+      locals.remove(end.getIntKey());
+    }
+    for (Entry<DebugLocalInfo> start : getStarting().int2ReferenceEntrySet()) {
+      assert !locals.containsKey(start.getIntKey());
+      locals.put(start.getIntKey(), start.getValue());
+    }
   }
 }

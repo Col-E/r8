@@ -114,7 +114,7 @@ public class NumberConversion extends Unop {
   }
 
   @Override
-  public boolean identicalNonValueParts(Instruction other) {
+  public boolean identicalNonValueNonPositionParts(Instruction other) {
     NumberConversion o = other.asNumberConversion();
     return o.from == from && o.to == to;
   }

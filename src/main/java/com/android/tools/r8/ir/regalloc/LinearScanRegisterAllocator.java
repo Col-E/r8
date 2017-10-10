@@ -291,14 +291,18 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
 
     for (BasicBlock block : blocks) {
       ListIterator<Instruction> instructionIterator = block.listIterator();
-      // Close ranges up-to and including the first instruction. Ends are exclusive so the range is
-      // closed at entry.
+      // Close ranges up-to but excluding the first instruction. Ends are exclusive but the values
+      // are live upon entering the first instruction.
       int entryIndex = block.entry().getNumber();
+      if (block.entry().isMoveException()) {
+        // Close locals at a move exception since they close as part of the exceptional transfer.
+        entryIndex++;
+      }
       {
         ListIterator<LocalRange> it = openRanges.listIterator(0);
         while (it.hasNext()) {
           LocalRange openRange = it.next();
-          if (openRange.end <= entryIndex) {
+          if (openRange.end < entryIndex) {
             it.remove();
             assert currentLocals.get(openRange.register) == openRange.local;
             currentLocals.remove(openRange.register);
@@ -308,8 +312,9 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       // Open ranges up-to but excluding the first instruction. Starts are inclusive but entry is
       // prior to the first instruction.
       while (nextStartingRange != null && nextStartingRange.start < entryIndex) {
-        // If the range is live at this index open it.
-        if (entryIndex < nextStartingRange.end) {
+        // If the range is live at this index open it. Again the end is inclusive here because the
+        // instruction is live at block entry if it is live at entry to the first instruction.
+        if (entryIndex <= nextStartingRange.end) {
           openRanges.add(nextStartingRange);
           assert !currentLocals.containsKey(nextStartingRange.register);
           currentLocals.put(nextStartingRange.register, nextStartingRange.local);
@@ -341,10 +346,10 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
         ListIterator<LocalRange> it = openRanges.listIterator(0);
         Int2ReferenceMap<DebugLocalInfo> ending = new Int2ReferenceOpenHashMap<>();
         Int2ReferenceMap<DebugLocalInfo> starting = new Int2ReferenceOpenHashMap<>();
-        int endPositionCorrection = instruction.isDebugPosition() ? 1 : 0;
         while (it.hasNext()) {
           LocalRange openRange = it.next();
-          if (openRange.end <= index - endPositionCorrection) {
+          // Any local change is inserted after the instruction so end is inclusive.
+          if (openRange.end <= index) {
             it.remove();
             assert currentLocals.get(openRange.register) == openRange.local;
             currentLocals.remove(openRange.register);
@@ -378,13 +383,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
         if (localsChanged && instruction.getBlock().exit() != instruction) {
           DebugLocalsChange change = createLocalsChange(ending, starting);
           if (change != null) {
-            if (instruction.isDebugPosition()) {
-              instructionIterator.previous();
-              instructionIterator.add(change);
-              instructionIterator.next();
-            } else {
-              instructionIterator.add(change);
-            }
+            instructionIterator.add(change);
           }
         }
         localsChanged = false;
@@ -2057,6 +2056,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
           newArgument = createValue(argument.outType());
           Move move = new Move(newArgument, argument);
           move.setBlock(invoke.getBlock());
+          move.setPosition(invoke.getPosition());
           replaceArgument(invoke, i, newArgument);
           insertAt.add(move);
         }
