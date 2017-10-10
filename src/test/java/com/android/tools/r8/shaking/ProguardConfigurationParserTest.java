@@ -345,7 +345,8 @@ public class ProguardConfigurationParserTest extends TestBase {
   @Test
   public void testAdaptClassStrings() throws Exception {
     DexItemFactory dexItemFactory = new DexItemFactory();
-    ProguardConfigurationParser parser = new ProguardConfigurationParser(dexItemFactory);
+    ProguardConfigurationParser parser =
+        new ProguardConfigurationParser(dexItemFactory, diagnosticsHandler);
     String config1 = "-adaptclassstrings !foobar,*bar";
     String config2 = "-adaptclassstrings !a.b.c.nope,a.b.**";
     parser.parse( new ProguardConfigurationSourceStrings(ImmutableList.of(config1, config2)));
@@ -375,7 +376,8 @@ public class ProguardConfigurationParserTest extends TestBase {
   @Test
   public void testAdaptClassStringsAllExplicitly() throws Exception {
     DexItemFactory dexItemFactory = new DexItemFactory();
-    ProguardConfigurationParser parser = new ProguardConfigurationParser(dexItemFactory);
+    ProguardConfigurationParser parser =
+        new ProguardConfigurationParser(dexItemFactory, diagnosticsHandler);
     String adaptAll = "-adaptclassstrings *";
     parser.parse(new ProguardConfigurationSourceStrings(ImmutableList.of(adaptAll)));
     ProguardConfiguration config = parser.getConfig();
@@ -392,7 +394,8 @@ public class ProguardConfigurationParserTest extends TestBase {
   @Test
   public void testAdaptClassStringsAllImplicitly() throws Exception {
     DexItemFactory dexItemFactory = new DexItemFactory();
-    ProguardConfigurationParser parser = new ProguardConfigurationParser(dexItemFactory);
+    ProguardConfigurationParser parser =
+        new ProguardConfigurationParser(dexItemFactory, diagnosticsHandler);
     String adaptAll = "-adaptclassstrings";
     parser.parse(new ProguardConfigurationSourceStrings(ImmutableList.of(adaptAll)));
     ProguardConfiguration config = parser.getConfig();
