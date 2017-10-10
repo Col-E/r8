@@ -110,7 +110,7 @@ public abstract class R8RunArtTestsTest {
           .put("957-methodhandle-transforms", AndroidApiLevel.O.getLevel())
           .put("958-methodhandle-stackframe", AndroidApiLevel.O.getLevel())
           .put("959-invoke-polymorphic-accessors", AndroidApiLevel.O.getLevel())
-          .put("979-const-method-handle", AndroidApiLevel.O.getLevel())
+          .put("979-const-method-handle", AndroidApiLevel.P.getLevel())
           .put("990-method-handle-and-mr", AndroidApiLevel.O.getLevel())
           // Test intentionally asserts presence of bridge default methods desugar removes.
           .put("044-proxy", AndroidApiLevel.N.getLevel())
@@ -680,6 +680,11 @@ public abstract class R8RunArtTestsTest {
           TestCondition.runtimes(
               DexVm.Version.V4_4_4, DexVm.Version.V5_1_1, DexVm.Version.V6_0_1,
               DexVm.Version.V7_0_0));
+  private static final TestCondition beforeAndroidP =
+      TestCondition.match(
+          TestCondition.runtimes(
+              DexVm.Version.V4_4_4, DexVm.Version.V5_1_1, DexVm.Version.V6_0_1,
+              DexVm.Version.V7_0_0));
 
   // TODO(ager): Could we test that these fail in the way that we expect?
   private static final Multimap<String, TestCondition> expectedToFailRunWithArt =
@@ -803,6 +808,7 @@ public abstract class R8RunArtTestsTest {
               TestCondition.match(TestCondition.tools(DexTool.JACK, DexTool.DX),
                   TestCondition
                       .runtimes(DexVm.Version.V4_4_4, DexVm.Version.V5_1_1, DexVm.Version.V6_0_1)))
+          .put("979-const-method-handle", beforeAndroidP)
           .build();
 
   // Tests where code generation fails.
@@ -846,6 +852,51 @@ public abstract class R8RunArtTestsTest {
           .put("960-default-smali", TestCondition.match(TestCondition.R8_COMPILER))
           .put("966-default-conflict", TestCondition.match(TestCondition.R8_COMPILER))
           .put("972-iface-super-multidex", TestCondition.match(TestCondition.R8_COMPILER))
+          .build();
+
+  // Tests that does not have dex input for some toolchains.
+  private static Multimap<String, TestCondition> noInputDex =
+      new ImmutableListMultimap.Builder<String, TestCondition>()
+          .put("914-hello-obsolescence", TestCondition.match(
+              TestCondition.tools(DexTool.NONE, DexTool.DX),
+              LEGACY_RUNTIME))
+          .put("915-obsolete-2", TestCondition.match(
+              TestCondition.tools(DexTool.NONE, DexTool.DX),
+              LEGACY_RUNTIME))
+          .put("916-obsolete-jit", TestCondition.match(
+              TestCondition.tools(DexTool.NONE, DexTool.DX),
+              LEGACY_RUNTIME))
+          .put("919-obsolete-fields", TestCondition.match(
+              TestCondition.tools(DexTool.NONE, DexTool.DX),
+              LEGACY_RUNTIME))
+          .put("926-multi-obsolescence", TestCondition.match(
+              TestCondition.tools(DexTool.NONE, DexTool.DX),
+              LEGACY_RUNTIME))
+          .put("941-recurive-obsolete-jit", TestCondition.match(
+              TestCondition.tools(DexTool.NONE, DexTool.DX),
+              LEGACY_RUNTIME))
+          .put("940-recursive-obsolete", TestCondition.match(
+              TestCondition.tools(DexTool.NONE, DexTool.DX),
+              LEGACY_RUNTIME))
+          .put("942-private-recursive", TestCondition.match(
+              TestCondition.tools(DexTool.NONE, DexTool.DX),
+              LEGACY_RUNTIME))
+          .put("943-private-recursive-jit", TestCondition.match(
+              TestCondition.tools(DexTool.NONE, DexTool.DX),
+              LEGACY_RUNTIME))
+          .put("945-obsolete-native", TestCondition.match(
+              TestCondition.tools(DexTool.NONE, DexTool.DX),
+              LEGACY_RUNTIME))
+          .put("948-change-annotations", TestCondition.match(
+              TestCondition.tools(DexTool.NONE, DexTool.DX),
+              LEGACY_RUNTIME))
+          .put("952-invoke-custom", TestCondition.match(
+              TestCondition.tools(DexTool.NONE, DexTool.DX),
+              LEGACY_RUNTIME))
+          .put("952-invoke-custom-kinds",
+              TestCondition.match(TestCondition.tools(DexTool.DX)))
+          .put("979-const-method-handle",
+              TestCondition.match(TestCondition.tools(DexTool.DX)))
           .build();
 
   // Tests that does not have valid input for us to be compatible with jack/dx running.
@@ -897,13 +948,6 @@ public abstract class R8RunArtTestsTest {
               TestCondition.match(
                   TestCondition.tools(DexTool.DX, DexTool.JACK, DexTool.NONE),
                   TestCondition.R8_COMPILER))
-          // Old runtimes used the legacy test directory which does not contain input for tools
-          // NONE and DX.
-          .put("952-invoke-custom", TestCondition.match(
-              TestCondition.tools(DexTool.NONE, DexTool.DX),
-              LEGACY_RUNTIME))
-          // No input dex files for DX
-          .put("952-invoke-custom-kinds", TestCondition.match(TestCondition.tools(DexTool.DX)))
           .build();
 
   public static List<String> requireInliningToBeDisabled = ImmutableList.of(
@@ -1127,6 +1171,10 @@ public abstract class R8RunArtTestsTest {
       if (dexTool == DexTool.NONE) {
         skipTest.addAll(noInputJar);
       }
+
+      // Collect the test that we should skip in this configuration because there is no dex input
+      skipTest.addAll(collectTestsMatchingConditions(
+          dexTool, compilerUnderTest, version, compilationMode, noInputDex));
 
       // Collect the test that we should skip in this configuration
       skipTest.addAll(collectTestsMatchingConditions(
