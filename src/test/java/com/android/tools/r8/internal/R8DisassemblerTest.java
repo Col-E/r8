@@ -5,17 +5,13 @@ package com.android.tools.r8.internal;
 
 import static com.android.tools.r8.utils.AndroidApp.DEFAULT_PROGUARD_MAP_FILE;
 
-import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.Disassemble;
-import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.FileUtils;
-import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
-import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -42,8 +38,7 @@ public class R8DisassemblerTest {
   public boolean smali;
 
   @Test
-  public void testDisassemble()
-      throws IOException, ExecutionException, ProguardRuleParserException, CompilationException {
+  public void testDisassemble() throws Exception {
     // This test only ensures that we do not break disassembling of dex code. It does not
     // check the generated code. To make it fast, we get rid of the output.
     PrintStream originalOut = System.out;

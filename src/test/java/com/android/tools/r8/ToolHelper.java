@@ -608,35 +608,33 @@ public class ToolHelper {
     return R8Command.builder(app);
   }
 
-  public static AndroidApp runR8(AndroidApp app)
-      throws ExecutionException, IOException, ProguardRuleParserException, CompilationException {
+  public static AndroidApp runR8(AndroidApp app) throws IOException, CompilationException {
     return runR8(R8Command.builder(app).build());
   }
 
   public static AndroidApp runR8(AndroidApp app, Path output)
-      throws ExecutionException, IOException, ProguardRuleParserException, CompilationException {
+      throws IOException, CompilationException {
     assert output != null;
     return runR8(R8Command.builder(app).setOutputPath(output).build());
   }
 
   public static AndroidApp runR8(AndroidApp app, Consumer<InternalOptions> optionsConsumer)
-      throws ProguardRuleParserException, ExecutionException, IOException, CompilationException {
+      throws IOException, CompilationException {
     return runR8(R8Command.builder(app).build(), optionsConsumer);
   }
 
-  public static AndroidApp runR8(R8Command command)
-      throws ProguardRuleParserException, ExecutionException, IOException, CompilationException {
+  public static AndroidApp runR8(R8Command command) throws IOException, CompilationException {
     return runR8(command, null);
   }
 
   public static AndroidApp runR8(R8Command command, Consumer<InternalOptions> optionsConsumer)
-      throws ProguardRuleParserException, ExecutionException, IOException, CompilationException {
+      throws IOException, CompilationException {
     return runR8WithFullResult(command, optionsConsumer).androidApp;
   }
 
   public static CompilationResult runR8WithFullResult(
       R8Command command, Consumer<InternalOptions> optionsConsumer)
-      throws ProguardRuleParserException, ExecutionException, IOException, CompilationException {
+      throws IOException, CompilationException {
     // TODO(zerny): Should we really be adding the android library in ToolHelper?
     AndroidApp app = command.getInputApp();
     if (app.getLibraryResourceProviders().isEmpty()) {
@@ -658,12 +656,12 @@ public class ToolHelper {
   }
 
   public static AndroidApp runR8(String fileName, String out)
-      throws IOException, ProguardRuleParserException, ExecutionException, CompilationException {
+      throws IOException, CompilationException {
     return runR8(Collections.singletonList(fileName), out);
   }
 
   public static AndroidApp runR8(Collection<String> fileNames, String out)
-      throws IOException, ProguardRuleParserException, ExecutionException, CompilationException {
+      throws IOException, CompilationException {
     return R8.run(
         R8Command.builder()
             .addProgramFiles(ListUtils.map(fileNames, Paths::get))

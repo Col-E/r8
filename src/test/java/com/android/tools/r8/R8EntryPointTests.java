@@ -5,7 +5,6 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.FileUtils;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
@@ -38,7 +37,7 @@ public class R8EntryPointTests extends TestBase {
   }
 
   @Test
-  public void testRun1Dir() throws IOException, CompilationException, ProguardRuleParserException {
+  public void testRun1Dir() throws Exception {
     Path out = temp.newFolder("outdex").toPath();
     R8.run(getCommand(out));
     Assert.assertTrue(Files.isRegularFile(out.resolve(FileUtils.DEFAULT_DEX_FILENAME)));
@@ -47,7 +46,7 @@ public class R8EntryPointTests extends TestBase {
   }
 
   @Test
-  public void testRun1Zip() throws IOException, CompilationException, ProguardRuleParserException {
+  public void testRun1Zip() throws Exception {
     Path out = temp.newFolder("outdex").toPath().resolve("dex.zip");
     R8.run(getCommand(out));
     Assert.assertTrue(Files.isRegularFile(out));
@@ -56,7 +55,7 @@ public class R8EntryPointTests extends TestBase {
   }
 
   @Test
-  public void testRun2Dir() throws IOException, CompilationException, ProguardRuleParserException {
+  public void testRun2Dir() throws Exception {
     Path out = temp.newFolder("outdex").toPath();
     ExecutorService executor = Executors.newWorkStealingPool(2);
     try {
@@ -70,7 +69,7 @@ public class R8EntryPointTests extends TestBase {
   }
 
   @Test
-  public void testRun2Zip() throws IOException, CompilationException, ProguardRuleParserException {
+  public void testRun2Zip() throws Exception {
     Path out = temp.newFolder("outdex").toPath().resolve("dex.zip");
     ExecutorService executor = Executors.newWorkStealingPool(2);
     try {

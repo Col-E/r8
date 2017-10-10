@@ -6,20 +6,17 @@ package com.android.tools.r8.shaking;
 import static com.android.tools.r8.ToolHelper.EXAMPLES_BUILD_DIR;
 import static com.android.tools.r8.ToolHelper.EXAMPLES_DIR;
 
-import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.errors.CompilationError;
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.PrintStream;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import org.junit.Assert;
 import org.junit.Rule;
@@ -37,8 +34,7 @@ public class TreeShakingSpecificTest {
   public ExpectedException thrown = ExpectedException.none();
 
   @Test
-  public void testIgnoreWarnings()
-      throws IOException, ProguardRuleParserException, ExecutionException, CompilationException {
+  public void testIgnoreWarnings() throws Exception {
     // Generate R8 processed version without library option.
     Path out = temp.getRoot().toPath();
     String test = "shaking2";
@@ -54,8 +50,7 @@ public class TreeShakingSpecificTest {
   }
 
   @Test
-  public void testMissingLibrary()
-      throws IOException, ProguardRuleParserException, ExecutionException, CompilationException {
+  public void testMissingLibrary() throws Exception {
     // Generate R8 processed version without library option.
     Path out = temp.getRoot().toPath();
     String test = "shaking2";
@@ -72,8 +67,7 @@ public class TreeShakingSpecificTest {
   }
 
   @Test
-  public void testPrintMapping()
-      throws IOException, ProguardRuleParserException, ExecutionException, CompilationException {
+  public void testPrintMapping() throws Exception {
     // Generate R8 processed version without library option.
     String test = "shaking1";
     Path out = temp.getRoot().toPath();

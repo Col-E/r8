@@ -12,7 +12,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 import java.util.function.UnaryOperator;
 import org.junit.Test;
 
@@ -59,18 +58,14 @@ public class R8RunExamplesAndroidPTest extends RunExamplesAndroidPTest<R8Command
 
     @Override
     void build(Path inputFile, Path out) throws Throwable {
-      try {
-        R8Command.Builder builder = R8Command.builder();
-        for (UnaryOperator<R8Command.Builder> transformation : builderTransformations) {
-          builder = transformation.apply(builder);
-        }
-        // TODO(mikaelpeltier) Add new android.jar build from aosp and use it
-        builder.addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(AndroidApiLevel.O.getLevel())));
-        R8Command command = builder.addProgramFiles(inputFile).setOutputPath(out).build();
-        ToolHelper.runR8(command, this::combinedOptionConsumer);
-      } catch (ExecutionException e) {
-        throw e.getCause();
+      R8Command.Builder builder = R8Command.builder();
+      for (UnaryOperator<R8Command.Builder> transformation : builderTransformations) {
+        builder = transformation.apply(builder);
       }
+      // TODO(mikaelpeltier) Add new android.jar build from aosp and use it
+      builder.addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(AndroidApiLevel.O.getLevel())));
+      R8Command command = builder.addProgramFiles(inputFile).setOutputPath(out).build();
+      ToolHelper.runR8(command, this::combinedOptionConsumer);
     }
 
     @Override
