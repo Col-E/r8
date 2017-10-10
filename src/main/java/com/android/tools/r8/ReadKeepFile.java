@@ -6,6 +6,7 @@ package com.android.tools.r8;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.shaking.ProguardConfigurationParser;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
+import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -23,7 +24,8 @@ public class ReadKeepFile {
     try {
       System.out.println("  - reading " + fileName);
       timing.begin("Reading " + fileName);
-      new ProguardConfigurationParser(new DexItemFactory()).parse(Paths.get(fileName));
+      new ProguardConfigurationParser(new DexItemFactory(), new DefaultDiagnosticsHandler())
+          .parse(Paths.get(fileName));
       timing.end();
     } catch (IOException e) {
       System.err.print("Failed to parse Proguard keep file: " + e.getMessage());

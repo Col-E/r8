@@ -11,6 +11,7 @@ import com.android.tools.r8.shaking.ProguardConfigurationSourceFile;
 import com.android.tools.r8.shaking.ProguardConfigurationSourceStrings;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
@@ -101,7 +102,8 @@ public class GenerateMainDexListCommand extends BaseCommand {
       if (this.mainDexRules.isEmpty()) {
         mainDexKeepRules = ImmutableList.of();
       } else {
-        ProguardConfigurationParser parser = new ProguardConfigurationParser(factory);
+        ProguardConfigurationParser parser =
+            new ProguardConfigurationParser(factory, new DefaultDiagnosticsHandler());
         try {
           parser.parse(mainDexRules);
           mainDexKeepRules = parser.getConfig().getRules();
