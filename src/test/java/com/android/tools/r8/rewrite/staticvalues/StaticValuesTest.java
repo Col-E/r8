@@ -7,7 +7,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.Sput;
 import com.android.tools.r8.code.SputObject;
@@ -24,6 +24,7 @@ import com.android.tools.r8.graph.DexValue.DexValueLong;
 import com.android.tools.r8.graph.DexValue.DexValueShort;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.smali.SmaliTestBase;
+import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.MethodSubject;
 import com.android.tools.r8.utils.InternalOptions;
@@ -570,6 +571,45 @@ public class StaticValuesTest extends SmaliTestBase {
     String result = runArt(processedApplication, options);
 
     assertEquals(StringUtils.lines("2"), result);
+  }
+
+  @Test
+  public void b67468748() throws Exception {
+    final String CLASS_NAME = "Test";
+
+    SmaliBuilder builder = new SmaliBuilder(CLASS_NAME);
+
+    // The static field LTest;->intField:I is not defined even though it is written in the
+    // <clinit> code. This class cannot load, but we can still process it to output which still
+    // cannot load.
+    builder.addStaticInitializer(
+        2,
+        "const               v0, 3",
+        "sput                v0, LTest;->intField:I",
+        "return-void"
+    );
+    builder.addMainMethod(
+        3,
+        "sget-object         v0, Ljava/lang/System;->out:Ljava/io/PrintStream;",
+        "sget                v1, LTest;->intField:I",
+        "invoke-virtual      { v0, v1 }, Ljava/io/PrintStream;->println(I)V",
+        "return-void"
+    );
+
+    AndroidApp application = builder.build();
+
+    // The code does not run on Art, as there is a missing field.
+    ProcessResult result = runOnArtRaw(application, CLASS_NAME);
+    assertEquals(1, result.exitCode);
+    assertTrue(result.stderr.contains("java.lang.NoSuchFieldError"));
+
+    // Run in release mode to turn on initializer defaults rewriting.
+    application = compileWithD8(application, options -> options.debug = false);
+
+    // The code does still not run on Art, as there is still a missing field.
+    result = runOnArtRaw(application, CLASS_NAME);
+    assertEquals(1, result.exitCode);
+    assertTrue(result.stderr.contains("java.lang.NoSuchFieldError"));
   }
 
 }

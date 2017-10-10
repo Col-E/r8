@@ -39,6 +39,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
+import java.util.function.Consumer;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 
@@ -78,6 +79,11 @@ public class JasminTestBase {
 
   protected AndroidApp compileWithD8(JasminBuilder builder) throws Exception {
     return ToolHelper.runD8(builder.build());
+  }
+
+  protected AndroidApp compileWithD8(
+      JasminBuilder builder, Consumer<InternalOptions> optionsConsumer) throws Exception {
+    return ToolHelper.runD8(builder.build(), optionsConsumer);
   }
 
   protected String runOnArtD8(JasminBuilder builder, String main) throws Exception {
@@ -132,10 +138,16 @@ public class JasminTestBase {
     return ToolHelper.runArtNoVerificationErrors(dex.toString(), main);
   }
 
+  protected ProcessResult runOnArtRaw(AndroidApp app, String main) throws IOException {
+    Path out = temp.getRoot().toPath().resolve("out.zip");
+    app.writeToZip(out, OutputMode.Indexed);
+    return ToolHelper.runArtRaw(out.toString(), main);
+  }
+
   protected String runOnArt(AndroidApp app, String main) throws IOException {
     Path out = temp.getRoot().toPath().resolve("out.zip");
     app.writeToZip(out, OutputMode.Indexed);
-    return ToolHelper.runArtNoVerificationErrors(ImmutableList.of(out.toString()), main, null);
+    return ToolHelper.runArtNoVerificationErrors(out.toString(), main);
   }
 
   protected static DexApplication process(DexApplication app, InternalOptions options)

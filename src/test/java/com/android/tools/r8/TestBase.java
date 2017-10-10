@@ -116,6 +116,15 @@ public class TestBase {
   }
 
   /**
+   * Compile an application with D8.
+   */
+  protected AndroidApp compileWithD8(AndroidApp app, Consumer<InternalOptions> optionsConsumer)
+      throws CompilationException, ExecutionException, IOException {
+    D8Command command = ToolHelper.prepareD8CommandBuilder(app).build();
+    return ToolHelper.runD8(command, optionsConsumer);
+  }
+
+  /**
    * Compile an application with R8.
    */
   protected AndroidApp compileWithR8(Class... classes)
@@ -264,11 +273,24 @@ public class TestBase {
   /**
    * Run application on Art with the specified main class.
    */
-  protected String runOnArt(AndroidApp app, Class mainClass) throws IOException {
+  protected ProcessResult runOnArtRaw(AndroidApp app, String mainClass) throws IOException {
     Path out = File.createTempFile("junit", ".zip", temp.getRoot()).toPath();
     app.writeToZip(out, OutputMode.Indexed);
-    return ToolHelper.runArtNoVerificationErrors(
-        ImmutableList.of(out.toString()), mainClass.getCanonicalName(), null);
+    return ToolHelper.runArtRaw(ImmutableList.of(out.toString()), mainClass, null);
+  }
+
+  /**
+   * Run application on Art with the specified main class.
+   */
+  protected ProcessResult runOnArtRaw(AndroidApp app, Class mainClass) throws IOException {
+    return runOnArtRaw(app, mainClass.getCanonicalName());
+  }
+
+  /**
+   * Run application on Art with the specified main class.
+   */
+  protected String runOnArt(AndroidApp app, Class mainClass) throws IOException {
+    return runOnArtRaw(app, mainClass).stdout;
   }
 
   /**
