@@ -5,7 +5,6 @@ package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.DexMethodHandle;
-import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 
 public class ConstMethodHandle extends ConstInstruction {
@@ -33,7 +32,7 @@ public class ConstMethodHandle extends ConstInstruction {
   }
 
   @Override
-  public boolean identicalNonValueParts(Instruction other) {
+  public boolean identicalNonValueNonPositionParts(Instruction other) {
     return other.asConstMethodHandle().methodHandle == methodHandle;
   }
 
