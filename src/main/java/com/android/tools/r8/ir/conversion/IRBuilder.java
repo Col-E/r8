@@ -385,12 +385,12 @@ public class IRBuilder {
     // same phi moves in multiple blocks.
     joinPredecessorsWithIdenticalPhis();
 
-    // Split critical edges to make sure that we have a place to insert phi moves if
-    // necessary.
-    splitCriticalEdges();
-
     // Package up the IR code.
     IRCode ir = new IRCode(method, blocks, valueNumberGenerator);
+
+    // Split critical edges to make sure that we have a place to insert phi moves if
+    // necessary.
+    ir.splitCriticalEdges();
 
     if (options.testing.invertConditionals) {
       invertConditionalsForTesting(ir);
@@ -1969,45 +1969,6 @@ public class IRBuilder {
       block.removePhisByIndex(operandsToRemove);
     }
     blocks.addAll(blocksToAdd);
-  }
-
-  private void splitCriticalEdges() {
-    List<BasicBlock> newBlocks = new ArrayList<>();
-    for (BasicBlock block : blocks) {
-      // We are using a spilling register allocator that might need to insert moves at
-      // all critical edges, so we always split them all.
-      List<BasicBlock> predecessors = block.getPredecessors();
-      if (predecessors.size() <= 1) {
-        continue;
-      }
-      // If any of the edges to the block are critical, we need to insert new blocks on each
-      // containing the move-exception instruction which must remain the first instruction.
-      if (block.entry() instanceof MoveException) {
-        block.splitCriticalExceptionEdges(valueNumberGenerator,
-            newBlock -> {
-              newBlock.setNumber(blocks.size() + newBlocks.size());
-              newBlocks.add(newBlock);
-            });
-        continue;
-      }
-      for (int predIndex = 0; predIndex < predecessors.size(); predIndex++) {
-        BasicBlock pred = predecessors.get(predIndex);
-        if (!pred.hasOneNormalExit()) {
-          // Critical edge: split it and inject a new block into which the
-          // phi moves can be inserted. The new block is created with the
-          // correct predecessor and successor structure. It is inserted
-          // at the end of the list of blocks disregarding branching
-          // structure.
-          int blockNumber = blocks.size() + newBlocks.size();
-          BasicBlock newBlock = BasicBlock.createGotoBlock(block, blockNumber);
-          newBlocks.add(newBlock);
-          pred.replaceSuccessor(block, newBlock);
-          newBlock.getPredecessors().add(pred);
-          predecessors.set(predIndex, newBlock);
-        }
-      }
-    }
-    blocks.addAll(newBlocks);
   }
 
   // Other stuff.

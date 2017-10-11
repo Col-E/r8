@@ -1171,11 +1171,9 @@ public class BasicBlock {
     // to be changed.
     for (BasicBlock catchSuccessor : catchSuccessors) {
       catchSuccessor.splitCriticalExceptionEdges(
+          code.getHighestBlockNumber() + 1,
           code.valueNumberGenerator,
-          newBlock -> {
-            newBlock.setNumber(code.getHighestBlockNumber() + 1);
-            blockIterator.add(newBlock);
-          });
+          blockIterator::add);
     }
   }
 
@@ -1191,11 +1189,11 @@ public class BasicBlock {
    * Note that if there are any other phis defined on this block, they remain valid, since
    * this method does not affect incoming edges in any way, and just adds new blocks with
    * MoveException and Goto.
-   *
-   * NOTE: onNewBlock must assign block number to the newly created block.
    */
-  public void splitCriticalExceptionEdges(
-      ValueNumberGenerator valueNumberGenerator, Consumer<BasicBlock> onNewBlock) {
+  public int splitCriticalExceptionEdges(
+      int nextBlockNumber,
+      ValueNumberGenerator valueNumberGenerator,
+      Consumer<BasicBlock> onNewBlock) {
     List<BasicBlock> predecessors = this.getPredecessors();
     boolean hasMoveException = entry().isMoveException();
     MoveException move = null;
@@ -1216,6 +1214,7 @@ public class BasicBlock {
             "Invalid block structure: catch block reachable via non-exceptional flow.");
       }
       BasicBlock newBlock = new BasicBlock();
+      newBlock.setNumber(nextBlockNumber++);
       newPredecessors.add(newBlock);
       if (hasMoveException) {
         Value value = new Value(valueNumberGenerator.next(), MoveType.OBJECT, move.getLocalInfo());
@@ -1244,6 +1243,7 @@ public class BasicBlock {
       phi.addOperands(values);
       move.outValue().replaceUsers(phi);
     }
+    return nextBlockNumber;
   }
 
   /**

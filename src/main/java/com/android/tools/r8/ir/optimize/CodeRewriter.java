@@ -643,6 +643,12 @@ public class CodeRewriter {
         }
       }
     }
+    // Rewriting of switches introduces new branching structure. It relies on critical edges
+    // being split on the way in but does not maintain this property. We therefore split
+    // critical edges at exit.
+    code.splitCriticalEdges();
+    code.traceBlocks();
+    assert code.isConsistentSSA();
   }
 
   /**

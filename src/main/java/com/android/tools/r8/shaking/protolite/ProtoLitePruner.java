@@ -351,6 +351,11 @@ public class ProtoLitePruner extends ProtoLiteBase {
     rewriteVisitCase(visitCase, code);
     assert code.isConsistentSSA();
     rewriteMergeCase(mergeCase, instanceType, code);
+    // Rewriting of the merge case changes branching structure and adds more blocks that target
+    // the fallthrough label. This can introduce critical edges. Therefore, we split critical
+    // edges to maintain our edge-split form.
+    code.splitCriticalEdges();
+    code.traceBlocks();
     assert code.isConsistentSSA();
   }
 
