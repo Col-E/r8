@@ -82,7 +82,6 @@ public abstract class DexClass extends DexItem {
     virtualMethods = MoreObjects.firstNonNull(values, NO_METHODS);
   }
 
-
   public void forEachMethod(Consumer<DexEncodedMethod> consumer) {
     for (DexEncodedMethod method : directMethods()) {
       consumer.accept(method);
@@ -128,6 +127,15 @@ public abstract class DexClass extends DexItem {
 
   public void setStaticFields(DexEncodedField[] values) {
     staticFields = MoreObjects.firstNonNull(values, NO_FIELDS);
+  }
+
+  public boolean definesStaticField(DexField field) {
+    for (DexEncodedField encodedField : staticFields()) {
+      if (encodedField.field == field) {
+        return true;
+      }
+    }
+    return false;
   }
 
   public DexEncodedField[] instanceFields() {
