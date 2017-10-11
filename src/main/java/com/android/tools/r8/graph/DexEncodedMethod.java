@@ -273,8 +273,11 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
   }
 
   public void setCode(
-      IRCode ir, RegisterAllocator registerAllocator, DexItemFactory dexItemFactory) {
-    final DexBuilder builder = new DexBuilder(ir, registerAllocator, dexItemFactory);
+      IRCode ir,
+      RegisterAllocator registerAllocator,
+      DexItemFactory dexItemFactory,
+      InternalOptions options) {
+    final DexBuilder builder = new DexBuilder(ir, registerAllocator, dexItemFactory, options);
     code = builder.build(method.getArity());
   }
 

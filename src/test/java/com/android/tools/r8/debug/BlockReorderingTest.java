@@ -4,7 +4,6 @@
 package com.android.tools.r8.debug;
 
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -23,7 +22,6 @@ public class BlockReorderingTest extends DebugTestBase {
   }
 
   @Test
-  @Ignore("b/65618023")
   public void testConditionalReturn() throws Throwable {
     final String method = "conditionalReturn";
     runDebugTest(CLASS,
@@ -39,7 +37,6 @@ public class BlockReorderingTest extends DebugTestBase {
   }
 
   @Test
-  @Ignore("b/65618023")
   public void testInvertConditionalReturn() throws Throwable {
     final String method = "invertConditionalReturn";
     runDebugTest(CLASS,
@@ -55,7 +52,6 @@ public class BlockReorderingTest extends DebugTestBase {
   }
 
   @Test
-  @Ignore("b/65618023")
   public void testFallthroughReturn() throws Throwable {
     final String method = "fallthroughReturn";
     runDebugTest(CLASS,

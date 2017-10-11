@@ -9,6 +9,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.MoveType;
+import com.android.tools.r8.ir.code.Position;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -226,6 +227,19 @@ class SpillMoveSet {
 
   private void scheduleMovesBeforeInstruction(
       int tempRegister, int instruction, InstructionListIterator insertAt) {
+
+    Position position;
+    if (insertAt.hasPrevious() && insertAt.peekPrevious().isMoveException()) {
+      position = insertAt.peekPrevious().getPosition();
+    } else {
+      Instruction next = insertAt.peekNext();
+      assert next.getNumber() == instruction;
+      position = next.getPosition();
+      if (position.isNone() && next.isGoto()) {
+        position = next.asGoto().getTarget().getPosition();
+      }
+    }
+
     // Spill and restore moves for the incoming edge.
     Set<SpillMove> inMoves =
         instructionToInMoves.computeIfAbsent(instruction - 1, (k) -> new LinkedHashSet<>());
@@ -247,8 +261,8 @@ class SpillMoveSet {
     outMoves.addAll(phiMoves);
 
     // Perform parallel move scheduling independently for the in and out moves.
-    scheduleMoves(tempRegister, inMoves, insertAt);
-    scheduleMoves(tempRegister, outMoves, insertAt);
+    scheduleMoves(tempRegister, inMoves, insertAt, position);
+    scheduleMoves(tempRegister, outMoves, insertAt, position);
   }
 
   // Remove restore moves that restore arguments. Since argument register reuse is
@@ -270,9 +284,8 @@ class SpillMoveSet {
   }
 
   private void scheduleMoves(
-      int tempRegister, Collection<SpillMove> moves, InstructionListIterator insertAt) {
-    RegisterMoveScheduler scheduler =
-        new RegisterMoveScheduler(insertAt, tempRegister);
+      int tempRegister, Set<SpillMove> moves, InstructionListIterator insertAt, Position position) {
+    RegisterMoveScheduler scheduler = new RegisterMoveScheduler(insertAt, tempRegister, position);
     for (SpillMove move : moves) {
       // Do not generate moves to spill a value that can be rematerialized.
       if (move.to.isSpilledAndRematerializable(allocator)) {

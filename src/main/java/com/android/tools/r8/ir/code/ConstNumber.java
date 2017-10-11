@@ -95,6 +95,7 @@ public class ConstNumber extends ConstInstruction {
   @Override
   public void buildDex(DexBuilder builder) {
     if (!dest().needsRegister()) {
+      forceSetPosition(Position.none());
       builder.addNop(this);
       return;
     }
@@ -169,7 +170,7 @@ public class ConstNumber extends ConstInstruction {
   }
 
   @Override
-  public boolean identicalNonValueParts(Instruction other) {
+  public boolean identicalNonValueNonPositionParts(Instruction other) {
     if (preciseTypeUnknown()) {
       return false;
     }

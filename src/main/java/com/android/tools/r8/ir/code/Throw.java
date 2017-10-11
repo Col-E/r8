@@ -41,7 +41,7 @@ public class Throw extends JumpInstruction {
   }
 
   @Override
-  public boolean identicalNonValueParts(Instruction other) {
+  public boolean identicalNonValueNonPositionParts(Instruction other) {
     assert other.isThrow();
     return true;
   }

@@ -23,13 +23,13 @@ import com.android.tools.r8.graph.JarApplicationReader;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.Cmp.Bias;
 import com.android.tools.r8.ir.code.ConstType;
-import com.android.tools.r8.ir.code.DebugPosition;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.Monitor;
 import com.android.tools.r8.ir.code.MoveType;
 import com.android.tools.r8.ir.code.NumericType;
+import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.conversion.IRBuilder.BlockInfo;
 import com.android.tools.r8.ir.conversion.JarState.Local;
 import com.android.tools.r8.ir.conversion.JarState.Slot;
@@ -45,6 +45,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -173,6 +174,15 @@ public class JarSourceCode implements SourceCode {
 
   // State to signal that the code currently being emitted is part of synchronization prelude/exits.
   private boolean generatingMethodSynchronization = false;
+
+  // Current position associated with the current instruction during building.
+  private Position currentPosition;
+
+  // Canonicalized positions to lower memory usage.
+  private Int2ReferenceMap<Position> canonicalPositions = new Int2ReferenceOpenHashMap<>();
+
+  // Cooked position to indicate positions in synthesized code (ie, for synchronization).
+  private Position syntheticPosition = null;
 
   public JarSourceCode(DexType clazz, MethodNode node, JarApplicationReader application) {
     assert node != null;
@@ -304,6 +314,8 @@ public class JarSourceCode implements SourceCode {
       locals = state.openLocals(initialLabel);
     }
 
+    currentPosition = Position.none();
+
     // Build the actual argument instructions now that type and debug information is known
     // for arguments.
     buildArgumentInstructions(builder);
@@ -432,6 +444,7 @@ public class JarSourceCode implements SourceCode {
   private void buildExceptionalPostlude(IRBuilder builder) {
     assert isSynchronized();
     generatingMethodSynchronization = true;
+    currentPosition = getSyntheticPosition();
     buildMonitorExit(builder);
     builder.addThrow(getMoveExceptionRegister());
     generatingMethodSynchronization = false;
@@ -472,6 +485,12 @@ public class JarSourceCode implements SourceCode {
     if (Log.ENABLED) {
       preInstructionState = state.toString();
     }
+
+    // Don't include line changes when processing a label. Doing so will end up emitting local
+    // writes after the line has changed and thus causing locals to become visible too late.
+    currentPosition =
+        getDebugPositionAtOffset(
+            insn instanceof LabelNode ? instructionIndex - 1 : instructionIndex);
 
     build(insn, builder);
 
@@ -2832,24 +2851,65 @@ public class JarSourceCode implements SourceCode {
   }
 
   private void build(LineNumberNode insn, IRBuilder builder) {
-    builder.addDebugPosition(insn.line, null);
+    currentPosition = getCanonicalPosition(insn.line);
+    builder.addDebugPosition(currentPosition);
   }
 
   @Override
-  public DebugPosition getDebugPositionAtOffset(int offset) {
+  public Position getDebugPositionAtOffset(int offset) {
+    if (offset == EXCEPTIONAL_SYNC_EXIT_OFFSET) {
+      return getSyntheticPosition();
+    }
     int index = instructionIndex(offset);
     if (index < 0 || instructionCount() <= index) {
-      return null;
+      return Position.none();
     }
     AbstractInsnNode insn = node.instructions.get(index);
     if (insn instanceof LabelNode) {
       insn = insn.getNext();
     }
-    if (insn instanceof LineNumberNode) {
-      LineNumberNode line = (LineNumberNode) insn;
-      return new DebugPosition(line.line, null);
+    while (insn != null && !(insn instanceof LineNumberNode)) {
+      insn = insn.getPrevious();
     }
-    return null;
+    if (insn != null) {
+      LineNumberNode line = (LineNumberNode) insn;
+      return getCanonicalPosition(line.line);
+    }
+    return Position.none();
+  }
+
+  @Override
+  public Position getCurrentPosition() {
+    return currentPosition;
+  }
+
+  private Position getCanonicalPosition(int line) {
+    return canonicalPositions.computeIfAbsent(line, l -> new Position(l, null));
+  }
+
+  // If we need to emit a synthetic position for exceptional monitor exits, we try to cook up a
+  // position that is not actually a valid program position, so as not to incorrectly position the
+  // user on an exit that is not the actual exit being taken. Our heuristic for this is that if the
+  // method has at least two positions we use the first position minus one as the synthetic exit.
+  // If the method only has one position it is safe to just use that position.
+  private Position getSyntheticPosition() {
+    if (syntheticPosition == null) {
+      int min = Integer.MAX_VALUE;
+      int max = Integer.MIN_VALUE;
+      for (Iterator it = node.instructions.iterator(); it.hasNext(); ) {
+        Object insn = it.next();
+        if (insn instanceof LineNumberNode) {
+          LineNumberNode lineNode = (LineNumberNode) insn;
+          min = Math.min(min, lineNode.line);
+          max = Math.max(max, lineNode.line);
+        }
+      }
+      syntheticPosition =
+          (min == Integer.MAX_VALUE)
+              ? Position.none()
+              : Position.synthetic(min < max ? min - 1 : min);
+    }
+    return syntheticPosition;
   }
 
   // Printing helpers.

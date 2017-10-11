@@ -7,7 +7,7 @@ package com.android.tools.r8.ir.conversion;
 import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.ir.code.CatchHandlers;
-import com.android.tools.r8.ir.code.DebugPosition;
+import com.android.tools.r8.ir.code.Position;
 
 /**
  * Abstraction of the input/source code for the IRBuilder.
@@ -24,7 +24,9 @@ public interface SourceCode {
 
   DebugLocalInfo getCurrentLocal(int register);
 
-  DebugPosition getDebugPositionAtOffset(int offset);
+  Position getCurrentPosition();
+
+  Position getDebugPositionAtOffset(int offset);
 
   /**
    * Trace block structure of the source-program.

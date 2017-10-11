@@ -12,23 +12,12 @@ import com.android.tools.r8.utils.InternalOptions;
 
 public class MoveException extends Instruction {
 
-  private DebugPosition position = null;
-
   public MoveException(Value dest) {
     super(dest);
   }
 
   public Value dest() {
     return outValue;
-  }
-
-  public DebugPosition getPosition() {
-    return position;
-  }
-
-  public void setPosition(DebugPosition position) {
-    assert this.position == null;
-    this.position = position;
   }
 
   @Override
@@ -49,7 +38,7 @@ public class MoveException extends Instruction {
   }
 
   @Override
-  public boolean identicalNonValueParts(Instruction other) {
+  public boolean identicalNonValueNonPositionParts(Instruction other) {
     assert other.isMoveException();
     return true;
   }
@@ -73,18 +62,6 @@ public class MoveException extends Instruction {
   @Override
   public boolean canBeDeadCode(IRCode code, InternalOptions options) {
     return !options.debug;
-  }
-
-  @Override
-  public String toString() {
-    if (position != null) {
-      StringBuilder builder = new StringBuilder(super.toString());
-      builder.append("(DebugPosition ");
-      position.printLineInfo(builder);
-      builder.append(')');
-      return builder.toString();
-    }
-    return super.toString();
   }
 
   @Override

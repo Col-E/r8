@@ -57,6 +57,7 @@ import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.NewArrayFilledData;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Phi;
+import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
@@ -100,9 +101,6 @@ import java.util.Set;
 
 public class CodeRewriter {
 
-  private static final int UNKNOWN_CAN_THROW = 0;
-  private static final int CAN_THROW = 1;
-  private static final int CANNOT_THROW = 2;
   private static final int MAX_FILL_ARRAY_SIZE = 8 * Constants.KILOBYTE;
   // This constant was determined by experimentation.
   private static final int STOP_SHARED_CONSTANT_THRESHOLD = 50;
@@ -115,105 +113,6 @@ public class CodeRewriter {
     this.appInfo = appInfo;
     this.dexItemFactory = appInfo.dexItemFactory;
     this.libraryMethodsReturningReceiver = libraryMethodsReturningReceiver;
-  }
-
-  /**
-   * Removes all debug positions that are not needed to maintain proper stack trace information.
-   * If a debug position is followed by another debug position and no instructions between the two
-   * can throw then it is unneeded (in a release build).
-   * If a block with a position has (normal) outgoing edges, this property depends on the
-   * possibility of the successors throwing before the next debug position is hit.
-   */
-  public static boolean removedUnneededDebugPositions(IRCode code) {
-    computeThrowsColorForAllBlocks(code);
-    for (BasicBlock block : code.blocks) {
-      InstructionListIterator iterator = block.listIterator();
-      while (iterator.hasNext()) {
-        Instruction instruction = iterator.next();
-        if (instruction.isDebugPosition()
-            && getThrowsColorForBlock(block, iterator.nextIndex()) == CANNOT_THROW) {
-          iterator.remove();
-        }
-      }
-    }
-    return true;
-  }
-
-  private static void computeThrowsColorForAllBlocks(IRCode code) {
-    // First pass colors blocks in reverse topological order, based on the instructions.
-    code.clearMarks();
-    List<BasicBlock> blocks = code.blocks;
-    ArrayList<BasicBlock> worklist = new ArrayList<>();
-    for (int i = blocks.size() - 1; i >= 0; i--) {
-      BasicBlock block = blocks.get(i);
-      // Mark the block as not-throwing if no successor implies otherwise.
-      // This ensures that a loop back to this block will be seen as non-throwing.
-      block.setColor(CANNOT_THROW);
-      int color = getThrowsColorForBlock(block, 0);
-      block.setColor(color);
-      if (color == UNKNOWN_CAN_THROW) {
-        worklist.add(block);
-      }
-    }
-    // A fixed point then ensures that we propagate the color backwards over normal edges.
-    ArrayList<BasicBlock> remaining = new ArrayList<>(worklist.size());
-    while (!worklist.isEmpty()) {
-      ImmutableList<BasicBlock> work = new ImmutableList.Builder<BasicBlock>()
-          .addAll(worklist)
-          .addAll(remaining)
-          .build();
-      worklist.clear();
-      remaining.clear();
-      for (BasicBlock block : work) {
-        if (!block.hasColor(UNKNOWN_CAN_THROW)) {
-          continue;
-        }
-        block.setColor(CANNOT_THROW);
-        int color = getThrowsColorForSuccessors(block);
-        block.setColor(color);
-        if (color == UNKNOWN_CAN_THROW) {
-          remaining.add(block);
-        } else {
-          for (BasicBlock predecessor : block.getNormalPredecessors()) {
-            if (predecessor.hasColor(UNKNOWN_CAN_THROW)) {
-              worklist.add(predecessor);
-            }
-          }
-        }
-      }
-    }
-    // Any remaining set of blocks represents a cycle of blocks containing no throwing instructions.
-    for (BasicBlock block : remaining) {
-      assert !block.canThrow();
-      block.setColor(CANNOT_THROW);
-    }
-  }
-
-  private static int getThrowsColorForBlock(BasicBlock block, int index) {
-    InstructionListIterator iterator = block.listIterator(index);
-    while (iterator.hasNext()) {
-      Instruction instruction = iterator.next();
-      if (instruction.isDebugPosition()) {
-        return CANNOT_THROW;
-      }
-      if (instruction.instructionTypeCanThrow()) {
-        return CAN_THROW;
-      }
-    }
-    return getThrowsColorForSuccessors(block);
-  }
-
-  private static int getThrowsColorForSuccessors(BasicBlock block) {
-    int color = CANNOT_THROW;
-    for (BasicBlock successor : block.getNormalSuccessors()) {
-      if (successor.hasColor(CAN_THROW)) {
-        return CAN_THROW;
-      }
-      if (successor.hasColor(UNKNOWN_CAN_THROW)) {
-        color = UNKNOWN_CAN_THROW;
-      }
-    }
-    return color;
   }
 
   private static boolean removedTrivialGotos(IRCode code) {
@@ -237,31 +136,6 @@ public class CodeRewriter {
     return true;
   }
 
-  private static BasicBlock endOfGotoChain(BasicBlock block) {
-    block.mark();
-    BasicBlock target = block;
-    while (target.isTrivialGoto()) {
-      BasicBlock nextTarget = target.exit().asGoto().getTarget();
-      if (nextTarget.isMarked()) {
-        clearTrivialGotoMarks(block);
-        return nextTarget;
-      }
-      nextTarget.mark();
-      target = nextTarget;
-    }
-    clearTrivialGotoMarks(block);
-    return target;
-  }
-
-  private static void clearTrivialGotoMarks(BasicBlock block) {
-    while (block.isMarked()) {
-      block.clearMark();
-      if (block.isTrivialGoto()) {
-        block = block.exit().asGoto().getTarget();
-      }
-    }
-  }
-
   private static void collapsTrivialGoto(
       BasicBlock block, BasicBlock nextBlock, List<BasicBlock> blocksToRemove) {
 
@@ -270,7 +144,7 @@ public class CodeRewriter {
       return;
     }
 
-    BasicBlock target = endOfGotoChain(block);
+    BasicBlock target = block.endOfGotoChain();
 
     boolean needed = false;
     if (target != nextBlock) {
@@ -284,7 +158,7 @@ public class CodeRewriter {
 
     // This implies we are in a loop of GOTOs. In that case, we will iteratively remove each trival
     // GOTO one-by-one until the above base case (one block targeting itself) is left.
-    if (target == block) {
+    if (target == null) {
       target = block.exit().asGoto().getTarget();
     }
 
@@ -307,10 +181,10 @@ public class CodeRewriter {
   private static void collapsIfTrueTarget(BasicBlock block) {
     If insn = block.exit().asIf();
     BasicBlock target = insn.getTrueTarget();
-    BasicBlock newTarget = endOfGotoChain(target);
+    BasicBlock newTarget = target.endOfGotoChain();
     BasicBlock fallthrough = insn.fallthroughBlock();
-    BasicBlock newFallthrough = endOfGotoChain(fallthrough);
-    if (target != newTarget) {
+    BasicBlock newFallthrough = fallthrough.endOfGotoChain();
+    if (newTarget != null && target != newTarget) {
       insn.getBlock().replaceSuccessor(target, newTarget);
       target.getPredecessors().remove(block);
       if (!newTarget.getPredecessors().contains(block)) {
@@ -335,8 +209,8 @@ public class CodeRewriter {
     for (int j = 0; j < insn.targetBlockIndices().length; j++) {
       BasicBlock target = insn.targetBlock(j);
       if (target != fallthroughBlock) {
-        BasicBlock newTarget = endOfGotoChain(target);
-        if (target != newTarget && !replacedBlocks.contains(target)) {
+        BasicBlock newTarget = target.endOfGotoChain();
+        if (newTarget != null && target != newTarget && !replacedBlocks.contains(target)) {
           insn.getBlock().replaceSuccessor(target, newTarget);
           target.getPredecessors().remove(block);
           if (!newTarget.getPredecessors().contains(block)) {
@@ -351,6 +225,11 @@ public class CodeRewriter {
   // TODO(sgjesse); Move this somewhere else, and reuse it for some of the other switch rewritings.
   public abstract static class InstructionBuilder<T> {
     protected int blockNumber;
+    protected final Position position;
+
+    protected InstructionBuilder(Position position) {
+      this.position = position;
+    }
 
     public abstract T self();
 
@@ -364,6 +243,10 @@ public class CodeRewriter {
     private Value value;
     private Int2ObjectSortedMap<BasicBlock> keyToTarget = new Int2ObjectAVLTreeMap<>();
     private BasicBlock fallthrough;
+
+    public SwitchBuilder(Position position) {
+      super(position);
+    }
 
     public SwitchBuilder self() {
       return this;
@@ -406,6 +289,7 @@ public class CodeRewriter {
       Integer fallthroughIndex =
           targetToSuccessorIndex.computeIfAbsent(fallthrough, b -> targetToSuccessorIndex.size());
       Switch newSwitch = new Switch(value, keys, targetBlockIndices, fallthroughIndex);
+      newSwitch.setPosition(position);
       BasicBlock newSwitchBlock = BasicBlock.createSwitchBlock(blockNumber, newSwitch);
       for (BasicBlock successor : targetToSuccessorIndex.keySet()) {
         newSwitchBlock.link(successor);
@@ -421,7 +305,8 @@ public class CodeRewriter {
     private BasicBlock target;
     private BasicBlock fallthrough;
 
-    public IfBuilder(IRCode code) {
+    public IfBuilder(Position position, IRCode code) {
+      super(position);
       this.code = code;
     }
 
@@ -456,12 +341,14 @@ public class CodeRewriter {
       BasicBlock ifBlock;
       if (right != 0) {
         ConstNumber rightConst = code.createIntConstant(right);
+        rightConst.setPosition(position);
         newIf = new If(Type.EQ, ImmutableList.of(left, rightConst.dest()));
         ifBlock = BasicBlock.createIfBlock(blockNumber, newIf, rightConst);
       } else {
         newIf = new If(Type.EQ, left);
         ifBlock = BasicBlock.createIfBlock(blockNumber, newIf);
       }
+      newIf.setPosition(position);
       ifBlock.link(target);
       ifBlock.link(fallthrough);
       return ifBlock;
@@ -476,6 +363,8 @@ public class CodeRewriter {
       IRCode code, ListIterator<BasicBlock> blocksIterator, BasicBlock originalBlock,
       InstructionListIterator iterator, Switch theSwitch,
       List<IntList> switches, IntList keysToRemove) {
+
+    Position position = theSwitch.getPosition();
 
     // Extract the information from the switch before removing it.
     Int2ReferenceSortedMap<BasicBlock> keyToTarget = theSwitch.getKeyToTargetMap();
@@ -503,7 +392,7 @@ public class CodeRewriter {
 
     // Build the switch-blocks backwards, to always have the fallthrough block in hand.
     for (int i = switches.size() - 1; i >= 0; i--) {
-      SwitchBuilder switchBuilder = new SwitchBuilder();
+      SwitchBuilder switchBuilder = new SwitchBuilder(position);
       switchBuilder.setValue(theSwitch.value());
       IntList keys = switches.get(i);
       for (int j = 0; j < keys.size(); j++) {
@@ -522,7 +411,7 @@ public class CodeRewriter {
     for (int i = keysToRemove.size() - 1; i >= 0; i--) {
       int key = keysToRemove.getInt(i);
       BasicBlock peeledOffTarget = keyToTarget.get(key);
-      IfBuilder ifBuilder = new IfBuilder(code);
+      IfBuilder ifBuilder = new IfBuilder(position, code);
       ifBuilder
           .setLeft(theSwitch.value())
           .setRight(key)
@@ -561,6 +450,7 @@ public class CodeRewriter {
               iterator.replaceCurrentInstruction(new If(Type.EQ, theSwitch.value()));
             } else {
               ConstNumber labelConst = code.createIntConstant(theSwitch.getFirstKey());
+              labelConst.setPosition(theSwitch.getPosition());
               iterator.previous();
               iterator.add(labelConst);
               Instruction dummy = iterator.next();
@@ -1161,6 +1051,7 @@ public class CodeRewriter {
               if (newNumber == null) {
                 newNumber = ConstNumber.copyOf(code, definition);
                 it.add(newNumber);
+                newNumber.setPosition(current.getPosition());
                 oldToNew.put(definition, newNumber);
               }
               invoke.inValues().set(i, newNumber.outValue());
@@ -1248,6 +1139,7 @@ public class CodeRewriter {
             assert constantValue.numberOfUsers() == constantValue.numberOfAllUsers();
             for (Instruction user : constantValue.uniqueUsers()) {
               ConstNumber newCstNum = ConstNumber.copyOf(code, constNumber);
+              newCstNum.setPosition(user.getPosition());
               InstructionListIterator iterator = user.getBlock().listIterator(user);
               iterator.previous();
               iterator.add(newCstNum);
@@ -1279,7 +1171,9 @@ public class CodeRewriter {
         i.inValues().contains(instruction.outValue())
         || i.isJumpInstruction()
         || (hasCatchHandlers && i.instructionTypeCanThrow()));
-    insertAt.previous();
+    Instruction next = insertAt.previous();
+    instruction.forceSetPosition(
+        next.isGoto() ? next.asGoto().getTarget().getPosition() : next.getPosition());
     insertAt.add(instruction);
   }
 
@@ -1412,6 +1306,7 @@ public class CodeRewriter {
           }
           InvokeNewArray invoke = new InvokeNewArray(
               dexItemFactory.stringArrayType, newArray.outValue(), stringValues);
+          invoke.setPosition(newArray.getPosition());
           it.detach();
           for (Value value : newArray.inValues()) {
             value.removeUser(newArray);
@@ -1431,6 +1326,7 @@ public class CodeRewriter {
           int arraySize = newArray.size().getConstInstruction().asConstNumber().getIntValue();
           NewArrayFilledData fillArray = new NewArrayFilledData(
               newArray.outValue(), elementSize, arraySize, contents);
+          fillArray.setPosition(newArray.getPosition());
           it.add(fillArray);
         }
         storesToRemoveForArray.put(newArray.outValue(), size);
@@ -1471,13 +1367,25 @@ public class CodeRewriter {
     if (from.getBlock() != to.getBlock()) {
       return true;
     }
+    if (from.getPosition().isSome()
+        && to.getPosition().isSome()
+        && !from.getPosition().equals(to.getPosition())) {
+      return true;
+    }
     InstructionListIterator iterator = from.getBlock().listIterator(from);
+    Position position = null;
     while (iterator.hasNext()) {
       Instruction instruction = iterator.next();
+      if (position == null) {
+        if (instruction.getPosition().isSome()) {
+          position = instruction.getPosition();
+        }
+      } else if (instruction.getPosition().isSome()
+          && !position.equals(instruction.getPosition())) {
+        return true;
+      }
       if (instruction == to) {
         return false;
-      } else if (instruction.isDebugPosition()) {
-        return true;
       }
     }
     throw new Unreachable();
@@ -1536,11 +1444,12 @@ public class CodeRewriter {
     }
   }
 
-  private static class ExpressionEquivalence extends Equivalence<Instruction> {
+  private static class CSEExpressionEquivalence extends Equivalence<Instruction> {
 
     @Override
     protected boolean doEquivalent(Instruction a, Instruction b) {
-      if (a.getClass() != b.getClass() || !a.identicalNonValueParts(b)) {
+      // Note that we don't consider positions because CSE can at most remove an instruction.
+      if (a.getClass() != b.getClass() || !a.identicalNonValueNonPositionParts(b)) {
         return false;
       }
       // For commutative binary operations any order of in-values are equal.
@@ -1602,7 +1511,7 @@ public class CodeRewriter {
   public void commonSubexpressionElimination(IRCode code) {
     final ListMultimap<Wrapper<Instruction>, Value> instructionToValue = ArrayListMultimap.create();
     final DominatorTree dominatorTree = new DominatorTree(code);
-    final ExpressionEquivalence equivalence = new ExpressionEquivalence();
+    final CSEExpressionEquivalence equivalence = new CSEExpressionEquivalence();
 
     for (int i = 0; i < dominatorTree.getSortedBlocks().length; i++) {
       BasicBlock block = dominatorTree.getSortedBlocks()[i];
@@ -1766,6 +1675,8 @@ public class CodeRewriter {
                 Instruction newInstruction = new Xor(NumericType.INT, newOutValue, testValue,
                     trueNumber.isIntegerOne() ? trueValue : falseValue);
                 newInstruction.setBlock(phi.getBlock());
+                // The xor is replacing a phi so it does not have an actual position.
+                newInstruction.setPosition(phi.getBlock().getPosition());
                 phi.getBlock().getInstructions().add(0, newInstruction);
                 deadPhis++;
               }
@@ -1888,6 +1799,7 @@ public class CodeRewriter {
 
             // First insert the constant value *before* the current instruction.
             ConstNumber zero = code.createIntConstant(0);
+            zero.setPosition(current.getPosition());
             assert iterator.hasPrevious();
             iterator.previous();
             iterator.add(zero);
@@ -1941,6 +1853,10 @@ public class CodeRewriter {
     List<Value> arguments = code.collectArguments();
     BasicBlock block = code.blocks.getFirst();
     InstructionListIterator iterator = block.listIterator();
+
+    // Attach some synthetic position to all inserted code.
+    Position position = Position.synthetic(1);
+    iterator.setInsertionPosition(position);
 
     // Split arguments into their own block.
     iterator.nextUntil(instruction -> !instruction.isArgument());
@@ -1998,6 +1914,7 @@ public class CodeRewriter {
         // Insert "if (argument != null) ...".
         successor = block.unlinkSingleSuccessor();
         If theIf = new If(If.Type.NE, argument);
+        theIf.setPosition(position);
         BasicBlock ifBlock = BasicBlock.createIfBlock(code.blocks.size(), theIf);
         code.blocks.add(ifBlock);
         // Fallthrough block must be added right after the if.
@@ -2015,8 +1932,10 @@ public class CodeRewriter {
 
         // Fill code into the blocks.
         iterator = isNullBlock.listIterator();
+        iterator.setInsertionPosition(position);
         iterator.add(new InvokeVirtual(print, null, ImmutableList.of(out, nul)));
         iterator = isNotNullBlock.listIterator();
+        iterator.setInsertionPosition(position);
         value = code.createValue(MoveType.OBJECT);
         iterator.add(new InvokeVirtual(dexItemFactory.objectMethods.getClass, value,
             ImmutableList.of(arguments.get(i))));
@@ -2024,6 +1943,7 @@ public class CodeRewriter {
       }
 
       iterator = eol.listIterator();
+      iterator.setInsertionPosition(position);
       if (i == arguments.size() - 1) {
         iterator.add(new InvokeVirtual(printLn, null, ImmutableList.of(out, closeParenthesis)));
       } else {

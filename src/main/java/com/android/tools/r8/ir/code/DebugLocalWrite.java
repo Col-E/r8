@@ -38,7 +38,7 @@ public class DebugLocalWrite extends Move {
   }
 
   @Override
-  public boolean identicalNonValueParts(Instruction other) {
+  public boolean identicalNonValueNonPositionParts(Instruction other) {
     assert other.isDebugLocalWrite();
     return true;
   }

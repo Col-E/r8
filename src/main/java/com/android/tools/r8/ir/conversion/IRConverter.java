@@ -412,7 +412,7 @@ public class IRConverter {
     }
     assert code.isConsistentSSA();
     RegisterAllocator registerAllocator = performRegisterAllocation(code, method);
-    method.setCode(code, registerAllocator, appInfo.dexItemFactory);
+    method.setCode(code, registerAllocator, appInfo.dexItemFactory, options);
     if (Log.ENABLED) {
       Log.debug(getClass(), "Resulting dex code for %s:\n%s",
           method.toSourceString(), logCode(options, method));
@@ -577,13 +577,14 @@ public class IRConverter {
     // Insert code to log arguments if requested.
     if (options.methodMatchesLogArgumentsFilter(method)) {
       codeRewriter.logArgumentTypes(method, code);
+      assert code.isConsistentSSA();
     }
 
     printMethod(code, "Optimized IR (SSA)");
 
     // Perform register allocation.
     RegisterAllocator registerAllocator = performRegisterAllocation(code, method);
-    method.setCode(code, registerAllocator, appInfo.dexItemFactory);
+    method.setCode(code, registerAllocator, appInfo.dexItemFactory, options);
     updateHighestSortingStrings(method);
     if (Log.ENABLED) {
       Log.debug(getClass(), "Resulting dex code for %s:\n%s",
@@ -615,13 +616,6 @@ public class IRConverter {
     // Always perform dead code elimination before register allocation. The register allocator
     // does not allow dead code (to make sure that we do not waste registers for unneeded values).
     DeadCodeRemover.removeDeadCode(code, codeRewriter, options);
-    if (!options.debug) {
-      // Remove unneeded debug positions before register allocation to avoid to process useless
-      // instructions. These is safe because the register allocator can not generate new
-      // instructions that will throw exceptions and thus apply removedUnneededDebugPositions before
-      // register allocator will produce the same result.
-      CodeRewriter.removedUnneededDebugPositions(code);
-    }
     LinearScanRegisterAllocator registerAllocator = new LinearScanRegisterAllocator(code, options);
     registerAllocator.allocateRegisters(options.debug);
     printMethod(code, "After register allocation (non-SSA)");

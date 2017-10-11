@@ -73,7 +73,7 @@ public class Add extends ArithmeticBinop {
   }
 
   @Override
-  public boolean identicalNonValueParts(Instruction other) {
+  public boolean identicalNonValueNonPositionParts(Instruction other) {
     return other.asAdd().type == type;
   }
 

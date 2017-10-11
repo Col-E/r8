@@ -68,7 +68,7 @@ public class Shl extends LogicalBinop {
   }
 
   @Override
-  public boolean identicalNonValueParts(Instruction other) {
+  public boolean identicalNonValueNonPositionParts(Instruction other) {
     return other.asShl().type == type;
   }
 

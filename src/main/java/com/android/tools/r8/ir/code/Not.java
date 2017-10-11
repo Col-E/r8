@@ -56,7 +56,7 @@ public class Not extends Unop {
   }
 
   @Override
-  public boolean identicalNonValueParts(Instruction other) {
+  public boolean identicalNonValueNonPositionParts(Instruction other) {
     return other.asNot().type == type;
   }
 

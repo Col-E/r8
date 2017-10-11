@@ -37,8 +37,8 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.ir.code.CatchHandlers;
-import com.android.tools.r8.ir.code.DebugPosition;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.SourceCode;
 import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
@@ -593,7 +593,7 @@ public class MainDexListTests extends TestBase {
                 code);
         IRCode ir = code.buildIR(method, options);
         RegisterAllocator allocator = new LinearScanRegisterAllocator(ir, options);
-        method.setCode(ir, allocator, factory);
+        method.setCode(ir, allocator, factory, options);
         directMethods[i] = method;
       }
       builder.addProgramClass(
@@ -705,8 +705,13 @@ public class MainDexListTests extends TestBase {
     }
 
     @Override
-    public DebugPosition getDebugPositionAtOffset(int offset) {
+    public Position getDebugPositionAtOffset(int offset) {
       throw new Unreachable();
+    }
+
+    @Override
+    public Position getCurrentPosition() {
+      return Position.none();
     }
 
     @Override

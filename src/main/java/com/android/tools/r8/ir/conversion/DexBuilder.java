@@ -33,12 +33,12 @@ import com.android.tools.r8.code.MoveWideFrom16;
 import com.android.tools.r8.code.Nop;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexCode.Try;
 import com.android.tools.r8.graph.DexCode.TryHandler;
 import com.android.tools.r8.graph.DexCode.TryHandler.TypeAddrPair;
 import com.android.tools.r8.graph.DexDebugEventBuilder;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
@@ -52,17 +52,21 @@ import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Move;
 import com.android.tools.r8.ir.code.NewArrayFilledData;
+import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.Switch;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
+import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceMaps;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
@@ -80,6 +84,8 @@ public class DexBuilder {
   private final RegisterAllocator registerAllocator;
 
   private final DexItemFactory dexItemFactory;
+
+  private final InternalOptions options;
 
   // List of information about switch payloads that have to be created at the end of the
   // dex code.
@@ -109,13 +115,18 @@ public class DexBuilder {
 
   BasicBlock nextBlock;
 
-  public DexBuilder(IRCode ir, RegisterAllocator registerAllocator, DexItemFactory dexItemFactory) {
+  public DexBuilder(
+      IRCode ir,
+      RegisterAllocator registerAllocator,
+      DexItemFactory dexItemFactory,
+      InternalOptions options) {
     assert ir != null;
     assert registerAllocator != null;
     assert dexItemFactory != null;
     this.ir = ir;
     this.registerAllocator = registerAllocator;
     this.dexItemFactory = dexItemFactory;
+    this.options = options;
   }
 
   private void reset() {
@@ -149,12 +160,12 @@ public class DexBuilder {
       // Reset the state of the builder to start from scratch.
       reset();
 
-      // Populate the builder info objects.
-      numberOfInstructions = 0;
-
       // Remove redundant debug position instructions. They would otherwise materialize as
       // unnecessary nops.
       removeRedundantDebugPositions();
+
+      // Populate the builder info objects.
+      numberOfInstructions = 0;
 
       ListIterator<BasicBlock> iterator = ir.listIterator();
       assert iterator.hasNext();
@@ -177,22 +188,16 @@ public class DexBuilder {
     } while (!ifsNeedingRewrite.isEmpty());
 
     // Build instructions.
-    DexDebugEventBuilder debugEventBuilder = new DexDebugEventBuilder(ir.method, dexItemFactory);
+    DexDebugEventBuilder debugEventBuilder = new DexDebugEventBuilder(ir, options);
     List<Instruction> dexInstructions = new ArrayList<>(numberOfInstructions);
     int instructionOffset = 0;
     InstructionIterator instructionIterator = ir.instructionIterator();
-    DexEncodedMethod.DebugPositionRangeList.Builder debugPositionListBuilder =
-        new DexEncodedMethod.DebugPositionRangeList.Builder();
     while (instructionIterator.hasNext()) {
       com.android.tools.r8.ir.code.Instruction ir = instructionIterator.next();
-      if (ir.isDebugPosition()) {
-        int line = ir.asDebugPosition().line;
-        debugPositionListBuilder.add(line, line);
-      }
       Info info = getInfo(ir);
       int previousInstructionCount = dexInstructions.size();
       info.addInstructions(this, dexInstructions);
-      debugEventBuilder.add(instructionOffset, ir);
+      int instructionStartOffset = instructionOffset;
       if (previousInstructionCount < dexInstructions.size()) {
         while (previousInstructionCount < dexInstructions.size()) {
           Instruction instruction = dexInstructions.get(previousInstructionCount++);
@@ -200,9 +205,10 @@ public class DexBuilder {
           instructionOffset += instruction.getSize();
         }
       }
+      debugEventBuilder.add(instructionStartOffset, instructionOffset, ir);
     }
 
-    ir.method.debugPositionRangeList = debugPositionListBuilder.build();
+    ir.method.debugPositionRangeList = debugEventBuilder.buildPositionRanges();
 
     // Compute switch payloads.
     for (SwitchPayloadInfo switchPayloadInfo : switchPayloadInfos) {
@@ -251,21 +257,114 @@ public class DexBuilder {
     return code;
   }
 
+  private static boolean verifyNopHasNoPosition(
+      com.android.tools.r8.ir.code.Instruction instruction, ListIterator<BasicBlock> blocks) {
+    BasicBlock nextBlock = null;
+    if (blocks.hasNext()) {
+      nextBlock = blocks.next();
+      blocks.previous();
+    }
+    return verifyNopHasNoPosition(instruction, nextBlock);
+  }
+
+  private static boolean verifyNopHasNoPosition(
+      com.android.tools.r8.ir.code.Instruction instruction, BasicBlock nextBlock) {
+    if (isNopInstruction(instruction, nextBlock)) {
+      assert instruction.getPosition().isNone();
+    }
+    return true;
+  }
+
+  // Eliminates unneeded debug positions.
+  //
+  // After this pass all instructions that don't materialize to an actual DEX instruction will have
+  // Position.none(). If any other instruction has a non-none position then all other instructions
+  // that do materialize to a DEX instruction (eg, non-fallthrough gotos) will have a non-none
+  // position.
+  //
+  // Remaining debug positions indicate two successive lines without intermediate instructions.
+  // For these we must emit a nop instruction to ensure they don't share the same pc.
   private void removeRedundantDebugPositions() {
-    ListIterator<BasicBlock> iterator = ir.listIterator();
-    DebugPosition lastMoveExceptionPosition = null;
-    while (iterator.hasNext()) {
-      BasicBlock next = iterator.next();
-      InstructionListIterator it = next.listIterator();
-      while (it.hasNext()) {
-        com.android.tools.r8.ir.code.Instruction instruction = it.next();
-        if (instruction.isDebugPosition()) {
-          if (instruction.asDebugPosition().equals(lastMoveExceptionPosition)) {
-            it.remove();
+    if (!ir.hasDebugPositions) {
+      return;
+    }
+    Int2ReferenceMap[] localsMap = new Int2ReferenceMap[instructionToInfo.length];
+    // Scan forwards removing debug positions equal to the previous instruction position.
+    {
+      Int2ReferenceMap<DebugLocalInfo> locals = Int2ReferenceMaps.emptyMap();
+      Position previous = Position.none();
+      ListIterator<BasicBlock> blockIterator = ir.listIterator();
+      BasicBlock previousBlock = null;
+      while (blockIterator.hasNext()) {
+        BasicBlock block = blockIterator.next();
+        if (previousBlock != null
+            && previousBlock.exit().isGoto()
+            && !isNopInstruction(previousBlock.exit(), block)) {
+          assert previousBlock.exit().getPosition().isNone()
+              || previousBlock.exit().getPosition().equals(previous);
+          previousBlock.exit().forceSetPosition(previous);
+        }
+        InstructionListIterator instructionIterator = block.listIterator();
+        if (block.getLocalsAtEntry() != null && !locals.equals(block.getLocalsAtEntry())) {
+          locals = new Int2ReferenceOpenHashMap<>(block.getLocalsAtEntry());
+        }
+        while (instructionIterator.hasNext()) {
+          com.android.tools.r8.ir.code.Instruction instruction = instructionIterator.next();
+          if (instruction.isDebugPosition() && previous.equals(instruction.getPosition())) {
+            instructionIterator.remove();
+          } else if (instruction.isConstNumber() && !instruction.outValue().needsRegister()) {
+            instruction.forceSetPosition(Position.none());
+          } else if (instruction.getPosition().isSome()) {
+            assert verifyNopHasNoPosition(instruction, blockIterator);
+            previous = instruction.getPosition();
           }
-          lastMoveExceptionPosition = null;
-        } else if (instruction.isMoveException()) {
-          lastMoveExceptionPosition = instruction.asMoveException().getPosition();
+          if (instruction.isDebugLocalsChange()) {
+            locals = new Int2ReferenceOpenHashMap<>(locals);
+            instruction.asDebugLocalsChange().apply(locals);
+          }
+          localsMap[instructionNumberToIndex(instruction.getNumber())] = locals;
+        }
+        previousBlock = block;
+      }
+      if (previousBlock != null && previousBlock.exit().isGoto()) {
+        // If the last block ends in a goto it cannot be a fallthrough/nop.
+        assert previousBlock.exit().getPosition().isNone();
+        previousBlock.exit().forceSetPosition(previous);
+      }
+    }
+    // Scan backwards removing debug positions equal to the following instruction position.
+    {
+      ListIterator<BasicBlock> blocks = ir.blocks.listIterator(ir.blocks.size());
+      BasicBlock block = null;
+      BasicBlock nextBlock;
+      com.android.tools.r8.ir.code.Instruction next = null;
+      Int2ReferenceMap nextLocals = null;
+      while (blocks.hasPrevious()) {
+        nextBlock = block;
+        block = blocks.previous();
+        InstructionListIterator instructions = block.listIterator(block.getInstructions().size());
+        while (instructions.hasPrevious()) {
+          com.android.tools.r8.ir.code.Instruction instruction = instructions.previous();
+          int index = instructionNumberToIndex(instruction.getNumber());
+          if (instruction.isDebugPosition() && localsMap[index].equals(nextLocals)) {
+            Position nextPosition = next.getPosition();
+            Position thisPosition = instruction.getPosition();
+            if (nextPosition.isNone()) {
+              next.forceSetPosition(thisPosition);
+              instructions.remove();
+            } else if (nextPosition.equals(thisPosition)) {
+              instructions.remove();
+            } else {
+              next = instruction;
+            }
+          } else {
+            assert verifyNopHasNoPosition(instruction, nextBlock);
+            if (!isNopInstruction(instruction, nextBlock)) {
+              next = instruction;
+              nextLocals = localsMap[index];
+              assert nextLocals != null;
+            }
+          }
         }
       }
     }
@@ -349,39 +448,22 @@ public class DexBuilder {
   }
 
   public void addNop(com.android.tools.r8.ir.code.Instruction instruction) {
+    assert instruction.getPosition().isNone();
     add(instruction, new FallThroughInfo(instruction));
   }
 
-  private static boolean isNopInstruction(com.android.tools.r8.ir.code.Instruction instruction) {
-    return instruction.isDebugLocalsChange()
-        || (instruction.isConstNumber() && !instruction.outValue().needsRegister());
+  private static boolean isNopInstruction(
+      com.android.tools.r8.ir.code.Instruction instruction, BasicBlock nextBlock) {
+    return instruction.isArgument()
+        || instruction.isDebugLocalsChange()
+        || (instruction.isConstNumber() && !instruction.outValue().needsRegister())
+        || instruction.isGoto() && instruction.asGoto().getTarget() == nextBlock;
   }
 
   public void addDebugPosition(DebugPosition position) {
-    BasicBlock block = position.getBlock();
-    int blockIndex = ir.blocks.indexOf(block);
-    Iterator<com.android.tools.r8.ir.code.Instruction> iterator = block.listIterator(position);
-
-    com.android.tools.r8.ir.code.Instruction next = null;
-    while (next == null) {
-      next = iterator.next();
-      while (isNopInstruction(next)) {
-        next = iterator.next();
-      }
-      if (next.isGoto()) {
-        ++blockIndex;
-        BasicBlock nextBlock = blockIndex < ir.blocks.size() ? ir.blocks.get(blockIndex) : null;
-        if (next.asGoto().getTarget() == nextBlock) {
-          iterator = nextBlock.iterator();
-          next = null;
-        }
-      }
-    }
-    if (next.isDebugPosition() && !position.equals(next.asDebugPosition())) {
-      add(position, new FixedSizeInfo(position, new Nop()));
-    } else {
-      addNop(position);
-    }
+    // Remaining debug positions always require we emit an actual nop instruction.
+    // See removeRedundantDebugPositions.
+    add(position, new FixedSizeInfo(position, new Nop()));
   }
 
   public void add(com.android.tools.r8.ir.code.Instruction ir, Instruction dex) {
@@ -411,30 +493,13 @@ public class DexBuilder {
   }
 
   public void addReturn(Return ret, Instruction dex) {
-    if (nextBlock != null) {
-      Return followingRet = nextBlock.exit().asReturn();
-      if (nextBlock.getInstructions().size() == 1
-          && followingRet != null
-          && ret.getReturnType() == followingRet.getReturnType()) {
-        if (ret.isReturnVoid() && followingRet.isReturnVoid()) {
-          addNop(ret);
-          return;
-        }
-        if (!ret.isReturnVoid()
-            && !followingRet.isReturnVoid()
-            && ret.returnValue().outType() == followingRet.returnValue().outType()) {
-          int thisRegister = registerAllocator.getRegisterForValue(
-              ret.returnValue(), ret.getNumber());
-          int otherRegister = registerAllocator.getRegisterForValue(
-              followingRet.returnValue(), followingRet.getNumber());
-          if (thisRegister == otherRegister) {
-            addNop(ret);
-            return;
-          }
-        }
-      }
+    if (nextBlock != null
+        && ret.identicalAfterRegisterAllocation(nextBlock.entry(), registerAllocator)) {
+      ret.forceSetPosition(Position.none());
+      addNop(ret);
+    } else {
+      add(ret, dex);
     }
-    add(ret, dex);
   }
 
   private void add(com.android.tools.r8.ir.code.Instruction ir, Info info) {
@@ -889,7 +954,7 @@ public class DexBuilder {
       } else {
         size = 3;
       }
-      if (targetInfo.getIR().isReturn() && canTargetReturn(targetInfo.getIR().asReturn())) {
+      if (targetInfo.getIR().isReturn() && targetInfo.getIR().getPosition().isNone()) {
         // Set the size to the min of the size of the return and the size of the goto. When
         // adding instructions, we use the return if the computed size matches the size of the
         // return.
@@ -909,7 +974,7 @@ public class DexBuilder {
       // Emit a return if the target is a return and the size of the return is the computed
       // size of this instruction.
       Return ret = targetInfo.getIR().asReturn();
-      if (ret != null && size == targetInfo.getSize() && canTargetReturn(ret)) {
+      if (ret != null && size == targetInfo.getSize() && ret.getPosition().isNone()) {
         Instruction dex = ret.createDexInstruction(builder);
         dex.setOffset(getOffset()); // for better printing of the dex code.
         instructions.add(dex);
@@ -949,18 +1014,6 @@ public class DexBuilder {
         dex.setOffset(getOffset()); // for better printing of the dex code.
         instructions.add(dex);
       }
-    }
-
-    private static boolean canTargetReturn(Return ret) {
-      InstructionListIterator it = ret.getBlock().listIterator(ret);
-      com.android.tools.r8.ir.code.Instruction prev = it.previous();
-      while (it.hasPrevious()) {
-        prev = it.previous();
-        if (!DexBuilder.isNopInstruction(prev)) {
-          break;
-        }
-      }
-      return !prev.isDebugPosition();
     }
   }
 

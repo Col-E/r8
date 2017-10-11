@@ -9,6 +9,7 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Move;
 import com.android.tools.r8.ir.code.MoveType;
+import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -30,12 +31,20 @@ public class RegisterMoveScheduler {
   private int usedTempRegisters = 0;
   // Location at which to insert the scheduled moves.
   private final InstructionListIterator insertAt;
+  // Debug position associated with insertion point.
+  private final Position position;
   // The first available temporary register.
   private final int tempRegister;
 
-  public RegisterMoveScheduler(InstructionListIterator insertAt, int tempRegister) {
+  public RegisterMoveScheduler(
+      InstructionListIterator insertAt, int tempRegister, Position position) {
     this.insertAt = insertAt;
     this.tempRegister = tempRegister;
+    this.position = position;
+  }
+
+  public RegisterMoveScheduler(InstructionListIterator insertAt, int tempRegister) {
+    this(insertAt, tempRegister, Position.none());
   }
 
   public void addMove(RegisterMove move) {
@@ -133,6 +142,7 @@ public class RegisterMoveScheduler {
       Value from = new FixedRegisterValue(move.type, valueMap.get(move.src));
       instruction = new Move(to, from);
     }
+    instruction.setPosition(position);
     insertAt.add(instruction);
     return move.dst;
 
@@ -152,7 +162,9 @@ public class RegisterMoveScheduler {
       // of generating a new one.
       Value to = new FixedRegisterValue(moveWithSrc.type, tempRegister + usedTempRegisters);
       Value from = new FixedRegisterValue(moveWithSrc.type, valueMap.get(moveWithSrc.src));
-      insertAt.add(new Move(to, from));
+      Move instruction = new Move(to, from);
+      instruction.setPosition(position);
+      insertAt.add(instruction);
       valueMap.put(moveWithSrc.src, tempRegister + usedTempRegisters);
       usedTempRegisters += moveWithSrc.type == MoveType.WIDE ? 2 : 1;
     }

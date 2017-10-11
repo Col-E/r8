@@ -111,6 +111,7 @@ public class LensCodeRewriter {
                   newValue,
                   newInvoke.outValue(),
                   graphLense.lookupType(invokedMethod.proto.returnType, method));
+              cast.setPosition(current.getPosition());
               iterator.add(cast);
               // If the current block has catch handlers split the check cast into its own block.
               if (newInvoke.getBlock().hasCatchHandlers()) {

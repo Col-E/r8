@@ -11,6 +11,8 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -88,8 +90,15 @@ public abstract class DebugTestBase {
     ART
   }
 
+  enum DexCompilerKind {
+    DX,
+    D8
+  }
+
   // Set to JAVA to run tests with java
   private static final RuntimeKind RUNTIME_KIND = RuntimeKind.ART;
+
+  private static final DexCompilerKind DEX_COMPILER_KIND = DexCompilerKind.D8;
 
   // Set to true to enable verbose logs
   private static final boolean DEBUG_TESTS = false;
@@ -123,35 +132,63 @@ public abstract class DebugTestBase {
       Consumer<InternalOptions> optionsConsumer,
       Consumer<ProguardConfiguration.Builder> pgConsumer)
       throws Exception {
-    // Convert jar to dex with d8 with debug info
-    jdwpDexD8 = compileToDex(null, JDWP_JAR);
     // TODO(zerny): supply a set of compilers to run with.
-    debuggeeDexD8 = compileToDex(optionsConsumer, DEBUGGEE_JAR);
+    // Compile the debuggee code first so potential compilation errors or debugging breakpoints hit
+    // here first.
+    debuggeeDexD8 = compileToDex(DEBUGGEE_JAR, optionsConsumer);
     debuggeeDexR8 = compileToDexViaR8(optionsConsumer, pgConsumer, DEBUGGEE_JAR);
-    debuggeeJava8DexD8 = compileToDex(options -> {
+    debuggeeJava8DexD8 = compileToDex(DEBUGGEE_JAVA8_JAR, options -> {
       // Enable desugaring for preN runtimes
       options.interfaceMethodDesugaring = OffOrAuto.Auto;
       if (optionsConsumer != null) {
         optionsConsumer.accept(options);
       }
-    }, DEBUGGEE_JAVA8_JAR);
-    debuggeeKotlinDexD8 = compileToDex(optionsConsumer, DEBUGGEE_KOTLIN_JAR);
+    });
+    debuggeeKotlinDexD8 = compileToDex(DEBUGGEE_KOTLIN_JAR, optionsConsumer);
+    // Convert jar to dex with d8 with debug info
+    jdwpDexD8 = compileToDex(JDWP_JAR, null);
   }
 
-  static Path compileToDex(Consumer<InternalOptions> optionsConsumer, Path jarToCompile)
+  protected static Path compileToDex(Path jarToCompile, Consumer<InternalOptions> optionsConsumer)
+      throws IOException, CompilationException {
+    return compileToDex(DEX_COMPILER_KIND, jarToCompile, optionsConsumer);
+  }
+
+  static Path compileToDex(
+      DexCompilerKind compiler, Path jarToCompile, Consumer<InternalOptions> optionsConsumer)
       throws IOException, CompilationException {
     int minSdk = ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm());
     assert jarToCompile.toFile().exists();
     Path dexOutputDir = temp.newFolder().toPath();
-    ToolHelper.runD8(
-        D8Command.builder()
-            .addProgramFiles(jarToCompile)
-            .setOutputPath(dexOutputDir)
-            .setMinApiLevel(minSdk)
-            .setMode(CompilationMode.DEBUG)
-            .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(minSdk)))
-            .build(),
-        optionsConsumer);
+    switch (compiler) {
+      case D8:
+        {
+          ToolHelper.runD8(
+              D8Command.builder()
+                  .addProgramFiles(jarToCompile)
+                  .setOutputPath(dexOutputDir)
+                  .setMinApiLevel(minSdk)
+                  .setMode(CompilationMode.DEBUG)
+                  .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(minSdk)))
+                  .build(),
+              optionsConsumer);
+          break;
+        }
+      case DX:
+        {
+          ProcessResult result =
+              ToolHelper.runDX(
+                  new String[] {
+                    "--output=" + dexOutputDir,
+                    "--min-sdk-version=" + minSdk,
+                    jarToCompile.toString()
+                  });
+          Assert.assertEquals(result.stderr, 0, result.exitCode);
+          break;
+        }
+      default:
+        throw new Unreachable();
+    }
     return dexOutputDir.resolve("classes.dex");
   }
 

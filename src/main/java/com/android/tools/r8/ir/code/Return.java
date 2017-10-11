@@ -71,7 +71,7 @@ public class Return extends JumpInstruction {
   }
 
   @Override
-  public boolean identicalNonValueParts(Instruction other) {
+  public boolean identicalNonValueNonPositionParts(Instruction other) {
     if (isReturnVoid()) {
       return other.asReturn().isReturnVoid();
     } else {

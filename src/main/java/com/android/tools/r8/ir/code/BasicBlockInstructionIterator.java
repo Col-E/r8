@@ -17,6 +17,7 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
   protected final BasicBlock block;
   protected final ListIterator<Instruction> listIterator;
   protected Instruction current;
+  protected Position position = null;
 
   protected BasicBlockInstructionIterator(BasicBlock block) {
     this.block = block;
@@ -65,6 +66,11 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
     return listIterator.previousIndex();
   }
 
+  @Override
+  public void setInsertionPosition(Position position) {
+    this.position = position;
+  }
+
   /**
    * Adds an instruction to the block. The instruction will be added just before the current
    * cursor position.
@@ -77,6 +83,9 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
   public void add(Instruction instruction) {
     instruction.setBlock(block);
     assert instruction.getBlock() == block;
+    if (position != null) {
+      instruction.setPosition(position);
+    }
     listIterator.add(instruction);
   }
 
@@ -162,6 +171,7 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
     }
     current.moveDebugValues(newInstruction);
     newInstruction.setBlock(block);
+    newInstruction.setPosition(current.getPosition());
     listIterator.remove();
     listIterator.add(newInstruction);
     current.clearBlock();
@@ -332,6 +342,11 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
     assert invokeBlock.getInstructions().size() == 2;
     assert invokeBlock.getInstructions().getFirst().isInvoke();
 
+    // Invalidate position-on-throwing-instructions property if it does not hold for the inlinee.
+    if (!inlinee.doAllThrowingInstructionsHavePositions()) {
+      code.setAllThrowingInstructionsHavePositions(false);
+    }
+
     // Split the invoke instruction into a separate block.
     Invoke invoke = invokeBlock.getInstructions().getFirst().asInvoke();
     BasicBlock invokePredecessor = invokeBlock.getPredecessors().get(0);
@@ -349,6 +364,7 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
         Value receiverValue = arguments.get(0);
         Value value = code.createValue(MoveType.OBJECT);
         castInstruction = new CheckCast(value, invokeValue, downcast);
+        castInstruction.setPosition(invoke.getPosition());
         receiverValue.replaceUsers(value);
       } else {
         arguments.get(i).replaceUsers(invoke.inValues().get(i));
@@ -474,6 +490,8 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
       }
       newReturn = new Return(value, value.outType());
     }
+    // The newly constructed return will be eliminated as part of inlining so we set position none.
+    newReturn.setPosition(Position.none());
     newExitBlock.add(newReturn);
     for (BasicBlock exitBlock : normalExits) {
       InstructionListIterator it = exitBlock.listIterator(exitBlock.getInstructions().size());

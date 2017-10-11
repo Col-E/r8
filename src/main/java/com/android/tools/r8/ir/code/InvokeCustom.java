@@ -72,7 +72,7 @@ public final class InvokeCustom extends Invoke {
   }
 
   @Override
-  public boolean identicalNonValueParts(Instruction other) {
+  public boolean identicalNonValueNonPositionParts(Instruction other) {
     return other.isInvokeCustom() && callSite == other.asInvokeCustom().callSite;
   }
 

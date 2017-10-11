@@ -83,7 +83,7 @@ public class InstanceGet extends FieldInstruction {
   }
 
   @Override
-  public boolean identicalNonValueParts(Instruction other) {
+  public boolean identicalNonValueNonPositionParts(Instruction other) {
     InstanceGet o = other.asInstanceGet();
     return o.field == field && o.type == type;
   }

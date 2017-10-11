@@ -30,23 +30,20 @@ public class JasminDebugTest extends DebugTestBase {
     final String className = "UselessCheckCast";
     final String sourcefile = className + ".j";
     final String methodName = "test";
-    runDebugTest(getExtraPaths(getBuilderForUselessCheckcast(className, methodName)),
+    List<Path> paths = getExtraPaths(getBuilderForUselessCheckcast(className, methodName));
+    runDebugTest(paths,
         className,
         breakpoint(className, methodName),
         run(),
-        checkLine(sourcefile, 8),
+        checkLine(sourcefile, 1),
         stepOver(),
-        checkLine(sourcefile, 9),
-        stepOver(),
-        checkLine(sourcefile, 10),
-        stepOver(),
-        checkLine(sourcefile, 12),
+        checkLine(sourcefile, 2),
         checkLocal("local"),
         stepOver(),
-        checkLine(sourcefile, 14),
+        checkLine(sourcefile, 3),
         checkNoLocal("local"),
         stepOver(),
-        checkLine(sourcefile, 15),
+        checkLine(sourcefile, 4),
         run());
   }
 
@@ -58,13 +55,17 @@ public class JasminDebugTest extends DebugTestBase {
         ".limit stack 1",
         ".limit locals 3",
         ".var 1 is local Ljava/lang/Object; from Label1 to Label2",
+        ".line 1",
         " aload 0",
         " dup",
         " astore 1",
         " Label1:",
+        ".line 2",
         " checkcast " + testClassName,
         " Label2:",
+        ".line 3",
         " checkcast " + testClassName,
+        ".line 4",
         "return");
 
     clazz.addMainMethod(
@@ -84,14 +85,14 @@ public class JasminDebugTest extends DebugTestBase {
 
     for (ClassBuilder clazz : classes) {
       ClassFile file = new ClassFile();
-      file.readJasmin(new StringReader(clazz.toString()), clazz.name, true);
+      file.readJasmin(new StringReader(clazz.toString()), clazz.name, false);
       Path path = out.toPath().resolve(clazz.name + ".class");
       Files.createDirectories(path.getParent());
       file.write(new FileOutputStream(path.toFile()));
       if (isRunningJava()) {
         extraPaths.add(path);
       } else {
-        extraPaths.add(compileToDex(null, path));
+        extraPaths.add(compileToDex(path, null));
       }
     }
 

@@ -11,6 +11,7 @@ import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.ConstType;
 import com.android.tools.r8.ir.code.MoveType;
 import com.android.tools.r8.ir.code.NumericType;
+import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
 import org.junit.Test;
 
@@ -54,7 +55,9 @@ public class IdenticalAfterRegisterAllocationTest {
     ConstNumber const2 = new ConstNumber(ConstType.INT, value2, 2);
     Value value3 = new Value(2, MoveType.SINGLE, null);
     Add add0 = new Add(NumericType.INT, value3, value0, value1);
+    add0.setPosition(Position.none());
     Add add1 = new Add(NumericType.INT, value3, value0, value2);
+    add1.setPosition(Position.none());
     value0.computeNeedsRegister();
     assertTrue(value0.needsRegister());
     value1.computeNeedsRegister();

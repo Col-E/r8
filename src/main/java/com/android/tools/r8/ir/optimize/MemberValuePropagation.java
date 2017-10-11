@@ -110,6 +110,7 @@ public class MemberValuePropagation {
         assert replacement.outValue() != null;
         current.outValue().replaceUsers(replacement.outValue());
       }
+      replacement.setPosition(current.getPosition());
       iterator.add(replacement);
     }
   }
@@ -174,6 +175,7 @@ public class MemberValuePropagation {
               Instruction knownConstReturn =
                   new ConstNumber(ConstType.fromMoveType(moveType), value, constant);
               invoke.outValue().replaceUsers(value);
+              knownConstReturn.setPosition(invoke.getPosition());
               iterator.add(knownConstReturn);
             }
           }

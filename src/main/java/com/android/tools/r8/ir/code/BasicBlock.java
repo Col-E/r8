@@ -770,6 +770,10 @@ public class BasicBlock {
     return "";
   }
 
+  private static int digits(int number) {
+    return (int) Math.ceil(Math.log10(number + 1));
+  }
+
   public String toDetailedString() {
     StringBuilder builder = new StringBuilder();
     builder.append("block ");
@@ -813,10 +817,26 @@ public class BasicBlock {
       StringUtils.append(builder, localsAtEntry.int2ReferenceEntrySet(), ", ", BraceType.NONE);
       builder.append('\n');
     }
+    int lineColumn = 0;
+    int numberColumn = 0;
     for (Instruction instruction : instructions) {
-      StringUtils.appendLeftPadded(builder, Integer.toString(instruction.getNumber()), 6);
+      lineColumn = Math.max(lineColumn, instruction.getPosition().toString().length());
+      numberColumn = Math.max(numberColumn, digits(instruction.getNumber()));
+    }
+    Position currentPosition = null;
+    for (Instruction instruction : instructions) {
+      if (lineColumn > 0) {
+        String line = "";
+        if (!instruction.getPosition().equals(currentPosition)) {
+          currentPosition = instruction.getPosition();
+          line = currentPosition.toString();
+        }
+        StringUtils.appendLeftPadded(builder, line, lineColumn + 1);
+        builder.append(": ");
+      }
+      StringUtils.appendLeftPadded(builder, "" + instruction.getNumber(), numberColumn + 1);
       builder.append(": ");
-      StringUtils.appendRightPadded(builder, instruction.toString(), 20);
+      builder.append(instruction.toString());
       if (DebugLocalInfo.PRINT_LEVEL != PrintLevel.NONE) {
         List<Value> localEnds = new ArrayList<>(instruction.getDebugValues().size());
         List<Value> localStarts = new ArrayList<>(instruction.getDebugValues().size());
@@ -1009,6 +1029,27 @@ public class BasicBlock {
     return instructions.size() == 1 && exit().isGoto();
   }
 
+  // Find the final target from this goto block. Returns null if the goto chain is cyclic.
+  public BasicBlock endOfGotoChain() {
+    BasicBlock hare = this;
+    BasicBlock tortuous = this;
+    boolean advance = false;
+    while (hare.isTrivialGoto()) {
+      hare = hare.exit().asGoto().getTarget();
+      tortuous = advance ? tortuous.exit().asGoto().getTarget() : tortuous;
+      advance = !advance;
+      if (hare == tortuous) {
+        return null;
+      }
+    }
+    return hare;
+  }
+
+  public Position getPosition() {
+    BasicBlock block = endOfGotoChain();
+    return block != null ? block.entry().getPosition() : Position.none();
+  }
+
   public boolean hasOneNormalExit() {
     return successors.size() == 1 && exit().isGoto();
   }
@@ -1197,11 +1238,10 @@ public class BasicBlock {
     List<BasicBlock> predecessors = this.getPredecessors();
     boolean hasMoveException = entry().isMoveException();
     MoveException move = null;
-    DebugPosition position = null;
+    Position position = entry().getPosition();
     if (hasMoveException) {
       // Remove the move-exception instruction.
       move = entry().asMoveException();
-      position = move.getPosition();
       assert move.getDebugValues().isEmpty();
       getInstructions().remove(0);
     }
@@ -1221,9 +1261,7 @@ public class BasicBlock {
         values.add(value);
         MoveException newMove = new MoveException(value);
         newBlock.add(newMove);
-        if (position != null) {
-          newMove.setPosition(new DebugPosition(position.line, position.file));
-        }
+        newMove.setPosition(position);
       }
       newBlock.add(new Goto());
       newBlock.close(null);
