@@ -4,7 +4,7 @@
 package com.android.tools.r8.debug;
 
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import org.junit.Assume;
 import org.junit.Test;
 
@@ -18,7 +18,7 @@ public class FinallyBlockTest extends DebugTestBase {
   public void testEmptyBlock() throws Throwable {
     Assume.assumeTrue(
         "Older runtimes incorrectly step out of function: b/67671565",
-        ToolHelper.getDexVm().isNewerThan(DexVm.ART_6_0_1_TARGET));
+        ToolHelper.getDexVm().getVersion().isNewerThan(Version.V6_0_1));
     final String method = "finallyBlock";
     runDebugTest(CLASS,
         breakpoint(CLASS, method),

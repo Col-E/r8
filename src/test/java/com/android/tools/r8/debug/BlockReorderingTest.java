@@ -4,7 +4,7 @@
 package com.android.tools.r8.debug;
 
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -20,7 +20,7 @@ public class BlockReorderingTest extends DebugTestBase {
   @BeforeClass
   public static void setUp() throws Exception {
     // Force inversion of all conditionals to reliably construct a regression test for incorrect
-    // line information when reording blocks.
+    // line information when reordering blocks.
     setUp(options -> options.testing.invertConditionals = true, null);
   }
 
@@ -28,7 +28,7 @@ public class BlockReorderingTest extends DebugTestBase {
   public void testConditionalReturn() throws Throwable {
     Assume.assumeTrue(
         "Older runtimes incorrectly step out of function: b/67671565",
-        ToolHelper.getDexVm().isNewerThan(DexVm.ART_6_0_1_TARGET));
+        ToolHelper.getDexVm().getVersion().isNewerThan(Version.V6_0_1));
     final String method = "conditionalReturn";
     runDebugTest(CLASS,
         breakpoint(CLASS, method),
@@ -37,8 +37,8 @@ public class BlockReorderingTest extends DebugTestBase {
         checkLine(FILE, 13),
         run(),
         checkLine(FILE, 8), stepOver(),
-        checkLine(FILE, 9),
-        checkLine(FILE, 13), // TODO(): Art 5.1.1 and 6.0.1 return to main here.
+        checkLine(FILE, 9), stepOver(),
+        checkLine(FILE, 13),
         run());
   }
 
@@ -46,7 +46,7 @@ public class BlockReorderingTest extends DebugTestBase {
   public void testInvertConditionalReturn() throws Throwable {
     Assume.assumeTrue(
         "Older runtimes incorrectly step out of function: b/67671565",
-        ToolHelper.getDexVm().isNewerThan(DexVm.ART_6_0_1_TARGET));
+        ToolHelper.getDexVm().getVersion().isNewerThan(Version.V6_0_1));
     final String method = "invertConditionalReturn";
     runDebugTest(CLASS,
         breakpoint(CLASS, method),
@@ -64,7 +64,7 @@ public class BlockReorderingTest extends DebugTestBase {
   public void testFallthroughReturn() throws Throwable {
     Assume.assumeTrue(
         "Older runtimes incorrectly step out of function: b/67671565",
-        ToolHelper.getDexVm().isNewerThan(DexVm.ART_6_0_1_TARGET));
+        ToolHelper.getDexVm().getVersion().isNewerThan(Version.V6_0_1));
     final String method = "fallthroughReturn";
     runDebugTest(CLASS,
         breakpoint(CLASS, method),
