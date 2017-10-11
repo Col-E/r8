@@ -574,7 +574,42 @@ public class StaticValuesTest extends SmaliTestBase {
   }
 
   @Test
-  public void b67468748() throws Exception {
+  public void b67468748InitializeStaticFieldInSuper() throws Exception {
+    final String SUPER_NAME = "Super";
+    final String CLASS_NAME = "Test";
+
+    SmaliBuilder builder = new SmaliBuilder();
+    builder.addClass(SUPER_NAME);
+    builder.addStaticField("intField", "I");
+
+    // The static field LTest;->intField:I is not defined even though it is written in the
+    // <clinit> code. This class cannot load, but we can still process it to output which still
+    // cannot load.
+    builder.addClass(CLASS_NAME, SUPER_NAME);
+    builder.addStaticInitializer(
+        2,
+        "const               v0, 3",
+        "sput                v0, LTest;->intField:I",
+        "return-void"
+    );
+    builder.addMainMethod(
+        3,
+        "sget-object         v0, Ljava/lang/System;->out:Ljava/io/PrintStream;",
+        "sget                v1, LTest;->intField:I",
+        "invoke-virtual      { v0, v1 }, Ljava/io/PrintStream;->print(I)V",
+        "return-void"
+    );
+
+    AndroidApp application = builder.build();
+
+    // Run in release mode to turn on initializer defaults rewriting.
+    application = compileWithD8(application, options -> options.debug = false);
+    String result = runOnArt(application, CLASS_NAME);
+    assertEquals(result, "3");
+  }
+
+  @Test
+  public void b67468748InvalidCode() throws Exception {
     final String CLASS_NAME = "Test";
 
     SmaliBuilder builder = new SmaliBuilder(CLASS_NAME);
@@ -592,7 +627,7 @@ public class StaticValuesTest extends SmaliTestBase {
         3,
         "sget-object         v0, Ljava/lang/System;->out:Ljava/io/PrintStream;",
         "sget                v1, LTest;->intField:I",
-        "invoke-virtual      { v0, v1 }, Ljava/io/PrintStream;->println(I)V",
+        "invoke-virtual      { v0, v1 }, Ljava/io/PrintStream;->print(I)V",
         "return-void"
     );
 

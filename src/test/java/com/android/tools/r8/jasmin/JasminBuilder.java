@@ -24,12 +24,18 @@ public class JasminBuilder {
 
   public static class ClassBuilder {
     public final String name;
+    public final String superName;
     private final List<String> methods = new ArrayList<>();
     private final List<String> fields = new ArrayList<>();
     private boolean makeInit = false;
 
     public ClassBuilder(String name) {
+      this(name, "java/lang/Object");
+    }
+
+    public ClassBuilder(String name, String superName) {
       this.name = name;
+      this.superName = superName;
     }
 
     public MethodSignature addVirtualMethod(
@@ -105,14 +111,14 @@ public class JasminBuilder {
       StringBuilder builder = new StringBuilder();
       builder.append(".source ").append(name).append(".j\n");
       builder.append(".class public ").append(name).append("\n");
-      builder.append(".super java/lang/Object\n");
+      builder.append(".super ").append(superName).append("\n");
       if (makeInit) {
         builder
             .append(".method public <init>()V\n")
             .append(".limit locals 1\n")
             .append(".limit stack 1\n")
             .append("  aload 0\n")
-            .append("  invokespecial java/lang/Object/<init>()V\n")
+            .append("  invokespecial ").append(superName).append("/<init>()V\n")
             .append("  return\n")
             .append(".end method\n");
       }
@@ -132,6 +138,12 @@ public class JasminBuilder {
 
   public ClassBuilder addClass(String name) {
     ClassBuilder builder = new ClassBuilder(name);
+    classes.add(builder);
+    return builder;
+  }
+
+  public ClassBuilder addClass(String name, String superName) {
+    ClassBuilder builder = new ClassBuilder(name, superName);
     classes.add(builder);
     return builder;
   }

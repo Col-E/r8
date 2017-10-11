@@ -17,7 +17,42 @@ import org.junit.Test;
 public class B67468748 extends JasminTestBase {
 
   @Test
-  public void jarInput() throws Exception {
+  public void initializeStaticFieldInSuper() throws Exception {
+    final String SUPER_NAME = "Super";
+    final String CLASS_NAME = "Test";
+
+    JasminBuilder builder = new JasminBuilder();
+
+    // Simple super class with just a static field.
+    JasminBuilder.ClassBuilder zuper = builder.addClass(SUPER_NAME);
+    zuper.addStaticField("intField", "I", null);
+
+    JasminBuilder.ClassBuilder clazz = builder.addClass(CLASS_NAME, SUPER_NAME);
+
+    // The static field Test/intField is actually defined on the super class.
+    clazz.addStaticMethod("<clinit>", ImmutableList.of(), "V",
+        ".limit stack 1",
+        ".limit locals 1",
+        "iconst_1",
+        "putstatic Test/intField I",
+        "return");
+
+    clazz.addMainMethod(
+        ".limit stack 2",
+        ".limit locals 1",
+        "getstatic java/lang/System/out Ljava/io/PrintStream;",
+        "getstatic Test/intField I",
+        "invokevirtual java/io/PrintStream/print(I)V",
+        "return");
+
+    // Run in release mode to turn on initializer defaults rewriting.
+    AndroidApp application = compileWithD8(builder, options -> options.debug = false);
+    String result = runOnArt(application, CLASS_NAME);
+    assertEquals("1", result);
+  }
+
+  @Test
+  public void invalidCode() throws Exception {
     final String CLASS_NAME = "Test";
 
     JasminBuilder builder = new JasminBuilder();
