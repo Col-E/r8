@@ -27,7 +27,6 @@ import com.android.tools.r8.ir.code.InvokeSuper;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.ListIterator;
 import java.util.Map;
@@ -199,8 +198,7 @@ public final class InterfaceMethodRewriter {
   }
 
   private boolean isInMainDexList(DexType iface) {
-    ImmutableSet<DexType> list = converter.application.mainDexList;
-    return list.contains(iface);
+    return converter.appInfo.isInMainDexList(iface);
   }
 
   // Represent a static interface method as a method of companion class.

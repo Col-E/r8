@@ -131,8 +131,8 @@ public class R8 {
     timing.begin("Create IR");
     try {
       IRConverter converter = new IRConverter(
-          timing, application, appInfo, options, printer, graphLense);
-      application = converter.optimize(executorService);
+          timing, appInfo, options, printer, graphLense);
+      application = converter.optimize(application, executorService);
     } finally {
       timing.end();
     }
@@ -226,7 +226,7 @@ public class R8 {
         if (options.proguardConfiguration.isPrintSeeds()) {
           ByteArrayOutputStream bytes = new ByteArrayOutputStream();
           PrintStream out = new PrintStream(bytes);
-          RootSetBuilder.writeSeeds(appInfo.withLiveness().pinnedItems, out);
+          RootSetBuilder.writeSeeds(appInfo.withLiveness().getPinnedItems(), out);
           out.flush();
           proguardSeedsData = bytes.toByteArray();
         }
@@ -261,10 +261,12 @@ public class R8 {
               appInfo.withLiveness(), graphLense, timing);
           graphLense = classMerger.run();
           timing.end();
+
           appInfo = appInfo.withLiveness()
               .prunedCopyFrom(application, classMerger.getRemovedClasses());
         }
-        appInfo = appInfo.withLiveness().rewrittenWithLense(graphLense);
+        application = application.asDirect().rewrittenWithLense(graphLense);
+        appInfo = appInfo.withLiveness().rewrittenWithLense(application.asDirect(), graphLense);
         // Collect switch maps and ordinals maps.
         new SwitchMapCollector(appInfo.withLiveness(), options).run();
         new EnumOrdinalMapCollector(appInfo.withLiveness(), options).run();

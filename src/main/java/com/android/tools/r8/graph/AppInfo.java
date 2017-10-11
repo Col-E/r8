@@ -32,10 +32,12 @@ public class AppInfo {
     this.definitions.putAll(previous.definitions);
   }
 
-  protected AppInfo(AppInfo previous, GraphLense lense) {
-    // Do not rewrite basic structure, as the type information in the lense is about applied uses
-    // and not definitions.
-    this(previous);
+  protected AppInfo(DirectMappedDexApplication application, GraphLense lense) {
+    // Rebuild information from scratch, as the application object has changed. We do not
+    // use the lense here, as it is about applied occurrences and not definitions.
+    // In particular, we have to invalidate the definitions cache, as its keys are no longer
+    // valid.
+    this(application);
   }
 
   private Map<Descriptor, KeyedDexItem> computeDefinitions(DexType type) {
@@ -329,6 +331,10 @@ public class AppInfo {
 
   public void registerNewType(DexType newType, DexType superType) {
     // We do not track subtyping relationships in the basic AppInfo. So do nothing.
+  }
+
+  public boolean isInMainDexList(DexType type) {
+    return app.mainDexList.contains(type);
   }
 
   public List<DexClass> getSuperTypeClasses(DexType type) {

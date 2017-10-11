@@ -63,7 +63,6 @@ public class IRConverter {
   private static final int PEEPHOLE_OPTIMIZATION_PASSES = 2;
 
   private final Timing timing;
-  public final DexApplication application;
   public final AppInfo appInfo;
   private final Outliner outliner;
   private final LambdaRewriter lambdaRewriter;
@@ -82,17 +81,14 @@ public class IRConverter {
 
   private IRConverter(
       Timing timing,
-      DexApplication application,
       AppInfo appInfo,
       GraphLense graphLense,
       InternalOptions options,
       CfgPrinter printer,
       boolean enableWholeProgramOptimizations) {
-    assert application != null;
     assert appInfo != null;
     assert options != null;
     this.timing = timing != null ? timing : new Timing("internal");
-    this.application = application;
     this.appInfo = appInfo;
     this.graphLense = graphLense != null ? graphLense : GraphLense.getIdentityLense();
     this.options = options;
@@ -126,10 +122,9 @@ public class IRConverter {
    * Create an IR converter for processing methods with full program optimization disabled.
    */
   public IRConverter(
-      DexApplication application,
       AppInfo appInfo,
       InternalOptions options) {
-    this(null, application, appInfo, null, options, null, false);
+    this(null, appInfo, null, options, null, false);
   }
 
   /**
@@ -137,11 +132,10 @@ public class IRConverter {
    */
   public IRConverter(
       Timing timing,
-      DexApplication application,
       AppInfo appInfo,
       InternalOptions options,
       CfgPrinter printer) {
-    this(timing, application, appInfo, null, options, printer, false);
+    this(timing, appInfo, null, options, printer, false);
   }
 
   /**
@@ -149,12 +143,11 @@ public class IRConverter {
    */
   public IRConverter(
       Timing timing,
-      DexApplication application,
       AppInfoWithSubtyping appInfo,
       InternalOptions options,
       CfgPrinter printer,
       GraphLense graphLense) {
-    this(timing, application, appInfo, graphLense, options, printer, true);
+    this(timing, appInfo, graphLense, options, printer, true);
   }
 
   private boolean enableInterfaceMethodDesugaring() {
@@ -187,7 +180,7 @@ public class IRConverter {
 
   private void removeLambdaDeserializationMethods() {
     if (lambdaRewriter != null) {
-      lambdaRewriter.removeLambdaDeserializationMethods(application.classes());
+      lambdaRewriter.removeLambdaDeserializationMethods(appInfo.classes());
     }
   }
 
@@ -206,7 +199,7 @@ public class IRConverter {
     }
   }
 
-  public DexApplication convertToDex(ExecutorService executor)
+  public DexApplication convertToDex(DexApplication application, ExecutorService executor)
       throws ExecutionException, ApiLevelException {
     removeLambdaDeserializationMethods();
 
@@ -313,16 +306,18 @@ public class IRConverter {
     }
   }
 
-  public DexApplication optimize() throws ExecutionException, ApiLevelException {
+  public DexApplication optimize(DexApplication application)
+      throws ExecutionException, ApiLevelException {
     ExecutorService executor = Executors.newSingleThreadExecutor();
     try {
-      return optimize(executor);
+      return optimize(application, executor);
     } finally {
       executor.shutdown();
     }
   }
 
-  public DexApplication optimize(ExecutorService executorService)
+  public DexApplication optimize(DexApplication application,
+      ExecutorService executorService)
       throws ExecutionException, ApiLevelException {
     removeLambdaDeserializationMethods();
 
@@ -390,7 +385,7 @@ public class IRConverter {
   }
 
   private void clearDexMethodCompilationState() {
-    application.classes().forEach(this::clearDexMethodCompilationState);
+    appInfo.classes().forEach(this::clearDexMethodCompilationState);
   }
 
   private void clearDexMethodCompilationState(DexProgramClass clazz) {
@@ -427,8 +422,8 @@ public class IRConverter {
     do {
       String name = options.outline.className + (count == 0 ? "" : Integer.toString(count));
       count++;
-      result = application.dexItemFactory.createType(DescriptorUtils.javaTypeToDescriptor(name));
-    } while (application.definitionFor(result) != null);
+      result = appInfo.dexItemFactory.createType(DescriptorUtils.javaTypeToDescriptor(name));
+    } while (appInfo.definitionFor(result) != null);
     // Register the newly generated type in the subtyping hierarchy, if we have one.
     appInfo.registerNewType(result, appInfo.dexItemFactory.objectType);
     return result;

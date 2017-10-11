@@ -76,7 +76,7 @@ public class SimpleClassMerger {
     // and we do not have to keep them.
     return !clazz.isLibraryClass()
         && !appInfo.instantiatedTypes.contains(clazz.type)
-        && !appInfo.pinnedItems.contains(clazz)
+        && !appInfo.isPinned(clazz.type)
         && clazz.type.getSingleSubtype() != null;
   }
 
@@ -139,7 +139,7 @@ public class SimpleClassMerger {
     for (DexProgramClass clazz : application.classes()) {
       if (isMergeCandidate(clazz)) {
         DexClass targetClass = appInfo.definitionFor(clazz.type.getSingleSubtype());
-        if (appInfo.pinnedItems.contains(targetClass)) {
+        if (appInfo.isPinned(targetClass)) {
           // We have to keep the target class intact, so we cannot merge it.
           continue;
         }

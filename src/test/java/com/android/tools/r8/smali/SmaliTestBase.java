@@ -439,7 +439,7 @@ public class SmaliTestBase extends TestBase {
 
     public String run() throws DexOverflowException {
       AppInfo appInfo = new AppInfo(application);
-      IRConverter converter = new IRConverter(application, appInfo, options);
+      IRConverter converter = new IRConverter(appInfo, options);
       converter.replaceCodeForTesting(method, code);
       return runArt(application, options);
     }

@@ -23,6 +23,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.KeyedDexItem;
 import com.android.tools.r8.graph.PresortedComparable;
@@ -1110,7 +1111,7 @@ public class Enqueuer {
     /**
      * Set of all items that have to be kept independent of whether they are used.
      */
-    public final Set<DexItem> pinnedItems;
+    final Set<DexItem> pinnedItems;
     /**
      * All items with assumenosideeffects rule.
      */
@@ -1126,11 +1127,11 @@ public class Enqueuer {
     /**
      * Map from the class of an extension to the state it produced.
      */
-    public final Map<Class, Object> extensions;
+    final Map<Class, Object> extensions;
     /**
      * A set of types that have been removed by the {@link TreePruner}.
      */
-    public final Set<DexType> prunedTypes;
+    final Set<DexType> prunedTypes;
 
     private AppInfoWithLiveness(AppInfoWithSubtyping appInfo, Enqueuer enqueuer) {
       super(appInfo);
@@ -1138,9 +1139,9 @@ public class Enqueuer {
           ImmutableSortedSet.copyOf(PresortedComparable::slowCompareTo, enqueuer.liveTypes);
       this.instantiatedTypes = ImmutableSortedSet.copyOf(
           PresortedComparable::slowCompareTo, enqueuer.instantiatedTypes.getItems());
-      this.targetedMethods = toDescriptorSet(enqueuer.targetedMethods.getItems());
-      this.liveMethods = toDescriptorSet(enqueuer.liveMethods.getItems());
-      this.liveFields = toDescriptorSet(enqueuer.liveFields.getItems());
+      this.targetedMethods = toSortedDescriptorSet(enqueuer.targetedMethods.getItems());
+      this.liveMethods = toSortedDescriptorSet(enqueuer.liveMethods.getItems());
+      this.liveFields = toSortedDescriptorSet(enqueuer.liveFields.getItems());
       this.instanceFieldReads = enqueuer.collectInstanceFieldsRead();
       this.instanceFieldWrites = enqueuer.collectInstanceFieldsWritten();
       this.staticFieldReads = enqueuer.collectStaticFieldsRead();
@@ -1176,6 +1177,7 @@ public class Enqueuer {
       this.fieldsRead = previous.fieldsRead;
       // TODO(herhut): We remove fields that are only written, so maybe update this.
       this.fieldsWritten = previous.fieldsWritten;
+      assert assertNoItemRemoved(previous.pinnedItems, removedClasses);
       this.pinnedItems = previous.pinnedItems;
       this.noSideEffects = previous.noSideEffects;
       this.assumedValues = previous.assumedValues;
@@ -1190,9 +1192,11 @@ public class Enqueuer {
       assert Sets.intersection(instanceFieldWrites, staticFieldWrites).size() == 0;
     }
 
-    private AppInfoWithLiveness(AppInfoWithLiveness previous, GraphLense lense) {
-      super(previous, lense);
-      this.liveTypes = previous.liveTypes;
+    private AppInfoWithLiveness(AppInfoWithLiveness previous,
+        DirectMappedDexApplication application,
+        GraphLense lense) {
+      super(application, lense);
+      this.liveTypes = rewriteItems(previous.liveTypes, lense::lookupType);
       this.instantiatedTypes = rewriteItems(previous.instantiatedTypes, lense::lookupType);
       this.targetedMethods = rewriteItems(previous.targetedMethods, lense::lookupMethod);
       this.liveMethods = rewriteItems(previous.liveMethods, lense::lookupMethod);
@@ -1203,19 +1207,61 @@ public class Enqueuer {
       this.staticFieldWrites = rewriteItems(previous.staticFieldWrites, lense::lookupField);
       this.fieldsRead = rewriteItems(previous.fieldsRead, lense::lookupField);
       this.fieldsWritten = rewriteItems(previous.fieldsWritten, lense::lookupField);
-      // TODO(herhut): Migrate these to Descriptors, as well.
+      assert assertNotModifiedByLense(previous.pinnedItems, lense);
       this.pinnedItems = previous.pinnedItems;
-      this.noSideEffects = previous.noSideEffects;
-      this.assumedValues = previous.assumedValues;
       this.virtualInvokes = rewriteItems(previous.virtualInvokes, lense::lookupMethod);
       this.superInvokes = rewriteItems(previous.superInvokes, lense::lookupMethod);
       this.directInvokes = rewriteItems(previous.directInvokes, lense::lookupMethod);
       this.staticInvokes = rewriteItems(previous.staticInvokes, lense::lookupMethod);
+      this.prunedTypes = rewriteItems(previous.prunedTypes, lense::lookupType);
+      // TODO(herhut): Migrate these to Descriptors, as well.
+      assert assertNotModifiedByLense(previous.noSideEffects.keySet(), lense);
+      this.noSideEffects = previous.noSideEffects;
+      assert assertNotModifiedByLense(previous.assumedValues.keySet(), lense);
+      this.assumedValues = previous.assumedValues;
+      assert assertNotModifiedByLense(previous.alwaysInline, lense);
       this.alwaysInline = previous.alwaysInline;
       this.extensions = previous.extensions;
-      this.prunedTypes = rewriteItems(previous.prunedTypes, lense::lookupType);
-      assert Sets.intersection(instanceFieldReads, staticFieldReads).size() == 0;
-      assert Sets.intersection(instanceFieldWrites, staticFieldWrites).size() == 0;
+      // Sanity check sets after rewriting.
+      assert Sets.intersection(instanceFieldReads, staticFieldReads).isEmpty();
+      assert Sets.intersection(instanceFieldWrites, staticFieldWrites).isEmpty();
+    }
+
+    private boolean assertNoItemRemoved(Collection<DexItem> items, Collection<DexType> types) {
+      Set<DexType> typeSet = ImmutableSet.copyOf(types);
+      for (DexItem item : items) {
+        if (item instanceof DexClass) {
+          assert !typeSet.contains(((DexClass) item).type);
+        } else if (item instanceof DexEncodedMethod) {
+          assert !typeSet.contains(((DexEncodedMethod) item).method.getHolder());
+        } else if (item instanceof DexEncodedField) {
+          assert !typeSet.contains(((DexEncodedField) item).field.getHolder());
+        } else {
+          assert false;
+        }
+      }
+      return true;
+    }
+
+    private boolean assertNotModifiedByLense(Iterable<DexItem> items, GraphLense lense) {
+      for (DexItem item : items) {
+        if (item instanceof DexClass) {
+          DexType type = ((DexClass) item).type;
+          assert lense.lookupType(type, null) == type;
+        } else if (item instanceof DexEncodedMethod) {
+          DexEncodedMethod method = (DexEncodedMethod) item;
+          // We only allow changes to bridge methods, as these get retargeted even if they
+          // are kept.
+          assert method.accessFlags.isBridge()
+              || lense.lookupMethod(method.method, null) == method.method;
+        } else if (item instanceof DexEncodedField) {
+          DexField field = ((DexEncodedField) item).field;
+          assert lense.lookupField(field, null) == field;
+        } else {
+          assert false;
+        }
+      }
+      return true;
     }
 
     private SortedSet<DexMethod> joinInvokedMethods(Map<DexType, Set<DexMethod>> invokes) {
@@ -1225,7 +1271,7 @@ public class Enqueuer {
       return builder.build();
     }
 
-    private <T extends PresortedComparable<T>> SortedSet<T> toDescriptorSet(
+    private <T extends PresortedComparable<T>> SortedSet<T> toSortedDescriptorSet(
         Set<? extends KeyedDexItem<T>> set) {
       ImmutableSortedSet.Builder<T> builder =
           new ImmutableSortedSet.Builder<>(PresortedComparable::slowCompareTo);
@@ -1276,6 +1322,14 @@ public class Enqueuer {
       return this;
     }
 
+    public boolean isPinned(DexItem item) {
+      return pinnedItems.contains(item);
+    }
+
+    public Iterable<DexItem> getPinnedItems() {
+      return pinnedItems;
+    }
+
     /**
      * Returns a copy of this AppInfoWithLiveness where the set of classes is pruned using the
      * given DexApplication object.
@@ -1285,9 +1339,10 @@ public class Enqueuer {
       return new AppInfoWithLiveness(this, application, removedClasses);
     }
 
-    public AppInfoWithLiveness rewrittenWithLense(GraphLense lense) {
+    public AppInfoWithLiveness rewrittenWithLense(DirectMappedDexApplication application,
+        GraphLense lense) {
       assert lense.isContextFree();
-      return new AppInfoWithLiveness(this, lense);
+      return new AppInfoWithLiveness(this, application, lense);
     }
 
     /**

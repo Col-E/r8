@@ -6,16 +6,15 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.ProgramClassCollection;
 import com.android.tools.r8.utils.Timing;
-
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
 
 public class DirectMappedDexApplication extends DexApplication {
@@ -65,22 +64,43 @@ public class DirectMappedDexApplication extends DexApplication {
     return "DexApplication (direct)";
   }
 
+  public DirectMappedDexApplication rewrittenWithLense(GraphLense graphLense) {
+    assert graphLense.isContextFree();
+    assert mappingIsValid(graphLense, programClasses.getAllTypes());
+    assert mappingIsValid(graphLense, libraryClasses.keySet());
+    // As a side effect, this will rebuild the program classes and library classes maps.
+    return this.builder().build().asDirect();
+  }
+
+  private boolean mappingIsValid(GraphLense graphLense, Iterable<DexType> types) {
+    // The lense might either map to a different type that is already present in the application
+    // (e.g. relinking a type) or it might encode a type that was renamed, in which case the
+    // original type will point to a definition that was renamed.
+    for (DexType type : types) {
+      DexType renamed = graphLense.lookupType(type, null);
+      if (renamed != type) {
+        if (definitionFor(type).type != renamed && definitionFor(renamed) == null) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
   public static class Builder extends DexApplication.Builder<Builder> {
 
-    private Map<DexType, DexLibraryClass> libraryClasses = new IdentityHashMap<>();
+    private List<DexLibraryClass> libraryClasses = new ArrayList<>();
 
     Builder(LazyLoadedDexApplication application) {
       super(application);
       // As a side-effect, this will force-load all classes.
       Map<DexType, DexClass> allClasses = application.getFullClassMap();
-      Iterables.filter(allClasses.values(), DexLibraryClass.class)
-          .forEach(k -> libraryClasses.put(k.type, k));
-
+      Iterables.filter(allClasses.values(), DexLibraryClass.class).forEach(libraryClasses::add);
     }
 
     private Builder(DirectMappedDexApplication application) {
       super(application);
-      this.libraryClasses.putAll(application.libraryClasses);
+      this.libraryClasses.addAll(application.libraryClasses.values());
     }
 
     @Override
@@ -90,9 +110,11 @@ public class DirectMappedDexApplication extends DexApplication {
 
     @Override
     public DexApplication build() {
+      // Rebuild the map. This will fail if keys are not unique.
       return new DirectMappedDexApplication(proguardMap,
           ProgramClassCollection.create(programClasses),
-          ImmutableMap.copyOf(libraryClasses), ImmutableSet.copyOf(mainDexList), deadCode,
+          libraryClasses.stream().collect(ImmutableMap.toImmutableMap(c -> c.type, c -> c)),
+          ImmutableSet.copyOf(mainDexList), deadCode,
           dexItemFactory, highestSortingString, timing);
     }
   }

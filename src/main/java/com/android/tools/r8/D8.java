@@ -205,8 +205,8 @@ public final class D8 {
       throws IOException, ExecutionException, ApiLevelException {
     final CfgPrinter printer = options.printCfg ? new CfgPrinter() : null;
 
-    IRConverter converter = new IRConverter(timing, application, appInfo, options, printer);
-    application = converter.convertToDex(executor);
+    IRConverter converter = new IRConverter(timing, appInfo, options, printer);
+    application = converter.convertToDex(application, executor);
 
     if (options.printCfg) {
       if (options.printCfgFile == null || options.printCfgFile.isEmpty()) {

@@ -101,6 +101,10 @@ public abstract class ClassMap<T extends DexClass> {
     return loadedClasses;
   }
 
+  public Iterable<DexType> getAllTypes() {
+    return classes.keySet();
+  }
+
   /**
    * Forces loading of all the classes satisfying the criteria specified.
    *

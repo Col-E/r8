@@ -95,7 +95,7 @@ public class LambdaRewriter {
   public LambdaRewriter(IRConverter converter) {
     assert converter != null;
     this.converter = converter;
-    this.factory = converter.application.dexItemFactory;
+    this.factory = converter.appInfo.dexItemFactory;
     this.appInfo = converter.appInfo;
 
     DexType metafactoryType = factory.createType(METAFACTORY_TYPE_DESCR);
@@ -226,7 +226,7 @@ public class LambdaRewriter {
   }
 
   private boolean isInMainDexList(DexType type) {
-    return converter.application.mainDexList.contains(type);
+    return converter.appInfo.isInMainDexList(type);
   }
 
   // Returns a lambda class corresponding to the lambda descriptor and context,

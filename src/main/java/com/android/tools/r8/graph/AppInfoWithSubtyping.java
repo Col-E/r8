@@ -6,7 +6,6 @@ package com.android.tools.r8.graph;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
-
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -33,10 +32,10 @@ public class AppInfoWithSubtyping extends AppInfo {
     assert app instanceof DirectMappedDexApplication;
   }
 
-  protected AppInfoWithSubtyping(AppInfoWithSubtyping previous, GraphLense lense) {
-    super(previous, lense);
+  protected AppInfoWithSubtyping(DirectMappedDexApplication application, GraphLense lense) {
+    super(application, lense);
     // Recompute subtype map if we have modified the graph.
-    populateSubtypeMap(previous.getDirectApplication(), dexItemFactory);
+    populateSubtypeMap(application, dexItemFactory);
   }
 
   private DirectMappedDexApplication getDirectApplication() {
