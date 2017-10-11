@@ -1399,10 +1399,18 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       return candidate;
     }
     if (needsOverlappingLongRegisterWorkaround(unhandledInterval)) {
+      int lastCandidate = candidate;
       while (hasOverlappingLongRegisters(unhandledInterval, candidate)) {
         // Make the overlapping register unavailable for allocation and try again.
         freePositions.set(candidate, 0);
         candidate = getLargestCandidate(registerConstraint, freePositions, needsRegisterPair, type);
+        // If there are only invalid candidates of the give type we will end up with the same
+        // candidate returned again once we have tried them all. In that case we didn't find a
+        // valid register candidate and we need to broaden the search to other types.
+        if (lastCandidate == candidate) {
+          return REGISTER_CANDIDATE_NOT_FOUND;
+        }
+        lastCandidate = candidate;
       }
     }
     return candidate;
