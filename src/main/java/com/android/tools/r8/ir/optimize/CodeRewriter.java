@@ -1401,23 +1401,23 @@ public class CodeRewriter {
           }
         }
       }
+    }
 
-      InstructionIterator iterator = code.instructionIterator();
-      while (iterator.hasNext()) {
-        Instruction instruction = iterator.next();
-        if (instruction.isDebugLocalWrite()) {
-          assert instruction.inValues().size() == 1;
-          Value inValue = instruction.inValues().get(0);
-          if (inValue.definition != null &&
-              !hasLineChangeBetween(inValue.definition, instruction) &&
-              !inValue.hasLocalInfo() &&
-              inValue.numberOfAllUsers() == 1) {
-            inValue.setLocalInfo(instruction.outValue().getLocalInfo());
-            instruction.moveDebugValues(inValue.definition);
-            instruction.outValue().replaceUsers(inValue);
-            instruction.clearDebugValues();
-            iterator.remove();
-          }
+    InstructionIterator iterator = code.instructionIterator();
+    while (iterator.hasNext()) {
+      Instruction instruction = iterator.next();
+      if (instruction.isDebugLocalWrite()) {
+        assert instruction.inValues().size() == 1;
+        Value inValue = instruction.inValues().get(0);
+        if (inValue.definition != null &&
+            !hasLineChangeBetween(inValue.definition, instruction) &&
+            !inValue.hasLocalInfo() &&
+            inValue.numberOfAllUsers() == 1) {
+          inValue.setLocalInfo(instruction.outValue().getLocalInfo());
+          instruction.moveDebugValues(inValue.definition);
+          instruction.outValue().replaceUsers(inValue);
+          instruction.clearDebugValues();
+          iterator.remove();
         }
       }
     }
