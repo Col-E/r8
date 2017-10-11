@@ -3,6 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.debug;
 
+import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm;
+import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -23,6 +26,9 @@ public class BlockReorderingTest extends DebugTestBase {
 
   @Test
   public void testConditionalReturn() throws Throwable {
+    Assume.assumeTrue(
+        "Older runtimes incorrectly step out of function: b/67671565",
+        ToolHelper.getDexVm().isNewerThan(DexVm.ART_6_0_1_TARGET));
     final String method = "conditionalReturn";
     runDebugTest(CLASS,
         breakpoint(CLASS, method),
@@ -31,13 +37,16 @@ public class BlockReorderingTest extends DebugTestBase {
         checkLine(FILE, 13),
         run(),
         checkLine(FILE, 8), stepOver(),
-        checkLine(FILE, 9), stepOver(),
-        checkLine(FILE, 13),
+        checkLine(FILE, 9),
+        checkLine(FILE, 13), // TODO(): Art 5.1.1 and 6.0.1 return to main here.
         run());
   }
 
   @Test
   public void testInvertConditionalReturn() throws Throwable {
+    Assume.assumeTrue(
+        "Older runtimes incorrectly step out of function: b/67671565",
+        ToolHelper.getDexVm().isNewerThan(DexVm.ART_6_0_1_TARGET));
     final String method = "invertConditionalReturn";
     runDebugTest(CLASS,
         breakpoint(CLASS, method),
@@ -53,6 +62,9 @@ public class BlockReorderingTest extends DebugTestBase {
 
   @Test
   public void testFallthroughReturn() throws Throwable {
+    Assume.assumeTrue(
+        "Older runtimes incorrectly step out of function: b/67671565",
+        ToolHelper.getDexVm().isNewerThan(DexVm.ART_6_0_1_TARGET));
     final String method = "fallthroughReturn";
     runDebugTest(CLASS,
         breakpoint(CLASS, method),

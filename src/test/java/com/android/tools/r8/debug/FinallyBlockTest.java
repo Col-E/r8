@@ -3,6 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.debug;
 
+import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm;
+import org.junit.Assume;
 import org.junit.Test;
 
 /** Test single stepping behaviour of synchronized blocks. */
@@ -13,6 +16,9 @@ public class FinallyBlockTest extends DebugTestBase {
 
   @Test
   public void testEmptyBlock() throws Throwable {
+    Assume.assumeTrue(
+        "Older runtimes incorrectly step out of function: b/67671565",
+        ToolHelper.getDexVm().isNewerThan(DexVm.ART_6_0_1_TARGET));
     final String method = "finallyBlock";
     runDebugTest(CLASS,
         breakpoint(CLASS, method),

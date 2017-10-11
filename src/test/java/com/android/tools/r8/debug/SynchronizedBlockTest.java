@@ -3,6 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.debug;
 
+import static org.hamcrest.core.IsNot.not;
+
+import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm;
+import org.junit.Assume;
 import org.junit.Test;
 
 /**
@@ -71,6 +76,9 @@ public class SynchronizedBlockTest extends DebugTestBase {
 
   @Test
   public void testThrowingBlock() throws Throwable {
+    Assume.assumeThat(
+        "Connection timeout on 6.0.1 runtime. b/67671771",
+        ToolHelper.getDexVm().getVersion(), not(DexVm.ART_6_0_1_TARGET.getVersion()));
     final String method = "throwingBlock";
     runDebugTest(CLASS,
         breakpoint(CLASS, method),
