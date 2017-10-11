@@ -782,11 +782,11 @@ public class JarSourceCode implements SourceCode {
     }
   }
 
-  private int[] getSwitchTargets(LabelNode dflt, List labels) {
+  private int[] getSwitchTargets(LabelNode dflt, List<LabelNode> labels) {
     int[] targets = new int[1 + labels.size()];
     targets[0] = getOffset(dflt);
     for (int i = 1; i < targets.length; i++) {
-      targets[i] = getOffset((LabelNode) labels.get(i - 1));
+      targets[i] = getOffset(labels.get(i - 1));
     }
     return targets;
   }
@@ -2654,7 +2654,7 @@ public class JarSourceCode implements SourceCode {
 
   private DexMethodHandle getMethodHandle(JarApplicationReader application, Handle handle) {
     MethodHandleType methodHandleType = getMethodHandleType(handle);
-    Descriptor<? extends DexItem, ? extends Descriptor> descriptor =
+    Descriptor<? extends DexItem, ? extends Descriptor<?,?>> descriptor =
         methodHandleType.isFieldType()
             ? application.getField(handle.getOwner(), handle.getName(), handle.getDesc())
             : application.getMethod(handle.getOwner(), handle.getName(), handle.getDesc());

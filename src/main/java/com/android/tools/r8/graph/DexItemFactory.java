@@ -377,7 +377,8 @@ public class DexItemFactory {
   }
 
   public DexMethodHandle createMethodHandle(
-      MethodHandleType type, Descriptor<? extends DexItem, ? extends Descriptor> fieldOrMethod) {
+      MethodHandleType type,
+      Descriptor<? extends DexItem, ? extends Descriptor<?, ?>> fieldOrMethod) {
     assert !sorted;
     DexMethodHandle methodHandle = new DexMethodHandle(type, fieldOrMethod);
     return canonicalize(methodHandles, methodHandle);

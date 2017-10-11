@@ -19,6 +19,7 @@ public abstract class Code extends CachedHashValueDexItem {
 
   public abstract void registerReachableDefinitions(UseRegistry registry);
 
+  @Override
   public abstract String toString();
 
   public abstract String toString(DexEncodedMethod method, ClassNameMapper naming);

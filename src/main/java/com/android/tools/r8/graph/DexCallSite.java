@@ -40,6 +40,7 @@ public final class DexCallSite extends IndexedDexItem {
     this.bootstrapArgs = bootstrapArgs;
   }
 
+  @Override
   public int computeHashCode() {
     return methodName.hashCode()
         + methodProto.hashCode() * 7
@@ -47,6 +48,7 @@ public final class DexCallSite extends IndexedDexItem {
         + bootstrapArgs.hashCode() * 101;
   }
 
+  @Override
   public boolean computeEquals(Object other) {
     // Call sites are equal only when this == other, which was already computed by the caller of
     // computeEquals. Do not share call site entries, each invoke-custom must have its own
@@ -54,6 +56,7 @@ public final class DexCallSite extends IndexedDexItem {
     return false;
   }
 
+  @Override
   public String toString() {
     StringBuilder builder =
         new StringBuilder("CallSite: { Name: ").append(methodName.toSourceString())
@@ -91,6 +94,7 @@ public final class DexCallSite extends IndexedDexItem {
   }
 
   // TODO(mikaelpeltier): Adapt syntax when invoke-custom will be available into smali.
+  @Override
   public String toSmaliString() {
     return toString();
   }

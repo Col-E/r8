@@ -93,7 +93,8 @@ public class JarApplicationReader {
   }
 
   public DexMethodHandle getMethodHandle(
-      MethodHandleType type, Descriptor<? extends DexItem, ? extends Descriptor> fieldOrMethod) {
+      MethodHandleType type,
+      Descriptor<? extends DexItem, ? extends Descriptor<?, ?>> fieldOrMethod) {
     return options.itemFactory.createMethodHandle(type, fieldOrMethod);
   }
 

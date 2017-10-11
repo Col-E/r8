@@ -76,6 +76,7 @@ public class DexFile extends BaseFile {
     return version;
   }
 
+  @Override
   void setByteOrder() {
     // Make sure we set the right endian for reading.
     buffer.order(ByteOrder.LITTLE_ENDIAN);

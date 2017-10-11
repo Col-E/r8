@@ -95,6 +95,7 @@ public class LazyLoadedDexApplication extends DexApplication {
       this.libraryClasses = application.libraryClasses;
     }
 
+    @Override
     Builder self() {
       return this;
     }
@@ -109,6 +110,7 @@ public class LazyLoadedDexApplication extends DexApplication {
       return this;
     }
 
+    @Override
     public LazyLoadedDexApplication build() {
       return new LazyLoadedDexApplication(proguardMap,
           ProgramClassCollection.create(programClasses),
@@ -127,6 +129,7 @@ public class LazyLoadedDexApplication extends DexApplication {
     return new DirectMappedDexApplication.Builder(this).build().asDirect();
   }
 
+  @Override
   public String toString() {
     return "Application (" + programClasses + "; " + classpathClasses + "; " + libraryClasses
         + ")";

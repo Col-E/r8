@@ -662,7 +662,7 @@ public class DexFileReader {
       }
       clazz = classKind.create(
           type,
-          Resource.Kind.DEX, 
+          Resource.Kind.DEX,
           flags,
           superclass,
           typeListAt(interfacesOffsets[i]),
@@ -918,7 +918,7 @@ public class DexFileReader {
     MethodHandleType type = MethodHandleType.getKind(file.getUshort());
     file.getUshort(); // unused
     int indexFieldOrMethod = file.getUshort();
-    Descriptor<? extends DexItem, ? extends Descriptor> fieldOrMethod;
+    Descriptor<? extends DexItem, ? extends Descriptor<?,?>> fieldOrMethod;
     switch (type) {
       case INSTANCE_GET:
       case INSTANCE_PUT:

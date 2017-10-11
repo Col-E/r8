@@ -74,6 +74,7 @@ public class D8Command extends BaseCompilerCommand {
       return this;
     }
 
+    @Override
     protected void validate() throws CompilationException {
       super.validate();
       if (getAppBuilder().hasMainDexList() && intermediate) {

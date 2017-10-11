@@ -183,10 +183,12 @@ public class DexCode extends Code {
     }
   }
 
+  @Override
   public String toString() {
     return toString(null, null);
   }
 
+  @Override
   public String toString(DexEncodedMethod method, ClassNameMapper naming) {
     StringBuilder builder = new StringBuilder();
     if (method != null) {
@@ -313,6 +315,7 @@ public class DexCode extends Code {
     return builder.toString();
   }
 
+  @Override
   public void collectIndexedItems(IndexedItemCollection indexedItems) {
     for (Instruction insn : instructions) {
       insn.collectIndexedItems(indexedItems);
@@ -360,10 +363,12 @@ public class DexCode extends Code {
       handlerIndex = map.get(handlerOffset);
     }
 
+    @Override
     public int hashCode() {
       return startAddress * 2 + instructionCount * 3 + handlerIndex * 5;
     }
 
+    @Override
     public boolean equals(Object other) {
       if (this == other) {
         return true;
@@ -381,6 +386,7 @@ public class DexCode extends Code {
       return false;
     }
 
+    @Override
     public String toString() {
       return "["
           + StringUtils.hexString(startAddress, 2)
@@ -415,10 +421,12 @@ public class DexCode extends Code {
       this.catchAllAddr = catchAllAddr;
     }
 
+    @Override
     public int hashCode() {
       return catchAllAddr + Arrays.hashCode(pairs) * 7;
     }
 
+    @Override
     public boolean equals(Object other) {
       if (this == other) {
         return true;
@@ -433,6 +441,7 @@ public class DexCode extends Code {
       return false;
     }
 
+    @Override
     public void collectIndexedItems(IndexedItemCollection indexedItems) {
       collectAll(indexedItems, pairs);
     }
@@ -443,6 +452,7 @@ public class DexCode extends Code {
       assert false;
     }
 
+    @Override
     public String toString() {
       StringBuilder builder = new StringBuilder();
       builder.append("[\n");
@@ -472,6 +482,7 @@ public class DexCode extends Code {
         this.addr = addr;
       }
 
+      @Override
       public void collectIndexedItems(IndexedItemCollection indexedItems) {
         type.collectIndexedItems(indexedItems);
       }

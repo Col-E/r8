@@ -179,6 +179,7 @@ public class R8Command extends BaseCompilerCommand {
       return self();
     }
 
+    @Override
     protected void validate() throws CompilationException {
       super.validate();
       if (mainDexListOutput != null && mainDexRules.isEmpty() && !getAppBuilder()

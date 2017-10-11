@@ -84,13 +84,14 @@ public abstract class DexApplication {
     return clazz == null ? null : clazz.asProgramClass();
   }
 
+  @Override
   public abstract String toString();
 
   public ClassNameMapper getProguardMap() {
     return proguardMap;
   }
 
-  public abstract static class Builder<T extends Builder> {
+  public abstract static class Builder<T extends Builder<T>> {
     // We handle program class collection separately from classpath
     // and library class collections. Since while we assume program
     // class collection should always be fully loaded and thus fully
@@ -189,7 +190,7 @@ public abstract class DexApplication {
       return mainDexList;
     }
 
-    public Builder addToMainDexList(Collection<DexType> mainDexList) {
+    public Builder<T> addToMainDexList(Collection<DexType> mainDexList) {
       this.mainDexList.addAll(mainDexList);
       return this;
     }

@@ -106,7 +106,7 @@ public class ApplicationReader {
     return computedMinApiLevel;
   }
 
-  private void readProguardMap(DexApplication.Builder builder, ExecutorService executorService,
+  private void readProguardMap(DexApplication.Builder<?> builder, ExecutorService executorService,
       List<Future<?>> futures) {
     // Read the Proguard mapping file in parallel with DexCode and DexProgramClass items.
     if (inputApp.hasProguardMap()) {

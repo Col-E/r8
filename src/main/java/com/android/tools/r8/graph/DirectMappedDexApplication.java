@@ -60,6 +60,7 @@ public class DirectMappedDexApplication extends DexApplication {
     return this;
   }
 
+  @Override
   public String toString() {
     return "DexApplication (direct)";
   }

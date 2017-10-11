@@ -170,6 +170,7 @@ abstract class BaseCompilerCommand extends BaseCommand {
       return enableDesugaring;
     }
 
+    @Override
     protected void validate() throws CompilationException {
       super.validate();
       if (getAppBuilder().hasMainDexList() && outputMode == OutputMode.FilePerInputClass) {

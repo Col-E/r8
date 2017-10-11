@@ -125,18 +125,21 @@ public class DexMethodHandle extends IndexedDexItem implements
   }
 
   public MethodHandleType type;
-  public Descriptor<? extends DexItem, ? extends Descriptor> fieldOrMethod;
+  public Descriptor<? extends DexItem, ? extends Descriptor<?,?>> fieldOrMethod;
 
   public DexMethodHandle(
-      MethodHandleType type, Descriptor<? extends DexItem, ? extends Descriptor> fieldOrMethod) {
+      MethodHandleType type,
+      Descriptor<? extends DexItem, ? extends Descriptor<?,?>> fieldOrMethod) {
     this.type = type;
     this.fieldOrMethod = fieldOrMethod;
   }
 
+  @Override
   public int computeHashCode() {
     return type.hashCode() + fieldOrMethod.computeHashCode() * 7;
   }
 
+  @Override
   public boolean computeEquals(Object other) {
     if (other instanceof DexMethodHandle) {
       DexMethodHandle o = (DexMethodHandle) other;
@@ -145,6 +148,7 @@ public class DexMethodHandle extends IndexedDexItem implements
     return false;
   }
 
+  @Override
   public String toString() {
     StringBuilder builder = new StringBuilder("MethodHandle: {")
             .append(type)
@@ -167,6 +171,7 @@ public class DexMethodHandle extends IndexedDexItem implements
   }
 
   // TODO(mikaelpeltier): Adapt syntax when invoke-custom will be available into smali.
+  @Override
   public String toSmaliString() {
     return toString();
   }

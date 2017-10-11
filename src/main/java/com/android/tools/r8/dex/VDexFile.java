@@ -69,6 +69,7 @@ public class VDexFile extends BaseFile {
         + numberOfDexFiles * Constants.VDEX_DEX_CHECKSUM_SIZE;
   }
 
+  @Override
   void setByteOrder() {
     // Make sure we set the right endian for reading.
     buffer.order(ByteOrder.LITTLE_ENDIAN);

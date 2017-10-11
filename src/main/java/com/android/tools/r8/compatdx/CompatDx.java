@@ -18,7 +18,6 @@ import com.android.tools.r8.D8Output;
 import com.android.tools.r8.Resource;
 import com.android.tools.r8.compatdx.CompatDx.DxCompatOptions.DxUsageMessage;
 import com.android.tools.r8.compatdx.CompatDx.DxCompatOptions.PositionInfo;
-import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.logging.Log;

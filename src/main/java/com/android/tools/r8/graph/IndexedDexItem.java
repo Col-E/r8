@@ -36,6 +36,7 @@ public abstract class IndexedDexItem extends CachedHashValueDexItem implements P
    */
   private int[] virtualFileIndexes;
 
+  @Override
   public abstract void collectIndexedItems(IndexedItemCollection indexedItems);
 
   @Override
@@ -132,22 +133,26 @@ public abstract class IndexedDexItem extends CachedHashValueDexItem implements P
 
   // Partial implementation of PresortedComparable.
 
+  @Override
   final public void setSortedIndex(int sortedIndex) {
     assert sortedIndex > SORTED_INDEX_UNKNOWN;
     assert this.sortedIndex == SORTED_INDEX_UNKNOWN;
     this.sortedIndex = sortedIndex;
   }
 
+  @Override
   final public int getSortedIndex() {
     return sortedIndex;
   }
 
+  @Override
   final public int sortedCompareTo(int other) {
     assert sortedIndex > SORTED_INDEX_UNKNOWN;
     assert other > SORTED_INDEX_UNKNOWN;
     return Integer.compare(sortedIndex, other);
   }
 
+  @Override
   public void flushCachedValues() {
     super.flushCachedValues();
     resetSortedIndex();
