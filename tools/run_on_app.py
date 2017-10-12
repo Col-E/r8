@@ -150,8 +150,6 @@ def main(argv):
     args.extend(['--min-api', values['min-api']])
 
   if options.compiler == 'r8':
-    if 'pgmap' in values:
-      args.extend(['--pg-map', values['pgmap']])
     if 'pgconf' in values and not options.k:
       for pgconf in values['pgconf']:
         args.extend(['--pg-conf', pgconf])
