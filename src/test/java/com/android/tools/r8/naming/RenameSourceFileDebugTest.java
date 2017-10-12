@@ -24,7 +24,7 @@ public class RenameSourceFileDebugTest extends DebugTestBase {
   }
 
   /**
-   * replica of {@link ClassInitializationTest#testBreakpointInEmptyClassInitializer}
+   * replica of {@link com.android.tools.r8.debug.ClassInitializationTest#testBreakpointInEmptyClassInitializer}
    */
   @Test
   public void testBreakpointInEmptyClassInitializer() throws Throwable {
@@ -37,7 +37,8 @@ public class RenameSourceFileDebugTest extends DebugTestBase {
   }
 
   /**
-   * replica of {@link LocalsTest#testNoLocal}, except for checking overwritten class file.
+   * replica of {@link com.android.tools.r8.debug.LocalsTest#testNoLocal},
+   * except for checking overwritten class file.
    */
   @Test
   public void testNoLocal() throws Throwable {
@@ -57,7 +58,7 @@ public class RenameSourceFileDebugTest extends DebugTestBase {
   }
 
   /**
-   * replica of {@link MultipleReturnsTest#testMultipleReturns}
+   * replica of {@link com.android.tools.r8.debug.MultipleReturnsTest#testMultipleReturns}
    */
   @Test
   public void testMultipleReturns() throws Throwable {
