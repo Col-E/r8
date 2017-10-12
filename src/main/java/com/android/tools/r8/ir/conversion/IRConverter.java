@@ -24,6 +24,7 @@ import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
+import com.android.tools.r8.ir.desugar.StringConcatRewriter;
 import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover;
 import com.android.tools.r8.ir.optimize.Inliner;
@@ -65,6 +66,7 @@ public class IRConverter {
   private final Timing timing;
   public final AppInfo appInfo;
   private final Outliner outliner;
+  private final StringConcatRewriter stringConcatRewriter;
   private final LambdaRewriter lambdaRewriter;
   private final InterfaceMethodRewriter interfaceMethodRewriter;
   private final InternalOptions options;
@@ -94,6 +96,7 @@ public class IRConverter {
     this.options = options;
     this.printer = printer;
     this.codeRewriter = new CodeRewriter(appInfo, libraryMethodsReturningReceiver(), options);
+    this.stringConcatRewriter = new StringConcatRewriter(options.itemFactory);
     this.lambdaRewriter = options.enableDesugaring ? new LambdaRewriter(this) : null;
     this.interfaceMethodRewriter =
         (options.enableDesugaring && enableInterfaceMethodDesugaring())
@@ -550,6 +553,8 @@ public class IRConverter {
     if (options.enableDesugaring && enableTryWithResourcesDesugaring()) {
       codeRewriter.rewriteThrowableAddAndGetSuppressed(code);
     }
+
+    stringConcatRewriter.desugarStringConcats(method.method, code);
 
     if (lambdaRewriter != null) {
       lambdaRewriter.desugarLambdas(method, code);

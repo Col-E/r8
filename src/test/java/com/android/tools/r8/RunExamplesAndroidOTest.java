@@ -248,8 +248,19 @@ public abstract class RunExamplesAndroidOTest
     return failsOn(failsOn, name);
   }
 
+  boolean skipRunningOnJvm(String name) {
+    return name.equals("stringconcat");
+  }
+
   boolean minSdkErrorExpected(String testName) {
     return minSdkErrorExpected.contains(testName);
+  }
+
+  @Test
+  public void stringConcat() throws Throwable {
+    test("stringconcat", "stringconcat", "StringConcat")
+        .withMinApiLevel(AndroidApiLevel.K.getLevel())
+        .run();
   }
 
   @Test
@@ -385,7 +396,7 @@ public abstract class RunExamplesAndroidOTest
         Arrays.stream(dexes).map(path -> path.toString()).collect(Collectors.toList()),
         qualifiedMainClass,
         null);
-    if (!expectedToFail) {
+    if (!expectedToFail && !skipRunningOnJvm(testName)) {
       ToolHelper.ProcessResult javaResult =
           ToolHelper.runJava(
               Arrays.stream(jars).map(path -> path.toString()).collect(Collectors.toList()),

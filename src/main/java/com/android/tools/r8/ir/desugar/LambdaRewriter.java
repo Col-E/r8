@@ -46,7 +46,6 @@ public class LambdaRewriter {
   private static final String LOOKUP_TYPE_DESCR = "Ljava/lang/invoke/MethodHandles$Lookup;";
   private static final String METHODTYPE_TYPE_DESCR = "Ljava/lang/invoke/MethodType;";
   private static final String METHODHANDLE_TYPE_DESCR = "Ljava/lang/invoke/MethodHandle;";
-  private static final String OBJECT_ARRAY_TYPE_DESCR = "[Ljava/lang/Object;";
   private static final String SERIALIZABLE_TYPE_DESCR = "Ljava/io/Serializable;";
   private static final String SERIALIZED_LAMBDA_TYPE_DESCR = "Ljava/lang/invoke/SerializedLambda;";
 
@@ -103,7 +102,6 @@ public class LambdaRewriter {
     DexType lookupType = factory.createType(LOOKUP_TYPE_DESCR);
     DexType methodTypeType = factory.createType(METHODTYPE_TYPE_DESCR);
     DexType methodHandleType = factory.createType(METHODHANDLE_TYPE_DESCR);
-    DexType objectArrayType = factory.createType(OBJECT_ARRAY_TYPE_DESCR);
 
     this.metafactoryMethod = factory.createMethod(metafactoryType,
         factory.createProto(callSiteType, lookupType, factory.stringType, methodTypeType,
@@ -112,7 +110,7 @@ public class LambdaRewriter {
 
     this.metafactoryAltMethod = factory.createMethod(metafactoryType,
         factory.createProto(callSiteType, lookupType, factory.stringType, methodTypeType,
-            objectArrayType),
+            factory.objectArrayType),
         factory.createString(METAFACTORY_ALT_METHOD_NAME));
 
     this.constructorName = factory.createString(Constants.INSTANCE_INITIALIZER_NAME);
