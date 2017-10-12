@@ -450,4 +450,16 @@ public class InternalOptions {
   public boolean canUseParameterNameAnnotations() {
     return minApiLevel >= AndroidApiLevel.O.getLevel();
   }
+
+  // Dalvik x86-atom backend had a bug that made it crash on filled-new-array instructions for
+  // arrays of objects. This is unfortunate, since this never hits arm devices, but we have
+  // to disallow filled-new-array of objects for dalvik until kitkat. The buggy code was
+  // removed during the jelly-bean release cycle and is not there from kitkat.
+  //
+  // Buggy code that accidentally call code that only works on primitives arrays.
+  //
+  // https://android.googlesource.com/platform/dalvik/+/ics-mr0/vm/mterp/out/InterpAsm-x86-atom.S#25106
+  public boolean canUseFilledNewArrayOfObjects() {
+    return minApiLevel >= AndroidApiLevel.K.getLevel();
+  }
 }
