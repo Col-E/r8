@@ -16,7 +16,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-
 public class R8CodeCanonicalizationTest {
 
   private static final String SOURCE_DEX = "invokeempty/classes.dex";

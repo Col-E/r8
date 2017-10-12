@@ -15,7 +15,6 @@ import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
-import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.JarBuilder;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -184,7 +183,7 @@ public class R8RunExamplesTest {
   }
 
   private Path getOriginalDexFile() {
-    return Paths.get(EXAMPLE_DIR, pkg, FileUtils.DEFAULT_DEX_FILENAME);
+    return Paths.get(EXAMPLE_DIR, pkg, ToolHelper.DEFAULT_DEX_FILENAME);
   }
 
   private DexTool getTool() {

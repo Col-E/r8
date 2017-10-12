@@ -4,17 +4,23 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.DiagnosticsHandler;
+import com.android.tools.r8.Resource.Origin;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.InvalidDebugInfoException;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.function.Function;
 
 public class InternalOptions {
@@ -118,11 +124,24 @@ public class InternalOptions {
   public ImmutableList<ProguardConfigurationRule> mainDexKeepRules = ImmutableList.of();
   public boolean minimalMainDex;
 
-  public String warningInvalidParameterAnnotations = null;
+  public static class InvalidParameterAnnotationInfo {
+    final DexMethod method;
+    final int expectedParameterCount;
+    final int actualParameterCount;
+
+    public InvalidParameterAnnotationInfo(
+        DexMethod method, int expectedParameterCount, int actualParameterCount) {
+      this.method = method;
+      this.expectedParameterCount = expectedParameterCount;
+      this.actualParameterCount = actualParameterCount;
+    }
+  }
 
   public boolean warningMissingEnclosingMember = false;
 
-  public int warningInvalidDebugInfoCount = 0;
+  private Map<Origin, List<InvalidParameterAnnotationInfo>> warningInvalidParameterAnnotations;
+
+  private Map<Origin, List<DexEncodedMethod>> warningInvalidDebugInfo;
 
   // Don't read code from dex files. Used to extract non-code information from vdex files where
   // the code contains unsupported byte codes.
@@ -132,23 +151,66 @@ public class InternalOptions {
 
   public DiagnosticsHandler diagnosticsHandler = new DefaultDiagnosticsHandler();
 
-  public void warningInvalidDebugInfo(DexEncodedMethod method, InvalidDebugInfoException e) {
-    warningInvalidDebugInfoCount++;
+  public void warningInvalidParameterAnnotations(
+      DexMethod method, Origin origin, int expected, int actual) {
+    if (warningInvalidParameterAnnotations == null) {
+      warningInvalidParameterAnnotations = new HashMap<>();
+    }
+    warningInvalidParameterAnnotations
+        .computeIfAbsent(origin, k -> new ArrayList<>())
+        .add(new InvalidParameterAnnotationInfo(method, expected, actual));
+  }
+
+  public void warningInvalidDebugInfo(
+      DexEncodedMethod method, Origin origin, InvalidDebugInfoException e) {
+    if (warningInvalidDebugInfo == null) {
+      warningInvalidDebugInfo = new HashMap<>();
+    }
+    warningInvalidDebugInfo.computeIfAbsent(origin, k -> new ArrayList<>()).add(method);
   }
 
   public boolean printWarnings() {
     boolean printed = false;
     boolean printOutdatedToolchain = false;
     if (warningInvalidParameterAnnotations != null) {
+      // TODO(b/67626202): Add a regression test with a program that hits this issue.
       diagnosticsHandler.warning(
-          new StringDiagnostic(warningInvalidParameterAnnotations));
+          new StringDiagnostic(
+              "Invalid parameter counts in MethodParameter attributes. "
+                  + "This is likely due to Proguard having removed a parameter."));
+      for (Origin origin : new TreeSet<>(warningInvalidParameterAnnotations.keySet())) {
+        StringBuilder builder =
+            new StringBuilder("Methods with invalid MethodParameter attributes:");
+        for (InvalidParameterAnnotationInfo info : warningInvalidParameterAnnotations.get(origin)) {
+          builder
+              .append("\n  ")
+              .append(info.method)
+              .append(" expected count: ")
+              .append(info.expectedParameterCount)
+              .append(" actual count: ")
+              .append(info.actualParameterCount);
+        }
+        diagnosticsHandler.info(new StringDiagnostic(origin, builder.toString()));
+      }
       printed = true;
     }
-    if (warningInvalidDebugInfoCount > 0) {
+    if (warningInvalidDebugInfo != null) {
+      int count = 0;
+      for (List<DexEncodedMethod> methods : warningInvalidDebugInfo.values()) {
+        count += methods.size();
+      }
       diagnosticsHandler.warning(
-          new StringDiagnostic("Stripped invalid locals information from "
-          + warningInvalidDebugInfoCount
-          + (warningInvalidDebugInfoCount == 1 ? " method." : " methods.")));
+          new StringDiagnostic(
+              "Stripped invalid locals information from "
+                  + count
+                  + (count == 1 ? " method." : " methods.")));
+      for (Origin origin : new TreeSet<>(warningInvalidDebugInfo.keySet())) {
+        StringBuilder builder = new StringBuilder("Methods with invalid locals information:");
+        for (DexEncodedMethod method : warningInvalidDebugInfo.get(origin)) {
+          builder.append("\n  ").append(method.toSourceString());
+        }
+        diagnosticsHandler.info(new StringDiagnostic(origin, builder.toString()));
+      }
       printed = true;
       printOutdatedToolchain = true;
     }
@@ -161,7 +223,7 @@ public class InternalOptions {
       printOutdatedToolchain = true;
     }
     if (printOutdatedToolchain) {
-      diagnosticsHandler.warning(
+      diagnosticsHandler.info(
           new StringDiagnostic(
               "Some warnings are typically a sign of using an outdated Java toolchain."
                   + " To fix, recompile the source with an updated toolchain."));

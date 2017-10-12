@@ -1075,6 +1075,7 @@ public class Outliner {
     DexProgramClass clazz = new DexProgramClass(
         type,
         null,
+        null,
         accessFlags,
         superType,
         interfaces,

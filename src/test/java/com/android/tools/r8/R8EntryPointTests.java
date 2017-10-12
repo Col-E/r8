@@ -40,7 +40,7 @@ public class R8EntryPointTests extends TestBase {
   public void testRun1Dir() throws Exception {
     Path out = temp.newFolder("outdex").toPath();
     R8.run(getCommand(out));
-    Assert.assertTrue(Files.isRegularFile(out.resolve(FileUtils.DEFAULT_DEX_FILENAME)));
+    Assert.assertTrue(Files.isRegularFile(out.resolve(ToolHelper.DEFAULT_DEX_FILENAME)));
     Assert.assertTrue(Files.isRegularFile(testFlags.getParent().resolve(MAPPING)));
     Assert.assertTrue(Files.isRegularFile(testFlags.getParent().resolve(SEEDS)));
   }
@@ -63,7 +63,7 @@ public class R8EntryPointTests extends TestBase {
     } finally {
       executor.shutdown();
     }
-    Assert.assertTrue(Files.isRegularFile(out.resolve(FileUtils.DEFAULT_DEX_FILENAME)));
+    Assert.assertTrue(Files.isRegularFile(out.resolve(ToolHelper.DEFAULT_DEX_FILENAME)));
     Assert.assertTrue(Files.isRegularFile(testFlags.getParent().resolve(MAPPING)));
     Assert.assertTrue(Files.isRegularFile(testFlags.getParent().resolve(SEEDS)));
   }
@@ -92,7 +92,7 @@ public class R8EntryPointTests extends TestBase {
         "--pg-conf", testFlags.toString(),
         INPUT_JAR.toString());
     Assert.assertEquals(0, r8.exitCode);
-    Assert.assertTrue(Files.isRegularFile(out.resolve(FileUtils.DEFAULT_DEX_FILENAME)));
+    Assert.assertTrue(Files.isRegularFile(out.resolve(ToolHelper.DEFAULT_DEX_FILENAME)));
     Assert.assertTrue(Files.isRegularFile(testFlags.getParent().resolve(MAPPING)));
     Assert.assertTrue(Files.isRegularFile(testFlags.getParent().resolve(SEEDS)));
   }

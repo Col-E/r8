@@ -11,12 +11,13 @@ import static com.android.tools.r8.utils.FileUtils.isVDexFile;
 import com.android.tools.r8.ArchiveClassFileProvider;
 import com.android.tools.r8.ClassFileResourceProvider;
 import com.android.tools.r8.Resource;
-import com.android.tools.r8.Resource.Kind;
+import com.android.tools.r8.Resource.Origin;
 import com.android.tools.r8.dex.VDexFile;
 import com.android.tools.r8.dex.VDexFileReader;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.shaking.FilteredClassPath;
+import com.android.tools.r8.utils.ProgramResource.Kind;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.ByteStreams;
@@ -55,7 +56,7 @@ public class AndroidApp {
 
   public static final String DEFAULT_PROGUARD_MAP_FILE = "proguard.map";
 
-  private final ImmutableList<Resource> programResources;
+  private final ImmutableList<ProgramResource> programResources;
   private final ImmutableMap<Resource, String> programResourcesMainDescriptor;
   private final ImmutableList<ClassFileResourceProvider> classpathResourceProviders;
   private final ImmutableList<ClassFileResourceProvider> libraryResourceProviders;
@@ -70,7 +71,7 @@ public class AndroidApp {
 
   // See factory methods and AndroidApp.Builder below.
   private AndroidApp(
-      ImmutableList<Resource> programResources,
+      ImmutableList<ProgramResource> programResources,
       ImmutableMap<Resource, String> programResourcesMainDescriptor,
       ImmutableList<ProgramFileArchiveReader> programFileArchiveReaders,
       ImmutableList<ClassFileResourceProvider> classpathResourceProviders,
@@ -159,11 +160,11 @@ public class AndroidApp {
 
   /** Get input streams for all dex program resources. */
   public List<Resource> getDexProgramResources() throws IOException {
-    List<Resource> dexResources = filter(programResources, Resource.Kind.DEX);
+    List<Resource> dexResources = filter(programResources, Kind.DEX);
     for (Resource resource : filter(programResources, Kind.VDEX)) {
       VDexFileReader reader = new VDexFileReader(new VDexFile(resource));
       dexResources.addAll(reader.getDexFiles().stream()
-          .map(bytes -> Resource.fromBytes(Kind.DEX, bytes))
+          .map(bytes -> Resource.fromBytes(resource.origin, bytes))
           .collect(Collectors.toList()));
     }
     for (ProgramFileArchiveReader reader : programFileArchiveReaders) {
@@ -174,12 +175,12 @@ public class AndroidApp {
 
   public List<Resource> getDexProgramResourcesForOutput() {
     assert programFileArchiveReaders.isEmpty();
-    return filter(programResources, Resource.Kind.DEX);
+    return filter(programResources, Kind.DEX);
   }
 
   /** Get input streams for all Java-bytecode program resources. */
   public List<Resource> getClassProgramResources() throws IOException {
-    List<Resource> classResources = filter(programResources, Resource.Kind.CLASSFILE);
+    List<Resource> classResources = filter(programResources, Kind.CLASS);
     for (ProgramFileArchiveReader reader : programFileArchiveReaders) {
       classResources.addAll(reader.getClassProgramResources());
     }
@@ -200,11 +201,11 @@ public class AndroidApp {
     return programFileArchiveReaders;
   }
 
-  private List<Resource> filter(List<Resource> resources, Resource.Kind kind) {
+  private List<Resource> filter(List<ProgramResource> resources, Kind kind) {
     List<Resource> out = new ArrayList<>(resources.size());
-    for (Resource resource : resources) {
-      if (kind == resource.kind) {
-        out.add(resource);
+    for (ProgramResource code : resources) {
+      if (code.kind == kind) {
+        out.add(code.resource);
       }
     }
     return out;
@@ -440,7 +441,7 @@ public class AndroidApp {
    */
   public static class Builder {
 
-    private final List<Resource> programResources = new ArrayList<>();
+    private final List<ProgramResource> programResources = new ArrayList<>();
     private final Map<Resource, String> programResourcesMainDescriptor = new HashMap<>();
     private final List<ProgramFileArchiveReader> programFileArchiveReaders = new ArrayList<>();
     private final List<ClassFileResourceProvider> classpathResourceProviders = new ArrayList<>();
@@ -566,8 +567,7 @@ public class AndroidApp {
      * Add dex program-data with class descriptor.
      */
     public Builder addDexProgramData(byte[] data, Set<String> classDescriptors) {
-      programResources.add(
-          Resource.fromBytes(Resource.Kind.DEX, data, classDescriptors));
+      addProgramResources(Kind.DEX, Resource.fromBytes(Origin.unknown(), data, classDescriptors));
       return this;
     }
 
@@ -578,8 +578,8 @@ public class AndroidApp {
         byte[] data,
         Set<String> classDescriptors,
         String primaryClassDescriptor) {
-      Resource resource = Resource.fromBytes(Resource.Kind.DEX, data, classDescriptors);
-      programResources.add(resource);
+      Resource resource = Resource.fromBytes(Origin.unknown(), data, classDescriptors);
+      addProgramResources(Kind.DEX, resource);
       programResourcesMainDescriptor.put(resource, primaryClassDescriptor);
       return this;
     }
@@ -596,7 +596,7 @@ public class AndroidApp {
      */
     public Builder addDexProgramData(Collection<byte[]> data) {
       for (byte[] datum : data) {
-        programResources.add(Resource.fromBytes(Resource.Kind.DEX, datum));
+        addProgramResources(Kind.DEX, Resource.fromBytes(Origin.unknown(), datum));
       }
       return this;
     }
@@ -613,9 +613,16 @@ public class AndroidApp {
      */
     public Builder addClassProgramData(Collection<byte[]> data) {
       for (byte[] datum : data) {
-        programResources.add(Resource.fromBytes(Resource.Kind.CLASSFILE, datum));
+        addProgramResources(Kind.CLASS, Resource.fromBytes(Origin.unknown(), datum));
       }
       return this;
+    }
+
+    /**
+     * Add Java-bytecode program data.
+     */
+    public Builder addClassProgramData(Origin origin, byte[] data) {
+      return addProgramResources(Kind.CLASS, Resource.fromBytes(origin, data));
     }
 
     /**
@@ -639,7 +646,7 @@ public class AndroidApp {
      * Set proguard-map file.
      */
     public Builder setProguardMapFile(Path file) {
-      proguardMap = file == null ? null : Resource.fromFile(null, file);
+      proguardMap = file == null ? null : Resource.fromFile(file);
       return this;
     }
 
@@ -680,11 +687,10 @@ public class AndroidApp {
         }
         // TODO(sgjesse): Should we just read the file here? This will sacrifice the parallelism
         // in ApplicationReader where all input resources are read in parallel.
-        mainDexListResources.add(Resource.fromFile(null, file));
+        mainDexListResources.add(Resource.fromFile(file));
       }
       return this;
     }
-
 
     /**
      * Add main-dex classes.
@@ -758,17 +764,28 @@ public class AndroidApp {
         throw new FileNotFoundException("Non-existent input file: " + file);
       }
       if (isDexFile(file)) {
-        programResources.add(Resource.fromFile(Resource.Kind.DEX, file));
+        addProgramResources(Kind.DEX, Resource.fromFile(file));
       } else if (isVDexFile(file) && isVdexAllowed()) {
-        programResources.add(Resource.fromFile(Resource.Kind.VDEX, file));
+        addProgramResources(Kind.VDEX, Resource.fromFile(file));
       } else if (isClassFile(file)) {
-        programResources.add(Resource.fromFile(Resource.Kind.CLASSFILE, file));
+        addProgramResources(Kind.CLASS, Resource.fromFile(file));
       } else if (isArchive(file)) {
         programFileArchiveReaders
             .add(new ProgramFileArchiveReader(filteredClassPath, ignoreDexInArchive));
       } else {
         throw new CompilationError("Unsupported source file type for file: " + file);
       }
+    }
+
+    private Builder addProgramResources(ProgramResource.Kind kind, Resource... resources) {
+      return addProgramResources(kind, Arrays.asList(resources));
+    }
+
+    private Builder addProgramResources(ProgramResource.Kind kind, Collection<Resource> resources) {
+      for (Resource resource : resources) {
+        programResources.add(new ProgramResource(kind, resource));
+      }
+      return this;
     }
 
     private void addClassProvider(FilteredClassPath classPath,

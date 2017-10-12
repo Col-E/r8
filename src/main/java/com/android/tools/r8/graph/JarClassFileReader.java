@@ -7,7 +7,7 @@ import static org.objectweb.asm.ClassReader.SKIP_FRAMES;
 import static org.objectweb.asm.Opcodes.ACC_DEPRECATED;
 import static org.objectweb.asm.Opcodes.ASM6;
 
-import com.android.tools.r8.Resource;
+import com.android.tools.r8.Resource.Origin;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexValue.DexValueAnnotation;
@@ -26,6 +26,7 @@ import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.DexValue.DexValueType;
 import com.android.tools.r8.graph.JarCode.ReparseContext;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.ProgramResource.Kind;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -60,10 +61,10 @@ public class JarClassFileReader {
     this.classConsumer = classConsumer;
   }
 
-  public void read(String file, ClassKind classKind, InputStream input) throws IOException {
+  public void read(Origin origin, ClassKind classKind, InputStream input) throws IOException {
     ClassReader reader = new ClassReader(input);
     reader.accept(new CreateDexClassVisitor(
-        file, classKind, reader.b, application, classConsumer), SKIP_FRAMES);
+        origin, classKind, reader.b, application, classConsumer), SKIP_FRAMES);
   }
 
   private static DexAccessFlags createAccessFlags(int access) {
@@ -93,7 +94,7 @@ public class JarClassFileReader {
   }
 
   private static class CreateDexClassVisitor extends ClassVisitor {
-    private final String file;
+    private final Origin origin;
     private final ClassKind classKind;
     private final JarApplicationReader application;
     private final Consumer<DexClass> classConsumer;
@@ -116,13 +117,13 @@ public class JarClassFileReader {
     private final List<DexEncodedMethod> virtualMethods = new ArrayList<>();
 
     public CreateDexClassVisitor(
-        String file,
+        Origin origin,
         ClassKind classKind,
         byte[] classCache,
         JarApplicationReader application,
         Consumer<DexClass> classConsumer) {
       super(ASM6);
-      this.file = file;
+      this.origin = origin;
       this.classKind = classKind;
       this.classConsumer = classConsumer;
       this.context.classCache = classCache;
@@ -248,7 +249,8 @@ public class JarClassFileReader {
       }
       DexClass clazz = classKind.create(
           type,
-          Resource.Kind.CLASSFILE, 
+          Kind.CLASS,
+          origin,
           accessFlags,
           superType,
           interfaces,
@@ -512,7 +514,7 @@ public class JarClassFileReader {
       if (!flags.isAbstract()
           && !flags.isNative()
           && parent.classKind == ClassKind.PROGRAM) {
-        code = new JarCode(method, parent.context, parent.application);
+        code = new JarCode(method, parent.origin, parent.context, parent.application);
       }
       DexAnnotationSetRefList parameterAnnotationSets;
       if (parameterAnnotations == null) {
@@ -529,11 +531,8 @@ public class JarClassFileReader {
           && internalOptions.canUseParameterNameAnnotations()) {
         assert parameterFlags != null;
         if (parameterNames.size() != parameterCount) {
-          internalOptions.warningInvalidParameterAnnotations =
-              "Invalid parameter count in MethodParameters attributes of "
-                  + method.toSourceString() + " from '" + parent.file + "'. Found "
-                  + parameterNames.size() + " while expecting " + parameterCount + "."
-                  + " This is likely due to proguard having removed a parameter.";
+          internalOptions.warningInvalidParameterAnnotations(
+              method, parent.origin, parameterCount, parameterNames.size());
         }
         getAnnotations().add(DexAnnotation.createMethodParametersAnnotation(
             parameterNames.toArray(new DexValue[parameterNames.size()]),

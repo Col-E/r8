@@ -7,6 +7,7 @@ import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.isArchive;
 import static com.android.tools.r8.utils.FileUtils.isClassFile;
 
+import com.android.tools.r8.Resource.Origin;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.shaking.FilteredClassPath;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -23,11 +24,24 @@ import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
-/**
- * Lazy Java class file resource provider loading class files form a zip archive.
- */
+/** Lazy Java class file resource provider loading class files form a zip archive. */
 public class ArchiveClassFileProvider implements ClassFileResourceProvider, Closeable {
 
+  private static class ArchiveEntryOrigin extends Origin {
+    final String descriptor;
+
+    public ArchiveEntryOrigin(String descriptor, Origin parent) {
+      super(parent);
+      this.descriptor = descriptor;
+    }
+
+    @Override
+    public String part() {
+      return descriptor;
+    }
+  }
+
+  private final Origin origin;
   private final Set<String> descriptors = new HashSet<>();
   private final ZipFile zipFile;
 
@@ -42,6 +56,7 @@ public class ArchiveClassFileProvider implements ClassFileResourceProvider, Clos
 
   private ArchiveClassFileProvider(FilteredClassPath archive) throws IOException {
     assert isArchive(archive.getPath());
+    origin = new Resource.PathOrigin(archive.getPath(), Origin.root());
     zipFile = new ZipFile(archive.getPath().toFile());
     final Enumeration<? extends ZipEntry> entries = zipFile.entries();
     while (entries.hasMoreElements()) {
@@ -67,7 +82,7 @@ public class ArchiveClassFileProvider implements ClassFileResourceProvider, Clos
 
     try (InputStream inputStream = zipFile.getInputStream(getZipEntryFromDescriptor(descriptor))) {
       return Resource.fromBytes(
-          Resource.Kind.CLASSFILE,
+          new ArchiveEntryOrigin(descriptor, origin),
           ByteStreams.toByteArray(inputStream),
           Collections.singleton(descriptor));
     } catch (IOException e) {

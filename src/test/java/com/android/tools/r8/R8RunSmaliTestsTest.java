@@ -7,7 +7,6 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
-import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;

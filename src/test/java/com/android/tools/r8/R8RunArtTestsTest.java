@@ -123,10 +123,10 @@ public abstract class R8RunArtTestsTest {
           // Interface initializer is not triggered after desugaring.
           .put("962-iface-static", AndroidApiLevel.N.getLevel())
           // Interface initializer is not triggered after desugaring.
-          .put("964-default-iface-init-gen",AndroidApiLevel.N.getLevel())
+          .put("964-default-iface-init-gen", AndroidApiLevel.N.getLevel())
           // AbstractMethodError (for method not implemented in class) instead of
           // IncompatibleClassChangeError (for conflict of default interface methods).
-          .put("968-default-partial-compile-gen",AndroidApiLevel.N.getLevel())
+          .put("968-default-partial-compile-gen", AndroidApiLevel.N.getLevel())
           // NoClassDefFoundError (for companion class) instead of NoSuchMethodError.
           .put("970-iface-super-resolution-gen", AndroidApiLevel.N.getLevel())
           // NoClassDefFoundError (for companion class) instead of AbstractMethodError.

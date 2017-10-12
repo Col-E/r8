@@ -9,6 +9,7 @@ import com.android.tools.r8.ClassFileResourceProvider;
 import com.android.tools.r8.Resource;
 import com.google.common.collect.Sets;
 import java.io.File;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Set;
@@ -57,11 +58,9 @@ public final class DirectoryClassFileProvider implements ClassFileResourceProvid
 
     // Build expected file path based on type descriptor.
     String classBinaryName = DescriptorUtils.getClassBinaryNameFromDescriptor(descriptor);
-    Path filePath = root.resolve(classBinaryName + CLASS_EXTENSION);
-    File file = filePath.toFile();
+    Path file = root.resolve(classBinaryName + CLASS_EXTENSION);
 
-    return (file.exists() && !file.isDirectory())
-        ? Resource.fromFile(Resource.Kind.CLASSFILE, filePath) : null;
+    return (Files.exists(file) && !Files.isDirectory(file)) ? Resource.fromFile(file) : null;
   }
 
   /** Create resource provider from directory path. */

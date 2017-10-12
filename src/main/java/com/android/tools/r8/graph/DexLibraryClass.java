@@ -3,18 +3,29 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.Resource;
+import com.android.tools.r8.Resource.Origin;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.utils.ProgramResource;
+import com.android.tools.r8.utils.ProgramResource.Kind;
 import java.util.function.Supplier;
 
 public class DexLibraryClass extends DexClass implements Supplier<DexLibraryClass> {
 
-  public DexLibraryClass(DexType type, Resource.Kind origin, DexAccessFlags accessFlags,
-      DexType superType, DexTypeList interfaces, DexString sourceFile, DexAnnotationSet annotations,
-      DexEncodedField[] staticFields, DexEncodedField[] instanceFields,
-      DexEncodedMethod[] directMethods, DexEncodedMethod[] virtualMethods) {
+  public DexLibraryClass(
+      DexType type,
+      ProgramResource.Kind kind,
+      Origin origin,
+      DexAccessFlags accessFlags,
+      DexType superType,
+      DexTypeList interfaces,
+      DexString sourceFile,
+      DexAnnotationSet annotations,
+      DexEncodedField[] staticFields,
+      DexEncodedField[] instanceFields,
+      DexEncodedMethod[] directMethods,
+      DexEncodedMethod[] virtualMethods) {
     super(sourceFile, interfaces, accessFlags, superType, type,
         staticFields, instanceFields, directMethods, virtualMethods, annotations, origin);
     // Set all static field values to unknown. We don't want to use the value from the library
@@ -22,6 +33,7 @@ public class DexLibraryClass extends DexClass implements Supplier<DexLibraryClas
     for (DexEncodedField staticField : staticFields) {
       staticField.staticValue = DexValue.UNKNOWN;
     }
+    assert kind == Kind.CLASS : "Invalid kind " + kind + " for library-path class " + type;
   }
 
   @Override

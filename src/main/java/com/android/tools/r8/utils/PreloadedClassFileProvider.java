@@ -5,6 +5,7 @@ package com.android.tools.r8.utils;
 
 import com.android.tools.r8.ClassFileResourceProvider;
 import com.android.tools.r8.Resource;
+import com.android.tools.r8.Resource.Origin;
 import com.google.common.collect.Sets;
 import java.util.Collections;
 import java.util.HashMap;
@@ -15,6 +16,20 @@ import java.util.Set;
  * Lazy Java class file resource provider based on preloaded/prebuilt context.
  */
 public final class PreloadedClassFileProvider implements ClassFileResourceProvider {
+
+  private static class ClassDescriptorOrigin extends Origin {
+    private final String descriptor;
+
+    public ClassDescriptorOrigin(String descriptor) {
+      super(Origin.unknown());
+      this.descriptor = descriptor;
+    }
+
+    @Override
+    public String part() {
+      return descriptor;
+    }
+  }
 
   private final Map<String, byte[]> content;
 
@@ -33,7 +48,8 @@ public final class PreloadedClassFileProvider implements ClassFileResourceProvid
     if (bytes == null) {
       return null;
     }
-    return Resource.fromBytes(Resource.Kind.CLASSFILE, bytes, Collections.singleton(descriptor));
+    return Resource.fromBytes(
+        new ClassDescriptorOrigin(descriptor), bytes, Collections.singleton(descriptor));
   }
 
   public static ClassFileResourceProvider fromClassData(String descriptor, byte[] data) {

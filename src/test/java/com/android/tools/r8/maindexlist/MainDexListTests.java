@@ -317,7 +317,7 @@ public class MainDexListTests extends TestBase {
       byte[] ref = null;
       byte[] ref2 = null;
       for (Path testDir : testDirs.keySet()) {
-        Path primaryDexFile = testDir.resolve(FileUtils.DEFAULT_DEX_FILENAME);
+        Path primaryDexFile = testDir.resolve(ToolHelper.DEFAULT_DEX_FILENAME);
         Path secondaryDexFile = testDir.resolve("classes2.dex");
         assertTrue(Files.exists(primaryDexFile));
         boolean hasSecondaryDexFile = !allClasses && mode == CompilationMode.DEBUG;
@@ -599,6 +599,7 @@ public class MainDexListTests extends TestBase {
       builder.addProgramClass(
           new DexProgramClass(
               type,
+              null,
               null,
               new DexAccessFlags(),
               factory.objectType,

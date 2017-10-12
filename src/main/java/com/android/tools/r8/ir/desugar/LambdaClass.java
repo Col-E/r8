@@ -120,6 +120,7 @@ final class LambdaClass {
     return new DexProgramClass(
         type,
         null,
+        null,
         new DexAccessFlags(Constants.ACC_FINAL | Constants.ACC_SYNTHETIC),
         rewriter.factory.objectType,
         buildInterfaces(),
@@ -129,8 +130,7 @@ final class LambdaClass {
         synthesizeInstanceFields(),
         synthesizeDirectMethods(),
         synthesizeVirtualMethods(),
-        synthesizedFrom
-    );
+        synthesizedFrom);
   }
 
   final DexField getCaptureField(int index) {

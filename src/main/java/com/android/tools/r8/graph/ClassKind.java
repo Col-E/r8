@@ -1,6 +1,7 @@
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.Resource;
+import com.android.tools.r8.Resource.Origin;
+import com.android.tools.r8.utils.ProgramResource;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -11,11 +12,19 @@ public enum ClassKind {
   LIBRARY(DexLibraryClass::new, DexClass::isLibraryClass);
 
   private interface Factory {
-    DexClass create(DexType type, Resource.Kind origin, DexAccessFlags accessFlags,
+    DexClass create(
+        DexType type,
+        ProgramResource.Kind kind,
+        Origin origin,
+        DexAccessFlags accessFlags,
         DexType superType,
-        DexTypeList interfaces, DexString sourceFile, DexAnnotationSet annotations,
-        DexEncodedField[] staticFields, DexEncodedField[] instanceFields,
-        DexEncodedMethod[] directMethods, DexEncodedMethod[] virtualMethods);
+        DexTypeList interfaces,
+        DexString sourceFile,
+        DexAnnotationSet annotations,
+        DexEncodedField[] staticFields,
+        DexEncodedField[] instanceFields,
+        DexEncodedMethod[] directMethods,
+        DexEncodedMethod[] virtualMethods);
   }
 
   private final Factory factory;
@@ -27,12 +36,31 @@ public enum ClassKind {
   }
 
   public DexClass create(
-      DexType type, Resource.Kind origin, DexAccessFlags accessFlags, DexType superType,
-      DexTypeList interfaces, DexString sourceFile, DexAnnotationSet annotations,
-      DexEncodedField[] staticFields, DexEncodedField[] instanceFields,
-      DexEncodedMethod[] directMethods, DexEncodedMethod[] virtualMethods) {
-    return factory.create(type, origin, accessFlags, superType, interfaces, sourceFile,
-        annotations, staticFields, instanceFields, directMethods, virtualMethods);
+      DexType type,
+      ProgramResource.Kind kind,
+      Origin origin,
+      DexAccessFlags accessFlags,
+      DexType superType,
+      DexTypeList interfaces,
+      DexString sourceFile,
+      DexAnnotationSet annotations,
+      DexEncodedField[] staticFields,
+      DexEncodedField[] instanceFields,
+      DexEncodedMethod[] directMethods,
+      DexEncodedMethod[] virtualMethods) {
+    return factory.create(
+        type,
+        kind,
+        origin,
+        accessFlags,
+        superType,
+        interfaces,
+        sourceFile,
+        annotations,
+        staticFields,
+        instanceFields,
+        directMethods,
+        virtualMethods);
   }
 
   public boolean isOfKind(DexClass clazz) {

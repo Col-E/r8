@@ -3,9 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.Resource;
+import com.android.tools.r8.Resource.Origin;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
+import com.android.tools.r8.utils.ProgramResource;
+import com.android.tools.r8.utils.ProgramResource.Kind;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -15,12 +17,14 @@ import java.util.Set;
 import java.util.function.Supplier;
 
 public class DexProgramClass extends DexClass implements Supplier<DexProgramClass> {
-
+  private final ProgramResource.Kind originKind;
   private DexEncodedArray staticValues;
   private final Collection<DexProgramClass> synthesizedFrom;
 
-  public DexProgramClass(DexType type,
-      Resource.Kind origin,
+  public DexProgramClass(
+      DexType type,
+      ProgramResource.Kind originKind,
+      Origin origin,
       DexAccessFlags accessFlags,
       DexType superType,
       DexTypeList interfaces,
@@ -30,7 +34,9 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
       DexEncodedField[] instanceFields,
       DexEncodedMethod[] directMethods,
       DexEncodedMethod[] virtualMethods) {
-    this(type,
+    this(
+        type,
+        originKind,
         origin,
         accessFlags,
         superType,
@@ -44,8 +50,10 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
         Collections.emptyList());
   }
 
-  public DexProgramClass(DexType type,
-      Resource.Kind origin,
+  public DexProgramClass(
+      DexType type,
+      ProgramResource.Kind originKind,
+      Origin origin,
       DexAccessFlags accessFlags,
       DexType superType,
       DexTypeList interfaces,
@@ -59,7 +67,16 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
     super(sourceFile, interfaces, accessFlags, superType, type, staticFields,
         instanceFields, directMethods, virtualMethods, classAnnotations, origin);
     assert classAnnotations != null;
+    this.originKind = originKind;
     this.synthesizedFrom = accumulateSynthesizedFrom(new HashSet<>(), synthesizedDirectlyFrom);
+  }
+
+  public boolean originatesFromDexResource() {
+    return originKind == Kind.DEX;
+  }
+
+  public boolean originatesFromClassResource() {
+    return originKind == Kind.CLASS;
   }
 
   @Override

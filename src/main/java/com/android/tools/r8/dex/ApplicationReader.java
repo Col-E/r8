@@ -6,7 +6,6 @@ package com.android.tools.r8.dex;
 import static com.android.tools.r8.graph.ClassKind.CLASSPATH;
 import static com.android.tools.r8.graph.ClassKind.LIBRARY;
 import static com.android.tools.r8.graph.ClassKind.PROGRAM;
-import static com.android.tools.r8.utils.FileUtils.DEFAULT_DEX_FILENAME;
 
 import com.android.tools.r8.ClassFileResourceProvider;
 import com.android.tools.r8.Resource;
@@ -24,10 +23,10 @@ import com.android.tools.r8.graph.LazyLoadedDexApplication;
 import com.android.tools.r8.naming.ProguardMapReader;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.DexVersion;
 import com.android.tools.r8.utils.ClassProvider;
 import com.android.tools.r8.utils.ClasspathClassCollection;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.DexVersion;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.LibraryClassCollection;
 import com.android.tools.r8.utils.MainDexList;
@@ -167,7 +166,7 @@ public class ApplicationReader {
           try (InputStream is = input.getStream()) {
             DexFile file = new DexFile(is);
             computedMinApiLevel = verifyOrComputeMinApiLevel(computedMinApiLevel, file);
-            fileReaders.add(new DexFileReader(file, classKind, itemFactory));
+            fileReaders.add(new DexFileReader(input.origin, file, classKind, itemFactory));
           }
         }
         options.minApiLevel = computedMinApiLevel;
@@ -195,7 +194,7 @@ public class ApplicationReader {
       for (Resource input : classSources) {
         futures.add(executorService.submit(() -> {
           try (InputStream is = input.getStream()) {
-            reader.read(DEFAULT_DEX_FILENAME, classKind, is);
+            reader.read(input.origin, classKind, is);
           }
           // No other way to have a void callable, but we want the IOException from the previous
           // line to be wrapped into an ExecutionException.

@@ -128,6 +128,7 @@ final class InterfaceProcessor {
     DexProgramClass companionClass = new DexProgramClass(
         companionClassType,
         null,
+        null,
         companionClassFlags,
         rewriter.factory.objectType,
         DexTypeList.empty(),

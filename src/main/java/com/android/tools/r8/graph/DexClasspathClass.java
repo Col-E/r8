@@ -3,20 +3,32 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.Resource;
+import com.android.tools.r8.Resource.Origin;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.utils.ProgramResource;
+import com.android.tools.r8.utils.ProgramResource.Kind;
 import java.util.function.Supplier;
 
 public class DexClasspathClass extends DexClass implements Supplier<DexClasspathClass> {
 
-  public DexClasspathClass(DexType type, Resource.Kind origin, DexAccessFlags accessFlags,
-      DexType superType, DexTypeList interfaces, DexString sourceFile, DexAnnotationSet annotations,
-      DexEncodedField[] staticFields, DexEncodedField[] instanceFields,
-      DexEncodedMethod[] directMethods, DexEncodedMethod[] virtualMethods) {
+  public DexClasspathClass(
+      DexType type,
+      ProgramResource.Kind kind,
+      Origin origin,
+      DexAccessFlags accessFlags,
+      DexType superType,
+      DexTypeList interfaces,
+      DexString sourceFile,
+      DexAnnotationSet annotations,
+      DexEncodedField[] staticFields,
+      DexEncodedField[] instanceFields,
+      DexEncodedMethod[] directMethods,
+      DexEncodedMethod[] virtualMethods) {
     super(sourceFile, interfaces, accessFlags, superType, type,
         staticFields, instanceFields, directMethods, virtualMethods, annotations, origin);
+    assert kind == Kind.CLASS : "Invalid kind " + kind + " for class-path class " + type;
   }
 
   @Override

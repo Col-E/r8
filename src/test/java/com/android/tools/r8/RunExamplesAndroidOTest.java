@@ -10,15 +10,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.FoundClassSubject;
 import com.android.tools.r8.utils.DexInspector.FoundMethodSubject;
 import com.android.tools.r8.utils.DexInspector.InstructionSubject;
 import com.android.tools.r8.utils.DexInspector.InvokeInstructionSubject;
-import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OffOrAuto;
 import com.google.common.collect.ImmutableList;
@@ -405,7 +404,7 @@ public abstract class RunExamplesAndroidOTest
       throws ZipException, IOException, ExecutionException {
     try (ZipFile zipFile = new ZipFile(zip.toFile())) {
       try (InputStream in =
-          zipFile.getInputStream(zipFile.getEntry(FileUtils.DEFAULT_DEX_FILENAME))) {
+          zipFile.getInputStream(zipFile.getEntry(ToolHelper.DEFAULT_DEX_FILENAME))) {
         return new DexInspector(AndroidApp.fromDexProgramData(ByteStreams.toByteArray(in)));
       }
     }

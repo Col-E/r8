@@ -8,6 +8,8 @@ import static com.android.tools.r8.utils.FileUtils.isClassFile;
 import static com.android.tools.r8.utils.FileUtils.isDexFile;
 
 import com.android.tools.r8.Resource;
+import com.android.tools.r8.Resource.Origin;
+import com.android.tools.r8.Resource.PathOrigin;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.shaking.FilteredClassPath;
 import com.google.common.io.ByteStreams;
@@ -26,12 +28,14 @@ import java.util.zip.ZipFile;
 
 public class ProgramFileArchiveReader {
 
+  private final Origin origin;
   private final FilteredClassPath archive;
   private boolean ignoreDexInArchive;
   private List<Resource> dexResources = null;
   private List<Resource> classResources = null;
 
   ProgramFileArchiveReader(FilteredClassPath archive, boolean ignoreDexInArchive) {
+    origin = new PathOrigin(archive.getPath(), Origin.root());
     this.archive = archive;
     this.ignoreDexInArchive = ignoreDexInArchive;
   }
@@ -46,18 +50,23 @@ public class ProgramFileArchiveReader {
         ZipEntry entry = entries.nextElement();
         try (InputStream stream = zipFile.getInputStream(entry)) {
           Path name = Paths.get(entry.getName());
+          Origin entryOrigin = new PathOrigin(name, origin);
           if (archive.matchesFile(name)) {
             if (isDexFile(name)) {
               if (!ignoreDexInArchive) {
                 Resource resource =
-                    new OneShotByteResource(Resource.Kind.DEX, ByteStreams.toByteArray(stream),
+                    new OneShotByteResource(
+                        entryOrigin,
+                        ByteStreams.toByteArray(stream),
                         null);
                 dexResources.add(resource);
               }
             } else if (isClassFile(name)) {
               String descriptor = DescriptorUtils.guessTypeDescriptor(name);
-              Resource resource = new OneShotByteResource(Resource.Kind.CLASSFILE,
-                  ByteStreams.toByteArray(stream), Collections.singleton(descriptor));
+              Resource resource = new OneShotByteResource(
+                  entryOrigin,
+                  ByteStreams.toByteArray(stream),
+                  Collections.singleton(descriptor));
               classResources.add(resource);
             }
           }

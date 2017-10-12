@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
-import com.android.tools.r8.Resource;
-import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.ClassKind;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexLibraryClass;
@@ -19,11 +17,6 @@ public class LibraryClassCollection extends ClassMap<DexLibraryClass> {
 
   @Override
   DexLibraryClass resolveClassConflict(DexLibraryClass a, DexLibraryClass b) {
-    if (a.origin != Resource.Kind.CLASSFILE || b.origin != Resource.Kind.CLASSFILE) {
-      // We only support conflicts for classes both coming from jar files.
-      throw new CompilationError(
-          "Library type already present: " + a.type.toSourceString());
-    }
     if (Log.ENABLED) {
       Log.warn(DexApplication.class,
           "Class `%s` was specified twice as a library type.", a.type.toSourceString());

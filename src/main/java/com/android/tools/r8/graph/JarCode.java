@@ -4,6 +4,7 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.ApiLevelException;
+import com.android.tools.r8.Resource.Origin;
 import com.android.tools.r8.errors.InvalidDebugInfoException;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
@@ -37,13 +38,16 @@ public class JarCode extends Code {
   }
 
   private final DexType clazz;
+  private final Origin origin;
   private MethodNode node;
   private ReparseContext context;
 
   private final JarApplicationReader application;
 
-  public JarCode(DexMethod method, ReparseContext context, JarApplicationReader application) {
+  public JarCode(
+      DexMethod method, Origin origin, ReparseContext context, JarApplicationReader application) {
     this.clazz = method.getHolder();
+    this.origin = origin;
     this.context = context;
     this.application = application;
     context.lookupMap.put(method, this);
@@ -105,7 +109,7 @@ public class JarCode extends Code {
     try {
       return internalBuild(encodedMethod, generator, options);
     } catch (InvalidDebugInfoException e) {
-      options.warningInvalidDebugInfo(encodedMethod, e);
+      options.warningInvalidDebugInfo(encodedMethod, origin, e);
       node.localVariables.clear();
       return internalBuild(encodedMethod, generator, options);
     }

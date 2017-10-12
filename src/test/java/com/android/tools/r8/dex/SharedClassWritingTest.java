@@ -4,7 +4,6 @@
 package com.android.tools.r8.dex;
 
 import com.android.tools.r8.Resource;
-import com.android.tools.r8.Resource.Kind;
 import com.android.tools.r8.code.ConstString;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.ReturnVoid;
@@ -83,10 +82,19 @@ public class SharedClassWritingTest {
       Collection<DexProgramClass> synthesizedFrom) {
     String desc = DescriptorUtils.javaTypeToDescriptor(name);
     DexType type = dexItemFactory.createType(desc);
-    return new DexProgramClass(type, Kind.DEX, new DexAccessFlags(Constants.ACC_PUBLIC),
-        dexItemFactory.objectType, DexTypeList.empty(), null, DexAnnotationSet.empty(),
-        DexEncodedField.EMPTY_ARRAY, DexEncodedField.EMPTY_ARRAY, DexEncodedMethod.EMPTY_ARRAY,
-        new DexEncodedMethod[]{makeMethod(type, stringCount, startOffset)},
+    return new DexProgramClass(
+        type,
+        null,
+        null,
+        new DexAccessFlags(Constants.ACC_PUBLIC),
+        dexItemFactory.objectType,
+        DexTypeList.empty(),
+        null,
+        DexAnnotationSet.empty(),
+        DexEncodedField.EMPTY_ARRAY,
+        DexEncodedField.EMPTY_ARRAY,
+        DexEncodedMethod.EMPTY_ARRAY,
+        new DexEncodedMethod[] {makeMethod(type, stringCount, startOffset)},
         synthesizedFrom);
   }
 

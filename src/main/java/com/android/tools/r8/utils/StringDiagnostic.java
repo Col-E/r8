@@ -4,12 +4,24 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.Diagnostic;
+import com.android.tools.r8.Resource.Origin;
 
 public class StringDiagnostic implements Diagnostic {
+  private final Origin origin;
   private final String message;
 
   public StringDiagnostic(String message) {
+    this(Origin.unknown(), message);
+  }
+
+  public StringDiagnostic(Origin origin, String message) {
+    this.origin = origin;
     this.message = message;
+  }
+
+  @Override
+  public Origin getOrigin() {
+    return origin;
   }
 
   @Override

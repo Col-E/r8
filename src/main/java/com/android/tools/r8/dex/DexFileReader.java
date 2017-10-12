@@ -8,7 +8,8 @@ import static com.android.tools.r8.utils.EncodedValueUtils.parseFloat;
 import static com.android.tools.r8.utils.EncodedValueUtils.parseSigned;
 import static com.android.tools.r8.utils.EncodedValueUtils.parseUnsigned;
 
-import com.android.tools.r8.Resource;
+import com.android.tools.r8.Resource.Origin;
+import com.android.tools.r8.Resource.PathOrigin;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.InstructionFactory;
 import com.android.tools.r8.graph.ClassKind;
@@ -51,6 +52,7 @@ import com.android.tools.r8.graph.DexValue.DexValueNull;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.OffsetToObjectMapping;
 import com.android.tools.r8.logging.Log;
+import com.android.tools.r8.utils.ProgramResource.Kind;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import java.io.ByteArrayOutputStream;
@@ -68,21 +70,22 @@ import java.util.function.Supplier;
 public class DexFileReader {
 
   final int NO_INDEX = -1;
+  private final Origin origin;
   private DexFile file;
   private final Segment[] segments;
   private int[] stringIDs;
   private final ClassKind classKind;
 
   public static Segment[] parseMapFrom(Path file) throws IOException {
-    return parseMapFrom(new DexFile(file.toString()));
+    return parseMapFrom(new DexFile(file.toString()), new PathOrigin(file, Origin.root()));
   }
 
-  public static Segment[] parseMapFrom(InputStream stream) throws IOException {
-    return parseMapFrom(new DexFile(stream));
+  public static Segment[] parseMapFrom(InputStream stream, Origin origin) throws IOException {
+    return parseMapFrom(new DexFile(stream), origin);
   }
 
-  private static Segment[] parseMapFrom(DexFile dex) {
-    DexFileReader reader = new DexFileReader(dex, ClassKind.PROGRAM, new DexItemFactory());
+  private static Segment[] parseMapFrom(DexFile dex, Origin origin) {
+    DexFileReader reader = new DexFileReader(origin, dex, ClassKind.PROGRAM, new DexItemFactory());
     return reader.segments;
   }
 
@@ -107,7 +110,9 @@ public class DexFileReader {
   // Factory to canonicalize certain dexitems.
   private final DexItemFactory dexItemFactory;
 
-  public DexFileReader(DexFile file, ClassKind classKind, DexItemFactory dexItemFactory) {
+  public DexFileReader(
+      Origin origin, DexFile file, ClassKind classKind, DexItemFactory dexItemFactory) {
+    this.origin = origin;
     this.file = file;
     this.dexItemFactory = dexItemFactory;
     file.setByteOrder();
@@ -662,7 +667,8 @@ public class DexFileReader {
       }
       clazz = classKind.create(
           type,
-          Resource.Kind.DEX,
+          Kind.DEX,
+          origin,
           flags,
           superclass,
           typeListAt(interfacesOffsets[i]),

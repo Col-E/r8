@@ -68,6 +68,7 @@ public class ToolHelper {
 
   public static final String LINE_SEPARATOR = StringUtils.LINE_SEPARATOR;
   public final static String PATH_SEPARATOR = File.pathSeparator;
+  public static final String DEFAULT_DEX_FILENAME = "classes.dex";
 
   private static final String ANDROID_JAR_PATTERN = "third_party/android_jar/lib-v%d/android.jar";
   private static final int DEFAULT_MIN_SDK = AndroidApiLevel.I.getLevel();

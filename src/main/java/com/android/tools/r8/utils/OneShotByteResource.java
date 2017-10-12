@@ -14,8 +14,8 @@ class OneShotByteResource extends Resource {
   private byte[] bytes;
   private final Set<String> classDescriptors;
 
-  OneShotByteResource(Kind kind, byte[] bytes, Set<String> classDescriptors) {
-    super(kind);
+  OneShotByteResource(Origin origin, byte[] bytes, Set<String> classDescriptors) {
+    super(origin);
     assert bytes != null;
     this.bytes = bytes;
     this.classDescriptors = classDescriptors;

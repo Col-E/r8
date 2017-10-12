@@ -273,15 +273,7 @@ final class ClassProcessor {
     DefaultMethodsHelper helper = new DefaultMethodsHelper();
     DexClass definedInterface = rewriter.findDefinitionFor(iface);
     if (definedInterface == null) {
-      String message = "Interface `" + iface.toSourceString()
-              + "` not found. It's needed to make sure desugaring of `"
-              + classToDesugar.toSourceString() + "` is correct. Desugaring will assume that this"
-              + " interface has no default method";
-      if (classToDesugar != implementing) {
-        message += ". This missing interface is declared in the direct hierarchy of `"
-              + implementing.toString() + "`";
-      }
-      rewriter.warnMissingClass(iface, message);
+      rewriter.warnMissingInterface(classToDesugar, implementing, iface);
       return helper.wrapInCollection();
     }
 

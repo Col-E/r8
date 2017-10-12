@@ -5,7 +5,6 @@
 package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.ApiLevelException;
-import com.android.tools.r8.Resource;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.DexApplication.Builder;
 import com.android.tools.r8.graph.DexCallSite;
@@ -127,7 +126,7 @@ public final class InterfaceMethodRewriter {
             // NOTE: leave unchanged those calls to undefined targets. This may lead to runtime
             // exception but we can not report it as error since it can also be the intended
             // behavior.
-            warnMissingClass(encodedMethod.method, method.holder);
+            warnMissingType(encodedMethod.method, method.holder);
           } else if (clazz.isInterface() && !clazz.isLibraryClass()) {
             // NOTE: we intentionally don't desugar static calls into static interface
             // methods coming from android.jar since it is only possible in case v24+
@@ -149,7 +148,7 @@ public final class InterfaceMethodRewriter {
             // NOTE: leave unchanged those calls to undefined targets. This may lead to runtime
             // exception but we can not report it as error since it can also be the intended
             // behavior.
-            warnMissingClass(encodedMethod.method, method.holder);
+            warnMissingType(encodedMethod.method, method.holder);
           } else if (clazz != null && (clazz.isInterface() && !clazz.isLibraryClass())) {
             // NOTE: we intentionally don't desugar super calls into interface methods
             // coming from android.jar since it is only possible in case v24+ version
@@ -171,7 +170,7 @@ public final class InterfaceMethodRewriter {
       // NOTE: If the class definition is missing we can't check. Let it be handled as any other
       // missing call target.
       if (holderClass == null) {
-        warnMissingClass(referencedFrom, handle.asMethod().holder);
+        warnMissingType(referencedFrom, handle.asMethod().holder);
       } else if (holderClass.isInterface()) {
         throw new Unimplemented(
             "Desugaring of static interface method handle as in `"
@@ -249,7 +248,7 @@ public final class InterfaceMethodRewriter {
 
   private static boolean shouldProcess(
       DexProgramClass clazz, Flavor flavour, boolean mustBeInterface) {
-    return (clazz.getOrigin() != Resource.Kind.DEX || flavour == Flavor.IncludeAllResources)
+    return (!clazz.originatesFromDexResource() || flavour == Flavor.IncludeAllResources)
         && clazz.isInterface() == mustBeInterface;
   }
 
@@ -294,17 +293,44 @@ public final class InterfaceMethodRewriter {
     return true;
   }
 
-  void warnMissingClass(DexType missing, String message) {
-    // TODO replace by a proper warning mechanic (see b/65154707).
+  public void warnMissingInterface(
+      DexClass classToDesugar, DexClass implementing, DexType missing) {
     // TODO think about using a common deduplicating mechanic with Enqueuer
-    if (reportedMissing.add(missing)) {
-      options.diagnosticsHandler.warning(new StringDiagnostic(message));
+    if (!reportedMissing.add(missing)) {
+      return;
     }
+    StringBuilder builder = new StringBuilder();
+    builder
+        .append("Interface `")
+        .append(missing.toSourceString())
+        .append("` not found. It's needed to make sure desugaring of `")
+        .append(classToDesugar.toSourceString())
+        .append("` is correct. Desugaring will assume that this interface has no default method.");
+    if (classToDesugar != implementing) {
+      builder
+          .append(" This missing interface is declared in the direct hierarchy of `")
+          .append(implementing)
+          .append("`");
+    }
+    options.diagnosticsHandler.warning(
+        new StringDiagnostic(classToDesugar.getOrigin(), builder.toString()));
   }
 
-  private void warnMissingClass(DexItem referencedFrom, DexType clazz) {
-      warnMissingClass(clazz,
-          "Type `" + clazz.toSourceString() + "` was not found, it is required for default or"
-          + " static interface methods desugaring of `" + referencedFrom.toSourceString() + "`");
+  private void warnMissingType(DexMethod referencedFrom, DexType missing) {
+    // TODO think about using a common deduplicating mechanic with Enqueuer
+    if (!reportedMissing.add(missing)) {
+      return;
+    }
+    StringBuilder builder = new StringBuilder();
+    builder
+        .append("Type `")
+        .append(missing.toSourceString())
+        .append("` was not found, ")
+        .append("it is required for default or static interface methods desugaring of `")
+        .append(referencedFrom.toSourceString())
+        .append("`");
+    DexClass referencedFromClass = converter.appInfo.definitionFor(referencedFrom.getHolder());
+    options.diagnosticsHandler.warning(
+        new StringDiagnostic(referencedFromClass.getOrigin(), builder.toString()));
   }
 }

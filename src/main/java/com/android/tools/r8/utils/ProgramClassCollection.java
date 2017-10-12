@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
-import com.android.tools.r8.Resource;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.ClassKind;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -50,8 +49,8 @@ public class ProgramClassCollection extends ClassMap<DexProgramClass> {
 
   private static DexProgramClass resolveClassConflictImpl(DexProgramClass a, DexProgramClass b) {
     // Currently only allow collapsing synthetic lambda classes.
-    if (a.getOrigin() == Resource.Kind.DEX
-        && b.getOrigin() == Resource.Kind.DEX
+    if (a.originatesFromDexResource()
+        && b.originatesFromDexResource()
         && a.accessFlags.isSynthetic()
         && b.accessFlags.isSynthetic()
         && LambdaRewriter.hasLambdaClassPrefix(a.type)

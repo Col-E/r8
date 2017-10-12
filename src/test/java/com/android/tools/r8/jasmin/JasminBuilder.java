@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.jasmin;
 
+import com.android.tools.r8.Resource.Origin;
+import com.android.tools.r8.Resource.PathOrigin;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
@@ -17,6 +19,7 @@ import com.google.common.collect.ImmutableList;
 import jasmin.ClassFile;
 import java.io.ByteArrayOutputStream;
 import java.io.StringReader;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -36,6 +39,10 @@ public class JasminBuilder {
     public ClassBuilder(String name, String superName) {
       this.name = name;
       this.superName = superName;
+    }
+
+    public String getSourceFile() {
+      return name + ".j";
     }
 
     public MethodSignature addVirtualMethod(
@@ -109,7 +116,7 @@ public class JasminBuilder {
     @Override
     public String toString() {
       StringBuilder builder = new StringBuilder();
-      builder.append(".source ").append(name).append(".j\n");
+      builder.append(".source ").append(getSourceFile()).append("\n");
       builder.append(".class public ").append(name).append("\n");
       builder.append(".super ").append(superName).append("\n");
       if (makeInit) {
@@ -169,8 +176,17 @@ public class JasminBuilder {
   }
 
   public AndroidApp build() throws Exception {
+    Origin root = new PathOrigin(Paths.get("JasminBuilder"), Origin.root());
     AndroidApp.Builder builder = AndroidApp.builder();
-    builder.addClassProgramData(buildClasses());
+    for (ClassBuilder clazz : classes) {
+      Origin origin = new Origin(root) {
+        @Override
+        public String part() {
+          return clazz.getSourceFile();
+        }
+      };
+      builder.addClassProgramData(origin, compile(clazz));
+    }
     return builder.build();
   }
 

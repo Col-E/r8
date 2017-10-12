@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
-import static com.android.tools.r8.utils.FileUtils.DEFAULT_DEX_FILENAME;
-
 import com.android.tools.r8.ClassFileResourceProvider;
 import com.android.tools.r8.Resource;
 import com.android.tools.r8.errors.CompilationError;
@@ -100,7 +98,7 @@ public abstract class ClassProvider<T extends DexClass> {
         try (Closer closer = Closer.create()) {
           JarClassFileReader classReader =
               new JarClassFileReader(reader, classKind.bridgeConsumer(classConsumer));
-          classReader.read(DEFAULT_DEX_FILENAME, classKind, closer.register(resource.getStream()));
+          classReader.read(resource.origin, classKind, closer.register(resource.getStream()));
         } catch (IOException e) {
           throw new CompilationError("Failed to load class: " + descriptor, e);
         }
