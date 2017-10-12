@@ -3,6 +3,7 @@
 # for details. All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
+import gradle
 import d8
 import os
 import r8
@@ -68,7 +69,10 @@ def Main():
     print 'On master, using git hash for archiving'
     version = GetGitHash()
 
-  for jar in [utils.D8_JAR, utils.R8_JAR, utils.COMPATDX_JAR]:
+  # Ensure all archived artifacts has been built before archiving.
+  gradle.RunGradle([utils.D8, utils.R8, utils.COMPATDX, utils.COMPATPROGUARD])
+
+  for jar in [utils.D8_JAR, utils.R8_JAR, utils.COMPATDX_JAR, utils.COMPATPROGUARD_JAR]:
     file_name = os.path.basename(jar)
     destination = GetUploadDestination(version, file_name, is_master)
     print('Uploading %s to %s' % (jar, destination))
