@@ -1526,3 +1526,8 @@ task javadocD8(type: Javadoc) {
   include '**/com/android/tools/r8/D8Output.java'
   include '**/com/android/tools/r8/Resource.java'
 }
+
+task copyMavenDeps(type: Copy) {
+    from configurations.compile into "$buildDir/deps"
+    from configurations.testCompile into "$buildDir/deps"
+}
