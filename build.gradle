@@ -295,7 +295,7 @@ task downloadProguard {
 task downloadDx {
     cloudDependencies.each { entry ->
         entry.value.each { entryFile ->
-            if (entryFile.contains("dx.tar")) {
+            if (entryFile.endsWith("/dx")) {
                 dependsOn "download_deps_${entry.key}/${entryFile}"
             }
         }
