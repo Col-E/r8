@@ -40,8 +40,6 @@ AOSP_MANIFEST_XML = join(utils.REPO_ROOT, 'third_party',
   'aosp_manifest.xml')
 AOSP_HELPER_SH = join(utils.REPO_ROOT, 'scripts', 'aosp_helper.sh')
 
-D8LOGGER_JAR = join(utils.REPO_ROOT, 'build/libs/d8logger.jar')
-
 AOSP_ROOT = join(utils.REPO_ROOT, 'build/aosp')
 
 AOSP_MANIFEST_URL = 'https://android.googlesource.com/platform/manifest'
@@ -54,8 +52,8 @@ RESULTS_DIR_BASE = join(OUT_CTS, 'host/linux-x86/cts/android-cts/results')
 CTS_TRADEFED = join(OUT_CTS,
   'host/linux-x86/cts/android-cts/tools/cts-tradefed')
 
-J_DEFAULT = '8'
-J_OPTION = '-j' + J_DEFAULT
+J_DEFAULT = 8
+J_OPTION = '-j' + str(J_DEFAULT)
 
 EXIT_FAILURE = 1
 
@@ -64,13 +62,9 @@ def parse_arguments():
       description = 'Download the AOSP source tree, build an Android image'
       ' and the CTS targets and run CTS with the emulator on the image.')
   parser.add_argument('--tool',
-      choices = ['jack', 'dx', 'd8'],
+      choices = ['dx', 'd8'],
       default = 'd8',
       help='compiler tool to use')
-  parser.add_argument('--d8log',
-      metavar = 'FILE',
-      help = 'Enable logging d8 (compatdx) calls to the specified file. Works'
-          ' only with --tool=d8')
   parser.add_argument('--save-result',
       metavar = 'FILE',
       help = 'Save final test_result.xml to the specified file.')
@@ -147,30 +141,18 @@ def setup_and_clean(tool_is_d8, clean_dex):
 def Main():
   args = parse_arguments()
 
-  if args.d8log and args.tool != 'd8':
-    print("The '--d8log' option works only with '--tool=d8'.",
-        file = sys.stderr)
-    return EXIT_FAILURE
+  assert args.tool in ['dx', 'd8']
 
-  assert args.tool in ['jack', 'dx', 'd8']
-
-  jack_option = 'ANDROID_COMPILE_WITH_JACK=' \
-      + ('true' if args.tool == 'jack' else 'false')
-
-  # DX_ALT_JAR need to be cleared if not set, for 'make' to work properly
-  alt_jar_option = 'DX_ALT_JAR='
+  use_d8 = 'USE_D8=false'
   if args.tool == 'd8':
-    if args.d8log:
-      alt_jar_option += D8LOGGER_JAR
-      os.environ['D8LOGGER_OUTPUT'] = args.d8log
-    else:
-      alt_jar_option += utils.COMPATDX_JAR
+    use_d8 = 'USE_D8=true'
 
-  gradle.RunGradle(['d8','d8logger', 'compatdx'])
+  gradle.RunGradle(['d8', 'compatdx'])
 
   setup_and_clean(args.tool == 'd8', args.clean_dex)
 
-  checkout_aosp.checkout_aosp(AOSP_ROOT, AOSP_MANIFEST_XML, J_DEFAULT)
+  checkout_aosp.checkout_aosp("test", AOSP_MANIFEST_URL, None,
+                              AOSP_MANIFEST_XML, str(J_DEFAULT), True)
 
   # activate OUT_CTS and build Android CTS
   # AOSP has no clean way to set the output directory.
@@ -189,11 +171,11 @@ def Main():
   # activate OUT_IMG and build the Android image
   if not remove_aosp_out():
     return EXIT_FAILURE
-  print("-- Building Android image with 'make {} {} {}'." \
-    .format(J_OPTION, jack_option, alt_jar_option))
+  print("-- Building Android image with 'make {} {}'." \
+    .format(J_OPTION, use_d8))
   os.symlink(OUT_IMG, AOSP_OUT)
-  check_call([AOSP_HELPER_SH, AOSP_PRESET, 'make', J_OPTION, jack_option,
-      alt_jar_option], cwd = AOSP_ROOT)
+  check_call([AOSP_HELPER_SH, AOSP_PRESET, 'make', J_OPTION,
+      use_d8_option], cwd = AOSP_ROOT)
 
   emulator_proc = Popen([AOSP_HELPER_SH, AOSP_PRESET,
       'emulator', '-partition-size', '4096', '-wipe-data'], cwd = AOSP_ROOT)

@@ -17,13 +17,14 @@ import utils_aosp
 AOSP_MANIFEST_XML = join(utils.REPO_ROOT, 'third_party',
   'aosp_manifest.xml')
 AOSP_MANIFEST_URL = 'https://android.googlesource.com/platform/manifest'
-
 J_DEFAULT = multiprocessing.cpu_count() - 2
 
 # Checkout AOSP source to the specified direcotry using the speficied manifest.
-def checkout_aosp(aosp_root, url, branch, manifest_xml, concurrency):
+def checkout_aosp(aosp_root, url, branch, manifest_xml, concurrency, shallow):
   utils.makedirs_if_needed(aosp_root)
-  command = ['repo', 'init', '-u', url, '--depth=1']
+  command = ['repo', 'init', '-u', url]
+  if (shallow):
+    command.extend(['--depth=1'])
   if (branch):
     command.extend(['-b', branch])
   else:
@@ -50,6 +51,9 @@ def parse_arguments():
   parser.add_argument('--branch',
                       help='Branch to checkout. This overrides ' +
                            'passing --manifest')
+  parser.add_argument('--shallow',
+                      action = 'store_true',
+                      help='Shallow checkout.')
   parser.add_argument('-j',
                       help='Projects to fetch simultaneously. ' +
                            'Defaults to ' + str(J_DEFAULT) + '.',
@@ -58,7 +62,8 @@ def parse_arguments():
 
 def Main():
   args = parse_arguments()
-  checkout_aosp(args.aosp_root, args.url, args.branch, args.manifest, args.j)
+  checkout_aosp(args.aosp_root, args.url, args.branch, args.manifest,
+                args.j, args.shallow)
 
 if __name__ == '__main__':
   sys.exit(Main())

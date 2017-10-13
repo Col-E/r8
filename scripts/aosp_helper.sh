@@ -16,6 +16,8 @@ lunch "$AOSP_PRESET"
 
 if [[ "$TASK" == "make" ]]; then
   make "$@"
+elif [[ "$TASK" == "m" ]]; then
+  m "$@"
 elif [[ "$TASK" == "mmm" ]]; then
   mmm "$@"
 elif [[ "$TASK" == "mmma" ]]; then
