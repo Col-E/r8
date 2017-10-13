@@ -1298,6 +1298,12 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   // Attempt to allocate the hint register to the unhandled intervals.
   private boolean tryHint(LiveIntervals unhandledInterval, int registerConstraint,
       RegisterPositions freePositions, boolean needsRegisterPair, int register) {
+    // At some point after the hint has been added, the register allocator can
+    // decide to redo allocation for the hint interval. In that case, the hint will be
+    // reset to NO_REGISTER and provides no hinting info.
+    if (register == NO_REGISTER) {
+      return false;
+    }
     if (register + (needsRegisterPair ? 1 : 0) <= registerConstraint) {
       int freePosition = freePositions.get(register);
       if (needsRegisterPair) {
