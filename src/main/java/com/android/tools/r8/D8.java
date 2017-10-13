@@ -108,7 +108,7 @@ public final class D8 {
       return;
     }
     if (command.isPrintVersion()) {
-      System.out.println("D8 " + Version.LABEL);
+      Version.printToolVersion("D8");
       return;
     }
     run(command);

@@ -7,6 +7,7 @@ package com.android.tools.r8.compatproguard;
 import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
+import com.android.tools.r8.Version;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -71,6 +72,10 @@ public class CompatProguard {
   }
 
   private static void run(String[] args) throws IOException, CompilationException {
+    if (args.length == 0) {
+      Version.printToolVersion("CompatProguard");
+      return;
+    }
     System.out.println("CompatProguard " + String.join(" ", args));
     // Run R8 passing all the options from the command line as a Proguard configuration.
     CompatProguardOptions options = CompatProguardOptions.parse(args);
