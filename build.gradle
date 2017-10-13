@@ -939,6 +939,22 @@ task buildExampleAndroidPJars {
     }
 }
 
+task buildExampleJava9Jars {
+    def examplesDir = file("src/test/examplesJava9")
+    examplesDir.eachDir { dir ->
+        def name = dir.getName();
+        def exampleOutputDir = file("build/test/examplesJava9");
+        def jarName = "${name}.jar"
+        dependsOn "jar_examplesJava9_${name}"
+        task "jar_examplesJava9_${name}"(type: Jar) {
+            archiveName = jarName
+            destinationDir = exampleOutputDir
+            from "src/test/examplesJava9"  // Java 1.9 classes
+            include "**/" + name + "/**/*.class"
+        }
+    }
+}
+
 task buildExamples {
     if (OperatingSystem.current().isMacOsX() || OperatingSystem.current().isWindows()) {
         logger.lifecycle("WARNING: Testing (including building examples) is only partially supported on your " +
@@ -953,6 +969,7 @@ task buildExamples {
     dependsOn buildExampleAndroidNJars
     dependsOn buildExampleAndroidOJars
     dependsOn buildExampleAndroidPJars
+    dependsOn buildExampleJava9Jars
     def examplesDir = file("src/test/examples")
     def noDexTests = [
         "multidex",
@@ -1530,4 +1547,49 @@ task javadocD8(type: Javadoc) {
 task copyMavenDeps(type: Copy) {
     from configurations.compile into "$buildDir/deps"
     from configurations.testCompile into "$buildDir/deps"
+}
+
+// This task allows to build class files from Java 9 source in order to use them as inputs of
+// D8/R8 tests. Class files are generated in the same place than source files and must be commited
+// to the D8 repository because there is no way to generate them on all computers due to the need of
+// Java 9.
+// Use the following command to rebuild class files of tests:
+// ./tools/gradle.py -Pjava9Home=<java 9 home> buildJava9Tests
+task buildJava9Tests {
+    def javacOutputFolder = getTemporaryDir();
+    def examplesDir = file("src/test/examplesJava9")
+
+    task "compile_Java9examples"(type: JavaCompile) {
+        doFirst {
+            if (!project.hasProperty('java9Home') || project.property('java9Home').isEmpty()) {
+                throw new GradleException("Set java9Home property.")
+            }
+        }
+
+        source = fileTree(dir: examplesDir, include: '**/*.java')
+        destinationDir = javacOutputFolder
+        classpath = sourceSets.main.compileClasspath
+        options.compilerArgs += ["-Xlint:-options"]
+        sourceCompatibility = JavaVersion.VERSION_1_9
+        targetCompatibility = JavaVersion.VERSION_1_9
+        options.fork = true
+
+        if (project.hasProperty('java9Home')) {
+            options.forkOptions.javaHome = file(getProperty('java9Home'))
+        }
+
+        doLast {
+            def classfileFrom = copySpec {
+                from javacOutputFolder
+                include "**/*.class"
+            }
+            copy {
+                into examplesDir
+                with classfileFrom
+            }
+            delete javacOutputFolder
+        }
+    }
+
+    dependsOn compile_Java9examples
 }
