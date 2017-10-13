@@ -211,9 +211,10 @@ public class R8Command extends BaseCompilerCommand {
           throw new CompilationException(e.getMessage(), e.getCause());
         }
       }
-      ProguardConfiguration configuration;
+
+      ProguardConfiguration.Builder configurationBuilder;
       if (proguardConfigs.isEmpty()) {
-        configuration = ProguardConfiguration.defaultConfiguration(factory);
+        configurationBuilder = ProguardConfiguration.builderInitializedWithDefaults(factory);
       } else {
         ProguardConfigurationParser parser =
             new ProguardConfigurationParser(factory, getDiagnosticsHandler());
@@ -222,14 +223,15 @@ public class R8Command extends BaseCompilerCommand {
         } catch (ProguardRuleParserException e) {
           throw new CompilationException(e.getMessage(), e.getCause());
         }
-        ProguardConfiguration.Builder configurationBuilder = parser.getConfigurationBuilder();
-        if (proguardConfigurationConsumer != null) {
-          proguardConfigurationConsumer.accept(configurationBuilder);
-        }
-        configuration = configurationBuilder.build();
-        getAppBuilder().addProgramFiles(configuration.getInjars());
-        getAppBuilder().addLibraryFiles(configuration.getLibraryjars());
+        configurationBuilder = parser.getConfigurationBuilder();
       }
+
+      if (proguardConfigurationConsumer != null) {
+        proguardConfigurationConsumer.accept(configurationBuilder);
+      }
+      ProguardConfiguration configuration = configurationBuilder.build();
+      getAppBuilder().addProgramFiles(configuration.getInjars());
+      getAppBuilder().addLibraryFiles(configuration.getLibraryjars());
 
       // TODO(b/64802420): setProguardMapFile if configuration.hasApplyMappingFile
 

@@ -295,12 +295,17 @@ public class ProguardConfiguration {
     return new Builder(dexItemFactory);
   }
 
-  public DexItemFactory getDexItemFactory() {
-    return dexItemFactory;
+  public static Builder builderInitializedWithDefaults(DexItemFactory dexItemFactory) {
+    Builder builder = new Builder(dexItemFactory);
+    builder.setObfuscating(false);
+    builder.setShrinking(false);
+    builder.addKeepAttributePatterns(KeepAttributeOptions.KEEP_ALL);
+    builder.addRule(ProguardKeepRule.defaultKeepAllRule());
+    return builder;
   }
 
-  public boolean isDefaultConfiguration() {
-    return false;
+  public DexItemFactory getDexItemFactory() {
+    return dexItemFactory;
   }
 
   public ImmutableList<FilteredClassPath> getInjars() {
@@ -404,44 +409,10 @@ public class ProguardConfiguration {
   }
 
   public static ProguardConfiguration defaultConfiguration(DexItemFactory dexItemFactory) {
-    return new DefaultProguardConfiguration(dexItemFactory);
-  }
-
-  public static class DefaultProguardConfiguration extends ProguardConfiguration {
-
-    public DefaultProguardConfiguration(DexItemFactory factory) {
-      super(factory,
-          ImmutableList.of()    /* injars */,
-          ImmutableList.of()    /* libraryjars */,
-          PackageObfuscationMode.NONE,
-          ""                    /* package prefix */,
-          false                 /* allowAccessModification */,
-          false                 /* ignoreWarnings */,
-          true                  /* optimizing */,
-          false                 /* obfuscating */,
-          false                 /* shrinking */,
-          false                 /* printUsage */,
-          null                  /* printUsageFile */,
-          false                 /* printMapping */,
-          null                  /* printMappingFile */,
-          null                  /* applyMapping */,
-          false                 /* verbose */,
-          null                  /* renameSourceFileAttribute */,
-          KeepAttributeOptions.KEEP_ALL,
-          ProguardClassNameList.emptyList(),
-          ImmutableList.of(ProguardKeepRule.defaultKeepAllRule()),
-          false                 /* printSeeds */,
-          null                  /* seedFile */,
-          ImmutableList.of()    /* obfuscationDictionary */,
-          ImmutableList.of()    /* classObfuscationDictionary */,
-          ImmutableList.of()    /* packageObfuscationDictionary */,
-          false                 /* useUniqueClassMemberNames*/,
-          false                 /* keepParameterNames */);
-    }
-
-    @Override
-    public boolean isDefaultConfiguration() {
-      return true;
+    try {
+      return builderInitializedWithDefaults(dexItemFactory).build();
+    } catch(CompilationException e) {
+      throw new RuntimeException(); // Building a builder initialized with defaults will not throw CompilationException because DictionaryReader is called with empty lists.
     }
   }
 
