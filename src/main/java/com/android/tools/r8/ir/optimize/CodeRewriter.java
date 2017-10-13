@@ -1373,7 +1373,7 @@ public class CodeRewriter {
   }
 
   // TODO(mikaelpeltier) Manage that from and to instruction do not belong to the same block.
-  private boolean hasLineChangeBetween(Instruction from, Instruction to) {
+  private static boolean hasLineChangeBetween(Instruction from, Instruction to) {
     if (from.getBlock() != to.getBlock()) {
       return true;
     }
@@ -1411,23 +1411,23 @@ public class CodeRewriter {
           }
         }
       }
-    }
 
-    InstructionIterator iterator = code.instructionIterator();
-    while (iterator.hasNext()) {
-      Instruction instruction = iterator.next();
-      if (instruction.isDebugLocalWrite()) {
-        assert instruction.inValues().size() == 1;
-        Value inValue = instruction.inValues().get(0);
-        if (inValue.definition != null &&
-            !hasLineChangeBetween(inValue.definition, instruction) &&
-            !inValue.hasLocalInfo() &&
-            inValue.numberOfAllUsers() == 1) {
-          inValue.setLocalInfo(instruction.outValue().getLocalInfo());
-          instruction.moveDebugValues(inValue.definition);
-          instruction.outValue().replaceUsers(inValue);
-          instruction.clearDebugValues();
-          iterator.remove();
+      InstructionIterator iterator = block.iterator();
+      while (iterator.hasNext()) {
+        Instruction instruction = iterator.next();
+        if (instruction.isDebugLocalWrite()) {
+          assert instruction.inValues().size() == 1;
+          Value inValue = instruction.inValues().get(0);
+          if (!inValue.hasLocalInfo() &&
+              inValue.numberOfAllUsers() == 1 &&
+              inValue.definition != null &&
+              !hasLineChangeBetween(inValue.definition, instruction)) {
+            inValue.setLocalInfo(instruction.outValue().getLocalInfo());
+            instruction.moveDebugValues(inValue.definition);
+            instruction.outValue().replaceUsers(inValue);
+            instruction.clearDebugValues();
+            iterator.remove();
+          }
         }
       }
     }
