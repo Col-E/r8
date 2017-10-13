@@ -175,9 +175,9 @@ public class StringConcatRewriter {
    * to be inserted into a template string `recipe`.
    *
    * NOTE: `makeConcat​WithConstants` also supports passing compilation time `constants`
-   * as bootstrap method arguments, but it does not seem to be used in current Java 9
-   * compiler. This method does not support desugaring of cases with such bootstrap method
-   * arguments are provided.
+   * as bootstrap method arguments, but current version seems to only support String
+   * constants. This method does not support desugaring of `makeConcatWithConstants`
+   * with non-string constants provided as bootstrap method arguments.
    */
   private void rewriteMakeConcatWithConstants(
       DexMethod method, IRCode code, ListIterator<BasicBlock> blocks,
