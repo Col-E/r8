@@ -111,6 +111,7 @@ public class ProtoLitePruner extends ProtoLiteBase {
         && fieldName.startsWith("bitField");
   }
 
+  @Override
   boolean isSetterThatNeedsProcessing(DexEncodedMethod method) {
     // The pruner does not need to process setters, so this method always returns false.
     return false;

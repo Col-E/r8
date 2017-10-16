@@ -17,10 +17,12 @@ public class ProguardConfigurationSourceFile implements ProguardConfigurationSou
     this.path = path;
   }
 
+  @Override
   public String get() throws IOException{
     return new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
   }
 
+  @Override
   public Path getBaseDirectory() {
     Path baseDirectory = path.getParent();
     if (baseDirectory == null) {
@@ -31,6 +33,7 @@ public class ProguardConfigurationSourceFile implements ProguardConfigurationSou
     return baseDirectory;
   }
 
+  @Override
   public String getName() {
     return path.toString();
   }

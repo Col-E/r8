@@ -310,7 +310,7 @@ public class CompatDx {
       maxIndexNumber = options.valueOf(spec.maxIndexNumber);
     }
 
-    public static DxCompatOptions parse(String[] args) throws DxParseError {
+    public static DxCompatOptions parse(String[] args) {
       Spec spec = new Spec();
       return new DxCompatOptions(spec.parser.parse(args), spec);
     }

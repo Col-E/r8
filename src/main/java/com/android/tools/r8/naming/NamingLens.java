@@ -74,6 +74,7 @@ public abstract class NamingLens {
       // Intentionally left empty.
     }
 
+    @Override
     public boolean checkTargetCanBeTranslated(DexMethod item) {
       return true;
     }

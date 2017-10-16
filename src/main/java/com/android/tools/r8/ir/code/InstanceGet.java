@@ -88,6 +88,7 @@ public class InstanceGet extends FieldInstruction {
     return o.field == field && o.type == type;
   }
 
+  @Override
   public int compareNonValueParts(Instruction other) {
     InstanceGet o = other.asInstanceGet();
     int result = field.slowCompareTo(o.field);

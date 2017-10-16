@@ -167,6 +167,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   /**
    * Perform register allocation for the IRCode.
    */
+  @Override
   public void allocateRegisters(boolean debug) {
     // There are no linked values prior to register allocation.
     assert noLinkedValues();

@@ -33,6 +33,7 @@ public class DexEncodedAnnotation extends DexItem {
     assert false;
   }
 
+  @Override
   public String toString() {
     return "Encoded annotation " + type + " " + Arrays.toString(elements);
   }

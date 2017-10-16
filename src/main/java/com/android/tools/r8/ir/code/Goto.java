@@ -67,6 +67,7 @@ public class Goto extends JumpInstruction {
     return super.toString() + "block <unknown>";
   }
 
+  @Override
   public void print(CfgPrinter printer) {
     super.print(printer);
     printer.append(" B").append(getTarget().getNumber());

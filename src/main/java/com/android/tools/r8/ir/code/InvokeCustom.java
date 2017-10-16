@@ -83,10 +83,12 @@ public final class InvokeCustom extends Invoke {
     return 0;
   }
 
+  @Override
   public boolean isInvokeCustom() {
     return true;
   }
 
+  @Override
   public InvokeCustom asInvokeCustom() {
     return this;
   }

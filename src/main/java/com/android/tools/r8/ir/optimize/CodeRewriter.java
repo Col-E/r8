@@ -251,6 +251,7 @@ public class CodeRewriter {
       super(position);
     }
 
+    @Override
     public SwitchBuilder self() {
       return this;
     }
@@ -313,6 +314,7 @@ public class CodeRewriter {
       this.code = code;
     }
 
+    @Override
     public IfBuilder self() {
       return this;
     }
@@ -478,7 +480,7 @@ public class CodeRewriter {
                 if (current.size() == 1) {
                   outliers.add(previousKey);
                 } else {
-                  sequences.add(current);;
+                  sequences.add(current);
                 }
                 current = new IntArrayList();
               }

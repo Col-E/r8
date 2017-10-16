@@ -21,10 +21,13 @@ abstract public class DexDebugEvent extends DexItem {
   }
 
   // Make sure all concrete subclasses implements toString, hashCode, and equals.
+  @Override
   abstract public String toString();
 
+  @Override
   abstract public int hashCode();
 
+  @Override
   abstract public boolean equals(Object other);
 
   public abstract void writeOn(DebugBytecodeWriter writer, ObjectToOffsetMapping mapping);
@@ -35,6 +38,7 @@ abstract public class DexDebugEvent extends DexItem {
 
     public final int delta;
 
+    @Override
     public void writeOn(DebugBytecodeWriter writer, ObjectToOffsetMapping mapping) {
       writer.putByte(Constants.DBG_ADVANCE_PC);
       writer.putUleb128(delta);
@@ -44,21 +48,24 @@ abstract public class DexDebugEvent extends DexItem {
       this.delta = delta;
     }
 
+    @Override
     public void addToBuilder(DexDebugEntryBuilder builder) {
       assert delta >= 0;
       builder.advancePC(delta);
     }
 
-
+    @Override
     public String toString() {
       return "ADVANCE_PC " + delta;
     }
 
+    @Override
     public int hashCode() {
       return Constants.DBG_ADVANCE_PC
           + delta * 7;
     }
 
+    @Override
     public boolean equals(Object other) {
       return (other instanceof AdvancePC)
           && (delta == ((AdvancePC) other).delta);
@@ -70,23 +77,28 @@ abstract public class DexDebugEvent extends DexItem {
     SetPrologueEnd() {
     }
 
+    @Override
     public void writeOn(DebugBytecodeWriter writer, ObjectToOffsetMapping mapping) {
       writer.putByte(Constants.DBG_SET_PROLOGUE_END);
     }
 
+    @Override
     public void addToBuilder(DexDebugEntryBuilder builder) {
       builder.endPrologue();
     }
 
+    @Override
     public String toString() {
       return "SET_PROLOGUE_END";
     }
 
 
+    @Override
     public int hashCode() {
       return Constants.DBG_SET_PROLOGUE_END;
     }
 
+    @Override
     public boolean equals(Object other) {
       return other instanceof SetPrologueEnd;
     }
@@ -98,22 +110,27 @@ abstract public class DexDebugEvent extends DexItem {
     SetEpilogueBegin() {
     }
 
+    @Override
     public void writeOn(DebugBytecodeWriter writer, ObjectToOffsetMapping mapping) {
       writer.putByte(Constants.DBG_SET_EPILOGUE_BEGIN);
     }
 
+    @Override
     public void addToBuilder(DexDebugEntryBuilder builder) {
       builder.beginEpilogue();
     }
 
+    @Override
     public String toString() {
       return "SET_EPILOGUE_BEGIN";
     }
 
+    @Override
     public int hashCode() {
       return Constants.DBG_SET_EPILOGUE_BEGIN;
     }
 
+    @Override
     public boolean equals(Object other) {
       return other instanceof SetEpilogueBegin;
     }
@@ -127,24 +144,29 @@ abstract public class DexDebugEvent extends DexItem {
       this.delta = delta;
     }
 
+    @Override
     public void writeOn(DebugBytecodeWriter writer, ObjectToOffsetMapping mapping) {
       writer.putByte(Constants.DBG_ADVANCE_LINE);
       writer.putSleb128(delta);
     }
 
+    @Override
     public void addToBuilder(DexDebugEntryBuilder builder) {
       builder.advanceLine(delta);
     }
 
+    @Override
     public String toString() {
       return "ADVANCE_LINE " + delta;
     }
 
+    @Override
     public int hashCode() {
       return Constants.DBG_ADVANCE_LINE
           + delta * 7;
     }
 
+    @Override
     public boolean equals(Object other) {
       return (other instanceof AdvanceLine)
           && (delta == ((AdvanceLine) other).delta);
@@ -173,6 +195,7 @@ abstract public class DexDebugEvent extends DexItem {
       this(registerNum, local.name, local.type, local.signature);
     }
 
+    @Override
     public void writeOn(DebugBytecodeWriter writer, ObjectToOffsetMapping mapping) {
       writer.putByte(signature == null
           ? Constants.DBG_START_LOCAL
@@ -194,14 +217,17 @@ abstract public class DexDebugEvent extends DexItem {
       }
     }
 
+    @Override
     public void addToBuilder(DexDebugEntryBuilder builder) {
       builder.startLocal(registerNum, name, type, signature);
     }
 
+    @Override
     public String toString() {
       return "START_LOCAL " + registerNum;
     }
 
+    @Override
     public int hashCode() {
       return Constants.DBG_START_LOCAL
           + registerNum * 7
@@ -210,6 +236,7 @@ abstract public class DexDebugEvent extends DexItem {
           + (signature == null ? 0 : signature.hashCode()) * 19;
     }
 
+    @Override
     public boolean equals(Object other) {
       if (!(other instanceof StartLocal)) {
         return false;
@@ -236,24 +263,29 @@ abstract public class DexDebugEvent extends DexItem {
       this.registerNum = registerNum;
     }
 
+    @Override
     public void writeOn(DebugBytecodeWriter writer, ObjectToOffsetMapping mapping) {
       writer.putByte(Constants.DBG_END_LOCAL);
       writer.putUleb128(registerNum);
     }
 
+    @Override
     public void addToBuilder(DexDebugEntryBuilder builder) {
       builder.endLocal(registerNum);
     }
 
+    @Override
     public String toString() {
       return "END_LOCAL " + registerNum;
     }
 
+    @Override
     public int hashCode() {
       return Constants.DBG_END_LOCAL
           + registerNum * 7;
     }
 
+    @Override
     public boolean equals(Object other) {
       return (other instanceof EndLocal)
           && (registerNum == ((EndLocal) other).registerNum);
@@ -268,24 +300,29 @@ abstract public class DexDebugEvent extends DexItem {
       this.registerNum = registerNum;
     }
 
+    @Override
     public void writeOn(DebugBytecodeWriter writer, ObjectToOffsetMapping mapping) {
       writer.putByte(Constants.DBG_RESTART_LOCAL);
       writer.putUleb128(registerNum);
     }
 
+    @Override
     public void addToBuilder(DexDebugEntryBuilder builder) {
       builder.restartLocal(registerNum);
     }
 
+    @Override
     public String toString() {
       return "RESTART_LOCAL " + registerNum;
     }
 
+    @Override
     public int hashCode() {
       return Constants.DBG_RESTART_LOCAL
           + registerNum * 7;
     }
 
+    @Override
     public boolean equals(Object other) {
       return (other instanceof RestartLocal)
           && (registerNum == ((RestartLocal) other).registerNum);
@@ -308,6 +345,7 @@ abstract public class DexDebugEvent extends DexItem {
       this.fileName = fileName;
     }
 
+    @Override
     public void writeOn(DebugBytecodeWriter writer, ObjectToOffsetMapping mapping) {
       writer.putByte(Constants.DBG_SET_FILE);
       writer.putString(fileName);
@@ -318,19 +356,23 @@ abstract public class DexDebugEvent extends DexItem {
       fileName.collectIndexedItems(collection);
     }
 
+    @Override
     public void addToBuilder(DexDebugEntryBuilder builder) {
       builder.setFile(fileName);
     }
 
+    @Override
     public String toString() {
       return "SET_FILE " + fileName.toString();
     }
 
+    @Override
     public int hashCode() {
       return Constants.DBG_SET_FILE
           + fileName.hashCode() * 7;
     }
 
+    @Override
     public boolean equals(Object other) {
       return (other instanceof SetFile)
           && fileName.equals(((SetFile) other).fileName);
@@ -346,10 +388,12 @@ abstract public class DexDebugEvent extends DexItem {
       this.value = value;
     }
 
+    @Override
     public void writeOn(DebugBytecodeWriter writer, ObjectToOffsetMapping mapping) {
       writer.putByte(value);
     }
 
+    @Override
     public void addToBuilder(DexDebugEntryBuilder builder) {
       int adjustedOpcode = value - Constants.DBG_FIRST_SPECIAL;
       int line = Constants.DBG_LINE_BASE + (adjustedOpcode % Constants.DBG_LINE_RANGE);
@@ -367,15 +411,18 @@ abstract public class DexDebugEvent extends DexItem {
       return Constants.DBG_LINE_BASE + (adjustedOpcode % Constants.DBG_LINE_RANGE);
     }
 
+    @Override
     public String toString() {
       return "DEFAULT " + value;
     }
 
+    @Override
     public int hashCode() {
       return Constants.DBG_FIRST_SPECIAL
           + value * 7;
     }
 
+    @Override
     public boolean equals(Object other) {
       return (other instanceof Default)
           && (value == ((Default) other).value);

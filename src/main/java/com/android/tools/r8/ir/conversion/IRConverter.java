@@ -187,7 +187,7 @@ public class IRConverter {
     }
   }
 
-  private void synthesizeLambdaClasses(Builder builder) throws ApiLevelException {
+  private void synthesizeLambdaClasses(Builder<?> builder) throws ApiLevelException {
     if (lambdaRewriter != null) {
       lambdaRewriter.adjustAccessibility();
       lambdaRewriter.synthesizeLambdaClasses(builder);
@@ -195,7 +195,7 @@ public class IRConverter {
   }
 
   private void desugarInterfaceMethods(
-      Builder builder, InterfaceMethodRewriter.Flavor includeAllResources)
+      Builder<?> builder, InterfaceMethodRewriter.Flavor includeAllResources)
       throws ApiLevelException {
     if (interfaceMethodRewriter != null) {
       interfaceMethodRewriter.desugarInterfaceMethods(builder, includeAllResources);
@@ -209,7 +209,7 @@ public class IRConverter {
     convertClassesToDex(application.classes(), executor);
 
     // Build a new application with jumbo string info,
-    Builder builder = application.builder();
+    Builder<?> builder = application.builder();
     builder.setHighestSortingString(highestSortingString);
 
     synthesizeLambdaClasses(builder);
@@ -346,7 +346,7 @@ public class IRConverter {
     }
 
     // Build a new application with jumbo string info.
-    Builder builder = application.builder();
+    Builder<?> builder = application.builder();
     builder.setHighestSortingString(highestSortingString);
 
     // Second inlining pass for dealing with double inline callers.

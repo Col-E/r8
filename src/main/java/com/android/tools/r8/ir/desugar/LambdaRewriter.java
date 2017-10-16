@@ -201,7 +201,7 @@ public class LambdaRewriter {
   }
 
   /** Generates lambda classes and adds them to the builder. */
-  public void synthesizeLambdaClasses(Builder builder) throws ApiLevelException {
+  public void synthesizeLambdaClasses(Builder<?> builder) throws ApiLevelException {
     for (LambdaClass lambdaClass : knownLambdaClasses.values()) {
       DexProgramClass synthesizedClass = lambdaClass.synthesizeLambdaClass();
       converter.optimizeSynthesizedClass(synthesizedClass);

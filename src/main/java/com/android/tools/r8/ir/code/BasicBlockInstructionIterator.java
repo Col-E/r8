@@ -177,6 +177,7 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
     current.clearBlock();
   }
 
+  @Override
   public BasicBlock split(IRCode code, ListIterator<BasicBlock> blocksIterator) {
     List<BasicBlock> blocks = code.blocks;
     assert blocksIterator == null || IteratorUtils.peekPrevious(blocksIterator) == block;
@@ -217,6 +218,7 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
     return newBlock;
   }
 
+  @Override
   public BasicBlock split(int instructions, IRCode code, ListIterator<BasicBlock> blocksIterator) {
     // Split at the current cursor position.
     BasicBlock newBlock = split(code, blocksIterator);
@@ -333,6 +335,7 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
     }
   }
 
+  @Override
   public BasicBlock inlineInvoke(
       IRCode code, IRCode inlinee, ListIterator<BasicBlock> blocksIterator,
       List<BasicBlock> blocksToRemove, DexType downcast) {

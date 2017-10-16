@@ -41,6 +41,7 @@ public abstract class ArithmeticBinop extends Binop {
         && leftValue().isConstant() && rightValue().isConstant();
   }
 
+  @Override
   public boolean needsValueInRegister(Value value) {
     assert !isSub();  // Constants in instructions for sub must be handled in subclass Sub.
     // Always require the left value in a register. If left and right are the same value, then

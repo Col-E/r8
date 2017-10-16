@@ -281,6 +281,7 @@ public class Phi extends Value {
   /**
    * Determine if the only possible values for the phi are the integers 0 or 1.
    */
+  @Override
   public boolean knownToBeBoolean() {
     return knownToBeBoolean(new HashSet<>());
   }
@@ -356,6 +357,7 @@ public class Phi extends Value {
     return false;
   }
 
+  @Override
   public boolean needsRegister() {
     return true;
   }

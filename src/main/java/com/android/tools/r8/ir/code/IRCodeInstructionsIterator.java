@@ -38,6 +38,7 @@ public class IRCodeInstructionsIterator implements InstructionIterator {
     return instructionIterator.next();
   }
 
+  @Override
   public void add(Instruction instruction) {
     instructionIterator.add(instruction);
   }

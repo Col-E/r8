@@ -757,11 +757,11 @@ public class JarSourceCode implements SourceCode {
     }
   }
 
-  private int[] getSwitchTargets(LabelNode dflt, List<LabelNode> labels) {
+  private int[] getSwitchTargets(LabelNode dflt, List labels) {
     int[] targets = new int[1 + labels.size()];
     targets[0] = getOffset(dflt);
     for (int i = 1; i < targets.length; i++) {
-      targets[i] = getOffset(labels.get(i - 1));
+      targets[i] = getOffset((LabelNode) labels.get(i - 1));
     }
     return targets;
   }

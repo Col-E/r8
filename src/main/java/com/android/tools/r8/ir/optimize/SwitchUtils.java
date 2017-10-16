@@ -24,13 +24,13 @@ public class SwitchUtils {
     public final Instruction arrayGet;
     public final Instruction staticGet;
     public final Int2ReferenceMap<DexField> indexMap;
-    public final Reference2IntMap ordinalsMap;
+    public final Reference2IntMap<DexField> ordinalsMap;
 
     private EnumSwitchInfo(DexType enumClass,
         Instruction ordinalInvoke,
         Instruction arrayGet, Instruction staticGet,
         Int2ReferenceMap<DexField> indexMap,
-        Reference2IntMap ordinalsMap) {
+        Reference2IntMap<DexField> ordinalsMap) {
       this.enumClass = enumClass;
       this.ordinalInvoke = ordinalInvoke;
       this.arrayGet = arrayGet;
@@ -89,7 +89,7 @@ public class SwitchUtils {
     // Due to member rebinding, only the fields are certain to provide the actual enums
     // class.
     DexType enumTyoe = indexMap.values().iterator().next().getHolder();
-    Reference2IntMap ordinalsMap
+    Reference2IntMap<DexField> ordinalsMap
         = EnumOrdinalMapCollector.getOrdinalsMapFor(enumTyoe, appInfo);
     if (ordinalsMap == null) {
       return null;

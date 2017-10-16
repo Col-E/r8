@@ -77,10 +77,12 @@ public class Or extends LogicalBinop {
     return type.ordinal() - other.asOr().type.ordinal();
   }
 
+  @Override
   int foldIntegers(int left, int right) {
     return left | right;
   }
 
+  @Override
   long foldLongs(long left, long right) {
     return left | right;
   }

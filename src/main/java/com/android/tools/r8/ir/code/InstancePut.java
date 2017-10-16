@@ -78,6 +78,7 @@ public class InstancePut extends FieldInstruction {
     return o.field == field && o.type == type;
   }
 
+  @Override
   public int compareNonValueParts(Instruction other) {
     InstancePut o = other.asInstancePut();
     int result = field.slowCompareTo(o.field);

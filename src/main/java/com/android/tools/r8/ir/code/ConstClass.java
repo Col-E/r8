@@ -50,6 +50,7 @@ public class ConstClass extends ConstInstruction {
     return true;
   }
 
+  @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
     return other.asConstClass().clazz == clazz;
   }

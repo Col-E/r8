@@ -26,6 +26,7 @@ public class Mul extends ArithmeticBinop {
     return true;
   }
 
+  @Override
   public com.android.tools.r8.code.Instruction CreateInt(int dest, int left, int right) {
     // Flip arguments if dest and right are the same to work around x86 code generation bug on
     // Android L. See https://android-review.googlesource.com/#/c/114932/ for the fix for Android
@@ -33,6 +34,7 @@ public class Mul extends ArithmeticBinop {
     return dest == right ? new MulInt(dest, right, left) : new MulInt(dest, left, right);
   }
 
+  @Override
   public com.android.tools.r8.code.Instruction CreateLong(int dest, int left, int right) {
     // Flip arguments if dest and right are the same to work around x86 code generation bug on
     // Android L. See https://android-review.googlesource.com/#/c/114932/ for the fix for Android
@@ -40,6 +42,7 @@ public class Mul extends ArithmeticBinop {
     return dest == right ? new MulLong(dest, right, left) : new MulLong(dest, left, right);
   }
 
+  @Override
   public com.android.tools.r8.code.Instruction CreateFloat(int dest, int left, int right) {
     // Flip arguments if dest and right are the same to work around x86 code generation bug on
     // Android L. See https://android-review.googlesource.com/#/c/114932/ for the fix for Android
@@ -47,6 +50,7 @@ public class Mul extends ArithmeticBinop {
     return dest == right ? new MulFloat(dest, right, left) : new MulFloat(dest, left, right);
   }
 
+  @Override
   public com.android.tools.r8.code.Instruction CreateDouble(int dest, int left, int right) {
     // Flip arguments if dest and right are the same to work around x86 code generation bug on
     // Android L. See https://android-review.googlesource.com/#/c/114932/ for the fix for Android
@@ -54,26 +58,32 @@ public class Mul extends ArithmeticBinop {
     return dest == right ? new MulDouble(dest, right, left) : new MulDouble(dest, left, right);
   }
 
+  @Override
   public com.android.tools.r8.code.Instruction CreateInt2Addr(int left, int right) {
     return new MulInt2Addr(left, right);
   }
 
+  @Override
   public com.android.tools.r8.code.Instruction CreateLong2Addr(int left, int right) {
     return new MulLong2Addr(left, right);
   }
 
+  @Override
   public com.android.tools.r8.code.Instruction CreateFloat2Addr(int left, int right) {
     return new MulFloat2Addr(left, right);
   }
 
+  @Override
   public com.android.tools.r8.code.Instruction CreateDouble2Addr(int left, int right) {
     return new MulDouble2Addr(left, right);
   }
 
+  @Override
   public com.android.tools.r8.code.Instruction CreateIntLit8(int dest, int left, int constant) {
     return new MulIntLit8(dest, left, constant);
   }
 
+  @Override
   public com.android.tools.r8.code.Instruction CreateIntLit16(int dest, int left, int constant) {
     return new MulIntLit16(dest, left, constant);
   }

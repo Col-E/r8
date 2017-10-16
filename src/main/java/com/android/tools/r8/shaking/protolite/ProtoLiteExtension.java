@@ -82,6 +82,7 @@ public class ProtoLiteExtension extends ProtoLiteBase implements SemanticsProvid
     return superMethods;
   }
 
+  @Override
   boolean isSetterThatNeedsProcessing(DexEncodedMethod method) {
     return method.accessFlags.isPrivate()
         && method.method.name.beginsWith(setterNamePrefix)

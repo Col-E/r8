@@ -25,6 +25,7 @@ public abstract class ProguardTypeMatcher {
 
   public abstract boolean matches(DexType type);
 
+  @Override
   public abstract String toString();
 
   public boolean isTripleDotPattern() {

@@ -79,6 +79,7 @@ abstract class KeepReason {
 
     abstract String getKind();
 
+    @Override
     public void print(ReasonFormatter formatter) {
       formatter.addReason("is " + getKind() + " " + method.toSourceString());
       formatter.addMethodReferenceReason(method);

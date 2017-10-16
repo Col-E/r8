@@ -49,6 +49,7 @@ public interface InstructionListIterator extends ListIterator<Instruction>,
    * @return the instruction that matched the predicate or {@code null} if all instructions fails
    * the predicate test
    */
+  @Override
   default Instruction nextUntil(Predicate<Instruction> predicate) {
     while (hasNext()) {
       Instruction instruction = next();

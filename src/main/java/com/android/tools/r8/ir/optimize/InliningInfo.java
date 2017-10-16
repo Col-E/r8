@@ -45,6 +45,7 @@ public class InliningInfo {
       this.target = target;
     }
 
+    @Override
     void appendOn(StringBuffer buffer) {
       buffer.append("<< INLINED");
     }
@@ -58,6 +59,7 @@ public class InliningInfo {
       this.reason = reason;
     }
 
+    @Override
     public void appendOn(StringBuffer buffer) {
       buffer.append("-- no inlining: ");
       buffer.append(reason);
@@ -79,6 +81,7 @@ public class InliningInfo {
     edges.add(new Edge(invoke.getType(), invoke.getInvokedMethod(), new NotInlining(reason)));
   }
 
+  @Override
   public String toString() {
     StringBuffer buffer = new StringBuffer(method.method.toSourceString());
     buffer.append(" {\n");

@@ -69,7 +69,7 @@ public class CatchHandlers<T> {
     if (!(o instanceof CatchHandlers)) {
       return false;
     }
-    CatchHandlers that = (CatchHandlers) o;
+    CatchHandlers<?> that = (CatchHandlers<?>) o;
     return guards.equals(that.guards) && targets.equals(that.targets);
   }
 

@@ -58,6 +58,7 @@ public class InvokeSuper extends InvokeMethodWithReceiver {
     addInvokeAndMoveResult(instruction, builder);
   }
 
+  @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
     if (!other.isInvokeSuper()) {
       return false;

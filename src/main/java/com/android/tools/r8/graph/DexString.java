@@ -26,10 +26,12 @@ public class DexString extends IndexedDexItem implements PresortedComparable<Dex
     this.content = encode(string);
   }
 
+  @Override
   public int computeHashCode() {
     return size * 7 + Arrays.hashCode(content);
   }
 
+  @Override
   public boolean computeEquals(Object other) {
     if (other instanceof DexString) {
       DexString o = (DexString) other;

@@ -37,10 +37,12 @@ public class DexType extends IndexedDexItem implements PresortedComparable<DexTy
     this.descriptor = descriptor;
   }
 
+  @Override
   public int computeHashCode() {
     return descriptor.hashCode();
   }
 
+  @Override
   public boolean computeEquals(Object other) {
     if (other instanceof DexType) {
       return descriptor.equals(((DexType) other).descriptor);
@@ -218,6 +220,7 @@ public class DexType extends IndexedDexItem implements PresortedComparable<DexTy
     return descriptor.toString();
   }
 
+  @Override
   public String toSourceString() {
     if (toStringCache == null) {
       // TODO(ager): Pass in a ProguardMapReader to map names back to original names.

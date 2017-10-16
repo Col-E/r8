@@ -38,7 +38,7 @@ public class DexMemberAnnotation<T extends Descriptor, S extends DexItem> extend
       return true;
     }
     if (other instanceof DexMemberAnnotation) {
-      DexMemberAnnotation otherMember = (DexMemberAnnotation) other;
+      DexMemberAnnotation<?,?> otherMember = (DexMemberAnnotation<?,?>) other;
       return item.equals(otherMember.item) && annotations.equals(otherMember.annotations);
     }
     return false;

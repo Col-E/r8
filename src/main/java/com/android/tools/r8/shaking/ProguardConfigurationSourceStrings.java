@@ -17,14 +17,17 @@ public class ProguardConfigurationSourceStrings implements ProguardConfiguration
     this.config = config;
   }
 
+  @Override
   public String get() throws IOException{
     return Strings.join(config, "\n");
   }
 
+  @Override
   public Path getBaseDirectory() {
     return Paths.get(".");
   }
 
+  @Override
   public String getName() {
     return "<no file>";
   }

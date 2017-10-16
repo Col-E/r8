@@ -26,10 +26,12 @@ public class Add extends ArithmeticBinop {
     return true;
   }
 
+  @Override
   public com.android.tools.r8.code.Instruction CreateInt(int dest, int left, int right) {
     return new AddInt(dest, left, right);
   }
 
+  @Override
   public com.android.tools.r8.code.Instruction CreateLong(int dest, int left, int right) {
     // The dalvik jit had a bug where the long operations add, sub, or, xor and and would write
     // the first part of the result long before reading the second part of the input longs.
@@ -40,34 +42,42 @@ public class Add extends ArithmeticBinop {
     return new AddLong(dest, left, right);
   }
 
+  @Override
   public com.android.tools.r8.code.Instruction CreateFloat(int dest, int left, int right) {
     return new AddFloat(dest, left, right);
   }
 
+  @Override
   public com.android.tools.r8.code.Instruction CreateDouble(int dest, int left, int right) {
     return new AddDouble(dest, left, right);
   }
 
+  @Override
   public com.android.tools.r8.code.Instruction CreateInt2Addr(int left, int right) {
     return new AddInt2Addr(left, right);
   }
 
+  @Override
   public com.android.tools.r8.code.Instruction CreateLong2Addr(int left, int right) {
     return new AddLong2Addr(left, right);
   }
 
+  @Override
   public com.android.tools.r8.code.Instruction CreateFloat2Addr(int left, int right) {
     return new AddFloat2Addr(left, right);
   }
 
+  @Override
   public com.android.tools.r8.code.Instruction CreateDouble2Addr(int left, int right) {
     return new AddDouble2Addr(left, right);
   }
 
+  @Override
   public com.android.tools.r8.code.Instruction CreateIntLit8(int dest, int left, int constant) {
     return new AddIntLit8(dest, left, constant);
   }
 
+  @Override
   public com.android.tools.r8.code.Instruction CreateIntLit16(int dest, int left, int constant) {
     return new AddIntLit16(dest, left, constant);
   }

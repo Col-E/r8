@@ -46,6 +46,7 @@ public class Timing {
       return stop_time - start_time;
     }
 
+    @Override
     public String toString() {
       return title + ": " + (duration() / 1000000) + "ms.";
     }

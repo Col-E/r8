@@ -224,7 +224,7 @@ public final class InterfaceMethodRewriter {
    * Move static and default interface methods to companion classes,
    * add missing methods to forward to moved default methods implementation.
    */
-  public void desugarInterfaceMethods(Builder builder, Flavor flavour) throws ApiLevelException {
+  public void desugarInterfaceMethods(Builder<?> builder, Flavor flavour) throws ApiLevelException {
     // Process all classes first. Add missing forwarding methods to
     // replace desugared default interface methods.
     forwardingMethods.addAll(processClasses(builder, flavour));

@@ -12,7 +12,7 @@ public abstract class KeyedDexItem<T extends PresortedComparable<T>> extends Dex
     if (other == this) {
       return true;
     }
-    return (other.getClass() == getClass()) && ((KeyedDexItem) other).getKey().equals(getKey());
+    return (other.getClass() == getClass()) && ((KeyedDexItem<?>) other).getKey().equals(getKey());
   }
 
   @Override

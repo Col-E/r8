@@ -18,12 +18,14 @@ public class DexProto extends IndexedDexItem implements PresortedComparable<DexP
     this.parameters = parameters;
   }
 
+  @Override
   public int computeHashCode() {
     return shorty.hashCode()
         + returnType.hashCode() * 7
         + parameters.hashCode() * 31;
   }
 
+  @Override
   public boolean computeEquals(Object other) {
     if (other instanceof DexProto) {
       DexProto o = (DexProto) other;
@@ -34,6 +36,7 @@ public class DexProto extends IndexedDexItem implements PresortedComparable<DexP
     return false;
   }
 
+  @Override
   public String toString() {
     return "Proto " + shorty + " " + returnType + " " + parameters;
   }

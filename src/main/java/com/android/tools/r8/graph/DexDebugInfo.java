@@ -32,12 +32,14 @@ public class DexDebugInfo extends CachedHashValueDexItem {
     return builder.build();
   }
 
+  @Override
   public int computeHashCode() {
     return startLine
         + Arrays.hashCode(parameters) * 7
         + Arrays.hashCode(events) * 13;
   }
 
+  @Override
   public boolean computeEquals(Object other) {
     if (other instanceof DexDebugInfo) {
       DexDebugInfo o = (DexDebugInfo) other;
@@ -63,6 +65,7 @@ public class DexDebugInfo extends CachedHashValueDexItem {
     collection.add(this);
   }
 
+  @Override
   public String toString() {
     StringBuilder builder = new StringBuilder();
     builder.append("DebugInfo (line " + startLine + ") events: [\n");

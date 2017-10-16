@@ -670,6 +670,7 @@ public class Outliner {
       super(method, block);
     }
 
+    @Override
     protected void handle(int start, int end, Outline outline) {
       synchronized (candidates) {
         candidates.computeIfAbsent(outline, k -> new ArrayList<>()).add(method);
@@ -695,6 +696,7 @@ public class Outliner {
       this.toRemove = toRemove;
     }
 
+    @Override
     protected void handle(int start, int end, Outline outline) {
       if (candidates.containsKey(outline)) {
         DexMethod m = generatedOutlines.get(outline);

@@ -50,12 +50,14 @@ public class DexMethod extends Descriptor<DexEncodedMethod, DexMethod>
     return mapping.getOffsetFor(this);
   }
 
+  @Override
   public int computeHashCode() {
     return holder.hashCode()
         + proto.hashCode() * 7
         + name.hashCode() * 31;
   }
 
+  @Override
   public boolean computeEquals(Object other) {
     if (other instanceof DexMethod) {
       DexMethod o = (DexMethod) other;
@@ -124,10 +126,12 @@ public class DexMethod extends Descriptor<DexEncodedMethod, DexMethod>
     return holder + "." + name;
   }
 
+  @Override
   public String toSmaliString() {
     return holder.toSmaliString() + "->" + name + proto.toSmaliString();
   }
 
+  @Override
   public String toSourceString() {
     StringBuilder builder = new StringBuilder();
     builder.append(proto.returnType.toSourceString());

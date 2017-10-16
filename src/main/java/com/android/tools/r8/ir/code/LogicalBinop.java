@@ -55,6 +55,7 @@ public abstract class LogicalBinop extends Binop {
     }
   }
 
+  @Override
   public boolean needsValueInRegister(Value value) {
     // Always require the left value in a register. If left and right are the same value, then
     // both will use its register.

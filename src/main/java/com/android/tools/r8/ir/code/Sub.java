@@ -31,10 +31,12 @@ public class Sub extends ArithmeticBinop {
     return false;
   }
 
+  @Override
   public com.android.tools.r8.code.Instruction CreateInt(int dest, int left, int right) {
     return new SubInt(dest, left, right);
   }
 
+  @Override
   public com.android.tools.r8.code.Instruction CreateLong(int dest, int left, int right) {
     // The dalvik jit had a bug where the long operations add, sub, or, xor and and would write
     // the first part of the result long before reading the second part of the input longs.
@@ -45,35 +47,43 @@ public class Sub extends ArithmeticBinop {
     return new SubLong(dest, left, right);
   }
 
+  @Override
   public com.android.tools.r8.code.Instruction CreateFloat(int dest, int left, int right) {
     return new SubFloat(dest, left, right);
   }
 
+  @Override
   public com.android.tools.r8.code.Instruction CreateDouble(int dest, int left, int right) {
     return new SubDouble(dest, left, right);
   }
 
+  @Override
   public com.android.tools.r8.code.Instruction CreateInt2Addr(int left, int right) {
     return new SubInt2Addr(left, right);
   }
 
+  @Override
   public com.android.tools.r8.code.Instruction CreateLong2Addr(int left, int right) {
     return new SubLong2Addr(left, right);
   }
 
+  @Override
   public com.android.tools.r8.code.Instruction CreateFloat2Addr(int left, int right) {
     return new SubFloat2Addr(left, right);
   }
 
+  @Override
   public com.android.tools.r8.code.Instruction CreateDouble2Addr(int left, int right) {
     return new SubDouble2Addr(left, right);
   }
 
+  @Override
   public com.android.tools.r8.code.Instruction CreateIntLit8(int dest, int left, int constant) {
     // The sub instructions with constants are rsub, and is handled below.
     throw new Unreachable("Unsupported instruction SubIntLit8");
   }
 
+  @Override
   public com.android.tools.r8.code.Instruction CreateIntLit16(int dest, int left, int constant) {
     // The sub instructions with constants are rsub, and is handled below.
     throw new Unreachable("Unsupported instruction SubIntLit16");

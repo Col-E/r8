@@ -37,6 +37,7 @@ abstract class SimpleHashMap {
     return size;
   }
 
+  @Override
   public String toString() {
     return this.getClass().getName() + ", " + size + "(length " + length() + ")";
   }

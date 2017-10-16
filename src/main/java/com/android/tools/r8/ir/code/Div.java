@@ -36,42 +36,52 @@ public class Div extends ArithmeticBinop {
     return false;
   }
 
+  @Override
   public com.android.tools.r8.code.Instruction CreateInt(int dest, int left, int right) {
     return new DivInt(dest, left, right);
   }
 
+  @Override
   public com.android.tools.r8.code.Instruction CreateLong(int dest, int left, int right) {
     return new DivLong(dest, left, right);
   }
 
+  @Override
   public com.android.tools.r8.code.Instruction CreateFloat(int dest, int left, int right) {
     return new DivFloat(dest, left, right);
   }
 
+  @Override
   public com.android.tools.r8.code.Instruction CreateDouble(int dest, int left, int right) {
     return new DivDouble(dest, left, right);
   }
 
+  @Override
   public com.android.tools.r8.code.Instruction CreateInt2Addr(int left, int right) {
     return new DivInt2Addr(left, right);
   }
 
+  @Override
   public com.android.tools.r8.code.Instruction CreateLong2Addr(int left, int right) {
     return new DivLong2Addr(left, right);
   }
 
+  @Override
   public com.android.tools.r8.code.Instruction CreateFloat2Addr(int left, int right) {
     return new DivFloat2Addr(left, right);
   }
 
+  @Override
   public com.android.tools.r8.code.Instruction CreateDouble2Addr(int left, int right) {
     return new DivDouble2Addr(left, right);
   }
 
+  @Override
   public com.android.tools.r8.code.Instruction CreateIntLit8(int dest, int left, int constant) {
     return new DivIntLit8(dest, left, constant);
   }
 
+  @Override
   public com.android.tools.r8.code.Instruction CreateIntLit16(int dest, int left, int constant) {
     return new DivIntLit16(dest, left, constant);
   }

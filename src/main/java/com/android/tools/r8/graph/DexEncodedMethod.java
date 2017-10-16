@@ -137,7 +137,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
             return emitted - rhs.emitted;
           }
         }
-      };
+      }
 
       public void add(int original, int emitted) {
         list.add(new Mapping(original, emitted));
@@ -281,6 +281,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
     code = builder.build(method.getArity());
   }
 
+  @Override
   public String toString() {
     return "Encoded method " + method;
   }

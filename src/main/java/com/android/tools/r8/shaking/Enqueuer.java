@@ -807,10 +807,11 @@ public class Enqueuer {
             .entrySet()) {
           allLive.addAll(entry.getValue().getItems());
         }
-        Set reachableNotLive = Sets.difference(allLive, liveMethods.getItems());
+        Set<DexEncodedMethod> reachableNotLive = Sets.difference(allLive, liveMethods.getItems());
         Log.debug(getClass(), "%s methods are reachable but not live", reachableNotLive.size());
         Log.info(getClass(), "Only reachable: %s", reachableNotLive);
-        Set liveButNotInstantiated = Sets.difference(liveTypes, instantiatedTypes.getItems());
+        Set<DexType> liveButNotInstantiated =
+            Sets.difference(liveTypes, instantiatedTypes.getItems());
         Log.debug(getClass(), "%s classes are live but not instantiated",
             liveButNotInstantiated.size());
         Log.info(getClass(), "Live but not instantiated: %s", liveButNotInstantiated);

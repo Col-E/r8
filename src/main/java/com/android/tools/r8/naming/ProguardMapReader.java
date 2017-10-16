@@ -416,6 +416,7 @@ public class ProguardMapReader implements AutoCloseable {
       this.msg = msg;
     }
 
+    @Override
     public String toString() {
       return "Parse error [" + lineNo + ":" + lineOffset + "] " + msg;
     }

@@ -649,6 +649,7 @@ public class JarState {
 
   // Printing helpers.
 
+  @Override
   public String toString() {
     return "locals: " + localsToString(Arrays.asList(locals)) + ", stack: " + stackToString(stack);
   }
