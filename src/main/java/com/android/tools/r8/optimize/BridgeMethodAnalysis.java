@@ -96,7 +96,7 @@ public class BridgeMethodAnalysis {
       // Do not forward calls from a bridge method to itself while the bridge method is still
       // a bridge.
       if (target == null ||
-          context.accessFlags.isBridge() && target == context.method) {
+          (context.accessFlags.isBridge() && target == context.method)) {
         return previous;
       } else {
         return target;

@@ -96,7 +96,7 @@ public class RootSetBuilder {
         return false;
       }
       // TODO(herhut): Maybe it would be better to do this breadth first.
-      if (className.matches(iface) && containsAnnotation(annotation, ifaceClass.annotations)
+      if ((className.matches(iface) && containsAnnotation(annotation, ifaceClass.annotations))
           || anyImplementedInterfaceMatches(ifaceClass, className, annotation)) {
         return true;
       }

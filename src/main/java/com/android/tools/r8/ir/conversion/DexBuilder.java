@@ -457,7 +457,7 @@ public class DexBuilder {
     return instruction.isArgument()
         || instruction.isDebugLocalsChange()
         || (instruction.isConstNumber() && !instruction.outValue().needsRegister())
-        || instruction.isGoto() && instruction.asGoto().getTarget() == nextBlock;
+        || (instruction.isGoto() && instruction.asGoto().getTarget() == nextBlock);
   }
 
   public void addDebugPosition(DebugPosition position) {
