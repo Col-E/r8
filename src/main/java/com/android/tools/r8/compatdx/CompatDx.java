@@ -16,6 +16,7 @@ import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.D8Output;
 import com.android.tools.r8.Resource;
+import com.android.tools.r8.Version;
 import com.android.tools.r8.compatdx.CompatDx.DxCompatOptions.DxUsageMessage;
 import com.android.tools.r8.compatdx.CompatDx.DxCompatOptions.PositionInfo;
 import com.android.tools.r8.errors.CompilationError;
@@ -62,6 +63,7 @@ public class CompatDx {
     // Final values after parsing.
     // Note: These are ordered by their occurrence in "dx --help"
     public final boolean help;
+    public final boolean version;
     public final boolean debug;
     public final boolean verbose;
     public final PositionInfo positions;
@@ -165,6 +167,7 @@ public class CompatDx {
       final OptionSpec<Integer> minApiLevel;
       final OptionSpec<String> inputList;
       final OptionSpec<String> inputs;
+      final OptionSpec<Void> version;
       final OptionSpec<Void> help;
       final OptionSpec<Integer> maxIndexNumber;
 
@@ -246,12 +249,14 @@ public class CompatDx {
             .withRequiredArg()
             .describedAs(FILE_ARG);
         inputs = parser.nonOptions("Input files");
+        version = parser.accepts("version", "Print the version of this tool").forHelp();
         help = parser.accepts("help", "Print this message").forHelp();
       }
     }
 
     private DxCompatOptions(OptionSet options, Spec spec) {
       help = options.has(spec.help);
+      version = options.has(spec.version);
       debug = options.has(spec.debug);
       verbose = options.has(spec.verbose);
       if (options.has(spec.positions)) {
@@ -334,6 +339,10 @@ public class CompatDx {
     DxCompatOptions dexArgs = DxCompatOptions.parse(args);
     if (dexArgs.help) {
       printHelpOn(System.out);
+      return;
+    }
+    if (dexArgs.version) {
+      Version.printToolVersion("CompatDx");
       return;
     }
     CompilationMode mode = CompilationMode.RELEASE;

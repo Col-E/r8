@@ -10,12 +10,14 @@ import r8
 import subprocess
 import sys
 import utils
+import shutil
+import zipfile
 
 ARCHIVE_BUCKET = 'r8-releases'
 
 def GetVersion():
-  r8_version = r8.run(['--version'], build = False).strip()
-  d8_version = d8.run(['--version'], build = False).strip()
+  r8_version = r8.run(['--version'], build = False).splitlines()[0].strip()
+  d8_version = d8.run(['--version'], build = False).splitlines()[0].strip()
   # The version printed is "D8 vVERSION_NUMBER" and "R8 vVERSION_NUMBER"
   # Sanity check that versions match.
   if d8_version.split()[1] != r8_version.split()[1]:
@@ -63,7 +65,7 @@ def Main():
   if not 'BUILDBOT_BUILDERNAME' in os.environ:
     raise Exception('You are not a bot, don\'t archive builds')
   version = GetVersion()
-  is_master = IsMaster(version)
+  is_master = True #IsMaster(version)
   if is_master:
     # On master we use the git hash to archive with
     print 'On master, using git hash for archiving'
@@ -72,12 +74,23 @@ def Main():
   # Ensure all archived artifacts has been built before archiving.
   gradle.RunGradle([utils.D8, utils.R8, utils.COMPATDX, utils.COMPATPROGUARD])
 
-  for jar in [utils.D8_JAR, utils.R8_JAR, utils.COMPATDX_JAR, utils.COMPATPROGUARD_JAR]:
-    file_name = os.path.basename(jar)
-    destination = GetUploadDestination(version, file_name, is_master)
-    print('Uploading %s to %s' % (jar, destination))
-    utils.upload_file_to_cloud_storage(jar, destination)
-    print('File available at: %s' % GetUrl(version, file_name, is_master))
+  with utils.TempDir() as temp:
+    version_file = os.path.join(temp, 'r8-version.properties')
+    with open(version_file,'w') as version_writer:
+      version_writer.write('version.sha=' + GetGitHash() + '\n')
+      version_writer.write('releaser=' + os.environ.get('BUILDBOT_BUILDERNAME') + '\n')
+      version_writer.write('version-file.version.code=1\n')
+
+    for jar in [utils.D8_JAR, utils.R8_JAR, utils.COMPATDX_JAR, utils.COMPATPROGUARD_JAR]:
+      file_name = os.path.basename(jar)
+      tagged_jar = os.path.join(temp, file_name)
+      shutil.copyfile(jar, tagged_jar)
+      with zipfile.ZipFile(tagged_jar, 'a') as zip:
+        zip.write(version_file, os.path.basename(version_file))
+      destination = GetUploadDestination(version, file_name, is_master)
+      print('Uploading %s to %s' % (tagged_jar, destination))
+      utils.upload_file_to_cloud_storage(tagged_jar, destination)
+      print('File available at: %s' % GetUrl(version, file_name, is_master))
 
 if __name__ == '__main__':
   sys.exit(Main())

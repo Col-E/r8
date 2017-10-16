@@ -504,7 +504,7 @@ public class R8 {
       return;
     }
     if (command.isPrintVersion()) {
-      System.out.println("R8 " + Version.LABEL);
+      Version.printToolVersion("R8");
       return;
     }
     run(command);
