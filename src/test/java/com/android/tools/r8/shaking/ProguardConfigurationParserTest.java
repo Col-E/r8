@@ -347,30 +347,15 @@ public class ProguardConfigurationParserTest extends TestBase {
     DexItemFactory dexItemFactory = new DexItemFactory();
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(dexItemFactory, diagnosticsHandler);
-    String config1 = "-adaptclassstrings !foobar,*bar";
-    String config2 = "-adaptclassstrings !a.b.c.nope,a.b.**";
-    parser.parse( new ProguardConfigurationSourceStrings(ImmutableList.of(config1, config2)));
+    String adaptClassStrings = "-adaptclassstrings !foobar,*bar";
+    parser.parse( new ProguardConfigurationSourceStrings(ImmutableList.of(adaptClassStrings)));
     ProguardConfiguration config = parser.getConfig();
-    List<ProguardConfigurationRule> rules = config.getRules();
-    assertEquals(2, rules.size());
-    assertEquals(0, rules.get(0).getMemberRules().size());
-    assertEquals(2, rules.get(0).getClassNames().size());
     assertFalse(
-        rules.get(0).getClassNames().matches(dexItemFactory.createType("Lboobaz;")));
+        config.getAdaptClassStrings().matches(dexItemFactory.createType("Lboobaz;")));
     assertTrue(
-        rules.get(0).getClassNames().matches(dexItemFactory.createType("Lboobar;")));
+        config.getAdaptClassStrings().matches(dexItemFactory.createType("Lboobar;")));
     assertFalse(
-        rules.get(0).getClassNames().matches(dexItemFactory.createType("Lfoobar;")));
-    assertEquals(0, rules.get(1).getMemberRules().size());
-    assertEquals(2, rules.get(1).getClassNames().size());
-    assertFalse(
-        rules.get(1).getClassNames().matches(dexItemFactory.createType("Lx/y/z;")));
-    assertTrue(
-        rules.get(1).getClassNames().matches(dexItemFactory.createType("La/b/c/d;")));
-    assertTrue(
-        rules.get(1).getClassNames().matches(dexItemFactory.createType("La/b/p/q;")));
-    assertFalse(
-        rules.get(1).getClassNames().matches(dexItemFactory.createType("La/b/c/nope;")));
+        config.getAdaptClassStrings().matches(dexItemFactory.createType("Lfoobar;")));
   }
 
   @Test
@@ -381,14 +366,12 @@ public class ProguardConfigurationParserTest extends TestBase {
     String adaptAll = "-adaptclassstrings *";
     parser.parse(new ProguardConfigurationSourceStrings(ImmutableList.of(adaptAll)));
     ProguardConfiguration config = parser.getConfig();
-    List<ProguardConfigurationRule> rules = config.getRules();
-    assertEquals(1, rules.size());
     assertTrue(
-        rules.get(0).getClassNames().matches(dexItemFactory.createType("Lboobaz;")));
+        config.getAdaptClassStrings().matches(dexItemFactory.createType("Lboobaz;")));
     assertTrue(
-        rules.get(0).getClassNames().matches(dexItemFactory.createType("Lboobaz;")));
+        config.getAdaptClassStrings().matches(dexItemFactory.createType("Lboobaz;")));
     assertTrue(
-        rules.get(0).getClassNames().matches(dexItemFactory.createType("Lfoobar;")));
+        config.getAdaptClassStrings().matches(dexItemFactory.createType("Lfoobar;")));
   }
 
   @Test
@@ -399,14 +382,12 @@ public class ProguardConfigurationParserTest extends TestBase {
     String adaptAll = "-adaptclassstrings";
     parser.parse(new ProguardConfigurationSourceStrings(ImmutableList.of(adaptAll)));
     ProguardConfiguration config = parser.getConfig();
-    List<ProguardConfigurationRule> rules = config.getRules();
-    assertEquals(1, rules.size());
     assertTrue(
-        rules.get(0).getClassNames().matches(dexItemFactory.createType("Lboobaz;")));
+        config.getAdaptClassStrings().matches(dexItemFactory.createType("Lboobaz;")));
     assertTrue(
-        rules.get(0).getClassNames().matches(dexItemFactory.createType("Lboobaz;")));
+        config.getAdaptClassStrings().matches(dexItemFactory.createType("Lboobaz;")));
     assertTrue(
-        rules.get(0).getClassNames().matches(dexItemFactory.createType("Lfoobar;")));
+        config.getAdaptClassStrings().matches(dexItemFactory.createType("Lfoobar;")));
   }
 
   @Test

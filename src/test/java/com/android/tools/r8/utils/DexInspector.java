@@ -697,6 +697,8 @@ public class DexInspector {
     public abstract DexEncodedField getField();
 
     public abstract DexValue getStaticValue();
+
+    public abstract boolean isRenamed();
   }
 
   public class AbsentFieldSubject extends FieldSubject {
@@ -723,6 +725,11 @@ public class DexInspector {
 
     @Override
     public boolean isPresent() {
+      return false;
+    }
+
+    @Override
+    public boolean isRenamed() {
       return false;
     }
 
@@ -786,6 +793,12 @@ public class DexInspector {
     public boolean isPresent() {
       return true;
     }
+
+    @Override
+    public boolean isRenamed() {
+      return clazz.naming == null || !getFinalSignature().name.equals(getOriginalSignature().name);
+    }
+
 
     public TypeSubject type() {
       return new TypeSubject(dexField.field.type);

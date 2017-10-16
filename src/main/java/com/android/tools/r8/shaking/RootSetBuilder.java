@@ -243,8 +243,17 @@ public class RootSetBuilder {
     } finally {
       application.timing.end();
     }
-    return new RootSet(noShrinking, noOptimization, noObfuscation, reasonAsked, keepPackageName,
-        checkDiscarded, alwaysInline, noSideEffects, assumedValues, dependentNoShrinking);
+    return new RootSet(
+        noShrinking,
+        noOptimization,
+        noObfuscation,
+        reasonAsked,
+        keepPackageName,
+        checkDiscarded,
+        alwaysInline,
+        noSideEffects,
+        assumedValues,
+        dependentNoShrinking);
   }
 
   private void markMatchingVisibleMethods(DexClass clazz,
@@ -325,17 +334,14 @@ public class RootSetBuilder {
   }
 
   /**
-   * Checks whether the given rule is satisfied bu this clazz, not taking superclasses into
+   * Checks whether the given rule is satisfied by this clazz, not taking superclasses into
    * account.
    */
   private boolean ruleSatisfied(ProguardMemberRule rule, DexClass clazz) {
-    if (ruleSatisfiedByMethods(rule, clazz.directMethods()) ||
-        ruleSatisfiedByMethods(rule, clazz.virtualMethods()) ||
-        ruleSatisfiedByFields(rule, clazz.staticFields()) ||
-        ruleSatisfiedByFields(rule, clazz.instanceFields())) {
-      return true;
-    }
-    return false;
+    return ruleSatisfiedByMethods(rule, clazz.directMethods())
+        || ruleSatisfiedByMethods(rule, clazz.virtualMethods())
+        || ruleSatisfiedByFields(rule, clazz.staticFields())
+        || ruleSatisfiedByFields(rule, clazz.instanceFields());
   }
 
   private boolean ruleSatisfiedByMethods(ProguardMemberRule rule, DexEncodedMethod[] methods) {
@@ -536,10 +542,15 @@ public class RootSetBuilder {
       return true;
     }
 
-    private RootSet(Map<DexItem, ProguardKeepRule> noShrinking,
-        Set<DexItem> noOptimization, Set<DexItem> noObfuscation, Set<DexItem> reasonAsked,
-        Set<DexItem> keepPackageName, Set<DexItem> checkDiscarded,
-        Set<DexItem> alwaysInline, Map<DexItem, ProguardMemberRule> noSideEffects,
+    private RootSet(
+        Map<DexItem, ProguardKeepRule> noShrinking,
+        Set<DexItem> noOptimization,
+        Set<DexItem> noObfuscation,
+        Set<DexItem> reasonAsked,
+        Set<DexItem> keepPackageName,
+        Set<DexItem> checkDiscarded,
+        Set<DexItem> alwaysInline,
+        Map<DexItem, ProguardMemberRule> noSideEffects,
         Map<DexItem, ProguardMemberRule> assumedValues,
         Map<DexItem, Map<DexItem, ProguardKeepRule>> dependentNoShrinking) {
       this.noShrinking = Collections.unmodifiableMap(noShrinking);

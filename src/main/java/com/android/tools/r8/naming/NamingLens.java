@@ -4,11 +4,16 @@
 package com.android.tools.r8.naming;
 
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.optimize.MemberRebindingAnalysis;
+import com.google.common.collect.ImmutableMap;
+import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 /**
  * Implements a translation of the Dex graph from original names to new names produced by
@@ -38,6 +43,9 @@ public abstract class NamingLens {
   }
 
   abstract void forAllRenamedTypes(Consumer<DexType> consumer);
+
+  abstract <T extends DexItem> Map<String, T> getRenamedItems(
+      Class<T> clazz, Predicate<T> predicate, Function<T, String> namer);
 
   /**
    * Checks whether the target will be translated properly by this lense.
@@ -72,6 +80,12 @@ public abstract class NamingLens {
     @Override
     void forAllRenamedTypes(Consumer<DexType> consumer) {
       // Intentionally left empty.
+    }
+
+    @Override
+    <T extends DexItem> Map<String, T> getRenamedItems(
+        Class<T> clazz, Predicate<T> predicate, Function<T, String> namer) {
+      return ImmutableMap.of();
     }
 
     @Override

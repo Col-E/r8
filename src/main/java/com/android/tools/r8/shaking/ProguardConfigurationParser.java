@@ -279,13 +279,13 @@ public class ProguardConfigurationParser {
       } else if (acceptString("useuniqueclassmembernames")) {
         configurationBuilder.setUseUniqueClassMemberNames(true);
       } else if (acceptString("adaptclassstrings")) {
+        skipWhitespace();
         if (isOptionalArgumentGiven()) {
-          configurationBuilder.addRule(parseAdaptClassStrings());
+          configurationBuilder.setAdaptClassStrings(parseClassNames());
         } else {
-          configurationBuilder.addRule(ProguardIdentifierNameStringRule.defaultAllRule());
+          configurationBuilder.setAdaptClassStrings(
+              ProguardClassNameList.singletonList(ProguardTypeMatcher.defaultAllMatcher()));
         }
-        // TODO(b/36799092): warn until it is fully implemented.
-        warnIgnoringOptions("adaptclassstrings");
       } else if (acceptString("identifiernamestring")) {
         configurationBuilder.addRule(parseIdentifierNameStringRule());
         // TODO(b/36799092): warn until it is fully implemented.
@@ -461,14 +461,6 @@ public class ProguardConfigurationParser {
         throws ProguardRuleParserException {
       ProguardAlwaysInlineRule.Builder keepRuleBuilder = ProguardAlwaysInlineRule.builder();
       parseClassSpec(keepRuleBuilder, false);
-      return keepRuleBuilder.build();
-    }
-
-    private ProguardIdentifierNameStringRule parseAdaptClassStrings()
-        throws ProguardRuleParserException {
-      ProguardIdentifierNameStringRule.Builder keepRuleBuilder =
-          ProguardIdentifierNameStringRule.builder();
-      keepRuleBuilder.setClassNames(parseClassNames());
       return keepRuleBuilder.build();
     }
 

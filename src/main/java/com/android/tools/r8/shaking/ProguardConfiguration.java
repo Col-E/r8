@@ -44,6 +44,7 @@ public class ProguardConfiguration {
     private Path packageObfuscationDictionary;
     private boolean useUniqueClassMemberNames;
     private boolean keepParameterNames;
+    private ProguardClassNameList adaptClassStrings = ProguardClassNameList.emptyList();
 
     private Builder(DexItemFactory dexItemFactory) {
       this.dexItemFactory = dexItemFactory;
@@ -201,6 +202,10 @@ public class ProguardConfiguration {
       return keepParameterNames;
     }
 
+    public void setAdaptClassStrings(ProguardClassNameList adaptClassStrings) {
+      this.adaptClassStrings = adaptClassStrings;
+    }
+
     public ProguardConfiguration build() throws CompilationException {
       return new ProguardConfiguration(
           dexItemFactory,
@@ -229,7 +234,8 @@ public class ProguardConfiguration {
           DictionaryReader.readAllNames(classObfuscationDictionary),
           DictionaryReader.readAllNames(packageObfuscationDictionary),
           useUniqueClassMemberNames,
-          keepParameterNames);
+          keepParameterNames,
+          adaptClassStrings);
     }
   }
 
@@ -260,6 +266,7 @@ public class ProguardConfiguration {
   private final ImmutableList<String> packageObfuscationDictionary;
   private boolean useUniqueClassMemberNames;
   private boolean keepParameterNames;
+  private final ProguardClassNameList adaptClassStrings;
 
   private ProguardConfiguration(
       DexItemFactory factory,
@@ -288,7 +295,8 @@ public class ProguardConfiguration {
       ImmutableList<String> classObfuscationDictionary,
       ImmutableList<String> packageObfuscationDictionary,
       boolean useUniqueClassMemberNames,
-      boolean keepParameterNames) {
+      boolean keepParameterNames,
+      ProguardClassNameList adaptClassStrings) {
     this.dexItemFactory = factory;
     this.injars = ImmutableList.copyOf(injars);
     this.libraryjars = ImmutableList.copyOf(libraryjars);
@@ -316,6 +324,7 @@ public class ProguardConfiguration {
     this.packageObfuscationDictionary = packageObfuscationDictionary;
     this.useUniqueClassMemberNames = useUniqueClassMemberNames;
     this.keepParameterNames = keepParameterNames;
+    this.adaptClassStrings = adaptClassStrings;
   }
 
   /**
@@ -438,11 +447,17 @@ public class ProguardConfiguration {
     return keepParameterNames;
   }
 
+  public ProguardClassNameList getAdaptClassStrings() {
+    return adaptClassStrings;
+  }
+
   public static ProguardConfiguration defaultConfiguration(DexItemFactory dexItemFactory) {
     try {
       return builderInitializedWithDefaults(dexItemFactory).build();
     } catch(CompilationException e) {
-      throw new RuntimeException(); // Building a builder initialized with defaults will not throw CompilationException because DictionaryReader is called with empty lists.
+      // Building a builder initialized with defaults will not throw CompilationException because
+      // DictionaryReader is called with empty lists.
+      throw new RuntimeException();
     }
   }
 

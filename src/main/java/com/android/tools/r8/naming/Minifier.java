@@ -16,10 +16,13 @@ import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 public class Minifier {
 
@@ -47,7 +50,12 @@ public class Minifier {
     Map<DexField, DexString> fieldRenaming =
         new FieldNameMinifier(appInfo, rootSet, options).computeRenaming(timing);
     timing.end();
-    return new MinifiedRenaming(classRenaming, methodRenaming, fieldRenaming, appInfo);
+    NamingLens lens = new MinifiedRenaming(classRenaming, methodRenaming, fieldRenaming, appInfo);
+    timing.begin("MinifyIdentifiers");
+    new IdentifierMinifier(appInfo, options.proguardConfiguration.getAdaptClassStrings(), lens)
+        .run();
+    timing.end();
+    return lens;
   }
 
   private static class MinifiedRenaming extends NamingLens {
@@ -82,6 +90,17 @@ public class Minifier {
     @Override
     void forAllRenamedTypes(Consumer<DexType> consumer) {
       Iterables.filter(renaming.keySet(), DexType.class).forEach(consumer);
+    }
+
+    @Override
+    <T extends DexItem> Map<String, T> getRenamedItems(
+        Class<T> clazz, Predicate<T> predicate, Function<T, String> namer) {
+      return renaming
+          .keySet()
+          .stream()
+          .filter(item -> (item.getClass() == clazz) && predicate.test(clazz.cast(item)))
+          .map(clazz::cast)
+          .collect(ImmutableMap.toImmutableMap(namer::apply, i -> i));
     }
 
     /**
