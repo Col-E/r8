@@ -5,7 +5,9 @@ package com.android.tools.r8.ir.conversion;
 
 import com.android.tools.r8.errors.InvalidDebugInfoException;
 import com.android.tools.r8.graph.DebugLocalInfo;
+import com.android.tools.r8.graph.JarApplicationReader;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.google.common.base.Equivalence;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
@@ -13,6 +15,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
@@ -41,6 +44,26 @@ public class JarState {
   // TODO(zerny): Define an internal Type wrapping ASM types so that we can define an actual value.
   // Type representative for a value that may be either a boolean or a byte.
   public static final Type BYTE_OR_BOOL_TYPE = null;
+
+  // Equivalence to canonicalize local-variable information.
+  private static class LocalNodeEquivalence extends Equivalence<LocalVariableNode> {
+
+    @Override
+    protected boolean doEquivalent(LocalVariableNode a, LocalVariableNode b) {
+      if (!a.name.equals(b.name) || !a.desc.equals(b.desc)) {
+        return false;
+      }
+      return (a.signature == null && b.signature == null)
+          || (a.signature != null && a.signature.equals(b.signature));
+    }
+
+    @Override
+    protected int doHash(LocalVariableNode local) {
+      return 31 * local.name.hashCode()
+          + 7 * local.desc.hashCode()
+          + (local.signature == null ? 0 : local.signature.hashCode());
+    }
+  }
 
   // Typed mapping from a local slot or stack slot to a virtual register.
   public static class Slot {
@@ -183,7 +206,8 @@ public class JarState {
   private final Local[] locals;
 
   // Mapping from local-variable nodes to their canonical local info.
-  private final Map<LocalVariableNode, DebugLocalInfo> localVariables;
+  private final Map<Equivalence.Wrapper<LocalVariableNode>, DebugLocalInfo> localVariables;
+  private final LocalNodeEquivalence localNodeEquivalence = new LocalNodeEquivalence();
 
   // Scope-points of all local variables for inserting debug scoping instructions.
   private final Multimap<LabelNode, LocalVariableNode> localVariableStartPoints;
@@ -198,20 +222,54 @@ public class JarState {
   // Concretely we treat all remaining byte-or-bool types as bytes (no actual type can flow there).
   private boolean building = false;
 
-  public JarState(int maxLocals, Map<LocalVariableNode, DebugLocalInfo> localVariables) {
+  // TODO(zerny): Precompute the necessary local structures for faster access and remove this.
+  private final List localNodes;
+
+  public JarState(int maxLocals, List localNodes, JarApplicationReader application) {
     int localsRegistersSize = maxLocals * 3;
     localsSize = maxLocals;
     locals = new Local[localsRegistersSize];
     startOfStack = localsRegistersSize;
     topOfStack = startOfStack;
-    this.localVariables = localVariables;
+    this.localNodes = localNodes;
+    localVariables = computeLocals(localNodes, application);
     localVariableStartPoints = HashMultimap.create();
     localVariableEndPoints = HashMultimap.create();
-    populateLocalTables();
+    populateLocalTables(localNodes);
   }
 
-  private void populateLocalTables() {
-    for (LocalVariableNode node : localVariables.keySet()) {
+  private Map<Equivalence.Wrapper<LocalVariableNode>, DebugLocalInfo> computeLocals(
+      List localNodes, JarApplicationReader application) {
+    int size = localNodes.size();
+    if (size == 0) {
+      return Collections.emptyMap();
+    }
+    if (size == 1) {
+      LocalVariableNode local = (LocalVariableNode) localNodes.get(0);
+      return Collections.singletonMap(
+          localNodeEquivalence.wrap(local), createLocalInfo(local, application));
+    }
+    Map<Equivalence.Wrapper<LocalVariableNode>, DebugLocalInfo> locals = new HashMap<>(size);
+    for (Object o : localNodes) {
+      LocalVariableNode node = (LocalVariableNode) o;
+      Equivalence.Wrapper<LocalVariableNode> wrapped = localNodeEquivalence.wrap(node);
+      locals.computeIfAbsent(wrapped, w -> createLocalInfo(w.get(), application));
+    }
+    return locals;
+  }
+
+  private static DebugLocalInfo createLocalInfo(
+      LocalVariableNode node,
+      JarApplicationReader application) {
+    return new DebugLocalInfo(
+        application.getString(node.name),
+        application.getTypeFromDescriptor(node.desc),
+        node.signature == null ? null : application.getString(node.signature));
+  }
+
+  private void populateLocalTables(List localNodes) {
+    for (Object object : localNodes) {
+      LocalVariableNode node = (LocalVariableNode) object;
       if (node.start != node.end) {
         localVariableStartPoints.put(node.start, node);
         localVariableEndPoints.put(node.end, node);
@@ -221,9 +279,10 @@ public class JarState {
 
   public boolean localLiveAt(Local local, int offset, JarSourceCode source) {
     // TODO(zerny): Precompute and sort the local ranges.
-    for (Entry<LocalVariableNode, DebugLocalInfo> entry : localVariables.entrySet()) {
-      LocalVariableNode node = entry.getKey();
-      if (entry.getValue() != local.info) {
+    for (Object object : localNodes) {
+      LocalVariableNode node = (LocalVariableNode) object;
+      DebugLocalInfo nodeInfo = localVariables.get(localNodeEquivalence.wrap(node));
+      if (nodeInfo != local.info) {
         continue;
       }
       Type type = Type.getType(node.desc);
@@ -279,7 +338,8 @@ public class JarState {
     Collection<LocalVariableNode> nodes = localVariableStartPoints.get(label);
     ArrayList<Local> locals = new ArrayList<>(nodes.size());
     for (LocalVariableNode node : nodes) {
-      locals.add(setLocalInfo(node.index, Type.getType(node.desc), localVariables.get(node)));
+      DebugLocalInfo info = localVariables.get(localNodeEquivalence.wrap(node));
+      locals.add(setLocalInfo(node.index, Type.getType(node.desc), info));
     }
     // Sort to ensure deterministic instruction ordering (correctness is unaffected).
     locals.sort(Comparator.comparingInt(local -> local.slot.register));
@@ -501,14 +561,15 @@ public class JarState {
         }
       }
       // TODO(zerny): Precompute and sort the local ranges.
-      for (Entry<LocalVariableNode, DebugLocalInfo> entry : localVariables.entrySet()) {
-        LocalVariableNode node = entry.getKey();
+      for (Object object : localNodes) {
+        LocalVariableNode node = (LocalVariableNode) object;
         int startOffset = source.getOffset(node.start);
         int endOffset = source.getOffset(node.end);
         if (startOffset <= target && target < endOffset) {
           int register = getLocalRegister(node.index, Type.getType(node.desc));
           Local local = locals[register];
-          locals[register] = new Local(local.slot, entry.getValue());
+          DebugLocalInfo info = localVariables.get(localNodeEquivalence.wrap(node));
+          locals[register] = new Local(local.slot, info);
         }
       }
     }
