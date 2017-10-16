@@ -8,6 +8,14 @@ apply plugin: 'java'
 apply plugin: 'idea'
 apply plugin: 'com.google.protobuf'
 apply plugin: 'com.cookpad.android.licensetools'
+if (project.hasProperty('with_error_prone')) {
+    apply plugin: "net.ltgt.errorprone"
+    tasks.withType(JavaCompile) {
+        options.compilerArgs += [
+                '-XepDisableAllChecks',
+                '-Xep:RemoveUnusedImports:ERROR']
+    }
+}
 
 apply from: 'copyAdditionalJctfCommonFiles.gradle'
 
@@ -25,6 +33,9 @@ buildscript {
     repositories {
         mavenCentral()
         jcenter()
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
     }
     dependencies {
         classpath 'com.google.protobuf:protobuf-gradle-plugin:0.8.1'
@@ -34,6 +45,9 @@ buildscript {
         // support java9.
         // classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.1'
         classpath files("third_party/shadow/shadow-2.0.1.jar")
+        if (project.hasProperty('with_error_prone')) {
+            classpath "net.ltgt.gradle:gradle-errorprone-plugin:0.0.13"
+        }
     }
 }
 

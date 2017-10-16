@@ -6,7 +6,6 @@ package com.android.tools.r8.code;
 import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.graph.DexProto;
-import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.OffsetToObjectMapping;
 import com.android.tools.r8.ir.conversion.IRBuilder;
