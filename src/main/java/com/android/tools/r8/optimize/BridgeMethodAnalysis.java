@@ -34,7 +34,9 @@ public class BridgeMethodAnalysis {
   }
 
   private void identifyBridgeMethod(DexEncodedMethod method) {
-    if (method.accessFlags.isBridge()) {
+    // The tree pruner can mark bridge methods abstract if they are not reachable but cannot
+    // be removed.
+    if (method.accessFlags.isBridge() && !method.accessFlags.isAbstract()) {
       InvokeSingleTargetExtractor targetExtractor = new InvokeSingleTargetExtractor();
       method.getCode().registerReachableDefinitions(targetExtractor);
       DexMethod target = targetExtractor.getTarget();
