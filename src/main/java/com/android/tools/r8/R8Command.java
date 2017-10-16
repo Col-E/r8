@@ -137,6 +137,14 @@ public class R8Command extends BaseCompilerCommand {
     /**
      * Add proguard configuration.
      */
+    public Builder addProguardConfiguration(ProguardConfigurationSource configuration) {
+      proguardConfigs.add(configuration);
+      return self();
+    }
+
+    /**
+     * Add proguard configuration as strings.
+     */
     public Builder addProguardConfiguration(List<String> lines) {
       proguardConfigs.add(new ProguardConfigurationSourceStrings(lines));
       return self();

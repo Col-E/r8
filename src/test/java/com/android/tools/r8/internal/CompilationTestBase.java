@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.internal;
 
+import static com.android.tools.r8.shaking.ProguardConfigurationParser.UNSUPPORTED_FLAG_OPTIONS;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -14,7 +15,8 @@ import com.android.tools.r8.R8Command;
 import com.android.tools.r8.R8RunArtTestsTest.CompilerUnderTest;
 import com.android.tools.r8.Resource;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.shaking.ProguardConfigurationSourceFile;
+import com.android.tools.r8.shaking.ProguardConfigurationSourceStrings;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
@@ -25,6 +27,7 @@ import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.OutputMode;
+import com.google.common.collect.ImmutableList;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.Closer;
 import java.io.File;
@@ -36,11 +39,15 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import org.junit.ComparisonFailure;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 
 public abstract class CompilationTestBase {
+
+  private static final Predicate<String> BYPASSING_OPTIONS_FOR_TESTING =
+      line -> UNSUPPORTED_FLAG_OPTIONS.stream().noneMatch(line::contains);
 
   @Rule
   public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
@@ -74,16 +81,24 @@ public abstract class CompilationTestBase {
     assertTrue(referenceApk == null || new File(referenceApk).exists());
     AndroidApp outputApp;
     if (compiler == CompilerUnderTest.R8) {
-      R8Command.Builder builder = R8Command.builder();
-      builder.addProgramFiles(ListUtils.map(inputs, Paths::get));
+      R8Command.Builder builder =
+          R8Command.builder()
+              .addProgramFiles(ListUtils.map(inputs, Paths::get))
+              .setMode(mode)
+              .setMinApiLevel(AndroidApiLevel.L.getLevel());
       if (pgMap != null) {
         builder.setProguardMapFile(Paths.get(pgMap));
       }
       if (pgConf != null) {
-        builder.addProguardConfigurationFiles(Paths.get(pgConf));
+        ProguardConfigurationSourceFile pgFile =
+            new ProguardConfigurationSourceFile(Paths.get(pgConf));
+        builder.addProguardConfiguration(
+            new ProguardConfigurationSourceStrings(
+                Paths.get(pgConf).getParent(),
+                Arrays.stream(pgFile.get().split(System.lineSeparator()))
+                    .filter(BYPASSING_OPTIONS_FOR_TESTING)
+                    .collect(ImmutableList.toImmutableList())));
       }
-      builder.setMode(mode);
-      builder.setMinApiLevel(AndroidApiLevel.L.getLevel());
       builder.addProguardConfigurationConsumer(b -> {
         b.setPrintSeeds(false);
       });
