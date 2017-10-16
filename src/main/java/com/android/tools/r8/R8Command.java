@@ -43,8 +43,8 @@ public class R8Command extends BaseCompilerCommand {
       super(CompilationMode.RELEASE);
     }
 
-    protected Builder(boolean forceProguardCompatibility) {
-      super(CompilationMode.RELEASE);
+    protected Builder(boolean ignoreDexInArchive, boolean forceProguardCompatibility) {
+      super(CompilationMode.RELEASE, ignoreDexInArchive);
       this.forceProguardCompatibility = forceProguardCompatibility;
     }
 
