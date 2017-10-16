@@ -397,7 +397,7 @@ public class DexType extends IndexedDexItem implements PresortedComparable<DexTy
         assert next.hierarchyLevel == ROOT_LEVEL;
       } else {
         assert superType.hierarchyLevel == next.hierarchyLevel - 1
-            || superType.hierarchyLevel == ROOT_LEVEL && next.hierarchyLevel == INTERFACE_LEVEL;
+            || (superType.hierarchyLevel == ROOT_LEVEL && next.hierarchyLevel == INTERFACE_LEVEL);
         assert superType.directSubtypes.contains(next);
       }
       if (next.hierarchyLevel != INTERFACE_LEVEL) {

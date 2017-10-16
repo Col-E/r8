@@ -377,7 +377,7 @@ public class GenericSignatureParser<T> {
         assert bufferLocal != null;
         do {
           char ch = bufferLocal[pos];
-          if ((ch >= 'a') && (ch <= 'z') || (ch >= 'A') && (ch <= 'Z')
+          if (((ch >= 'a') && (ch <= 'z')) || ((ch >= 'A') && (ch <= 'Z'))
               || !isStopSymbol(ch)) {
             identBuf.append(bufferLocal[pos]);
             pos++;

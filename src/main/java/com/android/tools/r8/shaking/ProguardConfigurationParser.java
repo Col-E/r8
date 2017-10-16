@@ -1006,7 +1006,7 @@ public class ProguardConfigurationParser {
       while (!eof(end)) {
         char current = contents.charAt(end);
         if ((start == end && Character.isJavaIdentifierStart(current)) ||
-            (start < end) && (Character.isJavaIdentifierPart(current) || current == '.')) {
+            ((start < end) && (Character.isJavaIdentifierPart(current) || current == '.'))) {
           end++;
         } else {
           break;

@@ -115,13 +115,13 @@ public class Minifier {
           directTarget != null ? appInfo.definitionFor(directTarget.method.getHolder()) : null;
       DexClass virtualTargetHolder =
           virtualTarget != null ? appInfo.definitionFor(virtualTarget.method.getHolder()) : null;
-      return directTarget == null && staticTarget == null && virtualTarget == null
-          || virtualTarget != null && virtualTarget.method == item
-          || directTarget != null && directTarget.method == item
-          || staticTarget != null && staticTarget.method == item
-          || directTargetHolder != null && directTargetHolder.isLibraryClass()
-          || virtualTargetHolder != null && virtualTargetHolder.isLibraryClass()
-          || staticTargetHolder != null && staticTargetHolder.isLibraryClass();
+      return (directTarget == null && staticTarget == null && virtualTarget == null)
+          || (virtualTarget != null && virtualTarget.method == item)
+          || (directTarget != null && directTarget.method == item)
+          || (staticTarget != null && staticTarget.method == item)
+          || (directTargetHolder != null && directTargetHolder.isLibraryClass())
+          || (virtualTargetHolder != null && virtualTargetHolder.isLibraryClass())
+          || (staticTargetHolder != null && staticTargetHolder.isLibraryClass());
     }
 
     @Override

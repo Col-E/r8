@@ -89,7 +89,7 @@ public class FillArrayDataPayload extends Nop {
       // For element width 1 split the 16-bit data units into bytes.
       for (int i = 0; i < data.length; i++) {
         for (int j = 0; j < 2; j++) {
-          int value = (data[i] >> j * 8) & 0xff;
+          int value = (data[i] >> (j * 8)) & 0xff;
           if (i * 2 + j < size) {
             builder.append("      ");
             builder.append(StringUtils.hexString(value, 2));

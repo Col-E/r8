@@ -78,7 +78,7 @@ public abstract class Instruction {
   }
 
   protected static int makeByte(int high, int low) {
-    return ((high & 0xf) << 4) | low & 0xf;
+    return ((high & 0xf) << 4) | (low & 0xf);
   }
 
   protected void writeFirst(int aa, ShortBuffer dest) {

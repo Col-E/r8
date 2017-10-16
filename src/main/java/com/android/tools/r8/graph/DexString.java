@@ -161,8 +161,8 @@ public class DexString extends IndexedDexItem implements PresortedComparable<Dex
         }
         // If either of the strings have the null character starting here, the null character
         // sort lowest.
-        if (b1 == 0xc0 && (content[index + 1] & 0xff) == 0x80 ||
-            b2 == 0xc0 && (other.content[index + 1] & 0xff) == 0x80) {
+        if ((b1 == 0xc0 && (content[index + 1] & 0xff) == 0x80) ||
+            (b2 == 0xc0 && (other.content[index + 1] & 0xff) == 0x80)) {
           return b1 == 0xc0 && (content[index + 1] & 0xff) == 0x80 ? -1 : 1;
         }
         return diff;
