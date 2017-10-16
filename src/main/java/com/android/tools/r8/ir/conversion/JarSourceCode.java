@@ -135,7 +135,7 @@ public class JarSourceCode implements SourceCode {
   private static final String REFLECT_ARRAY_NEW_INSTANCE_NAME = "newInstance";
   private static final String REFLECT_ARRAY_NEW_INSTANCE_DESC =
       "(Ljava/lang/Class;[I)Ljava/lang/Object;";
-  private static final String METHODHANDLE_INVOKE_OR_INVOKEEXACT_DESC =
+  private static final String POLYMORPHIC_SIGNATURE_DESC =
       "([Ljava/lang/Object;)Ljava/lang/Object;";
 
   // Language types.
@@ -2539,8 +2539,7 @@ public class JarSourceCode implements SourceCode {
           DexProto callSiteProto = null;
           DexMethod targetMethod = method;
           if (invokeType == Invoke.Type.POLYMORPHIC) {
-            targetMethod = application.getMethod(
-                insn.owner, insn.name, METHODHANDLE_INVOKE_OR_INVOKEEXACT_DESC);
+            targetMethod = application.getMethod(insn.owner, insn.name, POLYMORPHIC_SIGNATURE_DESC);
             callSiteProto = application.getProto(insn.desc);
           }
           builder.addInvoke(invokeType, targetMethod, callSiteProto, types, registers);
@@ -2970,7 +2969,52 @@ public class JarSourceCode implements SourceCode {
   }
 
   private boolean isCallToPolymorphicSignatureMethod(MethodInsnNode method) {
-    return method.owner.equals("java/lang/invoke/MethodHandle")
-        && (method.name.equals("invoke") || method.name.equals("invokeExact"));
+    if (method.owner.equals("java/lang/invoke/MethodHandle")) {
+      switch (method.name) {
+        case "invoke":
+        case "invokeExact":
+          return true;
+        default :
+          return false;
+      }
+    } else if (method.owner.equals("java/lang/invoke/VarHandle")) {
+      switch (method.name) {
+        case "compareAndExchange":
+        case "compareAndExchangeAcquire":
+        case "compareAndExchangeRelease":
+        case "compareAndSet":
+        case "get":
+        case "getAcquire":
+        case "getAndAdd":
+        case "getAndAddAcquire":
+        case "getAndAddRelease":
+        case "getAndBitwiseAnd":
+        case "getAndBitwiseAndAcquire":
+        case "getAndBitwiseAndRelease":
+        case "getAndBitwiseOr":
+        case "getAndBitwiseOrAcquire":
+        case "getAndBitwiseOrRelease":
+        case "getAndBitwiseXor":
+        case "getAndBitwiseXorAcquire":
+        case "getAndBitwiseXorRelease":
+        case "getAndSet":
+        case "getAndSetAcquire":
+        case "getAndSetRelease":
+        case "getOpaque":
+        case "getVolatile":
+        case "set":
+        case "setOpaque":
+        case "setRelease":
+        case "setVolatile":
+        case "weakCompareAndSet":
+        case "weakCompareAndSetAcquire":
+        case "weakCompareAndSetPlain":
+        case "weakCompareAndSetRelease":
+          return true;
+        default :
+          return false;
+      }
+    }
+    return false;
   }
 }

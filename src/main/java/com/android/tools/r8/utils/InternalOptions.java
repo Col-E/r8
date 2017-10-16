@@ -408,6 +408,10 @@ public class InternalOptions {
     }
   }
 
+  public boolean canUseInvokePolymorphicOnVarHandle() {
+    return minApiLevel >= AndroidApiLevel.P.getLevel();
+  }
+
   public boolean canUseInvokePolymorphic() {
     return minApiLevel >= AndroidApiLevel.O.getLevel();
   }
