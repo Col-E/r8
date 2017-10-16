@@ -12,8 +12,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
-import com.google.common.collect.ImmutableList;
-import java.util.IdentityHashMap;
 import java.util.Map;
 
 class FieldNameMinifier extends MemberNameMinifier<DexField, DexType> {

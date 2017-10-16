@@ -5,7 +5,6 @@ package com.android.tools.r8.naming;
 
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.base.Equivalence.Wrapper;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 
 import com.android.tools.r8.graph.AppInfoWithSubtyping;

@@ -4,7 +4,6 @@
 package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.graph.DexAccessFlags;
-import java.util.List;
 import java.util.Set;
 
 public class ProguardCheckDiscardRule extends ProguardConfigurationRule {

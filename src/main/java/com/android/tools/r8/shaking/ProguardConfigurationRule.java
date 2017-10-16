@@ -5,7 +5,6 @@ package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.graph.DexAccessFlags;
 import com.android.tools.r8.utils.StringUtils;
-import java.util.List;
 import java.util.Set;
 
 public abstract class ProguardConfigurationRule extends ProguardClassSpecification {

@@ -7,7 +7,6 @@ import com.android.tools.r8.graph.DexAccessFlags;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.Collections;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
