@@ -19,7 +19,6 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OffOrAuto;
-import com.google.common.collect.ImmutableList;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongList;
 import java.io.File;
@@ -208,10 +207,7 @@ public abstract class DebugTestBase {
             .setMode(CompilationMode.DEBUG)
             .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(minSdk)));
     if (pgConsumer != null) {
-      builder
-          .addProguardConfiguration(
-              ImmutableList.of("-keepattributes SourceFile,LineNumberTable"))
-          .addProguardConfigurationConsumer(pgConsumer);
+      builder.addProguardConfigurationConsumer(pgConsumer);
     }
     ToolHelper.runR8(builder.build(), optionsConsumer);
     return dexOutputDir.resolve("classes.dex");

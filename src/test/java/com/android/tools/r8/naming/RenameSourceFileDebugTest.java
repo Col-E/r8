@@ -5,6 +5,7 @@ package com.android.tools.r8.naming;
 
 import com.android.tools.r8.debug.DebugTestBase;
 import com.android.tools.r8.shaking.ProguardKeepRule;
+import com.google.common.collect.ImmutableList;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -17,10 +18,14 @@ public class RenameSourceFileDebugTest extends DebugTestBase {
 
   @BeforeClass
   public static void setUp() throws Exception {
-    setUp(null, pg -> {
-      pg.addRule(ProguardKeepRule.defaultKeepAllRule());
-      pg.setRenameSourceFileAttribute(TEST_FILE);
-    });
+    setUp(
+        null,
+        pg -> {
+          pg.resetProguardDefaults();
+          pg.addRule(ProguardKeepRule.defaultKeepAllRule());
+          pg.setRenameSourceFileAttribute(TEST_FILE);
+          pg.addKeepAttributePatterns(ImmutableList.of("SourceFile", "LineNumberTable"));
+        });
   }
 
   /**

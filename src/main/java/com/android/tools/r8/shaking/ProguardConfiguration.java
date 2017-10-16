@@ -19,22 +19,22 @@ public class ProguardConfiguration {
 
     private final List<FilteredClassPath> injars = new ArrayList<>();
     private final List<FilteredClassPath> libraryjars = new ArrayList<>();
-    private PackageObfuscationMode packageObfuscationMode = PackageObfuscationMode.NONE;
-    private String packagePrefix = "";
-    private boolean allowAccessModification = false;
-    private boolean ignoreWarnings = false;
-    private boolean optimizing = true;
-    private boolean obfuscating = true;
-    private boolean shrinking = true;
-    private boolean printUsage = false;
+    private PackageObfuscationMode packageObfuscationMode;
+    private String packagePrefix;
+    private boolean allowAccessModification;
+    private boolean ignoreWarnings;
+    private boolean optimizing;
+    private boolean obfuscating;
+    private boolean shrinking;
+    private boolean printUsage;
     private Path printUsageFile;
     private boolean printMapping;
     private Path printMappingFile;
-    private Path applyMappingFile = null;
-    private boolean verbose = false;
-    private String renameSourceFileAttribute = null;
+    private Path applyMappingFile;
+    private boolean verbose;
+    private String renameSourceFileAttribute;
     private final List<String> keepAttributePatterns = new ArrayList<>();
-    private ProguardClassNameList dontWarnPatterns = ProguardClassNameList.emptyList();
+    private ProguardClassNameList dontWarnPatterns;
     protected final List<ProguardConfigurationRule> rules = new ArrayList<>();
     private final DexItemFactory dexItemFactory;
     private boolean printSeeds;
@@ -47,6 +47,36 @@ public class ProguardConfiguration {
 
     private Builder(DexItemFactory dexItemFactory) {
       this.dexItemFactory = dexItemFactory;
+      resetProguardDefaults();
+    }
+
+    public void resetProguardDefaults() {
+      injars.clear();
+      libraryjars.clear();
+      packageObfuscationMode = PackageObfuscationMode.NONE;
+      packagePrefix = "";
+      allowAccessModification = false;
+      ignoreWarnings = false;
+      optimizing = true;
+      obfuscating = true;
+      shrinking = true;
+      printUsage = false;
+      printUsageFile = null;
+      printMapping = false;
+      printMappingFile = null;
+      applyMappingFile = null;
+      verbose = false;
+      renameSourceFileAttribute = null;
+      keepAttributePatterns.clear();
+      dontWarnPatterns = ProguardClassNameList.emptyList();
+      rules.clear();
+      printSeeds = false;
+      seedFile = null;
+      obfuscationDictionary = null;
+      classObfuscationDictionary = null;
+      packageObfuscationDictionary = null;
+      useUniqueClassMemberNames = false;
+      keepParameterNames = false;
     }
 
     public void addInjars(List<FilteredClassPath> injars) {
