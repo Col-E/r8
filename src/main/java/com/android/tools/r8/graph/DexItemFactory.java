@@ -100,6 +100,7 @@ public class DexItemFactory {
   public final DexString annotationDescriptor = createString("Ljava/lang/annotation/Annotation;");
   public final DexString throwableDescriptor = createString("Ljava/lang/Throwable;");
   public final DexString objectsDescriptor = createString("Ljava/util/Objects;");
+  public final DexString varHandleDescriptor = createString("Ljava/lang/invoke/VarHandle;");
 
   public final DexString constructorMethodName = createString(Constants.INSTANCE_INITIALIZER_NAME);
   public final DexString classConstructorMethodName = createString(Constants.CLASS_INITIALIZER_NAME);
@@ -140,6 +141,8 @@ public class DexItemFactory {
 
   public final DexType stringBuilderType = createType("Ljava/lang/StringBuilder;");
   public final DexType stringBufferType = createType("Ljava/lang/StringBuffer;");
+
+  public final DexType varHandleType = createType(varHandleDescriptor);
 
   public final StringBuildingMethods stringBuilderMethods = new StringBuildingMethods(stringBuilderType);
   public final StringBuildingMethods stringBufferMethods = new StringBuildingMethods(stringBufferType);

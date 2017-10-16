@@ -1058,11 +1058,20 @@ public class IRBuilder {
 
   public void addInvoke(Type type, DexItem item, DexProto callSiteProto, List<Value> arguments)
       throws ApiLevelException {
-    if (type == Invoke.Type.POLYMORPHIC && !options.canUseInvokePolymorphic()) {
-      throw new ApiLevelException(
-          AndroidApiLevel.O,
-          "MethodHandle.invoke and MethodHandle.invokeExact",
-          null /* sourceString */);
+    if (type == Invoke.Type.POLYMORPHIC) {
+      assert item instanceof DexMethod;
+      if (!options.canUseInvokePolymorphic()) {
+        throw new ApiLevelException(
+            AndroidApiLevel.O,
+            "MethodHandle.invoke and MethodHandle.invokeExact",
+            null /* sourceString */);
+      } else if (!options.canUseInvokePolymorphicOnVarHandle()
+          && ((DexMethod) item).getHolder() == options.itemFactory.varHandleType) {
+        throw new ApiLevelException(
+            AndroidApiLevel.P,
+            "Call to polymorphic signature of VarHandle",
+            null /* sourceString */);
+      }
     }
     add(Invoke.create(type, item, callSiteProto, null, arguments));
   }
