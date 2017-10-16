@@ -43,12 +43,10 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import org.objectweb.asm.Handle;
@@ -191,32 +189,9 @@ public class JarSourceCode implements SourceCode {
     this.application = application;
     this.clazz = clazz;
     parameterTypes = Arrays.asList(Type.getArgumentTypes(node.desc));
-    state = new JarState(node.maxLocals, computeLocals(node.localVariables, application));
+    state = new JarState(node.maxLocals, node.localVariables, application);
     AbstractInsnNode first = node.instructions.getFirst();
     initialLabel = first instanceof LabelNode ? (LabelNode) first : null;
-  }
-
-  private static Map<LocalVariableNode, DebugLocalInfo> computeLocals(
-      List localNodes, JarApplicationReader application) {
-    Map<DebugLocalInfo, DebugLocalInfo> canonical = new HashMap<>(localNodes.size());
-    Map<LocalVariableNode, DebugLocalInfo> localVariables = new HashMap<>(localNodes.size());
-    for (Object o : localNodes) {
-      LocalVariableNode node = (LocalVariableNode) o;
-      localVariables.computeIfAbsent(node, n -> canonicalizeLocal(n, canonical, application));
-    }
-    return localVariables;
-  }
-
-  private static DebugLocalInfo canonicalizeLocal(
-      LocalVariableNode node,
-      Map<DebugLocalInfo, DebugLocalInfo> canonicalLocalVariables,
-      JarApplicationReader application) {
-    DebugLocalInfo info = new DebugLocalInfo(
-        application.getString(node.name),
-        application.getTypeFromDescriptor(node.desc),
-        node.signature == null ? null : application.getString(node.signature));
-    DebugLocalInfo canonical = canonicalLocalVariables.putIfAbsent(info, info);
-    return canonical != null ? canonical : info;
   }
 
   private boolean isStatic() {
