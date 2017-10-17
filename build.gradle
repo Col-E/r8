@@ -152,10 +152,10 @@ dependencies {
     })
     compile group: 'it.unimi.dsi', name: 'fastutil', version: '7.2.0'
     compile group: 'org.apache.commons', name: 'commons-compress', version: '1.12'
-    compile group: 'org.ow2.asm', name: 'asm', version: '6.0_BETA'
-    compile group: 'org.ow2.asm', name: 'asm-commons', version: '6.0_BETA'
-    compile group: 'org.ow2.asm', name: 'asm-tree', version: '6.0_BETA'
-    compile group: 'org.ow2.asm', name: 'asm-util', version: '6.0_BETA'
+    compile group: 'org.ow2.asm', name: 'asm', version: '6.0'
+    compile group: 'org.ow2.asm', name: 'asm-commons', version: '6.0'
+    compile group: 'org.ow2.asm', name: 'asm-tree', version: '6.0'
+    compile group: 'org.ow2.asm', name: 'asm-util', version: '6.0'
     testCompile sourceSets.examples.output
     testCompile 'junit:junit:4.12'
     testCompile group: 'org.smali', name: 'smali', version: '2.2b4'
@@ -165,8 +165,8 @@ dependencies {
     jctfCommonCompile 'junit:junit:4.12'
     jctfTestsCompile 'junit:junit:4.12'
     jctfTestsCompile sourceSets.jctfCommon.output
-    examplesAndroidOCompile group: 'org.ow2.asm', name: 'asm', version: '6.0_BETA'
-    examplesAndroidPCompile group: 'org.ow2.asm', name: 'asm', version: '6.0_BETA'
+    examplesAndroidOCompile group: 'org.ow2.asm', name: 'asm', version: '6.0'
+    examplesAndroidPCompile group: 'org.ow2.asm', name: 'asm', version: '6.0'
     examplesCompile 'com.google.protobuf:protobuf-lite:3.0.0'
     examplesRuntime 'com.google.protobuf:protobuf-lite:3.0.0'
     supportLibs 'com.android.support:support-v4:25.4.0'
