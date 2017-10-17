@@ -8,22 +8,23 @@ import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.JarApplicationReader;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.base.Equivalence;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Multimap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
+import it.unimi.dsi.fastutil.ints.IntIterator;
+import it.unimi.dsi.fastutil.ints.IntSet;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import org.objectweb.asm.Type;
-import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.LocalVariableNode;
 
 /**
@@ -62,6 +63,75 @@ public class JarState {
       return 31 * local.name.hashCode()
           + 7 * local.desc.hashCode()
           + (local.signature == null ? 0 : local.signature.hashCode());
+    }
+  }
+
+  // Simple pairing of local-node with its debug info and ASM type.
+  private static class LocalNodeInfo {
+    final Type type;
+    final LocalVariableNode node;
+    final DebugLocalInfo info;
+
+    LocalNodeInfo(LocalVariableNode node, DebugLocalInfo info) {
+      this.node = node;
+      this.info = info;
+      type = Type.getType(node.desc);
+    }
+  }
+
+  // Collection of locals information at a program point.
+  private static class LocalsAtOffset {
+    // Note that we assume live is always a super-set of starts.
+    final List<LocalNodeInfo> live;
+    final List<LocalNodeInfo> starts;
+    final List<LocalNodeInfo> ends;
+
+    IdentityHashMap<DebugLocalInfo, DebugLocalInfo> liveInfosCache = null;
+
+    static final LocalsAtOffset EMPTY = new LocalsAtOffset();
+
+    LocalsAtOffset() {
+      live = Collections.emptyList();
+      starts = Collections.emptyList();
+      ends = Collections.emptyList();
+    }
+
+    LocalsAtOffset(LocalsAtOffset other) {
+      live = new ArrayList<>(other.live);
+      // Starts and ends are never shared.
+      starts = new ArrayList<>();
+      ends = new ArrayList<>();
+    }
+
+    void addStart(LocalVariableNode node, DebugLocalInfo info) {
+      starts.add(new LocalNodeInfo(node, info));
+    }
+
+    void addEnd(LocalVariableNode node, DebugLocalInfo info) {
+      ends.add(new LocalNodeInfo(node, info));
+    }
+
+    void addLive(LocalVariableNode node, DebugLocalInfo info) {
+      assert liveInfosCache == null;
+      live.add(new LocalNodeInfo(node, info));
+    }
+
+    boolean isLive(DebugLocalInfo info) {
+      if (live.size() < 10) {
+        for (LocalNodeInfo entry : live) {
+          if (entry.info == info) {
+            return true;
+          }
+        }
+        return false;
+      }
+      if (liveInfosCache == null) {
+        liveInfosCache = new IdentityHashMap<>(live.size());
+        for (LocalNodeInfo entry : live) {
+          liveInfosCache.put(entry.info, entry.info);
+        }
+      }
+      return liveInfosCache.containsKey(info);
     }
   }
 
@@ -205,14 +275,14 @@ public class JarState {
   private final int localsSize;
   private final Local[] locals;
 
-  // Mapping from local-variable nodes to their canonical local info.
-  private final Map<Equivalence.Wrapper<LocalVariableNode>, DebugLocalInfo> localVariables;
+  // Equivalence on the position-independent parts of local-variable nodes.
   private final LocalNodeEquivalence localNodeEquivalence = new LocalNodeEquivalence();
 
-  // Scope-points of all local variables for inserting debug scoping instructions.
-  private final Multimap<LabelNode, LocalVariableNode> localVariableStartPoints;
-  private final Multimap<LabelNode, LocalVariableNode> localVariableEndPoints;
+  // Canonical local-variable info objects.
+  private final Map<Equivalence.Wrapper<LocalVariableNode>, DebugLocalInfo> canonicalLocalInfo;
 
+  // Active locals at each program point at which they change.
+  private final Int2ReferenceSortedMap<LocalsAtOffset> localsAtOffsetTable;
 
   private final Deque<Slot> stack = new ArrayDeque<>();
 
@@ -222,40 +292,34 @@ public class JarState {
   // Concretely we treat all remaining byte-or-bool types as bytes (no actual type can flow there).
   private boolean building = false;
 
-  // TODO(zerny): Precompute the necessary local structures for faster access and remove this.
-  private final List localNodes;
-
-  public JarState(int maxLocals, List localNodes, JarApplicationReader application) {
+  public JarState(int maxLocals, List localNodes, JarSourceCode source, JarApplicationReader application) {
     int localsRegistersSize = maxLocals * 3;
     localsSize = maxLocals;
     locals = new Local[localsRegistersSize];
     startOfStack = localsRegistersSize;
     topOfStack = startOfStack;
-    this.localNodes = localNodes;
-    localVariables = computeLocals(localNodes, application);
-    localVariableStartPoints = HashMultimap.create();
-    localVariableEndPoints = HashMultimap.create();
-    populateLocalTables(localNodes);
-  }
-
-  private Map<Equivalence.Wrapper<LocalVariableNode>, DebugLocalInfo> computeLocals(
-      List localNodes, JarApplicationReader application) {
-    int size = localNodes.size();
-    if (size == 0) {
-      return Collections.emptyMap();
-    }
-    if (size == 1) {
+    localsAtOffsetTable = new Int2ReferenceAVLTreeMap<>();
+    localsAtOffsetTable.put(-1, LocalsAtOffset.EMPTY);
+    if (localNodes.size() == 0) {
+      canonicalLocalInfo = Collections.emptyMap();
+    } else if (localNodes.size() == 1) {
       LocalVariableNode local = (LocalVariableNode) localNodes.get(0);
-      return Collections.singletonMap(
-          localNodeEquivalence.wrap(local), createLocalInfo(local, application));
+      DebugLocalInfo info = createLocalInfo(local, application);
+      canonicalLocalInfo = Collections.singletonMap(localNodeEquivalence.wrap(local), info);
+      populateLocalsAtTable(local, info, source);
+    } else {
+      canonicalLocalInfo = new HashMap<>(localNodes.size());
+      for (Object o : localNodes) {
+        LocalVariableNode node = (LocalVariableNode) o;
+        Equivalence.Wrapper<LocalVariableNode> wrapped = localNodeEquivalence.wrap(node);
+        DebugLocalInfo info = canonicalLocalInfo.get(wrapped);
+        if (info == null) {
+          info = createLocalInfo(node, application);
+          canonicalLocalInfo.put(wrapped, info);
+        }
+        populateLocalsAtTable(node, info, source);
+      }
     }
-    Map<Equivalence.Wrapper<LocalVariableNode>, DebugLocalInfo> locals = new HashMap<>(size);
-    for (Object o : localNodes) {
-      LocalVariableNode node = (LocalVariableNode) o;
-      Equivalence.Wrapper<LocalVariableNode> wrapped = localNodeEquivalence.wrap(node);
-      locals.computeIfAbsent(wrapped, w -> createLocalInfo(w.get(), application));
-    }
-    return locals;
   }
 
   private static DebugLocalInfo createLocalInfo(
@@ -267,36 +331,64 @@ public class JarState {
         node.signature == null ? null : application.getString(node.signature));
   }
 
-  private void populateLocalTables(List localNodes) {
-    for (Object object : localNodes) {
-      LocalVariableNode node = (LocalVariableNode) object;
-      if (node.start != node.end) {
-        localVariableStartPoints.put(node.start, node);
-        localVariableEndPoints.put(node.end, node);
+  private void populateLocalsAtTable(
+      LocalVariableNode node, DebugLocalInfo info, JarSourceCode source) {
+    if (node.start == node.end) {
+      return;
+    }
+    int start = source.getOffset(node.start);
+    int end = source.getOffset(node.end);
+    // Ensure that there is an entry at the starting point of the local.
+    {
+      LocalsAtOffset atStart;
+      int lastOrStart = localsAtOffsetTable.headMap(start + 1).lastIntKey();
+      if (lastOrStart < start) {
+        atStart = new LocalsAtOffset(localsAtOffsetTable.get(lastOrStart));
+        localsAtOffsetTable.put(start, atStart);
+      } else {
+        atStart = localsAtOffsetTable.get(start);
       }
+      atStart.addStart(node, info);
+    }
+    // Ensure there is an entry at the ending point of the local.
+    {
+      LocalsAtOffset atEnd;
+      int lastOrEnd = localsAtOffsetTable.headMap(end + 1).lastIntKey();
+      if (lastOrEnd < end) {
+        atEnd = new LocalsAtOffset(localsAtOffsetTable.get(lastOrEnd));
+        localsAtOffsetTable.put(end, atEnd);
+      } else {
+        atEnd = localsAtOffsetTable.get(end);
+      }
+      atEnd.addEnd(node, info);
+    }
+    // Add the local to all live entries in its range.
+    for (LocalsAtOffset entry : localsAtOffsetTable.subMap(start, end).values()) {
+      entry.addLive(node, info);
     }
   }
 
-  public boolean localLiveAt(Local local, int offset, JarSourceCode source) {
-    // TODO(zerny): Precompute and sort the local ranges.
-    for (Object object : localNodes) {
-      LocalVariableNode node = (LocalVariableNode) object;
-      DebugLocalInfo nodeInfo = localVariables.get(localNodeEquivalence.wrap(node));
-      if (nodeInfo != local.info) {
-        continue;
-      }
-      Type type = Type.getType(node.desc);
-      int register = getLocalRegister(node.index, type);
-      if (register != local.slot.register) {
-        continue;
-      }
-      int startOffset = source.getOffset(node.start);
-      int endOffset = source.getOffset(node.end);
-      if (offset < startOffset || endOffset <= offset) {
-        return false;
+  public List<Local> localsNotLiveAtAllSuccessors(IntSet successors) {
+    Local[] liveLocals = Arrays.copyOf(locals, locals.length);
+    List<Local> deadLocals = new ArrayList<>(locals.length);
+    IntIterator it = successors.iterator();
+    while (it.hasNext()) {
+      LocalsAtOffset localsAtOffset = getLocalsAt(it.nextInt());
+      for (int i = 0; i < liveLocals.length; i++) {
+        Local live = liveLocals[i];
+        if (live != null && live.info != null && !localsAtOffset.isLive(live.info)) {
+          deadLocals.add(live);
+          liveLocals[i] = null;
+        }
       }
     }
-    return true;
+    return deadLocals;
+  }
+
+  private LocalsAtOffset getLocalsAt(int offset) {
+    return offset < 0
+        ? LocalsAtOffset.EMPTY
+        : localsAtOffsetTable.get(localsAtOffsetTable.headMap(offset + 1).lastIntKey());
   }
 
   public void setBuilding() {
@@ -334,32 +426,32 @@ public class JarState {
 
   // Local variable procedures.
 
-  public List<Local> openLocals(LabelNode label) {
-    Collection<LocalVariableNode> nodes = localVariableStartPoints.get(label);
-    ArrayList<Local> locals = new ArrayList<>(nodes.size());
-    for (LocalVariableNode node : nodes) {
-      DebugLocalInfo info = localVariables.get(localNodeEquivalence.wrap(node));
-      locals.add(setLocalInfo(node.index, Type.getType(node.desc), info));
+  public List<Local> openLocals(int offset) {
+    LocalsAtOffset localsAtOffset = localsAtOffsetTable.get(offset);
+    if (localsAtOffset == null) {
+      return Collections.emptyList();
     }
-    // Sort to ensure deterministic instruction ordering (correctness is unaffected).
-    locals.sort(Comparator.comparingInt(local -> local.slot.register));
+    ArrayList<Local> locals = new ArrayList<>(localsAtOffset.starts.size());
+    for (LocalNodeInfo start : localsAtOffset.starts) {
+      locals.add(setLocalInfo(start.node.index, start.type, start.info));
+    }
     return locals;
   }
 
-  public List<Local> getLocalsToClose(LabelNode label) {
-    Collection<LocalVariableNode> nodes = localVariableEndPoints.get(label);
-    ArrayList<Local> locals = new ArrayList<>(nodes.size());
-    for (LocalVariableNode node : nodes) {
-      Type type = Type.getType(node.desc);
-      int register = getLocalRegister(node.index, type);
+  public List<Local> getLocalsToClose(int offset) {
+    LocalsAtOffset localsAtOffset = localsAtOffsetTable.get(offset);
+    if (localsAtOffset == null) {
+      return Collections.emptyList();
+    }
+    ArrayList<Local> locals = new ArrayList<>(localsAtOffset.ends.size());
+    for (LocalNodeInfo end : localsAtOffset.ends) {
+      int register = getLocalRegister(end.node.index, end.type);
       Local local = getLocalForRegister(register);
       assert local != null;
       if (local.info != null) {
         locals.add(local);
       }
     }
-    // Sort to ensure deterministic instruction ordering (correctness is unaffected).
-    locals.sort(Comparator.comparingInt(local -> local.slot.register));
     return locals;
   }
 
@@ -541,36 +633,29 @@ public class JarState {
     topOfStack = startOfStack + 2 * stack.size();
   }
 
-  public boolean recordStateForTarget(int target, JarSourceCode source) {
-    return recordStateForTarget(target, locals.clone(), ImmutableList.copyOf(stack), source);
+  public boolean recordStateForTarget(int target) {
+    return recordStateForTarget(target, locals.clone(), ImmutableList.copyOf(stack));
   }
 
-  public boolean recordStateForExceptionalTarget(int target, JarSourceCode source) {
-    return recordStateForTarget(target,
+  public boolean recordStateForExceptionalTarget(int target) {
+    return recordStateForTarget(
+        target,
         locals.clone(),
-        ImmutableList.of(new Slot(startOfStack, JarSourceCode.THROWABLE_TYPE)),
-        source);
+        ImmutableList.of(new Slot(startOfStack, JarSourceCode.THROWABLE_TYPE)));
   }
 
-  private boolean recordStateForTarget(int target, Local[] locals, ImmutableList<Slot> stack,
-      JarSourceCode source) {
-    if (!localVariables.isEmpty()) {
+  private boolean recordStateForTarget(int target, Local[] locals, ImmutableList<Slot> stack) {
+    if (!canonicalLocalInfo.isEmpty()) {
       for (int i = 0; i < locals.length; i++) {
         if (locals[i] != null) {
           locals[i] = new Local(locals[i].slot, null);
         }
       }
-      // TODO(zerny): Precompute and sort the local ranges.
-      for (Object object : localNodes) {
-        LocalVariableNode node = (LocalVariableNode) object;
-        int startOffset = source.getOffset(node.start);
-        int endOffset = source.getOffset(node.end);
-        if (startOffset <= target && target < endOffset) {
-          int register = getLocalRegister(node.index, Type.getType(node.desc));
-          Local local = locals[register];
-          DebugLocalInfo info = localVariables.get(localNodeEquivalence.wrap(node));
-          locals[register] = new Local(local.slot, info);
-        }
+      LocalsAtOffset localsAtOffset = getLocalsAt(target);
+      for (LocalNodeInfo live : localsAtOffset.live) {
+        int register = getLocalRegister(live.node.index, live.type);
+        Local local = locals[register];
+        locals[register] = new Local(local.slot, live.info);
       }
     }
     Snapshot snapshot = targetStates.get(target);

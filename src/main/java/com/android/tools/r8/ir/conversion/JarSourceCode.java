@@ -189,7 +189,7 @@ public class JarSourceCode implements SourceCode {
     this.application = application;
     this.clazz = clazz;
     parameterTypes = Arrays.asList(Type.getArgumentTypes(node.desc));
-    state = new JarState(node.maxLocals, node.localVariables, application);
+    state = new JarState(node.maxLocals, node.localVariables, this, application);
     AbstractInsnNode first = node.instructions.getFirst();
     initialLabel = first instanceof LabelNode ? (LabelNode) first : null;
   }
@@ -286,7 +286,7 @@ public class JarSourceCode implements SourceCode {
     // Add debug information for all locals at the initial label.
     List<Local> locals = null;
     if (initialLabel != null) {
-      locals = state.openLocals(initialLabel);
+      locals = state.openLocals(getOffset(initialLabel));
     }
 
     currentPosition = Position.none();
@@ -374,7 +374,7 @@ public class JarSourceCode implements SourceCode {
       entry = CFG.get(0);
     }
     worklist.add(new JarStateWorklistItem(entry, 0));
-    state.recordStateForTarget(0, this);
+    state.recordStateForTarget(0);
     for (JarStateWorklistItem item = worklist.poll(); item != null; item = worklist.poll()) {
       state.restoreState(item.instructionIndex);
       // Iterate each of the instructions in the block to compute the outgoing JarState.
@@ -384,14 +384,14 @@ public class JarSourceCode implements SourceCode {
         // that changed to the worklist.
         if (i == instructionCount() || (i != item.instructionIndex && CFG.containsKey(i))) {
           item.blockInfo.normalSuccessors.iterator().forEachRemaining(offset -> {
-            if (state.recordStateForTarget(offset, this)) {
+            if (state.recordStateForTarget(offset)) {
               if (offset >= 0) {
                 worklist.add(new JarStateWorklistItem(CFG.get(offset.intValue()), offset));
               }
             }
           });
           item.blockInfo.exceptionalSuccessors.iterator().forEachRemaining(offset -> {
-            if (state.recordStateForExceptionalTarget(offset, this)) {
+            if (state.recordStateForExceptionalTarget(offset)) {
               if (offset >= 0) {
                 worklist.add(new JarStateWorklistItem(CFG.get(offset.intValue()), offset));
               }
@@ -435,7 +435,7 @@ public class JarSourceCode implements SourceCode {
       int fallthroughInstructionIndex, IRBuilder builder) {
     AbstractInsnNode insn = node.instructions.get(fallthroughInstructionIndex);
     if (insn instanceof LabelNode) {
-      for (Local local : state.getLocalsToClose((LabelNode) insn)) {
+      for (Local local : state.getLocalsToClose(getOffset(insn))) {
         builder.addDebugLocalEnd(local.slot.register, local.info);
       }
     }
@@ -1700,12 +1700,13 @@ public class JarSourceCode implements SourceCode {
   }
 
   private void updateState(LabelNode insn) {
+    int offset = getOffset(insn);
     // Close scope of locals ending at this point.
-    List<Local> locals = state.getLocalsToClose(insn);
+    List<Local> locals = state.getLocalsToClose(offset);
     state.closeLocals(locals);
     // Open the scope of locals starting at this point.
     if (insn != initialLabel) {
-      state.openLocals(insn);
+      state.openLocals(offset);
     }
   }
 
@@ -1818,25 +1819,9 @@ public class JarSourceCode implements SourceCode {
     int blockOffset = builder.getCFG().headMap(offset).lastIntKey();
     BlockInfo blockInfo = builder.getCFG().get(blockOffset);
     // Read all locals that are not live on all successors to ensure liveness.
-    for (Local local : state.getLocals()) {
-      if (!liveAtAllSuccessors(blockInfo, local)) {
-        builder.addDebugLocalRead(local.slot.register, local.info);
-      }
+    for (Local local : state.localsNotLiveAtAllSuccessors(blockInfo.allSuccessors())) {
+      builder.addDebugLocalRead(local.slot.register, local.info);
     }
-  }
-
-  private boolean liveAtAllSuccessors(BlockInfo blockInfo, Local local) {
-    for (int successor : blockInfo.normalSuccessors) {
-      if (!state.localLiveAt(local, successor, this)) {
-        return false;
-      }
-    }
-    for (int successor : blockInfo.exceptionalSuccessors) {
-      if (!state.localLiveAt(local, successor, this)) {
-        return false;
-      }
-    }
-    return true;
   }
 
   private void processLocalVariablesAtExit(AbstractInsnNode insn, IRBuilder builder) {
@@ -2706,8 +2691,9 @@ public class JarSourceCode implements SourceCode {
   }
 
   private void build(LabelNode insn, IRBuilder builder) {
+    int offset = getOffset(insn);
     // Close locals starting at this point.
-    List<Local> locals = state.getLocalsToClose(insn);
+    List<Local> locals = state.getLocalsToClose(offset);
     for (Local local : locals) {
       builder.addDebugLocalEnd(local.slot.register, local.info);
     }
@@ -2715,7 +2701,7 @@ public class JarSourceCode implements SourceCode {
 
     // Open the scope of locals starting at this point.
     if (insn != initialLabel) {
-      for (Local local : state.openLocals(insn)) {
+      for (Local local : state.openLocals(offset)) {
         builder.addDebugLocalStart(local.slot.register, local.info);
       }
     }

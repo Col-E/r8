@@ -213,6 +213,13 @@ public class IRBuilder {
       return normalPredecessors.size() + exceptionalPredecessors.size();
     }
 
+    IntSet allSuccessors() {
+      IntSet all = new IntArraySet(normalSuccessors.size() + exceptionalSuccessors.size());
+      all.addAll(normalSuccessors);
+      all.addAll(exceptionalSuccessors);
+      return all;
+    }
+
     BlockInfo split(
         int blockStartOffset, int fallthroughOffset, Int2ReferenceMap<BlockInfo> targets) {
       BlockInfo fallthroughInfo = new BlockInfo();
