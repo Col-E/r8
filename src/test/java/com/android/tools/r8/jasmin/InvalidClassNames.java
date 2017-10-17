@@ -52,20 +52,20 @@ public class InvalidClassNames extends JasminTestBase {
   @Parameters
   public static Collection<Object[]> data() {
     return Arrays.asList(new Object[][] {
-        { new String(new int[] { 0x00a0 }, 0, 1), true },
-        { new String(new int[] { 0x2000 }, 0, 1), !ToolHelper.isWindows() },
-        { new String(new int[] { 0x200f }, 0, 1), !ToolHelper.isWindows() },
-        { new String(new int[] { 0x2028 }, 0, 1), !ToolHelper.isWindows() },
-        { new String(new int[] { 0x202f }, 0, 1), !ToolHelper.isWindows() },
-        { new String(new int[] { 0xd800 }, 0, 1), false },
-        { new String(new int[] { 0xdfff }, 0, 1), false },
-        { new String(new int[] { 0xfff0 }, 0, 1), !ToolHelper.isWindows() },
-        { new String(new int[] { 0xffff }, 0, 1), !ToolHelper.isWindows() },
+        { "\u00a0", !ToolHelper.isJava9Runtime()},
+        { "\u2000", !ToolHelper.isWindows() && !ToolHelper.isJava9Runtime()},
+        { "\u200f", !ToolHelper.isWindows() && !ToolHelper.isJava9Runtime()},
+        { "\u2028", !ToolHelper.isWindows() && !ToolHelper.isJava9Runtime()},
+        { "\u202f", !ToolHelper.isWindows() && !ToolHelper.isJava9Runtime()},
+        { "\ud800", false},
+        { "\udfff", false},
+        { "\ufff0", !ToolHelper.isWindows() && !ToolHelper.isJava9Runtime()},
+        { "\uffff", !ToolHelper.isWindows() && !ToolHelper.isJava9Runtime()},
         { "a/b/c/a/D/", true },
-        { "a<b", !ToolHelper.isWindows() },
-        { "a>b", !ToolHelper.isWindows() },
-        { "<a>b", !ToolHelper.isWindows() },
-        { "<a>", !ToolHelper.isWindows() }
+        { "a<b", !ToolHelper.isWindows() && !ToolHelper.isJava9Runtime()},
+        { "a>b", !ToolHelper.isWindows() && !ToolHelper.isJava9Runtime()},
+        { "<a>b", !ToolHelper.isWindows() && !ToolHelper.isJava9Runtime()},
+        { "<a>", !ToolHelper.isWindows() && !ToolHelper.isJava9Runtime()}
     });
   }
 
