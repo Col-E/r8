@@ -164,7 +164,7 @@ public class BSPatch {
     return (int) offset;
   }
 
-  private abstract class PatchExecutor {
+  private static abstract class PatchExecutor {
 
     public abstract void createOutput(int newFileSize);
 
