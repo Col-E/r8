@@ -40,12 +40,12 @@ public class ProguardConfigurationParser {
 
   private final DiagnosticsHandler diagnosticsHandler;
 
-  private static final List<String> IGNORED_SINGLE_ARG_OPTIONS = ImmutableList
+  private static final List<String> ignoredSingleArgOptions = ImmutableList
       .of("protomapping",
           "target");
-  private static final List<String> IGNORED_OPTIONAL_SINGLE_ARG_OPTIONS = ImmutableList
+  private static final List<String> ignoredOptionalSingleArgOptions = ImmutableList
       .of("keepdirectories", "runtype", "laststageoutput");
-  private static final List<String> IGNORED_FLAG_OPTIONS = ImmutableList
+  private static final List<String> ignoredFlagOptions = ImmutableList
       .of("forceprocessing", "dontusemixedcaseclassnames",
           "dontpreverify", "experimentalshrinkunusedprotofields",
           "filterlibraryjarswithorginalprogramjars",
@@ -53,22 +53,24 @@ public class ProguardConfigurationParser {
           "dontskipnonpubliclibraryclassmembers",
           "overloadaggressively",
           "invokebasemethod");
-  private static final List<String> IGNORED_CLASS_DESCRIPTOR_OPTIONS = ImmutableList
+  private static final List<String> ignoredClassDescriptorOptions = ImmutableList
       .of("isclassnamestring",
           "whyarenotsimple");
 
-  private static final List<String> WARNED_SINGLE_ARG_OPTIONS = ImmutableList
+  private static final List<String> warnedSingleArgOptions = ImmutableList
       .of("dontnote",
-          "printconfiguration");
-  private static final List<String> WARNED_FLAG_OPTIONS = ImmutableList
+          "printconfiguration",
+          // TODO -outjars (http://b/37137994) and -adaptresourcefilecontents (http://b/37139570)
+          // should be reported as errors, not just as warnings!
+          "outjars",
+          "adaptresourcefilecontents");
+  private static final List<String> warnedFlagOptions = ImmutableList
       .of();
 
   // Those options are unsupported and are treated as compilation errors.
   // Just ignoring them would produce outputs incompatible with user expectations.
-  public static final List<String> UNSUPPORTED_FLAG_OPTIONS = ImmutableList
-      .of("adaptresourcefilecontents",
-          "outjars",
-          "skipnonpubliclibraryclasses");
+  private static final List<String> unsupportedFlagOptions = ImmutableList
+      .of("skipnonpubliclibraryclasses");
 
   public ProguardConfigurationParser(
       DexItemFactory dexItemFactory, DiagnosticsHandler diagnosticsHandler) {
@@ -105,26 +107,17 @@ public class ProguardConfigurationParser {
   public void parse(List<ProguardConfigurationSource> sources)
       throws ProguardRuleParserException, IOException {
     for (ProguardConfigurationSource source : sources) {
-      new ProguardConfigurationSourceParser(source).parse();
+      new ProguardFileParser(source, diagnosticsHandler).parse();
     }
   }
 
-  private void warnIgnoringOptions(String optionName) {
-    diagnosticsHandler.warning(new StringDiagnostic("Ignoring option: -" + optionName));
-  }
-
-  private void warnOverridingOptions(String optionName, String victim) {
-    diagnosticsHandler.warning(
-        new StringDiagnostic("Option -" + optionName + " overrides -" + victim));
-  }
-
-  private class ProguardConfigurationSourceParser {
+  private class ProguardFileParser {
     private final String name;
     private final String contents;
     private int position = 0;
     private Path baseDirectory;
 
-    ProguardConfigurationSourceParser(ProguardConfigurationSource source)
+    ProguardFileParser(ProguardConfigurationSource source, DiagnosticsHandler diagnosticsHandler)
         throws IOException {
       contents = source.get();
       baseDirectory = source.getBaseDirectory();
@@ -147,20 +140,18 @@ public class ProguardConfigurationParser {
       }
       expectChar('-');
       String option;
-      if (Iterables.any(IGNORED_SINGLE_ARG_OPTIONS, this::skipOptionWithSingleArg)
-          || Iterables.any(
-              IGNORED_OPTIONAL_SINGLE_ARG_OPTIONS, this::skipOptionWithOptionalSingleArg)
-          || Iterables.any(IGNORED_FLAG_OPTIONS, this::skipFlag)
-          || Iterables.any(IGNORED_CLASS_DESCRIPTOR_OPTIONS, this::skipOptionWithClassSpec)
+      if (Iterables.any(ignoredSingleArgOptions, this::skipOptionWithSingleArg)
+          || Iterables.any(ignoredOptionalSingleArgOptions, this::skipOptionWithOptionalSingleArg)
+          || Iterables.any(ignoredFlagOptions, this::skipFlag)
+          || Iterables.any(ignoredClassDescriptorOptions, this::skipOptionWithClassSpec)
           || parseOptimizationOption()) {
         // Intentionally left empty.
       } else if (
-          (option = Iterables.find(WARNED_SINGLE_ARG_OPTIONS,
+          (option = Iterables.find(warnedSingleArgOptions,
               this::skipOptionWithSingleArg, null)) != null
-              || (option = Iterables.find(WARNED_FLAG_OPTIONS, this::skipFlag, null)) != null) {
+              || (option = Iterables.find(warnedFlagOptions, this::skipFlag, null)) != null) {
         warnIgnoringOptions(option);
-      } else if (
-          (option = Iterables.find(UNSUPPORTED_FLAG_OPTIONS, this::skipFlag, null)) != null) {
+      } else if ((option = Iterables.find(unsupportedFlagOptions, this::skipFlag, null)) != null) {
         throw parseError("Unsupported option: -" + option);
       } else if (acceptString("renamesourcefileattribute")) {
         skipWhitespace();
@@ -305,11 +296,19 @@ public class ProguardConfigurationParser {
       return true;
     }
 
+    private void warnIgnoringOptions(String optionName) {
+      diagnosticsHandler.warning(new StringDiagnostic("Ignoring option: -" + optionName));
+    }
+
+    private void warnOverridingOptions(String optionName, String victim) {
+      diagnosticsHandler.warning(
+          new StringDiagnostic("Option -" + optionName + " overrides -" + victim));
+    }
 
     private void parseInclude() throws ProguardRuleParserException {
       Path included = parseFileName();
       try {
-        new ProguardConfigurationSourceParser(new ProguardConfigurationSourceFile(included))
+        new ProguardFileParser(new ProguardConfigurationSourceFile(included), diagnosticsHandler)
             .parse();
       } catch (FileNotFoundException | NoSuchFileException e) {
         throw parseError("Included file '" + included.toString() + "' not found", e);

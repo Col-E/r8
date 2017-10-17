@@ -11,31 +11,20 @@ import java.util.List;
 import joptsimple.internal.Strings;
 
 public class ProguardConfigurationSourceStrings implements ProguardConfigurationSource {
-  private final Path baseDirectory;
   private final List<String> config;
 
   public ProguardConfigurationSourceStrings(List<String> config) {
-    this(Paths.get("."), config);
-  }
-
-  /**
-   * Creates {@link ProguardConfigurationSource} with raw {@param config}, along with
-   * {@param baseDirectory}, which allows all other options that use a relative path to reach out
-   * to desired paths appropriately.
-   */
-  public ProguardConfigurationSourceStrings(Path baseDirectory, List<String> config) {
-    this.baseDirectory = baseDirectory;
     this.config = config;
   }
 
   @Override
   public String get() throws IOException{
-    return Strings.join(config, System.lineSeparator());
+    return Strings.join(config, "\n");
   }
 
   @Override
   public Path getBaseDirectory() {
-    return baseDirectory;
+    return Paths.get(".");
   }
 
   @Override
