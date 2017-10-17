@@ -669,13 +669,11 @@ public class SmaliTestBase extends TestBase {
 
   public AndroidApp writeDex(DexApplication application, InternalOptions options)
       throws DexOverflowException {
-    AppInfo appInfo = new AppInfo(application);
     try {
       AndroidAppOutputSink compatSink = new AndroidAppOutputSink();
       R8.writeApplication(
           Executors.newSingleThreadExecutor(),
           application,
-          appInfo,
           compatSink,
           null,
           NamingLens.getIdentityLens(),

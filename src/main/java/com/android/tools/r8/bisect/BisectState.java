@@ -132,10 +132,6 @@ public class BisectState {
       range.write(writer);
     }
 
-    public boolean isGood() {
-      return good;
-    }
-
     public boolean isBad() {
       return !good;
     }

@@ -120,20 +120,6 @@ public class CompatDx {
       }
     }
 
-    // Exception thrown on options parse error.
-    private static class DxParseError extends DxUsageMessage {
-      private final OptionParser parser;
-
-      private DxParseError(OptionParser parser) {
-        this.parser = parser;
-      }
-
-      @Override
-      public void printHelpOn(PrintStream sink) throws IOException {
-        parser.printHelpOn(sink);
-      }
-    }
-
     // Parsing specification.
     private static class Spec {
       final OptionParser parser;

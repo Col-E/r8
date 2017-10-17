@@ -83,8 +83,6 @@ public class DexBuilder {
   // The register allocator providing register assignments for the code to build.
   private final RegisterAllocator registerAllocator;
 
-  private final DexItemFactory dexItemFactory;
-
   private final InternalOptions options;
 
   // List of information about switch payloads that have to be created at the end of the
@@ -118,14 +116,11 @@ public class DexBuilder {
   public DexBuilder(
       IRCode ir,
       RegisterAllocator registerAllocator,
-      DexItemFactory dexItemFactory,
       InternalOptions options) {
     assert ir != null;
     assert registerAllocator != null;
-    assert dexItemFactory != null;
     this.ir = ir;
     this.registerAllocator = registerAllocator;
-    this.dexItemFactory = dexItemFactory;
     this.options = options;
   }
 

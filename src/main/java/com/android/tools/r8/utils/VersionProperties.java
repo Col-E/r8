@@ -13,7 +13,6 @@ import java.util.Properties;
  * A class describing version properties.
  */
 public class VersionProperties {
-  private static final int VERSION_CODE = 1;
 
   private static final String VERSION_CODE_KEY = "version-file.version.code";
   private static final String SHA_KEY = "version.sha";

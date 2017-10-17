@@ -614,10 +614,6 @@ public class VirtualFile {
           && types.isEmpty() && strings.isEmpty();
     }
 
-    int getNumberOfStrings() {
-      return strings.size() + base.getNumberOfStrings();
-    }
-
     int getNumberOfClasses() {
       return classes.size() + base.classes.size();
     }

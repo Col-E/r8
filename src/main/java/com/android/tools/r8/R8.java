@@ -11,7 +11,6 @@ import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.DexOverflowException;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.ClassAndMemberPublicizer;
 import com.android.tools.r8.graph.DexApplication;
@@ -86,8 +85,8 @@ public class R8 {
   public static void writeApplication(
       ExecutorService executorService,
       DexApplication application,
-      AppInfo appInfo,
-      OutputSink outputSink, byte[] deadCode,
+      OutputSink outputSink,
+      byte[] deadCode,
       NamingLens namingLens,
       byte[] proguardSeedsData,
       InternalOptions options)
@@ -95,7 +94,7 @@ public class R8 {
     try {
       Marker marker = getMarker(options);
       new ApplicationWriter(
-          application, appInfo, options, marker, deadCode, namingLens, proguardSeedsData)
+          application, options, marker, deadCode, namingLens, proguardSeedsData)
           .write(outputSink, executorService);
     } catch (IOException e) {
       throw new RuntimeException("Cannot write dex application", e);
@@ -342,7 +341,6 @@ public class R8 {
       writeApplication(
           executorService,
           application,
-          appInfo,
           outputSink,
           application.deadCode,
           namingLens,

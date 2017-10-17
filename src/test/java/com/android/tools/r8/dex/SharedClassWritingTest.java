@@ -8,7 +8,6 @@ import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.ReturnVoid;
 import com.android.tools.r8.errors.DexOverflowException;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexAccessFlags;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexAnnotationSetRefList;
@@ -124,7 +123,7 @@ public class SharedClassWritingTest {
 
     InternalOptions options = new InternalOptions(dexItemFactory);
     options.outputMode = OutputMode.FilePerInputClass;
-    ApplicationWriter writer = new ApplicationWriter(application, new AppInfo(application),
+    ApplicationWriter writer = new ApplicationWriter(application,
         options, null, null, NamingLens.getIdentityLens(), null);
     ExecutorService executorService = ThreadUtils.getExecutorService(options);
     CollectInfoOutputSink sink = new CollectInfoOutputSink();

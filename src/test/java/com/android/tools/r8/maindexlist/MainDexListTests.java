@@ -594,7 +594,7 @@ public class MainDexListTests extends TestBase {
                 code);
         IRCode ir = code.buildIR(method, options);
         RegisterAllocator allocator = new LinearScanRegisterAllocator(ir, options);
-        method.setCode(ir, allocator, factory, options);
+        method.setCode(ir, allocator, options);
         directMethods[i] = method;
       }
       builder.addProgramClass(
@@ -613,9 +613,8 @@ public class MainDexListTests extends TestBase {
               DexEncodedMethod.EMPTY_ARRAY));
     }
     DirectMappedDexApplication application = builder.build().toDirect();
-    AppInfoWithSubtyping appInfo = new AppInfoWithSubtyping(application);
     ApplicationWriter writer = new ApplicationWriter(
-        application, appInfo, options, null, null, NamingLens.getIdentityLens(), null);
+        application, options, null, null, NamingLens.getIdentityLens(), null);
     ExecutorService executor = ThreadUtils.getExecutorService(options);
     AndroidAppOutputSink compatSink = new AndroidAppOutputSink();
     try {

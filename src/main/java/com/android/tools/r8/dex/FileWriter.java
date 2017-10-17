@@ -8,7 +8,6 @@ import static com.android.tools.r8.utils.LebUtils.sizeAsUleb128;
 import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.Descriptor;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationDirectory;
@@ -78,7 +77,6 @@ public class FileWriter {
 
   private final ObjectToOffsetMapping mapping;
   private final DexApplication application;
-  private final AppInfo appInfo;
   private final InternalOptions options;
   private final NamingLens namingLens;
   private final DexOutputBuffer dest = new DexOutputBuffer();
@@ -87,12 +85,10 @@ public class FileWriter {
   public FileWriter(
       ObjectToOffsetMapping mapping,
       DexApplication application,
-      AppInfo appinfo,
       InternalOptions options,
       NamingLens namingLens) {
     this.mapping = mapping;
     this.application = application;
-    this.appInfo = appinfo;
     this.options = options;
     this.namingLens = namingLens;
     this.mixedSectionOffsets = new MixedSectionOffsets();

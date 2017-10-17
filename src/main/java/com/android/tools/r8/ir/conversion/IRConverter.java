@@ -410,7 +410,7 @@ public class IRConverter {
     }
     assert code.isConsistentSSA();
     RegisterAllocator registerAllocator = performRegisterAllocation(code, method);
-    method.setCode(code, registerAllocator, appInfo.dexItemFactory, options);
+    method.setCode(code, registerAllocator, options);
     if (Log.ENABLED) {
       Log.debug(getClass(), "Resulting dex code for %s:\n%s",
           method.toSourceString(), logCode(options, method));
@@ -584,7 +584,7 @@ public class IRConverter {
 
     // Perform register allocation.
     RegisterAllocator registerAllocator = performRegisterAllocation(code, method);
-    method.setCode(code, registerAllocator, appInfo.dexItemFactory, options);
+    method.setCode(code, registerAllocator, options);
     updateHighestSortingStrings(method);
     if (Log.ENABLED) {
       Log.debug(getClass(), "Resulting dex code for %s:\n%s",

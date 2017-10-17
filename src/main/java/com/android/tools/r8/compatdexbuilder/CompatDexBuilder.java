@@ -31,7 +31,6 @@ public class CompatDexBuilder {
   private String output = null;
   private int numberOfThreads = 8;
   private boolean noLocals = false;
-  private boolean verbose = false;
 
   public static void main(String[] args)
       throws IOException, InterruptedException, ExecutionException {
@@ -72,9 +71,6 @@ public class CompatDexBuilder {
         case "--no-optimize":
         case "--help":
           // Ignore
-          break;
-        case "--verbose":
-          verbose = true;
           break;
         case "--nolocals":
           noLocals = true;

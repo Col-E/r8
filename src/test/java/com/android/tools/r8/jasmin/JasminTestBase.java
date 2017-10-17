@@ -12,7 +12,6 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.errors.DexOverflowException;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
@@ -95,12 +94,10 @@ public class JasminTestBase {
       throws Exception {
     DexApplication app = builder.read();
     app = process(app, options);
-    AppInfo info = new AppInfo(app);
     AndroidAppOutputSink compatSink = new AndroidAppOutputSink();
     R8.writeApplication(
         Executors.newSingleThreadExecutor(),
         app,
-        info,
         compatSink,
         null,
         NamingLens.getIdentityLens(),
@@ -187,13 +184,11 @@ public class JasminTestBase {
 
   public AndroidApp writeDex(DexApplication application, InternalOptions options)
       throws DexOverflowException, IOException {
-    AppInfo appInfo = new AppInfo(application);
     try {
       AndroidAppOutputSink compatSink = new AndroidAppOutputSink();
       R8.writeApplication(
           Executors.newSingleThreadExecutor(),
           application,
-          appInfo,
           compatSink,
           null,
           NamingLens.getIdentityLens(),

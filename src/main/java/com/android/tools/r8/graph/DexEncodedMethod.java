@@ -275,9 +275,8 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
   public void setCode(
       IRCode ir,
       RegisterAllocator registerAllocator,
-      DexItemFactory dexItemFactory,
       InternalOptions options) {
-    final DexBuilder builder = new DexBuilder(ir, registerAllocator, dexItemFactory, options);
+    final DexBuilder builder = new DexBuilder(ir, registerAllocator, options);
     code = builder.build(method.getArity());
   }
 
@@ -688,18 +687,6 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
 
     public void setMethod(DexMethod method) {
       this.method = method;
-    }
-
-    public void setAccessFlags(DexAccessFlags accessFlags) {
-      this.accessFlags = accessFlags;
-    }
-
-    public void setAnnotations(DexAnnotationSet annotations) {
-      this.annotations = annotations;
-    }
-
-    public void setParameterAnnotations(DexAnnotationSetRefList parameterAnnotations) {
-      this.parameterAnnotations = parameterAnnotations;
     }
 
     public void setCode(Code code) {

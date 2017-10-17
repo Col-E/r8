@@ -68,15 +68,6 @@ abstract class BaseCommand {
       this(AndroidApp.builder(), false);
     }
 
-    protected Builder(boolean ignoreDexInArchive) {
-      this(AndroidApp.builder(), ignoreDexInArchive);
-    }
-
-    // Internal constructor for testing.
-    Builder(AndroidApp app, CompilationMode mode) {
-      this(AndroidApp.builder(app), false);
-    }
-
     protected Builder(AndroidApp.Builder builder, boolean ignoreDexInArchive) {
       this.app = builder;
       app.setIgnoreDexInArchive(ignoreDexInArchive);

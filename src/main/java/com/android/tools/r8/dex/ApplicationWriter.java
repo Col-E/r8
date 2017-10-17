@@ -6,7 +6,6 @@ package com.android.tools.r8.dex;
 import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.OutputSink;
 import com.android.tools.r8.errors.DexOverflowException;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationDirectory;
 import com.android.tools.r8.graph.DexAnnotationSet;
@@ -44,7 +43,6 @@ import java.util.concurrent.Future;
 public class ApplicationWriter {
 
   public final DexApplication application;
-  public final AppInfo appInfo;
   public final byte[] deadCode;
   public final NamingLens namingLens;
   public final byte[] proguardSeedsData;
@@ -110,7 +108,6 @@ public class ApplicationWriter {
 
   public ApplicationWriter(
       DexApplication application,
-      AppInfo appInfo,
       InternalOptions options,
       Marker marker,
       byte[] deadCode,
@@ -118,7 +115,6 @@ public class ApplicationWriter {
       byte[] proguardSeedsData) {
     assert application != null;
     this.application = application;
-    this.appInfo = appInfo;
     assert options != null;
     this.options = options;
     this.markerString = (marker == null)
@@ -254,7 +250,7 @@ public class ApplicationWriter {
 
   private byte[] writeDexFile(ObjectToOffsetMapping mapping)
       throws ApiLevelException {
-    FileWriter fileWriter = new FileWriter(mapping, application, appInfo, options, namingLens);
+    FileWriter fileWriter = new FileWriter(mapping, application, options, namingLens);
     // Collect the non-fixed sections.
     fileWriter.collect();
     // Generate and write the bytes.
