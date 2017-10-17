@@ -8,14 +8,16 @@ apply plugin: 'java'
 apply plugin: 'idea'
 apply plugin: 'com.google.protobuf'
 apply plugin: 'com.cookpad.android.licensetools'
-if (project.hasProperty('with_error_prone')) {
+if (!project.hasProperty('without_error_prone')) {
     apply plugin: "net.ltgt.errorprone"
     tasks.withType(JavaCompile) {
         options.compilerArgs += [
                 '-XepDisableAllChecks',
-                '-Xep:ClassCanBeStatic:ERROR',
-                '-Xep:OperatorPrecedence:ERROR',
-                '-Xep:RemoveUnusedImports:ERROR']
+                // D8 want to use reference equality, thus disable the checker explicitly
+                '-Xep:ReferenceEquality:OFF',
+                '-Xep:ClassCanBeStatic:WARN',
+                '-Xep:OperatorPrecedence:WARN',
+                '-Xep:RemoveUnusedImports:WARN']
     }
 }
 
@@ -47,7 +49,7 @@ buildscript {
         // support java9.
         // classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.1'
         classpath files("third_party/shadow/shadow-2.0.1.jar")
-        if (project.hasProperty('with_error_prone')) {
+        if (!project.hasProperty('without_error_prone')) {
             classpath "net.ltgt.gradle:gradle-errorprone-plugin:0.0.13"
         }
     }
