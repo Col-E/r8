@@ -47,15 +47,15 @@ public class SourceFileRewriter {
           return;
         }
         Code code = encodedMethod.getCode();
-        // Other kinds of {@link Code} do not have debug_info_item.
-        if (code == null || !code.isDexCode()) {
+        if (code == null) {
           return;
         }
-        if (code.asDexCode().getDebugInfo() == null) {
+        assert code.isDexCode();
+        DexDebugInfo dexDebugInfo = code.asDexCode().getDebugInfo();
+        if (dexDebugInfo == null) {
           return;
         }
         // Thanks to a single global source file, we can safely remove DBG_SET_FILE entirely.
-        DexDebugInfo dexDebugInfo = code.asDexCode().getDebugInfo();
         dexDebugInfo.events =
             Arrays.stream(dexDebugInfo.events)
                 .filter(dexDebugEvent -> !(dexDebugEvent instanceof SetFile))

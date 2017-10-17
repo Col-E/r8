@@ -58,9 +58,10 @@ class IdentifierMinifier {
           return;
         }
         Code code = encodedMethod.getCode();
-        if (code == null || !code.isDexCode()) {
+        if (code == null) {
           return;
         }
+        assert code.isDexCode();
         DexCode dexCode = code.asDexCode();
         for (Instruction instr : dexCode.instructions) {
           if (instr instanceof ConstString) {
