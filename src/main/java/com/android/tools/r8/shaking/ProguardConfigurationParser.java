@@ -148,7 +148,8 @@ public class ProguardConfigurationParser {
       expectChar('-');
       String option;
       if (Iterables.any(IGNORED_SINGLE_ARG_OPTIONS, this::skipOptionWithSingleArg)
-          || Iterables.any(IGNORED_OPTIONAL_SINGLE_ARG_OPTIONS, this::skipOptionWithOptionalSingleArg)
+          || Iterables.any(
+              IGNORED_OPTIONAL_SINGLE_ARG_OPTIONS, this::skipOptionWithOptionalSingleArg)
           || Iterables.any(IGNORED_FLAG_OPTIONS, this::skipFlag)
           || Iterables.any(IGNORED_CLASS_DESCRIPTOR_OPTIONS, this::skipOptionWithClassSpec)
           || parseOptimizationOption()) {
@@ -158,7 +159,8 @@ public class ProguardConfigurationParser {
               this::skipOptionWithSingleArg, null)) != null
               || (option = Iterables.find(WARNED_FLAG_OPTIONS, this::skipFlag, null)) != null) {
         warnIgnoringOptions(option);
-      } else if ((option = Iterables.find(UNSUPPORTED_FLAG_OPTIONS, this::skipFlag, null)) != null) {
+      } else if (
+          (option = Iterables.find(UNSUPPORTED_FLAG_OPTIONS, this::skipFlag, null)) != null) {
         throw parseError("Unsupported option: -" + option);
       } else if (acceptString("renamesourcefileattribute")) {
         skipWhitespace();
@@ -307,7 +309,8 @@ public class ProguardConfigurationParser {
     private void parseInclude() throws ProguardRuleParserException {
       Path included = parseFileName();
       try {
-        new ProguardConfigurationSourceParser(new ProguardConfigurationSourceFile(included)).parse();
+        new ProguardConfigurationSourceParser(new ProguardConfigurationSourceFile(included))
+            .parse();
       } catch (FileNotFoundException | NoSuchFileException e) {
         throw parseError("Included file '" + included.toString() + "' not found", e);
       } catch (IOException e) {
