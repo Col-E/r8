@@ -30,15 +30,18 @@ public abstract class Format21t extends Base2Format {
     BBBB = (short) offset;
   }
 
+  @Override
   public void write(ShortBuffer dest, ObjectToOffsetMapping mapping) {
     writeFirst(AA, dest);
     write16BitValue(BBBB, dest);
   }
 
+  @Override
   public final int hashCode() {
     return ((BBBB << 8) | AA) ^ getClass().hashCode();
   }
 
+  @Override
   public final boolean equals(Object other) {
     if (other == null || this.getClass() != other.getClass()) {
       return false;
@@ -61,10 +64,12 @@ public abstract class Format21t extends Base2Format {
     builder.addIfZero(getType(), AA, offset + BBBB, offset + size);
   }
 
+  @Override
   public String toString(ClassNameMapper naming) {
     return formatString("v" + AA + ", " + formatRelativeOffset(BBBB));
   }
 
+  @Override
   public String toSmaliString(ClassNameMapper naming) {
     return formatSmaliString("v" + AA + ", :label_" + (getOffset() + BBBB));
   }

@@ -31,18 +31,22 @@ public class Nop extends Format10x {
     }
   }
 
+  @Override
   public int hashCode() {
     return NAME.hashCode() * 7 + super.hashCode();
   }
 
+  @Override
   public String getName() {
     return NAME;
   }
 
+  @Override
   public String getSmaliName() {
     return SMALI_NAME;
   }
 
+  @Override
   public int getOpcode() {
     return OPCODE;
   }

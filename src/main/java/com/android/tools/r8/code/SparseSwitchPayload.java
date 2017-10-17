@@ -36,10 +36,12 @@ public class SparseSwitchPayload extends SwitchPayload {
     this.targets = targets;
   }
 
+  @Override
   public boolean isPayload() {
     return true;
   }
 
+  @Override
   public void write(ShortBuffer dest, ObjectToOffsetMapping mapping) {
     writeFirst(2, dest);  // Pseudo-opcode = 0x0200
     write16BitValue(size, dest);
@@ -70,6 +72,7 @@ public class SparseSwitchPayload extends SwitchPayload {
     return result;
   }
 
+  @Override
   public int getSize() {
     return 2 + (2 * keys.length) + (2 * targets.length);
   }
@@ -84,14 +87,17 @@ public class SparseSwitchPayload extends SwitchPayload {
     return keys;
   }
 
+  @Override
   public int[] switchTargetOffsets() {
     return targets;
   }
 
+  @Override
   public String toString(ClassNameMapper naming) {
     return toString(naming, null);
   }
 
+  @Override
   public String toString(ClassNameMapper naming, Instruction payloadUser) {
     StringBuilder builder = new StringBuilder("[SparseSwitchPayload");
     if (payloadUser == null) {
@@ -111,6 +117,7 @@ public class SparseSwitchPayload extends SwitchPayload {
     return super.toString(naming) + builder.toString();
   }
 
+  @Override
   public String toSmaliString(Instruction payloadUser) {
     StringBuilder builder = new StringBuilder();
     builder.append("    ");

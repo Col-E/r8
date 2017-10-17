@@ -78,6 +78,7 @@ public class InstructionFactory extends BaseInstructionFactory {
       return result;
     }
 
+    @Override
     public int nextByte() {
       if (cacheContainsValidByte) {
         cacheContainsValidByte = false;

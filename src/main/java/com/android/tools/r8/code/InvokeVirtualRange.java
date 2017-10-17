@@ -24,14 +24,17 @@ public class InvokeVirtualRange extends Format3rc {
     super(firstArgumentRegister, argumentCount, method);
   }
 
+  @Override
   public String getName() {
     return NAME;
   }
 
+  @Override
   public String getSmaliName() {
     return SMALI_NAME;
   }
 
+  @Override
   public int getOpcode() {
     return OPCODE;
   }

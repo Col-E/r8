@@ -27,18 +27,22 @@ public class InvokePolymorphicRange extends Format4rcc {
     super(firstArgumentRegister, argumentCount, method, proto);
   }
 
+  @Override
   public String getName() {
     return NAME;
   }
 
+  @Override
   public String getSmaliName() {
     return SMALI_NAME;
   }
 
+  @Override
   public int getOpcode() {
     return OPCODE;
   }
 
+  @Override
   public DexMethod getMethod() {
     return BBBB;
   }

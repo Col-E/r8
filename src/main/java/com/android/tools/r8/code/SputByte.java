@@ -23,14 +23,17 @@ public class SputByte extends Format21c {
     super(AA, BBBB);
   }
 
+  @Override
   public String getName() {
     return NAME;
   }
 
+  @Override
   public String getSmaliName() {
     return SMALI_NAME;
   }
 
+  @Override
   public int getOpcode() {
     return OPCODE;
   }

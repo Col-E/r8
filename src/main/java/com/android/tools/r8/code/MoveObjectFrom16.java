@@ -19,14 +19,17 @@ public class MoveObjectFrom16 extends Format22x {
     super(dest, src);
   }
 
+  @Override
   public String getName() {
     return NAME;
   }
 
+  @Override
   public String getSmaliName() {
     return SMALI_NAME;
   }
 
+  @Override
   public int getOpcode() {
     return OPCODE;
   }

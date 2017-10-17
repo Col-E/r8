@@ -33,15 +33,18 @@ public abstract class Format22b extends Base2Format {
     this.CC = (byte) CC;
   }
 
+  @Override
   public void write(ShortBuffer dest, ObjectToOffsetMapping mapping) {
     writeFirst(AA, dest);
     write16BitValue(combineBytes(CC, BB), dest);
   }
 
+  @Override
   public final int hashCode() {
     return ((AA << 16) | (BB << 8) | CC) ^ getClass().hashCode();
   }
 
+  @Override
   public final boolean equals(Object other) {
     if (other == null || this.getClass() != other.getClass()) {
       return false;
@@ -50,10 +53,12 @@ public abstract class Format22b extends Base2Format {
     return o.AA == AA && o.BB == BB && o.CC == CC;
   }
 
+  @Override
   public String toString(ClassNameMapper naming) {
     return formatString("v" + AA + ", v" + BB + ", #" + CC);
   }
 
+  @Override
   public String toSmaliString(ClassNameMapper naming) {
     return formatSmaliString(
         "v" + AA + ", v" + BB + ", " + StringUtils.hexString(CC, 2) + "  # " + CC);

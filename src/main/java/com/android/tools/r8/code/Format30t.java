@@ -22,15 +22,18 @@ abstract class Format30t extends Base3Format {
     this.AAAAAAAA = AAAAAAAA;
   }
 
+  @Override
   public void write(ShortBuffer dest, ObjectToOffsetMapping mapping) {
     writeFirst(0, dest);
     write32BitValue(AAAAAAAA, dest);
   }
 
+  @Override
   public final int hashCode() {
     return AAAAAAAA ^ getClass().hashCode();
   }
 
+  @Override
   public final boolean equals(Object other) {
     if (other == null || (this.getClass() != other.getClass())) {
       return false;
@@ -38,10 +41,12 @@ abstract class Format30t extends Base3Format {
     return ((Format30t) other).AAAAAAAA == AAAAAAAA;
   }
 
+  @Override
   public String toString(ClassNameMapper naming) {
     return formatString(formatOffset(AAAAAAAA));
   }
 
+  @Override
   public String toSmaliString(ClassNameMapper naming) {
     return formatSmaliString(":label_" + (getOffset() + AAAAAAAA));
   }

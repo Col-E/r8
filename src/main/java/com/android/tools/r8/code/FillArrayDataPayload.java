@@ -36,10 +36,12 @@ public class FillArrayDataPayload extends Nop {
     this.data = data;
   }
 
+  @Override
   public boolean isPayload() {
     return true;
   }
 
+  @Override
   public void write(ShortBuffer dest, ObjectToOffsetMapping mapping) {
     writeFirst(3, dest);  // Pseudo-opcode = 0x0300
     write16BitValue(element_width, dest);
@@ -68,15 +70,18 @@ public class FillArrayDataPayload extends Nop {
     return result;
   }
 
+  @Override
   public int getSize() {
     return 4 + data.length;
   }
 
+  @Override
   public String toString(ClassNameMapper naming) {
     return super.toString(naming) + "[FillArrayPayload], " +
         "width: " + element_width + ", size:  " + size;
   }
 
+  @Override
   public String toSmaliString(ClassNameMapper naming) {
     StringBuilder builder = new StringBuilder();
     builder.append("    ");

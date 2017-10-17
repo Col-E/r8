@@ -30,22 +30,27 @@ public class ConstMethodType extends Format21c {
     return (DexProto) BBBB;
   }
 
+  @Override
   public String getName() {
     return NAME;
   }
 
+  @Override
   public String getSmaliName() {
     return SMALI_NAME;
   }
 
+  @Override
   public int getOpcode() {
     return OPCODE;
   }
 
+  @Override
   public String toString(ClassNameMapper naming) {
     return formatString("v" + AA + ", \"" + BBBB.toString() + "\"");
   }
 
+  @Override
   public String toSmaliString(ClassNameMapper naming) {
     return formatSmaliString("v" + AA + ", \"" + BBBB.toString() + "\"");
   }

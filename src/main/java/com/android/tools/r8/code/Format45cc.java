@@ -57,6 +57,7 @@ public abstract class Format45cc extends Base4Format {
     this.G = (byte) G;
   }
 
+  @Override
   public final int hashCode() {
     return ((HHHH.hashCode() << 28)
             | (BBBB.hashCode() << 24)
@@ -69,6 +70,7 @@ public abstract class Format45cc extends Base4Format {
         ^ getClass().hashCode();
   }
 
+  @Override
   public final boolean equals(Object other) {
     if (other == null || (this.getClass() != other.getClass())) {
       return false;

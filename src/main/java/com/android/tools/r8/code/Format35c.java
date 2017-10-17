@@ -51,17 +51,20 @@ public abstract class Format35c extends Base3Format {
     this.G = (byte) G;
   }
 
+  @Override
   public void write(ShortBuffer dest, ObjectToOffsetMapping mapping) {
     writeFirst(A, G, dest);
     write16BitReference(BBBB, dest, mapping);
     write16BitValue(combineBytes(makeByte(F, E), makeByte(D, C)), dest);
   }
 
+  @Override
   public final int hashCode() {
     return ((BBBB.hashCode() << 24) | (A << 20) | (C << 16) | (D << 12) | (E << 8) | (F << 4)
         | G) ^ getClass().hashCode();
   }
 
+  @Override
   public final boolean equals(Object other) {
     if (other == null || (this.getClass() != other.getClass())) {
       return false;
@@ -83,6 +86,7 @@ public abstract class Format35c extends Base3Format {
     builder.append(" }");
   }
 
+  @Override
   public String toString(ClassNameMapper naming) {
     StringBuilder builder = new StringBuilder();
     appendRegisterArguments(builder, " ");
@@ -95,6 +99,7 @@ public abstract class Format35c extends Base3Format {
     return formatString(builder.toString());
   }
 
+  @Override
   public String toSmaliString(ClassNameMapper naming) {
     StringBuilder builder = new StringBuilder();
     appendRegisterArguments(builder, ", ");

@@ -26,14 +26,17 @@ public class InvokeCustom extends Format35c {
     super(A, BBBB, C, D, E, F, G);
   }
 
+  @Override
   public String getName() {
     return NAME;
   }
 
+  @Override
   public String getSmaliName() {
     return SMALI_NAME;
   }
 
+  @Override
   public int getOpcode() {
     return OPCODE;
   }

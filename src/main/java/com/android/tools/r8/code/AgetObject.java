@@ -19,14 +19,17 @@ public class AgetObject extends Format23x {
     super(AA, BB, CC);
   }
 
+  @Override
   public String getName() {
     return NAME;
   }
 
+  @Override
   public String getSmaliName() {
     return SMALI_NAME;
   }
 
+  @Override
   public int getOpcode() {
     return OPCODE;
   }

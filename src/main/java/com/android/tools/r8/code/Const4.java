@@ -23,14 +23,17 @@ public class Const4 extends Format11n implements SingleConstant {
     super(dest, constant);
   }
 
+  @Override
   public String getName() {
     return NAME;
   }
 
+  @Override
   public String getSmaliName() {
     return SMALI_NAME;
   }
 
+  @Override
   public int getOpcode() {
     return OPCODE;
   }
@@ -40,11 +43,13 @@ public class Const4 extends Format11n implements SingleConstant {
     return B;
   }
 
+  @Override
   public String toString(ClassNameMapper naming) {
     return formatString("v" + A + ", " + StringUtils.hexString(decodedValue(), 1) +
         " (" + decodedValue() + ")");
   }
 
+  @Override
   public String toSmaliString(ClassNameMapper naming) {
     return formatSmaliString("v" + A + ", " + StringUtils.hexString(decodedValue(), 2) +
         "  # " + decodedValue());

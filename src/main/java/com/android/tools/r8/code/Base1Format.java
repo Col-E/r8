@@ -13,6 +13,7 @@ public abstract class Base1Format extends Instruction {
 
   protected Base1Format() {}
 
+  @Override
   public int getSize() {
     return SIZE;
   }

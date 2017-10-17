@@ -23,14 +23,17 @@ public class ConstWide16 extends Format21s implements WideConstant {
     super(dest, constant);
   }
 
+  @Override
   public String getName() {
     return NAME;
   }
 
+  @Override
   public String getSmaliName() {
     return SMALI_NAME;
   }
 
+  @Override
   public int getOpcode() {
     return OPCODE;
   }
@@ -40,11 +43,13 @@ public class ConstWide16 extends Format21s implements WideConstant {
     return BBBB;
   }
 
+  @Override
   public String toString(ClassNameMapper naming) {
     return formatString("v" + AA + ", " + StringUtils.hexString(decodedValue(), 16) +
         " (" + decodedValue() + ")");
   }
 
+  @Override
   public String toSmaliString(ClassNameMapper naming) {
     return formatSmaliString(
         "v" + AA + ", " + StringUtils.hexString(decodedValue(), 16) + "L  # " + decodedValue());

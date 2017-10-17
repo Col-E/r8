@@ -29,15 +29,18 @@ abstract class Format21s extends Base2Format {
     this.BBBB = (short) BBBB;
   }
 
+  @Override
   public void write(ShortBuffer dest, ObjectToOffsetMapping mapping) {
     writeFirst(AA, dest);
     write16BitValue(BBBB, dest);
   }
 
+  @Override
   public final int hashCode() {
     return ((BBBB << 8) | AA) ^ getClass().hashCode();
   }
 
+  @Override
   public final boolean equals(Object other) {
     if (other == null || this.getClass() != other.getClass()) {
       return false;
@@ -46,10 +49,12 @@ abstract class Format21s extends Base2Format {
     return o.AA == AA && o.BBBB == BBBB;
   }
 
+  @Override
   public String toString(ClassNameMapper naming) {
     return formatString("v" + AA + ", #" + BBBB);
   }
 
+  @Override
   public String toSmaliString(ClassNameMapper naming) {
     return formatSmaliString("v" + AA + ", " + StringUtils.hexString(BBBB, 4) + "  # " + BBBB);
   }

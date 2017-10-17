@@ -19,14 +19,17 @@ public class Goto32 extends Format30t {
     super(AAAAAAAA);
   }
 
+  @Override
   public String getName() {
     return NAME;
   }
 
+  @Override
   public String getSmaliName() {
     return SMALI_NAME;
   }
 
+  @Override
   public int getOpcode() {
     return OPCODE;
   }

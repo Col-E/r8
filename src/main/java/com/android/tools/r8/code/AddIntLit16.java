@@ -20,14 +20,17 @@ public class AddIntLit16 extends Format22s {
     super(dest, register, constant);
   }
 
+  @Override
   public String getName() {
     return NAME;
   }
 
+  @Override
   public String getSmaliName() {
     return SMALI_NAME;
   }
 
+  @Override
   public int getOpcode() {
     return OPCODE;
   }

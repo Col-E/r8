@@ -29,15 +29,18 @@ abstract class Format21c extends Base2Format {
     this.BBBB = BBBB;
   }
 
+  @Override
   public void write(ShortBuffer dest, ObjectToOffsetMapping mapping) {
     writeFirst(AA, dest);
     write16BitReference(BBBB, dest, mapping);
   }
 
+  @Override
   public final int hashCode() {
     return ((BBBB.hashCode() << 8) | AA) ^ getClass().hashCode();
   }
 
+  @Override
   public final boolean equals(Object other) {
     if (other == null || this.getClass() != other.getClass()) {
       return false;
@@ -46,11 +49,13 @@ abstract class Format21c extends Base2Format {
     return o.AA == AA && o.BBBB.equals(BBBB);
   }
 
+  @Override
   public String toString(ClassNameMapper naming) {
     return formatString(
         "v" + AA + ", " + (naming == null ? BBBB.toString() : naming.originalNameOf(BBBB)));
   }
 
+  @Override
   public String toSmaliString(ClassNameMapper naming) {
     // TODO(sgjesse): Add support for smali name mapping.
     return formatSmaliString("v" + AA + ", " + BBBB.toSmaliString());

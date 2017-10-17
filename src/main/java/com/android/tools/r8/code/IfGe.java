@@ -19,14 +19,17 @@ public class IfGe extends Format22t {
     super(register1, register2, offset);
   }
 
+  @Override
   public String getName() {
     return NAME;
   }
 
+  @Override
   public String getSmaliName() {
     return SMALI_NAME;
   }
 
+  @Override
   public int getOpcode() {
     return OPCODE;
   }

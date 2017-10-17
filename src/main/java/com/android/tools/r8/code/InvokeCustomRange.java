@@ -22,18 +22,22 @@ public class InvokeCustomRange extends Format3rc {
     super(firstArgumentRegister, argumentCount, callSite);
   }
 
+  @Override
   public String getName() {
     return NAME;
   }
 
+  @Override
   public String getSmaliName() {
     return SMALI_NAME;
   }
 
+  @Override
   public int getOpcode() {
     return OPCODE;
   }
 
+  @Override
   public DexCallSite getCallSite() {
     return (DexCallSite) BBBB;
   }

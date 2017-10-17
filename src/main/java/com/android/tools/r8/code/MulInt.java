@@ -24,14 +24,17 @@ public class MulInt extends Format23x {
     assert dest != right || dest == left;
   }
 
+  @Override
   public String getName() {
     return NAME;
   }
 
+  @Override
   public String getSmaliName() {
     return SMALI_NAME;
   }
 
+  @Override
   public int getOpcode() {
     return OPCODE;
   }

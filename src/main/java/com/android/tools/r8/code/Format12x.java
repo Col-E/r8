@@ -27,14 +27,17 @@ abstract class Format12x extends Base1Format {
     this.B = (byte) B;
   }
 
+  @Override
   public void write(ShortBuffer dest, ObjectToOffsetMapping mapping) {
     writeFirst(B, A, dest);
   }
 
+  @Override
   public final int hashCode() {
     return ((A << 4) | B) ^ getClass().hashCode();
   }
 
+  @Override
   public final boolean equals(Object other) {
     if (other == null || this.getClass() != other.getClass()) {
       return false;
@@ -43,10 +46,12 @@ abstract class Format12x extends Base1Format {
     return o.A == A && o.B == B;
   }
 
+  @Override
   public String toString(ClassNameMapper naming) {
     return formatString("v" + A + ", v" + B);
   }
 
+  @Override
   public String toSmaliString(ClassNameMapper naming) {
     return formatSmaliString("v" + A + ", v" + B);
   }

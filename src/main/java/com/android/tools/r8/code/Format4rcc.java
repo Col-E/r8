@@ -39,6 +39,7 @@ public abstract class Format4rcc extends Base4Format {
     HHHH = proto;
   }
 
+  @Override
   public void write(ShortBuffer dest, ObjectToOffsetMapping mapping) {
     writeFirst(AA, dest);
     write16BitReference(BBBB, dest, mapping);
@@ -46,11 +47,13 @@ public abstract class Format4rcc extends Base4Format {
     write16BitReference(HHHH, dest, mapping);
   }
 
+  @Override
   public final int hashCode() {
     return ((CCCC << 24) | (HHHH.hashCode() << 12) | (BBBB.hashCode() << 4) | AA)
         ^ getClass().hashCode();
   }
 
+  @Override
   public final boolean equals(Object other) {
     if (other == null || (this.getClass() != other.getClass())) {
       return false;
@@ -59,6 +62,7 @@ public abstract class Format4rcc extends Base4Format {
     return o.AA == AA && o.CCCC == CCCC && o.BBBB.equals(BBBB) && o.HHHH.equals(HHHH);
   }
 
+  @Override
   public String toString(ClassNameMapper naming) {
     StringBuilder builder = new StringBuilder();
     appendRegisterRange(builder);
@@ -76,6 +80,7 @@ public abstract class Format4rcc extends Base4Format {
     return formatString(builder.toString());
   }
 
+  @Override
   public String toSmaliString(ClassNameMapper naming) {
     StringBuilder builder = new StringBuilder();
     appendRegisterRange(builder);

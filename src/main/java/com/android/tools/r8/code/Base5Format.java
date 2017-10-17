@@ -13,6 +13,7 @@ public abstract class Base5Format extends Instruction {
     super(stream);
   }
 
+  @Override
   public int getSize() {
     return SIZE;
   }

@@ -33,15 +33,18 @@ abstract class Format22c extends Base2Format {
     this.CCCC = CCCC;
   }
 
+  @Override
   public void write(ShortBuffer dest, ObjectToOffsetMapping mapping) {
     writeFirst(B, A, dest);
     write16BitReference(CCCC, dest, mapping);
   }
 
+  @Override
   public final int hashCode() {
     return ((CCCC.hashCode() << 8) | (A << 4) | B) ^ getClass().hashCode();
   }
 
+  @Override
   public final boolean equals(Object other) {
     if (other == null || this.getClass() != other.getClass()) {
       return false;
@@ -50,11 +53,13 @@ abstract class Format22c extends Base2Format {
     return o.A == A && o.B == B && o.CCCC.equals(CCCC);
   }
 
+  @Override
   public String toString(ClassNameMapper naming) {
     return formatString(
         "v" + A + ", v" + B + ", " + (naming == null ? CCCC : naming.originalNameOf(CCCC)));
   }
 
+  @Override
   public String toSmaliString(ClassNameMapper naming) {
     // TODO(sgjesse): Add support for smali name mapping.
     return formatSmaliString("v" + A + ", v" + B + ", " + CCCC.toSmaliString());

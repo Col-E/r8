@@ -32,10 +32,12 @@ public class PackedSwitchPayload extends SwitchPayload {
     this.targets = targets;
   }
 
+  @Override
   public boolean isPayload() {
     return true;
   }
 
+  @Override
   public void write(ShortBuffer dest, ObjectToOffsetMapping mapping) {
     writeFirst(1, dest);  // Pseudo-opcode = 0x0100
     write16BitValue(size, dest);
@@ -63,6 +65,7 @@ public class PackedSwitchPayload extends SwitchPayload {
     return result;
   }
 
+  @Override
   public int getSize() {
     return 4 + (2 * targets.length);
   }
@@ -82,10 +85,12 @@ public class PackedSwitchPayload extends SwitchPayload {
     return new int[]{first_key};
   }
 
+  @Override
   public String toString(ClassNameMapper naming) {
     return toString(naming, null);
   }
 
+  @Override
   public String toString(ClassNameMapper naming, Instruction payloadUser) {
     StringBuilder builder = new StringBuilder("[PackedSwitchPayload");
     if (payloadUser == null) {
@@ -105,6 +110,7 @@ public class PackedSwitchPayload extends SwitchPayload {
     return super.toString(naming) + builder.toString();
   }
 
+  @Override
   public String toSmaliString(Instruction payloadUser) {
     StringBuilder builder = new StringBuilder();
     builder.append("    ");

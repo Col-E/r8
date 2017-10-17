@@ -27,15 +27,18 @@ abstract class Format51l extends Base5Format {
     this.BBBBBBBBBBBBBBBB = BBBBBBBBBBBBBBBB;
   }
 
+  @Override
   public void write(ShortBuffer dest, ObjectToOffsetMapping mapping) {
     writeFirst(AA, dest);
     write64BitValue(BBBBBBBBBBBBBBBB, dest);
   }
 
+  @Override
   public final int hashCode() {
     return ((((int) BBBBBBBBBBBBBBBB) << 8) | AA) ^ getClass().hashCode();
   }
 
+  @Override
   public final boolean equals(Object other) {
     if (other == null || this.getClass() != other.getClass()) {
       return false;
@@ -44,6 +47,7 @@ abstract class Format51l extends Base5Format {
     return o.AA == AA && o.BBBBBBBBBBBBBBBB == BBBBBBBBBBBBBBBB;
   }
 
+  @Override
   public String toString(ClassNameMapper naming) {
     return formatString("v" + AA + ", #" + BBBBBBBBBBBBBBBB);
   }

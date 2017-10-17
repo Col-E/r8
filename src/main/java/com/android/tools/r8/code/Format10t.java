@@ -24,14 +24,17 @@ abstract class Format10t extends Base1Format {
     this.AA = (byte) AA;
   }
 
+  @Override
   public void write(ShortBuffer dest, ObjectToOffsetMapping mapping) {
     writeFirst(AA, dest);
   }
 
+  @Override
   public final int hashCode() {
     return AA ^ getClass().hashCode();
   }
 
+  @Override
   public final boolean equals(Object other) {
     if (other == null || (this.getClass() != other.getClass())) {
       return false;
@@ -39,10 +42,12 @@ abstract class Format10t extends Base1Format {
     return ((Format10t) other).AA == AA;
   }
 
+  @Override
   public String toString(ClassNameMapper naming) {
     return formatString(formatRelativeOffset(AA));
   }
 
+  @Override
   public String toSmaliString(ClassNameMapper naming) {
     return formatSmaliString(":label_" + (getOffset() + AA));
   }

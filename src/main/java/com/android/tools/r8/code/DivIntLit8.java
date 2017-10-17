@@ -20,14 +20,17 @@ public class DivIntLit8 extends Format22b {
     super(dest, left, constant);
   }
 
+  @Override
   public String getName() {
     return NAME;
   }
 
+  @Override
   public String getSmaliName() {
     return SMALI_NAME;
   }
 
+  @Override
   public int getOpcode() {
     return OPCODE;
   }

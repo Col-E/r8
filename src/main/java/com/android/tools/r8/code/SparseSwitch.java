@@ -20,14 +20,17 @@ public class SparseSwitch extends Format31t {
     super(value, -1);
   }
 
+  @Override
   public String getName() {
     return NAME;
   }
 
+  @Override
   public int getOpcode() {
     return OPCODE;
   }
 
+  @Override
   public String getSmaliName() {
     return SMALI_NAME;
   }
@@ -45,6 +48,7 @@ public class SparseSwitch extends Format31t {
     builder.resolveAndBuildSwitch(AA, fallthroughOffset, payloadOffset);
   }
 
+  @Override
   public String toSmaliString(ClassNameMapper naming) {
     return formatSmaliString("v" + AA + ", :label_" + (getOffset() + BBBBBBBB));
   }

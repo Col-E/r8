@@ -20,14 +20,17 @@ public class DivInt2Addr extends Format12x {
     super(left, right);
   }
 
+  @Override
   public String getName() {
     return NAME;
   }
 
+  @Override
   public int getOpcode() {
     return OPCODE;
   }
 
+  @Override
   public String getSmaliName() {
     return SMALI_NAME;
   }

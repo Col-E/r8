@@ -34,15 +34,18 @@ public abstract class Format22t extends Base2Format {
     CCCC = (short) offset;
   }
 
+  @Override
   public void write(ShortBuffer dest, ObjectToOffsetMapping mapping) {
     writeFirst(B, A, dest);
     write16BitValue(CCCC, dest);
   }
 
+  @Override
   public final int hashCode() {
     return ((CCCC << 8) | (B << 4) | A) ^ getClass().hashCode();
   }
 
+  @Override
   public final boolean equals(Object other) {
     if (other == null || this.getClass() != other.getClass()) {
       return false;
@@ -65,10 +68,12 @@ public abstract class Format22t extends Base2Format {
     builder.addIf(getType(), A, B, offset + CCCC, offset + size);
   }
 
+  @Override
   public String toString(ClassNameMapper naming) {
     return formatString("v" + A + ", v" + B + ", " + formatRelativeOffset(CCCC));
   }
 
+  @Override
   public String toSmaliString(ClassNameMapper naming) {
     return formatSmaliString("v" + A + ", v" + B + ", :label_" + (getOffset() + CCCC));
   }

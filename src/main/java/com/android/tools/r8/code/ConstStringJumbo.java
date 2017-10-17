@@ -26,22 +26,27 @@ public class ConstStringJumbo extends Format31c {
     return BBBBBBBB;
   }
 
+  @Override
   public String getName() {
     return NAME;
   }
 
+  @Override
   public String getSmaliName() {
     return SMALI_NAME;
   }
 
+  @Override
   public int getOpcode() {
     return OPCODE;
   }
 
+  @Override
   public String toString(ClassNameMapper naming) {
     return formatString("v" + AA + ", \"" + BBBBBBBB.toString() + "\"");
   }
 
+  @Override
   public String toSmaliString(ClassNameMapper naming) {
     return formatSmaliString("v" + AA + ", \"" + BBBBBBBB.toString() + "\"");
   }

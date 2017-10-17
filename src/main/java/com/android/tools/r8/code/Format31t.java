@@ -27,16 +27,19 @@ public abstract class Format31t extends Base3Format {
     BBBBBBBB = payloadOffset;
   }
 
+  @Override
   public void write(ShortBuffer dest, ObjectToOffsetMapping mapping) {
     writeFirst(AA, dest);
     assert (getOffset() + BBBBBBBB) % 2 == 0;
     write32BitValue(BBBBBBBB, dest);
   }
 
+  @Override
   public boolean hasPayload() {
     return true;
   }
 
+  @Override
   public int getPayloadOffset() {
     return BBBBBBBB;
   }
@@ -45,10 +48,12 @@ public abstract class Format31t extends Base3Format {
     BBBBBBBB = offset;
   }
 
+  @Override
   public final int hashCode() {
     return ((BBBBBBBB << 8) | AA) ^ getClass().hashCode();
   }
 
+  @Override
   public final boolean equals(Object other) {
     if (other == null || (this.getClass() != other.getClass())) {
       return false;
@@ -57,6 +62,7 @@ public abstract class Format31t extends Base3Format {
     return o.AA == AA && o.BBBBBBBB == BBBBBBBB;
   }
 
+  @Override
   public String toString(ClassNameMapper naming) {
     return formatString("v" + AA + ", " + formatRelativeOffset(BBBBBBBB));
   }

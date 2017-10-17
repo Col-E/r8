@@ -23,14 +23,17 @@ public class Const extends Format31i implements SingleConstant {
     super(register, constant);
   }
 
+  @Override
   public String getName() {
     return NAME;
   }
 
+  @Override
   public String getSmaliName() {
     return SMALI_NAME;
   }
 
+  @Override
   public int getOpcode() {
     return OPCODE;
   }
@@ -40,11 +43,13 @@ public class Const extends Format31i implements SingleConstant {
     return BBBBBBBB;
   }
 
+  @Override
   public String toString(ClassNameMapper naming) {
     return formatString("v" + AA + ", " + StringUtils.hexString(decodedValue(), 8) +
         " (" + decodedValue() + ")");
   }
 
+  @Override
   public String toSmaliString(ClassNameMapper naming) {
     return formatSmaliString("v" + AA + ", " + StringUtils.hexString(decodedValue(), 8) +
         "  # " + decodedValue());

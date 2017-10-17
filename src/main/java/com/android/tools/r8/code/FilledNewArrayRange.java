@@ -22,14 +22,17 @@ public class FilledNewArrayRange extends Format3rc {
     super(firstContentRegister, size, type);
   }
 
+  @Override
   public String getName() {
     return NAME;
   }
 
+  @Override
   public String getSmaliName() {
     return SMALI_NAME;
   }
 
+  @Override
   public int getOpcode() {
     return OPCODE;
   }

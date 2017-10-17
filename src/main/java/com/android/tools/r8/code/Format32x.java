@@ -29,16 +29,19 @@ abstract class Format32x extends Base3Format {
     BBBB = src;
   }
 
+  @Override
   public void write(ShortBuffer dest, ObjectToOffsetMapping mapping) {
     writeFirst(0, dest);
     write16BitValue(AAAA, dest);
     write16BitValue(BBBB, dest);
   }
 
+  @Override
   public final int hashCode() {
     return ((AAAA << 16) | BBBB) ^ getClass().hashCode();
   }
 
+  @Override
   public final boolean equals(Object other) {
     if (other == null || (this.getClass() != other.getClass())) {
       return false;
@@ -47,10 +50,12 @@ abstract class Format32x extends Base3Format {
     return o.AAAA == AAAA && o.BBBB == BBBB;
   }
 
+  @Override
   public String toString(ClassNameMapper naming) {
     return formatString("v" + AAAA + ", v" + BBBB);
   }
 
+  @Override
   public String toSmaliString(ClassNameMapper naming) {
     return formatSmaliString("v" + AAAA + ", v" + BBBB);
   }

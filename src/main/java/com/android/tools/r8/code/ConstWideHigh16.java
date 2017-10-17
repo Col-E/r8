@@ -23,27 +23,33 @@ public class ConstWideHigh16 extends Format21h implements WideConstant {
     super(dest, constantHighBits);
   }
 
+  @Override
   public String getName() {
     return NAME;
   }
 
+  @Override
   public String getSmaliName() {
     return SMALI_NAME;
   }
 
+  @Override
   public int getOpcode() {
     return OPCODE;
   }
 
+  @Override
   public long decodedValue() {
     return ((long) BBBB) << 48;
   }
 
+  @Override
   public String toString(ClassNameMapper naming) {
     return formatString("v" + AA + ", " + StringUtils.hexString(decodedValue(), 16) +
         " (" + decodedValue() + ")");
   }
 
+  @Override
   public String toSmaliString(ClassNameMapper naming) {
     return formatSmaliString("v" + AA + ", " + StringUtils.hexString(decodedValue(), 16) +
         "L  # " + decodedValue());

@@ -20,14 +20,17 @@ public class FillArrayData extends Format31t {
     super(value, -1);
   }
 
+  @Override
   public String getName() {
     return NAME;
   }
 
+  @Override
   public String getSmaliName() {
     return SMALI_NAME;
   }
 
+  @Override
   public int getOpcode() {
     return OPCODE;
   }
@@ -37,6 +40,7 @@ public class FillArrayData extends Format31t {
     builder.resolveAndBuildNewArrayFilledData(AA, getOffset() + getPayloadOffset());
   }
 
+  @Override
   public String toSmaliString(ClassNameMapper naming) {
     return formatSmaliString("v" + AA + ", :label_" + (getOffset() + BBBBBBBB));
   }

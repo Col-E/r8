@@ -22,14 +22,17 @@ public class FilledNewArray extends Format35c {
     super(size, type, v0, v1, v2, v3, v4);
   }
 
+  @Override
   public String getName() {
     return NAME;
   }
 
+  @Override
   public String getSmaliName() {
     return SMALI_NAME;
   }
 
+  @Override
   public int getOpcode() {
     return OPCODE;
   }

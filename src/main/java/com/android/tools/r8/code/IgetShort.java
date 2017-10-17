@@ -23,14 +23,17 @@ public class IgetShort extends Format22c {
     super(destRegister, objectRegister, field);
   }
 
+  @Override
   public String getName() {
     return NAME;
   }
 
+  @Override
   public String getSmaliName() {
     return SMALI_NAME;
   }
 
+  @Override
   public int getOpcode() {
     return OPCODE;
   }

@@ -22,14 +22,17 @@ public class InstanceOf extends Format22c {
     super(dest, value, type);
   }
 
+  @Override
   public String getName() {
     return NAME;
   }
 
+  @Override
   public String getSmaliName() {
     return SMALI_NAME;
   }
 
+  @Override
   public int getOpcode() {
     return OPCODE;
   }

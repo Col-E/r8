@@ -23,15 +23,18 @@ abstract class Format20t extends Base2Format {
     this.AAAA = (short) AAAA;
   }
 
+  @Override
   public void write(ShortBuffer dest, ObjectToOffsetMapping mapping) {
     writeFirst(0, dest);
     write16BitValue(AAAA, dest);
   }
 
+  @Override
   public final int hashCode() {
     return AAAA ^ getClass().hashCode();
   }
 
+  @Override
   public final boolean equals(Object other) {
     if (other == null || this.getClass() != other.getClass()) {
       return false;
@@ -39,10 +42,12 @@ abstract class Format20t extends Base2Format {
     return ((Format20t) other).AAAA == AAAA;
   }
 
+  @Override
   public String toString(ClassNameMapper naming) {
     return formatString("" + AAAA + " " + formatRelativeOffset(AAAA));
   }
 
+  @Override
   public String toSmaliString(ClassNameMapper naming) {
     return formatSmaliString(":label_" + (getOffset() + AAAA));
   }

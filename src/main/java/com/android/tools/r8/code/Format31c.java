@@ -31,15 +31,18 @@ abstract class Format31c extends Base3Format {
     this.BBBBBBBB = BBBBBBBB;
   }
 
+  @Override
   public void write(ShortBuffer dest, ObjectToOffsetMapping mapping) {
     writeFirst(AA, dest);
     write32BitReference(BBBBBBBB, dest, mapping);
   }
 
+  @Override
   public final int hashCode() {
     return ((BBBBBBBB.hashCode() << 8) | AA) ^ getClass().hashCode();
   }
 
+  @Override
   public final boolean equals(Object other) {
     if (other == null || (this.getClass() != other.getClass())) {
       return false;
@@ -48,6 +51,7 @@ abstract class Format31c extends Base3Format {
     return o.AA == AA && o.BBBBBBBB.equals(BBBBBBBB);
   }
 
+  @Override
   public String toString(ClassNameMapper naming) {
     return formatString(
         "v" + AA + ", " + (naming == null ? BBBBBBBB : naming.originalNameOf(BBBBBBBB)));

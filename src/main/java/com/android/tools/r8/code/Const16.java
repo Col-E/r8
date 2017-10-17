@@ -23,14 +23,17 @@ public class Const16 extends Format21s implements SingleConstant {
     super(dest, constant);
   }
 
+  @Override
   public String getName() {
     return NAME;
   }
 
+  @Override
   public String getSmaliName() {
     return SMALI_NAME;
   }
 
+  @Override
   public int getOpcode() {
     return OPCODE;
   }
