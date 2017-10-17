@@ -17,7 +17,8 @@ def errorProneConfiguration = [
     '-Xep:ReferenceEquality:OFF',
     '-Xep:ClassCanBeStatic:WARN',
     '-Xep:OperatorPrecedence:WARN',
-    '-Xep:RemoveUnusedImports:WARN']
+    '-Xep:RemoveUnusedImports:WARN',
+    '-Xep:MissingOverride:WARN']
 
 apply from: 'copyAdditionalJctfCommonFiles.gradle'
 
