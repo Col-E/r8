@@ -76,6 +76,8 @@ def ParseOptions():
       help='Use a custom directory for the test artifacts instead of a'
           ' temporary (which is automatically removed after the test).'
           ' Note that the directory will not be cleared before the test.')
+  result.add_option('--java_home',
+      help='Use a custom java version to run tests.')
 
   return result.parse_args()
 
@@ -130,6 +132,8 @@ def Main():
     gradle_args.append('-Ptest_dir=' + options.test_dir)
     if not os.path.exists(options.test_dir):
       os.makedirs(options.test_dir)
+  if options.java_home:
+    gradle_args.append('-Dorg.gradle.java.home=' + options.java_home)
 
   # Add Gradle tasks
   gradle_args.append('cleanTest')
