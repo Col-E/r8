@@ -29,10 +29,17 @@ public class Regress {
   public static void main(String[] args) throws NoSuchMethodException {
     Constructor<InnerClass> constructor = InnerClass.class.getDeclaredConstructor(
         Regress.class, String.class, String.class, String.class);
-    int i = 0;
-    for (Annotation[] annotations : constructor.getParameterAnnotations()) {
-      System.out.print(i++ + ": ");
-      for (Annotation annotation : annotations) {
+    Annotation[][] annotations = constructor.getParameterAnnotations();
+    int index = 0;
+    for (int i = 0; i < annotations.length; i++) {
+      // TODO(b/67936230): Java 8 and Java 9 runtime does not have the same behavior regarding
+      // implicit parameter such as 'outer this' for instance. Disable this test on Java 9 runtime
+      // due to this divergence.
+      if (System.getProperty("java.specification.version").equals("9") && i == 0) {
+        continue;
+      }
+      System.out.print(index++ + ": ");
+      for (Annotation annotation : annotations[i]) {
         System.out.println(annotation);
       }
     }
