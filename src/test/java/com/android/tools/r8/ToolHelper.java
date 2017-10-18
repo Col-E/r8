@@ -545,6 +545,10 @@ public class ToolHelper {
     return getPlatform().startsWith("Windows");
   }
 
+  public static boolean isJava9Runtime() {
+    return System.getProperty("java.specification.version").equals("9");
+  }
+
   public static boolean artSupported() {
     if (!isLinux() && !isMac() && !isWindows()) {
       System.err.println("Testing on your platform is not fully supported. " +
