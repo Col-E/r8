@@ -403,11 +403,24 @@ public class R8 {
    * @param command R8 command.
    * @return the compilation result.
    */
-  public static AndroidApp run(R8Command command) throws IOException, CompilationException {
+  public static R8Output run(R8Command command) throws IOException, CompilationException {
     InternalOptions options = command.getInternalOptions();
     ExecutorService executorService = ThreadUtils.getExecutorService(options);
     try {
       return run(command, executorService);
+    } finally {
+      executorService.shutdown();
+    }
+  }
+
+  /**
+   * TODO(sgjesse): Get rid of this.
+   */
+  public static AndroidApp runInternal(R8Command command) throws IOException, CompilationException {
+    InternalOptions options = command.getInternalOptions();
+    ExecutorService executorService = ThreadUtils.getExecutorService(options);
+    try {
+      return runInternal(command, executorService);
     } finally {
       executorService.shutdown();
     }
@@ -484,7 +497,20 @@ public class R8 {
    * @param executor executor service from which to get threads for multi-threaded processing.
    * @return the compilation result.
    */
-  public static AndroidApp run(R8Command command, ExecutorService executor)
+  public static R8Output run(R8Command command, ExecutorService executor)
+      throws IOException, CompilationException {
+    InternalOptions options = command.getInternalOptions();
+    AndroidApp outputApp =
+        runForTesting(command.getInputApp(), options, executor).androidApp;
+    R8Output output = new R8Output(outputApp, command.getOutputMode());
+    writeOutputs(command, options, outputApp);
+    return output;
+  }
+
+  /**
+   * TODO(sgjesse): Get rid of this.
+   */
+  public static AndroidApp runInternal(R8Command command, ExecutorService executor)
       throws IOException, CompilationException {
     InternalOptions options = command.getInternalOptions();
     AndroidApp outputApp =

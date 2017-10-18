@@ -9,5 +9,6 @@ import com.android.tools.r8.R8Command;
 public class CompatProguardCommandBuilder extends R8Command.Builder {
   CompatProguardCommandBuilder(boolean forceProguardCompatibility) {
     super(true, forceProguardCompatibility);
+    setEnableDesugaring(false);
   }
 }

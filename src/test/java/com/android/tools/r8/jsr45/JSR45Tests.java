@@ -60,7 +60,7 @@ public class JSR45Tests {
   void compileWithR8(Path inputPath, Path outputPath, Path keepRulesPath)
       throws IOException, CompilationException {
     AndroidApp androidApp =
-        R8.run(
+        R8.runInternal(
             R8Command.builder()
                 .addProgramFiles(inputPath)
                 .addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()))

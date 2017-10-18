@@ -672,7 +672,7 @@ public class ToolHelper {
 
   public static AndroidApp runR8(Collection<String> fileNames, String out)
       throws IOException, CompilationException {
-    return R8.run(
+    return R8.runInternal(
         R8Command.builder()
             .addProgramFiles(ListUtils.map(fileNames, Paths::get))
             .setOutputPath(Paths.get(out))

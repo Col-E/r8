@@ -7,20 +7,25 @@ package com.android.tools.r8.compatproguard;
 import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
+import com.android.tools.r8.R8Output;
 import com.android.tools.r8.Version;
+import com.android.tools.r8.errors.CompilationError;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.List;
 
 /**
- * Proguard + Dx compatibility interface for r8.
+ * Proguard + dx compatibility interface for r8.
  *
- * This should become a mostly drop-in replacement for uses of Proguard followed by Dx.
+ * This should become a mostly drop-in replacement for uses of Proguard followed by dx for
+ * use with the Android Platform build.
  *
  * It accepts all Proguard flags supported by r8, except -outjars.
  *
- * The flag -outjars does not make sense as r8 (like Proguard + Dx) produces Dex output.
+ * It accepts a few dx flags which are known to be used in the Android Platform build.
+ *
+ * The flag -outjars does not make sense as r8 (like Proguard + dx) produces Dex output.
  * For output use --output as for R8 proper.
  */
 public class CompatProguard {
@@ -28,13 +33,15 @@ public class CompatProguard {
     public final String output;
     public final int minApi;
     public final boolean forceProguardCompatibility;
+    public final boolean multiDex;
     public final List<String> proguardConfig;
 
     CompatProguardOptions(List<String> proguardConfig, String output, int minApi,
-        boolean forceProguardCompatibility) {
+        boolean multiDex, boolean forceProguardCompatibility) {
       this.output = output;
       this.minApi = minApi;
       this.forceProguardCompatibility = forceProguardCompatibility;
+      this.multiDex = multiDex;
       this.proguardConfig = proguardConfig;
     }
 
@@ -42,6 +49,7 @@ public class CompatProguard {
       String output = null;
       int minApi = 1;
       boolean forceProguardCompatibility = false;
+      boolean multiDex = false;
       ImmutableList.Builder<String> builder = ImmutableList.builder();
       if (args.length > 0) {
         StringBuilder currentLine = new StringBuilder(args[0]);
@@ -54,6 +62,8 @@ public class CompatProguard {
               forceProguardCompatibility = true;
             } else if (arg.equals("--output")) {
               output = args[++i];
+            } else if (arg.equals("--multi-dex")) {
+              multiDex = true;
             } else if (arg.equals("-outjars")) {
               throw new CompilationException(
                   "Proguard argument -outjar is not supported. Use R8 compatible --output flag");
@@ -67,7 +77,8 @@ public class CompatProguard {
         }
         builder.add(currentLine.toString());
       }
-      return new CompatProguardOptions(builder.build(), output, minApi, forceProguardCompatibility);
+      return new CompatProguardOptions(builder.build(), output, minApi, multiDex,
+          forceProguardCompatibility);
     }
   }
 
@@ -84,7 +95,15 @@ public class CompatProguard {
     builder.setOutputPath(Paths.get(options.output))
         .addProguardConfiguration(options.proguardConfig)
         .setMinApiLevel(options.minApi);
-    R8.run(builder.build());
+    R8Output result = R8.run(builder.build());
+
+    if (!options.multiDex) {
+      if (result.getDexResources().size() > 1) {
+        throw new CompilationError(
+            "Compilation result could not fit into a single dex file. "
+                + "Reduce the input-program size or run with --multi-dex enabled");
+      }
+    }
   }
 
   public static void main(String[] args) throws IOException {
