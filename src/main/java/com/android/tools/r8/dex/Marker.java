@@ -3,12 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.dex;
 
+import java.util.Map;
+import java.util.TreeMap;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
-
-import java.util.Map;
-import java.util.TreeMap;
 
 
 /**
@@ -38,6 +37,18 @@ public class Marker {
       Map.Entry entry = (Map.Entry) e;
       content.put(String.valueOf(entry.getKey()), entry.getValue());
     }
+  }
+
+  public Tool getTool() {
+    return tool;
+  }
+
+  public boolean isD8() {
+    return tool == Tool.D8;
+  }
+
+  public boolean isR8() {
+    return tool == Tool.R8;
   }
 
   public Marker put(String key, int value) {
