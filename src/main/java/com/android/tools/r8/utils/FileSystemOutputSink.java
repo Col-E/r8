@@ -61,14 +61,15 @@ public abstract class FileSystemOutputSink implements OutputSink {
 
   protected void writeToFile(Path output, OutputStream defValue, byte[] contents)
       throws IOException {
-    Closer closer = Closer.create();
-    OutputStream outputStream =
-        FileUtils.openPathWithDefault(
-            closer,
-            output,
-            defValue,
-            StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-    outputStream.write(contents);
+    try (Closer closer = Closer.create()) {
+      OutputStream outputStream =
+          FileUtils.openPathWithDefault(
+              closer,
+              output,
+              defValue,
+              StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+      outputStream.write(contents);
+    }
   }
 
   protected OutputMode getOutputMode() {
