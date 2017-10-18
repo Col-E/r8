@@ -105,7 +105,7 @@ public class R8Command extends BaseCompilerCommand {
      * Add proguard configuration for automatic main dex list calculation.
      */
     public Builder addMainDexRules(List<String> lines) {
-      mainDexRules.add(new ProguardConfigurationSourceStrings(lines));
+      mainDexRules.add(new ProguardConfigurationSourceStrings(Paths.get("."), lines));
       return self();
     }
 
@@ -138,7 +138,7 @@ public class R8Command extends BaseCompilerCommand {
      * Add proguard configuration.
      */
     public Builder addProguardConfiguration(List<String> lines) {
-      proguardConfigs.add(new ProguardConfigurationSourceStrings(lines));
+      proguardConfigs.add(new ProguardConfigurationSourceStrings(Paths.get("."), lines));
       return self();
     }
 
