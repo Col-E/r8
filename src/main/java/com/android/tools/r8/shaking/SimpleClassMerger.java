@@ -139,7 +139,7 @@ public class SimpleClassMerger {
     for (DexProgramClass clazz : application.classes()) {
       if (isMergeCandidate(clazz)) {
         DexClass targetClass = appInfo.definitionFor(clazz.type.getSingleSubtype());
-        if (appInfo.isPinned(targetClass)) {
+        if (appInfo.isPinned(targetClass.type)) {
           // We have to keep the target class intact, so we cannot merge it.
           continue;
         }

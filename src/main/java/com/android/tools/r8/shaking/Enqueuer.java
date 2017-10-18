@@ -5,6 +5,7 @@ package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.Descriptor;
 import com.android.tools.r8.graph.DexAnnotation;
@@ -1149,7 +1150,7 @@ public class Enqueuer {
       this.staticFieldWrites = enqueuer.collectStaticFieldsWritten();
       this.fieldsRead = enqueuer.collectFieldsRead();
       this.fieldsWritten = enqueuer.collectFieldsWritten();
-      this.pinnedItems = ImmutableSet.copyOf(enqueuer.pinnedItems);
+      this.pinnedItems = rewritePinnedItemsToDescriptors(enqueuer.pinnedItems);
       this.virtualInvokes = joinInvokedMethods(enqueuer.virtualInvokes);
       this.superInvokes = joinInvokedMethods(enqueuer.superInvokes);
       this.directInvokes = joinInvokedMethods(enqueuer.directInvokes);
@@ -1208,8 +1209,7 @@ public class Enqueuer {
       this.staticFieldWrites = rewriteItems(previous.staticFieldWrites, lense::lookupField);
       this.fieldsRead = rewriteItems(previous.fieldsRead, lense::lookupField);
       this.fieldsWritten = rewriteItems(previous.fieldsWritten, lense::lookupField);
-      assert assertNotModifiedByLense(previous.pinnedItems, lense);
-      this.pinnedItems = previous.pinnedItems;
+      this.pinnedItems = rewriteMixedItems(previous.pinnedItems, lense);
       this.virtualInvokes = rewriteItems(previous.virtualInvokes, lense::lookupMethod);
       this.superInvokes = rewriteItems(previous.superInvokes, lense::lookupMethod);
       this.directInvokes = rewriteItems(previous.directInvokes, lense::lookupMethod);
@@ -1231,12 +1231,12 @@ public class Enqueuer {
     private boolean assertNoItemRemoved(Collection<DexItem> items, Collection<DexType> types) {
       Set<DexType> typeSet = ImmutableSet.copyOf(types);
       for (DexItem item : items) {
-        if (item instanceof DexClass) {
-          assert !typeSet.contains(((DexClass) item).type);
-        } else if (item instanceof DexEncodedMethod) {
-          assert !typeSet.contains(((DexEncodedMethod) item).method.getHolder());
-        } else if (item instanceof DexEncodedField) {
-          assert !typeSet.contains(((DexEncodedField) item).field.getHolder());
+        if (item instanceof DexType) {
+          assert !typeSet.contains(item);
+        } else if (item instanceof DexMethod) {
+          assert !typeSet.contains(((DexMethod) item).getHolder());
+        } else if (item instanceof DexField) {
+          assert !typeSet.contains(((DexField) item).getHolder());
         } else {
           assert false;
         }
@@ -1282,12 +1282,47 @@ public class Enqueuer {
       return builder.build();
     }
 
+    private ImmutableSet<DexItem> rewritePinnedItemsToDescriptors(Collection<DexItem> source) {
+      ImmutableSet.Builder<DexItem> builder = ImmutableSet.builder();
+      for (DexItem item : source) {
+        // TODO(67934123) There should be a common interface to extract this information.
+        if (item instanceof DexClass) {
+          builder.add(((DexClass) item).type);
+        } else if (item instanceof DexEncodedMethod) {
+          builder.add(((DexEncodedMethod) item).method);
+        } else if (item instanceof DexEncodedField) {
+          builder.add(((DexEncodedField) item).field);
+        } else {
+          throw new Unreachable();
+        }
+      }
+      return builder.build();
+    }
+
     private static <T extends PresortedComparable<T>> ImmutableSortedSet<T> rewriteItems(
         Set<T> original, BiFunction<T, DexEncodedMethod, T> rewrite) {
       ImmutableSortedSet.Builder<T> builder =
           new ImmutableSortedSet.Builder<>(PresortedComparable::slowCompare);
       for (T item : original) {
         builder.add(rewrite.apply(item, null));
+      }
+      return builder.build();
+    }
+
+    private static ImmutableSet<DexItem> rewriteMixedItems(
+        Set<DexItem> original, GraphLense lense) {
+      ImmutableSet.Builder<DexItem> builder = ImmutableSet.builder();
+      for (DexItem item : original) {
+        // TODO(67934123) There should be a common interface to perform the dispatch.
+        if (item instanceof DexType) {
+          builder.add(lense.lookupType((DexType) item, null));
+        } else if (item instanceof DexMethod) {
+          builder.add(lense.lookupMethod((DexMethod) item, null));
+        } else if (item instanceof DexField) {
+          builder.add(lense.lookupField((DexField) item, null));
+        } else {
+          throw new Unreachable();
+        }
       }
       return builder.build();
     }
@@ -1323,9 +1358,21 @@ public class Enqueuer {
       return this;
     }
 
-    public boolean isPinned(DexItem item) {
+    // TODO(67934123) Unify into one method,
+    public boolean isPinned(DexType item) {
       return pinnedItems.contains(item);
     }
+
+    // TODO(67934123) Unify into one method,
+    public boolean isPinned(DexMethod item) {
+      return pinnedItems.contains(item);
+    }
+
+    // TODO(67934123) Unify into one method,
+    public boolean isPinned(DexField item) {
+      return pinnedItems.contains(item);
+    }
+
 
     public Iterable<DexItem> getPinnedItems() {
       return pinnedItems;

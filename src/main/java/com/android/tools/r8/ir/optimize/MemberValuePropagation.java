@@ -239,7 +239,7 @@ public class MemberValuePropagation {
     // Without live set information we cannot tell and assume true.
     if (liveSet == null
         || liveSet.fieldsRead.contains(field.field)
-        || liveSet.isPinned(field)) {
+        || liveSet.isPinned(field.field)) {
       return true;
     }
     // For library classes we don't know whether a field is read.

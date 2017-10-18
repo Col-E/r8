@@ -224,7 +224,7 @@ public class R8 {
         if (options.proguardConfiguration.isPrintSeeds()) {
           ByteArrayOutputStream bytes = new ByteArrayOutputStream();
           PrintStream out = new PrintStream(bytes);
-          RootSetBuilder.writeSeeds(appInfo.withLiveness().getPinnedItems(), out);
+          RootSetBuilder.writeSeeds(appInfo.withLiveness(), out);
           out.flush();
           proguardSeedsData = bytes.toByteArray();
         }

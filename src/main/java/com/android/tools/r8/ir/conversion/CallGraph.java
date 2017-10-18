@@ -179,7 +179,7 @@ public class CallGraph extends CallSiteInformation {
     }
     for (Node value : nodes.values()) {
       // For non-pinned methods we know the exact number of call sites.
-      if (!appInfo.withLiveness().isPinned(value.method)) {
+      if (!appInfo.withLiveness().isPinned(value.method.method)) {
         if (value.invokeCount == 1) {
           singleCallSite.add(value.method);
         } else if (value.invokeCount == 2) {

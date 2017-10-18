@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationSet;
@@ -19,6 +21,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.logging.Log;
+import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -284,32 +287,34 @@ public class RootSetBuilder {
     clazz.forEachField(field -> markField(field, memberKeepRules, rule, onlyIfClassKept));
   }
 
-  public static void writeSeeds(Iterable<DexItem> seeds, PrintStream out) {
-    for (DexItem seed : seeds) {
-      if (seed instanceof DexClass) {
-        out.println(((DexClass) seed).type.toSourceString());
-      } else if (seed instanceof DexEncodedField) {
-        DexField field = ((DexEncodedField) seed).field;
+  // TODO(67934426): Test this code.
+  public static void writeSeeds(AppInfoWithLiveness appInfo, PrintStream out) {
+    for (DexItem seed : appInfo.getPinnedItems()) {
+      if (seed instanceof DexType) {
+        out.println(seed.toSourceString());
+      } else if (seed instanceof DexField) {
+        DexField field = ((DexField) seed);
         out.println(
             field.clazz.toSourceString() + ": " + field.type.toSourceString() + " " + field.name
                 .toSourceString());
-      } else if (seed instanceof DexEncodedMethod) {
-        DexEncodedMethod encodedMethod = (DexEncodedMethod) seed;
-        DexMethod method = encodedMethod.method;
+      } else if (seed instanceof DexMethod) {
+        DexMethod method = (DexMethod) seed;
         out.print(method.holder.toSourceString() + ": ");
+        DexEncodedMethod encodedMethod = appInfo.definitionFor(method);
         if (encodedMethod.accessFlags.isConstructor()) {
           if (encodedMethod.accessFlags.isStatic()) {
-            out.print("<clinit>(");
+            out.print(Constants.CLASS_INITIALIZER_NAME);
           } else {
             String holderName = method.holder.toSourceString();
             String constrName = holderName.substring(holderName.lastIndexOf('.') + 1);
-            out.print(constrName + "(");
+            out.print(constrName);
           }
         } else {
           out.print(
-              method.proto.returnType.toSourceString() + " " + method.name.toSourceString() + "(");
+              method.proto.returnType.toSourceString() + " " + method.name.toSourceString());
         }
         boolean first = true;
+        out.print("(");
         for (DexType param : method.proto.parameters.values) {
           if (!first) {
             out.print(",");
@@ -318,6 +323,8 @@ public class RootSetBuilder {
           out.print(param.toSourceString());
         }
         out.println(")");
+      } else {
+        throw new Unreachable();
       }
     }
     out.close();
