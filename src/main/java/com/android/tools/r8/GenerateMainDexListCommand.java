@@ -68,7 +68,7 @@ public class GenerateMainDexListCommand extends BaseCommand {
      * Add proguard configuration for automatic main dex list calculation.
      */
     public GenerateMainDexListCommand.Builder addMainDexRules(List<String> lines) {
-      mainDexRules.add(new ProguardConfigurationSourceStrings(lines));
+      mainDexRules.add(new ProguardConfigurationSourceStrings(Paths.get("."), lines));
       return self();
     }
 

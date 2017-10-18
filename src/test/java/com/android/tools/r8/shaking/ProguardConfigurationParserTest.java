@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import static com.android.tools.r8.shaking.ProguardConfigurationSourceStrings.createConfigurationForTesting;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -122,7 +123,7 @@ public class ProguardConfigurationParserTest extends TestBase {
     // Parse from strings.
     parser = new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
     List<String> lines = FileUtils.readTextFile(Paths.get(PROGUARD_SPEC_FILE));
-    parser.parse(new ProguardConfigurationSourceStrings(lines));
+    parser.parse(createConfigurationForTesting(lines));
     rules = parser.getConfig().getRules();
     assertEquals(24, rules.size());
     assertEquals(1, rules.get(0).getMemberRules().size());
@@ -155,7 +156,7 @@ public class ProguardConfigurationParserTest extends TestBase {
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(dexItemFactory, diagnosticsHandler);
     String dontwarn = "-dontwarn !foobar,*bar";
-    parser.parse(new ProguardConfigurationSourceStrings(ImmutableList.of(dontwarn)));
+    parser.parse(createConfigurationForTesting(ImmutableList.of(dontwarn)));
     ProguardConfiguration config = parser.getConfig();
     assertFalse(
         config.getDontWarnPatterns().matches(dexItemFactory.createType("Lboobaz;")));
@@ -171,7 +172,7 @@ public class ProguardConfigurationParserTest extends TestBase {
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(dexItemFactory, diagnosticsHandler);
     String dontwarnAll = "-dontwarn *";
-    parser.parse(new ProguardConfigurationSourceStrings(ImmutableList.of(dontwarnAll)));
+    parser.parse(createConfigurationForTesting(ImmutableList.of(dontwarnAll)));
     ProguardConfiguration config = parser.getConfig();
     assertTrue(
         config.getDontWarnPatterns().matches(dexItemFactory.createType("Lboobaz;")));
@@ -187,7 +188,7 @@ public class ProguardConfigurationParserTest extends TestBase {
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(dexItemFactory, diagnosticsHandler);
     String dontwarnAll = "-dontwarn";
-    parser.parse(new ProguardConfigurationSourceStrings(ImmutableList.of(dontwarnAll)));
+    parser.parse(createConfigurationForTesting(ImmutableList.of(dontwarnAll)));
     ProguardConfiguration config = parser.getConfig();
     assertTrue(
         config.getDontWarnPatterns().matches(dexItemFactory.createType("Lboobaz;")));
@@ -348,7 +349,7 @@ public class ProguardConfigurationParserTest extends TestBase {
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(dexItemFactory, diagnosticsHandler);
     String adaptClassStrings = "-adaptclassstrings !foobar,*bar";
-    parser.parse( new ProguardConfigurationSourceStrings(ImmutableList.of(adaptClassStrings)));
+    parser.parse(createConfigurationForTesting(ImmutableList.of(adaptClassStrings)));
     ProguardConfiguration config = parser.getConfig();
     assertFalse(
         config.getAdaptClassStrings().matches(dexItemFactory.createType("Lboobaz;")));
@@ -364,7 +365,7 @@ public class ProguardConfigurationParserTest extends TestBase {
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(dexItemFactory, diagnosticsHandler);
     String adaptAll = "-adaptclassstrings *";
-    parser.parse(new ProguardConfigurationSourceStrings(ImmutableList.of(adaptAll)));
+    parser.parse(createConfigurationForTesting(ImmutableList.of(adaptAll)));
     ProguardConfiguration config = parser.getConfig();
     assertTrue(
         config.getAdaptClassStrings().matches(dexItemFactory.createType("Lboobaz;")));
@@ -380,7 +381,7 @@ public class ProguardConfigurationParserTest extends TestBase {
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(dexItemFactory, diagnosticsHandler);
     String adaptAll = "-adaptclassstrings";
-    parser.parse(new ProguardConfigurationSourceStrings(ImmutableList.of(adaptAll)));
+    parser.parse(createConfigurationForTesting(ImmutableList.of(adaptAll)));
     ProguardConfiguration config = parser.getConfig();
     assertTrue(
         config.getAdaptClassStrings().matches(dexItemFactory.createType("Lboobaz;")));
@@ -406,8 +407,7 @@ public class ProguardConfigurationParserTest extends TestBase {
         "-identifiernamestring class * {\n"
         + "  @my.annotations.IdentifierNameString *;\n"
         + "}";
-    parser.parse(
-        new ProguardConfigurationSourceStrings(ImmutableList.of(config1, config2, config3)));
+    parser.parse(createConfigurationForTesting(ImmutableList.of(config1, config2, config3)));
     ProguardConfiguration config = parser.getConfig();
     List<ProguardConfigurationRule> identifierNameStrings = config.getRules();
     assertEquals(3, identifierNameStrings.size());
@@ -583,7 +583,7 @@ public class ProguardConfigurationParserTest extends TestBase {
     try {
       ProguardConfigurationParser parser =
           new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
-      parser.parse(new ProguardConfigurationSourceStrings(
+      parser.parse(createConfigurationForTesting(
           Collections.singletonList("-injars abc.jar(*.zip;*.class)")));
     } catch (ProguardRuleParserException e) {
       return;
@@ -774,7 +774,7 @@ public class ProguardConfigurationParserTest extends TestBase {
         new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
     String config1 = "-renamesourcefileattribute PG\n";
     String config2 = "-keepattributes SourceFile,SourceDir\n";
-    parser.parse(new ProguardConfigurationSourceStrings(ImmutableList.of(config1, config2)));
+    parser.parse(createConfigurationForTesting(ImmutableList.of(config1, config2)));
     ProguardConfiguration config = parser.getConfig();
     assertEquals("PG", config.getRenameSourceFileAttribute());
     assertTrue(config.getKeepAttributesPatterns().contains(KeepAttributeOptions.SOURCE_FILE));
@@ -787,7 +787,7 @@ public class ProguardConfigurationParserTest extends TestBase {
         new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
     String config1 = "-renamesourcefileattribute\n";
     String config2 = "-keepattributes SourceFile\n";
-    parser.parse(new ProguardConfigurationSourceStrings(ImmutableList.of(config1, config2)));
+    parser.parse(createConfigurationForTesting(ImmutableList.of(config1, config2)));
     ProguardConfiguration config = parser.getConfig();
     assertEquals("", config.getRenameSourceFileAttribute());
     assertTrue(config.getKeepAttributesPatterns().contains(KeepAttributeOptions.SOURCE_FILE));
@@ -796,7 +796,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   private void testKeepattributes(List<String> expected, String config) throws Exception {
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
-    parser.parse(new ProguardConfigurationSourceStrings(ImmutableList.of(config)));
+    parser.parse(createConfigurationForTesting(ImmutableList.of(config)));
     assertEquals(expected, parser.getConfig().getKeepAttributesPatterns());
   }
 
@@ -821,7 +821,7 @@ public class ProguardConfigurationParserTest extends TestBase {
     try {
       ProguardConfigurationParser parser =
           new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
-      parser.parse(new ProguardConfigurationSourceStrings(ImmutableList.of("-keepattributes xxx,")));
+      parser.parse(createConfigurationForTesting(ImmutableList.of("-keepattributes xxx,")));
       fail();
     } catch (ProguardRuleParserException e) {
       assertTrue(e.getMessage().contains("Expected list element at "));
@@ -832,7 +832,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   public void parseUseUniqueClassMemberNames() throws Exception {
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
-    parser.parse(new ProguardConfigurationSourceStrings(ImmutableList.of(
+    parser.parse(createConfigurationForTesting(ImmutableList.of(
         "-useuniqueclassmembernames"
     )));
     ProguardConfiguration config = parser.getConfig();
@@ -844,7 +844,7 @@ public class ProguardConfigurationParserTest extends TestBase {
     try {
       ProguardConfigurationParser parser =
           new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
-      parser.parse(new ProguardConfigurationSourceStrings(ImmutableList.of(
+      parser.parse(createConfigurationForTesting(ImmutableList.of(
           "-keepparameternames"
       )));
       parser.getConfig();
@@ -859,7 +859,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   public void parseKeepParameterNamesWithoutMinification() throws Exception {
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
-    parser.parse(new ProguardConfigurationSourceStrings(ImmutableList.of(
+    parser.parse(createConfigurationForTesting(ImmutableList.of(
         "-keepparameternames",
         "-dontobfuscate"
     )));
@@ -867,10 +867,10 @@ public class ProguardConfigurationParserTest extends TestBase {
     assertTrue(config.isKeepParameterNames());
 
     parser = new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
-    parser.parse(new ProguardConfigurationSourceStrings(ImmutableList.of(
+    parser.parse(createConfigurationForTesting(ImmutableList.of(
         "-keepparameternames"
     )));
-    parser.parse(new ProguardConfigurationSourceStrings(ImmutableList.of(
+    parser.parse(createConfigurationForTesting(ImmutableList.of(
         "-dontobfuscate"
     )));
     config = parser.getConfig();
