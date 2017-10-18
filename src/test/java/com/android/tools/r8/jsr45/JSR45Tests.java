@@ -4,7 +4,6 @@
 package com.android.tools.r8.jsr45;
 
 import com.android.tools.r8.CompilationException;
-import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
@@ -17,7 +16,6 @@ import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.AnnotationSubject;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -48,8 +46,9 @@ public class JSR45Tests {
   @Rule
   public TemporaryFolder tmpOutputDir = ToolHelper.getTemporaryFolderForTest();
 
-  void compileWithD8(Path intputPath, Path outputPath) throws IOException, CompilationException {
-    D8.run(
+  private AndroidApp compileWithD8(Path intputPath, Path outputPath)
+      throws IOException, CompilationException {
+    return ToolHelper.runD8(
         D8Command.builder()
             .setMinApiLevel(AndroidApiLevel.O.getLevel())
             .addProgramFiles(intputPath)
@@ -57,20 +56,15 @@ public class JSR45Tests {
             .build());
   }
 
-  void compileWithR8(Path inputPath, Path outputPath, Path keepRulesPath)
+  private AndroidApp compileWithR8(Path inputPath, Path outputPath, Path keepRulesPath)
       throws IOException, CompilationException {
-    AndroidApp androidApp =
-        R8.runInternal(
-            R8Command.builder()
-                .addProgramFiles(inputPath)
-                .addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()))
-                .setOutputPath(outputPath)
-                .addProguardConfigurationFiles(keepRulesPath)
-                .build());
-    if (androidApp.hasProguardMap()) {
-        androidApp.writeProguardMap(new FileOutputStream(
-            Paths.get(tmpOutputDir.getRoot().getCanonicalPath(), DEFAULT_MAP_FILENAME).toFile()));
-    }
+    return R8.runInternal(
+        R8Command.builder()
+            .addProgramFiles(inputPath)
+            .addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()))
+            .setOutputPath(outputPath)
+            .addProguardConfigurationFiles(keepRulesPath)
+            .build());
   }
 
   static class ReadSourceDebugExtensionAttribute extends ClassVisitor {
@@ -93,9 +87,8 @@ public class JSR45Tests {
       throws IOException, CompilationException, ExecutionException {
     Path outputPath = tmpOutputDir.newFolder().toPath();
 
-    compileWithD8(INPUT_PATH, outputPath);
-
-    checkAnnotationContent(INPUT_PATH, outputPath);
+    AndroidApp result = compileWithD8(INPUT_PATH, outputPath);
+    checkAnnotationContent(INPUT_PATH, result);
   }
 
   /**
@@ -105,8 +98,8 @@ public class JSR45Tests {
   public void testSourceDebugExtensionWithShriking1()
       throws IOException, CompilationException, ExecutionException {
     Path outputPath = tmpOutputDir.newFolder().toPath();
-    compileWithR8(INPUT_PATH, outputPath, DONT_SHRINK_DONT_OBFUSCATE_CONFIG);
-    checkAnnotationContent(INPUT_PATH, outputPath);
+    AndroidApp result = compileWithR8(INPUT_PATH, outputPath, DONT_SHRINK_DONT_OBFUSCATE_CONFIG);
+    checkAnnotationContent(INPUT_PATH, result);
   }
 
   /**
@@ -116,8 +109,8 @@ public class JSR45Tests {
   public void testSourceDebugExtensionWithShrinking2()
       throws IOException, CompilationException, ExecutionException {
     Path outputPath = tmpOutputDir.newFolder().toPath();
-    compileWithR8(INPUT_PATH, outputPath, DONT_SHRINK_CONFIG);
-    checkAnnotationContent(INPUT_PATH, outputPath);
+    AndroidApp result = compileWithR8(INPUT_PATH, outputPath, DONT_SHRINK_CONFIG);
+    checkAnnotationContent(INPUT_PATH, result);
   }
 
   /**
@@ -127,10 +120,8 @@ public class JSR45Tests {
   public void testSourceDebugExtensionWithShrinking3()
       throws IOException, CompilationException, ExecutionException {
     Path outputPath = tmpOutputDir.newFolder().toPath();
-
-    compileWithR8(INPUT_PATH, outputPath, SHRINK_KEEP_CONFIG);
-
-    checkAnnotationContent(INPUT_PATH, outputPath);
+    AndroidApp result = compileWithR8(INPUT_PATH, outputPath, SHRINK_KEEP_CONFIG);
+    checkAnnotationContent(INPUT_PATH, result);
   }
 
   /**
@@ -152,15 +143,14 @@ public class JSR45Tests {
     Assert.assertFalse(annotationSubject.isPresent());
   }
 
-  private void checkAnnotationContent(Path inputPath, Path outputPath)
+  private void checkAnnotationContent(Path inputPath, AndroidApp androidApp)
       throws IOException, ExecutionException {
     ClassReader classReader = new ClassReader(new FileInputStream(inputPath.toFile()));
     ReadSourceDebugExtensionAttribute sourceDebugExtensionReader =
         new ReadSourceDebugExtensionAttribute(Opcodes.ASM6, null);
     classReader.accept(sourceDebugExtensionReader, 0);
 
-    DexInspector dexInspector =
-        new DexInspector(outputPath.resolve("classes.dex"), getGeneratedProguardMap());
+    DexInspector dexInspector = new DexInspector(androidApp);
     ClassSubject classSubject = dexInspector.clazz("HelloKt");
 
     AnnotationSubject annotationSubject =

@@ -7,9 +7,9 @@ package com.android.tools.r8.compatproguard;
 import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
-import com.android.tools.r8.R8Output;
 import com.android.tools.r8.Version;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.utils.AndroidApp;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -95,10 +95,10 @@ public class CompatProguard {
     builder.setOutputPath(Paths.get(options.output))
         .addProguardConfiguration(options.proguardConfig)
         .setMinApiLevel(options.minApi);
-    R8Output result = R8.run(builder.build());
+    AndroidApp result = R8.runInternal(builder.build());
 
     if (!options.multiDex) {
-      if (result.getDexResources().size() > 1) {
+      if (result.getDexProgramResources().size() > 1) {
         throw new CompilationError(
             "Compilation result could not fit into a single dex file. "
                 + "Reduce the input-program size or run with --multi-dex enabled");

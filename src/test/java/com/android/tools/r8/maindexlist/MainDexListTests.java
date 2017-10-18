@@ -49,6 +49,7 @@ import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.AndroidAppOutputSink;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.FoundClassSubject;
@@ -616,11 +617,14 @@ public class MainDexListTests extends TestBase {
     ApplicationWriter writer = new ApplicationWriter(
         application, appInfo, options, null, null, NamingLens.getIdentityLens(), null);
     ExecutorService executor = ThreadUtils.getExecutorService(options);
+    AndroidAppOutputSink compatSink = new AndroidAppOutputSink();
     try {
-      return writer.write(executor);
+      writer.write(compatSink, executor);
     } finally {
       executor.shutdown();
     }
+    compatSink.close();
+    return compatSink.build();
   }
 
   // Code stub to generate methods with "return-void" bodies.

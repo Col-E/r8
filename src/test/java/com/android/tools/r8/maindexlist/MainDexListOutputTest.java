@@ -40,6 +40,7 @@ public class MainDexListOutputTest extends TestBase {
         ToolHelper.prepareR8CommandBuilder(readClasses(HelloWorldMain.class))
             .addMainDexRulesFiles(mainDexRules)
             .setMainDexListOutputPath(mainDexListOutput)
+            .setOutputPath(temp.getRoot().toPath())
             .build();
     ToolHelper.runR8(command);
     // Main dex list with the single class.

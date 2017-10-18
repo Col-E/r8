@@ -3,11 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.dex;
 
-import com.android.tools.r8.Resource;
 import com.android.tools.r8.code.ConstString;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.ReturnVoid;
 import com.android.tools.r8.errors.DexOverflowException;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexAccessFlags;
 import com.android.tools.r8.graph.DexAnnotationSet;
@@ -25,8 +25,8 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.naming.NamingLens;
-import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.IgnoreContentsOutputSink;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OutputMode;
 import com.android.tools.r8.utils.StringUtils;
@@ -94,7 +94,7 @@ public class SharedClassWritingTest {
         DexEncodedField.EMPTY_ARRAY,
         DexEncodedField.EMPTY_ARRAY,
         DexEncodedMethod.EMPTY_ARRAY,
-        new DexEncodedMethod[] {makeMethod(type, stringCount, startOffset)},
+        new DexEncodedMethod[]{makeMethod(type, stringCount, startOffset)},
         synthesizedFrom);
   }
 
@@ -127,16 +127,36 @@ public class SharedClassWritingTest {
     ApplicationWriter writer = new ApplicationWriter(application, new AppInfo(application),
         options, null, null, NamingLens.getIdentityLens(), null);
     ExecutorService executorService = ThreadUtils.getExecutorService(options);
-    AndroidApp output = writer.write(executorService);
-    List<Resource> resourcesForOutput = output.getDexProgramResourcesForOutput();
+    CollectInfoOutputSink sink = new CollectInfoOutputSink();
+    writer.write(sink, executorService);
+    List<Set<String>> generatedDescriptors = sink.getDescriptors();
     // Check all files present.
-    Assert.assertEquals(1000, resourcesForOutput.size());
+    Assert.assertEquals(1000, generatedDescriptors.size());
     // And each file contains two classes of which one is the shared one.
-    for (Resource res : resourcesForOutput) {
-      Set<String> classDescriptors = res.getClassDescriptors();
+    for (Set<String> classDescriptors : generatedDescriptors) {
       Assert.assertEquals(2, classDescriptors.size());
       Assert
           .assertTrue(classDescriptors.contains(sharedSynthesizedClass.type.toDescriptorString()));
+    }
+  }
+
+  private static class CollectInfoOutputSink extends IgnoreContentsOutputSink {
+
+    private final List<Set<String>> descriptors = new ArrayList<>();
+
+    @Override
+    public void writeDexFile(byte[] contents, Set<String> classDescriptors, int fileId) {
+      throw new Unreachable();
+    }
+
+    @Override
+    public synchronized void writeDexFile(byte[] contents, Set<String> classDescriptors,
+        String primaryClassName) {
+      descriptors.add(classDescriptors);
+    }
+
+    public List<Set<String>> getDescriptors() {
+      return descriptors;
     }
   }
 }

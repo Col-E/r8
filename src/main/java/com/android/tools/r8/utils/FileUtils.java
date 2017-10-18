@@ -8,7 +8,6 @@ import com.google.common.io.Closer;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.OpenOption;
@@ -99,7 +98,7 @@ public class FileUtils {
   public static OutputStream openPathWithDefault(
       Closer closer,
       Path file,
-      PrintStream defaultOutput,
+      OutputStream defaultOutput,
       OpenOption... openOptions)
       throws IOException {
     OutputStream mapOut;
@@ -112,4 +111,28 @@ public class FileUtils {
     return mapOut;
   }
 
+  static boolean isClassesDexFile(Path file) {
+    String name = file.getFileName().toString().toLowerCase();
+    if (!name.startsWith("classes") || !name.endsWith(".dex")) {
+      return false;
+    }
+    String numeral = name.substring("classes".length(), name.length() - ".dex".length());
+    if (numeral.isEmpty()) {
+      return true;
+    }
+    char c0 = numeral.charAt(0);
+    if (numeral.length() == 1) {
+      return '2' <= c0 && c0 <= '9';
+    }
+    if (c0 < '1' || '9' < c0) {
+      return false;
+    }
+    for (int i = 1; i < numeral.length(); i++) {
+      char c = numeral.charAt(i);
+      if (c < '0' || '9' < c) {
+        return false;
+      }
+    }
+    return true;
+  }
 }

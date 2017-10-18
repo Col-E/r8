@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.AndroidAppOutputSink;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -65,12 +66,10 @@ public final class D8 {
    */
   public static D8Output run(D8Command command) throws IOException, CompilationException {
     InternalOptions options = command.getInternalOptions();
-    CompilationResult result = runForTesting(command.getInputApp(), options);
+    AndroidAppOutputSink compatSink = new AndroidAppOutputSink(command.getOutputSink());
+    CompilationResult result = runForTesting(command.getInputApp(), compatSink, options);
     assert result != null;
-    D8Output output = new D8Output(result.androidApp, command.getOutputMode());
-    if (command.getOutputPath() != null) {
-      output.write(command.getOutputPath());
-    }
+    D8Output output = new D8Output(compatSink.build(), command.getOutputMode());
     return output;
   }
 
@@ -87,14 +86,10 @@ public final class D8 {
   public static D8Output run(D8Command command, ExecutorService executor)
       throws IOException, CompilationException {
     InternalOptions options = command.getInternalOptions();
-    CompilationResult result = runForTesting(
-        command.getInputApp(), options, executor);
+    AndroidAppOutputSink compatSink = new AndroidAppOutputSink(command.getOutputSink());
+    CompilationResult result = runForTesting(command.getInputApp(), compatSink, options, executor);
     assert result != null;
-    D8Output output = new D8Output(result.androidApp, command.getOutputMode());
-    if (command.getOutputPath() != null) {
-      output.write(command.getOutputPath());
-    }
-    return output;
+    return new D8Output(compatSink.build(), command.getOutputMode());
   }
 
   private static void run(String[] args) throws IOException, CompilationException {
@@ -111,7 +106,7 @@ public final class D8 {
       Version.printToolVersion("D8");
       return;
     }
-    run(command);
+    runForTesting(command.getInputApp(), command.getOutputSink(), command.getInternalOptions());
   }
 
   /** Command-line entry to D8. */
@@ -142,11 +137,12 @@ public final class D8 {
     }
   }
 
-  static CompilationResult runForTesting(AndroidApp inputApp, InternalOptions options)
+  static CompilationResult runForTesting(AndroidApp inputApp, OutputSink outputSink,
+      InternalOptions options)
       throws IOException, CompilationException {
     ExecutorService executor = ThreadUtils.getExecutorService(options);
     try {
-      return runForTesting(inputApp, options, executor);
+      return runForTesting(inputApp, outputSink, options, executor);
     } finally {
       executor.shutdown();
     }
@@ -163,7 +159,8 @@ public final class D8 {
   }
 
   private static CompilationResult runForTesting(
-      AndroidApp inputApp, InternalOptions options, ExecutorService executor)
+      AndroidApp inputApp, OutputSink outputSink, InternalOptions options,
+      ExecutorService executor)
       throws IOException, CompilationException {
     try {
       // Disable global optimizations.
@@ -183,15 +180,11 @@ public final class D8 {
         return null;
       }
       Marker marker = getMarker(options);
-      CompilationResult output =
-          new CompilationResult(
-              new ApplicationWriter(
-                  app, appInfo, options, marker, null, NamingLens.getIdentityLens(), null)
-                  .write(executor),
-              app,
-              appInfo);
-
+      new ApplicationWriter(app, appInfo, options, marker, null, NamingLens.getIdentityLens(), null)
+          .write(outputSink, executor);
+      CompilationResult output = new CompilationResult(outputSink, app, appInfo);
       options.printWarnings();
+      outputSink.close();
       return output;
     } catch (ExecutionException e) {
       R8.unwrapExecutionException(e);
