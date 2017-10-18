@@ -19,6 +19,7 @@ import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.AndroidAppOutputSink;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.DexInspector.MethodSubject;
@@ -95,16 +96,18 @@ public class JasminTestBase {
     DexApplication app = builder.read();
     app = process(app, options);
     AppInfo info = new AppInfo(app);
-    AndroidApp outputApp =
-        R8.writeApplication(
-            Executors.newSingleThreadExecutor(),
-            app,
-            info,
-            null,
-            NamingLens.getIdentityLens(),
-            null,
-            options);
-    return runOnArt(outputApp, main);
+    AndroidAppOutputSink compatSink = new AndroidAppOutputSink();
+    R8.writeApplication(
+        Executors.newSingleThreadExecutor(),
+        app,
+        info,
+        compatSink,
+        null,
+        NamingLens.getIdentityLens(),
+        null,
+        options);
+    compatSink.close();
+    return runOnArt(compatSink.build(), main);
   }
 
   private ProcessResult runDx(JasminBuilder builder, File classes, Path dex) throws Exception {
@@ -183,17 +186,21 @@ public class JasminTestBase {
   }
 
   public AndroidApp writeDex(DexApplication application, InternalOptions options)
-      throws DexOverflowException {
+      throws DexOverflowException, IOException {
     AppInfo appInfo = new AppInfo(application);
     try {
-      return R8.writeApplication(
+      AndroidAppOutputSink compatSink = new AndroidAppOutputSink();
+      R8.writeApplication(
           Executors.newSingleThreadExecutor(),
           application,
           appInfo,
+          compatSink,
           null,
           NamingLens.getIdentityLens(),
           null,
           options);
+      compatSink.close();
+      return compatSink.build();
     } catch (ExecutionException e) {
       throw new RuntimeException(e);
     }

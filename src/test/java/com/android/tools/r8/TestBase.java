@@ -255,7 +255,8 @@ public class TestBase {
   public String keepMainProguardConfiguration(String clazz) {
     return "-keep public class " + clazz + " {\n"
         + "  public static void main(java.lang.String[]);\n"
-        + "}\n";
+        + "}\n"
+        + "-printmapping\n";
   }
 
   /**
@@ -267,7 +268,7 @@ public class TestBase {
       Class clazz, boolean allowaccessmodification, boolean obfuscate) {
     return keepMainProguardConfiguration(clazz)
         + (allowaccessmodification ? "-allowaccessmodification\n" : "")
-        + (obfuscate ? "" : "-dontobfuscate\n");
+        + (obfuscate ? "-printmapping\n" : "-dontobfuscate\n");
   }
 
   /**

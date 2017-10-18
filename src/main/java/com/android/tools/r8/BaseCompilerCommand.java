@@ -6,8 +6,11 @@ package com.android.tools.r8;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
+import com.android.tools.r8.utils.FileSystemOutputSink;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.IgnoreContentsOutputSink;
 import com.android.tools.r8.utils.OutputMode;
+import java.io.IOException;
 import java.nio.file.Path;
 
 /**
@@ -23,6 +26,7 @@ abstract class BaseCompilerCommand extends BaseCommand {
   private final int minApiLevel;
   private final DiagnosticsHandler diagnosticsHandler;
   private final boolean enableDesugaring;
+  private OutputSink outputSink;
 
   BaseCompilerCommand(boolean printHelp, boolean printVersion) {
     super(printHelp, printVersion);
@@ -73,6 +77,21 @@ abstract class BaseCompilerCommand extends BaseCommand {
     return diagnosticsHandler;
   }
 
+  private OutputSink createOutputSink() throws IOException {
+    if (outputPath == null) {
+      return new IgnoreContentsOutputSink();
+    } else {
+      return FileSystemOutputSink.create(outputPath, getInternalOptions());
+    }
+  }
+
+  public OutputSink getOutputSink() throws IOException {
+    if (outputSink == null) {
+      outputSink = createOutputSink();
+    }
+    return outputSink;
+  }
+
   public boolean getEnableDesugaring() {
     return enableDesugaring;
   }
@@ -106,46 +125,62 @@ abstract class BaseCompilerCommand extends BaseCommand {
       this.mode = mode;
     }
 
-    /** Get current compilation mode. */
+    /**
+     * Get current compilation mode.
+     */
     public CompilationMode getMode() {
       return mode;
     }
 
-    /** Set compilation mode. */
+    /**
+     * Set compilation mode.
+     */
     public B setMode(CompilationMode mode) {
       assert mode != null;
       this.mode = mode;
       return self();
     }
 
-    /** Get the output path. Null if not set. */
+    /**
+     * Get the output path. Null if not set.
+     */
     public Path getOutputPath() {
       return outputPath;
     }
 
-    /** Get the output mode. */
+    /**
+     * Get the output mode.
+     */
     public OutputMode getOutputMode() {
       return outputMode;
     }
 
-    /** Set an output path. Must be an existing directory or a zip file. */
+    /**
+     * Set an output path. Must be an existing directory or a zip file.
+     */
     public B setOutputPath(Path outputPath) {
       this.outputPath = outputPath;
       return self();
     }
 
-    /** Set an output mode. */
+    /**
+     * Set an output mode.
+     */
     public B setOutputMode(OutputMode outputMode) {
       this.outputMode = outputMode;
       return self();
     }
 
-    /** Get the minimum API level (aka SDK version). */
+    /**
+     * Get the minimum API level (aka SDK version).
+     */
     public int getMinApiLevel() {
       return minApiLevel;
     }
 
-    /** Set the minimum required API level (aka SDK version). */
+    /**
+     * Set the minimum required API level (aka SDK version).
+     */
     public B setMinApiLevel(int minApiLevel) {
       assert minApiLevel > 0;
       this.minApiLevel = minApiLevel;

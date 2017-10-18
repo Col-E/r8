@@ -134,7 +134,8 @@ public class IncludeDescriptorClassesTest extends TestBase {
           "  <fields>;                         ",
           "  native <methods>;                 ",
           "}                                   ",
-          "-allowaccessmodification            "
+          "-allowaccessmodification            ",
+          "-printmapping                       "
       );
 
       Result result = runTest(mainClass, proguardConfig);
@@ -157,7 +158,8 @@ public class IncludeDescriptorClassesTest extends TestBase {
           "  <fields>;                                                 ",
           "  native <methods>;                                         ",
           "}                                                           ",
-          "-allowaccessmodification                                    "
+          "-allowaccessmodification                                    ",
+          "-printmapping                                               "
       );
 
       Result result = runTest(mainClass, proguardConfig);
@@ -180,7 +182,8 @@ public class IncludeDescriptorClassesTest extends TestBase {
           "  <fields>;                                           ",
           "  native <methods>;                                   ",
           "}                                                     ",
-          "-allowaccessmodification                              "
+          "-allowaccessmodification                              ",
+          "-printmapping                                         "
       );
 
       Result result = runTest(mainClass, proguardConfig);
@@ -204,7 +207,8 @@ public class IncludeDescriptorClassesTest extends TestBase {
             "  <fields>;                                               ",
             "  native <methods>;                                       ",
             "}                                                         ",
-            "-allowaccessmodification                                  "
+            "-allowaccessmodification                                  ",
+            "-printmapping                                             "
         );
 
         Result result = runTest(mainClass, proguardConfig);

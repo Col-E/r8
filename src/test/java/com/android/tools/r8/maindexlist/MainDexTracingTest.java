@@ -16,8 +16,12 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.google.common.io.Closer;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -150,15 +154,17 @@ public class MainDexTracingTest {
           .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(minSdk)))
           .setOutputPath(out)
           .addMainDexRulesFiles(mainDexRules)
+          .setMainDexListOutputPath(
+              temp.getRoot().toPath().resolve(testName + "-main-dex-list.txt"))
           .build();
-      CompilationResult result = ToolHelper.runR8WithFullResult(command, optionsConsumer);
-      List<String> r8MainDexList =
-          result.dexApplication.mainDexList.stream()
-              .filter(dexType -> isApplicationClass(dexType, result))
-              .map(dexType -> dexType.descriptor.toString())
-              .sorted()
-              .collect(Collectors.toList());
-
+      AndroidApp result = ToolHelper.runR8WithFullResult(command, optionsConsumer);
+      List<String> r8MainDexList;
+      try (Closer closer = Closer.create()) {
+        BufferedReader istream = new BufferedReader(
+            new InputStreamReader(result.getMainDexListOutput(closer)));
+        r8MainDexList = istream.lines().map(this::mainDexStringToDescriptor).sorted()
+            .collect(Collectors.toList());
+      }
       // Check that both generated lists are the same as the reference list, except for lambda
       // classes which are only produced when running R8.
       String[] refList = new String(Files.readAllBytes(

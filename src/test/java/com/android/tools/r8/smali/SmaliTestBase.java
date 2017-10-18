@@ -27,8 +27,8 @@ import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.FilteredClassPath;
 import com.android.tools.r8.shaking.ProguardConfiguration;
-import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.AndroidAppOutputSink;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
@@ -89,6 +89,7 @@ public class SmaliTestBase extends TestBase {
   public static class SmaliBuilder {
 
     abstract class Builder {
+
       String name;
       String superName;
       List<String> implementedInterfaces;
@@ -332,7 +333,8 @@ public class SmaliTestBase extends TestBase {
       return addMethod("public abstract", returnType, name, parameters, -1, null);
     }
 
-    public MethodSignature addInstanceMethod(String returnType, String name, List<String> parameters,
+    public MethodSignature addInstanceMethod(String returnType, String name,
+        List<String> parameters,
         int locals, String... instructions) {
       StringBuilder builder = new StringBuilder();
       for (String instruction : instructions) {
@@ -342,7 +344,8 @@ public class SmaliTestBase extends TestBase {
       return addInstanceMethod(returnType, name, parameters, locals, builder.toString());
     }
 
-    public MethodSignature addInstanceMethod(String returnType, String name, List<String> parameters,
+    public MethodSignature addInstanceMethod(String returnType, String name,
+        List<String> parameters,
         int locals, String code) {
       return addMethod("public", returnType, name, parameters, locals, code);
     }
@@ -668,15 +671,19 @@ public class SmaliTestBase extends TestBase {
       throws DexOverflowException {
     AppInfo appInfo = new AppInfo(application);
     try {
-      return R8.writeApplication(
+      AndroidAppOutputSink compatSink = new AndroidAppOutputSink();
+      R8.writeApplication(
           Executors.newSingleThreadExecutor(),
           application,
           appInfo,
+          compatSink,
           null,
           NamingLens.getIdentityLens(),
           null,
           options);
-    } catch (ExecutionException e) {
+      compatSink.close();
+      return compatSink.build();
+    } catch (ExecutionException | IOException e) {
       throw new RuntimeException(e);
     }
   }

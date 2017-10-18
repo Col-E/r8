@@ -9,12 +9,12 @@ import com.android.tools.r8.errors.DexOverflowException;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.naming.NamingLens;
 import com.google.common.collect.ImmutableList;
-import com.google.common.io.ByteStreams;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import org.antlr.runtime.CommonTokenStream;
@@ -106,10 +106,29 @@ public class Smali {
           app, options, new Timing("smali")).read(executor);
       ApplicationWriter writer = new ApplicationWriter(
           dexApp, null, options, null, null, NamingLens.getIdentityLens(), null);
-      AndroidApp trimmed = writer.write(executor);
-      return ByteStreams.toByteArray(trimmed.getDexProgramResources().get(0).getStream());
+      SingleFileSink sink = new SingleFileSink();
+      writer.write(sink, executor);
+      return sink.contents;
     } finally {
       executor.shutdown();
+    }
+  }
+
+  private static class SingleFileSink extends IgnoreContentsOutputSink {
+
+    byte[] contents;
+
+    @Override
+    public void writeDexFile(byte[] contents, Set<String> classDescriptors,
+        String primaryClassName) {
+      assert contents != null;
+      this.contents = contents;
+    }
+
+    @Override
+    public void writeDexFile(byte[] contents, Set<String> classDescriptors, int fileId) {
+      assert contents != null;
+      this.contents = contents;
     }
   }
 }

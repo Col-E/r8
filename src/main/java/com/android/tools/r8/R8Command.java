@@ -66,7 +66,7 @@ public class R8Command extends BaseCompilerCommand {
     }
 
     /**
-     * Enable/disable discareded checker.
+     * Enable/disable discarded checker.
      */
     public Builder setDiscardedChecker(boolean useDiscardedChecker) {
       discardedChecker = Optional.of(useDiscardedChecker);

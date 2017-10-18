@@ -41,26 +41,22 @@ import com.android.tools.r8.shaking.TreePruner;
 import com.android.tools.r8.shaking.protolite.ProtoLiteExtension;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.AndroidAppOutputSink;
 import com.android.tools.r8.utils.CfgPrinter;
-import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.io.ByteStreams;
-import com.google.common.io.Closer;
 import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.NoSuchFileException;
-import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -87,20 +83,20 @@ public class R8 {
         .put("min-api", options.minApiLevel);
   }
 
-  public static AndroidApp writeApplication(
+  public static void writeApplication(
       ExecutorService executorService,
       DexApplication application,
       AppInfo appInfo,
-      byte[] deadCode,
+      OutputSink outputSink, byte[] deadCode,
       NamingLens namingLens,
       byte[] proguardSeedsData,
       InternalOptions options)
       throws ExecutionException, DexOverflowException {
     try {
       Marker marker = getMarker(options);
-      return new ApplicationWriter(
+      new ApplicationWriter(
           application, appInfo, options, marker, deadCode, namingLens, proguardSeedsData)
-          .write(executorService);
+          .write(outputSink, executorService);
     } catch (IOException e) {
       throw new RuntimeException("Cannot write dex application", e);
     }
@@ -164,25 +160,27 @@ public class R8 {
     return result;
   }
 
-  static CompilationResult runForTesting(AndroidApp app, InternalOptions options)
+  static void runForTesting(AndroidApp app, OutputSink outputSink,
+      InternalOptions options)
       throws IOException, CompilationException {
     ExecutorService executor = ThreadUtils.getExecutorService(options);
     try {
-      return runForTesting(app, options, executor);
+      runForTesting(app, outputSink, options, executor);
     } finally {
       executor.shutdown();
     }
   }
 
-  private static CompilationResult runForTesting(
+  private static void runForTesting(
       AndroidApp app,
-      InternalOptions options,
+      OutputSink outputSink, InternalOptions options,
       ExecutorService executor)
       throws IOException, CompilationException {
-    return new R8(options).run(app, executor);
+    new R8(options).run(app, outputSink, executor);
   }
 
-  private CompilationResult run(AndroidApp inputApp, ExecutorService executorService)
+  private void run(AndroidApp inputApp, OutputSink outputSink,
+      ExecutorService executorService)
       throws IOException, CompilationException {
     if (options.quiet) {
       System.setOut(new PrintStream(ByteStreams.nullOutputStream()));
@@ -337,22 +335,22 @@ public class R8 {
       if (options.hasMethodsFilter()) {
         System.out.println("Finished compilation with method filter: ");
         options.methodsFilter.forEach((m) -> System.out.println("  - " + m));
-        return null;
+        return;
       }
 
       // Generate the resulting application resources.
-      AndroidApp androidApp =
-          writeApplication(
-              executorService,
-              application,
-              appInfo,
-              application.deadCode,
-              namingLens,
-              proguardSeedsData,
-              options);
+      writeApplication(
+          executorService,
+          application,
+          appInfo,
+          outputSink,
+          application.deadCode,
+          namingLens,
+          proguardSeedsData,
+          options);
 
       options.printWarnings();
-      return new CompilationResult(androidApp, application, appInfo);
+      outputSink.close();
     } catch (ExecutionException e) {
       unwrapExecutionException(e);
       throw new AssertionError(e); // unwrapping method should have thrown
@@ -401,13 +399,12 @@ public class R8 {
    * API does not suffice please contact the R8 team.
    *
    * @param command R8 command.
-   * @return the compilation result.
    */
-  public static R8Output run(R8Command command) throws IOException, CompilationException {
+  public static void run(R8Command command) throws IOException, CompilationException {
     InternalOptions options = command.getInternalOptions();
     ExecutorService executorService = ThreadUtils.getExecutorService(options);
     try {
-      return run(command, executorService);
+      run(command, executorService);
     } finally {
       executorService.shutdown();
     }
@@ -416,6 +413,7 @@ public class R8 {
   /**
    * TODO(sgjesse): Get rid of this.
    */
+
   public static AndroidApp runInternal(R8Command command) throws IOException, CompilationException {
     InternalOptions options = command.getInternalOptions();
     ExecutorService executorService = ThreadUtils.getExecutorService(options);
@@ -423,67 +421,6 @@ public class R8 {
       return runInternal(command, executorService);
     } finally {
       executorService.shutdown();
-    }
-  }
-
-  private static void writeProguardMapToPath(Path path, AndroidApp outputApp) throws IOException {
-    try (Closer closer = Closer.create()) {
-      OutputStream mapOut = FileUtils.openPathWithDefault(
-          closer,
-          path,
-          System.out,
-          StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-      outputApp.writeProguardMap(mapOut);
-    }
-  }
-
-  static void writeOutputs(R8Command command, InternalOptions options, AndroidApp outputApp)
-      throws IOException {
-    if (command.getOutputPath() != null) {
-      outputApp.write(command.getOutputPath(), options.outputMode);
-    }
-
-    if ((options.proguardConfiguration.isPrintMapping() || options.proguardMapOutput != null)
-        && !options.skipMinification) {
-      assert outputApp.hasProguardMap();
-      if (options.proguardConfiguration.isPrintMapping()) {
-        writeProguardMapToPath(options.proguardConfiguration.getPrintMappingFile(), outputApp);
-      }
-      if (options.proguardMapOutput != null) {
-        writeProguardMapToPath(options.proguardMapOutput, outputApp);
-      }
-    }
-    if (options.proguardConfiguration.isPrintSeeds()) {
-      assert outputApp.hasProguardSeeds();
-      try (Closer closer = Closer.create()) {
-        OutputStream seedsOut = FileUtils.openPathWithDefault(
-            closer,
-            options.proguardConfiguration.getSeedFile(),
-            System.out,
-            StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-        outputApp.writeProguardSeeds(closer, seedsOut);
-      }
-    }
-    if (outputApp.hasMainDexListOutput()) {
-      try (Closer closer = Closer.create()) {
-        OutputStream mainDexOut =
-            FileUtils.openPathWithDefault(
-                closer,
-                options.printMainDexListFile,
-                System.out,
-                StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-        outputApp.writeMainDexList(closer, mainDexOut);
-      }
-    }
-    if (options.proguardConfiguration.isPrintUsage() && outputApp.hasDeadCode()) {
-      try (Closer closer = Closer.create()) {
-        OutputStream deadCodeOut = FileUtils.openPathWithDefault(
-            closer,
-            options.proguardConfiguration.getPrintUsageFile(),
-            System.out,
-            StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-        outputApp.writeDeadCode(closer, deadCodeOut);
-      }
     }
   }
 
@@ -495,16 +432,11 @@ public class R8 {
    *
    * @param command R8 command.
    * @param executor executor service from which to get threads for multi-threaded processing.
-   * @return the compilation result.
    */
-  public static R8Output run(R8Command command, ExecutorService executor)
+  public static void run(R8Command command, ExecutorService executor)
       throws IOException, CompilationException {
     InternalOptions options = command.getInternalOptions();
-    AndroidApp outputApp =
-        runForTesting(command.getInputApp(), options, executor).androidApp;
-    R8Output output = new R8Output(outputApp, command.getOutputMode());
-    writeOutputs(command, options, outputApp);
-    return output;
+    runForTesting(command.getInputApp(), command.getOutputSink(), options, executor);
   }
 
   /**
@@ -513,10 +445,9 @@ public class R8 {
   public static AndroidApp runInternal(R8Command command, ExecutorService executor)
       throws IOException, CompilationException {
     InternalOptions options = command.getInternalOptions();
-    AndroidApp outputApp =
-        runForTesting(command.getInputApp(), options, executor).androidApp;
-    writeOutputs(command, options, outputApp);
-    return outputApp;
+    AndroidAppOutputSink compatSink = new AndroidAppOutputSink(command.getOutputSink());
+    runForTesting(command.getInputApp(), compatSink, options, executor);
+    return compatSink.build();
   }
 
   private static void run(String[] args) throws IOException, CompilationException {

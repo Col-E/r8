@@ -8,3 +8,4 @@
 # allow access modification to enable minification
 -allowaccessmodification
 -keepattributes SourceDebugExtension
+-printmapping

@@ -7,3 +7,4 @@
 }
 # allow access modification to enable minification
 -allowaccessmodification
+-printmapping

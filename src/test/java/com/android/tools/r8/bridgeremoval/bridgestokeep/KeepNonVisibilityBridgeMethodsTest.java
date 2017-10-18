@@ -21,7 +21,7 @@ public class KeepNonVisibilityBridgeMethodsTest extends TestBase {
         + "  public static void main(java.lang.String[]);\n"
         + "}\n"
         + "-allowaccessmodification\n"
-        + (obfuscate ? "" : "-dontobfuscate\n");
+        + (obfuscate ? "-printmapping" : "-dontobfuscate\n");
   }
 
   private void run(boolean obfuscate) throws Exception {

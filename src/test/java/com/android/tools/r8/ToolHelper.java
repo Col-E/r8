@@ -19,6 +19,7 @@ import com.android.tools.r8.shaking.ProguardConfigurationParser;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.AndroidAppOutputSink;
 import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
@@ -639,10 +640,10 @@ public class ToolHelper {
 
   public static AndroidApp runR8(R8Command command, Consumer<InternalOptions> optionsConsumer)
       throws IOException, CompilationException {
-    return runR8WithFullResult(command, optionsConsumer).androidApp;
+    return runR8WithFullResult(command, optionsConsumer);
   }
 
-  public static CompilationResult runR8WithFullResult(
+  public static AndroidApp runR8WithFullResult(
       R8Command command, Consumer<InternalOptions> optionsConsumer)
       throws IOException, CompilationException {
     // TODO(zerny): Should we really be adding the android library in ToolHelper?
@@ -660,9 +661,9 @@ public class ToolHelper {
     if (optionsConsumer != null) {
       optionsConsumer.accept(options);
     }
-    CompilationResult result = R8.runForTesting(app, options);
-    R8.writeOutputs(command, options, result.androidApp);
-    return result;
+    AndroidAppOutputSink compatSink = new AndroidAppOutputSink(command.getOutputSink());
+    R8.runForTesting(app, compatSink, options);
+    return compatSink.build();
   }
 
   public static AndroidApp runR8(String fileName, String out)
@@ -672,12 +673,14 @@ public class ToolHelper {
 
   public static AndroidApp runR8(Collection<String> fileNames, String out)
       throws IOException, CompilationException {
-    return R8.runInternal(
-        R8Command.builder()
-            .addProgramFiles(ListUtils.map(fileNames, Paths::get))
-            .setOutputPath(Paths.get(out))
-            .setIgnoreMissingClasses(true)
-            .build());
+    R8Command command = R8Command.builder()
+        .addProgramFiles(ListUtils.map(fileNames, Paths::get))
+        .setOutputPath(Paths.get(out))
+        .setIgnoreMissingClasses(true)
+        .build();
+    AndroidAppOutputSink compatSink = new AndroidAppOutputSink(command.getOutputSink());
+    R8.runForTesting(command.getInputApp(), compatSink, command.getInternalOptions());
+    return compatSink.build();
   }
 
   public static DexApplication optimizeWithR8(
@@ -707,11 +710,9 @@ public class ToolHelper {
     if (optionsConsumer != null) {
       optionsConsumer.accept(options);
     }
-    AndroidApp result = D8.runForTesting(command.getInputApp(), options).androidApp;
-    if (command.getOutputPath() != null) {
-      result.write(command.getOutputPath(), command.getOutputMode());
-    }
-    return result;
+    AndroidAppOutputSink compatSink = new AndroidAppOutputSink(command.getOutputSink());
+    D8.runForTesting(command.getInputApp(), compatSink, options);
+    return compatSink.build();
   }
 
   public static AndroidApp runDexer(String fileName, String outDir, String... extraArgs)
