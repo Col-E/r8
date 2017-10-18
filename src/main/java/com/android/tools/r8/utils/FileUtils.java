@@ -26,6 +26,7 @@ public class FileUtils {
   public static final String JAR_EXTENSION = ".jar";
   public static final String ZIP_EXTENSION = ".zip";
   public static final String JAVA_EXTENSION = ".java";
+  public static final String MODULE_INFO_CLASS = "module-info.class";
 
   public static boolean isDexFile(Path path) {
     String name = path.getFileName().toString().toLowerCase();
@@ -39,6 +40,10 @@ public class FileUtils {
 
   public static boolean isClassFile(Path path) {
     String name = path.getFileName().toString().toLowerCase();
+    // Android does not support Java 9 module, thus skip module-info.
+    if (name.equals(MODULE_INFO_CLASS)) {
+      return false;
+    }
     return name.endsWith(CLASS_EXTENSION);
   }
 
