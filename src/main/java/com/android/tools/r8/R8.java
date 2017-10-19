@@ -350,11 +350,11 @@ public class R8 {
           options);
 
       options.printWarnings();
-      outputSink.close();
     } catch (ExecutionException e) {
       unwrapExecutionException(e);
       throw new AssertionError(e); // unwrapping method should have thrown
     } finally {
+      outputSink.close();
       // Dump timings.
       if (options.printTimes) {
         timing.report();

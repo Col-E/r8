@@ -39,8 +39,8 @@ public class ZipFileOutputSink extends FileSystemOutputSink {
     outputStream.close();
   }
 
-  private synchronized void writeToZipFile(Path outputPath, byte[] content) throws IOException {
-    ZipEntry zipEntry = new ZipEntry(outputPath.toString());
+  private synchronized void writeToZipFile(String outputPath, byte[] content) throws IOException {
+    ZipEntry zipEntry = new ZipEntry(outputPath);
     zipEntry.setSize(content.length);
     outputStream.putNextEntry(zipEntry);
     outputStream.write(content);

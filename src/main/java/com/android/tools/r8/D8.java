@@ -184,11 +184,12 @@ public final class D8 {
           .write(outputSink, executor);
       CompilationResult output = new CompilationResult(outputSink, app, appInfo);
       options.printWarnings();
-      outputSink.close();
       return output;
     } catch (ExecutionException e) {
       R8.unwrapExecutionException(e);
       throw new AssertionError(e); // unwrapping method should have thrown
+    } finally {
+      outputSink.close();
     }
   }
 
