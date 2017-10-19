@@ -21,14 +21,15 @@ public class ThreadUtils {
     } catch (InterruptedException e) {
       throw new RuntimeException("Interrupted while waiting for future.", e);
     } finally {
-      // In case we get interrupted or one of the threads throws an exception, abort all further
-      // work, if possible.
-      try {
-        while (it.hasNext()) {
-          it.next().cancel(true);
+      // In case we get interrupted or one of the threads throws an exception, still wait for all
+      // further work to make sure synchronization guarantees are met. Calling cancel unfortunately
+      // does not guarantee that the task at hand actually terminates before cancel returns.
+      while (it.hasNext()) {
+        try {
+          it.next().get();
+        } catch (Throwable t) {
+          // Ignore any new Exception.
         }
-      } catch (Throwable t) {
-        // Ignore the new Exception.
       }
     }
   }
