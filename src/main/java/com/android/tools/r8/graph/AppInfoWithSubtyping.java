@@ -188,7 +188,7 @@ public class AppInfoWithSubtyping extends AppInfo {
     return result;
   }
 
-  private boolean holderIsAbstract(Descriptor desc) {
+  private boolean holderIsAbstract(Descriptor<?,?> desc) {
     DexClass holder = definitionFor(desc.getHolder());
     return holder.accessFlags.isAbstract();
   }

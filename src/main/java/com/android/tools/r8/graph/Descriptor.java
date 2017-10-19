@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-public abstract class Descriptor<T extends DexItem, S extends Descriptor>
+public abstract class Descriptor<T extends DexItem, S extends Descriptor<T,S>>
     extends IndexedDexItem implements PresortedComparable<S> {
 
   public abstract boolean match(T entry);

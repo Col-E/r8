@@ -12,35 +12,35 @@ public class Log {
   static private final boolean DEBUG_ENABLED = true;
   static private final boolean WARN_ENABLED = true;
 
-  public static void verbose(Class from, String message, Object... arguments) {
+  public static void verbose(Class<?> from, String message, Object... arguments) {
     if (ENABLED && VERBOSE_ENABLED && isClassEnabled(from)) {
       log("VERB", from, message, arguments);
     }
   }
 
-  public static void info(Class from, String message, Object... arguments) {
+  public static void info(Class<?> from, String message, Object... arguments) {
     if (ENABLED && INFO_ENABLED && isClassEnabled(from)) {
       log("INFO", from, message, arguments);
     }
   }
 
-  public static void debug(Class from, String message, Object... arguments) {
+  public static void debug(Class<?> from, String message, Object... arguments) {
     if (ENABLED && DEBUG_ENABLED && isClassEnabled(from)) {
       log("DBG", from, message, arguments);
     }
   }
 
-  public static void warn(Class from, String message, Object... arguments) {
+  public static void warn(Class<?> from, String message, Object... arguments) {
     if (ENABLED && WARN_ENABLED && isClassEnabled(from)) {
       log("WARN", from, message, arguments);
     }
   }
 
-  private static boolean isClassEnabled(Class clazz) {
+  private static boolean isClassEnabled(Class<?> clazz) {
     return true;
   }
 
-  synchronized private static void log(String kind, Class from, String message, Object... args) {
+  synchronized private static void log(String kind, Class<?> from, String message, Object... args) {
     if (args.length > 0) {
       message = String.format(message, args);
     }
