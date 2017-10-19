@@ -40,12 +40,12 @@ public class ProguardConfigurationParser {
 
   private final DiagnosticsHandler diagnosticsHandler;
 
-  private static final List<String> ignoredSingleArgOptions = ImmutableList
+  private static final List<String> IGNORED_SINGLE_ARG_OPTIONS = ImmutableList
       .of("protomapping",
           "target");
-  private static final List<String> ignoredOptionalSingleArgOptions = ImmutableList
+  private static final List<String> IGNORED_OPTIONAL_SINGLE_ARG_OPTIONS = ImmutableList
       .of("keepdirectories", "runtype", "laststageoutput");
-  private static final List<String> ignoredFlagOptions = ImmutableList
+  private static final List<String> IGNORED_FLAG_OPTIONS = ImmutableList
       .of("forceprocessing", "dontusemixedcaseclassnames",
           "dontpreverify", "experimentalshrinkunusedprotofields",
           "filterlibraryjarswithorginalprogramjars",
@@ -53,23 +53,23 @@ public class ProguardConfigurationParser {
           "dontskipnonpubliclibraryclassmembers",
           "overloadaggressively",
           "invokebasemethod");
-  private static final List<String> ignoredClassDescriptorOptions = ImmutableList
+  private static final List<String> IGNORED_CLASS_DESCRIPTOR_OPTIONS = ImmutableList
       .of("isclassnamestring",
           "whyarenotsimple");
 
-  private static final List<String> warnedSingleArgOptions = ImmutableList
+  private static final List<String> WARNED_SINGLE_ARG_OPTIONS = ImmutableList
       .of("dontnote",
           "printconfiguration",
           // TODO -outjars (http://b/37137994) and -adaptresourcefilecontents (http://b/37139570)
           // should be reported as errors, not just as warnings!
           "outjars",
           "adaptresourcefilecontents");
-  private static final List<String> warnedFlagOptions = ImmutableList
+  private static final List<String> WARNED_FLAG_OPTIONS = ImmutableList
       .of();
 
   // Those options are unsupported and are treated as compilation errors.
   // Just ignoring them would produce outputs incompatible with user expectations.
-  private static final List<String> unsupportedFlagOptions = ImmutableList
+  private static final List<String> UNSUPPORTED_FLAG_OPTIONS = ImmutableList
       .of("skipnonpubliclibraryclasses");
 
   public ProguardConfigurationParser(
@@ -107,17 +107,26 @@ public class ProguardConfigurationParser {
   public void parse(List<ProguardConfigurationSource> sources)
       throws ProguardRuleParserException, IOException {
     for (ProguardConfigurationSource source : sources) {
-      new ProguardFileParser(source, diagnosticsHandler).parse();
+      new ProguardConfigurationSourceParser(source).parse();
     }
   }
 
-  private class ProguardFileParser {
+  private void warnIgnoringOptions(String optionName) {
+    diagnosticsHandler.warning(new StringDiagnostic("Ignoring option: -" + optionName));
+  }
+
+  private void warnOverridingOptions(String optionName, String victim) {
+    diagnosticsHandler.warning(
+        new StringDiagnostic("Option -" + optionName + " overrides -" + victim));
+  }
+
+  private class ProguardConfigurationSourceParser {
     private final String name;
     private final String contents;
     private int position = 0;
     private Path baseDirectory;
 
-    ProguardFileParser(ProguardConfigurationSource source, DiagnosticsHandler diagnosticsHandler)
+    ProguardConfigurationSourceParser(ProguardConfigurationSource source)
         throws IOException {
       contents = source.get();
       baseDirectory = source.getBaseDirectory();
@@ -140,18 +149,20 @@ public class ProguardConfigurationParser {
       }
       expectChar('-');
       String option;
-      if (Iterables.any(ignoredSingleArgOptions, this::skipOptionWithSingleArg)
-          || Iterables.any(ignoredOptionalSingleArgOptions, this::skipOptionWithOptionalSingleArg)
-          || Iterables.any(ignoredFlagOptions, this::skipFlag)
-          || Iterables.any(ignoredClassDescriptorOptions, this::skipOptionWithClassSpec)
+      if (Iterables.any(IGNORED_SINGLE_ARG_OPTIONS, this::skipOptionWithSingleArg)
+          || Iterables.any(
+              IGNORED_OPTIONAL_SINGLE_ARG_OPTIONS, this::skipOptionWithOptionalSingleArg)
+          || Iterables.any(IGNORED_FLAG_OPTIONS, this::skipFlag)
+          || Iterables.any(IGNORED_CLASS_DESCRIPTOR_OPTIONS, this::skipOptionWithClassSpec)
           || parseOptimizationOption()) {
         // Intentionally left empty.
       } else if (
-          (option = Iterables.find(warnedSingleArgOptions,
+          (option = Iterables.find(WARNED_SINGLE_ARG_OPTIONS,
               this::skipOptionWithSingleArg, null)) != null
-              || (option = Iterables.find(warnedFlagOptions, this::skipFlag, null)) != null) {
+              || (option = Iterables.find(WARNED_FLAG_OPTIONS, this::skipFlag, null)) != null) {
         warnIgnoringOptions(option);
-      } else if ((option = Iterables.find(unsupportedFlagOptions, this::skipFlag, null)) != null) {
+      } else if (
+          (option = Iterables.find(UNSUPPORTED_FLAG_OPTIONS, this::skipFlag, null)) != null) {
         throw parseError("Unsupported option: -" + option);
       } else if (acceptString("renamesourcefileattribute")) {
         skipWhitespace();
@@ -296,19 +307,11 @@ public class ProguardConfigurationParser {
       return true;
     }
 
-    private void warnIgnoringOptions(String optionName) {
-      diagnosticsHandler.warning(new StringDiagnostic("Ignoring option: -" + optionName));
-    }
-
-    private void warnOverridingOptions(String optionName, String victim) {
-      diagnosticsHandler.warning(
-          new StringDiagnostic("Option -" + optionName + " overrides -" + victim));
-    }
 
     private void parseInclude() throws ProguardRuleParserException {
       Path included = parseFileName();
       try {
-        new ProguardFileParser(new ProguardConfigurationSourceFile(included), diagnosticsHandler)
+        new ProguardConfigurationSourceParser(new ProguardConfigurationSourceFile(included))
             .parse();
       } catch (FileNotFoundException | NoSuchFileException e) {
         throw parseError("Included file '" + included.toString() + "' not found", e);
