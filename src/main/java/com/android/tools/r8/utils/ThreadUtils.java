@@ -3,9 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.Iterator;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -13,17 +11,26 @@ import java.util.concurrent.Future;
 
 public class ThreadUtils {
 
-  public static <T> List<T> awaitFutures(Collection<? extends Future<? extends T>> futures)
+  public static void awaitFutures(Iterable<? extends Future<?>> futures)
       throws ExecutionException {
-    ArrayList<T> result = new ArrayList<>(futures.size());
-    for (Future<? extends T> f : futures) {
+    Iterator<? extends Future<?>> it = futures.iterator();
+    try {
+      while (it.hasNext()) {
+        it.next().get();
+      }
+    } catch (InterruptedException e) {
+      throw new RuntimeException("Interrupted while waiting for future.", e);
+    } finally {
+      // In case we get interrupted or one of the threads throws an exception, abort all further
+      // work, if possible.
       try {
-        result.add(f.get());
-      } catch (InterruptedException e) {
-        throw new RuntimeException("Interrupted while waiting for future.", e);
+        while (it.hasNext()) {
+          it.next().cancel(true);
+        }
+      } catch (Throwable t) {
+        // Ignore the new Exception.
       }
     }
-    return result;
   }
 
   public static ExecutorService getExecutorService(int threads) {
