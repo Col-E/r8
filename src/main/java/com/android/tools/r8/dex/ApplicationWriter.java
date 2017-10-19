@@ -125,6 +125,23 @@ public class ApplicationWriter {
     this.proguardSeedsData = proguardSeedsData;
   }
 
+  private Iterable<VirtualFile> distribute()
+      throws ExecutionException, IOException, DexOverflowException {
+    // Distribute classes into dex files.
+    VirtualFile.Distributor distributor;
+    if (options.outputMode == OutputMode.FilePerInputClass) {
+      distributor = new VirtualFile.FilePerInputClassDistributor(this);
+    } else if (!options.canUseMultidex()
+        && options.mainDexKeepRules.isEmpty()
+        && application.mainDexList.isEmpty()) {
+      distributor = new VirtualFile.MonoDexDistributor(this, options);
+    } else {
+      distributor = new VirtualFile.FillFilesDistributor(this, options);
+    }
+
+    return distributor.run();
+  }
+
   public void write(OutputSink outputSink, ExecutorService executorService)
       throws IOException, ExecutionException, DexOverflowException {
     application.timing.begin("DexApplication.write");
@@ -135,24 +152,12 @@ public class ApplicationWriter {
       SortAnnotations sortAnnotations = new SortAnnotations();
       application.classes().forEach((clazz) -> clazz.addDependencies(sortAnnotations));
 
-      // Distribute classes into dex files.
-      VirtualFile.Distributor distributor;
-      if (options.outputMode == OutputMode.FilePerInputClass) {
-        distributor = new VirtualFile.FilePerInputClassDistributor(this);
-      } else if (!options.canUseMultidex()
-          && options.mainDexKeepRules.isEmpty()
-          && application.mainDexList.isEmpty()) {
-        distributor = new VirtualFile.MonoDexDistributor(this, options);
-      } else {
-        distributor = new VirtualFile.FillFilesDistributor(this, options);
-      }
-
       // Collect the indexed items sets for all files and perform JumboString processing.
       // This is required to ensure that shared code blocks have a single and consistent code
       // item that is valid for all dex files.
       // Use a linked hash map as the order matters when addDexProgramData is called below.
       Map<VirtualFile, Future<ObjectToOffsetMapping>> offsetMappingFutures = new LinkedHashMap<>();
-      for (VirtualFile newFile : distributor.run()) {
+      for (VirtualFile newFile : distribute()) {
         assert !newFile.isEmpty();
         if (!newFile.isEmpty()) {
           offsetMappingFutures
