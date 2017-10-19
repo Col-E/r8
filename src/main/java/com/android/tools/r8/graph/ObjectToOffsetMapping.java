@@ -78,7 +78,7 @@ public class ObjectToOffsetMapping {
     if (items.isEmpty()) {
       return null;
     }
-    Reference2IntMap<T> map = new Reference2IntLinkedOpenHashMap<>();
+    Reference2IntMap<T> map = new Reference2IntLinkedOpenHashMap<>(items.size());
     map.defaultReturnValue(NOT_FOUND);
     Collection<T> sorted = sort ? items.stream().sorted().collect(Collectors.toList()) : items;
     int index = 0;

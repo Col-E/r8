@@ -1233,9 +1233,13 @@ public class FileWriter {
       return lookup(code, codes);
     }
 
-    private <T> void setOffsetFor(T item, int offset, Map<T, Integer> table) {
-      Integer old = table.put(item, offset);
-      assert old != null;
+    private <T> void setOffsetFor(T item, int offset, Object2IntMap<T> map) {
+      int old = map.put(item, offset);
+      assert old <= NOT_SET;
+    }
+
+    private <T> void setOffsetFor(T item, int offset, Reference2IntMap<T> map) {
+      int old = map.put(item, offset);
       assert old <= NOT_SET;
     }
 
