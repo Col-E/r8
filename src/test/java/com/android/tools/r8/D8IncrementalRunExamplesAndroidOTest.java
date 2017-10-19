@@ -274,7 +274,6 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
     D8IncrementalTestRunner test = test(testName, testPackage, mainClass);
     test.compileClassesTogether(inputJarFile, out);
 
-
     String[] topLevelDir = out.toFile().list();
     assert topLevelDir != null;
     assertEquals(1, topLevelDir.length);

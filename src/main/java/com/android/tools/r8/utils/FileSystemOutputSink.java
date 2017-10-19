@@ -8,7 +8,6 @@ import com.google.common.io.Closer;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 
 public abstract class FileSystemOutputSink implements OutputSink {
@@ -28,16 +27,16 @@ public abstract class FileSystemOutputSink implements OutputSink {
     }
   }
 
-  protected Path getOutputFileName(int index) {
-    String file = index == 0 ? "classes.dex" : ("classes" + (index + 1) + ".dex");
-    return Paths.get(file);
+  String getOutputFileName(int index) {
+    return index == 0 ? "classes.dex" : ("classes" + (index + 1) + FileUtils.DEX_EXTENSION);
   }
 
-  protected Path getOutputFileName(String classDescriptor) throws IOException {
+  String getOutputFileName(String classDescriptor) throws IOException {
     assert classDescriptor != null && DescriptorUtils.isClassDescriptor(classDescriptor);
-    Path result = Paths.get(classDescriptor.substring(1, classDescriptor.length() - 1) + ".dex");
-    return result;
+    return DescriptorUtils.getClassBinaryNameFromDescriptor(classDescriptor)
+        + FileUtils.DEX_EXTENSION;
   }
+
 
   @Override
   public void writePrintUsedInformation(byte[] contents) throws IOException {
@@ -67,7 +66,9 @@ public abstract class FileSystemOutputSink implements OutputSink {
               closer,
               output,
               defValue,
-              StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+              StandardOpenOption.CREATE,
+              StandardOpenOption.TRUNCATE_EXISTING,
+              StandardOpenOption.WRITE);
       outputStream.write(contents);
     }
   }

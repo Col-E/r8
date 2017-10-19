@@ -35,7 +35,7 @@ public class DirectoryOutputSink extends FileSystemOutputSink {
   @Override
   public void writeDexFile(byte[] contents, Set<String> classDescriptors, int fileId)
       throws IOException {
-    Path target = outputDirectory.resolve(getOutputPath(fileId));
+    Path target = outputDirectory.resolve(getOutputFileName(fileId));
     Files.createDirectories(target.getParent());
     writeToFile(target, null, contents);
   }
@@ -43,7 +43,7 @@ public class DirectoryOutputSink extends FileSystemOutputSink {
   @Override
   public void writeDexFile(byte[] contents, Set<String> classDescriptors, String primaryClassName)
       throws IOException {
-    Path target = outputDirectory.resolve(getOutputPath(primaryClassName));
+    Path target = outputDirectory.resolve(getOutputFileName(primaryClassName));
     Files.createDirectories(target.getParent());
     writeToFile(target, null, contents);
   }
@@ -51,18 +51,5 @@ public class DirectoryOutputSink extends FileSystemOutputSink {
   @Override
   public void close() throws IOException {
     // Intentionally left empty.
-  }
-
-  private Path getOutputPath(int index) {
-    String file = index == 0 ? "classes.dex" : ("classes" + (index + 1) + ".dex");
-    return outputDirectory.resolve(file);
-  }
-
-  private Path getOutputPath(String classDescriptor) throws IOException {
-    assert classDescriptor != null && DescriptorUtils.isClassDescriptor(classDescriptor);
-    Path result = outputDirectory
-        .resolve(classDescriptor.substring(1, classDescriptor.length() - 1) + ".dex");
-    Files.createDirectories(result.getParent());
-    return result;
   }
 }

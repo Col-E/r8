@@ -118,10 +118,10 @@ public class FileUtils {
 
   static boolean isClassesDexFile(Path file) {
     String name = file.getFileName().toString().toLowerCase();
-    if (!name.startsWith("classes") || !name.endsWith(".dex")) {
+    if (!name.startsWith("classes") || !name.endsWith(DEX_EXTENSION)) {
       return false;
     }
-    String numeral = name.substring("classes".length(), name.length() - ".dex".length());
+    String numeral = name.substring("classes".length(), name.length() - DEX_EXTENSION.length());
     if (numeral.isEmpty()) {
       return true;
     }

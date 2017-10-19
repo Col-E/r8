@@ -98,6 +98,25 @@ public class R8EntryPointTests extends TestBase {
   }
 
   @Test
+  public void testMainRelativeDir() throws IOException, InterruptedException {
+    temp.newFolder("outdex");
+    Path out = Paths.get("outdex");
+    Path workingDir = temp.getRoot().toPath();
+    ProcessResult r8 = ToolHelper.forkR8(workingDir,
+        "--lib", Paths.get(ToolHelper.getDefaultAndroidJar()).toAbsolutePath().toString(),
+        "--output", out.toString(),
+        "--pg-conf", PROGUARD_FLAGS.toAbsolutePath().toString(),
+        "--pg-conf", testFlags.toAbsolutePath().toString(),
+        INPUT_JAR.toAbsolutePath().toString());
+    Assert.assertEquals(0, r8.exitCode);
+    Assert.assertTrue(
+        Files.isRegularFile(workingDir.resolve(out).resolve(ToolHelper.DEFAULT_DEX_FILENAME)));
+    Assert.assertTrue(Files.isRegularFile(testFlags.getParent().resolve(MAPPING)));
+    Assert.assertTrue(Files.isRegularFile(testFlags.getParent().resolve(SEEDS)));
+  }
+
+
+  @Test
   public void testMainZip() throws IOException, InterruptedException {
     Path out = temp.newFolder("outdex").toPath().resolve("dex.zip");
     ProcessResult r8 = ToolHelper.forkR8(Paths.get("."),
