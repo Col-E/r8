@@ -53,8 +53,6 @@ import java.util.function.BiPredicate;
  */
 public class ProtoLitePruner extends ProtoLiteBase {
 
-  private final AppInfoWithLiveness appInfo;
-
   private final DexType visitorType;
 
   private final DexType methodEnumType;
@@ -77,7 +75,6 @@ public class ProtoLitePruner extends ProtoLiteBase {
 
   public ProtoLitePruner(AppInfoWithLiveness appInfo) {
     super(appInfo);
-    this.appInfo = appInfo;
     DexItemFactory factory = appInfo.dexItemFactory;
     this.visitorType = factory.createType("Lcom/google/protobuf/GeneratedMessageLite$Visitor;");
     this.methodEnumType = factory
@@ -318,7 +315,7 @@ public class ProtoLitePruner extends ProtoLiteBase {
       throw new CompilationError("dynamicMethod in protoLite without switch.");
     }
     Switch switchInstr = matchingInstr.asSwitch();
-    EnumSwitchInfo info = SwitchUtils.analyzeSwitchOverEnum(switchInstr, appInfo);
+    EnumSwitchInfo info = SwitchUtils.analyzeSwitchOverEnum(switchInstr, appInfo.withLiveness());
     if (info == null || info.enumClass != methodEnumType) {
       throw new CompilationError("Malformed switch in dynamicMethod of proto lite.");
     }
@@ -471,7 +468,7 @@ public class ProtoLitePruner extends ProtoLiteBase {
               // We have to rewrite these as a precaution, as they might be dead due to
               // tree shaking ignoring them.
               DexField field = getterToField(invokedMethod, 5);
-              if (appInfo.liveFields.contains(field)) {
+              if (appInfo.withLiveness().liveFields.contains(field)) {
                 // Effectively inline the code that is normally inside these methods.
                 Value thisReference = invokeMethod.getReceiver();
                 Value newResult = code.createValue(MoveType.SINGLE);
@@ -658,7 +655,7 @@ public class ProtoLitePruner extends ProtoLiteBase {
   }
 
   private boolean isDeadProtoField(DexField field) {
-    return isProtoField(field) && !appInfo.liveFields.contains(field);
+    return isProtoField(field) && !appInfo.withLiveness().liveFields.contains(field);
   }
 
   private boolean isDeadProtoGetter(DexMethod method) {

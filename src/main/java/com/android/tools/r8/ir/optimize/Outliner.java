@@ -685,7 +685,6 @@ public class Outliner {
     private final ListIterator<BasicBlock> blocksIterator;
     private final List<Integer> toRemove;
     int argumentsMapIndex;
-    Value returnValue;
 
     OutlineRewriter(
         DexEncodedMethod method, IRCode code,
@@ -702,7 +701,7 @@ public class Outliner {
         DexMethod m = generatedOutlines.get(outline);
         assert m != null;
         List<Value> in = new ArrayList<>();
-        returnValue = null;
+        Value returnValue = null;
         argumentsMapIndex = 0;
         Position position = Position.none();
         { // Scope for 'instructions'.
