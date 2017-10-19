@@ -23,7 +23,7 @@ public class JumboStringTests extends JasminTestBase {
   // String constants are split into several class files to ensure both the constant-pool and
   // instruction count are below the class-file limits.
   private static int CLASSES_COUNT = 10;
-  private static int MIN_STRING_COUNT = Constants.FIRST_JUMBO_INDEX + 1;
+  private static int MIN_STRING_COUNT = Constants.MAX_NON_JUMBO_INDEX + 2;
   private static int EXTRA_STRINGS_PER_CLASSES_COUNT = MIN_STRING_COUNT % CLASSES_COUNT;
   private static int STRINGS_PER_CLASSES_COUNT =
       EXTRA_STRINGS_PER_CLASSES_COUNT + MIN_STRING_COUNT / CLASSES_COUNT;
