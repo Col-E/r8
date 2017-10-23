@@ -20,7 +20,7 @@ public abstract class FileSystemOutputSink implements OutputSink {
 
   public static FileSystemOutputSink create(Path outputPath, InternalOptions options)
       throws IOException {
-    if (FileUtils.isZipFile(outputPath)) {
+    if (FileUtils.isArchive(outputPath)) {
       return new ZipFileOutputSink(outputPath, options);
     } else {
       return new DirectoryOutputSink(outputPath, options);
