@@ -97,10 +97,17 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
       if (interfaces != null) {
         interfaces.collectIndexedItems(indexedItems);
       }
-      collectAll(indexedItems, staticFields);
-      collectAll(indexedItems, instanceFields);
-      collectAll(indexedItems, directMethods);
-      collectAll(indexedItems, virtualMethods);
+      synchronizedCollectAll(indexedItems, staticFields);
+      synchronizedCollectAll(indexedItems, instanceFields);
+      synchronizedCollectAll(indexedItems, directMethods);
+      synchronizedCollectAll(indexedItems, virtualMethods);
+    }
+  }
+
+  private static <T extends DexItem> void synchronizedCollectAll(IndexedItemCollection collection,
+      T[] items) {
+    synchronized (items) {
+      collectAll(collection, items);
     }
   }
 
@@ -120,10 +127,10 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
     // We only have a class data item if there are methods or fields.
     if (hasMethodsOrFields()) {
       collector.add(this);
-      collectAll(collector, directMethods);
-      collectAll(collector, virtualMethods);
-      collectAll(collector, staticFields);
-      collectAll(collector, instanceFields);
+      synchronizedCollectAll(collector, directMethods);
+      synchronizedCollectAll(collector, virtualMethods);
+      synchronizedCollectAll(collector, staticFields);
+      synchronizedCollectAll(collector, instanceFields);
     }
     if (annotations != null) {
       annotations.collectMixedSectionItems(collector);
@@ -132,6 +139,13 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
       interfaces.collectMixedSectionItems(collector);
     }
     annotations.collectMixedSectionItems(collector);
+  }
+
+  private static <T extends DexItem> void synchronizedCollectAll(MixedSectionCollection collection,
+      T[] items) {
+    synchronized (items) {
+      collectAll(collection, items);
+    }
   }
 
   @Override
@@ -176,11 +190,15 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
   }
 
   private boolean hasAnnotations(DexEncodedField[] fields) {
-    return fields != null && Arrays.stream(fields).anyMatch(DexEncodedField::hasAnnotation);
+    synchronized (fields) {
+      return Arrays.stream(fields).anyMatch(DexEncodedField::hasAnnotation);
+    }
   }
 
   private boolean hasAnnotations(DexEncodedMethod[] methods) {
-    return methods != null && Arrays.stream(methods).anyMatch(DexEncodedMethod::hasAnnotation);
+    synchronized (methods) {
+      return Arrays.stream(methods).anyMatch(DexEncodedMethod::hasAnnotation);
+    }
   }
 
   private static Collection<DexProgramClass> accumulateSynthesizedFrom(
@@ -208,30 +226,22 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
     assert !virtualMethod.accessFlags.isStatic();
     assert !virtualMethod.accessFlags.isPrivate();
     assert !virtualMethod.accessFlags.isConstructor();
-    virtualMethods = Arrays.copyOf(virtualMethods, virtualMethods.length + 1);
-    virtualMethods[virtualMethods.length - 1] = virtualMethod;
+    synchronized (virtualMethods) {
+      virtualMethods = Arrays.copyOf(virtualMethods, virtualMethods.length + 1);
+      virtualMethods[virtualMethods.length - 1] = virtualMethod;
+    }
   }
 
   public void addStaticMethod(DexEncodedMethod staticMethod) {
     assert staticMethod.accessFlags.isStatic();
     assert !staticMethod.accessFlags.isPrivate();
-    directMethods = Arrays.copyOf(directMethods, directMethods.length + 1);
-    directMethods[directMethods.length - 1] = staticMethod;
-  }
-
-  public void removeStaticMethod(DexEncodedMethod staticMethod) {
-    assert staticMethod.accessFlags.isStatic();
-    DexEncodedMethod[] newDirectMethods = new DexEncodedMethod[directMethods.length - 1];
-    int toIndex = 0;
-    for (int fromIndex = 0; fromIndex < directMethods.length; fromIndex++) {
-      if (directMethods[fromIndex] != staticMethod) {
-        newDirectMethods[toIndex++] = directMethods[fromIndex];
-      }
+    synchronized (directMethods) {
+      directMethods = Arrays.copyOf(directMethods, directMethods.length + 1);
+      directMethods[directMethods.length - 1] = staticMethod;
     }
-    directMethods = newDirectMethods;
   }
 
-  public synchronized void sortMembers() {
+  public void sortMembers() {
     sortEncodedFields(staticFields);
     sortEncodedFields(instanceFields);
     sortEncodedMethods(directMethods);
@@ -239,11 +249,15 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
   }
 
   private void sortEncodedFields(DexEncodedField[] fields) {
-    Arrays.sort(fields, Comparator.comparing(a -> a.field));
+    synchronized (fields) {
+      Arrays.sort(fields, Comparator.comparing(a -> a.field));
+    }
   }
 
   private void sortEncodedMethods(DexEncodedMethod[] methods) {
-    Arrays.sort(methods, Comparator.comparing(a -> a.method));
+    synchronized (methods) {
+      Arrays.sort(methods, Comparator.comparing(a -> a.method));
+    }
   }
 
   @Override

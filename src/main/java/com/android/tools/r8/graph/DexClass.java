@@ -23,9 +23,22 @@ public abstract class DexClass extends DexItem {
   public DexType superType;
   public DexTypeList interfaces;
   public DexString sourceFile;
+
+  /**
+   * Access has to be synchronized during concurrent collection/writing phase.
+   */
   protected DexEncodedField[] staticFields;
+  /**
+   * Access has to be synchronized during concurrent collection/writing phase.
+   */
   protected DexEncodedField[] instanceFields;
+  /**
+   * Access has to be synchronized during concurrent collection/writing phase.
+   */
   protected DexEncodedMethod[] directMethods;
+  /**
+   * Access has to be synchronized during concurrent collection/writing phase.
+   */
   protected DexEncodedMethod[] virtualMethods;
   public DexAnnotationSet annotations;
 
