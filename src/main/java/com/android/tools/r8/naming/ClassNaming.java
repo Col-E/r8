@@ -7,7 +7,9 @@ import com.android.tools.r8.naming.MemberNaming.Signature;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
@@ -19,7 +21,7 @@ import java.util.function.Consumer;
 public class ClassNaming {
 
   public final String originalName;
-  final String renamedName;
+  public final String renamedName;
 
   /**
    * Mapping from the renamed signature to the naming information for a member.
@@ -50,6 +52,16 @@ public class ClassNaming {
       }
     }
     return null;
+  }
+
+  public List<MemberNaming> lookupByOriginalName(String originalName) {
+    List<MemberNaming> result = new ArrayList<>();
+    for (MemberNaming naming : members.values()) {
+      if (naming.signature.name.equals(originalName)) {
+        result.add(naming);
+      }
+    }
+    return result;
   }
 
   public void forAllMemberNaming(Consumer<MemberNaming> consumer) {

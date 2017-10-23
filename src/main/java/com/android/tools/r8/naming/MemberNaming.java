@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.MemberNaming.Signature.SignatureKind;
+import com.android.tools.r8.utils.DescriptorUtils;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
@@ -15,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import org.objectweb.asm.Type;
 
 /**
  * Stores renaming information for a member.
@@ -279,6 +281,20 @@ public class MemberNaming {
       }
       return new MethodSignature(method.name.toSourceString(),
           method.proto.returnType.toSourceString(), paramNames);
+    }
+
+    public static MethodSignature fromSignature(String name, String signature) {
+      Type[] parameterDescriptors = Type.getArgumentTypes(signature);
+      Type returnDescriptor = Type.getReturnType(signature);
+      String[] parameterTypes = new String[parameterDescriptors.length];
+      for (int i = 0; i < parameterDescriptors.length; i++) {
+        parameterTypes[i] =
+            DescriptorUtils.descriptorToJavaType(parameterDescriptors[i].getDescriptor());
+      }
+      return new MethodSignature(
+          name,
+          DescriptorUtils.descriptorToJavaType(returnDescriptor.getDescriptor()),
+          parameterTypes);
     }
 
     public static MethodSignature initializer(String[] parameters) {

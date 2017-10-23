@@ -174,7 +174,7 @@ public class R8Command extends BaseCompilerCommand {
       return self();
     }
 
-    Builder setProguardMapOutput(Path path) {
+    public Builder setProguardMapOutput(Path path) {
       this.proguardMapOutput = path;
       return self();
     }

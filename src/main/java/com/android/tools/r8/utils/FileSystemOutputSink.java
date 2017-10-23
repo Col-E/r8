@@ -45,7 +45,12 @@ public abstract class FileSystemOutputSink implements OutputSink {
 
   @Override
   public void writeProguardMapFile(byte[] contents) throws IOException {
-    writeToFile(options.proguardConfiguration.getPrintMappingFile(), System.out, contents);
+    if (options.proguardConfiguration.getPrintMappingFile() != null) {
+      writeToFile(options.proguardConfiguration.getPrintMappingFile(), System.out, contents);
+    }
+    if (options.proguardMapOutput != null) {
+      writeToFile(options.proguardMapOutput, System.out, contents);
+    }
   }
 
   @Override

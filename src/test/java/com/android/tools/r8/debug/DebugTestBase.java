@@ -13,6 +13,12 @@ import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.naming.ClassNaming;
+import com.android.tools.r8.naming.MemberNaming;
+import com.android.tools.r8.naming.MemberNaming.MethodSignature;
+import com.android.tools.r8.naming.MemberNaming.Signature;
+import com.android.tools.r8.naming.ProguardMapReader;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -23,6 +29,7 @@ import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongList;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayDeque;
@@ -110,6 +117,7 @@ public abstract class DebugTestBase {
       .get(ToolHelper.BUILD_DIR, "test", "debug_test_resources_java8.jar");
   private static final Path DEBUGGEE_KOTLIN_JAR = Paths
       .get(ToolHelper.BUILD_DIR, "test", "debug_test_resources_kotlin.jar");
+  private static final String PROGUARD_MAP_FILENAME = "proguard.map";
 
   @ClassRule
   public static TemporaryFolder temp = new TemporaryFolder();
@@ -126,6 +134,9 @@ public abstract class DebugTestBase {
   public static void setUp() throws Exception {
     setUp(null, null);
   }
+
+  protected static List<String> proguardConfigurations = Collections.<String>emptyList();
+  protected static boolean writeProguardMap = false;
 
   protected static void setUp(
       Consumer<InternalOptions> optionsConsumer,
@@ -206,6 +217,12 @@ public abstract class DebugTestBase {
             .setMinApiLevel(minSdk)
             .setMode(CompilationMode.DEBUG)
             .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(minSdk)));
+    if (writeProguardMap) {
+      builder.setProguardMapOutput(dexOutputDir.resolve(PROGUARD_MAP_FILENAME));
+    }
+    if (!proguardConfigurations.isEmpty()) {
+      builder.addProguardConfiguration(proguardConfigurations);
+    }
     if (pgConsumer != null) {
       builder.addProguardConfigurationConsumer(pgConsumer);
     }
@@ -326,17 +343,23 @@ public abstract class DebugTestBase {
 
     String[] paths = new String[extraPaths.size() + 2];
     int indexPath = 0;
+    ClassNameMapper classNameMapper = null;
     if (RUNTIME_KIND == RuntimeKind.JAVA) {
       paths[indexPath++] = JDWP_JAR.toString();
       paths[indexPath++] = languageFeatures.getJarPath().toString();
     } else {
       paths[indexPath++] = jdwpDexD8.toString();
       paths[indexPath++] = languageFeatures.getDexPath().toString();
+      Path proguardMapPath = Paths.get(paths[indexPath - 1]).resolveSibling(PROGUARD_MAP_FILENAME);
+      if (Files.exists(proguardMapPath)) {
+        classNameMapper = ProguardMapReader.mapperFromFile(proguardMapPath);
+      }
     }
     for (Path extraPath : extraPaths) {
       paths[indexPath++] = extraPath.toString();
     }
-    new JUnit3Wrapper(debuggeeClass, paths, commands).runBare();
+
+    new JUnit3Wrapper(debuggeeClass, paths, commands, classNameMapper).runBare();
   }
 
   protected final JUnit3Wrapper.Command run() {
@@ -513,14 +536,173 @@ public abstract class DebugTestBase {
     private DebuggeeState debuggeeState = null;
 
     private final Deque<Command> commandsQueue;
+    private final Translator translator;
 
     // Active event requests.
     private final Map<Integer, EventHandler> events = new TreeMap<>();
 
-    JUnit3Wrapper(String debuggeeClassName, String[] debuggeePath, List<Command> commands) {
+    /**
+     * The Translator interface provides mapping between the class and method names and line numbers
+     * found in the binary file and their original forms.
+     *
+     * <p>Terminology:
+     *
+     * <p>The term 'original' refers to the names and line numbers found in the original source
+     * code. The term 'obfuscated' refers to the names and line numbers in the binary. Note that
+     * they may not actually be obfuscated:
+     *
+     * <p>- The obfuscated class and method names can be identical to the original ones if
+     * minification is disabled or they are 'keep' classes/methods. - The obfuscated line numbers
+     * can be identical to the original ones if neither inlining nor line number remapping took
+     * place.
+     */
+    private interface Translator {
+      public String getOriginalClassName(String obfuscatedClassName);
+
+      public String getOriginalMethodName(
+          String obfuscatedClassName, String obfuscatedMethodName, String methodSignature);
+
+      public int getOriginalLineNumber(int obfuscatedLineNumber);
+
+      public String getObfuscatedClassName(String originalClassName);
+
+      public String getObfuscatedMethodName(
+          String originalClassName, String originalMethodName, String methodSignature);
+    }
+
+    private class IdentityTranslator implements Translator {
+
+      @Override
+      public String getOriginalClassName(String obfuscatedClassName) {
+        return obfuscatedClassName;
+      }
+
+      @Override
+      public String getOriginalMethodName(
+          String obfuscatedClassName, String obfuscatedMethodName, String methodSignature) {
+        return obfuscatedMethodName;
+      }
+
+      @Override
+      public int getOriginalLineNumber(int obfuscatedLineNumber) {
+        return obfuscatedLineNumber;
+      }
+
+      @Override
+      public String getObfuscatedClassName(String originalClassName) {
+        return originalClassName;
+      }
+
+      @Override
+      public String getObfuscatedMethodName(
+          String originalClassName, String originalMethodName, String methodSignature) {
+        return originalMethodName;
+      }
+    }
+
+    private class ClassNameMapperTranslator extends IdentityTranslator {
+      private final ClassNameMapper classNameMapper;
+
+      public ClassNameMapperTranslator(ClassNameMapper classNameMapper) {
+        this.classNameMapper = classNameMapper;
+      }
+
+      @Override
+      public String getOriginalClassName(String obfuscatedClassName) {
+        // TODO(tamaskenez) Watch for inline methods (we can be in a different class).
+        return classNameMapper.deobfuscateClassName(obfuscatedClassName);
+      }
+
+      @Override
+      public String getOriginalMethodName(
+          String obfuscatedClassName, String obfuscatedMethodName, String methodSignature) {
+        MemberNaming memberNaming =
+            getMemberNaming(obfuscatedClassName, obfuscatedMethodName, methodSignature);
+        if (memberNaming == null) {
+          return obfuscatedMethodName;
+        }
+
+        Signature originalSignature = memberNaming.getOriginalSignature();
+        return originalSignature.name;
+      }
+
+      @Override
+      public int getOriginalLineNumber(int obfuscatedLineNumber) {
+        return obfuscatedLineNumber;
+        // TODO(tamaskenez) Map possibly reassigned line number to original, watch for inline.
+        // methods
+      }
+
+      @Override
+      public String getObfuscatedClassName(String originalClassName) {
+        // TODO(tamaskenez) Watch for inline methods (we can be in a different class).
+        String obfuscatedClassName =
+            classNameMapper.getObfuscatedToOriginalMapping().inverse().get(originalClassName);
+        return obfuscatedClassName == null ? originalClassName : obfuscatedClassName;
+      }
+
+      @Override
+      public String getObfuscatedMethodName(
+          String originalClassName, String originalMethodName, String methodSignatureOrNull) {
+        ClassNaming naming;
+        String obfuscatedClassName =
+            classNameMapper.getObfuscatedToOriginalMapping().inverse().get(originalClassName);
+        if (obfuscatedClassName != null) {
+          naming = classNameMapper.getClassNaming(obfuscatedClassName);
+        } else {
+          return originalMethodName;
+        }
+
+        if (methodSignatureOrNull == null) {
+          List<MemberNaming> memberNamings = naming.lookupByOriginalName(originalMethodName);
+          if (memberNamings.isEmpty()) {
+            return originalMethodName;
+          } else if (memberNamings.size() == 1) {
+            return memberNamings.get(0).getRenamedName();
+          } else
+            throw new RuntimeException(
+                String.format(
+                    "Looking up method %s.%s without signature is ambiguous (%d candidates).",
+                    originalClassName, originalMethodName, memberNamings.size()));
+        } else {
+          MethodSignature originalSignature =
+              MethodSignature.fromSignature(originalMethodName, methodSignatureOrNull);
+          MemberNaming memberNaming = naming.lookupByOriginalSignature(originalSignature);
+          if (memberNaming == null) {
+            return originalMethodName;
+          }
+
+          return memberNaming.getRenamedName();
+        }
+      }
+
+      /** Assumes classNameMapper is valid. Return null if no member naming found. */
+      private MemberNaming getMemberNaming(
+          String obfuscatedClassName, String obfuscatedMethodName, String genericMethodSignature) {
+        ClassNaming classNaming = classNameMapper.getClassNaming(obfuscatedClassName);
+        if (classNaming == null) {
+          return null;
+        }
+
+        MethodSignature renamedSignature =
+            MethodSignature.fromSignature(obfuscatedMethodName, genericMethodSignature);
+        return classNaming.lookup(renamedSignature);
+      }
+    }
+
+    JUnit3Wrapper(
+        String debuggeeClassName,
+        String[] debuggeePath,
+        List<Command> commands,
+        ClassNameMapper classNameMapper) {
       this.debuggeeClassName = debuggeeClassName;
       this.debuggeePath = debuggeePath;
       this.commandsQueue = new ArrayDeque<>(commands);
+      if (classNameMapper == null) {
+        this.translator = new IdentityTranslator();
+      } else {
+        this.translator = new ClassNameMapperTranslator(classNameMapper);
+      }
     }
 
     @Override
@@ -733,10 +915,12 @@ public abstract class DebugTestBase {
 
         private final long frameId;
         private final Location location;
+        private final Translator translator;
 
-        public DebuggeeFrame(long frameId, Location location) {
+        public DebuggeeFrame(long frameId, Location location, Translator translator) {
           this.frameId = frameId;
           this.location = location;
+          this.translator = translator;
         }
 
         public long getFrameId() {
@@ -747,7 +931,7 @@ public abstract class DebugTestBase {
           return location;
         }
 
-        public int getLineNumber() {
+        private int getObfuscatedLineNumber() {
           Location location = getLocation();
           ReplyPacket reply = getMirror().getLineTable(location.classID, location.methodID);
           if (reply.getErrorCode() != 0) {
@@ -775,8 +959,11 @@ public abstract class DebugTestBase {
               break;
             }
           }
-
           return line;
+        }
+
+        public int getLineNumber() {
+          return translator.getOriginalLineNumber(getObfuscatedLineNumber());
         }
 
         public String getSourceFile() {
@@ -874,7 +1061,11 @@ public abstract class DebugTestBase {
               expectedValue, localValue);
         }
 
-        public String getClassName() {
+        /**
+         * Return class name, as found in the binary. If it has not been obfuscated (minified) it's
+         * identical to the original class name. Otherwise, it's the obfuscated one.
+         */
+        private String getObfuscatedClassName() {
           String classSignature = getClassSignature();
           assert classSignature.charAt(0) == 'L';
           // Remove leading 'L' and trailing ';'
@@ -883,14 +1074,25 @@ public abstract class DebugTestBase {
           return classSignature.replace('/', '.');
         }
 
+        public String getClassName() {
+          return translator.getOriginalClassName(getObfuscatedClassName());
+        }
+
         public String getClassSignature() {
           Location location = getLocation();
           return getMirror().getClassSignature(location.classID);
         }
 
-        public String getMethodName() {
+        // Return method name as found in the binary. Can be obfuscated (minified).
+        private String getObfuscatedMethodName() {
           Location location = getLocation();
           return getMirror().getMethodName(location.classID, location.methodID);
+        }
+
+        // Return original method name.
+        public String getMethodName() {
+          return translator.getOriginalMethodName(
+              getObfuscatedClassName(), getObfuscatedMethodName(), getMethodSignature());
         }
 
         public String getMethodSignature() {
@@ -1138,7 +1340,7 @@ public abstract class DebugTestBase {
         for (int i = 0; i < frameCount; ++i) {
           long frameId = replyPacket.getNextValueAsFrameID();
           Location location = replyPacket.getNextValueAsLocation();
-          frames.add(debuggeeState.new DebuggeeFrame(frameId, location));
+          frames.add(debuggeeState.new DebuggeeFrame(frameId, location, translator));
         }
         assertAllDataRead(replyPacket);
       }
@@ -1207,7 +1409,8 @@ public abstract class DebugTestBase {
         @Override
         public void perform(JUnit3Wrapper testBase) {
           VmMirror mirror = testBase.getMirror();
-          String classSignature = getClassSignature(className);
+          String obfuscatedClassName = testBase.translator.getObfuscatedClassName(className);
+          String classSignature = getClassSignature(obfuscatedClassName);
           byte typeTag = TypeTag.CLASS;
           long classId = mirror.getClassID(classSignature);
           if (classId == -1) {
@@ -1220,7 +1423,7 @@ public abstract class DebugTestBase {
             // breakpoint.
             assert requestedClassPrepare == false : "Already requested class prepare";
             requestedClassPrepare = true;
-            ReplyPacket replyPacket = mirror.setClassPrepared(className);
+            ReplyPacket replyPacket = mirror.setClassPrepared(obfuscatedClassName);
             final int classPrepareRequestId = replyPacket.getNextValueAsInt();
             testBase.events.put(Integer.valueOf(classPrepareRequestId), wrapper -> {
               // Remove the CLASS_PREPARE
@@ -1237,7 +1440,10 @@ public abstract class DebugTestBase {
             });
           } else {
             // The class is available: lookup the method then set the breakpoint.
-            long breakpointMethodId = findMethod(mirror, classId, methodName, methodSignature);
+            String obfuscatedMethodName =
+                testBase.translator.getObfuscatedMethodName(className, methodName, methodSignature);
+            long breakpointMethodId =
+                findMethod(mirror, classId, obfuscatedMethodName, methodSignature);
             long index = testBase.getMethodFirstCodeIndex(classId, breakpointMethodId);
             Assert.assertTrue("No code in method", index >= 0);
             ReplyPacket replyPacket = testBase.getMirror().setBreakpoint(
