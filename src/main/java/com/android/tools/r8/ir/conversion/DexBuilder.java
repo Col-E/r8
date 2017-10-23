@@ -633,8 +633,12 @@ public class DexBuilder {
     // Coalesce try blocks.
     tryItems.sort(TryItem::compareTo);
     List<TryItem> coalescedTryItems = new ArrayList<>(tryItems.size());
+    TryItem item = null;
     for (int i = 0; i < tryItems.size(); ) {
-      TryItem item = tryItems.get(i);
+      if (item != null) {
+        item.end = trimEnd(blocksWithHandlers.get(i - 1));
+      }
+      item = tryItems.get(i);
       coalescedTryItems.add(item);
       // Trim the range start for non-throwing instructions when starting a new range.
       List<com.android.tools.r8.ir.code.Instruction> instructions = blocksWithHandlers.get(i).getInstructions();
@@ -649,7 +653,6 @@ public class DexBuilder {
       while (i < tryItems.size()) {
         TryItem next = tryItems.get(i);
         if (item.end != next.start || !item.handlers.equals(next.handlers)) {
-          item.end = trimEnd(blocksWithHandlers.get(i - 1));
           break;
         }
         item.end = next.end;
@@ -658,8 +661,7 @@ public class DexBuilder {
     }
     // Trim the last try range.
     int lastIndex = tryItems.size() - 1;
-    TryItem lastItem = tryItems.get(lastIndex);
-    lastItem.end = trimEnd(blocksWithHandlers.get(lastIndex));
+    item.end = trimEnd(blocksWithHandlers.get(lastIndex));
     return coalescedTryItems;
   }
 
