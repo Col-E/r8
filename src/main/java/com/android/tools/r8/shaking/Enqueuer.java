@@ -85,7 +85,7 @@ public class Enqueuer {
   private Map<DexType, Set<DexField>> staticFieldsWritten = Maps.newIdentityHashMap();
 
   private final List<SemanticsProvider> extensions = new ArrayList<>();
-  private final Map<Class, Object> extensionsState = new HashMap<>();
+  private final Map<Class<?>, Object> extensionsState = new HashMap<>();
 
   /**
    * This map keeps a view of all virtual methods that are reachable from virtual invokes. A method
@@ -921,22 +921,22 @@ public class Enqueuer {
 
   SortedSet<DexField> collectInstanceFieldsRead() {
     return ImmutableSortedSet.copyOf(
-        PresortedComparable::slowCompareTo, collectFields(instanceFieldsRead));
+        PresortedComparable<DexField>::slowCompareTo, collectFields(instanceFieldsRead));
   }
 
   SortedSet<DexField> collectInstanceFieldsWritten() {
     return ImmutableSortedSet.copyOf(
-        PresortedComparable::slowCompareTo, collectFields(instanceFieldsWritten));
+        PresortedComparable<DexField>::slowCompareTo, collectFields(instanceFieldsWritten));
   }
 
   SortedSet<DexField> collectStaticFieldsRead() {
     return ImmutableSortedSet.copyOf(
-        PresortedComparable::slowCompareTo, collectFields(staticFieldsRead));
+        PresortedComparable<DexField>::slowCompareTo, collectFields(staticFieldsRead));
   }
 
   SortedSet<DexField> collectStaticFieldsWritten() {
     return ImmutableSortedSet.copyOf(
-        PresortedComparable::slowCompareTo, collectFields(staticFieldsWritten));
+        PresortedComparable<DexField>::slowCompareTo, collectFields(staticFieldsWritten));
   }
 
   private Set<DexField> collectReachedFields(Map<DexType, Set<DexField>> map,
@@ -956,13 +956,13 @@ public class Enqueuer {
   }
 
   SortedSet<DexField> collectFieldsRead() {
-    return ImmutableSortedSet.copyOf(PresortedComparable::slowCompareTo,
+    return ImmutableSortedSet.copyOf(PresortedComparable<DexField>::slowCompareTo,
         Sets.union(collectReachedFields(instanceFieldsRead, this::tryLookupInstanceField),
             collectReachedFields(staticFieldsRead, this::tryLookupStaticField)));
   }
 
   SortedSet<DexField> collectFieldsWritten() {
-    return ImmutableSortedSet.copyOf(PresortedComparable::slowCompareTo,
+    return ImmutableSortedSet.copyOf(PresortedComparable<DexField>::slowCompareTo,
         Sets.union(collectReachedFields(instanceFieldsWritten, this::tryLookupInstanceField),
             collectReachedFields(staticFieldsWritten, this::tryLookupStaticField)));
   }
@@ -1129,7 +1129,7 @@ public class Enqueuer {
     /**
      * Map from the class of an extension to the state it produced.
      */
-    final Map<Class, Object> extensions;
+    final Map<Class<?>, Object> extensions;
     /**
      * A set of types that have been removed by the {@link TreePruner}.
      */
@@ -1137,10 +1137,10 @@ public class Enqueuer {
 
     private AppInfoWithLiveness(AppInfoWithSubtyping appInfo, Enqueuer enqueuer) {
       super(appInfo);
-      this.liveTypes =
-          ImmutableSortedSet.copyOf(PresortedComparable::slowCompareTo, enqueuer.liveTypes);
+      this.liveTypes = ImmutableSortedSet.copyOf(
+          PresortedComparable<DexType>::slowCompareTo, enqueuer.liveTypes);
       this.instantiatedTypes = ImmutableSortedSet.copyOf(
-          PresortedComparable::slowCompareTo, enqueuer.instantiatedTypes.getItems());
+          PresortedComparable<DexType>::slowCompareTo, enqueuer.instantiatedTypes.getItems());
       this.targetedMethods = toSortedDescriptorSet(enqueuer.targetedMethods.getItems());
       this.liveMethods = toSortedDescriptorSet(enqueuer.liveMethods.getItems());
       this.liveFields = toSortedDescriptorSet(enqueuer.liveFields.getItems());
@@ -1275,7 +1275,7 @@ public class Enqueuer {
     private <T extends PresortedComparable<T>> SortedSet<T> toSortedDescriptorSet(
         Set<? extends KeyedDexItem<T>> set) {
       ImmutableSortedSet.Builder<T> builder =
-          new ImmutableSortedSet.Builder<>(PresortedComparable::slowCompareTo);
+          new ImmutableSortedSet.Builder<>(PresortedComparable<T>::slowCompareTo);
       for (KeyedDexItem<T> item : set) {
         builder.add(item.getKey());
       }
@@ -1335,7 +1335,7 @@ public class Enqueuer {
     }
 
     @SuppressWarnings("unchecked")
-    public <T> T getExtension(Class extension, T defaultValue) {
+    public <T> T getExtension(Class<?> extension, T defaultValue) {
       if (extensions.containsKey(extension)) {
         return (T) extensions.get(extension);
       } else {
@@ -1343,7 +1343,7 @@ public class Enqueuer {
       }
     }
 
-    public <T> void setExtension(Class extension, T value) {
+    public <T> void setExtension(Class<?> extension, T value) {
       assert !extensions.containsKey(extension);
       extensions.put(extension, value);
     }

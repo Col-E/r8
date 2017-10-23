@@ -34,7 +34,7 @@ public class Marker {
     content = new TreeMap<>();
     // This loop is necessary to make the type checker to shut up.
     for (Object e : object.entrySet()) {
-      Map.Entry entry = (Map.Entry) e;
+      Map.Entry<?,?> entry = (Map.Entry<?,?>) e;
       content.put(String.valueOf(entry.getKey()), entry.getValue());
     }
   }

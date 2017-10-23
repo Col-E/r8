@@ -18,7 +18,7 @@ public class AppInfo {
 
   public final DexApplication app;
   public final DexItemFactory dexItemFactory;
-  private final ConcurrentHashMap<DexType, Map<Descriptor, KeyedDexItem>> definitions =
+  private final ConcurrentHashMap<DexType, Map<Descriptor<?,?>, KeyedDexItem<?>>> definitions =
       new ConcurrentHashMap<>();
 
   public AppInfo(DexApplication application) {
@@ -40,8 +40,8 @@ public class AppInfo {
     this(application);
   }
 
-  private Map<Descriptor, KeyedDexItem> computeDefinitions(DexType type) {
-    Builder<Descriptor, KeyedDexItem> builder = ImmutableMap.builder();
+  private Map<Descriptor<?,?>, KeyedDexItem<?>> computeDefinitions(DexType type) {
+    Builder<Descriptor<?,?>, KeyedDexItem<?>> builder = ImmutableMap.builder();
     DexClass clazz = app.definitionFor(type);
     if (clazz != null) {
       clazz.forEachMethod(method -> builder.put(method.getKey(), method));
@@ -66,14 +66,14 @@ public class AppInfo {
     return (DexEncodedField) getDefinitions(field.getHolder()).get(field);
   }
 
-  private Map<Descriptor, KeyedDexItem> getDefinitions(DexType type) {
-    Map<Descriptor, KeyedDexItem> typeDefinitions = definitions.get(type);
+  private Map<Descriptor<?,?>, KeyedDexItem<?>> getDefinitions(DexType type) {
+    Map<Descriptor<?,?>, KeyedDexItem<?>> typeDefinitions = definitions.get(type);
     if (typeDefinitions != null) {
       return typeDefinitions;
     }
 
     typeDefinitions = computeDefinitions(type);
-    Map<Descriptor, KeyedDexItem> existing = definitions.putIfAbsent(type, typeDefinitions);
+    Map<Descriptor<?,?>, KeyedDexItem<?>> existing = definitions.putIfAbsent(type, typeDefinitions);
     return existing != null ? existing : typeDefinitions;
   }
 
