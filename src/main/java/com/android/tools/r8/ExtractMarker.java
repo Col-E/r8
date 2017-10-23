@@ -146,7 +146,6 @@ public class ExtractMarker {
       return;
     }
 
-    InternalOptions options = new InternalOptions();
     // Dex code is not needed for getting the marker. VDex files typically contains quickened byte
     // codes which cannot be read, and we want to get the marker from vdex files as well.
     int d8Count = 0;
@@ -154,6 +153,7 @@ public class ExtractMarker {
     int otherCount = 0;
     for (Path programFile : command.getProgramFiles()) {
       try {
+        InternalOptions options = new InternalOptions();
         options.skipReadingDexCode = true;
         options.minApiLevel = AndroidApiLevel.P.getLevel();
         AndroidApp.Builder appBuilder = AndroidApp.builder();
