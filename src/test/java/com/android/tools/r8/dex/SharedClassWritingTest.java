@@ -46,6 +46,7 @@ import org.junit.Test;
 public class SharedClassWritingTest {
 
   private final static String PREFIX = "A";
+  private final static int NUMBER_OF_FILES = 500;
 
   DexItemFactory dexItemFactory = new DexItemFactory();
 
@@ -105,8 +106,8 @@ public class SharedClassWritingTest {
     // at different offsets in the strings array. This ensures we trigger multiple rounds of
     // rewrites.
     List<DexProgramClass> classes = new ArrayList<>();
-    for (int i = 0; i < 1000; i++) {
-      classes.add(makeClass("Class" + i, Constants.MAX_NON_JUMBO_INDEX - 1, i / 10,
+    for (int i = 0; i < NUMBER_OF_FILES; i++) {
+      classes.add(makeClass("Class" + i, Constants.MAX_NON_JUMBO_INDEX - 1, i % 100,
           Collections.emptyList()));
     }
 
@@ -130,7 +131,7 @@ public class SharedClassWritingTest {
     writer.write(sink, executorService);
     List<Set<String>> generatedDescriptors = sink.getDescriptors();
     // Check all files present.
-    Assert.assertEquals(1000, generatedDescriptors.size());
+    Assert.assertEquals(NUMBER_OF_FILES, generatedDescriptors.size());
     // And each file contains two classes of which one is the shared one.
     for (Set<String> classDescriptors : generatedDescriptors) {
       Assert.assertEquals(2, classDescriptors.size());
