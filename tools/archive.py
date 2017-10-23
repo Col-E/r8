@@ -78,7 +78,7 @@ def Main():
     version_file = os.path.join(temp, 'r8-version.properties')
     with open(version_file,'w') as version_writer:
       version_writer.write('version.sha=' + GetGitHash() + '\n')
-      version_writer.write('releaser=' + os.environ.get('BUILDBOT_BUILDERNAME') + '\n')
+      version_writer.write('releaser=go/r8bot (' + os.environ.get('BUILDBOT_SLAVENAME') + ')\n')
       version_writer.write('version-file.version.code=1\n')
 
     for jar in [utils.D8_JAR, utils.R8_JAR, utils.COMPATDX_JAR, utils.COMPATPROGUARD_JAR]:
