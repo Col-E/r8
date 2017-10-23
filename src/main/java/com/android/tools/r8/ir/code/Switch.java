@@ -68,12 +68,14 @@ public class Switch extends JumpInstruction {
   }
 
   // Size of the switch payload if emitted as packed (in code units).
-  static public long packedPayloadSize(int keys[]) {
+  // This size can not exceed Constants.U16BIT_MAX * 2 + 4 and can be contained in an integer.
+  private static int packedPayloadSize(int keys[]) {
     return (numberOfTargetsForPacked(keys) * 2) + 4;
   }
 
   // Size of the switch payload if emitted as sparse (in code units).
-  public static long sparsePayloadSize(int keys[]) {
+  // This size can not exceed Constants.U16BIT_MAX * 4 + 2 and can be contained in an integer.
+  private static int sparsePayloadSize(int keys[]) {
     return (keys.length * 4) + 2;
   }
 
@@ -84,7 +86,7 @@ public class Switch extends JumpInstruction {
    * @param keys the switch keys
    * @return Size of the switch payload instruction in code units
    */
-  public static long payloadSize(List<Integer> keys) {
+  public static int payloadSize(List<Integer> keys) {
     return payloadSize(Ints.toArray(keys));
   }
 
@@ -93,8 +95,8 @@ public class Switch extends JumpInstruction {
    *
    * @see #payloadSize(List)
    */
-  public static long payloadSize(int keys[]) {
-    long sparse = sparsePayloadSize(keys);
+  public static int payloadSize(int keys[]) {
+    int sparse = sparsePayloadSize(keys);
     if (canBePacked(keys)) {
       return Math.min(sparse, packedPayloadSize(keys));
     } else {
@@ -112,12 +114,12 @@ public class Switch extends JumpInstruction {
   }
 
   // Size of the switch payload if emitted as packed (in code units).
-  private long packedPayloadSize() {
+  private int packedPayloadSize() {
     return packedPayloadSize(keys);
   }
 
   // Size of the switch payload if emitted as sparse (in code units).
-  private long sparsePayloadSize() {
+  private int sparsePayloadSize() {
     return sparsePayloadSize(keys);
   }
 

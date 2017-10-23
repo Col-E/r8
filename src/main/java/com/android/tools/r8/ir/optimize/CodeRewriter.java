@@ -494,7 +494,7 @@ public class CodeRewriter {
             }
 
             // Get the existing dex size for the payload and switch.
-            long currentSize = Switch.payloadSize(keys) + Switch.estimatedDexSize();
+            int currentSize = Switch.payloadSize(keys) + Switch.estimatedDexSize();
 
             // Never replace with more than 10 if/switch instructions.
             if (outliers.size() + sequences.size() <= 10) {
