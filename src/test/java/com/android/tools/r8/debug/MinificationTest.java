@@ -3,9 +3,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.debug;
 
+import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.Command;
 import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -63,19 +68,28 @@ public class MinificationTest extends DebugTestBase {
     final String innerClassName = minifiedNames ? "a" : "Minified$Inner";
     final String innerMethodName = minifiedNames ? "a" : "innerTest";
     final String innerSignature = "()I";
-    runDebugTestR8(
-        className,
-        breakpoint(className, methodName, signature),
-        run(),
-        checkMethod(className, methodName, signature),
-        checkLine(SOURCE_FILE, 14),
-        stepOver(),
-        checkMethod(className, methodName, signature),
-        checkLine(SOURCE_FILE, 15),
-        stepInto(),
-        checkMethod(innerClassName, innerMethodName, innerSignature),
-        checkLine(SOURCE_FILE, 8),
-        run());
+    List<Command> commands =
+        new ArrayList<>(
+            Arrays.asList(
+                breakpoint(className, methodName, signature),
+                run(),
+                checkMethod(className, methodName, signature),
+                checkLine(SOURCE_FILE, 14),
+                stepOver(),
+                checkMethod(className, methodName, signature),
+                checkLine(SOURCE_FILE, 15),
+                stepInto()));
+    // Dalvik first enters ClassLoader, step over it.
+    // See also b/67225390.
+    if (ToolHelper.getDexVm() == DexVm.ART_4_4_4_HOST) {
+      commands.add(stepOver());
+    }
+    commands.addAll(
+        Arrays.asList(
+            checkMethod(innerClassName, innerMethodName, innerSignature),
+            checkLine(SOURCE_FILE, 8),
+            run()));
+    runDebugTestR8(className, commands);
   }
 
   @Test
