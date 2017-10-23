@@ -282,7 +282,8 @@ class ClassNameMinifier {
   }
 
   private Namespace getStateForPackagePrefix(String prefix) {
-    return states.computeIfAbsent(prefix, k -> {
+    Namespace state = states.get(prefix);
+    if (state == null) {
       // Calculate the parent package prefix, e.g., La/b/c -> La/b
       String parentPackage = getParentPackagePrefix(prefix);
       // Create a state for parent package prefix, if necessary, in a recursive manner.
@@ -291,13 +292,16 @@ class ClassNameMinifier {
       // From the super state, get a renamed package prefix for the current level.
       String renamedPackagePrefix = superState.nextPackagePrefix();
       // Create a new state, which corresponds to a new name space, for the current level.
-      return new Namespace(renamedPackagePrefix);
-    });
+      state = new Namespace(renamedPackagePrefix);
+      states.put(prefix, state);
+    }
+    return state;
   }
 
   private Namespace getStateForOuterClass(DexType outer) {
     String prefix = getClassBinaryNameFromDescriptor(outer.toDescriptorString());
-    return states.computeIfAbsent(prefix, k -> {
+    Namespace state = states.get(prefix);
+    if (state == null) {
       // Create a naming state with this classes renaming as prefix.
       DexString renamed = renaming.get(outer);
       if (renamed == null) {
@@ -311,8 +315,10 @@ class ClassNameMinifier {
         }
       }
       String binaryName = getClassBinaryNameFromDescriptor(renamed.toString());
-      return new Namespace(binaryName, "$");
-    });
+      state = new Namespace(binaryName, "$");
+      states.put(prefix, state);
+    }
+    return state;
   }
 
   private void renameArrayTypeIfNeeded(DexType type) {
