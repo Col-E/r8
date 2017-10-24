@@ -63,7 +63,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -1024,8 +1024,8 @@ public class FileWriter {
         = createObject2IntMap();
     private final Object2IntMap<DexProgramClass> classesWithData = createObject2IntMap();
     private final Object2IntMap<DexEncodedArray> encodedArrays = createObject2IntMap();
-    private final Hashtable<DexProgramClass, DexAnnotationDirectory> clazzToAnnotationDirectory
-        = new Hashtable<>();
+    private final Map<DexProgramClass, DexAnnotationDirectory> clazzToAnnotationDirectory
+        = new HashMap<>();
 
     private static <T> Object2IntMap<T> createObject2IntMap() {
       Object2IntMap<T> result = new Object2IntLinkedOpenHashMap<>();

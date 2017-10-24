@@ -17,11 +17,11 @@ import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
+import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
@@ -359,7 +359,7 @@ public class DexCode extends Code {
       this.handlerIndex = NO_INDEX;
     }
 
-    public void setHandlerIndex(Hashtable<Integer, Integer> map) {
+    public void setHandlerIndex(Int2IntMap map) {
       handlerIndex = map.get(handlerOffset);
     }
 
