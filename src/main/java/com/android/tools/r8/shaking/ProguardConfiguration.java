@@ -19,13 +19,13 @@ public class ProguardConfiguration {
 
     private final List<FilteredClassPath> injars = new ArrayList<>();
     private final List<FilteredClassPath> libraryjars = new ArrayList<>();
-    private PackageObfuscationMode packageObfuscationMode;
-    private String packagePrefix;
+    private PackageObfuscationMode packageObfuscationMode = PackageObfuscationMode.NONE;
+    private String packagePrefix = "";
     private boolean allowAccessModification;
     private boolean ignoreWarnings;
-    private boolean optimizing;
-    private boolean obfuscating;
-    private boolean shrinking;
+    private boolean optimizing = true;
+    private boolean obfuscating = true;
+    private boolean shrinking = true;
     private boolean printUsage;
     private Path printUsageFile;
     private boolean printMapping;
@@ -34,7 +34,7 @@ public class ProguardConfiguration {
     private boolean verbose;
     private String renameSourceFileAttribute;
     private final List<String> keepAttributePatterns = new ArrayList<>();
-    private ProguardClassNameList dontWarnPatterns;
+    private ProguardClassNameList dontWarnPatterns = ProguardClassNameList.emptyList();
     protected final List<ProguardConfigurationRule> rules = new ArrayList<>();
     private final DexItemFactory dexItemFactory;
     private boolean printSeeds;
@@ -48,36 +48,6 @@ public class ProguardConfiguration {
 
     private Builder(DexItemFactory dexItemFactory) {
       this.dexItemFactory = dexItemFactory;
-      resetProguardDefaults();
-    }
-
-    public void resetProguardDefaults() {
-      injars.clear();
-      libraryjars.clear();
-      packageObfuscationMode = PackageObfuscationMode.NONE;
-      packagePrefix = "";
-      allowAccessModification = false;
-      ignoreWarnings = false;
-      optimizing = true;
-      obfuscating = true;
-      shrinking = true;
-      printUsage = false;
-      printUsageFile = null;
-      printMapping = false;
-      printMappingFile = null;
-      applyMappingFile = null;
-      verbose = false;
-      renameSourceFileAttribute = null;
-      keepAttributePatterns.clear();
-      dontWarnPatterns = ProguardClassNameList.emptyList();
-      rules.clear();
-      printSeeds = false;
-      seedFile = null;
-      obfuscationDictionary = null;
-      classObfuscationDictionary = null;
-      packageObfuscationDictionary = null;
-      useUniqueClassMemberNames = false;
-      keepParameterNames = false;
     }
 
     public void addInjars(List<FilteredClassPath> injars) {
@@ -207,6 +177,14 @@ public class ProguardConfiguration {
     }
 
     public ProguardConfiguration build() throws CompilationException {
+      if (rules.isEmpty()) {
+        setObfuscating(false);
+        setShrinking(false);
+        addRule(ProguardKeepRule.defaultKeepAllRule());
+        if (keepAttributePatterns.isEmpty()) {
+          addKeepAttributePatterns(KeepAttributeOptions.KEEP_ALL);
+        }
+      }
       return new ProguardConfiguration(
           dexItemFactory,
           injars,
@@ -334,15 +312,6 @@ public class ProguardConfiguration {
     return new Builder(dexItemFactory);
   }
 
-  public static Builder builderInitializedWithDefaults(DexItemFactory dexItemFactory) {
-    Builder builder = new Builder(dexItemFactory);
-    builder.setObfuscating(false);
-    builder.setShrinking(false);
-    builder.addKeepAttributePatterns(KeepAttributeOptions.KEEP_ALL);
-    builder.addRule(ProguardKeepRule.defaultKeepAllRule());
-    return builder;
-  }
-
   public DexItemFactory getDexItemFactory() {
     return dexItemFactory;
   }
@@ -453,7 +422,7 @@ public class ProguardConfiguration {
 
   public static ProguardConfiguration defaultConfiguration(DexItemFactory dexItemFactory) {
     try {
-      return builderInitializedWithDefaults(dexItemFactory).build();
+      return builder(dexItemFactory).build();
     } catch(CompilationException e) {
       // Building a builder initialized with defaults will not throw CompilationException because
       // DictionaryReader is called with empty lists.

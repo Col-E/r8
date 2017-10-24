@@ -91,11 +91,9 @@ public class JSR45Tests {
     checkAnnotationContent(INPUT_PATH, result);
   }
 
-  /**
-   * Check that when dontshrink and dontobfuscate is used the annotation is transmitted.
-   */
+  /** Check that when dontshrink and dontobfuscate is used the annotation is transmitted. */
   @Test
-  public void testSourceDebugExtensionWithShriking1()
+  public void testSourceDebugExtensionWithShrinking1()
       throws IOException, CompilationException, ExecutionException {
     Path outputPath = tmpOutputDir.newFolder().toPath();
     AndroidApp result = compileWithR8(INPUT_PATH, outputPath, DONT_SHRINK_DONT_OBFUSCATE_CONFIG);
@@ -125,7 +123,7 @@ public class JSR45Tests {
   }
 
   /**
-   * Check that the annotation is removed when shriking is enabled and that there is not
+   * Check that the annotation is removed when shrinking is enabled and that there is not
    * keepattributes option.
    */
   @Test

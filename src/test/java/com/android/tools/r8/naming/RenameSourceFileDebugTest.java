@@ -21,8 +21,6 @@ public class RenameSourceFileDebugTest extends DebugTestBase {
     setUp(
         null,
         pg -> {
-          pg.resetProguardDefaults();
-          pg.addRule(ProguardKeepRule.defaultKeepAllRule());
           pg.setRenameSourceFileAttribute(TEST_FILE);
           pg.addKeepAttributePatterns(ImmutableList.of("SourceFile", "LineNumberTable"));
         });
