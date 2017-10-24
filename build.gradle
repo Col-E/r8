@@ -10,6 +10,7 @@ apply plugin: 'idea'
 apply plugin: 'com.google.protobuf'
 apply plugin: 'com.cookpad.android.licensetools'
 apply plugin: 'net.ltgt.errorprone-base'
+apply plugin: "net.ltgt.apt"
 
 def errorProneConfiguration = [
     '-XepDisableAllChecks',
@@ -51,6 +52,7 @@ buildscript {
         // classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.1'
         classpath files("third_party/shadow/shadow-2.0.1.jar")
         classpath "net.ltgt.gradle:gradle-errorprone-plugin:0.0.13"
+        classpath "net.ltgt.gradle:gradle-apt-plugin:0.12"
     }
 }
 
@@ -169,12 +171,16 @@ dependencies {
     jctfTestsCompile sourceSets.jctfCommon.output
     examplesAndroidOCompile group: 'org.ow2.asm', name: 'asm', version: '6.0'
     examplesAndroidPCompile group: 'org.ow2.asm', name: 'asm', version: '6.0'
+    // Import Guava for @Nullable annotation
+    examplesCompile 'com.google.guava:guava:23.0'
     examplesCompile 'com.google.protobuf:protobuf-lite:3.0.0'
+    examplesCompileOnly "com.google.auto.value:auto-value:1.5"
     examplesRuntime 'com.google.protobuf:protobuf-lite:3.0.0'
     supportLibs 'com.android.support:support-v4:25.4.0'
     supportLibs 'junit:junit:4.12'
     supportLibs 'com.android.support.test.espresso:espresso-core:3.0.0'
     debugTestResourcesKotlinCompileOnly 'org.jetbrains.kotlin:kotlin-stdlib:1.1.4-3'
+    apt 'com.google.auto.value:auto-value:1.5'
 }
 
 licenseTools {
