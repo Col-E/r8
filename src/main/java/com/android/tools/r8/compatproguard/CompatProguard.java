@@ -50,6 +50,8 @@ public class CompatProguard {
       int minApi = 1;
       boolean forceProguardCompatibility = false;
       boolean multiDex = false;
+      boolean coreLibrary = false;
+
       ImmutableList.Builder<String> builder = ImmutableList.builder();
       if (args.length > 0) {
         StringBuilder currentLine = new StringBuilder(args[0]);
@@ -64,6 +66,8 @@ public class CompatProguard {
               output = args[++i];
             } else if (arg.equals("--multi-dex")) {
               multiDex = true;
+            } else if (arg.equals("--core-library")) {
+              coreLibrary = true;
             } else if (arg.equals("-outjars")) {
               throw new CompilationException(
                   "Proguard argument -outjar is not supported. Use R8 compatible --output flag");
