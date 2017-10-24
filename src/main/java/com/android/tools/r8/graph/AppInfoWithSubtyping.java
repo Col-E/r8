@@ -8,7 +8,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Hashtable;
+import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
@@ -18,7 +18,7 @@ public class AppInfoWithSubtyping extends AppInfo {
   // Set of missing classes, discovered during subtypeMap computation.
   private Set<DexType> missingClasses = Sets.newIdentityHashSet();
   // Map from types to their subtypes.
-  private final Hashtable<DexType, ImmutableSet<DexType>> subtypeMap = new Hashtable<>();
+  private final Map<DexType, ImmutableSet<DexType>> subtypeMap = new IdentityHashMap<>();
 
   public AppInfoWithSubtyping(DexApplication application) {
     super(application);
@@ -57,7 +57,7 @@ public class AppInfoWithSubtyping extends AppInfo {
     return subtypes == null ? ImmutableSet.of() : subtypes;
   }
 
-  private void populateSuperType(Hashtable<DexType, Set<DexType>> map, DexType superType,
+  private void populateSuperType(Map<DexType, Set<DexType>> map, DexType superType,
       DexClass baseClass, Function<DexType, DexClass> definitions) {
     if (superType != null) {
       Set<DexType> set = map.computeIfAbsent(superType, ignore -> new HashSet<>());
@@ -68,7 +68,7 @@ public class AppInfoWithSubtyping extends AppInfo {
     }
   }
 
-  private void populateAllSuperTypes(Hashtable<DexType, Set<DexType>> map, DexType holder,
+  private void populateAllSuperTypes(Map<DexType, Set<DexType>> map, DexType holder,
       DexClass baseClass, Function<DexType, DexClass> definitions) {
     DexClass holderClass = definitions.apply(holder);
     // Skip if no corresponding class is found.
@@ -98,7 +98,7 @@ public class AppInfoWithSubtyping extends AppInfo {
   private void populateSubtypeMap(DirectMappedDexApplication app, DexItemFactory dexItemFactory) {
     dexItemFactory.clearSubtypeInformation();
     dexItemFactory.objectType.tagAsSubtypeRoot();
-    Hashtable<DexType, Set<DexType>> map = new Hashtable<>();
+    Map<DexType, Set<DexType>> map = new IdentityHashMap<>();
     for (DexClass clazz : Iterables.<DexClass>concat(app.classes(), app.libraryClasses())) {
       populateAllSuperTypes(map, clazz.type, clazz, app::definitionFor);
     }

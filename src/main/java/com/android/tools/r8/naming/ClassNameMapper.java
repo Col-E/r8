@@ -17,7 +17,7 @@ import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
@@ -26,7 +26,7 @@ public class ClassNameMapper {
   private final ImmutableMap<String, ClassNaming> classNameMappings;
   private ImmutableBiMap<String, String> nameMapping;
 
-  private Hashtable<Signature, Signature> signatureMap = new Hashtable<>();
+  private Map<Signature, Signature> signatureMap = new HashMap<>();
 
   ClassNameMapper(Map<String, ClassNaming> classNameMappings) {
     this.classNameMappings = ImmutableMap.copyOf(classNameMappings);

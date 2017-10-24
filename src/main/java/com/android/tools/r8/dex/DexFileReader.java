@@ -53,6 +53,7 @@ import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.OffsetToObjectMapping;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.utils.ProgramResource.Kind;
+import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import java.io.ByteArrayOutputStream;
@@ -62,7 +63,6 @@ import java.nio.ShortBuffer;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -751,7 +751,7 @@ public class DexFileReader {
         file.getUshort();  // Skip padding ushort
       }
       if (triesSize > 0) {
-        Hashtable<Integer, Integer> handlerMap = new Hashtable<>();
+        Int2IntArrayMap handlerMap = new Int2IntArrayMap();
         // tries: try_item[tries_size].
         for (int i = 0; i < triesSize; i++) {
           int startAddr = file.getUint();
