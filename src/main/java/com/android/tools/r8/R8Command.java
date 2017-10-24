@@ -214,7 +214,7 @@ public class R8Command extends BaseCompilerCommand {
 
       ProguardConfiguration.Builder configurationBuilder;
       if (proguardConfigs.isEmpty()) {
-        configurationBuilder = ProguardConfiguration.builder(factory);
+        configurationBuilder = ProguardConfiguration.builderInitializedWithDefaults(factory);
       } else {
         ProguardConfigurationParser parser =
             new ProguardConfigurationParser(factory, getDiagnosticsHandler());
