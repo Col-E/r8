@@ -58,7 +58,6 @@ import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import java.security.MessageDigest;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -69,7 +68,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.ToIntFunction;
 import java.util.zip.Adler32;
 
@@ -101,27 +99,11 @@ public class FileWriter {
     }
     dest.putUleb128(mapping.getOffsetFor(annotation.type));
     dest.putUleb128(annotation.elements.length);
-    assert isSorted(annotation.elements, (element) -> element.name);
+    assert PresortedComparable.isSorted(annotation.elements, (element) -> element.name);
     for (DexAnnotationElement element : annotation.elements) {
       dest.putUleb128(mapping.getOffsetFor(element.name));
       element.value.writeTo(dest, mapping);
     }
-  }
-
-  private static <T extends PresortedComparable<T>> boolean isSorted(KeyedDexItem<T>[] items) {
-    return isSorted(items, KeyedDexItem::getKey);
-  }
-
-  private static <S, T extends Comparable<T>> boolean isSorted(S[] items, Function<S, T> getter) {
-    T current = null;
-    for (S item : items) {
-      T next = getter.apply(item);
-      if (current != null && current.compareTo(next) >= 0) {
-        return false;
-      }
-      current = next;
-    }
-    return true;
   }
 
   public FileWriter collect() {
@@ -518,7 +500,7 @@ public class FileWriter {
 
   private void writeAnnotationSet(DexAnnotationSet set) {
     assert !set.isEmpty();
-    assert isSorted(set.annotations, (item) -> item.annotation.type);
+    assert PresortedComparable.isSorted(set.annotations, (item) -> item.annotation.type);
     mixedSectionOffsets.setOffsetFor(set, dest.align(4));
     if (Log.ENABLED) {
       Log.verbose(getClass(), "Writing AnnotationSet @ 0x%08x.", dest.position());
@@ -564,7 +546,7 @@ public class FileWriter {
   }
 
   private void writeEncodedFields(DexEncodedField[] fields) {
-    assert isSorted(fields);
+    assert PresortedComparable.isSorted(fields);
     int currentOffset = 0;
     for (DexEncodedField field : fields) {
       int nextOffset = mapping.getOffsetFor(field.field);
@@ -576,7 +558,7 @@ public class FileWriter {
   }
 
   private void writeEncodedMethods(DexEncodedMethod[] methods, boolean clearBodies) {
-    assert isSorted(methods);
+    assert PresortedComparable.isSorted(methods);
     int currentOffset = 0;
     for (DexEncodedMethod method : methods) {
       int nextOffset = mapping.getOffsetFor(method.method);
@@ -614,21 +596,12 @@ public class FileWriter {
   }
 
   private void addStaticFieldValues(DexProgramClass clazz) {
-    DexEncodedField[] fields = clazz.staticFields();
-    int length = 0;
-    List<DexValue> values = new ArrayList<>(fields.length);
-    for (int i = 0; i < fields.length; i++) {
-      DexEncodedField field = fields[i];
-      assert field.staticValue != null;
-      values.add(field.staticValue);
-      if (!field.staticValue.isDefault(field.field.type, application.dexItemFactory)) {
-        length = i + 1;
-      }
-    }
-    if (length > 0) {
-      DexEncodedArray staticValues = new DexEncodedArray(
-          values.subList(0, length).toArray(new DexValue[length]));
-      clazz.setStaticValues(staticValues);
+    clazz.computeStaticValues(application.dexItemFactory);
+    // We have collected the individual components of this array due to the data stored in
+    // DexEncodedField#staticValues. However, we have to collect the DexEncodedArray itself
+    // here.
+    DexEncodedArray staticValues = clazz.getStaticValues();
+    if (staticValues != null) {
       mixedSectionOffsets.add(staticValues);
     }
   }
