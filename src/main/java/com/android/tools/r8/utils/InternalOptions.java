@@ -6,7 +6,6 @@ package com.android.tools.r8.utils;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.Resource.Origin;
 import com.android.tools.r8.dex.Marker;
-import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.InvalidDebugInfoException;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -114,7 +113,6 @@ public class InternalOptions {
   public boolean skipMinification = false;
   public boolean disableAssertions = true;
   public boolean debugKeepRules = false;
-  public final KeepAttributeOptions keepAttributes = new KeepAttributeOptions();
   public boolean allowParameterName = false;
 
   public boolean debug = false;
@@ -280,132 +278,6 @@ public class InternalOptions {
         Function.identity();
 
     public boolean invertConditionals = false;
-  }
-
-  public static class KeepAttributeOptions {
-
-    public static final String SOURCE_FILE = "SourceFile";
-    public static final String SOURCE_DIR = "SourceDir";
-    public static final String INNER_CLASSES = "InnerClasses";
-    public static final String ENCLOSING_METHOD = "EnclosingMethod";
-    public static final String SIGNATURE = "Signature";
-    public static final String EXCEPTIONS = "Exceptions";
-    public static final String SOURCE_DEBUG_EXTENSION = "SourceDebugExtension";
-    public static final String RUNTIME_VISIBLE_ANNOTATIONS = "RuntimeVisibleAnnotations";
-    public static final String RUNTIME_INVISIBLE_ANNOTATIONS = "RuntimeInvisibleAnnotations";
-    public static final String RUNTIME_VISIBLE_PARAMETER_ANNOTATIONS =
-        "RuntimeVisibleParameterAnnotations";
-    public static final String RUNTIME_INVISIBLE_PARAMETER_ANNOTATIONS =
-        "RuntimeInvisibleParameterAnnotations";
-    public static final String RUNTIME_VISIBLE_TYPE_ANNOTATIONS = "RuntimeVisibleTypeAnnotations";
-    public static final String RUNTIME_INVISIBLE_TYPE_ANNOTATIONS =
-        "RuntimeInvisibleTypeAnnotations";
-    public static final String ANNOTATION_DEFAULT = "AnnotationDefault";
-
-    public static final List<String> KEEP_ALL = ImmutableList.of("*");
-
-    public boolean sourceFile = false;
-    public boolean sourceDir = false;
-    public boolean innerClasses = false;
-    public boolean enclosingMethod = false;
-    public boolean signature = false;
-    public boolean exceptions = false;
-    public boolean sourceDebugExtension = false;
-    public boolean runtimeVisibleAnnotations = false;
-    public boolean runtimeInvisibleAnnotations = false;
-    public boolean runtimeVisibleParameterAnnotations = false;
-    public boolean runtimeInvisibleParamterAnnotations = false;
-    public boolean runtimeVisibleTypeAnnotations = false;
-    public boolean runtimeInvisibleTypeAnnotations = false;
-    public boolean annotationDefault = false;
-
-    private KeepAttributeOptions() {
-
-    }
-
-    public static KeepAttributeOptions filterOnlySignatures() {
-      KeepAttributeOptions result = new KeepAttributeOptions();
-      result.applyPatterns(KEEP_ALL);
-      result.signature = false;
-      return result;
-    }
-
-    /**
-     * Implements ProGuards attribute matching rules.
-     *
-     * @see <a href="https://www.guardsquare.com/en/proguard/manual/attributes">ProGuard manual</a>.
-     */
-    private boolean update(boolean previous, String text, List<String> patterns) {
-      for (String pattern : patterns) {
-        if (previous) {
-          return true;
-        }
-        if (pattern.charAt(0) == '!') {
-          if (matches(pattern, 1, text, 0)) {
-            break;
-          }
-        } else {
-          previous = matches(pattern, 0, text, 0);
-        }
-      }
-      return previous;
-    }
-
-    private boolean matches(String pattern, int patternPos, String text, int textPos) {
-      while (patternPos < pattern.length()) {
-        char next = pattern.charAt(patternPos++);
-        if (next == '*') {
-          while (textPos < text.length()) {
-            if (matches(pattern, patternPos, text, textPos++)) {
-              return true;
-            }
-          }
-          return patternPos >= pattern.length();
-        } else {
-          if (textPos >= text.length() || text.charAt(textPos) != next) {
-            return false;
-          }
-          textPos++;
-        }
-      }
-      return textPos == text.length();
-    }
-
-    public void applyPatterns(List<String> patterns) {
-      sourceFile = update(sourceFile, SOURCE_FILE, patterns);
-      sourceDir = update(sourceDir, SOURCE_DIR, patterns);
-      innerClasses = update(innerClasses, INNER_CLASSES, patterns);
-      enclosingMethod = update(enclosingMethod, ENCLOSING_METHOD, patterns);
-      signature = update(signature, SIGNATURE, patterns);
-      exceptions = update(exceptions, EXCEPTIONS, patterns);
-      sourceDebugExtension = update(sourceDebugExtension, SOURCE_DEBUG_EXTENSION, patterns);
-      runtimeVisibleAnnotations = update(runtimeVisibleAnnotations, RUNTIME_VISIBLE_ANNOTATIONS,
-          patterns);
-      runtimeInvisibleAnnotations = update(runtimeInvisibleAnnotations,
-          RUNTIME_INVISIBLE_ANNOTATIONS, patterns);
-      runtimeVisibleParameterAnnotations = update(runtimeVisibleParameterAnnotations,
-          RUNTIME_VISIBLE_PARAMETER_ANNOTATIONS, patterns);
-      runtimeInvisibleParamterAnnotations = update(runtimeInvisibleParamterAnnotations,
-          RUNTIME_INVISIBLE_PARAMETER_ANNOTATIONS, patterns);
-      runtimeVisibleTypeAnnotations = update(runtimeVisibleTypeAnnotations,
-          RUNTIME_VISIBLE_TYPE_ANNOTATIONS, patterns);
-      runtimeInvisibleTypeAnnotations = update(runtimeInvisibleTypeAnnotations,
-          RUNTIME_INVISIBLE_TYPE_ANNOTATIONS, patterns);
-      annotationDefault = update(annotationDefault, ANNOTATION_DEFAULT, patterns);
-    }
-
-    public void ensureValid() {
-      if (innerClasses && !enclosingMethod) {
-        throw new CompilationError("Attribute InnerClasses requires EnclosingMethod attribute. "
-            + "Check -keepattributes directive.");
-      } else if (!innerClasses && enclosingMethod) {
-        throw new CompilationError("Attribute EnclosingMethod requires InnerClasses attribute. "
-            + "Check -keepattributes directive.");
-      } else if (signature && !innerClasses) {
-        throw new CompilationError("Attribute Signature requires InnerClasses attribute. Check "
-            + "-keepattributes directive.");
-      }
-    }
   }
 
   public boolean canUseInvokePolymorphicOnVarHandle() {

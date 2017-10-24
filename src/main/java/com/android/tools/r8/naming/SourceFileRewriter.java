@@ -31,7 +31,7 @@ public class SourceFileRewriter {
   public void run() {
     String renameSourceFile = options.proguardConfiguration.getRenameSourceFileAttribute();
     // Return early if a user wants to keep the current source file attribute as-is.
-    if (renameSourceFile == null && options.keepAttributes.sourceFile) {
+    if (renameSourceFile == null && options.proguardConfiguration.getKeepAttributes().sourceFile) {
       return;
     }
     // Now, the user wants either to remove source file attribute or to rename it.

@@ -6,7 +6,6 @@ package com.android.tools.r8.shaking;
 import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.naming.DictionaryReader;
-import com.android.tools.r8.utils.InternalOptions.KeepAttributeOptions;
 import com.android.tools.r8.utils.InternalOptions.PackageObfuscationMode;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
@@ -256,7 +255,7 @@ public class ProguardConfiguration {
   private final Path applyMappingFile;
   private final boolean verbose;
   private final String renameSourceFileAttribute;
-  private final ImmutableList<String> keepAttributesPatterns;
+  private final ProguardKeepAttributes keepAttributes;
   private final ProguardClassFilter dontWarnPatterns;
   protected final ImmutableList<ProguardConfigurationRule> rules;
   private final boolean printSeeds;
@@ -314,7 +313,7 @@ public class ProguardConfiguration {
     this.applyMappingFile = applyMappingFile;
     this.verbose = verbose;
     this.renameSourceFileAttribute = renameSourceFileAttribute;
-    this.keepAttributesPatterns = ImmutableList.copyOf(keepAttributesPatterns);
+    this.keepAttributes = ProguardKeepAttributes.fromPatterns(keepAttributesPatterns);
     this.dontWarnPatterns = dontWarnPatterns;
     this.rules = ImmutableList.copyOf(rules);
     this.printSeeds = printSeeds;
@@ -338,7 +337,7 @@ public class ProguardConfiguration {
     Builder builder = new Builder(dexItemFactory);
     builder.setObfuscating(false);
     builder.setShrinking(false);
-    builder.addKeepAttributePatterns(KeepAttributeOptions.KEEP_ALL);
+    builder.addKeepAttributePatterns(ProguardKeepAttributes.KEEP_ALL);
     builder.addRule(ProguardKeepRule.defaultKeepAllRule());
     return builder;
   }
@@ -415,8 +414,8 @@ public class ProguardConfiguration {
     return renameSourceFileAttribute;
   }
 
-  public ImmutableList<String> getKeepAttributesPatterns() {
-    return keepAttributesPatterns;
+  public ProguardKeepAttributes getKeepAttributes() {
+    return keepAttributes;
   }
 
   public ProguardClassFilter getDontWarnPatterns() {

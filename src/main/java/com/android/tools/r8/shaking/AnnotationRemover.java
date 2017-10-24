@@ -13,7 +13,6 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.InternalOptions.KeepAttributeOptions;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.function.Predicate;
@@ -21,14 +20,13 @@ import java.util.function.Predicate;
 public class AnnotationRemover {
 
   private final AppInfoWithLiveness appInfo;
-  private final KeepAttributeOptions keep;
+  private final ProguardKeepAttributes keep;
 
   public AnnotationRemover(AppInfoWithLiveness appInfo, InternalOptions options) {
-    this(appInfo, options.keepAttributes);
+    this(appInfo, options.proguardConfiguration.getKeepAttributes());
   }
 
-  public AnnotationRemover(AppInfoWithLiveness appInfo,
-      KeepAttributeOptions keep) {
+  public AnnotationRemover(AppInfoWithLiveness appInfo, ProguardKeepAttributes keep) {
     this.appInfo = appInfo;
     this.keep = keep;
   }
@@ -91,7 +89,7 @@ public class AnnotationRemover {
         }
         break;
       case DexAnnotation.VISIBILITY_BUILD:
-        if (!keep.runtimeInvisibleParamterAnnotations) {
+        if (!keep.runtimeInvisibleParameterAnnotations) {
           return false;
         }
         break;

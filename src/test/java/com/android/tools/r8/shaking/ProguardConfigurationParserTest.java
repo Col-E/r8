@@ -18,7 +18,6 @@ import com.android.tools.r8.graph.DexAccessFlags;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.FileUtils;
-import com.android.tools.r8.utils.InternalOptions.KeepAttributeOptions;
 import com.android.tools.r8.utils.InternalOptions.PackageObfuscationMode;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
@@ -816,8 +815,8 @@ public class ProguardConfigurationParserTest extends TestBase {
     parser.parse(createConfigurationForTesting(ImmutableList.of(config1, config2)));
     ProguardConfiguration config = parser.getConfig();
     assertEquals("PG", config.getRenameSourceFileAttribute());
-    assertTrue(config.getKeepAttributesPatterns().contains(KeepAttributeOptions.SOURCE_FILE));
-    assertTrue(config.getKeepAttributesPatterns().contains(KeepAttributeOptions.SOURCE_DIR));
+    assertTrue(config.getKeepAttributes().sourceFile);
+    assertTrue(config.getKeepAttributes().sourceDir);
   }
 
   @Test
@@ -829,14 +828,16 @@ public class ProguardConfigurationParserTest extends TestBase {
     parser.parse(createConfigurationForTesting(ImmutableList.of(config1, config2)));
     ProguardConfiguration config = parser.getConfig();
     assertEquals("", config.getRenameSourceFileAttribute());
-    assertTrue(config.getKeepAttributesPatterns().contains(KeepAttributeOptions.SOURCE_FILE));
+    assertTrue(config.getKeepAttributes().sourceFile);
   }
 
   private void testKeepattributes(List<String> expected, String config) throws Exception {
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
     parser.parse(createConfigurationForTesting(ImmutableList.of(config)));
-    assertEquals(expected, parser.getConfig().getKeepAttributesPatterns());
+    assertEquals(
+        ProguardKeepAttributes.fromPatterns(expected),
+        parser.getConfig().getKeepAttributes());
   }
 
   @Test
@@ -848,9 +849,11 @@ public class ProguardConfigurationParserTest extends TestBase {
     testKeepattributes(xxxYYY, "-keepattributes xxx   ,   yyy");
     testKeepattributes(xxxYYY, "-keepattributes       xxx   ,   yyy     ");
     testKeepattributes(xxxYYY, "-keepattributes       xxx   ,   yyy     \n");
-    String config = "-keepattributes Exceptions,InnerClasses,Signature,Deprecated,\n" +
-                    "                SourceFile,LineNumberTable,*Annotation*,EnclosingMethod\n";
-    List<String> expected = ImmutableList.of("Exceptions", "InnerClasses", "Signature", "Deprecated",
+    String config =
+        "-keepattributes Exceptions,InnerClasses,Signature,Deprecated,\n"
+            + "          SourceFile,LineNumberTable,*Annotation*,EnclosingMethod\n";
+    List<String> expected = ImmutableList.of(
+        "Exceptions", "InnerClasses", "Signature", "Deprecated",
         "SourceFile", "LineNumberTable", "*Annotation*", "EnclosingMethod");
     testKeepattributes(expected, config);
   }
@@ -889,7 +892,6 @@ public class ProguardConfigurationParserTest extends TestBase {
       parser.getConfig();
       fail();
     } catch (ProguardRuleParserException e) {
-      System.out.println(e);
       assertTrue(e.getMessage().contains("-keepparameternames is not supported"));
     }
   }
