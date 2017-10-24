@@ -8,17 +8,22 @@ import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.utils.ProgramResource;
 import com.android.tools.r8.utils.ProgramResource.Kind;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
 
 public class DexProgramClass extends DexClass implements Supplier<DexProgramClass> {
+
+  private static DexEncodedArray SENTINEL_NOT_YET_COMPUTED = new DexEncodedArray(new DexValue[0]);
+
   private final ProgramResource.Kind originKind;
-  private DexEncodedArray staticValues;
+  private DexEncodedArray staticValues = SENTINEL_NOT_YET_COMPUTED;
   private final Collection<DexProgramClass> synthesizedFrom;
 
   public DexProgramClass(
@@ -214,11 +219,38 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
     return accumulated;
   }
 
-  public void setStaticValues(DexEncodedArray staticValues) {
-    this.staticValues = staticValues;
+  public void computeStaticValues(DexItemFactory factory) {
+    // It does not actually hurt to compute this multiple times. So racing on staticValues is OK.
+    if (staticValues == SENTINEL_NOT_YET_COMPUTED) {
+      synchronized (staticFields) {
+        assert PresortedComparable.isSorted(staticFields);
+        DexEncodedField[] fields = staticFields;
+        int length = 0;
+        List<DexValue> values = new ArrayList<>(fields.length);
+        for (int i = 0; i < fields.length; i++) {
+          DexEncodedField field = fields[i];
+          assert field.staticValue != null;
+          values.add(field.staticValue);
+          if (!field.staticValue.isDefault(field.field.type, factory)) {
+            length = i + 1;
+          }
+        }
+        if (length > 0) {
+          staticValues = new DexEncodedArray(
+              values.subList(0, length).toArray(new DexValue[length]));
+        } else {
+          staticValues = null;
+        }
+      }
+    }
   }
 
   public DexEncodedArray getStaticValues() {
+    // The sentinel value is left over for classes that actually have no fields.
+    if (staticValues == SENTINEL_NOT_YET_COMPUTED) {
+      assert !hasMethodsOrFields();
+      return null;
+    }
     return staticValues;
   }
 
