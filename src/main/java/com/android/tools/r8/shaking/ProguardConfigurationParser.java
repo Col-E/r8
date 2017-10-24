@@ -76,6 +76,7 @@ public class ProguardConfigurationParser {
       DexItemFactory dexItemFactory, DiagnosticsHandler diagnosticsHandler) {
     this.dexItemFactory = dexItemFactory;
     configurationBuilder = ProguardConfiguration.builder(dexItemFactory);
+
     this.diagnosticsHandler = diagnosticsHandler;
   }
 
@@ -212,9 +213,9 @@ public class ProguardConfigurationParser {
         configurationBuilder.setIgnoreWarnings(true);
       } else if (acceptString("dontwarn")) {
         if (isOptionalArgumentGiven()) {
-          configurationBuilder.setDontWarnPatterns(parseClassNames());
+          configurationBuilder.addDontWarnPattern(parseClassNames());
         } else {
-          configurationBuilder.setDontWarnPatterns(
+          configurationBuilder.addDontWarnPattern(
               ProguardClassNameList.singletonList(ProguardTypeMatcher.defaultAllMatcher()));
         }
       } else if (acceptString("repackageclasses")) {
@@ -292,9 +293,9 @@ public class ProguardConfigurationParser {
       } else if (acceptString("adaptclassstrings")) {
         skipWhitespace();
         if (isOptionalArgumentGiven()) {
-          configurationBuilder.setAdaptClassStrings(parseClassNames());
+          configurationBuilder.addAdaptClassStringsPattern(parseClassNames());
         } else {
-          configurationBuilder.setAdaptClassStrings(
+          configurationBuilder.addAdaptClassStringsPattern(
               ProguardClassNameList.singletonList(ProguardTypeMatcher.defaultAllMatcher()));
         }
       } else if (acceptString("identifiernamestring")) {

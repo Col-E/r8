@@ -12,19 +12,19 @@ import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue.DexValueString;
-import com.android.tools.r8.shaking.ProguardClassNameList;
+import com.android.tools.r8.shaking.ProguardClassFilter;
 import com.android.tools.r8.utils.DescriptorUtils;
 import java.util.Map;
 
 class IdentifierMinifier {
 
   private final AppInfo appInfo;
-  private final ProguardClassNameList adaptClassStrings;
+  private final ProguardClassFilter adaptClassStrings;
   private final NamingLens lens;
 
   IdentifierMinifier(
       AppInfo appInfo,
-      ProguardClassNameList adaptClassStrings,
+      ProguardClassFilter adaptClassStrings,
       NamingLens lens) {
     this.appInfo = appInfo;
     this.adaptClassStrings = adaptClassStrings;
@@ -32,7 +32,7 @@ class IdentifierMinifier {
   }
 
   void run() {
-    if (adaptClassStrings.size() != 0) {
+    if (!adaptClassStrings.isEmpty()) {
       handleAdaptClassStrings();
     }
     // TODO(b/36799092): Handle influx of string literals from call sites to annotated members.

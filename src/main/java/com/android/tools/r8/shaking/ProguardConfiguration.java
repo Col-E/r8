@@ -34,7 +34,7 @@ public class ProguardConfiguration {
     private boolean verbose;
     private String renameSourceFileAttribute;
     private final List<String> keepAttributePatterns = new ArrayList<>();
-    private ProguardClassNameList dontWarnPatterns;
+    private ProguardClassFilter.Builder dontWarnPatterns = ProguardClassFilter.builder();
     protected final List<ProguardConfigurationRule> rules = new ArrayList<>();
     private final DexItemFactory dexItemFactory;
     private boolean printSeeds;
@@ -44,8 +44,7 @@ public class ProguardConfiguration {
     private Path packageObfuscationDictionary;
     private boolean useUniqueClassMemberNames;
     private boolean keepParameterNames;
-    private ProguardClassNameList adaptClassStrings = ProguardClassNameList.emptyList();
-
+    private ProguardClassFilter.Builder adaptClassStrings = ProguardClassFilter.builder();
     private Builder(DexItemFactory dexItemFactory) {
       this.dexItemFactory = dexItemFactory;
       resetProguardDefaults();
@@ -69,7 +68,7 @@ public class ProguardConfiguration {
       verbose = false;
       renameSourceFileAttribute = null;
       keepAttributePatterns.clear();
-      dontWarnPatterns = ProguardClassNameList.emptyList();
+      dontWarnPatterns = ProguardClassFilter.builder();
       rules.clear();
       printSeeds = false;
       seedFile = null;
@@ -78,6 +77,7 @@ public class ProguardConfiguration {
       packageObfuscationDictionary = null;
       useUniqueClassMemberNames = false;
       keepParameterNames = false;
+      adaptClassStrings = ProguardClassFilter.builder();
     }
 
     public void addInjars(List<FilteredClassPath> injars) {
@@ -162,8 +162,8 @@ public class ProguardConfiguration {
       this.rules.add(rule);
     }
 
-    public void setDontWarnPatterns(ProguardClassNameList patterns) {
-      dontWarnPatterns = patterns;
+    public void addDontWarnPattern(ProguardClassNameList pattern) {
+      dontWarnPatterns.addPattern(pattern);
     }
 
     public void setSeedFile(Path seedFile) {
@@ -202,8 +202,8 @@ public class ProguardConfiguration {
       return keepParameterNames;
     }
 
-    public void setAdaptClassStrings(ProguardClassNameList adaptClassStrings) {
-      this.adaptClassStrings = adaptClassStrings;
+    public void addAdaptClassStringsPattern(ProguardClassNameList pattern) {
+      adaptClassStrings.addPattern(pattern);
     }
 
     public ProguardConfiguration build() throws CompilationException {
@@ -226,7 +226,7 @@ public class ProguardConfiguration {
           verbose,
           renameSourceFileAttribute,
           keepAttributePatterns,
-          dontWarnPatterns,
+          dontWarnPatterns.build(),
           rules,
           printSeeds,
           seedFile,
@@ -235,7 +235,7 @@ public class ProguardConfiguration {
           DictionaryReader.readAllNames(packageObfuscationDictionary),
           useUniqueClassMemberNames,
           keepParameterNames,
-          adaptClassStrings);
+          adaptClassStrings.build());
     }
   }
 
@@ -257,7 +257,7 @@ public class ProguardConfiguration {
   private final boolean verbose;
   private final String renameSourceFileAttribute;
   private final ImmutableList<String> keepAttributesPatterns;
-  private final ProguardClassNameList dontWarnPatterns;
+  private final ProguardClassFilter dontWarnPatterns;
   protected final ImmutableList<ProguardConfigurationRule> rules;
   private final boolean printSeeds;
   private final Path seedFile;
@@ -266,7 +266,7 @@ public class ProguardConfiguration {
   private final ImmutableList<String> packageObfuscationDictionary;
   private boolean useUniqueClassMemberNames;
   private boolean keepParameterNames;
-  private final ProguardClassNameList adaptClassStrings;
+  private final ProguardClassFilter adaptClassStrings;
 
   private ProguardConfiguration(
       DexItemFactory factory,
@@ -287,7 +287,7 @@ public class ProguardConfiguration {
       boolean verbose,
       String renameSourceFileAttribute,
       List<String> keepAttributesPatterns,
-      ProguardClassNameList dontWarnPatterns,
+      ProguardClassFilter dontWarnPatterns,
       List<ProguardConfigurationRule> rules,
       boolean printSeeds,
       Path seedFile,
@@ -296,7 +296,7 @@ public class ProguardConfiguration {
       ImmutableList<String> packageObfuscationDictionary,
       boolean useUniqueClassMemberNames,
       boolean keepParameterNames,
-      ProguardClassNameList adaptClassStrings) {
+      ProguardClassFilter adaptClassStrings) {
     this.dexItemFactory = factory;
     this.injars = ImmutableList.copyOf(injars);
     this.libraryjars = ImmutableList.copyOf(libraryjars);
@@ -419,7 +419,7 @@ public class ProguardConfiguration {
     return keepAttributesPatterns;
   }
 
-  public ProguardClassNameList getDontWarnPatterns() {
+  public ProguardClassFilter getDontWarnPatterns() {
     return dontWarnPatterns;
   }
 
@@ -447,7 +447,7 @@ public class ProguardConfiguration {
     return keepParameterNames;
   }
 
-  public ProguardClassNameList getAdaptClassStrings() {
+  public ProguardClassFilter getAdaptClassStrings() {
     return adaptClassStrings;
   }
 

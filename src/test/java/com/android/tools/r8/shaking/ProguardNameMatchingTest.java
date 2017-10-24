@@ -9,6 +9,9 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.shaking.ProguardTypeMatcher.ClassOrType;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.google.common.collect.ImmutableList;
+import java.util.Arrays;
+import java.util.List;
 import org.junit.Test;
 
 public class ProguardNameMatchingTest {
@@ -24,12 +27,20 @@ public class ProguardNameMatchingTest {
   }
 
   private static boolean matchClassName(String className, String... patterns) {
-    ProguardClassNameList.Builder builder = ProguardClassNameList.builder();
-    for (String pattern : patterns) {
-      boolean isNegated = pattern.startsWith("!");
-      String actualPattern = isNegated ? pattern.substring(1) : pattern;
-      builder.addClassName(isNegated,
-          ProguardTypeMatcher.create(actualPattern, ClassOrType.CLASS, dexItemFactory));
+    return matchClassName(className, ImmutableList.of(Arrays.asList(patterns)));
+  }
+
+  private static boolean matchClassName(String className, List<List<String>> patternsList) {
+    ProguardClassFilter.Builder builder = ProguardClassFilter.builder();
+    for (List<String> patterns : patternsList) {
+      ProguardClassNameList.Builder listBuilder = ProguardClassNameList.builder();
+      for (String pattern : patterns) {
+        boolean isNegated = pattern.startsWith("!");
+        String actualPattern = isNegated ? pattern.substring(1) : pattern;
+        listBuilder.addClassName(isNegated,
+            ProguardTypeMatcher.create(actualPattern, ClassOrType.CLASS, dexItemFactory));
+      }
+      builder.addPattern(listBuilder.build());
     }
     return builder.build()
         .matches(dexItemFactory.createType(DescriptorUtils.javaTypeToDescriptor(className)));
@@ -65,6 +76,18 @@ public class ProguardNameMatchingTest {
 
     assertTrue(matchClassName("boobar", "!foobar", "*bar"));
     assertFalse(matchClassName("foobar", "!foobar", "*bar"));
+
+    assertFalse(matchClassName("foo", "!boo"));
+    assertFalse(matchClassName("foo", "baz,!boo"));
+
+    assertFalse(matchClassName("boo", "!boo", "**"));
+    assertTrue(matchClassName("boo", "**", "!boo"));
+    assertTrue(matchClassName("boo",
+        ImmutableList.of(ImmutableList.of("!boo"), ImmutableList.of("**"))));
+
+    assertFalse(matchClassName("boofoo", "!boo*,*foo,boofoo"));
+    assertTrue(matchClassName("boofoo",
+        ImmutableList.of(ImmutableList.of("!boo*,*foo"), ImmutableList.of("boofoo"))));
   }
 
   private void assertMatchesBasicTypes(String pattern) {

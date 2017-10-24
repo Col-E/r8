@@ -167,6 +167,25 @@ public class ProguardConfigurationParserTest extends TestBase {
   }
 
   @Test
+  public void testDontWarnMultiple() throws Exception {
+    DexItemFactory dexItemFactory = new DexItemFactory();
+    ProguardConfigurationParser parser =
+        new ProguardConfigurationParser(dexItemFactory, diagnosticsHandler);
+    List<String> configuration1 = ImmutableList.of("-dontwarn foo.**, bar.**");
+    List<String> configuration2 = ImmutableList.of("-dontwarn foo.**", "-dontwarn bar.**");
+    for (List<String> configuration : ImmutableList.of(configuration1, configuration2)) {
+      parser.parse(createConfigurationForTesting(configuration));
+      ProguardConfiguration config = parser.getConfig();
+      assertTrue(
+          config.getDontWarnPatterns().matches(dexItemFactory.createType("Lfoo/Bar;")));
+      assertTrue(
+          config.getDontWarnPatterns().matches(dexItemFactory.createType("Lfoo/bar7Bar;")));
+      assertTrue(
+          config.getDontWarnPatterns().matches(dexItemFactory.createType("Lbar/Foo;")));
+    }
+  }
+
+  @Test
   public void testDontWarnAllExplicitly() throws Exception {
     DexItemFactory dexItemFactory = new DexItemFactory();
     ProguardConfigurationParser parser =
@@ -357,6 +376,26 @@ public class ProguardConfigurationParserTest extends TestBase {
         config.getAdaptClassStrings().matches(dexItemFactory.createType("Lboobar;")));
     assertFalse(
         config.getAdaptClassStrings().matches(dexItemFactory.createType("Lfoobar;")));
+  }
+
+  @Test
+  public void testAdaptClassStringsMultiple() throws Exception {
+    DexItemFactory dexItemFactory = new DexItemFactory();
+    ProguardConfigurationParser parser =
+        new ProguardConfigurationParser(dexItemFactory, diagnosticsHandler);
+    List<String> configuration1 = ImmutableList.of("-adaptclassstrings foo.**, bar.**");
+    List<String> configuration2 =
+        ImmutableList.of("-adaptclassstrings foo.**", "-adaptclassstrings bar.**");
+    for (List<String> configuration : ImmutableList.of(configuration1, configuration2)) {
+      parser.parse(createConfigurationForTesting(configuration));
+      ProguardConfiguration config = parser.getConfig();
+      assertTrue(
+          config.getAdaptClassStrings().matches(dexItemFactory.createType("Lfoo/Bar;")));
+      assertTrue(
+          config.getAdaptClassStrings().matches(dexItemFactory.createType("Lfoo/bar7Bar;")));
+      assertTrue(
+          config.getAdaptClassStrings().matches(dexItemFactory.createType("Lbar/Foo;")));
+    }
   }
 
   @Test
