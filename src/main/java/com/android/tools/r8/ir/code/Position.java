@@ -4,6 +4,7 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.graph.DexString;
+import java.util.Objects;
 
 public class Position {
 
@@ -50,6 +51,14 @@ public class Position {
       return !isNone() && line == o.line && file == o.file;
     }
     return false;
+  }
+
+  @Override
+  public int hashCode() {
+    int result = line;
+    result = 31 * result + Objects.hashCode(file);
+    result = 31 * result + (synthetic ? 1 : 0);
+    return result;
   }
 
   @Override

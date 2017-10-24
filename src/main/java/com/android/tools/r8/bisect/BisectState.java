@@ -104,6 +104,11 @@ public class BisectState {
       return start == o.start && end == o.end;
     }
 
+    @Override
+    public int hashCode() {
+      return 31 * start + end;
+    }
+
     private boolean verify() {
       return start <= end;
     }
