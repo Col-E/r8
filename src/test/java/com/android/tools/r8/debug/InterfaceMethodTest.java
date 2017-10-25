@@ -22,10 +22,6 @@ public class InterfaceMethodTest extends DebugTestBase {
 
   @Test
   public void testDefaultMethod() throws Throwable {
-    // TODO(b/67225390) Dalvik steps into class loader first.
-    Assume.assumeTrue("Dalvik suspends in class loader",
-        ToolHelper.getDexVm().getVersion().isNewerThan(Version.V4_4_4));
-
     String debuggeeClass = "DebugInterfaceMethod";
     String parameterName = "msg";
     String localVariableName = "name";
@@ -38,16 +34,16 @@ public class InterfaceMethodTest extends DebugTestBase {
     if (!supportsDefaultMethod()) {
       // We desugared default method. This means we're going to step through an extra (forward)
       // method first.
-      commands.add(stepInto());
+      commands.add(stepInto(INTELLIJ_FILTER));
     }
-    commands.add(stepInto());
+    commands.add(stepInto(INTELLIJ_FILTER));
     commands.add(checkLine(SOURCE_FILE, 9));
     // TODO(shertz) we should see the local variable this even when desugaring.
     if (supportsDefaultMethod()) {
       commands.add(checkLocal("this"));
     }
     commands.add(checkLocal(parameterName));
-    commands.add(stepOver());
+    commands.add(stepOver(INTELLIJ_FILTER));
     commands.add(checkLocal(parameterName));
     commands.add(checkLocal(localVariableName));
     // TODO(shertz) check current method name ?
