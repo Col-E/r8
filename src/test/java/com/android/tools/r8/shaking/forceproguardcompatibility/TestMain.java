@@ -11,7 +11,14 @@ public class TestMain {
     }
   }
 
+  @TestAnnotation(0)
+  public static class MentionedClassWithAnnotation {
+    public MentionedClassWithAnnotation() {
+    }
+  }
+
   public static void main(String[] args) {
     System.out.println(MentionedClass.class.getCanonicalName());
+    System.out.println(MentionedClassWithAnnotation.class.getCanonicalName());
   }
 }

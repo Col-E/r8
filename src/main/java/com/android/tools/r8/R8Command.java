@@ -224,6 +224,7 @@ public class R8Command extends BaseCompilerCommand {
           throw new CompilationException(e.getMessage(), e.getCause());
         }
         configurationBuilder = parser.getConfigurationBuilder();
+        configurationBuilder.setForceProguardCompatibility(forceProguardCompatibility);
       }
 
       if (proguardConfigurationConsumer != null) {

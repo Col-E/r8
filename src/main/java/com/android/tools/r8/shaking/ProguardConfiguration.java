@@ -44,6 +44,8 @@ public class ProguardConfiguration {
     private boolean useUniqueClassMemberNames;
     private boolean keepParameterNames;
     private ProguardClassFilter.Builder adaptClassStrings = ProguardClassFilter.builder();
+    private boolean forceProguardCompatibility = false;
+
     private Builder(DexItemFactory dexItemFactory) {
       this.dexItemFactory = dexItemFactory;
       resetProguardDefaults();
@@ -205,7 +207,22 @@ public class ProguardConfiguration {
       adaptClassStrings.addPattern(pattern);
     }
 
+    public void setForceProguardCompatibility(boolean forceProguardCompatibility) {
+      this.forceProguardCompatibility = forceProguardCompatibility;
+    }
+
     public ProguardConfiguration build() throws CompilationException {
+      ProguardKeepAttributes keepAttributes;
+
+
+      if (forceProguardCompatibility
+          && !isObfuscating()
+          && keepAttributePatterns.size() == 0) {
+        keepAttributes = ProguardKeepAttributes.fromPatterns(ProguardKeepAttributes.KEEP_ALL);
+      } else {
+        keepAttributes = ProguardKeepAttributes.fromPatterns(keepAttributePatterns);
+      }
+
       return new ProguardConfiguration(
           dexItemFactory,
           injars,
@@ -224,7 +241,7 @@ public class ProguardConfiguration {
           applyMappingFile,
           verbose,
           renameSourceFileAttribute,
-          keepAttributePatterns,
+          keepAttributes,
           dontWarnPatterns.build(),
           rules,
           printSeeds,
@@ -285,7 +302,7 @@ public class ProguardConfiguration {
       Path applyMappingFile,
       boolean verbose,
       String renameSourceFileAttribute,
-      List<String> keepAttributesPatterns,
+      ProguardKeepAttributes keepAttributes,
       ProguardClassFilter dontWarnPatterns,
       List<ProguardConfigurationRule> rules,
       boolean printSeeds,
@@ -313,7 +330,7 @@ public class ProguardConfiguration {
     this.applyMappingFile = applyMappingFile;
     this.verbose = verbose;
     this.renameSourceFileAttribute = renameSourceFileAttribute;
-    this.keepAttributes = ProguardKeepAttributes.fromPatterns(keepAttributesPatterns);
+    this.keepAttributes = keepAttributes;
     this.dontWarnPatterns = dontWarnPatterns;
     this.rules = ImmutableList.copyOf(rules);
     this.printSeeds = printSeeds;
