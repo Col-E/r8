@@ -25,6 +25,7 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OffOrAuto;
+import com.google.common.collect.ImmutableList;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongList;
 import java.io.File;
@@ -434,14 +435,39 @@ public abstract class DebugTestBase {
 
   private JUnit3Wrapper.Command step(StepKind stepKind, StepLevel stepLevel,
       StepFilter stepFilter) {
-    return new JUnit3Wrapper.Command.StepCommand(stepKind.jdwpValue, stepLevel.jdwpValue,
-        stepFilter, state -> true);
+    return new JUnit3Wrapper.Command.StepCommand(stepKind, stepLevel, stepFilter);
   }
 
   protected JUnit3Wrapper.Command stepUntil(StepKind stepKind, StepLevel stepLevel,
       Function<JUnit3Wrapper.DebuggeeState, Boolean> stepUntil) {
-    return new JUnit3Wrapper.Command.StepCommand(stepKind.jdwpValue, stepLevel.jdwpValue, NO_FILTER,
-        stepUntil);
+    return stepUntil(stepKind, stepLevel, stepUntil, DEFAULT_FILTER);
+  }
+
+  protected JUnit3Wrapper.Command stepUntil(StepKind stepKind, StepLevel stepLevel,
+      Function<JUnit3Wrapper.DebuggeeState, Boolean> stepUntil, StepFilter stepFilter) {
+    // We create an extension to the given step filter which will also check whether we need to
+    // step again according to the given stepUntil function.
+    StepFilter stepUntilFilter = new StepFilter() {
+      @Override
+      public List<String> getExcludedClasses() {
+        return stepFilter.getExcludedClasses();
+      }
+
+      @Override
+      public boolean skipLocation(JUnit3Wrapper.DebuggeeState debuggeeState, JUnit3Wrapper wrapper,
+          JUnit3Wrapper.Command.StepCommand stepCommand) {
+        if (stepFilter.skipLocation(debuggeeState, wrapper, stepCommand)) {
+          return true;
+        }
+        if (stepUntil.apply(debuggeeState) == Boolean.FALSE) {
+          // We did not reach the expected location so step again.
+          wrapper.enqueueCommandFirst(stepCommand);
+          return true;
+        }
+        return false;
+      }
+    };
+    return new JUnit3Wrapper.Command.StepCommand(stepKind, stepLevel, stepUntilFilter);
   }
 
   protected final JUnit3Wrapper.Command checkLocal(String localName) {
@@ -1512,23 +1538,14 @@ public abstract class DebugTestBase {
 
       class StepCommand implements Command {
 
-        private final byte stepDepth;
-        private final byte stepSize;
+        private final StepKind stepDepth;
+        private final StepLevel stepSize;
         private final StepFilter stepFilter;
 
-        /**
-         * A {@link Function} taking a {@link DebuggeeState} as input and returns {@code true} to
-         * stop stepping, {@code false} to continue.
-         */
-        private final Function<JUnit3Wrapper.DebuggeeState, Boolean> stepUntil;
-
-        public StepCommand(byte stepDepth,
-            byte stepSize, StepFilter stepFilter,
-            Function<DebuggeeState, Boolean> stepUntil) {
+        public StepCommand(StepKind stepDepth, StepLevel stepSize, StepFilter stepFilter) {
           this.stepDepth = stepDepth;
           this.stepSize = stepSize;
           this.stepFilter = stepFilter;
-          this.stepUntil = stepUntil;
         }
 
         @Override
@@ -1537,14 +1554,13 @@ public abstract class DebugTestBase {
           int stepRequestID;
           {
             EventBuilder eventBuilder = Event.builder(EventKind.SINGLE_STEP, SuspendPolicy.ALL);
-            eventBuilder.setStep(threadId, stepSize, stepDepth);
+            eventBuilder.setStep(threadId, stepSize.jdwpValue, stepDepth.jdwpValue);
             stepFilter.getExcludedClasses().stream().forEach(s -> eventBuilder.setClassExclude(s));
             ReplyPacket replyPacket = testBase.getMirror().setEvent(eventBuilder.build());
             stepRequestID = replyPacket.getNextValueAsInt();
             testBase.assertAllDataRead(replyPacket);
           }
-          testBase.events
-              .put(stepRequestID, new StepEventHandler(this, stepRequestID, stepFilter, stepUntil));
+          testBase.events.put(stepRequestID, new StepEventHandler(this, stepRequestID, stepFilter));
 
           // Resume all threads.
           testBase.resume();
@@ -1552,8 +1568,8 @@ public abstract class DebugTestBase {
 
         @Override
         public String toString() {
-          return String.format("step %s/%s", JDWPConstants.StepDepth.getName(stepDepth),
-              JDWPConstants.StepSize.getName(stepSize));
+          return String.format("step %s/%s", JDWPConstants.StepDepth.getName(stepDepth.jdwpValue),
+              JDWPConstants.StepSize.getName(stepSize.jdwpValue));
         }
       }
 
@@ -1607,17 +1623,14 @@ public abstract class DebugTestBase {
       private final JUnit3Wrapper.Command.StepCommand stepCommand;
       private final int stepRequestID;
       private final StepFilter stepFilter;
-      private final Function<DebuggeeState, Boolean> stepUntil;
 
       private StepEventHandler(
           JUnit3Wrapper.Command.StepCommand stepCommand,
           int stepRequestID,
-          StepFilter stepFilter,
-          Function<DebuggeeState, Boolean> stepUntil) {
+          StepFilter stepFilter) {
         this.stepCommand = stepCommand;
         this.stepRequestID = stepRequestID;
         this.stepFilter = stepFilter;
-        this.stepUntil = stepUntil;
       }
 
       @Override
@@ -1626,18 +1639,11 @@ public abstract class DebugTestBase {
         testBase.getMirror().clearEvent(EventKind.SINGLE_STEP, stepRequestID);
         testBase.events.remove(Integer.valueOf(stepRequestID));
 
-        // Do we need to step again ?
-        boolean repeatStep = false;
-        if (stepFilter
-            .skipLocation(testBase.getMirror(), testBase.getDebuggeeState().getLocation())) {
-          repeatStep = true;
-        } else if (stepUntil.apply(testBase.getDebuggeeState()) == Boolean.FALSE) {
-          repeatStep = true;
-        }
-        if (repeatStep) {
-          // In order to repeat the step now, we need to add it at the beginning of the queue.
-          testBase.enqueueCommandFirst(stepCommand);
-        }
+        // Let the filtering happen.
+        // Note: we don't need to know whether the location was skipped or not because we are
+        // going to process the next command(s) in the queue anyway.
+        stepFilter.skipLocation(testBase.getDebuggeeState(), testBase, stepCommand);
+
         super.handle(testBase);
       }
     }
@@ -1659,7 +1665,8 @@ public abstract class DebugTestBase {
     /**
      * Indicates whether the given location must be skipped.
      */
-    boolean skipLocation(VmMirror mirror, Location location);
+    boolean skipLocation(JUnit3Wrapper.DebuggeeState debuggeeState, JUnit3Wrapper wrapper,
+        JUnit3Wrapper.Command.StepCommand stepCommand);
 
     /**
      * A {@link StepFilter} that does not filter anything.
@@ -1672,7 +1679,8 @@ public abstract class DebugTestBase {
       }
 
       @Override
-      public boolean skipLocation(VmMirror mirror, Location location) {
+      public boolean skipLocation(JUnit3Wrapper.DebuggeeState debuggeeState, JUnit3Wrapper wrapper,
+          JUnit3Wrapper.Command.StepCommand stepCommand) {
         return false;
       }
     }
@@ -1687,7 +1695,7 @@ public abstract class DebugTestBase {
 
       @Override
       public List<String> getExcludedClasses() {
-        return Arrays.asList(
+        return ImmutableList.of(
             "com.sun.*",
             "java.*",
             "javax.*",
@@ -1707,8 +1715,10 @@ public abstract class DebugTestBase {
       }
 
       @Override
-      public boolean skipLocation(VmMirror mirror, Location location) {
-        // TODO(b/67225390) we also need to skip class loaders to act like IntelliJ.
+      public boolean skipLocation(JUnit3Wrapper.DebuggeeState debuggeeState, JUnit3Wrapper wrapper,
+          JUnit3Wrapper.Command.StepCommand stepCommand) {
+        VmMirror mirror = debuggeeState.getMirror();
+        Location location = debuggeeState.getLocation();
         // Skip synthetic methods.
         if (isLambdaMethod(mirror, location)) {
           // Lambda methods are synthetic but we do want to stop there.
@@ -1722,13 +1732,36 @@ public abstract class DebugTestBase {
           if (DEBUG_TESTS) {
             System.out.println("Skipping lambda class wrapper method");
           }
+          wrapper.enqueueCommandFirst(stepCommand);
           return true;
         }
         if (isSyntheticMethod(mirror, location)) {
           if (DEBUG_TESTS) {
             System.out.println("Skipping synthetic method");
           }
+          wrapper.enqueueCommandFirst(stepCommand);
           return true;
+        }
+        if (isClassLoader(mirror, location)) {
+          if (DEBUG_TESTS) {
+            System.out.println("Skipping class loader");
+          }
+          wrapper.enqueueCommandFirst(
+              new JUnit3Wrapper.Command.StepCommand(StepKind.OUT, StepLevel.LINE, this));
+          return true;
+        }
+        return false;
+      }
+
+      private static boolean isClassLoader(VmMirror mirror, Location location) {
+        final long classLoaderClassID = mirror.getClassID("Ljava/lang/ClassLoader;");
+        assert classLoaderClassID != -1;
+        long classID = location.classID;
+        while (classID != 0) {
+          if (classID == classLoaderClassID) {
+            return true;
+          }
+          classID = mirror.getSuperclassId(classID);
         }
         return false;
       }
@@ -1751,7 +1784,7 @@ public abstract class DebugTestBase {
         return classSig.contains("$$Lambda$");
       }
 
-      private boolean isLambdaMethod(VmMirror mirror, Location location) {
+      private static boolean isLambdaMethod(VmMirror mirror, Location location) {
         String methodName = mirror.getMethodName(location.classID, location.methodID);
         return methodName.startsWith("lambda$");
       }
