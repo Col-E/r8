@@ -683,6 +683,8 @@ public class ProguardConfigurationParser {
               flags.setVolatile();
             }
             break;
+          default:
+            // Intentionally left empty.
         }
       }
     }

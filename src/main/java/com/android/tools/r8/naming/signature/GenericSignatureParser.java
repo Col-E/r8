@@ -360,8 +360,9 @@ public class GenericSignatureParser<T> {
       case '<':
       case '.':
         return true;
+      default:
+        return false;
     }
-    return false;
   }
 
   // PRE: symbol is the first char of the identifier.

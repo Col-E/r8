@@ -53,7 +53,7 @@ public class Marker {
 
   public Marker put(String key, int value) {
     // value is converted to Long ensuring equals works with the parsed json string.
-    return internalPut(key, new Long(value));
+    return internalPut(key, Long.valueOf(value));
   }
 
   public Marker put(String key, String value) {

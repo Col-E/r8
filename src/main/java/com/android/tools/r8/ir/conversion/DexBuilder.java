@@ -1219,6 +1219,8 @@ public class DexBuilder {
               throw new Unreachable("Unexpected type: " + move.outType());
           }
           break;
+        default:
+          throw new Unreachable("Unexpected size: " + size);
       }
       instruction.setOffset(getOffset());
       instructions.add(instruction);

@@ -22,7 +22,16 @@ def errorProneConfiguration = [
     '-Xep:MissingOverride:WARN',
     '-Xep:OvershadowingSubclassFields:WARN',
     '-Xep:IntLongMath:WARN',
-    '-Xep:EqualsHashCode:WARN']
+    '-Xep:EqualsHashCode:WARN',
+    '-Xep:ArrayHashCode:WARN',
+    '-Xep:EqualsIncompatibleType:WARN',
+    '-Xep:NonOverridingEquals:WARN',
+    '-Xep:FallThrough:WARN',
+    '-Xep:MissingCasesInEnumSwitch:WARN',
+    '-Xep:MissingDefault:WARN',
+    '-Xep:MultipleTopLevelClasses:WARN',
+    '-Xep:NarrowingCompoundAssignment:WARN',
+    '-Xep:BoxedPrimitiveConstructor:WARN']
 
 apply from: 'copyAdditionalJctfCommonFiles.gradle'
 

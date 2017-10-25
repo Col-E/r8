@@ -203,6 +203,7 @@ public class ProguardMemberRule {
         if (method.isClassInitializer()) {
           break;
         }
+        // Fall through for all other methods.
       case ALL:
         // Access flags check.
         if (!method.accessFlags.containsAllOf(getAccessFlags()) ||
@@ -319,6 +320,7 @@ public class ProguardMemberRule {
       case METHOD:
         result.append(getType());
         result.append(' ');
+        // Fall through for rest of method signature.
       case CONSTRUCTOR:
       case INIT: {
         result.append(getName());

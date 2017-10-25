@@ -2600,9 +2600,9 @@ public class JarSourceCode implements SourceCode {
         case Type.METHOD:
           return new DexValue.DexValueMethodType(
               application.getProto(((Type) value).getDescriptor()));
+        default:
+          throw new Unreachable("Type sort is not supported: " + type.getSort());
       }
-      throw new Unreachable("Type sort is not supported: " + type.getSort());
-
     } else if (value instanceof Handle) {
       return new DexValue.DexValueMethodHandle(getMethodHandle(application, (Handle) value));
     } else {

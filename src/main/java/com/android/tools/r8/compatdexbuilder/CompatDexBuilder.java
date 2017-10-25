@@ -75,6 +75,9 @@ public class CompatDexBuilder {
         case "--nolocals":
           noLocals = true;
           break;
+        default:
+          System.err.println("Unsupported option: " + flag);
+          System.exit(1);
       }
     }
 

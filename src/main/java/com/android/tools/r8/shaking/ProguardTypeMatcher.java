@@ -48,12 +48,13 @@ public abstract class ProguardTypeMatcher {
         return MatchClassTypes.LEGACY_MATCH_CLASS_TYPES;
       case MATCH_BASIC_PATTERN:
         return MatchBasicTypes.MATCH_BASIC_TYPES;
+      default:
+        if (!pattern.contains("*") && !pattern.contains("%") && !pattern.contains("?")) {
+          return new MatchSpecificType(
+              dexItemFactory.createType(DescriptorUtils.javaTypeToDescriptor(pattern)));
+        }
+        return new MatchTypePattern(pattern, kind);
     }
-    if (!pattern.contains("*") && !pattern.contains("%") && !pattern.contains("?")) {
-      return new MatchSpecificType(
-          dexItemFactory.createType(DescriptorUtils.javaTypeToDescriptor(pattern)));
-    }
-    return new MatchTypePattern(pattern, kind);
   }
 
   public static ProguardTypeMatcher defaultAllMatcher() {
