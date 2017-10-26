@@ -15,10 +15,8 @@ import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
-import com.android.tools.r8.utils.JarBuilder;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -163,6 +161,10 @@ public class R8RunExamplesTest {
     this.mainClass = mainClass;
   }
 
+  private Path getOutputFile() {
+    return temp.getRoot().toPath().resolve("out.jar");
+  }
+
   private Path getInputFile() {
     switch(input) {
       case DX:
@@ -201,7 +203,7 @@ public class R8RunExamplesTest {
       case D8: {
         ToolHelper.runD8(D8Command.builder()
             .addProgramFiles(getInputFile())
-            .setOutputPath(out)
+            .setOutputPath(getOutputFile())
             .setMode(mode)
             .build());
         break;
@@ -209,7 +211,7 @@ public class R8RunExamplesTest {
       case R8: {
         ToolHelper.runR8(R8Command.builder()
             .addProgramFiles(getInputFile())
-            .setOutputPath(out)
+            .setOutputPath(getOutputFile())
             .setMode(mode)
             .build());
         break;
@@ -226,19 +228,7 @@ public class R8RunExamplesTest {
     }
 
     String original = getOriginalDexFile().toString();
-
-    File generated;
-    // Collect the generated dex files.
-    File[] outputFiles =
-        temp.getRoot().listFiles((File file) -> file.getName().endsWith(".dex"));
-    if (outputFiles.length == 1) {
-      // Just run Art on classes.dex.
-      generated = outputFiles[0];
-    } else {
-      // Run Art on JAR file with multiple dex files.
-      generated = temp.getRoot().toPath().resolve(pkg + ".jar").toFile();
-      JarBuilder.buildJar(outputFiles, generated);
-    }
+    Path generated = getOutputFile();
 
     ToolHelper.ProcessResult javaResult =
         ToolHelper.runJava(ImmutableList.of(getOriginalJarFile("").toString()), mainClass);

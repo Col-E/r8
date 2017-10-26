@@ -19,7 +19,6 @@ import com.android.tools.r8.utils.ArtErrorParser;
 import com.android.tools.r8.utils.ArtErrorParser.ArtErrorInfo;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.FileUtils;
-import com.android.tools.r8.utils.JarBuilder;
 import com.android.tools.r8.utils.ListUtils;
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
@@ -30,6 +29,7 @@ import com.google.common.collect.ObjectArrays;
 import com.google.common.collect.Sets;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -45,6 +45,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.function.BiFunction;
+import java.util.jar.JarEntry;
+import java.util.jar.JarOutputStream;
 import java.util.stream.Collectors;
 import org.junit.ComparisonFailure;
 import org.junit.Rule;
@@ -1576,7 +1578,7 @@ public abstract class R8RunArtTestsTest {
       // Run Art on JAR file with multiple dex files.
       processedFile
           = temp.getRoot().toPath().resolve(specification.name + ".jar").toFile();
-      JarBuilder.buildJar(outputFiles, processedFile);
+      buildJar(outputFiles, processedFile);
     }
 
     boolean compileOnly = System.getProperty("jctf_compile_only", "0").equals("1");
@@ -1762,7 +1764,7 @@ public abstract class R8RunArtTestsTest {
         // Run Art on JAR file with multiple dex files.
         processedFile
             = temp.getRoot().toPath().resolve(specification.name + ".jar").toFile();
-        JarBuilder.buildJar(outputFiles, processedFile);
+        buildJar(outputFiles, processedFile);
       }
 
       File expectedFile = specification.resolveFile("expected.txt");
@@ -1873,5 +1875,19 @@ public abstract class R8RunArtTestsTest {
       System.err.println(error.toString());
     }
     throw errors.get(errors.size() - 1);
+  }
+
+  // TODO(zerny): Refactor tests to output jar files directly and eliminate this method.
+  private static void buildJar(File[] files, File jarFile) throws IOException {
+    try (JarOutputStream target = new JarOutputStream(new FileOutputStream(jarFile))) {
+      for (File file : files) {
+        // Only use the file name in the JAR entry (classes.dex, classes2.dex, ...)
+        JarEntry entry = new JarEntry(file.getName());
+        entry.setTime(file.lastModified());
+        target.putNextEntry(entry);
+        Files.copy(file.toPath(), target);
+        target.closeEntry();
+      }
+    }
   }
 }
