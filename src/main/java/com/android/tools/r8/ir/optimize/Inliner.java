@@ -4,8 +4,8 @@
 package com.android.tools.r8.ir.optimize;
 
 import com.android.tools.r8.ApiLevelException;
-import com.android.tools.r8.graph.AccessFlags;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.DexAccessFlags;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -91,7 +91,7 @@ public class Inliner {
     return isVisibleWithFlags(target.method.holder, method.method.holder, targetClass.accessFlags);
   }
 
-  private boolean isVisibleWithFlags(DexType target, DexType context, AccessFlags flags) {
+  private boolean isVisibleWithFlags(DexType target, DexType context, DexAccessFlags flags) {
     if (flags.isPublic()) {
       return true;
     }
@@ -166,11 +166,8 @@ public class Inliner {
       assert SUBCLASS.ordinal() < ALWAYS.ordinal();
     }
 
-    public static Constraint deriveConstraint(
-        DexType contextHolder,
-        DexType targetHolder,
-        AccessFlags flags,
-        AppInfoWithSubtyping appInfo) {
+    public static Constraint deriveConstraint(DexType contextHolder, DexType targetHolder,
+        DexAccessFlags flags, AppInfoWithSubtyping appInfo) {
       if (flags.isPublic()) {
         return ALWAYS;
       } else if (flags.isPrivate()) {

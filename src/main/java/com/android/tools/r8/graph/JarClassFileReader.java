@@ -40,6 +40,7 @@ import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.TypePath;
 
@@ -66,9 +67,9 @@ public class JarClassFileReader {
         origin, classKind, reader.b, application, classConsumer), SKIP_FRAMES);
   }
 
-  private static int cleanAccessFlags(int access) {
-    // Clear the "synthetic attribute" and "deprecated" attribute-flags if present.
-    return access & ~ACC_SYNTHETIC_ATTRIBUTE & ~ACC_DEPRECATED;
+  private static DexAccessFlags createAccessFlags(int access) {
+    // Clear the "synthetic attribute" and "deprecated" flags if preset.
+    return new DexAccessFlags(access & ~ACC_SYNTHETIC_ATTRIBUTE & ~ACC_DEPRECATED);
   }
 
   private static AnnotationVisitor createAnnotationVisitor(String desc, boolean visible,
@@ -102,7 +103,7 @@ public class JarClassFileReader {
     // DexClass data.
     private int version;
     private DexType type;
-    private ClassAccessFlags accessFlags;
+    private DexAccessFlags accessFlags;
     private DexType superType;
     private DexTypeList interfaces;
     private DexString sourceFile;
@@ -175,7 +176,10 @@ public class JarClassFileReader {
     public void visit(int version, int access, String name, String signature, String superName,
         String[] interfaces) {
       this.version = version;
-      accessFlags = ClassAccessFlags.fromCfAccessFlags(cleanAccessFlags(access));
+      accessFlags = createAccessFlags(access);
+      // Unset the (in dex) non-existent ACC_SUPER flag on the class.
+      assert Constants.ACC_SYNCHRONIZED == Opcodes.ACC_SUPER;
+      accessFlags.unsetSynchronized();
       type = application.getTypeFromName(name);
       assert superName != null || name.equals(Constants.JAVA_LANG_OBJECT_NAME);
       superType = superName == null ? null : application.getTypeFromName(superName);
@@ -328,7 +332,7 @@ public class JarClassFileReader {
 
     @Override
     public void visitEnd() {
-      FieldAccessFlags flags = FieldAccessFlags.fromCfAccessFlags(cleanAccessFlags(access));
+      DexAccessFlags flags = createAccessFlags(access);
       DexField dexField = parent.application.getField(parent.type, name, desc);
       DexAnnotationSet annotationSet = createAnnotationSet(annotations);
       DexValue staticValue = flags.isStatic() ? getStaticValue(value, dexField.type) : null;
@@ -510,7 +514,7 @@ public class JarClassFileReader {
     @Override
     public void visitEnd() {
       DexMethod method = parent.application.getMethod(parent.type, name, desc);
-      MethodAccessFlags flags = createMethodAccessFlags(access);
+      DexAccessFlags flags = createMethodAccessFlags(access);
       Code code = null;
       if (!flags.isAbstract()
           && !flags.isNative()
@@ -563,11 +567,20 @@ public class JarClassFileReader {
       getAnnotations().add(annotation);
     }
 
-    private MethodAccessFlags createMethodAccessFlags(int access) {
-      boolean isConstructor =
-          name.equals(Constants.INSTANCE_INITIALIZER_NAME)
-              || name.equals(Constants.CLASS_INITIALIZER_NAME);
-      return MethodAccessFlags.fromCfAccessFlags(cleanAccessFlags(access), isConstructor);
+    private DexAccessFlags createMethodAccessFlags(int access) {
+      DexAccessFlags flags = createAccessFlags(access);
+      // Set just the dex specific declared-synchronized flag if the method is synchronized.
+      // TODO(zerny): Should declared sync also be set if it is native?
+      if (flags.isSynchronized() && !flags.isNative()) {
+        flags.unsetSynchronized();
+        flags.setDeclaredSynchronized();
+      }
+      // Set the constructor bit on instance and class initializers.
+      if (name.equals(Constants.INSTANCE_INITIALIZER_NAME) || name.equals(
+          Constants.CLASS_INITIALIZER_NAME)) {
+        flags.setConstructor();
+      }
+      return flags;
     }
   }
 

@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import com.android.tools.r8.graph.DexAccessFlags;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -14,8 +15,8 @@ public abstract class ProguardClassSpecification {
   public static class Builder {
 
     protected ProguardTypeMatcher classAnnotation;
-    protected ProguardAccessFlags classAccessFlags = new ProguardAccessFlags();
-    protected ProguardAccessFlags negatedClassAccessFlags = new ProguardAccessFlags();
+    protected DexAccessFlags classAccessFlags = new DexAccessFlags(0);
+    protected DexAccessFlags negatedClassAccessFlags = new DexAccessFlags(0);
     protected boolean classTypeNegated = false;
     protected ProguardClassType classType;
     protected ProguardClassNameList classNames;
@@ -87,19 +88,19 @@ public abstract class ProguardClassSpecification {
       this.classTypeNegated = classTypeNegated;
     }
 
-    public ProguardAccessFlags getClassAccessFlags() {
+    public DexAccessFlags getClassAccessFlags() {
       return classAccessFlags;
     }
 
-    public void setClassAccessFlags(ProguardAccessFlags flags) {
+    public void setClassAccessFlags(DexAccessFlags flags) {
       classAccessFlags = flags;
     }
 
-    public ProguardAccessFlags getNegatedClassAccessFlags() {
+    public DexAccessFlags getNegatedClassAccessFlags() {
       return negatedClassAccessFlags;
     }
 
-    public void setNegatedClassAccessFlags(ProguardAccessFlags flags) {
+    public void setNegatedClassAccessFlags(DexAccessFlags flags) {
       negatedClassAccessFlags = flags;
     }
 
@@ -118,8 +119,8 @@ public abstract class ProguardClassSpecification {
   }
 
   private final ProguardTypeMatcher classAnnotation;
-  private final ProguardAccessFlags classAccessFlags;
-  private final ProguardAccessFlags negatedClassAccessFlags;
+  private final DexAccessFlags classAccessFlags;
+  private final DexAccessFlags negatedClassAccessFlags;
   private final boolean classTypeNegated;
   private final ProguardClassType classType;
   private final ProguardClassNameList classNames;
@@ -130,8 +131,8 @@ public abstract class ProguardClassSpecification {
 
   protected ProguardClassSpecification(
       ProguardTypeMatcher classAnnotation,
-      ProguardAccessFlags classAccessFlags,
-      ProguardAccessFlags negatedClassAccessFlags,
+      DexAccessFlags classAccessFlags,
+      DexAccessFlags negatedClassAccessFlags,
       boolean classTypeNegated,
       ProguardClassType classType,
       ProguardClassNameList classNames,
@@ -183,11 +184,11 @@ public abstract class ProguardClassSpecification {
     return classTypeNegated;
   }
 
-  public ProguardAccessFlags getClassAccessFlags() {
+  public DexAccessFlags getClassAccessFlags() {
     return classAccessFlags;
   }
 
-  public ProguardAccessFlags getNegatedClassAccessFlags() {
+  public DexAccessFlags getNegatedClassAccessFlags() {
     return negatedClassAccessFlags;
   }
 

@@ -19,7 +19,7 @@ public abstract class DexClass extends DexItem {
 
   public final Origin origin;
   public final DexType type;
-  public final ClassAccessFlags accessFlags;
+  public final DexAccessFlags accessFlags;
   public DexType superType;
   public DexTypeList interfaces;
   public DexString sourceFile;
@@ -45,7 +45,7 @@ public abstract class DexClass extends DexItem {
   public DexClass(
       DexString sourceFile,
       DexTypeList interfaces,
-      ClassAccessFlags accessFlags,
+      DexAccessFlags accessFlags,
       DexType superType,
       DexType type,
       DexEncodedField[] staticFields,

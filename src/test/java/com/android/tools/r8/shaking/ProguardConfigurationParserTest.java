@@ -14,10 +14,8 @@ import static org.junit.Assert.fail;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.graph.ClassAccessFlags;
+import com.android.tools.r8.graph.DexAccessFlags;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.FieldAccessFlags;
-import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions.PackageObfuscationMode;
@@ -226,39 +224,33 @@ public class ProguardConfigurationParserTest extends TestBase {
     List<ProguardConfigurationRule> rules = parser.getConfig().getRules();
     assertEquals(1, rules.size());
     ProguardConfigurationRule rule = rules.get(0);
-    ClassAccessFlags publicAndFinalFlags = ClassAccessFlags.fromSharedAccessFlags(0);
+    DexAccessFlags publicAndFinalFlags = new DexAccessFlags(0);
     publicAndFinalFlags.setPublic();
     publicAndFinalFlags.setFinal();
-    assertTrue(rule.getClassAccessFlags().containsNone(publicAndFinalFlags));
-    assertTrue(rule.getNegatedClassAccessFlags().containsAll(publicAndFinalFlags));
-    ClassAccessFlags abstractFlags = ClassAccessFlags.fromSharedAccessFlags(0);
+    assertTrue(rule.getClassAccessFlags().containsNoneOf(publicAndFinalFlags));
+    assertTrue(rule.getNegatedClassAccessFlags().containsAllOf(publicAndFinalFlags));
+    DexAccessFlags abstractFlags = new DexAccessFlags(0);
     abstractFlags.setAbstract();
-    assertTrue(rule.getClassAccessFlags().containsAll(abstractFlags));
-    assertTrue(rule.getNegatedClassAccessFlags().containsNone(abstractFlags));
+    assertTrue(rule.getClassAccessFlags().containsAllOf(abstractFlags));
+    assertTrue(rule.getNegatedClassAccessFlags().containsNoneOf(abstractFlags));
     for (ProguardMemberRule member : rule.getMemberRules()) {
       if (member.getRuleType() == ProguardMemberType.ALL_FIELDS) {
-        FieldAccessFlags publicFlags = FieldAccessFlags.fromSharedAccessFlags(0);
-        publicFlags.setPublic();
-        assertTrue(member.getAccessFlags().containsAll(publicFlags));
-        assertTrue(member.getNegatedAccessFlags().containsNone(publicFlags));
-        FieldAccessFlags staticFlags = FieldAccessFlags.fromSharedAccessFlags(0);
+        DexAccessFlags publicFlags = new DexAccessFlags(0);
+        publicAndFinalFlags.setPublic();
+        assertTrue(member.getAccessFlags().containsAllOf(publicFlags));
+        assertTrue(member.getNegatedAccessFlags().containsNoneOf(publicFlags));
+        DexAccessFlags staticFlags = new DexAccessFlags(0);
         staticFlags.setStatic();
-        assertTrue(member.getAccessFlags().containsNone(staticFlags));
-        assertTrue(member.getNegatedAccessFlags().containsAll(staticFlags));
+        assertTrue(member.getAccessFlags().containsNoneOf(staticFlags));
+        assertTrue(member.getNegatedAccessFlags().containsAllOf(staticFlags));
       } else {
         assertTrue(member.getRuleType() == ProguardMemberType.ALL_METHODS);
-
-        MethodAccessFlags publicNativeFlags = MethodAccessFlags.fromSharedAccessFlags(0, false);
-        publicNativeFlags.setPublic();
-        publicNativeFlags.setNative();
-        assertTrue(member.getAccessFlags().containsAll(publicNativeFlags));
-        assertFalse(member.getNegatedAccessFlags().containsNone(publicNativeFlags));
-
-        MethodAccessFlags protectedNativeFlags = MethodAccessFlags.fromSharedAccessFlags(0, false);
-        protectedNativeFlags.setProtected();
-        protectedNativeFlags.setNative();
-        assertTrue(member.getAccessFlags().containsAll(protectedNativeFlags));
-        assertFalse(member.getNegatedAccessFlags().containsNone(protectedNativeFlags));
+        DexAccessFlags publicProtectedVolatileFlags = new DexAccessFlags(0);
+        publicProtectedVolatileFlags.setPublic();
+        publicProtectedVolatileFlags.setProtected();
+        publicProtectedVolatileFlags.setVolatile();
+        assertTrue(member.getAccessFlags().containsNoneOf(publicProtectedVolatileFlags));
+        assertTrue(member.getNegatedAccessFlags().containsAllOf(publicProtectedVolatileFlags));
       }
     }
   }
