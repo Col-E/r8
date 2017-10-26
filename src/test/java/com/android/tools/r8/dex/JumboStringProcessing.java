@@ -12,12 +12,12 @@ import com.android.tools.r8.code.IfNe;
 import com.android.tools.r8.code.IfNez;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.ReturnVoid;
-import com.android.tools.r8.graph.DexAccessFlags;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexCode.Try;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.naming.NamingLens;
 import java.util.ArrayList;
 import java.util.List;
@@ -99,8 +99,7 @@ public class JumboStringProcessing {
         null,
         null,
         null);
-    DexAccessFlags flags = new DexAccessFlags(0);
-    flags.setPublic();
+    MethodAccessFlags flags = MethodAccessFlags.fromSharedAccessFlags(Constants.ACC_PUBLIC, false);
     DexEncodedMethod method = new DexEncodedMethod(null, flags, null, null, code);
     new JumboStringRewriter(method, string, factory).rewrite();
     return method.getCode().asDexCode();
