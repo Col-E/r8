@@ -9,7 +9,7 @@ import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.google.common.collect.ImmutableList;
 import jasmin.ClassFile;
 import java.io.File;
-import java.io.FileOutputStream;
+import java.io.OutputStream;
 import java.io.StringReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -88,7 +88,9 @@ public class JasminDebugTest extends DebugTestBase {
       file.readJasmin(new StringReader(clazz.toString()), clazz.name, false);
       Path path = out.toPath().resolve(clazz.name + ".class");
       Files.createDirectories(path.getParent());
-      file.write(new FileOutputStream(path.toFile()));
+      try (OutputStream outputStream = Files.newOutputStream(path)) {
+        file.write(outputStream);
+      }
       if (isRunningJava()) {
         extraPaths.add(path);
       } else {

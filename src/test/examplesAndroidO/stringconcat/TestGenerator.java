@@ -3,12 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package stringconcat;
 
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.lang.invoke.CallSite;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -46,177 +47,181 @@ public class TestGenerator {
   }
 
   private static void generateTests(Path classNamePath) throws IOException {
-    ClassReader cr = new ClassReader(new FileInputStream(classNamePath.toFile()));
-    ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
-    cr.accept(
-        new ClassVisitor(Opcodes.ASM6, cw) {
-          @Override
-          public MethodVisitor visitMethod(int access,
-              final String methodName, String desc, String signature, String[] exceptions) {
-            MethodVisitor mv = super.visitMethod(access, methodName, desc, signature, exceptions);
-            return new MethodVisitor(Opcodes.ASM6, mv) {
-              private List<Object> recentConstants = new ArrayList<>();
+    try (InputStream input = Files.newInputStream(classNamePath)) {
+      ClassReader cr = new ClassReader(input);
+      ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
+      cr.accept(
+          new ClassVisitor(Opcodes.ASM6, cw) {
+            @Override
+            public MethodVisitor visitMethod(int access,
+                final String methodName, String desc, String signature, String[] exceptions) {
+              MethodVisitor mv = super.visitMethod(access, methodName, desc, signature, exceptions);
+              return new MethodVisitor(Opcodes.ASM6, mv) {
+                private List<Object> recentConstants = new ArrayList<>();
 
-              @Override
-              public void visitLdcInsn(Object cst) {
-                if (!recentConstants.isEmpty() ||
-                    (cst instanceof String && ((String) cst).startsWith(RECIPE_PREFIX))) {
-                  // Add the constant, don't push anything on stack.
-                  recentConstants.add(cst);
-                  return;
-                }
-                super.visitLdcInsn(cst);
-              }
-
-              @Override
-              public void visitMethodInsn(
-                  int opcode, String owner, String name, String desc, boolean itf) {
-                // Replace calls to 'makeConcat(...)' with appropriate `invokedynamic`.
-                if (opcode == Opcodes.INVOKESTATIC && name.equals("makeConcat")) {
-                  mv.visitInvokeDynamicInsn(MAKE_CONCAT.getName(), desc, MAKE_CONCAT);
-                  recentConstants.clear();
-                  return;
-                }
-
-                // Replace calls to 'makeConcat(...)' with appropriate `invokedynamic`.
-                if (opcode == Opcodes.INVOKESTATIC && name.equals("makeConcatWithConstants")) {
-                  if (recentConstants.isEmpty()) {
-                    throw new AssertionError("No constants detected in `" +
-                        methodName + "`: call to " + name + desc);
+                @Override
+                public void visitLdcInsn(Object cst) {
+                  if (!recentConstants.isEmpty() ||
+                      (cst instanceof String && ((String) cst).startsWith(RECIPE_PREFIX))) {
+                    // Add the constant, don't push anything on stack.
+                    recentConstants.add(cst);
+                    return;
                   }
-                  recentConstants.set(0,
-                      ((String) recentConstants.get(0)).substring(RECIPE_PREFIX.length()));
-
-                  mv.visitInvokeDynamicInsn(MAKE_CONCAT_WITH_CONSTANTS.getName(),
-                      removeLastParams(desc, recentConstants.size()), MAKE_CONCAT_WITH_CONSTANTS,
-                      recentConstants.toArray(new Object[recentConstants.size()]));
-                  recentConstants.clear();
-                  return;
+                  super.visitLdcInsn(cst);
                 }
 
-                // Otherwise fall back to default implementation.
-                super.visitMethodInsn(opcode, owner, name, desc, itf);
-              }
-
-              private String removeLastParams(String descr, int paramsToRemove) {
-                MethodType methodType =
-                    MethodType.fromMethodDescriptorString(
-                        descr, this.getClass().getClassLoader());
-                return methodType
-                    .dropParameterTypes(
-                        methodType.parameterCount() - paramsToRemove,
-                        methodType.parameterCount())
-                    .toMethodDescriptorString();
-              }
-
-              @Override
-              public void visitInsn(int opcode) {
-                switch (opcode) {
-                  case Opcodes.ICONST_0:
-                    if (!recentConstants.isEmpty()) {
-                      recentConstants.add(0);
-                      return;
-                    }
-                    break;
-                  case Opcodes.ICONST_1:
-                    if (!recentConstants.isEmpty()) {
-                      recentConstants.add(1);
-                      return;
-                    }
-                    break;
-                  case Opcodes.ICONST_2:
-                    if (!recentConstants.isEmpty()) {
-                      recentConstants.add(2);
-                      return;
-                    }
-                    break;
-                  case Opcodes.ICONST_3:
-                    if (!recentConstants.isEmpty()) {
-                      recentConstants.add(3);
-                      return;
-                    }
-                    break;
-                  case Opcodes.ICONST_4:
-                    if (!recentConstants.isEmpty()) {
-                      recentConstants.add(4);
-                      return;
-                    }
-                    break;
-                  case Opcodes.ICONST_5:
-                    if (!recentConstants.isEmpty()) {
-                      recentConstants.add(5);
-                      return;
-                    }
-                    break;
-                  case Opcodes.ICONST_M1:
-                    if (!recentConstants.isEmpty()) {
-                      recentConstants.add(-1);
-                      return;
-                    }
-                    break;
-                  default:
+                @Override
+                public void visitMethodInsn(
+                    int opcode, String owner, String name, String desc, boolean itf) {
+                  // Replace calls to 'makeConcat(...)' with appropriate `invokedynamic`.
+                  if (opcode == Opcodes.INVOKESTATIC && name.equals("makeConcat")) {
+                    mv.visitInvokeDynamicInsn(MAKE_CONCAT.getName(), desc, MAKE_CONCAT);
                     recentConstants.clear();
-                    break;
+                    return;
+                  }
+
+                  // Replace calls to 'makeConcat(...)' with appropriate `invokedynamic`.
+                  if (opcode == Opcodes.INVOKESTATIC && name.equals("makeConcatWithConstants")) {
+                    if (recentConstants.isEmpty()) {
+                      throw new AssertionError("No constants detected in `" +
+                          methodName + "`: call to " + name + desc);
+                    }
+                    recentConstants.set(0,
+                        ((String) recentConstants.get(0)).substring(RECIPE_PREFIX.length()));
+
+                    mv.visitInvokeDynamicInsn(MAKE_CONCAT_WITH_CONSTANTS.getName(),
+                        removeLastParams(desc, recentConstants.size()), MAKE_CONCAT_WITH_CONSTANTS,
+                        recentConstants.toArray(new Object[recentConstants.size()]));
+                    recentConstants.clear();
+                    return;
+                  }
+
+                  // Otherwise fall back to default implementation.
+                  super.visitMethodInsn(opcode, owner, name, desc, itf);
                 }
-                super.visitInsn(opcode);
-              }
 
-              @Override
-              public void visitIntInsn(int opcode, int operand) {
-                recentConstants.clear();
-                super.visitIntInsn(opcode, operand);
-              }
+                private String removeLastParams(String descr, int paramsToRemove) {
+                  MethodType methodType =
+                      MethodType.fromMethodDescriptorString(
+                          descr, this.getClass().getClassLoader());
+                  return methodType
+                      .dropParameterTypes(
+                          methodType.parameterCount() - paramsToRemove,
+                          methodType.parameterCount())
+                      .toMethodDescriptorString();
+                }
 
-              @Override
-              public void visitVarInsn(int opcode, int var) {
-                recentConstants.clear();
-                super.visitVarInsn(opcode, var);
-              }
+                @Override
+                public void visitInsn(int opcode) {
+                  switch (opcode) {
+                    case Opcodes.ICONST_0:
+                      if (!recentConstants.isEmpty()) {
+                        recentConstants.add(0);
+                        return;
+                      }
+                      break;
+                    case Opcodes.ICONST_1:
+                      if (!recentConstants.isEmpty()) {
+                        recentConstants.add(1);
+                        return;
+                      }
+                      break;
+                    case Opcodes.ICONST_2:
+                      if (!recentConstants.isEmpty()) {
+                        recentConstants.add(2);
+                        return;
+                      }
+                      break;
+                    case Opcodes.ICONST_3:
+                      if (!recentConstants.isEmpty()) {
+                        recentConstants.add(3);
+                        return;
+                      }
+                      break;
+                    case Opcodes.ICONST_4:
+                      if (!recentConstants.isEmpty()) {
+                        recentConstants.add(4);
+                        return;
+                      }
+                      break;
+                    case Opcodes.ICONST_5:
+                      if (!recentConstants.isEmpty()) {
+                        recentConstants.add(5);
+                        return;
+                      }
+                      break;
+                    case Opcodes.ICONST_M1:
+                      if (!recentConstants.isEmpty()) {
+                        recentConstants.add(-1);
+                        return;
+                      }
+                      break;
+                    default:
+                      recentConstants.clear();
+                      break;
+                  }
+                  super.visitInsn(opcode);
+                }
 
-              @Override
-              public void visitTypeInsn(int opcode, String type) {
-                recentConstants.clear();
-                super.visitTypeInsn(opcode, type);
-              }
+                @Override
+                public void visitIntInsn(int opcode, int operand) {
+                  recentConstants.clear();
+                  super.visitIntInsn(opcode, operand);
+                }
 
-              @Override
-              public void visitFieldInsn(int opcode, String owner, String name, String desc) {
-                recentConstants.clear();
-                super.visitFieldInsn(opcode, owner, name, desc);
-              }
+                @Override
+                public void visitVarInsn(int opcode, int var) {
+                  recentConstants.clear();
+                  super.visitVarInsn(opcode, var);
+                }
 
-              @Override
-              public void visitJumpInsn(int opcode, Label label) {
-                recentConstants.clear();
-                super.visitJumpInsn(opcode, label);
-              }
+                @Override
+                public void visitTypeInsn(int opcode, String type) {
+                  recentConstants.clear();
+                  super.visitTypeInsn(opcode, type);
+                }
 
-              @Override
-              public void visitIincInsn(int var, int increment) {
-                recentConstants.clear();
-                super.visitIincInsn(var, increment);
-              }
+                @Override
+                public void visitFieldInsn(int opcode, String owner, String name, String desc) {
+                  recentConstants.clear();
+                  super.visitFieldInsn(opcode, owner, name, desc);
+                }
 
-              @Override
-              public void visitTableSwitchInsn(int min, int max, Label dflt, Label... labels) {
-                recentConstants.clear();
-                super.visitTableSwitchInsn(min, max, dflt, labels);
-              }
+                @Override
+                public void visitJumpInsn(int opcode, Label label) {
+                  recentConstants.clear();
+                  super.visitJumpInsn(opcode, label);
+                }
 
-              @Override
-              public void visitLookupSwitchInsn(Label dflt, int[] keys, Label[] labels) {
-                recentConstants.clear();
-                super.visitLookupSwitchInsn(dflt, keys, labels);
-              }
+                @Override
+                public void visitIincInsn(int var, int increment) {
+                  recentConstants.clear();
+                  super.visitIincInsn(var, increment);
+                }
 
-              @Override
-              public void visitMultiANewArrayInsn(String desc, int dims) {
-                recentConstants.clear();
-                super.visitMultiANewArrayInsn(desc, dims);
-              }
-            };
-          }
-        }, 0);
-    new FileOutputStream(classNamePath.toFile()).write(cw.toByteArray());
+                @Override
+                public void visitTableSwitchInsn(int min, int max, Label dflt, Label... labels) {
+                  recentConstants.clear();
+                  super.visitTableSwitchInsn(min, max, dflt, labels);
+                }
+
+                @Override
+                public void visitLookupSwitchInsn(Label dflt, int[] keys, Label[] labels) {
+                  recentConstants.clear();
+                  super.visitLookupSwitchInsn(dflt, keys, labels);
+                }
+
+                @Override
+                public void visitMultiANewArrayInsn(String desc, int dims) {
+                  recentConstants.clear();
+                  super.visitMultiANewArrayInsn(desc, dims);
+                }
+              };
+            }
+          }, 0);
+      try (OutputStream output = Files.newOutputStream(classNamePath)) {
+        output.write(cw.toByteArray());
+      }
+    }
   }
 }
