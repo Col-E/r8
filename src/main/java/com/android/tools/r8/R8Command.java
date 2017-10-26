@@ -49,7 +49,7 @@ public class R8Command extends BaseCompilerCommand {
     }
 
     private Builder(AndroidApp app) {
-      super(app, CompilationMode.RELEASE);
+      super(CompilationMode.RELEASE, app);
     }
 
     @Override
@@ -105,7 +105,7 @@ public class R8Command extends BaseCompilerCommand {
      * Add proguard configuration for automatic main dex list calculation.
      */
     public Builder addMainDexRules(List<String> lines) {
-      mainDexRules.add(new ProguardConfigurationSourceStrings(Paths.get("."), lines));
+      mainDexRules.add(new ProguardConfigurationSourceStrings(lines, Paths.get(".")));
       return self();
     }
 
@@ -138,7 +138,7 @@ public class R8Command extends BaseCompilerCommand {
      * Add proguard configuration.
      */
     public Builder addProguardConfiguration(List<String> lines) {
-      proguardConfigs.add(new ProguardConfigurationSourceStrings(Paths.get("."), lines));
+      proguardConfigs.add(new ProguardConfigurationSourceStrings(lines, Paths.get(".")));
       return self();
     }
 

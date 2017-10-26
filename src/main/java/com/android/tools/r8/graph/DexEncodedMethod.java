@@ -265,11 +265,11 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
     return code == null ? null : code.buildIR(this, options);
   }
 
-  public IRCode buildIR(ValueNumberGenerator valueNumberGenerator, InternalOptions options)
+  public IRCode buildIR(InternalOptions options, ValueNumberGenerator valueNumberGenerator)
       throws ApiLevelException {
     return code == null
         ? null
-        : code.asDexCode().buildIR(this, valueNumberGenerator, options);
+        : code.asDexCode().buildIR(this, options, valueNumberGenerator);
   }
 
   public void setCode(

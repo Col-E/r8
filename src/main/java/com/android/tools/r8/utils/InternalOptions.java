@@ -125,6 +125,7 @@ public class InternalOptions {
   public boolean minimalMainDex;
 
   public static class InvalidParameterAnnotationInfo {
+
     final DexMethod method;
     final int expectedParameterCount;
     final int actualParameterCount;
@@ -190,7 +191,7 @@ public class InternalOptions {
               .append(" actual count: ")
               .append(info.actualParameterCount);
         }
-        diagnosticsHandler.info(new StringDiagnostic(origin, builder.toString()));
+        diagnosticsHandler.info(new StringDiagnostic(builder.toString(), origin));
       }
       printed = true;
     }
@@ -209,7 +210,7 @@ public class InternalOptions {
         for (DexEncodedMethod method : warningInvalidDebugInfo.get(origin)) {
           builder.append("\n  ").append(method.toSourceString());
         }
-        diagnosticsHandler.info(new StringDiagnostic(origin, builder.toString()));
+        diagnosticsHandler.info(new StringDiagnostic(builder.toString(), origin));
       }
       printed = true;
       printOutdatedToolchain = true;

@@ -76,13 +76,13 @@ public class InlineTest extends SmaliTestBase {
     // Return the processed method for inspection.
     ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
     DexEncodedMethod method = getMethod(application, signature);
-    IRCode code = method.buildIR(valueNumberGenerator, new InternalOptions());
+    IRCode code = method.buildIR(new InternalOptions(), valueNumberGenerator);
 
     DexEncodedMethod methodA = getMethod(application, signatureA);
-    IRCode codeA = methodA.buildIR(valueNumberGenerator, new InternalOptions());
+    IRCode codeA = methodA.buildIR(new InternalOptions(), valueNumberGenerator);
 
     DexEncodedMethod methodB = getMethod(application, signatureB);
-    IRCode codeB = methodB.buildIR(valueNumberGenerator, new InternalOptions());
+    IRCode codeB = methodB.buildIR(new InternalOptions(), valueNumberGenerator);
 
     return new SmaliTestBase.TestApplication(application, method, code,
         ImmutableList.of(codeA, codeB), valueNumberGenerator, options);
@@ -159,10 +159,10 @@ public class InlineTest extends SmaliTestBase {
     // Return the processed method for inspection.
     ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
     DexEncodedMethod method = getMethod(application, signature);
-    IRCode code = method.buildIR(valueNumberGenerator, new InternalOptions());
+    IRCode code = method.buildIR(new InternalOptions(), valueNumberGenerator);
 
     DexEncodedMethod methodA = getMethod(application, signatureA);
-    IRCode codeA = methodA.buildIR(valueNumberGenerator, new InternalOptions());
+    IRCode codeA = methodA.buildIR(new InternalOptions(), valueNumberGenerator);
 
     return new TestApplication(application, method, code,
         ImmutableList.of(codeA), valueNumberGenerator, options);
@@ -239,19 +239,19 @@ public class InlineTest extends SmaliTestBase {
     // Return the processed method for inspection.
     ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
     DexEncodedMethod method = getMethod(application, signature);
-    IRCode code = method.buildIR(valueNumberGenerator, new InternalOptions());
+    IRCode code = method.buildIR(new InternalOptions(), valueNumberGenerator);
 
     // Build three copies of a and b for inlining three times.
     List<IRCode> additionalCode = new ArrayList<>();
     for (int i = 0; i < 3; i++) {
       DexEncodedMethod methodA = getMethod(application, signatureA);
-      IRCode codeA = methodA.buildIR(valueNumberGenerator, new InternalOptions());
+      IRCode codeA = methodA.buildIR(new InternalOptions(), valueNumberGenerator);
       additionalCode.add(codeA);
     }
 
     for (int i = 0; i < 3; i++) {
       DexEncodedMethod methodB = getMethod(application, signatureB);
-      IRCode codeB = methodB.buildIR(valueNumberGenerator, new InternalOptions());
+      IRCode codeB = methodB.buildIR(new InternalOptions(), valueNumberGenerator);
       additionalCode.add(codeB);
     }
 
@@ -373,13 +373,13 @@ public class InlineTest extends SmaliTestBase {
     // Return the processed method for inspection.
     ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
     DexEncodedMethod method = getMethod(application, signature);
-    IRCode code = method.buildIR(valueNumberGenerator, new InternalOptions());
+    IRCode code = method.buildIR(new InternalOptions(), valueNumberGenerator);
 
     DexEncodedMethod methodA = getMethod(application, signatureA);
-    IRCode codeA = methodA.buildIR(valueNumberGenerator, new InternalOptions());
+    IRCode codeA = methodA.buildIR(new InternalOptions(), valueNumberGenerator);
 
     DexEncodedMethod methodB = getMethod(application, signatureB);
-    IRCode codeB = methodB.buildIR(valueNumberGenerator, new InternalOptions());
+    IRCode codeB = methodB.buildIR(new InternalOptions(), valueNumberGenerator);
 
     return new TestApplication(application, method, code,
         ImmutableList.of(codeA, codeB), valueNumberGenerator, options);
@@ -487,13 +487,13 @@ public class InlineTest extends SmaliTestBase {
     // Return the processed method for inspection.
     ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
     DexEncodedMethod method = getMethod(application, signature);
-    IRCode code = method.buildIR(valueNumberGenerator, new InternalOptions());
+    IRCode code = method.buildIR(new InternalOptions(), valueNumberGenerator);
 
     DexEncodedMethod methodA = getMethod(application, signatureA);
-    IRCode codeA = methodA.buildIR(valueNumberGenerator, new InternalOptions());
+    IRCode codeA = methodA.buildIR(new InternalOptions(), valueNumberGenerator);
 
     DexEncodedMethod methodB = getMethod(application, signatureB);
-    IRCode codeB = methodB.buildIR(valueNumberGenerator, new InternalOptions());
+    IRCode codeB = methodB.buildIR(new InternalOptions(), valueNumberGenerator);
 
     return new TestApplication(application, method, code,
         ImmutableList.of(codeA, codeB), valueNumberGenerator, options);
@@ -600,13 +600,13 @@ public class InlineTest extends SmaliTestBase {
     // Return the processed method for inspection.
     ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
     DexEncodedMethod method = getMethod(application, signature);
-    IRCode code = method.buildIR(valueNumberGenerator, new InternalOptions());
+    IRCode code = method.buildIR(new InternalOptions(), valueNumberGenerator);
 
     DexEncodedMethod methodA = getMethod(application, signatureA);
-    IRCode codeA = methodA.buildIR(valueNumberGenerator, new InternalOptions());
+    IRCode codeA = methodA.buildIR(new InternalOptions(), valueNumberGenerator);
 
     DexEncodedMethod methodB = getMethod(application, signatureB);
-    IRCode codeB = methodB.buildIR(valueNumberGenerator, new InternalOptions());
+    IRCode codeB = methodB.buildIR(new InternalOptions(), valueNumberGenerator);
 
     return new TestApplication(application, method, code,
         ImmutableList.of(codeA, codeB), valueNumberGenerator, options);
@@ -714,19 +714,19 @@ public class InlineTest extends SmaliTestBase {
     // Return the processed method for inspection.
     ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
     DexEncodedMethod method = getMethod(application, signature);
-    IRCode code = method.buildIR(valueNumberGenerator, new InternalOptions());
+    IRCode code = method.buildIR(new InternalOptions(), valueNumberGenerator);
 
     // Build three copies of a and b for inlining three times.
     List<IRCode> additionalCode = new ArrayList<>();
     for (int i = 0; i < 3; i++) {
       DexEncodedMethod methodA = getMethod(application, signatureA);
-      IRCode codeA = methodA.buildIR(valueNumberGenerator, new InternalOptions());
+      IRCode codeA = methodA.buildIR(new InternalOptions(), valueNumberGenerator);
       additionalCode.add(codeA);
     }
 
     for (int i = 0; i < 3; i++) {
       DexEncodedMethod methodB = getMethod(application, signatureB);
-      IRCode codeB = methodB.buildIR(valueNumberGenerator, new InternalOptions());
+      IRCode codeB = methodB.buildIR(new InternalOptions(), valueNumberGenerator);
       additionalCode.add(codeB);
     }
 
@@ -871,19 +871,19 @@ public class InlineTest extends SmaliTestBase {
     // Return the processed method for inspection.
     ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
     DexEncodedMethod method = getMethod(application, signature);
-    IRCode code = method.buildIR(valueNumberGenerator, new InternalOptions());
+    IRCode code = method.buildIR(new InternalOptions(), valueNumberGenerator);
 
     // Build three copies of a and b for inlining three times.
     List<IRCode> additionalCode = new ArrayList<>();
     for (int i = 0; i < 3; i++) {
       DexEncodedMethod methodA = getMethod(application, signatureA);
-      IRCode codeA = methodA.buildIR(valueNumberGenerator, new InternalOptions());
+      IRCode codeA = methodA.buildIR(new InternalOptions(), valueNumberGenerator);
       additionalCode.add(codeA);
     }
 
     for (int i = 0; i < 3; i++) {
       DexEncodedMethod methodB = getMethod(application, signatureB);
-      IRCode codeB = methodB.buildIR(valueNumberGenerator, new InternalOptions());
+      IRCode codeB = methodB.buildIR(new InternalOptions(), valueNumberGenerator);
       additionalCode.add(codeB);
     }
 
@@ -1118,13 +1118,13 @@ public class InlineTest extends SmaliTestBase {
     // Return the processed method for inspection.
     ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
     DexEncodedMethod method = getMethod(application, signature);
-    IRCode code = method.buildIR(valueNumberGenerator, new InternalOptions());
+    IRCode code = method.buildIR(new InternalOptions(), valueNumberGenerator);
 
     DexEncodedMethod methodA = getMethod(application, signatureA);
-    IRCode codeA = methodA.buildIR(valueNumberGenerator, new InternalOptions());
+    IRCode codeA = methodA.buildIR(new InternalOptions(), valueNumberGenerator);
 
     DexEncodedMethod methodB = getMethod(application, signatureB);
-    IRCode codeB = methodB.buildIR(valueNumberGenerator, new InternalOptions());
+    IRCode codeB = methodB.buildIR(new InternalOptions(), valueNumberGenerator);
 
     return new TestApplication(application, method, code,
         ImmutableList.of(codeA, codeB), valueNumberGenerator, options);

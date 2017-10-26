@@ -94,34 +94,34 @@ public class JarCode extends Code {
       throws ApiLevelException {
     triggerDelayedParsingIfNeccessary();
     return options.debug
-        ? internalBuildWithLocals(encodedMethod, null, options)
-        : internalBuild(encodedMethod, null, options);
+        ? internalBuildWithLocals(encodedMethod, options, null)
+        : internalBuild(encodedMethod, options, null);
   }
 
   public IRCode buildIR(
-      DexEncodedMethod encodedMethod, ValueNumberGenerator generator, InternalOptions options)
+      DexEncodedMethod encodedMethod, InternalOptions options, ValueNumberGenerator generator)
       throws ApiLevelException {
     assert generator != null;
     triggerDelayedParsingIfNeccessary();
     return options.debug
-        ? internalBuildWithLocals(encodedMethod, generator, options)
-        : internalBuild(encodedMethod, generator, options);
+        ? internalBuildWithLocals(encodedMethod, options, generator)
+        : internalBuild(encodedMethod, options, generator);
   }
 
   private IRCode internalBuildWithLocals(
-      DexEncodedMethod encodedMethod, ValueNumberGenerator generator, InternalOptions options)
+      DexEncodedMethod encodedMethod, InternalOptions options, ValueNumberGenerator generator)
       throws ApiLevelException {
     try {
-      return internalBuild(encodedMethod, generator, options);
+      return internalBuild(encodedMethod, options, generator);
     } catch (InvalidDebugInfoException e) {
       options.warningInvalidDebugInfo(encodedMethod, origin, e);
       node.localVariables.clear();
-      return internalBuild(encodedMethod, generator, options);
+      return internalBuild(encodedMethod, options, generator);
     }
   }
 
   private IRCode internalBuild(
-      DexEncodedMethod encodedMethod, ValueNumberGenerator generator, InternalOptions options)
+      DexEncodedMethod encodedMethod, InternalOptions options, ValueNumberGenerator generator)
       throws ApiLevelException {
     if (!options.debug) {
       node.localVariables.clear();
@@ -130,7 +130,7 @@ public class JarCode extends Code {
     IRBuilder builder =
         (generator == null)
             ? new IRBuilder(encodedMethod, source, options)
-            : new IRBuilder(encodedMethod, source, generator, options);
+            : new IRBuilder(encodedMethod, source, options, generator);
     return builder.build();
   }
 

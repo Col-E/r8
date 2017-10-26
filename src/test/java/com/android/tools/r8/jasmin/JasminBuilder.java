@@ -191,7 +191,7 @@ public class JasminBuilder {
         }
       };
       builder.addClassProgramData(
-          origin, compile(clazz), Collections.singleton(clazz.getDescriptor()));
+          compile(clazz), origin, Collections.singleton(clazz.getDescriptor()));
     }
     return builder.build();
   }

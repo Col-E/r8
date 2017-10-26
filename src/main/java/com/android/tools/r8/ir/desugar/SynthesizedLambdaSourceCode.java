@@ -16,14 +16,14 @@ abstract class SynthesizedLambdaSourceCode extends SingleBlockSourceCode {
   final DexMethod currentMethod;
   final LambdaClass lambda;
 
-  SynthesizedLambdaSourceCode(DexType receiver, LambdaClass lambda, DexMethod currentMethod) {
+  SynthesizedLambdaSourceCode(LambdaClass lambda, DexMethod currentMethod, DexType receiver) {
     super(receiver, currentMethod.proto);
     this.lambda = lambda;
     this.currentMethod = currentMethod;
   }
 
   SynthesizedLambdaSourceCode(LambdaClass lambda, DexMethod currentMethod) {
-    this(lambda.type, lambda, currentMethod);
+    this(lambda, currentMethod, lambda.type);
   }
 
   final LambdaDescriptor descriptor() {

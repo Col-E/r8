@@ -596,11 +596,11 @@ public class AndroidApp {
     /**
      * Add Java-bytecode program data.
      */
-    public Builder addClassProgramData(Origin origin, byte[] data) {
+    public Builder addClassProgramData(byte[] data, Origin origin) {
       return addProgramResources(Kind.CLASS, Resource.fromBytes(origin, data));
     }
 
-    public Builder addClassProgramData(Origin origin, byte[] data, Set<String> classDescriptors) {
+    public Builder addClassProgramData(byte[] data, Origin origin, Set<String> classDescriptors) {
       return addProgramResources(Kind.CLASS, Resource.fromBytes(origin, data, classDescriptors));
     }
 

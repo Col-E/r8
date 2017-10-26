@@ -44,7 +44,7 @@ public class D8Command extends BaseCompilerCommand {
     }
 
     private Builder(AndroidApp app) {
-      super(app, CompilationMode.DEBUG);
+      super(CompilationMode.DEBUG, app);
     }
 
     /** Add classpath file resources. */

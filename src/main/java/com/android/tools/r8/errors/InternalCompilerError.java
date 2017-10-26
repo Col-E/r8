@@ -14,8 +14,8 @@ public class InternalCompilerError extends IllegalStateException {
   public InternalCompilerError() {
   }
 
-  public InternalCompilerError(String s) {
-    super(s);
+  public InternalCompilerError(String message) {
+    super(message);
   }
 
   public InternalCompilerError(String message, Throwable cause) {

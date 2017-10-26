@@ -168,11 +168,10 @@ public class DexCode extends Code {
 
   public IRCode buildIR(
       DexEncodedMethod encodedMethod,
-      ValueNumberGenerator valueNumberGenerator,
-      InternalOptions options)
+      InternalOptions options, ValueNumberGenerator valueNumberGenerator)
       throws ApiLevelException {
     DexSourceCode source = new DexSourceCode(this, encodedMethod);
-    IRBuilder builder = new IRBuilder(encodedMethod, source, valueNumberGenerator, options);
+    IRBuilder builder = new IRBuilder(encodedMethod, source, options, valueNumberGenerator);
     return builder.build();
   }
 

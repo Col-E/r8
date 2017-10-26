@@ -109,19 +109,19 @@ abstract class BaseCompilerCommand extends BaseCommand {
     private boolean enableDesugaring = true;
 
     protected Builder(CompilationMode mode) {
-      this(AndroidApp.builder(), mode, false);
+      this(mode, false, AndroidApp.builder());
     }
 
     protected Builder(CompilationMode mode, boolean ignoreDexInArchive) {
-      this(AndroidApp.builder(), mode, ignoreDexInArchive);
+      this(mode, ignoreDexInArchive, AndroidApp.builder());
     }
 
     // Internal constructor for testing.
-    Builder(AndroidApp app, CompilationMode mode) {
-      this(AndroidApp.builder(app), mode, false);
+    Builder(CompilationMode mode, AndroidApp app) {
+      this(mode, false, AndroidApp.builder(app));
     }
 
-    private Builder(AndroidApp.Builder builder, CompilationMode mode, boolean ignoreDexInArchive) {
+    private Builder(CompilationMode mode, boolean ignoreDexInArchive, AndroidApp.Builder builder) {
       super(builder, ignoreDexInArchive);
       assert mode != null;
       this.mode = mode;

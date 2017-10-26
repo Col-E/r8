@@ -232,14 +232,14 @@ public class Inliner {
         GraphLense graphLense, InternalOptions options) throws ApiLevelException {
       if (target.isProcessed()) {
         assert target.getCode().isDexCode();
-        return target.buildIR(generator, options);
+        return target.buildIR(options, generator);
       } else {
         // Build the IR for a yet not processed method, and perform minimal IR processing.
         IRCode code;
         if (target.getCode().isJarCode()) {
-          code = target.getCode().asJarCode().buildIR(target, generator, options);
+          code = target.getCode().asJarCode().buildIR(target, options, generator);
         } else {
-          code = target.getCode().asDexCode().buildIR(target, generator, options);
+          code = target.getCode().asDexCode().buildIR(target, options, generator);
         }
         new LensCodeRewriter(graphLense, appInfo).rewrite(code, target);
         return code;

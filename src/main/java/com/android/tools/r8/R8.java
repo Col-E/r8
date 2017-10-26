@@ -129,7 +129,7 @@ public class R8 {
     timing.begin("Create IR");
     try {
       IRConverter converter = new IRConverter(
-          timing, appInfo, options, printer, graphLense);
+          appInfo, options, timing, printer, graphLense);
       application = converter.optimize(application, executorService);
     } finally {
       timing.end();

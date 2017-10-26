@@ -58,6 +58,7 @@ import java.util.Set;
 //       forward the call to an appropriate method in interface companion class.
 //
 public final class InterfaceMethodRewriter {
+
   // Public for testing.
   public static final String COMPANION_CLASS_NAME_SUFFIX = "-CC";
   private static final String DEFAULT_METHOD_PREFIX = "$default$";
@@ -75,11 +76,17 @@ public final class InterfaceMethodRewriter {
    */
   private Set<DexItem> reportedMissing = Sets.newIdentityHashSet();
 
-  /** Defines a minor variation in desugaring. */
+  /**
+   * Defines a minor variation in desugaring.
+   */
   public enum Flavor {
-    /** Process all application resources. */
+    /**
+     * Process all application resources.
+     */
     IncludeAllResources,
-    /** Process all but DEX application resources. */
+    /**
+     * Process all but DEX application resources.
+     */
     ExcludeDexResources
   }
 
@@ -174,13 +181,14 @@ public final class InterfaceMethodRewriter {
       } else if (holderClass.isInterface()) {
         throw new Unimplemented(
             "Desugaring of static interface method handle as in `"
-            + referencedFrom.toSourceString() + "` in is not yet supported.");
+                + referencedFrom.toSourceString() + "` in is not yet supported.");
       }
     }
   }
 
   /**
    * Returns the class definition for the specified type.
+   *
    * @return may return null if no definition for the given type is available.
    */
   final DexClass findDefinitionFor(DexType type) {
@@ -313,7 +321,7 @@ public final class InterfaceMethodRewriter {
           .append("`");
     }
     options.diagnosticsHandler.warning(
-        new StringDiagnostic(classToDesugar.getOrigin(), builder.toString()));
+        new StringDiagnostic(builder.toString(), classToDesugar.getOrigin()));
   }
 
   private void warnMissingType(DexMethod referencedFrom, DexType missing) {
@@ -331,6 +339,6 @@ public final class InterfaceMethodRewriter {
         .append("`");
     DexClass referencedFromClass = converter.appInfo.definitionFor(referencedFrom.getHolder());
     options.diagnosticsHandler.warning(
-        new StringDiagnostic(referencedFromClass.getOrigin(), builder.toString()));
+        new StringDiagnostic(builder.toString(), referencedFromClass.getOrigin()));
   }
 }

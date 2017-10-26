@@ -386,7 +386,7 @@ public class DexBuilder {
       if (ifsNeedingRewrite.contains(block)) {
         If theIf = block.exit().asIf();
         BasicBlock trueTarget = theIf.getTrueTarget();
-        BasicBlock newBlock = BasicBlock.createGotoBlock(trueTarget, ir.blocks.size());
+        BasicBlock newBlock = BasicBlock.createGotoBlock(ir.blocks.size(), trueTarget);
         theIf.setTrueTarget(newBlock);
         theIf.invert();
         it.add(newBlock);
@@ -641,7 +641,8 @@ public class DexBuilder {
       item = tryItems.get(i);
       coalescedTryItems.add(item);
       // Trim the range start for non-throwing instructions when starting a new range.
-      List<com.android.tools.r8.ir.code.Instruction> instructions = blocksWithHandlers.get(i).getInstructions();
+      List<com.android.tools.r8.ir.code.Instruction> instructions = blocksWithHandlers.get(i)
+          .getInstructions();
       for (com.android.tools.r8.ir.code.Instruction insn : instructions) {
         if (insn.instructionTypeCanThrow()) {
           item.start = getInfo(insn).getOffset();
@@ -819,7 +820,8 @@ public class DexBuilder {
     private Instruction[] instructions;
     private final int size;
 
-    public MultiFixedSizeInfo(com.android.tools.r8.ir.code.Instruction ir, Instruction[] instructions) {
+    public MultiFixedSizeInfo(com.android.tools.r8.ir.code.Instruction ir,
+        Instruction[] instructions) {
       super(ir);
       this.instructions = instructions;
       int size = 0;

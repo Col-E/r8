@@ -64,7 +64,7 @@ public class SplitBlockTest extends SmaliTestBase {
     // Return the processed method for inspection.
     ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
     DexEncodedMethod method = getMethod(application, signature);
-    IRCode code = method.buildIR(valueNumberGenerator, new InternalOptions());
+    IRCode code = method.buildIR(new InternalOptions(), valueNumberGenerator);
 
     return new TestApplication(application, method, code, valueNumberGenerator, options);
   }
@@ -123,7 +123,7 @@ public class SplitBlockTest extends SmaliTestBase {
       assertTrue(!block.getInstructions().get(i).isArgument());
 
       InstructionListIterator iterator = test.listIteratorAt(block, i);
-      BasicBlock newBlock = iterator.split(1, code);
+      BasicBlock newBlock = iterator.split(code, 1);
       assertTrue(code.isConsistentSSA());
 
       assertEquals(initialBlockCount + 2, code.blocks.size());
@@ -182,7 +182,7 @@ public class SplitBlockTest extends SmaliTestBase {
     // Return the processed method for inspection.
     ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
     DexEncodedMethod method = getMethod(application, signature);
-    IRCode code = method.buildIR(valueNumberGenerator, new InternalOptions());
+    IRCode code = method.buildIR(new InternalOptions(), valueNumberGenerator);
     return new TestApplication(application, method, code, valueNumberGenerator, options);
   }
 
@@ -247,7 +247,7 @@ public class SplitBlockTest extends SmaliTestBase {
       assertEquals(secondBlockInstructions, instructionCount);
 
       InstructionListIterator iterator = test.listIteratorAt(block, i);
-      BasicBlock newBlock = iterator.split(1, code);
+      BasicBlock newBlock = iterator.split(code, 1);
       assertTrue(code.isConsistentSSA());
 
       assertEquals(initialBlockCount + 2, code.blocks.size());
@@ -307,7 +307,7 @@ public class SplitBlockTest extends SmaliTestBase {
     // Return the processed method for inspection.
     ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
     DexEncodedMethod method = getMethod(application, signature);
-    IRCode code = method.buildIR(valueNumberGenerator, new InternalOptions());
+    IRCode code = method.buildIR(new InternalOptions(), valueNumberGenerator);
 
     return new TestApplication(application, method, code, valueNumberGenerator, options);
   }
@@ -431,7 +431,7 @@ public class SplitBlockTest extends SmaliTestBase {
     // Return the processed method for inspection.
     ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
     DexEncodedMethod method = getMethod(application, signature);
-    IRCode code = method.buildIR(valueNumberGenerator, new InternalOptions());
+    IRCode code = method.buildIR(new InternalOptions(), valueNumberGenerator);
 
     return new TestApplication(application, method, code, valueNumberGenerator, options);
   }

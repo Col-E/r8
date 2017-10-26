@@ -7,14 +7,15 @@ import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.Resource.Origin;
 
 public class StringDiagnostic implements Diagnostic {
+
   private final Origin origin;
   private final String message;
 
   public StringDiagnostic(String message) {
-    this(Origin.unknown(), message);
+    this(message, Origin.unknown());
   }
 
-  public StringDiagnostic(Origin origin, String message) {
+  public StringDiagnostic(String message, Origin origin) {
     this.origin = origin;
     this.message = message;
   }

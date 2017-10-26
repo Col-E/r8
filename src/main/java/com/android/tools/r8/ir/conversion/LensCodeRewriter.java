@@ -116,7 +116,7 @@ public class LensCodeRewriter {
               // If the current block has catch handlers split the check cast into its own block.
               if (newInvoke.getBlock().hasCatchHandlers()) {
                 iterator.previous();
-                iterator.split(1, code, blocks);
+                iterator.split(code, 1, blocks);
               }
             }
           }

@@ -20,7 +20,7 @@ import java.util.List;
 final class AccessorMethodSourceCode extends SynthesizedLambdaSourceCode {
 
   AccessorMethodSourceCode(LambdaClass lambda) {
-    super(/* no receiver for static method */ null, lambda, lambda.target.callTarget);
+    super(lambda, lambda.target.callTarget, null /* no receiver for static method */);
     // We should never need an accessor for interface methods since
     // they are supposed to be public.
     assert !descriptor().implHandle.type.isInvokeInterface();

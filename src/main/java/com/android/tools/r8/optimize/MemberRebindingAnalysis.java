@@ -219,6 +219,6 @@ public class MemberRebindingAnalysis {
         appInfo::lookupStaticTarget, DexClass::findStaticTarget);
     computeFieldRebinding(Sets.union(appInfo.instanceFieldReads, appInfo.instanceFieldWrites),
         appInfo::lookupInstanceTarget, DexClass::findInstanceTarget);
-    return builder.build(lense, appInfo.dexItemFactory);
+    return builder.build(appInfo.dexItemFactory, lense);
   }
 }

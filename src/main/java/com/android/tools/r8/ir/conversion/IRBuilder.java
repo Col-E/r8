@@ -291,14 +291,13 @@ public class IRBuilder {
   private int nextBlockNumber = 0;
 
   public IRBuilder(DexEncodedMethod method, SourceCode source, InternalOptions options) {
-    this(method, source, new ValueNumberGenerator(), options);
+    this(method, source, options, new ValueNumberGenerator());
   }
 
   public IRBuilder(
       DexEncodedMethod method,
       SourceCode source,
-      ValueNumberGenerator valueNumberGenerator,
-      InternalOptions options) {
+      InternalOptions options, ValueNumberGenerator valueNumberGenerator) {
     assert source != null;
     this.method = method;
     this.source = source;
@@ -1624,7 +1623,7 @@ public class IRBuilder {
 
   public Value readRegister(int register, MoveType type) {
     DebugLocalInfo local = getCurrentLocal(register);
-    Value value = readRegister(register, currentBlock, EdgeType.NON_EDGE, type, local);
+    Value value = readRegister(register, type, currentBlock, EdgeType.NON_EDGE, local);
     // Check that any information about a current-local is consistent with the read.
     if (local != null && value.getLocalInfo() != local && !value.isUninitializedLocal()) {
       throw new InvalidDebugInfoException(
@@ -1643,10 +1642,10 @@ public class IRBuilder {
 
   public Value readRegisterIgnoreLocal(int register, MoveType type) {
     DebugLocalInfo local = getCurrentLocal(register);
-    return readRegister(register, currentBlock, EdgeType.NON_EDGE, type, local);
+    return readRegister(register, type, currentBlock, EdgeType.NON_EDGE, local);
   }
 
-  public Value readRegister(int register, BasicBlock block, EdgeType readingEdge, MoveType type,
+  public Value readRegister(int register, MoveType type, BasicBlock block, EdgeType readingEdge,
       DebugLocalInfo local) {
     checkRegister(register);
     Value value = block.readCurrentDefinition(register, readingEdge);
@@ -1665,7 +1664,7 @@ public class IRBuilder {
       assert block.verifyFilledPredecessors();
       BasicBlock pred = block.getPredecessors().get(0);
       EdgeType edgeType = pred.getEdgeType(block);
-      value = readRegister(register, pred, edgeType, type, local);
+      value = readRegister(register, type, pred, edgeType, local);
     } else {
       Phi phi = new Phi(valueNumberGenerator.next(), block, type, local);
       // We need to write the phi before adding operands to break cycles. If the phi is trivial
@@ -1939,7 +1938,7 @@ public class IRBuilder {
       BasicBlock target = pair.second;
 
       // New block with one unfilled predecessor.
-      BasicBlock newBlock = BasicBlock.createGotoBlock(target, nextBlockNumber++);
+      BasicBlock newBlock = BasicBlock.createGotoBlock(nextBlockNumber++, target);
       blocks.add(newBlock);
       newBlock.incrementUnfilledPredecessorCount();
 
@@ -2018,7 +2017,7 @@ public class IRBuilder {
             int otherPredecessorIndex = values.get(v);
             BasicBlock joinBlock = joinBlocks.get(otherPredecessorIndex);
             if (joinBlock == null) {
-              joinBlock = BasicBlock.createGotoBlock(block, blocks.size() + blocksToAdd.size());
+              joinBlock = BasicBlock.createGotoBlock(blocks.size() + blocksToAdd.size(), block);
               joinBlocks.put(otherPredecessorIndex, joinBlock);
               blocksToAdd.add(joinBlock);
               BasicBlock otherPredecessor = block.getPredecessors().get(otherPredecessorIndex);

@@ -74,7 +74,7 @@ public class IRCode {
           // correct predecessor and successor structure. It is inserted
           // at the end of the list of blocks disregarding branching
           // structure.
-          BasicBlock newBlock = BasicBlock.createGotoBlock(block, nextBlockNumber++);
+          BasicBlock newBlock = BasicBlock.createGotoBlock(nextBlockNumber++, block);
           newBlocks.add(newBlock);
           pred.replaceSuccessor(block, newBlock);
           newBlock.getPredecessors().add(pred);
@@ -108,7 +108,7 @@ public class IRCode {
           fallthrough = fallthrough.exit().fallthroughBlock();
         }
         if (fallthrough != null) {
-          BasicBlock newFallthrough = BasicBlock.createGotoBlock(fallthrough, nextBlockNumber++);
+          BasicBlock newFallthrough = BasicBlock.createGotoBlock(nextBlockNumber++, fallthrough);
           current.exit().setFallthroughBlock(newFallthrough);
           newFallthrough.getPredecessors().add(current);
           fallthrough.replacePredecessor(current, newFallthrough);

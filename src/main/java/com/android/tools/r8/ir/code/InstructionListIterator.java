@@ -126,8 +126,8 @@ public interface InstructionListIterator extends ListIterator<Instruction>,
    * If the current block have catch handlers these catch handlers will be attached to the block
    * containing the throwing instruction after the split.
    *
-   * @param instructions the number of instructions to include in the second block.
    * @param code the IR code for the block this iterator originates from.
+   * @param instructions the number of instructions to include in the second block.
    * @param blockIterator basic block iterator used to iterate the blocks. This must be positioned
    * just after the block for this is the instruction iterator. After this method returns it will be
    * positioned just after the second block inserted. Calling {@link #remove} without further
@@ -135,13 +135,13 @@ public interface InstructionListIterator extends ListIterator<Instruction>,
    * @return Returns the new block with the instructions after the cursor.
    */
   // TODO(sgjesse): Refactor to avoid the need for passing code and blockIterator.
-  BasicBlock split(int instructions, IRCode code, ListIterator<BasicBlock> blockIterator);
+  BasicBlock split(IRCode code, int instructions, ListIterator<BasicBlock> blockIterator);
 
   /**
-   * See {@link #split(int, IRCode, ListIterator)}.
+   * See {@link #split(IRCode, int, ListIterator)}.
    */
-  default BasicBlock split(int instructions, IRCode code) {
-    return split(instructions, code, null);
+  default BasicBlock split(IRCode code, int instructions) {
+    return split(code, instructions, null);
   }
 
   /**

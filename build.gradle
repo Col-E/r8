@@ -23,6 +23,7 @@ def errorProneConfiguration = [
     '-Xep:OvershadowingSubclassFields:WARN',
     '-Xep:IntLongMath:WARN',
     '-Xep:EqualsHashCode:WARN',
+    '-Xep:InconsistentOverloads:WARN',
     '-Xep:ArrayHashCode:WARN',
     '-Xep:EqualsIncompatibleType:WARN',
     '-Xep:NonOverridingEquals:WARN',

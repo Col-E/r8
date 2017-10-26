@@ -43,24 +43,24 @@ public class MinifiedNameMapPrinter {
     return copy;
   }
 
-  private void write(DexProgramClass clazz, PrintStream out) {
+  private void writeClass(DexProgramClass clazz, PrintStream out) {
     seenTypes.add(clazz.type);
     DexString descriptor = namingLens.lookupDescriptor(clazz.type);
     out.print(DescriptorUtils.descriptorToJavaType(clazz.type.descriptor.toSourceString()));
     out.print(" -> ");
     out.print(DescriptorUtils.descriptorToJavaType(descriptor.toSourceString()));
     out.println(":");
-    write(sortedCopy(
+    writeFields(sortedCopy(
         clazz.instanceFields(), Comparator.comparing(DexEncodedField::toSourceString)), out);
-    write(sortedCopy(
+    writeFields(sortedCopy(
         clazz.staticFields(), Comparator.comparing(DexEncodedField::toSourceString)), out);
-    write(sortedCopy(
+    writeMethods(sortedCopy(
         clazz.directMethods(), Comparator.comparing(DexEncodedMethod::toSourceString)), out);
-    write(sortedCopy(
+    writeMethods(sortedCopy(
         clazz.virtualMethods(), Comparator.comparing(DexEncodedMethod::toSourceString)), out);
   }
 
-  private void write(DexType type, PrintStream out) {
+  private void writeType(DexType type, PrintStream out) {
     if (type.isClassType() && seenTypes.add(type)) {
       DexString descriptor = namingLens.lookupDescriptor(type);
       out.print(DescriptorUtils.descriptorToJavaType(type.descriptor.toSourceString()));
@@ -70,7 +70,7 @@ public class MinifiedNameMapPrinter {
     }
   }
 
-  private void write(DexEncodedField[] fields, PrintStream out) {
+  private void writeFields(DexEncodedField[] fields, PrintStream out) {
     for (DexEncodedField encodedField : fields) {
       DexField field = encodedField.field;
       DexString renamed = namingLens.lookupName(field);
@@ -102,7 +102,7 @@ public class MinifiedNameMapPrinter {
     out.println(renamed);
   }
 
-  private void write(DexEncodedMethod[] methods, PrintStream out) {
+  private void writeMethods(DexEncodedMethod[] methods, PrintStream out) {
     for (DexEncodedMethod encodedMethod : methods) {
       DexMethod method = encodedMethod.method;
       DexString renamed = namingLens.lookupName(method);
@@ -125,9 +125,9 @@ public class MinifiedNameMapPrinter {
     // First write out all classes that have been renamed.
     List<DexProgramClass> classes = new ArrayList<>(application.classes());
     classes.sort(Comparator.comparing(DexProgramClass::toSourceString));
-    classes.forEach(clazz -> write(clazz, out));
+    classes.forEach(clazz -> writeClass(clazz, out));
     // Now write out all types only mentioned in descriptors that have been renamed.
-    namingLens.forAllRenamedTypes(type -> write(type, out));
+    namingLens.forAllRenamedTypes(type -> writeType(type, out));
   }
 
   public void write(Path destination) throws IOException {

@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir;
 
-import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -52,12 +51,12 @@ public class BasicBlockIteratorTest extends SmaliTestBase {
     // Build the code, and split the code into three blocks.
     ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
     DexEncodedMethod method = getMethod(application, signature);
-    IRCode code = method.buildIR(valueNumberGenerator, new InternalOptions());
+    IRCode code = method.buildIR(new InternalOptions(), valueNumberGenerator);
     ListIterator<BasicBlock> blocks = code.listIterator();
     InstructionListIterator iter = blocks.next().listIterator();
     iter.nextUntil(i -> !i.isArgument());
     iter.previous();
-    iter.split(1, code, blocks);
+    iter.split(code, 1, blocks);
     return code;
   }
 

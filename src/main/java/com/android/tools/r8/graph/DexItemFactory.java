@@ -346,23 +346,19 @@ public class DexItemFactory {
     return createField(clazz, type, createString(name));
   }
 
-  public DexProto createProto(DexString shorty, DexType returnType, DexTypeList parameters) {
+  public DexProto createProto(DexType returnType, DexString shorty, DexTypeList parameters) {
     assert !sorted;
     DexProto proto = new DexProto(shorty, returnType, parameters);
     return canonicalize(protos, proto);
   }
 
-  public DexProto createProto(DexString shorty, DexType returnType, DexType[] parameters) {
+  public DexProto createProto(DexType returnType, DexType... parameters) {
     assert !sorted;
-    return createProto(shorty, returnType,
+    return createProto(returnType, createShorty(returnType, parameters),
         parameters.length == 0 ? DexTypeList.empty() : new DexTypeList(parameters));
   }
 
-  public DexProto createProto(DexType returnType, DexType... parameters) {
-    return createProto(createShorty(returnType, parameters), returnType, parameters);
-  }
-
-  public DexString createShorty(DexType returnType, DexType[] argumentTypes) {
+  private DexString createShorty(DexType returnType, DexType[] argumentTypes) {
     StringBuilder shortyBuilder = new StringBuilder();
     shortyBuilder.append(returnType.toShorty());
     for (DexType argumentType : argumentTypes) {
@@ -407,7 +403,7 @@ public class DexItemFactory {
     for (int i = 0; i < parameterDescriptors.length; i++) {
       parameterTypes[i] = createType(parameterDescriptors[i]);
     }
-    DexProto proto = createProto(shorty(returnType, parameterTypes), returnType, parameterTypes);
+    DexProto proto = createProto(returnType, parameterTypes);
 
     return createMethod(clazz, proto, name);
   }
@@ -462,20 +458,6 @@ public class DexItemFactory {
 
   public boolean isClassConstructor(DexMethod method) {
     return method.name == classConstructorMethodName;
-  }
-
-  private DexString shorty(DexType returnType, DexType[] parameters) {
-    StringBuilder builder = new StringBuilder();
-    addToShorty(builder, returnType);
-    for (DexType parameter : parameters) {
-      addToShorty(builder, parameter);
-    }
-    return createString(builder.toString());
-  }
-
-  private void addToShorty(StringBuilder builder, DexType type) {
-    char first = type.toDescriptorString().charAt(0);
-    builder.append(first == '[' ? 'L' : first);
   }
 
   private static <S extends PresortedComparable<S>> void assignSortedIndices(Collection<S> items,

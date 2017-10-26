@@ -92,7 +92,7 @@ public class AndroidAppOutputSink extends ForwardingOutputSink {
     } else if (!classFiles.isEmpty()) {
       assert dexFilesWithPrimary.isEmpty() && dexFilesWithId.isEmpty();
       classFiles.forEach(
-          d -> builder.addClassProgramData(Origin.unknown(), d.contents, d.descriptors));
+          d -> builder.addClassProgramData(d.contents, Origin.unknown(), d.descriptors));
     }
     closed = true;
     super.close();

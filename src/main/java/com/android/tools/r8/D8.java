@@ -199,7 +199,7 @@ public final class D8 {
       throws IOException, ExecutionException, ApiLevelException {
     final CfgPrinter printer = options.printCfg ? new CfgPrinter() : null;
 
-    IRConverter converter = new IRConverter(timing, appInfo, options, printer);
+    IRConverter converter = new IRConverter(appInfo, options, timing, printer);
     application = converter.convertToDex(application, executor);
 
     if (options.printCfg) {

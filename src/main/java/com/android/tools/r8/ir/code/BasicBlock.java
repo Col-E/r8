@@ -959,10 +959,10 @@ public class BasicBlock {
    * <p>The constructed basic block has no predecessors and has one
    * successors which is the target block.
    *
-   * @param target the target of the goto block
    * @param blockNumber the block number of the goto block
+   * @param target the target of the goto block
    */
-  public static BasicBlock createGotoBlock(BasicBlock target, int blockNumber) {
+  public static BasicBlock createGotoBlock(int blockNumber, BasicBlock target) {
     BasicBlock block = createGotoBlock(blockNumber);
     block.getSuccessors().add(target);
     return block;

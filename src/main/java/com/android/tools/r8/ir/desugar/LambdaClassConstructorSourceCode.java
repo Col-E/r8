@@ -15,7 +15,7 @@ import java.util.Collections;
 final class LambdaClassConstructorSourceCode extends SynthesizedLambdaSourceCode {
 
   LambdaClassConstructorSourceCode(LambdaClass lambda) {
-    super(null /* Class initializer is static */, lambda, lambda.classConstructor);
+    super(lambda, lambda.classConstructor, null /* Class initializer is static */);
     assert lambda.instanceField != null;
   }
 

@@ -82,11 +82,8 @@ public class IRConverter {
   private DexString highestSortingString;
 
   private IRConverter(
-      Timing timing,
-      AppInfo appInfo,
-      GraphLense graphLense,
-      InternalOptions options,
-      CfgPrinter printer,
+      AppInfo appInfo, InternalOptions options, Timing timing,
+      CfgPrinter printer, GraphLense graphLense,
       boolean enableWholeProgramOptimizations) {
     assert appInfo != null;
     assert options != null;
@@ -127,30 +124,26 @@ public class IRConverter {
   public IRConverter(
       AppInfo appInfo,
       InternalOptions options) {
-    this(null, appInfo, null, options, null, false);
+    this(appInfo, options, null, null, null, false);
   }
 
   /**
    * Create an IR converter for processing methods with full program optimization disabled.
    */
   public IRConverter(
-      Timing timing,
-      AppInfo appInfo,
-      InternalOptions options,
+      AppInfo appInfo, InternalOptions options, Timing timing,
       CfgPrinter printer) {
-    this(timing, appInfo, null, options, printer, false);
+    this(appInfo, options, timing, printer, null, false);
   }
 
   /**
    * Create an IR converter for processing methods with full program optimization enabled.
    */
   public IRConverter(
-      Timing timing,
-      AppInfoWithSubtyping appInfo,
-      InternalOptions options,
+      AppInfoWithSubtyping appInfo, InternalOptions options, Timing timing,
       CfgPrinter printer,
       GraphLense graphLense) {
-    this(timing, appInfo, graphLense, options, printer, true);
+    this(appInfo, options, timing, printer, graphLense, true);
   }
 
   private boolean enableInterfaceMethodDesugaring() {

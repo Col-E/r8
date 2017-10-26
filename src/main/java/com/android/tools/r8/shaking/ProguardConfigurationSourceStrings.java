@@ -12,6 +12,7 @@ import java.util.List;
 import joptsimple.internal.Strings;
 
 public class ProguardConfigurationSourceStrings implements ProguardConfigurationSource {
+
   private final Path basePath;
   private final List<String> config;
 
@@ -20,13 +21,13 @@ public class ProguardConfigurationSourceStrings implements ProguardConfiguration
    * {@param basePath}, which allows all other options that use a relative path to reach out
    * to desired paths appropriately.
    */
-  public ProguardConfigurationSourceStrings(Path basePath, List<String> config) {
+  public ProguardConfigurationSourceStrings(List<String> config, Path basePath) {
     this.basePath = basePath;
     this.config = config;
   }
 
   private ProguardConfigurationSourceStrings(List<String> config) {
-    this(Paths.get("."), config);
+    this(config, Paths.get("."));
   }
 
   @VisibleForTesting
@@ -36,7 +37,7 @@ public class ProguardConfigurationSourceStrings implements ProguardConfiguration
   }
 
   @Override
-  public String get() throws IOException{
+  public String get() throws IOException {
     return Strings.join(config, System.lineSeparator());
   }
 

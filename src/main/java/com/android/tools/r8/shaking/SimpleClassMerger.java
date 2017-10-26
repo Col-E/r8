@@ -181,7 +181,7 @@ public class SimpleClassMerger {
     if (Log.ENABLED) {
       Log.debug(getClass(), "Merged %d classes.", numberOfMerges);
     }
-    return renamedMembersLense.build(graphLense, application.dexItemFactory);
+    return renamedMembersLense.build(application.dexItemFactory, graphLense);
   }
 
   private class ClassMerger {
@@ -438,7 +438,7 @@ public class SimpleClassMerger {
         DexType fixed = fixupType(type);
         lense.map(type, fixed);
       }
-      return lense.build(graphLense, application.dexItemFactory);
+      return lense.build(application.dexItemFactory, graphLense);
     }
 
     private DexEncodedMethod[] removeDupes(DexEncodedMethod[] methods) {

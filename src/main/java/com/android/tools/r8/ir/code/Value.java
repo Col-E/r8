@@ -593,10 +593,10 @@ public class Value {
 
   public boolean isDead(InternalOptions options) {
     // Totally unused values are trivially dead.
-    return !isUsed() || isDead(new HashSet<>(), options);
+    return !isUsed() || isDead(options, new HashSet<>());
   }
 
-  protected boolean isDead(Set<Value> active, InternalOptions options) {
+  protected boolean isDead(InternalOptions options, Set<Value> active) {
     // If the value has debug users we cannot eliminate it since it represents a value in a local
     // variable that should be visible in the debugger.
     if (numberOfDebugUsers() != 0) {
@@ -613,12 +613,12 @@ public class Value {
       // Instructions with no out value cannot be dead code by the current definition
       // (unused out value). They typically side-effect input values or deals with control-flow.
       assert outValue != null;
-      if (!active.contains(outValue) && !outValue.isDead(active, options)) {
+      if (!active.contains(outValue) && !outValue.isDead(options, active)) {
         return false;
       }
     }
     for (Phi phi : uniquePhiUsers()) {
-      if (!active.contains(phi) && !phi.isDead(active, options)) {
+      if (!active.contains(phi) && !phi.isDead(options, active)) {
         return false;
       }
     }

@@ -18,6 +18,7 @@ import org.objectweb.asm.Type;
  * It does not currently support multithreaded reading.
  */
 public class JarApplicationReader {
+
   public final InternalOptions options;
 
   ConcurrentHashMap<String, DexString> stringCache = new ConcurrentHashMap<>();
@@ -111,8 +112,8 @@ public class JarApplicationReader {
       argumentDescriptors[i] = arguments[i].getDescriptor();
     }
     DexProto proto = options.itemFactory.createProto(
-        getString(shortyDescriptor.toString()),
         getTypeFromDescriptor(returnType.getDescriptor()),
+        getString(shortyDescriptor.toString()),
         getTypeListFromDescriptors(argumentDescriptors));
     return proto;
   }

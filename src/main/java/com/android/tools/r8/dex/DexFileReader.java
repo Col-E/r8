@@ -983,7 +983,7 @@ public class DexFileReader {
     DexString shorty = indexedItems.getString(shortyIndex);
     DexType returnType = indexedItems.getType(returnTypeIndex);
     DexTypeList parameters = typeListAt(parametersOffsetIndex);
-    return dexItemFactory.createProto(shorty, returnType, parameters);
+    return dexItemFactory.createProto(returnType, shorty, parameters);
   }
 
   private DexMethod methodAt(int index) {

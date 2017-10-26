@@ -99,7 +99,8 @@ public class RegisterMoveSchedulerTest {
     }
 
     @Override
-    public BasicBlock split(int instructions, IRCode code, ListIterator<BasicBlock> blockIterator) {
+    public BasicBlock split(IRCode code, int instructions,
+        ListIterator<BasicBlock> blockIterator) {
       throw new Unimplemented();
     }
 

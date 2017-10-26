@@ -117,13 +117,13 @@ public abstract class Format45cc extends Base4Format {
     StringBuilder builder = new StringBuilder();
     appendRegisterArguments(builder, " ");
     builder.append(" ");
-    builder.append(toString(BBBB, naming));
+    builder.append(itemToString(BBBB, naming));
     builder.append(", ");
-    builder.append(toString(HHHH, naming));
+    builder.append(itemToString(HHHH, naming));
     return formatString(builder.toString());
   }
 
-  private String toString(IndexedDexItem indexedDexItem, ClassNameMapper naming) {
+  private String itemToString(IndexedDexItem indexedDexItem, ClassNameMapper naming) {
     String str;
     if (naming == null) {
       str = indexedDexItem.toSmaliString();

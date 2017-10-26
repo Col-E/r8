@@ -44,10 +44,10 @@ public abstract class GraphLense {
     }
 
     public GraphLense build(DexItemFactory dexItemFactory) {
-      return build(new IdentityGraphLense(), dexItemFactory);
+      return build(dexItemFactory, new IdentityGraphLense());
     }
 
-    public GraphLense build(GraphLense previousLense, DexItemFactory dexItemFactory) {
+    public GraphLense build(DexItemFactory dexItemFactory, GraphLense previousLense) {
       return new NestedGraphLense(typeMap, methodMap, fieldMap, previousLense, dexItemFactory);
     }
 
@@ -118,7 +118,7 @@ public abstract class GraphLense {
     @Override
     public DexType lookupType(DexType type, DexEncodedMethod context) {
       if (type.isArrayType()) {
-        synchronized(this) {
+        synchronized (this) {
           // This block need to be synchronized due to arrayTypeCache.
           DexType result = arrayTypeCache.get(type);
           if (result == null) {
