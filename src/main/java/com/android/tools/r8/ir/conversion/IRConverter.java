@@ -581,7 +581,23 @@ public class IRConverter {
     }
 
     printMethod(code, "Optimized IR (SSA)");
+    finalizeIR(method, code, feedback);
+  }
 
+  private void finalizeIR(DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
+    if (options.outputClassFiles) {
+      finalizeToCf(method, code, feedback);
+    } else {
+      finalizeToDex(method, code, feedback);
+    }
+  }
+
+  private void finalizeToCf(DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
+    assert method.getCode().isJarCode();
+    // TODO(zerny): Actually convert IR back to Java bytecode.
+  }
+
+  private void finalizeToDex(DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
     // Perform register allocation.
     RegisterAllocator registerAllocator = performRegisterAllocation(code, method);
     method.setCode(code, registerAllocator, options);

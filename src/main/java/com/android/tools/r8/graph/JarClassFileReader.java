@@ -101,6 +101,7 @@ public class JarClassFileReader {
     private final ReparseContext context = new ReparseContext();
 
     // DexClass data.
+    private int version;
     private DexType type;
     private DexAccessFlags accessFlags;
     private DexType superType;
@@ -174,6 +175,7 @@ public class JarClassFileReader {
     @Override
     public void visit(int version, int access, String name, String signature, String superName,
         String[] interfaces) {
+      this.version = version;
       accessFlags = createAccessFlags(access);
       // Unset the (in dex) non-existent ACC_SUPER flag on the class.
       assert Constants.ACC_SYNCHRONIZED == Opcodes.ACC_SUPER;
@@ -262,6 +264,9 @@ public class JarClassFileReader {
           virtualMethods.toArray(new DexEncodedMethod[virtualMethods.size()]));
       if (classKind == ClassKind.PROGRAM) {
         context.owner = clazz.asProgramClass();
+      }
+      if (clazz.isProgramClass()) {
+        clazz.asProgramClass().setClassFileVersion(version);
       }
       classConsumer.accept(clazz);
     }

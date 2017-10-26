@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.R8;
+import com.android.tools.r8.Resource;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.dex.ApplicationReader;
@@ -27,10 +28,13 @@ import com.android.tools.r8.utils.OutputMode;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
+import com.google.common.io.ByteStreams;
 import jasmin.ClassFile;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.StringReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -48,20 +52,37 @@ public class JasminTestBase {
   @Rule
   public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
+  public static String getPathFromDescriptor(String classDescriptor) {
+    assert classDescriptor.startsWith("L");
+    assert classDescriptor.endsWith(";");
+    return classDescriptor.substring(1, classDescriptor.length() - 1) + ".class";
+  }
+
   protected ProcessResult runOnJavaRaw(JasminBuilder builder, String main) throws Exception {
-    File out = temp.newFolder("classes");
-    for (ClassBuilder clazz : builder.getClasses()) {
-      ClassFile file = new ClassFile();
-      file.readJasmin(new StringReader(clazz.toString()), clazz.name, false);
-      Path path = out.toPath().resolve(clazz.name + ".class");
+    return runOnJavaRaw(builder.build(), main);
+  }
+
+  protected ProcessResult runOnJavaRaw(AndroidApp app, String main) throws Exception {
+    File out = temp.newFolder();
+    for (Resource clazz : app.getClassProgramResources()) {
+      assert clazz.getClassDescriptors().size() == 1;
+      String desc = clazz.getClassDescriptors().iterator().next();
+      Path path = out.toPath().resolve(getPathFromDescriptor(desc));
       Files.createDirectories(path.getParent());
-      file.write(new FileOutputStream(path.toFile()));
+      try (InputStream input = clazz.getStream();
+          OutputStream output = Files.newOutputStream(path)) {
+        ByteStreams.copy(input, output);
+      }
     }
     return ToolHelper.runJava(ImmutableList.of(out.getPath()), main);
   }
 
   protected String runOnJava(JasminBuilder builder, String main) throws Exception {
-    ProcessResult result = runOnJavaRaw(builder, main);
+    return runOnJava(builder.build(), main);
+  }
+
+  protected String runOnJava(AndroidApp app, String main) throws Exception {
+    ProcessResult result = runOnJavaRaw(app, main);
     if (result.exitCode != 0) {
       System.out.println("Std out:");
       System.out.println(result.stdout);

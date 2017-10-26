@@ -25,6 +25,7 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
   private final ProgramResource.Kind originKind;
   private DexEncodedArray staticValues = SENTINEL_NOT_YET_COMPUTED;
   private final Collection<DexProgramClass> synthesizedFrom;
+  private int classFileVersion = -1;
 
   public DexProgramClass(
       DexType type,
@@ -295,5 +296,14 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
   @Override
   public DexProgramClass get() {
     return this;
+  }
+
+  public void setClassFileVersion(int classFileVersion) {
+    this.classFileVersion = classFileVersion;
+  }
+
+  public int getClassFileVersion() {
+    assert classFileVersion != -1;
+    return classFileVersion;
   }
 }

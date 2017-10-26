@@ -81,6 +81,8 @@ abstract class BaseCompilerCommand extends BaseCommand {
     if (outputPath == null) {
       return new IgnoreContentsOutputSink();
     } else {
+      // TODO(zerny): Calling getInternalOptions here is incorrect since any modifications by an
+      // options consumer will not be visible to the sink.
       return FileSystemOutputSink.create(outputPath, getInternalOptions());
     }
   }

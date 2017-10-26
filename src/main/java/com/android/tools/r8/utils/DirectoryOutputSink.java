@@ -3,6 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
+import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
+import static com.android.tools.r8.utils.FileUtils.DEX_EXTENSION;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -43,7 +46,18 @@ public class DirectoryOutputSink extends FileSystemOutputSink {
   @Override
   public void writeDexFile(byte[] contents, Set<String> classDescriptors, String primaryClassName)
       throws IOException {
-    Path target = outputDirectory.resolve(getOutputFileName(primaryClassName));
+    writeFileFromDescriptor(contents, primaryClassName, DEX_EXTENSION);
+  }
+
+  @Override
+  public void writeClassFile(byte[] contents, Set<String> classDescriptors, String primaryClassName)
+      throws IOException {
+    writeFileFromDescriptor(contents, primaryClassName, CLASS_EXTENSION);
+  }
+
+  private void writeFileFromDescriptor(byte[] contents, String descriptor, String extension)
+      throws IOException {
+    Path target = outputDirectory.resolve(getOutputFileName(descriptor, extension));
     Files.createDirectories(target.getParent());
     writeToFile(target, null, contents);
   }

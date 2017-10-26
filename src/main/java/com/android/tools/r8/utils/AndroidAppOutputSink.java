@@ -4,7 +4,10 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.OutputSink;
+import com.android.tools.r8.Resource.Origin;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.TreeMap;
 
@@ -13,6 +16,7 @@ public class AndroidAppOutputSink extends ForwardingOutputSink {
   private final AndroidApp.Builder builder = AndroidApp.builder();
   private final TreeMap<String, DescriptorsWithContents> dexFilesWithPrimary = new TreeMap<>();
   private final TreeMap<Integer, DescriptorsWithContents> dexFilesWithId = new TreeMap<>();
+  private final List<DescriptorsWithContents> classFiles = new ArrayList<>();
   private boolean closed = false;
 
   public AndroidAppOutputSink(OutputSink forwardTo) {
@@ -26,6 +30,7 @@ public class AndroidAppOutputSink extends ForwardingOutputSink {
   @Override
   public synchronized void writeDexFile(byte[] contents, Set<String> classDescriptors, int fileId)
       throws IOException {
+    assert dexFilesWithPrimary.isEmpty() && classFiles.isEmpty();
     // Sort the files by id so that their order is deterministic. Some tests depend on this.
     dexFilesWithId.put(fileId, new DescriptorsWithContents(classDescriptors, contents));
     super.writeDexFile(contents, classDescriptors, fileId);
@@ -35,10 +40,19 @@ public class AndroidAppOutputSink extends ForwardingOutputSink {
   public synchronized void writeDexFile(byte[] contents, Set<String> classDescriptors,
       String primaryClassName)
       throws IOException {
+    assert dexFilesWithId.isEmpty() && classFiles.isEmpty();
     // Sort the files by their name for good measure.
     dexFilesWithPrimary
         .put(primaryClassName, new DescriptorsWithContents(classDescriptors, contents));
     super.writeDexFile(contents, classDescriptors, primaryClassName);
+  }
+
+  @Override
+  public synchronized void writeClassFile(
+      byte[] contents, Set<String> classDescriptors, String primaryClassName) throws IOException {
+    assert dexFilesWithPrimary.isEmpty() && dexFilesWithId.isEmpty();
+    classFiles.add(new DescriptorsWithContents(classDescriptors, contents));
+    super.writeClassFile(contents, classDescriptors, primaryClassName);
   }
 
   @Override
@@ -68,9 +82,18 @@ public class AndroidAppOutputSink extends ForwardingOutputSink {
   @Override
   public void close() throws IOException {
     assert !closed;
-    assert dexFilesWithId.isEmpty() || dexFilesWithPrimary.isEmpty();
-    dexFilesWithPrimary.forEach((v, d) -> builder.addDexProgramData(d.contents, d.descriptors, v));
-    dexFilesWithId.forEach((v, d) -> builder.addDexProgramData(d.contents, d.descriptors));
+    if (!dexFilesWithPrimary.isEmpty()) {
+      assert dexFilesWithId.isEmpty() && classFiles.isEmpty();
+      dexFilesWithPrimary.forEach(
+          (v, d) -> builder.addDexProgramData(d.contents, d.descriptors, v));
+    } else if (!dexFilesWithId.isEmpty()) {
+      assert dexFilesWithPrimary.isEmpty() && classFiles.isEmpty();
+      dexFilesWithId.forEach((v, d) -> builder.addDexProgramData(d.contents, d.descriptors));
+    } else if (!classFiles.isEmpty()) {
+      assert dexFilesWithPrimary.isEmpty() && dexFilesWithId.isEmpty();
+      classFiles.forEach(
+          d -> builder.addClassProgramData(Origin.unknown(), d.contents, d.descriptors));
+    }
     closed = true;
     super.close();
   }

@@ -19,6 +19,7 @@ import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.optimize.EnumOrdinalMapCollector;
 import com.android.tools.r8.ir.optimize.SwitchMapCollector;
+import com.android.tools.r8.jar.CfApplicationWriter;
 import com.android.tools.r8.naming.Minifier;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.SourceFileRewriter;
@@ -92,11 +93,14 @@ public class R8 {
       throws ExecutionException, DexOverflowException {
     try {
       Marker marker = getMarker(options);
-      new ApplicationWriter(
-          application, options, marker, deadCode, namingLens, proguardSeedsData)
-          .write(outputSink, executorService);
+      if (options.outputClassFiles) {
+        new CfApplicationWriter(application, options).write(outputSink, executorService);
+      } else {
+        new ApplicationWriter(application, options, marker, deadCode, namingLens, proguardSeedsData)
+            .write(outputSink, executorService);
+      }
     } catch (IOException e) {
-      throw new RuntimeException("Cannot write dex application", e);
+      throw new RuntimeException("Cannot write application", e);
     }
   }
 

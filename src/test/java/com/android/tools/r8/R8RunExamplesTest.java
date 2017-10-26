@@ -7,6 +7,7 @@ import static com.android.tools.r8.TestCondition.R8_COMPILER;
 import static com.android.tools.r8.TestCondition.match;
 import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import com.android.tools.r8.R8RunArtTestsTest.CompilerUnderTest;
@@ -42,6 +43,11 @@ public class R8RunExamplesTest {
     DX, JAVAC, JAVAC_ALL, JAVAC_NONE
   }
 
+  enum Output {
+    DEX,
+    CF
+  }
+
   private static final String EXAMPLE_DIR = ToolHelper.EXAMPLES_BUILD_DIR;
 
   // For local testing on a specific Art version(s) change this set. e.g. to
@@ -65,7 +71,7 @@ public class R8RunExamplesTest {
                   TestCondition.runtimes(Version.V6_0_1, Version.V5_1_1, Version.V4_4_4)))
           .build();
 
-  @Parameters(name = "{0}_{1}_{2}_{3}")
+  @Parameters(name = "{0}_{1}_{2}_{3}_{5}")
   public static Collection<String[]> data() {
     String[] tests = {
         "arithmetic.Arithmetic",
@@ -115,6 +121,10 @@ public class R8RunExamplesTest {
         "switchmaps.Switches",
     };
 
+    String[] javaBytecodeTests = {
+      "hello.Hello",
+    };
+
     List<String[]> fullTestList = new ArrayList<>(tests.length * 2);
     for (String test : tests) {
       fullTestList.add(makeTest(Input.JAVAC, CompilerUnderTest.D8, CompilationMode.DEBUG, test));
@@ -130,13 +140,26 @@ public class R8RunExamplesTest {
           test));
       fullTestList.add(makeTest(Input.DX, CompilerUnderTest.R8, CompilationMode.RELEASE, test));
     }
+    // TODO(zerny): Once all tests pass create the java tests in the main test loop.
+    for (String test : javaBytecodeTests) {
+      fullTestList.add(
+          makeTest(Input.JAVAC_ALL, CompilerUnderTest.R8, CompilationMode.DEBUG, test, Output.CF));
+      fullTestList.add(
+          makeTest(
+              Input.JAVAC_ALL, CompilerUnderTest.R8, CompilationMode.RELEASE, test, Output.CF));
+    }
     return fullTestList;
   }
 
   private static String[] makeTest(
       Input input, CompilerUnderTest compiler, CompilationMode mode, String clazz) {
+    return makeTest(input, compiler, mode, clazz, Output.DEX);
+  }
+
+  private static String[] makeTest(
+      Input input, CompilerUnderTest compiler, CompilationMode mode, String clazz, Output output) {
     String pkg = clazz.substring(0, clazz.lastIndexOf('.'));
-    return new String[]{pkg, input.name(), compiler.name(), mode.name(), clazz};
+    return new String[] {pkg, input.name(), compiler.name(), mode.name(), clazz, output.name()};
   }
 
   @Rule
@@ -147,18 +170,21 @@ public class R8RunExamplesTest {
   private final CompilationMode mode;
   private final String pkg;
   private final String mainClass;
+  private final Output output;
 
   public R8RunExamplesTest(
       String pkg,
       String input,
       String compiler,
       String mode,
-      String mainClass) {
+      String mainClass,
+      String output) {
     this.pkg = pkg;
     this.input = Input.valueOf(input);
     this.compiler = CompilerUnderTest.valueOf(compiler);
     this.mode = CompilationMode.valueOf(mode);
     this.mainClass = mainClass;
+    this.output = Output.valueOf(output);
   }
 
   private Path getOutputFile() {
@@ -192,15 +218,19 @@ public class R8RunExamplesTest {
     return input == Input.DX ? DexTool.DX : DexTool.NONE;
   }
 
+  private Path getOutputPath() {
+    return temp.getRoot().toPath().resolve("out.jar");
+  }
+
   @Rule
   public ExpectedException thrown = ExpectedException.none();
 
   @Before
   public void compile()
       throws IOException, ProguardRuleParserException, ExecutionException, CompilationException {
-    Path out = temp.getRoot().toPath();
     switch (compiler) {
       case D8: {
+        assertTrue(output == Output.DEX);
         ToolHelper.runD8(D8Command.builder()
             .addProgramFiles(getInputFile())
             .setOutputPath(getOutputFile())
@@ -213,7 +243,8 @@ public class R8RunExamplesTest {
             .addProgramFiles(getInputFile())
             .setOutputPath(getOutputFile())
             .setMode(mode)
-            .build());
+            .build(),
+            options -> options.outputClassFiles = (output == Output.CF));
         break;
       }
       default:
@@ -234,6 +265,20 @@ public class R8RunExamplesTest {
         ToolHelper.runJava(ImmutableList.of(getOriginalJarFile("").toString()), mainClass);
     if (javaResult.exitCode != 0) {
       fail("JVM failed for: " + mainClass);
+    }
+
+    if (output == Output.CF) {
+      ToolHelper.ProcessResult result =
+          ToolHelper.runJava(ImmutableList.of(generated.toString()), mainClass);
+      if (result.exitCode != 0) {
+        System.err.println(result.stderr);
+        fail("JVM failed on compiled output for: " + mainClass);
+      }
+      assertEquals(
+          "JavaC/JVM and " + compiler.name() + "/JVM output differ",
+          javaResult.stdout,
+          result.stdout);
+      return;
     }
 
     DexVm vm = ToolHelper.getDexVm();

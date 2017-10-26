@@ -21,6 +21,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.StringReader;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class JasminBuilder {
@@ -43,6 +44,10 @@ public class JasminBuilder {
 
     public String getSourceFile() {
       return name + ".j";
+    }
+
+    public String getDescriptor() {
+      return "L" + name + ";";
     }
 
     public MethodSignature addVirtualMethod(
@@ -185,7 +190,8 @@ public class JasminBuilder {
           return clazz.getSourceFile();
         }
       };
-      builder.addClassProgramData(origin, compile(clazz));
+      builder.addClassProgramData(
+          origin, compile(clazz), Collections.singleton(clazz.getDescriptor()));
     }
     return builder.build();
   }

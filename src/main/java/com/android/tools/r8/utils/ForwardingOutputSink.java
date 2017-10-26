@@ -33,6 +33,12 @@ public abstract class ForwardingOutputSink implements OutputSink {
   }
 
   @Override
+  public void writeClassFile(byte[] contents, Set<String> classDescriptors, String primaryClassName)
+      throws IOException {
+    forwardTo.writeClassFile(contents, classDescriptors, primaryClassName);
+  }
+
+  @Override
   public void writePrintUsedInformation(byte[] contents) throws IOException {
     forwardTo.writePrintUsedInformation(contents);
   }

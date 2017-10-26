@@ -28,13 +28,13 @@ public abstract class FileSystemOutputSink implements OutputSink {
   }
 
   String getOutputFileName(int index) {
+    assert !options.outputClassFiles;
     return index == 0 ? "classes.dex" : ("classes" + (index + 1) + FileUtils.DEX_EXTENSION);
   }
 
-  String getOutputFileName(String classDescriptor) throws IOException {
+  String getOutputFileName(String classDescriptor, String extension) throws IOException {
     assert classDescriptor != null && DescriptorUtils.isClassDescriptor(classDescriptor);
-    return DescriptorUtils.getClassBinaryNameFromDescriptor(classDescriptor)
-        + FileUtils.DEX_EXTENSION;
+    return DescriptorUtils.getClassBinaryNameFromDescriptor(classDescriptor) + extension;
   }
 
 

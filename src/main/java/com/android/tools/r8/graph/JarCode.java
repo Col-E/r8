@@ -27,6 +27,11 @@ import org.objectweb.asm.util.TraceMethodVisitor;
 
 public class JarCode extends Code {
 
+  // TODO(zerny): Write via the IR.
+  public void writeTo(MethodVisitor visitor) {
+    node.accept(visitor);
+  }
+
   public static class ReparseContext {
 
     // This will hold the content of the whole class. Once all the methods of the class are swapped

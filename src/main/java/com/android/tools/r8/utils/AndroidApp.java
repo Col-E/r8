@@ -600,6 +600,10 @@ public class AndroidApp {
       return addProgramResources(Kind.CLASS, Resource.fromBytes(origin, data));
     }
 
+    public Builder addClassProgramData(Origin origin, byte[] data, Set<String> classDescriptors) {
+      return addProgramResources(Kind.CLASS, Resource.fromBytes(origin, data, classDescriptors));
+    }
+
     /**
      * Set dead-code data.
      */

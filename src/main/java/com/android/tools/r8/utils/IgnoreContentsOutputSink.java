@@ -20,6 +20,12 @@ public class IgnoreContentsOutputSink implements OutputSink {
   }
 
   @Override
+  public void writeClassFile(
+      byte[] contents, Set<String> classDescriptors, String primaryClassName) {
+    // Intentionally left empty.
+  }
+
+  @Override
   public void writePrintUsedInformation(byte[] contents) {
     // Intentionally left empty.
   }

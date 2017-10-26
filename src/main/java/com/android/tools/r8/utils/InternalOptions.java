@@ -51,6 +51,8 @@ public class InternalOptions {
 
   public boolean printTimes = false;
 
+  public boolean outputClassFiles = false;
+
   // Optimization-related flags. These should conform to -dontoptimize.
   public boolean skipDebugLineNumberOpt = false;
   public boolean skipClassMerging = true;

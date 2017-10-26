@@ -32,7 +32,8 @@ public interface OutputSink {
    * gives the current file count.
    * <p>
    * Files are not necessarily generated in order and files might be written concurrently. However,
-   * for each fileId only one file is ever written.
+   * for each fileId only one file is ever written. If this method is called, the other writeDexFile
+   * and writeClassFile methods will not be called.
    */
   void writeDexFile(byte[] contents, Set<String> classDescriptors, int fileId) throws IOException;
 
@@ -46,10 +47,25 @@ public interface OutputSink {
    * primaryClassName only one file is ever written.
    * <p>
    * This method is only invoked by D8 and only if compiling each class into its own dex file, e.g.,
-   * for incremental compilation. If this method is called, the other writeDexFile method will
-   * not be called.
+   * for incremental compilation. If this method is called, the other writeDexFile and
+   * writeClassFile methods will not be called.
    */
   void writeDexFile(byte[] contents, Set<String> classDescriptors, String primaryClassName)
+      throws IOException;
+
+  /**
+   * Write a Java classfile that contains the class primaryClassName and its companion classes.
+   * <p>
+   * This is equivalent to writing out the file com/foo/bar/Test.class given a primaryClassName of
+   * com.foo.bar.Test.
+   * <p>
+   * There is no guaranteed order and files might be written concurrently. However, for each
+   * primaryClassName only one file is ever written.
+   * <p>
+   * This method is only invoked by R8 and only if compiling to Java bytecode. If this method is
+   * called, the other writeDexFile and writeClassFile methods will not be called.
+   */
+  void writeClassFile(byte[] contents, Set<String> classDescriptors, String primaryClassName)
       throws IOException;
 
   /**
