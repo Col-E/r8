@@ -132,7 +132,10 @@ public class JasminTestBase {
     for (ClassBuilder clazz : builder.getClasses()) {
       ClassFile file = new ClassFile();
       file.readJasmin(new StringReader(clazz.toString()), clazz.name, false);
-      file.write(new FileOutputStream(classes.toPath().resolve(clazz.name + ".class").toFile()));
+      try (OutputStream outputStream =
+          Files.newOutputStream(classes.toPath().resolve(clazz.name + ".class"))) {
+        file.write(outputStream);
+      }
     }
     List<String> args = new ArrayList<>();
     args.add("--output=" + dex.toString());

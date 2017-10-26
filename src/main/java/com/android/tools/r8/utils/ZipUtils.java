@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Enumeration;
@@ -53,8 +54,9 @@ public class ZipUtils {
           Path outPath = outDirectoryPath.resolve(name);
           File outFile = outPath.toFile();
           outFile.getParentFile().mkdirs();
-          FileOutputStream output = new FileOutputStream(outFile);
-          ByteStreams.copy(input, output);
+          try (OutputStream output = new FileOutputStream(outFile)) {
+            ByteStreams.copy(input, output);
+          }
           outFiles.add(outFile);
         }
       });

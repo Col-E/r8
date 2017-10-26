@@ -4,13 +4,14 @@
 
 package invokecustom2;
 
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.lang.invoke.CallSite;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import org.objectweb.asm.ClassReader;
@@ -37,26 +38,30 @@ public class TestGenerator {
   }
 
   private void generateTests() throws IOException {
-    ClassReader cr = new ClassReader(new FileInputStream(classNamePath.toFile()));
-    ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
-    cr.accept(
-        new ClassVisitor(Opcodes.ASM6, cw) {
-          @Override
-          public void visitEnd() {
-            generateMethodTest1(cw);
-            generateMethodTest2(cw);
-            generateMethodTest3(cw);
-            generateMethodTest4(cw);
-            generateMethodTest5(cw);
-            generateMethodTest6(cw);
-            generateMethodTest7(cw);
-            generateMethodTest8(cw);
-            generateMethodTest9(cw);
-            generateMethodMain(cw);
-            super.visitEnd();
-          }
-        }, 0);
-    new FileOutputStream(classNamePath.toFile()).write(cw.toByteArray());
+    try (InputStream input = Files.newInputStream(classNamePath)) {
+      ClassReader cr = new ClassReader(input);
+      ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
+      cr.accept(
+          new ClassVisitor(Opcodes.ASM6, cw) {
+            @Override
+            public void visitEnd() {
+              generateMethodTest1(cw);
+              generateMethodTest2(cw);
+              generateMethodTest3(cw);
+              generateMethodTest4(cw);
+              generateMethodTest5(cw);
+              generateMethodTest6(cw);
+              generateMethodTest7(cw);
+              generateMethodTest8(cw);
+              generateMethodTest9(cw);
+              generateMethodMain(cw);
+              super.visitEnd();
+            }
+          }, 0);
+      try (OutputStream output = Files.newOutputStream(classNamePath)) {
+        output.write(cw.toByteArray());
+      }
+    }
   }
 
   /* generate main method that only call all test methods. */

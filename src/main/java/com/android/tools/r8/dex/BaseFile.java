@@ -18,7 +18,9 @@ public abstract class BaseFile {
   protected final ByteBuffer buffer;
 
   protected BaseFile(Resource resource) throws IOException {
-    buffer = ByteBuffer.wrap(ByteStreams.toByteArray(resource.getStream()));
+    try (InputStream input = resource.getStream()) {
+      buffer = ByteBuffer.wrap(ByteStreams.toByteArray(input));
+    }
   }
 
   protected BaseFile(String name) throws IOException {

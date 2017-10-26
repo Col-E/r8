@@ -22,6 +22,7 @@ import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.ByteStreams;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -174,7 +175,9 @@ public class FrameworkIncrementalDexingBenchmark {
       throws IOException, CompilationException {
     List<byte[]> bytes = new ArrayList<>(outputs.size());
     for (Resource input : outputs.values()) {
-      bytes.add(ByteStreams.toByteArray(input.getStream()));
+      try (InputStream inputStream = input.getStream()) {
+        bytes.add(ByteStreams.toByteArray(inputStream));
+      }
     }
     long start = System.nanoTime();
     D8Output out =
