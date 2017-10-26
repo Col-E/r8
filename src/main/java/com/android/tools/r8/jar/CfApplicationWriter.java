@@ -16,9 +16,9 @@ import com.android.tools.r8.utils.InternalOptions;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.concurrent.ExecutorService;
-import jdk.internal.org.objectweb.asm.Type;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Type;
 
 public class CfApplicationWriter {
   private final DexApplication application;
