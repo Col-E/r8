@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import com.android.tools.r8.graph.DexAccessFlags;
 import java.util.Set;
 
 public class ProguardWhyAreYouKeepingRule extends ProguardConfigurationRule {
@@ -21,8 +22,8 @@ public class ProguardWhyAreYouKeepingRule extends ProguardConfigurationRule {
 
   private ProguardWhyAreYouKeepingRule(
       ProguardTypeMatcher classAnnotation,
-      ProguardAccessFlags classAccessFlags,
-      ProguardAccessFlags negatedClassAccessFlags,
+      DexAccessFlags classAccessFlags,
+      DexAccessFlags negatedClassAccessFlags,
       boolean classTypeNegated,
       ProguardClassType classType,
       ProguardClassNameList classNames,

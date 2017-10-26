@@ -17,7 +17,7 @@ public class DexClasspathClass extends DexClass implements Supplier<DexClasspath
       DexType type,
       ProgramResource.Kind kind,
       Origin origin,
-      ClassAccessFlags accessFlags,
+      DexAccessFlags accessFlags,
       DexType superType,
       DexTypeList interfaces,
       DexString sourceFile,

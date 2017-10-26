@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import com.android.tools.r8.graph.DexAccessFlags;
 import java.util.Set;
 
 public class ProguardAssumeNoSideEffectRule extends ProguardConfigurationRule {
@@ -20,8 +21,8 @@ public class ProguardAssumeNoSideEffectRule extends ProguardConfigurationRule {
 
   private ProguardAssumeNoSideEffectRule(
       ProguardTypeMatcher classAnnotation,
-      ProguardAccessFlags classAccessFlags,
-      ProguardAccessFlags negatedClassAccessFlags,
+      DexAccessFlags classAccessFlags,
+      DexAccessFlags negatedClassAccessFlags,
       boolean classTypeNegated,
       ProguardClassType classType,
       ProguardClassNameList classNames,

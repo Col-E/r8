@@ -9,6 +9,8 @@ import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
+import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.graph.DexAccessFlags;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.AndroidApp;
@@ -194,13 +196,14 @@ public class TreeShakingTest {
 
   private static void hasNoPrivateMethods(DexInspector inspector) {
     inspector.forAllClasses(clazz -> clazz.forAllMethods(
-        method -> Assert.assertTrue(!method.getMethod().accessFlags.isPrivate())));
+        method -> Assert.assertTrue(method.hasNone(new DexAccessFlags(Constants.ACC_PRIVATE)))
+    ));
   }
 
   private static void hasNoPublicMethodsButPrivate(DexInspector inspector) {
     inspector.forAllClasses(clazz -> clazz.forAllMethods(method -> {
       if (!method.isStatic() && !method.isFinal()) {
-        Assert.assertTrue(!method.getMethod().accessFlags.isPublic());
+        Assert.assertTrue(method.hasNone(new DexAccessFlags(Constants.ACC_PUBLIC)));
       }
     }));
     Assert.assertTrue(inspector.clazz("shaking6.Superclass")
@@ -252,7 +255,7 @@ public class TreeShakingTest {
   private static void shaking7HasOnlyPublicFields(DexInspector inspector) {
     inspector.forAllClasses(clazz -> {
       clazz.forAllFields(field -> {
-        Assert.assertTrue(field.getField().accessFlags.isPublic());
+        Assert.assertTrue(field.hasAll(new DexAccessFlags(Constants.ACC_PUBLIC)));
       });
     });
     ClassSubject subclass = inspector.clazz("shaking7.Subclass");
@@ -280,7 +283,7 @@ public class TreeShakingTest {
   private static void shaking7HasOnlyPublicFieldsNamedTheDoubleField(DexInspector inspector) {
     inspector.forAllClasses(clazz -> {
       clazz.forAllFields(field -> {
-        Assert.assertTrue(field.getField().accessFlags.isPublic());
+        Assert.assertTrue(field.hasAll(new DexAccessFlags(Constants.ACC_PUBLIC)));
       });
     });
     ClassSubject subclass = inspector.clazz("shaking7.Subclass");
@@ -294,7 +297,7 @@ public class TreeShakingTest {
   private static void shaking7HasOnlyPublicFieldsNamedTheIntField(DexInspector inspector) {
     inspector.forAllClasses(clazz -> {
       clazz.forAllFields(field -> {
-        Assert.assertTrue(field.getField().accessFlags.isPublic());
+        Assert.assertTrue(field.hasAll(new DexAccessFlags(Constants.ACC_PUBLIC)));
       });
     });
     ClassSubject subclass = inspector.clazz("shaking7.Subclass");

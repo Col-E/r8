@@ -85,7 +85,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
       new DexEncodedMethod(null, null, null, null, null);
 
   public final DexMethod method;
-  public final MethodAccessFlags accessFlags;
+  public final DexAccessFlags accessFlags;
   public DexAnnotationSet annotations;
   public DexAnnotationSetRefList parameterAnnotations;
   private Code code;
@@ -186,12 +186,8 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
 
   public List<DebugPositionRange> debugPositionRangeList = null;
 
-  public DexEncodedMethod(
-      DexMethod method,
-      MethodAccessFlags accessFlags,
-      DexAnnotationSet annotations,
-      DexAnnotationSetRefList parameterAnnotations,
-      Code code) {
+  public DexEncodedMethod(DexMethod method, DexAccessFlags accessFlags,
+      DexAnnotationSet annotations, DexAnnotationSetRefList parameterAnnotations, Code code) {
     this.method = method;
     this.accessFlags = accessFlags;
     this.annotations = annotations;
@@ -671,7 +667,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
   private static class Builder {
 
     private DexMethod method;
-    private MethodAccessFlags accessFlags;
+    private DexAccessFlags accessFlags;
     private DexAnnotationSet annotations;
     private DexAnnotationSetRefList parameterAnnotations;
     private Code code;
@@ -681,7 +677,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
     private Builder(DexEncodedMethod from) {
       // Copy all the mutable state of a DexEncodedMethod here.
       method = from.method;
-      accessFlags = from.accessFlags.copy();
+      accessFlags = new DexAccessFlags(from.accessFlags.get());
       annotations = from.annotations;
       parameterAnnotations = from.parameterAnnotations;
       code = from.code;
