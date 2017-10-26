@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
+import static com.android.tools.r8.utils.DescriptorUtils.descriptorToJavaType;
+
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
@@ -10,26 +12,79 @@ import com.android.tools.r8.graph.IndexedDexItem;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
-import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableMap;
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.StringWriter;
 import java.io.Writer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
-public class ClassNameMapper {
+public class ClassNameMapper implements ProguardMap {
 
-  private final ImmutableMap<String, ClassNaming> classNameMappings;
+  static class Builder extends ProguardMap.Builder {
+    final ImmutableMap.Builder<String, ClassNamingForNameMapper.Builder> mapBuilder;
+
+    private Builder() {
+      mapBuilder = ImmutableMap.builder();
+    }
+
+    @Override
+    ClassNamingForNameMapper.Builder classNamingBuilder(String renamedName, String originalName) {
+      ClassNamingForNameMapper.Builder classNamingBuilder =
+          ClassNamingForNameMapper.builder(renamedName, originalName);
+      mapBuilder.put(renamedName, classNamingBuilder);
+      return classNamingBuilder;
+    }
+
+    @Override
+    ClassNameMapper build(){
+      return new ClassNameMapper(mapBuilder.build());
+    }
+  }
+
+  static Builder builder() {
+    return new Builder();
+  }
+
+  public static ClassNameMapper mapperFromInputStream(InputStream in) throws IOException {
+    BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
+    try (ProguardMapReader proguardReader = new ProguardMapReader(reader)) {
+      ClassNameMapper.Builder builder = ClassNameMapper.builder();
+      proguardReader.parse(builder);
+      return builder.build();
+    }
+  }
+
+  public static ClassNameMapper mapperFromFile(Path path) throws IOException {
+    return mapperFromInputStream(Files.newInputStream(path));
+  }
+
+  static ClassNameMapper mapperFromString(String contents) throws IOException {
+    return mapperFromInputStream(
+        new ByteArrayInputStream(contents.getBytes(StandardCharsets.UTF_8)));
+  }
+
+  private final ImmutableMap<String, ClassNamingForNameMapper> classNameMappings;
   private ImmutableBiMap<String, String> nameMapping;
 
   private Map<Signature, Signature> signatureMap = new HashMap<>();
 
-  ClassNameMapper(Map<String, ClassNaming> classNameMappings) {
-    this.classNameMappings = ImmutableMap.copyOf(classNameMappings);
+  private ClassNameMapper(Map<String, ClassNamingForNameMapper.Builder> classNameMappings) {
+    ImmutableMap.Builder<String, ClassNamingForNameMapper> builder = ImmutableMap.builder();
+    for(Map.Entry<String, ClassNamingForNameMapper.Builder> entry : classNameMappings.entrySet()) {
+      builder.put(entry.getKey(), entry.getValue().build());
+    }
+    this.classNameMappings = builder.build();
   }
 
   private Signature canonicalizeSignature(Signature signature) {
@@ -65,7 +120,7 @@ public class ClassNameMapper {
    * Returns the deobfuscated name if a mapping was found. Otherwise it returns the passed in name.
    */
   public String deobfuscateClassName(String name) {
-    ClassNaming classNaming = classNameMappings.get(name);
+    ClassNamingForNameMapper classNaming = classNameMappings.get(name);
     if (classNaming == null) {
       return name;
     }
@@ -73,15 +128,27 @@ public class ClassNameMapper {
   }
 
   private String deobfuscateType(String asString) {
-    return DescriptorUtils.descriptorToJavaType(asString, this);
+    return descriptorToJavaType(asString, this);
   }
 
-  public ClassNaming getClassNaming(String name) {
+  @Override
+  public boolean hasMapping(DexType type) {
+    String decoded = descriptorToJavaType(type.descriptor.toString());
+    return classNameMappings.containsKey(decoded);
+  }
+
+  @Override
+  public ClassNamingForNameMapper getClassNaming(DexType type) {
+    String decoded = descriptorToJavaType(type.descriptor.toString());
+    return classNameMappings.get(decoded);
+  }
+
+  public ClassNamingForNameMapper getClassNaming(String name) {
     return classNameMappings.get(name);
   }
 
   public void write(Writer writer, boolean collapseRanges) throws IOException {
-    for (ClassNaming naming : classNameMappings.values()) {
+    for (ClassNamingForNameMapper naming : classNameMappings.values()) {
       naming.write(writer, collapseRanges);
     }
   }
@@ -129,15 +196,15 @@ public class ClassNameMapper {
     } else if (item instanceof DexMethod) {
       return lookupName(getRenamedMethodSignature((DexMethod) item), ((DexMethod) item).holder);
     } else if (item instanceof DexType) {
-      return DescriptorUtils.descriptorToJavaType(((DexType) item).toDescriptorString(), this);
+      return descriptorToJavaType(((DexType) item).toDescriptorString(), this);
     } else {
       return item.toString();
     }
   }
 
   private String lookupName(Signature signature, DexType clazz) {
-    String decoded = DescriptorUtils.descriptorToJavaType(clazz.descriptor.toString());
-    ClassNaming classNaming = getClassNaming(decoded);
+    String decoded = descriptorToJavaType(clazz.descriptor.toString());
+    ClassNamingForNameMapper classNaming = getClassNaming(decoded);
     if (classNaming == null) {
       return decoded + " " + signature.toString();
     }
@@ -149,8 +216,7 @@ public class ClassNameMapper {
   }
 
   public Signature originalSignatureOf(DexMethod method) {
-    String decoded = DescriptorUtils
-        .descriptorToJavaType(method.holder.descriptor.toString());
+    String decoded = descriptorToJavaType(method.holder.descriptor.toString());
     MethodSignature memberSignature = getRenamedMethodSignature(method);
     ClassNaming classNaming = getClassNaming(decoded);
     if (classNaming == null) {

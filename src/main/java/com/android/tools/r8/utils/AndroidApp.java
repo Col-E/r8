@@ -613,15 +613,6 @@ public class AndroidApp {
     }
 
     /**
-     * Inform whether ProGuard map has already been set or not.
-     *
-     * ProGuard option -applymapping will override R8/Dissemble option -pg-map.
-     */
-    public boolean hasProguardMap() {
-      return proguardMap != null;
-    }
-
-    /**
      * Set proguard-map file.
      */
     public Builder setProguardMapFile(Path file) {

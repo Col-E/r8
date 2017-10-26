@@ -238,8 +238,6 @@ public class R8Command extends BaseCompilerCommand {
       getAppBuilder().addProgramFiles(configuration.getInjars());
       getAppBuilder().addLibraryFiles(configuration.getLibraryjars());
 
-      // TODO(b/64802420): setProguardMapFile if configuration.hasApplyMappingFile
-
       boolean useTreeShaking = treeShaking.orElse(configuration.isShrinking());
       boolean useDiscardedChecker = discardedChecker.orElse(true);
       boolean useMinification = minification.orElse(configuration.isObfuscating());

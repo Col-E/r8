@@ -7,4 +7,7 @@ public class B {
   public static int m() {
     return A.f;
   }
+  public int f(A a) {
+    return a.f;
+  }
 }

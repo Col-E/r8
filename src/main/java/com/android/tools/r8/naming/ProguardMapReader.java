@@ -9,20 +9,12 @@ import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Range;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.MemberNaming.SingleLineRange;
-import com.google.common.collect.ImmutableMap;
 import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
 
 /**
@@ -71,24 +63,8 @@ public class ProguardMapReader implements AutoCloseable {
     }
   }
 
-  private ProguardMapReader(BufferedReader reader) {
+  ProguardMapReader(BufferedReader reader) {
     this.reader = reader;
-  }
-
-  public static ClassNameMapper mapperFromInputStream(InputStream in) throws IOException {
-    BufferedReader reader = new BufferedReader(new InputStreamReader(in, "UTF8"));
-    try (ProguardMapReader proguardReader = new ProguardMapReader(reader)) {
-      return proguardReader.parse();
-    }
-  }
-
-  public static ClassNameMapper mapperFromFile(Path path) throws IOException {
-    return mapperFromInputStream(Files.newInputStream(path));
-  }
-
-  public static ClassNameMapper mapperFromString(String contents) throws IOException {
-    return mapperFromInputStream(
-        new ByteArrayInputStream(contents.getBytes(StandardCharsets.UTF_8)));
   }
 
   // Internal parser state
@@ -146,17 +122,15 @@ public class ProguardMapReader implements AutoCloseable {
     return c;
   }
 
-  public ClassNameMapper parse() throws IOException {
+  void parse(ProguardMap.Builder mapBuilder) throws IOException {
     // Read the first line.
     line = reader.readLine();
-    Map<String, ClassNaming> classNames = parseClassMappings();
-    return new ClassNameMapper(classNames);
+    parseClassMappings(mapBuilder);
   }
 
   // Parsing of entries
 
-  private Map<String, ClassNaming> parseClassMappings() throws IOException {
-    ImmutableMap.Builder<String, ClassNaming> builder = ImmutableMap.builder();
+  private void parseClassMappings(ProguardMap.Builder mapBuilder) throws IOException {
     while (hasLine()) {
       String before = parseType(false);
       skipWhitespace();
@@ -172,16 +146,14 @@ public class ProguardMapReader implements AutoCloseable {
       skipWhitespace();
       String after = parseType(false);
       expect(':');
-      ClassNaming currentClass = new ClassNaming(after, before);
-      builder.put(after, currentClass);
+      ClassNaming.Builder currentClassBuilder = mapBuilder.classNamingBuilder(after, before);
       if (nextLine()) {
-        parseMemberMappings(currentClass);
+        parseMemberMappings(currentClassBuilder);
       }
     }
-    return builder.build();
   }
 
-  private void parseMemberMappings(ClassNaming currentClass) throws IOException {
+  private void parseMemberMappings(ClassNaming.Builder classNamingBuilder) throws IOException {
     MemberNaming current = null;
     Range previousInlineRange = null;
     Signature previousSignature = null;
@@ -226,7 +198,7 @@ public class ProguardMapReader implements AutoCloseable {
         if (current == null || !previousSignature.equals(current.signature)) {
           if (collectedInfos.size() == 1) {
             current = new MemberNaming(previousSignature, previousRenamedName, previousInlineRange);
-            currentClass.addMemberEntry(current);
+            classNamingBuilder.addMemberEntry(current);
           } else {
             if (Log.ENABLED && !collectedInfos.isEmpty()) {
               Log.warn(getClass(),
@@ -254,7 +226,7 @@ public class ProguardMapReader implements AutoCloseable {
     if (current == null || !previousSignature.equals(current.signature)) {
       if (collectedInfos.size() == 1) {
         current = new MemberNaming(previousSignature, previousRenamedName, previousInlineRange);
-        currentClass.addMemberEntry(current);
+        classNamingBuilder.addMemberEntry(current);
       }
     } else {
       MemberNaming finalCurrent = current;

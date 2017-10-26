@@ -1,0 +1,9 @@
+naming044.A -> naming044.x:
+    int f -> o
+naming044.B -> naming044.y:
+    int m() -> n
+    int f(naming044.A) -> p
+naming044.sub.SubA -> naming044.z.x:
+    int f -> q
+naming044.sub.SubB -> naming044.z.y:
+    int n() -> m

@@ -20,7 +20,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.JarApplicationReader;
 import com.android.tools.r8.graph.JarClassFileReader;
 import com.android.tools.r8.graph.LazyLoadedDexApplication;
-import com.android.tools.r8.naming.ProguardMapReader;
+import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ClassProvider;
@@ -111,7 +111,7 @@ public class ApplicationReader {
     if (inputApp.hasProguardMap()) {
       futures.add(executorService.submit(() -> {
         try (InputStream map = inputApp.getProguardMap()) {
-          builder.setProguardMap(ProguardMapReader.mapperFromInputStream(map));
+          builder.setProguardMap(ClassNameMapper.mapperFromInputStream(map));
         } catch (IOException e) {
           throw new RuntimeException(e);
         }

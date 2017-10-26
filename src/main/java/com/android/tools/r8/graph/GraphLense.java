@@ -23,13 +23,12 @@ public abstract class GraphLense {
 
   public static class Builder {
 
-    private Builder() {
-
+    protected Builder() {
     }
 
-    private final Map<DexType, DexType> typeMap = new IdentityHashMap<>();
-    private final Map<DexMethod, DexMethod> methodMap = new IdentityHashMap<>();
-    private final Map<DexField, DexField> fieldMap = new IdentityHashMap<>();
+    protected final Map<DexType, DexType> typeMap = new IdentityHashMap<>();
+    protected final Map<DexMethod, DexMethod> methodMap = new IdentityHashMap<>();
+    protected final Map<DexField, DexField> fieldMap = new IdentityHashMap<>();
 
     public void map(DexType from, DexType to) {
       typeMap.put(from, to);
@@ -48,6 +47,9 @@ public abstract class GraphLense {
     }
 
     public GraphLense build(DexItemFactory dexItemFactory, GraphLense previousLense) {
+      if (typeMap.isEmpty() && methodMap.isEmpty() && fieldMap.isEmpty()) {
+        return previousLense;
+      }
       return new NestedGraphLense(typeMap, methodMap, fieldMap, previousLense, dexItemFactory);
     }
 
@@ -96,17 +98,17 @@ public abstract class GraphLense {
     }
   }
 
-  private static class NestedGraphLense extends GraphLense {
+  public static class NestedGraphLense extends GraphLense {
 
     private final GraphLense previousLense;
-    private final DexItemFactory dexItemFactory;
+    protected final DexItemFactory dexItemFactory;
 
     private final Map<DexType, DexType> typeMap;
     private final Map<DexType, DexType> arrayTypeCache = new IdentityHashMap<>();
     private final Map<DexMethod, DexMethod> methodMap;
     private final Map<DexField, DexField> fieldMap;
 
-    private NestedGraphLense(Map<DexType, DexType> typeMap, Map<DexMethod, DexMethod> methodMap,
+    public NestedGraphLense(Map<DexType, DexType> typeMap, Map<DexMethod, DexMethod> methodMap,
         Map<DexField, DexField> fieldMap, GraphLense previousLense, DexItemFactory dexItemFactory) {
       this.typeMap = typeMap;
       this.methodMap = methodMap;
@@ -153,6 +155,25 @@ public abstract class GraphLense {
     @Override
     public boolean isContextFree() {
       return previousLense.isContextFree();
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder builder = new StringBuilder();
+      for (Map.Entry<DexType, DexType> entry : typeMap.entrySet()) {
+        builder.append(entry.getKey().toSourceString()).append(" -> ");
+        builder.append(entry.getValue().toSourceString()).append(System.lineSeparator());
+      }
+      for (Map.Entry<DexMethod, DexMethod> entry : methodMap.entrySet()) {
+        builder.append(entry.getKey().toSourceString()).append(" -> ");
+        builder.append(entry.getValue().toSourceString()).append(System.lineSeparator());
+      }
+      for (Map.Entry<DexField, DexField> entry : fieldMap.entrySet()) {
+        builder.append(entry.getKey().toSourceString()).append(" -> ");
+        builder.append(entry.getValue().toSourceString()).append(System.lineSeparator());
+      }
+      builder.append(previousLense.toString());
+      return builder.toString();
     }
   }
 }

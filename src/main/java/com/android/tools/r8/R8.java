@@ -22,6 +22,8 @@ import com.android.tools.r8.ir.optimize.SwitchMapCollector;
 import com.android.tools.r8.jar.CfApplicationWriter;
 import com.android.tools.r8.naming.Minifier;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.naming.ProguardMapApplier;
+import com.android.tools.r8.naming.SeedMapper;
 import com.android.tools.r8.naming.SourceFileRewriter;
 import com.android.tools.r8.optimize.BridgeMethodAnalysis;
 import com.android.tools.r8.optimize.MemberRebindingAnalysis;
@@ -258,6 +260,14 @@ public class R8 {
 
           appInfo = appInfo.withLiveness()
               .prunedCopyFrom(application, classMerger.getRemovedClasses());
+        }
+        if (options.proguardConfiguration.hasApplyMappingFile()) {
+          SeedMapper seedMapper = SeedMapper.seedMapperFromFile(
+              options.proguardConfiguration.getApplyMappingFile());
+          timing.begin("apply-mapping");
+          graphLense = new ProguardMapApplier(appInfo.withLiveness(), graphLense, seedMapper)
+              .run(timing);
+          timing.end();
         }
         application = application.asDirect().rewrittenWithLense(graphLense);
         appInfo = appInfo.withLiveness().rewrittenWithLense(application.asDirect(), graphLense);

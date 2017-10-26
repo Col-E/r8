@@ -228,7 +228,9 @@ public class LensCodeRewriter {
     return methodHandle;
   }
 
-  private Type getInvokeType(InvokeMethod invoke, DexMethod actualTarget,
+  private Type getInvokeType(
+      InvokeMethod invoke,
+      DexMethod actualTarget,
       DexMethod originalTarget) {
     if (invoke.isInvokeVirtual() || invoke.isInvokeInterface()) {
       // Get the invoke type of the actual definition.
@@ -237,7 +239,8 @@ public class LensCodeRewriter {
         return invoke.getType();
       } else {
         DexClass originalTargetClass = appInfo.definitionFor(originalTarget.holder);
-        if (originalTargetClass.isInterface() ^ (invoke.getType() == Type.INTERFACE)) {
+        if ((originalTargetClass != null && originalTargetClass.isInterface())
+            ^ (invoke.getType() == Type.INTERFACE)) {
           // The invoke was wrong to start with, so we keep it wrong. This is to ensure we get
           // the IncompatibleClassChangeError the original invoke would have triggered.
           return newTargetClass.accessFlags.isInterface()

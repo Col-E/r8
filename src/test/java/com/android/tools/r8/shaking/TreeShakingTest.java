@@ -61,8 +61,11 @@ public class TreeShakingTest {
   private static final List<Path> JAR_LIBRARIES = ListUtils.map(ImmutableList
       .of(ANDROID_JAR, ToolHelper.EXAMPLES_BUILD_DIR + "shakinglib.jar"), Paths::get);
   private static final String EMPTY_FLAGS = "src/test/proguard/valid/empty.flags";
-
-  private static Set<String> IGNORED = ImmutableSet.of(
+  private static final Set<String> IGNORED_FLAGS = ImmutableSet.of(
+      "minification:conflict-mapping.txt",
+      "minification:keep-rules-apply-conflict-mapping.txt"
+  );
+  private static final Set<String> IGNORED = ImmutableSet.of(
       // there's no point in running those without obfuscation
       "shaking1:keep-rules-repackaging.txt:DEX:false",
       "shaking1:keep-rules-repackaging.txt:JAR:false",
@@ -844,7 +847,8 @@ public class TreeShakingTest {
       String mainClass, String keepName, List<String> keepList, boolean minify,
       Consumer<DexInspector> inspection, BiConsumer<String, String> outputComparator,
       BiConsumer<DexInspector, DexInspector> dexComparator) {
-    if (!IGNORED.contains(test + ":" + keepName + ":" + kind + ":" + minify)) {
+    if (!IGNORED_FLAGS.contains(test + ":" + keepName)
+        && !IGNORED.contains(test + ":" + keepName + ":" + kind + ":" + minify)) {
       testCases.add(new Object[]{
           test, kind, mainClass, keepList, minify, inspection, outputComparator, dexComparator});
     }

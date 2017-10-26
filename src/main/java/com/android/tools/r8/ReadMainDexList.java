@@ -4,7 +4,6 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.naming.ClassNameMapper;
-import com.android.tools.r8.naming.ProguardMapReader;
 import com.android.tools.r8.utils.FileUtils;
 import com.google.common.collect.Iterators;
 import java.nio.file.Path;
@@ -57,7 +56,7 @@ public class ReadMainDexList {
     Path mainDexList = Paths.get(arg);
 
     final ClassNameMapper mapper =
-        arguments.hasNext() ? ProguardMapReader.mapperFromFile(Paths.get(arguments.next())) : null;
+        arguments.hasNext() ? ClassNameMapper.mapperFromFile(Paths.get(arguments.next())) : null;
 
     FileUtils.readTextFile(mainDexList)
         .stream()

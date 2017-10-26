@@ -18,7 +18,7 @@ public abstract class DexClass extends DexItem {
   private static final DexEncodedField[] NO_FIELDS = {};
 
   public final Origin origin;
-  public final DexType type;
+  public DexType type;
   public final DexAccessFlags accessFlags;
   public DexType superType;
   public DexTypeList interfaces;

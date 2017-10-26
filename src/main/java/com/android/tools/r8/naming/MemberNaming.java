@@ -3,8 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
+import static com.android.tools.r8.utils.DescriptorUtils.javaTypeToDescriptor;
+
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.MemberNaming.Signature.SignatureKind;
@@ -88,6 +91,14 @@ public class MemberNaming {
 
   public Signature getOriginalSignature() {
     return signature;
+  }
+
+  public String getOriginalName() {
+    return signature.name;
+  }
+
+  public Signature getRenamedSignature() {
+    return renamedSignature;
   }
 
   public String getRenamedName() {
@@ -222,6 +233,13 @@ public class MemberNaming {
           field.type.toSourceString());
     }
 
+    DexField toDexField(DexItemFactory factory, DexType clazz) {
+      return factory.createField(
+          clazz,
+          factory.createType(javaTypeToDescriptor(type)),
+          factory.createString(name));
+    }
+
     @Override
     Signature asRenamed(String renamedName) {
       return new FieldSignature(renamedName, type);
@@ -295,6 +313,18 @@ public class MemberNaming {
           name,
           DescriptorUtils.descriptorToJavaType(returnDescriptor.getDescriptor()),
           parameterTypes);
+    }
+
+    DexMethod toDexMethod(DexItemFactory factory, DexType clazz) {
+      DexType[] paramTypes = new DexType[parameters.length];
+      for (int i = 0; i < parameters.length; i++) {
+        paramTypes[i] = factory.createType(javaTypeToDescriptor(parameters[i]));
+      }
+      DexType returnType = factory.createType(javaTypeToDescriptor(type));
+      return factory.createMethod(
+          clazz,
+          factory.createProto(returnType, paramTypes),
+          factory.createString(name));
     }
 
     public static MethodSignature initializer(String[] parameters) {

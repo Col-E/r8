@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
-import com.android.tools.r8.naming.ProguardMapReader;
+import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -22,7 +22,7 @@ public class ReadProguardMap {
     try {
       System.out.println("  - reading " + fileName);
       timing.begin("Reading " + fileName);
-      ProguardMapReader.mapperFromFile(Paths.get(fileName));
+      ClassNameMapper.mapperFromFile(Paths.get(fileName));
       timing.end();
     } catch (IOException e) {
       System.err.print("Failed to parse Proguard mapping file: " + e.getMessage());

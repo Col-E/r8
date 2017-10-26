@@ -58,12 +58,11 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.naming.ClassNameMapper;
-import com.android.tools.r8.naming.ClassNaming;
+import com.android.tools.r8.naming.ClassNamingForNameMapper;
 import com.android.tools.r8.naming.MemberNaming;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
-import com.android.tools.r8.naming.ProguardMapReader;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
@@ -111,7 +110,7 @@ public class DexInspector {
       throws IOException, ExecutionException {
     ExecutorService executor = Executors.newSingleThreadExecutor();
     if (mappingFile != null) {
-      this.mapping = ProguardMapReader.mapperFromFile(Paths.get(mappingFile));
+      this.mapping = ClassNameMapper.mapperFromFile(Paths.get(mappingFile));
       originalToObfuscatedMapping = this.mapping.getObfuscatedToOriginalMapping().inverse();
     } else {
       this.mapping = null;
@@ -166,7 +165,7 @@ public class DexInspector {
   }
 
   public ClassSubject clazz(String name) {
-    ClassNaming naming = null;
+    ClassNamingForNameMapper naming = null;
     if (mapping != null) {
       String obfuscated = originalToObfuscatedMapping.get(name);
       if (obfuscated != null) {
@@ -183,7 +182,7 @@ public class DexInspector {
 
   public void forAllClasses(Consumer<FoundClassSubject> inspection) {
     forAll(application.classes(), clazz -> {
-      ClassNaming naming = null;
+      ClassNamingForNameMapper naming = null;
       if (mapping != null) {
         String obfuscated = originalToObfuscatedMapping.get(clazz.type.toSourceString());
         if (obfuscated != null) {
@@ -360,9 +359,9 @@ public class DexInspector {
   public class FoundClassSubject extends ClassSubject {
 
     private final DexClass dexClass;
-    private final ClassNaming naming;
+    private final ClassNamingForNameMapper naming;
 
-    private FoundClassSubject(DexClass dexClass, ClassNaming naming) {
+    private FoundClassSubject(DexClass dexClass, ClassNamingForNameMapper naming) {
       this.dexClass = dexClass;
       this.naming = naming;
     }

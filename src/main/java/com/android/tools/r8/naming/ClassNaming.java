@@ -4,114 +4,30 @@
 package com.android.tools.r8.naming;
 
 import com.android.tools.r8.naming.MemberNaming.Signature;
-import java.io.IOException;
-import java.io.StringWriter;
-import java.io.Writer;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Consumer;
+import com.android.tools.r8.utils.ThrowingConsumer;
 
 /**
  * Stores name information for a class.
  * <p>
- * This includes how the class was renamed and information on the classes members.
+ * Implementers will include how the class was renamed and information on the class's members.
  */
-public class ClassNaming {
+public interface ClassNaming {
 
-  public final String originalName;
-  public final String renamedName;
-
-  /**
-   * Mapping from the renamed signature to the naming information for a member.
-   * <p>
-   * A renamed signature is a signature where the member's name has been obfuscated but not the type
-   * information.
-   **/
-  final Map<Signature, MemberNaming> members = new LinkedHashMap<>();
-
-  ClassNaming(String renamedName, String originalName) {
-    this.renamedName = renamedName;
-    this.originalName = originalName;
+  abstract class Builder {
+    abstract Builder addMemberEntry(MemberNaming entry);
+    abstract ClassNaming build();
   }
 
-  void addMemberEntry(MemberNaming entry) {
-    Signature renamedSignature = entry.renamedSignature;
-    members.put(renamedSignature, entry);
-  }
+  MemberNaming lookup(Signature renamedSignature);
 
-  public MemberNaming lookup(Signature renamedSignature) {
-    return members.get(renamedSignature);
-  }
+  MemberNaming lookupByOriginalSignature(Signature original);
 
-  public MemberNaming lookupByOriginalSignature(Signature original) {
-    for (MemberNaming naming : members.values()) {
-      if (naming.signature.equals(original)) {
-        return naming;
-      }
-    }
-    return null;
-  }
+  <T extends Throwable> void forAllMemberNaming(
+      ThrowingConsumer<MemberNaming, T> consumer) throws T;
 
-  public List<MemberNaming> lookupByOriginalName(String originalName) {
-    List<MemberNaming> result = new ArrayList<>();
-    for (MemberNaming naming : members.values()) {
-      if (naming.signature.name.equals(originalName)) {
-        result.add(naming);
-      }
-    }
-    return result;
-  }
+  <T extends Throwable> void forAllFieldNaming(
+      ThrowingConsumer<MemberNaming, T> consumer) throws T;
 
-  public void forAllMemberNaming(Consumer<MemberNaming> consumer) {
-    members.values().forEach(consumer);
-  }
-
-  void write(Writer writer, boolean collapseRanges) throws IOException {
-    writer.append(originalName);
-    writer.append(" -> ");
-    writer.append(renamedName);
-    writer.append(":\n");
-    for (MemberNaming member : members.values()) {
-      member.write(writer, collapseRanges, true);
-    }
-  }
-
-  @Override
-  public String toString() {
-    try {
-      StringWriter writer = new StringWriter();
-      write(writer, false);
-      return writer.toString();
-    } catch (IOException e) {
-      return e.toString();
-    }
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (!(o instanceof ClassNaming)) {
-      return false;
-    }
-
-    ClassNaming that = (ClassNaming) o;
-
-    return originalName.equals(that.originalName)
-        && renamedName.equals(that.renamedName)
-        && members.equals(that.members);
-
-  }
-
-  @Override
-  public int hashCode() {
-    int result = originalName.hashCode();
-    result = 31 * result + renamedName.hashCode();
-    result = 31 * result + members.hashCode();
-    return result;
-  }
+  <T extends Throwable> void forAllMethodNaming(
+      ThrowingConsumer<MemberNaming, T> consumer) throws T;
 }
-

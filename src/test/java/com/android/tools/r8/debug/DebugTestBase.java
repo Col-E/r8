@@ -14,11 +14,10 @@ import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.naming.ClassNameMapper;
-import com.android.tools.r8.naming.ClassNaming;
+import com.android.tools.r8.naming.ClassNamingForNameMapper;
 import com.android.tools.r8.naming.MemberNaming;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
-import com.android.tools.r8.naming.ProguardMapReader;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -353,7 +352,7 @@ public abstract class DebugTestBase {
       paths[indexPath++] = languageFeatures.getDexPath().toString();
       Path proguardMapPath = Paths.get(paths[indexPath - 1]).resolveSibling(PROGUARD_MAP_FILENAME);
       if (Files.exists(proguardMapPath)) {
-        classNameMapper = ProguardMapReader.mapperFromFile(proguardMapPath);
+        classNameMapper = ClassNameMapper.mapperFromFile(proguardMapPath);
       }
     }
     for (Path extraPath : extraPaths) {
@@ -670,7 +669,7 @@ public abstract class DebugTestBase {
       @Override
       public String getObfuscatedMethodName(
           String originalClassName, String originalMethodName, String methodSignatureOrNull) {
-        ClassNaming naming;
+        ClassNamingForNameMapper naming;
         String obfuscatedClassName =
             classNameMapper.getObfuscatedToOriginalMapping().inverse().get(originalClassName);
         if (obfuscatedClassName != null) {
@@ -705,7 +704,7 @@ public abstract class DebugTestBase {
       /** Assumes classNameMapper is valid. Return null if no member naming found. */
       private MemberNaming getMemberNaming(
           String obfuscatedClassName, String obfuscatedMethodName, String genericMethodSignature) {
-        ClassNaming classNaming = classNameMapper.getClassNaming(obfuscatedClassName);
+        ClassNamingForNameMapper classNaming = classNameMapper.getClassNaming(obfuscatedClassName);
         if (classNaming == null) {
           return null;
         }

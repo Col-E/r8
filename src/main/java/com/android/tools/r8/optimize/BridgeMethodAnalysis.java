@@ -112,5 +112,18 @@ public class BridgeMethodAnalysis {
     public boolean isContextFree() {
       return false;
     }
+
+    @Override
+    public String toString() {
+      StringBuilder builder = new StringBuilder();
+      builder.append("------ BridgeMap ------").append(System.lineSeparator());
+      for (Map.Entry<DexMethod, DexMethod> entry : bridgeTargetToBridgeMap.entrySet()) {
+        builder.append(entry.getKey().toSourceString()).append(" -> ");
+        builder.append(entry.getValue().toSourceString()).append(System.lineSeparator());
+      }
+      builder.append("-----------------------").append(System.lineSeparator());
+      builder.append(previousLense.toString());
+      return builder.toString();
+    }
   }
 }

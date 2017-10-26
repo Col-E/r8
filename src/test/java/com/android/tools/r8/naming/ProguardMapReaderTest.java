@@ -19,19 +19,19 @@ public class ProguardMapReaderTest {
 
   @Test
   public void parseThrowingMap() throws IOException {
-    ProguardMapReader.mapperFromFile(Paths.get(ROOT, EXAMPLE_MAP));
+    ClassNameMapper.mapperFromFile(Paths.get(ROOT, EXAMPLE_MAP));
   }
 
   @Test
   public void roundTripTest() throws IOException {
-    ClassNameMapper firstMapper = ProguardMapReader.mapperFromFile(Paths.get(ROOT, EXAMPLE_MAP));
-    ClassNameMapper secondMapper = ProguardMapReader.mapperFromString(firstMapper.toString());
+    ClassNameMapper firstMapper = ClassNameMapper.mapperFromFile(Paths.get(ROOT, EXAMPLE_MAP));
+    ClassNameMapper secondMapper = ClassNameMapper.mapperFromString(firstMapper.toString());
     Assert.assertEquals(firstMapper, secondMapper);
   }
 
   @Test
   public void parseMapWithPackageInfo() throws IOException {
-    ClassNameMapper mapper = ProguardMapReader.mapperFromString(EXAMPLE_MAP_WITH_PACKAGE_INFO);
+    ClassNameMapper mapper = ClassNameMapper.mapperFromString(EXAMPLE_MAP_WITH_PACKAGE_INFO);
     Assert.assertTrue(mapper.getObfuscatedToOriginalMapping().isEmpty());
   }
 }
