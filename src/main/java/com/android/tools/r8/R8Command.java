@@ -35,6 +35,7 @@ public class R8Command extends BaseCompilerCommand {
     private Optional<Boolean> treeShaking = Optional.empty();
     private Optional<Boolean> discardedChecker = Optional.empty();
     private Optional<Boolean> minification = Optional.empty();
+    private boolean ignoreMissingClassesWhenNotShrinking = false;
     private boolean ignoreMissingClasses = false;
     private boolean forceProguardCompatibility = false;
     private Path proguardMapOutput = null;
@@ -43,9 +44,12 @@ public class R8Command extends BaseCompilerCommand {
       super(CompilationMode.RELEASE);
     }
 
-    protected Builder(boolean ignoreDexInArchive, boolean forceProguardCompatibility) {
+    protected Builder(boolean ignoreDexInArchive, boolean forceProguardCompatibility,
+        boolean ignoreMissingClassesWhenNotShrinking, boolean ignoreMissingClasses) {
       super(CompilationMode.RELEASE, ignoreDexInArchive);
       this.forceProguardCompatibility = forceProguardCompatibility;
+      this.ignoreMissingClassesWhenNotShrinking = ignoreMissingClassesWhenNotShrinking;
+      this.ignoreMissingClasses = ignoreMissingClasses;
     }
 
     private Builder(AndroidApp app) {
@@ -256,6 +260,7 @@ public class R8Command extends BaseCompilerCommand {
           useMinification,
           ignoreMissingClasses,
           forceProguardCompatibility,
+          ignoreMissingClassesWhenNotShrinking,
           proguardMapOutput);
     }
   }
@@ -297,6 +302,7 @@ public class R8Command extends BaseCompilerCommand {
   private final boolean useMinification;
   private final boolean ignoreMissingClasses;
   private final boolean forceProguardCompatibility;
+  private final boolean ignoreMissingClassesWhenNotShrinking;
   private final Path proguardMapOutput;
 
   public static Builder builder() {
@@ -415,6 +421,7 @@ public class R8Command extends BaseCompilerCommand {
       boolean useMinification,
       boolean ignoreMissingClasses,
       boolean forceProguardCompatibility,
+      boolean ignoreMissingClassesWhenNotShrinking,
       Path proguardMapOutput) {
     super(inputApp, outputPath, outputMode, mode, minApiLevel, diagnosticsHandler,
         enableDesugaring);
@@ -429,6 +436,7 @@ public class R8Command extends BaseCompilerCommand {
     this.useMinification = useMinification;
     this.ignoreMissingClasses = ignoreMissingClasses;
     this.forceProguardCompatibility = forceProguardCompatibility;
+    this.ignoreMissingClassesWhenNotShrinking = ignoreMissingClassesWhenNotShrinking;
     this.proguardMapOutput = proguardMapOutput;
   }
 
@@ -442,6 +450,7 @@ public class R8Command extends BaseCompilerCommand {
     useMinification = false;
     ignoreMissingClasses = false;
     forceProguardCompatibility = false;
+    ignoreMissingClassesWhenNotShrinking = false;
     proguardMapOutput = null;
   }
   public boolean useTreeShaking() {
@@ -479,6 +488,9 @@ public class R8Command extends BaseCompilerCommand {
     assert !internal.ignoreMissingClasses;
     internal.ignoreMissingClasses = ignoreMissingClasses;
     internal.ignoreMissingClasses |= proguardConfiguration.isIgnoreWarnings();
+    internal.ignoreMissingClasses |=
+        ignoreMissingClassesWhenNotShrinking && !proguardConfiguration.isShrinking();
+
     assert !internal.verbose;
     internal.mainDexKeepRules = mainDexKeepRules;
     internal.minimalMainDex = internal.debug;

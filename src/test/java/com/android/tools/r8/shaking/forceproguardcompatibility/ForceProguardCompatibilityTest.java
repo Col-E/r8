@@ -55,7 +55,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
 
   private void runAnnotationsTest(boolean forceProguardCompatibility, boolean keepAnnotations) throws Exception {
     R8Command.Builder builder =
-        new CompatProguardCommandBuilder(forceProguardCompatibility);
+        new CompatProguardCommandBuilder(forceProguardCompatibility, false);
     // Add application classes including the annotation class.
     Class mainClass = TestMain.class;
     Class mentionedClassWithAnnotations = TestMain.MentionedClassWithAnnotation.class;
