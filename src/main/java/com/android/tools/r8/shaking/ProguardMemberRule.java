@@ -4,7 +4,6 @@
 package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.DexAccessFlags;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
@@ -17,8 +16,8 @@ public class ProguardMemberRule {
   public static class Builder {
 
     private ProguardTypeMatcher annotation;
-    private DexAccessFlags accessFlags = new DexAccessFlags(0);
-    private DexAccessFlags negatedAccessFlags = new DexAccessFlags(0);
+    private ProguardAccessFlags accessFlags = new ProguardAccessFlags();
+    private ProguardAccessFlags negatedAccessFlags = new ProguardAccessFlags();
     private ProguardMemberType ruleType;
     private ProguardNameMatcher name;
     private ProguardTypeMatcher type;
@@ -31,19 +30,19 @@ public class ProguardMemberRule {
       this.annotation = annotation;
     }
 
-    public DexAccessFlags getAccessFlags() {
+    public ProguardAccessFlags getAccessFlags() {
       return accessFlags;
     }
 
-    public void setAccessFlags(DexAccessFlags flags) {
+    public void setAccessFlags(ProguardAccessFlags flags) {
       accessFlags = flags;
     }
 
-    public DexAccessFlags getNegatedAccessFlags() {
+    public ProguardAccessFlags getNegatedAccessFlags() {
       return negatedAccessFlags;
     }
 
-    public void setNegatedAccessFlags(DexAccessFlags flags) {
+    public void setNegatedAccessFlags(ProguardAccessFlags flags) {
       negatedAccessFlags = flags;
     }
 
@@ -83,8 +82,8 @@ public class ProguardMemberRule {
   }
 
   private final ProguardTypeMatcher annotation;
-  private final DexAccessFlags accessFlags;
-  private final DexAccessFlags negatedAccessFlags;
+  private final ProguardAccessFlags accessFlags;
+  private final ProguardAccessFlags negatedAccessFlags;
   private final ProguardMemberType ruleType;
   private final ProguardNameMatcher name;
   private final ProguardTypeMatcher type;
@@ -93,8 +92,8 @@ public class ProguardMemberRule {
 
   private ProguardMemberRule(
       ProguardTypeMatcher annotation,
-      DexAccessFlags accessFlags,
-      DexAccessFlags negatedAccessFlags,
+      ProguardAccessFlags accessFlags,
+      ProguardAccessFlags negatedAccessFlags,
       ProguardMemberType ruleType,
       ProguardNameMatcher name,
       ProguardTypeMatcher type,
@@ -121,11 +120,11 @@ public class ProguardMemberRule {
     return annotation;
   }
 
-  public DexAccessFlags getAccessFlags() {
+  public ProguardAccessFlags getAccessFlags() {
     return accessFlags;
   }
 
-  public DexAccessFlags getNegatedAccessFlags() {
+  public ProguardAccessFlags getNegatedAccessFlags() {
     return negatedAccessFlags;
   }
 
@@ -162,8 +161,8 @@ public class ProguardMemberRule {
       case ALL:
       case ALL_FIELDS:
         // Access flags check.
-        if (!field.accessFlags.containsAllOf(getAccessFlags()) ||
-            !field.accessFlags.containsNoneOf(getNegatedAccessFlags())) {
+        if (!getAccessFlags().containsAll(field.accessFlags)
+            || !getNegatedAccessFlags().containsNone(field.accessFlags)) {
           break;
         }
         // Annotations check.
@@ -175,8 +174,8 @@ public class ProguardMemberRule {
           break;
         }
         // Access flags check.
-        if (!(field.accessFlags.containsAllOf(getAccessFlags()) &&
-            field.accessFlags.containsNoneOf(getNegatedAccessFlags()))) {
+        if (!getAccessFlags().containsAll(field.accessFlags)
+            || !getNegatedAccessFlags().containsNone(field.accessFlags)) {
           break;
         }
         // Type check.
@@ -206,8 +205,8 @@ public class ProguardMemberRule {
         // Fall through for all other methods.
       case ALL:
         // Access flags check.
-        if (!method.accessFlags.containsAllOf(getAccessFlags()) ||
-            !method.accessFlags.containsNoneOf(getNegatedAccessFlags())) {
+        if (!getAccessFlags().containsAll(method.accessFlags)
+            || !getNegatedAccessFlags().containsNone(method.accessFlags)) {
           break;
         }
         // Annotations check.
@@ -226,8 +225,8 @@ public class ProguardMemberRule {
           break;
         }
         // Access flags check.
-        if (!(method.accessFlags.containsAllOf(getAccessFlags()) &&
-            method.accessFlags.containsNoneOf(getNegatedAccessFlags()))) {
+        if (!getAccessFlags().containsAll(method.accessFlags)
+            || !getNegatedAccessFlags().containsNone(method.accessFlags)) {
           break;
         }
         // Annotations check.

@@ -112,11 +112,7 @@ public class ReasonPrinter {
   private void printReasonFor(DexEncodedField item) {
     KeepReason reason = liveFields.get(item);
     if (reason == null) {
-      if (item.accessFlags.isAbstract()) {
-        printOnlyAbstractShell(item, formatter);
-      } else {
-        printNoIdeaWhy(item.field, formatter);
-      }
+      printNoIdeaWhy(item.field, formatter);
     } else {
       formatter.startItem(item.field);
       formatter.pushIsLivePrefix();

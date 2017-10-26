@@ -117,10 +117,10 @@ public class RootSetBuilder {
 
   // Process a class with the keep rule.
   private void process(DexClass clazz, ProguardConfigurationRule rule) {
-    if (!clazz.accessFlags.containsAllOf(rule.getClassAccessFlags())) {
+    if (!rule.getClassAccessFlags().containsAll(clazz.accessFlags)) {
       return;
     }
-    if (!clazz.accessFlags.containsNoneOf(rule.getNegatedClassAccessFlags())) {
+    if (!rule.getNegatedClassAccessFlags().containsNone(clazz.accessFlags)) {
       return;
     }
     if (!containsAnnotation(rule.getClassAnnotation(), clazz.annotations)) {

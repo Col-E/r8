@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
-import com.android.tools.r8.graph.DexAccessFlags;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -17,6 +16,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DexValue;
+import com.android.tools.r8.graph.MethodAccessFlags;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.List;
@@ -140,7 +140,7 @@ final class LambdaDescriptor {
     return encodedMethod.accessFlags.isPrivate() && isInstanceMethod(encodedMethod);
   }
 
-  final DexAccessFlags getAccessibility() {
+  final MethodAccessFlags getAccessibility() {
     return targetMethod == null ? null : targetMethod.accessFlags;
   }
 
@@ -198,7 +198,7 @@ final class LambdaDescriptor {
       return true;
     }
 
-    DexAccessFlags flags = targetMethod.accessFlags;
+    MethodAccessFlags flags = targetMethod.accessFlags;
 
     // Private methods always need accessors.
     if (flags.isPrivate()) {

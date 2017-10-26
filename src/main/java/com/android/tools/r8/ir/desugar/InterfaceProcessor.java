@@ -6,8 +6,8 @@ package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unimplemented;
+import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.Code;
-import com.android.tools.r8.graph.DexAccessFlags;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -16,6 +16,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
+import com.android.tools.r8.graph.MethodAccessFlags;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.IdentityHashMap;
@@ -56,7 +57,7 @@ final class InterfaceProcessor {
               + "interface method: " + virtual.method.toSourceString());
         }
 
-        DexAccessFlags newFlags = new DexAccessFlags(virtual.accessFlags.get());
+        MethodAccessFlags newFlags = virtual.accessFlags.copy();
         newFlags.unsetBridge();
         newFlags.setStatic();
         DexCode dexCode = code.asDexCode();
@@ -115,7 +116,7 @@ final class InterfaceProcessor {
       return; // No methods to create, companion class not needed.
     }
 
-    DexAccessFlags companionClassFlags = new DexAccessFlags(iface.accessFlags.get());
+    ClassAccessFlags companionClassFlags = iface.accessFlags.copy();
     companionClassFlags.unsetAbstract();
     companionClassFlags.unsetInterface();
     companionClassFlags.setFinal();
