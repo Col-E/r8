@@ -246,28 +246,22 @@ public class R8RunExamplesTest {
       fail("JVM failed for: " + mainClass);
     }
 
-    // TODO(ager): Once we have a bot running using dalvik (version 4.4.4) we should remove
-    // this explicit loop to get rid of repeated testing on the buildbots.
-    for (DexVm version : artVersions) {
-      TestCondition condition = failingRun.get(mainClass);
-      if (condition != null && condition.test(getTool(), compiler, version.getVersion(), mode)) {
-        thrown.expect(Throwable.class);
-      } else {
-        thrown = ExpectedException.none();
-      }
+    DexVm vm = ToolHelper.getDexVm();
+    TestCondition condition = failingRun.get(mainClass);
+    if (condition != null && condition.test(getTool(), compiler, vm.getVersion(), mode)) {
+      thrown.expect(Throwable.class);
+    } else {
+      thrown = ExpectedException.none();
+    }
 
-      // Check output against Art output on original dex file.
-      String output =
-          ToolHelper.checkArtOutputIdentical(original, generated.toString(), mainClass, version);
+    // Check output against Art output on original dex file.
+    String output =
+        ToolHelper.checkArtOutputIdentical(original, generated.toString(), mainClass, vm);
 
-      // Check output against JVM output.
-      if (shouldMatchJVMOutput(version.getVersion())) {
-        String javaOutput = javaResult.stdout;
-        assertEquals(
-            "JVM and Art output differ:\n" + "JVM:\n" + javaOutput + "\nArt:\n" + output,
-            javaOutput,
-            output);
-      }
+    // Check output against JVM output.
+    if (shouldMatchJVMOutput(vm.getVersion())) {
+      String javaOutput = javaResult.stdout;
+      assertEquals("JVM and Art output differ", javaOutput, output);
     }
   }
 
