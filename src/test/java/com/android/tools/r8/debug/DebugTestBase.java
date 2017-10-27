@@ -135,7 +135,7 @@ public abstract class DebugTestBase {
     setUp(null, null);
   }
 
-  protected static List<String> proguardConfigurations = Collections.<String>emptyList();
+  protected static List<String> proguardConfigurations = Collections.emptyList();
   protected static boolean writeProguardMap = false;
 
   protected static void setUp(

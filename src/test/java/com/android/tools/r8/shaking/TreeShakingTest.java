@@ -7,6 +7,7 @@ import static com.android.tools.r8.utils.AndroidApp.DEFAULT_PROGUARD_MAP_FILE;
 
 import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.R8Command;
+import com.android.tools.r8.TestBase.MinifyMode;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.dex.Constants;
@@ -67,34 +68,29 @@ public class TreeShakingTest {
   );
   private static final Set<String> IGNORED = ImmutableSet.of(
       // there's no point in running those without obfuscation
-      "shaking1:keep-rules-repackaging.txt:DEX:false",
-      "shaking1:keep-rules-repackaging.txt:JAR:false",
-      "shaking16:keep-rules-1.txt:DEX:false",
-      "shaking16:keep-rules-1.txt:JAR:false",
-      "shaking16:keep-rules-2.txt:DEX:false",
-      "shaking16:keep-rules-2.txt:JAR:false",
-      "shaking15:keep-rules.txt:DEX:false",
-      "shaking15:keep-rules.txt:JAR:false",
-      "minifygeneric:keep-rules.txt:DEX:false",
-      "minifygeneric:keep-rules.txt:JAR:false",
-      "minifygenericwithinner:keep-rules.txt:DEX:false",
-      "minifygenericwithinner:keep-rules.txt:JAR:false",
-      // TODO(62048823): Inlining tests don't use allowaccessmodification.
-      "inlining:keep-rules.txt:DEX:true",
-      "inlining:keep-rules.txt:JAR:true",
-      "inlining:keep-rules-discard.txt:DEX:true",
-      "inlining:keep-rules-discard.txt:JAR:true"
+      "shaking1:keep-rules-repackaging.txt:DEX:NONE",
+      "shaking1:keep-rules-repackaging.txt:JAR:NONE",
+      "shaking16:keep-rules-1.txt:DEX:NONE",
+      "shaking16:keep-rules-1.txt:JAR:NONE",
+      "shaking16:keep-rules-2.txt:DEX:NONE",
+      "shaking16:keep-rules-2.txt:JAR:NONE",
+      "shaking15:keep-rules.txt:DEX:NONE",
+      "shaking15:keep-rules.txt:JAR:NONE",
+      "minifygeneric:keep-rules.txt:DEX:NONE",
+      "minifygeneric:keep-rules.txt:JAR:NONE",
+      "minifygenericwithinner:keep-rules.txt:DEX:NONE",
+      "minifygenericwithinner:keep-rules.txt:JAR:NONE"
   );
 
   // TODO(65355452): Reenable or remove inlining tests.
   private static Set<String> SKIPPED = ImmutableSet.of("inlining");
 
-  private final boolean minify;
+  private final MinifyMode minify;
 
   private enum Frontend {
     DEX, JAR
-  }
 
+  }
   private final Frontend kind;
   private final String originalDex;
   private final String programFile;
@@ -102,13 +98,14 @@ public class TreeShakingTest {
   private final List<String> keepRulesFiles;
   private final Consumer<DexInspector> inspection;
   private final BiConsumer<String, String> outputComparator;
+
   private BiConsumer<DexInspector, DexInspector> dexComparator;
 
   @Rule
   public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
   public TreeShakingTest(String test, Frontend kind, String mainClass, List<String> keepRulesFiles,
-      boolean minify, Consumer<DexInspector> inspection,
+      MinifyMode minify, Consumer<DexInspector> inspection,
       BiConsumer<String, String> outputComparator,
       BiConsumer<DexInspector, DexInspector> dexComparator) {
     this.kind = kind;
@@ -141,9 +138,10 @@ public class TreeShakingTest {
             .addProguardConfigurationConsumer(builder -> {
               builder.setPrintMapping(true);
               builder.setPrintMappingFile(out.resolve(AndroidApp.DEFAULT_PROGUARD_MAP_FILE));
+              builder.setOverloadAggressively(minify == MinifyMode.AGGRESSIVE);
+              builder.setObfuscating(minify.isMinify());
             })
             .addLibraryFiles(JAR_LIBRARIES)
-            .setMinification(minify)
             .build();
     ToolHelper.runR8(command, options -> {
       options.inlineAccessors = inline;
@@ -414,6 +412,7 @@ public class TreeShakingTest {
     Assert.assertFalse(inspector.clazz("nestedproto1.GeneratedNestedProto$NestedTwo").isPresent());
   }
 
+
   private static void nestedproto2UnusedFieldsAreGone(DexInspector inspector) {
     ClassSubject protoClass = inspector.clazz("nestedproto2.GeneratedNestedProto$Outer");
     Assert.assertTrue(protoClass.isPresent());
@@ -425,7 +424,6 @@ public class TreeShakingTest {
     Assert.assertFalse(inspector.clazz("nestedproto2.GeneratedNestedProto$NestedOne").isPresent());
     Assert.assertFalse(inspector.clazz("nestedproto2.GeneratedNestedProto$NestedTwo").isPresent());
   }
-
 
   private static void enumprotoUnusedFieldsAreGone(DexInspector inspector) {
     ClassSubject protoClass = inspector.clazz("enumproto.GeneratedEnumProto$Enum");
@@ -833,18 +831,16 @@ public class TreeShakingTest {
     if (SKIPPED.contains(test)) {
       return;
     }
-    addTestCase(testCases, test, Frontend.JAR, mainClass, keepName, keepList, false, inspection,
-        outputComparator, dexComparator);
-    addTestCase(testCases, test, Frontend.DEX, mainClass, keepName, keepList, false, inspection,
-        outputComparator, dexComparator);
-    addTestCase(testCases, test, Frontend.JAR, mainClass, keepName, keepList, true, inspection,
-        outputComparator, dexComparator);
-    addTestCase(testCases, test, Frontend.DEX, mainClass, keepName, keepList, true, inspection,
-        outputComparator, dexComparator);
+    for (MinifyMode mode : MinifyMode.values()) {
+      addTestCase(testCases, test, Frontend.JAR, mainClass, keepName, keepList, mode, inspection,
+          outputComparator, dexComparator);
+      addTestCase(testCases, test, Frontend.DEX, mainClass, keepName, keepList, mode, inspection,
+          outputComparator, dexComparator);
+    }
   }
 
   private static void addTestCase(List<Object[]> testCases, String test, Frontend kind,
-      String mainClass, String keepName, List<String> keepList, boolean minify,
+      String mainClass, String keepName, List<String> keepList, MinifyMode minify,
       Consumer<DexInspector> inspection, BiConsumer<String, String> outputComparator,
       BiConsumer<DexInspector, DexInspector> dexComparator) {
     if (!IGNORED_FLAGS.contains(test + ":" + keepName)
@@ -910,13 +906,15 @@ public class TreeShakingTest {
     if (dexComparator != null) {
       DexInspector ref = new DexInspector(Paths.get(originalDex));
       DexInspector inspector = new DexInspector(generated,
-          minify ? temp.getRoot().toPath().resolve(DEFAULT_PROGUARD_MAP_FILE).toString() : null);
+          minify.isMinify() ? temp.getRoot().toPath().resolve(DEFAULT_PROGUARD_MAP_FILE).toString()
+              : null);
       dexComparator.accept(ref, inspector);
     }
 
     if (inspection != null) {
       DexInspector inspector = new DexInspector(generated,
-          minify ? temp.getRoot().toPath().resolve(DEFAULT_PROGUARD_MAP_FILE).toString() : null);
+          minify.isMinify() ? temp.getRoot().toPath().resolve(DEFAULT_PROGUARD_MAP_FILE).toString()
+              : null);
       inspection.accept(inspector);
     }
   }

@@ -348,4 +348,14 @@ public class TestBase {
     DexApplication dexApplication = new ApplicationReader(app, options, new Timing("XX")).read();
     System.out.println(SmaliWriter.smali(dexApplication, options));
   }
+
+  public enum MinifyMode {
+    NONE,
+    JAVA,
+    AGGRESSIVE;
+
+    public boolean isMinify() {
+      return this != NONE;
+    }
+  }
 }
