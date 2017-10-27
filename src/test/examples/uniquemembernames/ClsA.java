@@ -6,8 +6,8 @@ package uniquemembernames;
 public class ClsA extends BaseCls {
 
   @Override
-  protected int a() {
-    return foo() + a;
+  protected int c() {
+    return foo() + c;
   }
 
   @Override

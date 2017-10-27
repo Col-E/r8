@@ -45,6 +45,7 @@ public class ProguardConfiguration {
     private boolean keepParameterNames;
     private ProguardClassFilter.Builder adaptClassStrings = ProguardClassFilter.builder();
     private boolean forceProguardCompatibility = false;
+    private boolean overloadAggressively;
 
     private Builder(DexItemFactory dexItemFactory) {
       this.dexItemFactory = dexItemFactory;
@@ -211,9 +212,12 @@ public class ProguardConfiguration {
       this.forceProguardCompatibility = forceProguardCompatibility;
     }
 
+    public void setOverloadAggressively(boolean overloadAggressively) {
+      this.overloadAggressively = overloadAggressively;
+    }
+
     public ProguardConfiguration build() throws CompilationException {
       ProguardKeepAttributes keepAttributes;
-
 
       if (forceProguardCompatibility
           && !isObfuscating()
@@ -246,6 +250,7 @@ public class ProguardConfiguration {
           rules,
           printSeeds,
           seedFile,
+          overloadAggressively,
           DictionaryReader.readAllNames(obfuscationDictionary),
           DictionaryReader.readAllNames(classObfuscationDictionary),
           DictionaryReader.readAllNames(packageObfuscationDictionary),
@@ -277,6 +282,7 @@ public class ProguardConfiguration {
   protected final ImmutableList<ProguardConfigurationRule> rules;
   private final boolean printSeeds;
   private final Path seedFile;
+  private final boolean overloadAggressively;
   private final ImmutableList<String> obfuscationDictionary;
   private final ImmutableList<String> classObfuscationDictionary;
   private final ImmutableList<String> packageObfuscationDictionary;
@@ -307,6 +313,7 @@ public class ProguardConfiguration {
       List<ProguardConfigurationRule> rules,
       boolean printSeeds,
       Path seedFile,
+      boolean overloadAggressively,
       ImmutableList<String> obfuscationDictionary,
       ImmutableList<String> classObfuscationDictionary,
       ImmutableList<String> packageObfuscationDictionary,
@@ -335,6 +342,7 @@ public class ProguardConfiguration {
     this.rules = ImmutableList.copyOf(rules);
     this.printSeeds = printSeeds;
     this.seedFile = seedFile;
+    this.overloadAggressively = overloadAggressively;
     this.obfuscationDictionary = obfuscationDictionary;
     this.classObfuscationDictionary = classObfuscationDictionary;
     this.packageObfuscationDictionary = packageObfuscationDictionary;
@@ -443,6 +451,10 @@ public class ProguardConfiguration {
     return rules;
   }
 
+  public boolean isOverloadAggressively() {
+    return overloadAggressively;
+  }
+
   public ImmutableList<String> getObfuscationDictionary() {
     return obfuscationDictionary;
   }
@@ -470,7 +482,7 @@ public class ProguardConfiguration {
   public static ProguardConfiguration defaultConfiguration(DexItemFactory dexItemFactory) {
     try {
       return builderInitializedWithDefaults(dexItemFactory).build();
-    } catch(CompilationException e) {
+    } catch (CompilationException e) {
       // Building a builder initialized with defaults will not throw CompilationException because
       // DictionaryReader is called with empty lists.
       throw new RuntimeException();

@@ -7,8 +7,8 @@
 
 # Keep test fields/methods for deterministic naming
 -keepclassmembers public class **.BaseCls {
-  *** a;
-  *** a(...);
+  *** c;
+  *** c(...);
 }
 
 -keepclassmembers public class **.AnotherCls {

@@ -11,7 +11,7 @@ public class Shaking {
   public static void main(String[] args) {
     List<BaseCls> bases = Arrays.asList(new ClsA(), new ClsB());
     for (BaseCls base : bases) {
-      base.a();
+      base.c();
       base.foo();
       base.bar();
     }

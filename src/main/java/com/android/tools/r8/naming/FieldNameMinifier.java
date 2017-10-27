@@ -9,15 +9,28 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
 import java.util.Map;
+import java.util.function.Function;
 
 class FieldNameMinifier extends MemberNameMinifier<DexField, DexType> {
 
   FieldNameMinifier(AppInfoWithSubtyping appInfo, RootSet rootSet, InternalOptions options) {
     super(appInfo, rootSet, options);
+  }
+
+  @Override
+  Function<DexType, ?> getKeyTransform(ProguardConfiguration config) {
+    if (config.isOverloadAggressively()) {
+      // Use the type as the key, hence reuse names per type.
+      return a -> a;
+    } else {
+      // Always use the same key, hence do not reuse names per type.
+      return a -> Void.class;
+    }
   }
 
   Map<DexField, DexString> computeRenaming(Timing timing) {
@@ -41,19 +54,19 @@ class FieldNameMinifier extends MemberNameMinifier<DexField, DexType> {
     return renaming;
   }
 
-  private void reserveNamesInSubtypes(DexType type, NamingState<DexType> state) {
+  private void reserveNamesInSubtypes(DexType type, NamingState<DexType, ?> state) {
     DexClass holder = appInfo.definitionFor(type);
     if (holder == null) {
       return;
     }
-    NamingState<DexType> newState = computeStateIfAbsent(type, t -> state.createChild());
+    NamingState<DexType, ?> newState = computeStateIfAbsent(type, t -> state.createChild());
     holder.forEachField(field -> reserveFieldName(field, newState, holder.isLibraryClass()));
     type.forAllExtendsSubtypes(subtype -> reserveNamesInSubtypes(subtype, newState));
   }
 
   private void reserveFieldName(
       DexEncodedField encodedField,
-      NamingState<DexType> state,
+      NamingState<DexType, ?> state,
       boolean isLibrary) {
     if (isLibrary || rootSet.noObfuscation.contains(encodedField)) {
       DexField field = encodedField.field;
@@ -66,13 +79,13 @@ class FieldNameMinifier extends MemberNameMinifier<DexField, DexType> {
     if (clazz == null) {
       return;
     }
-    NamingState<DexType> state = getState(clazz.type);
+    NamingState<DexType, ?> state = getState(clazz.type);
     assert state != null;
     clazz.forEachField(field -> renameField(field, state));
     type.forAllExtendsSubtypes(this::renameFieldsInSubtypes);
   }
 
-  private void renameField(DexEncodedField encodedField, NamingState<DexType> state) {
+  private void renameField(DexEncodedField encodedField, NamingState<DexType, ?> state) {
     DexField field = encodedField.field;
     if (!state.isReserved(field.name, field.type)) {
       renaming.put(field, state.assignNewNameFor(field.name, field.type, false));

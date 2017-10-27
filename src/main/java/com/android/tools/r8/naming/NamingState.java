@@ -10,48 +10,54 @@ import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
-import java.util.IdentityHashMap;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
-class NamingState<T extends CachedHashValueDexItem> {
+class NamingState<ProtoType extends CachedHashValueDexItem, KeyType> {
 
-  private final NamingState<T> parent;
-  private final Map<T, InternalState> usedNames = new IdentityHashMap<>();
+  private final NamingState<ProtoType, KeyType> parent;
+  private final Map<KeyType, InternalState> usedNames = new HashMap<>();
   private final DexItemFactory itemFactory;
   private final ImmutableList<String> dictionary;
+  private final Function<ProtoType, KeyType> keyTransform;
 
-  static <T extends CachedHashValueDexItem> NamingState<T> createRoot(
-      DexItemFactory itemFactory, ImmutableList<String> dictionary) {
-    return new NamingState<>(null, itemFactory, dictionary);
+  static <S, T extends CachedHashValueDexItem> NamingState<T, S> createRoot(
+      DexItemFactory itemFactory, ImmutableList<String> dictionary, Function<T, S> keyTransform) {
+    return new NamingState<>(null, itemFactory, dictionary, keyTransform);
   }
 
   private NamingState(
-      NamingState<T> parent,
+      NamingState<ProtoType, KeyType> parent,
       DexItemFactory itemFactory,
-      ImmutableList<String> dictionary) {
+      ImmutableList<String> dictionary,
+      Function<ProtoType, KeyType> keyTransform) {
     this.parent = parent;
     this.itemFactory = itemFactory;
     this.dictionary = dictionary;
+    this.keyTransform = keyTransform;
   }
 
-  public NamingState<T> createChild() {
-    return new NamingState<>(this, itemFactory, dictionary);
+  public NamingState<ProtoType, KeyType> createChild() {
+    return new NamingState<>(this, itemFactory, dictionary, keyTransform);
   }
 
-  private InternalState findInternalStateFor(T proto) {
-    InternalState result = usedNames.get(proto);
+  private InternalState findInternalStateFor(ProtoType proto) {
+    KeyType key = keyTransform.apply(proto);
+    InternalState result = usedNames.get(key);
     if (result == null && parent != null) {
       result = parent.findInternalStateFor(proto);
     }
     return result;
   }
 
-  private InternalState getOrCreateInternalStateFor(T proto) {
+  private InternalState getOrCreateInternalStateFor(ProtoType proto) {
     // TODO(herhut): Maybe allocate these sparsely and search via state chain.
-    InternalState result = usedNames.get(proto);
+    KeyType key = keyTransform.apply(proto);
+    InternalState result = usedNames.get(key);
     if (result == null) {
       if (parent != null) {
         InternalState parentState = parent.getOrCreateInternalStateFor(proto);
@@ -59,12 +65,12 @@ class NamingState<T extends CachedHashValueDexItem> {
       } else {
         result = new InternalState(itemFactory, null, dictionary);
       }
-      usedNames.put(proto, result);
+      usedNames.put(key, result);
     }
     return result;
   }
 
-  public DexString getAssignedNameFor(DexString name, T proto) {
+  public DexString getAssignedNameFor(DexString name, ProtoType proto) {
     InternalState state = findInternalStateFor(proto);
     if (state == null) {
       return null;
@@ -72,7 +78,7 @@ class NamingState<T extends CachedHashValueDexItem> {
     return state.getAssignedNameFor(name);
   }
 
-  public DexString assignNewNameFor(DexString original, T proto, boolean markAsUsed) {
+  public DexString assignNewNameFor(DexString original, ProtoType proto, boolean markAsUsed) {
     DexString result = getAssignedNameFor(original, proto);
     if (result == null) {
       InternalState state = getOrCreateInternalStateFor(proto);
@@ -81,12 +87,12 @@ class NamingState<T extends CachedHashValueDexItem> {
     return result;
   }
 
-  public void reserveName(DexString name, T proto) {
+  public void reserveName(DexString name, ProtoType proto) {
     InternalState state = getOrCreateInternalStateFor(proto);
     state.reserveName(name);
   }
 
-  public boolean isReserved(DexString name, T proto) {
+  public boolean isReserved(DexString name, ProtoType proto) {
     InternalState state = findInternalStateFor(proto);
     if (state == null) {
       return false;
@@ -94,7 +100,7 @@ class NamingState<T extends CachedHashValueDexItem> {
     return state.isReserved(name);
   }
 
-  public boolean isAvailable(DexString original, T proto, DexString candidate) {
+  public boolean isAvailable(DexString original, ProtoType proto, DexString candidate) {
     InternalState state = findInternalStateFor(proto);
     if (state == null) {
       return true;
@@ -103,7 +109,7 @@ class NamingState<T extends CachedHashValueDexItem> {
     return state.isAvailable(candidate);
   }
 
-  public void addRenaming(DexString original, T proto, DexString newName) {
+  public void addRenaming(DexString original, ProtoType proto, DexString newName) {
     InternalState state = getOrCreateInternalStateFor(proto);
     state.addRenaming(original, newName);
   }

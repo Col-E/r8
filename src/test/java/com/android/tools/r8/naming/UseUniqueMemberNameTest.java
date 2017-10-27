@@ -103,9 +103,9 @@ public class UseUniqueMemberNameTest extends NamingTestBase {
 
     // With -useuniquemembernames, foo() with the same signature should be renamed to the same name.
     assertEquals(foo_renamed, another_foo_renamed);
-    // But, those cannot be renamed to a and b, as those are _globally_ reserved.
-    assertNotEquals("a", foo_renamed);
-    assertNotEquals("a", another_foo_renamed);
+    // But, those cannot be renamed to c and b, as those are _globally_ reserved.
+    assertNotEquals("c", foo_renamed);
+    assertNotEquals("c", another_foo_renamed);
     assertNotEquals("b", foo_renamed);
     assertNotEquals("b", another_foo_renamed);
 
