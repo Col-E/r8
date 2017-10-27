@@ -5,11 +5,11 @@
 package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.DexAccessFlags;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.MoveType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
@@ -57,7 +57,7 @@ final class AccessorMethodSourceCode extends SynthesizedLambdaSourceCode {
   private boolean isPrivateMethod() {
     // We should be able to find targets for all private impl-methods, so
     // we can rely on knowing accessibility flags for them.
-    DexAccessFlags flags = descriptor().getAccessibility();
+    MethodAccessFlags flags = descriptor().getAccessibility();
     return flags != null && flags.isPrivate();
   }
 

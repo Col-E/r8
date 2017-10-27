@@ -29,7 +29,6 @@ import com.android.tools.r8.code.SwitchPayload;
 import com.android.tools.r8.code.Throw;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DebugLocalInfo;
-import com.android.tools.r8.graph.DexAccessFlags;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexCode.Try;
 import com.android.tools.r8.graph.DexCode.TryHandler;
@@ -40,6 +39,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.MoveType;
 import com.android.tools.r8.ir.code.Position;
@@ -53,7 +53,7 @@ import java.util.Set;
 public class DexSourceCode implements SourceCode {
 
   private final DexCode code;
-  private final DexAccessFlags accessFlags;
+  private final MethodAccessFlags accessFlags;
   private final DexProto proto;
 
   // Mapping from instruction offset to instruction index in the DexCode instruction array.

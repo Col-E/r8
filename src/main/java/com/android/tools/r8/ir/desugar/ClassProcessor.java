@@ -5,11 +5,11 @@
 package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.graph.DexAccessFlags;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
@@ -109,7 +109,7 @@ final class ClassProcessor {
     // New method will have the same name, proto, and also all the flags of the
     // default method, including bridge flag.
     DexMethod newMethod = rewriter.factory.createMethod(clazz.type, method.proto, method.name);
-    DexAccessFlags newFlags = new DexAccessFlags(defaultMethod.accessFlags.get());
+    MethodAccessFlags newFlags = defaultMethod.accessFlags.copy();
     return new DexEncodedMethod(newMethod, newFlags,
         defaultMethod.annotations, defaultMethod.parameterAnnotations,
         new SynthesizedCode(new ForwardMethodSourceCode(

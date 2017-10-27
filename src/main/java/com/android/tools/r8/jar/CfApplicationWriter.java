@@ -3,11 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.jar;
 
-import static org.objectweb.asm.Opcodes.ACC_SUPER;
-
 import com.android.tools.r8.OutputSink;
 import com.android.tools.r8.errors.Unimplemented;
-import com.android.tools.r8.graph.DexAccessFlags;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -53,7 +50,7 @@ public class CfApplicationWriter {
     ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
     writer.visitSource(clazz.sourceFile.toString(), null);
     int version = clazz.getClassFileVersion();
-    int access = classAndInterfaceAccessFlags(clazz.accessFlags);
+    int access = clazz.accessFlags.getAsCfAccessFlags();
     String desc = clazz.type.toDescriptorString();
     String name = internalName(clazz.type);
     String signature = null; // TODO(zerny): Support generic signatures.
@@ -72,20 +69,13 @@ public class CfApplicationWriter {
   }
 
   private void writeMethod(DexEncodedMethod method, ClassWriter writer) {
-    int access = method.accessFlags.get();
+    int access = method.accessFlags.getAsCfAccessFlags();
     String name = method.method.name.toString();
     String desc = method.descriptor();
     String signature = null; // TODO(zerny): Support generic signatures.
     String[] exceptions = null;
     MethodVisitor visitor = writer.visitMethod(access, name, desc, signature, exceptions);
     method.getCode().asJarCode().writeTo(visitor);
-  }
-
-  private static int classAndInterfaceAccessFlags(DexAccessFlags accessFlags) {
-    // TODO(zerny): Refactor access flags to account for the union of both DEX and Java flags.
-    int access = accessFlags.get();
-    access |= ACC_SUPER;
-    return access;
   }
 
   private static String internalName(DexType type) {

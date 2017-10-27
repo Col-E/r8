@@ -8,9 +8,9 @@ import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DebugLocalInfo;
-import com.android.tools.r8.graph.DexAccessFlags;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexAnnotationSetRefList;
 import com.android.tools.r8.graph.DexClass;
@@ -23,6 +23,7 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
+import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.Add;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -1058,7 +1059,9 @@ public class Outliner {
     List<Outline> outlines = new ArrayList<>(candidates.keySet());
     outlines.sort(Comparator.naturalOrder());
     for (Outline outline : outlines) {
-      DexAccessFlags methodAccess = new DexAccessFlags(Constants.ACC_PUBLIC, Constants.ACC_STATIC);
+      MethodAccessFlags methodAccess =
+          MethodAccessFlags.fromSharedAccessFlags(
+              Constants.ACC_PUBLIC | Constants.ACC_STATIC, false);
       DexString methodName = dexItemFactory.createString(options.outline.methodPrefix + count);
       DexMethod method = outline.buildMethod(type, methodName);
       direct[count] = new DexEncodedMethod(method, methodAccess, DexAnnotationSet.empty(),
@@ -1072,7 +1075,7 @@ public class Outliner {
     DexType superType = dexItemFactory.createType("Ljava/lang/Object;");
     DexTypeList interfaces = DexTypeList.empty();
     DexString sourceFile = dexItemFactory.createString("outline");
-    DexAccessFlags accessFlags = new DexAccessFlags(Constants.ACC_PUBLIC);
+    ClassAccessFlags accessFlags = ClassAccessFlags.fromSharedAccessFlags(Constants.ACC_PUBLIC);
     DexProgramClass clazz = new DexProgramClass(
         type,
         null,

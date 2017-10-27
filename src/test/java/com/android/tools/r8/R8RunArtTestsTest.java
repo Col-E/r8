@@ -603,10 +603,6 @@ public abstract class R8RunArtTestsTest {
           // TODO(ager): unclear what is failing here.
           .put("098-ddmc",
               TestCondition.match(TestCondition.runtimes(DexVm.Version.V4_4_4)))
-          // Get unexpected modifier bits on dalvik.
-          .put("121-modifiers", TestCondition.match(
-              TestCondition.tools(DexTool.DX),
-              TestCondition.runtimes(DexVm.Version.V4_4_4)))
           // Unsatisfiable link error:
           // libarttest.so: undefined symbol: _ZN3art6Thread18RunEmptyCheckpointEv
           .put(

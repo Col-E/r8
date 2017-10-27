@@ -6,7 +6,6 @@ package com.android.tools.r8.shaking;
 import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.dex.Constants;
-import com.android.tools.r8.graph.DexAccessFlags;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
@@ -560,9 +559,10 @@ public class ProguardConfigurationParser {
           assert builder.getClassAnnotation() == null;
           builder.setClassAnnotation(annotation);
         } else {
-          DexAccessFlags flags =
-              parseNegation() ? builder.getNegatedClassAccessFlags() :
-                  builder.getClassAccessFlags();
+          ProguardAccessFlags flags =
+              parseNegation()
+                  ? builder.getNegatedClassAccessFlags()
+                  : builder.getClassAccessFlags();
           skipWhitespace();
           if (acceptString("public")) {
             flags.setPublic();
@@ -635,7 +635,7 @@ public class ProguardConfigurationParser {
       boolean found = true;
       while (found && !eof()) {
         found = false;
-        DexAccessFlags flags =
+        ProguardAccessFlags flags =
             parseNegation() ? ruleBuilder.getNegatedAccessFlags() : ruleBuilder.getAccessFlags();
         skipWhitespace();
         switch (peekChar()) {
