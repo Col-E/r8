@@ -51,7 +51,6 @@ public class ProguardConfigurationParser {
           "filterlibraryjarswithorginalprogramjars",
           "dontskipnonpubliclibraryclasses",
           "dontskipnonpubliclibraryclassmembers",
-          "overloadaggressively",
           "invokebasemethod");
   private static final List<String> IGNORED_CLASS_DESCRIPTOR_OPTIONS = ImmutableList
       .of("isclassnamestring",
@@ -245,6 +244,8 @@ public class ProguardConfigurationParser {
             configurationBuilder.setFlattenPackagePrefix("");
           }
         }
+      } else if (acceptString("overloadaggressively")) {
+        configurationBuilder.setOverloadAggressively(true);
       } else if (acceptString("allowaccessmodification")) {
         configurationBuilder.setAllowAccessModification(true);
       } else if (acceptString("printmapping")) {

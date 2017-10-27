@@ -6,13 +6,13 @@ package uniquemembernames;
 public class ClsB extends BaseCls {
 
   @Override
-  protected int a() {
-    return foo() - a;
+  protected int c() {
+    return foo() - c;
   }
 
   @Override
   protected double bar() {
-    return f2 != 0 ? a / f2 : Double.MAX_VALUE;
+    return f2 != 0 ? c / f2 : Double.MAX_VALUE;
   }
 
 }

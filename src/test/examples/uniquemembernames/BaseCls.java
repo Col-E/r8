@@ -5,17 +5,17 @@ package uniquemembernames;
 
 public abstract class BaseCls {
 
-  protected int a;
+  protected int c;
   protected double f2;
 
-  protected abstract int a();
+  protected abstract int c();
 
   protected int foo() {
-    return a * (int) f2;
+    return c * (int) f2;
   }
 
   protected double bar() {
-    return a * f2;
+    return c * f2;
   }
 
 }
