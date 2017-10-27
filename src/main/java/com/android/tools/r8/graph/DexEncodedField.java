@@ -13,11 +13,14 @@ public class DexEncodedField extends KeyedDexItem<DexField> {
   public static final DexEncodedField[] EMPTY_ARRAY = new DexEncodedField[]{};
 
   public final DexField field;
-  public final DexAccessFlags accessFlags;
+  public final FieldAccessFlags accessFlags;
   public DexAnnotationSet annotations;
   public DexValue staticValue;
 
-  public DexEncodedField(DexField field, DexAccessFlags accessFlags, DexAnnotationSet annotations,
+  public DexEncodedField(
+      DexField field,
+      FieldAccessFlags accessFlags,
+      DexAnnotationSet annotations,
       DexValue staticValue) {
     assert !accessFlags.isStatic() || staticValue != null;
     this.field = field;

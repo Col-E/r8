@@ -8,7 +8,7 @@ import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.ReturnVoid;
 import com.android.tools.r8.errors.DexOverflowException;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.DexAccessFlags;
+import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexAnnotationSetRefList;
 import com.android.tools.r8.graph.DexApplication;
@@ -23,6 +23,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
+import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.IgnoreContentsOutputSink;
@@ -72,10 +73,13 @@ public class SharedClassWritingTest {
     instructions[stringCount] = new ReturnVoid();
     DexCode code = new DexCode(1, 0, 0, instructions, new Try[0], new TryHandler[0], null,
         strings[startOffset + stringCount - 1]);
-    return new DexEncodedMethod(dexItemFactory
-        .createMethod(holder, dexItemFactory.createProto(dexItemFactory.voidType), "theMethod"),
-        new DexAccessFlags(Constants.ACC_PUBLIC), DexAnnotationSet.empty(),
-        DexAnnotationSetRefList.empty(), code);
+    return new DexEncodedMethod(
+        dexItemFactory.createMethod(
+            holder, dexItemFactory.createProto(dexItemFactory.voidType), "theMethod"),
+        MethodAccessFlags.fromSharedAccessFlags(Constants.ACC_PUBLIC, false),
+        DexAnnotationSet.empty(),
+        DexAnnotationSetRefList.empty(),
+        code);
   }
 
   private DexProgramClass makeClass(String name, int stringCount, int startOffset,
@@ -86,7 +90,7 @@ public class SharedClassWritingTest {
         type,
         null,
         null,
-        new DexAccessFlags(Constants.ACC_PUBLIC),
+        ClassAccessFlags.fromSharedAccessFlags(Constants.ACC_PUBLIC),
         dexItemFactory.objectType,
         DexTypeList.empty(),
         null,
@@ -94,7 +98,7 @@ public class SharedClassWritingTest {
         DexEncodedField.EMPTY_ARRAY,
         DexEncodedField.EMPTY_ARRAY,
         DexEncodedMethod.EMPTY_ARRAY,
-        new DexEncodedMethod[]{makeMethod(type, stringCount, startOffset)},
+        new DexEncodedMethod[] {makeMethod(type, stringCount, startOffset)},
         synthesizedFrom);
   }
 

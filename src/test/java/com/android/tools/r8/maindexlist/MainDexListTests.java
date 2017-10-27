@@ -21,10 +21,9 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.DexOverflowException;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DebugLocalInfo;
-import com.android.tools.r8.graph.DexAccessFlags;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexAnnotationSetRefList;
 import com.android.tools.r8.graph.DexApplication;
@@ -36,6 +35,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
+import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Position;
@@ -577,7 +577,7 @@ public class MainDexListTests extends TestBase {
       DexType type = factory.createType(desc);
       DexEncodedMethod[] directMethods = new DexEncodedMethod[methodCount];
       for (int i = 0; i < methodCount; i++) {
-        DexAccessFlags access = new DexAccessFlags();
+        MethodAccessFlags access = MethodAccessFlags.fromSharedAccessFlags(0, false);
         access.setPublic();
         access.setStatic();
         Code code = new SynthesizedCode(new ReturnVoidCode());
@@ -602,7 +602,7 @@ public class MainDexListTests extends TestBase {
               type,
               null,
               null,
-              new DexAccessFlags(),
+              ClassAccessFlags.fromSharedAccessFlags(0),
               factory.objectType,
               DexTypeList.empty(),
               null,

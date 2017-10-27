@@ -43,7 +43,6 @@ import com.android.tools.r8.code.SputObject;
 import com.android.tools.r8.code.SputShort;
 import com.android.tools.r8.code.SputWide;
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.graph.DexAccessFlags;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
@@ -502,10 +501,6 @@ public class DexInspector {
 
   public abstract class MemberSubject extends Subject {
 
-    public abstract boolean hasAll(DexAccessFlags flags);
-
-    public abstract boolean hasNone(DexAccessFlags flags);
-
     public abstract boolean isStatic();
 
     public abstract boolean isFinal();
@@ -547,16 +542,6 @@ public class DexInspector {
     @Override
     public boolean isRenamed() {
       return false;
-    }
-
-    @Override
-    public boolean hasAll(DexAccessFlags flags) {
-      return false;
-    }
-
-    @Override
-    public boolean hasNone(DexAccessFlags flags) {
-      return true;
     }
 
     @Override
@@ -618,16 +603,6 @@ public class DexInspector {
     @Override
     public boolean isRenamed() {
       return clazz.naming == null || !getFinalSignature().name.equals(getOriginalSignature().name);
-    }
-
-    @Override
-    public boolean hasAll(DexAccessFlags flags) {
-      return dexMethod.accessFlags.containsAllOf(flags);
-    }
-
-    @Override
-    public boolean hasNone(DexAccessFlags flags) {
-      return dexMethod.accessFlags.containsNoneOf(flags);
     }
 
     @Override
@@ -703,16 +678,6 @@ public class DexInspector {
   public class AbsentFieldSubject extends FieldSubject {
 
     @Override
-    public boolean hasAll(DexAccessFlags flags) {
-      return false;
-    }
-
-    @Override
-    public boolean hasNone(DexAccessFlags flags) {
-      return true;
-    }
-
-    @Override
     public boolean isStatic() {
       return false;
     }
@@ -766,16 +731,6 @@ public class DexInspector {
     public FoundFieldSubject(DexEncodedField dexField, FoundClassSubject clazz) {
       this.clazz = clazz;
       this.dexField = dexField;
-    }
-
-    @Override
-    public boolean hasAll(DexAccessFlags flags) {
-      return dexField.accessFlags.containsAllOf(flags);
-    }
-
-    @Override
-    public boolean hasNone(DexAccessFlags flags) {
-      return dexField.accessFlags.containsNoneOf(flags);
     }
 
     @Override

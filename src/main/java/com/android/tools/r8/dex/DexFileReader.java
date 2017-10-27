@@ -12,9 +12,9 @@ import com.android.tools.r8.Resource.Origin;
 import com.android.tools.r8.Resource.PathOrigin;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.InstructionFactory;
+import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.ClassKind;
 import com.android.tools.r8.graph.Descriptor;
-import com.android.tools.r8.graph.DexAccessFlags;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationElement;
 import com.android.tools.r8.graph.DexAnnotationSet;
@@ -50,6 +50,8 @@ import com.android.tools.r8.graph.DexValue.DexValueMethodHandle;
 import com.android.tools.r8.graph.DexValue.DexValueMethodType;
 import com.android.tools.r8.graph.DexValue.DexValueNull;
 import com.android.tools.r8.graph.DexValue.DexValueString;
+import com.android.tools.r8.graph.FieldAccessFlags;
+import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.OffsetToObjectMapping;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.utils.ProgramResource.Kind;
@@ -555,7 +557,7 @@ public class DexFileReader {
     for (int i = 0; i < size; i++) {
       fieldIndex += file.getUleb128();
       DexField field = indexedItems.getField(fieldIndex);
-      DexAccessFlags accessFlags = new DexAccessFlags(file.getUleb128());
+      FieldAccessFlags accessFlags = FieldAccessFlags.fromDexAccessFlags(file.getUleb128());
       DexAnnotationSet fieldAnnotations = annotationIterator.getNextFor(field);
       DexValue staticValue = null;
       if (accessFlags.isStatic()) {
@@ -580,7 +582,7 @@ public class DexFileReader {
         new MemberAnnotationIterator<>(parameters, DexAnnotationSetRefList::empty);
     for (int i = 0; i < size; i++) {
       methodIndex += file.getUleb128();
-      DexAccessFlags accessFlags = new DexAccessFlags(file.getUleb128());
+      MethodAccessFlags accessFlags = MethodAccessFlags.fromDexAccessFlags(file.getUleb128());
       int codeOff = file.getUleb128();
       DexCode code = null;
       if (!skipCodes) {
@@ -633,7 +635,7 @@ public class DexFileReader {
       DexString source = srcIdx == NO_INDEX ? null : indexedItems.getString(srcIdx);
       // fix annotations.
       DexType type = indexedItems.getType(classIndices[i]);
-      DexAccessFlags flags = new DexAccessFlags(accessFlags[i]);
+      ClassAccessFlags flags = ClassAccessFlags.fromDexAccessFlags(accessFlags[i]);
       DexClass clazz;
       DexEncodedField[] staticFields = DexEncodedField.EMPTY_ARRAY;
       DexEncodedField[] instanceFields = DexEncodedField.EMPTY_ARRAY;

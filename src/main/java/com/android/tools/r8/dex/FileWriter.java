@@ -405,7 +405,7 @@ public class FileWriter {
 
   private void writeClassDefItem(DexProgramClass clazz) {
     dest.putInt(mapping.getOffsetFor(clazz.type));
-    dest.putInt(clazz.accessFlags.get());
+    dest.putInt(clazz.accessFlags.getAsDexAccessFlags());
     dest.putInt(
         clazz.superType == null ? Constants.NO_INDEX : mapping.getOffsetFor(clazz.superType));
     dest.putInt(mixedSectionOffsets.getOffsetFor(clazz.interfaces));
@@ -553,7 +553,7 @@ public class FileWriter {
       assert nextOffset - currentOffset >= 0;
       dest.putUleb128(nextOffset - currentOffset);
       currentOffset = nextOffset;
-      dest.putUleb128(field.accessFlags.get());
+      dest.putUleb128(field.accessFlags.getAsDexAccessFlags());
     }
   }
 
@@ -565,7 +565,7 @@ public class FileWriter {
       assert nextOffset - currentOffset >= 0;
       dest.putUleb128(nextOffset - currentOffset);
       currentOffset = nextOffset;
-      dest.putUleb128(method.accessFlags.get());
+      dest.putUleb128(method.accessFlags.getAsDexAccessFlags());
       if (method.getCode() == null) {
         assert method.accessFlags.isAbstract() || method.accessFlags.isNative();
         dest.putUleb128(0);
