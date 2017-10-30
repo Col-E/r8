@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.code.CfReturn;
 import com.android.tools.r8.code.ReturnObject;
 import com.android.tools.r8.code.ReturnVoid;
 import com.android.tools.r8.code.ReturnWide;
@@ -10,6 +11,9 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.conversion.CfBuilder;
+import com.android.tools.r8.ir.conversion.CfBuilder.LocalType;
+import com.android.tools.r8.ir.conversion.CfBuilder.StackHelper;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 
@@ -112,5 +116,26 @@ public class Return extends JumpInstruction {
   @Override
   public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType holder) {
     return Constraint.ALWAYS;
+  }
+
+  @Override
+  public void insertLoadAndStores(InstructionListIterator it, StackHelper stack) {
+    if (isReturnVoid()) {
+      return;
+    }
+    Value oldValue = returnValue();
+    StackValue stackValue = new StackValue(returnType);
+    replaceValue(oldValue, stackValue);
+    Load load =
+        new Load(LocalType.fromDexType(stack.method.proto.returnType), stackValue, oldValue);
+    load.setBlock(getBlock());
+    it.previous();
+    it.add(load);
+    it.next();
+  }
+
+  @Override
+  public void buildCf(CfBuilder builder) {
+    builder.add(new CfReturn());
   }
 }

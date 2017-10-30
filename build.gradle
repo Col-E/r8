@@ -170,6 +170,7 @@ dependencies {
     compile group: 'org.ow2.asm', name: 'asm', version: '6.0'
     compile group: 'org.ow2.asm', name: 'asm-commons', version: '6.0'
     compile group: 'org.ow2.asm', name: 'asm-tree', version: '6.0'
+    compile group: 'org.ow2.asm', name: 'asm-analysis', version: '6.0'
     compile group: 'org.ow2.asm', name: 'asm-util', version: '6.0'
     testCompile sourceSets.examples.output
     testCompile 'junit:junit:4.12'

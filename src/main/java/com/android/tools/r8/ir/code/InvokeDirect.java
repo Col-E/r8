@@ -3,14 +3,17 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.code.InvokeDirectRange;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import java.util.List;
+import org.objectweb.asm.Opcodes;
 
 public class InvokeDirect extends InvokeMethodWithReceiver {
 
@@ -90,5 +93,10 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
   @Override
   DexEncodedMethod lookupTarget(AppInfo appInfo) {
     return appInfo.lookupDirectTarget(getInvokedMethod());
+  }
+
+  @Override
+  public void buildCf(CfBuilder builder) {
+    builder.add(new CfInvoke(Opcodes.INVOKESPECIAL, getInvokedMethod()));
   }
 }

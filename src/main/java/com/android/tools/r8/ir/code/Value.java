@@ -68,7 +68,9 @@ public class Value {
     }
   }
 
-  public static final Value UNDEFINED = new Value(-1, MoveType.OBJECT, null);
+  public static final int UNDEFINED_NUMBER = -1;
+
+  public static final Value UNDEFINED = new Value(UNDEFINED_NUMBER, MoveType.OBJECT, null);
 
   protected final int number;
   protected final MoveType type;

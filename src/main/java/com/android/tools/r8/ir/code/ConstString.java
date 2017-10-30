@@ -3,8 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.code.CfConstString;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.ir.conversion.CfBuilder;
+import com.android.tools.r8.ir.conversion.CfBuilder.LocalType;
+import com.android.tools.r8.ir.conversion.CfBuilder.StackHelper;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 
 public class ConstString extends ConstInstruction {
@@ -76,5 +80,15 @@ public class ConstString extends ConstInstruction {
   @Override
   public ConstString asConstString() {
     return this;
+  }
+
+  @Override
+  public void insertLoadAndStores(InstructionListIterator it, StackHelper stack) {
+    stack.storeOutValue(this, LocalType.REFERENCE, it);
+  }
+
+  @Override
+  public void buildCf(CfBuilder builder) {
+    builder.add(new CfConstString(value));
   }
 }

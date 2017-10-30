@@ -3,19 +3,30 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.jar;
 
+import static org.objectweb.asm.Opcodes.ASM6;
+
 import com.android.tools.r8.OutputSink;
 import com.android.tools.r8.errors.Unimplemented;
+import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.InternalOptions;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.Collections;
 import java.util.concurrent.ExecutorService;
+import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
+import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.util.CheckClassAdapter;
+import org.objectweb.asm.util.Textifier;
+import org.objectweb.asm.util.TraceMethodVisitor;
 
 public class CfApplicationWriter {
   private final DexApplication application;
@@ -65,7 +76,11 @@ public class CfApplicationWriter {
     for (DexEncodedMethod method : clazz.directMethods()) {
       writeMethod(method, writer);
     }
-    outputSink.writeClassFile(writer.toByteArray(), Collections.singleton(desc), desc);
+    writer.visitEnd();
+
+    byte[] result = writer.toByteArray();
+    assert verifyCf(result);
+    outputSink.writeClassFile(result, Collections.singleton(desc), desc);
   }
 
   private void writeMethod(DexEncodedMethod method, ClassWriter writer) {
@@ -75,10 +90,40 @@ public class CfApplicationWriter {
     String signature = null; // TODO(zerny): Support generic signatures.
     String[] exceptions = null;
     MethodVisitor visitor = writer.visitMethod(access, name, desc, signature, exceptions);
-    method.getCode().asJarCode().writeTo(visitor);
+    writeCode(method.getCode(), visitor);
+  }
+
+  private void writeCode(Code code, MethodVisitor visitor) {
+    if (code.isJarCode()) {
+      code.asJarCode().writeTo(visitor);
+    } else {
+      assert code.isCfCode();
+      code.asCfCode().write(visitor);
+    }
   }
 
   private static String internalName(DexType type) {
     return Type.getType(type.toDescriptorString()).getInternalName();
+  }
+
+  private String printCf(byte[] result) {
+    ClassReader reader = new ClassReader(result);
+    ClassNode node = new ClassNode(ASM6);
+    reader.accept(node, ASM6);
+    StringWriter writer = new StringWriter();
+    for (MethodNode method : node.methods) {
+      TraceMethodVisitor visitor = new TraceMethodVisitor(new Textifier());
+      method.accept(visitor);
+      visitor.p.print(new PrintWriter(writer));
+      writer.append('\n');
+    }
+    return writer.toString();
+  }
+
+  private static boolean verifyCf(byte[] result) {
+    ClassReader reader = new ClassReader(result);
+    PrintWriter pw = new PrintWriter(System.out);
+    CheckClassAdapter.verify(reader, false, pw);
+    return true;
   }
 }

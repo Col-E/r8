@@ -122,7 +122,8 @@ public class R8RunExamplesTest {
     };
 
     String[] javaBytecodeTests = {
-      "hello.Hello",
+        "hello.Hello",
+        "arithmetic.Arithmetic",
     };
 
     List<String[]> fullTestList = new ArrayList<>(tests.length * 2);
@@ -148,6 +149,7 @@ public class R8RunExamplesTest {
           makeTest(
               Input.JAVAC_ALL, CompilerUnderTest.R8, CompilationMode.RELEASE, test, Output.CF));
     }
+
     return fullTestList;
   }
 
@@ -264,6 +266,8 @@ public class R8RunExamplesTest {
     ToolHelper.ProcessResult javaResult =
         ToolHelper.runJava(ImmutableList.of(getOriginalJarFile("").toString()), mainClass);
     if (javaResult.exitCode != 0) {
+      System.out.println(javaResult.stdout);
+      System.err.println(javaResult.stderr);
       fail("JVM failed for: " + mainClass);
     }
 

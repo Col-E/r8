@@ -587,7 +587,11 @@ public class IRConverter {
 
   private void finalizeToCf(DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
     assert method.getCode().isJarCode();
-    // TODO(zerny): Actually convert IR back to Java bytecode.
+    CfBuilder builder = new CfBuilder(method, code);
+    // TODO(zerny): Change the return type of CfBuilder::build CfCode once complete.
+    Code result = builder.build();
+    assert result.isCfCode() || result.isJarCode();
+    method.setCode(result);
   }
 
   private void finalizeToDex(DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
