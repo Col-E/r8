@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.code.CfConstNumber;
 import com.android.tools.r8.code.Const;
 import com.android.tools.r8.code.Const16;
 import com.android.tools.r8.code.Const4;
@@ -12,6 +13,9 @@ import com.android.tools.r8.code.ConstWide16;
 import com.android.tools.r8.code.ConstWide32;
 import com.android.tools.r8.code.ConstWideHigh16;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.ir.conversion.CfBuilder;
+import com.android.tools.r8.ir.conversion.CfBuilder.LocalType;
+import com.android.tools.r8.ir.conversion.CfBuilder.StackHelper;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.utils.NumberUtils;
 
@@ -124,6 +128,16 @@ public class ConstNumber extends ConstInstruction {
         builder.add(this, new ConstWide(register, value));
       }
     }
+  }
+
+  @Override
+  public void insertLoadAndStores(InstructionListIterator it, StackHelper stack) {
+    stack.storeOutValue(this, LocalType.fromConstType(type), it);
+  }
+
+  @Override
+  public void buildCf(CfBuilder builder) {
+    builder.add(new CfConstNumber(value, type));
   }
 
   // Estimated size of the resulting dex instruction in code units.

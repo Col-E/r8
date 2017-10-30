@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.ConstType;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
@@ -55,7 +56,29 @@ public class CfBuilder {
           throw new Unreachable("Unexpected type " + type);
       }
     }
+
+    public static LocalType fromConstType(ConstType type) {
+      switch (type) {
+        case INT:
+          return INTEGER;
+        case DOUBLE:
+          return DOUBLE;
+        case FLOAT:
+          return FLOAT;
+        case OBJECT:
+          return REFERENCE;
+        case LONG:
+          return LONG;
+        case INT_OR_FLOAT:
+        case LONG_OR_DOUBLE:
+          throw new Unreachable("Const combination types not supported in cf backend");
+        default:
+          throw new Unreachable("Unexpected type " + type);
+      }
+    }
+
   }
+
 
   private final DexEncodedMethod method;
   private final IRCode code;
