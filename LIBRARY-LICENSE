@@ -42,6 +42,12 @@
   license: ASM license
   licenseUrl: http://asm.ow2.org/license.html
   url: http://asm.ow2.org/index.html
+- artifact: org.ow2.asm:asm-analysis:+
+  name: ASM Util
+  copyrightHolder: INRIA, France Telecom
+  license: ASM license
+  licenseUrl: http://asm.ow2.org/license.html
+  url: http://asm.ow2.org/index.html
 - artifact: org.ow2.asm:asm:+
   name: ASM Core
   copyrightHolder: INRIA, France Telecom
