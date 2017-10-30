@@ -33,7 +33,6 @@ import com.google.common.collect.Multiset;
 import com.google.common.collect.Multisets;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap.Entry;
-import it.unimi.dsi.fastutil.ints.Int2ReferenceMaps;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntArraySet;
 import it.unimi.dsi.fastutil.ints.IntIterator;
@@ -327,7 +326,6 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       } else {
         block.setLocalsAtEntry(new Int2ReferenceOpenHashMap<>(currentLocals));
       }
-      int spillCount = 0;
       while (instructionIterator.hasNext()) {
         Instruction instruction = instructionIterator.next();
         if (instruction.isDebugLocalRead()) {
@@ -336,14 +334,10 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
           instruction.clearDebugValues();
           instructionIterator.remove();
         }
-        int index = instruction.getNumber();
-        if (index == -1) {
-          spillCount++;
+        if (isSpillInstruction(instruction)) {
           continue;
         }
-        // If there is more than one spill instruction we may need to end clobbered locals.
-        Int2ReferenceMap<DebugLocalInfo> preSpillLocals =
-            spillCount > 1 ? new Int2ReferenceOpenHashMap<>(currentLocals) : null;
+        int index = instruction.getNumber();
         ListIterator<LocalRange> it = openRanges.listIterator(0);
         Int2ReferenceMap<DebugLocalInfo> ending = new Int2ReferenceOpenHashMap<>();
         Int2ReferenceMap<DebugLocalInfo> starting = new Int2ReferenceOpenHashMap<>();
@@ -369,18 +363,6 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
           }
           nextStartingRange = rangeIterator.hasNext() ? rangeIterator.next() : null;
         }
-        if (preSpillLocals != null) {
-          for (int i = 0; i <= spillCount; i++) {
-            instructionIterator.previous();
-          }
-          Int2ReferenceMap<DebugLocalInfo> clobbered =
-              endClobberedLocals(instructionIterator, preSpillLocals, currentLocals);
-          for (Entry<DebugLocalInfo> entry : clobbered.int2ReferenceEntrySet()) {
-            assert ending.get(entry.getIntKey()) == entry.getValue();
-            ending.remove(entry.getIntKey());
-          }
-        }
-        spillCount = 0;
         if (localsChanged && instruction.getBlock().exit() != instruction) {
           DebugLocalsChange change = createLocalsChange(ending, starting);
           if (change != null) {
@@ -407,14 +389,13 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     Instruction entry = instructionIterator.next();
     assert block.entry() == entry;
     assert block.entry().isMoveException();
-    // Moves may have clobber current locals so they must be closed.
-    Int2ReferenceMap<DebugLocalInfo> clobbered =
-        endClobberedLocals(instructionIterator, initialLocals, finalLocals);
-    for (Entry<DebugLocalInfo> ended : clobbered.int2ReferenceEntrySet()) {
-      assert initialLocals.get(ended.getIntKey()) == ended.getValue();
-      initialLocals.remove(ended.getIntKey());
+    // Skip past spill instructions.
+    while (instructionIterator.hasNext()) {
+      if (!isSpillInstruction(instructionIterator.next())) {
+        instructionIterator.previous();
+        break;
+      }
     }
-    instructionIterator.previous();
     // Compute the final change in locals and insert it after the last move.
     Int2ReferenceMap<DebugLocalInfo> ending = new Int2ReferenceOpenHashMap<>();
     Int2ReferenceMap<DebugLocalInfo> starting = new Int2ReferenceOpenHashMap<>();
@@ -432,57 +413,6 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     if (change != null) {
       instructionIterator.add(change);
     }
-  }
-
-  private Int2ReferenceMap<DebugLocalInfo> endClobberedLocals(
-      ListIterator<Instruction> instructionIterator,
-      Int2ReferenceMap<DebugLocalInfo> initialLocals,
-      Int2ReferenceMap<DebugLocalInfo> finalLocals) {
-    if (!options.singleStepDebug) {
-      while (instructionIterator.hasNext()) {
-        if (instructionIterator.next().getNumber() != -1) {
-          break;
-        }
-      }
-      return Int2ReferenceMaps.emptyMap();
-    }
-    // TODO(zerny): Investigate supporting accurate single stepping through spill instructions.
-    // The current code should preferably be updated to account for moving locals and not just
-    // end their scope.
-    int spillCount;
-    int firstClobberedMove = -1;
-    Int2ReferenceMap<DebugLocalInfo> clobberedLocals = Int2ReferenceMaps.emptyMap();
-    for (spillCount = 0; instructionIterator.hasNext(); spillCount++) {
-      Instruction next = instructionIterator.next();
-      if (next.getNumber() != -1) {
-        break;
-      }
-      if (next.isMove()) {
-        Move move = next.asMove();
-        int dst = getRegisterForValue(move.dest(), move.getNumber());
-        DebugLocalInfo initialLocal = initialLocals.get(dst);
-        if (initialLocal != null && initialLocal != finalLocals.get(dst)) {
-          if (firstClobberedMove == -1) {
-            firstClobberedMove = spillCount;
-            clobberedLocals = new Int2ReferenceOpenHashMap<>();
-          }
-          clobberedLocals.put(dst, initialLocal);
-        }
-      }
-    }
-    // Add an initial local change for all clobbered locals after the first clobbered local.
-    if (firstClobberedMove != -1) {
-      int tail = spillCount - firstClobberedMove;
-      for (int i = 0; i < tail; i++) {
-        instructionIterator.previous();
-      }
-      instructionIterator.add(new DebugLocalsChange(
-          clobberedLocals, Int2ReferenceMaps.emptyMap()));
-      for (int i = 0; i < tail; i++) {
-        instructionIterator.next();
-      }
-    }
-    return clobberedLocals;
   }
 
   private DebugLocalsChange createLocalsChange(
@@ -663,17 +593,25 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       InstructionListIterator it = block.listIterator();
       while (it.hasNext()) {
         Instruction instruction = it.next();
-        Value outValue = instruction.outValue();
-        if (outValue != null && outValue.isFixedRegisterValue()) {
-          // Only move and const number instructions are inserted for spill and phi moves. The
-          // const number instructions are for values that can be rematerialized instead of
-          // spilled.
-          assert instruction.isMove() || instruction.isConstNumber();
-          assert !instruction.isDebugInstruction();
+        if (isSpillInstruction(instruction)) {
           it.remove();
         }
       }
     }
+  }
+
+  private static boolean isSpillInstruction(Instruction instruction) {
+    Value outValue = instruction.outValue();
+    if (outValue != null && outValue.isFixedRegisterValue()) {
+      // Only move and const number instructions are inserted for spill and phi moves. The
+      // const number instructions are for values that can be rematerialized instead of
+      // spilled.
+      assert instruction.getNumber() == -1;
+      assert instruction.isMove() || instruction.isConstNumber();
+      assert !instruction.isDebugInstruction();
+      return true;
+    }
+    return false;
   }
 
   private void clearRegisterAssignments() {

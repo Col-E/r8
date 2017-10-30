@@ -118,7 +118,6 @@ public class InternalOptions {
   public boolean allowParameterName = false;
 
   public boolean debug = false;
-  public boolean singleStepDebug = false;
   public final TestingOptions testing = new TestingOptions();
 
   public ImmutableList<ProguardConfigurationRule> mainDexKeepRules = ImmutableList.of();
