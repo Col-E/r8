@@ -3,45 +3,30 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.code.CfStore;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
-import com.android.tools.r8.ir.conversion.CfBuilder.StackHelper;
-import com.android.tools.r8.ir.conversion.DexBuilder;
+import com.android.tools.r8.ir.conversion.CfBuilder.LocalType;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
-import com.android.tools.r8.utils.InternalOptions;
 
-public class DebugPosition extends Instruction {
+public class Store extends Instruction {
 
-  public DebugPosition() {
-    super(null);
-  }
+  private final LocalType type;
 
-  @Override
-  public boolean isDebugPosition() {
-    return true;
-  }
-
-  @Override
-  public DebugPosition asDebugPosition() {
-    return this;
-  }
-
-  @Override
-  public void buildDex(DexBuilder builder) {
-    builder.addDebugPosition(this);
+  public Store(LocalType type, Value dest, StackValue src) {
+    super(dest, src);
+    this.type = type;
   }
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
-    assert other.isDebugPosition();
     return true;
   }
 
   @Override
   public int compareNonValueParts(Instruction other) {
-    assert other.isDebugPosition();
     return 0;
   }
 
@@ -57,21 +42,11 @@ public class DebugPosition extends Instruction {
 
   @Override
   public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType holder) {
-    return Constraint.ALWAYS;
-  }
-
-  @Override
-  public boolean canBeDeadCode(IRCode code, InternalOptions options) {
-    return false;
-  }
-
-  @Override
-  public void insertLoadAndStores(InstructionListIterator it, StackHelper stack) {
-    // Nothing to do for positions which are not actual instructions.
+    throw new Unreachable();
   }
 
   @Override
   public void buildCf(CfBuilder builder) {
-    // Nothing so far...
+    builder.add(new CfStore(type, outValue.getNumber()));
   }
 }

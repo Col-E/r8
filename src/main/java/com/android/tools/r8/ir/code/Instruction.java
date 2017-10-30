@@ -3,10 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.conversion.CfBuilder;
+import com.android.tools.r8.ir.conversion.CfBuilder.StackHelper;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
@@ -93,6 +96,16 @@ public abstract class Instruction {
     }
   }
 
+  public Value swapOutValue(Value newOutValue) {
+    Value oldOutValue = outValue;
+    outValue = null;
+    setOutValue(newOutValue);
+    if (oldOutValue != null) {
+      oldOutValue.definition = null;
+    }
+    return oldOutValue;
+  }
+
   public void addDebugValue(Value value) {
     assert value.hasLocalInfo();
     if (debugValues == null) {
@@ -118,7 +131,13 @@ public abstract class Instruction {
     return outValue.outType();
   }
 
-  public abstract void buildDex(DexBuilder builder);
+  public void buildDex(DexBuilder builder) {
+    throw new Unreachable("Unexpected instruction when converting to DEX: " + getInstructionName());
+  }
+
+  public void buildCf(CfBuilder builder) {
+    throw new Unimplemented("No support for building CF instructions for: " + getInstructionName());
+  }
 
   public void replaceValue(Value oldValue, Value newValue) {
     for (int i = 0; i < inValues.size(); i++) {
@@ -903,4 +922,8 @@ public abstract class Instruction {
 
   // Returns the inlining constraint for this instruction.
   public abstract Constraint inliningConstraint(AppInfoWithSubtyping info, DexType holder);
+
+  public void insertLoadAndStores(InstructionListIterator it, StackHelper stack) {
+    throw new Unimplemented("Implment load/store insertion for: " + getInstructionName());
+  }
 }

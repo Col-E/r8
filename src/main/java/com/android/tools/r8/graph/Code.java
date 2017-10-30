@@ -24,6 +24,10 @@ public abstract class Code extends CachedHashValueDexItem {
 
   public abstract String toString(DexEncodedMethod method, ClassNameMapper naming);
 
+  public boolean isCfCode() {
+    return false;
+  }
+
   public boolean isDexCode() {
     return false;
   }
@@ -38,6 +42,10 @@ public abstract class Code extends CachedHashValueDexItem {
 
   public int estimatedSizeForInlining() {
     return Integer.MAX_VALUE;
+  }
+
+  public CfCode asCfCode() {
+    throw new Unreachable(getClass().getCanonicalName() + ".asCfCode()");
   }
 
   public DexCode asDexCode() {

@@ -276,6 +276,10 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
         : code.asDexCode().buildIR(this, options, valueNumberGenerator);
   }
 
+  public void setCode(Code code) {
+    this.code = code;
+  }
+
   public void setCode(
       IRCode ir,
       RegisterAllocator registerAllocator,

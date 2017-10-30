@@ -3,13 +3,16 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.code.InvokeVirtualRange;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import java.util.List;
+import org.objectweb.asm.Opcodes;
 
 public class InvokeVirtual extends InvokeMethodWithReceiver {
 
@@ -78,5 +81,10 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
   DexEncodedMethod lookupTarget(AppInfo appInfo) {
     DexMethod method = getInvokedMethod();
     return appInfo.lookupVirtualTarget(method.holder, method);
+  }
+
+  @Override
+  public void buildCf(CfBuilder builder) {
+    builder.add(new CfInvoke(Opcodes.INVOKEVIRTUAL, getInvokedMethod()));
   }
 }
