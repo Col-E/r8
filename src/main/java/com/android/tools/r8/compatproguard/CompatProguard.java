@@ -35,15 +35,18 @@ public class CompatProguard {
     public final boolean forceProguardCompatibility;
     public final boolean ignoreMissingClasses;
     public final boolean multiDex;
+    public final String mainDexList;
     public final List<String> proguardConfig;
 
     CompatProguardOptions(List<String> proguardConfig, String output, int minApi,
-        boolean multiDex, boolean forceProguardCompatibility, boolean ignoreMissingClasses) {
+        boolean multiDex, boolean forceProguardCompatibility, boolean ignoreMissingClasses,
+        String mainDexList) {
       this.output = output;
       this.minApi = minApi;
       this.forceProguardCompatibility = forceProguardCompatibility;
       this.ignoreMissingClasses = ignoreMissingClasses;
       this.multiDex = multiDex;
+      this.mainDexList = mainDexList;
       this.proguardConfig = proguardConfig;
     }
 
@@ -53,12 +56,15 @@ public class CompatProguard {
       boolean forceProguardCompatibility = false;
       boolean ignoreMissingClasses = false;
       boolean multiDex = false;
+      String mainDexList = null;
+      // These two flags are currently ignored.
+      boolean minimalMainDex = false;
       boolean coreLibrary = false;
 
       ImmutableList.Builder<String> builder = ImmutableList.builder();
       if (args.length > 0) {
-        StringBuilder currentLine = new StringBuilder(args[0]);
-        for (int i = 1; i < args.length; i++) {
+        StringBuilder currentLine = new StringBuilder();
+        for (int i = 0; i < args.length; i++) {
           String arg = args[i];
           if (arg.charAt(0) == '-') {
             if (arg.equals("--min-api")) {
@@ -71,23 +77,34 @@ public class CompatProguard {
               output = args[++i];
             } else if (arg.equals("--multi-dex")) {
               multiDex = true;
+            } else if (arg.equals("--main-dex-list")) {
+              mainDexList = args[++i];
+            } else if (arg.startsWith("--main-dex-list=")) {
+              mainDexList = arg.substring("--main-dex-list=".length());
+            } else if (arg.equals("--minimal-main-dex")) {
+              minimalMainDex = true;
             } else if (arg.equals("--core-library")) {
               coreLibrary = true;
             } else if (arg.equals("-outjars")) {
               throw new CompilationException(
                   "Proguard argument -outjar is not supported. Use R8 compatible --output flag");
             } else {
-              builder.add(currentLine.toString());
+              if (currentLine.length() > 0) {
+                builder.add(currentLine.toString());
+              }
               currentLine = new StringBuilder(arg);
             }
           } else {
-            currentLine.append(' ').append(arg);
+            if (currentLine.length() > 0) {
+              currentLine.append(' ');
+            }
+            currentLine.append(arg);
           }
         }
         builder.add(currentLine.toString());
       }
       return new CompatProguardOptions(builder.build(), output, minApi, multiDex,
-          forceProguardCompatibility, ignoreMissingClasses);
+          forceProguardCompatibility, ignoreMissingClasses, mainDexList);
     }
   }
 
@@ -105,6 +122,9 @@ public class CompatProguard {
     builder.setOutputPath(Paths.get(options.output))
         .addProguardConfiguration(options.proguardConfig)
         .setMinApiLevel(options.minApi);
+    if (options.mainDexList != null) {
+      builder.addMainDexListFiles(Paths.get(options.mainDexList));
+    }
     AndroidApp result = R8.runInternal(builder.build());
 
     if (!options.multiDex) {
