@@ -11,12 +11,15 @@ import org.junit.Test;
 public class LambdaTest extends DebugTestBase {
 
   public static final String SOURCE_FILE = "DebugLambda.java";
+  private static final boolean RUN_JAVA = false;
 
   @Test
   public void testLambda_ExpressionOnSameLine() throws Throwable {
     String debuggeeClass = "DebugLambda";
     String initialMethodName = "printInt";
-    runDebugTestJava8(debuggeeClass,
+    runDebugTest(
+        getDebuggeeJava8DexD8OrCf(RUN_JAVA),
+        debuggeeClass,
         breakpoint(debuggeeClass, initialMethodName),
         run(),
         checkMethod(debuggeeClass, initialMethodName),
@@ -30,7 +33,9 @@ public class LambdaTest extends DebugTestBase {
   public void testLambda_StatementOnNewLine() throws Throwable {
     String debuggeeClass = "DebugLambda";
     String initialMethodName = "printInt3";
-    runDebugTestJava8(debuggeeClass,
+    runDebugTest(
+        getDebuggeeJava8DexD8OrCf(RUN_JAVA),
+        debuggeeClass,
         breakpoint(debuggeeClass, initialMethodName),
         run(),
         checkMethod(debuggeeClass, initialMethodName),
@@ -44,13 +49,15 @@ public class LambdaTest extends DebugTestBase {
   public void testLambda_StaticMethodReference_Trivial() throws Throwable {
     String debuggeeClass = "DebugLambda";
     String initialMethodName = "printInt2";
-    runDebugTestJava8(debuggeeClass,
+    runDebugTest(
+        getDebuggeeJava8DexD8OrCf(RUN_JAVA),
+        debuggeeClass,
         breakpoint(debuggeeClass, initialMethodName),
         run(),
         checkMethod(debuggeeClass, initialMethodName),
         checkLine(SOURCE_FILE, 20),
         stepInto(INTELLIJ_FILTER),
-        isRunningJava() ? LambdaTest::doNothing : stepInto(INTELLIJ_FILTER),
+        RUN_JAVA ? LambdaTest::doNothing : stepInto(INTELLIJ_FILTER),
         checkMethod(debuggeeClass, "returnOne"),
         checkLine(SOURCE_FILE, 28),
         checkNoLocal(),
@@ -61,7 +68,9 @@ public class LambdaTest extends DebugTestBase {
   public void testLambda_StaticMethodReference_NonTrivial() throws Throwable {
     String debuggeeClass = "DebugLambda";
     String initialMethodName = "testLambdaWithMethodReferenceAndConversion";
-    runDebugTestJava8(debuggeeClass,
+    runDebugTest(
+        getDebuggeeJava8DexD8OrCf(RUN_JAVA),
+        debuggeeClass,
         breakpoint(debuggeeClass, initialMethodName),
         run(),
         checkMethod(debuggeeClass, initialMethodName),

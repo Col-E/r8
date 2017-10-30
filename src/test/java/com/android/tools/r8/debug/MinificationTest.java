@@ -3,10 +3,17 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.debug;
 
+import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.TestBase.MinifyMode;
+import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.google.common.collect.ImmutableList;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Collection;
-import org.junit.BeforeClass;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -16,6 +23,21 @@ import org.junit.runners.Parameterized;
 public class MinificationTest extends DebugTestBase {
 
   public static final String SOURCE_FILE = "Minified.java";
+  private static final HashMap<Config, Path> debuggeePathMap = new HashMap<>();
+
+  private static class Config {
+    public final MinifyMode minificationMode;
+    public final boolean writeProguardMap;
+
+    Config(MinifyMode minificationMode, boolean writeProguardMap) {
+      this.minificationMode = minificationMode;
+      this.writeProguardMap = writeProguardMap;
+    }
+
+    public boolean minifiedNames() {
+      return minificationMode.isMinify() && !writeProguardMap;
+    }
+  }
 
   @Parameterized.Parameters(name = "minification: {0}, proguardMap: {1}")
   public static Collection minificationControl() {
@@ -29,47 +51,46 @@ public class MinificationTest extends DebugTestBase {
     return builder.build();
   }
 
-  private static boolean firstRun = true;
-  private static MinifyMode minificationMode;
+  private final Config config;
 
-  public MinificationTest(MinifyMode minificationMode, boolean writeProguardMap) throws Exception {
-    // TODO(tamaskenez) The way we're shadowing and calling the static setUp() methods should be
-    // updated when we refactor DebugTestBase.
-    if (firstRun
-        || MinificationTest.minificationMode != minificationMode
-        || DebugTestBase.writeProguardMap != writeProguardMap) {
-
-      firstRun = false;
-      MinificationTest.minificationMode = minificationMode;
-      DebugTestBase.writeProguardMap = writeProguardMap;
-
-      if (MinificationTest.minificationMode.isMinify()) {
+  private synchronized DebuggeePath getDebuggeePath()
+      throws IOException, CompilationException, ExecutionException, ProguardRuleParserException {
+    Path path = debuggeePathMap.get(config);
+    if (path == null) {
+      List<String> proguardConfigurations = Collections.<String>emptyList();
+      if (config.minificationMode.isMinify()) {
         ImmutableList.Builder<String> builder = ImmutableList.builder();
         builder.add("-keep public class Minified { public static void main(java.lang.String[]); }");
         builder.add("-keepattributes SourceFile");
         builder.add("-keepattributes LineNumberTable");
-        if (minificationMode == MinifyMode.AGGRESSIVE) {
+        if (config.minificationMode == MinifyMode.AGGRESSIVE) {
           builder.add("-overloadaggressively");
         }
         proguardConfigurations = builder.build();
       }
-      setUp(null, null);
+      path =
+          compileToDexViaR8(
+              null, null, DEBUGGEE_JAR, proguardConfigurations, config.writeProguardMap);
+      debuggeePathMap.put(config, path);
     }
+    return DebuggeePath.makeDex(path);
   }
 
-  @BeforeClass
-  public static void setUp() throws Exception {}
+  public MinificationTest(MinifyMode minificationMode, boolean writeProguardMap) throws Exception {
+    config = new Config(minificationMode, writeProguardMap);
+  }
 
   @Test
   public void testBreakInMainClass() throws Throwable {
-    boolean minifiedNames = (minificationMode.isMinify() && !writeProguardMap);
     final String className = "Minified";
-    final String methodName = minifiedNames ? "a" : "test";
+    final String methodName = config.minifiedNames() ? "a" : "test";
     final String signature = "()V";
-    final String innerClassName = minifiedNames ? "a" : "Minified$Inner";
-    final String innerMethodName = minifiedNames ? "a" : "innerTest";
+    final String innerClassName = config.minifiedNames() ? "a" : "Minified$Inner";
+    final String innerMethodName = config.minifiedNames() ? "a" : "innerTest";
     final String innerSignature = "()I";
-    runDebugTestR8(className,
+    runDebugTest(
+        getDebuggeePath(),
+        className,
         breakpoint(className, methodName, signature),
         run(),
         checkMethod(className, methodName, signature),
@@ -85,12 +106,12 @@ public class MinificationTest extends DebugTestBase {
 
   @Test
   public void testBreakInPossiblyRenamedClass() throws Throwable {
-    boolean minifiedNames = (minificationMode.isMinify() && !writeProguardMap);
     final String className = "Minified";
-    final String innerClassName = minifiedNames ? "a" : "Minified$Inner";
-    final String innerMethodName = minifiedNames ? "a" : "innerTest";
+    final String innerClassName = config.minifiedNames() ? "a" : "Minified$Inner";
+    final String innerMethodName = config.minifiedNames() ? "a" : "innerTest";
     final String innerSignature = "()I";
-    runDebugTestR8(
+    runDebugTest(
+        getDebuggeePath(),
         className,
         breakpoint(innerClassName, innerMethodName, innerSignature),
         run(),

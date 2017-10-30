@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.debug;
 
-import java.util.Collections;
 import org.apache.harmony.jpda.tests.framework.jdwp.Value;
 import org.junit.Test;
 
@@ -20,7 +19,7 @@ public class DebugTestExamples extends DebugTestBase {
    */
   @Test
   public void testRun() throws Throwable {
-    runDebugTest(DEBUGGEE_CLASS, Collections.singletonList(run()));
+    runDebugTest(DEBUGGEE_CLASS, run());
   }
 
   /**

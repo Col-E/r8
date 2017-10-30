@@ -91,18 +91,33 @@ public abstract class DebugTestBase {
   public static final StepFilter INTELLIJ_FILTER = new StepFilter.IntelliJStepFilter();
   private static final StepFilter DEFAULT_FILTER = NO_FILTER;
 
-  enum RuntimeKind {
-    JAVA,
-    ART
-  }
-
   enum DexCompilerKind {
     DX,
     D8
   }
 
-  // Set to JAVA to run tests with java
-  private static final RuntimeKind RUNTIME_KIND = RuntimeKind.ART;
+  enum BinaryKind {
+    CF,
+    DEX
+  }
+
+  protected static class DebuggeePath {
+    public final BinaryKind kind;
+    public final Path path;
+
+    public static DebuggeePath makeDex(Path path) {
+      return new DebuggeePath(BinaryKind.DEX, path);
+    }
+
+    public static DebuggeePath makeClassFile(Path path) {
+      return new DebuggeePath(BinaryKind.CF, path);
+    }
+
+    public DebuggeePath(BinaryKind kind, Path path) {
+      this.kind = kind;
+      this.path = path;
+    }
+  }
 
   private static final DexCompilerKind DEX_COMPILER_KIND = DexCompilerKind.D8;
 
@@ -111,8 +126,8 @@ public abstract class DebugTestBase {
 
   private static final Path JDWP_JAR = ToolHelper
       .getJdwpTestsJarPath(ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm()));
-  private static final Path DEBUGGEE_JAR = Paths
-      .get(ToolHelper.BUILD_DIR, "test", "debug_test_resources.jar");
+  protected static final Path DEBUGGEE_JAR =
+      Paths.get(ToolHelper.BUILD_DIR, "test", "debug_test_resources.jar");
   private static final Path DEBUGGEE_JAVA8_JAR = Paths
       .get(ToolHelper.BUILD_DIR, "test", "debug_test_resources_java8.jar");
   private static final Path DEBUGGEE_KOTLIN_JAR = Paths
@@ -121,42 +136,63 @@ public abstract class DebugTestBase {
 
   @ClassRule
   public static TemporaryFolder temp = new TemporaryFolder();
-  private static Path jdwpDexD8 = null;
-  private static Path debuggeeDexD8 = null;
-  private static Path debuggeeDexR8 = null;
-  private static Path debuggeeJava8DexD8 = null;
-  private static Path debuggeeKotlinDexD8 = null;
+
+  // TODO(tamaskenez): Separate test setup from test runner.
+  private static Path jdwpDexD8;
+  private static Path debuggeeDexD8;
+  private static Path debuggeeJava8DexD8;
+  private static Path debuggeeKotlinDexD8;
 
   @Rule
   public TestName testName = new TestName();
 
   @BeforeClass
   public static void setUp() throws Exception {
-    setUp(null, null);
+    jdwpDexD8 = compileToDex(JDWP_JAR, null);
+    debuggeeDexD8 = null;
+    debuggeeJava8DexD8 = null;
+    debuggeeKotlinDexD8 = null;
   }
 
-  protected static List<String> proguardConfigurations = Collections.emptyList();
-  protected static boolean writeProguardMap = false;
+  protected static synchronized Path getDebuggeeDexD8() throws IOException, CompilationException {
+    if (debuggeeDexD8 == null) {
+      debuggeeDexD8 = compileToDex(DEBUGGEE_JAR, null);
+    }
+    return debuggeeDexD8;
+  }
 
-  protected static void setUp(
-      Consumer<InternalOptions> optionsConsumer,
-      Consumer<ProguardConfiguration.Builder> pgConsumer)
-      throws Exception {
-    // TODO(zerny): supply a set of compilers to run with.
-    // Compile the debuggee code first so potential compilation errors or debugging breakpoints hit
-    // here first.
-    debuggeeDexD8 = compileToDex(DEBUGGEE_JAR, optionsConsumer);
-    debuggeeDexR8 = compileToDexViaR8(optionsConsumer, pgConsumer, DEBUGGEE_JAR);
-    debuggeeJava8DexD8 = compileToDex(DEBUGGEE_JAVA8_JAR, options -> {
-      // Enable desugaring for preN runtimes
-      options.interfaceMethodDesugaring = OffOrAuto.Auto;
-      if (optionsConsumer != null) {
-        optionsConsumer.accept(options);
-      }
-    });
-    debuggeeKotlinDexD8 = compileToDex(DEBUGGEE_KOTLIN_JAR, optionsConsumer);
-    // Convert jar to dex with d8 with debug info
-    jdwpDexD8 = compileToDex(JDWP_JAR, null);
+  private static synchronized Path getDebuggeeJava8DexD8()
+      throws IOException, CompilationException {
+    if (debuggeeJava8DexD8 == null) {
+      debuggeeJava8DexD8 =
+          compileToDex(
+              DEBUGGEE_JAVA8_JAR,
+              options -> {
+                // Enable desugaring for preN runtimes
+                options.interfaceMethodDesugaring = OffOrAuto.Auto;
+              });
+    }
+    return debuggeeJava8DexD8;
+  }
+
+  private static synchronized Path getDebuggeeKotlinDexD8()
+      throws IOException, CompilationException {
+    if (debuggeeKotlinDexD8 == null) {
+      debuggeeKotlinDexD8 = compileToDex(DEBUGGEE_KOTLIN_JAR, null);
+    }
+    return debuggeeKotlinDexD8;
+  }
+
+  protected static DebuggeePath getDebuggeeDexD8OrCf(boolean cf)
+      throws IOException, CompilationException {
+    return cf ? DebuggeePath.makeClassFile(DEBUGGEE_JAR) : DebuggeePath.makeDex(getDebuggeeDexD8());
+  }
+
+  protected static DebuggeePath getDebuggeeJava8DexD8OrCf(boolean cf)
+      throws IOException, CompilationException {
+    return cf
+        ? DebuggeePath.makeClassFile(DEBUGGEE_JAVA8_JAR)
+        : DebuggeePath.makeDex(getDebuggeeJava8DexD8());
   }
 
   protected static Path compileToDex(Path jarToCompile, Consumer<InternalOptions> optionsConsumer)
@@ -202,10 +238,12 @@ public abstract class DebugTestBase {
     return dexOutputDir.resolve("classes.dex");
   }
 
-  static Path compileToDexViaR8(
+  public static Path compileToDexViaR8(
       Consumer<InternalOptions> optionsConsumer,
       Consumer<ProguardConfiguration.Builder> pgConsumer,
-      Path jarToCompile)
+      Path jarToCompile,
+      List<String> proguardConfigurations,
+      boolean writeProguardMap)
       throws IOException, CompilationException, ExecutionException, ProguardRuleParserException {
     int minSdk = ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm());
     assert jarToCompile.toFile().exists();
@@ -230,110 +268,110 @@ public abstract class DebugTestBase {
     return dexOutputDir.resolve("classes.dex");
   }
 
-  protected final boolean supportsDefaultMethod() {
-    return RUNTIME_KIND == RuntimeKind.JAVA ||
-        ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm()) >= AndroidApiLevel.N.getLevel();
+  private BinaryKind currentlyRunningBinaryKind = null;
+
+  protected final BinaryKind getCurrentlyRunningBinaryKind() {
+    if (currentlyRunningBinaryKind == null) {
+      throw new RuntimeException("Nothing is running currently.");
+    }
+    return currentlyRunningBinaryKind;
   }
 
-  protected static boolean isRunningJava() {
-    return RUNTIME_KIND == RuntimeKind.JAVA;
+  protected static final boolean supportsDefaultMethod(boolean isRunningJava) {
+    return isRunningJava
+        || ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm()) >= AndroidApiLevel.N.getLevel();
   }
 
-  protected static boolean isRunningArt() {
-    return RUNTIME_KIND == RuntimeKind.ART;
+  protected final boolean isRunningJava() {
+    return getCurrentlyRunningBinaryKind() == BinaryKind.CF;
+  }
+
+  protected final boolean isRunningArt() {
+    return getCurrentlyRunningBinaryKind() == BinaryKind.DEX;
   }
 
   protected final void runDebugTest(String debuggeeClass, JUnit3Wrapper.Command... commands)
       throws Throwable {
-    runDebugTest(Collections.emptyList(), debuggeeClass, Arrays.asList(commands));
+    runDebugTest(
+        DebuggeePath.makeDex(getDebuggeeDexD8()),
+        Collections.<Path>emptyList(),
+        debuggeeClass,
+        Arrays.asList(commands));
   }
 
   protected final void runDebugTest(List<Path> extraPaths, String debuggeeClass,
       JUnit3Wrapper.Command... commands) throws Throwable {
-    runDebugTest(extraPaths, debuggeeClass, Arrays.asList(commands));
+    runDebugTest(
+        DebuggeePath.makeDex(getDebuggeeDexD8()),
+        extraPaths,
+        debuggeeClass,
+        Arrays.asList(commands));
   }
 
   protected final void runDebugTest(String debuggeeClass, List<JUnit3Wrapper.Command> commands)
       throws Throwable {
-    runDebugTest(Collections.emptyList(), LanguageFeatures.JAVA_7, debuggeeClass, commands);
-  }
-
-  protected final void runDebugTest(List<Path> extraPaths, String debuggeeClass,
-      List<JUnit3Wrapper.Command> commands) throws Throwable {
-    runDebugTest(extraPaths, LanguageFeatures.JAVA_7, debuggeeClass, commands);
+    runDebugTest(
+        DebuggeePath.makeDex(getDebuggeeDexD8()),
+        Collections.<Path>emptyList(),
+        debuggeeClass,
+        commands);
   }
 
   protected final void runDebugTestJava8(String debuggeeClass, JUnit3Wrapper.Command... commands)
       throws Throwable {
-    runDebugTestJava8(debuggeeClass, Arrays.asList(commands));
+    runDebugTest(
+        DebuggeePath.makeDex(getDebuggeeJava8DexD8()),
+        Collections.<Path>emptyList(),
+        debuggeeClass,
+        Arrays.asList(commands));
   }
 
   protected final void runDebugTestJava8(String debuggeeClass, List<JUnit3Wrapper.Command> commands)
       throws Throwable {
-    runDebugTest(Collections.emptyList(), LanguageFeatures.JAVA_8, debuggeeClass, commands);
+    runDebugTest(
+        DebuggeePath.makeDex(getDebuggeeJava8DexD8()),
+        Collections.<Path>emptyList(),
+        debuggeeClass,
+        commands);
   }
 
   protected final void runDebugTestKotlin(String debuggeeClass, JUnit3Wrapper.Command... commands)
       throws Throwable {
-    runDebugTestKotlin(debuggeeClass, Arrays.asList(commands));
+    runDebugTest(
+        DebuggeePath.makeDex(getDebuggeeKotlinDexD8()),
+        Collections.<Path>emptyList(),
+        debuggeeClass,
+        Arrays.asList(commands));
   }
 
-  protected final void runDebugTestKotlin(String debuggeeClass,
-      List<JUnit3Wrapper.Command> commands) throws Throwable {
-    runDebugTest(Collections.emptyList(), LanguageFeatures.KOTLIN, debuggeeClass, commands);
-  }
-
-  protected final void runDebugTestR8(String debuggeeClass, JUnit3Wrapper.Command... commands)
+  protected void runDebugTest(
+      DebuggeePath debuggeePath, String debuggeeClass, JUnit3Wrapper.Command... commands)
       throws Throwable {
-    runDebugTestR8(debuggeeClass, Arrays.asList(commands));
+    runDebugTest(
+        debuggeePath, Collections.<Path>emptyList(), debuggeeClass, Arrays.asList(commands));
   }
 
-  protected final void runDebugTestR8(String debuggeeClass, List<JUnit3Wrapper.Command> commands)
+  protected void runDebugTest(
+      DebuggeePath debuggeePath, String debuggeeClass, List<JUnit3Wrapper.Command> commands)
       throws Throwable {
-    runDebugTest(Collections.emptyList(), LanguageFeatures.R8, debuggeeClass, commands);
+    runDebugTest(debuggeePath, Collections.<Path>emptyList(), debuggeeClass, commands);
   }
 
-  protected enum LanguageFeatures {
-    JAVA_7(DEBUGGEE_JAR) {
-      @Override
-      public Path getDexPath() {
-        return debuggeeDexD8;
-      }
-    },
-    JAVA_8(DEBUGGEE_JAVA8_JAR) {
-      @Override
-      public Path getDexPath() {
-        return debuggeeJava8DexD8;
-      }
-    },
-    KOTLIN(DEBUGGEE_KOTLIN_JAR) {
-      @Override
-      public Path getDexPath() {
-        return debuggeeKotlinDexD8;
-      }
-    },
-    R8(DEBUGGEE_JAR) {
-      @Override
-      public Path getDexPath() {
-        return debuggeeDexR8;
-      }
-    };
-
-    private final Path jarPath;
-
-    LanguageFeatures(Path jarPath) {
-      this.jarPath = jarPath;
-    }
-
-    public Path getJarPath() {
-      return jarPath;
-    }
-
-    public abstract Path getDexPath();
+  protected void runDebugTest(
+      DebuggeePath debuggeePath,
+      List<Path> extraPaths,
+      String debuggeeClass,
+      JUnit3Wrapper.Command... commands)
+      throws Throwable {
+    runDebugTest(debuggeePath, extraPaths, debuggeeClass, Arrays.asList(commands));
   }
 
-  private void runDebugTest(List<Path> extraPaths, LanguageFeatures languageFeatures,
-      String debuggeeClass, List<JUnit3Wrapper.Command> commands) throws Throwable {
+  protected void runDebugTest(
+      DebuggeePath debuggeePath,
+      List<Path> extraPaths,
+      String debuggeeClass,
+      List<JUnit3Wrapper.Command> commands)
+      throws Throwable {
     // Skip test due to unsupported runtime.
     Assume.assumeTrue("Skipping test " + testName.getMethodName() + " because ART is not supported",
         ToolHelper.artSupported());
@@ -344,22 +382,22 @@ public abstract class DebugTestBase {
     String[] paths = new String[extraPaths.size() + 2];
     int indexPath = 0;
     ClassNameMapper classNameMapper = null;
-    if (RUNTIME_KIND == RuntimeKind.JAVA) {
+    if (debuggeePath.kind == BinaryKind.CF) {
       paths[indexPath++] = JDWP_JAR.toString();
-      paths[indexPath++] = languageFeatures.getJarPath().toString();
     } else {
       paths[indexPath++] = jdwpDexD8.toString();
-      paths[indexPath++] = languageFeatures.getDexPath().toString();
-      Path proguardMapPath = Paths.get(paths[indexPath - 1]).resolveSibling(PROGUARD_MAP_FILENAME);
+      Path proguardMapPath = debuggeePath.path.resolveSibling(PROGUARD_MAP_FILENAME);
       if (Files.exists(proguardMapPath)) {
         classNameMapper = ClassNameMapper.mapperFromFile(proguardMapPath);
       }
     }
+    paths[indexPath++] = debuggeePath.path.toString();
     for (Path extraPath : extraPaths) {
       paths[indexPath++] = extraPath.toString();
     }
 
-    new JUnit3Wrapper(debuggeeClass, paths, commands, classNameMapper).runBare();
+    currentlyRunningBinaryKind = debuggeePath.kind;
+    new JUnit3Wrapper(debuggeeClass, paths, commands, classNameMapper, isRunningArt()).runBare();
   }
 
   protected final JUnit3Wrapper.Command run() {
@@ -566,6 +604,8 @@ public abstract class DebugTestBase {
     // Active event requests.
     private final Map<Integer, EventHandler> events = new TreeMap<>();
 
+    private final boolean isRunningArt;
+
     /**
      * The Translator interface provides mapping between the class and method names and line numbers
      * found in the binary file and their original forms.
@@ -719,7 +759,8 @@ public abstract class DebugTestBase {
         String debuggeeClassName,
         String[] debuggeePath,
         List<Command> commands,
-        ClassNameMapper classNameMapper) {
+        ClassNameMapper classNameMapper,
+        boolean isRunningArt) {
       this.debuggeeClassName = debuggeeClassName;
       this.debuggeePath = debuggeePath;
       this.commandsQueue = new ArrayDeque<>(commands);
@@ -728,6 +769,7 @@ public abstract class DebugTestBase {
       } else {
         this.translator = new ClassNameMapperTranslator(classNameMapper);
       }
+      this.isRunningArt = isRunningArt;
     }
 
     @Override
@@ -864,7 +906,7 @@ public abstract class DebugTestBase {
 
         ArtTestOptions(String[] debuggeePath) {
           // Set debuggee command-line.
-          if (RUNTIME_KIND == RuntimeKind.ART) {
+          if (isRunningArt) {
             ArtCommandBuilder artCommandBuilder = new ArtCommandBuilder(ToolHelper.getDexVm());
             if (ToolHelper.getDexVm().getVersion().isNewerThan(DexVm.Version.V5_1_1)) {
               artCommandBuilder.appendArtOption("-Xcompiler-option");

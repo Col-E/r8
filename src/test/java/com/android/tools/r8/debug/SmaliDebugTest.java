@@ -30,11 +30,6 @@ public class SmaliDebugTest extends DebugTestBase {
   static final String FILE = "SmaliDebugTestDebuggee.smali";
   static final String CLASS = "SmaliDebugTestDebuggee";
 
-  @BeforeClass
-  public static void beforeClass() throws Exception {
-    Assume.assumeTrue(DebugTestBase.isRunningArt());
-  }
-
   @Rule
   public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 

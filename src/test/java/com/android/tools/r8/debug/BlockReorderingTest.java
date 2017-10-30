@@ -3,8 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.debug;
 
+import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
+import java.io.IOException;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -17,11 +19,15 @@ public class BlockReorderingTest extends DebugTestBase {
   public static final String CLASS = "BlockReordering";
   public static final String FILE = "BlockReordering.java";
 
+  private static DebuggeePath debuggeePath;
+
   @BeforeClass
-  public static void setUp() throws Exception {
+  public static void initDebuggeePath() throws IOException, CompilationException {
     // Force inversion of all conditionals to reliably construct a regression test for incorrect
     // line information when reordering blocks.
-    setUp(options -> options.testing.invertConditionals = true, null);
+    debuggeePath =
+        DebuggeePath.makeDex(
+            compileToDex(DEBUGGEE_JAR, options -> options.testing.invertConditionals = true));
   }
 
   @Test
@@ -30,14 +36,19 @@ public class BlockReorderingTest extends DebugTestBase {
         "Older runtimes incorrectly step out of function: b/67671565",
         ToolHelper.getDexVm().getVersion().isNewerThan(Version.V6_0_1));
     final String method = "conditionalReturn";
-    runDebugTest(CLASS,
+    runDebugTest(
+        debuggeePath,
+        CLASS,
         breakpoint(CLASS, method),
         run(),
-        checkLine(FILE, 8), stepOver(),
+        checkLine(FILE, 8),
+        stepOver(),
         checkLine(FILE, 13),
         run(),
-        checkLine(FILE, 8), stepOver(),
-        checkLine(FILE, 9), stepOver(),
+        checkLine(FILE, 8),
+        stepOver(),
+        checkLine(FILE, 9),
+        stepOver(),
         checkLine(FILE, 13),
         run());
   }
@@ -48,14 +59,19 @@ public class BlockReorderingTest extends DebugTestBase {
         "Older runtimes incorrectly step out of function: b/67671565",
         ToolHelper.getDexVm().getVersion().isNewerThan(Version.V6_0_1));
     final String method = "invertConditionalReturn";
-    runDebugTest(CLASS,
+    runDebugTest(
+        debuggeePath,
+        CLASS,
         breakpoint(CLASS, method),
         run(),
-        checkLine(FILE, 17), stepOver(),
-        checkLine(FILE, 18), stepOver(),
+        checkLine(FILE, 17),
+        stepOver(),
+        checkLine(FILE, 18),
+        stepOver(),
         checkLine(FILE, 22),
         run(),
-        checkLine(FILE, 17), stepOver(),
+        checkLine(FILE, 17),
+        stepOver(),
         checkLine(FILE, 22),
         run());
   }
@@ -66,18 +82,25 @@ public class BlockReorderingTest extends DebugTestBase {
         "Older runtimes incorrectly step out of function: b/67671565",
         ToolHelper.getDexVm().getVersion().isNewerThan(Version.V6_0_1));
     final String method = "fallthroughReturn";
-    runDebugTest(CLASS,
+    runDebugTest(
+        debuggeePath,
+        CLASS,
         breakpoint(CLASS, method),
         run(),
-        checkLine(FILE, 26), stepOver(),
+        checkLine(FILE, 26),
+        stepOver(),
         checkLine(FILE, 35),
         run(),
-        checkLine(FILE, 26), stepOver(),
-        checkLine(FILE, 30), stepOver(),
+        checkLine(FILE, 26),
+        stepOver(),
+        checkLine(FILE, 30),
+        stepOver(),
         checkLine(FILE, 35),
         run(),
-        checkLine(FILE, 26), stepOver(),
-        checkLine(FILE, 31), stepOver(),
+        checkLine(FILE, 26),
+        stepOver(),
+        checkLine(FILE, 31),
+        stepOver(),
         checkLine(FILE, 35),
         run());
   }

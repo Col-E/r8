@@ -11,12 +11,15 @@ import org.junit.Test;
 public class ExceptionTest extends DebugTestBase {
 
   public static final String SOURCE_FILE = "Exceptions.java";
+  public static final boolean RUN_JAVA = false;
 
   @Test
   public void testStepOnCatch() throws Throwable {
-    if (isRunningJava()) {
+    if (RUN_JAVA) {
       // Java jumps to first instruction of the catch handler, matching the source code.
-      runDebugTest("Exceptions",
+      runDebugTest(
+          DebuggeePath.makeClassFile(DEBUGGEE_JAR),
+          "Exceptions",
           breakpoint("Exceptions", "catchException"),
           run(),
           checkLine(SOURCE_FILE, 9), // line of the method call throwing the exception

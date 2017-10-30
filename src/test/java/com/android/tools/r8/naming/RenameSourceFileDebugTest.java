@@ -3,9 +3,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
+import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.debug.DebugTestBase;
 import com.android.tools.r8.shaking.ProguardKeepRule;
+import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.google.common.collect.ImmutableList;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.concurrent.ExecutionException;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -16,16 +21,24 @@ public class RenameSourceFileDebugTest extends DebugTestBase {
 
   private static final String TEST_FILE = "TestFile.java";
 
+  private static DebuggeePath debuggeePath;
+
   @BeforeClass
-  public static void setUp() throws Exception {
-    setUp(
-        null,
-        pg -> {
-          pg.resetProguardDefaults();
-          pg.addRule(ProguardKeepRule.defaultKeepAllRule());
-          pg.setRenameSourceFileAttribute(TEST_FILE);
-          pg.addKeepAttributePatterns(ImmutableList.of("SourceFile", "LineNumberTable"));
-        });
+  public static void initDebuggeePath()
+      throws IOException, CompilationException, ExecutionException, ProguardRuleParserException {
+    debuggeePath =
+        DebuggeePath.makeDex(
+            compileToDexViaR8(
+                null,
+                pg -> {
+                  pg.resetProguardDefaults();
+                  pg.addRule(ProguardKeepRule.defaultKeepAllRule());
+                  pg.setRenameSourceFileAttribute(TEST_FILE);
+                  pg.addKeepAttributePatterns(ImmutableList.of("SourceFile", "LineNumberTable"));
+                },
+                DEBUGGEE_JAR,
+                Collections.<String>emptyList(),
+                false));
   }
 
   /**
@@ -34,11 +47,8 @@ public class RenameSourceFileDebugTest extends DebugTestBase {
   @Test
   public void testBreakpointInEmptyClassInitializer() throws Throwable {
     final String CLASS = "ClassInitializerEmpty";
-    runDebugTestR8(CLASS,
-        breakpoint(CLASS, "<clinit>"),
-        run(),
-        checkLine(TEST_FILE, 8),
-        run());
+    runDebugTest(
+        debuggeePath, CLASS, breakpoint(CLASS, "<clinit>"), run(), checkLine(TEST_FILE, 8), run());
   }
 
   /**
@@ -49,7 +59,9 @@ public class RenameSourceFileDebugTest extends DebugTestBase {
   public void testNoLocal() throws Throwable {
     final String className = "Locals";
     final String methodName = "noLocals";
-    runDebugTestR8(className,
+    runDebugTest(
+        debuggeePath,
+        className,
         breakpoint(className, methodName),
         run(),
         checkMethod(className, methodName),
@@ -67,7 +79,9 @@ public class RenameSourceFileDebugTest extends DebugTestBase {
    */
   @Test
   public void testMultipleReturns() throws Throwable {
-    runDebugTestR8("MultipleReturns",
+    runDebugTest(
+        debuggeePath,
+        "MultipleReturns",
         breakpoint("MultipleReturns", "multipleReturns"),
         run(),
         stepOver(),

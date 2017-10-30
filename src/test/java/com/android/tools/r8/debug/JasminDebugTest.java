@@ -22,6 +22,8 @@ import org.junit.rules.TemporaryFolder;
 // TODO(b/65474850) Should we build Jasmin at compile time or runtime ?
 public class JasminDebugTest extends DebugTestBase {
 
+  public static final boolean RUN_JAVA = false;
+
   @Rule
   public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
@@ -31,7 +33,9 @@ public class JasminDebugTest extends DebugTestBase {
     final String sourcefile = className + ".j";
     final String methodName = "test";
     List<Path> paths = getExtraPaths(getBuilderForUselessCheckcast(className, methodName));
-    runDebugTest(paths,
+    runDebugTest(
+        getDebuggeeDexD8OrCf(RUN_JAVA),
+        paths,
         className,
         breakpoint(className, methodName),
         run(),
@@ -91,7 +95,7 @@ public class JasminDebugTest extends DebugTestBase {
       try (OutputStream outputStream = Files.newOutputStream(path)) {
         file.write(outputStream);
       }
-      if (isRunningJava()) {
+      if (RUN_JAVA) {
         extraPaths.add(path);
       } else {
         extraPaths.add(compileToDex(path, null));

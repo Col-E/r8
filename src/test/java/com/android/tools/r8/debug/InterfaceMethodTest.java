@@ -4,21 +4,15 @@
 
 package com.android.tools.r8.debug;
 
-import static org.junit.Assert.assertEquals;
-
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.DexVm;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.Command;
-import com.android.tools.r8.debug.DebugTestBase.StepFilter.IntelliJStepFilter;
 import java.util.ArrayList;
 import java.util.List;
-import org.junit.Assume;
 import org.junit.Test;
 
 public class InterfaceMethodTest extends DebugTestBase {
 
   private static final String SOURCE_FILE = "DebugInterfaceMethod.java";
+  private static final boolean RUN_JAVA = false;
 
   @Test
   public void testDefaultMethod() throws Throwable {
@@ -31,7 +25,7 @@ public class InterfaceMethodTest extends DebugTestBase {
     commands.add(run());
     commands.add(checkMethod(debuggeeClass, "testDefaultMethod"));
     commands.add(checkLine(SOURCE_FILE, 31));
-    if (!supportsDefaultMethod()) {
+    if (!supportsDefaultMethod(RUN_JAVA)) {
       // We desugared default method. This means we're going to step through an extra (forward)
       // method first.
       commands.add(stepInto(INTELLIJ_FILTER));
@@ -39,7 +33,7 @@ public class InterfaceMethodTest extends DebugTestBase {
     commands.add(stepInto(INTELLIJ_FILTER));
     commands.add(checkLine(SOURCE_FILE, 9));
     // TODO(shertz) we should see the local variable this even when desugaring.
-    if (supportsDefaultMethod()) {
+    if (supportsDefaultMethod(RUN_JAVA)) {
       commands.add(checkLocal("this"));
     }
     commands.add(checkLocal(parameterName));
@@ -50,7 +44,7 @@ public class InterfaceMethodTest extends DebugTestBase {
     commands.add(run());
     commands.add(run()  /* resume after 2nd breakpoint */);
 
-    runDebugTestJava8(debuggeeClass, commands);
+    runDebugTest(getDebuggeeJava8DexD8OrCf(RUN_JAVA), debuggeeClass, commands);
   }
 
   @Test
@@ -75,7 +69,7 @@ public class InterfaceMethodTest extends DebugTestBase {
     commands.add(checkLocal(localVariableName));
     commands.add(run());
 
-    runDebugTestJava8(debuggeeClass, commands);
+    runDebugTest(getDebuggeeJava8DexD8OrCf(RUN_JAVA), debuggeeClass, commands);
   }
 
   @Test
@@ -94,6 +88,6 @@ public class InterfaceMethodTest extends DebugTestBase {
     commands.add(checkLocal(parameterName));
     commands.add(run());
 
-    runDebugTestJava8(debuggeeClass, commands);
+    runDebugTest(getDebuggeeJava8DexD8OrCf(RUN_JAVA), debuggeeClass, commands);
   }
 }

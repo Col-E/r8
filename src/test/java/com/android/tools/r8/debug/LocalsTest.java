@@ -9,7 +9,6 @@ import java.util.Map;
 import org.apache.harmony.jpda.tests.framework.jdwp.JDWPConstants.Tag;
 import org.apache.harmony.jpda.tests.framework.jdwp.Value;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
