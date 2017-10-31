@@ -285,7 +285,8 @@ public class PeepholeOptimizer {
             }
             int outRegister = allocator.getRegisterForValue(outValue, instructionNumber);
             ConstNumber numberInRegister = registerToNumber.get(outRegister);
-            if (numberInRegister != null && numberInRegister.identicalNonValueNonPositionParts(current)) {
+            if (numberInRegister != null
+                && numberInRegister.identicalNonValueNonPositionParts(current)) {
               // This instruction is not needed, the same constant is already in this register.
               // We don't consider the positions of the two (non-throwing) instructions.
               iterator.remove();
