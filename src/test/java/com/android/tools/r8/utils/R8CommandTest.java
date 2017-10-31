@@ -229,7 +229,7 @@ public class R8CommandTest {
     R8Command command = parse("@" + argsFile.toString());
     assertEquals(CompilationMode.DEBUG, command.getMode());
     assertFalse(command.useMinification());
-    assertTrue(command.useTreeShaking());
+    assertFalse(command.useTreeShaking()); // We have no keep rules (proguard config file is empty).
     assertEquals(1, ToolHelper.getApp(command).getDexProgramResources().size());
   }
 
