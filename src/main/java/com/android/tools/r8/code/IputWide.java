@@ -6,7 +6,6 @@ package com.android.tools.r8.code;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.OffsetToObjectMapping;
 import com.android.tools.r8.graph.UseRegistry;
-import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 
 public class IputWide extends Format22c {
@@ -50,7 +49,7 @@ public class IputWide extends Format22c {
 
   @Override
   public void buildIR(IRBuilder builder) {
-    builder.addInstancePut(MemberType.WIDE, A, B, getField());
+    builder.addInstancePut(A, B, getField());
   }
 
   @Override

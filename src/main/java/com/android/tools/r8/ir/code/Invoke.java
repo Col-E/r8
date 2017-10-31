@@ -79,6 +79,8 @@ public abstract class Invoke extends Instruction {
 
   abstract public Type getType();
 
+  abstract public DexType getReturnType();
+
   public List<Value> arguments() {
     return inValues;
   }

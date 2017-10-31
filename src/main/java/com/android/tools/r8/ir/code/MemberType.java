@@ -9,50 +9,39 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexType;
 
 public enum MemberType {
-  SINGLE,
-  WIDE,
   OBJECT,
   BOOLEAN,
   BYTE,
   CHAR,
-  SHORT;
-
-  public static ValueType moveTypeFor(MemberType type) {
-    switch (type) {
-      case BOOLEAN:
-      case BYTE:
-      case CHAR:
-      case SHORT:
-        return ValueType.INT;
-      case SINGLE:
-        return ValueType.INT_OR_FLOAT;
-      case WIDE:
-        return ValueType.LONG_OR_DOUBLE;
-      case OBJECT:
-        return ValueType.OBJECT;
-    }
-    return null;
-  }
+  SHORT,
+  INT,
+  FLOAT,
+  LONG,
+  DOUBLE,
+  INT_OR_FLOAT,
+  LONG_OR_DOUBLE;
 
   public static MemberType fromTypeDescriptorChar(char descriptor) {
     switch (descriptor) {
-      case 'L':  // object
-      case '[':  // array
+      case 'L':
+      case '[':
         return MemberType.OBJECT;
-      case 'Z':  // boolean
+      case 'Z':
         return MemberType.BOOLEAN;
-      case 'B':  // byte
+      case 'B':
         return MemberType.BYTE;
-      case 'S':  // short
+      case 'S':
         return MemberType.SHORT;
-      case 'C':  // char
+      case 'C':
         return MemberType.CHAR;
-      case 'I':  // int
-      case 'F':  // float
-        return MemberType.SINGLE;
-      case 'J':  // long
-      case 'D':  // double
-        return MemberType.WIDE;
+      case 'I':
+        return MemberType.INT;
+      case 'F':
+        return MemberType.FLOAT;
+      case 'J':
+        return MemberType.LONG;
+      case 'D':
+        return MemberType.DOUBLE;
       case 'V':
         throw new InternalCompilerError("No member type for void type.");
       default:

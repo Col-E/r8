@@ -367,7 +367,7 @@ public class SplitBlockTest extends SmaliTestBase {
       Value newReturnValue = new Value(test.valueNumberGenerator.next(), ValueType.INT, null);
       Value oldReturnValue = newReturnBlock.listIterator().next().asReturn().returnValue();
       newReturnBlock.listIterator().next().asReturn().returnValue().replaceUsers(newReturnValue);
-      Instruction constInstruction = new ConstNumber(ValueType.INT, newConstValue, 10);
+      Instruction constInstruction = new ConstNumber(newConstValue, 10);
       Instruction addInstruction =
           new Add(NumericType.INT, newReturnValue, oldReturnValue, newConstValue);
       iterator.previous();

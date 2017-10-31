@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.InliningOracle;
@@ -21,6 +22,11 @@ public class InvokePolymorphic extends InvokeMethod {
   public InvokePolymorphic(DexMethod target, DexProto proto, Value result, List<Value> arguments) {
     super(target, result, arguments);
     this.proto = proto;
+  }
+
+  @Override
+  public DexType getReturnType() {
+    return proto.returnType;
   }
 
   @Override

@@ -53,7 +53,7 @@ final class LambdaBridgeMethodSourceCode extends SynthesizedLambdaSourceCode {
     } else {
       ValueType valueType = ValueType.fromDexType(proto.returnType);
       int tempValue = nextRegister(valueType);
-      add(builder -> builder.addMoveResult(valueType, tempValue));
+      add(builder -> builder.addMoveResult(tempValue));
       add(builder -> builder.addReturn(valueType, tempValue));
     }
   }

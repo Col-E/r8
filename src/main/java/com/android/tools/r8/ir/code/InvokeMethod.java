@@ -24,6 +24,11 @@ public abstract class InvokeMethod extends Invoke {
     this.method = target;
   }
 
+  @Override
+  public DexType getReturnType() {
+    return method.proto.returnType;
+  }
+
   public DexMethod getInvokedMethod() {
     return method;
   }

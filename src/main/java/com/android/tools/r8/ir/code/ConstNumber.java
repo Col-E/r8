@@ -20,27 +20,25 @@ import com.android.tools.r8.utils.NumberUtils;
 
 public class ConstNumber extends ConstInstruction {
 
-  public final ValueType type;
   private final long value;
 
-  public ConstNumber(ValueType type, Value dest, long value) {
+  public ConstNumber(Value dest, long value) {
     super(dest);
     // We create const numbers after register allocation for rematerialization of values. Those
     // are all for fixed register values. All other values that are used as the destination for
     // const number instructions should be marked as constants.
     assert dest.isFixedRegisterValue() || dest.definition.isConstNumber();
-    this.type = type;
     this.value = value;
   }
 
   public static ConstNumber copyOf(IRCode code, ConstNumber original) {
     Value newValue =
         new Value(code.valueNumberGenerator.next(), original.outType(), original.getLocalInfo());
-    return new ConstNumber(original.type, newValue, original.getRawValue());
+    return new ConstNumber(newValue, original.getRawValue());
   }
 
   private boolean preciseTypeUnknown() {
-    return type == ValueType.INT_OR_FLOAT || type == ValueType.LONG_OR_DOUBLE;
+    return outType() == ValueType.INT_OR_FLOAT || outType() == ValueType.LONG_OR_DOUBLE;
   }
 
   public Value dest() {
@@ -52,22 +50,24 @@ public class ConstNumber extends ConstInstruction {
   }
 
   public int getIntValue() {
-    assert type == ValueType.INT || type == ValueType.INT_OR_FLOAT || type == ValueType.OBJECT;
+    assert outType() == ValueType.INT
+        || outType() == ValueType.INT_OR_FLOAT
+        || outType() == ValueType.OBJECT;
     return (int) value;
   }
 
   public long getLongValue() {
-    assert type == ValueType.LONG || type == ValueType.LONG_OR_DOUBLE;
+    assert outType() == ValueType.LONG || outType() == ValueType.LONG_OR_DOUBLE;
     return value;
   }
 
   public float getFloatValue() {
-    assert type == ValueType.FLOAT || type == ValueType.INT_OR_FLOAT;
+    assert outType() == ValueType.FLOAT || outType() == ValueType.INT_OR_FLOAT;
     return Float.intBitsToFloat((int) value);
   }
 
   public double getDoubleValue() {
-    assert type == ValueType.DOUBLE || type == ValueType.LONG_OR_DOUBLE;
+    assert outType() == ValueType.DOUBLE || outType() == ValueType.LONG_OR_DOUBLE;
     return Double.longBitsToDouble(value);
   }
 
@@ -80,11 +80,11 @@ public class ConstNumber extends ConstInstruction {
   }
 
   public boolean isIntegerZero() {
-    return type == ValueType.INT && getIntValue() == 0;
+    return outType() == ValueType.INT && getIntValue() == 0;
   }
 
   public boolean isIntegerOne() {
-    return type == ValueType.INT && getIntValue() == 1;
+    return outType() == ValueType.INT && getIntValue() == 1;
   }
 
   public boolean isIntegerNegativeOne(NumericType type) {
@@ -104,7 +104,7 @@ public class ConstNumber extends ConstInstruction {
     }
 
     int register = builder.allocatedRegister(dest(), getNumber());
-    if (type.isSingle() || type.isObject()) {
+    if (outType().isSingle() || outType().isObject()) {
       assert NumberUtils.is32Bit(value);
       if ((register & 0xf) == register && NumberUtils.is4Bit(value)) {
         builder.add(this, new Const4(register, (int) value));
@@ -116,7 +116,7 @@ public class ConstNumber extends ConstInstruction {
         builder.add(this, new Const(register, (int) value));
       }
     } else {
-      assert type.isWide();
+      assert outType().isWide();
       if (NumberUtils.is16Bit(value)) {
         builder.add(this, new ConstWide16(register, (int) value));
       } else if ((value & 0x0000ffffffffffffL) == 0) {
@@ -179,7 +179,7 @@ public class ConstNumber extends ConstInstruction {
 
   @Override
   public String toString() {
-    return super.toString() + " " + value + " (" + type + ")";
+    return super.toString() + " " + value + " (" + outType() + ")";
   }
 
   @Override
@@ -188,14 +188,14 @@ public class ConstNumber extends ConstInstruction {
       return false;
     }
     ConstNumber o = other.asConstNumber();
-    return o.type == type && o.value == value;
+    return o.outType() == outType() && o.value == value;
   }
 
   @Override
   public int compareNonValueParts(Instruction other) {
     ConstNumber o = other.asConstNumber();
     int result;
-    result = type.ordinal() - o.type.ordinal();
+    result = outType().ordinal() - o.outType().ordinal();
     if (result != 0) {
       return result;
     }

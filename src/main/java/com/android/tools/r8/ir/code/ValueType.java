@@ -45,10 +45,17 @@ public enum ValueType {
       case BYTE:
       case CHAR:
       case SHORT:
+      case INT:
         return ValueType.INT;
-      case SINGLE:
+      case FLOAT:
+        return ValueType.FLOAT;
+      case INT_OR_FLOAT:
         return ValueType.INT_OR_FLOAT;
-      case WIDE:
+      case LONG:
+        return ValueType.LONG;
+      case DOUBLE:
+        return ValueType.DOUBLE;
+      case LONG_OR_DOUBLE:
         return ValueType.LONG_OR_DOUBLE;
       case OBJECT:
         return ValueType.OBJECT;

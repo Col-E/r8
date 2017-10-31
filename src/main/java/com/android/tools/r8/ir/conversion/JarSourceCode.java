@@ -251,31 +251,43 @@ public class JarSourceCode implements SourceCode {
     // Initialize all non-argument locals to ensure safe insertion of debug-local instructions.
     for (Object o : node.localVariables) {
       LocalVariableNode local = (LocalVariableNode) o;
-      Type localType = Type.getType(local.desc);
-      int sort = localType.getSort();
-      switch (sort) {
+      Type localType;
+      ValueType localValueType;
+      switch (Type.getType(local.desc).getSort()) {
         case Type.OBJECT:
-        case Type.ARRAY:
+        case Type.ARRAY: {
           localType = JarState.NULL_TYPE;
+          localValueType = ValueType.OBJECT;
           break;
-        case Type.DOUBLE:
+        }
         case Type.LONG:
-        case Type.FLOAT:
+        case Type.DOUBLE: {
+          localType = Type.LONG_TYPE;
+          localValueType = ValueType.LONG_OR_DOUBLE;
           break;
+        }
+        case Type.BOOLEAN:
+        case Type.CHAR:
+        case Type.BYTE:
+        case Type.SHORT:
+        case Type.INT:
+        case Type.FLOAT: {
+          localType = Type.INT_TYPE;
+          localValueType = ValueType.INT_OR_FLOAT;
+          break;
+        }
         case Type.VOID:
         case Type.METHOD:
-          throw new Unreachable("Invalid local variable type: " + localType);
         default:
-          localType = Type.INT_TYPE;
-          break;
+          throw new Unreachable("Invalid local variable type: " );
       }
       int localRegister = state.getLocalRegister(local.index, localType);
       ValueType existingLocalType = initializedLocals.get(localRegister);
-      ValueType localValueType = valueType(localType);
       assert existingLocalType == null || existingLocalType.compatible(localValueType);
       if (existingLocalType == null) {
-        int localRegister2 = state.writeLocal(local.index, localType);
-        assert localRegister == localRegister2;
+        // For uninitialized entries write the local to ensure it exists in the local state.
+        int writeRegister = state.writeLocal(local.index, localType);
+        assert writeRegister == localRegister;
         initializedLocals.put(localRegister, localValueType);
         uninitializedLocals.put(localRegister, localValueType);
       }
@@ -842,11 +854,13 @@ public class JarSourceCode implements SourceCode {
       case Type.CHAR:
         return MemberType.CHAR;
       case Type.INT:
+        return MemberType.INT;
       case Type.FLOAT:
-        return MemberType.SINGLE;
+        return MemberType.FLOAT;
       case Type.LONG:
+        return MemberType.LONG;
       case Type.DOUBLE:
-        return MemberType.WIDE;
+        return MemberType.DOUBLE;
       case Type.VOID:
         // Illegal. Throws in fallthrough.
       default:
@@ -2438,24 +2452,23 @@ public class JarSourceCode implements SourceCode {
   private void build(FieldInsnNode insn, IRBuilder builder) {
     DexField field = application.getField(insn.owner, insn.name, insn.desc);
     Type type = Type.getType(insn.desc);
-    MemberType fieldType = memberType(insn.desc);
     switch (insn.getOpcode()) {
       case Opcodes.GETSTATIC:
-        builder.addStaticGet(fieldType, state.push(type), field);
+        builder.addStaticGet(state.push(type), field);
         break;
       case Opcodes.PUTSTATIC:
-        builder.addStaticPut(fieldType, state.pop(type).register, field);
+        builder.addStaticPut(state.pop(type).register, field);
         break;
       case Opcodes.GETFIELD: {
         Slot object = state.pop(JarState.OBJECT_TYPE);
         int dest = state.push(type);
-        builder.addInstanceGet(fieldType, dest, object.register, field);
+        builder.addInstanceGet(dest, object.register, field);
         break;
       }
       case Opcodes.PUTFIELD: {
         Slot value = state.pop(type);
         Slot object = state.pop(JarState.OBJECT_TYPE);
-        builder.addInstancePut(fieldType, value.register, object.register, field);
+        builder.addInstancePut(value.register, object.register, field);
         break;
       }
       default:
@@ -2516,11 +2529,7 @@ public class JarSourceCode implements SourceCode {
     // Move the result to the "top of stack".
     Type returnType = Type.getReturnType(methodDesc);
     if (returnType != Type.VOID_TYPE) {
-      if (returnType == Type.BOOLEAN_TYPE) {
-        builder.addBooleanMoveResult(valueType(returnType), state.push(returnType));
-      } else {
-        builder.addMoveResult(valueType(returnType), state.push(returnType));
-      }
+      builder.addMoveResult(state.push(returnType));
     }
   }
 
@@ -2765,7 +2774,7 @@ public class JarSourceCode implements SourceCode {
     }
     builder.addInvokeNewArray(dimArrayType, insn.dims, dimensions);
     int dimensionsDestTemp = state.push(INT_ARRAY_TYPE);
-    builder.addMoveResult(ValueType.OBJECT, dimensionsDestTemp);
+    builder.addMoveResult(dimensionsDestTemp);
     // Push the class object for the member type of the array.
     int classDestTemp = state.push(CLASS_TYPE);
     builder.ensureBlockForThrowingInstruction();
@@ -2782,7 +2791,7 @@ public class JarSourceCode implements SourceCode {
     state.pop(); // classDestTemp.
     state.pop(); // dimensionsDestTemp.
     int result = state.push(arrayType);
-    builder.addMoveResult(valueType(arrayType), result);
+    builder.addMoveResult(result);
     // Insert cast check to satisfy verification.
     builder.ensureBlockForThrowingInstruction();
     builder.addCheckCast(result, dexArrayType);

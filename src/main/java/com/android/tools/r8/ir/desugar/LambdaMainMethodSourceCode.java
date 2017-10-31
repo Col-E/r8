@@ -12,7 +12,6 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.Invoke;
-import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
@@ -227,8 +226,7 @@ final class LambdaMainMethodSourceCode extends SynthesizedLambdaSourceCode {
     // Load captures if needed.
     int capturedValues = capturedTypes.length;
     for (int i = 0; i < capturedValues; i++) {
-      MemberType memberType = MemberType.fromDexType(capturedTypes[i]);
-      ValueType valueType = MemberType.moveTypeFor(memberType);
+      ValueType valueType = ValueType.fromDexType(capturedTypes[i]);
       int register = nextRegister(valueType);
 
       argValueTypes.add(valueType);
@@ -236,8 +234,7 @@ final class LambdaMainMethodSourceCode extends SynthesizedLambdaSourceCode {
 
       // Read field into tmp local.
       DexField field = lambda.getCaptureField(i);
-      add(builder -> builder.addInstanceGet(
-          memberType, register, getReceiverRegister(), field));
+      add(builder -> builder.addInstanceGet(register, getReceiverRegister(), field));
     }
 
     // Prepare arguments.
@@ -265,7 +262,7 @@ final class LambdaMainMethodSourceCode extends SynthesizedLambdaSourceCode {
     } else {
       ValueType implValueType = ValueType.fromDexType(implReturnType);
       int tempValue = nextRegister(implValueType);
-      add(builder -> builder.addMoveResult(implValueType, tempValue));
+      add(builder -> builder.addMoveResult(tempValue));
       int adjustedValue = prepareReturnValue(tempValue,
           erasedReturnType, enforcedReturnType, methodToCall.proto.returnType);
       ValueType adjustedValueType = ValueType.fromDexType(erasedReturnType);
@@ -469,7 +466,7 @@ final class LambdaMainMethodSourceCode extends SynthesizedLambdaSourceCode {
 
     ValueType valueType = ValueType.fromDexType(primitiveType);
     int result = nextRegister(valueType);
-    add(builder -> builder.addMoveResult(valueType, result));
+    add(builder -> builder.addMoveResult(result));
     return result;
   }
 
@@ -491,7 +488,7 @@ final class LambdaMainMethodSourceCode extends SynthesizedLambdaSourceCode {
         method, method.proto, argValueTypes, argRegisters));
 
     int result = nextRegister(ValueType.OBJECT);
-    add(builder -> builder.addMoveResult(ValueType.OBJECT, result));
+    add(builder -> builder.addMoveResult(result));
     return result;
   }
 }
