@@ -22,6 +22,11 @@ public final class InvokeCustom extends Invoke {
     this.callSite = callSite;
   }
 
+  @Override
+  public DexType getReturnType() {
+    return callSite.methodProto.returnType;
+  }
+
   public DexCallSite getCallSite() {
     return callSite;
   }

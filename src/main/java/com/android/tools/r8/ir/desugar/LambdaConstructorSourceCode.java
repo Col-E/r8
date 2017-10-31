@@ -8,7 +8,6 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.Invoke;
-import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import java.util.Collections;
 
@@ -31,11 +30,9 @@ final class LambdaConstructorSourceCode extends SynthesizedLambdaSourceCode {
     int capturedValues = capturedTypes.length;
     if (capturedValues > 0) {
       for (int i = 0; i < capturedValues; i++) {
-        MemberType memberType = MemberType.fromDexType(capturedTypes[i]);
         DexField field = lambda.getCaptureField(i);
         int idx = i;
-        add(builder -> builder.addInstancePut(memberType,
-            getParamRegister(idx), getReceiverRegister(), field));
+        add(builder -> builder.addInstancePut(getParamRegister(idx), getReceiverRegister(), field));
       }
     }
 

@@ -587,7 +587,7 @@ public class IRBuilder {
     }
     Value value = writeRegister(register, type, ThrowingInfo.NO_THROW, null);
     assert !value.hasLocalInfo();
-    addInstruction(new DebugLocalUninitialized(type, value));
+    addInstruction(new DebugLocalUninitialized(value));
   }
 
   private void addDebugLocalWrite(ValueType type, int dest, Value in) {
@@ -778,7 +778,7 @@ public class IRBuilder {
 
   public void addConst(ValueType type, int dest, long value) {
     Value out = writeRegister(dest, type, ThrowingInfo.NO_THROW);
-    ConstNumber instruction = new ConstNumber(type, out, value);
+    ConstNumber instruction = new ConstNumber(out, value);
     assert !instruction.instructionTypeCanThrow();
     add(instruction);
   }
@@ -793,7 +793,7 @@ public class IRBuilder {
       currentBlock.writeCurrentDefinition(dest, existing.outValue(), ThrowingInfo.NO_THROW);
     } else {
       Value out = writeRegister(dest, type, ThrowingInfo.NO_THROW);
-      ConstNumber instruction = new ConstNumber(type, out, value);
+      ConstNumber instruction = new ConstNumber(out, value);
       BasicBlock entryBlock = blocks.get(0);
       if (currentBlock != entryBlock) {
         // Insert the constant instruction at the start of the block right after the argument
@@ -1020,11 +1020,8 @@ public class IRBuilder {
     }
   }
 
-  public void addInstanceGet(
-      MemberType type,
-      int dest,
-      int object,
-      DexField field) {
+  public void addInstanceGet(int dest, int object, DexField field) {
+    MemberType type = MemberType.fromDexType(field.type);
     Value in = readRegister(object, ValueType.OBJECT);
     Value out = writeRegister(dest, ValueType.fromMemberType(type), ThrowingInfo.CAN_THROW);
     out.setKnownToBeBoolean(type == MemberType.BOOLEAN);
@@ -1041,11 +1038,8 @@ public class IRBuilder {
     addInstruction(instruction);
   }
 
-  public void addInstancePut(
-      MemberType type,
-      int value,
-      int object,
-      DexField field) {
+  public void addInstancePut(int value, int object, DexField field) {
+    MemberType type = MemberType.fromDexType(field.type);
     List<Value> values = new ArrayList<>(2);
     values.add(readRegister(value, ValueType.fromMemberType(type)));
     values.add(readRegister(object, ValueType.OBJECT));
@@ -1274,21 +1268,14 @@ public class IRBuilder {
     addInstruction(instruction);
   }
 
-  public void addMoveResult(ValueType type, int dest) {
+  public void addMoveResult(int dest) {
     List<Instruction> instructions = currentBlock.getInstructions();
     Invoke invoke = instructions.get(instructions.size() - 1).asInvoke();
     assert invoke.outValue() == null;
     assert invoke.instructionTypeCanThrow();
-    invoke.setOutValue(writeRegister(dest, type, ThrowingInfo.CAN_THROW));
-  }
-
-  public void addBooleanMoveResult(ValueType type, int dest) {
-    List<Instruction> instructions = currentBlock.getInstructions();
-    Invoke invoke = instructions.get(instructions.size() - 1).asInvoke();
-    assert invoke.outValue() == null;
-    assert invoke.instructionTypeCanThrow();
-    Value outValue = writeRegister(dest, type, ThrowingInfo.CAN_THROW);
-    outValue.setKnownToBeBoolean(true);
+    DexType outType = invoke.getReturnType();
+    Value outValue = writeRegister(dest, ValueType.fromDexType(outType), ThrowingInfo.CAN_THROW);
+    outValue.setKnownToBeBoolean(outType.isBooleanType());
     invoke.setOutValue(outValue);
   }
 
@@ -1345,7 +1332,8 @@ public class IRBuilder {
     closeCurrentBlock();
   }
 
-  public void addStaticGet(MemberType type, int dest, DexField field) {
+  public void addStaticGet(int dest, DexField field) {
+    MemberType type = MemberType.fromDexType(field.type);
     Value out = writeRegister(dest, ValueType.fromMemberType(type), ThrowingInfo.CAN_THROW);
     out.setKnownToBeBoolean(type == MemberType.BOOLEAN);
     StaticGet instruction = new StaticGet(type, out, field);
@@ -1353,7 +1341,8 @@ public class IRBuilder {
     addInstruction(instruction);
   }
 
-  public void addStaticPut(MemberType type, int value, DexField field) {
+  public void addStaticPut(int value, DexField field) {
+    MemberType type = MemberType.fromDexType(field.type);
     Value in = readRegister(value, ValueType.fromMemberType(type));
     add(new StaticPut(type, in, field));
   }
@@ -1660,7 +1649,7 @@ public class IRBuilder {
 
   public Value readLiteral(NumericType type, long constant) {
     Value value = new Value(valueNumberGenerator.next(), ValueType.fromNumericType(type), null);
-    add(new ConstNumber(ValueType.fromNumericType(type), value, constant));
+    add(new ConstNumber(value, constant));
     return value;
   }
 

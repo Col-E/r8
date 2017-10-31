@@ -37,7 +37,7 @@ public class AgetWide extends Format23x {
 
   @Override
   public void buildIR(IRBuilder builder) {
-    builder.addArrayGet(MemberType.WIDE, AA, BB, CC);
+    builder.addArrayGet(MemberType.LONG_OR_DOUBLE, AA, BB, CC);
   }
 
   @Override

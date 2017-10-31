@@ -482,15 +482,15 @@ public class IRCode {
   }
 
   public ConstNumber createIntConstant(int value) {
-    return new ConstNumber(ValueType.INT, createValue(ValueType.INT), value);
+    return new ConstNumber(createValue(ValueType.INT), value);
   }
 
   public ConstNumber createTrue() {
-    return new ConstNumber(ValueType.INT, createValue(ValueType.INT), 1);
+    return new ConstNumber(createValue(ValueType.INT), 1);
   }
 
   public ConstNumber createFalse() {
-    return new ConstNumber(ValueType.INT, createValue(ValueType.INT), 0);
+    return new ConstNumber(createValue(ValueType.INT), 0);
   }
 
   public final int getHighestBlockNumber() {
@@ -498,8 +498,7 @@ public class IRCode {
   }
 
   public Instruction createConstNull(Instruction from) {
-    Value newValue = createValue(from.outType());
-    return new ConstNumber(from.outType(), newValue, 0);
+    return new ConstNumber(createValue(from.outType()), 0);
   }
 
   public boolean doAllThrowingInstructionsHavePositions() {

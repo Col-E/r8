@@ -47,10 +47,14 @@ public class ArrayGet extends Instruction {
     int index = builder.allocatedRegister(index(), getNumber());
     com.android.tools.r8.code.Instruction instruction;
     switch (type) {
-      case SINGLE:
+      case INT:
+      case FLOAT:
+      case INT_OR_FLOAT:
         instruction = new Aget(dest, array, index);
         break;
-      case WIDE:
+      case LONG:
+      case DOUBLE:
+      case LONG_OR_DOUBLE:
         instruction = new AgetWide(dest, array, index);
         break;
       case OBJECT:

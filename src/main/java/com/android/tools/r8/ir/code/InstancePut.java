@@ -40,10 +40,14 @@ public class InstancePut extends FieldInstruction {
     int valueRegister = builder.allocatedRegister(value(), getNumber());
     int objectRegister = builder.allocatedRegister(object(), getNumber());
     switch (type) {
-      case SINGLE:
+      case INT:
+      case FLOAT:
+      case INT_OR_FLOAT:
         instruction = new Iput(valueRegister, objectRegister, field);
         break;
-      case WIDE:
+      case LONG:
+      case DOUBLE:
+      case LONG_OR_DOUBLE:
         instruction = new IputWide(valueRegister, objectRegister, field);
         break;
       case OBJECT:

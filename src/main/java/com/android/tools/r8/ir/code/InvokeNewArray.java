@@ -21,6 +21,11 @@ public class InvokeNewArray extends Invoke {
     this.type = type;
   }
 
+  @Override
+  public DexType getReturnType() {
+    return getArrayType();
+  }
+
   public DexType getArrayType() {
     return type;
   }

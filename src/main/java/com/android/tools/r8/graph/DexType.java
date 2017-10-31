@@ -303,6 +303,10 @@ public class DexType extends IndexedDexItem implements PresortedComparable<DexTy
     return (char) descriptor.content[0] == 'V';
   }
 
+  public boolean isBooleanType() {
+    return descriptor.content[0] == 'Z';
+  }
+
   public boolean isArrayType() {
     char firstChar = (char) descriptor.content[0];
     return firstChar == '[';

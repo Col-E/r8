@@ -75,11 +75,12 @@ public class MemberValuePropagation {
     if (rule != null && rule.hasReturnValue() && rule.getReturnValue().isSingleValue()) {
       assert valueType != ValueType.OBJECT;
       Value value = code.createValue(valueType, instruction.getLocalInfo());
-      replacement = new ConstNumber(valueType, value, rule.getReturnValue().getSingleValue());
+      replacement = new ConstNumber(value, rule.getReturnValue().getSingleValue());
     }
     if (replacement == null &&
         rule != null && rule.hasReturnValue() && rule.getReturnValue().isField()) {
       DexField field = rule.getReturnValue().getField();
+      assert ValueType.fromDexType(field.type) == valueType;
       DexEncodedField staticField = appInfo.lookupStaticTarget(field.clazz, field);
       if (staticField != null) {
         Value value = code.createValue(valueType, instruction.getLocalInfo());
@@ -165,8 +166,7 @@ public class MemberValuePropagation {
               long constant = target.getOptimizationInfo().getReturnedConstant();
               ValueType valueType = invoke.outType();
               Value value = code.createValue(valueType);
-              // TODO(ager): Attempt to get a more precise const type from the method analysis?
-              Instruction knownConstReturn = new ConstNumber(valueType, value, constant);
+              Instruction knownConstReturn = new ConstNumber(value, constant);
               invoke.outValue().replaceUsers(value);
               knownConstReturn.setPosition(invoke.getPosition());
               iterator.add(knownConstReturn);

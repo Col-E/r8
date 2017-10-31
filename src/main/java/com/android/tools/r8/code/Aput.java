@@ -37,7 +37,7 @@ public class Aput extends Format23x {
 
   @Override
   public void buildIR(IRBuilder builder) {
-    builder.addArrayPut(MemberType.SINGLE, AA, BB, CC);
+    builder.addArrayPut(MemberType.INT_OR_FLOAT, AA, BB, CC);
   }
 
   @Override

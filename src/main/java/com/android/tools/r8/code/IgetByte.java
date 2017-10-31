@@ -6,7 +6,6 @@ package com.android.tools.r8.code;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.OffsetToObjectMapping;
 import com.android.tools.r8.graph.UseRegistry;
-import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 
 public class IgetByte extends Format22c {
@@ -49,7 +48,7 @@ public class IgetByte extends Format22c {
 
   @Override
   public void buildIR(IRBuilder builder) {
-    builder.addInstanceGet(MemberType.BYTE, A, B, getField());
+    builder.addInstanceGet(A, B, getField());
   }
 
   @Override

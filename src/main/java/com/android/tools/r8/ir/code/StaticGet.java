@@ -36,10 +36,14 @@ public class StaticGet extends FieldInstruction {
     com.android.tools.r8.code.Instruction instruction;
     int dest = builder.allocatedRegister(dest(), getNumber());
     switch (type) {
-      case SINGLE:
+      case INT:
+      case FLOAT:
+      case INT_OR_FLOAT:
         instruction = new Sget(dest, field);
         break;
-      case WIDE:
+      case LONG:
+      case DOUBLE:
+      case LONG_OR_DOUBLE:
         instruction = new SgetWide(dest, field);
         break;
       case OBJECT:

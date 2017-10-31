@@ -29,12 +29,12 @@ public class Not extends Unop {
     if (type == NumericType.INT) {
       int result = ~(source().getConstInstruction().asConstNumber().getIntValue());
       Value value = code.createValue(valueType, getLocalInfo());
-      return new ConstNumber(valueType, value, result);
+      return new ConstNumber(value, result);
     } else {
       assert type == NumericType.LONG;
       long result = ~source().getConstInstruction().asConstNumber().getLongValue();
       Value value = code.createValue(valueType, getLocalInfo());
-      return new ConstNumber(valueType, value, result);
+      return new ConstNumber(value, result);
     }
   }
 

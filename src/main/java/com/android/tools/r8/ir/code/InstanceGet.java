@@ -40,10 +40,14 @@ public class InstanceGet extends FieldInstruction {
     int objectRegister = builder.allocatedRegister(object(), getNumber());
     com.android.tools.r8.code.Instruction instruction;
     switch (type) {
-      case SINGLE:
+      case INT:
+      case FLOAT:
+      case INT_OR_FLOAT:
         instruction = new Iget(destRegister, objectRegister, field);
         break;
-      case WIDE:
+      case LONG:
+      case DOUBLE:
+      case LONG_OR_DOUBLE:
         instruction = new IgetWide(destRegister, objectRegister, field);
         break;
       case OBJECT:

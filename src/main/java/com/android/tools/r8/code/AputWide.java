@@ -37,7 +37,7 @@ public class AputWide extends Format23x {
 
   @Override
   public void buildIR(IRBuilder builder) {
-    builder.addArrayPut(MemberType.WIDE, AA, BB, CC);
+    builder.addArrayPut(MemberType.LONG_OR_DOUBLE, AA, BB, CC);
   }
 
   @Override

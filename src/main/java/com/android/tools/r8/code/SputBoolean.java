@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.code;
 
-import static com.android.tools.r8.ir.code.MemberType.BOOLEAN;
-
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.OffsetToObjectMapping;
 import com.android.tools.r8.graph.UseRegistry;
@@ -51,7 +49,7 @@ public class SputBoolean extends Format21c {
 
   @Override
   public void buildIR(IRBuilder builder) {
-    builder.addStaticPut(BOOLEAN, AA, getField());
+    builder.addStaticPut(AA, getField());
   }
 
   @Override

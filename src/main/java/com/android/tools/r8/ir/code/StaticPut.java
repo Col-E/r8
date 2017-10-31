@@ -34,10 +34,14 @@ public class StaticPut extends FieldInstruction {
     com.android.tools.r8.code.Instruction instruction;
     int src = builder.allocatedRegister(inValue(), getNumber());
     switch (type) {
-      case SINGLE:
+      case INT:
+      case FLOAT:
+      case INT_OR_FLOAT:
         instruction = new Sput(src, field);
         break;
-      case WIDE:
+      case LONG:
+      case DOUBLE:
+      case LONG_OR_DOUBLE:
         instruction = new SputWide(src, field);
         break;
       case OBJECT:

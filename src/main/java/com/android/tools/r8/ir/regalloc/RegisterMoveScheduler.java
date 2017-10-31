@@ -136,7 +136,7 @@ public class RegisterMoveScheduler {
         instruction = new Move(to, from);
       } else {
         ConstNumber number = move.definition.asConstNumber();
-        instruction = new ConstNumber(number.type, to, number.getRawValue());
+        instruction = new ConstNumber(to, number.getRawValue());
       }
     } else {
       Value from = new FixedRegisterValue(move.type, valueMap.get(move.src));

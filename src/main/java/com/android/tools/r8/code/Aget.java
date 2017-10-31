@@ -37,7 +37,7 @@ public class Aget extends Format23x {
 
   @Override
   public void buildIR(IRBuilder builder) {
-    builder.addArrayGet(MemberType.SINGLE, AA, BB, CC);
+    builder.addArrayGet(MemberType.INT_OR_FLOAT, AA, BB, CC);
   }
 
   @Override
