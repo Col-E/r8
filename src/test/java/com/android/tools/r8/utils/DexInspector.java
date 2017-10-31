@@ -270,6 +270,10 @@ public class DexInspector {
       return method("void", "<clinit>", ImmutableList.of());
     }
 
+    public MethodSubject init(List<String> parameters) {
+      return method("void", "<init>", parameters);
+    }
+
     public MethodSubject method(MethodSignature signature) {
       return method(signature.type, signature.name, ImmutableList.copyOf(signature.parameters));
     }

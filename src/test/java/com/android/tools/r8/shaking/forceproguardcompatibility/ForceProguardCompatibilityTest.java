@@ -5,7 +5,6 @@
 package com.android.tools.r8.shaking.forceproguardcompatibility;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.R8Command;
@@ -16,12 +15,18 @@ import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.DexInspector.MethodSubject;
+import com.android.tools.r8.utils.FileUtils;
 import com.google.common.collect.ImmutableList;
+import java.io.File;
+import java.nio.file.Path;
+import java.util.List;
 import org.junit.Test;
 
 public class ForceProguardCompatibilityTest extends TestBase {
-  private void test(Class mainClass, Class mentionedClass, boolean arrayClass,
-      boolean forceProguardCompatibility)
+  // Actually running Proguard should only be during development.
+  private final boolean RUN_PROGUARD = false;
+
+  private void test(Class mainClass, Class mentionedClass, boolean forceProguardCompatibility)
       throws Exception {
     String proguardConfig = keepMainProguardConfiguration(mainClass, true, false);
     DexInspector inspector = new DexInspector(
@@ -32,28 +37,24 @@ public class ForceProguardCompatibilityTest extends TestBase {
     assertTrue(inspector.clazz(mainClass.getCanonicalName()).isPresent());
     ClassSubject clazz = inspector.clazz(getJavacGeneratedClassName(mentionedClass));
     assertTrue(clazz.isPresent());
-    if (arrayClass) {
-      MethodSubject defaultInitializer = clazz.method(MethodSignature.initializer(new String[]{}));
-      assertFalse(defaultInitializer.isPresent());
-    } else {
-      MethodSubject defaultInitializer = clazz.method(MethodSignature.initializer(new String[]{}));
-      assertEquals(forceProguardCompatibility, defaultInitializer.isPresent());
-    }
+    MethodSubject defaultInitializer = clazz.method(MethodSignature.initializer(new String[]{}));
+    assertEquals(forceProguardCompatibility, defaultInitializer.isPresent());
   }
 
   @Test
   public void testKeepDefaultInitializer() throws Exception {
-    test(TestMain.class, TestMain.MentionedClass.class, false, true);
-    test(TestMain.class, TestMain.MentionedClass.class, false, false);
+    test(TestMain.class, TestMain.MentionedClass.class, true);
+    test(TestMain.class, TestMain.MentionedClass.class, false);
   }
 
   @Test
   public void testKeepDefaultInitializerArrayType() throws Exception {
-    test(TestMainArrayType.class, TestMainArrayType.MentionedClass.class, true, true);
-    test(TestMainArrayType.class, TestMainArrayType.MentionedClass.class, true, false);
+    test(TestMainArrayType.class, TestMainArrayType.MentionedClass.class, true);
+    test(TestMainArrayType.class, TestMainArrayType.MentionedClass.class, false);
   }
 
-  private void runAnnotationsTest(boolean forceProguardCompatibility, boolean keepAnnotations) throws Exception {
+  private void runAnnotationsTest(boolean forceProguardCompatibility, boolean keepAnnotations)
+      throws Exception {
     R8Command.Builder builder =
         new CompatProguardCommandBuilder(forceProguardCompatibility, false);
     // Add application classes including the annotation class.
@@ -92,5 +93,36 @@ public class ForceProguardCompatibilityTest extends TestBase {
     runAnnotationsTest(true, false);
     runAnnotationsTest(false, true);
     runAnnotationsTest(false, false);
+  }
+
+  private void runDefaultConstructorTest(boolean forceProguardCompatibility,
+      Class<?> testClass, boolean hasDefaultConstructor) throws Exception {
+    R8Command.Builder builder = new CompatProguardCommandBuilder(forceProguardCompatibility, false);
+    builder.addProgramFiles(ToolHelper.getClassFileForTestClass(testClass));
+    List<String> proguardConfig = ImmutableList.of(
+        "-keep class " + testClass.getCanonicalName() + " {",
+        "  public void method();",
+        "}");
+    builder.addProguardConfiguration(proguardConfig);
+    DexInspector inspector = new DexInspector(ToolHelper.runR8(builder.build()));
+    ClassSubject clazz = inspector.clazz(getJavacGeneratedClassName(testClass));
+    assertTrue(clazz.isPresent());
+    assertEquals(forceProguardCompatibility && hasDefaultConstructor,
+        clazz.init(ImmutableList.of()).isPresent());
+
+    if (RUN_PROGUARD) {
+      Path proguardedJar = File.createTempFile("proguarded", ".jar", temp.getRoot()).toPath();
+      Path proguardConfigFile = File.createTempFile("proguard", ".config", temp.getRoot()).toPath();
+      FileUtils.writeTextFile(proguardConfigFile, proguardConfig);
+      ToolHelper.runProguard(jarTestClasses(testClass), proguardedJar, proguardConfigFile);
+    }
+  }
+
+  @Test
+  public void testDefaultConstructor() throws Exception {
+    runDefaultConstructorTest(true, TestClassWithDefaultConstructor.class, true);
+    runDefaultConstructorTest(true, TestClassWithoutDefaultConstructor.class, false);
+    runDefaultConstructorTest(false, TestClassWithDefaultConstructor.class, true);
+    runDefaultConstructorTest(false, TestClassWithoutDefaultConstructor.class, false);
   }
 }

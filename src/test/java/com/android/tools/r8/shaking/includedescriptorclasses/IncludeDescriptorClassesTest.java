@@ -6,13 +6,11 @@ package com.android.tools.r8.shaking.includedescriptorclasses;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.DexInspector;
 import com.google.common.collect.ImmutableList;
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -25,29 +23,6 @@ import java.util.zip.ZipFile;
 import org.junit.Test;
 
 public class IncludeDescriptorClassesTest extends TestBase {
-
-  private static String PROGUARD = "third_party/proguard/proguard5.2.1/bin/proguard.sh";
-
-  private Path runProguard(Path inJar, Path config) throws IOException {
-    Path outJar = File.createTempFile("junit", ".jar", temp.getRoot()).toPath();
-    List<String> command = new ArrayList<>();
-    command.add(PROGUARD);
-    command.add("-forceprocessing");  // Proguard just checks the creation time on the in/out jars.
-    command.add("-injars");
-    command.add(inJar.toString());
-    command.add("-libraryjars");
-    command.add(ToolHelper.getDefaultAndroidJar());
-    command.add("@" + config);
-    command.add("-outjar");
-    command.add(outJar.toString());
-    command.add("-printmapping");
-    ProcessBuilder builder = new ProcessBuilder(command);
-    ToolHelper.ProcessResult result = ToolHelper.runProcess(builder);
-    if (result.exitCode != 0) {
-      fail("Proguard failed, exit code " + result.exitCode + ", stderr:\n" + result.stderr);
-    }
-    return outJar;
-  }
 
   private Set<String> readJarClasses(Path jar) throws IOException {
     Set<String> result = new HashSet<>();
@@ -115,7 +90,8 @@ public class IncludeDescriptorClassesTest extends TestBase {
     Set<String> classesAfterProguard = null;
     // Actually running Proguard should only be during development.
     if (false) {
-      Path proguardedJar = runProguard(jarTestClasses(classes), proguardConfig);
+      Path proguardedJar = temp.newFile("proguarded.jar").toPath();
+      ToolHelper.runProguard(jarTestClasses(classes), proguardedJar, proguardConfig);
       classesAfterProguard = readJarClasses(proguardedJar);
     }
 
