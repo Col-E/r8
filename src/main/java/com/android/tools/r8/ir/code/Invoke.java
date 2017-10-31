@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.code;
 import com.android.tools.r8.code.MoveResult;
 import com.android.tools.r8.code.MoveResultObject;
 import com.android.tools.r8.code.MoveResultWide;
+import com.android.tools.r8.code.MoveType;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
@@ -137,9 +138,10 @@ public abstract class Invoke extends Instruction {
 
   protected void addInvokeAndMoveResult(com.android.tools.r8.code.Instruction instruction, DexBuilder builder) {
     if (outValue != null && outValue.needsRegister()) {
+      MoveType moveType = MoveType.fromValueType(outType());
       int register = builder.allocatedRegister(outValue, getNumber());
       com.android.tools.r8.code.Instruction moveResult;
-      switch (outType()) {
+      switch (moveType) {
         case SINGLE:
           moveResult = new MoveResult(register);
           break;

@@ -18,7 +18,6 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
-import com.android.tools.r8.ir.conversion.CfBuilder.LocalType;
 import com.android.tools.r8.ir.conversion.CfBuilder.StackHelper;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 
@@ -119,7 +118,7 @@ public class StaticGet extends FieldInstruction {
 
   @Override
   public void insertLoadAndStores(InstructionListIterator it, StackHelper stack) {
-    stack.storeOutValue(this, LocalType.fromDexType(field.type), it);
+    stack.storeOutValue(this, it);
   }
 
   @Override

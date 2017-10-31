@@ -70,10 +70,10 @@ public class Value {
 
   public static final int UNDEFINED_NUMBER = -1;
 
-  public static final Value UNDEFINED = new Value(UNDEFINED_NUMBER, MoveType.OBJECT, null);
+  public static final Value UNDEFINED = new Value(UNDEFINED_NUMBER, ValueType.OBJECT, null);
 
   protected final int number;
-  protected final MoveType type;
+  protected final ValueType type;
   public Instruction definition = null;
   private LinkedList<Instruction> users = new LinkedList<>();
   private Set<Instruction> uniqueUsers = null;
@@ -90,7 +90,7 @@ public class Value {
   private LongInterval valueRange;
   private DebugData debugData;
 
-  public Value(int number, MoveType type, DebugLocalInfo local) {
+  public Value(int number, ValueType type, DebugLocalInfo local) {
     this.number = number;
     this.type = type;
     this.debugData = local == null ? null : new DebugData(local);
@@ -463,7 +463,7 @@ public class Value {
       builder.append("(");
       if (isConstant) {
         ConstNumber constNumber = definition.asConstNumber();
-        if (constNumber.outType() == MoveType.SINGLE) {
+        if (constNumber.outType().isSingle()) {
           builder.append((int) constNumber.getRawValue());
         } else {
           builder.append(constNumber.getRawValue());
@@ -483,7 +483,7 @@ public class Value {
     return builder.toString();
   }
 
-  public MoveType outType() {
+  public ValueType outType() {
     return type;
   }
 
@@ -580,11 +580,11 @@ public class Value {
 
   public LongInterval getValueRange() {
     if (isConstNumber()) {
-      if (type == MoveType.SINGLE) {
+      if (type.isSingle()) {
         int value = getConstInstruction().asConstNumber().getIntValue();
         return new LongInterval(value, value);
       } else {
-        assert type == MoveType.WIDE;
+        assert type.isWide();
         long value = getConstInstruction().asConstNumber().getLongValue();
         return new LongInterval(value, value);
       }

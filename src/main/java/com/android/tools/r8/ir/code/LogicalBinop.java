@@ -37,8 +37,8 @@ public abstract class LogicalBinop extends Binop {
       int left = leftValue().getConstInstruction().asConstNumber().getIntValue();
       int right = rightValue().getConstInstruction().asConstNumber().getIntValue();
       int result = foldIntegers(left, right);
-      Value value = code.createValue(MoveType.SINGLE, getLocalInfo());
-      return new ConstNumber(ConstType.INT, value, result);
+      Value value = code.createValue(ValueType.INT, getLocalInfo());
+      return new ConstNumber(ValueType.INT, value, result);
     } else {
       assert type == NumericType.LONG;
       long left = leftValue().getConstInstruction().asConstNumber().getLongValue();
@@ -50,8 +50,8 @@ public abstract class LogicalBinop extends Binop {
         right = rightValue().getConstInstruction().asConstNumber().getLongValue();
       }
       long result = foldLongs(left, right);
-      Value value = code.createValue(MoveType.WIDE, getLocalInfo());
-      return new ConstNumber(ConstType.LONG, value, result);
+      Value value = code.createValue(ValueType.LONG, getLocalInfo());
+      return new ConstNumber(ValueType.LONG, value, result);
     }
   }
 

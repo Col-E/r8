@@ -17,8 +17,8 @@ package com.android.tools.r8.ir.code;
  */
 public class DebugLocalUninitialized extends ConstNumber {
 
-  public DebugLocalUninitialized(ConstType type, Value value) {
-    super(type == ConstType.OBJECT ? ConstType.INT : type, value, 0);
+  public DebugLocalUninitialized(ValueType type, Value value) {
+    super(type == ValueType.OBJECT ? ValueType.INT : type, value, 0);
   }
 
   @Override

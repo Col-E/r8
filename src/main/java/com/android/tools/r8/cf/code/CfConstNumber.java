@@ -4,15 +4,15 @@
 package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.ir.code.ConstType;
+import com.android.tools.r8.ir.code.ValueType;
 import org.objectweb.asm.MethodVisitor;
 
 public class CfConstNumber extends CfInstruction {
 
   private final long value;
-  private final ConstType type;
+  private final ValueType type;
 
-  public CfConstNumber(long value, ConstType type) {
+  public CfConstNumber(long value, ValueType type) {
     this.value = value;
     this.type = type;
   }

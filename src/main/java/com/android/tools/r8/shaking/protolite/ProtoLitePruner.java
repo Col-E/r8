@@ -24,9 +24,9 @@ import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.MemberType;
-import com.android.tools.r8.ir.code.MoveType;
 import com.android.tools.r8.ir.code.Switch;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.optimize.SwitchUtils;
 import com.android.tools.r8.ir.optimize.SwitchUtils.EnumSwitchInfo;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
@@ -471,9 +471,9 @@ public class ProtoLitePruner extends ProtoLiteBase {
               if (appInfo.withLiveness().liveFields.contains(field)) {
                 // Effectively inline the code that is normally inside these methods.
                 Value thisReference = invokeMethod.getReceiver();
-                Value newResult = code.createValue(MoveType.SINGLE);
+                Value newResult = code.createValue(ValueType.INT);
                 invokeMethod.outValue().replaceUsers(newResult);
-                Value theList = code.createValue(MoveType.OBJECT);
+                Value theList = code.createValue(ValueType.OBJECT);
                 it.replaceCurrentInstruction(
                     new InstanceGet(MemberType.OBJECT, theList, thisReference, field));
                 it.add(new InvokeInterface(sizeMethod, newResult, Collections.emptyList()));

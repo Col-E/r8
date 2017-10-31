@@ -5,21 +5,17 @@ package com.android.tools.r8.ir.conversion;
 
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.errors.Unimplemented;
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.BasicBlock;
-import com.android.tools.r8.ir.code.ConstType;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Load;
-import com.android.tools.r8.ir.code.MoveType;
 import com.android.tools.r8.ir.code.Pop;
 import com.android.tools.r8.ir.code.StackValue;
 import com.android.tools.r8.ir.code.Store;
@@ -28,57 +24,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class CfBuilder {
-
-  public enum LocalType {
-    REFERENCE,
-    INTEGER,
-    FLOAT,
-    LONG,
-    DOUBLE;
-
-    public static LocalType fromDexType(DexType type) {
-      switch (type.toShorty()) {
-        case 'Z':
-        case 'B':
-        case 'C':
-        case 'S':
-        case 'I':
-          return INTEGER;
-        case 'F':
-          return FLOAT;
-        case 'J':
-          return LONG;
-        case 'D':
-          return DOUBLE;
-        case 'L':
-          return REFERENCE;
-        default:
-          throw new Unreachable("Unexpected type " + type);
-      }
-    }
-
-    public static LocalType fromConstType(ConstType type) {
-      switch (type) {
-        case INT:
-          return INTEGER;
-        case DOUBLE:
-          return DOUBLE;
-        case FLOAT:
-          return FLOAT;
-        case OBJECT:
-          return REFERENCE;
-        case LONG:
-          return LONG;
-        case INT_OR_FLOAT:
-        case LONG_OR_DOUBLE:
-          throw new Unreachable("Const combination types not supported in cf backend");
-        default:
-          throw new Unreachable("Unexpected type " + type);
-      }
-    }
-
-  }
-
 
   private final DexEncodedMethod method;
   private final IRCode code;
@@ -92,31 +37,25 @@ public class CfBuilder {
       this.method = method;
     }
 
-    public void loadInValues(
-        Instruction instruction,
-        List<Value> values,
-        List<LocalType> types,
-        InstructionListIterator it) {
-      assert values.size() == types.size();
+    public void loadInValues(Instruction instruction, InstructionListIterator it) {
       it.previous();
-      for (int i = 0; i < values.size(); i++) {
-        Value value = values.get(i);
-        LocalType type = types.get(i);
+      for (int i = 0; i < instruction.inValues().size(); i++) {
+        Value value = instruction.inValues().get(i);
         StackValue stackValue = new StackValue(value.outType());
         instruction.replaceValue(value, stackValue);
-        add(new Load(type, stackValue, value), instruction, it);
+        add(new Load(stackValue, value), instruction, it);
       }
       it.next();
     }
 
-    public void storeOutValue(Instruction instruction, LocalType type, InstructionListIterator it) {
+    public void storeOutValue(Instruction instruction, InstructionListIterator it) {
       StackValue newOutValue = new StackValue(instruction.outType());
       Value oldOutValue = instruction.swapOutValue(newOutValue);
-      add(new Store(type, oldOutValue, newOutValue), instruction, it);
+      add(new Store(oldOutValue, newOutValue), instruction, it);
     }
 
-    public void popOutValue(Instruction instruction, MoveType type, InstructionListIterator it) {
-      StackValue newOutValue = new StackValue(type);
+    public void popOutValue(Instruction instruction, InstructionListIterator it) {
+      StackValue newOutValue = new StackValue(instruction.outType());
       instruction.swapOutValue(newOutValue);
       add(new Pop(newOutValue), instruction, it);
     }

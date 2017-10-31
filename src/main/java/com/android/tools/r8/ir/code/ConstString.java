@@ -7,7 +7,6 @@ import com.android.tools.r8.cf.code.CfConstString;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.ir.conversion.CfBuilder;
-import com.android.tools.r8.ir.conversion.CfBuilder.LocalType;
 import com.android.tools.r8.ir.conversion.CfBuilder.StackHelper;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 
@@ -84,7 +83,7 @@ public class ConstString extends ConstInstruction {
 
   @Override
   public void insertLoadAndStores(InstructionListIterator it, StackHelper stack) {
-    stack.storeOutValue(this, LocalType.REFERENCE, it);
+    stack.storeOutValue(this, it);
   }
 
   @Override

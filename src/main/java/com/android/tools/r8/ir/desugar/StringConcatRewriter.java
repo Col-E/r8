@@ -20,9 +20,9 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeCustom;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeVirtual;
-import com.android.tools.r8.ir.code.MoveType;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.code.ValueType;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -328,7 +328,7 @@ public class StringConcatRewriter {
       instructions.previous();
 
       // new-instance v0, StringBuilder
-      Value sbInstance = code.createValue(MoveType.OBJECT);
+      Value sbInstance = code.createValue(ValueType.OBJECT);
       appendInstruction(new NewInstance(factory.stringBuilderType, sbInstance));
 
       // invoke-direct {v0}, void StringBuilder.<init>()
@@ -349,7 +349,7 @@ public class StringConcatRewriter {
       Value concatValue = invokeCustom.outValue();
       if (concatValue == null) {
         // The out value might be empty in case it was optimized out.
-        concatValue = code.createValue(MoveType.OBJECT);
+        concatValue = code.createValue(ValueType.OBJECT);
       }
 
       // Replace the instruction.
@@ -427,7 +427,7 @@ public class StringConcatRewriter {
 
       @Override
       Value getOrCreateValue() {
-        Value value = code.createValue(MoveType.OBJECT);
+        Value value = code.createValue(ValueType.OBJECT);
         appendInstruction(new ConstString(value, factory.createString(str)));
         return value;
       }

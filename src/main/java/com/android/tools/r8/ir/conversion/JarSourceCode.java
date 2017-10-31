@@ -22,14 +22,13 @@ import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.JarApplicationReader;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.Cmp.Bias;
-import com.android.tools.r8.ir.code.ConstType;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.Monitor;
-import com.android.tools.r8.ir.code.MoveType;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.IRBuilder.BlockInfo;
 import com.android.tools.r8.ir.conversion.JarState.Local;
 import com.android.tools.r8.ir.conversion.JarState.Slot;
@@ -246,9 +245,9 @@ public class JarSourceCode implements SourceCode {
   @Override
   public void buildPrelude(IRBuilder builder) {
     // Record types for arguments.
-    Int2ReferenceMap<MoveType> argumentLocals = recordArgumentTypes();
-    Int2ReferenceMap<MoveType> initializedLocals = new Int2ReferenceOpenHashMap<>(argumentLocals);
-    Int2ReferenceMap<ConstType> uninitializedLocals = new Int2ReferenceOpenHashMap<>();
+    Int2ReferenceMap<ValueType> argumentLocals = recordArgumentTypes();
+    Int2ReferenceMap<ValueType> initializedLocals = new Int2ReferenceOpenHashMap<>(argumentLocals);
+    Int2ReferenceMap<ValueType> uninitializedLocals = new Int2ReferenceOpenHashMap<>();
     // Initialize all non-argument locals to ensure safe insertion of debug-local instructions.
     for (Object o : node.localVariables) {
       LocalVariableNode local = (LocalVariableNode) o;
@@ -271,13 +270,14 @@ public class JarSourceCode implements SourceCode {
           break;
       }
       int localRegister = state.getLocalRegister(local.index, localType);
-      MoveType existingLocalType = initializedLocals.get(localRegister);
-      assert existingLocalType == null || existingLocalType == moveType(localType);
+      ValueType existingLocalType = initializedLocals.get(localRegister);
+      ValueType localValueType = valueType(localType);
+      assert existingLocalType == null || existingLocalType.compatible(localValueType);
       if (existingLocalType == null) {
         int localRegister2 = state.writeLocal(local.index, localType);
         assert localRegister == localRegister2;
-        initializedLocals.put(localRegister, moveType(localType));
-        uninitializedLocals.put(localRegister, constType(localType));
+        initializedLocals.put(localRegister, localValueType);
+        uninitializedLocals.put(localRegister, localValueType);
       }
     }
 
@@ -295,7 +295,7 @@ public class JarSourceCode implements SourceCode {
     // for arguments.
     buildArgumentInstructions(builder);
 
-    for (Entry<ConstType> entry : uninitializedLocals.int2ReferenceEntrySet()) {
+    for (Entry<ValueType> entry : uninitializedLocals.int2ReferenceEntrySet()) {
       builder.addDebugUninitialized(entry.getIntKey(), entry.getValue());
     }
 
@@ -337,31 +337,31 @@ public class JarSourceCode implements SourceCode {
       builder.addThisArgument(slot.register);
     }
     for (Type type : parameterTypes) {
-      MoveType moveType = moveType(type);
+      ValueType valueType = valueType(type);
       Slot slot = state.readLocal(argumentRegister, type);
       if (type == Type.BOOLEAN_TYPE) {
         builder.addBooleanNonThisArgument(slot.register);
       } else {
-        builder.addNonThisArgument(slot.register, moveType);
+        builder.addNonThisArgument(slot.register, valueType);
       }
-      argumentRegister += moveType.requiredRegisters();
+      argumentRegister += valueType.requiredRegisters();
     }
   }
 
-  private Int2ReferenceMap<MoveType> recordArgumentTypes() {
-    Int2ReferenceMap<MoveType> initializedLocals =
+  private Int2ReferenceMap<ValueType> recordArgumentTypes() {
+    Int2ReferenceMap<ValueType> initializedLocals =
         new Int2ReferenceOpenHashMap<>(node.localVariables.size());
     int argumentRegister = 0;
     if (!isStatic()) {
       Type thisType = Type.getType(clazz.descriptor.toString());
       int register = state.writeLocal(argumentRegister++, thisType);
-      initializedLocals.put(register, moveType(thisType));
+      initializedLocals.put(register, valueType(thisType));
     }
     for (Type type : parameterTypes) {
-      MoveType moveType = moveType(type);
+      ValueType valueType = valueType(type);
       int register = state.writeLocal(argumentRegister, type);
-      argumentRegister += moveType.requiredRegisters();
-      initializedLocals.put(register, moveType);
+      argumentRegister += valueType.requiredRegisters();
+      initializedLocals.put(register, valueType);
     }
     return initializedLocals;
   }
@@ -804,49 +804,27 @@ public class JarSourceCode implements SourceCode {
 
   // Type conversion helpers.
 
-  private static MoveType moveType(Type type) {
+  private static ValueType valueType(Type type) {
     switch (type.getSort()) {
       case Type.ARRAY:
       case Type.OBJECT:
-        return MoveType.OBJECT;
+        return ValueType.OBJECT;
       case Type.BOOLEAN:
       case Type.BYTE:
       case Type.SHORT:
       case Type.CHAR:
       case Type.INT:
+        return ValueType.INT;
       case Type.FLOAT:
-        return MoveType.SINGLE;
+        return ValueType.FLOAT;
       case Type.LONG:
+        return ValueType.LONG;
       case Type.DOUBLE:
-        return MoveType.WIDE;
+        return ValueType.DOUBLE;
       case Type.VOID:
         // Illegal. Throws in fallthrough.
       default:
-        throw new Unreachable("Invalid type in moveType: " + type);
-    }
-  }
-
-  private static ConstType constType(Type type) {
-    switch (type.getSort()) {
-      case Type.ARRAY:
-      case Type.OBJECT:
-        return ConstType.OBJECT;
-      case Type.BOOLEAN:
-      case Type.BYTE:
-      case Type.SHORT:
-      case Type.CHAR:
-      case Type.INT:
-        return ConstType.INT;
-      case Type.FLOAT:
-        return ConstType.FLOAT;
-      case Type.LONG:
-        return ConstType.LONG;
-      case Type.DOUBLE:
-        return ConstType.DOUBLE;
-      case Type.VOID:
-        // Illegal. Throws in fallthrough.
-      default:
-        throw new Unreachable("Invalid type in constType: " + type);
+        throw new Unreachable("Invalid type in valueType: " + type);
     }
   }
 
@@ -1924,7 +1902,7 @@ public class JarSourceCode implements SourceCode {
         Slot value = state.peek();
         assert value.isCategory1();
         int copy = state.push(value.type);
-        builder.addMove(moveType(value.type), copy, value.register);
+        builder.addMove(valueType(value.type), copy, value.register);
         break;
       }
       case Opcodes.DUP_X1: {
@@ -1938,9 +1916,9 @@ public class JarSourceCode implements SourceCode {
         assert value2.register == stack2;
         assert value1.register == stack1;
         // stack0 is new top-of-stack.
-        builder.addMove(moveType(value1.type), stack0, stack1);
-        builder.addMove(moveType(value2.type), stack1, stack2);
-        builder.addMove(moveType(value1.type), stack2, stack0);
+        builder.addMove(valueType(value1.type), stack0, stack1);
+        builder.addMove(valueType(value2.type), stack1, stack2);
+        builder.addMove(valueType(value1.type), stack2, stack0);
         break;
       }
       case Opcodes.DUP_X2: {
@@ -1968,13 +1946,13 @@ public class JarSourceCode implements SourceCode {
           state.push(value1.type);
           int copy2 = state.push(value2.type);
           int copy1 = state.push(value1.type);
-          builder.addMove(moveType(value1.type), copy1, value1.register);
-          builder.addMove(moveType(value2.type), copy2, value2.register);
+          builder.addMove(valueType(value1.type), copy1, value1.register);
+          builder.addMove(valueType(value2.type), copy2, value2.register);
         } else {
           // Stack transformation: ..., w1 -> ..., w1, w1
           state.push(value1.type);
           int copy1 = state.push(value1.type);
-          builder.addMove(moveType(value1.type), copy1, value1.register);
+          builder.addMove(valueType(value1.type), copy1, value1.register);
         }
         break;
       }
@@ -2030,9 +2008,9 @@ public class JarSourceCode implements SourceCode {
         state.push(value1.type);
         state.push(value2.type);
         int tmp = state.push(value1.type);
-        builder.addMove(moveType(value1.type), tmp, value1.register);
-        builder.addMove(moveType(value2.type), value1.register, value2.register);
-        builder.addMove(moveType(value1.type), value2.register, tmp);
+        builder.addMove(valueType(value1.type), tmp, value1.register);
+        builder.addMove(valueType(value2.type), value1.register, value2.register);
+        builder.addMove(valueType(value1.type), value2.register, tmp);
         state.pop(); // Remove temp.
         break;
       }
@@ -2206,27 +2184,27 @@ public class JarSourceCode implements SourceCode {
       }
       case Opcodes.IRETURN: {
         Slot value = state.pop(Type.INT_TYPE);
-        addReturn(insn, MoveType.SINGLE, value.register, builder);
+        addReturn(insn, ValueType.INT, value.register, builder);
         break;
       }
       case Opcodes.LRETURN: {
         Slot value = state.pop(Type.LONG_TYPE);
-        addReturn(insn, MoveType.WIDE, value.register, builder);
+        addReturn(insn, ValueType.LONG, value.register, builder);
         break;
       }
       case Opcodes.FRETURN: {
         Slot value = state.pop(Type.FLOAT_TYPE);
-        addReturn(insn, MoveType.SINGLE, value.register, builder);
+        addReturn(insn, ValueType.FLOAT, value.register, builder);
         break;
       }
       case Opcodes.DRETURN: {
         Slot value = state.pop(Type.DOUBLE_TYPE);
-        addReturn(insn, MoveType.WIDE, value.register, builder);
+        addReturn(insn, ValueType.DOUBLE, value.register, builder);
         break;
       }
       case Opcodes.ARETURN: {
         Slot obj = state.pop(JarState.REFERENCE_TYPE);
-        addReturn(insn, MoveType.OBJECT, obj.register, builder);
+        addReturn(insn, ValueType.OBJECT, obj.register, builder);
         break;
       }
       case Opcodes.RETURN: {
@@ -2279,7 +2257,7 @@ public class JarSourceCode implements SourceCode {
     builder.addThrow(register);
   }
 
-  private void addReturn(InsnNode insn, MoveType type, int register, IRBuilder builder) {
+  private void addReturn(InsnNode insn, ValueType type, int register, IRBuilder builder) {
     processLocalVariablesAtExit(insn, builder);
     if (type == null) {
       assert register == -1;
@@ -2297,10 +2275,10 @@ public class JarSourceCode implements SourceCode {
     assert value3.register == stack3;
     assert value2.register == stack2;
     assert value1.register == stack1;
-    builder.addMove(moveType(value1.type), stack0, stack1);
-    builder.addMove(moveType(value2.type), stack1, stack2);
-    builder.addMove(moveType(value3.type), stack2, stack3);
-    builder.addMove(moveType(value1.type), stack3, stack0);
+    builder.addMove(valueType(value1.type), stack0, stack1);
+    builder.addMove(valueType(value2.type), stack1, stack2);
+    builder.addMove(valueType(value3.type), stack2, stack3);
+    builder.addMove(valueType(value1.type), stack3, stack0);
   }
 
   private void dupOneBelowOne(Slot value2, Slot value1, IRBuilder builder) {
@@ -2309,9 +2287,9 @@ public class JarSourceCode implements SourceCode {
     int stack0 = state.push(value1.type);
     assert value2.register == stack2;
     assert value1.register == stack1;
-    builder.addMove(moveType(value1.type), stack0, stack1);
-    builder.addMove(moveType(value2.type), stack1, stack2);
-    builder.addMove(moveType(value1.type), stack2, stack0);
+    builder.addMove(valueType(value1.type), stack0, stack1);
+    builder.addMove(valueType(value2.type), stack1, stack2);
+    builder.addMove(valueType(value1.type), stack2, stack0);
   }
 
   private void dupTwoBelowOne(Slot value3, Slot value2, Slot value1, IRBuilder builder) {
@@ -2323,11 +2301,11 @@ public class JarSourceCode implements SourceCode {
     assert value3.register == stack4;
     assert value2.register == stack3;
     assert value1.register == stack2;
-    builder.addMove(moveType(value1.type), stack0, stack2);
-    builder.addMove(moveType(value2.type), stack1, stack3);
-    builder.addMove(moveType(value3.type), stack2, stack4);
-    builder.addMove(moveType(value1.type), stack3, stack0);
-    builder.addMove(moveType(value2.type), stack4, stack1);
+    builder.addMove(valueType(value1.type), stack0, stack2);
+    builder.addMove(valueType(value2.type), stack1, stack3);
+    builder.addMove(valueType(value3.type), stack2, stack4);
+    builder.addMove(valueType(value1.type), stack3, stack0);
+    builder.addMove(valueType(value2.type), stack4, stack1);
   }
 
   private void dupTwoBelowTwo(Slot value4, Slot value3, Slot value2, Slot value1,
@@ -2342,12 +2320,12 @@ public class JarSourceCode implements SourceCode {
     assert value3.register == stack4;
     assert value2.register == stack3;
     assert value1.register == stack2;
-    builder.addMove(moveType(value1.type), stack0, stack2);
-    builder.addMove(moveType(value2.type), stack1, stack3);
-    builder.addMove(moveType(value3.type), stack2, stack4);
-    builder.addMove(moveType(value3.type), stack3, stack5);
-    builder.addMove(moveType(value1.type), stack4, stack0);
-    builder.addMove(moveType(value2.type), stack5, stack1);
+    builder.addMove(valueType(value1.type), stack0, stack2);
+    builder.addMove(valueType(value2.type), stack1, stack3);
+    builder.addMove(valueType(value3.type), stack2, stack4);
+    builder.addMove(valueType(value3.type), stack3, stack5);
+    builder.addMove(valueType(value1.type), stack4, stack0);
+    builder.addMove(valueType(value2.type), stack5, stack1);
   }
 
   private void buildConversion(Type from, Type to, IRBuilder builder) {
@@ -2411,12 +2389,12 @@ public class JarSourceCode implements SourceCode {
     if (Opcodes.ILOAD <= opcode && opcode <= Opcodes.ALOAD) {
       Slot src = state.readLocal(insn.var, expectedType);
       int dest = state.push(src.type);
-      builder.addMove(moveType(src.type), dest, src.register);
+      builder.addMove(valueType(src.type), dest, src.register);
     } else {
       assert Opcodes.ISTORE <= opcode && opcode <= Opcodes.ASTORE;
       Slot src = state.pop(expectedType);
       int dest = state.writeLocal(insn.var, src.type);
-      builder.addMove(moveType(src.type), dest, src.register);
+      builder.addMove(valueType(src.type), dest, src.register);
     }
   }
 
@@ -2511,7 +2489,7 @@ public class JarSourceCode implements SourceCode {
       Type methodOwner,
       boolean addImplicitReceiver,
       IRBuilder builder,
-      ThrowingBiConsumer<List<MoveType>, List<Integer>, ApiLevelException> creator)
+      ThrowingBiConsumer<List<ValueType>, List<Integer>, ApiLevelException> creator)
       throws ApiLevelException {
 
     // Build the argument list of the form [owner, param1, ..., paramN].
@@ -2519,7 +2497,7 @@ public class JarSourceCode implements SourceCode {
     Type[] parameterTypes = Type.getArgumentTypes(methodDesc);
     Slot[] parameterRegisters = state.popReverse(parameterTypes.length);
 
-    List<MoveType> types = new ArrayList<>(parameterTypes.length + 1);
+    List<ValueType> types = new ArrayList<>(parameterTypes.length + 1);
     List<Integer> registers = new ArrayList<>(parameterTypes.length + 1);
 
     // Add receiver argument for non-static calls.
@@ -2539,17 +2517,17 @@ public class JarSourceCode implements SourceCode {
     Type returnType = Type.getReturnType(methodDesc);
     if (returnType != Type.VOID_TYPE) {
       if (returnType == Type.BOOLEAN_TYPE) {
-        builder.addBooleanMoveResult(moveType(returnType), state.push(returnType));
+        builder.addBooleanMoveResult(valueType(returnType), state.push(returnType));
       } else {
-        builder.addMoveResult(moveType(returnType), state.push(returnType));
+        builder.addMoveResult(valueType(returnType), state.push(returnType));
       }
     }
   }
 
-  private static void addArgument(List<MoveType> types, List<Integer> registers, Type type,
+  private static void addArgument(List<ValueType> types, List<Integer> registers, Type type,
       Slot slot) {
     assert slot.isCompatibleWith(type);
-    types.add(moveType(type));
+    types.add(valueType(type));
     registers.add(slot.register);
   }
 
@@ -2787,7 +2765,7 @@ public class JarSourceCode implements SourceCode {
     }
     builder.addInvokeNewArray(dimArrayType, insn.dims, dimensions);
     int dimensionsDestTemp = state.push(INT_ARRAY_TYPE);
-    builder.addMoveResult(MoveType.OBJECT, dimensionsDestTemp);
+    builder.addMoveResult(ValueType.OBJECT, dimensionsDestTemp);
     // Push the class object for the member type of the array.
     int classDestTemp = state.push(CLASS_TYPE);
     builder.ensureBlockForThrowingInstruction();
@@ -2796,7 +2774,7 @@ public class JarSourceCode implements SourceCode {
     DexType reflectArrayClass = application.getTypeFromDescriptor(REFLECT_ARRAY_DESC);
     DexMethod newInstance = application.getMethod(reflectArrayClass,
         REFLECT_ARRAY_NEW_INSTANCE_NAME, REFLECT_ARRAY_NEW_INSTANCE_DESC);
-    List<MoveType> argumentTypes = Arrays.asList(moveType(CLASS_TYPE), moveType(INT_ARRAY_TYPE));
+    List<ValueType> argumentTypes = Arrays.asList(valueType(CLASS_TYPE), valueType(INT_ARRAY_TYPE));
     List<Integer> argumentRegisters = Arrays.asList(classDestTemp, dimensionsDestTemp);
     builder.ensureBlockForThrowingInstruction();
     builder.addInvoke(Invoke.Type.STATIC, newInstance, null, argumentTypes, argumentRegisters);
@@ -2804,7 +2782,7 @@ public class JarSourceCode implements SourceCode {
     state.pop(); // classDestTemp.
     state.pop(); // dimensionsDestTemp.
     int result = state.push(arrayType);
-    builder.addMoveResult(moveType(arrayType), result);
+    builder.addMoveResult(valueType(arrayType), result);
     // Insert cast check to satisfy verification.
     builder.ensureBlockForThrowingInstruction();
     builder.addCheckCast(result, dexArrayType);

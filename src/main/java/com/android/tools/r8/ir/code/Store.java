@@ -8,16 +8,12 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
-import com.android.tools.r8.ir.conversion.CfBuilder.LocalType;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 
 public class Store extends Instruction {
 
-  private final LocalType type;
-
-  public Store(LocalType type, Value dest, StackValue src) {
+  public Store(Value dest, StackValue src) {
     super(dest, src);
-    this.type = type;
   }
 
   @Override
@@ -47,6 +43,6 @@ public class Store extends Instruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfStore(type, outValue.getNumber()));
+    builder.add(new CfStore(outType(), outValue.getNumber()));
   }
 }

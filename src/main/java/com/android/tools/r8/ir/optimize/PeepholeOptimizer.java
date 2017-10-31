@@ -11,7 +11,6 @@ import com.android.tools.r8.ir.code.Goto;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
-import com.android.tools.r8.ir.code.MoveType;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
 import com.android.tools.r8.ir.regalloc.LiveIntervals;
@@ -294,7 +293,7 @@ public class PeepholeOptimizer {
               // Insert the current constant in the mapping. Make sure to clobber the second
               // register if wide.
               registerToNumber.put(outRegister, current.asConstNumber());
-              if (current.outType() == MoveType.WIDE) {
+              if (current.outType().isWide()) {
                 registerToNumber.remove(outRegister + 1);
               }
             }

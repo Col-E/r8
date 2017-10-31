@@ -17,18 +17,19 @@ public enum MemberType {
   CHAR,
   SHORT;
 
-  public static MoveType moveTypeFor(MemberType type) {
+  public static ValueType moveTypeFor(MemberType type) {
     switch (type) {
       case BOOLEAN:
       case BYTE:
       case CHAR:
       case SHORT:
+        return ValueType.INT;
       case SINGLE:
-        return MoveType.SINGLE;
+        return ValueType.INT_OR_FLOAT;
       case WIDE:
-        return MoveType.WIDE;
+        return ValueType.LONG_OR_DOUBLE;
       case OBJECT:
-        return MoveType.OBJECT;
+        return ValueType.OBJECT;
     }
     return null;
   }

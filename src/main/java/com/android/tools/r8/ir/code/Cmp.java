@@ -180,8 +180,8 @@ public class Cmp extends Binop {
       }
     }
     assert result == -1 || result == 0 || result == 1;
-    Value value = code.createValue(MoveType.SINGLE, getLocalInfo());
-    return new ConstNumber(ConstType.INT, value, result);
+    Value value = code.createValue(ValueType.INT, getLocalInfo());
+    return new ConstNumber(ValueType.INT, value, result);
   }
 
   @Override

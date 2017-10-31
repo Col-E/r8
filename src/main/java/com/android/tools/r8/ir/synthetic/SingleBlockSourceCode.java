@@ -13,9 +13,9 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.CatchHandlers;
-import com.android.tools.r8.ir.code.MoveType;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.SourceCode;
 import com.android.tools.r8.utils.ThrowingConsumer;
@@ -48,14 +48,14 @@ public abstract class SingleBlockSourceCode implements SourceCode {
     this.proto = proto;
 
     // Initialize register values for receiver and arguments
-    this.receiverRegister = receiver != null ? nextRegister(MoveType.OBJECT) : -1;
+    this.receiverRegister = receiver != null ? nextRegister(ValueType.OBJECT) : -1;
 
     DexType[] params = proto.parameters.values;
     int paramCount = params.length;
     this.paramRegisters = new int[paramCount];
     this.paramValues = new Value[paramCount];
     for (int i = 0; i < paramCount; i++) {
-      this.paramRegisters[i] = nextRegister(MoveType.fromDexType(params[i]));
+      this.paramRegisters[i] = nextRegister(ValueType.fromDexType(params[i]));
     }
   }
 
@@ -63,9 +63,9 @@ public abstract class SingleBlockSourceCode implements SourceCode {
     constructors.add(constructor);
   }
 
-  protected final int nextRegister(MoveType type) {
+  protected final int nextRegister(ValueType type) {
     int value = nextRegister;
-    nextRegister += type == MoveType.WIDE ? 2 : 1;
+    nextRegister += type.requiredRegisters();
     return value;
   }
 
@@ -147,7 +147,7 @@ public abstract class SingleBlockSourceCode implements SourceCode {
   @Override
   public final void buildPrelude(IRBuilder builder) {
     if (receiver != null) {
-      receiverValue = builder.writeRegister(receiverRegister, MoveType.OBJECT, NO_THROW);
+      receiverValue = builder.writeRegister(receiverRegister, ValueType.OBJECT, NO_THROW);
       builder.add(new Argument(receiverValue));
       receiverValue.markAsThis();
     }
@@ -155,8 +155,8 @@ public abstract class SingleBlockSourceCode implements SourceCode {
     // Fill in the Argument instructions in the argument block.
     DexType[] parameters = proto.parameters.values;
     for (int i = 0; i < parameters.length; i++) {
-      MoveType moveType = MoveType.fromDexType(parameters[i]);
-      Value paramValue = builder.writeRegister(paramRegisters[i], moveType, NO_THROW);
+      ValueType valueType = ValueType.fromDexType(parameters[i]);
+      Value paramValue = builder.writeRegister(paramRegisters[i], valueType, NO_THROW);
       paramValues[i] = paramValue;
       builder.add(new Argument(paramValue));
     }

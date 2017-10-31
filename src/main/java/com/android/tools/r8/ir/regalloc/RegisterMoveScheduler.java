@@ -3,12 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.regalloc;
 
+import com.android.tools.r8.code.MoveType;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.FixedRegisterValue;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Move;
-import com.android.tools.r8.ir.code.MoveType;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
 import java.util.ArrayList;

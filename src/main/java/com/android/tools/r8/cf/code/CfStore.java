@@ -4,25 +4,25 @@
 package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.ir.conversion.CfBuilder.LocalType;
+import com.android.tools.r8.ir.code.ValueType;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 public class CfStore extends CfInstruction {
 
   private final int var;
-  private final LocalType type;
+  private final ValueType type;
 
-  public CfStore(LocalType type, int var) {
+  public CfStore(ValueType type, int var) {
     this.var = var;
     this.type = type;
   }
 
   private int getStoreType() {
     switch (type) {
-      case REFERENCE:
+      case OBJECT:
         return Opcodes.ASTORE;
-      case INTEGER:
+      case INT:
         return Opcodes.ISTORE;
       case FLOAT:
         return Opcodes.FSTORE;

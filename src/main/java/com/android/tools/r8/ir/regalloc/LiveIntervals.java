@@ -6,8 +6,8 @@ package com.android.tools.r8.ir.regalloc;
 import static com.android.tools.r8.dex.Constants.U16BIT_MAX;
 import static com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator.NO_REGISTER;
 
+import com.android.tools.r8.code.MoveType;
 import com.android.tools.r8.dex.Constants;
-import com.android.tools.r8.ir.code.MoveType;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.utils.CfgPrinter;
 import java.util.ArrayList;
@@ -18,6 +18,7 @@ import java.util.TreeSet;
 public class LiveIntervals implements Comparable<LiveIntervals> {
 
   private final Value value;
+  private final MoveType type;
   private LiveIntervals nextConsecutive;
   private LiveIntervals previousConsecutive;
   private LiveIntervals splitParent;
@@ -40,6 +41,7 @@ public class LiveIntervals implements Comparable<LiveIntervals> {
 
   LiveIntervals(Value value) {
     this.value = value;
+    this.type = MoveType.fromValueType(value.outType());
     usedInMonitorOperations = value.usedInMonitorOperation();
     splitParent = this;
     value.setLiveIntervals(this);
@@ -48,6 +50,7 @@ public class LiveIntervals implements Comparable<LiveIntervals> {
   LiveIntervals(LiveIntervals splitParent) {
     this.splitParent = splitParent;
     value = splitParent.value;
+    type = splitParent.type;
     usedInMonitorOperations = splitParent.usedInMonitorOperations;
   }
 
@@ -60,7 +63,7 @@ public class LiveIntervals implements Comparable<LiveIntervals> {
   }
 
   public MoveType getType() {
-    return value.outType();
+    return type;
   }
 
   public Value getValue() {
@@ -68,7 +71,7 @@ public class LiveIntervals implements Comparable<LiveIntervals> {
   }
 
   public int requiredRegisters() {
-    return getType() == MoveType.WIDE ? 2 : 1;
+    return type == MoveType.WIDE ? 2 : 1;
   }
 
   public void setHint(LiveIntervals intervals) {

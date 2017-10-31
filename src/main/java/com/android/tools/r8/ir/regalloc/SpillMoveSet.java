@@ -4,11 +4,11 @@
 
 package com.android.tools.r8.ir.regalloc;
 
+import com.android.tools.r8.code.MoveType;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
-import com.android.tools.r8.ir.code.MoveType;
 import com.android.tools.r8.ir.code.Position;
 import java.util.Collection;
 import java.util.HashMap;
@@ -172,10 +172,10 @@ class SpillMoveSet {
 
   private SpillMove getMoveWritingSourceRegister(SpillMove inMove, Collection<SpillMove> moves) {
     int srcRegister = inMove.from.getRegister();
-    int srcRegisters = inMove.type == MoveType.WIDE ? 2 : 1;
+    int srcRegisters = inMove.type.requiredRegisters();
     for (SpillMove move : moves) {
       int dstRegister = move.to.getRegister();
-      int dstRegisters = move.type == MoveType.WIDE ? 2 : 1;
+      int dstRegisters = move.type.requiredRegisters();
       for (int s = 0; s < srcRegisters; s++) {
         for (int d = 0; d < dstRegisters; d++) {
           if ((dstRegister + d) == (srcRegister + s)) {

@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.code;
 
-import com.android.tools.r8.ir.code.MoveType;
+import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 public class MoveWide16 extends Format32x {
 
@@ -36,6 +36,6 @@ public class MoveWide16 extends Format32x {
 
   @Override
   public void buildIR(IRBuilder builder) {
-    builder.addMove(MoveType.WIDE, AAAA, BBBB);
+    builder.addMove(ValueType.LONG_OR_DOUBLE, AAAA, BBBB);
   }
 }

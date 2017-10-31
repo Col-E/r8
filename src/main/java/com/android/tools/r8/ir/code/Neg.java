@@ -29,23 +29,24 @@ public class Neg extends Unop {
   @Override
   public ConstInstruction fold(IRCode code) {
     assert canBeFolded();
+    ValueType valueType = ValueType.fromNumericType(type);
     if (type == NumericType.INT) {
       int result = -source().getConstInstruction().asConstNumber().getIntValue();
-      Value value = code.createValue(MoveType.SINGLE, getLocalInfo());
-      return new ConstNumber(ConstType.INT, value, result);
+      Value value = code.createValue(valueType, getLocalInfo());
+      return new ConstNumber(valueType, value, result);
     } else if (type == NumericType.LONG) {
       long result = -source().getConstInstruction().asConstNumber().getLongValue();
-      Value value = code.createValue(MoveType.WIDE, getLocalInfo());
-      return new ConstNumber(ConstType.LONG, value, result);
+      Value value = code.createValue(valueType, getLocalInfo());
+      return new ConstNumber(valueType, value, result);
     } else if (type == NumericType.FLOAT) {
       float result = -source().getConstInstruction().asConstNumber().getFloatValue();
-      Value value = code.createValue(MoveType.SINGLE, getLocalInfo());
-      return new ConstNumber(ConstType.FLOAT, value, Float.floatToIntBits(result));
+      Value value = code.createValue(valueType, getLocalInfo());
+      return new ConstNumber(valueType, value, Float.floatToIntBits(result));
     } else {
       assert type == NumericType.DOUBLE;
       double result = -source().getConstInstruction().asConstNumber().getDoubleValue();
-      Value value = code.createValue(MoveType.WIDE, getLocalInfo());
-      return new ConstNumber(ConstType.DOUBLE, value, Double.doubleToLongBits(result));
+      Value value = code.createValue(valueType, getLocalInfo());
+      return new ConstNumber(valueType, value, Double.doubleToLongBits(result));
     }
   }
 

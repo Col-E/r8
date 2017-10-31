@@ -9,7 +9,7 @@ import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.code.ConstNumber;
-import com.android.tools.r8.ir.code.ConstType;
+import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.utils.EncodedValueUtils;
@@ -234,7 +234,7 @@ public abstract class DexValue extends DexItem {
     public Instruction asConstInstruction(boolean hasClassInitializer, Value dest) {
       return (this == DEFAULT && hasClassInitializer)
           ? null
-          : new ConstNumber(ConstType.INT, dest, value);
+          : new ConstNumber(ValueType.INT, dest, value);
     }
   }
 
@@ -282,7 +282,7 @@ public abstract class DexValue extends DexItem {
     public Instruction asConstInstruction(boolean hasClassInitializer, Value dest) {
       return (this == DEFAULT && hasClassInitializer)
           ? null
-          : new ConstNumber(ConstType.INT, dest, value);
+          : new ConstNumber(ValueType.INT, dest, value);
     }
   }
 
@@ -334,7 +334,7 @@ public abstract class DexValue extends DexItem {
     public Instruction asConstInstruction(boolean hasClassInitializer, Value dest) {
       return (this == DEFAULT && hasClassInitializer)
           ? null
-          : new ConstNumber(ConstType.INT, dest, value);
+          : new ConstNumber(ValueType.INT, dest, value);
     }
   }
 
@@ -382,7 +382,7 @@ public abstract class DexValue extends DexItem {
     public Instruction asConstInstruction(boolean hasClassInitializer, Value dest) {
       return (this == DEFAULT && hasClassInitializer)
           ? null
-          : new ConstNumber(ConstType.INT, dest, value);
+          : new ConstNumber(ValueType.INT, dest, value);
     }
   }
 
@@ -430,7 +430,7 @@ public abstract class DexValue extends DexItem {
     public Instruction asConstInstruction(boolean hasClassInitializer, Value dest) {
       return (this == DEFAULT && hasClassInitializer)
           ? null
-          : new ConstNumber(ConstType.LONG, dest, value);
+          : new ConstNumber(ValueType.LONG, dest, value);
     }
   }
 
@@ -869,7 +869,7 @@ public abstract class DexValue extends DexItem {
     public Instruction asConstInstruction(boolean hasClassInitializer, Value dest) {
       return (this == DEFAULT && hasClassInitializer)
           ? null
-          : new ConstNumber(ConstType.INT, dest, value ? 1 : 0);
+          : new ConstNumber(ValueType.INT, dest, value ? 1 : 0);
     }
   }
 

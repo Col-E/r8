@@ -9,7 +9,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.Invoke;
-import com.android.tools.r8.ir.code.MoveType;
+import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
@@ -74,32 +74,32 @@ public final class ForwardMethodSourceCode extends SingleBlockSourceCode {
   @Override
   protected void prepareInstructions() {
     // Prepare call arguments.
-    List<MoveType> argMoveTypes = new ArrayList<>();
+    List<ValueType> argValueTypes = new ArrayList<>();
     List<Integer> argRegisters = new ArrayList<>();
 
     if (receiver != null) {
-      argMoveTypes.add(MoveType.OBJECT);
+      argValueTypes.add(ValueType.OBJECT);
       argRegisters.add(getReceiverRegister());
     }
 
     DexType[] accessorParams = proto.parameters.values;
     for (int i = 0; i < accessorParams.length; i++) {
-      argMoveTypes.add(MoveType.fromDexType(accessorParams[i]));
+      argValueTypes.add(ValueType.fromDexType(accessorParams[i]));
       argRegisters.add(getParamRegister(i));
     }
 
     // Method call to the target method.
     add(builder -> builder.addInvoke(this.invokeType,
-        this.target, this.target.proto, argMoveTypes, argRegisters));
+        this.target, this.target.proto, argValueTypes, argRegisters));
 
     // Does the method return value?
     if (proto.returnType.isVoidType()) {
       add(IRBuilder::addReturn);
     } else {
-      MoveType moveType = MoveType.fromDexType(proto.returnType);
-      int tempValue = nextRegister(moveType);
-      add(builder -> builder.addMoveResult(moveType, tempValue));
-      add(builder -> builder.addReturn(moveType, tempValue));
+      ValueType valueType = ValueType.fromDexType(proto.returnType);
+      int tempValue = nextRegister(valueType);
+      add(builder -> builder.addMoveResult(valueType, tempValue));
+      add(builder -> builder.addReturn(valueType, tempValue));
     }
   }
 }

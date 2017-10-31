@@ -6,7 +6,7 @@ package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.MemberType;
-import com.android.tools.r8.ir.code.MoveType;
+import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import java.util.Collections;
 
@@ -22,11 +22,11 @@ final class LambdaClassConstructorSourceCode extends SynthesizedLambdaSourceCode
   @Override
   protected void prepareInstructions() {
     // Create and initialize an instance.
-    int instance = nextRegister(MoveType.OBJECT);
+    int instance = nextRegister(ValueType.OBJECT);
     add(builder -> builder.addNewInstance(instance, lambda.type));
     add(builder -> builder.addInvoke(
         Invoke.Type.DIRECT, lambda.constructor, lambda.constructor.proto,
-        Collections.singletonList(MoveType.OBJECT), Collections.singletonList(instance)));
+        Collections.singletonList(ValueType.OBJECT), Collections.singletonList(instance)));
 
     // Assign to a field.
     add(builder -> builder.addStaticPut(MemberType.OBJECT, instance, lambda.instanceField));

@@ -5,6 +5,7 @@ package com.android.tools.r8.ir.regalloc;
 
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.code.MoveType;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -12,7 +13,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Move;
-import com.android.tools.r8.ir.code.MoveType;
+import com.android.tools.r8.ir.code.ValueType;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
@@ -124,9 +125,9 @@ public class RegisterMoveSchedulerTest {
     Move tempMove = moves.get(0);
     Move firstMove = moves.get(1);
     Move secondMove = moves.get(2);
-    assertEquals(MoveType.SINGLE, tempMove.outType());
-    assertEquals(MoveType.SINGLE, firstMove.outType());
-    assertEquals(MoveType.SINGLE, secondMove.outType());
+    assertEquals(ValueType.INT_OR_FLOAT, tempMove.outType());
+    assertEquals(ValueType.INT_OR_FLOAT, firstMove.outType());
+    assertEquals(ValueType.INT_OR_FLOAT, secondMove.outType());
     assertEquals(temp, tempMove.dest().asFixedRegisterValue().getRegister());
     assertEquals(
         tempMove.src().asFixedRegisterValue().getRegister(),
@@ -149,9 +150,9 @@ public class RegisterMoveSchedulerTest {
     Move tempMove = moves.get(0);
     Move firstMove = moves.get(1);
     Move secondMove = moves.get(2);
-    assertEquals(MoveType.WIDE, tempMove.outType());
-    assertEquals(MoveType.WIDE, firstMove.outType());
-    assertEquals(MoveType.WIDE, secondMove.outType());
+    assertEquals(ValueType.LONG_OR_DOUBLE, tempMove.outType());
+    assertEquals(ValueType.LONG_OR_DOUBLE, firstMove.outType());
+    assertEquals(ValueType.LONG_OR_DOUBLE, secondMove.outType());
     assertEquals(temp, tempMove.dest().asFixedRegisterValue().getRegister());
     assertEquals(
         tempMove.src().asFixedRegisterValue().getRegister(),
@@ -174,9 +175,9 @@ public class RegisterMoveSchedulerTest {
     Move tempMove = moves.get(0).asMove();
     Move firstMove = moves.get(1).asMove();
     Move secondMove = moves.get(2).asMove();
-    assertEquals(MoveType.WIDE, tempMove.outType());
-    assertEquals(MoveType.SINGLE, firstMove.outType());
-    assertEquals(MoveType.WIDE, secondMove.outType());
+    assertEquals(ValueType.LONG_OR_DOUBLE, tempMove.outType());
+    assertEquals(ValueType.INT_OR_FLOAT, firstMove.outType());
+    assertEquals(ValueType.LONG_OR_DOUBLE, secondMove.outType());
     assertEquals(temp, tempMove.dest().asFixedRegisterValue().getRegister());
     assertEquals(
         tempMove.src().asFixedRegisterValue().getRegister(),
@@ -199,9 +200,9 @@ public class RegisterMoveSchedulerTest {
     Move tempMove = moves.get(0).asMove();
     Move firstMove = moves.get(1).asMove();
     Move secondMove = moves.get(2).asMove();
-    assertEquals(MoveType.WIDE, tempMove.outType());
-    assertEquals(MoveType.SINGLE, firstMove.outType());
-    assertEquals(MoveType.WIDE, secondMove.outType());
+    assertEquals(ValueType.LONG_OR_DOUBLE, tempMove.outType());
+    assertEquals(ValueType.INT_OR_FLOAT, firstMove.outType());
+    assertEquals(ValueType.LONG_OR_DOUBLE, secondMove.outType());
     assertEquals(temp, tempMove.dest().asFixedRegisterValue().getRegister());
     assertEquals(
         tempMove.src().asFixedRegisterValue().getRegister(),
@@ -223,8 +224,8 @@ public class RegisterMoveSchedulerTest {
     assertEquals(2, moves.size());
     Move firstMove = moves.get(0).asMove();
     Move secondMove = moves.get(1).asMove();
-    assertEquals(MoveType.WIDE, firstMove.outType());
-    assertEquals(MoveType.WIDE, secondMove.outType());
+    assertEquals(ValueType.LONG_OR_DOUBLE, firstMove.outType());
+    assertEquals(ValueType.LONG_OR_DOUBLE, secondMove.outType());
     assertEquals(0, firstMove.dest().asFixedRegisterValue().getRegister());
     assertEquals(1, firstMove.src().asFixedRegisterValue().getRegister());
     assertEquals(2, secondMove.dest().asFixedRegisterValue().getRegister());
@@ -243,9 +244,9 @@ public class RegisterMoveSchedulerTest {
     Move firstMove = moves.get(0).asMove();
     Move secondMove = moves.get(1).asMove();
     Move thirdMove = moves.get(2).asMove();
-    assertEquals(MoveType.WIDE, firstMove.outType());
-    assertEquals(MoveType.WIDE, secondMove.outType());
-    assertEquals(MoveType.WIDE, thirdMove.outType());
+    assertEquals(ValueType.LONG_OR_DOUBLE, firstMove.outType());
+    assertEquals(ValueType.LONG_OR_DOUBLE, secondMove.outType());
+    assertEquals(ValueType.LONG_OR_DOUBLE, thirdMove.outType());
     assertEquals(42, firstMove.dest().asFixedRegisterValue().getRegister());
     assertEquals(1, firstMove.src().asFixedRegisterValue().getRegister());
     assertEquals(0, secondMove.dest().asFixedRegisterValue().getRegister());
@@ -268,10 +269,10 @@ public class RegisterMoveSchedulerTest {
     Move secondMove = moves.get(1).asMove();
     Move thirdMove = moves.get(2).asMove();
     Move fourthMove = moves.get(3).asMove();
-    assertEquals(MoveType.WIDE, firstMove.outType());
-    assertEquals(MoveType.SINGLE, secondMove.outType());
-    assertEquals(MoveType.SINGLE, thirdMove.outType());
-    assertEquals(MoveType.WIDE, fourthMove.outType());
+    assertEquals(ValueType.LONG_OR_DOUBLE, firstMove.outType());
+    assertEquals(ValueType.INT_OR_FLOAT, secondMove.outType());
+    assertEquals(ValueType.INT_OR_FLOAT, thirdMove.outType());
+    assertEquals(ValueType.LONG_OR_DOUBLE, fourthMove.outType());
     assertEquals(temp, firstMove.dest().asFixedRegisterValue().getRegister());
     assertEquals(0, secondMove.dest().asFixedRegisterValue().getRegister());
     assertEquals(1, thirdMove.dest().asFixedRegisterValue().getRegister());
@@ -290,9 +291,9 @@ public class RegisterMoveSchedulerTest {
     Move firstMove = moves.get(0).asMove();
     Move secondMove = moves.get(1).asMove();
     Move thirdMove = moves.get(2).asMove();
-    assertEquals(MoveType.WIDE, firstMove.outType());
-    assertEquals(MoveType.SINGLE, secondMove.outType());
-    assertEquals(MoveType.WIDE, thirdMove.outType());
+    assertEquals(ValueType.LONG_OR_DOUBLE, firstMove.outType());
+    assertEquals(ValueType.INT_OR_FLOAT, secondMove.outType());
+    assertEquals(ValueType.LONG_OR_DOUBLE, thirdMove.outType());
     assertEquals(temp, firstMove.dest().asFixedRegisterValue().getRegister());
     assertEquals(2, firstMove.src().asFixedRegisterValue().getRegister());
     assertEquals(3, secondMove.dest().asFixedRegisterValue().getRegister());

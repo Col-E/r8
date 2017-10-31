@@ -4,6 +4,7 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.code.CfReturn;
+import com.android.tools.r8.code.MoveType;
 import com.android.tools.r8.code.ReturnObject;
 import com.android.tools.r8.code.ReturnVoid;
 import com.android.tools.r8.code.ReturnWide;
@@ -12,7 +13,6 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
-import com.android.tools.r8.ir.conversion.CfBuilder.LocalType;
 import com.android.tools.r8.ir.conversion.CfBuilder.StackHelper;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
@@ -20,14 +20,14 @@ import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 public class Return extends JumpInstruction {
 
   // Need to keep track of the original return type, as a null value will have MoveType.SINGLE.
-  final private MoveType returnType;
+  final private ValueType returnType;
 
   public Return() {
     super(null);
     returnType = null;
   }
 
-  public Return(Value value, MoveType returnType) {
+  public Return(Value value, ValueType returnType) {
     super(null, value);
     this.returnType = returnType;
   }
@@ -36,7 +36,7 @@ public class Return extends JumpInstruction {
     return inValues.size() == 0;
   }
 
-  public MoveType getReturnType() {
+  public ValueType getReturnType() {
     return returnType;
   }
 
@@ -49,19 +49,16 @@ public class Return extends JumpInstruction {
     if (isReturnVoid()) {
       return new ReturnVoid();
     } else {
-      switch (returnValue().type) {
+      switch (MoveType.fromValueType(returnType)) {
         case OBJECT:
-          assert returnType == MoveType.OBJECT;
+          assert returnValue().outType().isObject() || returnValue().outType().isSingle();
           return new ReturnObject(builder.allocatedRegister(returnValue(), getNumber()));
         case SINGLE:
-          if (returnType == MoveType.OBJECT) {
-            return new ReturnObject(builder.allocatedRegister(returnValue(), getNumber()));
-          } else {
-            assert returnType == MoveType.SINGLE;
-            return new com.android.tools.r8.code.Return(builder.allocatedRegister(returnValue(), getNumber()));
-          }
+          assert returnValue().outType().isSingle();
+          return new com.android.tools.r8.code.Return(
+              builder.allocatedRegister(returnValue(), getNumber()));
         case WIDE:
-          assert returnType == MoveType.WIDE;
+          assert returnValue().outType().isWide();
           return new ReturnWide(builder.allocatedRegister(returnValue(), getNumber()));
         default:
           throw new Unreachable();
@@ -120,18 +117,9 @@ public class Return extends JumpInstruction {
 
   @Override
   public void insertLoadAndStores(InstructionListIterator it, StackHelper stack) {
-    if (isReturnVoid()) {
-      return;
+    if (!isReturnVoid()) {
+      stack.loadInValues(this, it);
     }
-    Value oldValue = returnValue();
-    StackValue stackValue = new StackValue(returnType);
-    replaceValue(oldValue, stackValue);
-    Load load =
-        new Load(LocalType.fromDexType(stack.method.proto.returnType), stackValue, oldValue);
-    load.setBlock(getBlock());
-    it.previous();
-    it.add(load);
-    it.next();
   }
 
   @Override

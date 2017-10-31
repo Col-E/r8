@@ -36,9 +36,9 @@ public class Phi extends Value {
   // have either of the creation types 'single' and 'object' depending on the use that
   // triggered the creation of the phi. We therefore have to delay the output type
   // computation of the phi until all operands are known.
-  private MoveType outType = null;
+  private ValueType outType = null;
 
-  public Phi(int number, BasicBlock block, MoveType type, DebugLocalInfo local) {
+  public Phi(int number, BasicBlock block, ValueType type, DebugLocalInfo local) {
     super(number, type, local);
     this.block = block;
     block.addPhi(this);
@@ -274,7 +274,7 @@ public class Phi extends Value {
 
   private boolean isSingleConstZero(Value value) {
     return value.definition != null
-        && value.outType() == MoveType.SINGLE
+        && value.outType().isSingle()
         && value.isZero();
   }
 
@@ -313,7 +313,7 @@ public class Phi extends Value {
     return true;
   }
 
-  private MoveType computeOutType(Set<Phi> active) {
+  private ValueType computeOutType(Set<Phi> active) {
     if (outType != null) {
       return outType;
     }
@@ -329,23 +329,21 @@ public class Phi extends Value {
     // We did not find a non-phi operand that dictates the type. Recurse on phi arguments.
     for (Value operand : operands) {
       if (operand.isPhi() && !active.contains(operand.asPhi())) {
-        MoveType phiType = operand.asPhi().computeOutType(active);
-        // TODO(zerny): If we had a CONST_ZERO type element, we could often avoid going through
-        // all phis. We would only have to recurse until we got a non CONST_ZERO out type.
-        if (phiType != MoveType.SINGLE) {
+        ValueType phiType = operand.asPhi().computeOutType(active);
+        if (phiType != ValueType.INT_OR_FLOAT) {
           return phiType;
         }
       }
     }
-    // All operands were the constant zero or phis with out type SINGLE and the out type is either
-    // object or single depending on the use. Since all inputs have out type SINGLE it is safe to
-    // return MoveType.SINGLE here.
-    assert type == MoveType.SINGLE || type == MoveType.OBJECT;
-    return MoveType.SINGLE;
+    // All operands were the constant zero or phis with out type INT_OR_FLOAT and the DEX move type
+    // is either object or single depending on the use. Since all inputs have out type INT_OF_FLOAT
+    // it is safe to return ValueType.INT_OR_FLOAT here.
+    assert type.isSingle() || type.isObject();
+    return ValueType.INT_OR_FLOAT;
   }
 
   @Override
-  public MoveType outType() {
+  public ValueType outType() {
     if (outType != null) {
       return outType;
     }

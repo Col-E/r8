@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.ir.regalloc;
 
-import com.android.tools.r8.ir.code.MoveType;
+import com.android.tools.r8.code.MoveType;
 
 /**
  * A SpillMove represents either a phi move that transfers an SSA value to the SSA phi value or

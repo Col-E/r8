@@ -8,16 +8,12 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
-import com.android.tools.r8.ir.conversion.CfBuilder.LocalType;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 
 public class Load extends Instruction {
 
-  private final LocalType type;
-
-  public Load(LocalType type, StackValue dest, Value src) {
+  public Load(StackValue dest, Value src) {
     super(dest, src);
-    this.type = type;
   }
 
   @Override
@@ -48,6 +44,6 @@ public class Load extends Instruction {
   @Override
   public void buildCf(CfBuilder builder) {
     Value value = inValues.get(0);
-    builder.add(new CfLoad(type, value.getNumber()));
+    builder.add(new CfLoad(value.outType(), value.getNumber()));
   }
 }

@@ -1257,7 +1257,7 @@ public class BasicBlock {
       newBlock.setNumber(nextBlockNumber++);
       newPredecessors.add(newBlock);
       if (hasMoveException) {
-        Value value = new Value(valueNumberGenerator.next(), MoveType.OBJECT, move.getLocalInfo());
+        Value value = new Value(valueNumberGenerator.next(), ValueType.OBJECT, move.getLocalInfo());
         values.add(value);
         MoveException newMove = new MoveException(value);
         newBlock.add(newMove);
@@ -1277,7 +1277,7 @@ public class BasicBlock {
     // Insert a phi for the move-exception value.
     if (hasMoveException) {
       Phi phi = new Phi(valueNumberGenerator.next(),
-          this, MoveType.OBJECT, move.getLocalInfo());
+          this, ValueType.OBJECT, move.getLocalInfo());
       phi.addOperands(values);
       move.outValue().replaceUsers(phi);
     }

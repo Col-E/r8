@@ -23,10 +23,10 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeCustom;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.MemberType;
-import com.android.tools.r8.ir.code.MoveType;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
@@ -278,7 +278,7 @@ public class LambdaRewriter {
     Value lambdaInstanceValue = invoke.outValue();
     if (lambdaInstanceValue == null) {
       // The out value might be empty in case it was optimized out.
-      lambdaInstanceValue = code.createValue(MoveType.OBJECT);
+      lambdaInstanceValue = code.createValue(ValueType.OBJECT);
     }
 
     // For stateless lambdas we replace InvokeCustom instruction with StaticGet

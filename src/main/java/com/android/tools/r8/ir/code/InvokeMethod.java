@@ -9,12 +9,10 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.conversion.CfBuilder.LocalType;
 import com.android.tools.r8.ir.conversion.CfBuilder.StackHelper;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.InliningOracle;
-import java.util.ArrayList;
 import java.util.List;
 
 public abstract class InvokeMethod extends Invoke {
@@ -82,25 +80,14 @@ public abstract class InvokeMethod extends Invoke {
 
   @Override
   public void insertLoadAndStores(InstructionListIterator it, StackHelper stack) {
-    List<LocalType> types;
-    if (isInvokeMethodWithReceiver()) {
-      types = new ArrayList<>(method.getArity() + 1);
-      types.add(LocalType.REFERENCE);
-    } else {
-      types = new ArrayList<>(method.getArity());
-    }
-    for (DexType type : method.proto.parameters.values) {
-      types.add(LocalType.fromDexType(type));
-    }
-    stack.loadInValues(this, inValues, types, it);
+    stack.loadInValues(this, it);
     if (method.proto.returnType.isVoidType()) {
       return;
     }
     if (outValue == null) {
-      stack.popOutValue(this, MoveType.fromDexType(method.proto.returnType), it);
+      stack.popOutValue(this, it);
     } else {
-      LocalType returnType = LocalType.fromDexType(getInvokedMethod().proto.returnType);
-      stack.storeOutValue(this, returnType, it);
+      stack.storeOutValue(this, it);
     }
   }
 }

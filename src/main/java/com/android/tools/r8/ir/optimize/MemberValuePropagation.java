@@ -13,16 +13,15 @@ import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.ConstNumber;
-import com.android.tools.r8.ir.code.ConstType;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
-import com.android.tools.r8.ir.code.MoveType;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardMemberRule;
 
@@ -72,19 +71,18 @@ public class MemberValuePropagation {
       ProguardMemberRule rule, IRCode code, Instruction instruction) {
     // Check if this value can be assumed constant.
     Instruction replacement = null;
-    MoveType moveType = instruction.outValue().outType();
+    ValueType valueType = instruction.outValue().outType();
     if (rule != null && rule.hasReturnValue() && rule.getReturnValue().isSingleValue()) {
-      assert moveType != MoveType.OBJECT;
-      Value value = code.createValue(moveType, instruction.getLocalInfo());
-      replacement = new ConstNumber(
-          ConstType.fromMoveType(moveType), value, rule.getReturnValue().getSingleValue());
+      assert valueType != ValueType.OBJECT;
+      Value value = code.createValue(valueType, instruction.getLocalInfo());
+      replacement = new ConstNumber(valueType, value, rule.getReturnValue().getSingleValue());
     }
     if (replacement == null &&
         rule != null && rule.hasReturnValue() && rule.getReturnValue().isField()) {
       DexField field = rule.getReturnValue().getField();
       DexEncodedField staticField = appInfo.lookupStaticTarget(field.clazz, field);
       if (staticField != null) {
-        Value value = code.createValue(moveType, instruction.getLocalInfo());
+        Value value = code.createValue(valueType, instruction.getLocalInfo());
         replacement = staticField.staticValue.asConstInstruction(false, value);
       } else {
         throw new CompilationError(field.clazz.toSourceString() + "." + field.name.toString() +
@@ -165,15 +163,10 @@ public class MemberValuePropagation {
             }
             if (target.getOptimizationInfo().returnsConstant()) {
               long constant = target.getOptimizationInfo().getReturnedConstant();
-              MoveType moveType = invoke.outType();
-              if (moveType == MoveType.OBJECT) {
-                assert constant == 0;
-                moveType = MoveType.SINGLE;
-              }
-              Value value = code.createValue(moveType);
+              ValueType valueType = invoke.outType();
+              Value value = code.createValue(valueType);
               // TODO(ager): Attempt to get a more precise const type from the method analysis?
-              Instruction knownConstReturn =
-                  new ConstNumber(ConstType.fromMoveType(moveType), value, constant);
+              Instruction knownConstReturn = new ConstNumber(valueType, value, constant);
               invoke.outValue().replaceUsers(value);
               knownConstReturn.setPosition(invoke.getPosition());
               iterator.add(knownConstReturn);

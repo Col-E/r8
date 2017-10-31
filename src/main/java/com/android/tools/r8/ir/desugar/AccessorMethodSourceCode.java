@@ -11,7 +11,7 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.ir.code.Invoke;
-import com.android.tools.r8.ir.code.MoveType;
+import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import java.util.ArrayList;
 import java.util.List;
@@ -88,39 +88,39 @@ final class AccessorMethodSourceCode extends SynthesizedLambdaSourceCode {
     DexType[] accessorParams = proto.parameters.values;
 
     // Prepare call arguments.
-    List<MoveType> argMoveTypes = new ArrayList<>();
+    List<ValueType> argValueTypes = new ArrayList<>();
     List<Integer> argRegisters = new ArrayList<>();
 
     // If we are delegating to a constructor, we need to create the instance
     // first. This instance will be the first argument to the call.
     if (delegatingToConstructor()) {
-      int instance = nextRegister(MoveType.OBJECT);
+      int instance = nextRegister(ValueType.OBJECT);
       add(builder -> builder.addNewInstance(instance, implMethod.holder));
-      argMoveTypes.add(MoveType.OBJECT);
+      argValueTypes.add(ValueType.OBJECT);
       argRegisters.add(instance);
     }
 
     for (int i = 0; i < accessorParams.length; i++) {
       DexType param = accessorParams[i];
-      argMoveTypes.add(MoveType.fromDexType(param));
+      argValueTypes.add(ValueType.fromDexType(param));
       argRegisters.add(getParamRegister(i));
     }
 
     // Method call to the original impl-method.
     add(builder -> builder.addInvoke(inferInvokeType(),
-        implMethod, implMethod.proto, argMoveTypes, argRegisters));
+        implMethod, implMethod.proto, argValueTypes, argRegisters));
 
     // Does the method have return value?
     if (proto.returnType == factory().voidType) {
       add(IRBuilder::addReturn);
     } else if (delegatingToConstructor()) {
       // Return newly created instance
-      add(builder -> builder.addReturn(MoveType.OBJECT, argRegisters.get(0)));
+      add(builder -> builder.addReturn(ValueType.OBJECT, argRegisters.get(0)));
     } else {
-      MoveType moveType = MoveType.fromDexType(proto.returnType);
-      int tempValue = nextRegister(moveType);
-      add(builder -> builder.addMoveResult(moveType, tempValue));
-      add(builder -> builder.addReturn(moveType, tempValue));
+      ValueType valueType = ValueType.fromDexType(proto.returnType);
+      int tempValue = nextRegister(valueType);
+      add(builder -> builder.addMoveResult(valueType, tempValue));
+      add(builder -> builder.addReturn(valueType, tempValue));
     }
   }
 }

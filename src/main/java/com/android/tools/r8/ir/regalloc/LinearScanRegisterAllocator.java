@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.regalloc;
 
+import com.android.tools.r8.code.MoveType;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.ir.code.Add;
@@ -16,12 +17,12 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.Move;
-import com.android.tools.r8.ir.code.MoveType;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Or;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Sub;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.code.Xor;
 import com.android.tools.r8.ir.regalloc.RegisterPositions.Type;
 import com.android.tools.r8.logging.Log;
@@ -1970,7 +1971,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     code.blocks.forEach(BasicBlock::clearUserInfo);
   }
 
-  private Value createValue(MoveType type) {
+  private Value createValue(ValueType type) {
     Value value = code.createValue(type, null);
     value.setNeedsRegister(true);
     return value;
@@ -2035,7 +2036,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   }
 
   private Value createSentinelRegisterValue() {
-    return createValue(MoveType.OBJECT);
+    return createValue(ValueType.OBJECT);
   }
 
   private LiveIntervals createSentinelLiveInterval(Value sentinelValue) {

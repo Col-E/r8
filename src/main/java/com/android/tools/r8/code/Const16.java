@@ -3,8 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.code;
 
-import com.android.tools.r8.ir.code.MoveType;
 import com.android.tools.r8.ir.code.SingleConstant;
+import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.StringUtils;
@@ -51,6 +51,6 @@ public class Const16 extends Format21s implements SingleConstant {
 
   @Override
   public void buildIR(IRBuilder builder) {
-    builder.addConst(MoveType.SINGLE, AA, decodedValue());
+    builder.addConst(ValueType.INT_OR_FLOAT, AA, decodedValue());
   }
 }

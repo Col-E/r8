@@ -127,7 +127,7 @@ public abstract class Instruction {
     }
   }
 
-  public final MoveType outType() {
+  public final ValueType outType() {
     return outValue.outType();
   }
 

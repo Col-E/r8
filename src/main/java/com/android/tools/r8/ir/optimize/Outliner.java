@@ -37,13 +37,13 @@ import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeStatic;
-import com.android.tools.r8.ir.code.MoveType;
 import com.android.tools.r8.ir.code.Mul;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Rem;
 import com.android.tools.r8.ir.code.Sub;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.SourceCode;
 import com.android.tools.r8.naming.ClassNameMapper;
@@ -863,8 +863,8 @@ public class Outliner {
     public void buildPrelude(IRBuilder builder) {
       // Fill in the Argument instructions in the argument block.
       for (int i = 0; i < outline.arguments.size(); i++) {
-        MoveType moveType = outline.arguments.get(i).outType();
-        builder.addNonThisArgument(i, moveType);
+        ValueType valueType = outline.arguments.get(i).outType();
+        builder.addNonThisArgument(i, valueType);
       }
     }
 
@@ -879,7 +879,7 @@ public class Outliner {
         if (outline.returnType == dexItemFactory.voidType) {
           builder.addReturn();
         } else {
-          builder.addReturn(MoveType.fromDexType(outline.returnType), outline.argumentCount());
+          builder.addReturn(ValueType.fromDexType(outline.returnType), outline.argumentCount());
         }
         return;
       }

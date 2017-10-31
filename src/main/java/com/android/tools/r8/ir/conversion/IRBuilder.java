@@ -36,7 +36,6 @@ import com.android.tools.r8.ir.code.ConstMethodHandle;
 import com.android.tools.r8.ir.code.ConstMethodType;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.ConstString;
-import com.android.tools.r8.ir.code.ConstType;
 import com.android.tools.r8.ir.code.DebugLocalRead;
 import com.android.tools.r8.ir.code.DebugLocalUninitialized;
 import com.android.tools.r8.ir.code.DebugLocalWrite;
@@ -56,7 +55,6 @@ import com.android.tools.r8.ir.code.InvokeCustom;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.Monitor;
 import com.android.tools.r8.ir.code.MoveException;
-import com.android.tools.r8.ir.code.MoveType;
 import com.android.tools.r8.ir.code.Mul;
 import com.android.tools.r8.ir.code.Neg;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
@@ -80,6 +78,7 @@ import com.android.tools.r8.ir.code.Throw;
 import com.android.tools.r8.ir.code.Ushr;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
+import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.code.Xor;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions;
@@ -529,7 +528,7 @@ public class IRBuilder {
     int moveExceptionDest = source.getMoveExceptionRegister();
     assert moveExceptionDest >= 0;
     int targetIndex = source.instructionIndex(moveExceptionItem.targetOffset);
-    Value out = writeRegister(moveExceptionDest, MoveType.OBJECT, ThrowingInfo.NO_THROW, null);
+    Value out = writeRegister(moveExceptionDest, ValueType.OBJECT, ThrowingInfo.NO_THROW, null);
     Position position = source.getDebugPositionAtOffset(moveExceptionItem.targetOffset);
     MoveException moveException = new MoveException(out);
     moveException.setPosition(position);
@@ -564,35 +563,34 @@ public class IRBuilder {
 
   public void addThisArgument(int register) {
     DebugLocalInfo local = getCurrentLocal(register);
-    Value value = writeRegister(register, MoveType.OBJECT, ThrowingInfo.NO_THROW, local);
+    Value value = writeRegister(register, ValueType.OBJECT, ThrowingInfo.NO_THROW, local);
     addInstruction(new Argument(value));
     value.markAsThis();
   }
 
-  public void addNonThisArgument(int register, MoveType moveType) {
+  public void addNonThisArgument(int register, ValueType valueType) {
     DebugLocalInfo local = getCurrentLocal(register);
-    Value value = writeRegister(register, moveType, ThrowingInfo.NO_THROW, local);
+    Value value = writeRegister(register, valueType, ThrowingInfo.NO_THROW, local);
     addInstruction(new Argument(value));
   }
 
   public void addBooleanNonThisArgument(int register) {
     DebugLocalInfo local = getCurrentLocal(register);
-    Value value = writeRegister(register, MoveType.SINGLE, ThrowingInfo.NO_THROW, local);
+    Value value = writeRegister(register, ValueType.INT, ThrowingInfo.NO_THROW, local);
     value.setKnownToBeBoolean(true);
     addInstruction(new Argument(value));
   }
 
-  public void addDebugUninitialized(int register, ConstType type) {
+  public void addDebugUninitialized(int register, ValueType type) {
     if (!options.debug) {
       return;
     }
-    Value value = writeRegister(register, MoveType.fromConstType(type), ThrowingInfo.NO_THROW,
-        null);
+    Value value = writeRegister(register, type, ThrowingInfo.NO_THROW, null);
     assert !value.hasLocalInfo();
     addInstruction(new DebugLocalUninitialized(type, value));
   }
 
-  private void addDebugLocalWrite(MoveType type, int dest, Value in) {
+  private void addDebugLocalWrite(ValueType type, int dest, Value in) {
     assert options.debug;
     Value out = writeRegister(dest, type, ThrowingInfo.NO_THROW);
     DebugLocalWrite write = new DebugLocalWrite(out, in);
@@ -604,8 +602,8 @@ public class IRBuilder {
     assert options.debug;
     assert local != null;
     assert local == getCurrentLocal(register);
-    MoveType moveType = MoveType.fromDexType(local.type);
-    return readRegisterIgnoreLocal(register, moveType);
+    ValueType valueType = ValueType.fromDexType(local.type);
+    return readRegisterIgnoreLocal(register, valueType);
   }
 
   private static boolean isValidFor(Value value, DebugLocalInfo local) {
@@ -633,7 +631,7 @@ public class IRBuilder {
     // If the value is for a different local, introduce the new local. We cannot shortcut if the
     // local is defined by a phi as it could end up being trivial.
     if (value.isPhi() || value.getLocalInfo() != local) {
-      addDebugLocalWrite(MoveType.fromDexType(local.type), register, value);
+      addDebugLocalWrite(ValueType.fromDexType(local.type), register, value);
       return;
     }
 
@@ -735,9 +733,9 @@ public class IRBuilder {
   }
 
   public void addArrayGet(MemberType type, int dest, int array, int index) {
-    Value in1 = readRegister(array, MoveType.OBJECT);
-    Value in2 = readRegister(index, MoveType.SINGLE);
-    Value out = writeRegister(dest, MoveType.fromMemberType(type), ThrowingInfo.CAN_THROW);
+    Value in1 = readRegister(array, ValueType.OBJECT);
+    Value in2 = readRegister(index, ValueType.INT);
+    Value out = writeRegister(dest, ValueType.fromMemberType(type), ThrowingInfo.CAN_THROW);
     out.setKnownToBeBoolean(type == MemberType.BOOLEAN);
     ArrayGet instruction = new ArrayGet(type, out, in1, in2);
     assert instruction.instructionTypeCanThrow();
@@ -745,8 +743,8 @@ public class IRBuilder {
   }
 
   public void addArrayLength(int dest, int array) {
-    Value in = readRegister(array, MoveType.OBJECT);
-    Value out = writeRegister(dest, MoveType.SINGLE, ThrowingInfo.CAN_THROW);
+    Value in = readRegister(array, ValueType.OBJECT);
+    Value out = writeRegister(dest, ValueType.INT, ThrowingInfo.CAN_THROW);
     ArrayLength instruction = new ArrayLength(out, in);
     assert instruction.instructionTypeCanThrow();
     add(instruction);
@@ -754,16 +752,16 @@ public class IRBuilder {
 
   public void addArrayPut(MemberType type, int value, int array, int index) {
     List<Value> ins = new ArrayList<>(3);
-    ins.add(readRegister(value, MoveType.fromMemberType(type)));
-    ins.add(readRegister(array, MoveType.OBJECT));
-    ins.add(readRegister(index, MoveType.SINGLE));
+    ins.add(readRegister(value, ValueType.fromMemberType(type)));
+    ins.add(readRegister(array, ValueType.OBJECT));
+    ins.add(readRegister(index, ValueType.INT));
     ArrayPut instruction = new ArrayPut(type, ins);
     add(instruction);
   }
 
   public void addCheckCast(int value, DexType type) {
-    Value in = readRegister(value, MoveType.OBJECT);
-    Value out = writeRegister(value, MoveType.OBJECT, ThrowingInfo.CAN_THROW);
+    Value in = readRegister(value, ValueType.OBJECT);
+    Value out = writeRegister(value, ValueType.OBJECT, ThrowingInfo.CAN_THROW);
     CheckCast instruction = new CheckCast(out, in, type);
     assert instruction.instructionTypeCanThrow();
     add(instruction);
@@ -772,22 +770,15 @@ public class IRBuilder {
   public void addCmp(NumericType type, Bias bias, int dest, int left, int right) {
     Value in1 = readNumericRegister(left, type);
     Value in2 = readNumericRegister(right, type);
-    Value out = writeRegister(dest, MoveType.SINGLE, ThrowingInfo.NO_THROW);
+    Value out = writeRegister(dest, ValueType.INT, ThrowingInfo.NO_THROW);
     Cmp instruction = new Cmp(type, bias, out, in1, in2);
     assert !instruction.instructionTypeCanThrow();
     add(instruction);
   }
 
-  public void addConst(MoveType type, int dest, long value) {
-    ConstNumber instruction;
-    if (type == MoveType.SINGLE) {
-      Value out = writeRegister(dest, type, ThrowingInfo.NO_THROW);
-      instruction = new ConstNumber(ConstType.INT_OR_FLOAT, out, value);
-    } else {
-      assert type == MoveType.WIDE;
-      Value out = writeRegister(dest, type, ThrowingInfo.NO_THROW);
-      instruction = new ConstNumber(ConstType.LONG_OR_DOUBLE, out, value);
-    }
+  public void addConst(ValueType type, int dest, long value) {
+    Value out = writeRegister(dest, type, ThrowingInfo.NO_THROW);
+    ConstNumber instruction = new ConstNumber(type, out, value);
     assert !instruction.instructionTypeCanThrow();
     add(instruction);
   }
@@ -796,12 +787,12 @@ public class IRBuilder {
   // to disable constant canonicalization in debug builds to make sure we have separate values
   // for separate locals.
   private void canonicalizeAndAddConst(
-      ConstType type, int dest, long value, Long2ObjectMap<ConstNumber> table) {
+      ValueType type, int dest, long value, Long2ObjectMap<ConstNumber> table) {
     ConstNumber existing = table.get(value);
     if (existing != null) {
       currentBlock.writeCurrentDefinition(dest, existing.outValue(), ThrowingInfo.NO_THROW);
     } else {
-      Value out = writeRegister(dest, MoveType.fromConstType(type), ThrowingInfo.NO_THROW);
+      Value out = writeRegister(dest, type, ThrowingInfo.NO_THROW);
       ConstNumber instruction = new ConstNumber(type, out, value);
       BasicBlock entryBlock = blocks.get(0);
       if (currentBlock != entryBlock) {
@@ -825,27 +816,27 @@ public class IRBuilder {
   }
 
   public void addLongConst(int dest, long value) {
-    canonicalizeAndAddConst(ConstType.LONG, dest, value, longConstants);
+    canonicalizeAndAddConst(ValueType.LONG, dest, value, longConstants);
   }
 
   public void addDoubleConst(int dest, long value) {
-    canonicalizeAndAddConst(ConstType.DOUBLE, dest, value, doubleConstants);
+    canonicalizeAndAddConst(ValueType.DOUBLE, dest, value, doubleConstants);
   }
 
   public void addIntConst(int dest, long value) {
-    canonicalizeAndAddConst(ConstType.INT, dest, value, intConstants);
+    canonicalizeAndAddConst(ValueType.INT, dest, value, intConstants);
   }
 
   public void addFloatConst(int dest, long value) {
-    canonicalizeAndAddConst(ConstType.FLOAT, dest, value, floatConstants);
+    canonicalizeAndAddConst(ValueType.FLOAT, dest, value, floatConstants);
   }
 
   public void addNullConst(int dest, long value) {
-    canonicalizeAndAddConst(ConstType.OBJECT, dest, value, nullConstants);
+    canonicalizeAndAddConst(ValueType.OBJECT, dest, value, nullConstants);
   }
 
   public void addConstClass(int dest, DexType type) {
-    Value out = writeRegister(dest, MoveType.OBJECT, ThrowingInfo.CAN_THROW);
+    Value out = writeRegister(dest, ValueType.OBJECT, ThrowingInfo.CAN_THROW);
     ConstClass instruction = new ConstClass(out, type);
     assert instruction.instructionTypeCanThrow();
     add(instruction);
@@ -859,7 +850,7 @@ public class IRBuilder {
           "Const-method-handle",
           null /* sourceString */);
     }
-    Value out = writeRegister(dest, MoveType.OBJECT, ThrowingInfo.CAN_THROW);
+    Value out = writeRegister(dest, ValueType.OBJECT, ThrowingInfo.CAN_THROW);
     ConstMethodHandle instruction = new ConstMethodHandle(out, methodHandle);
     add(instruction);
   }
@@ -872,13 +863,13 @@ public class IRBuilder {
           "Const-method-type",
           null /* sourceString */);
     }
-    Value out = writeRegister(dest, MoveType.OBJECT, ThrowingInfo.CAN_THROW);
+    Value out = writeRegister(dest, ValueType.OBJECT, ThrowingInfo.CAN_THROW);
     ConstMethodType instruction = new ConstMethodType(out, methodType);
     add(instruction);
   }
 
   public void addConstString(int dest, DexString string) {
-    Value out = writeRegister(dest, MoveType.OBJECT, ThrowingInfo.CAN_THROW);
+    Value out = writeRegister(dest, ValueType.OBJECT, ThrowingInfo.CAN_THROW);
     ConstString instruction = new ConstString(out, string);
     add(instruction);
   }
@@ -907,13 +898,13 @@ public class IRBuilder {
   }
 
   public Monitor addMonitor(Monitor.Type type, int monitor) {
-    Value in = readRegister(monitor, MoveType.OBJECT);
+    Value in = readRegister(monitor, ValueType.OBJECT);
     Monitor monitorEnter = new Monitor(type, in);
     add(monitorEnter);
     return monitorEnter;
   }
 
-  public void addMove(MoveType type, int dest, int src) {
+  public void addMove(ValueType type, int dest, int src) {
     Value in = readRegister(src, type);
     if (options.debug) {
       // If the move is writing to a different local we must construct a new value.
@@ -1013,8 +1004,8 @@ public class IRBuilder {
       addTrivialIf(trueTargetOffset, falseTargetOffset);
     } else {
       List<Value> values = new ArrayList<>(2);
-      values.add(readRegister(value1, MoveType.SINGLE));
-      values.add(readRegister(value2, MoveType.SINGLE));
+      values.add(readRegister(value1, ValueType.INT));
+      values.add(readRegister(value2, ValueType.INT));
       If instruction = new If(type, values);
       addNonTrivialIf(instruction, trueTargetOffset, falseTargetOffset);
     }
@@ -1024,7 +1015,7 @@ public class IRBuilder {
     if (trueTargetOffset == falseTargetOffset) {
       addTrivialIf(trueTargetOffset, falseTargetOffset);
     } else {
-      If instruction = new If(type, readRegister(value, MoveType.SINGLE));
+      If instruction = new If(type, readRegister(value, ValueType.INT));
       addNonTrivialIf(instruction, trueTargetOffset, falseTargetOffset);
     }
   }
@@ -1034,8 +1025,8 @@ public class IRBuilder {
       int dest,
       int object,
       DexField field) {
-    Value in = readRegister(object, MoveType.OBJECT);
-    Value out = writeRegister(dest, MoveType.fromMemberType(type), ThrowingInfo.CAN_THROW);
+    Value in = readRegister(object, ValueType.OBJECT);
+    Value out = writeRegister(dest, ValueType.fromMemberType(type), ThrowingInfo.CAN_THROW);
     out.setKnownToBeBoolean(type == MemberType.BOOLEAN);
     InstanceGet instruction = new InstanceGet(type, out, in, field);
     assert instruction.instructionTypeCanThrow();
@@ -1043,8 +1034,8 @@ public class IRBuilder {
   }
 
   public void addInstanceOf(int dest, int value, DexType type) {
-    Value in = readRegister(value, MoveType.OBJECT);
-    Value out = writeRegister(dest, MoveType.SINGLE, ThrowingInfo.CAN_THROW);
+    Value in = readRegister(value, ValueType.OBJECT);
+    Value out = writeRegister(dest, ValueType.INT, ThrowingInfo.CAN_THROW);
     InstanceOf instruction = new InstanceOf(out, in, type);
     assert instruction.instructionTypeCanThrow();
     addInstruction(instruction);
@@ -1056,8 +1047,8 @@ public class IRBuilder {
       int object,
       DexField field) {
     List<Value> values = new ArrayList<>(2);
-    values.add(readRegister(value, MoveType.fromMemberType(type)));
-    values.add(readRegister(object, MoveType.OBJECT));
+    values.add(readRegister(value, ValueType.fromMemberType(type)));
+    values.add(readRegister(object, ValueType.OBJECT));
     InstancePut instruction = new InstancePut(type, values, field);
     add(instruction);
   }
@@ -1086,7 +1077,7 @@ public class IRBuilder {
       Invoke.Type type,
       DexItem item,
       DexProto callSiteProto,
-      List<MoveType> types,
+      List<ValueType> types,
       List<Integer> registers)
       throws ApiLevelException {
     assert types.size() == registers.size();
@@ -1104,16 +1095,16 @@ public class IRBuilder {
     List<Value> arguments = new ArrayList<>(argumentRegisterCount);
 
     if (!bootstrapMethod.isStaticHandle()) {
-      arguments.add(readRegister(argumentRegisters[registerIndex], MoveType.OBJECT));
-      registerIndex += MoveType.OBJECT.requiredRegisters();
+      arguments.add(readRegister(argumentRegisters[registerIndex], ValueType.OBJECT));
+      registerIndex += ValueType.OBJECT.requiredRegisters();
     }
 
     String shorty = callSite.methodProto.shorty.toString();
 
     for (int i = 1; i < shorty.length(); i++) {
-      MoveType moveType = MoveType.fromTypeDescriptorChar(shorty.charAt(i));
-      arguments.add(readRegister(argumentRegisters[registerIndex], moveType));
-      registerIndex += moveType.requiredRegisters();
+      ValueType valueType = ValueType.fromTypeDescriptorChar(shorty.charAt(i));
+      arguments.add(readRegister(argumentRegisters[registerIndex], valueType));
+      registerIndex += valueType.requiredRegisters();
     }
 
     add(new InvokeCustom(callSite, null, arguments));
@@ -1126,23 +1117,23 @@ public class IRBuilder {
 
     int register = firstArgumentRegister;
     if (!bootstrapMethod.isStaticHandle()) {
-      arguments.add(readRegister(register, MoveType.OBJECT));
-      register += MoveType.OBJECT.requiredRegisters();
+      arguments.add(readRegister(register, ValueType.OBJECT));
+      register += ValueType.OBJECT.requiredRegisters();
     }
 
     String shorty = callSite.methodProto.shorty.toString();
 
     for (int i = 1; i < shorty.length(); i++) {
-      MoveType moveType = MoveType.fromTypeDescriptorChar(shorty.charAt(i));
-      arguments.add(readRegister(register, moveType));
-      register += moveType.requiredRegisters();
+      ValueType valueType = ValueType.fromTypeDescriptorChar(shorty.charAt(i));
+      arguments.add(readRegister(register, valueType));
+      register += valueType.requiredRegisters();
     }
     checkInvokeArgumentRegisters(register, firstArgumentRegister + argumentCount);
     add(new InvokeCustom(callSite, null, arguments));
   }
 
   public void addInvokeCustom(
-      DexCallSite callSite, List<MoveType> types, List<Integer> registers) {
+      DexCallSite callSite, List<ValueType> types, List<Integer> registers) {
     assert types.size() == registers.size();
     List<Value> arguments = new ArrayList<>(types.size());
     for (int i = 0; i < types.size(); i++) {
@@ -1163,8 +1154,8 @@ public class IRBuilder {
     List<Value> arguments = new ArrayList<>(argumentRegisterCount);
     int registerIndex = 0;
     if (type != Invoke.Type.STATIC) {
-      arguments.add(readRegister(argumentRegisters[registerIndex], MoveType.OBJECT));
-      registerIndex += MoveType.OBJECT.requiredRegisters();
+      arguments.add(readRegister(argumentRegisters[registerIndex], ValueType.OBJECT));
+      registerIndex += ValueType.OBJECT.requiredRegisters();
     }
     DexString methodShorty;
     if (type == Invoke.Type.POLYMORPHIC) {
@@ -1176,9 +1167,9 @@ public class IRBuilder {
     }
     String shorty = methodShorty.toString();
     for (int i = 1; i < methodShorty.size; i++) {
-      MoveType moveType = MoveType.fromTypeDescriptorChar(shorty.charAt(i));
-      arguments.add(readRegister(argumentRegisters[registerIndex], moveType));
-      registerIndex += moveType.requiredRegisters();
+      ValueType valueType = ValueType.fromTypeDescriptorChar(shorty.charAt(i));
+      arguments.add(readRegister(argumentRegisters[registerIndex], valueType));
+      registerIndex += valueType.requiredRegisters();
     }
     checkInvokeArgumentRegisters(registerIndex, argumentRegisterCount);
     addInvoke(type, method, callSiteProto, arguments);
@@ -1189,16 +1180,16 @@ public class IRBuilder {
     String descriptor = type.descriptor.toString();
     assert descriptor.charAt(0) == '[';
     assert descriptor.length() >= 2;
-    MoveType moveType = MoveType.fromTypeDescriptorChar(descriptor.charAt(1));
-    List<Value> arguments = new ArrayList<>(argumentCount / moveType.requiredRegisters());
+    ValueType valueType = ValueType.fromTypeDescriptorChar(descriptor.charAt(1));
+    List<Value> arguments = new ArrayList<>(argumentCount / valueType.requiredRegisters());
     int registerIndex = 0;
     while (registerIndex < argumentCount) {
-      arguments.add(readRegister(argumentRegisters[registerIndex], moveType));
-      if (moveType == MoveType.WIDE) {
+      arguments.add(readRegister(argumentRegisters[registerIndex], valueType));
+      if (valueType.isWide()) {
         assert registerIndex < argumentCount - 1;
         assert argumentRegisters[registerIndex] == argumentRegisters[registerIndex + 1] + 1;
       }
-      registerIndex += moveType.requiredRegisters();
+      registerIndex += valueType.requiredRegisters();
     }
     checkInvokeArgumentRegisters(registerIndex, argumentCount);
     addInvoke(Invoke.Type.NEW_ARRAY, type, null, arguments);
@@ -1216,8 +1207,8 @@ public class IRBuilder {
     List<Value> arguments = new ArrayList<>(argumentCount);
     int register = firstArgumentRegister;
     if (type != Invoke.Type.STATIC) {
-      arguments.add(readRegister(register, MoveType.OBJECT));
-      register += MoveType.OBJECT.requiredRegisters();
+      arguments.add(readRegister(register, ValueType.OBJECT));
+      register += ValueType.OBJECT.requiredRegisters();
     }
     DexString methodShorty;
     if (type == Invoke.Type.POLYMORPHIC) {
@@ -1229,9 +1220,9 @@ public class IRBuilder {
     }
     String shorty = methodShorty.toString();
     for (int i = 1; i < methodShorty.size; i++) {
-      MoveType moveType = MoveType.fromTypeDescriptorChar(shorty.charAt(i));
-      arguments.add(readRegister(register, moveType));
-      register += moveType.requiredRegisters();
+      ValueType valueType = ValueType.fromTypeDescriptorChar(shorty.charAt(i));
+      arguments.add(readRegister(register, valueType));
+      register += valueType.requiredRegisters();
     }
     checkInvokeArgumentRegisters(register, firstArgumentRegister + argumentCount);
     addInvoke(type, method, callSiteProto, arguments);
@@ -1242,12 +1233,12 @@ public class IRBuilder {
     String descriptor = type.descriptor.toString();
     assert descriptor.charAt(0) == '[';
     assert descriptor.length() >= 2;
-    MoveType moveType = MoveType.fromTypeDescriptorChar(descriptor.charAt(1));
-    List<Value> arguments = new ArrayList<>(argumentCount / moveType.requiredRegisters());
+    ValueType valueType = ValueType.fromTypeDescriptorChar(descriptor.charAt(1));
+    List<Value> arguments = new ArrayList<>(argumentCount / valueType.requiredRegisters());
     int register = firstArgumentRegister;
     while (register < firstArgumentRegister + argumentCount) {
-      arguments.add(readRegister(register, moveType));
-      register += moveType.requiredRegisters();
+      arguments.add(readRegister(register, valueType));
+      register += valueType.requiredRegisters();
     }
     checkInvokeArgumentRegisters(register, firstArgumentRegister + argumentCount);
     addInvoke(Invoke.Type.NEW_ARRAY, type, null, arguments);
@@ -1262,7 +1253,7 @@ public class IRBuilder {
   }
 
   public void addMoveException(int dest) {
-    Value out = writeRegister(dest, MoveType.OBJECT, ThrowingInfo.NO_THROW);
+    Value out = writeRegister(dest, ValueType.OBJECT, ThrowingInfo.NO_THROW);
     assert !out.hasLocalInfo();
     MoveException instruction = new MoveException(out);
     assert !instruction.instructionTypeCanThrow();
@@ -1283,7 +1274,7 @@ public class IRBuilder {
     addInstruction(instruction);
   }
 
-  public void addMoveResult(MoveType type, int dest) {
+  public void addMoveResult(ValueType type, int dest) {
     List<Instruction> instructions = currentBlock.getInstructions();
     Invoke invoke = instructions.get(instructions.size() - 1).asInvoke();
     assert invoke.outValue() == null;
@@ -1291,7 +1282,7 @@ public class IRBuilder {
     invoke.setOutValue(writeRegister(dest, type, ThrowingInfo.CAN_THROW));
   }
 
-  public void addBooleanMoveResult(MoveType type, int dest) {
+  public void addBooleanMoveResult(ValueType type, int dest) {
     List<Instruction> instructions = currentBlock.getInstructions();
     Invoke invoke = instructions.get(instructions.size() - 1).asInvoke();
     assert invoke.outValue() == null;
@@ -1319,25 +1310,25 @@ public class IRBuilder {
 
   public void addNewArrayEmpty(int dest, int size, DexType type) {
     assert type.isArrayType();
-    Value in = readRegister(size, MoveType.SINGLE);
-    Value out = writeRegister(dest, MoveType.OBJECT, ThrowingInfo.CAN_THROW);
+    Value in = readRegister(size, ValueType.INT);
+    Value out = writeRegister(dest, ValueType.OBJECT, ThrowingInfo.CAN_THROW);
     NewArrayEmpty instruction = new NewArrayEmpty(out, in, type);
     assert instruction.instructionTypeCanThrow();
     addInstruction(instruction);
   }
 
   public void addNewArrayFilledData(int arrayRef, int elementWidth, long size, short[] data) {
-    add(new NewArrayFilledData(readRegister(arrayRef, MoveType.OBJECT), elementWidth, size, data));
+    add(new NewArrayFilledData(readRegister(arrayRef, ValueType.OBJECT), elementWidth, size, data));
   }
 
   public void addNewInstance(int dest, DexType type) {
-    Value out = writeRegister(dest, MoveType.OBJECT, ThrowingInfo.CAN_THROW);
+    Value out = writeRegister(dest, ValueType.OBJECT, ThrowingInfo.CAN_THROW);
     NewInstance instruction = new NewInstance(type, out);
     assert instruction.instructionTypeCanThrow();
     addInstruction(instruction);
   }
 
-  public void addReturn(MoveType type, int value) {
+  public void addReturn(ValueType type, int value) {
     Value in = readRegister(value, type);
     addReturn(new Return(in, type));
   }
@@ -1355,7 +1346,7 @@ public class IRBuilder {
   }
 
   public void addStaticGet(MemberType type, int dest, DexField field) {
-    Value out = writeRegister(dest, MoveType.fromMemberType(type), ThrowingInfo.CAN_THROW);
+    Value out = writeRegister(dest, ValueType.fromMemberType(type), ThrowingInfo.CAN_THROW);
     out.setKnownToBeBoolean(type == MemberType.BOOLEAN);
     StaticGet instruction = new StaticGet(type, out, field);
     assert instruction.instructionTypeCanThrow();
@@ -1363,7 +1354,7 @@ public class IRBuilder {
   }
 
   public void addStaticPut(MemberType type, int value, DexField field) {
-    Value in = readRegister(value, MoveType.fromMemberType(type));
+    Value in = readRegister(value, ValueType.fromMemberType(type));
     add(new StaticPut(type, in, field));
   }
 
@@ -1388,22 +1379,6 @@ public class IRBuilder {
     addInstruction(instruction);
   }
 
-  private void addSwitchIf(int key, int value, int caseOffset, int fallthroughOffset) {
-    if (key == 0) {
-      addIfZero(If.Type.EQ, value, caseOffset, fallthroughOffset);
-    } else {
-      if (caseOffset == fallthroughOffset) {
-        addTrivialIf(caseOffset, fallthroughOffset);
-      } else {
-        List<Value> values = new ArrayList<>(2);
-        values.add(readRegister(value, MoveType.SINGLE));
-        values.add(readLiteral(NumericType.INT, key));
-        If instruction = new If(If.Type.EQ, values);
-        addNonTrivialIf(instruction, caseOffset, fallthroughOffset);
-      }
-    }
-  }
-
   public void addSwitch(int value, int[] keys, int fallthroughOffset, int[] labelOffsets) {
     int numberOfTargets = labelOffsets.length;
     assert (keys.length == 1) || (keys.length == numberOfTargets);
@@ -1414,7 +1389,7 @@ public class IRBuilder {
       return;
     }
 
-    Value switchValue = readRegister(value, MoveType.SINGLE);
+    Value switchValue = readRegister(value, ValueType.INT);
 
     // Find the keys not targeting the fallthrough.
     IntList nonFallthroughKeys = new IntArrayList(numberOfTargets);
@@ -1494,7 +1469,7 @@ public class IRBuilder {
   }
 
   public void addThrow(int value) {
-    Value in = readRegister(value, MoveType.OBJECT);
+    Value in = readRegister(value, ValueType.OBJECT);
     addInstruction(new Throw(in));
     closeCurrentBlock();
   }
@@ -1522,7 +1497,7 @@ public class IRBuilder {
   public void addShl(NumericType type, int dest, int left, int right) {
     assert isIntegerType(type);
     Value in1 = readNumericRegister(left, type);
-    Value in2 = readRegister(right, MoveType.SINGLE);
+    Value in2 = readRegister(right, ValueType.INT);
     Value out = writeNumericRegister(dest, type, ThrowingInfo.NO_THROW);
     Shl instruction = new Shl(type, out, in1, in2);
     assert !instruction.instructionTypeCanThrow();
@@ -1542,7 +1517,7 @@ public class IRBuilder {
   public void addShr(NumericType type, int dest, int left, int right) {
     assert isIntegerType(type);
     Value in1 = readNumericRegister(left, type);
-    Value in2 = readRegister(right, MoveType.SINGLE);
+    Value in2 = readRegister(right, ValueType.INT);
     Value out = writeNumericRegister(dest, type, ThrowingInfo.NO_THROW);
     Shr instruction = new Shr(type, out, in1, in2);
     assert !instruction.instructionTypeCanThrow();
@@ -1562,7 +1537,7 @@ public class IRBuilder {
   public void addUshr(NumericType type, int dest, int left, int right) {
     assert isIntegerType(type);
     Value in1 = readNumericRegister(left, type);
-    Value in2 = readRegister(right, MoveType.SINGLE);
+    Value in2 = readRegister(right, ValueType.INT);
     Value out = writeNumericRegister(dest, type, ThrowingInfo.NO_THROW);
     Ushr instruction = new Ushr(type, out, in1, in2);
     assert !instruction.instructionTypeCanThrow();
@@ -1621,7 +1596,7 @@ public class IRBuilder {
 
   // Value abstraction methods.
 
-  public Value readRegister(int register, MoveType type) {
+  public Value readRegister(int register, ValueType type) {
     DebugLocalInfo local = getCurrentLocal(register);
     Value value = readRegister(register, type, currentBlock, EdgeType.NON_EDGE, local);
     // Check that any information about a current-local is consistent with the read.
@@ -1640,12 +1615,12 @@ public class IRBuilder {
     return value;
   }
 
-  public Value readRegisterIgnoreLocal(int register, MoveType type) {
+  public Value readRegisterIgnoreLocal(int register, ValueType type) {
     DebugLocalInfo local = getCurrentLocal(register);
     return readRegister(register, type, currentBlock, EdgeType.NON_EDGE, local);
   }
 
-  public Value readRegister(int register, MoveType type, BasicBlock block, EdgeType readingEdge,
+  public Value readRegister(int register, ValueType type, BasicBlock block, EdgeType readingEdge,
       DebugLocalInfo local) {
     checkRegister(register);
     Value value = block.readCurrentDefinition(register, readingEdge);
@@ -1653,7 +1628,7 @@ public class IRBuilder {
   }
 
   private Value readRegisterRecursive(
-      int register, BasicBlock block, EdgeType readingEdge, MoveType type, DebugLocalInfo local) {
+      int register, BasicBlock block, EdgeType readingEdge, ValueType type, DebugLocalInfo local) {
     Value value;
     if (!block.isSealed()) {
       assert !blocks.isEmpty() : "No write to " + register;
@@ -1680,33 +1655,33 @@ public class IRBuilder {
   }
 
   public Value readNumericRegister(int register, NumericType type) {
-    return readRegister(register, type.moveTypeFor());
+    return readRegister(register, ValueType.fromNumericType(type));
   }
 
   public Value readLiteral(NumericType type, long constant) {
-    Value value = new Value(valueNumberGenerator.next(), MoveType.fromNumericType(type), null);
-    add(new ConstNumber(ConstType.fromNumericType(type), value, constant));
+    Value value = new Value(valueNumberGenerator.next(), ValueType.fromNumericType(type), null);
+    add(new ConstNumber(ValueType.fromNumericType(type), value, constant));
     return value;
   }
 
   // This special write register is needed when changing the scoping of a local variable.
   // See addDebugLocalStart and addDebugLocalEnd.
   private Value writeRegister(
-      int register, MoveType type, ThrowingInfo throwing, DebugLocalInfo local) {
+      int register, ValueType type, ThrowingInfo throwing, DebugLocalInfo local) {
     checkRegister(register);
     Value value = new Value(valueNumberGenerator.next(), type, local);
     currentBlock.writeCurrentDefinition(register, value, throwing);
     return value;
   }
 
-  public Value writeRegister(int register, MoveType type, ThrowingInfo throwing) {
+  public Value writeRegister(int register, ValueType type, ThrowingInfo throwing) {
     DebugLocalInfo local = getCurrentLocal(register);
     previousLocalValue = local == null ? null : readRegisterIgnoreLocal(register, type);
     return writeRegister(register, type, throwing, local);
   }
 
   public Value writeNumericRegister(int register, NumericType type, ThrowingInfo throwing) {
-    return writeRegister(register, type.moveTypeFor(), throwing);
+    return writeRegister(register, ValueType.fromNumericType(type), throwing);
   }
 
   private DebugLocalInfo getCurrentLocal(int register) {

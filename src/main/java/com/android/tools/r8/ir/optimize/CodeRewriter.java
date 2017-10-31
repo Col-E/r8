@@ -37,7 +37,6 @@ import com.android.tools.r8.ir.code.Cmp.Bias;
 import com.android.tools.r8.ir.code.ConstInstruction;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.ConstString;
-import com.android.tools.r8.ir.code.ConstType;
 import com.android.tools.r8.ir.code.DebugLocalWrite;
 import com.android.tools.r8.ir.code.DominatorTree;
 import com.android.tools.r8.ir.code.Goto;
@@ -52,7 +51,6 @@ import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.MemberType;
-import com.android.tools.r8.ir.code.MoveType;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.NewArrayFilledData;
 import com.android.tools.r8.ir.code.NumericType;
@@ -63,6 +61,7 @@ import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Switch;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.code.Xor;
 import com.android.tools.r8.ir.conversion.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.SwitchUtils.EnumSwitchInfo;
@@ -503,7 +502,7 @@ public class CodeRewriter {
               for (Integer outlier : outliers) {
                 if (outlier != 0) {
                   rewrittenSize += ConstNumber.estimatedDexSize(
-                      ConstType.fromMoveType(theSwitch.value().outType()), outlier);
+                      theSwitch.value().outType(), outlier);
                 }
                 rewrittenSize += If.estimatedDexSize();
               }
@@ -737,10 +736,11 @@ public class CodeRewriter {
                 if (argumentIndex != -1 && checkArgumentType(invoke, target.method,
                     argumentIndex)) {
                   Value argument = invoke.arguments().get(argumentIndex);
-                  assert (invoke.outType() == argument.outType()) ||
-                      (invoke.outType() == MoveType.OBJECT
-                          && argument.outType() == MoveType.SINGLE
-                          && argument.isZero());
+                  assert invoke.outType().compatible(argument.outType())
+                      || (!options.outputClassFiles
+                            && invoke.outType() == ValueType.OBJECT
+                            && argument.outType().isSingle()
+                            && argument.isZero());
                   invoke.outValue().replaceUsers(argument);
                   invoke.setOutValue(null);
                 }
@@ -1851,7 +1851,7 @@ public class CodeRewriter {
   }
 
   private Value addConstString(IRCode code, InstructionListIterator iterator, String s) {
-    Value value = code.createValue(MoveType.OBJECT);
+    Value value = code.createValue(ValueType.OBJECT);
     iterator.add(new ConstString(value, dexItemFactory.createString(s)));
     return value;
   }
@@ -1878,7 +1878,7 @@ public class CodeRewriter {
 
     // Now that the block is split there should not be any catch handlers in the block.
     assert !block.hasCatchHandlers();
-    Value out = code.createValue(MoveType.OBJECT);
+    Value out = code.createValue(ValueType.OBJECT);
     DexType javaLangSystemType = dexItemFactory.createType("Ljava/lang/System;");
     DexType javaIoPrintStreamType = dexItemFactory.createType("Ljava/io/PrintStream;");
 
@@ -1890,11 +1890,11 @@ public class CodeRewriter {
         new StaticGet(MemberType.OBJECT, out,
             dexItemFactory.createField(javaLangSystemType, javaIoPrintStreamType, "out")));
 
-    Value value = code.createValue(MoveType.OBJECT);
+    Value value = code.createValue(ValueType.OBJECT);
     iterator.add(new ConstString(value, dexItemFactory.createString("INVOKE ")));
     iterator.add(new InvokeVirtual(print, null, ImmutableList.of(out, value)));
 
-    value = code.createValue(MoveType.OBJECT);
+    value = code.createValue(ValueType.OBJECT);
     iterator.add(
         new ConstString(value, dexItemFactory.createString(method.method.qualifiedName())));
     iterator.add(new InvokeVirtual(print, null, ImmutableList.of(out, value)));
@@ -1920,7 +1920,7 @@ public class CodeRewriter {
       eol.link(successor);
 
       Value argument = arguments.get(i);
-      if (argument.outType() != MoveType.OBJECT) {
+      if (argument.outType() != ValueType.OBJECT) {
         iterator.add(new InvokeVirtual(print, null, ImmutableList.of(out, primitive)));
       } else {
         // Insert "if (argument != null) ...".
@@ -1948,7 +1948,7 @@ public class CodeRewriter {
         iterator.add(new InvokeVirtual(print, null, ImmutableList.of(out, nul)));
         iterator = isNotNullBlock.listIterator();
         iterator.setInsertionPosition(position);
-        value = code.createValue(MoveType.OBJECT);
+        value = code.createValue(ValueType.OBJECT);
         iterator.add(new InvokeVirtual(dexItemFactory.objectMethods.getClass, value,
             ImmutableList.of(arguments.get(i))));
         iterator.add(new InvokeVirtual(print, null, ImmutableList.of(out, value)));

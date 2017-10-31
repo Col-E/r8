@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.ir.code.MoveType;
+import com.android.tools.r8.ir.code.ValueType;
 import com.google.common.collect.ImmutableMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
@@ -69,7 +69,7 @@ public class DexDebugEntryBuilder {
       DexString name = factory.thisName;
       DexType type = method.method.getHolder();
       startArgument(argumentRegister, name, type);
-      argumentRegister += MoveType.fromDexType(type).requiredRegisters();
+      argumentRegister += ValueType.fromDexType(type).requiredRegisters();
     }
     DexType[] types = method.method.proto.parameters.values;
     DexString[] names = info.parameters;
@@ -78,7 +78,7 @@ public class DexDebugEntryBuilder {
       if (names[i] != null) {
         startArgument(argumentRegister, names[i], types[i]);
       }
-      argumentRegister += MoveType.fromDexType(types[i]).requiredRegisters();
+      argumentRegister += ValueType.fromDexType(types[i]).requiredRegisters();
     }
     currentLine = info.startLine;
     for (DexDebugEvent event : info.events) {

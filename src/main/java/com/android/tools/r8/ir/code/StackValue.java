@@ -5,7 +5,7 @@ package com.android.tools.r8.ir.code;
 
 public class StackValue extends Value {
 
-  public StackValue(MoveType type) {
+  public StackValue(ValueType type) {
     super(Value.UNDEFINED_NUMBER, type, null);
   }
 

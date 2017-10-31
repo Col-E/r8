@@ -13,15 +13,14 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.code.Add;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstNumber;
-import com.android.tools.r8.ir.code.ConstType;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
-import com.android.tools.r8.ir.code.MoveType;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
+import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.smali.SmaliTestBase;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
@@ -364,11 +363,11 @@ public class SplitBlockTest extends SmaliTestBase {
       BasicBlock newReturnBlock = iterator.split(code);
       // Modify the code to make the inserted block add the constant 10 to the original return
       // value.
-      Value newConstValue = new Value(test.valueNumberGenerator.next(), MoveType.SINGLE, null);
-      Value newReturnValue = new Value(test.valueNumberGenerator.next(), MoveType.SINGLE, null);
+      Value newConstValue = new Value(test.valueNumberGenerator.next(), ValueType.INT, null);
+      Value newReturnValue = new Value(test.valueNumberGenerator.next(), ValueType.INT, null);
       Value oldReturnValue = newReturnBlock.listIterator().next().asReturn().returnValue();
       newReturnBlock.listIterator().next().asReturn().returnValue().replaceUsers(newReturnValue);
-      Instruction constInstruction = new ConstNumber(ConstType.INT, newConstValue, 10);
+      Instruction constInstruction = new ConstNumber(ValueType.INT, newConstValue, 10);
       Instruction addInstruction =
           new Add(NumericType.INT, newReturnValue, oldReturnValue, newConstValue);
       iterator.previous();

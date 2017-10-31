@@ -13,8 +13,8 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.MemberType;
-import com.android.tools.r8.ir.code.MoveType;
 import com.android.tools.r8.ir.code.NumericType;
+import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
@@ -212,15 +212,15 @@ final class LambdaMainMethodSourceCode extends SynthesizedLambdaSourceCode {
         constructorTarget ? target.callTarget.holder : implReturnType);
 
     // Prepare call arguments.
-    List<MoveType> argMoveTypes = new ArrayList<>();
+    List<ValueType> argValueTypes = new ArrayList<>();
     List<Integer> argRegisters = new ArrayList<>();
 
     // If the target is a constructor, we need to create the instance first.
     // This instance will be the first argument to the call.
     if (constructorTarget) {
-      int instance = nextRegister(MoveType.OBJECT);
+      int instance = nextRegister(ValueType.OBJECT);
       add(builder -> builder.addNewInstance(instance, methodToCall.holder));
-      argMoveTypes.add(MoveType.OBJECT);
+      argValueTypes.add(ValueType.OBJECT);
       argRegisters.add(instance);
     }
 
@@ -228,10 +228,10 @@ final class LambdaMainMethodSourceCode extends SynthesizedLambdaSourceCode {
     int capturedValues = capturedTypes.length;
     for (int i = 0; i < capturedValues; i++) {
       MemberType memberType = MemberType.fromDexType(capturedTypes[i]);
-      MoveType moveType = MemberType.moveTypeFor(memberType);
-      int register = nextRegister(moveType);
+      ValueType valueType = MemberType.moveTypeFor(memberType);
+      int register = nextRegister(valueType);
 
-      argMoveTypes.add(moveType);
+      argValueTypes.add(valueType);
       argRegisters.add(register);
 
       // Read field into tmp local.
@@ -243,14 +243,14 @@ final class LambdaMainMethodSourceCode extends SynthesizedLambdaSourceCode {
     // Prepare arguments.
     for (int i = 0; i < erasedParams.length; i++) {
       DexType expectedParamType = implReceiverAndArgs.get(i + capturedValues);
-      argMoveTypes.add(MoveType.fromDexType(expectedParamType));
+      argValueTypes.add(ValueType.fromDexType(expectedParamType));
       argRegisters.add(prepareParameterValue(
           getParamRegister(i), erasedParams[i], enforcedParams[i], expectedParamType));
     }
 
     // Method call to the method implementing lambda or method-ref.
     add(builder -> builder.addInvoke(target.invokeType,
-        methodToCall, methodToCall.proto, argMoveTypes, argRegisters));
+        methodToCall, methodToCall.proto, argValueTypes, argRegisters));
 
     // Does the method have return value?
     if (enforcedReturnType.isVoidType()) {
@@ -261,15 +261,15 @@ final class LambdaMainMethodSourceCode extends SynthesizedLambdaSourceCode {
       int adjustedValue = prepareReturnValue(instanceRegister,
           erasedReturnType, enforcedReturnType, methodToCall.holder);
       add(builder -> builder.addReturn(
-          MoveType.fromDexType(erasedReturnType), adjustedValue));
+          ValueType.fromDexType(erasedReturnType), adjustedValue));
     } else {
-      MoveType implMoveType = MoveType.fromDexType(implReturnType);
-      int tempValue = nextRegister(implMoveType);
-      add(builder -> builder.addMoveResult(implMoveType, tempValue));
+      ValueType implValueType = ValueType.fromDexType(implReturnType);
+      int tempValue = nextRegister(implValueType);
+      add(builder -> builder.addMoveResult(implValueType, tempValue));
       int adjustedValue = prepareReturnValue(tempValue,
           erasedReturnType, enforcedReturnType, methodToCall.proto.returnType);
-      MoveType adjustedMoveType = MoveType.fromDexType(erasedReturnType);
-      add(builder -> builder.addReturn(adjustedMoveType, adjustedValue));
+      ValueType adjustedValueType = ValueType.fromDexType(erasedReturnType);
+      add(builder -> builder.addReturn(adjustedValueType, adjustedValue));
     }
   }
 
@@ -379,7 +379,7 @@ final class LambdaMainMethodSourceCode extends SynthesizedLambdaSourceCode {
           if (from != NumericType.BYTE) {
             break; // Only BYTE can be converted to SHORT via widening conversion.
           }
-          int result = nextRegister(MoveType.SINGLE);
+          int result = nextRegister(ValueType.INT);
           add(builder -> builder.addConversion(to, NumericType.INT, result, register));
           return result;
         }
@@ -394,7 +394,7 @@ final class LambdaMainMethodSourceCode extends SynthesizedLambdaSourceCode {
           if (from == NumericType.FLOAT || from == NumericType.DOUBLE) {
             break; // Not a widening conversion.
           }
-          int result = nextRegister(MoveType.WIDE);
+          int result = nextRegister(ValueType.LONG);
           add(builder -> builder.addConversion(to, NumericType.INT, result, register));
           return result;
         }
@@ -403,14 +403,14 @@ final class LambdaMainMethodSourceCode extends SynthesizedLambdaSourceCode {
           if (from == NumericType.DOUBLE) {
             break; // Not a widening conversion.
           }
-          int result = nextRegister(MoveType.SINGLE);
+          int result = nextRegister(ValueType.FLOAT);
           NumericType type = (from == NumericType.LONG) ? NumericType.LONG : NumericType.INT;
           add(builder -> builder.addConversion(to, type, result, register));
           return result;
         }
 
         case DOUBLE: {
-          int result = nextRegister(MoveType.WIDE);
+          int result = nextRegister(ValueType.DOUBLE);
           NumericType type = (from == NumericType.FLOAT || from == NumericType.LONG)
               ? from : NumericType.INT;
           add(builder -> builder.addConversion(to, type, result, register));
@@ -462,14 +462,14 @@ final class LambdaMainMethodSourceCode extends SynthesizedLambdaSourceCode {
   private int addPrimitiveUnboxing(int register, DexType primitiveType, DexType boxType) {
     DexMethod method = getUnboxMethod(primitiveType.descriptor.content[0], boxType);
 
-    List<MoveType> argMoveTypes = Collections.singletonList(MoveType.OBJECT);
+    List<ValueType> argValueTypes = Collections.singletonList(ValueType.OBJECT);
     List<Integer> argRegisters = Collections.singletonList(register);
     add(builder -> builder.addInvoke(Invoke.Type.VIRTUAL,
-        method, method.proto, argMoveTypes, argRegisters));
+        method, method.proto, argValueTypes, argRegisters));
 
-    MoveType moveType = MoveType.fromDexType(primitiveType);
-    int result = nextRegister(moveType);
-    add(builder -> builder.addMoveResult(moveType, result));
+    ValueType valueType = ValueType.fromDexType(primitiveType);
+    int result = nextRegister(valueType);
+    add(builder -> builder.addMoveResult(valueType, result));
     return result;
   }
 
@@ -484,14 +484,14 @@ final class LambdaMainMethodSourceCode extends SynthesizedLambdaSourceCode {
     DexProto proto = factory.createProto(boxType, primitiveType);
     DexMethod method = factory.createMethod(boxType, proto, factory.valueOfMethodName);
 
-    MoveType moveType = MoveType.fromDexType(primitiveType);
-    List<MoveType> argMoveTypes = Collections.singletonList(moveType);
+    ValueType valueType = ValueType.fromDexType(primitiveType);
+    List<ValueType> argValueTypes = Collections.singletonList(valueType);
     List<Integer> argRegisters = Collections.singletonList(register);
     add(builder -> builder.addInvoke(Invoke.Type.STATIC,
-        method, method.proto, argMoveTypes, argRegisters));
+        method, method.proto, argValueTypes, argRegisters));
 
-    int result = nextRegister(MoveType.OBJECT);
-    add(builder -> builder.addMoveResult(MoveType.OBJECT, result));
+    int result = nextRegister(ValueType.OBJECT);
+    add(builder -> builder.addMoveResult(ValueType.OBJECT, result));
     return result;
   }
 }

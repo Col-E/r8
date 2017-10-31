@@ -14,17 +14,16 @@ import com.android.tools.r8.code.ConstWide32;
 import com.android.tools.r8.code.ConstWideHigh16;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.ir.conversion.CfBuilder;
-import com.android.tools.r8.ir.conversion.CfBuilder.LocalType;
 import com.android.tools.r8.ir.conversion.CfBuilder.StackHelper;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.utils.NumberUtils;
 
 public class ConstNumber extends ConstInstruction {
 
-  public final ConstType type;
+  public final ValueType type;
   private final long value;
 
-  public ConstNumber(ConstType type, Value dest, long value) {
+  public ConstNumber(ValueType type, Value dest, long value) {
     super(dest);
     // We create const numbers after register allocation for rematerialization of values. Those
     // are all for fixed register values. All other values that are used as the destination for
@@ -41,7 +40,7 @@ public class ConstNumber extends ConstInstruction {
   }
 
   private boolean preciseTypeUnknown() {
-    return type == ConstType.INT_OR_FLOAT || type == ConstType.LONG_OR_DOUBLE;
+    return type == ValueType.INT_OR_FLOAT || type == ValueType.LONG_OR_DOUBLE;
   }
 
   public Value dest() {
@@ -53,22 +52,22 @@ public class ConstNumber extends ConstInstruction {
   }
 
   public int getIntValue() {
-    assert type == ConstType.INT || type == ConstType.INT_OR_FLOAT || type == ConstType.OBJECT;
+    assert type == ValueType.INT || type == ValueType.INT_OR_FLOAT || type == ValueType.OBJECT;
     return (int) value;
   }
 
   public long getLongValue() {
-    assert type == ConstType.LONG || type == ConstType.LONG_OR_DOUBLE;
+    assert type == ValueType.LONG || type == ValueType.LONG_OR_DOUBLE;
     return value;
   }
 
   public float getFloatValue() {
-    assert type == ConstType.FLOAT || type == ConstType.INT_OR_FLOAT;
+    assert type == ValueType.FLOAT || type == ValueType.INT_OR_FLOAT;
     return Float.intBitsToFloat((int) value);
   }
 
   public double getDoubleValue() {
-    assert type == ConstType.DOUBLE || type == ConstType.LONG_OR_DOUBLE;
+    assert type == ValueType.DOUBLE || type == ValueType.LONG_OR_DOUBLE;
     return Double.longBitsToDouble(value);
   }
 
@@ -81,11 +80,11 @@ public class ConstNumber extends ConstInstruction {
   }
 
   public boolean isIntegerZero() {
-    return type == ConstType.INT && getIntValue() == 0;
+    return type == ValueType.INT && getIntValue() == 0;
   }
 
   public boolean isIntegerOne() {
-    return type == ConstType.INT && getIntValue() == 1;
+    return type == ValueType.INT && getIntValue() == 1;
   }
 
   public boolean isIntegerNegativeOne(NumericType type) {
@@ -105,7 +104,7 @@ public class ConstNumber extends ConstInstruction {
     }
 
     int register = builder.allocatedRegister(dest(), getNumber());
-    if (MoveType.fromConstType(type) == MoveType.SINGLE || type == ConstType.OBJECT) {
+    if (type.isSingle() || type.isObject()) {
       assert NumberUtils.is32Bit(value);
       if ((register & 0xf) == register && NumberUtils.is4Bit(value)) {
         builder.add(this, new Const4(register, (int) value));
@@ -117,7 +116,7 @@ public class ConstNumber extends ConstInstruction {
         builder.add(this, new Const(register, (int) value));
       }
     } else {
-      assert MoveType.fromConstType(type) == MoveType.WIDE;
+      assert type.isWide();
       if (NumberUtils.is16Bit(value)) {
         builder.add(this, new ConstWide16(register, (int) value));
       } else if ((value & 0x0000ffffffffffffL) == 0) {
@@ -132,17 +131,17 @@ public class ConstNumber extends ConstInstruction {
 
   @Override
   public void insertLoadAndStores(InstructionListIterator it, StackHelper stack) {
-    stack.storeOutValue(this, LocalType.fromConstType(type), it);
+    stack.storeOutValue(this, it);
   }
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfConstNumber(value, type));
+    builder.add(new CfConstNumber(value, outType()));
   }
 
   // Estimated size of the resulting dex instruction in code units.
-  public static int estimatedDexSize(ConstType type, long value) {
-    if (MoveType.fromConstType(type) == MoveType.SINGLE) {
+  public static int estimatedDexSize(ValueType type, long value) {
+    if (type.isSingle()) {
       assert NumberUtils.is32Bit(value);
       if (NumberUtils.is4Bit(value)) {
         return Const4.SIZE;
@@ -154,7 +153,7 @@ public class ConstNumber extends ConstInstruction {
         return Const.SIZE;
       }
     } else {
-      assert MoveType.fromConstType(type) == MoveType.WIDE;
+      assert type.isWide();
       if (NumberUtils.is16Bit(value)) {
         return ConstWide16.SIZE;
       } else if ((value & 0x0000ffffffffffffL) == 0) {

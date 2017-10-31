@@ -60,27 +60,27 @@ public abstract class ArithmeticBinop extends Binop {
       int left = leftValue().getConstInstruction().asConstNumber().getIntValue();
       int right = rightValue().getConstInstruction().asConstNumber().getIntValue();
       int result = foldIntegers(left, right);
-      Value value = code.createValue(MoveType.SINGLE, getLocalInfo());
-      return new ConstNumber(ConstType.INT, value, result);
+      Value value = code.createValue(ValueType.INT, getLocalInfo());
+      return new ConstNumber(ValueType.INT, value, result);
     } else if (type == NumericType.LONG) {
       long left = leftValue().getConstInstruction().asConstNumber().getLongValue();
       long right = rightValue().getConstInstruction().asConstNumber().getLongValue();
       long result = foldLongs(left, right);
-      Value value = code.createValue(MoveType.WIDE, getLocalInfo());
-      return new ConstNumber(ConstType.LONG, value, result);
+      Value value = code.createValue(ValueType.LONG, getLocalInfo());
+      return new ConstNumber(ValueType.LONG, value, result);
     } else if (type == NumericType.FLOAT) {
       float left = leftValue().getConstInstruction().asConstNumber().getFloatValue();
       float right = rightValue().getConstInstruction().asConstNumber().getFloatValue();
       float result = foldFloat(left, right);
-      Value value = code.createValue(MoveType.SINGLE, getLocalInfo());
-      return new ConstNumber(ConstType.FLOAT, value, Float.floatToIntBits(result));
+      Value value = code.createValue(ValueType.FLOAT, getLocalInfo());
+      return new ConstNumber(ValueType.FLOAT, value, Float.floatToIntBits(result));
     } else {
       assert type == NumericType.DOUBLE;
       double left = leftValue().getConstInstruction().asConstNumber().getDoubleValue();
       double right = rightValue().getConstInstruction().asConstNumber().getDoubleValue();
       double result = foldDouble(left, right);
-      Value value = code.createValue(MoveType.WIDE, getLocalInfo());
-      return new ConstNumber(ConstType.DOUBLE, value, Double.doubleToLongBits(result));
+      Value value = code.createValue(ValueType.DOUBLE, getLocalInfo());
+      return new ConstNumber(ValueType.DOUBLE, value, Double.doubleToLongBits(result));
     }
   }
 

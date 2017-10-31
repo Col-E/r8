@@ -41,8 +41,8 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.ir.code.CatchHandlers;
-import com.android.tools.r8.ir.code.MoveType;
 import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.ir.code.ValueType;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -70,7 +70,7 @@ public class DexSourceCode implements SourceCode {
   private Position currentPosition = null;
   private Map<Position, Position> canonicalPositions = null;
 
-  private final List<MoveType> argumentTypes;
+  private final List<ValueType> argumentTypes;
 
   private List<DexDebugEntry> debugEntries = null;
 
@@ -131,7 +131,7 @@ public class DexSourceCode implements SourceCode {
       builder.addThisArgument(register);
       ++register;
     }
-    for (MoveType type : argumentTypes) {
+    for (ValueType type : argumentTypes) {
       builder.addNonThisArgument(register, type);
       register += type.requiredRegisters();
     }
@@ -260,12 +260,12 @@ public class DexSourceCode implements SourceCode {
         arrayFilledDataPayloadResolver.getData(payloadOffset));
   }
 
-  private List<MoveType> computeArgumentTypes() {
-    List<MoveType> types = new ArrayList<>(proto.parameters.size());
+  private List<ValueType> computeArgumentTypes() {
+    List<ValueType> types = new ArrayList<>(proto.parameters.size());
     String shorty = proto.shorty.toString();
     for (int i = 1; i < proto.shorty.size; i++) {
-      MoveType moveType = MoveType.fromTypeDescriptorChar(shorty.charAt(i));
-      types.add(moveType);
+      ValueType valueType = ValueType.fromTypeDescriptorChar(shorty.charAt(i));
+      types.add(valueType);
     }
     return types;
   }

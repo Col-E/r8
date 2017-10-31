@@ -16,13 +16,6 @@ public enum NumericType {
   FLOAT,
   DOUBLE;
 
-  public MoveType moveTypeFor() {
-    if (this == NumericType.DOUBLE || this == NumericType.LONG) {
-      return MoveType.WIDE;
-    }
-    return MoveType.SINGLE;
-  }
-
   public DexType dexTypeFor(DexItemFactory factory) {
     switch (this) {
       case BYTE:

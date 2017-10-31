@@ -3,8 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.regalloc;
 
+import com.android.tools.r8.code.MoveType;
 import com.android.tools.r8.ir.code.Instruction;
-import com.android.tools.r8.ir.code.MoveType;
 import java.util.Map;
 import java.util.Set;
 

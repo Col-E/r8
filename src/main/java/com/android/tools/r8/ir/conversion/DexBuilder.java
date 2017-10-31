@@ -27,6 +27,7 @@ import com.android.tools.r8.code.MoveFrom16;
 import com.android.tools.r8.code.MoveObject;
 import com.android.tools.r8.code.MoveObject16;
 import com.android.tools.r8.code.MoveObjectFrom16;
+import com.android.tools.r8.code.MoveType;
 import com.android.tools.r8.code.MoveWide;
 import com.android.tools.r8.code.MoveWide16;
 import com.android.tools.r8.code.MoveWideFrom16;
@@ -1168,6 +1169,7 @@ public class DexBuilder {
     @Override
     public void addInstructions(DexBuilder builder, List<Instruction> instructions) {
       Move move = getMove();
+      MoveType moveType = MoveType.fromValueType(move.outType());
       int dest = builder.allocatedRegister(move.dest(), move.getNumber());
       int src = builder.allocatedRegister(move.src(), move.getNumber());
       Instruction instruction = null;
@@ -1177,7 +1179,7 @@ public class DexBuilder {
             instruction = new Nop();
             break;
           }
-          switch (move.outType()) {
+          switch (moveType) {
             case SINGLE:
               instruction = new com.android.tools.r8.code.Move(dest, src);
               break;
@@ -1192,7 +1194,7 @@ public class DexBuilder {
           }
           break;
         case 2:
-          switch (move.outType()) {
+          switch (moveType) {
             case SINGLE:
               instruction = new MoveFrom16(dest, src);
               break;
@@ -1207,7 +1209,7 @@ public class DexBuilder {
           }
           break;
         case 3:
-          switch (move.outType()) {
+          switch (moveType) {
             case SINGLE:
               instruction = new Move16(dest, src);
               break;

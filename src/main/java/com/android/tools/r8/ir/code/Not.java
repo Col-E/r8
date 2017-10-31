@@ -25,15 +25,16 @@ public class Not extends Unop {
   @Override
   public ConstInstruction fold(IRCode code) {
     assert canBeFolded();
+    ValueType valueType = ValueType.fromNumericType(type);
     if (type == NumericType.INT) {
       int result = ~(source().getConstInstruction().asConstNumber().getIntValue());
-      Value value = code.createValue(MoveType.SINGLE, getLocalInfo());
-      return new ConstNumber(ConstType.INT, value, result);
+      Value value = code.createValue(valueType, getLocalInfo());
+      return new ConstNumber(valueType, value, result);
     } else {
       assert type == NumericType.LONG;
       long result = ~source().getConstInstruction().asConstNumber().getLongValue();
-      Value value = code.createValue(MoveType.WIDE, getLocalInfo());
-      return new ConstNumber(ConstType.LONG, value, result);
+      Value value = code.createValue(valueType, getLocalInfo());
+      return new ConstNumber(valueType, value, result);
     }
   }
 

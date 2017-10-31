@@ -24,8 +24,8 @@ import com.android.tools.r8.dex.JumboStringRewriter;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Invoke;
-import com.android.tools.r8.ir.code.MoveType;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
+import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
@@ -391,7 +391,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
     }
     int requiredArgRegisters = accessFlags.isStatic() ? 0 : 1;
     for (DexType type : method.proto.parameters.values) {
-      requiredArgRegisters += MoveType.fromDexType(type).requiredRegisters();
+      requiredArgRegisters += ValueType.fromDexType(type).requiredRegisters();
     }
     // Passing null as highestSortingString is save, as ConstString instructions are not allowed.
     return new DexCode(Math.max(numberOfRegisters, requiredArgRegisters), requiredArgRegisters,

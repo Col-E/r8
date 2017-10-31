@@ -365,7 +365,7 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
       if ((i == 0) && (downcast != null)) {
         Value invokeValue = invoke.inValues().get(0);
         Value receiverValue = arguments.get(0);
-        Value value = code.createValue(MoveType.OBJECT);
+        Value value = code.createValue(ValueType.OBJECT);
         castInstruction = new CheckCast(value, invokeValue, downcast);
         castInstruction.setPosition(invoke.getPosition());
         receiverValue.replaceUsers(value);

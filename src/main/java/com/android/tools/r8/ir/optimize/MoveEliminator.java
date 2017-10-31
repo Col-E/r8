@@ -5,7 +5,6 @@ package com.android.tools.r8.ir.optimize;
 
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.Move;
-import com.android.tools.r8.ir.code.MoveType;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import java.util.HashSet;
@@ -35,7 +34,7 @@ class MoveEliminator {
           return true;
         }
         if (activeMoveDstRegister == moveSrcRegister && activeMoveSrcRegister == moveDstRegister) {
-          if (move.outType() != MoveType.WIDE) {
+          if (!move.outType().isWide()) {
             return true;
           }
           // If the move is wide make sure the register pair is non-overlapping.
