@@ -75,6 +75,8 @@ public class ToolHelper {
   private static final String ANDROID_JAR_PATTERN = "third_party/android_jar/lib-v%d/android.jar";
   private static final int DEFAULT_MIN_SDK = AndroidApiLevel.I.getLevel();
 
+  private static final String PROGUARD = "third_party/proguard/proguard5.2.1/bin/proguard.sh";
+
   public enum DexVm {
     ART_4_4_4_TARGET(Version.V4_4_4, Kind.TARGET),
     ART_4_4_4_HOST(Version.V4_4_4, Kind.HOST),
@@ -567,7 +569,7 @@ public class ToolHelper {
     return Paths.get(BUILD_DIR, "classes", "test");
   }
 
-  public static Path getClassFileForTestClass(Class clazz) {
+  private static List<String> getNamePartsForTestClass(Class clazz) {
     List<String> parts = Lists.newArrayList(clazz.getCanonicalName().split("\\."));
     Class enclosing = clazz;
     while (enclosing.getEnclosingClass() != null) {
@@ -576,8 +578,18 @@ public class ToolHelper {
       enclosing = clazz.getEnclosingClass();
     }
     parts.set(parts.size() - 1, parts.get(parts.size() - 1) + ".class");
+    return parts;
+  }
+
+  public static Path getClassFileForTestClass(Class clazz) {
+    List<String> parts = getNamePartsForTestClass(clazz);
     return getClassPathForTests().resolve(
         Paths.get("", parts.toArray(new String[parts.size() - 1])));
+  }
+
+  public static String getJarEntryForTestClass(Class clazz) {
+    List<String> parts = getNamePartsForTestClass(clazz);
+    return String.join("/", parts);
   }
 
   public static DexApplication buildApplication(List<String> fileNames)
@@ -957,6 +969,26 @@ public class ToolHelper {
       fail("Verification error: \n" + result.stderr);
     }
   }
+
+  public static void runProguard(Path inJar, Path outJar, Path config) throws IOException {
+    List<String> command = new ArrayList<>();
+    command.add(PROGUARD);
+    command.add("-forceprocessing");  // Proguard just checks the creation time on the in/out jars.
+    command.add("-injars");
+    command.add(inJar.toString());
+    command.add("-libraryjars");
+    command.add(ToolHelper.getDefaultAndroidJar());
+    command.add("@" + config);
+    command.add("-outjar");
+    command.add(outJar.toString());
+    command.add("-printmapping");
+    ProcessBuilder builder = new ProcessBuilder(command);
+    ToolHelper.ProcessResult result = ToolHelper.runProcess(builder);
+    if (result.exitCode != 0) {
+      fail("Proguard failed, exit code " + result.exitCode + ", stderr:\n" + result.stderr);
+    }
+  }
+
 
   public static class ProcessResult {
 

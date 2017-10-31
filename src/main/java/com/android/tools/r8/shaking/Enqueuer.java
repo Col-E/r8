@@ -399,6 +399,14 @@ public class Enqueuer {
       if (annotations != null) {
         annotations.forEach(this::handleAnnotationOfLiveType);
       }
+
+      // For Proguard compatibility mark default initializer for live type as live.
+      if (options.forceProguardCompatibility) {
+        if (holder.hasDefaultInitializer()) {
+          DexEncodedMethod init = holder.getDefaultInitializer();
+          markDirectStaticOrConstructorMethodAsLive(init, KeepReason.reachableFromLiveType(type));
+        }
+      }
     }
   }
 

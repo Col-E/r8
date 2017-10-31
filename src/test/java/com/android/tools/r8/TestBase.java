@@ -76,7 +76,7 @@ public class TestBase {
       for (Class clazz : classes) {
         try (FileInputStream in =
             new FileInputStream(ToolHelper.getClassFileForTestClass(clazz).toFile())) {
-          out.putNextEntry(new ZipEntry(clazz.getCanonicalName().replace('.', '/') + ".class"));
+          out.putNextEntry(new ZipEntry(ToolHelper.getJarEntryForTestClass(clazz)));
           ByteStreams.copy(in, out);
           out.closeEntry();
         }
