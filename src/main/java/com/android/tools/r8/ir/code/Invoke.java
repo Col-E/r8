@@ -136,7 +136,8 @@ public abstract class Invoke extends Instruction {
     return true;
   }
 
-  protected void addInvokeAndMoveResult(com.android.tools.r8.code.Instruction instruction, DexBuilder builder) {
+  protected void addInvokeAndMoveResult(
+      com.android.tools.r8.code.Instruction instruction, DexBuilder builder) {
     if (outValue != null && outValue.needsRegister()) {
       MoveType moveType = MoveType.fromValueType(outType());
       int register = builder.allocatedRegister(outValue, getNumber());
