@@ -222,12 +222,17 @@ public class D8Command extends BaseCompilerCommand {
     internal.skipMinification = true;
     assert internal.useTreeShaking;
     internal.useTreeShaking = false;
+
+    // Disable some of R8 optimizations.
     assert internal.inlineAccessors;
     internal.inlineAccessors = false;
     assert internal.removeSwitchMaps;
     internal.removeSwitchMaps = false;
     assert internal.outline.enabled;
     internal.outline.enabled = false;
+    assert internal.propagateMemberValue;
+    internal.propagateMemberValue = false;
+
     internal.outputMode = getOutputMode();
     internal.diagnosticsHandler = getDiagnosticsHandler();
     internal.enableDesugaring = getEnableDesugaring();

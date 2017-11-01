@@ -59,6 +59,7 @@ public class InternalOptions {
   public boolean inlineAccessors = true;
   public boolean removeSwitchMaps = true;
   public final OutlineOptions outline = new OutlineOptions();
+  public boolean propagateMemberValue = true;
 
   // Number of threads to use while processing the dex files.
   public int numberOfThreads = NOT_SPECIFIED;

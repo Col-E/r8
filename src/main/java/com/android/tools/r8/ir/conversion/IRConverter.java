@@ -102,7 +102,8 @@ public class IRConverter {
       assert appInfo.hasSubtyping();
       this.inliner = new Inliner(appInfo.withSubtyping(), graphLense, options);
       this.outliner = new Outliner(appInfo, options);
-      this.memberValuePropagation = new MemberValuePropagation(appInfo);
+      this.memberValuePropagation =
+          options.propagateMemberValue ? new MemberValuePropagation(appInfo) : null;
       this.lensCodeRewriter = new LensCodeRewriter(graphLense, appInfo.withSubtyping());
       if (appInfo.hasLiveness()) {
         this.protoLiteRewriter = new ProtoLitePruner(appInfo.withLiveness());
