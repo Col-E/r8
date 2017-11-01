@@ -476,6 +476,7 @@ public class R8Command extends BaseCompilerCommand {
       internal.inlineAccessors = false;
       internal.removeSwitchMaps = false;
       internal.outline.enabled = false;
+      internal.propagateMemberValue = false;
     }
     assert !internal.skipMinification;
     internal.skipMinification = !useMinification() || !proguardConfiguration.isObfuscating();
