@@ -243,7 +243,8 @@ public abstract class DebugTestBase {
       Consumer<ProguardConfiguration.Builder> pgConsumer,
       Path jarToCompile,
       List<String> proguardConfigurations,
-      boolean writeProguardMap)
+      boolean writeProguardMap,
+      CompilationMode compilationMode)
       throws IOException, CompilationException, ExecutionException, ProguardRuleParserException {
     int minSdk = ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm());
     assert jarToCompile.toFile().exists();
@@ -254,7 +255,8 @@ public abstract class DebugTestBase {
             .setOutputPath(dexOutputDir)
             .setMinApiLevel(minSdk)
             .setMode(CompilationMode.DEBUG)
-            .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(minSdk)));
+            .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(minSdk)))
+            .setMode(compilationMode);
     if (writeProguardMap) {
       builder.setProguardMapOutput(dexOutputDir.resolve(PROGUARD_MAP_FILENAME));
     }

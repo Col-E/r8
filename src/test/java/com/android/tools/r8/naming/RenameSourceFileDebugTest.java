@@ -4,8 +4,8 @@
 package com.android.tools.r8.naming;
 
 import com.android.tools.r8.CompilationException;
+import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.debug.DebugTestBase;
-import com.android.tools.r8.shaking.ProguardKeepRule;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
@@ -36,7 +36,8 @@ public class RenameSourceFileDebugTest extends DebugTestBase {
                 },
                 DEBUGGEE_JAR,
                 Collections.<String>emptyList(),
-                false));
+                false,
+                CompilationMode.DEBUG));
   }
 
   /**

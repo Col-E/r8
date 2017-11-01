@@ -4,6 +4,7 @@
 package com.android.tools.r8.debug;
 
 import com.android.tools.r8.CompilationException;
+import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.TestBase.MinifyMode;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.google.common.collect.ImmutableList;
@@ -18,7 +19,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-/** Tests local variable information. */
+/** Tests renaming of class and method names and corresponding proguard map output. */
 @RunWith(Parameterized.class)
 public class MinificationTest extends DebugTestBase {
 
@@ -70,7 +71,12 @@ public class MinificationTest extends DebugTestBase {
       }
       path =
           compileToDexViaR8(
-              null, null, DEBUGGEE_JAR, proguardConfigurations, config.writeProguardMap);
+              null,
+              null,
+              DEBUGGEE_JAR,
+              proguardConfigurations,
+              config.writeProguardMap,
+              CompilationMode.DEBUG);
       debuggeePathMap.put(config, path);
     }
     return DebuggeePath.makeDex(path);
