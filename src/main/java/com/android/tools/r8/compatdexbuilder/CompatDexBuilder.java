@@ -69,6 +69,7 @@ public class CompatDexBuilder {
         case "--no-verify-dex-file":
         case "--show_flags":
         case "--no-optimize":
+        case "--nooptimize":
         case "--help":
           // Ignore
           break;
