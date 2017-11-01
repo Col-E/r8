@@ -18,6 +18,7 @@ public enum  MoveType {
       case INT:
       case FLOAT:
       case INT_OR_FLOAT:
+      case INT_OR_FLOAT_OR_NULL:
         return SINGLE;
       case LONG:
       case DOUBLE:

@@ -30,14 +30,6 @@ public class Phi extends Value {
   // contain this phi.
   private List<Map<Integer, Value>> definitionUsers = new ArrayList<>();
 
-  // The computed out type is not always the same as 'this.type' because of the type
-  // confusion around null and constant zero. The null object can be used in a single
-  // context (if tests) and the single 0 can be used as null. A phi can therefore
-  // have either of the creation types 'single' and 'object' depending on the use that
-  // triggered the creation of the phi. We therefore have to delay the output type
-  // computation of the phi until all operands are known.
-  private ValueType outType = null;
-
   public Phi(int number, BasicBlock block, ValueType type, DebugLocalInfo local) {
     super(number, type, local);
     this.block = block;
@@ -245,6 +237,11 @@ public class Phi extends Value {
     }
     builder.append(" <- phi");
     StringUtils.append(builder, ListUtils.map(operands, Value::toString));
+    ValueType computed = computeOutType(null);
+    builder.append(" : ").append(type);
+    if (type != computed) {
+      builder.append(" / ").append(computed);
+    }
     return builder.toString();
   }
 
@@ -270,12 +267,6 @@ public class Phi extends Value {
 
   public void clearDefinitionsUsers() {
     definitionUsers = null;
-  }
-
-  private boolean isSingleConstZero(Value value) {
-    return value.definition != null
-        && value.outType().isSingle()
-        && value.isZero();
   }
 
   /**
@@ -314,40 +305,53 @@ public class Phi extends Value {
   }
 
   private ValueType computeOutType(Set<Phi> active) {
-    if (outType != null) {
-      return outType;
-    }
-    active.add(this);
     // Go through non-phi operands first to determine if we have an operand that dictates the type.
     for (Value operand : operands) {
       // Since a constant zero can be either an integer or an Object (null) we skip them
       // when computing types and rely on other operands to specify the actual type.
-      if (!operand.isPhi() && !isSingleConstZero(operand)) {
-        return operand.outType();
+      if (!operand.isPhi()) {
+        if (operand.outType() != ValueType.INT_OR_FLOAT_OR_NULL) {
+          return operand.outType();
+        }
+        assert operand.isZero();
       }
     }
     // We did not find a non-phi operand that dictates the type. Recurse on phi arguments.
+    if (active == null) {
+      active = new HashSet<>();
+    }
+    active.add(this);
     for (Value operand : operands) {
       if (operand.isPhi() && !active.contains(operand.asPhi())) {
         ValueType phiType = operand.asPhi().computeOutType(active);
-        if (phiType != ValueType.INT_OR_FLOAT) {
+        if (phiType != ValueType.INT_OR_FLOAT_OR_NULL) {
           return phiType;
         }
       }
     }
-    // All operands were the constant zero or phis with out type INT_OR_FLOAT and the DEX move type
-    // is either object or single depending on the use. Since all inputs have out type INT_OF_FLOAT
-    // it is safe to return ValueType.INT_OR_FLOAT here.
-    assert type.isSingle() || type.isObject();
-    return ValueType.INT_OR_FLOAT;
+    // All operands were the constant zero or phis with out type INT_OR_FLOAT_OR_NULL.
+    return ValueType.INT_OR_FLOAT_OR_NULL;
+  }
+
+  private static boolean verifyUnknownOrCompatible(ValueType known, ValueType computed) {
+    assert computed == ValueType.INT_OR_FLOAT_OR_NULL || known.compatible(computed);
+    return true;
   }
 
   @Override
   public ValueType outType() {
-    if (outType != null) {
-      return outType;
+    if (type != ValueType.INT_OR_FLOAT_OR_NULL) {
+      assert verifyUnknownOrCompatible(type, computeOutType(null));
+      return type;
     }
-    return computeOutType(new HashSet<>());
+    // If the phi has unknown type (ie, INT_OR_FLOAT_OR_NULL) then it must be computed. This is
+    // because of the type confusion around null and constant zero. The null object can be used in
+    // a single context (if tests) and the single 0 can be used as null. If the instruction
+    // triggering the creation of a phi does not determine the type (eg, a move can be of int,
+    // float or zero/null) we need to compute the actual type based on the operands.
+    ValueType computedType = computeOutType(null);
+    assert computedType.isObjectOrSingle();
+    return computedType;
   }
 
   @Override

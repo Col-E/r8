@@ -2647,12 +2647,21 @@ public class JarSourceCode implements SourceCode {
       assert targets.length == 2;
       if (opcode <= Opcodes.IFLE) {
         Slot value = state.pop(Type.INT_TYPE);
-        builder.addIfZero(ifType(opcode), value.register, targets[0], targets[1]);
+        builder.addIfZero(ifType(opcode), ValueType.INT, value.register, targets[0], targets[1]);
       } else {
-        Type expectedType = opcode < Opcodes.IF_ACMPEQ ? Type.INT_TYPE : JarState.REFERENCE_TYPE;
+        ValueType valueType;
+        Type expectedType;
+        if (opcode < Opcodes.IF_ACMPEQ) {
+          valueType = ValueType.INT;
+          expectedType = Type.INT_TYPE;
+        } else {
+          valueType = ValueType.OBJECT;
+          expectedType = JarState.REFERENCE_TYPE;
+        }
         Slot value2 = state.pop(expectedType);
         Slot value1 = state.pop(expectedType);
-        builder.addIf(ifType(opcode), value1.register, value2.register, targets[0], targets[1]);
+        builder.addIf(
+            ifType(opcode), valueType, value1.register, value2.register, targets[0], targets[1]);
       }
     } else {
       switch (opcode) {
@@ -2665,7 +2674,7 @@ public class JarSourceCode implements SourceCode {
         case Opcodes.IFNONNULL: {
           Slot value = state.pop(JarState.REFERENCE_TYPE);
           If.Type type = opcode == Opcodes.IFNULL ? If.Type.EQ : If.Type.NE;
-          builder.addIfZero(type, value.register, targets[0], targets[1]);
+          builder.addIfZero(type, ValueType.OBJECT, value.register, targets[0], targets[1]);
           break;
         }
         case Opcodes.JSR: {

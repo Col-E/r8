@@ -4,6 +4,7 @@
 package com.android.tools.r8.code;
 
 import com.android.tools.r8.ir.code.If.Type;
+import com.android.tools.r8.ir.code.ValueType;
 
 public class IfGt extends Format22t {
 
@@ -37,5 +38,10 @@ public class IfGt extends Format22t {
   @Override
   public Type getType() {
     return Type.GT;
+  }
+
+  @Override
+  public ValueType getOperandType() {
+    return ValueType.INT;
   }
 }

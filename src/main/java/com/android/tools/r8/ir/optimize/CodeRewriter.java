@@ -737,10 +737,7 @@ public class CodeRewriter {
                     argumentIndex)) {
                   Value argument = invoke.arguments().get(argumentIndex);
                   assert invoke.outType().compatible(argument.outType())
-                      || (!options.outputClassFiles
-                            && invoke.outType() == ValueType.OBJECT
-                            && argument.outType().isSingle()
-                            && argument.isZero());
+                      || (!options.outputClassFiles && verifyCompatibleFromDex(invoke, argument));
                   invoke.outValue().replaceUsers(argument);
                   invoke.setOutValue(null);
                 }
@@ -753,6 +750,14 @@ public class CodeRewriter {
     assert code.isConsistentGraph();
   }
 
+  private static boolean verifyCompatibleFromDex(Invoke invoke, Value argument) {
+    ValueType invokeType = invoke.outType();
+    ValueType argumentType = argument.outType();
+    assert argument.isZero();
+    assert (invokeType.isObject() && argumentType.isObjectOrNull())
+        || (invokeType.isSingle() && argumentType.isSingleOrZero());
+    return true;
+  }
 
   /**
    * For supporting assert javac adds the static field $assertionsDisabled to all classes which

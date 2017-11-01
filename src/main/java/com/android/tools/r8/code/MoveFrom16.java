@@ -36,6 +36,6 @@ public class MoveFrom16 extends Format22x {
 
   @Override
   public void buildIR(IRBuilder builder) {
-    builder.addMove(ValueType.INT_OR_FLOAT, AA, BBBB);
+    builder.addMove(ValueType.INT_OR_FLOAT_OR_NULL, AA, BBBB);
   }
 }

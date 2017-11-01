@@ -998,24 +998,24 @@ public class IRBuilder {
     closeCurrentBlock();
   }
 
-  public void addIf(If.Type type, int value1, int value2,
+  public void addIf(If.Type type, ValueType operandType, int value1, int value2,
       int trueTargetOffset, int falseTargetOffset) {
     if (trueTargetOffset == falseTargetOffset) {
       addTrivialIf(trueTargetOffset, falseTargetOffset);
     } else {
       List<Value> values = new ArrayList<>(2);
-      values.add(readRegister(value1, ValueType.INT));
-      values.add(readRegister(value2, ValueType.INT));
+      values.add(readRegister(value1, operandType));
+      values.add(readRegister(value2, operandType));
       If instruction = new If(type, values);
       addNonTrivialIf(instruction, trueTargetOffset, falseTargetOffset);
     }
   }
 
-  public void addIfZero(If.Type type, int value, int trueTargetOffset, int falseTargetOffset) {
+  public void addIfZero(If.Type type, ValueType operandType, int value, int trueTargetOffset, int falseTargetOffset) {
     if (trueTargetOffset == falseTargetOffset) {
       addTrivialIf(trueTargetOffset, falseTargetOffset);
     } else {
-      If instruction = new If(type, readRegister(value, ValueType.INT));
+      If instruction = new If(type, readRegister(value, operandType));
       addNonTrivialIf(instruction, trueTargetOffset, falseTargetOffset);
     }
   }
