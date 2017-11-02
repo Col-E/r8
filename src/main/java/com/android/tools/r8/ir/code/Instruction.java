@@ -291,13 +291,38 @@ public abstract class Instruction {
 
   public abstract int compareNonValueParts(Instruction other);
 
-  private boolean identicalAfterRegisterAllocation(
-      Value a, int aInstr, Value b, int bInstr, RegisterAllocator allocator) {
+  private boolean identicalInputAfterRegisterAllocation(
+      Value a, int aInstrNumber, Instruction bInstr, Value b, int bInstrNumber,
+      RegisterAllocator allocator) {
+    if (needsValueInRegister(a) != bInstr.needsValueInRegister(b)) {
+      return false;
+    }
+    if (needsValueInRegister(a)) {
+      if (allocator.getRegisterForValue(a, aInstrNumber) !=
+          allocator.getRegisterForValue(b, bInstrNumber)) {
+        return false;
+      }
+    } else {
+      ConstNumber aNum = a.getConstInstruction().asConstNumber();
+      ConstNumber bNum = b.getConstInstruction().asConstNumber();
+      if (!aNum.identicalNonValueNonPositionParts(bNum)) {
+        return false;
+      }
+    }
+    if (a.outType() != b.outType()) {
+      return false;
+    }
+    return true;
+  }
+
+  private boolean identicalOutputAfterRegisterAllocation(
+      Value a, int aInstrNumber, Value b, int bInstrNumber, RegisterAllocator allocator) {
     if (a.needsRegister() != b.needsRegister()) {
       return false;
     }
     if (a.needsRegister()) {
-      if (allocator.getRegisterForValue(a, aInstr) != allocator.getRegisterForValue(b, bInstr)) {
+      if (allocator.getRegisterForValue(a, aInstrNumber) !=
+          allocator.getRegisterForValue(b, bInstrNumber)) {
         return false;
       }
     } else {
@@ -327,7 +352,7 @@ public abstract class Instruction {
       if (other.outValue == null) {
         return false;
       }
-      if (!identicalAfterRegisterAllocation(
+      if (!identicalOutputAfterRegisterAllocation(
           outValue, getNumber(), other.outValue, other.getNumber(), allocator)) {
         return false;
       }
@@ -341,7 +366,8 @@ public abstract class Instruction {
     for (int j = 0; j < inValues.size(); j++) {
       Value in0 = inValues.get(j);
       Value in1 = other.inValues.get(j);
-      if (!identicalAfterRegisterAllocation(in0, getNumber(), in1, other.getNumber(), allocator)) {
+      if (!identicalInputAfterRegisterAllocation(in0, getNumber(), other, in1, other.getNumber(),
+          allocator)) {
         return false;
       }
     }
