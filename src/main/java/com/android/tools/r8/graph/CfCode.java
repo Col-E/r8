@@ -14,9 +14,13 @@ import org.objectweb.asm.MethodVisitor;
 
 public class CfCode extends Code {
 
+  private final int maxStack;
+  private final int maxLocals;
   private final List<CfInstruction> instructions;
 
-  public CfCode(List<CfInstruction> instructions) {
+  public CfCode(int maxStack, int maxLocals, List<CfInstruction> instructions) {
+    this.maxStack = maxStack;
+    this.maxLocals = maxLocals;
     this.instructions = instructions;
   }
 
@@ -35,8 +39,7 @@ public class CfCode extends Code {
       instruction.write(visitor);
     }
     visitor.visitEnd();
-    // TODO(zerny): Consider computing max-stack (and frames?) height as part of building Cf.
-    visitor.visitMaxs(0, 0); // Trigger computation of max stack (and frames).
+    visitor.visitMaxs(maxStack, maxLocals);
   }
 
   @Override

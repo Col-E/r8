@@ -58,7 +58,24 @@ public class CfApplicationWriter {
   }
 
   private void writeClass(DexProgramClass clazz, OutputSink outputSink) throws IOException {
-    ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
+    // If there are CF representations for all methods manually compute stack height and frames.
+    // TODO(zerny): This is a temporary hack since we will need to manually compute stack maps for
+    // any methods that are IR processed.
+    int flags = 0;
+    for (DexEncodedMethod method : clazz.directMethods()) {
+      if (!method.getCode().isCfCode()) {
+        flags = ClassWriter.COMPUTE_FRAMES;
+        break;
+      }
+    }
+    if (flags == 0) {
+      for (DexEncodedMethod method : clazz.virtualMethods()) {
+        if (!method.getCode().isCfCode()) {
+          flags = ClassWriter.COMPUTE_FRAMES;
+        }
+      }
+    }
+    ClassWriter writer = new ClassWriter(flags);
     writer.visitSource(clazz.sourceFile.toString(), null);
     int version = clazz.getClassFileVersion();
     int access = clazz.accessFlags.getAsCfAccessFlags();

@@ -924,6 +924,6 @@ public abstract class Instruction {
   public abstract Constraint inliningConstraint(AppInfoWithSubtyping info, DexType holder);
 
   public void insertLoadAndStores(InstructionListIterator it, StackHelper stack) {
-    throw new Unimplemented("Implment load/store insertion for: " + getInstructionName());
+    throw new Unimplemented("Implement load/store insertion for: " + getInstructionName());
   }
 }

@@ -21,6 +21,7 @@ import com.android.tools.r8.ir.code.StackValue;
 import com.android.tools.r8.ir.code.Store;
 import com.android.tools.r8.ir.code.Value;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 public class CfBuilder {
@@ -98,12 +99,35 @@ public class CfBuilder {
   }
 
   private CfCode buildCfCode() {
+    int maxLocalNumber = -1;
+    int maxStack = 0;
+    int currentStack = 0;
     instructions = new ArrayList<>();
-    InstructionIterator it = code.instructionIterator();
-    while (it.hasNext()) {
-      it.next().buildCf(this);
+    Iterator<BasicBlock> blockIterator = code.listIterator();
+    while (blockIterator.hasNext()) {
+      BasicBlock block = blockIterator.next();
+      InstructionIterator it = block.iterator();
+      while (it.hasNext()) {
+        Instruction instruction = it.next();
+        if (instruction.outValue() != null) {
+          Value outValue = instruction.outValue();
+          if (outValue instanceof StackValue) {
+            ++currentStack;
+            maxStack = Math.max(maxStack, currentStack);
+          } else {
+            maxLocalNumber = Math.max(maxLocalNumber, outValue.getNumber());
+          }
+        }
+        for (Value inValue : instruction.inValues()) {
+          if (inValue instanceof StackValue) {
+            --currentStack;
+          }
+        }
+        instruction.buildCf(this);
+      }
     }
-    return new CfCode(instructions);
+    assert currentStack == 0;
+    return new CfCode(maxStack, maxLocalNumber + 1, instructions);
   }
 
   // Callbacks
