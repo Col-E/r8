@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -74,6 +75,7 @@ public class PackageNamingTest extends NamingTestBase {
     inspections.put("naming101:keep-rules-005.txt", PackageNamingTest::test101_rule005);
     inspections.put("naming101:keep-rules-102.txt", PackageNamingTest::test101_rule102);
     inspections.put("naming101:keep-rules-104.txt", PackageNamingTest::test101_rule104);
+    inspections.put("naming101:keep-rules-106.txt", PackageNamingTest::test101_rule106);
 
     return createTests(tests, inspections);
   }
@@ -355,6 +357,33 @@ public class PackageNamingTest extends NamingTestBase {
       DexType k = dexItemFactory.createType(klass);
       String renamedName = naming.lookupDescriptor(k).toSourceString();
       assertNotEquals("naming101.a", getPackageNameFromDescriptor(renamedName));
+    }
+  }
+
+  private static void test101_rule106(DexItemFactory dexItemFactory, NamingLens naming) {
+    // Classes that end with either c or d will be kept and renamed.
+    List<String> klasses =
+        CLASSES_IN_NAMING101.stream()
+            .filter(className -> className.endsWith("c;") || className.endsWith("d;"))
+            .collect(Collectors.toList());
+    verifyUniqueNaming(dexItemFactory, naming, klasses);
+
+    // Check naming101.c is kept as-is.
+    DexType topC = dexItemFactory.createType("Lnaming101/c;");
+    assertEquals("Lnaming101/c;", naming.lookupDescriptor(topC).toSourceString());
+
+    // naming101.d accesses to a package-private, static field in naming101.c.
+    // Therefore, it should remain in the same package.
+    DexType topD = dexItemFactory.createType("Lnaming101/d;");
+    String renamedTopD = naming.lookupDescriptor(topD).toSourceString();
+    assertEquals("naming101", getPackageNameFromDescriptor(renamedTopD));
+
+    // Due to the keep rule for naming101.c, package prefix naming101 is reserved.
+    // That is, every renamed class should have naming101 as parent package prefix.
+    for (String klass : klasses) {
+      DexType t = dexItemFactory.createType(klass);
+      String rename = naming.lookupDescriptor(t).toSourceString();
+      assertTrue(rename.startsWith("Lnaming101/"));
     }
   }
 }

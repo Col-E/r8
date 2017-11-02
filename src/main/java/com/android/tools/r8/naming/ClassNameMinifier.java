@@ -286,9 +286,15 @@ class ClassNameMinifier {
     if (state == null) {
       // Calculate the parent package prefix, e.g., La/b/c -> La/b
       String parentPackage = getParentPackagePrefix(prefix);
-      // Create a state for parent package prefix, if necessary, in a recursive manner.
-      // That recursion should end when the parent package hits the top-level, "".
-      Namespace superState = getStateForPackagePrefix(parentPackage);
+      Namespace superState;
+      if (noObfuscationPrefixes.contains(parentPackage)) {
+        // Restore a state for parent package prefix if it should be kept.
+        superState = states.computeIfAbsent(parentPackage, Namespace::new);
+      } else {
+        // Create a state for parent package prefix, if necessary, in a recursive manner.
+        // That recursion should end when the parent package hits the top-level, "".
+        superState = getStateForPackagePrefix(parentPackage);
+      }
       // From the super state, get a renamed package prefix for the current level.
       String renamedPackagePrefix = superState.nextPackagePrefix();
       // Create a new state, which corresponds to a new name space, for the current level.
