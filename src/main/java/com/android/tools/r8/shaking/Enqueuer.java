@@ -160,6 +160,12 @@ public class Enqueuer {
    */
   private final Map<DexType, Set<DexAnnotation>> deferredAnnotations = new IdentityHashMap<>();
 
+  /**
+   * Methods that have been seen as not reachable due to related classes not being instantiated.
+   * As more instantiated types are collected this set needs to be re-visited.
+   */
+  private List<DexEncodedMethod> pendingAdditionalInstantiatedTypes = new ArrayList<>();
+
   public Enqueuer(AppInfoWithSubtyping appInfo, InternalOptions options) {
     this.appInfo = appInfo;
     this.options = options;
@@ -679,33 +685,39 @@ public class Enqueuer {
       SetWithReason<DexEncodedMethod> reachable = reachableVirtualMethods
           .computeIfAbsent(encodedMethod.method.holder, (ignore) -> new SetWithReason<>());
       if (reachable.add(encodedMethod, reason)) {
-        // If the holder type is instantiated, the method is live. Otherwise check whether we find
-        // a subtype that does not shadow this methods but is instantiated.
-        // Note that library classes are always considered instantiated, as we do not know where
-        // they are instantiated.
-        if (isInstantiatedOrHasInstantiatedSubtype(encodedMethod.method.holder)) {
-          if (instantiatedTypes.contains(encodedMethod.method.holder)) {
-            markVirtualMethodAsLive(encodedMethod,
-                KeepReason.reachableFromLiveType(encodedMethod.method.holder));
-          } else {
-            Deque<DexType> worklist = new ArrayDeque<>();
-            fillWorkList(worklist, encodedMethod.method.holder);
-            while (!worklist.isEmpty()) {
-              DexType current = worklist.pollFirst();
-              DexClass currentHolder = appInfo.definitionFor(current);
-              if (currentHolder == null
-                  || currentHolder.findVirtualTarget(encodedMethod.method) != null) {
-                continue;
-              }
-              if (instantiatedTypes.contains(current)) {
-                markVirtualMethodAsLive(encodedMethod, KeepReason.reachableFromLiveType(current));
-                break;
-              }
-              fillWorkList(worklist, current);
-            }
+        handleIsInstantiatedOrHasInstantiatedSubtype(encodedMethod);
+      }
+    }
+  }
+
+  private void handleIsInstantiatedOrHasInstantiatedSubtype(DexEncodedMethod encodedMethod) {
+    // If the holder type is instantiated, the method is live. Otherwise check whether we find
+    // a subtype that does not shadow this methods but is instantiated.
+    // Note that library classes are always considered instantiated, as we do not know where
+    // they are instantiated.
+    if (isInstantiatedOrHasInstantiatedSubtype(encodedMethod.method.holder)) {
+      if (instantiatedTypes.contains(encodedMethod.method.holder)) {
+        markVirtualMethodAsLive(encodedMethod,
+            KeepReason.reachableFromLiveType(encodedMethod.method.holder));
+      } else {
+        Deque<DexType> worklist = new ArrayDeque<>();
+        fillWorkList(worklist, encodedMethod.method.holder);
+        while (!worklist.isEmpty()) {
+          DexType current = worklist.pollFirst();
+          DexClass currentHolder = appInfo.definitionFor(current);
+          if (currentHolder == null
+              || currentHolder.findVirtualTarget(encodedMethod.method) != null) {
+            continue;
           }
+          if (instantiatedTypes.contains(current)) {
+            markVirtualMethodAsLive(encodedMethod, KeepReason.reachableFromLiveType(current));
+            break;
+          }
+          fillWorkList(worklist, current);
         }
       }
+    } else {
+      pendingAdditionalInstantiatedTypes.add(encodedMethod);
     }
   }
 
@@ -778,38 +790,22 @@ public class Enqueuer {
   private AppInfoWithLiveness trace(Timing timing) {
     timing.begin("Grow the tree.");
     try {
-      while (!workList.isEmpty()) {
-        Action action = workList.poll();
-        switch (action.kind) {
-          case MARK_INSTANTIATED:
-            processNewlyInstantiatedClass((DexClass) action.target, action.reason);
-            break;
-          case MARK_REACHABLE_FIELD:
-            markFieldAsReachable((DexField) action.target, action.reason);
-            break;
-          case MARK_REACHABLE_VIRTUAL:
-            markVirtualMethodAsReachable((DexMethod) action.target, false, action.reason);
-            break;
-          case MARK_REACHABLE_INTERFACE:
-            markVirtualMethodAsReachable((DexMethod) action.target, true, action.reason);
-            break;
-          case MARK_REACHABLE_SUPER:
-            markSuperMethodAsReachable((DexMethod) action.target,
-                (DexEncodedMethod) action.context);
-            break;
-          case MARK_METHOD_KEPT:
-            markMethodAsKept((DexEncodedMethod) action.target, action.reason);
-            break;
-          case MARK_FIELD_KEPT:
-            markFieldAsKept((DexEncodedField) action.target, action.reason);
-            break;
-          case MARK_METHOD_LIVE:
-            processNewlyLiveMethod(((DexEncodedMethod) action.target), action.reason);
-            break;
-          default:
-            throw new IllegalArgumentException(action.kind.toString());
+      int instantiatedTypesCount = 0;
+      while (true) {
+        doTrace();
+        // If methods where not considered due to relevant types not being instantiated reconsider
+        // if more instantiated types where collected.
+        if (pendingAdditionalInstantiatedTypes.size() > 0
+            && instantiatedTypes.items.size() > instantiatedTypesCount) {
+          instantiatedTypesCount = instantiatedTypes.items.size();
+          List<DexEncodedMethod> reconsider = pendingAdditionalInstantiatedTypes;
+          pendingAdditionalInstantiatedTypes = new ArrayList<>();
+          reconsider.forEach(this::handleIsInstantiatedOrHasInstantiatedSubtype);
+        } else {
+          break;
         }
       }
+
       if (Log.ENABLED) {
         Set<DexEncodedMethod> allLive = Sets.newIdentityHashSet();
         for (Entry<DexType, SetWithReason<DexEncodedMethod>> entry : reachableVirtualMethods
@@ -835,6 +831,41 @@ public class Enqueuer {
       timing.end();
     }
     return new AppInfoWithLiveness(appInfo, this);
+  }
+
+  private void doTrace() {
+    while (!workList.isEmpty()) {
+      Action action = workList.poll();
+      switch (action.kind) {
+        case MARK_INSTANTIATED:
+          processNewlyInstantiatedClass((DexClass) action.target, action.reason);
+          break;
+        case MARK_REACHABLE_FIELD:
+          markFieldAsReachable((DexField) action.target, action.reason);
+          break;
+        case MARK_REACHABLE_VIRTUAL:
+          markVirtualMethodAsReachable((DexMethod) action.target, false, action.reason);
+          break;
+        case MARK_REACHABLE_INTERFACE:
+          markVirtualMethodAsReachable((DexMethod) action.target, true, action.reason);
+          break;
+        case MARK_REACHABLE_SUPER:
+          markSuperMethodAsReachable((DexMethod) action.target,
+              (DexEncodedMethod) action.context);
+          break;
+        case MARK_METHOD_KEPT:
+          markMethodAsKept((DexEncodedMethod) action.target, action.reason);
+          break;
+        case MARK_FIELD_KEPT:
+          markFieldAsKept((DexEncodedField) action.target, action.reason);
+          break;
+        case MARK_METHOD_LIVE:
+          processNewlyLiveMethod(((DexEncodedMethod) action.target), action.reason);
+          break;
+        default:
+          throw new IllegalArgumentException(action.kind.toString());
+      }
+    }
   }
 
   private void markMethodAsKept(DexEncodedMethod target, KeepReason reason) {
