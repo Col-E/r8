@@ -113,7 +113,7 @@ public abstract class ArithmeticBinop extends Binop {
         default:
           throw new Unreachable("Unexpected numeric type " + type.name());
       }
-    } else if (!rightValue().needsRegister()) {
+    } else if (!needsValueInRegister(rightValue())) {
       assert !isSub();  // Constants in instructions for sub must be handled in subclass Sub.
       assert fitsInDexInstruction(rightValue());
       ConstNumber right = rightValue().getConstInstruction().asConstNumber();

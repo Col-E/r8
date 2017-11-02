@@ -128,11 +128,11 @@ public class Sub extends ArithmeticBinop {
   // This is overridden to give the correct value when adding the negative constant.
   @Override
   int maxInOutValueRegisterSize() {
-    if (!leftValue().needsRegister()) {
+    if (!needsValueInRegister(leftValue())) {
       assert fitsInDexInstruction(leftValue());
       ConstNumber left = leftValue().getConstInstruction().asConstNumber();
       return left.is8Bit() ? Constants.U8BIT_MAX : Constants.U4BIT_MAX;
-    } else if (!rightValue().needsRegister()) {
+    } else if (!needsValueInRegister(rightValue())) {
       assert negativeFitsInDexInstruction(rightValue());
       ConstNumber right = rightValue().getConstInstruction().asConstNumber();
       return right.negativeIs8Bit() ? Constants.U8BIT_MAX : Constants.U4BIT_MAX;
@@ -167,7 +167,7 @@ public class Sub extends ArithmeticBinop {
     }
 
     com.android.tools.r8.code.Instruction instruction = null;
-    if (!leftValue().needsRegister()) {
+    if (!needsValueInRegister(leftValue())) {
       // Sub instructions with small left constant is emitted as rsub.
       assert fitsInDexInstruction(leftValue());
       ConstNumber left = leftValue().getConstInstruction().asConstNumber();
@@ -179,11 +179,11 @@ public class Sub extends ArithmeticBinop {
         assert left.is16Bit();
         instruction = new RsubInt(dest, right, left.getIntValue());
       }
-    } else if (!rightValue().needsRegister()) {
+    } else if (!needsValueInRegister(rightValue())) {
       // Sub instructions with small right constant are emitted as add of the negative constant.
       assert negativeFitsInDexInstruction(rightValue());
       int dest = builder.allocatedRegister(outValue, getNumber());
-      assert leftValue().needsRegister();
+      assert needsValueInRegister(leftValue());
       int left = builder.allocatedRegister(leftValue(), getNumber());
       ConstNumber right = rightValue().getConstInstruction().asConstNumber();
       if (right.negativeIs8Bit()) {

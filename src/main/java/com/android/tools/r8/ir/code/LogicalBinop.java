@@ -90,7 +90,7 @@ public abstract class LogicalBinop extends Binop {
         default:
           throw new Unreachable("Unexpected type " + type);
       }
-    } else if (!rightValue().needsRegister()) {
+    } else if (!needsValueInRegister(rightValue())) {
       assert fitsInDexInstruction(rightValue());
       ConstNumber right = rightValue().getConstInstruction().asConstNumber();
       if (right.is8Bit()) {
