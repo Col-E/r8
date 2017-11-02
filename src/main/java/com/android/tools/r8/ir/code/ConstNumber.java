@@ -38,7 +38,7 @@ public class ConstNumber extends ConstInstruction {
   }
 
   private boolean preciseTypeUnknown() {
-    return outType() == ValueType.INT_OR_FLOAT || outType() == ValueType.LONG_OR_DOUBLE;
+    return !outType().isPreciseType();
   }
 
   public Value dest() {
@@ -52,7 +52,8 @@ public class ConstNumber extends ConstInstruction {
   public int getIntValue() {
     assert outType() == ValueType.INT
         || outType() == ValueType.INT_OR_FLOAT
-        || outType() == ValueType.OBJECT;
+        || outType() == ValueType.INT_OR_FLOAT_OR_NULL
+        || outType() == ValueType.OBJECT; // Used for is-null conditionals.
     return (int) value;
   }
 
@@ -62,7 +63,9 @@ public class ConstNumber extends ConstInstruction {
   }
 
   public float getFloatValue() {
-    assert outType() == ValueType.FLOAT || outType() == ValueType.INT_OR_FLOAT;
+    assert outType() == ValueType.FLOAT
+        || outType() == ValueType.INT_OR_FLOAT
+        || outType() == ValueType.INT_OR_FLOAT_OR_NULL;
     return Float.intBitsToFloat((int) value);
   }
 
@@ -104,7 +107,7 @@ public class ConstNumber extends ConstInstruction {
     }
 
     int register = builder.allocatedRegister(dest(), getNumber());
-    if (outType().isSingle() || outType().isObject()) {
+    if (outType().isObjectOrSingle()) {
       assert NumberUtils.is32Bit(value);
       if ((register & 0xf) == register && NumberUtils.is4Bit(value)) {
         builder.add(this, new Const4(register, (int) value));

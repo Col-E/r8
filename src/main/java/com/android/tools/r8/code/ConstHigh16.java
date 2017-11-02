@@ -57,6 +57,8 @@ public class ConstHigh16 extends Format21h implements SingleConstant {
 
   @Override
   public void buildIR(IRBuilder builder) {
-    builder.addConst(ValueType.INT_OR_FLOAT, AA, decodedValue());
+    int value = decodedValue();
+    ValueType type = value == 0 ? ValueType.INT_OR_FLOAT_OR_NULL : ValueType.INT_OR_FLOAT;
+    builder.addConst(type, AA, value);
   }
 }

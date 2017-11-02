@@ -7,6 +7,7 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.ir.code.If.Type;
+import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.naming.ClassNameMapper;
 import java.nio.ShortBuffer;
@@ -56,6 +57,8 @@ public abstract class Format22t extends Base2Format {
 
   public abstract Type getType();
 
+  public abstract ValueType getOperandType();
+
   @Override
   public int[] getTargets() {
     return new int[]{CCCC, getSize()};
@@ -65,7 +68,7 @@ public abstract class Format22t extends Base2Format {
   public void buildIR(IRBuilder builder) {
     int offset = getOffset();
     int size = getSize();
-    builder.addIf(getType(), A, B, offset + CCCC, offset + size);
+    builder.addIf(getType(), getOperandType(), A, B, offset + CCCC, offset + size);
   }
 
   @Override

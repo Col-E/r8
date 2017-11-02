@@ -13,6 +13,7 @@ public enum ValueType {
   INT,
   FLOAT,
   INT_OR_FLOAT,
+  INT_OR_FLOAT_OR_NULL,
   LONG,
   DOUBLE,
   LONG_OR_DOUBLE;
@@ -29,14 +30,32 @@ public enum ValueType {
     return this == LONG || this == DOUBLE || this == LONG_OR_DOUBLE;
   }
 
-  public int requiredRegisters() {
-    return isWide() ? 2 : 1;
+  public boolean isObjectOrSingle() {
+    return !isWide();
+  }
+
+  public boolean isObjectOrNull() {
+    return isObject() || this == INT_OR_FLOAT_OR_NULL;
+  }
+
+  public boolean isSingleOrZero() {
+    return isSingle() || this == INT_OR_FLOAT_OR_NULL;
+  }
+
+  public boolean isPreciseType() {
+    return this != ValueType.INT_OR_FLOAT
+        && this != ValueType.LONG_OR_DOUBLE
+        && this != ValueType.INT_OR_FLOAT_OR_NULL;
   }
 
   public boolean compatible(ValueType other) {
-    return (isObject() && other.isObject())
+    return this == other
         || (isSingle() && other.isSingle())
         || (isWide() && other.isWide());
+  }
+
+  public int requiredRegisters() {
+    return isWide() ? 2 : 1;
   }
 
   public static ValueType fromMemberType(MemberType type) {

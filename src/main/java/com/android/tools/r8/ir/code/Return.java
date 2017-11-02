@@ -29,6 +29,7 @@ public class Return extends JumpInstruction {
 
   public Return(Value value, ValueType returnType) {
     super(null, value);
+    assert returnType != ValueType.INT_OR_FLOAT_OR_NULL;
     this.returnType = returnType;
   }
 
@@ -49,17 +50,17 @@ public class Return extends JumpInstruction {
     if (isReturnVoid()) {
       return new ReturnVoid();
     } else {
+      int register = builder.allocatedRegister(returnValue(), getNumber());
       switch (MoveType.fromValueType(returnType)) {
         case OBJECT:
-          assert returnValue().outType().isObject() || returnValue().outType().isSingle();
-          return new ReturnObject(builder.allocatedRegister(returnValue(), getNumber()));
+          assert returnValue().outType().isObjectOrNull();
+          return new ReturnObject(register);
         case SINGLE:
-          assert returnValue().outType().isSingle();
-          return new com.android.tools.r8.code.Return(
-              builder.allocatedRegister(returnValue(), getNumber()));
+          assert returnValue().outType().isSingleOrZero();
+          return new com.android.tools.r8.code.Return(register);
         case WIDE:
           assert returnValue().outType().isWide();
-          return new ReturnWide(builder.allocatedRegister(returnValue(), getNumber()));
+          return new ReturnWide(register);
         default:
           throw new Unreachable();
       }
