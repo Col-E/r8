@@ -44,6 +44,6 @@ public class Load extends Instruction {
   @Override
   public void buildCf(CfBuilder builder) {
     Value value = inValues.get(0);
-    builder.add(new CfLoad(value.outType(), value.getNumber()));
+    builder.add(new CfLoad(value.outType(), 2 * value.getNumber()));
   }
 }

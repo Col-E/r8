@@ -128,7 +128,7 @@ public class CfBuilder {
       }
     }
     assert currentStack == 0;
-    return new CfCode(maxStack, maxLocalNumber + 1, instructions);
+    return new CfCode(maxStack, 2 * (maxLocalNumber + 1), instructions);
   }
 
   // Callbacks
