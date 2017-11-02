@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.code.CfConstNull;
 import com.android.tools.r8.cf.code.CfConstNumber;
 import com.android.tools.r8.code.Const;
 import com.android.tools.r8.code.Const16;
@@ -139,7 +140,11 @@ public class ConstNumber extends ConstInstruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfConstNumber(value, outType()));
+    if (outType().isObject()) {
+      builder.add(new CfConstNull());
+    } else {
+      builder.add(new CfConstNumber(value, outType()));
+    }
   }
 
   // Estimated size of the resulting dex instruction in code units.

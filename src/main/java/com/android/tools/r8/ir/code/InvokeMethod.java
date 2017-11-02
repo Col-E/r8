@@ -90,7 +90,7 @@ public abstract class InvokeMethod extends Invoke {
       return;
     }
     if (outValue == null) {
-      stack.popOutValue(this, it);
+      stack.popOutValue(ValueType.fromDexType(method.proto.returnType), this, it);
     } else {
       stack.storeOutValue(this, it);
     }
