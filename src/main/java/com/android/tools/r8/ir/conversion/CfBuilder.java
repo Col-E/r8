@@ -20,6 +20,7 @@ import com.android.tools.r8.ir.code.Pop;
 import com.android.tools.r8.ir.code.StackValue;
 import com.android.tools.r8.ir.code.Store;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.code.ValueType;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -55,8 +56,8 @@ public class CfBuilder {
       add(new Store(oldOutValue, newOutValue), instruction, it);
     }
 
-    public void popOutValue(Instruction instruction, InstructionListIterator it) {
-      StackValue newOutValue = new StackValue(instruction.outType());
+    public void popOutValue(ValueType type, Instruction instruction, InstructionListIterator it) {
+      StackValue newOutValue = new StackValue(type);
       instruction.swapOutValue(newOutValue);
       add(new Pop(newOutValue), instruction, it);
     }
