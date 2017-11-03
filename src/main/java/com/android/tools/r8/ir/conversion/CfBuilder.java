@@ -5,12 +5,16 @@ package com.android.tools.r8.ir.conversion;
 
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.errors.Unimplemented;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.ConstClass;
+import com.android.tools.r8.ir.code.ConstInstruction;
+import com.android.tools.r8.ir.code.ConstNumber;
+import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
@@ -21,6 +25,11 @@ import com.android.tools.r8.ir.code.StackValue;
 import com.android.tools.r8.ir.code.Store;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
+import com.android.tools.r8.ir.optimize.CodeRewriter;
+import com.android.tools.r8.ir.optimize.DeadCodeRemover;
+import com.android.tools.r8.utils.InternalOptions;
+import it.unimi.dsi.fastutil.objects.Reference2IntArrayMap;
+import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -30,27 +39,42 @@ public class CfBuilder {
   private final DexEncodedMethod method;
   private final IRCode code;
   private List<CfInstruction> instructions;
+  private Reference2IntMap<Value> argumentRegisters;
+  private int maxLocals;
 
   public static class StackHelper {
-
-    public final DexMethod method;
-
-    public StackHelper(DexMethod method) {
-      this.method = method;
-    }
 
     public void loadInValues(Instruction instruction, InstructionListIterator it) {
       it.previous();
       for (int i = 0; i < instruction.inValues().size(); i++) {
         Value value = instruction.inValues().get(i);
         StackValue stackValue = new StackValue(value.outType());
+        Instruction load;
+        if (value.isConstant()) {
+          ConstInstruction constant = value.getConstInstruction();
+          if (constant.isConstNumber()) {
+            load = new ConstNumber(stackValue, constant.asConstNumber().getRawValue());
+          } else if (constant.isConstString()) {
+            load = new ConstString(stackValue, constant.asConstString().getValue());
+          } else if (constant.isConstClass()) {
+            load = new ConstClass(stackValue, constant.asConstClass().getValue());
+          } else {
+            throw new Unreachable("Unexpected constant value: " + value);
+          }
+        } else {
+          load = new Load(stackValue, value);
+        }
+        add(load, instruction, it);
+        value.removeUser(instruction);
         instruction.replaceValue(value, stackValue);
-        add(new Load(stackValue, value), instruction, it);
       }
       it.next();
     }
 
     public void storeOutValue(Instruction instruction, InstructionListIterator it) {
+      if (instruction.isOutConstant()) {
+        return;
+      }
       StackValue newOutValue = new StackValue(instruction.outType());
       Value oldOutValue = instruction.swapOutValue(newOutValue);
       add(new Store(oldOutValue, newOutValue), instruction, it);
@@ -75,11 +99,12 @@ public class CfBuilder {
     this.code = code;
   }
 
-  public Code build() {
+  public Code build(CodeRewriter rewriter, InternalOptions options) {
     try {
       loadStoreInsertion();
-      // TODO(zerny): Optimize load/store patterns.
-      // TODO(zerny): Compute locals/register allocation.
+      DeadCodeRemover.removeDeadCode(code, rewriter, options);
+      removeUnneededLoadsAndStores();
+      allocateLocalRegisters();
       // TODO(zerny): Compute debug info.
       return buildCfCode();
     } catch (Unimplemented e) {
@@ -89,7 +114,7 @@ public class CfBuilder {
   }
 
   private void loadStoreInsertion() {
-    StackHelper stack = new StackHelper(method.method);
+    StackHelper stack = new StackHelper();
     for (BasicBlock block : code.blocks) {
       InstructionListIterator it = block.listIterator();
       while (it.hasNext()) {
@@ -99,8 +124,55 @@ public class CfBuilder {
     }
   }
 
+  private void removeUnneededLoadsAndStores() {
+    Iterator<BasicBlock> blockIterator = code.listIterator();
+    while (blockIterator.hasNext()) {
+      BasicBlock block = blockIterator.next();
+      InstructionListIterator it = block.listIterator();
+      while (it.hasNext()) {
+        Instruction store = it.next();
+        if (store instanceof Store && store.outValue().numberOfAllUsers() == 1) {
+          Instruction load = it.peekNext();
+          if (load instanceof Load && load.inValues().get(0) == store.outValue()) {
+            Value storeIn = store.inValues().get(0);
+            Value loadOut = load.outValue();
+            loadOut.replaceUsers(storeIn);
+            storeIn.removeUser(store);
+            store.outValue().removeUser(load);
+            // Remove the store.
+            it.previous();
+            it.remove();
+            // Remove the load.
+            it.next();
+            it.remove();
+          }
+        }
+      }
+    }
+  }
+
+  private void allocateLocalRegisters() {
+    // TODO(zerny): Allocate locals based on live ranges.
+    InstructionIterator it = code.instructionIterator();
+    argumentRegisters = new Reference2IntArrayMap<>(
+        method.method.proto.parameters.values.length + (method.accessFlags.isStrict() ? 0 : 1));
+    int argumentRegister = 0;
+    int maxRegister = -1;
+    while (it.hasNext()) {
+      Instruction instruction = it.next();
+      if (instruction.isArgument()) {
+        argumentRegisters.put(instruction.outValue(), argumentRegister);
+        argumentRegister += instruction.outValue().requiredRegisters();
+        maxRegister = argumentRegister - 1;
+      } else if (instruction.outValue() != null
+          && !(instruction.outValue() instanceof StackValue)) {
+        maxRegister = Math.max(maxRegister, 2 * instruction.outValue().getNumber());
+      }
+    }
+    maxLocals = maxRegister + 1;
+  }
+
   private CfCode buildCfCode() {
-    int maxLocalNumber = -1;
     int maxStack = 0;
     int currentStack = 0;
     instructions = new ArrayList<>();
@@ -113,25 +185,30 @@ public class CfBuilder {
         if (instruction.outValue() != null) {
           Value outValue = instruction.outValue();
           if (outValue instanceof StackValue) {
-            ++currentStack;
+            currentStack += outValue.requiredRegisters();
             maxStack = Math.max(maxStack, currentStack);
-          } else {
-            maxLocalNumber = Math.max(maxLocalNumber, outValue.getNumber());
           }
         }
         for (Value inValue : instruction.inValues()) {
           if (inValue instanceof StackValue) {
-            --currentStack;
+            currentStack -= inValue.requiredRegisters();
           }
         }
         instruction.buildCf(this);
       }
     }
     assert currentStack == 0;
-    return new CfCode(maxStack, 2 * (maxLocalNumber + 1), instructions);
+    return new CfCode(maxStack, maxLocals, instructions);
   }
 
   // Callbacks
+
+  public int getLocalRegister(Value value) {
+    if (value.isArgument()) {
+      return argumentRegisters.getInt(value);
+    }
+    return 2 * value.getNumber();
+  }
 
   public void add(CfInstruction instruction) {
     instructions.add(instruction);
