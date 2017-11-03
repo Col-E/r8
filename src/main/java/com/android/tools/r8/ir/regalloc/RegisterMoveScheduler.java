@@ -4,6 +4,7 @@
 package com.android.tools.r8.ir.regalloc;
 
 import com.android.tools.r8.code.MoveType;
+import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.FixedRegisterValue;
 import com.android.tools.r8.ir.code.Instruction;
@@ -128,18 +129,21 @@ public class RegisterMoveScheduler {
 
   private Integer createMove(RegisterMove move) {
     Instruction instruction;
-    Value to = new FixedRegisterValue(move.type, move.dst);
     if (move.definition != null) {
       if (move.definition.isArgument()) {
-        int argumentRegister = move.definition.outValue().getLiveIntervals().getRegister();
-        Value from = new FixedRegisterValue(move.type, argumentRegister);
+        Argument argument = move.definition.asArgument();
+        int argumentRegister = argument.outValue().getLiveIntervals().getRegister();
+        Value to = new FixedRegisterValue(argument.outType(), move.dst);
+        Value from = new FixedRegisterValue(argument.outType(), argumentRegister);
         instruction = new Move(to, from);
       } else {
         ConstNumber number = move.definition.asConstNumber();
+        Value to = new FixedRegisterValue(number.outType(), move.dst);
         instruction = new ConstNumber(to, number.getRawValue());
       }
     } else {
-      Value from = new FixedRegisterValue(move.type, valueMap.get(move.src));
+      Value to = new FixedRegisterValue(move.type.toValueType(), move.dst);
+      Value from = new FixedRegisterValue(move.type.toValueType(), valueMap.get(move.src));
       instruction = new Move(to, from);
     }
     instruction.setPosition(position);
@@ -160,8 +164,10 @@ public class RegisterMoveScheduler {
       // if the previously used tempRegisters is still needed by any of the moves in the move set
       // (taking the value map into account). If not, we can reuse the temp register instead
       // of generating a new one.
-      Value to = new FixedRegisterValue(moveWithSrc.type, tempRegister + usedTempRegisters);
-      Value from = new FixedRegisterValue(moveWithSrc.type, valueMap.get(moveWithSrc.src));
+      Value to = new FixedRegisterValue(
+          moveWithSrc.type.toValueType(), tempRegister + usedTempRegisters);
+      Value from = new FixedRegisterValue(
+          moveWithSrc.type.toValueType(), valueMap.get(moveWithSrc.src));
       Move instruction = new Move(to, from);
       instruction.setPosition(position);
       insertAt.add(instruction);
