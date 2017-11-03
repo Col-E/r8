@@ -155,7 +155,7 @@ public class StringUtils {
   }
 
   public static String hexString(int value, int width) {
-    return hexString(value, width, false);
+    return hexString(value, width, true);
   }
 
   public static String hexString(int value, int width, boolean zeroXPrefix) {
@@ -172,7 +172,7 @@ public class StringUtils {
   }
 
   public static String hexString(long value, int width) {
-    return hexString(value, width, false);
+    return hexString(value, width, true);
   }
 
   public static String hexString(long value, int width, boolean zeroXPrefix) {
