@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.CfBuilder.StackHelper;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import com.android.tools.r8.utils.InternalOptions;
 
 public class ConstString extends ConstInstruction {
 
@@ -79,6 +80,12 @@ public class ConstString extends ConstInstruction {
   @Override
   public ConstString asConstString() {
     return this;
+  }
+
+  @Override
+  public boolean canBeDeadCode(IRCode code, InternalOptions options) {
+    // The const-string instruction is a throwing instruction in DEX, but not so in CF.
+    return options.outputClassFiles;
   }
 
   @Override

@@ -122,6 +122,7 @@ public class R8RunExamplesTest {
     };
 
     String[] javaBytecodeTests = {
+        "constants.Constants",
         "hello.Hello",
         "arithmetic.Arithmetic",
     };

@@ -129,6 +129,7 @@ public class CfApplicationWriter {
     reader.accept(node, ASM6);
     StringWriter writer = new StringWriter();
     for (MethodNode method : node.methods) {
+      writer.append(method.name).append(method.desc).append('\n');
       TraceMethodVisitor visitor = new TraceMethodVisitor(new Textifier());
       method.accept(visitor);
       visitor.p.print(new PrintWriter(writer));

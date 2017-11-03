@@ -590,7 +590,7 @@ public class IRConverter {
     assert method.getCode().isJarCode();
     CfBuilder builder = new CfBuilder(method, code);
     // TODO(zerny): Change the return type of CfBuilder::build CfCode once complete.
-    Code result = builder.build();
+    Code result = builder.build(codeRewriter, options);
     assert result.isCfCode() || result.isJarCode();
     method.setCode(result);
   }
