@@ -3,16 +3,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
-import com.android.tools.r8.code.MoveType;
-
 // Value that has a fixed register allocated. These are used for inserting spill, restore, and phi
 // moves in the spilling register allocator.
 public class FixedRegisterValue extends Value {
   private final int register;
 
-  public FixedRegisterValue(MoveType type, int register) {
+  public FixedRegisterValue(ValueType type, int register) {
     // Set local info to null since these values are never representatives of live-ranges.
-    super(-1, type.toValueType(), null);
+    super(-1, type, null);
     setNeedsRegister(true);
     this.register = register;
   }
