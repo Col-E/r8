@@ -3,12 +3,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.jasmin;
 
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.graph.DexString;
 import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -43,6 +45,8 @@ public class InvalidMethodNames extends JasminTestBase {
         t.printStackTrace(System.out);
         fail("Invalid dex method names should be compilation errors.");
       }
+      String asciiString = new DexString(name).toASCIIString();
+      assertTrue(t.getMessage().contains(asciiString));
     } catch (Throwable t) {
       t.printStackTrace(System.out);
       fail("Invalid dex method names should be compilation errors.");

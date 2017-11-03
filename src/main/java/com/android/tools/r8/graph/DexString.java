@@ -6,6 +6,7 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.utils.StringUtils;
 import java.io.UTFDataFormatException;
 import java.util.Arrays;
 
@@ -44,6 +45,23 @@ public class DexString extends IndexedDexItem implements PresortedComparable<Dex
   public String toString() {
     try {
       return decode();
+    } catch (UTFDataFormatException e) {
+      throw new RuntimeException("Bad format", e);
+    }
+  }
+
+  public String toASCIIString() {
+    try {
+      String s = decode();
+      StringBuilder builder = new StringBuilder();
+      for (char ch : s.toCharArray()) {
+        if (0x1f < ch && ch < 0x7f) {  // 0 - 0x1f and 0x7f are control characters.
+          builder.append(ch);
+        } else {
+          builder.append("\\u").append(StringUtils.hexString(ch, 4, false));
+        }
+      }
+      return builder.toString();
     } catch (UTFDataFormatException e) {
       throw new RuntimeException("Bad format", e);
     }

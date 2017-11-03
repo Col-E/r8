@@ -155,26 +155,36 @@ public class StringUtils {
   }
 
   public static String hexString(int value, int width) {
+    return hexString(value, width, false);
+  }
+
+  public static String hexString(int value, int width, boolean zeroXPrefix) {
     assert(0 <= width && width <= 8);
+    String prefix = zeroXPrefix ? "0x" : "";
     String hex = Integer.toHexString(value);
     if (value >= 0) {
-      return "0x" + zeroPrefixString(hex, width);
+      return prefix + zeroPrefixString(hex, width);
     } else {
       // Negative ints are always formatted as 8 characters.
       assert(hex.length() == 8);
-      return "0x" + hex;
+      return prefix + hex;
     }
   }
 
   public static String hexString(long value, int width) {
+    return hexString(value, width, false);
+  }
+
+  public static String hexString(long value, int width, boolean zeroXPrefix) {
     assert(0 <= width && width <= 16);
+    String prefix = zeroXPrefix ? "0x" : "";
     String hex = Long.toHexString(value);
     if (value >= 0) {
-      return "0x" + zeroPrefixString(hex, width);
+      return prefix + zeroPrefixString(hex, width);
     } else {
       // Negative longs are always formatted as 16 characters.
       assert(hex.length() == 16);
-      return "0x" + hex;
+      return prefix + hex;
     }
   }
 

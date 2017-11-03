@@ -23,7 +23,8 @@ public class DexMethod extends Descriptor<DexEncodedMethod, DexMethod>
     this.name = name;
     if (!name.isValidMethodName()) {
       throw new CompilationError(
-          "Method name '" + name.toString() + "' cannot be represented in dex format.");
+          "Method name '" + name.toASCIIString() + "' in class '" + holder.toSourceString() +
+              "' cannot be represented in dex format.");
     }
   }
 

@@ -88,4 +88,21 @@ public class DexStringTest {
     assertEquals(0, s.content[length - 1]);
     assertEquals(encodedLength, length - 1);
   }
+
+  @Test
+  public void testToASCIIString() {
+    DexItemFactory factory = new DexItemFactory();
+    assertEquals("\\u0000", factory.createString("\u0000").toASCIIString());
+    assertEquals("\\u0001", factory.createString("\u0001").toASCIIString());
+    assertEquals("\\u001f", factory.createString("\u001f").toASCIIString());
+    assertEquals(" ", factory.createString("\u0020").toASCIIString());
+    assertEquals("~", factory.createString("\u007e").toASCIIString());
+    assertEquals("\\u007f", factory.createString("\u007f").toASCIIString());
+    assertEquals("\\u0080", factory.createString("\u0080").toASCIIString());
+    assertEquals("\\u07ff", factory.createString("\u07ff").toASCIIString());
+    assertEquals("\\u0800", factory.createString("\u0800").toASCIIString());
+    assertEquals("\\uffff", factory.createString("\uffff").toASCIIString());
+    assertEquals("\\ud800\\udc00", factory.createString("\ud800\udc00").toASCIIString());
+    assertEquals("\\udbff\\udfff", factory.createString("\udbff\udfff").toASCIIString());
+  }
 }
