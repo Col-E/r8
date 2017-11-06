@@ -11,6 +11,7 @@ import com.android.tools.r8.ir.code.Add;
 import com.android.tools.r8.ir.code.And;
 import com.android.tools.r8.ir.code.ArithmeticBinop;
 import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.DebugLocalsChange;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -751,6 +752,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     while (!unhandled.isEmpty()) {
       LiveIntervals unhandledInterval = unhandled.poll();
 
+      setHintForDestRegOfCheckCast(unhandledInterval);
       setHintToPromote2AddrInstruction(unhandledInterval);
 
       // If this interval value is the src of an argument move. Fix the registers for the
@@ -802,6 +804,20 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       }
     }
     return true;
+  }
+
+  private void setHintForDestRegOfCheckCast(LiveIntervals unhandledInterval) {
+    if (unhandledInterval.getHint() == null &&
+        unhandledInterval.getValue().definition instanceof CheckCast) {
+      CheckCast checkcast = unhandledInterval.getValue().definition.asCheckCast();
+      Value checkcastInput = checkcast.inValues().get(0);
+      assert checkcastInput != null;
+      if (checkcastInput.getLiveIntervals() != null &&
+          !checkcastInput.getLiveIntervals().overlaps(unhandledInterval) &&
+          checkcastInput.getLocalInfo() == unhandledInterval.getValue().definition.getLocalInfo()) {
+        unhandledInterval.setHint(checkcastInput.getLiveIntervals());
+      }
+    }
   }
 
   /*
