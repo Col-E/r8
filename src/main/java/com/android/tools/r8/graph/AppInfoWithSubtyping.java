@@ -84,6 +84,9 @@ public class AppInfoWithSubtyping extends AppInfo {
         populateSuperType(map, inter, baseClass, definitions);
         inter.addInterfaceSubtype(holder);
       }
+      if (holderClass.isInterface()) {
+        holder.tagAsInteface();
+      }
     } else {
       if (!baseClass.isLibraryClass()) {
         missingClasses.add(holder);
