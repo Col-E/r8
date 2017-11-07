@@ -402,7 +402,8 @@ public class IRCode {
             assert instruction.isDebugInstruction()
                 || instruction.isJumpInstruction()
                 || instruction.isConstInstruction()
-                || instruction.isNewArrayFilledData();
+                || instruction.isNewArrayFilledData()
+                || instruction.isStore();
           }
         }
       }

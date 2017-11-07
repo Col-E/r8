@@ -39,6 +39,8 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class R8RunExamplesTest {
 
+  private static final boolean ONLY_RUN_CF_TESTS = false;
+
   enum Input {
     DX, JAVAC, JAVAC_ALL, JAVAC_NONE
   }
@@ -125,22 +127,25 @@ public class R8RunExamplesTest {
         "constants.Constants",
         "hello.Hello",
         "arithmetic.Arithmetic",
+        "barray.BArray",
     };
 
     List<String[]> fullTestList = new ArrayList<>(tests.length * 2);
-    for (String test : tests) {
-      fullTestList.add(makeTest(Input.JAVAC, CompilerUnderTest.D8, CompilationMode.DEBUG, test));
-      fullTestList.add(makeTest(Input.JAVAC_ALL, CompilerUnderTest.D8, CompilationMode.DEBUG,
-          test));
-      fullTestList.add(makeTest(Input.JAVAC_NONE, CompilerUnderTest.D8, CompilationMode.DEBUG,
-          test));
-      fullTestList.add(makeTest(Input.JAVAC_ALL, CompilerUnderTest.D8, CompilationMode.RELEASE,
-          test));
-      fullTestList.add(makeTest(Input.JAVAC_ALL, CompilerUnderTest.R8, CompilationMode.RELEASE,
-          test));
-      fullTestList.add(makeTest(Input.JAVAC_ALL, CompilerUnderTest.R8, CompilationMode.DEBUG,
-          test));
-      fullTestList.add(makeTest(Input.DX, CompilerUnderTest.R8, CompilationMode.RELEASE, test));
+    if (!ONLY_RUN_CF_TESTS) {
+      for (String test : tests) {
+        fullTestList.add(makeTest(Input.JAVAC, CompilerUnderTest.D8, CompilationMode.DEBUG, test));
+        fullTestList.add(makeTest(Input.JAVAC_ALL, CompilerUnderTest.D8, CompilationMode.DEBUG,
+            test));
+        fullTestList.add(makeTest(Input.JAVAC_NONE, CompilerUnderTest.D8, CompilationMode.DEBUG,
+            test));
+        fullTestList.add(makeTest(Input.JAVAC_ALL, CompilerUnderTest.D8, CompilationMode.RELEASE,
+            test));
+        fullTestList.add(makeTest(Input.JAVAC_ALL, CompilerUnderTest.R8, CompilationMode.RELEASE,
+            test));
+        fullTestList.add(makeTest(Input.JAVAC_ALL, CompilerUnderTest.R8, CompilationMode.DEBUG,
+            test));
+        fullTestList.add(makeTest(Input.DX, CompilerUnderTest.R8, CompilationMode.RELEASE, test));
+      }
     }
     // TODO(zerny): Once all tests pass create the java tests in the main test loop.
     for (String test : javaBytecodeTests) {

@@ -5,12 +5,16 @@ package com.android.tools.r8.ir.code;
 
 public class StackValue extends Value {
 
-  public StackValue(ValueType type) {
+  private final int height;
+
+  public StackValue(ValueType type, int height) {
     super(Value.UNDEFINED_NUMBER, type, null);
+    this.height = height;
+    assert height >= 0;
   }
 
   @Override
   public String toString() {
-    return "s";
+    return "s" + height;
   }
 }

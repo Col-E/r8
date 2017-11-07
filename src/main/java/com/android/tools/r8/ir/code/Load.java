@@ -8,12 +8,23 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
+import com.android.tools.r8.ir.conversion.CfBuilder.StackHelper;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 
 public class Load extends Instruction {
 
   public Load(StackValue dest, Value src) {
     super(dest, src);
+  }
+
+  @Override
+  public boolean isLoad() {
+    return true;
+  }
+
+  @Override
+  public Load asLoad() {
+    return this;
   }
 
   @Override
@@ -45,5 +56,10 @@ public class Load extends Instruction {
   public void buildCf(CfBuilder builder) {
     Value value = inValues.get(0);
     builder.add(new CfLoad(value.outType(), builder.getLocalRegister(value)));
+  }
+
+  @Override
+  public void insertLoadAndStores(InstructionListIterator it, StackHelper stack) {
+    // Nothing to do. This is only hit because loads and stores are insert for phis.
   }
 }

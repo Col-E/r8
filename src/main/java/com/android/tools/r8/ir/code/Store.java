@@ -8,12 +8,25 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
+import com.android.tools.r8.ir.conversion.CfBuilder.FixedLocal;
+import com.android.tools.r8.ir.conversion.CfBuilder.StackHelper;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
+import com.android.tools.r8.utils.InternalOptions;
 
 public class Store extends Instruction {
 
   public Store(Value dest, StackValue src) {
     super(dest, src);
+  }
+
+  @Override
+  public boolean isStore() {
+    return true;
+  }
+
+  @Override
+  public Store asStore() {
+    return this;
   }
 
   @Override
@@ -44,5 +57,15 @@ public class Store extends Instruction {
   @Override
   public void buildCf(CfBuilder builder) {
     builder.add(new CfStore(outType(), builder.getLocalRegister(outValue)));
+  }
+
+  @Override
+  public void insertLoadAndStores(InstructionListIterator it, StackHelper stack) {
+    // Nothing to do. This is only hit because loads and stores are insert for phis.
+  }
+
+  @Override
+  public boolean canBeDeadCode(IRCode code, InternalOptions options) {
+    return !(outValue instanceof FixedLocal);
   }
 }

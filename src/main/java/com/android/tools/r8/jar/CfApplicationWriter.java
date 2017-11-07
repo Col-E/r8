@@ -57,27 +57,15 @@ public class CfApplicationWriter {
     }
   }
 
+  // TODO(zerny): Implement stack-map computation to support Java 1.6 and above.
+  private int downgrade(int version) {
+    return version > 49 ? 49 : version;
+  }
+
   private void writeClass(DexProgramClass clazz, OutputSink outputSink) throws IOException {
-    // If there are CF representations for all methods manually compute stack height and frames.
-    // TODO(zerny): This is a temporary hack since we will need to manually compute stack maps for
-    // any methods that are IR processed.
-    int flags = 0;
-    for (DexEncodedMethod method : clazz.directMethods()) {
-      if (!method.getCode().isCfCode()) {
-        flags = ClassWriter.COMPUTE_FRAMES;
-        break;
-      }
-    }
-    if (flags == 0) {
-      for (DexEncodedMethod method : clazz.virtualMethods()) {
-        if (!method.getCode().isCfCode()) {
-          flags = ClassWriter.COMPUTE_FRAMES;
-        }
-      }
-    }
-    ClassWriter writer = new ClassWriter(flags);
+    ClassWriter writer = new ClassWriter(0);
     writer.visitSource(clazz.sourceFile.toString(), null);
-    int version = clazz.getClassFileVersion();
+    int version = downgrade(clazz.getClassFileVersion());
     int access = clazz.accessFlags.getAsCfAccessFlags();
     String desc = clazz.type.toDescriptorString();
     String name = internalName(clazz.type);

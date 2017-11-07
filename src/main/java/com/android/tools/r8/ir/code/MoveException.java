@@ -6,6 +6,8 @@ package com.android.tools.r8.ir.code;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.conversion.CfBuilder;
+import com.android.tools.r8.ir.conversion.CfBuilder.StackHelper;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.utils.InternalOptions;
@@ -61,12 +63,26 @@ public class MoveException extends Instruction {
 
   @Override
   public boolean canBeDeadCode(IRCode code, InternalOptions options) {
-    return !options.debug;
+    return !options.debug && !options.outputClassFiles;
   }
 
   @Override
   public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType holder) {
     // TODO(64432527): Revisit this constraint.
     return Constraint.NEVER;
+  }
+
+  @Override
+  public void insertLoadAndStores(InstructionListIterator it, StackHelper stack) {
+    if (outValue.isUsed()) {
+      stack.storeOutValue(this, it);
+    } else {
+      stack.popOutValue(outValue.type, this, it);
+    }
+  }
+
+  @Override
+  public void buildCf(CfBuilder builder) {
+    // Nothing to do. The exception is implicitly pushed on the stack.
   }
 }

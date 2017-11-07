@@ -5,23 +5,32 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.cf.code.CfInstruction;
+import com.android.tools.r8.cf.code.CfTryCatch;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.List;
+import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Type;
 
 public class CfCode extends Code {
 
   private final int maxStack;
   private final int maxLocals;
   private final List<CfInstruction> instructions;
+  private final List<CfTryCatch> tryCatchRanges;
 
-  public CfCode(int maxStack, int maxLocals, List<CfInstruction> instructions) {
+  public CfCode(
+      int maxStack,
+      int maxLocals,
+      List<CfInstruction> instructions,
+      List<CfTryCatch> tryCatchRanges) {
     this.maxStack = maxStack;
     this.maxLocals = maxLocals;
     this.instructions = instructions;
+    this.tryCatchRanges = tryCatchRanges;
   }
 
   @Override
@@ -40,6 +49,21 @@ public class CfCode extends Code {
     }
     visitor.visitEnd();
     visitor.visitMaxs(maxStack, maxLocals);
+    for (CfTryCatch tryCatch : tryCatchRanges) {
+      Label start = tryCatch.start.getLabel();
+      Label end = tryCatch.end.getLabel();
+      for (int i = 0; i < tryCatch.guards.size(); i++) {
+        DexType guard = tryCatch.guards.get(i);
+        Label target = tryCatch.targets.get(i).getLabel();
+        visitor.visitTryCatchBlock(
+            start,
+            end,
+            target,
+            guard == DexItemFactory.catchAllType
+                ? null
+                : Type.getType(guard.toDescriptorString()).getInternalName());
+      }
+    }
   }
 
   @Override

@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
+import com.android.tools.r8.utils.InternalOptions;
 
 public class Pop extends Instruction {
 
@@ -44,5 +45,11 @@ public class Pop extends Instruction {
   @Override
   public void buildCf(CfBuilder builder) {
     builder.add(new CfPop(inValues.get(0).type));
+  }
+
+  @Override
+  public boolean canBeDeadCode(IRCode code, InternalOptions options) {
+    // Pop cannot be dead code as it modifies the stack height.
+    return false;
   }
 }

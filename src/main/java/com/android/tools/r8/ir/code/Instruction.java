@@ -938,6 +938,22 @@ public abstract class Instruction {
     return null;
   }
 
+  public boolean isStore() {
+    return false;
+  }
+
+  public Store asStore() {
+    return null;
+  }
+
+  public boolean isLoad() {
+    return false;
+  }
+
+  public Load asLoad() {
+    return null;
+  }
+
   public boolean canBeFolded() {
     return false;
   }

@@ -6,7 +6,10 @@ package com.android.tools.r8.ir.code;
 import static com.android.tools.r8.dex.Constants.U4BIT_MAX;
 import static com.android.tools.r8.dex.Constants.U8BIT_MAX;
 
+import com.android.tools.r8.cf.code.CfIf;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.ir.conversion.CfBuilder;
+import com.android.tools.r8.ir.conversion.CfBuilder.StackHelper;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.utils.CfgPrinter;
 import java.util.List;
@@ -185,5 +188,16 @@ public class If extends JumpInstruction {
   @Override
   public If asIf() {
     return this;
+  }
+
+  @Override
+  public void insertLoadAndStores(InstructionListIterator it, StackHelper stack) {
+    stack.loadInValues(this, it);
+  }
+
+  @Override
+  public void buildCf(CfBuilder builder) {
+    assert inValues.size() == 1;
+    builder.add(new CfIf(type, inValues.get(0).type, builder.getLabel(getTrueTarget())));
   }
 }
