@@ -156,7 +156,7 @@ public class DexType extends IndexedDexItem implements PresortedComparable<DexTy
 
   /**
    * Apply the given function to all classes that directly extend this class.
-   *
+   * <p>
    * If this class is an interface, then this method will visit all sub-interfaces. This deviates
    * from the dex-file encoding, where subinterfaces "implement" their super interfaces. However,
    * it is consistent with the source language.
@@ -185,7 +185,7 @@ public class DexType extends IndexedDexItem implements PresortedComparable<DexTy
 
   /**
    * Apply the given function to all classes that directly implement this interface.
-   *
+   * <p>
    * The implementation does not consider how the hierarchy is encoded in the dex file, where
    * interfaces "implement" their super interfaces. Instead it takes the view of the source
    * language, where interfaces "extend" their superinterface.

@@ -6,16 +6,10 @@ package com.android.tools.r8.shaking;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.logging.Log;
-import com.android.tools.r8.utils.MethodSignatureEquivalence;
-import com.google.common.base.Equivalence;
-import com.google.common.base.Equivalence.Wrapper;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Removes abstract methods if they only shadow methods of the same signature in a superclass.
@@ -29,20 +23,20 @@ import java.util.Set;
 public class AbstractMethodRemover {
 
   private final AppInfoWithSubtyping appInfo;
-  private ScopedDexItemSet scope;
+  private ScopedDexMethodSet scope = new ScopedDexMethodSet();
 
   public AbstractMethodRemover(AppInfoWithSubtyping appInfo) {
     this.appInfo = appInfo;
   }
 
   public void run() {
-    assert scope == null;
+    assert scope.getParent() == null;
     processClass(appInfo.dexItemFactory.objectType);
   }
 
   private void processClass(DexType type) {
     DexClass holder = appInfo.definitionFor(type);
-    scope = new ScopedDexItemSet(scope);
+    scope = scope.newNestedScope();
     if (holder != null && !holder.isLibraryClass()) {
       holder.setVirtualMethods(processMethods(holder.virtualMethods()));
     }
@@ -77,29 +71,4 @@ public class AbstractMethodRemover {
     return methods == null ? virtualMethods : methods.toArray(new DexEncodedMethod[methods.size()]);
   }
 
-  private static class ScopedDexItemSet {
-
-    private static Equivalence<DexMethod> METHOD_EQUIVALENCE = MethodSignatureEquivalence.get();
-
-    private final ScopedDexItemSet parent;
-    private final Set<Wrapper<DexMethod>> items = new HashSet<>();
-
-    private ScopedDexItemSet(ScopedDexItemSet parent) {
-      this.parent = parent;
-    }
-
-    private boolean contains(Wrapper<DexMethod> item) {
-      return items.contains(item)
-          || ((parent != null) && parent.contains(item));
-    }
-
-    boolean addMethod(DexMethod method) {
-      Wrapper<DexMethod> wrapped = METHOD_EQUIVALENCE.wrap(method);
-      return !contains(wrapped) && items.add(wrapped);
-    }
-
-    ScopedDexItemSet getParent() {
-      return parent;
-    }
-  }
 }

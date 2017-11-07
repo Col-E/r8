@@ -29,6 +29,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -61,27 +62,31 @@ public class TreeShakingTest {
       .of(ANDROID_JAR, ToolHelper.EXAMPLES_BUILD_DIR + "shakinglib.jar"), Paths::get);
   private static final String EMPTY_FLAGS = "src/test/proguard/valid/empty.flags";
   private static final Set<String> IGNORED_FLAGS = ImmutableSet.of(
-      "minification:conflict-mapping.txt",
-      "minification:keep-rules-apply-conflict-mapping.txt"
+      "examples/minification:conflict-mapping.txt",
+      "examples/minification:keep-rules-apply-conflict-mapping.txt"
   );
   private static final Set<String> IGNORED = ImmutableSet.of(
       // there's no point in running those without obfuscation
-      "shaking1:keep-rules-repackaging.txt:DEX:NONE",
-      "shaking1:keep-rules-repackaging.txt:JAR:NONE",
-      "shaking16:keep-rules-1.txt:DEX:NONE",
-      "shaking16:keep-rules-1.txt:JAR:NONE",
-      "shaking16:keep-rules-2.txt:DEX:NONE",
-      "shaking16:keep-rules-2.txt:JAR:NONE",
-      "shaking15:keep-rules.txt:DEX:NONE",
-      "shaking15:keep-rules.txt:JAR:NONE",
-      "minifygeneric:keep-rules.txt:DEX:NONE",
-      "minifygeneric:keep-rules.txt:JAR:NONE",
-      "minifygenericwithinner:keep-rules.txt:DEX:NONE",
-      "minifygenericwithinner:keep-rules.txt:JAR:NONE"
+      "examples/shaking1:keep-rules-repackaging.txt:DEX:NONE",
+      "examples/shaking1:keep-rules-repackaging.txt:JAR:NONE",
+      "examples/shaking16:keep-rules-1.txt:DEX:NONE",
+      "examples/shaking16:keep-rules-1.txt:JAR:NONE",
+      "examples/shaking16:keep-rules-2.txt:DEX:NONE",
+      "examples/shaking16:keep-rules-2.txt:JAR:NONE",
+      "examples/shaking15:keep-rules.txt:DEX:NONE",
+      "examples/shaking15:keep-rules.txt:JAR:NONE",
+      "examples/minifygeneric:keep-rules.txt:DEX:NONE",
+      "examples/minifygeneric:keep-rules.txt:JAR:NONE",
+      "examples/minifygenericwithinner:keep-rules.txt:DEX:NONE",
+      "examples/minifygenericwithinner:keep-rules.txt:JAR:NONE",
+      // No prebuild DEX files for AndroidN
+      "examplesAndroidN/shaking:keep-rules.txt:DEX:NONE",
+      "examplesAndroidN/shaking:keep-rules.txt:DEX:JAVA",
+      "examplesAndroidN/shaking:keep-rules.txt:DEX:AGGRESSIVE"
   );
 
   // TODO(65355452): Reenable or remove inlining tests.
-  private static Set<String> SKIPPED = ImmutableSet.of("inlining");
+  private static Set<String> SKIPPED = ImmutableSet.of("examples/inlining");
 
   private final MinifyMode minify;
 
@@ -107,11 +112,11 @@ public class TreeShakingTest {
       BiConsumer<String, String> outputComparator,
       BiConsumer<DexInspector, DexInspector> dexComparator) {
     this.kind = kind;
-    originalDex = ToolHelper.EXAMPLES_BUILD_DIR + test + "/classes.dex";
+    originalDex = ToolHelper.TESTS_BUILD_DIR + test + "/classes.dex";
     if (kind == Frontend.DEX) {
       this.programFile = originalDex;
     } else {
-      this.programFile = ToolHelper.EXAMPLES_BUILD_DIR + test + ".jar";
+      this.programFile = ToolHelper.TESTS_BUILD_DIR + test + ".jar";
     }
     this.mainClass = mainClass;
     this.keepRulesFiles = keepRulesFiles;
@@ -622,160 +627,166 @@ public class TreeShakingTest {
   public static Collection<Object[]> data() {
     List<String> tests = Arrays
         .asList(
-            "shaking1",
-            "shaking2",
-            "shaking3",
-            "shaking4",
-            "shaking5",
-            "shaking6",
-            "shaking7",
-            "shaking8",
-            "shaking9",
-            "shaking10",
-            "shaking11",
-            "shaking12",
-            "shaking13",
-            "shaking14",
-            "shaking15",
-            "shaking16",
-            "shaking17",
-            "minification",
-            "minifygeneric",
-            "minifygenericwithinner",
-            "assumenosideeffects1",
-            "assumenosideeffects2",
-            "assumenosideeffects3",
-            "assumenosideeffects4",
-            "assumenosideeffects5",
-            "assumevalues1",
-            "assumevalues2",
-            "assumevalues3",
-            "assumevalues4",
-            "assumevalues5",
-            "annotationremoval",
-            "memberrebinding2",
-            "memberrebinding3",
-            "simpleproto1",
-            "simpleproto2",
-            "simpleproto3",
-            "nestedproto1",
-            "nestedproto2",
-            "enumproto",
-            "repeatedproto",
-            "oneofproto");
+            "examples/shaking1",
+            "examples/shaking2",
+            "examples/shaking3",
+            "examples/shaking4",
+            "examples/shaking5",
+            "examples/shaking6",
+            "examples/shaking7",
+            "examples/shaking8",
+            "examples/shaking9",
+            "examples/shaking10",
+            "examples/shaking11",
+            "examples/shaking12",
+            "examples/shaking13",
+            "examples/shaking14",
+            "examples/shaking15",
+            "examples/shaking16",
+            "examples/shaking17",
+            "examples/minification",
+            "examples/minifygeneric",
+            "examples/minifygenericwithinner",
+            "examples/assumenosideeffects1",
+            "examples/assumenosideeffects2",
+            "examples/assumenosideeffects3",
+            "examples/assumenosideeffects4",
+            "examples/assumenosideeffects5",
+            "examples/assumevalues1",
+            "examples/assumevalues2",
+            "examples/assumevalues3",
+            "examples/assumevalues4",
+            "examples/assumevalues5",
+            "examples/annotationremoval",
+            "examples/memberrebinding2",
+            "examples/memberrebinding3",
+            "examples/simpleproto1",
+            "examples/simpleproto2",
+            "examples/simpleproto3",
+            "examples/nestedproto1",
+            "examples/nestedproto2",
+            "examples/enumproto",
+            "examples/repeatedproto",
+            "examples/oneofproto",
+            "examplesAndroidN/shaking");
 
     // Keys can be the name of the test or the name of the test followed by a colon and the name
     // of the keep file.
     Map<String, Consumer<DexInspector>> inspections = new HashMap<>();
-    inspections.put("shaking1:keep-rules.txt", TreeShakingTest::shaking1HasNoClassUnused);
+    inspections.put("examples/shaking1:keep-rules.txt", TreeShakingTest::shaking1HasNoClassUnused);
+    inspections.put("examples/shaking1:keep-rules-repackaging.txt",
+        TreeShakingTest::shaking1IsCorrectlyRepackaged);
     inspections
-        .put("shaking1:keep-rules-repackaging.txt", TreeShakingTest::shaking1IsCorrectlyRepackaged);
-    inspections.put("shaking2:keep-rules.txt", TreeShakingTest::shaking2SuperClassIsAbstract);
-    inspections.put("shaking3:keep-by-tag.txt", TreeShakingTest::shaking3HasNoClassB);
-    inspections.put("shaking3:keep-by-tag-default.txt", TreeShakingTest::shaking3HasNoClassB);
-    inspections.put("shaking3:keep-by-tag-with-pattern.txt", TreeShakingTest::shaking3HasNoClassB);
-    inspections.put("shaking3:keep-by-tag-via-interface.txt", TreeShakingTest::shaking3HasNoClassB);
-    inspections.put("shaking3:keep-by-tag-on-method.txt", TreeShakingTest::shaking3HasNoClassB);
+        .put("examples/shaking2:keep-rules.txt", TreeShakingTest::shaking2SuperClassIsAbstract);
+    inspections.put("examples/shaking3:keep-by-tag.txt", TreeShakingTest::shaking3HasNoClassB);
     inspections
-        .put("shaking3:keep-no-abstract-classes.txt", TreeShakingTest::shaking3HasNoPrivateClass);
-    inspections.put("shaking5", TreeShakingTest::shaking5Inspection);
-    inspections.put("shaking6:keep-public.txt", TreeShakingTest::hasNoPrivateMethods);
-    inspections.put("shaking6:keep-non-public.txt", TreeShakingTest::hasNoPublicMethodsButPrivate);
+        .put("examples/shaking3:keep-by-tag-default.txt", TreeShakingTest::shaking3HasNoClassB);
+    inspections.put("examples/shaking3:keep-by-tag-with-pattern.txt",
+        TreeShakingTest::shaking3HasNoClassB);
+    inspections.put("examples/shaking3:keep-by-tag-via-interface.txt",
+        TreeShakingTest::shaking3HasNoClassB);
     inspections
-        .put("shaking6:keep-justAMethod-public.txt", TreeShakingTest::hasNoPrivateJustAMethod);
-    inspections.put("shaking6:keep-justAMethod-OnInt.txt", TreeShakingTest::hasOnlyIntJustAMethod);
+        .put("examples/shaking3:keep-by-tag-on-method.txt", TreeShakingTest::shaking3HasNoClassB);
+    inspections.put("examples/shaking3:keep-no-abstract-classes.txt",
+        TreeShakingTest::shaking3HasNoPrivateClass);
+    inspections.put("examples/shaking5", TreeShakingTest::shaking5Inspection);
+    inspections.put("examples/shaking6:keep-public.txt", TreeShakingTest::hasNoPrivateMethods);
+    inspections.put("examples/shaking6:keep-non-public.txt",
+        TreeShakingTest::hasNoPublicMethodsButPrivate);
+    inspections.put("examples/shaking6:keep-justAMethod-public.txt",
+        TreeShakingTest::hasNoPrivateJustAMethod);
+    inspections.put("examples/shaking6:keep-justAMethod-OnInt.txt",
+        TreeShakingTest::hasOnlyIntJustAMethod);
+    inspections.put("examples/shaking7:keep-public-fields.txt",
+        TreeShakingTest::shaking7HasOnlyPublicFields);
+    inspections.put("examples/shaking7:keep-double-fields.txt",
+        TreeShakingTest::shaking7HasOnlyDoubleFields);
+    inspections.put("examples/shaking7:keep-public-theDoubleField-fields.txt",
+        TreeShakingTest::shaking7HasOnlyPublicFieldsNamedTheDoubleField);
+    inspections.put("examples/shaking7:keep-public-theIntField-fields.txt",
+        TreeShakingTest::shaking7HasOnlyPublicFieldsNamedTheIntField);
+    inspections.put("examples/shaking8:keep-rules.txt",
+        TreeShakingTest::shaking8ThingClassIsAbstractAndEmpty);
     inspections
-        .put("shaking7:keep-public-fields.txt", TreeShakingTest::shaking7HasOnlyPublicFields);
+        .put("examples/shaking9:keep-rules.txt", TreeShakingTest::shaking9OnlySuperMethodsKept);
     inspections
-        .put("shaking7:keep-double-fields.txt", TreeShakingTest::shaking7HasOnlyDoubleFields);
-    inspections
-        .put("shaking7:keep-public-theDoubleField-fields.txt",
-            TreeShakingTest::shaking7HasOnlyPublicFieldsNamedTheDoubleField);
-    inspections
-        .put("shaking7:keep-public-theIntField-fields.txt",
-            TreeShakingTest::shaking7HasOnlyPublicFieldsNamedTheIntField);
-    inspections
-        .put("shaking8:keep-rules.txt", TreeShakingTest::shaking8ThingClassIsAbstractAndEmpty);
-    inspections
-        .put("shaking9:keep-rules.txt", TreeShakingTest::shaking9OnlySuperMethodsKept);
-    inspections
-        .put("shaking11:keep-rules.txt", TreeShakingTest::shaking11OnlyOneClassKept);
-    inspections
-        .put("shaking11:keep-rules-keep-method.txt", TreeShakingTest::shaking11BothMethodsKept);
-    inspections.put("shaking12:keep-rules.txt",
+        .put("examples/shaking11:keep-rules.txt", TreeShakingTest::shaking11OnlyOneClassKept);
+    inspections.put("examples/shaking11:keep-rules-keep-method.txt",
+        TreeShakingTest::shaking11BothMethodsKept);
+    inspections.put("examples/shaking12:keep-rules.txt",
             TreeShakingTest::shaking12OnlyInstantiatedClassesHaveConstructors);
-    inspections.put("shaking13:keep-rules.txt",
+    inspections.put("examples/shaking13:keep-rules.txt",
             TreeShakingTest::shaking13EnsureFieldWritesCorrect);
-    inspections.put("shaking14:keep-rules.txt",
+    inspections.put("examples/shaking14:keep-rules.txt",
             TreeShakingTest::shaking14EnsureRightStaticMethodsLive);
-    inspections.put("shaking15:keep-rules.txt", TreeShakingTest::shaking15testDictionary);
-    inspections.put("shaking17:keep-rules.txt", TreeShakingTest::abstractMethodRemains);
-    inspections.put("annotationremoval:keep-rules.txt",
+    inspections.put("examples/shaking15:keep-rules.txt", TreeShakingTest::shaking15testDictionary);
+    inspections.put("examples/shaking17:keep-rules.txt", TreeShakingTest::abstractMethodRemains);
+    inspections.put("examples/annotationremoval:keep-rules.txt",
             TreeShakingTest::annotationRemovalHasNoInnerClassAnnotations);
-    inspections.put("annotationremoval:keep-rules-keep-innerannotation.txt",
+    inspections.put("examples/annotationremoval:keep-rules-keep-innerannotation.txt",
             TreeShakingTest::annotationRemovalHasAllInnerClassAnnotations);
+    inspections.put("examples/simpleproto1:keep-rules.txt",
+        TreeShakingTest::simpleproto1UnusedFieldIsGone);
+    inspections.put("examples/simpleproto2:keep-rules.txt",
+        TreeShakingTest::simpleproto2UnusedFieldsAreGone);
+    inspections.put("examples/nestedproto1:keep-rules.txt",
+        TreeShakingTest::nestedproto1UnusedFieldsAreGone);
+    inspections.put("examples/nestedproto2:keep-rules.txt",
+        TreeShakingTest::nestedproto2UnusedFieldsAreGone);
     inspections
-        .put("simpleproto1:keep-rules.txt", TreeShakingTest::simpleproto1UnusedFieldIsGone);
+        .put("examples/enumproto:keep-rules.txt", TreeShakingTest::enumprotoUnusedFieldsAreGone);
     inspections
-        .put("simpleproto2:keep-rules.txt", TreeShakingTest::simpleproto2UnusedFieldsAreGone);
+        .put("examples/repeatedproto:keep-rules.txt", TreeShakingTest::repeatedUnusedFieldsAreGone);
     inspections
-        .put("nestedproto1:keep-rules.txt", TreeShakingTest::nestedproto1UnusedFieldsAreGone);
-    inspections
-        .put("nestedproto2:keep-rules.txt", TreeShakingTest::nestedproto2UnusedFieldsAreGone);
-    inspections
-        .put("enumproto:keep-rules.txt", TreeShakingTest::enumprotoUnusedFieldsAreGone);
-    inspections
-        .put("repeatedproto:keep-rules.txt", TreeShakingTest::repeatedUnusedFieldsAreGone);
-    inspections
-        .put("oneofproto:keep-rules.txt", TreeShakingTest::oneofprotoUnusedFieldsAreGone);
+        .put("examples/oneofproto:keep-rules.txt", TreeShakingTest::oneofprotoUnusedFieldsAreGone);
 
     // Keys can be the name of the test or the name of the test followed by a colon and the name
     // of the keep file.
     Map<String, Collection<List<String>>> optionalRules = new HashMap<>();
-    optionalRules.put("shaking1", ImmutableList.of(
+    optionalRules.put("examples/shaking1", ImmutableList.of(
         Collections.singletonList(EMPTY_FLAGS),
         Lists.newArrayList(EMPTY_FLAGS, EMPTY_FLAGS)));
     List<Object[]> testCases = new ArrayList<>();
 
     Map<String, BiConsumer<String, String>> outputComparators = new HashMap<>();
     outputComparators
-        .put("assumenosideeffects1",
+        .put("examples/assumenosideeffects1",
             TreeShakingTest::assumenosideeffects1CheckOutput);
     outputComparators
-        .put("assumenosideeffects2",
+        .put("examples/assumenosideeffects2",
             TreeShakingTest::assumenosideeffects2CheckOutput);
     outputComparators
-        .put("assumenosideeffects3",
+        .put("examples/assumenosideeffects3",
             TreeShakingTest::assumenosideeffects3CheckOutput);
     outputComparators
-        .put("assumenosideeffects4",
+        .put("examples/assumenosideeffects4",
             TreeShakingTest::assumenosideeffects4CheckOutput);
     outputComparators
-        .put("assumenosideeffects5",
+        .put("examples/assumenosideeffects5",
             TreeShakingTest::assumenosideeffects5CheckOutput);
     outputComparators
-        .put("assumevalues1",
+        .put("examples/assumevalues1",
             TreeShakingTest::assumevalues1CheckOutput);
     outputComparators
-        .put("assumevalues2",
+        .put("examples/assumevalues2",
             TreeShakingTest::assumevalues2CheckOutput);
     outputComparators
-        .put("assumevalues3",
+        .put("examples/assumevalues3",
             TreeShakingTest::assumevalues3CheckOutput);
     outputComparators
-        .put("assumevalues4",
+        .put("examples/assumevalues4",
             TreeShakingTest::assumevalues4CheckOutput);
     outputComparators
-        .put("assumevalues5",
+        .put("examples/assumevalues5",
             TreeShakingTest::assumevalues5CheckOutput);
 
     Map<String, BiConsumer<DexInspector, DexInspector>> dexComparators = new HashMap<>();
     dexComparators
-        .put("shaking1:keep-rules-dont-shrink.txt", TreeShakingTest::checkSameStructure);
+        .put("examples/shaking1:keep-rules-dont-shrink.txt", TreeShakingTest::checkSameStructure);
     dexComparators
-        .put("shaking2:keep-rules-dont-shrink.txt", TreeShakingTest::checkSameStructure);
+        .put("examples/shaking2:keep-rules-dont-shrink.txt", TreeShakingTest::checkSameStructure);
     dexComparators
-        .put("shaking4:keep-rules-dont-shrink.txt", TreeShakingTest::checkSameStructure);
+        .put("examples/shaking4:keep-rules-dont-shrink.txt", TreeShakingTest::checkSameStructure);
 
     Set<String> usedInspections = new HashSet<>();
     Set<String> usedOptionalRules = new HashSet<>();
@@ -784,7 +795,7 @@ public class TreeShakingTest {
 
     for (String test : tests) {
       String mainClass = deriveMainClass(test);
-      File[] keepFiles = new File(ToolHelper.EXAMPLES_DIR + "/" + test)
+      File[] keepFiles = new File(ToolHelper.TESTS_DIR + test)
           .listFiles(file -> file.isFile() && file.getName().endsWith(".txt"));
       for (File keepFile : keepFiles) {
         String keepName = keepFile.getName();
@@ -863,12 +874,13 @@ public class TreeShakingTest {
   }
 
   private static String deriveMainClass(String testName) {
+    String testBaseName = testName.substring(testName.lastIndexOf('/') + 1);
     StringBuilder mainClass = new StringBuilder(testName.length() * 2 + 1);
-    mainClass.append(testName);
+    mainClass.append(testBaseName);
     mainClass.append('.');
-    mainClass.append(Character.toUpperCase(testName.charAt(0)));
-    for (int i = 1; i < testName.length(); i++) {
-      char next = testName.charAt(i);
+    mainClass.append(Character.toUpperCase(testBaseName.charAt(0)));
+    for (int i = 1; i < testBaseName.length(); i++) {
+      char next = testBaseName.charAt(i);
       if (!Character.isAlphabetic(next)) {
         break;
       }
@@ -888,24 +900,32 @@ public class TreeShakingTest {
       builder.appendClasspath(ToolHelper.EXAMPLES_BUILD_DIR + "shakinglib/classes.dex");
     };
 
-    if (outputComparator != null) {
-      String output1 = ToolHelper.runArtNoVerificationErrors(
-          Collections.singletonList(originalDex), mainClass, extraArtArgs, null);
-      String output2 = ToolHelper.runArtNoVerificationErrors(
-          Collections.singletonList(generated.toString()), mainClass, extraArtArgs, null);
-      outputComparator.accept(output1, output2);
-    } else {
-      String output = ToolHelper.checkArtOutputIdentical(Collections.singletonList(originalDex),
-          Collections.singletonList(generated.toString()), mainClass,
-          extraArtArgs, null);
-    }
+    if (Files.exists(Paths.get(originalDex))) {
+      if (outputComparator != null) {
+        String output1 = ToolHelper.runArtNoVerificationErrors(
+            Collections.singletonList(originalDex), mainClass, extraArtArgs, null);
+        String output2 = ToolHelper.runArtNoVerificationErrors(
+            Collections.singletonList(generated.toString()), mainClass, extraArtArgs, null);
+        outputComparator.accept(output1, output2);
+      } else {
+        ToolHelper.checkArtOutputIdentical(Collections.singletonList(originalDex),
+            Collections.singletonList(generated.toString()), mainClass,
+            extraArtArgs, null);
+      }
 
-    if (dexComparator != null) {
-      DexInspector ref = new DexInspector(Paths.get(originalDex));
-      DexInspector inspector = new DexInspector(generated,
-          minify.isMinify() ? temp.getRoot().toPath().resolve(DEFAULT_PROGUARD_MAP_FILE).toString()
-              : null);
-      dexComparator.accept(ref, inspector);
+      if (dexComparator != null) {
+        DexInspector ref = new DexInspector(Paths.get(originalDex));
+        DexInspector inspector = new DexInspector(generated,
+            minify.isMinify() ? temp.getRoot().toPath().resolve(DEFAULT_PROGUARD_MAP_FILE)
+                .toString()
+                : null);
+        dexComparator.accept(ref, inspector);
+      }
+    } else {
+      Assert.assertNull(outputComparator);
+      Assert.assertNull(dexComparator);
+      ToolHelper.runArtNoVerificationErrors(
+          Collections.singletonList(generated.toString()), mainClass, extraArtArgs, null);
     }
 
     if (inspection != null) {
