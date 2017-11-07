@@ -24,21 +24,6 @@ import org.junit.Test;
 
 public class IncludeDescriptorClassesTest extends TestBase {
 
-  private Set<String> readJarClasses(Path jar) throws IOException {
-    Set<String> result = new HashSet<>();
-    try (ZipFile zipFile = new ZipFile(jar.toFile())) {
-      final Enumeration<? extends ZipEntry> entries = zipFile.entries();
-      while (entries.hasMoreElements()) {
-        ZipEntry entry = entries.nextElement();
-        String name = entry.getName();
-        if (name.endsWith(".class")) {
-          result.add(name.substring(0, name.length() - ".class".length()).replace('/', '.'));
-        }
-      }
-    }
-    return result;
-  }
-
   private class Result {
     final DexInspector inspector;
     final Set<String> classesAfterProguard;
@@ -92,7 +77,7 @@ public class IncludeDescriptorClassesTest extends TestBase {
     if (false) {
       Path proguardedJar = temp.newFile("proguarded.jar").toPath();
       ToolHelper.runProguard(jarTestClasses(classes), proguardedJar, proguardConfig);
-      classesAfterProguard = readJarClasses(proguardedJar);
+      classesAfterProguard = readClassesInJar(proguardedJar);
     }
 
     return new Result(inspector, classesAfterProguard);

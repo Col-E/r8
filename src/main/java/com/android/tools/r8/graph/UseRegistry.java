@@ -65,8 +65,4 @@ public abstract class UseRegistry {
         throw new AssertionError();
     }
   }
-
-  public boolean registerConstClass(DexType type) {
-    return registerTypeReference(type);
-  }
 }
