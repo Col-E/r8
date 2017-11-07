@@ -193,18 +193,28 @@ public class AppInfoWithSubtyping extends AppInfo {
     return holder.accessFlags.isAbstract();
   }
 
+  private boolean holderIsInterface(Descriptor<?, ?> desc) {
+    DexClass holder = definitionFor(desc.getHolder());
+    return holder.accessFlags.isInterface();
+  }
+
   // For mapping invoke interface instruction to target methods.
   public Set<DexEncodedMethod> lookupInterfaceTargets(DexMethod method) {
-    Set<DexEncodedMethod> result = new HashSet<>();
     Set<DexType> set = subtypes(method.holder);
-    if (set != null) {
-      for (DexType type : set) {
-        DexClass clazz = definitionFor(type);
-        if (!clazz.isInterface()) {
-          DexEncodedMethod targetMethod = lookupVirtualTarget(type, method);
-          if (targetMethod != null) {
-            result.add(targetMethod);
-          }
+    if (set == null) {
+      return Collections.emptySet();
+    }
+    assert holderIsInterface(method);
+    Set<DexEncodedMethod> result = new HashSet<>();
+    for (DexType type : set) {
+      DexClass clazz = definitionFor(type);
+      // Default methods are looked up when looking at a specific subtype that does not
+      // override them, so we ignore interfaces here. Otherwise, we would look up default methods
+      // that are factually never used.
+      if (!clazz.isInterface()) {
+        DexEncodedMethod targetMethod = lookupVirtualTarget(type, method);
+        if (targetMethod != null) {
+          result.add(targetMethod);
         }
       }
     }
@@ -212,9 +222,8 @@ public class AppInfoWithSubtyping extends AppInfo {
   }
 
   public DexEncodedMethod lookupSingleInterfaceTarget(DexMethod method) {
-    assert method != null;
     DexClass holder = definitionFor(method.holder);
-    if ((holder == null) || holder.isLibraryClass()) {
+    if ((holder == null) || holder.isLibraryClass() || !holder.accessFlags.isInterface()) {
       return null;
     }
     DexEncodedMethod result = null;
@@ -222,6 +231,9 @@ public class AppInfoWithSubtyping extends AppInfo {
     if (set != null) {
       for (DexType type : set) {
         DexClass clazz = definitionFor(type);
+        // Default methods are looked up when looking at a specific subtype that does not
+        // override them, so we ignore interfaces here. Otherwise, we would look up default methods
+        // that are factually never used.
         if (!clazz.isInterface()) {
           DexEncodedMethod t = lookupVirtualTarget(type, method);
           if (t != null) {

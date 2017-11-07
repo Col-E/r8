@@ -58,15 +58,17 @@ import org.junit.rules.TemporaryFolder;
 public class ToolHelper {
 
   public static final String BUILD_DIR = "build/";
-  public static final String EXAMPLES_DIR = "src/test/examples/";
-  public static final String EXAMPLES_ANDROID_O_DIR = "src/test/examplesAndroidO/";
-  public static final String EXAMPLES_ANDROID_P_DIR = "src/test/examplesAndroidP/";
-  public static final String EXAMPLES_BUILD_DIR = BUILD_DIR + "test/examples/";
-  public static final String EXAMPLES_ANDROID_N_BUILD_DIR = BUILD_DIR + "test/examplesAndroidN/";
-  public static final String EXAMPLES_ANDROID_O_BUILD_DIR = BUILD_DIR + "test/examplesAndroidO/";
-  public static final String EXAMPLES_ANDROID_P_BUILD_DIR = BUILD_DIR + "test/examplesAndroidP/";
-  public static final String EXAMPLES_JAVA9_BUILD_DIR = BUILD_DIR + "test/examplesJava9/";
-  public static final String SMALI_BUILD_DIR = BUILD_DIR + "test/smali/";
+  public static final String TESTS_DIR = "src/test/";
+  public static final String EXAMPLES_DIR = TESTS_DIR + "examples/";
+  public static final String EXAMPLES_ANDROID_O_DIR = TESTS_DIR + "examplesAndroidO/";
+  public static final String EXAMPLES_ANDROID_P_DIR = TESTS_DIR + "examplesAndroidP/";
+  public static final String TESTS_BUILD_DIR = BUILD_DIR + "test/";
+  public static final String EXAMPLES_BUILD_DIR = TESTS_BUILD_DIR + "examples/";
+  public static final String EXAMPLES_ANDROID_N_BUILD_DIR = TESTS_BUILD_DIR + "examplesAndroidN/";
+  public static final String EXAMPLES_ANDROID_O_BUILD_DIR = TESTS_BUILD_DIR + "examplesAndroidO/";
+  public static final String EXAMPLES_ANDROID_P_BUILD_DIR = TESTS_BUILD_DIR + "examplesAndroidP/";
+  public static final String EXAMPLES_JAVA9_BUILD_DIR = TESTS_BUILD_DIR + "examplesJava9/";
+  public static final String SMALI_BUILD_DIR = TESTS_BUILD_DIR + "smali/";
 
   public static final String LINE_SEPARATOR = StringUtils.LINE_SEPARATOR;
   public final static String PATH_SEPARATOR = File.pathSeparator;
