@@ -970,7 +970,7 @@ public class ToolHelper {
     }
   }
 
-  public static void runProguard(Path inJar, Path outJar, Path config) throws IOException {
+  public static String runProguard(Path inJar, Path outJar, Path config) throws IOException {
     List<String> command = new ArrayList<>();
     command.add(PROGUARD);
     command.add("-forceprocessing");  // Proguard just checks the creation time on the in/out jars.
@@ -987,6 +987,7 @@ public class ToolHelper {
     if (result.exitCode != 0) {
       fail("Proguard failed, exit code " + result.exitCode + ", stderr:\n" + result.stderr);
     }
+    return result.stdout;
   }
 
 

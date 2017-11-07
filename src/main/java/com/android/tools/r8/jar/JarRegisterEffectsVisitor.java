@@ -51,7 +51,7 @@ public class JarRegisterEffectsVisitor extends MethodVisitor {
       // Nothing to register for method type, it represents only a prototype not associated with a
       // method name.
       if (((Type) cst).getSort() != Type.METHOD) {
-        registry.registerConstClass(application.getType((Type) cst));
+        registry.registerTypeReference(application.getType((Type) cst));
       }
     } else if (cst instanceof Handle) {
       registerMethodHandleType((Handle) cst);

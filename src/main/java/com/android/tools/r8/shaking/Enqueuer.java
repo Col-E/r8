@@ -294,18 +294,7 @@ public class Enqueuer {
 
     @Override
     public boolean registerNewInstance(DexType type) {
-      if (instantiatedTypes.contains(type)) {
-        return false;
-      }
-      DexClass clazz = appInfo.definitionFor(type);
-      if (clazz == null) {
-        reportMissingClass(type);
-        return false;
-      }
-      if (Log.ENABLED) {
-        Log.verbose(getClass(), "Register new instatiation of `%s`.", clazz);
-      }
-      workList.add(Action.markInstantiated(clazz, KeepReason.instantiatedIn(currentMethod)));
+      markInstantiated(type, currentMethod);
       return true;
     }
 
@@ -342,30 +331,6 @@ public class Enqueuer {
         return true;
       }
       return false;
-    }
-
-    @Override
-    public boolean registerConstClass(DexType type) {
-      boolean result = registerTypeReference(type);
-      // For Proguard compatibility mark default initializer for live type as live.
-      if (options.forceProguardCompatibility) {
-        if (type.isArrayType()) {
-          return result;
-        }
-        assert type.isClassType();
-        DexClass holder = appInfo.definitionFor(type);
-        if (holder == null) {
-          // Don't call reportMissingClass(type) here. That already happened in the call to
-          // registerTypeReference(type).
-          return result;
-        }
-        if (holder.hasDefaultInitializer()) {
-          registerNewInstance(type);
-          DexEncodedMethod init = holder.getDefaultInitializer();
-          markDirectStaticOrConstructorMethodAsLive(init, KeepReason.reachableFromLiveType(type));
-        }
-      }
-      return result;
     }
   }
 
@@ -410,6 +375,9 @@ public class Enqueuer {
       if (options.forceProguardCompatibility) {
         if (holder.hasDefaultInitializer()) {
           DexEncodedMethod init = holder.getDefaultInitializer();
+          // TODO(68246915): For now just register the default constructor as the source of
+          // instantiation.
+          markInstantiated(type, init);
           markDirectStaticOrConstructorMethodAsLive(init, KeepReason.reachableFromLiveType(type));
         }
       }
@@ -585,6 +553,21 @@ public class Enqueuer {
     liveFields.add(field, reason);
     // Add all dependent members to the workqueue.
     enqueueRootItems(rootSet.getDependentItems(field));
+  }
+
+  private void markInstantiated(DexType type, DexEncodedMethod method) {
+    if (instantiatedTypes.contains(type)) {
+      return;
+    }
+    DexClass clazz = appInfo.definitionFor(type);
+    if (clazz == null) {
+      reportMissingClass(type);
+      return;
+    }
+    if (Log.ENABLED) {
+      Log.verbose(getClass(), "Register new instatiation of `%s`.", clazz);
+    }
+    workList.add(Action.markInstantiated(clazz, KeepReason.instantiatedIn(method)));
   }
 
   private void markDirectStaticOrConstructorMethodAsLive(

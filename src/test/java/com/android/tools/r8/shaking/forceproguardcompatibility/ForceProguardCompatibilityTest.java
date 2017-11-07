@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableList;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Set;
 import org.junit.Test;
 
 public class ForceProguardCompatibilityTest extends TestBase {
@@ -124,5 +125,51 @@ public class ForceProguardCompatibilityTest extends TestBase {
     runDefaultConstructorTest(true, TestClassWithoutDefaultConstructor.class, false);
     runDefaultConstructorTest(false, TestClassWithDefaultConstructor.class, true);
     runDefaultConstructorTest(false, TestClassWithoutDefaultConstructor.class, false);
+  }
+
+  public void testCheckCast(boolean forceProguardCompatibility, Class mainClass,
+      Class instantiatedClass, boolean containsCheckCast)
+      throws Exception {
+    R8Command.Builder builder = new CompatProguardCommandBuilder(forceProguardCompatibility, false);
+    builder.addProgramFiles(ToolHelper.getClassFileForTestClass(mainClass));
+    builder.addProgramFiles(ToolHelper.getClassFileForTestClass(instantiatedClass));
+    List<String> proguardConfig = ImmutableList.of(
+        "-keep class " + mainClass.getCanonicalName() + " {",
+        "  public static void main(java.lang.String[]);",
+        "}",
+        "-dontobfuscate");
+    builder.addProguardConfiguration(proguardConfig);
+
+    DexInspector inspector = new DexInspector(ToolHelper.runR8(builder.build()));
+    assertTrue(inspector.clazz(getJavacGeneratedClassName(mainClass)).isPresent());
+    ClassSubject clazz = inspector.clazz(getJavacGeneratedClassName(instantiatedClass));
+    assertEquals(containsCheckCast, clazz.isPresent());
+    assertEquals(containsCheckCast, clazz.isPresent());
+    if (clazz.isPresent()) {
+      assertEquals(forceProguardCompatibility && containsCheckCast, !clazz.isAbstract());
+    }
+
+    if (RUN_PROGUARD) {
+      Path proguardedJar = File.createTempFile("proguarded", ".jar", temp.getRoot()).toPath();
+      Path proguardConfigFile = File.createTempFile("proguard", ".config", temp.getRoot()).toPath();
+      FileUtils.writeTextFile(proguardConfigFile, proguardConfig);
+      ToolHelper.runProguard(jarTestClasses(ImmutableList.of(mainClass, instantiatedClass)),
+          proguardedJar, proguardConfigFile);
+      Set<String> classesAfterProguard = readClassesInJar(proguardedJar);
+      assertTrue(classesAfterProguard.contains(mainClass.getCanonicalName()));
+      assertEquals(
+          containsCheckCast, classesAfterProguard.contains(instantiatedClass.getCanonicalName()));
+    }
+  }
+
+  @Test
+  public void checkCastTest() throws Exception {
+    testCheckCast(true, TestMainWithCheckCast.class, TestClassWithDefaultConstructor.class, true);
+    testCheckCast(
+        true, TestMainWithoutCheckCast.class, TestClassWithDefaultConstructor.class, false);
+    testCheckCast(
+        false, TestMainWithCheckCast.class, TestClassWithDefaultConstructor.class, true);
+    testCheckCast(
+        false, TestMainWithoutCheckCast.class, TestClassWithDefaultConstructor.class, false);
   }
 }
