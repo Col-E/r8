@@ -6,32 +6,23 @@ package com.android.tools.r8.jasmin;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.CompilationException;
-import com.android.tools.r8.R8;
 import com.android.tools.r8.Resource;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.errors.DexOverflowException;
-import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
-import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.AndroidAppOutputSink;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.DexInspector.MethodSubject;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OutputMode;
 import com.android.tools.r8.utils.StringUtils;
-import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.ByteStreams;
 import jasmin.ClassFile;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -41,8 +32,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
@@ -93,11 +82,6 @@ public class JasminTestBase {
     return result.stdout;
   }
 
-  protected String runOnArt(JasminBuilder builder, String main) throws Exception {
-    // TODO(zerny): Make the compiler depend on tool flag?
-    return runOnArtR8(builder, main, new InternalOptions());
-  }
-
   protected AndroidApp compileWithD8(JasminBuilder builder) throws Exception {
     return ToolHelper.runD8(builder.build());
   }
@@ -111,21 +95,21 @@ public class JasminTestBase {
     return runOnArt(compileWithD8(builder), main);
   }
 
-  protected String runOnArtR8(JasminBuilder builder, String main, InternalOptions options)
+  protected AndroidApp compileWithR8(JasminBuilder builder,
+      Consumer<InternalOptions> optionsConsumer)
       throws Exception {
-    DexApplication app = builder.read();
-    app = process(app, options);
-    AndroidAppOutputSink compatSink = new AndroidAppOutputSink();
-    R8.writeApplication(
-        Executors.newSingleThreadExecutor(),
-        app,
-        compatSink,
-        null,
-        NamingLens.getIdentityLens(),
-        null,
-        options);
-    compatSink.close();
-    return runOnArt(compatSink.build(), main);
+    return ToolHelper.runR8(builder.build(), optionsConsumer);
+  }
+
+  protected String runOnArtR8(JasminBuilder builder, String main) throws Exception {
+    return runOnArtR8(builder, main, null);
+  }
+
+  protected String runOnArtR8(JasminBuilder builder, String main,
+      Consumer<InternalOptions> optionsConsumer)
+      throws Exception {
+    AndroidApp result = compileWithR8(builder, optionsConsumer);
+    return runOnArt(result, main);
   }
 
   private ProcessResult runDx(JasminBuilder builder, File classes, Path dex) throws Exception {
@@ -174,70 +158,31 @@ public class JasminTestBase {
     return ToolHelper.runArtNoVerificationErrors(out.toString(), main);
   }
 
-  protected static DexApplication process(DexApplication app, InternalOptions options)
-      throws IOException, CompilationException, ExecutionException {
-    return ToolHelper.optimizeWithR8(app, options);
-  }
-
-  protected DexApplication buildApplication(JasminBuilder builder, InternalOptions options) {
+  protected AndroidApp buildApplication(JasminBuilder builder) {
     try {
-      return buildApplication(AndroidApp.fromClassProgramData(builder.buildClasses()), options);
+      return AndroidApp.fromClassProgramData(builder.buildClasses());
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
   }
 
-  protected DexApplication buildApplication(AndroidApp input, InternalOptions options) {
-    try {
-      options.itemFactory.resetSortedIndices();
-      return new ApplicationReader(input, options, new Timing("JasminTest")).read();
-    } catch (IOException | ExecutionException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  public String runArt(DexApplication application, InternalOptions options, String mainClass)
-      throws DexOverflowException {
-    try {
-      AndroidApp app = writeDex(application, options);
-      return runOnArt(app, mainClass);
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  public AndroidApp writeDex(DexApplication application, InternalOptions options)
-      throws DexOverflowException, IOException {
-    try {
-      AndroidAppOutputSink compatSink = new AndroidAppOutputSink();
-      R8.writeApplication(
-          Executors.newSingleThreadExecutor(),
-          application,
-          compatSink,
-          null,
-          NamingLens.getIdentityLens(),
-          null,
-          options);
-      compatSink.close();
-      return compatSink.build();
-    } catch (ExecutionException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  protected DexEncodedMethod getMethod(DexApplication application, String clazz,
+  protected DexEncodedMethod getMethod(AndroidApp application, String clazz,
       MethodSignature signature) {
     return getMethod(application,
         clazz, signature.type, signature.name, signature.parameters);
   }
 
-  protected DexEncodedMethod getMethod(DexApplication application, String className,
+  protected DexEncodedMethod getMethod(AndroidApp application, String className,
       String returnType, String methodName, String[] parameters) {
-    DexInspector inspector = new DexInspector(application);
-    ClassSubject clazz = inspector.clazz(className);
-    assertTrue(clazz.isPresent());
-    MethodSubject method = clazz.method(returnType, methodName, Arrays.asList(parameters));
-    assertTrue(method.isPresent());
-    return method.getMethod();
+    try {
+      DexInspector inspector = new DexInspector(application);
+      ClassSubject clazz = inspector.clazz(className);
+      assertTrue(clazz.isPresent());
+      MethodSubject method = clazz.method(returnType, methodName, Arrays.asList(parameters));
+      assertTrue(method.isPresent());
+      return method.getMethod();
+    } catch (Exception e) {
+      return null;
+    }
   }
 }

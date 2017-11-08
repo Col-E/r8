@@ -14,7 +14,7 @@ public class FillBooleanArrayTruncation extends JasminTestBase {
 
   private void runOnDalvikCheckVerifyError(JasminBuilder builder, String main) throws Exception {
     try {
-      runOnArt(builder, main);
+      runOnArtD8(builder, main);
     } catch (AssertionError e) {
       assert e.toString().contains("VerifyError");
     }
@@ -35,7 +35,7 @@ public class FillBooleanArrayTruncation extends JasminTestBase {
       runOnDalvikCheckVerifyError(builder, main);
       runOnDalvikDxCheckVerifyError(builder, main);
     } else {
-      String artResult = runOnArt(builder, main);
+      String artResult = runOnArtD8(builder, main);
       assertEquals(javaResult, artResult);
       String dxArtResult = runOnArtDx(builder, main);
       assertEquals(javaResult, dxArtResult);

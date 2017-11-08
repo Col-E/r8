@@ -19,7 +19,7 @@ public class JumpSubroutineTests extends JasminTestBase {
   private void runTest(JasminBuilder builder, String main, String expected) throws Exception {
     String javaResult = runOnJava(builder, main);
     assertEquals(expected, javaResult);
-    String artResult = runOnArt(builder, main);
+    String artResult = runOnArtD8(builder, main);
     assertEquals(expected, artResult);
     String dxArtResult = runOnArtDx(builder, main);
     assertEquals(expected, dxArtResult);
@@ -384,7 +384,7 @@ public class JumpSubroutineTests extends JasminTestBase {
     String expected = "";
     String javaResult = runOnJava(builder, clazz.name);
     assertEquals(expected, javaResult);
-    String artResult = runOnArt(builder, clazz.name);
+    String artResult = runOnArtD8(builder, clazz.name);
     assertEquals(expected, artResult);
     // This fails with dx.
     expectDxFailure(builder);
@@ -1340,7 +1340,7 @@ public class JumpSubroutineTests extends JasminTestBase {
     String expected = "10";
     String javaResult = runOnJava(builder, clazz.name);
     assertEquals(expected, javaResult);
-    String artResult = runOnArt(builder, clazz.name);
+    String artResult = runOnArtD8(builder, clazz.name);
     // The ASM jsr inliner does not get the control-flow dependent ret right in his case.
     assertNotEquals(expected, artResult);
     // This fails with dx.
@@ -1388,7 +1388,7 @@ public class JumpSubroutineTests extends JasminTestBase {
     String expected = "10";
     String javaResult = runOnJava(builder, clazz.name);
     assertEquals(expected, javaResult);
-    String artResult = runOnArt(builder, clazz.name);
+    String artResult = runOnArtD8(builder, clazz.name);
     // The ASM jsr inliner does not get the control-flow dependent ret right in his case.
     assertNotEquals(expected, artResult);
     // This fails with dx.
@@ -1437,7 +1437,7 @@ public class JumpSubroutineTests extends JasminTestBase {
     String expected = "10";
     String javaResult = runOnJava(builder, clazz.name);
     assertEquals(expected, javaResult);
-    String artResult = runOnArt(builder, clazz.name);
+    String artResult = runOnArtD8(builder, clazz.name);
     // The ASM jsr inliner does not get the control-flow dependent ret right in his case.
     assertNotEquals(expected, artResult);
     // This fails with dx.

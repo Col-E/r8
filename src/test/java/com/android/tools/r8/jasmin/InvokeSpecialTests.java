@@ -7,7 +7,6 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.ToolHelper;
 import com.google.common.collect.ImmutableList;
-import org.junit.AssumptionViolatedException;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -39,7 +38,7 @@ public class InvokeSpecialTests extends JasminTestBase {
     String expected = "42";
     String javaResult = runOnJava(builder, clazz.name);
     assertEquals(expected, javaResult);
-    String artResult = runOnArt(builder, clazz.name);
+    String artResult = runOnArtD8(builder, clazz.name);
     assertEquals(expected, artResult);
   }
 
@@ -77,7 +76,7 @@ public class InvokeSpecialTests extends JasminTestBase {
     if (ToolHelper.artSupported()) {
       thrown.expect(AssertionError.class);
     }
-    String artResult = runOnArt(builder, clazz.name);
+    String artResult = runOnArtD8(builder, clazz.name);
     assertEquals(expected, artResult);
   }
 }

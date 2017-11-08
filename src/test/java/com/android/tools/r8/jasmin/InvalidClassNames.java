@@ -3,15 +3,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.jasmin;
 
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.errors.CompilationError;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -35,13 +34,10 @@ public class InvalidClassNames extends JasminTestBase {
     }
     String artResult = null;
     try {
-      artResult = runOnArt(builder, main);
+      artResult = runOnArtD8(builder, main);
       fail();
-    } catch (ExecutionException t) {
-      if (!(t.getCause() instanceof CompilationError)) {
-        t.printStackTrace(System.out);
-        fail("Invalid dex class names should be compilation errors.");
-      }
+    } catch (CompilationError t) {
+      // Intentionally left empty.
     } catch (Throwable t) {
       t.printStackTrace(System.out);
       fail("Invalid dex class names should be compilation errors.");
@@ -51,21 +47,21 @@ public class InvalidClassNames extends JasminTestBase {
 
   @Parameters
   public static Collection<Object[]> data() {
-    return Arrays.asList(new Object[][] {
-        { "\u00a0", !ToolHelper.isJava9Runtime()},
-        { "\u2000", !ToolHelper.isWindows() && !ToolHelper.isJava9Runtime()},
-        { "\u200f", !ToolHelper.isWindows() && !ToolHelper.isJava9Runtime()},
-        { "\u2028", !ToolHelper.isWindows() && !ToolHelper.isJava9Runtime()},
-        { "\u202f", !ToolHelper.isWindows() && !ToolHelper.isJava9Runtime()},
-        { "\ud800", false},
-        { "\udfff", false},
-        { "\ufff0", !ToolHelper.isWindows() && !ToolHelper.isJava9Runtime()},
-        { "\uffff", !ToolHelper.isWindows() && !ToolHelper.isJava9Runtime()},
-        { "a/b/c/a/D/", true },
-        { "a<b", !ToolHelper.isWindows() && !ToolHelper.isJava9Runtime()},
-        { "a>b", !ToolHelper.isWindows() && !ToolHelper.isJava9Runtime()},
-        { "<a>b", !ToolHelper.isWindows() && !ToolHelper.isJava9Runtime()},
-        { "<a>", !ToolHelper.isWindows() && !ToolHelper.isJava9Runtime()}
+    return Arrays.asList(new Object[][]{
+        {"\u00a0", !ToolHelper.isJava9Runtime()},
+        {"\u2000", !ToolHelper.isWindows() && !ToolHelper.isJava9Runtime()},
+        {"\u200f", !ToolHelper.isWindows() && !ToolHelper.isJava9Runtime()},
+        {"\u2028", !ToolHelper.isWindows() && !ToolHelper.isJava9Runtime()},
+        {"\u202f", !ToolHelper.isWindows() && !ToolHelper.isJava9Runtime()},
+        {"\ud800", false},
+        {"\udfff", false},
+        {"\ufff0", !ToolHelper.isWindows() && !ToolHelper.isJava9Runtime()},
+        {"\uffff", !ToolHelper.isWindows() && !ToolHelper.isJava9Runtime()},
+        {"a/b/c/a/D/", true},
+        {"a<b", !ToolHelper.isWindows() && !ToolHelper.isJava9Runtime()},
+        {"a>b", !ToolHelper.isWindows() && !ToolHelper.isJava9Runtime()},
+        {"<a>b", !ToolHelper.isWindows() && !ToolHelper.isJava9Runtime()},
+        {"<a>", !ToolHelper.isWindows() && !ToolHelper.isJava9Runtime()}
     });
   }
 
