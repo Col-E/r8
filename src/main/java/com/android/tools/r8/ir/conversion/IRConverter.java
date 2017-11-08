@@ -565,6 +565,7 @@ public class IRConverter {
       assert code.isConsistentSSA();
     }
 
+    codeRewriter.useDedicatedConstantForLitInstruction(code);
     codeRewriter.shortenLiveRanges(code);
     codeRewriter.identifyReturnsArgument(method, code, feedback);
 

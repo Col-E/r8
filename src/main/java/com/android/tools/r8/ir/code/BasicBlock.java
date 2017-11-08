@@ -16,6 +16,7 @@ import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
 import com.google.common.collect.ImmutableList;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -1370,5 +1371,30 @@ public class BasicBlock {
     assert successors.size() == catchSuccessorsCount || !exit().isThrow();
 
     return sharedCatchSuccessors;
+  }
+
+  /**
+   * Return true if there is a path from the current {@link BasicBlock} to {@code target} or if
+   * {@code target} is the same block than the current {@link BasicBlock}.
+   */
+  public boolean hasPathTo(BasicBlock target) {
+    List<BasicBlock> visitedBlocks = new ArrayList<>();
+    ArrayDeque<BasicBlock> blocks = new ArrayDeque<>();
+    blocks.push(this);
+
+    while(!blocks.isEmpty()) {
+      BasicBlock block = blocks.pop();
+      if (block == target) {
+        return true;
+      }
+      visitedBlocks.add(block);
+      for (BasicBlock blockToVisit : block.getSuccessors()) {
+        if (!visitedBlocks.contains(blockToVisit)) {
+          blocks.push(blockToVisit);
+        }
+      }
+    }
+
+    return false;
   }
 }
