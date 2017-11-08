@@ -6,14 +6,12 @@ package com.android.tools.r8.jasmin;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.code.Const4;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.code.IfNez;
-import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
-import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.AndroidApp;
 import com.google.common.collect.ImmutableList;
 import org.junit.Test;
 
@@ -58,15 +56,14 @@ public class Regress65432240 extends JasminTestBase {
 
     String expected = runOnJava(builder, clazz.name);
 
-    InternalOptions options = new InternalOptions();
-    DexApplication originalApplication = buildApplication(builder, options);
-    DexApplication processedApplication = process(originalApplication, options);
+    AndroidApp originalApplication = buildApplication(builder);
+    AndroidApp processedApplication = ToolHelper.runR8(originalApplication);
 
     DexEncodedMethod method = getMethod(processedApplication, clazz.name, signature);
     DexCode code = method.getCode().asDexCode();
     assertTrue(code.instructions[0] instanceof IfNez);
 
-    String artResult = runArt(processedApplication, options, clazz.name);
+    String artResult = runOnArtR8(builder, clazz.name);
     assertEquals(expected, artResult);
   }
 }

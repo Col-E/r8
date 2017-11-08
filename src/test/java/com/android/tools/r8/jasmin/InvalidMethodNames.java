@@ -14,7 +14,6 @@ import com.android.tools.r8.graph.DexString;
 import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -38,13 +37,9 @@ public class InvalidMethodNames extends JasminTestBase {
     }
     String artResult = null;
     try {
-      artResult = runOnArt(builder, main);
+      artResult = runOnArtD8(builder, main);
       fail();
-    } catch (ExecutionException t) {
-      if (!(t.getCause() instanceof CompilationError)) {
-        t.printStackTrace(System.out);
-        fail("Invalid dex method names should be compilation errors.");
-      }
+    } catch (CompilationError t) {
       String asciiString = new DexString(name).toASCIIString();
       assertTrue(t.getMessage().contains(asciiString));
     } catch (Throwable t) {
@@ -56,20 +51,20 @@ public class InvalidMethodNames extends JasminTestBase {
 
   @Parameters
   public static Collection<Object[]> data() {
-    return Arrays.asList(new Object[][] {
-        { "\u00a0", !ToolHelper.isJava9Runtime()},
-        { "\u2000", !ToolHelper.isJava9Runtime()},
-        { "\u200f", !ToolHelper.isJava9Runtime()},
-        { "\u2028", !ToolHelper.isJava9Runtime()},
-        { "\u202f", !ToolHelper.isJava9Runtime()},
-        { "\ud800", !ToolHelper.isJava9Runtime()},
-        { "\udfff", !ToolHelper.isJava9Runtime()},
-        { "\ufff0", !ToolHelper.isJava9Runtime()},
-        { "\uffff", !ToolHelper.isJava9Runtime()},
-        { "a/b", false },
-        { "<a", false },
-        { "a>", !ToolHelper.isJava9Runtime() },
-        { "<a>", false }
+    return Arrays.asList(new Object[][]{
+        {"\u00a0", !ToolHelper.isJava9Runtime()},
+        {"\u2000", !ToolHelper.isJava9Runtime()},
+        {"\u200f", !ToolHelper.isJava9Runtime()},
+        {"\u2028", !ToolHelper.isJava9Runtime()},
+        {"\u202f", !ToolHelper.isJava9Runtime()},
+        {"\ud800", !ToolHelper.isJava9Runtime()},
+        {"\udfff", !ToolHelper.isJava9Runtime()},
+        {"\ufff0", !ToolHelper.isJava9Runtime()},
+        {"\uffff", !ToolHelper.isJava9Runtime()},
+        {"a/b", false},
+        {"<a", false},
+        {"a>", !ToolHelper.isJava9Runtime()},
+        {"<a>", false}
     });
   }
 

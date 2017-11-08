@@ -3,15 +3,15 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.jasmin;
 
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.errors.CompilationError;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -35,34 +35,31 @@ public class InvalidFieldNames extends JasminTestBase {
     }
     String artResult = null;
     try {
-      artResult = runOnArt(builder, main);
+      artResult = runOnArtD8(builder, main);
       fail();
-    } catch (ExecutionException t) {
-      if (!(t.getCause() instanceof CompilationError)) {
-        t.printStackTrace(System.out);
-        fail("Invalid dex field names should be compilation errors.");
-      }
+    } catch (CompilationError t) {
+      assertTrue(t.getMessage().contains(name));
     }
     assertNull("Invalid dex field names should be rejected.", artResult);
   }
 
   @Parameters
   public static Collection<Object[]> data() {
-    return Arrays.asList(new Object[][] {
-        { "\u00a0", !ToolHelper.isJava9Runtime()},
-        { "\u2000", !ToolHelper.isJava9Runtime()},
-        { "\u200f", !ToolHelper.isJava9Runtime()},
-        { "\u2028", !ToolHelper.isJava9Runtime()},
-        { "\u202f", !ToolHelper.isJava9Runtime()},
-        { "\ud800", !ToolHelper.isJava9Runtime()},
-        { "\udfff", !ToolHelper.isJava9Runtime()},
-        { "\ufff0", !ToolHelper.isJava9Runtime()},
-        { "\uffff", !ToolHelper.isJava9Runtime()},
-        { "a/b", false },
-        { "<a", false },
-        { "a>", !ToolHelper.isJava9Runtime() },
-        { "a<b>", !ToolHelper.isJava9Runtime() },
-        { "<a>b", !ToolHelper.isJava9Runtime() }
+    return Arrays.asList(new Object[][]{
+        {"\u00a0", !ToolHelper.isJava9Runtime()},
+        {"\u2000", !ToolHelper.isJava9Runtime()},
+        {"\u200f", !ToolHelper.isJava9Runtime()},
+        {"\u2028", !ToolHelper.isJava9Runtime()},
+        {"\u202f", !ToolHelper.isJava9Runtime()},
+        {"\ud800", !ToolHelper.isJava9Runtime()},
+        {"\udfff", !ToolHelper.isJava9Runtime()},
+        {"\ufff0", !ToolHelper.isJava9Runtime()},
+        {"\uffff", !ToolHelper.isJava9Runtime()},
+        {"a/b", false},
+        {"<a", false},
+        {"a>", !ToolHelper.isJava9Runtime()},
+        {"a<b>", !ToolHelper.isJava9Runtime()},
+        {"<a>b", !ToolHelper.isJava9Runtime()}
     });
   }
 

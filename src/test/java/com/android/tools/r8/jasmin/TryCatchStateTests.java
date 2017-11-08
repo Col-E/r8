@@ -53,7 +53,7 @@ public class TryCatchStateTests extends JasminTestBase {
     String expected = "0" + ToolHelper.LINE_SEPARATOR + "6";
     String javaResult = runOnJava(builder, clazz.name);
     assertEquals(expected, javaResult);
-    String artResult = runOnArt(builder, clazz.name);
+    String artResult = runOnArtD8(builder, clazz.name);
     assertEquals(expected, artResult);
   }
 
@@ -101,7 +101,7 @@ public class TryCatchStateTests extends JasminTestBase {
     String expected = "12" + ToolHelper.LINE_SEPARATOR + "21";
     String javaResult = runOnJava(builder, clazz.name);
     assertEquals(expected, javaResult);
-    String artResult = runOnArt(builder, clazz.name);
+    String artResult = runOnArtD8(builder, clazz.name);
     assertEquals(expected, artResult);
   }
 
@@ -152,7 +152,7 @@ public class TryCatchStateTests extends JasminTestBase {
     String expected = "12" + ToolHelper.LINE_SEPARATOR + "21";
     String javaResult = runOnJava(builder, clazz.name);
     assertEquals(expected, javaResult);
-    String artResult = runOnArt(builder, clazz.name);
+    String artResult = runOnArtD8(builder, clazz.name);
     assertEquals(expected, artResult);
   }
 }
