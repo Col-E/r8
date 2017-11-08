@@ -210,7 +210,7 @@ public class DexDebugEventBuilder {
       }
       assert emittedPosition.isNone();
       startLine = position.line;
-      emittedPosition = position;
+      emittedPosition = new Position(position.line, null, method.method, null);
     }
     debugPositionListBuilder.add(position.line, position.line);
     emitAdvancementEvents(emittedPc, emittedPosition, pc, position, events, factory);
@@ -249,6 +249,10 @@ public class DexDebugEventBuilder {
     assert pcDelta >= 0;
     if (nextPosition.file != previousPosition.file) {
       events.add(factory.createSetFile(nextPosition.file));
+    }
+    if (nextPosition.method != previousPosition.method
+        || nextPosition.callerPosition != previousPosition.callerPosition) {
+      events.add(factory.createSetInlineFrame(nextPosition.method, nextPosition.callerPosition));
     }
     if (lineDelta < Constants.DBG_LINE_BASE
         || lineDelta - Constants.DBG_LINE_BASE >= Constants.DBG_LINE_RANGE) {

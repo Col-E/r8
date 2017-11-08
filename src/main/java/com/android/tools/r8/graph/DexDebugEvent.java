@@ -7,6 +7,8 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.DebugBytecodeWriter;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
+import com.android.tools.r8.ir.code.Position;
+import java.util.Objects;
 
 abstract public class DexDebugEvent extends DexItem {
 
@@ -376,6 +378,47 @@ abstract public class DexDebugEvent extends DexItem {
     public boolean equals(Object other) {
       return (other instanceof SetFile)
           && fileName.equals(((SetFile) other).fileName);
+    }
+  }
+
+  public static class SetInlineFrame extends DexDebugEvent {
+
+    final DexMethod callee;
+    final Position caller;
+
+    SetInlineFrame(DexMethod callee, Position caller) {
+      assert callee != null;
+      this.callee = callee;
+      this.caller = caller;
+    }
+
+    @Override
+    public void writeOn(DebugBytecodeWriter writer, ObjectToOffsetMapping mapping) {
+      // CallerPosition will not be written.
+    }
+
+    @Override
+    public void addToBuilder(DexDebugEntryBuilder builder) {
+      builder.setInlineFrame(callee, caller);
+    }
+
+    @Override
+    public String toString() {
+      return String.format("SET_INLINE_FRAME %s %s", callee, caller);
+    }
+
+    @Override
+    public int hashCode() {
+      return 31 * callee.hashCode() + Objects.hashCode(caller);
+    }
+
+    @Override
+    public boolean equals(Object other) {
+      if (!(other instanceof SetInlineFrame)) {
+        return false;
+      }
+      SetInlineFrame o = (SetInlineFrame) other;
+      return callee == o.callee && Objects.equals(caller, o.caller);
     }
   }
 

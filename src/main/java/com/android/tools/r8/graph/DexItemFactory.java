@@ -12,8 +12,10 @@ import com.android.tools.r8.graph.DexDebugEvent.EndLocal;
 import com.android.tools.r8.graph.DexDebugEvent.RestartLocal;
 import com.android.tools.r8.graph.DexDebugEvent.SetEpilogueBegin;
 import com.android.tools.r8.graph.DexDebugEvent.SetFile;
+import com.android.tools.r8.graph.DexDebugEvent.SetInlineFrame;
 import com.android.tools.r8.graph.DexDebugEvent.SetPrologueEnd;
 import com.android.tools.r8.graph.DexMethodHandle.MethodHandleType;
+import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.naming.NamingLens;
 import com.google.common.collect.ImmutableSet;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
@@ -47,6 +49,7 @@ public class DexItemFactory {
   private final SetEpilogueBegin setEpilogueBegin = new SetEpilogueBegin();
   private final SetPrologueEnd setPrologueEnd = new SetPrologueEnd();
   private final Map<DexString, SetFile> setFiles = new HashMap<>();
+  private final Map<SetInlineFrame, SetInlineFrame> setInlineFrames = new HashMap<>();
 
   boolean sorted = false;
 
@@ -449,6 +452,13 @@ public class DexItemFactory {
   public SetFile createSetFile(DexString fileName) {
     synchronized (setFiles) {
       return setFiles.computeIfAbsent(fileName, SetFile::new);
+    }
+  }
+
+  // TODO(tamaskenez) b/69024229 Measure if canonicalization is worth it.
+  public SetInlineFrame createSetInlineFrame(DexMethod callee, Position caller) {
+    synchronized (setInlineFrames) {
+      return setInlineFrames.computeIfAbsent(new SetInlineFrame(callee, caller), p -> p);
     }
   }
 

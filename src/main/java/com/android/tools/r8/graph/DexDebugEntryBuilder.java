@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueType;
 import com.google.common.collect.ImmutableMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceArrayMap;
@@ -43,10 +44,13 @@ public class DexDebugEntryBuilder {
   private int currentPc = 0;
   private int currentLine;
   private DexString currentFile = null;
+  private DexMethod currentMethod = null;
+  private Position currentCallerPosition = null;
   private boolean prologueEnd = false;
   private boolean epilogueBegin = false;
   private final Map<Integer, LocalEntry> locals = new HashMap<>();
   private final Int2ReferenceMap<DebugLocalInfo> arguments = new Int2ReferenceArrayMap<>();
+  private final DexMethod method;
 
   // Delayed construction of an entry. Is finalized once locals information has been collected.
   private DexDebugEntry pending = null;
@@ -57,11 +61,16 @@ public class DexDebugEntryBuilder {
   // Resulting debug entries.
   private List<DexDebugEntry> entries = new ArrayList<>();
 
-  public DexDebugEntryBuilder(int startLine) {
+  public DexDebugEntryBuilder(int startLine, DexMethod method) {
     currentLine = startLine;
+    this.method = method;
+    assert this.method != null;
+    currentMethod = method;
   }
 
   public DexDebugEntryBuilder(DexEncodedMethod method, DexItemFactory factory) {
+    this.method = method.method;
+    assert this.method != null;
     DexCode code = method.getCode().asDexCode();
     DexDebugInfo info = code.getDebugInfo();
     int argumentRegister = code.registerSize - code.incomingRegisterSize;
@@ -81,6 +90,7 @@ public class DexDebugEntryBuilder {
       argumentRegister += ValueType.fromDexType(types[i]).requiredRegisters();
     }
     currentLine = info.startLine;
+    currentMethod = this.method;
     for (DexDebugEvent event : info.events) {
       event.addToBuilder(this);
     }
@@ -92,6 +102,13 @@ public class DexDebugEntryBuilder {
 
   public void setFile(DexString file) {
     currentFile = file;
+  }
+
+  public void setInlineFrame(DexMethod callee, Position caller) {
+    assert (caller == null && callee == method)
+        || (caller != null && caller.getOutermostCaller().method == method);
+    currentMethod = callee;
+    currentCallerPosition = caller;
   }
 
   public void advancePC(int pcDelta) {
@@ -133,15 +150,29 @@ public class DexDebugEntryBuilder {
     assert pcDelta >= 0;
     if (pending != null) {
       // Local changes contribute to the pending position entry.
-      entries.add(new DexDebugEntry(
-          pending.address, pending.line, pending.sourceFile,
-          pending.prologueEnd, pending.epilogueBegin,
-          getLocals()));
+      entries.add(
+          new DexDebugEntry(
+              pending.address,
+              pending.line,
+              pending.sourceFile,
+              pending.prologueEnd,
+              pending.epilogueBegin,
+              getLocals(),
+              pending.method,
+              pending.callerPosition));
     }
     currentPc += pcDelta;
     currentLine += lineDelta;
-    pending = new DexDebugEntry(
-        currentPc, currentLine, currentFile, prologueEnd, epilogueBegin, null);
+    pending =
+        new DexDebugEntry(
+            currentPc,
+            currentLine,
+            currentFile,
+            prologueEnd,
+            epilogueBegin,
+            null,
+            currentMethod,
+            currentCallerPosition);
     prologueEnd = false;
     epilogueBegin = false;
   }

@@ -1986,7 +1986,7 @@ public class CodeRewriter {
     InstructionListIterator iterator = block.listIterator();
 
     // Attach some synthetic position to all inserted code.
-    Position position = Position.synthetic(1);
+    Position position = Position.synthetic(1, method.method, null);
     iterator.setInsertionPosition(position);
 
     // Split arguments into their own block.

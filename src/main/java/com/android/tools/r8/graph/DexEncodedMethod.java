@@ -24,6 +24,7 @@ import com.android.tools.r8.dex.JumboStringRewriter;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Invoke;
+import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.DexBuilder;
@@ -273,7 +274,15 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
       throws ApiLevelException {
     return code == null
         ? null
-        : code.asDexCode().buildIR(this, options, valueNumberGenerator);
+        : code.asDexCode().buildIR(this, options, valueNumberGenerator, null);
+  }
+
+  public IRCode buildIR(
+      InternalOptions options, ValueNumberGenerator valueNumberGenerator, Position callerPosition)
+      throws ApiLevelException {
+    return code == null
+        ? null
+        : code.asDexCode().buildIR(this, options, valueNumberGenerator, callerPosition);
   }
 
   public void setCode(Code code) {

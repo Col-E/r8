@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableMap;
 import java.util.SortedSet;
@@ -16,19 +17,27 @@ public class DexDebugEntry {
   public final boolean prologueEnd;
   public final boolean epilogueBegin;
   public final ImmutableMap<Integer, DebugLocalInfo> locals;
+  public final DexMethod method;
+  public final Position callerPosition;
 
-  public DexDebugEntry(int address,
+  public DexDebugEntry(
+      int address,
       int line,
       DexString sourceFile,
       boolean prologueEnd,
       boolean epilogueBegin,
-      ImmutableMap<Integer, DebugLocalInfo> locals) {
+      ImmutableMap<Integer, DebugLocalInfo> locals,
+      DexMethod method,
+      Position callerPosition) {
     this.address = address;
     this.line = line;
     this.sourceFile = sourceFile;
     this.prologueEnd = prologueEnd;
     this.epilogueBegin = epilogueBegin;
     this.locals = locals;
+    this.method = method;
+    assert method != null;
+    this.callerPosition = callerPosition;
   }
 
   @Override
@@ -45,6 +54,10 @@ public class DexDebugEntry {
     builder.append(", line ").append(line);
     if (sourceFile != null) {
       builder.append(", file ").append(sourceFile);
+    }
+    if (callerPosition != null) {
+      builder.append(", method ").append(method);
+      builder.append(" <-(").append(callerPosition).append(")");
     }
     if (prologueEnd) {
       builder.append(", prologue_end = true");

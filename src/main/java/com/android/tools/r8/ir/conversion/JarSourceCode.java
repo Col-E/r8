@@ -181,12 +181,22 @@ public class JarSourceCode implements SourceCode {
   // Cooked position to indicate positions in synthesized code (ie, for synchronization).
   private Position syntheticPosition = null;
 
-  public JarSourceCode(DexType clazz, MethodNode node, JarApplicationReader application) {
+  private final DexMethod method;
+  private final Position callerPosition;
+
+  public JarSourceCode(
+      DexType clazz,
+      MethodNode node,
+      JarApplicationReader application,
+      DexMethod method,
+      Position callerPosition) {
     assert node != null;
     assert node.desc != null;
     this.node = node;
     this.application = application;
+    this.method = method;
     this.clazz = clazz;
+    this.callerPosition = callerPosition;
     parameterTypes = Arrays.asList(Type.getArgumentTypes(node.desc));
     state = new JarState(node.maxLocals, node.localVariables, this, application);
     AbstractInsnNode first = node.instructions.getFirst();
@@ -2840,7 +2850,8 @@ public class JarSourceCode implements SourceCode {
   }
 
   private Position getCanonicalPosition(int line) {
-    return canonicalPositions.computeIfAbsent(line, l -> new Position(l, null));
+    return canonicalPositions.computeIfAbsent(
+        line, l -> new Position(l, null, method, callerPosition));
   }
 
   // If we need to emit a synthetic position for exceptional monitor exits, we try to cook up a
@@ -2862,8 +2873,8 @@ public class JarSourceCode implements SourceCode {
       }
       syntheticPosition =
           (min == Integer.MAX_VALUE)
-              ? Position.none()
-              : Position.synthetic(min < max ? min - 1 : min);
+              ? Position.noneWithMethod(method, callerPosition)
+              : Position.synthetic(min < max ? min - 1 : min, method, callerPosition);
     }
     return syntheticPosition;
   }

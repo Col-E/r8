@@ -3,42 +3,75 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import java.util.Objects;
 
 public class Position {
 
-  private static final Position NO_POSITION = new Position(-1, null, false);
+  private static final Position NO_POSITION = new Position(-1, null, false, null, null);
 
   public final int line;
   public final DexString file;
   public final boolean synthetic;
 
-  public Position(int line, DexString file) {
-    this(line, file, false);
+  // If there's no inlining, callerPosition is null.
+  //
+  // For an inlined instruction its Position contains the inlinee's line and method and
+  // callerPosition is the position of the invoke instruction in the caller.
+
+  public final DexMethod method;
+  public final Position callerPosition;
+
+  public Position(int line, DexString file, DexMethod method, Position callerPosition) {
+    this(line, file, false, method, callerPosition);
     assert line >= 0;
   }
 
-  private Position(int line, DexString file, boolean synthetic) {
+  private Position(
+      int line, DexString file, boolean synthetic, DexMethod method, Position callerPosition) {
     this.line = line;
     this.file = file;
     this.synthetic = synthetic;
+    this.method = method;
+    this.callerPosition = callerPosition;
+    assert callerPosition == null || callerPosition.method != null;
+    assert line == -1 || method != null; // It's NO_POSITION or must have valid method.
   }
 
-  public static Position synthetic(int line) {
-    return new Position(line, null, true);
+  public static Position synthetic(int line, DexMethod method, Position callerPosition) {
+    assert line >= 0;
+    return new Position(line, null, true, method, callerPosition);
   }
 
   public static Position none() {
     return NO_POSITION;
   }
 
+  // This factory method is used by the Inliner to create Positions when the caller has no valid
+  // positions. Since the callee still may have valid positions we need a non-null Position to set
+  // it as the caller of the inlined Positions.
+  public static Position noneWithMethod(DexMethod method, Position callerPosition) {
+    assert method != null;
+    return new Position(-1, null, false, method, callerPosition);
+  }
+
   public boolean isNone() {
-    return this == NO_POSITION;
+    return line == -1;
   }
 
   public boolean isSome() {
-    return this != NO_POSITION;
+    return !isNone();
+  }
+
+  // Follow the linked list of callerPositions and return the last.
+  // Return this if no inliner.
+  public Position getOutermostCaller() {
+    Position lastPosition = this;
+    while (lastPosition.callerPosition != null) {
+      lastPosition = lastPosition.callerPosition;
+    }
+    return lastPosition;
   }
 
   @Override
@@ -48,7 +81,11 @@ public class Position {
     }
     if (other instanceof Position) {
       Position o = (Position) other;
-      return !isNone() && line == o.line && file == o.file;
+      return !isNone()
+          && line == o.line
+          && file == o.file
+          && method == o.method
+          && Objects.equals(callerPosition, o.callerPosition);
     }
     return false;
   }
@@ -58,11 +95,12 @@ public class Position {
     int result = line;
     result = 31 * result + Objects.hashCode(file);
     result = 31 * result + (synthetic ? 1 : 0);
+    result = 31 * result + Objects.hashCode(method);
+    result = 31 * result + Objects.hashCode(callerPosition);
     return result;
   }
 
-  @Override
-  public String toString() {
+  private String toString(boolean forceMethod) {
     if (isNone()) {
       return "--";
     }
@@ -70,7 +108,18 @@ public class Position {
     if (file != null) {
       builder.append(file).append(":");
     }
-    builder.append(line);
+    if (method != null && (forceMethod || callerPosition != null)) {
+      builder.append("[").append(method).append("]");
+    }
+    builder.append("#").append(line);
+    if (callerPosition != null) {
+      builder.append(" <- ").append(callerPosition.toString(true));
+    }
     return builder.toString();
+  }
+
+  @Override
+  public String toString() {
+    return toString(false);
   }
 }

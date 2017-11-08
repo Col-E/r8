@@ -11,6 +11,7 @@ import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.conversion.DexSourceCode;
 import com.android.tools.r8.ir.conversion.IRBuilder;
@@ -161,16 +162,18 @@ public class DexCode extends Code {
   @Override
   public IRCode buildIR(DexEncodedMethod encodedMethod, InternalOptions options)
       throws ApiLevelException {
-    DexSourceCode source = new DexSourceCode(this, encodedMethod);
+    DexSourceCode source = new DexSourceCode(this, encodedMethod, null);
     IRBuilder builder = new IRBuilder(encodedMethod, source, options);
     return builder.build();
   }
 
   public IRCode buildIR(
       DexEncodedMethod encodedMethod,
-      InternalOptions options, ValueNumberGenerator valueNumberGenerator)
+      InternalOptions options,
+      ValueNumberGenerator valueNumberGenerator,
+      Position callerPosition)
       throws ApiLevelException {
-    DexSourceCode source = new DexSourceCode(this, encodedMethod);
+    DexSourceCode source = new DexSourceCode(this, encodedMethod, callerPosition);
     IRBuilder builder = new IRBuilder(encodedMethod, source, options, valueNumberGenerator);
     return builder.build();
   }
