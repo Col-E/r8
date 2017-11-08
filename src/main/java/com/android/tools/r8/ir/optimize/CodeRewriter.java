@@ -1078,6 +1078,117 @@ public class CodeRewriter {
     }
   }
 
+  /**
+   * If an instruction is known to be a /lit8 or /lit16 instruction, update the instruction to use
+   * its own constant that will be defined just before the instruction. This transformation allows
+   * to decrease pressure on register allocation by defining the shortest range of constant used
+   * by this kind of instruction. D8 knowns at build time that constant will be encoded
+   * directly into the final Dex instruction.
+   */
+  public void useDedicatedConstantForLitInstruction(IRCode code) {
+    for (BasicBlock block : code.blocks) {
+      InstructionListIterator instructionIterator = block.listIterator();
+      while (instructionIterator.hasNext()) {
+        Instruction currentInstruction = instructionIterator.next();
+        if (shouldBeLitInstruction(currentInstruction)) {
+          assert currentInstruction.isBinop();
+          Binop binop = currentInstruction.asBinop();
+          Value constValue;
+          if (binop.leftValue().isConstNumber()) {
+            constValue = binop.leftValue();
+          } else if (binop.rightValue().isConstNumber()) {
+            constValue = binop.rightValue();
+          } else {
+            throw new Unreachable();
+          }
+          if (constValue.numberOfAllUsers() > 1) {
+            // No need to do the transformation if the const value is already used only one time.
+            ConstNumber newConstant = ConstNumber
+                .copyOf(code, constValue.definition.asConstNumber());
+            newConstant.setPosition(currentInstruction.getPosition());
+            newConstant.setBlock(currentInstruction.getBlock());
+            currentInstruction.replaceValue(constValue, newConstant.outValue());
+            constValue.removeUser(currentInstruction);
+            instructionIterator.previous();
+            instructionIterator.add(newConstant);
+            instructionIterator.next();
+          }
+        }
+      }
+    }
+
+    assert code.isConsistentSSA();
+  }
+
+  /**
+   * A /lit8 or /lit16 instruction only concerns arithmetic or logical instruction. /lit8 or /lit16
+   * instructions generate bigger code than 2addr instructions, thus we favor 2addr instructions
+   * rather than /lit8 or /lit16 instructions.
+   */
+  private static boolean shouldBeLitInstruction(Instruction instruction) {
+    if (instruction.isArithmeticBinop() || instruction.isLogicalBinop()) {
+      Binop binop = instruction.asBinop();
+      if (!binop.needsValueInRegister(binop.leftValue()) ||
+          !binop.needsValueInRegister(binop.rightValue())) {
+        return !canBe2AddrInstruction(binop);
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Estimate if a binary operation can be a 2addr form or not. It can be a 2addr form when an
+   * argument is no longer needed after the binary operation and can be overwritten. That is
+   * definitely the case if there is no path between the binary operation and all other usages.
+   */
+  private static boolean canBe2AddrInstruction(Binop binop) {
+    Value value = null;
+    if (binop.needsValueInRegister(binop.leftValue())) {
+      value = binop.leftValue();
+    } else if (binop.isCommutative() && binop.needsValueInRegister(binop.rightValue())) {
+      value = binop.rightValue();
+    }
+
+    if (value != null) {
+      Iterable<Instruction> users = value.debugUsers() != null ?
+          Iterables.concat(value.uniqueUsers(), value.debugUsers()) : value.uniqueUsers();
+
+      for (Instruction user : users) {
+        if (hasPath(binop, user)) {
+          return false;
+        }
+      }
+
+      Iterable<Phi> phiUsers = value.debugPhiUsers() != null
+          ? Iterables.concat(value.uniquePhiUsers(), value.debugPhiUsers())
+          : value.uniquePhiUsers();
+
+      for (Phi user : phiUsers) {
+        if (binop.getBlock().hasPathTo(user.getBlock())) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Return true if there is a path between {@code source} instruction and {@code target}
+   * instruction.
+   */
+  private static boolean hasPath(Instruction source, Instruction target) {
+    BasicBlock sourceBlock = source.getBlock();
+    BasicBlock targetBlock = target.getBlock();
+    if (sourceBlock == targetBlock) {
+      return sourceBlock.getInstructions().indexOf(source) <
+          targetBlock.getInstructions().indexOf(target);
+    }
+
+    return source.getBlock().hasPathTo(targetBlock);
+  }
+
   public void shortenLiveRanges(IRCode code) {
     // Currently, we are only shortening the live range of constants in the entry block.
     // TODO(ager): Generalize this to shorten live ranges for more instructions? Currently
