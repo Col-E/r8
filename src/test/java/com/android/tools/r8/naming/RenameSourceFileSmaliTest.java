@@ -17,6 +17,8 @@ import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexDebugEvent.SetFile;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.shaking.ProguardConfiguration;
+import com.android.tools.r8.smali.SmaliBuilder;
+import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
 import com.android.tools.r8.smali.SmaliTestBase;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.StringUtils;

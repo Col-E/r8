@@ -6,16 +6,12 @@ package com.android.tools.r8.smali;
 
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.errors.DexOverflowException;
-import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.SmaliWriter;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Smali;
-import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.concurrent.ExecutionException;
@@ -27,12 +23,7 @@ public class SmaliDisassembleTest extends SmaliTestBase {
   // Run the provided smali through R8 smali disassembler and expect the exact same output.
   void roundTripRawSmali(String smali) {
     try {
-      DexApplication application =
-          new ApplicationReader(
-                  AndroidApp.fromDexProgramData(Smali.compile(smali)),
-                  new InternalOptions(),
-                  new Timing("SmaliTest"))
-              .read();
+      AndroidApp application = AndroidApp.fromDexProgramData(Smali.compile(smali));
       assertEquals(smali, SmaliWriter.smali(application, new InternalOptions()));
     } catch (IOException | RecognitionException | ExecutionException | DexOverflowException e) {
       throw new RuntimeException(e);
@@ -41,7 +32,7 @@ public class SmaliDisassembleTest extends SmaliTestBase {
 
   @Test
   public void simpleSmokeTest() {
-    DexApplication application = singleMethodApplication(
+    AndroidApp application = singleMethodApplication(
         "int", Collections.singletonList("int"),
         4,
         "    const/4 v0, 1           ",
@@ -81,7 +72,7 @@ public class SmaliDisassembleTest extends SmaliTestBase {
 
   @Test
   public void sparseSwitchTest() {
-    DexApplication application = singleMethodApplication(
+    AndroidApp application = singleMethodApplication(
         "int", Collections.singletonList("int"),
         0,
         "    sparse-switch v0, :sparse_switch_data",
@@ -137,7 +128,7 @@ public class SmaliDisassembleTest extends SmaliTestBase {
 
   @Test
   public void packedSwitchTest() {
-    DexApplication application = singleMethodApplication(
+    AndroidApp application = singleMethodApplication(
         "int", Collections.singletonList("int"),
         0,
         "    packed-switch v0, :packed_switch_data",
@@ -193,7 +184,7 @@ public class SmaliDisassembleTest extends SmaliTestBase {
 
   @Test
   public void fillArrayDataTest8Bit() {
-    DexApplication application = singleMethodApplication(
+    AndroidApp application = singleMethodApplication(
         "int[]", ImmutableList.of(),
         2,
         "    const/4 v1, 3",
@@ -236,7 +227,7 @@ public class SmaliDisassembleTest extends SmaliTestBase {
 
   @Test
   public void fillArrayDataTest16Bit() {
-    DexApplication application = singleMethodApplication(
+    AndroidApp application = singleMethodApplication(
         "int[]", ImmutableList.of(),
         2,
         "    const/4 v1, 3",
@@ -279,7 +270,7 @@ public class SmaliDisassembleTest extends SmaliTestBase {
 
   @Test
   public void fillArrayDataTest32Bit() {
-    DexApplication application = singleMethodApplication(
+    AndroidApp application = singleMethodApplication(
         "int[]", ImmutableList.of(),
         2,
         "    const/4 v1, 3",
@@ -322,7 +313,7 @@ public class SmaliDisassembleTest extends SmaliTestBase {
 
   @Test
   public void fillArrayDataTest64Bit() {
-    DexApplication application = singleMethodApplication(
+    AndroidApp application = singleMethodApplication(
         "int[]", ImmutableList.of(),
         2,
         "    const/4 v1, 3",
@@ -368,8 +359,7 @@ public class SmaliDisassembleTest extends SmaliTestBase {
     SmaliBuilder builder = new SmaliBuilder();
     builder.addInterface("Test");
     builder.addAbstractMethod("int", "test", ImmutableList.of());
-    DexApplication application = buildApplication(builder);
-    assertEquals(1, Iterables.size(application.classes()));
+    AndroidApp application = buildApplication(builder);
 
     String expected =
         ".class public interface abstract LTest;\n" +
@@ -391,8 +381,7 @@ public class SmaliDisassembleTest extends SmaliTestBase {
     SmaliBuilder builder = new SmaliBuilder();
     builder.addClass("Test", "java.lang.Object", ImmutableList.of("java.util.List"));
     builder.addAbstractMethod("int", "test", ImmutableList.of());
-    DexApplication application = buildApplication(builder);
-    assertEquals(1, Iterables.size(application.classes()));
+    AndroidApp application = buildApplication(builder);
 
     String expected =
         ".class public LTest;\n" +

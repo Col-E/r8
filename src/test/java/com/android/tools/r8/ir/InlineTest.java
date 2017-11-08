@@ -13,7 +13,8 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
-import com.android.tools.r8.smali.SmaliTestBase;
+import com.android.tools.r8.smali.SmaliBuilder;
+import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
@@ -22,7 +23,7 @@ import java.util.List;
 import java.util.ListIterator;
 import org.junit.Test;
 
-public class InlineTest extends SmaliTestBase {
+public class InlineTest extends IrInjectionTestBase {
 
   TestApplication codeForMethodReplaceTest(int a, int b) throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
@@ -84,7 +85,7 @@ public class InlineTest extends SmaliTestBase {
     DexEncodedMethod methodB = getMethod(application, signatureB);
     IRCode codeB = methodB.buildIR(new InternalOptions(), valueNumberGenerator);
 
-    return new SmaliTestBase.TestApplication(application, method, code,
+    return new TestApplication(application, method, code,
         ImmutableList.of(codeA, codeB), valueNumberGenerator, options);
   }
 

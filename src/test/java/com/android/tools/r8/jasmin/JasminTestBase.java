@@ -4,18 +4,15 @@
 package com.android.tools.r8.jasmin;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.Resource;
+import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.DexInspector;
-import com.android.tools.r8.utils.DexInspector.ClassSubject;
-import com.android.tools.r8.utils.DexInspector.MethodSubject;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OutputMode;
 import com.android.tools.r8.utils.StringUtils;
@@ -33,13 +30,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
-import org.junit.Rule;
-import org.junit.rules.TemporaryFolder;
 
-public class JasminTestBase {
-
-  @Rule
-  public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
+public class JasminTestBase extends TestBase {
 
   public static String getPathFromDescriptor(String classDescriptor) {
     assert classDescriptor.startsWith("L");
@@ -93,6 +85,10 @@ public class JasminTestBase {
 
   protected String runOnArtD8(JasminBuilder builder, String main) throws Exception {
     return runOnArt(compileWithD8(builder), main);
+  }
+
+  protected AndroidApp compileWithR8(JasminBuilder builder) throws Exception {
+    return compileWithR8(builder, null);
   }
 
   protected AndroidApp compileWithR8(JasminBuilder builder,
@@ -169,20 +165,6 @@ public class JasminTestBase {
   protected DexEncodedMethod getMethod(AndroidApp application, String clazz,
       MethodSignature signature) {
     return getMethod(application,
-        clazz, signature.type, signature.name, signature.parameters);
-  }
-
-  protected DexEncodedMethod getMethod(AndroidApp application, String className,
-      String returnType, String methodName, String[] parameters) {
-    try {
-      DexInspector inspector = new DexInspector(application);
-      ClassSubject clazz = inspector.clazz(className);
-      assertTrue(clazz.isPresent());
-      MethodSubject method = clazz.method(returnType, methodName, Arrays.asList(parameters));
-      assertTrue(method.isPresent());
-      return method.getMethod();
-    } catch (Exception e) {
-      return null;
-    }
+        clazz, signature.type, signature.name, Arrays.asList(signature.parameters));
   }
 }

@@ -48,6 +48,7 @@ import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.SourceCode;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.InternalOptions.OutlineOptions;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
 import com.google.common.collect.Sets;
@@ -1062,7 +1063,7 @@ public class Outliner {
       MethodAccessFlags methodAccess =
           MethodAccessFlags.fromSharedAccessFlags(
               Constants.ACC_PUBLIC | Constants.ACC_STATIC, false);
-      DexString methodName = dexItemFactory.createString(options.outline.methodPrefix + count);
+      DexString methodName = dexItemFactory.createString(OutlineOptions.METHOD_PREFIX + count);
       DexMethod method = outline.buildMethod(type, methodName);
       direct[count] = new DexEncodedMethod(method, methodAccess, DexAnnotationSet.empty(),
           DexAnnotationSetRefList.empty(), new OutlineCode(outline));

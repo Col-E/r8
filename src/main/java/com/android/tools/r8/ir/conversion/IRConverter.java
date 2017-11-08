@@ -39,6 +39,7 @@ import com.android.tools.r8.shaking.protolite.ProtoLitePruner;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.InternalOptions.OutlineOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
@@ -417,7 +418,7 @@ public class IRConverter {
     DexType result;
     int count = 0;
     do {
-      String name = options.outline.className + (count == 0 ? "" : Integer.toString(count));
+      String name = OutlineOptions.CLASS_NAME + (count == 0 ? "" : Integer.toString(count));
       count++;
       result = appInfo.dexItemFactory.createType(DescriptorUtils.javaTypeToDescriptor(name));
     } while (appInfo.definitionFor(result) != null);

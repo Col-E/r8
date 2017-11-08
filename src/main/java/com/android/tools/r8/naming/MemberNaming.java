@@ -17,6 +17,7 @@ import java.io.StringWriter;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import org.objectweb.asm.Type;
@@ -289,6 +290,12 @@ public class MemberNaming {
       super(name);
       this.type = type;
       this.parameters = parameters;
+    }
+
+    public MethodSignature(String name, String type, Collection<String> parameters) {
+      super(name);
+      this.type = type;
+      this.parameters = parameters.toArray(new String[parameters.size()]);
     }
 
     public static MethodSignature fromDexMethod(DexMethod method) {

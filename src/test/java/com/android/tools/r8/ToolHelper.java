@@ -10,7 +10,6 @@ import static org.junit.Assert.fail;
 import com.android.tools.r8.DeviceRunner.DeviceRunnerConfigurationException;
 import com.android.tools.r8.ToolHelper.DexVm.Kind;
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.shaking.FilteredClassPath;
@@ -695,14 +694,6 @@ public class ToolHelper {
     AndroidAppOutputSink compatSink = new AndroidAppOutputSink(command.getOutputSink());
     R8.runForTesting(command.getInputApp(), compatSink, command.getInternalOptions());
     return compatSink.build();
-  }
-
-  public static DexApplication optimizeWithR8(
-      DexApplication application,
-      InternalOptions options)
-      throws CompilationException, ExecutionException, IOException {
-    application = application.toDirect();
-    return R8.optimize(application, new AppInfoWithSubtyping(application), options);
   }
 
   public static AndroidApp runD8(AndroidApp app) throws CompilationException, IOException {

@@ -6,9 +6,8 @@ package com.android.tools.r8.smali;
 
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.graph.DexApplication;
-import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
+import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import org.junit.Test;
@@ -56,10 +55,9 @@ public class JumboStringTest extends SmaliTestBase {
         "    return-void"
     );
 
-    InternalOptions options = new InternalOptions();
-    DexApplication originalApplication = buildApplication(smaliBuilder, options);
-    DexApplication processedApplication = processApplication(originalApplication, options);
-    String result = runArt(processedApplication, options);
+    AndroidApp originalApplication = buildApplication(smaliBuilder);
+    AndroidApp processedApplication = processApplication(originalApplication);
+    String result = runArt(processedApplication);
 
     assertEquals(expectedBuilder.toString(), result);
   }

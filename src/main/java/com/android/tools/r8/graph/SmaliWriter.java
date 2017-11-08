@@ -1,11 +1,15 @@
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.Timing;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.ExecutionException;
 
 public class SmaliWriter extends DexByteCodeWriter {
 
@@ -15,12 +19,15 @@ public class SmaliWriter extends DexByteCodeWriter {
   }
 
   /** Return smali source for the application code. */
-  public static String smali(DexApplication application, InternalOptions options) {
-    SmaliWriter writer = new SmaliWriter(application, options);
+  public static String smali(AndroidApp application, InternalOptions options) {
     ByteArrayOutputStream os = new ByteArrayOutputStream();
     try (PrintStream ps = new PrintStream(os)) {
+      DexApplication dexApplication = new ApplicationReader(application, options,
+          new Timing("SmaliWriter"))
+          .read();
+      SmaliWriter writer = new SmaliWriter(dexApplication, options);
       writer.write(ps);
-    } catch (IOException e) {
+    } catch (IOException | ExecutionException e) {
       throw new CompilationError("Failed to generate smali sting", e);
     }
     return new String(os.toByteArray(), StandardCharsets.UTF_8);

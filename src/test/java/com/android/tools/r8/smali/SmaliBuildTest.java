@@ -7,20 +7,24 @@ package com.android.tools.r8.smali;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.shaking.FilteredClassPath;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
-import com.android.tools.r8.utils.InternalOptions;
+import java.io.IOException;
+import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 
 public class SmaliBuildTest extends SmaliTestBase {
 
-  private void checkJavaLangString(DexApplication application, boolean present) {
-    DexInspector inspector = new DexInspector(application);
-    ClassSubject clazz = inspector.clazz("java.lang.String");
-    assertEquals(present, clazz.isPresent());
+  private void checkJavaLangString(AndroidApp application, boolean present) {
+    try {
+      DexInspector inspector = new DexInspector(application);
+      ClassSubject clazz = inspector.clazz("java.lang.String");
+      assertEquals(present, clazz.isPresent());
+    } catch (IOException | ExecutionException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Test
@@ -35,12 +39,11 @@ public class SmaliBuildTest extends SmaliTestBase {
         "    return-void"
     );
 
-    InternalOptions options = new InternalOptions();
     // No libraries added - java.lang.String is not present.
-    DexApplication originalApplication = buildApplication(builder, options);
+    AndroidApp originalApplication = buildApplication(builder);
     checkJavaLangString(originalApplication, false);
 
-    DexApplication processedApplication = processApplication(originalApplication, options);
+    AndroidApp processedApplication = processApplication(originalApplication);
     checkJavaLangString(processedApplication, false);
   }
 
@@ -56,17 +59,17 @@ public class SmaliBuildTest extends SmaliTestBase {
         "    return-void"
     );
 
-    InternalOptions options = new InternalOptions();
-    AndroidApp app = AndroidApp.builder()
+    AndroidApp originalApp = AndroidApp.builder()
         .addDexProgramData(builder.compile())
         .addLibraryFiles(FilteredClassPath.unfiltered(ToolHelper.getDefaultAndroidJar()))
         .build();
 
     // Java standard library added - java.lang.String is present.
-    DexApplication originalApplication = buildApplication(app, options);
-    checkJavaLangString(originalApplication, true);
+    checkJavaLangString(originalApp, true);
 
-    DexApplication processedApplication = processApplication(originalApplication, options);
-    checkJavaLangString(processedApplication, true);
+    AndroidApp processedApplication = processApplication(originalApp);
+
+    // The library method is not part of the output.
+    checkJavaLangString(processedApplication, false);
   }
 }

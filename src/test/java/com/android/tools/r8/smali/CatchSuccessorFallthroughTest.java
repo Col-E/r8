@@ -6,13 +6,14 @@ package com.android.tools.r8.smali;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
+import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.Arrays;
 import java.util.Collections;
@@ -62,13 +63,11 @@ public class CatchSuccessorFallthroughTest extends SmaliTestBase {
         "  invoke-virtual {v1, v0}, Ljava/io/PrintStream;->println(I)V",
         "  return-void");
 
-    InternalOptions options = new InternalOptions();
-    DexApplication originalApplication = buildApplication(builder, options);
-
+    AndroidApp originalApplication = buildApplication(builder);
 
     DexEncodedMethod method = getMethod(originalApplication, methodSig);
     // Get the IR pre-optimization.
-    IRCode code = method.buildIR(options);
+    IRCode code = method.buildIR(new InternalOptions());
 
     // Find the exit block and assert that the value is a phi merging the exceptional edge
     // with the normal edge.

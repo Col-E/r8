@@ -267,9 +267,10 @@ public class InternalOptions {
 
   public static class OutlineOptions {
 
+    public static final String CLASS_NAME = "r8.GeneratedOutlineSupport";
+    public static final String METHOD_PREFIX = "outline";
+
     public boolean enabled = true;
-    public static final String className = "r8.GeneratedOutlineSupport";
-    public String methodPrefix = "outline";
     public int minSize = 3;
     public int maxSize = 99;
     public int threshold = 20;

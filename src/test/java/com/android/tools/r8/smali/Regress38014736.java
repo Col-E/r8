@@ -5,9 +5,7 @@ package com.android.tools.r8.smali;
 
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.graph.DexApplication;
-import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.StringUtils;
 import org.junit.Test;
 
@@ -48,10 +46,9 @@ public class Regress38014736 extends SmaliTestBase {
         "invoke-virtual      { v0, v1 }, Ljava/io/PrintStream;->println(Ljava/lang/Object;)V",
         "return-void");
 
-    InternalOptions options = new InternalOptions();
-    DexApplication originalApplication = buildApplication(builder, options);
-    DexApplication processedApplication = processApplication(originalApplication, options);
-    String result = runArt(processedApplication, options);
+    AndroidApp originalApplication = buildApplication(builder);
+    AndroidApp processedApplication = processApplication(originalApplication);
+    String result = runArt(processedApplication);
     // The art runtime changed the way exceptions are printed. Therefore, we only check
     // for the type of the exception and that the message mentions null.
     assertTrue(result.startsWith(StringUtils.joinLines("0", "java.lang.NumberFormatException:")));

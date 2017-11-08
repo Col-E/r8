@@ -10,9 +10,10 @@ import static org.junit.Assert.assertNull;
 
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.smali.SmaliTestBase;
-import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.DexInspector;
 import com.google.common.collect.ImmutableList;
 import org.junit.Test;
 
@@ -62,10 +63,11 @@ public class TargetLookupTest extends SmaliTestBase {
         "    goto :return"
     );
 
-    DexApplication application = buildApplication(builder);
-    AppInfo appInfo = new AppInfo(application);
-    DexEncodedMethod method =
-        getMethod(application, DEFAULT_CLASS_NAME, "int", "x", ImmutableList.of());
+    AndroidApp application = buildApplication(builder);
+    AppInfo appInfo = getAppInfo(application);
+    DexInspector inspector = new DexInspector(appInfo.app);
+    DexEncodedMethod method = getMethod(inspector, DEFAULT_CLASS_NAME, "int", "x",
+        ImmutableList.of());
     assertNull(appInfo.lookupVirtualTarget(method.method.holder, method.method));
     assertNull(appInfo.lookupDirectTarget(method.method));
     assertNotNull(appInfo.lookupStaticTarget(method.method));
@@ -74,12 +76,12 @@ public class TargetLookupTest extends SmaliTestBase {
       // Dalvik rejects at verification time instead of producing the
       // expected IncompatibleClassChangeError.
       try {
-        runArt(application, new InternalOptions());
+        runArt(application);
       } catch (AssertionError e) {
         assert e.toString().contains("VerifyError");
       }
     } else {
-      assertEquals("OK", runArt(application, new InternalOptions()));
+      assertEquals("OK", runArt(application));
     }
   }
 
@@ -131,20 +133,21 @@ public class TargetLookupTest extends SmaliTestBase {
         "    goto :return"
     );
 
-    DexApplication application = buildApplication(builder);
-    AppInfo appInfo = new AppInfo(application);
+    AndroidApp application = buildApplication(builder);
+    AppInfo appInfo = getAppInfo(application);
+    DexInspector inspector = new DexInspector(appInfo.app);
 
     DexMethod methodXOnTestSuper =
-        getMethod(application, "TestSuper", "int", "x", ImmutableList.of()).method;
+        getMethod(inspector, "TestSuper", "int", "x", ImmutableList.of()).method;
     DexMethod methodYOnTest =
-        getMethod(application, "Test", "int", "y", ImmutableList.of()).method;
+        getMethod(inspector, "Test", "int", "y", ImmutableList.of()).method;
 
     DexType classTestSuper = methodXOnTestSuper.getHolder();
     DexType classTest = methodYOnTest.getHolder();
     DexProto methodXProto = methodXOnTestSuper.proto;
     DexString methodXName = methodXOnTestSuper.name;
     DexMethod methodXOnTest =
-        application.dexItemFactory.createMethod(classTest, methodXProto, methodXName);
+        appInfo.dexItemFactory.createMethod(classTest, methodXProto, methodXName);
 
     assertNull(appInfo.lookupVirtualTarget(classTestSuper, methodXOnTestSuper));
     assertNull(appInfo.lookupVirtualTarget(classTest, methodXOnTestSuper));
@@ -156,7 +159,7 @@ public class TargetLookupTest extends SmaliTestBase {
     assertNotNull(appInfo.lookupStaticTarget(methodXOnTestSuper));
     assertNotNull(appInfo.lookupStaticTarget(methodXOnTest));
 
-    assertEquals("OK", runArt(application, new InternalOptions()));
+    assertEquals("OK", runArt(application));
   }
 }
 

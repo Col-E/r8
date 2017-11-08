@@ -3,9 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.smali;
 
-import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
+import com.android.tools.r8.utils.AndroidApp;
 import java.util.Arrays;
 import java.util.Collections;
 import org.junit.Test;
@@ -48,9 +48,8 @@ public class ComputeBlockTryRangeTest extends SmaliTestBase {
         "  goto :in_try"
     );
 
-    InternalOptions options = new InternalOptions();
-    DexApplication originalApplication = buildApplication(builder, options);
-    DexApplication processedApplication = processApplication(originalApplication, options);
+    AndroidApp originalApplication = buildApplication(builder);
+    AndroidApp processedApplication = processApplication(originalApplication);
 
     DexEncodedMethod method = getMethod(processedApplication, methodSig);
     assert method.getCode().asDexCode().tries.length > 0;

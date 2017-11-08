@@ -4,13 +4,15 @@
 
 package com.android.tools.r8.ir;
 
-import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
+import com.android.tools.r8.smali.SmaliBuilder;
+import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
 import com.android.tools.r8.smali.SmaliTestBase;
+import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
@@ -45,8 +47,7 @@ public class BasicBlockIteratorTest extends SmaliTestBase {
         "    return              p0"
     );
 
-    InternalOptions options = new InternalOptions();
-    DexApplication application = buildApplication(builder, options);
+    AndroidApp application = buildApplication(builder);
 
     // Build the code, and split the code into three blocks.
     ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();

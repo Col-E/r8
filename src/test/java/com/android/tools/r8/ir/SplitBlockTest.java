@@ -21,14 +21,15 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.code.ValueType;
-import com.android.tools.r8.smali.SmaliTestBase;
+import com.android.tools.r8.smali.SmaliBuilder;
+import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.Test;
 
-public class SplitBlockTest extends SmaliTestBase {
+public class SplitBlockTest extends IrInjectionTestBase {
 
   TestApplication codeWithoutCatchHandlers() throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);

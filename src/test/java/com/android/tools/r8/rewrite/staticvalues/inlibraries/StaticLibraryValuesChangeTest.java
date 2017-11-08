@@ -11,7 +11,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.shaking.FilteredClassPath;
-import com.android.tools.r8.smali.SmaliTestBase.SmaliBuilder;
+import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.PreloadedClassFileProvider;
 import com.google.common.collect.ImmutableList;

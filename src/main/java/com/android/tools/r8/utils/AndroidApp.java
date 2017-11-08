@@ -608,7 +608,7 @@ public class AndroidApp {
      * Set dead-code data.
      */
     public Builder setDeadCode(byte[] content) {
-      deadCode = content == null ? null : Resource.fromBytes(null, content);
+      deadCode = content == null ? null : Resource.fromBytes(Origin.unknown(), content);
       return this;
     }
 
@@ -631,7 +631,7 @@ public class AndroidApp {
      * Set proguard-map data.
      */
     public Builder setProguardMapData(byte[] content) {
-      proguardMap = content == null ? null : Resource.fromBytes(null, content);
+      proguardMap = content == null ? null : Resource.fromBytes(Origin.unknown(), content);
       return this;
     }
 
@@ -639,7 +639,7 @@ public class AndroidApp {
      * Set proguard-seeds data.
      */
     public Builder setProguardSeedsData(byte[] content) {
-      proguardSeeds = content == null ? null : Resource.fromBytes(null, content);
+      proguardSeeds = content == null ? null : Resource.fromBytes(Origin.unknown(), content);
       return this;
     }
 
@@ -685,7 +685,7 @@ public class AndroidApp {
      * Set the main-dex list output data.
      */
     public Builder setMainDexListOutputData(byte[] content) {
-      mainDexListOutput = content == null ? null : Resource.fromBytes(null, content);
+      mainDexListOutput = content == null ? null : Resource.fromBytes(Origin.unknown(), content);
       return this;
     }
 

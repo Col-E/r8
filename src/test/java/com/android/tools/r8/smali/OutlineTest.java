@@ -21,26 +21,26 @@ import com.android.tools.r8.code.Return;
 import com.android.tools.r8.code.ReturnObject;
 import com.android.tools.r8.code.ReturnVoid;
 import com.android.tools.r8.code.ReturnWide;
-import com.android.tools.r8.errors.DexOverflowException;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
+import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.DexInspector.MethodSubject;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.InternalOptions.OutlineOptions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
-import org.antlr.runtime.RecognitionException;
 import org.junit.Test;
 
 public class OutlineTest extends SmaliTestBase {
@@ -50,6 +50,15 @@ public class OutlineTest extends SmaliTestBase {
     // Disable inlining to make sure that code looks as expected.
     result.inlineAccessors = false;
     return result;
+  }
+
+  private Consumer<InternalOptions> configureOptions(Consumer<OutlineOptions> optionsConsumer) {
+    return options -> {
+      // Disable inlining to make sure that code looks as expected.
+      options.inlineAccessors = false;
+      // Also apply outline options.
+      optionsConsumer.accept(options.outline);
+    };
   }
 
   DexEncodedMethod getInvokedMethod(DexApplication application, InvokeStatic invoke) {
@@ -62,31 +71,19 @@ public class OutlineTest extends SmaliTestBase {
         invokedMethod.proto.returnType.toSourceString(),
         invokedMethod.name.toString(),
         Arrays.stream(invokedMethod.proto.parameters.values)
-            .map(p -> p.toSourceString())
+            .map(DexType::toSourceString)
             .collect(Collectors.toList()));
     assertTrue(method.isPresent());
     return method.getMethod();
   }
 
-  String firstOutlineMethodName(InternalOptions options) {
-    StringBuilder builder = new StringBuilder(options.outline.className);
-    builder.append('.');
-    builder.append(options.outline.methodPrefix);
-    builder.append("0");
-    return builder.toString();
+  private String firstOutlineMethodName() {
+    return OutlineOptions.CLASS_NAME + '.' + OutlineOptions.METHOD_PREFIX + "0";
   }
 
-  MethodSignature firstOutlineMethodSignature(
-      String returnType, List<String> parameterTypes, InternalOptions options) {
-    return new MethodSignature(
-        options.outline.className, options.outline.methodPrefix + "0", returnType, parameterTypes);
-  }
-
-  boolean isOutlineMethodName(InternalOptions options, String qualifiedName) {
-    StringBuilder builder = new StringBuilder(options.outline.className);
-    builder.append('.');
-    builder.append(options.outline.methodPrefix);
-    return qualifiedName.indexOf(builder.toString()) == 0;
+  private boolean isOutlineMethodName(String qualifiedName) {
+    String qualifiedPrefix = OutlineOptions.CLASS_NAME + '.' + OutlineOptions.METHOD_PREFIX;
+    return qualifiedName.indexOf(qualifiedPrefix) == 0;
   }
 
   @Test
@@ -127,14 +124,16 @@ public class OutlineTest extends SmaliTestBase {
     );
 
     for (int i = 2; i < 6; i++) {
-      InternalOptions options = createInternalOptions();
-      options.outline.threshold = 1;
-      options.outline.minSize = i;
-      options.outline.maxSize = i;
+      final int j = i;
+      Consumer<InternalOptions> options = configureOptions(outline -> {
+        outline.threshold = 1;
+        outline.minSize = j;
+        outline.maxSize = j;
+      });
 
-      DexApplication originalApplication = buildApplication(builder, options);
-      DexApplication processedApplication = processApplication(originalApplication, options);
-      assertEquals(2, Iterables.size(processedApplication.classes()));
+      AndroidApp originalApplication = buildApplication(builder);
+      AndroidApp processedApplication = processApplication(originalApplication, options);
+      assertEquals(2, getNumberOfProgramClasses(processedApplication));
 
       // Return the processed method for inspection.
       DexEncodedMethod method = getMethod(processedApplication, signature);
@@ -143,10 +142,10 @@ public class OutlineTest extends SmaliTestBase {
       assertTrue(code.instructions[0] instanceof ConstString);
       assertTrue(code.instructions[1] instanceof InvokeStatic);
       InvokeStatic invoke = (InvokeStatic) code.instructions[1];
-      assertTrue(isOutlineMethodName(options, invoke.getMethod().qualifiedName()));
+      assertTrue(isOutlineMethodName(invoke.getMethod().qualifiedName()));
 
       // Run code and check result.
-      String result = runArt(processedApplication, options);
+      String result = runArt(processedApplication);
       assertEquals("TestTestTestTest", result);
     }
   }
@@ -192,14 +191,16 @@ public class OutlineTest extends SmaliTestBase {
     );
 
     for (int i = 2; i < 6; i++) {
-      InternalOptions options = createInternalOptions();
-      options.outline.threshold = 1;
-      options.outline.minSize = i;
-      options.outline.maxSize = i;
+      final int finalI = i;
+      Consumer<InternalOptions> options = configureOptions(outline -> {
+        outline.threshold = 1;
+        outline.minSize = finalI;
+        outline.maxSize = finalI;
+      });
 
-      DexApplication originalApplication = buildApplication(builder, options);
-      DexApplication processedApplication = processApplication(originalApplication, options);
-      assertEquals(2, Iterables.size(processedApplication.classes()));
+      AndroidApp originalApplication = buildApplication(builder);
+      AndroidApp processedApplication = processApplication(originalApplication, options);
+      assertEquals(2, getNumberOfProgramClasses(processedApplication));
 
       // Return the processed method for inspection.
       DexEncodedMethod method = getMethod(processedApplication, signature);
@@ -213,10 +214,10 @@ public class OutlineTest extends SmaliTestBase {
       }
       assertTrue(code.instructions[firstOutlineInvoke] instanceof InvokeStatic);
       InvokeStatic invoke = (InvokeStatic) code.instructions[firstOutlineInvoke];
-      assertTrue(isOutlineMethodName(options, invoke.getMethod().qualifiedName()));
+      assertTrue(isOutlineMethodName(invoke.getMethod().qualifiedName()));
 
       // Run code and check result.
-      String result = runArt(processedApplication, options);
+      String result = runArt(processedApplication);
       assertEquals("Test1Test2Test3Test4", result);
     }
   }
@@ -258,11 +259,12 @@ public class OutlineTest extends SmaliTestBase {
         "    return-void"
     );
 
-    InternalOptions options = createInternalOptions();
-    options.outline.threshold = 1;
-    DexApplication originalApplication = buildApplication(builder, options);
-    DexApplication processedApplication = processApplication(originalApplication, options);
-    assertEquals(2, Iterables.size(processedApplication.classes()));
+    Consumer<InternalOptions> options = configureOptions(outline -> {
+      outline.threshold = 1;
+    });
+    AndroidApp originalApplication = buildApplication(builder);
+    AndroidApp processedApplication = processApplication(originalApplication, options);
+    assertEquals(2, getNumberOfProgramClasses(processedApplication));
 
     // Return the processed method for inspection.
     DexEncodedMethod method = getMethod(processedApplication, signature);
@@ -271,10 +273,10 @@ public class OutlineTest extends SmaliTestBase {
     assertTrue(code.instructions[0] instanceof ConstString);
     assertTrue(code.instructions[1] instanceof InvokeStatic);
     InvokeStatic invoke = (InvokeStatic) code.instructions[1];
-    assertTrue(isOutlineMethodName(options, invoke.getMethod().qualifiedName()));
+    assertTrue(isOutlineMethodName(invoke.getMethod().qualifiedName()));
 
     // Run code and check result.
-    String result = runArt(processedApplication, options);
+    String result = runArt(processedApplication);
     assertEquals("1", result);
   }
 
@@ -322,11 +324,12 @@ public class OutlineTest extends SmaliTestBase {
         "    return-void"
     );
 
-    InternalOptions options = createInternalOptions();
-    options.outline.threshold = 1;
-    DexApplication originalApplication = buildApplication(builder, options);
-    DexApplication processedApplication = processApplication(originalApplication, options);
-    assertEquals(2, Iterables.size(processedApplication.classes()));
+    Consumer<InternalOptions> options = configureOptions(outline -> {
+      outline.threshold = 1;
+    });
+    AndroidApp originalApplication = buildApplication(builder);
+    AndroidApp processedApplication = processApplication(originalApplication, options);
+    assertEquals(2, getNumberOfProgramClasses(processedApplication));
 
     // Return the processed method for inspection.
     DexEncodedMethod method = getMethod(processedApplication, signature);
@@ -336,10 +339,10 @@ public class OutlineTest extends SmaliTestBase {
     assertTrue(code.instructions[1] instanceof ConstString);
     assertTrue(code.instructions[2] instanceof InvokeStatic);
     InvokeStatic invoke = (InvokeStatic) code.instructions[2];
-    assertTrue(isOutlineMethodName(options, invoke.getMethod().qualifiedName()));
+    assertTrue(isOutlineMethodName(invoke.getMethod().qualifiedName()));
 
     // Run code and check result.
-    String result = runArt(processedApplication, options);
+    String result = runArt(processedApplication);
     assertEquals("TestXTest1TestYTest2Test3", result);
   }
 
@@ -381,14 +384,16 @@ public class OutlineTest extends SmaliTestBase {
     );
 
     for (int i = 2; i < 4; i++) {
-      InternalOptions options = createInternalOptions();
-      options.outline.threshold = 1;
-      options.outline.minSize = i;
-      options.outline.maxSize = i;
+      final int finalI = i;
+      Consumer<InternalOptions> options = configureOptions(outline -> {
+        outline.threshold = 1;
+        outline.minSize = finalI;
+        outline.maxSize = finalI;
+      });
 
-      DexApplication originalApplication = buildApplicationWithAndroidJar(builder, options);
-      DexApplication processedApplication = processApplication(originalApplication, options);
-      assertEquals(2, Iterables.size(processedApplication.classes()));
+      AndroidApp originalApplication = buildApplicationWithAndroidJar(builder);
+      AndroidApp processedApplication = processApplication(originalApplication, options);
+      assertEquals(2, getNumberOfProgramClasses(processedApplication));
 
       // Return the processed method for inspection.
       DexEncodedMethod method = getMethod(processedApplication, signature);
@@ -398,17 +403,17 @@ public class OutlineTest extends SmaliTestBase {
       if (i < 3) {
         assertTrue(code.instructions[1] instanceof InvokeStatic);
         InvokeStatic invoke = (InvokeStatic) code.instructions[1];
-        assertTrue(isOutlineMethodName(options, invoke.getMethod().qualifiedName()));
+        assertTrue(isOutlineMethodName(invoke.getMethod().qualifiedName()));
       } else {
         assertTrue(code.instructions[1] instanceof InvokeVirtual);
         assertTrue(code.instructions[2] instanceof InvokeVirtual);
         assertTrue(code.instructions[3] instanceof InvokeStatic);
         InvokeStatic invoke = (InvokeStatic) code.instructions[3];
-        assertTrue(isOutlineMethodName(options, invoke.getMethod().qualifiedName()));
+        assertTrue(isOutlineMethodName(invoke.getMethod().qualifiedName()));
       }
 
       // Run code and check result.
-      String result = runArt(processedApplication, options);
+      String result = runArt(processedApplication);
       StringBuilder resultBuilder = new StringBuilder();
       for (int j = 0; j < 4; j++) {
         resultBuilder.append(0x7fffffff00000000L);
@@ -455,14 +460,16 @@ public class OutlineTest extends SmaliTestBase {
     );
 
     for (int i = 2; i < 4; i++) {
-      InternalOptions options = createInternalOptions();
-      options.outline.threshold = 1;
-      options.outline.minSize = i;
-      options.outline.maxSize = i;
+      final int finalI = i;
+      Consumer<InternalOptions> options = configureOptions(outline -> {
+        outline.threshold = 1;
+        outline.minSize = finalI;
+        outline.maxSize = finalI;
+      });
 
-      DexApplication originalApplication = buildApplicationWithAndroidJar(builder, options);
-      DexApplication processedApplication = processApplication(originalApplication, options);
-      assertEquals(2, Iterables.size(processedApplication.classes()));
+      AndroidApp originalApplication = buildApplicationWithAndroidJar(builder);
+      AndroidApp processedApplication = processApplication(originalApplication, options);
+      assertEquals(2, getNumberOfProgramClasses(processedApplication));
 
       // Return the processed method for inspection.
       DexEncodedMethod method = getMethod(processedApplication, signature);
@@ -472,17 +479,17 @@ public class OutlineTest extends SmaliTestBase {
       if (i < 3) {
         assertTrue(code.instructions[1] instanceof InvokeStatic);
         InvokeStatic invoke = (InvokeStatic) code.instructions[1];
-        assertTrue(isOutlineMethodName(options, invoke.getMethod().qualifiedName()));
+        assertTrue(isOutlineMethodName(invoke.getMethod().qualifiedName()));
       } else {
         assertTrue(code.instructions[1] instanceof InvokeVirtual);
         assertTrue(code.instructions[2] instanceof InvokeVirtual);
         assertTrue(code.instructions[3] instanceof InvokeStatic);
         InvokeStatic invoke = (InvokeStatic) code.instructions[3];
-        assertTrue(isOutlineMethodName(options, invoke.getMethod().qualifiedName()));
+        assertTrue(isOutlineMethodName(invoke.getMethod().qualifiedName()));
       }
 
       // Run code and check result.
-      String result = runArt(processedApplication, options);
+      String result = runArt(processedApplication);
       StringBuilder resultBuilder = new StringBuilder();
       for (int j = 0; j < 4; j++) {
         resultBuilder.append(1.0d);
@@ -525,14 +532,16 @@ public class OutlineTest extends SmaliTestBase {
     );
 
     for (int i = 2; i < 6; i++) {
-      InternalOptions options = createInternalOptions();
-      options.outline.threshold = 1;
-      options.outline.minSize = i;
-      options.outline.maxSize = i;
+      final int finalI = i;
+      Consumer<InternalOptions> options = configureOptions(outline -> {
+        outline.threshold = 1;
+        outline.minSize = finalI;
+        outline.maxSize = finalI;
+      });
 
-      DexApplication originalApplication = buildApplicationWithAndroidJar(builder, options);
-      DexApplication processedApplication = processApplication(originalApplication, options);
-      assertEquals(2, Iterables.size(processedApplication.classes()));
+      AndroidApp originalApplication = buildApplicationWithAndroidJar(builder);
+      AndroidApp processedApplication = processApplication(originalApplication, options);
+      assertEquals(2, getNumberOfProgramClasses(processedApplication));
 
       // Return the processed main method for inspection.
       DexEncodedMethod mainMethod = getMethod(processedApplication, mainSignature);
@@ -548,18 +557,18 @@ public class OutlineTest extends SmaliTestBase {
       }
       if (i == 2) {
         InvokeStatic invoke = (InvokeStatic) mainCode.instructions[4];
-        assertTrue(isOutlineMethodName(options, invoke.getMethod().qualifiedName()));
+        assertTrue(isOutlineMethodName(invoke.getMethod().qualifiedName()));
       } else if (i == 3) {
         InvokeStatic invoke = (InvokeStatic) mainCode.instructions[1];
-        assertTrue(isOutlineMethodName(options, invoke.getMethod().qualifiedName()));
+        assertTrue(isOutlineMethodName(invoke.getMethod().qualifiedName()));
       } else {
         assert i == 4 || i == 5;
         InvokeStatic invoke = (InvokeStatic) mainCode.instructions[2];
-        assertTrue(isOutlineMethodName(options, invoke.getMethod().qualifiedName()));
+        assertTrue(isOutlineMethodName(invoke.getMethod().qualifiedName()));
       }
 
       // Run code and check result.
-      String result = runArt(processedApplication, options);
+      String result = runArt(processedApplication);
       assertEquals("1122", result);
     }
   }
@@ -623,29 +632,30 @@ public class OutlineTest extends SmaliTestBase {
         "    return-void"
     );
 
-    InternalOptions options = createInternalOptions();
-    options.outline.threshold = 1;
-    options.outline.minSize = 7;
-    options.outline.maxSize = 7;
+    Consumer<InternalOptions> options = configureOptions(outline -> {
+      outline.threshold = 1;
+      outline.minSize = 7;
+      outline.maxSize = 7;
+    });
 
-    DexApplication originalApplication = buildApplicationWithAndroidJar(builder, options);
-    DexApplication processedApplication = processApplication(originalApplication, options);
-    assertEquals(2, Iterables.size(processedApplication.classes()));
+    AndroidApp originalApplication = buildApplicationWithAndroidJar(builder);
+    AndroidApp processedApplication = processApplication(originalApplication, options);
+    assertEquals(2, getNumberOfProgramClasses(processedApplication));
 
     DexCode code1 = getMethod(processedApplication, signature1).getCode().asDexCode();
     assertEquals(4, code1.instructions.length);
     assertTrue(code1.instructions[1] instanceof InvokeStatic);
     InvokeStatic invoke1 = (InvokeStatic) code1.instructions[1];
-    assertTrue(isOutlineMethodName(options, invoke1.getMethod().qualifiedName()));
+    assertTrue(isOutlineMethodName(invoke1.getMethod().qualifiedName()));
 
     DexCode code2 = getMethod(processedApplication, signature2).getCode().asDexCode();
     assertEquals(5, code2.instructions.length);
     assertTrue(code2.instructions[2] instanceof InvokeStatic);
     InvokeStatic invoke2 = (InvokeStatic) code2.instructions[2];
-    assertTrue(isOutlineMethodName(options, invoke1.getMethod().qualifiedName()));
+    assertTrue(isOutlineMethodName(invoke1.getMethod().qualifiedName()));
 
     // Run code and check result.
-    String result = runArt(processedApplication, options);
+    String result = runArt(processedApplication);
     assertEquals("Test1Test1Test1Test1Test2Test2Test2Test2", result);
   }
 
@@ -687,14 +697,16 @@ public class OutlineTest extends SmaliTestBase {
     );
 
     for (int i = 2; i < 8; i++) {
-      InternalOptions options = createInternalOptions();
-      options.outline.threshold = 1;
-      options.outline.minSize = i;
-      options.outline.maxSize = i;
+      final int finalI = i;
+      Consumer<InternalOptions> options = configureOptions(outline -> {
+        outline.threshold = 1;
+        outline.minSize = finalI;
+        outline.maxSize = finalI;
+      });
 
-      DexApplication originalApplication = buildApplicationWithAndroidJar(builder, options);
-      DexApplication processedApplication = processApplication(originalApplication, options);
-      assertEquals(2, Iterables.size(processedApplication.classes()));
+      AndroidApp originalApplication = buildApplicationWithAndroidJar(builder);
+      AndroidApp processedApplication = processApplication(originalApplication, options);
+      assertEquals(2, getNumberOfProgramClasses(processedApplication));
 
       DexCode code = getMethod(processedApplication, signature).getCode().asDexCode();
       InvokeStatic invoke;
@@ -711,10 +723,10 @@ public class OutlineTest extends SmaliTestBase {
           outlineInstructionIndex = 2;
       }
       invoke = (InvokeStatic) code.instructions[outlineInstructionIndex];
-      assertTrue(isOutlineMethodName(options, invoke.getMethod().qualifiedName()));
+      assertTrue(isOutlineMethodName(invoke.getMethod().qualifiedName()));
 
       // Run code and check result.
-      String result = runArt(processedApplication, options);
+      String result = runArt(processedApplication);
       assertEquals("Test2Test2", result);
     }
   }
@@ -744,23 +756,24 @@ public class OutlineTest extends SmaliTestBase {
         "    return-void"
     );
 
-    InternalOptions options = createInternalOptions();
-    options.outline.threshold = 1;
-    options.outline.minSize = 3;
-    options.outline.maxSize = 3;
+    Consumer<InternalOptions> options = configureOptions(outline -> {
+      outline.threshold = 1;
+      outline.minSize = 3;
+      outline.maxSize = 3;
+    });
 
-    DexApplication originalApplication = buildApplicationWithAndroidJar(builder, options);
-    DexApplication processedApplication = processApplication(originalApplication, options);
-    assertEquals(2, Iterables.size(processedApplication.classes()));
+    AndroidApp originalApplication = buildApplicationWithAndroidJar(builder);
+    AndroidApp processedApplication = processApplication(originalApplication, options);
+    assertEquals(2, getNumberOfProgramClasses(processedApplication));
 
     DexCode code = getMethod(processedApplication, signature1).getCode().asDexCode();
     InvokeStatic invoke;
     assertTrue(code.instructions[0] instanceof InvokeStatic);
     invoke = (InvokeStatic) code.instructions[0];
-    assertTrue(isOutlineMethodName(options, invoke.getMethod().qualifiedName()));
+    assertTrue(isOutlineMethodName(invoke.getMethod().qualifiedName()));
 
     // Run code and check result.
-    String result = runArt(processedApplication, options);
+    String result = runArt(processedApplication);
     assertEquals("", result);
   }
 
@@ -817,18 +830,19 @@ public class OutlineTest extends SmaliTestBase {
         "    return-void"
     );
 
-    InternalOptions options = createInternalOptions();
-    options.outline.threshold = 1;
-    options.outline.minSize = 3;
-    options.outline.maxSize = 3;
+    Consumer<InternalOptions> options = configureOptions(outline -> {
+      outline.threshold = 1;
+      outline.minSize = 3;
+      outline.maxSize = 3;
+    });
 
-    DexApplication originalApplication = buildApplicationWithAndroidJar(builder, options);
-    DexApplication processedApplication = processApplication(originalApplication, options);
-    assertEquals(2, Iterables.size(processedApplication.classes()));
+    AndroidApp originalApplication = buildApplicationWithAndroidJar(builder);
+    AndroidApp processedApplication = processApplication(originalApplication, options);
+    assertEquals(2, getNumberOfProgramClasses(processedApplication));
 
     // Check that three outlining methods was created.
     DexInspector inspector = new DexInspector(processedApplication);
-    ClassSubject clazz = inspector.clazz(options.outline.className);
+    ClassSubject clazz = inspector.clazz(OutlineOptions.CLASS_NAME);
     assertTrue(clazz.isPresent());
     assertEquals(3, clazz.getDexClass().directMethods().length);
     // Collect the return types of the putlines for the body of method1 and method2.
@@ -842,12 +856,12 @@ public class OutlineTest extends SmaliTestBase {
     assert r.size() == 2;
     DexType r1 = r.get(0);
     DexType r2 = r.get(1);
-    DexItemFactory factory = processedApplication.dexItemFactory;
+    DexItemFactory factory = inspector.getFactory();
     assertTrue(r1 == factory.voidType && r2 == factory.stringType ||
         r1 == factory.stringType && r2 == factory.voidType);
 
     // Run the code.
-    String result = runArt(processedApplication, options);
+    String result = runArt(processedApplication);
     assertEquals("TestTestTestTest", result);
   }
 
@@ -888,37 +902,40 @@ public class OutlineTest extends SmaliTestBase {
         "    return-void"
     );
 
-    InternalOptions options = createInternalOptions();
-    options.outline.threshold = 1;
-    options.outline.minSize = 3;
-    options.outline.maxSize = 3;
+    Consumer<InternalOptions> options = configureOptions(outline -> {
+      outline.threshold = 1;
+      outline.minSize = 3;
+      outline.maxSize = 3;
+    });
 
-    DexApplication originalApplication = buildApplicationWithAndroidJar(builder, options);
-    DexApplication processedApplication = processApplication(originalApplication, options);
-    assertEquals(2, Iterables.size(processedApplication.classes()));
+    AndroidApp originalApplication = buildApplicationWithAndroidJar(builder);
+    AndroidApp processedApplication = processApplication(originalApplication, options);
+    assertEquals(2, getNumberOfProgramClasses(processedApplication));
 
     final int count = 10;
     // Process the application several times. Each time will outline the previous outline.
     for (int i = 0; i < count; i++) {
       // Build a new application with the Outliner class.
-      DexApplication.Builder appBuilder = processedApplication.builder();
-      originalApplication = appBuilder.build();
+      originalApplication = processedApplication;
       processedApplication = processApplication(originalApplication, options);
-      assertEquals(i + 3, Iterables.size(processedApplication.classes()));
+      assertEquals(i + 3, getNumberOfProgramClasses(processedApplication));
     }
 
     // Process the application several times. No more outlining as threshold has been raised.
-    options.outline.threshold = 2;
+    options = configureOptions(outline -> {
+      outline.threshold = 2;
+      outline.minSize = 3;
+      outline.maxSize = 3;
+    });
     for (int i = 0; i < count; i++) {
       // Build a new application with the Outliner class.
-      DexApplication.Builder appBuilder = processedApplication.builder();
-      originalApplication = appBuilder.build();
+      originalApplication = processedApplication;
       processedApplication = processApplication(originalApplication, options);
-      assertEquals(count - 1 + 3, Iterables.size(processedApplication.classes()));
+      assertEquals(count - 1 + 3, getNumberOfProgramClasses(processedApplication));
     }
 
     // Run the application with several levels of outlining.
-    String result = runArt(processedApplication, options);
+    String result = runArt(processedApplication);
     assertEquals("TestTestTestTest", result);
   }
 
@@ -950,14 +967,15 @@ public class OutlineTest extends SmaliTestBase {
         "    return-void"
     );
 
-    InternalOptions options = createInternalOptions();
-    options.outline.threshold = 1;
-    options.outline.minSize = 5;
-    options.outline.maxSize = 5;
+    Consumer<InternalOptions> options = configureOptions(outline -> {
+      outline.threshold = 1;
+      outline.minSize = 5;
+      outline.maxSize = 5;
+    });
 
-    DexApplication originalApplication = buildApplicationWithAndroidJar(builder, options);
-    DexApplication processedApplication = processApplication(originalApplication, options);
-    assertEquals(2, Iterables.size(processedApplication.classes()));
+    AndroidApp originalApplication = buildApplicationWithAndroidJar(builder);
+    AndroidApp processedApplication = processApplication(originalApplication, options);
+    assertEquals(2, getNumberOfProgramClasses(processedApplication));
 
     // Return the processed method for inspection.
     DexEncodedMethod method = getMethod(processedApplication, signature);
@@ -968,10 +986,10 @@ public class OutlineTest extends SmaliTestBase {
     assertTrue(code.instructions[1] instanceof MoveResultWide);
     assertTrue(code.instructions[2] instanceof ReturnWide);
     InvokeStatic invoke = (InvokeStatic) code.instructions[0];
-    assertEquals(firstOutlineMethodName(options), invoke.getMethod().qualifiedName());
+    assertEquals(firstOutlineMethodName(), invoke.getMethod().qualifiedName());
 
     // Run the code and expect a parsable long.
-    String result = runArt(processedApplication, options);
+    String result = runArt(processedApplication);
     Long.parseLong(result);
   }
 
@@ -1010,14 +1028,15 @@ public class OutlineTest extends SmaliTestBase {
         "    return-void"
     );
 
-    InternalOptions options = createInternalOptions();
-    options.outline.threshold = 1;
-    options.outline.minSize = 4;
-    options.outline.maxSize = 4;
+    Consumer<InternalOptions> options = configureOptions(outline -> {
+      outline.threshold = 1;
+      outline.minSize = 4;
+      outline.maxSize = 4;
+    });
 
-    DexApplication originalApplication = buildApplicationWithAndroidJar(builder, options);
-    DexApplication processedApplication = processApplication(originalApplication, options);
-    assertEquals(2, Iterables.size(processedApplication.classes()));
+    AndroidApp originalApplication = buildApplicationWithAndroidJar(builder);
+    AndroidApp processedApplication = processApplication(originalApplication, options);
+    assertEquals(2, getNumberOfProgramClasses(processedApplication));
 
     // Return the processed method for inspection.
     DexEncodedMethod method = getMethod(processedApplication, signature);
@@ -1026,10 +1045,10 @@ public class OutlineTest extends SmaliTestBase {
     assertTrue(code.instructions[0] instanceof InvokeStatic);
     assertTrue(code.instructions[1] instanceof ReturnObject);
     InvokeStatic invoke = (InvokeStatic) code.instructions[0];
-    assertEquals(firstOutlineMethodName(options), invoke.getMethod().qualifiedName());
+    assertEquals(firstOutlineMethodName(), invoke.getMethod().qualifiedName());
 
     // Run code and check result.
-    String result = runArt(processedApplication, options);
+    String result = runArt(processedApplication);
     assertEquals("null", result);
   }
 
@@ -1084,14 +1103,15 @@ public class OutlineTest extends SmaliTestBase {
         "    return-void"
     );
 
-    InternalOptions options = createInternalOptions();
-    options.outline.threshold = 1;
-    options.outline.minSize = 4;
-    options.outline.maxSize = 4;
+    Consumer<InternalOptions> options = configureOptions(outline -> {
+      outline.threshold = 1;
+      outline.minSize = 4;
+      outline.maxSize = 4;
+    });
 
-    DexApplication originalApplication = buildApplicationWithAndroidJar(builder, options);
-    DexApplication processedApplication = processApplication(originalApplication, options);
-    assertEquals(2, Iterables.size(processedApplication.classes()));
+    AndroidApp originalApplication = buildApplicationWithAndroidJar(builder);
+    AndroidApp processedApplication = processApplication(originalApplication, options);
+    assertEquals(2, getNumberOfProgramClasses(processedApplication));
 
     // Return the processed method for inspection.
     DexEncodedMethod method1 = getMethod(processedApplication, signature1);
@@ -1101,7 +1121,7 @@ public class OutlineTest extends SmaliTestBase {
     assertTrue(code1.instructions[1] instanceof MoveResult);
     assertTrue(code1.instructions[2] instanceof Return);
     InvokeStatic invoke1 = (InvokeStatic) code1.instructions[0];
-    assertTrue(isOutlineMethodName(options, invoke1.getMethod().qualifiedName()));
+    assertTrue(isOutlineMethodName(invoke1.getMethod().qualifiedName()));
 
     DexEncodedMethod method2 = getMethod(processedApplication, signature2);
     DexCode code2 = method2.getCode().asDexCode();
@@ -1110,7 +1130,7 @@ public class OutlineTest extends SmaliTestBase {
     assertEquals(invoke1.getMethod().qualifiedName(), invoke2.getMethod().qualifiedName());
 
     // Run code and check result.
-    String result = runArt(processedApplication, options);
+    String result = runArt(processedApplication);
     assertEquals("44", result);
   }
 
@@ -1159,14 +1179,15 @@ public class OutlineTest extends SmaliTestBase {
         "    return-void"
     );
 
-    InternalOptions options = createInternalOptions();
-    options.outline.threshold = 1;
-    options.outline.minSize = 3;  // Outline add, sub and mul.
-    options.outline.maxSize = 3;
+    Consumer<InternalOptions> options = configureOptions(outline -> {
+      outline.threshold = 1;
+      outline.minSize = 3;  // Outline add, sub and mul.
+      outline.maxSize = 3;
+    });
 
-    DexApplication originalApplication = buildApplicationWithAndroidJar(builder, options);
-    DexApplication processedApplication = processApplication(originalApplication, options);
-    assertEquals(2, Iterables.size(processedApplication.classes()));
+    AndroidApp originalApplication = buildApplicationWithAndroidJar(builder);
+    AndroidApp processedApplication = processApplication(originalApplication, options);
+    assertEquals(2, getNumberOfProgramClasses(processedApplication));
 
     // Return the processed method for inspection.
     DexEncodedMethod method = getMethod(processedApplication, signature);
@@ -1180,10 +1201,10 @@ public class OutlineTest extends SmaliTestBase {
     assertTrue(code.instructions[5] instanceof Const4);
     assertTrue(code.instructions[6] instanceof Return);
     InvokeStatic invoke = (InvokeStatic) code.instructions[1];
-    assertTrue(isOutlineMethodName(options, invoke.getMethod().qualifiedName()));
+    assertTrue(isOutlineMethodName(invoke.getMethod().qualifiedName()));
 
     // Run code and check result.
-    String result = runArt(processedApplication, options);
+    String result = runArt(processedApplication);
     assertEquals("4", result);
   }
 
@@ -1211,14 +1232,15 @@ public class OutlineTest extends SmaliTestBase {
         "    return-void"
     );
 
-    InternalOptions options = createInternalOptions();
-    options.outline.threshold = 1;
-    options.outline.minSize = 3;
-    options.outline.maxSize = 3;
+    Consumer<InternalOptions> options = configureOptions(outline -> {
+      outline.threshold = 1;
+      outline.minSize = 3;
+      outline.maxSize = 3;
+    });
 
-    DexApplication originalApplication = buildApplicationWithAndroidJar(builder, options);
-    DexApplication processedApplication = processApplication(originalApplication, options);
-    assertEquals(2, Iterables.size(processedApplication.classes()));
+    AndroidApp originalApplication = buildApplicationWithAndroidJar(builder);
+    AndroidApp processedApplication = processApplication(originalApplication, options);
+    assertEquals(2, getNumberOfProgramClasses(processedApplication));
 
     // Return the processed method for inspection.
     DexEncodedMethod method = getMethod(processedApplication, signature);
@@ -1227,10 +1249,10 @@ public class OutlineTest extends SmaliTestBase {
     assertTrue(code.instructions[0] instanceof InvokeStatic);
     assertTrue(code.instructions[1] instanceof ReturnVoid);
     InvokeStatic invoke = (InvokeStatic) code.instructions[0];
-    assertEquals(firstOutlineMethodName(options), invoke.getMethod().qualifiedName());
+    assertEquals(firstOutlineMethodName(), invoke.getMethod().qualifiedName());
 
     // Run code and check result.
-    String result = runArt(processedApplication, options);
+    String result = runArt(processedApplication);
     assertEquals("", result);
   }
 
@@ -1256,14 +1278,15 @@ public class OutlineTest extends SmaliTestBase {
         "    return-void"
     );
 
-    InternalOptions options = createInternalOptions();
-    options.outline.threshold = 1;
-    options.outline.minSize = 3;
-    options.outline.maxSize = 3;
+    Consumer<InternalOptions> options = configureOptions(outline -> {
+      outline.threshold = 1;
+      outline.minSize = 3;
+      outline.maxSize = 3;
+    });
 
-    DexApplication originalApplication = buildApplicationWithAndroidJar(builder, options);
-    DexApplication processedApplication = processApplication(originalApplication, options);
-    assertEquals(2, Iterables.size(processedApplication.classes()));
+    AndroidApp originalApplication = buildApplicationWithAndroidJar(builder);
+    AndroidApp processedApplication = processApplication(originalApplication, options);
+    assertEquals(2, getNumberOfProgramClasses(processedApplication));
 
     // Return the processed method for inspection.
     DexEncodedMethod method = getMethod(processedApplication, signature);
@@ -1272,10 +1295,10 @@ public class OutlineTest extends SmaliTestBase {
     assertTrue(code.instructions[0] instanceof InvokeStatic);
     assertTrue(code.instructions[1] instanceof ReturnVoid);
     InvokeStatic invoke = (InvokeStatic) code.instructions[0];
-    assertEquals(firstOutlineMethodName(options), invoke.getMethod().qualifiedName());
+    assertEquals(firstOutlineMethodName(), invoke.getMethod().qualifiedName());
 
     // Run code and check result.
-    String result = runArt(processedApplication, options);
+    String result = runArt(processedApplication);
     assertEquals("", result);
   }
 
@@ -1462,14 +1485,15 @@ public class OutlineTest extends SmaliTestBase {
         "    return-void"
     );
 
-    InternalOptions options = createInternalOptions();
-    options.outline.threshold = 2;
+    Consumer<InternalOptions> options = configureOptions(outline -> {
+      outline.threshold = 2;
+    });
 
-    DexApplication originalApplication = buildApplicationWithAndroidJar(builder, options);
-    DexApplication processedApplication = processApplication(originalApplication, options);
-    assertEquals(2, Iterables.size(processedApplication.classes()));
+    AndroidApp originalApplication = buildApplicationWithAndroidJar(builder);
+    AndroidApp processedApplication = processApplication(originalApplication, options);
+    assertEquals(2, getNumberOfProgramClasses(processedApplication));
 
     // Verify the code.
-    runDex2Oat(processedApplication, options);
+    runDex2Oat(processedApplication);
   }
 }

@@ -62,7 +62,6 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class R8 {
 
@@ -104,51 +103,6 @@ public class R8 {
     } catch (IOException e) {
       throw new RuntimeException("Cannot write application", e);
     }
-  }
-
-  static DexApplication optimize(
-      DexApplication application,
-      AppInfoWithSubtyping appInfo,
-      InternalOptions options)
-      throws ApiLevelException, ExecutionException, IOException {
-    return new R8(options).optimize(application, appInfo);
-  }
-
-  private DexApplication optimize(DexApplication application, AppInfoWithSubtyping appInfo)
-      throws IOException, ApiLevelException, ExecutionException {
-    return optimize(application, appInfo, GraphLense.getIdentityLense(),
-        Executors.newSingleThreadExecutor());
-  }
-
-  private DexApplication optimize(
-      DexApplication application,
-      AppInfoWithSubtyping appInfo,
-      GraphLense graphLense,
-      ExecutorService executorService)
-      throws IOException, ApiLevelException, ExecutionException {
-    final CfgPrinter printer = options.printCfg ? new CfgPrinter() : null;
-
-    timing.begin("Create IR");
-    try {
-      IRConverter converter = new IRConverter(
-          appInfo, options, timing, printer, graphLense);
-      application = converter.optimize(application, executorService);
-    } finally {
-      timing.end();
-    }
-
-    if (options.printCfg) {
-      if (options.printCfgFile == null || options.printCfgFile.isEmpty()) {
-        System.out.print(printer.toString());
-      } else {
-        try (OutputStreamWriter writer = new OutputStreamWriter(
-            new FileOutputStream(options.printCfgFile),
-            StandardCharsets.UTF_8)) {
-          writer.write(printer.toString());
-        }
-      }
-    }
-    return application;
   }
 
   private Set<DexType> filterMissingClasses(Set<DexType> missingClasses,
@@ -278,7 +232,26 @@ public class R8 {
 
       graphLense = new BridgeMethodAnalysis(graphLense, appInfo.withSubtyping()).run();
 
-      application = optimize(application, appInfo, graphLense, executorService);
+      timing.begin("Create IR");
+      CfgPrinter printer = options.printCfg ? new CfgPrinter() : null;
+      try {
+        IRConverter converter = new IRConverter(appInfo, options, timing, printer, graphLense);
+        application = converter.optimize(application, executorService);
+      } finally {
+        timing.end();
+      }
+
+      if (options.printCfg) {
+        if (options.printCfgFile == null || options.printCfgFile.isEmpty()) {
+          System.out.print(printer.toString());
+        } else {
+          try (OutputStreamWriter writer = new OutputStreamWriter(
+              new FileOutputStream(options.printCfgFile),
+              StandardCharsets.UTF_8)) {
+            writer.write(printer.toString());
+          }
+        }
+      }
 
       // Overwrite SourceFile if specified. This step should be done after IR conversion.
       timing.begin("Rename SourceFile");

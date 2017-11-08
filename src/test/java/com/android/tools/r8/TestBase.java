@@ -5,18 +5,20 @@
 package com.android.tools.r8;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.SmaliWriter;
 import com.android.tools.r8.shaking.FilteredClassPath;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.DexInspector;
+import com.android.tools.r8.utils.DexInspector.ClassSubject;
+import com.android.tools.r8.utils.DexInspector.MethodSubject;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OutputMode;
-import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.io.ByteStreams;
@@ -368,8 +370,34 @@ public class TestBase {
    */
   protected void disassemble(AndroidApp app) throws Exception {
     InternalOptions options = new InternalOptions();
-    DexApplication dexApplication = new ApplicationReader(app, options, new Timing("XX")).read();
-    System.out.println(SmaliWriter.smali(dexApplication, options));
+    System.out.println(SmaliWriter.smali(app, options));
+  }
+
+  protected DexEncodedMethod getMethod(
+      DexInspector inspector,
+      String className,
+      String returnType,
+      String methodName,
+      List<String> parameters) {
+    ClassSubject clazz = inspector.clazz(className);
+    assertTrue(clazz.isPresent());
+    MethodSubject method = clazz.method(returnType, methodName, parameters);
+    assertTrue(method.isPresent());
+    return method.getMethod();
+  }
+
+  protected DexEncodedMethod getMethod(
+      AndroidApp application,
+      String className,
+      String returnType,
+      String methodName,
+      List<String> parameters) {
+    try {
+      DexInspector inspector = new DexInspector(application);
+      return getMethod(inspector, className, returnType, methodName, parameters);
+    } catch (Exception e) {
+      return null;
+    }
   }
 
   public enum MinifyMode {

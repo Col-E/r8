@@ -11,7 +11,6 @@ import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.Sput;
 import com.android.tools.r8.code.SputObject;
-import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueBoolean;
@@ -23,11 +22,11 @@ import com.android.tools.r8.graph.DexValue.DexValueInt;
 import com.android.tools.r8.graph.DexValue.DexValueLong;
 import com.android.tools.r8.graph.DexValue.DexValueShort;
 import com.android.tools.r8.graph.DexValue.DexValueString;
+import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.smali.SmaliTestBase;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.MethodSubject;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
 import org.junit.Test;
 
@@ -92,9 +91,8 @@ public class StaticValuesTest extends SmaliTestBase {
         "return-void"
     );
 
-    InternalOptions options = new InternalOptions();
-    DexApplication originalApplication = buildApplication(builder, options);
-    DexApplication processedApplication = processApplication(originalApplication, options);
+    AndroidApp originalApplication = buildApplication(builder);
+    AndroidApp processedApplication = processApplication(originalApplication);
 
     DexInspector inspector = new DexInspector(processedApplication);
     // Test is running without tree-shaking, so the empty <clinit> is not removed.
@@ -147,7 +145,7 @@ public class StaticValuesTest extends SmaliTestBase {
     assertTrue(value instanceof DexValueString);
     assertEquals(("8"), ((DexValueString) value).getValue().toString());
 
-    String result = runArt(processedApplication, options);
+    String result = runArt(processedApplication);
 
     assertEquals(StringUtils.lines("true", "1", "2", "3", "4", "5.0", "6.0", "7", "8"), result);
   }
@@ -177,16 +175,15 @@ public class StaticValuesTest extends SmaliTestBase {
         "return-void"
     );
 
-    InternalOptions options = new InternalOptions();
-    DexApplication originalApplication = buildApplication(builder, options);
-    DexApplication processedApplication = processApplication(originalApplication, options);
+    AndroidApp originalApplication = buildApplication(builder);
+    AndroidApp processedApplication = processApplication(originalApplication);
 
     DexInspector inspector = new DexInspector(processedApplication);
     MethodSubject clinit = inspector.clazz("Test").clinit();
     // Nothing changed in the class initializer.
     assertEquals(5, clinit.getMethod().getCode().asDexCode().instructions.length);
 
-    String result = runArt(processedApplication, options);
+    String result = runArt(processedApplication);
 
     assertEquals(StringUtils.lines("0", "1"), result);
   }
@@ -219,16 +216,15 @@ public class StaticValuesTest extends SmaliTestBase {
         "return-void"
     );
 
-    InternalOptions options = new InternalOptions();
-    DexApplication originalApplication = buildApplication(builder, options);
-    DexApplication processedApplication = processApplication(originalApplication, options);
+    AndroidApp originalApplication = buildApplication(builder);
+    AndroidApp processedApplication = processApplication(originalApplication);
 
     DexInspector inspector = new DexInspector(processedApplication);
     // Test is running without tree-shaking, so the empty <clinit> is not removed.
     assertTrue(
         inspector.clazz("Test").clinit().getMethod().getCode().asDexCode().isEmptyVoidMethod());
 
-    String result = runArt(processedApplication, options);
+    String result = runArt(processedApplication);
 
     assertEquals(StringUtils.lines("null", "null", "null"), result);
   }
@@ -262,16 +258,15 @@ public class StaticValuesTest extends SmaliTestBase {
         "return-void"
     );
 
-    InternalOptions options = new InternalOptions();
-    DexApplication originalApplication = buildApplication(builder, options);
-    DexApplication processedApplication = processApplication(originalApplication, options);
+    AndroidApp originalApplication = buildApplication(builder);
+    AndroidApp processedApplication = processApplication(originalApplication);
 
     DexInspector inspector = new DexInspector(processedApplication);
     // Test is running without tree-shaking, so the empty <clinit> is not removed.
     assertTrue(
         inspector.clazz("Test").clinit().getMethod().getCode().asDexCode().isEmptyVoidMethod());
 
-    String result = runArt(processedApplication, options);
+    String result = runArt(processedApplication);
 
     assertEquals(StringUtils.lines("Value1", "Value2", "Value2"), result);
   }
@@ -313,9 +308,8 @@ public class StaticValuesTest extends SmaliTestBase {
         "return-void"
     );
 
-    InternalOptions options = new InternalOptions();
-    DexApplication originalApplication = buildApplication(builder, options);
-    DexApplication processedApplication = processApplication(originalApplication, options);
+    AndroidApp originalApplication = buildApplication(builder);
+    AndroidApp processedApplication = processApplication(originalApplication);
 
     DexInspector inspector = new DexInspector(processedApplication);
     // Test is running without tree-shaking, so the empty <clinit> is not removed.
@@ -333,7 +327,7 @@ public class StaticValuesTest extends SmaliTestBase {
     assertTrue(value instanceof DexValueString);
     assertEquals(("7"), ((DexValueString) value).getValue().toString());
 
-    String result = runArt(processedApplication, options);
+    String result = runArt(processedApplication);
 
     assertEquals(StringUtils.lines("3", "7") , result);
   }
@@ -387,9 +381,8 @@ public class StaticValuesTest extends SmaliTestBase {
         "return-void"
     );
 
-    InternalOptions options = new InternalOptions();
-    DexApplication originalApplication = buildApplication(builder, options);
-    DexApplication processedApplication = processApplication(originalApplication, options);
+    AndroidApp originalApplication = buildApplication(builder);
+    AndroidApp processedApplication = processApplication(originalApplication);
 
     DexInspector inspector = new DexInspector(processedApplication);
     assertTrue(inspector.clazz("Test").clinit().isPresent());
@@ -417,7 +410,7 @@ public class StaticValuesTest extends SmaliTestBase {
       }
     }
 
-    String result = runArt(processedApplication, options);
+    String result = runArt(processedApplication);
 
     assertEquals(StringUtils.lines("3", "7"), result);
   }
@@ -475,9 +468,8 @@ public class StaticValuesTest extends SmaliTestBase {
         "return-void"
     );
 
-    InternalOptions options = new InternalOptions();
-    DexApplication originalApplication = buildApplication(builder, options);
-    DexApplication processedApplication = processApplication(originalApplication, options);
+    AndroidApp originalApplication = buildApplication(builder);
+    AndroidApp processedApplication = processApplication(originalApplication);
 
     DexInspector inspector = new DexInspector(processedApplication);
     assertTrue(inspector.clazz(className).isPresent());
@@ -485,7 +477,7 @@ public class StaticValuesTest extends SmaliTestBase {
     assertTrue(
         inspector.clazz(className).clinit().getMethod().getCode().asDexCode().isEmptyVoidMethod());
 
-    String result = runArt(processedApplication, options, className);
+    String result = runArt(processedApplication, className);
 
     assertEquals(StringUtils.lines("Test", className, "Test", className, "Test", className),
         result);
@@ -525,15 +517,14 @@ public class StaticValuesTest extends SmaliTestBase {
 
     builder.addClass("org.example.Test2");
 
-    InternalOptions options = new InternalOptions();
-    DexApplication originalApplication = buildApplication(builder, options);
-    DexApplication processedApplication = processApplication(originalApplication, options);
+    AndroidApp originalApplication = buildApplication(builder);
+    AndroidApp processedApplication = processApplication(originalApplication);
 
     DexInspector inspector = new DexInspector(processedApplication);
     assertTrue(inspector.clazz(className).isPresent());
     assertTrue(inspector.clazz(className).clinit().isPresent());
 
-    String result = runArt(processedApplication, options, className);
+    String result = runArt(processedApplication, className);
 
     assertEquals(StringUtils.lines("Test2", "org.example.Test2"), result);
   }
@@ -559,16 +550,15 @@ public class StaticValuesTest extends SmaliTestBase {
     builder.addClass("Other");
     builder.addStaticField("field", "I", "1");
 
-    InternalOptions options = new InternalOptions();
-    DexApplication originalApplication = buildApplication(builder, options);
-    DexApplication processedApplication = processApplication(originalApplication, options);
+    AndroidApp originalApplication = buildApplication(builder);
+    AndroidApp processedApplication = processApplication(originalApplication);
 
     DexInspector inspector = new DexInspector(processedApplication);
     MethodSubject clinit = inspector.clazz("Test").clinit();
     // Nothing changed in the class initializer.
     assertEquals(3, clinit.getMethod().getCode().asDexCode().instructions.length);
 
-    String result = runArt(processedApplication, options);
+    String result = runArt(processedApplication);
 
     assertEquals(StringUtils.lines("2"), result);
   }

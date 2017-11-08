@@ -12,12 +12,11 @@ import com.android.tools.r8.code.ConstString;
 import com.android.tools.r8.code.InvokeVirtual;
 import com.android.tools.r8.code.ReturnVoid;
 import com.android.tools.r8.code.SgetObject;
-import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
+import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.StringUtils;
-import com.google.common.collect.Iterables;
 import org.junit.Test;
 
 public class RunArtSmokeTest extends SmaliTestBase {
@@ -34,10 +33,9 @@ public class RunArtSmokeTest extends SmaliTestBase {
         "    return-void"
     );
 
-    InternalOptions options = new InternalOptions();
-    DexApplication originalApplication = buildApplication(builder, options);
-    DexApplication processedApplication = processApplication(originalApplication, options);
-    assertEquals(1, Iterables.size(processedApplication.classes()));
+    AndroidApp originalApplication = buildApplication(builder);
+    AndroidApp processedApplication = processApplication(originalApplication);
+    assertEquals(1, getNumberOfProgramClasses(processedApplication));
 
     // Return the processed method for inspection.
     DexEncodedMethod main = getMethod(processedApplication, mainSignature);
@@ -50,7 +48,7 @@ public class RunArtSmokeTest extends SmaliTestBase {
     assertTrue(code.instructions[3] instanceof ReturnVoid);
 
     // Run the generated code in Art.
-    String result = runArt(processedApplication, options);
+    String result = runArt(processedApplication);
     assertEquals(StringUtils.lines("Hello, world!"), result);
   }
 }
