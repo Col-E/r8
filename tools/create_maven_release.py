@@ -42,6 +42,7 @@ POMTEMPLATE = Template(
       <url>https://opensource.org/licenses/BSD-3-Clause</url>
       <distribution>repo</distribution>
     </license>$library_licenses
+  </licenses>
   <developers>
     <developer>
       <name>The Android Open Source Project</name>
@@ -83,7 +84,7 @@ def generate_library_licenses():
     for line in file:
       trimmed = line.strip()
       if trimmed.startswith(license_prefix):
-        // Assert checking that licenses come in name/url pairs.
+        # Assert checking that licenses come in name/url pairs.
         assert len(licenses) == len(license_urls)
         name = trimmed[len(license_prefix):]
         if not name in licenses:
@@ -92,7 +93,7 @@ def generate_library_licenses():
         url = trimmed[len(license_url_prefix):]
         if not url in license_urls:
           license_urls.append(url)
-        // Assert checking that licenses come in name/url pairs.
+        # Assert checking that licenses come in name/url pairs.
         assert len(licenses) == len(license_urls)
   result = ''
   for i in range(len(licenses)):
