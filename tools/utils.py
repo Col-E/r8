@@ -19,6 +19,7 @@ DEX_SEGMENTS_JAR = os.path.join(REPO_ROOT, 'build', 'libs',
     'dexsegments.jar')
 DEX_SEGMENTS_RESULT_PATTERN = re.compile('- ([^:]+): ([0-9]+)')
 LIBS = os.path.join(REPO_ROOT, 'build', 'libs')
+MAVEN_ZIP = os.path.join(LIBS, 'r8.zip')
 
 D8 = 'd8'
 R8 = 'r8'

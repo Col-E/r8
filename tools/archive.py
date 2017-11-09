@@ -4,6 +4,7 @@
 # BSD-style license that can be found in the LICENSE file.
 
 import gradle
+import create_maven_release
 import d8
 import os
 import r8
@@ -42,11 +43,11 @@ def IsMaster(version):
     if 'origin/master' in branches:
       raise Exception('We are seeing origin/master in a commit that '
                       'don\'t have -dev in version')
-    return False;
+    return False
   if not 'origin/master' in branches:
       raise Exception('We are not seeing origin/master '
                       'in a commit that have -dev in version')
-  return True;
+  return True
 
 def GetStorageDestination(storage_prefix, version, file_name, is_master):
   # We archive master commits under raw/master instead of directly under raw
@@ -64,27 +65,33 @@ def GetUrl(version, file_name, is_master):
 def Main():
   if not 'BUILDBOT_BUILDERNAME' in os.environ:
     raise Exception('You are not a bot, don\'t archive builds')
+  # Ensure all archived artifacts has been built before archiving.
+  gradle.RunGradle([utils.D8, utils.R8, utils.COMPATDX, utils.COMPATPROGUARD])
+  create_maven_release.main(['--jar', utils.R8_JAR, "--out", utils.LIBS])
+
   version = GetVersion()
-  is_master = True #IsMaster(version)
+  is_master = IsMaster(version)
   if is_master:
     # On master we use the git hash to archive with
     print 'On master, using git hash for archiving'
     version = GetGitHash()
 
-  # Ensure all archived artifacts has been built before archiving.
-  gradle.RunGradle([utils.D8, utils.R8, utils.COMPATDX, utils.COMPATPROGUARD])
-
   with utils.TempDir() as temp:
     version_file = os.path.join(temp, 'r8-version.properties')
     with open(version_file,'w') as version_writer:
       version_writer.write('version.sha=' + GetGitHash() + '\n')
-      version_writer.write('releaser=go/r8bot (' + os.environ.get('BUILDBOT_SLAVENAME') + ')\n')
+      version_writer.write(
+          'releaser=go/r8bot (' + os.environ.get('BUILDBOT_SLAVENAME') + ')\n')
       version_writer.write('version-file.version.code=1\n')
 
-    for jar in [utils.D8_JAR, utils.R8_JAR, utils.COMPATDX_JAR, utils.COMPATPROGUARD_JAR]:
-      file_name = os.path.basename(jar)
+    for file in [utils.D8_JAR,
+                 utils.R8_JAR,
+                 utils.COMPATDX_JAR,
+                 utils.COMPATPROGUARD_JAR,
+                 utils.MAVEN_ZIP]:
+      file_name = os.path.basename(file)
       tagged_jar = os.path.join(temp, file_name)
-      shutil.copyfile(jar, tagged_jar)
+      shutil.copyfile(file, tagged_jar)
       with zipfile.ZipFile(tagged_jar, 'a') as zip:
         zip.write(version_file, os.path.basename(version_file))
       destination = GetUploadDestination(version, file_name, is_master)
