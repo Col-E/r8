@@ -144,8 +144,8 @@ class SpillMoveSet {
   }
 
   private MoveType moveTypeForIntervals(LiveIntervals to, LiveIntervals from) {
-    MoveType toType = to.getType();
-    MoveType fromType = from.getType();
+    MoveType toType = to.getMoveType();
+    MoveType fromType = from.getMoveType();
     if (toType == MoveType.OBJECT || fromType == MoveType.OBJECT) {
       assert fromType == MoveType.OBJECT || fromType == MoveType.SINGLE;
       assert toType == MoveType.OBJECT || toType == MoveType.SINGLE;

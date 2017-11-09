@@ -24,7 +24,7 @@ public class RegisterMove implements Comparable<RegisterMove> {
 
   public RegisterMove(int dst, MoveType type, Instruction definition) {
     this.dst = dst;
-    this.src = LinearScanRegisterAllocator.NO_REGISTER;
+    this.src = LiveIntervals.NO_REGISTER;
     this.type = type;
     assert definition.isConstInstruction() || definition.isArgument();
     this.definition = definition;
@@ -40,7 +40,7 @@ public class RegisterMove implements Comparable<RegisterMove> {
 
   public boolean isBlocked(Set<RegisterMove> moveSet, Map<Integer, Integer> valueMap) {
     for (RegisterMove move : moveSet) {
-      if (move.src == LinearScanRegisterAllocator.NO_REGISTER) {
+      if (move.src == LiveIntervals.NO_REGISTER) {
         continue;
       }
       if (move != this) {

@@ -4,7 +4,9 @@
 
 package com.android.tools.r8.ir.regalloc;
 
-import com.android.tools.r8.code.MoveType;
+import static com.android.tools.r8.ir.code.IRCode.INSTRUCTION_NUMBER_DELTA;
+import static com.android.tools.r8.ir.regalloc.LiveIntervals.NO_REGISTER;
+
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.ir.code.Add;
@@ -41,14 +43,12 @@ import it.unimi.dsi.fastutil.ints.IntIterator;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.PriorityQueue;
-import java.util.Queue;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -67,7 +67,7 @@ import java.util.TreeSet;
  * </ul>
  */
 public class LinearScanRegisterAllocator implements RegisterAllocator {
-  public static final int NO_REGISTER = Integer.MIN_VALUE;
+
   public static final int REGISTER_CANDIDATE_NOT_FOUND = -1;
   public static final int MIN_CONSTANT_FREE_FOR_POSITIONS = 5;
 
@@ -105,9 +105,6 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     }
   }
 
-  // When numbering instructions we number instructions only with even numbers. This allows us to
-  // use odd instruction numbers for the insertion of moves during spilling.
-  public static final int INSTRUCTION_NUMBER_DELTA = 2;
   // The max register number that will fit in any dex instruction encoding.
   private static final int MAX_SMALL_REGISTER = Constants.U4BIT_MAX;
   // We put one sentinel in front of the argument chain and one after the argument chain.
@@ -121,7 +118,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   private final InternalOptions options;
 
   // Mapping from basic blocks to the set of values live at entry to that basic block.
-  private Map<BasicBlock, Set<Value>> liveAtEntrySets = new IdentityHashMap<>();
+  private Map<BasicBlock, Set<Value>> liveAtEntrySets;
   // The sentinel value starting the chain of linked argument values.
   private Value preArgumentSentinelValue = null;
 
@@ -488,7 +485,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     boolean unused = intervals.isSpilledAndRematerializable(this);
     if (!unused) {
       used.add(realRegisterNumberFromAllocated(intervals.getRegister()));
-      if (intervals.getType() == MoveType.WIDE) {
+      if (intervals.getType().isWide()) {
         used.add(realRegisterNumberFromAllocated(intervals.getRegister() + 1));
       }
     }
@@ -535,7 +532,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
 
   private BasicBlock[] computeLivenessInformation() {
     BasicBlock[] blocks = code.numberInstructions();
-    computeLiveAtEntrySets();
+    liveAtEntrySets = code.computeLiveAtEntrySets();
     computeLiveRanges();
     return blocks;
   }
@@ -933,7 +930,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     for (int i = 0; i < numberOfRegister; i++) {
       assert current != null;
       current.setRegister(firstRegister + i);
-      if (current.getType() == MoveType.WIDE) {
+      if (current.getType().isWide()) {
         assert i < numberOfRegister;
         i++;
       }
@@ -974,7 +971,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   private int getSpillRegister(LiveIntervals intervals) {
     int registerNumber = nextUnusedRegisterNumber++;
     maxRegisterNumber = registerNumber;
-    if (intervals.getType() == MoveType.WIDE) {
+    if (intervals.getType().isWide()) {
       nextUnusedRegisterNumber++;
       maxRegisterNumber++;
     }
@@ -1817,65 +1814,6 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     }
   }
 
-  /**
-   * Compute the set of live values at the entry to each block using a backwards data-flow
-   * analysis.
-   */
-  private void computeLiveAtEntrySets() {
-    Queue<BasicBlock> worklist = new LinkedList<>();
-    // Since this is a backwards data-flow analysis we process the blocks in reverse
-    // topological order to reduce the number of iterations.
-    BasicBlock[] sorted = code.topologicallySortedBlocks();
-    for (int i = sorted.length - 1; i >= 0; i--) {
-      worklist.add(sorted[i]);
-    }
-    while (!worklist.isEmpty()) {
-      BasicBlock block = worklist.poll();
-      Set<Value> live = new HashSet<>();
-      for (BasicBlock succ : block.getSuccessors()) {
-        Set<Value> succLiveAtEntry = liveAtEntrySets.get(succ);
-        if (succLiveAtEntry != null) {
-          live.addAll(succLiveAtEntry);
-        }
-        int predIndex = succ.getPredecessors().indexOf(block);
-        for (Phi phi : succ.getPhis()) {
-          live.add(phi.getOperand(predIndex));
-          assert phi.getDebugValues().stream().allMatch(Value::needsRegister);
-          live.addAll(phi.getDebugValues());
-        }
-      }
-      ListIterator<Instruction> iterator =
-          block.getInstructions().listIterator(block.getInstructions().size());
-      while (iterator.hasPrevious()) {
-        Instruction instruction = iterator.previous();
-        if (instruction.outValue() != null) {
-          live.remove(instruction.outValue());
-        }
-        for (Value use : instruction.inValues()) {
-          if (use.needsRegister()) {
-            live.add(use);
-          }
-        }
-        assert instruction.getDebugValues().stream().allMatch(Value::needsRegister);
-        live.addAll(instruction.getDebugValues());
-      }
-      for (Phi phi : block.getPhis()) {
-        live.remove(phi);
-      }
-      Set<Value> previousLiveAtEntry = liveAtEntrySets.put(block, live);
-      // If the live at entry set changed for this block at the predecessors to the worklist if
-      // they are not already there.
-      if (previousLiveAtEntry == null || !previousLiveAtEntry.equals(live)) {
-        for (BasicBlock pred : block.getPredecessors()) {
-          if (!worklist.contains(pred)) {
-            worklist.add(pred);
-          }
-        }
-      }
-    }
-    assert liveAtEntrySets.get(sorted[0]).size() == 0;
-  }
-
   private void addLiveRange(Value v, BasicBlock b, int end) {
     int firstInstructionInBlock = b.entry().getNumber();
     int instructionsSize = b.getInstructions().size() * INSTRUCTION_NUMBER_DELTA;
@@ -2187,7 +2125,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   private void freeRegistersForIntervals(LiveIntervals intervals) {
     int register = intervals.getRegister();
     freeRegisters.add(register);
-    if (intervals.getType() == MoveType.WIDE) {
+    if (intervals.getType().isWide()) {
       freeRegisters.add(register + 1);
     }
   }
@@ -2195,7 +2133,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   private void takeRegistersForIntervals(LiveIntervals intervals) {
     int register = intervals.getRegister();
     freeRegisters.remove(register);
-    if (intervals.getType() == MoveType.WIDE) {
+    if (intervals.getType().isWide()) {
       freeRegisters.remove(register + 1);
     }
   }

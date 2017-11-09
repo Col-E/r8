@@ -57,7 +57,6 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.Switch;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.BiMap;
@@ -510,7 +509,7 @@ public class DexBuilder {
   }
 
   private static int instructionNumberToIndex(int instructionNumber) {
-    return instructionNumber / LinearScanRegisterAllocator.INSTRUCTION_NUMBER_DELTA;
+    return instructionNumber / IRCode.INSTRUCTION_NUMBER_DELTA;
   }
 
   // Helper used by the info objects.

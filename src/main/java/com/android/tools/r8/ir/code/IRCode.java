@@ -7,21 +7,28 @@ import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.google.common.collect.ImmutableList;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 public class IRCode {
+
+  // When numbering instructions we number instructions only with even numbers. This allows us to
+  // use odd instruction numbers for the insertion of moves during spilling.
+  public static final int INSTRUCTION_NUMBER_DELTA = 2;
 
   public final DexEncodedMethod method;
 
@@ -47,6 +54,66 @@ public class IRCode {
     this.valueNumberGenerator = valueNumberGenerator;
     this.hasDebugPositions = hasDebugPositions;
     allThrowingInstructionsHavePositions = computeAllThrowingInstructionsHavePositions();
+  }
+
+  /**
+   * Compute the set of live values at the entry to each block using a backwards data-flow analysis.
+   */
+  public Map<BasicBlock, Set<Value>> computeLiveAtEntrySets() {
+    Map<BasicBlock, Set<Value>> liveAtEntrySets = new IdentityHashMap<>();
+    Queue<BasicBlock> worklist = new ArrayDeque<>();
+    // Since this is a backwards data-flow analysis we process the blocks in reverse
+    // topological order to reduce the number of iterations.
+    BasicBlock[] sorted = topologicallySortedBlocks();
+    for (int i = sorted.length - 1; i >= 0; i--) {
+      worklist.add(sorted[i]);
+    }
+    while (!worklist.isEmpty()) {
+      BasicBlock block = worklist.poll();
+      Set<Value> live = new HashSet<>();
+      for (BasicBlock succ : block.getSuccessors()) {
+        Set<Value> succLiveAtEntry = liveAtEntrySets.get(succ);
+        if (succLiveAtEntry != null) {
+          live.addAll(succLiveAtEntry);
+        }
+        int predIndex = succ.getPredecessors().indexOf(block);
+        for (Phi phi : succ.getPhis()) {
+          live.add(phi.getOperand(predIndex));
+          assert phi.getDebugValues().stream().allMatch(Value::needsRegister);
+          live.addAll(phi.getDebugValues());
+        }
+      }
+      ListIterator<Instruction> iterator =
+          block.getInstructions().listIterator(block.getInstructions().size());
+      while (iterator.hasPrevious()) {
+        Instruction instruction = iterator.previous();
+        if (instruction.outValue() != null) {
+          live.remove(instruction.outValue());
+        }
+        for (Value use : instruction.inValues()) {
+          if (use.needsRegister()) {
+            live.add(use);
+          }
+        }
+        assert instruction.getDebugValues().stream().allMatch(Value::needsRegister);
+        live.addAll(instruction.getDebugValues());
+      }
+      for (Phi phi : block.getPhis()) {
+        live.remove(phi);
+      }
+      Set<Value> previousLiveAtEntry = liveAtEntrySets.put(block, live);
+      // If the live-at-entry set changed, add the predecessors to the worklist if they are not
+      // already there.
+      if (previousLiveAtEntry == null || !previousLiveAtEntry.equals(live)) {
+        for (BasicBlock pred : block.getPredecessors()) {
+          if (!worklist.contains(pred)) {
+            worklist.add(pred);
+          }
+        }
+      }
+    }
+    assert liveAtEntrySets.get(sorted[0]).size() == 0;
+    return liveAtEntrySets;
   }
 
   public void splitCriticalEdges() {
@@ -438,7 +505,7 @@ public class IRCode {
     for (BasicBlock block : blocks) {
       for (Instruction instruction : block.getInstructions()) {
         instruction.setNumber(nextInstructionNumber);
-        nextInstructionNumber += LinearScanRegisterAllocator.INSTRUCTION_NUMBER_DELTA;
+        nextInstructionNumber += INSTRUCTION_NUMBER_DELTA;
       }
     }
     return blocks;
@@ -450,7 +517,7 @@ public class IRCode {
       Instruction i = it.next();
       if (i.getNumber() == -1) {
         i.setNumber(nextInstructionNumber);
-        nextInstructionNumber += LinearScanRegisterAllocator.INSTRUCTION_NUMBER_DELTA;
+        nextInstructionNumber += INSTRUCTION_NUMBER_DELTA;
       }
     }
     return nextInstructionNumber;

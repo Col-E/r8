@@ -50,7 +50,7 @@ public class RegisterMoveScheduler {
 
   public void addMove(RegisterMove move) {
     moveSet.add(move);
-    if (move.src != LinearScanRegisterAllocator.NO_REGISTER) {
+    if (move.src != LiveIntervals.NO_REGISTER) {
       valueMap.put(move.src, move.src);
     }
     valueMap.put(move.dst, move.dst);
@@ -80,7 +80,7 @@ public class RegisterMoveScheduler {
         Integer generatedDest = createMove(move);
         // Update the value map with the information that dest can be used instead of
         // src starting now.
-        if (move.src != LinearScanRegisterAllocator.NO_REGISTER) {
+        if (move.src != LiveIntervals.NO_REGISTER) {
           valueMap.put(move.src, generatedDest);
         }
         // Iterate and find the moves that were blocked because they need to write to
@@ -110,9 +110,9 @@ public class RegisterMoveScheduler {
 
   private List<RegisterMove> findMovesWithSrc(int src, MoveType type) {
     List<RegisterMove> result = new ArrayList<>();
-    assert src != LinearScanRegisterAllocator.NO_REGISTER;
+    assert src != LiveIntervals.NO_REGISTER;
     for (RegisterMove move : moveSet) {
-      if (move.src == LinearScanRegisterAllocator.NO_REGISTER) {
+      if (move.src == LiveIntervals.NO_REGISTER) {
         continue;
       }
       int moveSrc = valueMap.get(move.src);
