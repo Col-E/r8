@@ -38,10 +38,12 @@ import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 
 public class RootSetBuilder {
 
@@ -580,6 +582,23 @@ public class RootSetBuilder {
           || item instanceof DexEncodedField;
       return Collections
           .unmodifiableMap(dependentNoShrinking.getOrDefault(item, Collections.emptyMap()));
+    }
+
+    private boolean isStaticMember(Entry<DexItem, ProguardKeepRule> entry) {
+      if (entry.getKey() instanceof DexEncodedMethod) {
+        return ((DexEncodedMethod) entry.getKey()).accessFlags.isStatic();
+      }
+      if (entry.getKey() instanceof DexEncodedField) {
+        return ((DexEncodedField) entry.getKey()).accessFlags.isStatic();
+      }
+      return false;
+    }
+
+    Map<DexItem, ProguardKeepRule> getDependentStaticMembers(DexItem item) {
+      assert item instanceof DexType;
+      return getDependentItems(item).entrySet().stream()
+          .filter(this::isStaticMember)
+          .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
     }
 
     @Override

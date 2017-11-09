@@ -363,6 +363,9 @@ public class Enqueuer {
         annotations.forEach(this::handleAnnotationOfLiveType);
       }
 
+      // Add all dependent static members to the workqueue.
+      enqueueRootItems(rootSet.getDependentStaticMembers(type));
+
       // For Proguard compatibility mark default initializer for live type as live.
       if (options.forceProguardCompatibility) {
         if (holder.hasDefaultInitializer()) {
