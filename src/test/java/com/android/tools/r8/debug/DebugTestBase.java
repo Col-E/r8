@@ -25,6 +25,7 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OffOrAuto;
 import com.google.common.collect.ImmutableList;
+import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongList;
 import java.io.File;
@@ -120,6 +121,8 @@ public abstract class DebugTestBase {
   }
 
   private static final DexCompilerKind DEX_COMPILER_KIND = DexCompilerKind.D8;
+
+  private static final int FIRST_LINE = -1;
 
   // Set to true to enable verbose logs
   private static final boolean DEBUG_TESTS = false;
@@ -410,9 +413,18 @@ public abstract class DebugTestBase {
     return breakpoint(className, methodName, null);
   }
 
+  protected final JUnit3Wrapper.Command breakpoint(String className, String methodName, int line) {
+    return breakpoint(className, methodName, null, line);
+  }
+
   protected final JUnit3Wrapper.Command breakpoint(String className, String methodName,
       String methodSignature) {
-    return new JUnit3Wrapper.Command.BreakpointCommand(className, methodName, methodSignature);
+    return breakpoint(className, methodName, methodSignature, FIRST_LINE);
+  }
+
+  protected final JUnit3Wrapper.Command breakpoint(String className, String methodName,
+      String methodSignature, int line) {
+    return new JUnit3Wrapper.Command.BreakpointCommand(className, methodName, methodSignature, line);
   }
 
   protected final JUnit3Wrapper.Command stepOver() {
@@ -1425,18 +1437,30 @@ public abstract class DebugTestBase {
       setState(State.WaitForEvent);
     }
 
-    private long getMethodFirstCodeIndex(long classId, long breakpointMethodId) {
+    private LongList getMethodCodeIndex(long classId, long breakpointMethodId, int lineToSearch) {
+      LongList pcs = new LongArrayList();
       ReplyPacket replyPacket = getMirror().getLineTable(classId, breakpointMethodId);
       checkReplyPacket(replyPacket, "Failed to get method line table");
-      replyPacket.getNextValueAsLong(); // start
-      replyPacket.getNextValueAsLong(); // end
+      long start = replyPacket.getNextValueAsLong(); // start
+      long end = replyPacket.getNextValueAsLong(); // end
       int linesCount = replyPacket.getNextValueAsInt();
       if (linesCount == 0) {
-        return -1;
+        pcs.add(-1L);
       } else {
-        // Read only the 1st line because code indices are in ascending order
-        return replyPacket.getNextValueAsLong();
+        if (lineToSearch == FIRST_LINE) {
+          // Read only the 1st line because code indices are in ascending order
+          pcs.add(replyPacket.getNextValueAsLong());
+        } else {
+          for (int entry = 0; entry < linesCount; entry++) {
+            long pc = replyPacket.getNextValueAsLong();
+            long lineNumber = replyPacket.getNextValueAsInt();
+            if (lineNumber == lineToSearch) {
+              pcs.add(pc);
+            }
+          }
+        }
       }
+      return pcs;
     }
 
     //
@@ -1465,14 +1489,16 @@ public abstract class DebugTestBase {
         private final String methodName;
         private final String methodSignature;
         private boolean requestedClassPrepare = false;
+        private int line;
 
         public BreakpointCommand(String className, String methodName,
-            String methodSignature) {
+            String methodSignature, int line) {
           assert className != null;
           assert methodName != null;
           this.className = className;
           this.methodName = methodName;
           this.methodSignature = methodSignature;
+          this.line = line;
         }
 
         @Override
@@ -1513,13 +1539,15 @@ public abstract class DebugTestBase {
                 testBase.translator.getObfuscatedMethodName(className, methodName, methodSignature);
             long breakpointMethodId =
                 findMethod(mirror, classId, obfuscatedMethodName, methodSignature);
-            long index = testBase.getMethodFirstCodeIndex(classId, breakpointMethodId);
-            Assert.assertTrue("No code in method", index >= 0);
-            ReplyPacket replyPacket = testBase.getMirror().setBreakpoint(
-                new Location(typeTag, classId, breakpointMethodId, index), SuspendPolicy.ALL);
-            assert replyPacket.getErrorCode() == Error.NONE;
-            int breakpointId = replyPacket.getNextValueAsInt();
-            testBase.events.put(Integer.valueOf(breakpointId), new DefaultEventHandler());
+            LongList pcs = testBase.getMethodCodeIndex(classId, breakpointMethodId, line);
+            for (long pc : pcs) {
+              Assert.assertTrue("No code in method", pc >= 0);
+              ReplyPacket replyPacket = testBase.getMirror().setBreakpoint(
+                  new Location(typeTag, classId, breakpointMethodId, pc), SuspendPolicy.ALL);
+              assert replyPacket.getErrorCode() == Error.NONE;
+              int breakpointId = replyPacket.getNextValueAsInt();
+              testBase.events.put(Integer.valueOf(breakpointId), new DefaultEventHandler());
+            }
           }
         }
 
@@ -1575,6 +1603,10 @@ public abstract class DebugTestBase {
           sb.append(className);
           sb.append(" method=");
           sb.append(methodName);
+          sb.append(" signature=");
+          sb.append(methodSignature);
+          sb.append(" line=");
+          sb.append(line);
           return sb.toString();
         }
       }
