@@ -6,6 +6,7 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
+import com.android.tools.r8.utils.TriFunction;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import java.util.ArrayList;
@@ -159,11 +160,7 @@ public class AppInfo {
    */
   public DexEncodedField lookupStaticTarget(DexType type, DexField field) {
     assert type.isClassType();
-    DexEncodedField target = lookupTargetAlongSuperChain(type, field, DexClass::findStaticTarget);
-    if (target == null) {
-      target = lookupTargetAlongInterfaceChain(type, field, DexClass::findStaticTarget);
-    }
-    return target;
+    return lookupTargetAlongInterfaceAndSuperChain(type, field, DexClass::findStaticTarget);
   }
 
   /**
@@ -188,6 +185,21 @@ public class AppInfo {
     return null;
   }
 
+  private <S extends DexItem, T extends Descriptor<S, T>> S applyToInterfacesAndDisambiguate(
+      DexType[] interfaces,
+      T desc,
+      BiFunction<DexClass, T, S> lookup,
+      TriFunction<DexType, T, BiFunction<DexClass, T, S>, S> traversal) {
+    S result = null;
+    for (DexType iface : interfaces) {
+      S localResult = traversal.apply(iface, desc, lookup);
+      if (localResult != null) {
+        result = resolveAmbiguousResult(result, localResult);
+      }
+    }
+    return result;
+  }
+
   /**
    * Traverse along the super chain and the interface chains until lookup returns non-null value.
    */
@@ -209,8 +221,32 @@ public class AppInfo {
         return result;
       }
     }
-    for (DexType iface : holder.interfaces.values) {
-      result = lookupTargetAlongSuperAndInterfaceChain(iface, desc, lookup);
+    return applyToInterfacesAndDisambiguate(holder.interfaces.values, desc, lookup,
+        this::lookupTargetAlongSuperAndInterfaceChain);
+  }
+
+  /**
+   * Traverse along the super chain and the interface chains until lookup returns non-null value.
+   */
+  private <S extends DexItem, T extends Descriptor<S, T>> S lookupTargetAlongInterfaceAndSuperChain(
+      DexType type,
+      T desc,
+      BiFunction<DexClass, T, S> lookup) {
+    DexClass holder = definitionFor(type);
+    if (holder == null) {
+      return null;
+    }
+    S result = lookup.apply(holder, desc);
+    if (result != null) {
+      return result;
+    }
+    result = applyToInterfacesAndDisambiguate(holder.interfaces.values, desc, lookup,
+        this::lookupTargetAlongSuperAndInterfaceChain);
+    if (result != null) {
+      return result;
+    }
+    if (holder.superType != null) {
+      result = lookupTargetAlongInterfaceAndSuperChain(holder.superType, desc, lookup);
       if (result != null) {
         return result;
       }
@@ -218,10 +254,10 @@ public class AppInfo {
     return null;
   }
 
-  private boolean isDefaultMethod(DexItem dexItem) {
-    return dexItem != null && dexItem instanceof DexEncodedMethod &&
-        !((DexEncodedMethod) dexItem).accessFlags.isStatic() &&
-        ((DexEncodedMethod) dexItem).getCode() != null;
+  private boolean isDefaultMethod(DexEncodedMethod encodedMethod) {
+    return encodedMethod != null
+        && !encodedMethod.accessFlags.isStatic()
+        && encodedMethod.getCode() != null;
   }
 
   /** Returns if <code>interface1</code> is a super interface of <code>interface2</code> */
@@ -242,26 +278,47 @@ public class AppInfo {
     // implementations can come from different paths in a diamond.
     // See §9.4.1 in The Java® Language Specification, Java SE 8 Edition.
     if (previousResult != null
-        && previousResult != newResult
-        && isDefaultMethod(previousResult)
-        && isDefaultMethod(newResult)) {
-      DexEncodedMethod previousMethod = (DexEncodedMethod) previousResult;
-      DexEncodedMethod newMethod = (DexEncodedMethod) newResult;
-      if (isSuperInterfaceOf(previousMethod.method.getHolder(), newMethod.method.getHolder())) {
-        return newResult;
+        && previousResult != newResult) {
+      if (newResult instanceof DexEncodedMethod) {
+        DexEncodedMethod previousMethod = (DexEncodedMethod) previousResult;
+        DexEncodedMethod newMethod = (DexEncodedMethod) newResult;
+        if (isDefaultMethod(previousMethod) && isDefaultMethod(newMethod)) {
+          if (isSuperInterfaceOf(previousMethod.method.getHolder(), newMethod.method.getHolder())) {
+            return newResult;
+          }
+          if (isSuperInterfaceOf(newMethod.method.getHolder(), previousMethod.method.getHolder())) {
+            return previousResult;
+          }
+          throw new CompilationError("Duplicate default methods named "
+              + previousResult.toSourceString()
+              + " are inherited from the types "
+              + previousMethod.method.holder.getName()
+              + " and "
+              + newMethod.method.holder.getName());
+        } else {
+          // Return the default method, if any, or the first item found.
+          return isDefaultMethod(newMethod) ? newResult : previousResult;
+        }
+      } else {
+        assert newResult instanceof DexEncodedField;
+        DexEncodedField previousField = (DexEncodedField) previousResult;
+        DexEncodedField newField = (DexEncodedField) newResult;
+        if (isSuperInterfaceOf(previousField.field.getHolder(), newField.field.getHolder())) {
+          return newResult;
+        }
+        if (isSuperInterfaceOf(newField.field.getHolder(), previousField.field.getHolder())) {
+          return previousResult;
+        }
+        throw new CompilationError("Duplicate fields named "
+            + previousResult.toSourceString()
+            + " are inherited from the types "
+            + previousField.field.getHolder().getName()
+            + " and "
+            + newField.field.getHolder().getName());
       }
-      if (isSuperInterfaceOf(newMethod.method.getHolder(), previousMethod.method.getHolder())) {
-        return previousResult;
-      }
-      throw new CompilationError("Duplicate default methods named "
-          + previousResult.toSourceString()
-          + " are inherited from the types "
-          + previousMethod.method.holder.getName()
-          + " and "
-          + newMethod.method.holder.getName());
     } else {
-      // Return the first item found for everything except default methods.
-      return previousResult != null ? previousResult : newResult;
+      // Return the first item found.
+      return previousResult == null ? newResult : previousResult;
     }
   }
 
@@ -277,13 +334,8 @@ public class AppInfo {
       // TODO(herhut): The subtype hierarchy is broken. Handle this case.
       return null;
     }
-    S result = null;
-    for (DexType iface : holder.interfaces.values) {
-      S localResult = lookupTargetAlongSuperAndInterfaceChain(iface, desc, lookup);
-      if (localResult != null) {
-        result = resolveAmbiguousResult(result, localResult);
-      }
-    }
+    S result = applyToInterfacesAndDisambiguate(holder.interfaces.values, desc, lookup,
+        this::lookupTargetAlongSuperAndInterfaceChain);
     if (holder.superType != null) {
       S localResult = lookupTargetAlongInterfaceChain(holder.superType, desc, lookup);
       if (localResult != null) {
