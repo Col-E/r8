@@ -10,11 +10,13 @@ import static org.junit.Assert.assertNull;
 
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.errors.DexOverflowException;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.smali.SmaliTestBase;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DexInspector;
 import com.google.common.collect.ImmutableList;
+import java.util.Collections;
 import org.junit.Test;
 
 public class TargetLookupTest extends SmaliTestBase {
@@ -160,6 +162,44 @@ public class TargetLookupTest extends SmaliTestBase {
     assertNotNull(appInfo.lookupStaticTarget(methodXOnTest));
 
     assertEquals("OK", runArt(application));
+  }
+
+  @Test
+  public void lookupFieldWithDefaultInInterface() throws DexOverflowException {
+    SmaliBuilder builder = new SmaliBuilder();
+
+    builder.addInterface("Interface");
+    builder.addStaticField("aField", "I", "42");
+
+    builder.addClass("SuperClass");
+    builder.addStaticField("aField", "I", "123");
+
+    builder.addClass("SubClass", "SuperClass", Collections.singletonList("Interface"));
+
+    builder.addClass(DEFAULT_CLASS_NAME);
+    builder.addMainMethod(2,
+        "    sget-object         v0, Ljava/lang/System;->out:Ljava/io/PrintStream;",
+        "    sget                v1, LSubClass;->aField:I",
+        "    invoke-virtual      { v0, v1 }, Ljava/io/PrintStream;->print(I)V",
+        "    return-void"
+    );
+
+    AndroidApp application = buildApplication(builder);
+    AppInfo appInfo = getAppInfo(application);
+    DexItemFactory factory = appInfo.dexItemFactory;
+
+    DexField aFieldOnSubClass = factory
+        .createField(factory.createType("LSubClass;"), factory.intType, "aField");
+    DexField aFieldOnInterface = factory
+        .createField(factory.createType("LInterface;"), factory.intType, "aField");
+
+    assertEquals(aFieldOnInterface,
+        appInfo.lookupStaticTarget(aFieldOnSubClass.getHolder(), aFieldOnSubClass).field);
+
+    assertEquals("42", runArt(application));
+
+    AndroidApp processedApp = processApplication(application);
+    assertEquals("42", runArt(processedApp));
   }
 }
 

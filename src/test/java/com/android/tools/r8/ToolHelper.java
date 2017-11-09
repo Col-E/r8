@@ -109,6 +109,10 @@ public class ToolHelper {
         return compareTo(other) > 0;
       }
 
+      public boolean isAtLeast(Version other) {
+        return compareTo(other) >= 0;
+      }
+
       public boolean isOlderThanOrEqual(Version other) {
         return compareTo(other) <= 0;
       }
