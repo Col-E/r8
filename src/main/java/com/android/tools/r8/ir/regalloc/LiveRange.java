@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.regalloc;
 
-class LiveRange {
+public class LiveRange {
 
   public final static LiveRange INFINITE = new LiveRange(0, Integer.MAX_VALUE);
 

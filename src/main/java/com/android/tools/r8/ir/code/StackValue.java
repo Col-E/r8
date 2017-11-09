@@ -38,6 +38,16 @@ public class StackValue extends Value {
   }
 
   @Override
+  public boolean needsRegister() {
+    return false;
+  }
+
+  @Override
+  public void setNeedsRegister(boolean value) {
+    assert !value;
+  }
+
+  @Override
   public String toString() {
     return "s" + height;
   }

@@ -4,11 +4,11 @@
 package com.android.tools.r8.ir.regalloc;
 
 import static com.android.tools.r8.dex.Constants.U16BIT_MAX;
-import static com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator.NO_REGISTER;
 
 import com.android.tools.r8.code.MoveType;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.utils.CfgPrinter;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -17,8 +17,9 @@ import java.util.TreeSet;
 
 public class LiveIntervals implements Comparable<LiveIntervals> {
 
+  public static final int NO_REGISTER = Integer.MIN_VALUE;
+
   private final Value value;
-  private final MoveType type;
   private LiveIntervals nextConsecutive;
   private LiveIntervals previousConsecutive;
   private LiveIntervals splitParent;
@@ -39,18 +40,16 @@ public class LiveIntervals implements Comparable<LiveIntervals> {
   // conservatively determine if it is safe to use rematerialization for this value.
   private int maxNonSpilledRegister = NO_REGISTER;
 
-  LiveIntervals(Value value) {
+  public LiveIntervals(Value value) {
     this.value = value;
-    this.type = MoveType.fromValueType(value.outType());
     usedInMonitorOperations = value.usedInMonitorOperation();
     splitParent = this;
     value.setLiveIntervals(this);
   }
 
-  LiveIntervals(LiveIntervals splitParent) {
+  public LiveIntervals(LiveIntervals splitParent) {
     this.splitParent = splitParent;
     value = splitParent.value;
-    type = splitParent.type;
     usedInMonitorOperations = splitParent.usedInMonitorOperations;
   }
 
@@ -62,16 +61,20 @@ public class LiveIntervals implements Comparable<LiveIntervals> {
     return position % 2 == 1 ? position : position - 1;
   }
 
-  public MoveType getType() {
-    return type;
-  }
-
   public Value getValue() {
     return value;
   }
 
+  public ValueType getType() {
+    return value.outType();
+  }
+
+  public MoveType getMoveType() {
+    return MoveType.fromValueType(getType());
+  }
+
   public int requiredRegisters() {
-    return type == MoveType.WIDE ? 2 : 1;
+    return getType().requiredRegisters();
   }
 
   public void setHint(LiveIntervals intervals) {
@@ -294,7 +297,7 @@ public class LiveIntervals implements Comparable<LiveIntervals> {
   }
 
   public boolean usesRegister(int n) {
-    if (register == n || (getType() == MoveType.WIDE && register + 1 == n)) {
+    if (register == n || (getType().isWide() && register + 1 == n)) {
       return true;
     }
     return false;

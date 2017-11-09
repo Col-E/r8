@@ -20,8 +20,8 @@ class SpillMove {
     this.type = type;
     this.to = to;
     this.from = from;
-    assert to.getRegister() != LinearScanRegisterAllocator.NO_REGISTER;
-    assert from.getRegister() != LinearScanRegisterAllocator.NO_REGISTER;
+    assert to.getRegister() != LiveIntervals.NO_REGISTER;
+    assert from.getRegister() != LiveIntervals.NO_REGISTER;
   }
 
   @Override

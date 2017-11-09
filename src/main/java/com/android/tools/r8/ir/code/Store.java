@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.FixedLocalValue;
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfStore;
@@ -10,7 +11,6 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
-import com.android.tools.r8.ir.conversion.CfBuilder.FixedLocal;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.utils.InternalOptions;
 
@@ -72,6 +72,6 @@ public class Store extends Instruction {
 
   @Override
   public boolean canBeDeadCode(IRCode code, InternalOptions options) {
-    return !(outValue instanceof FixedLocal);
+    return !(outValue instanceof FixedLocalValue);
   }
 }

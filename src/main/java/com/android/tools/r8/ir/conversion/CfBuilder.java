@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.conversion;
 
+import com.android.tools.r8.cf.CfRegisterAllocator;
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfFrame;
@@ -24,7 +25,6 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Load;
-import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.StackValue;
 import com.android.tools.r8.ir.code.Store;
 import com.android.tools.r8.ir.code.Value;
@@ -33,8 +33,6 @@ import com.android.tools.r8.ir.optimize.DeadCodeRemover;
 import com.android.tools.r8.utils.InternalOptions;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
-import it.unimi.dsi.fastutil.objects.Reference2IntMap;
-import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -50,39 +48,10 @@ public class CfBuilder {
   private final DexEncodedMethod method;
   private final IRCode code;
 
-  private int maxLocals = -1;
-
   private Map<Value, DexType> types;
-  private Reference2IntMap<Value> registers;
   private Map<BasicBlock, CfLabel> labels;
   private List<CfInstruction> instructions;
-
-  /**
-   * Value that represents a shared physical location defined by the phi value.
-   *
-   * This value is introduced to represent the store instructions used to unify the location of
-   * in-flowing values to phi's. After introducing this fixed location the graph is no longer in
-   * SSA since the fixed location signifies a place that can be written to from multiple places.
-   */
-  public static class FixedLocal extends Value {
-
-    private final Phi phi;
-
-    public FixedLocal(Phi phi) {
-      super(phi.getNumber(), phi.outType(), phi.getLocalInfo());
-      this.phi = phi;
-    }
-
-    @Override
-    public boolean isConstant() {
-      return false;
-    }
-
-    @Override
-    public String toString() {
-      return "fixed:v" + phi.getNumber();
-    }
-  }
+  private CfRegisterAllocator registerAllocator;
 
   // Internal abstraction of the stack values and height.
   private static class Stack {
@@ -115,10 +84,14 @@ public class CfBuilder {
     try {
       types = new TypeVerificationHelper(code, factory).computeVerificationTypes();
       splitExceptionalBlocks();
-      new LoadStoreHelper(code, types).insertLoadsAndStores();
+      LoadStoreHelper loadStoreHelper = new LoadStoreHelper(code, types);
+      loadStoreHelper.insertLoadsAndStores();
       DeadCodeRemover.removeDeadCode(code, rewriter, options);
       removeUnneededLoadsAndStores();
-      allocateLocalRegisters();
+      registerAllocator = new CfRegisterAllocator(code, options);
+      registerAllocator.allocateRegisters();
+      loadStoreHelper.insertPhiMoves(registerAllocator);
+      CodeRewriter.collapsTrivialGotos(method, code);
       // TODO(zerny): Compute debug info.
       CfCode code = buildCfCode();
       return code;
@@ -193,29 +166,6 @@ public class CfBuilder {
     }
   }
 
-  private void allocateLocalRegisters() {
-    // TODO(zerny): Allocate locals based on live ranges.
-    InstructionIterator it = code.instructionIterator();
-    registers = new Reference2IntOpenHashMap<>();
-    int nextFreeRegister = 0;
-    while (it.hasNext()) {
-      Instruction instruction = it.next();
-      Value outValue = instruction.outValue();
-      if (outValue instanceof FixedLocal) {
-        // Phi stores are marked by a "fixed-local" value which share the same local index.
-        FixedLocal fixed = (FixedLocal) outValue;
-        if (!registers.containsKey(fixed.phi)) {
-          registers.put(fixed.phi, nextFreeRegister);
-          nextFreeRegister += fixed.requiredRegisters();
-        }
-      } else if (outValue != null && !(outValue instanceof StackValue)) {
-        registers.put(instruction.outValue(), nextFreeRegister);
-        nextFreeRegister += instruction.outValue().requiredRegisters();
-      }
-    }
-    maxLocals = nextFreeRegister;
-  }
-
   private CfCode buildCfCode() {
     Stack stack = new Stack();
     List<CfTryCatch> tryCatchRanges = new ArrayList<>();
@@ -253,13 +203,14 @@ public class CfBuilder {
         assert stack.isEmpty();
         instructions.add(getLabel(nextBlock));
         if (nextBlock.getPredecessors().size() > 1) {
-          addFrame(Collections.emptyList(), types.keySet());
+          addFrame(nextBlock, Collections.emptyList());
         }
       }
       block = nextBlock;
     } while (block != null);
     assert stack.isEmpty();
-    return new CfCode(stack.maxHeight, maxLocals, instructions, tryCatchRanges);
+    return new CfCode(
+        stack.maxHeight, registerAllocator.registersUsed(), instructions, tryCatchRanges);
   }
 
   private void buildCfInstructions(BasicBlock block, boolean fallthrough, Stack stack) {
@@ -285,9 +236,10 @@ public class CfBuilder {
     }
   }
 
-  private void addFrame(Collection<StackValue> stack, Collection<Value> locals) {
+  private void addFrame(BasicBlock block, Collection<StackValue> stack) {
     // TODO(zerny): Support having values on the stack on control-edges.
     assert stack.isEmpty();
+    Collection<Value> locals = registerAllocator.getLocalsAtPosition(block.entry().getNumber());
     Int2ReferenceSortedMap<DexType> mapping = new Int2ReferenceAVLTreeMap<>();
     for (Value local : locals) {
       DexType type;
@@ -323,12 +275,7 @@ public class CfBuilder {
   }
 
   public int getLocalRegister(Value value) {
-    if (value instanceof FixedLocal) {
-      // Phi stores are marked by a "fixed-local" value which share the same local index.
-      FixedLocal fixed = (FixedLocal) value;
-      return registers.getInt(fixed.phi);
-    }
-    return registers.getInt(value);
+    return registerAllocator.getRegisterForValue(value);
   }
 
   public void add(CfInstruction instruction) {

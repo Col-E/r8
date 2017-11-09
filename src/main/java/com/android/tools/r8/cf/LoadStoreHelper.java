@@ -21,7 +21,6 @@ import com.android.tools.r8.ir.code.StackValue;
 import com.android.tools.r8.ir.code.Store;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
-import com.android.tools.r8.ir.conversion.CfBuilder.FixedLocal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -37,22 +36,6 @@ public class LoadStoreHelper {
   }
 
   public void insertLoadsAndStores() {
-    // Insert phi stores in all predecessors.
-    for (BasicBlock block : code.blocks) {
-      if (!block.getPhis().isEmpty()) {
-        for (int predIndex = 0; predIndex < block.getPredecessors().size(); predIndex++) {
-          BasicBlock pred = block.getPredecessors().get(predIndex);
-          List<Phi> phis = block.getPhis();
-          List<Value> values = new ArrayList<>(phis.size());
-          for (Phi phi : phis) {
-            values.add(phi.getOperand(predIndex));
-          }
-          InstructionListIterator it = pred.listIterator(pred.getInstructions().size());
-          it.previous();
-          movePhis(phis, values, it);
-        }
-      }
-    }
     // Insert per-instruction loads and stores.
     for (BasicBlock block : code.blocks) {
       InstructionListIterator it = block.listIterator();
@@ -61,6 +44,29 @@ public class LoadStoreHelper {
         current.insertLoadAndStores(it, this);
       }
     }
+  }
+
+  public void insertPhiMoves(CfRegisterAllocator allocator) {
+    // Insert phi stores in all predecessors.
+    for (BasicBlock block : code.blocks) {
+      if (!block.getPhis().isEmpty()) {
+        for (int predIndex = 0; predIndex < block.getPredecessors().size(); predIndex++) {
+          BasicBlock pred = block.getPredecessors().get(predIndex);
+          List<Phi> phis = block.getPhis();
+          List<PhiMove> moves = new ArrayList<>(phis.size());
+          for (Phi phi : phis) {
+            Value value = phi.getOperand(predIndex);
+            if (allocator.getRegisterForValue(phi) != allocator.getRegisterForValue(value)) {
+              moves.add(new PhiMove(phi, value));
+            }
+          }
+          InstructionListIterator it = pred.listIterator(pred.getInstructions().size());
+          it.previous();
+          movePhis(moves, it);
+        }
+      }
+    }
+    code.blocks.forEach(BasicBlock::clearUserInfo);
   }
 
   private StackValue createStackValue(Value value, int height) {
@@ -111,24 +117,32 @@ public class LoadStoreHelper {
     add(new Pop(newOutValue), instruction, it);
   }
 
-  public void movePhis(List<Phi> phis, List<Value> values, InstructionListIterator it) {
+  private static class PhiMove {
+    final Phi phi;
+    final Value operand;
+
+    public PhiMove(Phi phi, Value operand) {
+      this.phi = phi;
+      this.operand = operand;
+    }
+  }
+
+  private void movePhis(List<PhiMove> moves, InstructionListIterator it) {
     // TODO(zerny): Accounting for non-interfering phis would lower the max stack size.
     int topOfStack = 0;
-    List<StackValue> temps = new ArrayList<>(phis.size());
-    for (int i = 0; i < phis.size(); i++) {
-      Phi phi = phis.get(i);
-      Value value = values.get(i);
-      StackValue tmp = createStackValue(phi, topOfStack++);
-      add(load(tmp, value), phi.getBlock(), Position.none(), it);
+    List<StackValue> temps = new ArrayList<>(moves.size());
+    for (PhiMove move : moves) {
+      StackValue tmp = createStackValue(move.phi, topOfStack++);
+      add(load(tmp, move.operand), move.phi.getBlock(), Position.none(), it);
       temps.add(tmp);
-      value.removePhiUser(phi);
+      move.operand.removePhiUser(move.phi);
     }
-    for (int i = phis.size() - 1; i >= 0; i--) {
-      Phi phi = phis.get(i);
+    for (int i = moves.size() - 1; i >= 0; i--) {
+      PhiMove move = moves.get(i);
       StackValue tmp = temps.get(i);
-      FixedLocal out = new FixedLocal(phi);
-      add(new Store(out, tmp), phi.getBlock(), Position.none(), it);
-      phi.replaceUsers(out);
+      FixedLocalValue out = new FixedLocalValue(move.phi);
+      add(new Store(out, tmp), move.phi.getBlock(), Position.none(), it);
+      move.phi.replaceUsers(out);
     }
   }
 
