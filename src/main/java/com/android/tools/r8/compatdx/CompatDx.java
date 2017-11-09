@@ -321,7 +321,6 @@ public class CompatDx {
   }
 
   private static void run(String[] args) throws DxUsageMessage, IOException, CompilationException {
-    System.out.println("CompatDx " + String.join(" ", args));
     DxCompatOptions dexArgs = DxCompatOptions.parse(args);
     if (dexArgs.help) {
       printHelpOn(System.out);
@@ -348,11 +347,11 @@ public class CompatDx {
       throw new DxUsageMessage("No input files specified");
     }
 
-    if (!Log.ENABLED && (!dexArgs.noWarning || dexArgs.debug || dexArgs.verbose)) {
+    if (!Log.ENABLED && dexArgs.debug) {
       System.out.println("Warning: logging is not enabled for this build.");
     }
 
-    if (dexArgs.dump) {
+    if (dexArgs.dump && dexArgs.verbose) {
       System.out.println("Warning: dump is not supported");
     }
 
@@ -377,11 +376,11 @@ public class CompatDx {
       }
     }
 
-    if (dexArgs.dumpTo != null) {
+    if (dexArgs.dumpTo != null && dexArgs.verbose) {
       System.out.println("dump-to file not yet supported");
     }
 
-    if (dexArgs.positions == PositionInfo.NONE) {
+    if (dexArgs.positions == PositionInfo.NONE && dexArgs.verbose) {
       System.out.println("Warning: no support for positions none.");
     }
 
@@ -393,7 +392,7 @@ public class CompatDx {
       throw new Unimplemented("incremental merge not supported yet");
     }
 
-    if (dexArgs.forceJumbo) {
+    if (dexArgs.forceJumbo && dexArgs.verbose) {
       System.out.println(
           "Warning: no support for forcing jumbo-strings.\n"
               + "Strings will only use jumbo-string indexing if necessary.\n"
@@ -401,7 +400,7 @@ public class CompatDx {
               + "supports correct handling of jumbo-strings (eg, D8/R8 does).");
     }
 
-    if (dexArgs.noOptimize) {
+    if (dexArgs.noOptimize && dexArgs.verbose) {
       System.out.println("Warning: no support for not optimizing");
     }
 
@@ -413,7 +412,7 @@ public class CompatDx {
       throw new Unimplemented("no support for dont-optimize-method list");
     }
 
-    if (dexArgs.statistics) {
+    if (dexArgs.statistics && dexArgs.verbose) {
       System.out.println("Warning: no support for printing statistics");
     }
 
@@ -426,16 +425,20 @@ public class CompatDx {
     }
 
     if (dexArgs.noStrict) {
-      System.out.println("Warning: conservative main-dex list not yet supported");
+      if (dexArgs.verbose) {
+        System.out.println("Warning: conservative main-dex list not yet supported");
+      }
     } else {
-      System.out.println("Warning: strict name checking not yet supported");
+      if (dexArgs.verbose) {
+        System.out.println("Warning: strict name checking not yet supported");
+      }
     }
 
-    if (dexArgs.minimalMainDex) {
+    if (dexArgs.minimalMainDex && dexArgs.verbose) {
       System.out.println("Warning: minimal main-dex support is not yet supported");
     }
 
-    if (dexArgs.maxIndexNumber != 0) {
+    if (dexArgs.maxIndexNumber != 0 && dexArgs.verbose) {
       System.out.println("Warning: internal maximum-index setting is not supported");
     }
 
