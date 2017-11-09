@@ -185,6 +185,8 @@ public class CfBuilder {
             // Remove the load.
             it.next();
             it.remove();
+            // Rewind to the instruction before the store so we can identify new patterns.
+            it.previous();
           }
         }
       }

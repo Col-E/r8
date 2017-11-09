@@ -22,6 +22,8 @@ import com.android.tools.r8.ir.code.Store;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.CfBuilder.FixedLocal;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 public class LoadStoreHelper {
@@ -40,12 +42,14 @@ public class LoadStoreHelper {
       if (!block.getPhis().isEmpty()) {
         for (int predIndex = 0; predIndex < block.getPredecessors().size(); predIndex++) {
           BasicBlock pred = block.getPredecessors().get(predIndex);
-          for (Phi phi : block.getPhis()) {
-            Value value = phi.getOperand(predIndex);
-            InstructionListIterator it = pred.listIterator(pred.getInstructions().size());
-            it.previous();
-            movePhi(phi, value, it);
+          List<Phi> phis = block.getPhis();
+          List<Value> values = new ArrayList<>(phis.size());
+          for (Phi phi : phis) {
+            values.add(phi.getOperand(predIndex));
           }
+          InstructionListIterator it = pred.listIterator(pred.getInstructions().size());
+          it.previous();
+          movePhis(phis, values, it);
         }
       }
     }
@@ -107,13 +111,25 @@ public class LoadStoreHelper {
     add(new Pop(newOutValue), instruction, it);
   }
 
-  public void movePhi(Phi phi, Value value, InstructionListIterator it) {
-    StackValue tmp = createStackValue(phi, 0);
-    FixedLocal out = new FixedLocal(phi);
-    add(load(tmp, value), phi.getBlock(), Position.none(), it);
-    add(new Store(out, tmp), phi.getBlock(), Position.none(), it);
-    value.removePhiUser(phi);
-    phi.replaceUsers(out);
+  public void movePhis(List<Phi> phis, List<Value> values, InstructionListIterator it) {
+    // TODO(zerny): Accounting for non-interfering phis would lower the max stack size.
+    int topOfStack = 0;
+    List<StackValue> temps = new ArrayList<>(phis.size());
+    for (int i = 0; i < phis.size(); i++) {
+      Phi phi = phis.get(i);
+      Value value = values.get(i);
+      StackValue tmp = createStackValue(phi, topOfStack++);
+      add(load(tmp, value), phi.getBlock(), Position.none(), it);
+      temps.add(tmp);
+      value.removePhiUser(phi);
+    }
+    for (int i = phis.size() - 1; i >= 0; i--) {
+      Phi phi = phis.get(i);
+      StackValue tmp = temps.get(i);
+      FixedLocal out = new FixedLocal(phi);
+      add(new Store(out, tmp), phi.getBlock(), Position.none(), it);
+      phi.replaceUsers(out);
+    }
   }
 
   private Instruction load(StackValue stackValue, Value value) {
