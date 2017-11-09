@@ -22,6 +22,7 @@ public class CfFrame extends CfInstruction {
     this.locals = locals;
   }
 
+  @Override
   public void write(MethodVisitor visitor) {
     int type = F_NEW;
     int localsSize = locals.size();

@@ -9,7 +9,7 @@ import java.util.Objects;
 
 public class Position {
 
-  private static final Position NO_POSITION = new Position(-1, null, false, null, null);
+  private static final Position NO_POSITION = new Position(-1, null, null, null, false);
 
   public final int line;
   public final DexString file;
@@ -24,12 +24,12 @@ public class Position {
   public final Position callerPosition;
 
   public Position(int line, DexString file, DexMethod method, Position callerPosition) {
-    this(line, file, false, method, callerPosition);
+    this(line, file, method, callerPosition, false);
     assert line >= 0;
   }
 
   private Position(
-      int line, DexString file, boolean synthetic, DexMethod method, Position callerPosition) {
+      int line, DexString file, DexMethod method, Position callerPosition, boolean synthetic) {
     this.line = line;
     this.file = file;
     this.synthetic = synthetic;
@@ -41,7 +41,7 @@ public class Position {
 
   public static Position synthetic(int line, DexMethod method, Position callerPosition) {
     assert line >= 0;
-    return new Position(line, null, true, method, callerPosition);
+    return new Position(line, null, method, callerPosition, true);
   }
 
   public static Position none() {
@@ -53,7 +53,7 @@ public class Position {
   // it as the caller of the inlined Positions.
   public static Position noneWithMethod(DexMethod method, Position callerPosition) {
     assert method != null;
-    return new Position(-1, null, false, method, callerPosition);
+    return new Position(-1, null, method, callerPosition, false);
   }
 
   public boolean isNone() {
