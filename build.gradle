@@ -77,6 +77,12 @@ sourceSets {
             ]
         }
     }
+    apiUsageSample {
+        java {
+            srcDirs = ['src/test/apiUsageSample']
+        }
+        output.resourcesDir = 'build/classes/apiUsageSample'
+    }
     debugTestResources {
         java {
             srcDirs = ['src/test/debugTestResources']
@@ -191,6 +197,7 @@ dependencies {
     supportLibs 'com.android.support:support-v4:25.4.0'
     supportLibs 'junit:junit:4.12'
     supportLibs 'com.android.support.test.espresso:espresso-core:3.0.0'
+    apiUsageSampleCompile sourceSets.main.output
     debugTestResourcesKotlinCompileOnly 'org.jetbrains.kotlin:kotlin-stdlib:1.1.4-3'
     apt 'com.google.auto.value:auto-value:1.5'
 }
@@ -628,6 +635,12 @@ task createJctfTests(type: Exec) {
 compileTestJava {
     dependsOn createArtTests
     dependsOn createJctfTests
+}
+
+task buildApiUsageSample(type: Jar) {
+    from sourceSets.apiUsageSample.output
+    baseName 'api_usage_sample'
+    destinationDir file('tests')
 }
 
 task buildDebugInfoExamplesDex {
