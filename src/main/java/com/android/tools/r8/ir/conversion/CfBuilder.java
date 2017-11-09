@@ -288,7 +288,7 @@ public class CfBuilder {
   private void addFrame(Collection<StackValue> stack, Collection<Value> locals) {
     // TODO(zerny): Support having values on the stack on control-edges.
     assert stack.isEmpty();
-    Int2ReferenceSortedMap<DexType> mapping = new Int2ReferenceAVLTreeMap();
+    Int2ReferenceSortedMap<DexType> mapping = new Int2ReferenceAVLTreeMap<>();
     for (Value local : locals) {
       DexType type;
       switch (local.outType()) {
