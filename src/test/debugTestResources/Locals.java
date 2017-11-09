@@ -353,6 +353,18 @@ public class Locals {
     return c;
   }
 
+  public static void localVisibilityIntoLoop(double B[][], double A[][]) {
+    int i;
+    int length = 1;
+    for (i = 0; i < length; i++) {
+      double Bi[] = B[i];
+      double Ai[] = A[i];
+      for (int j = 0; j < 1; j += 4) {
+        Bi[j] = Ai[j];
+      }
+    }
+  }
+
   public static void main(String[] args) {
     noLocals();
     unusedLocals();
@@ -377,5 +389,6 @@ public class Locals {
     System.out.println(localConstantBis(true));
     System.out.println(localTriggeringCSE());
     System.out.println(intAddition(1, 2, 6));
+    localVisibilityIntoLoop(new double[1][1], new double[1][1]);
   }
 }

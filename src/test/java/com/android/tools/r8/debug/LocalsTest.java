@@ -3,18 +3,24 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.debug;
 
+import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.Command;
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.FrameInspector;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.apache.harmony.jpda.tests.framework.jdwp.JDWPConstants.Tag;
 import org.apache.harmony.jpda.tests.framework.jdwp.Value;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
  * Tests local variable information.
  */
 public class LocalsTest extends DebugTestBase {
+
+  private static final boolean RUN_JAVA = false;
 
   public static final String SOURCE_FILE = "Locals.java";
 
@@ -679,5 +685,48 @@ public class LocalsTest extends DebugTestBase {
         checkLocal("b", Value.createInt(8)),
         checkLocal("c", Value.createInt(11)),
         run());
+  }
+
+  @Test
+  @Ignore("b/69093793")
+  public void testLocalVisibilityIntoLoop() throws Throwable {
+    final String className = "Locals";
+    final String methodName = "localVisibilityIntoLoop";
+
+    List<Command> commands = new ArrayList<>();
+    commands.add(breakpoint(className, methodName, 359));
+    commands.add(run());
+    commands.add(checkMethod(className, methodName));
+    commands.add(checkLine(SOURCE_FILE, 359));
+    commands.add(checkNoLocal("Ai"));
+    commands.add(checkNoLocal("Bi"));
+    commands.add(checkNoLocal("i"));
+    commands.add(stepOver());
+    commands.add(checkMethod(className, methodName));
+    commands.add(checkLine(SOURCE_FILE, 360));
+    commands.add(checkNoLocal("Ai"));
+    commands.add(checkNoLocal("Bi"));
+    commands.add(checkLocal("i", Value.createInt(0)));
+    commands.add(stepOver());
+    commands.add(checkMethod(className, methodName));
+    commands.add(checkLine(SOURCE_FILE, 361));
+    commands.add(checkNoLocal("Ai"));
+    commands.add(checkLocal("Bi"));
+    commands.add(checkLocal("i", Value.createInt(0)));
+    commands.add(stepOver());
+    commands.add(checkMethod(className, methodName));
+    commands.add(checkLine(SOURCE_FILE, 362));
+    commands.add(checkLocal("Ai"));
+    commands.add(checkLocal("Bi"));
+    commands.add(checkLocal("i", Value.createInt(0)));
+    commands.add(run());
+    commands.add(checkMethod(className, methodName));
+    commands.add(checkLine(SOURCE_FILE, 359));
+    commands.add(checkNoLocal("Ai"));
+    commands.add(checkNoLocal("Bi"));
+    commands.add(checkLocal("i", Value.createInt(0)));
+    commands.add(run());
+
+    runDebugTest(getDebuggeeDexD8OrCf(RUN_JAVA), className, commands);
   }
 }
