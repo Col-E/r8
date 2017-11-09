@@ -3,11 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.LoadStoreHelper;
+import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfConstString;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
-import com.android.tools.r8.ir.conversion.CfBuilder.StackHelper;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.utils.InternalOptions;
 
@@ -89,12 +91,17 @@ public class ConstString extends ConstInstruction {
   }
 
   @Override
-  public void insertLoadAndStores(InstructionListIterator it, StackHelper stack) {
-    stack.storeOutValue(this, it);
+  public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
+    helper.storeOutValue(this, it);
   }
 
   @Override
   public void buildCf(CfBuilder builder) {
     builder.add(new CfConstString(value));
+  }
+
+  @Override
+  public DexType computeVerificationType(TypeVerificationHelper helper) {
+    return helper.getFactory().stringType;
   }
 }

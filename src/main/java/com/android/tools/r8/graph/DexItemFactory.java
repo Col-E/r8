@@ -54,7 +54,17 @@ public class DexItemFactory {
   boolean sorted = false;
 
   public static final DexType catchAllType = new DexType(new DexString("CATCH_ALL"));
-  private static final Set<DexItem> internalSentinels = ImmutableSet.of(catchAllType);
+
+  // Internal type containing only the null value.
+  public static final DexType nullValueType = new DexType(new DexString("NULL"));
+
+  private static final Set<DexItem> internalSentinels = ImmutableSet.of(
+      catchAllType,
+      nullValueType);
+
+  public static boolean isInternalSentinel(DexItem item) {
+    return internalSentinels.contains(item);
+  }
 
   public final DexString booleanDescriptor = createString("Z");
   public final DexString byteDescriptor = createString("B");
@@ -294,7 +304,7 @@ public class DexItemFactory {
 
   private static <T extends DexItem> T canonicalize(ConcurrentHashMap<T, T> map, T item) {
     assert item != null;
-    assert !internalSentinels.contains(item);
+    assert !DexItemFactory.isInternalSentinel(item);
     T previous = map.putIfAbsent(item, item);
     return previous == null ? item : previous;
   }
@@ -329,7 +339,7 @@ public class DexItemFactory {
       result = new DexType(descriptor);
       assert result.isArrayType() || result.isClassType() || result.isPrimitiveType() ||
           result.isVoidType();
-      assert !internalSentinels.contains(result);
+      assert !isInternalSentinel(result);
       types.put(descriptor, result);
     }
     return result;

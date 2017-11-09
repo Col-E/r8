@@ -3,8 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DebugLocalInfo;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.BasicBlock.EdgeType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.utils.CfgPrinter;
@@ -370,5 +372,17 @@ public class Phi extends Value {
 
   public boolean usesValueOneTime(Value usedValue) {
     return operands.indexOf(usedValue) == operands.lastIndexOf(usedValue);
+  }
+
+  public DexType computeVerificationType(TypeVerificationHelper helper) {
+    assert outType().isObject();
+    Set<DexType> operandTypes = new HashSet<>(operands.size());
+    for (Value operand : operands) {
+      DexType operandType = helper.getType(operand);
+      if (operandType != null) {
+        operandTypes.add(operandType);
+      }
+    }
+    return helper.join(operandTypes);
   }
 }

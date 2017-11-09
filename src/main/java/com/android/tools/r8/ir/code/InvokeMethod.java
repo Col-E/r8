@@ -3,13 +3,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.LoadStoreHelper;
+import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.conversion.CfBuilder.StackHelper;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.InliningOracle;
@@ -84,15 +85,26 @@ public abstract class InvokeMethod extends Invoke {
   public abstract InlineAction computeInlining(InliningOracle decider);
 
   @Override
-  public void insertLoadAndStores(InstructionListIterator it, StackHelper stack) {
-    stack.loadInValues(this, it);
+  public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
+    helper.loadInValues(this, it);
     if (method.proto.returnType.isVoidType()) {
       return;
     }
     if (outValue == null) {
-      stack.popOutValue(ValueType.fromDexType(method.proto.returnType), this, it);
+      helper.popOutType(method.proto.returnType, this, it);
     } else {
-      stack.storeOutValue(this, it);
+      assert outValue.isUsed();
+      helper.storeOutValue(this, it);
     }
+  }
+
+  @Override
+  public boolean hasInvariantVerificationType() {
+    return true;
+  }
+
+  @Override
+  public DexType computeVerificationType(TypeVerificationHelper helper) {
+    return getInvokedMethod().proto.returnType;
   }
 }

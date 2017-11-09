@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.LoadStoreHelper;
+import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfConstNull;
 import com.android.tools.r8.cf.code.CfConstNumber;
 import com.android.tools.r8.code.Const;
@@ -14,8 +16,8 @@ import com.android.tools.r8.code.ConstWide16;
 import com.android.tools.r8.code.ConstWide32;
 import com.android.tools.r8.code.ConstWideHigh16;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
-import com.android.tools.r8.ir.conversion.CfBuilder.StackHelper;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.utils.NumberUtils;
 
@@ -134,8 +136,8 @@ public class ConstNumber extends ConstInstruction {
   }
 
   @Override
-  public void insertLoadAndStores(InstructionListIterator it, StackHelper stack) {
-    stack.storeOutValue(this, it);
+  public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
+    helper.storeOutValue(this, it);
   }
 
   @Override
@@ -239,5 +241,11 @@ public class ConstNumber extends ConstInstruction {
   @Override
   public ConstNumber asConstNumber() {
     return this;
+  }
+
+  @Override
+  public DexType computeVerificationType(TypeVerificationHelper helper) {
+    assert outType().isObject();
+    return helper.getFactory().nullValueType;
   }
 }

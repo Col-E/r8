@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.code.CfArrayLoad;
 import com.android.tools.r8.code.Aget;
 import com.android.tools.r8.code.AgetBoolean;
@@ -16,7 +17,6 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
-import com.android.tools.r8.ir.conversion.CfBuilder.StackHelper;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
@@ -131,9 +131,9 @@ public class ArrayGet extends Instruction {
   }
 
   @Override
-  public void insertLoadAndStores(InstructionListIterator it, StackHelper stack) {
-    stack.loadInValues(this, it);
-    stack.storeOutValue(this, it);
+  public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
+    helper.loadInValues(this, it);
+    helper.storeOutValue(this, it);
   }
 
   @Override

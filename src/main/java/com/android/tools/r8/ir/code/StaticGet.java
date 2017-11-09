@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.LoadStoreHelper;
+import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfStaticGet;
 import com.android.tools.r8.code.Sget;
 import com.android.tools.r8.code.SgetBoolean;
@@ -18,7 +20,6 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
-import com.android.tools.r8.ir.conversion.CfBuilder.StackHelper;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 
 public class StaticGet extends FieldInstruction {
@@ -121,12 +122,17 @@ public class StaticGet extends FieldInstruction {
   }
 
   @Override
-  public void insertLoadAndStores(InstructionListIterator it, StackHelper stack) {
-    stack.storeOutValue(this, it);
+  public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
+    helper.storeOutValue(this, it);
   }
 
   @Override
   public void buildCf(CfBuilder builder) {
     builder.add(new CfStaticGet(field));
+  }
+
+  @Override
+  public DexType computeVerificationType(TypeVerificationHelper helper) {
+    return field.type;
   }
 }

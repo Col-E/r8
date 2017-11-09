@@ -3,6 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.TypeVerificationHelper;
+import com.android.tools.r8.graph.DexType;
+
 /**
  * Instruction introducing an SSA value with attached local information.
  *
@@ -41,5 +44,15 @@ public class DebugLocalWrite extends Move {
   public boolean identicalNonValueNonPositionParts(Instruction other) {
     assert other.isDebugLocalWrite();
     return true;
+  }
+
+  @Override
+  public boolean hasInvariantVerificationType() {
+    return false;
+  }
+
+  @Override
+  public DexType computeVerificationType(TypeVerificationHelper helper) {
+    return helper.getType(src());
   }
 }

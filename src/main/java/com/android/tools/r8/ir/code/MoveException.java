@@ -3,14 +3,18 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.LoadStoreHelper;
+import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
-import com.android.tools.r8.ir.conversion.CfBuilder.StackHelper;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.utils.InternalOptions;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 public class MoveException extends Instruction {
 
@@ -73,16 +77,36 @@ public class MoveException extends Instruction {
   }
 
   @Override
-  public void insertLoadAndStores(InstructionListIterator it, StackHelper stack) {
+  public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
     if (outValue.isUsed()) {
-      stack.storeOutValue(this, it);
+      helper.storeOutValue(this, it);
     } else {
-      stack.popOutValue(outValue.type, this, it);
+      helper.popOutValue(outValue, this, it);
     }
   }
 
   @Override
   public void buildCf(CfBuilder builder) {
     // Nothing to do. The exception is implicitly pushed on the stack.
+  }
+
+  @Override
+  public DexType computeVerificationType(TypeVerificationHelper helper) {
+    Set<DexType> exceptionTypes = new HashSet<>(getBlock().getPredecessors().size());
+    for (BasicBlock block : getBlock().getPredecessors()) {
+      int size = block.getCatchHandlers().size();
+      List<BasicBlock> targets = block.getCatchHandlers().getAllTargets();
+      List<DexType> guards = block.getCatchHandlers().getGuards();
+      for (int i = 0; i < size; i++) {
+        if (targets.get(i) == getBlock()) {
+          DexType guard = guards.get(i);
+          exceptionTypes.add(
+              guard == helper.getFactory().catchAllType
+                  ? helper.getFactory().throwableType
+                  : guard);
+        }
+      }
+    }
+    return helper.join(exceptionTypes);
   }
 }

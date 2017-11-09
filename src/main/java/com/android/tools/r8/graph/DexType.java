@@ -228,8 +228,8 @@ public class DexType extends IndexedDexItem implements PresortedComparable<DexTy
   public String toSourceString() {
     if (toStringCache == null) {
       // TODO(ager): Pass in a ProguardMapReader to map names back to original names.
-      if (this == DexItemFactory.catchAllType) {
-        toStringCache = "CATCH_ALL";
+      if (DexItemFactory.isInternalSentinel(this)) {
+        toStringCache = descriptor.toString();
       } else {
         toStringCache = DescriptorUtils.descriptorToJavaType(toDescriptorString());
       }

@@ -3,6 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.conversion;
 
+import com.android.tools.r8.cf.LoadStoreHelper;
+import com.android.tools.r8.cf.TypeVerificationHelper;
+import com.android.tools.r8.cf.code.CfFrame;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfLabel;
 import com.android.tools.r8.cf.code.CfTryCatch;
@@ -11,31 +14,30 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CatchHandlers;
-import com.android.tools.r8.ir.code.ConstClass;
-import com.android.tools.r8.ir.code.ConstInstruction;
-import com.android.tools.r8.ir.code.ConstNumber;
-import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Load;
 import com.android.tools.r8.ir.code.Phi;
-import com.android.tools.r8.ir.code.Pop;
-import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.StackValue;
 import com.android.tools.r8.ir.code.Store;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover;
 import com.android.tools.r8.utils.InternalOptions;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -44,15 +46,16 @@ import java.util.Map;
 
 public class CfBuilder {
 
+  private final DexItemFactory factory;
   private final DexEncodedMethod method;
   private final IRCode code;
 
   private int maxLocals = -1;
-  private int maxStack = 0;
-  private int currentStack = 0;
-  private List<CfInstruction> instructions;
+
+  private Map<Value, DexType> types;
   private Reference2IntMap<Value> registers;
   private Map<BasicBlock, CfLabel> labels;
+  private List<CfInstruction> instructions;
 
   /**
    * Value that represents a shared physical location defined by the phi value.
@@ -81,94 +84,44 @@ public class CfBuilder {
     }
   }
 
-  public static class StackHelper {
+  // Internal abstraction of the stack values and height.
+  private static class Stack {
+    int maxHeight = 0;
+    int height = 0;
 
-    private int currentStackHeight = 0;
-
-    public void loadInValues(Instruction instruction, InstructionListIterator it) {
-      int topOfStack = currentStackHeight;
-      it.previous();
-      for (Value value : instruction.inValues()) {
-        StackValue stackValue = new StackValue(value.outType(), topOfStack++);
-        add(load(stackValue, value), instruction, it);
-        value.removeUser(instruction);
-        instruction.replaceValue(value, stackValue);
-      }
-      it.next();
+    boolean isEmpty() {
+      return height == 0;
     }
 
-    public void storeOutValue(Instruction instruction, InstructionListIterator it) {
-      if (instruction.outValue() instanceof StackValue) {
-        assert instruction.isConstInstruction();
-        return;
-      }
-      StackValue newOutValue = new StackValue(instruction.outType(), currentStackHeight);
-      Value oldOutValue = instruction.swapOutValue(newOutValue);
-      add(new Store(oldOutValue, newOutValue), instruction, it);
+    void push(Value value) {
+      assert value instanceof StackValue;
+      height += value.requiredRegisters();
+      maxHeight = Math.max(maxHeight, height);
     }
 
-    public void popOutValue(ValueType type, Instruction instruction, InstructionListIterator it) {
-      StackValue newOutValue = new StackValue(type, currentStackHeight);
-      instruction.swapOutValue(newOutValue);
-      add(new Pop(newOutValue), instruction, it);
+    void pop(Value value) {
+      assert value instanceof StackValue;
+      height -= value.requiredRegisters();
     }
-
-    public void movePhi(Phi phi, Value value, InstructionListIterator it) {
-      StackValue tmp = new StackValue(phi.outType(), currentStackHeight);
-      FixedLocal out = new FixedLocal(phi);
-      add(load(tmp, value), phi.getBlock(), Position.none(), it);
-      add(new Store(out, tmp), phi.getBlock(), Position.none(), it);
-      value.removePhiUser(phi);
-      phi.replaceUsers(out);
-    }
-
-    private Instruction load(StackValue stackValue, Value value) {
-      if (value.isConstant()) {
-        ConstInstruction constant = value.getConstInstruction();
-        if (constant.isConstNumber()) {
-          return new ConstNumber(stackValue, constant.asConstNumber().getRawValue());
-        } else if (constant.isConstString()) {
-          return new ConstString(stackValue, constant.asConstString().getValue());
-        } else if (constant.isConstClass()) {
-          return new ConstClass(stackValue, constant.asConstClass().getValue());
-        } else {
-          throw new Unreachable("Unexpected constant value: " + value);
-        }
-      }
-      return new Load(stackValue, value);
-    }
-
-    private static void add(
-        Instruction newInstruction, Instruction existingInstruction, InstructionListIterator it) {
-      add(newInstruction, existingInstruction.getBlock(), existingInstruction.getPosition(), it);
-    }
-
-    private static void add(
-        Instruction newInstruction,
-        BasicBlock block,
-        Position position,
-        InstructionListIterator it) {
-      newInstruction.setBlock(block);
-      newInstruction.setPosition(position);
-      it.add(newInstruction);
-    }
-
   }
 
-  public CfBuilder(DexEncodedMethod method, IRCode code) {
+  public CfBuilder(DexEncodedMethod method, IRCode code, DexItemFactory factory) {
     this.method = method;
     this.code = code;
+    this.factory = factory;
   }
 
   public Code build(CodeRewriter rewriter, InternalOptions options) {
     try {
+      types = new TypeVerificationHelper(code, factory).computeVerificationTypes();
       splitExceptionalBlocks();
-      loadStoreInsertion();
+      new LoadStoreHelper(code, types).insertLoadsAndStores();
       DeadCodeRemover.removeDeadCode(code, rewriter, options);
       removeUnneededLoadsAndStores();
       allocateLocalRegisters();
       // TODO(zerny): Compute debug info.
-      return buildCfCode();
+      CfCode code = buildCfCode();
+      return code;
     } catch (Unimplemented e) {
       System.out.println("Incomplete CF construction: " + e.getMessage());
       return method.getCode().asJarCode();
@@ -203,32 +156,6 @@ public class CfBuilder {
       if (hasOutValues) {
         instructions.previous();
         instructions.split(code, it);
-      }
-    }
-  }
-
-  private void loadStoreInsertion() {
-    StackHelper stack = new StackHelper();
-    // Insert phi stores in all predecessors.
-    for (BasicBlock block : code.blocks) {
-      if (!block.getPhis().isEmpty()) {
-        for (int predIndex = 0; predIndex < block.getPredecessors().size(); predIndex++) {
-          BasicBlock pred = block.getPredecessors().get(predIndex);
-          for (Phi phi : block.getPhis()) {
-            Value value = phi.getOperand(predIndex);
-            InstructionListIterator it = pred.listIterator(pred.getInstructions().size());
-            it.previous();
-            stack.movePhi(phi, value, it);
-          }
-        }
-      }
-    }
-    // Insert per-instruction loads and stores.
-    for (BasicBlock block : code.blocks) {
-      InstructionListIterator it = block.listIterator();
-      while (it.hasNext()) {
-        Instruction current = it.next();
-        current.insertLoadAndStores(it, stack);
       }
     }
   }
@@ -287,18 +214,8 @@ public class CfBuilder {
     maxLocals = nextFreeRegister;
   }
 
-  private void push(Value value) {
-    assert value instanceof StackValue;
-    currentStack += value.requiredRegisters();
-    maxStack = Math.max(maxStack, currentStack);
-  }
-
-  private void pop(Value value) {
-    assert value instanceof StackValue;
-    currentStack -= value.requiredRegisters();
-  }
-
   private CfCode buildCfCode() {
+    Stack stack = new Stack();
     List<CfTryCatch> tryCatchRanges = new ArrayList<>();
     labels = new HashMap<>(code.blocks.size());
     instructions = new ArrayList<>();
@@ -328,39 +245,73 @@ public class CfBuilder {
         tryCatchHandlers = handlers;
       }
       BasicBlock nextBlock = blockIterator.hasNext() ? blockIterator.next() : null;
-      buildCfInstructions(block, nextBlock);
+      boolean fallthrough = block.exit().isGoto() && block.exit().asGoto().getTarget() == nextBlock;
+      buildCfInstructions(block, fallthrough, stack);
+      if (nextBlock != null && (!fallthrough || nextBlock.getPredecessors().size() > 1)) {
+        assert stack.isEmpty();
+        instructions.add(getLabel(nextBlock));
+        if (nextBlock.getPredecessors().size() > 1) {
+          addFrame(Collections.emptyList(), types.keySet());
+        }
+      }
       block = nextBlock;
     } while (block != null);
-    assert currentStack == 0;
-    return new CfCode(maxStack, maxLocals, instructions, tryCatchRanges);
+    assert stack.isEmpty();
+    return new CfCode(stack.maxHeight, maxLocals, instructions, tryCatchRanges);
   }
 
-  private void buildCfInstructions(BasicBlock block, BasicBlock nextBlock) {
-    boolean fallthrough = false;
+  private void buildCfInstructions(BasicBlock block, boolean fallthrough, Stack stack) {
     InstructionIterator it = block.iterator();
     while (it.hasNext()) {
       Instruction instruction = it.next();
-      if (instruction.isGoto() && instruction.asGoto().getTarget() == nextBlock) {
-        fallthrough = true;
-        continue;
+      if (fallthrough && instruction.isGoto()) {
+        assert block.exit() == instruction;
+        return;
       }
-      for (Value inValue : instruction.inValues()) {
-        if (inValue instanceof StackValue) {
-          pop(inValue);
+      for (int i = instruction.inValues().size() - 1; i >= 0; i--) {
+        if (instruction.inValues().get(i) instanceof StackValue) {
+          stack.pop(instruction.inValues().get(i));
         }
       }
       if (instruction.outValue() != null) {
         Value outValue = instruction.outValue();
         if (outValue instanceof StackValue) {
-          push(outValue);
+          stack.push(outValue);
         }
       }
       instruction.buildCf(this);
     }
-    if (nextBlock == null || (fallthrough && nextBlock.getPredecessors().size() == 1)) {
-      return;
+  }
+
+  private void addFrame(Collection<StackValue> stack, Collection<Value> locals) {
+    // TODO(zerny): Support having values on the stack on control-edges.
+    assert stack.isEmpty();
+    Int2ReferenceSortedMap<DexType> mapping = new Int2ReferenceAVLTreeMap();
+    for (Value local : locals) {
+      DexType type;
+      switch (local.outType()) {
+        case INT:
+          type = factory.intType;
+          break;
+        case FLOAT:
+          type = factory.floatType;
+          break;
+        case LONG:
+          type = factory.longType;
+          break;
+        case DOUBLE:
+          type = factory.doubleType;
+          break;
+        case OBJECT:
+          type = types.get(local);
+          break;
+        default:
+          throw new Unreachable(
+              "Unexpected local type: " + local.outType() + " for local: " + local);
+      }
+      mapping.put(getLocalRegister(local), type);
     }
-    instructions.add(getLabel(nextBlock));
+    instructions.add(new CfFrame(mapping));
   }
 
   // Callbacks

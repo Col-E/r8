@@ -3,13 +3,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.LoadStoreHelper;
+import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
-import com.android.tools.r8.ir.conversion.CfBuilder.StackHelper;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
@@ -965,7 +966,19 @@ public abstract class Instruction {
   // Returns the inlining constraint for this instruction.
   public abstract Constraint inliningConstraint(AppInfoWithSubtyping info, DexType holder);
 
-  public void insertLoadAndStores(InstructionListIterator it, StackHelper stack) {
+  public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
     throw new Unimplemented("Implement load/store insertion for: " + getInstructionName());
+  }
+
+  public DexType computeVerificationType(TypeVerificationHelper helper) {
+    throw new Unimplemented("Implement verification type computation for: " + getInstructionName());
+  }
+
+  public boolean hasInvariantVerificationType() {
+    if (inValues().isEmpty()) {
+      return true;
+    }
+    throw new Unimplemented(
+        "Implement has-invariant verification type for: " + getInstructionName());
   }
 }

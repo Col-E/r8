@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.code.NewArray;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
@@ -74,5 +75,15 @@ public class NewArrayEmpty extends Instruction {
   @Override
   public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType holder) {
     return Constraint.classIsVisible(holder, type, info);
+  }
+
+  @Override
+  public boolean hasInvariantVerificationType() {
+    return true;
+  }
+
+  @Override
+  public DexType computeVerificationType(TypeVerificationHelper helper) {
+    return type;
   }
 }

@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.code.CfReturn;
 import com.android.tools.r8.code.MoveType;
 import com.android.tools.r8.code.ReturnObject;
@@ -13,7 +14,6 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
-import com.android.tools.r8.ir.conversion.CfBuilder.StackHelper;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 
@@ -117,9 +117,9 @@ public class Return extends JumpInstruction {
   }
 
   @Override
-  public void insertLoadAndStores(InstructionListIterator it, StackHelper stack) {
+  public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
     if (!isReturnVoid()) {
-      stack.loadInValues(this, it);
+      helper.loadInValues(this, it);
     }
   }
 
