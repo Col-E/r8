@@ -48,6 +48,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
+import com.android.tools.r8.utils.VersionProperties;
 import com.google.common.io.ByteStreams;
 import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
@@ -78,9 +79,13 @@ public class R8 {
     if (options.hasMarker()) {
       return options.getMarker();
     }
-    return new Marker(Tool.R8)
+    Marker marker = new Marker(Tool.R8)
         .put("version", Version.LABEL)
         .put("min-api", options.minApiLevel);
+    if (Version.isDev()) {
+      marker.put("sha-1", VersionProperties.INSTANCE.getSha());
+    }
+    return marker;
   }
 
   public static void writeApplication(

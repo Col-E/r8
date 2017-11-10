@@ -19,6 +19,7 @@ import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
+import com.android.tools.r8.utils.VersionProperties;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
@@ -153,9 +154,13 @@ public final class D8 {
     if (options.hasMarker()) {
       return options.getMarker();
     }
-    return new Marker(Tool.D8)
+    Marker marker = new Marker(Tool.D8)
         .put("version", Version.LABEL)
         .put("min-api", options.minApiLevel);
+    if (Version.isDev()) {
+      marker.put("sha-1", VersionProperties.INSTANCE.getSha());
+    }
+    return marker;
   }
 
   private static CompilationResult runForTesting(

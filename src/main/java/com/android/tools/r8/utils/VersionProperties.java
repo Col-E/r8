@@ -14,16 +14,29 @@ import java.util.Properties;
  */
 public class VersionProperties {
 
+  public static final VersionProperties INSTANCE = get();
+
   private static final String VERSION_CODE_KEY = "version-file.version.code";
   private static final String SHA_KEY = "version.sha";
   private static final String RELEASER_KEY = "releaser";
 
   private static final String RESOURCE_NAME = "r8-version.properties";
 
-  private String codeBase;
+  private String sha;
   private String releaser;
 
-  public VersionProperties(ClassLoader loader)
+  private static VersionProperties get() {
+    try {
+      return new VersionProperties(VersionProperties.class.getClassLoader());
+    } catch (IOException e) {
+      return new VersionProperties();
+    }
+  }
+
+  private VersionProperties() {
+  }
+
+  private VersionProperties(ClassLoader loader)
       throws IOException {
     try (InputStream resourceStream = loader.getResourceAsStream(RESOURCE_NAME)) {
       if (resourceStream == null) {
@@ -40,20 +53,24 @@ public class VersionProperties {
     long versionFileVersion = Long.parseLong(prop.getProperty(VERSION_CODE_KEY));
     assert versionFileVersion >= 1;
 
-    codeBase = prop.getProperty(SHA_KEY);
+    sha = prop.getProperty(SHA_KEY);
     releaser = prop.getProperty(RELEASER_KEY);
   }
 
   public String getDescription() {
-    if (codeBase != null && !codeBase.trim().isEmpty()) {
-      return "build " + codeBase + (releaser != null ? " from " + releaser : "");
-    } else {
-      return "eng build" + (releaser != null ? " from " + releaser : "");
-    }
+    return "build " + getSha() + (releaser != null ? " from " + releaser : "");
+  }
+
+  public String getSha() {
+    return isEngineering() ? "engineering" : sha;
   }
 
   @Override
   public String toString() {
-    return codeBase + " from " + releaser;
+    return sha + " from " + releaser;
+  }
+
+  public boolean isEngineering() {
+    return sha == null || sha.trim().isEmpty();
   }
 }
