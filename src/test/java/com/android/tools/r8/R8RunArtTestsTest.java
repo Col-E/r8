@@ -218,7 +218,8 @@ public abstract class R8RunArtTestsTest {
       "496-checker-inlining-class-loader",
       // Disabled, as we cannot handle conflicting default methods currently.
       // TODO(b/69148437): Enable once default methods are handled correctly.
-      "961-default-iface-resolution-gen"
+      "961-default-iface-resolution-gen",
+      "968-default-partial-compile-gen"
   );
 
   // Tests that may produce different output on consecutive runs or when processed or not.
