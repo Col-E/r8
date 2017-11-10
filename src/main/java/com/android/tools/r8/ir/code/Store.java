@@ -7,6 +7,7 @@ import com.android.tools.r8.cf.FixedLocalValue;
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfStore;
+import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexType;
@@ -47,7 +48,7 @@ public class Store extends Instruction {
 
   @Override
   public int maxOutValueRegister() {
-    throw new Unreachable();
+    return Constants.U16BIT_MAX;
   }
 
   @Override

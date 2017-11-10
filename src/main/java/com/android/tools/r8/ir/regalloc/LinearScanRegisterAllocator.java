@@ -1814,20 +1814,25 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     }
   }
 
-  private void addLiveRange(Value v, BasicBlock b, int end) {
-    int firstInstructionInBlock = b.entry().getNumber();
-    int instructionsSize = b.getInstructions().size() * INSTRUCTION_NUMBER_DELTA;
+  private static void addLiveRange(
+      Value value,
+      BasicBlock block,
+      int end,
+      List<LiveIntervals> liveIntervals,
+      InternalOptions options) {
+    int firstInstructionInBlock = block.entry().getNumber();
+    int instructionsSize = block.getInstructions().size() * INSTRUCTION_NUMBER_DELTA;
     int lastInstructionInBlock =
         firstInstructionInBlock + instructionsSize - INSTRUCTION_NUMBER_DELTA;
     int instructionNumber;
-    if (v.isPhi()) {
+    if (value.isPhi()) {
       instructionNumber = firstInstructionInBlock;
     } else {
-      Instruction instruction = v.definition;
+      Instruction instruction = value.definition;
       instructionNumber = instruction.getNumber();
     }
-    if (v.getLiveIntervals() == null) {
-      Value current = v.getStartOfConsecutive();
+    if (value.getLiveIntervals() == null) {
+      Value current = value.getStartOfConsecutive();
       LiveIntervals intervals = new LiveIntervals(current);
       while (true) {
         liveIntervals.add(intervals);
@@ -1841,17 +1846,18 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
         intervals = nextIntervals;
       }
     }
-    LiveIntervals intervals = v.getLiveIntervals();
+    LiveIntervals intervals = value.getLiveIntervals();
     if (firstInstructionInBlock <= instructionNumber &&
         instructionNumber <= lastInstructionInBlock) {
-      if (v.isPhi()) {
+      if (value.isPhi()) {
         // Phis need to interfere with spill restore moves inserted before the instruction because
         // the phi value is defined on the inflowing edge.
         instructionNumber--;
       }
       intervals.addRange(new LiveRange(instructionNumber, end));
-      if (!v.isPhi()) {
-        int constraint = v.definition.maxOutValueRegister();
+      assert unconstrainedForCf(intervals.getRegisterLimit(), options);
+      if (!options.outputClassFiles && !value.isPhi()) {
+        int constraint = value.definition.maxOutValueRegister();
         intervals.addUse(new LiveIntervalsUse(instructionNumber, constraint));
       }
     } else {
@@ -1859,10 +1865,18 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     }
   }
 
+  private void computeLiveRanges() {
+    computeLiveRanges(options, code, liveAtEntrySets, liveIntervals);
+  }
+
   /**
    * Compute live ranges based on liveAtEntry sets for all basic blocks.
    */
-  private void computeLiveRanges() {
+  public static void computeLiveRanges(
+      InternalOptions options,
+      IRCode code,
+      Map<BasicBlock, Set<Value>> liveAtEntrySets,
+      List<LiveIntervals> liveIntervals) {
     for (BasicBlock block : code.topologicallySortedBlocks()) {
       Set<Value> live = new HashSet<>();
       List<BasicBlock> successors = block.getSuccessors();
@@ -1886,7 +1900,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
         if (phiOperands.contains(value)) {
           end--;
         }
-        addLiveRange(value, block, end);
+        addLiveRange(value, block, end, liveIntervals, options);
       }
       ListIterator<Instruction> iterator =
           block.getInstructions().listIterator(block.getInstructions().size());
@@ -1898,19 +1912,29 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
           // the instruction. This will typically be instructions that can have side effects even
           // if their output is not used.
           if (!definition.isUsed()) {
-            addLiveRange(definition, block, instruction.getNumber() + INSTRUCTION_NUMBER_DELTA);
+            addLiveRange(
+                definition,
+                block,
+                instruction.getNumber() + INSTRUCTION_NUMBER_DELTA,
+                liveIntervals,
+                options);
+            assert !options.outputClassFiles || instruction.isArgument()
+                : "Arguments should be the only potentially unused local in CF";
           }
           live.remove(definition);
         }
         for (Value use : instruction.inValues()) {
-          if (!live.contains(use) && use.needsRegister()) {
-            live.add(use);
-            addLiveRange(use, block, instruction.getNumber());
-          }
           if (use.needsRegister()) {
-            LiveIntervals useIntervals = use.getLiveIntervals();
-            useIntervals.addUse(
-                new LiveIntervalsUse(instruction.getNumber(), instruction.maxInValueRegister()));
+            assert unconstrainedForCf(instruction.maxInValueRegister(), options);
+            if (!live.contains(use)) {
+              live.add(use);
+              addLiveRange(use, block, instruction.getNumber(), liveIntervals, options);
+            }
+            if (!options.outputClassFiles) {
+              int inConstraint = instruction.maxInValueRegister();
+              LiveIntervals useIntervals = use.getLiveIntervals();
+              useIntervals.addUse(new LiveIntervalsUse(instruction.getNumber(), inConstraint));
+            }
           }
         }
         if (options.debug) {
@@ -1919,12 +1943,16 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
             assert use.needsRegister();
             if (!live.contains(use)) {
               live.add(use);
-              addLiveRange(use, block, number);
+              addLiveRange(use, block, number, liveIntervals, options);
             }
           }
         }
       }
     }
+  }
+
+  private static boolean unconstrainedForCf(int constraint, InternalOptions options) {
+    return !options.outputClassFiles || constraint == Constants.U16BIT_MAX;
   }
 
   private void clearUserInfo() {

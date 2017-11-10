@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.code;
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfLoad;
+import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexType;
@@ -40,7 +41,7 @@ public class Load extends Instruction {
 
   @Override
   public int maxInValueRegister() {
-    throw new Unreachable();
+    return Constants.U16BIT_MAX;
   }
 
   @Override

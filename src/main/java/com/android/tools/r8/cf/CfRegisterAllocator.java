@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.cf;
 
-import static com.android.tools.r8.dex.Constants.U16BIT_MAX;
-import static com.android.tools.r8.ir.code.IRCode.INSTRUCTION_NUMBER_DELTA;
 import static com.android.tools.r8.ir.regalloc.LiveIntervals.NO_REGISTER;
 
 import com.android.tools.r8.errors.Unreachable;
@@ -12,12 +10,10 @@ import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
-import com.android.tools.r8.ir.code.InstructionListIterator;
-import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.StackValue;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
 import com.android.tools.r8.ir.regalloc.LiveIntervals;
-import com.android.tools.r8.ir.regalloc.LiveIntervalsUse;
 import com.android.tools.r8.ir.regalloc.LiveRange;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.utils.InternalOptions;
@@ -25,7 +21,6 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -128,117 +123,7 @@ public class CfRegisterAllocator implements RegisterAllocator {
   private void computeLivenessInformation() {
     code.numberInstructions();
     liveAtEntrySets = code.computeLiveAtEntrySets();
-    computeLiveRanges();
-  }
-
-  private void computeLiveRanges() {
-    for (BasicBlock block : code.topologicallySortedBlocks()) {
-      Set<Value> live = new HashSet<>();
-      List<BasicBlock> successors = block.getSuccessors();
-      Set<Value> phiOperands = new HashSet<>();
-      for (BasicBlock successor : successors) {
-        live.addAll(liveAtEntrySets.get(successor));
-        int predIndex = successor.getPredecessors().indexOf(block);
-        for (Phi phi : successor.getPhis()) {
-          live.remove(phi);
-          phiOperands.add(phi.getOperand(predIndex));
-          assert phi.getDebugValues().stream().allMatch(Value::needsRegister);
-          phiOperands.addAll(phi.getDebugValues());
-        }
-      }
-      live.addAll(phiOperands);
-      List<Instruction> instructions = block.getInstructions();
-      for (Value value : live) {
-        int end = block.entry().getNumber() + instructions.size() * INSTRUCTION_NUMBER_DELTA;
-        // Make sure that phi operands do not overlap the phi live range. The phi operand is
-        // not live until the next instruction, but only until the gap before the next instruction
-        // where the phi value takes over.
-        if (phiOperands.contains(value)) {
-          end--;
-        }
-        addLiveRange(value, block, end);
-      }
-      InstructionListIterator it = block.listIterator(block.getInstructions().size());
-      while (it.hasPrevious()) {
-        Instruction instruction = it.previous();
-        int number = instruction.getNumber();
-        Value definition = instruction.outValue();
-        if (definition != null) {
-          // For instructions that define values which have no use create a live range covering
-          // the instruction. This will typically be instructions that can have side effects even
-          // if their output is not used.
-          if (!definition.isUsed()) {
-            addLiveRange(definition, block, number + INSTRUCTION_NUMBER_DELTA);
-            assert instruction.isArgument()
-                : "Arguments should be the only potentially unused local in CF";
-          }
-          live.remove(definition);
-        }
-        for (Value use : instruction.inValues()) {
-          if (use.needsRegister()) {
-            if (!live.contains(use)) {
-              live.add(use);
-              addLiveRange(use, block, number);
-            }
-            LiveIntervals useIntervals = use.getLiveIntervals();
-            useIntervals.addUse(new LiveIntervalsUse(number, U16BIT_MAX /* unconstrained */));
-          }
-        }
-        if (options.debug) {
-          for (Value use : instruction.getDebugValues()) {
-            assert use.needsRegister();
-            if (!live.contains(use)) {
-              live.add(use);
-              addLiveRange(use, block, number);
-            }
-          }
-        }
-      }
-    }
-  }
-
-  private void addLiveRange(Value value, BasicBlock block, int end) {
-    int firstInstructionInBlock = block.entry().getNumber();
-    int instructionsSize = block.getInstructions().size() * INSTRUCTION_NUMBER_DELTA;
-    int lastInstructionInBlock =
-        firstInstructionInBlock + instructionsSize - INSTRUCTION_NUMBER_DELTA;
-    int instructionNumber;
-    if (value.isPhi()) {
-      instructionNumber = firstInstructionInBlock;
-    } else {
-      Instruction instruction = value.definition;
-      instructionNumber = instruction.getNumber();
-    }
-    if (value.getLiveIntervals() == null) {
-      Value current = value.getStartOfConsecutive();
-      LiveIntervals intervals = new LiveIntervals(current);
-      while (true) {
-        liveIntervals.add(intervals);
-        Value next = current.getNextConsecutive();
-        if (next == null) {
-          break;
-        }
-        LiveIntervals nextIntervals = new LiveIntervals(next);
-        intervals.link(nextIntervals);
-        current = next;
-        intervals = nextIntervals;
-      }
-    }
-    LiveIntervals intervals = value.getLiveIntervals();
-    if (firstInstructionInBlock <= instructionNumber
-        && instructionNumber <= lastInstructionInBlock) {
-      if (value.isPhi()) {
-        // Phis need to interfere with spill restore moves inserted before the instruction because
-        // the phi value is defined on the inflowing edge.
-        instructionNumber--;
-      }
-      intervals.addRange(new LiveRange(instructionNumber, end));
-      if (!value.isPhi()) {
-        intervals.addUse(new LiveIntervalsUse(instructionNumber, U16BIT_MAX /* unconstrained */));
-      }
-    } else {
-      intervals.addRange(new LiveRange(firstInstructionInBlock - 1, end));
-    }
+    LinearScanRegisterAllocator.computeLiveRanges(options, code, liveAtEntrySets, liveIntervals);
   }
 
   private void performLinearScan() {
