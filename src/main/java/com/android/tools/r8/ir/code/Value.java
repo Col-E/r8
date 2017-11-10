@@ -500,6 +500,10 @@ public class Value {
     return isConstant() && getConstInstruction().isConstString();
   }
 
+  public boolean isConstClass() {
+    return isConstant() && getConstInstruction().isConstClass();
+  }
+
   public boolean isConstant() {
     return definition.isOutConstant() && !hasLocalInfo();
   }
@@ -556,7 +560,7 @@ public class Value {
   /**
    * Returns whether this value is known to be the receiver (this argument) in a method body.
    * <p>
-   * For a receiver value {@link #isNeverNull()} is guarenteed to be <code>true</code> as well.
+   * For a receiver value {@link #isNeverNull()} is guaranteed to be <code>true</code> as well.
    */
   public boolean isThis() {
     return isThis;

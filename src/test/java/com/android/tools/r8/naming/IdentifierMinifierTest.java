@@ -90,11 +90,13 @@ public class IdentifierMinifierTest {
 
   @Parameters(name = "test: {0} keep: {1}")
   public static Collection<Object[]> data() {
-    List<String> tests = Arrays.asList("adaptclassstrings");
+    List<String> tests = Arrays.asList("adaptclassstrings", "identifiernamestring");
 
     Map<String, Consumer<DexInspector>> inspections = new HashMap<>();
     inspections.put("adaptclassstrings:keep-rules-1.txt", IdentifierMinifierTest::test1_rule1);
     inspections.put("adaptclassstrings:keep-rules-2.txt", IdentifierMinifierTest::test1_rule2);
+    inspections.put("identifiernamestring:keep-rules-1.txt", IdentifierMinifierTest::test2_rule1);
+    inspections.put("identifiernamestring:keep-rules-2.txt", IdentifierMinifierTest::test2_rule2);
 
     return NamingTestBase.createTests(tests, inspections);
   }
@@ -145,6 +147,56 @@ public class IdentifierMinifierTest {
     assertEquals(1, renamedYetFoundIdentifierCount);
   }
 
+  // Without -identifiernamestring
+  private static void test2_rule1(DexInspector inspector) {
+    ClassSubject mainClass = inspector.clazz("identifiernamestring.Main");
+    MethodSubject main = mainClass.method(DexInspector.MAIN);
+    Code mainCode = main.getMethod().getCode();
+    verifyPresenceOfConstString(mainCode.asDexCode().instructions);
+    int renamedYetFoundIdentifierCount =
+        countRenamedClassIdentifier(inspector, mainCode.asDexCode().instructions);
+    assertEquals(0, renamedYetFoundIdentifierCount);
+
+    ClassSubject aClass = inspector.clazz("identifiernamestring.A");
+    MethodSubject aInit =
+        aClass.method("void", "<init>", ImmutableList.of());
+    Code initCode = aInit.getMethod().getCode();
+    verifyPresenceOfConstString(initCode.asDexCode().instructions);
+    renamedYetFoundIdentifierCount =
+        countRenamedClassIdentifier(inspector, initCode.asDexCode().instructions);
+    assertEquals(0, renamedYetFoundIdentifierCount);
+
+    renamedYetFoundIdentifierCount =
+        countRenamedClassIdentifier(inspector, aClass.getDexClass().staticFields());
+    assertEquals(0, renamedYetFoundIdentifierCount);
+  }
+
+  // With -identifiernamestring for annotations and name-based filters
+  private static void test2_rule2(DexInspector inspector) {
+    ClassSubject mainClass = inspector.clazz("identifiernamestring.Main");
+    MethodSubject main = mainClass.method(DexInspector.MAIN);
+    assertTrue(main.isPresent());
+    Code mainCode = main.getMethod().getCode();
+    assertTrue(mainCode.isDexCode());
+    verifyPresenceOfConstString(mainCode.asDexCode().instructions);
+    int renamedYetFoundIdentifierCount =
+        countRenamedClassIdentifier(inspector, mainCode.asDexCode().instructions);
+    assertEquals(1, renamedYetFoundIdentifierCount);
+
+    ClassSubject aClass = inspector.clazz("identifiernamestring.A");
+    MethodSubject aInit =
+        aClass.method("void", "<init>", ImmutableList.of());
+    Code initCode = aInit.getMethod().getCode();
+    verifyPresenceOfConstString(initCode.asDexCode().instructions);
+    renamedYetFoundIdentifierCount =
+        countRenamedClassIdentifier(inspector, initCode.asDexCode().instructions);
+    assertEquals(1, renamedYetFoundIdentifierCount);
+
+    renamedYetFoundIdentifierCount =
+        countRenamedClassIdentifier(inspector, aClass.getDexClass().staticFields());
+    assertEquals(2, renamedYetFoundIdentifierCount);
+  }
+
   private static void verifyPresenceOfConstString(Instruction[] instructions) {
     boolean presence =
         Arrays.stream(instructions)
@@ -169,7 +221,7 @@ public class IdentifierMinifierTest {
         .filter(instr -> instr instanceof ConstString || instr instanceof ConstStringJumbo)
         .reduce(0, (cnt, instr) -> {
           String cnstString = retrieveString(instr);
-          if (!DescriptorUtils.isClassDescriptor(cnstString)) {
+          if (DescriptorUtils.isValidJavaType(cnstString)) {
             ClassSubject classSubject = inspector.clazz(cnstString);
             if (classSubject.isRenamed()
                 && DescriptorUtils.descriptorToJavaType(classSubject.getFinalDescriptor())
@@ -187,7 +239,7 @@ public class IdentifierMinifierTest {
         .filter(encodedField -> encodedField.staticValue instanceof DexValueString)
         .reduce(0, (cnt, encodedField) -> {
           String cnstString = ((DexValueString) encodedField.staticValue).getValue().toString();
-          if (!DescriptorUtils.isClassDescriptor(cnstString)) {
+          if (DescriptorUtils.isValidJavaType(cnstString)) {
             ClassSubject classSubject = inspector.clazz(cnstString);
             if (classSubject.isRenamed()
                 && DescriptorUtils.descriptorToJavaType(classSubject.getFinalDescriptor())

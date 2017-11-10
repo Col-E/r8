@@ -35,6 +35,7 @@ import com.android.tools.r8.ir.optimize.PeepholeOptimizer;
 import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.logging.Log;
+import com.android.tools.r8.naming.IdentifierNameStringMarker;
 import com.android.tools.r8.shaking.protolite.ProtoLitePruner;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -78,13 +79,17 @@ public class IRConverter {
   private final LensCodeRewriter lensCodeRewriter;
   private final Inliner inliner;
   private final ProtoLitePruner protoLiteRewriter;
+  private final IdentifierNameStringMarker identifierNameStringMarker;
 
   private OptimizationFeedback ignoreOptimizationFeedback = new OptimizationFeedbackIgnore();
   private DexString highestSortingString;
 
   private IRConverter(
-      AppInfo appInfo, InternalOptions options, Timing timing,
-      CfgPrinter printer, GraphLense graphLense,
+      AppInfo appInfo,
+      InternalOptions options,
+      Timing timing,
+      CfgPrinter printer,
+      GraphLense graphLense,
       boolean enableWholeProgramOptimizations) {
     assert appInfo != null;
     assert options != null;
@@ -108,8 +113,14 @@ public class IRConverter {
       this.lensCodeRewriter = new LensCodeRewriter(graphLense, appInfo.withSubtyping());
       if (appInfo.hasLiveness()) {
         this.protoLiteRewriter = new ProtoLitePruner(appInfo.withLiveness());
+        if (!appInfo.withLiveness().identifierNameStrings.isEmpty()) {
+          this.identifierNameStringMarker = new IdentifierNameStringMarker(appInfo.withLiveness());
+        } else {
+          this.identifierNameStringMarker = null;
+        }
       } else {
         this.protoLiteRewriter = null;
+        this.identifierNameStringMarker = null;
       }
     } else {
       this.inliner = null;
@@ -117,6 +128,7 @@ public class IRConverter {
       this.memberValuePropagation = null;
       this.lensCodeRewriter = null;
       this.protoLiteRewriter = null;
+      this.identifierNameStringMarker = null;
     }
   }
 
@@ -133,7 +145,9 @@ public class IRConverter {
    * Create an IR converter for processing methods with full program optimization disabled.
    */
   public IRConverter(
-      AppInfo appInfo, InternalOptions options, Timing timing,
+      AppInfo appInfo,
+      InternalOptions options,
+      Timing timing,
       CfgPrinter printer) {
     this(appInfo, options, timing, printer, null, false);
   }
@@ -142,7 +156,9 @@ public class IRConverter {
    * Create an IR converter for processing methods with full program optimization enabled.
    */
   public IRConverter(
-      AppInfoWithSubtyping appInfo, InternalOptions options, Timing timing,
+      AppInfoWithSubtyping appInfo,
+      InternalOptions options,
+      Timing timing,
       CfgPrinter printer,
       GraphLense graphLense) {
     this(appInfo, options, timing, printer, graphLense, true);
@@ -507,6 +523,12 @@ public class IRConverter {
         assert graphLense.isIdentityLense();
       }
     }
+
+    if (identifierNameStringMarker != null) {
+      identifierNameStringMarker.decoupleIdentifierNameStrings(method, code);
+      assert code.isConsistentSSA();
+    }
+
     if (memberValuePropagation != null) {
       memberValuePropagation.rewriteWithConstantValues(code);
     }

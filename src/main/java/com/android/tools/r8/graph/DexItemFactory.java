@@ -51,6 +51,10 @@ public class DexItemFactory {
   private final Map<DexString, SetFile> setFiles = new HashMap<>();
   private final Map<SetInlineFrame, SetInlineFrame> setInlineFrames = new HashMap<>();
 
+  // -identifiernamestring canonicalization.
+  private final ConcurrentHashMap<DexItemBasedString, DexItemBasedString> identifiers =
+      new ConcurrentHashMap<>();
+
   boolean sorted = false;
 
   public static final DexType catchAllType = new DexType(new DexString("CATCH_ALL"));
@@ -109,10 +113,14 @@ public class DexItemFactory {
   public final DexString objectDescriptor = createString("Ljava/lang/Object;");
   public final DexString objectArrayDescriptor = createString("[Ljava/lang/Object;");
   public final DexString classDescriptor = createString("Ljava/lang/Class;");
+  public final DexString fieldDescriptor = createString("Ljava/lang/reflect/Field;");
+  public final DexString methodDescriptor = createString("Ljava/lang/reflect/Method;");
   public final DexString enumDescriptor = createString("Ljava/lang/Enum;");
   public final DexString annotationDescriptor = createString("Ljava/lang/annotation/Annotation;");
   public final DexString throwableDescriptor = createString("Ljava/lang/Throwable;");
   public final DexString objectsDescriptor = createString("Ljava/util/Objects;");
+  public final DexString stringBuilderDescriptor = createString("Ljava/lang/StringBuilder;");
+  public final DexString stringBufferDescriptor = createString("Ljava/lang/StringBuffer;");
   public final DexString varHandleDescriptor = createString("Ljava/lang/invoke/VarHandle;");
 
   public final DexString constructorMethodName = createString(Constants.INSTANCE_INITIALIZER_NAME);
@@ -152,8 +160,8 @@ public class DexItemFactory {
   public final DexType annotationType = createType(annotationDescriptor);
   public final DexType throwableType = createType(throwableDescriptor);
 
-  public final DexType stringBuilderType = createType("Ljava/lang/StringBuilder;");
-  public final DexType stringBufferType = createType("Ljava/lang/StringBuffer;");
+  public final DexType stringBuilderType = createType(stringBuilderDescriptor);
+  public final DexType stringBufferType = createType(stringBufferDescriptor);
 
   public final DexType varHandleType = createType(varHandleDescriptor);
 
@@ -244,7 +252,6 @@ public class DexItemFactory {
     }
   }
 
-
   public class StringBuildingMethods {
 
     public final DexMethod appendBoolean;
@@ -317,6 +324,24 @@ public class DexItemFactory {
   public DexString createString(String source) {
     assert !sorted;
     return canonicalize(strings, new DexString(source));
+  }
+
+  // TODO(b/67934123) Unify into one method,
+  public DexItemBasedString createItemBasedString(DexType type) {
+    assert !sorted;
+    return canonicalize(identifiers, new DexItemBasedString(type));
+  }
+
+  // TODO(b/67934123) Unify into one method,
+  public DexItemBasedString createItemBasedString(DexField field) {
+    assert !sorted;
+    return canonicalize(identifiers, new DexItemBasedString(field));
+  }
+
+  // TODO(b/67934123) Unify into one method,
+  public DexItemBasedString createItemBasedString(DexMethod method) {
+    assert !sorted;
+    return canonicalize(identifiers, new DexItemBasedString(method));
   }
 
   // Debugging support to extract marking string.

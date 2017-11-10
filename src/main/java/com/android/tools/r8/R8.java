@@ -112,8 +112,7 @@ public class R8 {
     return result;
   }
 
-  static void runForTesting(AndroidApp app, OutputSink outputSink,
-      InternalOptions options)
+  static void runForTesting(AndroidApp app, OutputSink outputSink, InternalOptions options)
       throws IOException, CompilationException {
     ExecutorService executor = ThreadUtils.getExecutorService(options);
     try {
@@ -125,14 +124,14 @@ public class R8 {
 
   private static void runForTesting(
       AndroidApp app,
-      OutputSink outputSink, InternalOptions options,
+      OutputSink outputSink,
+      InternalOptions options,
       ExecutorService executor)
       throws IOException, CompilationException {
     new R8(options).run(app, outputSink, executor);
   }
 
-  private void run(AndroidApp inputApp, OutputSink outputSink,
-      ExecutorService executorService)
+  private void run(AndroidApp inputApp, OutputSink outputSink, ExecutorService executorService)
       throws IOException, CompilationException {
     if (options.quiet) {
       System.setOut(new PrintStream(ByteStreams.nullOutputStream()));

@@ -1158,6 +1158,10 @@ public class Enqueuer {
      */
     public final Set<DexItem> alwaysInline;
     /**
+     * All items with -identifiernamestring rule.
+     */
+    public final Set<DexItem> identifierNameStrings;
+    /**
      * Map from the class of an extension to the state it produced.
      */
     final Map<Class<?>, Object> extensions;
@@ -1189,6 +1193,7 @@ public class Enqueuer {
       this.noSideEffects = enqueuer.rootSet.noSideEffects;
       this.assumedValues = enqueuer.rootSet.assumedValues;
       this.alwaysInline = enqueuer.rootSet.alwaysInline;
+      this.identifierNameStrings = enqueuer.rootSet.identifierNameStrings;
       this.extensions = enqueuer.extensionsState;
       this.prunedTypes = Collections.emptySet();
       assert Sets.intersection(instanceFieldReads, staticFieldReads).size() == 0;
@@ -1220,6 +1225,7 @@ public class Enqueuer {
       this.staticInvokes = previous.staticInvokes;
       this.extensions = previous.extensions;
       this.alwaysInline = previous.alwaysInline;
+      this.identifierNameStrings = previous.identifierNameStrings;
       this.prunedTypes = mergeSets(previous.prunedTypes, removedClasses);
       assert Sets.intersection(instanceFieldReads, staticFieldReads).size() == 0;
       assert Sets.intersection(instanceFieldWrites, staticFieldWrites).size() == 0;
@@ -1253,6 +1259,7 @@ public class Enqueuer {
       this.assumedValues = previous.assumedValues;
       assert assertNotModifiedByLense(previous.alwaysInline, lense);
       this.alwaysInline = previous.alwaysInline;
+      this.identifierNameStrings = rewriteMixedItems(previous.identifierNameStrings, lense);
       this.extensions = previous.extensions;
       // Sanity check sets after rewriting.
       assert Sets.intersection(instanceFieldReads, staticFieldReads).isEmpty();
@@ -1316,7 +1323,7 @@ public class Enqueuer {
     private ImmutableSet<DexItem> rewritePinnedItemsToDescriptors(Collection<DexItem> source) {
       ImmutableSet.Builder<DexItem> builder = ImmutableSet.builder();
       for (DexItem item : source) {
-        // TODO(67934123) There should be a common interface to extract this information.
+        // TODO(b/67934123) There should be a common interface to extract this information.
         if (item instanceof DexClass) {
           builder.add(((DexClass) item).type);
         } else if (item instanceof DexEncodedMethod) {
@@ -1344,7 +1351,7 @@ public class Enqueuer {
         Set<DexItem> original, GraphLense lense) {
       ImmutableSet.Builder<DexItem> builder = ImmutableSet.builder();
       for (DexItem item : original) {
-        // TODO(67934123) There should be a common interface to perform the dispatch.
+        // TODO(b/67934123) There should be a common interface to perform the dispatch.
         if (item instanceof DexType) {
           builder.add(lense.lookupType((DexType) item, null));
         } else if (item instanceof DexMethod) {
@@ -1389,17 +1396,17 @@ public class Enqueuer {
       return this;
     }
 
-    // TODO(67934123) Unify into one method,
+    // TODO(b/67934123) Unify into one method,
     public boolean isPinned(DexType item) {
       return pinnedItems.contains(item);
     }
 
-    // TODO(67934123) Unify into one method,
+    // TODO(b/67934123) Unify into one method,
     public boolean isPinned(DexMethod item) {
       return pinnedItems.contains(item);
     }
 
-    // TODO(67934123) Unify into one method,
+    // TODO(b/67934123) Unify into one method,
     public boolean isPinned(DexField item) {
       return pinnedItems.contains(item);
     }

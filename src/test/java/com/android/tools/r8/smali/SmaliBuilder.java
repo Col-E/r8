@@ -252,37 +252,31 @@ public class SmaliBuilder {
     return new MethodSignature(currentClassName, name, returnType, parameters);
   }
 
-  public MethodSignature addStaticMethod(String returnType, String name, List<String> parameters,
-      int locals, String... instructions) {
-    StringBuilder builder = new StringBuilder();
-    for (String instruction : instructions) {
-      builder.append(instruction);
-      builder.append("\n");
-    }
-    return addStaticMethod(returnType, name, parameters, locals, builder.toString());
+  public MethodSignature addStaticMethod(
+      String returnType, String name, List<String> parameters, int locals, String... instructions) {
+    return addStaticMethod(returnType, name, parameters, locals, buildCode(instructions));
   }
 
-  public MethodSignature addStaticMethod(String returnType, String name, List<String> parameters,
-      int locals, String code) {
+  public MethodSignature addStaticMethod(
+      String returnType, String name, List<String> parameters, int locals, String code) {
     return addStaticMethod("", returnType, name, parameters, locals, code);
   }
 
   public MethodSignature addStaticInitializer(int locals, String... instructions) {
-    StringBuilder builder = new StringBuilder();
-    for (String instruction : instructions) {
-      builder.append(instruction);
-      builder.append("\n");
-    }
-    return addStaticInitializer(locals, builder.toString());
+    return addStaticInitializer(locals, buildCode(instructions));
   }
 
   public MethodSignature addStaticInitializer(int locals, String code) {
     return addStaticMethod("constructor", "void", "<clinit>", ImmutableList.of(), locals, code);
   }
 
-  private MethodSignature addStaticMethod(String flags, String returnType, String name,
-      List<String> parameters, int locals, String code) {
-    StringBuilder builder = new StringBuilder();
+  private MethodSignature addStaticMethod(
+      String flags,
+      String returnType,
+      String name,
+      List<String> parameters,
+      int locals,
+      String code) {
     return addMethod("public static " + flags, returnType, name, parameters, locals, code);
   }
 
@@ -291,20 +285,19 @@ public class SmaliBuilder {
     return addMethod("public abstract", returnType, name, parameters, -1, null);
   }
 
-  public MethodSignature addInstanceMethod(String returnType, String name,
-      List<String> parameters,
-      int locals, String... instructions) {
-    StringBuilder builder = new StringBuilder();
-    for (String instruction : instructions) {
-      builder.append(instruction);
-      builder.append("\n");
-    }
-    return addInstanceMethod(returnType, name, parameters, locals, builder.toString());
+  public MethodSignature addInitializer(
+      List<String> parameters, int locals, String... instructions) {
+    return addMethod(
+        "public constructor", "void", "<init>", parameters, locals, buildCode(instructions));
   }
 
-  public MethodSignature addInstanceMethod(String returnType, String name,
-      List<String> parameters,
-      int locals, String code) {
+  public MethodSignature addInstanceMethod(
+      String returnType, String name, List<String> parameters, int locals, String... instructions) {
+    return addInstanceMethod(returnType, name, parameters, locals, buildCode(instructions));
+  }
+
+  public MethodSignature addInstanceMethod(
+      String returnType, String name, List<String> parameters, int locals, String code) {
     return addMethod("public", returnType, name, parameters, locals, code);
   }
 
@@ -317,9 +310,18 @@ public class SmaliBuilder {
     StringBuilder builder = new StringBuilder();
     for (String line : source) {
       builder.append(line);
-      builder.append("\n");
+      builder.append(System.lineSeparator());
     }
     getSource(currentClassName).add(builder.toString());
+  }
+
+  private static String buildCode(String... instructions) {
+    StringBuilder builder = new StringBuilder();
+    for (String instruction : instructions) {
+      builder.append(instruction);
+      builder.append(System.lineSeparator());
+    }
+    return builder.toString();
   }
 
   public List<String> buildSource() {

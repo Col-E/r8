@@ -63,6 +63,7 @@ public class RootSetBuilder {
       new IdentityHashMap<>();
   private final Map<DexItem, ProguardMemberRule> noSideEffects = new IdentityHashMap<>();
   private final Map<DexItem, ProguardMemberRule> assumedValues = new IdentityHashMap<>();
+  private final Set<DexItem> identifierNameStrings = Sets.newIdentityHashSet();
   private final InternalOptions options;
 
   public RootSetBuilder(DexApplication application, AppInfo appInfo,
@@ -207,7 +208,8 @@ public class RootSetBuilder {
         markMatchingFields(clazz, memberKeepRules, rule, null);
       } else {
         assert rule instanceof ProguardIdentifierNameStringRule;
-        // TODO(b/36799092): collect string literals while marking class and matching members.
+        markMatchingFields(clazz, memberKeepRules, rule, null);
+        markMatchingMethods(clazz, memberKeepRules, rule, null);
       }
     }
   }
@@ -258,7 +260,8 @@ public class RootSetBuilder {
         alwaysInline,
         noSideEffects,
         assumedValues,
-        dependentNoShrinking);
+        dependentNoShrinking,
+        identifierNameStrings);
   }
 
   private void markMatchingVisibleMethods(DexClass clazz,
@@ -514,6 +517,12 @@ public class RootSetBuilder {
       checkDiscarded.add(item);
     } else if (context instanceof ProguardAlwaysInlineRule) {
       alwaysInline.add(item);
+    } else if (context instanceof ProguardIdentifierNameStringRule) {
+      if (item instanceof DexEncodedField) {
+        identifierNameStrings.add(((DexEncodedField) item).field);
+      } else if (item instanceof DexEncodedMethod) {
+        identifierNameStrings.add(((DexEncodedMethod) item).method);
+      }
     }
   }
 
@@ -529,6 +538,7 @@ public class RootSetBuilder {
     public final Map<DexItem, ProguardMemberRule> noSideEffects;
     public final Map<DexItem, ProguardMemberRule> assumedValues;
     private final Map<DexItem, Map<DexItem, ProguardKeepRule>> dependentNoShrinking;
+    public final Set<DexItem> identifierNameStrings;
 
     private boolean isTypeEncodedMethodOrEncodedField(DexItem item) {
       assert item instanceof DexType
@@ -561,7 +571,8 @@ public class RootSetBuilder {
         Set<DexItem> alwaysInline,
         Map<DexItem, ProguardMemberRule> noSideEffects,
         Map<DexItem, ProguardMemberRule> assumedValues,
-        Map<DexItem, Map<DexItem, ProguardKeepRule>> dependentNoShrinking) {
+        Map<DexItem, Map<DexItem, ProguardKeepRule>> dependentNoShrinking,
+        Set<DexItem> identifierNameStrings) {
       this.noShrinking = Collections.unmodifiableMap(noShrinking);
       this.noOptimization = Collections.unmodifiableSet(noOptimization);
       this.noObfuscation = Collections.unmodifiableSet(noObfuscation);
@@ -572,6 +583,7 @@ public class RootSetBuilder {
       this.noSideEffects = Collections.unmodifiableMap(noSideEffects);
       this.assumedValues = Collections.unmodifiableMap(assumedValues);
       this.dependentNoShrinking = dependentNoShrinking;
+      this.identifierNameStrings = Collections.unmodifiableSet(identifierNameStrings);
       assert legalNoObfuscationItems(noObfuscation);
       assert legalDependentNoShrinkingItems(dependentNoShrinking);
     }
@@ -615,6 +627,7 @@ public class RootSetBuilder {
       builder.append("\nnoSideEffects: " + noSideEffects.size());
       builder.append("\nassumedValues: " + assumedValues.size());
       builder.append("\ndependentNoShrinking: " + dependentNoShrinking.size());
+      builder.append("\nidentifierNameStrings: " + identifierNameStrings.size());
 
       builder.append("\n\nNo Shrinking:");
       noShrinking.keySet().stream()
