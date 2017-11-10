@@ -688,6 +688,7 @@ public class LocalsTest extends DebugTestBase {
   }
 
   @Test
+  @Ignore("b/69093793")
   public void testLocalVisibilityIntoLoop() throws Throwable {
     final String className = "Locals";
     final String methodName = "localVisibilityIntoLoop";
