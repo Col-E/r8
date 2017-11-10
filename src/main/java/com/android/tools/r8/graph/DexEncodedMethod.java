@@ -573,6 +573,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
     private boolean returnsConstant = false;
     private long returnedConstant = 0;
     private boolean forceInline = false;
+    private boolean useIdentifierNameString = false;
 
     private OptimizationInfo() {
       // Intentionally left empty.
@@ -584,6 +585,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
       returnsConstant = template.returnsConstant;
       returnedConstant = template.returnedConstant;
       forceInline = template.forceInline;
+      useIdentifierNameString = template.useIdentifierNameString;
     }
 
     public boolean returnsArgument() {
@@ -612,6 +614,10 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
       return forceInline;
     }
 
+    public boolean useIdentifierNameString() {
+      return useIdentifierNameString;
+    }
+
     private void markReturnsArgument(int argument) {
       assert argument >= 0;
       assert returnedArgument == -1 || returnedArgument == argument;
@@ -630,6 +636,10 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
 
     private void markForceInline() {
       forceInline = true;
+    }
+
+    private void markUseIdentifierNameString() {
+      useIdentifierNameString = true;
     }
 
     public OptimizationInfo copy() {
@@ -671,6 +681,10 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
 
   synchronized public void markForceInline() {
     ensureMutableOI().markForceInline();
+  }
+
+  synchronized public void markUseIdentifierNameString() {
+    ensureMutableOI().markUseIdentifierNameString();
   }
 
   public OptimizationInfo getOptimizationInfo() {

@@ -83,6 +83,10 @@ public class SmaliTestBase extends TestBase {
     }
   }
 
+  protected Path runR8(SmaliBuilder builder, List<String> proguardConfigurations) {
+    return runR8(builder, proguardConfigurations, pg -> {}, o -> {});
+  }
+
   protected Path runR8(
       SmaliBuilder builder,
       List<String> proguardConfigurations,

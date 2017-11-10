@@ -59,6 +59,32 @@ public class DescriptorUtils {
   }
 
   /**
+   * Convert a Java type name to a descriptor string only if the given {@param typeName} is valid.
+   *
+   * @param typeName the java type name
+   * @return the descriptor string if {@param typeName} is not valid or null otherwise
+   */
+  public static String javaTypeToDescriptorIfValidJavaType(String typeName) {
+    if (isValidJavaType(typeName)) {
+      return javaTypeToDescriptor(typeName);
+    }
+    return null;
+  }
+
+  /**
+   * Determine the given {@param typeName} is valid java type name or not.
+   *
+   * @param typeName the java type name
+   * @return true if and only if the given type name is valid java type
+   */
+  public static boolean isValidJavaType(String typeName) {
+    return typeName.length() > 0
+        && Character.isJavaIdentifierStart(typeName.charAt(0))
+        && typeName.substring(1).chars().allMatch(
+            ch -> Character.isJavaIdentifierPart(ch) || ch == JAVA_PACKAGE_SEPARATOR);
+  }
+
+  /**
    * Convert a Java type name to a shorty descriptor string.
    *
    * @param typeName the java type name

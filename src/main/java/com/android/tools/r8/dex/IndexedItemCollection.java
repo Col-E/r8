@@ -55,11 +55,11 @@ public interface IndexedItemCollection {
   boolean addMethod(DexMethod method);
 
   /**
-   * Adds the given class to the collection.
+   * Adds the given string to the collection.
    *
-   * <p>Does not add the classes components.
+   * <p>Does not add the string's components.
    *
-   * @return true if the class was not in the pool before.
+   * @return true if the string was not in the pool before.
    */
   boolean addString(DexString string);
 
