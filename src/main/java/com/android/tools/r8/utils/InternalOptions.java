@@ -342,4 +342,12 @@ public class InternalOptions {
   public boolean canUseFilledNewArrayOfObjects() {
     return minApiLevel >= AndroidApiLevel.K.getLevel();
   }
+
+  // Art had a bug (b/68761724) for Android N and O in the arm32 interpreter
+  // where an aget-wide instruction using the same register for the array
+  // and the first register of the result could lead to the wrong exception
+  // being thrown on out of bounds.
+  public boolean canUseSameArrayAndResultRegisterInArrayGetWide() {
+    return minApiLevel > AndroidApiLevel.O_MR1.getLevel();
+  }
 }

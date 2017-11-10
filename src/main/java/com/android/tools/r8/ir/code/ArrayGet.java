@@ -58,6 +58,8 @@ public class ArrayGet extends Instruction {
       case LONG:
       case DOUBLE:
       case LONG_OR_DOUBLE:
+        assert builder.getOptions().canUseSameArrayAndResultRegisterInArrayGetWide()
+            || dest != array;
         instruction = new AgetWide(dest, array, index);
         break;
       case OBJECT:
