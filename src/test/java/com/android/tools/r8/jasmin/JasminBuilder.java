@@ -34,6 +34,8 @@ public class JasminBuilder {
     private final List<String> fields = new ArrayList<>();
     private boolean makeInit = false;
     private boolean isInterface = false;
+    private int minorVersion = 0;
+    private int majorVersion = 52; // JSE 8
 
     public ClassBuilder(String name) {
       this(name, "java/lang/Object");
@@ -130,6 +132,8 @@ public class JasminBuilder {
     @Override
     public String toString() {
       StringBuilder builder = new StringBuilder();
+      builder.append(".bytecode ").append(majorVersion).append('.').append(minorVersion)
+          .append('\n');
       builder.append(".source ").append(getSourceFile()).append('\n');
       if (isInterface) {
         builder.append(".interface");
@@ -162,6 +166,11 @@ public class JasminBuilder {
 
     void setIsInterface() {
       isInterface = true;
+    }
+
+    void setVersion(int majorVersion, int minorVersion) {
+      this.majorVersion = majorVersion;
+      this.minorVersion = minorVersion;
     }
 
     public MethodSignature addDefaultConstructor() {
