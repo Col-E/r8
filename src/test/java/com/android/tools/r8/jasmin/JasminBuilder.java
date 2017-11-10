@@ -29,17 +29,26 @@ public class JasminBuilder {
   public static class ClassBuilder {
     public final String name;
     public final String superName;
+    public final ImmutableList<String> interfaces;
     private final List<String> methods = new ArrayList<>();
     private final List<String> fields = new ArrayList<>();
     private boolean makeInit = false;
+    private boolean isInterface = false;
 
     public ClassBuilder(String name) {
       this(name, "java/lang/Object");
     }
 
-    public ClassBuilder(String name, String superName) {
+    private ClassBuilder(String name, String superName) {
       this.name = name;
       this.superName = superName;
+      this.interfaces = ImmutableList.of();
+    }
+
+    private ClassBuilder(String name, String superName, String... interfaces) {
+      this.name = name;
+      this.superName = superName;
+      this.interfaces = ImmutableList.copyOf(interfaces);
     }
 
     public String getSourceFile() {
@@ -121,9 +130,17 @@ public class JasminBuilder {
     @Override
     public String toString() {
       StringBuilder builder = new StringBuilder();
-      builder.append(".source ").append(getSourceFile()).append("\n");
-      builder.append(".class public ").append(name).append("\n");
-      builder.append(".super ").append(superName).append("\n");
+      builder.append(".source ").append(getSourceFile()).append('\n');
+      if (isInterface) {
+        builder.append(".interface");
+      } else {
+        builder.append(".class");
+      }
+      builder.append(" public ").append(name).append('\n');
+      builder.append(".super ").append(superName).append('\n');
+      for (String iface : interfaces) {
+        builder.append(".implements ").append(iface).append('\n');
+      }
       if (makeInit) {
         builder
             .append(".method public <init>()V\n")
@@ -142,6 +159,19 @@ public class JasminBuilder {
       }
       return builder.toString();
     }
+
+    void setIsInterface() {
+      isInterface = true;
+    }
+
+    public MethodSignature addDefaultConstructor() {
+      return addMethod("public", "<init>", Collections.emptyList(), "V",
+          ".limit stack 1",
+          ".limit locals 1",
+          "  aload_0",
+          "  invokenonvirtual " + superName + "/<init>()V",
+          "  return");
+    }
   }
 
   private final List<ClassBuilder> classes = new ArrayList<>();
@@ -156,6 +186,19 @@ public class JasminBuilder {
 
   public ClassBuilder addClass(String name, String superName) {
     ClassBuilder builder = new ClassBuilder(name, superName);
+    classes.add(builder);
+    return builder;
+  }
+
+  public ClassBuilder addClass(String name, String superName, String... interfaces) {
+    ClassBuilder builder = new ClassBuilder(name, superName, interfaces);
+    classes.add(builder);
+    return builder;
+  }
+
+  public ClassBuilder addInterface(String name, String... interfaces) {
+    ClassBuilder builder = new ClassBuilder(name, "java/lang/Object", interfaces);
+    builder.setIsInterface();
     classes.add(builder);
     return builder;
   }

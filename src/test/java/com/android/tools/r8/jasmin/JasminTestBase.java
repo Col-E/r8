@@ -87,6 +87,10 @@ public class JasminTestBase extends TestBase {
     return runOnArt(compileWithD8(builder), main);
   }
 
+  protected ProcessResult runOnArtD8Raw(JasminBuilder builder, String main) throws Exception {
+    return runOnArtRaw(compileWithD8(builder), main);
+  }
+
   protected AndroidApp compileWithR8(JasminBuilder builder) throws Exception {
     return compileWithR8(builder, null);
   }
@@ -108,6 +112,13 @@ public class JasminTestBase extends TestBase {
     return runOnArt(result, main);
   }
 
+  protected ProcessResult runOnArtR8Raw(JasminBuilder builder, String main,
+      Consumer<InternalOptions> optionsConsumer)
+      throws Exception {
+    AndroidApp result = compileWithR8(builder, optionsConsumer);
+    return runOnArtRaw(result, main);
+  }
+
   private ProcessResult runDx(JasminBuilder builder, File classes, Path dex) throws Exception {
     for (ClassBuilder clazz : builder.getClasses()) {
       ClassFile file = new ClassFile();
@@ -124,7 +135,7 @@ public class JasminTestBase extends TestBase {
     return ToolHelper.runDX(args.toArray(new String[args.size()]));
   }
 
-  protected ProcessResult runOnArtDxRaw(JasminBuilder builder) throws Exception {
+  protected ProcessResult runDX(JasminBuilder builder) throws Exception {
     return runDx(builder, temp.newFolder("classes_for_dx"),
         temp.getRoot().toPath().resolve("classes.dex"));
   }
@@ -142,6 +153,19 @@ public class JasminTestBase extends TestBase {
     return ToolHelper.runArtNoVerificationErrors(dex.toString(), main);
   }
 
+  protected ProcessResult runOnArtDxRaw(JasminBuilder builder, String main) throws Exception {
+    Path dex = temp.getRoot().toPath().resolve("classes.dex");
+    ProcessResult result = runDx(builder, temp.newFolder("classes_for_dx"), dex);
+    if (result.exitCode != 0) {
+      System.out.println("Std out:");
+      System.out.println(result.stdout);
+      System.out.println("Std err:");
+      System.out.println(result.stderr);
+      assertEquals(0, result.exitCode);
+    }
+    return ToolHelper.runArtRaw(dex.toString(), main);
+  }
+
   protected ProcessResult runOnArtRaw(AndroidApp app, String main) throws IOException {
     Path out = temp.getRoot().toPath().resolve("out.zip");
     app.writeToZip(out, OutputMode.Indexed);
@@ -152,14 +176,6 @@ public class JasminTestBase extends TestBase {
     Path out = temp.getRoot().toPath().resolve("out.zip");
     app.writeToZip(out, OutputMode.Indexed);
     return ToolHelper.runArtNoVerificationErrors(out.toString(), main);
-  }
-
-  protected AndroidApp buildApplication(JasminBuilder builder) {
-    try {
-      return AndroidApp.fromClassProgramData(builder.buildClasses());
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
   }
 
   protected DexEncodedMethod getMethod(AndroidApp application, String clazz,
