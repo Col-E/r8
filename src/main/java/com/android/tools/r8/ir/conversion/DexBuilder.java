@@ -713,6 +713,10 @@ public class DexBuilder {
     return handlers;
   }
 
+  public InternalOptions getOptions() {
+    return options;
+  }
+
   // Dex instruction wrapper with information to compute instruction sizes and offsets for jumps.
   private static abstract class Info {
 

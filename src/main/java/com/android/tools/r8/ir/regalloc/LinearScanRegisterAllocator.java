@@ -986,6 +986,49 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     return position % 2 == 1 ? position : position - 1;
   }
 
+  // Art had a bug (b/68761724) for Android N and O in the arm32 interpreter
+  // where an aget-wide instruction using the same register for the array
+  // and the first register of the result could lead to the wrong exception
+  // being thrown on out of bounds.
+  //
+  // For instructions of the form 'aget-wide regA, regA, regB' where
+  // regB is out of bounds of non-null array in regA, Art would throw a null
+  // pointer exception instead of an ArrayIndexOutOfBounds exception.
+  //
+  // We work around that bug by disallowing aget-wide with the same array
+  // and result register.
+  private boolean needsArrayGetWideWorkaround(LiveIntervals intervals) {
+    if (options.canUseSameArrayAndResultRegisterInArrayGetWide()) {
+      return false;
+    }
+    if (intervals.requiredRegisters() == 1) {
+      // Not the live range for a wide value and therefore not the output of aget-wide.
+      return false;
+    }
+    if (intervals.getValue().isPhi()) {
+      // If this writes a new register pair it will be via a move and not an aget-wide operation.
+      return false;
+    }
+    if (intervals.getSplitParent() != intervals) {
+      // This is a split of a parent interval and therefore if this leads to a write of a
+      // register pair it will be via a move and not an aget-wide operation.
+      return false;
+    }
+    Instruction definition = intervals.getValue().definition;
+    return definition.isArrayGet() && definition.asArrayGet().outType().isWide();
+  }
+
+  // Is the array-get array register the same as the first register we are
+  // allocating for the result?
+  private boolean isArrayGetArrayRegister(LiveIntervals intervals, int register) {
+    assert needsArrayGetWideWorkaround(intervals);
+    Value array = intervals.getValue().definition.asArrayGet().array();
+    int arrayReg =
+        array.getLiveIntervals().getSplitCovering(intervals.getStart()).getRegister();
+    assert arrayReg != NO_REGISTER;
+    return arrayReg == register;
+  }
+
   // The dalvik jit had a bug where the long operations add, sub, or, xor and and would write
   // the first part of the result long before reading the second part of the input longs.
   //
@@ -1268,6 +1311,11 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
             hasOverlappingLongRegisters(unhandledInterval, register)) {
           return false;
         }
+        // Check for aget-wide bug in recent Art VMs.
+        if (needsArrayGetWideWorkaround(unhandledInterval) &&
+            isArrayGetArrayRegister(unhandledInterval, register)) {
+          return false;
+        }
         assignRegisterToUnhandledInterval(unhandledInterval, needsRegisterPair, register);
         return true;
       }
@@ -1359,6 +1407,21 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     if (needsOverlappingLongRegisterWorkaround(unhandledInterval)) {
       int lastCandidate = candidate;
       while (hasOverlappingLongRegisters(unhandledInterval, candidate)) {
+        // Make the overlapping register unavailable for allocation and try again.
+        freePositions.set(candidate, 0);
+        candidate = getLargestCandidate(registerConstraint, freePositions, needsRegisterPair, type);
+        // If there are only invalid candidates of the give type we will end up with the same
+        // candidate returned again once we have tried them all. In that case we didn't find a
+        // valid register candidate and we need to broaden the search to other types.
+        if (lastCandidate == candidate) {
+          return REGISTER_CANDIDATE_NOT_FOUND;
+        }
+        lastCandidate = candidate;
+      }
+    }
+    if (needsArrayGetWideWorkaround(unhandledInterval)) {
+      int lastCandidate = candidate;
+      while (isArrayGetArrayRegister(unhandledInterval, candidate)) {
         // Make the overlapping register unavailable for allocation and try again.
         freePositions.set(candidate, 0);
         candidate = getLargestCandidate(registerConstraint, freePositions, needsRegisterPair, type);
