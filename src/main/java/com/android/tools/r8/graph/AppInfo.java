@@ -152,15 +152,15 @@ public class AppInfo {
    */
   public DexEncodedField lookupInstanceTarget(DexType type, DexField field) {
     assert type.isClassType();
-    return lookupTargetAlongSuperChain(type, field, DexClass::findInstanceTarget);
+    return resolveFieldOn(type, field, false);
   }
 
   /**
-   * Lookup static field starting in type and following the super chain.
+   * Lookup static field starting in type and following the interface and super chain.
    */
   public DexEncodedField lookupStaticTarget(DexType type, DexField field) {
     assert type.isClassType();
-    return lookupTargetAlongInterfaceAndSuperChain(type, field, DexClass::findStaticTarget);
+    return resolveFieldOn(type, field, true);
   }
 
   /**
@@ -226,27 +226,37 @@ public class AppInfo {
   }
 
   /**
-   * Traverse along the super chain and the interface chains until lookup returns non-null value.
+   * Implements resolution of a field descriptor against a type.
+   * <p>
+   * See <a href="https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-5.html#jvms-5.4.3.2">
+   * Section 5.4.3.2 of the JVM Spec</a>.
    */
-  private <S extends DexItem, T extends Descriptor<S, T>> S lookupTargetAlongInterfaceAndSuperChain(
-      DexType type,
-      T desc,
-      BiFunction<DexClass, T, S> lookup) {
+  private DexEncodedField resolveFieldOn(DexType type, DexField desc, boolean isStatic) {
     DexClass holder = definitionFor(type);
     if (holder == null) {
       return null;
     }
-    S result = lookup.apply(holder, desc);
+    // Step 1: Class declares the field.
+    DexEncodedField result =
+        isStatic ? holder.findStaticTarget(desc) : holder.findInstanceTarget(desc);
     if (result != null) {
       return result;
     }
-    result = applyToInterfacesAndDisambiguate(holder.interfaces.values, desc, lookup,
-        this::lookupTargetAlongSuperAndInterfaceChain);
-    if (result != null) {
-      return result;
+    // Step 2: Apply recursively to direct superinterfaces. First match succeeds.
+    //
+    // We short-cut here, as we know that interfaces cannot have instance fields.
+    // See https://docs.oracle.com/javase/specs/jvms/se9/html/jvms-4.html#jvms-4.5.
+    if (isStatic) {
+      for (DexType iface : holder.interfaces.values) {
+        result = resolveFieldOn(iface, desc, isStatic);
+        if (result != null) {
+          return result;
+        }
+      }
     }
+    // Step 3: Apply recursively to superclass.
     if (holder.superType != null) {
-      result = lookupTargetAlongInterfaceAndSuperChain(holder.superType, desc, lookup);
+      result = resolveFieldOn(holder.superType, desc, isStatic);
       if (result != null) {
         return result;
       }

@@ -30,7 +30,7 @@ public class JumpSubroutineTests extends JasminTestBase {
     // Uncaught translation error: com.android.dex.util.ExceptionWithContext: returning from
     // invalid subroutine
     // 1 error; aborting
-    ProcessResult result = runOnArtDxRaw(builder);
+    ProcessResult result = runDX(builder);
     assertNotEquals(0, result.exitCode);
     assertTrue(result.stderr.contains("Uncaught translation error"));
     assertTrue(result.stderr.contains("invalid subroutine"));

@@ -56,7 +56,7 @@ public class Regress65432240 extends JasminTestBase {
 
     String expected = runOnJava(builder, clazz.name);
 
-    AndroidApp originalApplication = buildApplication(builder);
+    AndroidApp originalApplication = builder.build();
     AndroidApp processedApplication = ToolHelper.runR8(originalApplication);
 
     DexEncodedMethod method = getMethod(processedApplication, clazz.name, signature);
