@@ -11,7 +11,6 @@ import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.InternalOptions;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -21,7 +20,6 @@ import java.util.concurrent.ExecutorService;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.util.CheckClassAdapter;
@@ -68,13 +66,13 @@ public class CfApplicationWriter {
     int version = downgrade(clazz.getClassFileVersion());
     int access = clazz.accessFlags.getAsCfAccessFlags();
     String desc = clazz.type.toDescriptorString();
-    String name = internalName(clazz.type);
+    String name = clazz.type.getInternalName();
     String signature = null; // TODO(zerny): Support generic signatures.
     String superName =
-        clazz.type == options.itemFactory.objectType ? null : internalName(clazz.superType);
+        clazz.type == options.itemFactory.objectType ? null : clazz.superType.getInternalName();
     String[] interfaces = new String[clazz.interfaces.values.length];
     for (int i = 0; i < clazz.interfaces.values.length; i++) {
-      interfaces[i] = internalName(clazz.interfaces.values[i]);
+      interfaces[i] = clazz.interfaces.values[i].getInternalName();
     }
     writer.visit(version, access, name, signature, superName, interfaces);
     // TODO(zerny): Methods and fields.
@@ -105,10 +103,6 @@ public class CfApplicationWriter {
       assert code.isCfCode();
       code.asCfCode().write(visitor);
     }
-  }
-
-  private static String internalName(DexType type) {
-    return Type.getType(type.toDescriptorString()).getInternalName();
   }
 
   private String printCf(byte[] result) {

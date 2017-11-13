@@ -3,10 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.cf.code;
 
+import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.graph.DexType;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.Type;
 
 public class CfNew extends CfInstruction {
 
@@ -16,8 +16,17 @@ public class CfNew extends CfInstruction {
     this.type = type;
   }
 
+  public DexType getType() {
+    return type;
+  }
+
   @Override
   public void write(MethodVisitor visitor) {
-    visitor.visitTypeInsn(Opcodes.NEW, Type.getType(type.toDescriptorString()).getInternalName());
+    visitor.visitTypeInsn(Opcodes.NEW, type.getInternalName());
+  }
+
+  @Override
+  public void print(CfPrinter printer) {
+    printer.print(this);
   }
 }

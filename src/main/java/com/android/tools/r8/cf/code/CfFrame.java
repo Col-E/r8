@@ -5,6 +5,7 @@ package com.android.tools.r8.cf.code;
 
 import static org.objectweb.asm.Opcodes.F_NEW;
 
+import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
@@ -12,7 +13,6 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceMap.Entry;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.Type;
 
 public class CfFrame extends CfInstruction {
 
@@ -45,7 +45,7 @@ public class CfFrame extends CfInstruction {
     }
     switch (type.toShorty()) {
       case 'L':
-        return Type.getType(type.toDescriptorString()).getInternalName();
+        return type.getInternalName();
       case 'I':
         return Opcodes.INTEGER;
       case 'F':
@@ -62,5 +62,10 @@ public class CfFrame extends CfInstruction {
   @Override
   public String toString() {
     return getClass().getSimpleName();
+  }
+
+  @Override
+  public void print(CfPrinter printer) {
+    printer.print(this);
   }
 }

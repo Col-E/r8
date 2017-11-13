@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.cf.code;
 
+import com.android.tools.r8.cf.CfPrinter;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 
@@ -15,6 +16,11 @@ public class CfLabel extends CfInstruction {
       label = new Label();
     }
     return label;
+  }
+
+  @Override
+  public void print(CfPrinter printer) {
+    printer.print(this);
   }
 
   @Override

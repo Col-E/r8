@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.cf.code;
 
+import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.ValueType;
@@ -21,7 +22,11 @@ public class CfIf extends CfInstruction {
     this.target = target;
   }
 
-  private int getOpcode() {
+  public CfLabel getTarget() {
+    return target;
+  }
+
+  public int getOpcode() {
     switch (kind) {
       case EQ:
         return type.isObject() ? Opcodes.IFNULL : Opcodes.IFEQ;
@@ -38,6 +43,11 @@ public class CfIf extends CfInstruction {
       default:
         throw new Unreachable("Unexpected type " + type);
     }
+  }
+
+  @Override
+  public void print(CfPrinter printer) {
+    printer.print(this);
   }
 
   @Override

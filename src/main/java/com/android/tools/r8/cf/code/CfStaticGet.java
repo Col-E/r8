@@ -3,10 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.cf.code;
 
+import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.graph.DexField;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.Type;
 
 public class CfStaticGet extends CfInstruction {
 
@@ -16,11 +16,20 @@ public class CfStaticGet extends CfInstruction {
     this.field = field;
   }
 
+  public DexField getField() {
+    return field;
+  }
+
   @Override
   public void write(MethodVisitor visitor) {
-    String owner = Type.getType(field.getHolder().toDescriptorString()).getInternalName();
+    String owner = field.getHolder().getInternalName();
     String name = field.name.toString();
     String desc = field.type.toDescriptorString();
     visitor.visitFieldInsn(Opcodes.GETSTATIC, owner, name, desc);
+  }
+
+  @Override
+  public void print(CfPrinter printer) {
+    printer.print(this);
   }
 }

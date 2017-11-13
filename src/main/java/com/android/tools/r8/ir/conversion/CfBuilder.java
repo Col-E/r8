@@ -37,10 +37,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Set;
 
 public class CfBuilder {
 
@@ -50,6 +52,7 @@ public class CfBuilder {
 
   private Map<Value, DexType> types;
   private Map<BasicBlock, CfLabel> labels;
+  private Set<CfLabel> emittedLabels;
   private List<CfInstruction> instructions;
   private CfRegisterAllocator registerAllocator;
 
@@ -170,6 +173,7 @@ public class CfBuilder {
     Stack stack = new Stack();
     List<CfTryCatch> tryCatchRanges = new ArrayList<>();
     labels = new HashMap<>(code.blocks.size());
+    emittedLabels = new HashSet<>(code.blocks.size());
     instructions = new ArrayList<>();
     Iterator<BasicBlock> blockIterator = code.listIterator();
     BasicBlock block = blockIterator.next();
@@ -182,17 +186,12 @@ public class CfBuilder {
           // Close try-catch and save the range.
           CfLabel tryCatchEnd = getLabel(block);
           tryCatchRanges.add(new CfTryCatch(tryCatchStart, tryCatchEnd, tryCatchHandlers, this));
-          if (instructions.get(instructions.size() - 1) != tryCatchEnd) {
-            instructions.add(tryCatchEnd);
-          }
+          emitLabel(tryCatchEnd);
         }
         if (!handlers.isEmpty()) {
           // Open a try-catch.
           tryCatchStart = getLabel(block);
-          if (instructions.isEmpty()
-              || instructions.get(instructions.size() - 1) != tryCatchStart) {
-            instructions.add(tryCatchStart);
-          }
+          emitLabel(tryCatchStart);
         }
         tryCatchHandlers = handlers;
       }
@@ -201,7 +200,7 @@ public class CfBuilder {
       buildCfInstructions(block, fallthrough, stack);
       if (nextBlock != null && (!fallthrough || nextBlock.getPredecessors().size() > 1)) {
         assert stack.isEmpty();
-        instructions.add(getLabel(nextBlock));
+        emitLabel(getLabel(nextBlock));
         if (nextBlock.getPredecessors().size() > 1) {
           addFrame(nextBlock, Collections.emptyList());
         }
@@ -210,7 +209,11 @@ public class CfBuilder {
     } while (block != null);
     assert stack.isEmpty();
     return new CfCode(
-        stack.maxHeight, registerAllocator.registersUsed(), instructions, tryCatchRanges);
+        method.method,
+        stack.maxHeight,
+        registerAllocator.registersUsed(),
+        instructions,
+        tryCatchRanges);
   }
 
   private void buildCfInstructions(BasicBlock block, boolean fallthrough, Stack stack) {
@@ -268,9 +271,16 @@ public class CfBuilder {
     instructions.add(new CfFrame(mapping));
   }
 
+  private void emitLabel(CfLabel label) {
+    if (!emittedLabels.contains(label)) {
+      emittedLabels.add(label);
+      instructions.add(label);
+    }
+  }
+
   // Callbacks
 
-  public CfLabel getLabel(BasicBlock target){
+  public CfLabel getLabel(BasicBlock target) {
     return labels.computeIfAbsent(target, (block) -> new CfLabel());
   }
 

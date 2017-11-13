@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.cf.code;
 
+import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.code.ValueType;
 import org.objectweb.asm.MethodVisitor;
@@ -38,5 +39,18 @@ public class CfLoad extends CfInstruction {
   @Override
   public void write(MethodVisitor visitor) {
     visitor.visitVarInsn(getLoadType(), var);
+  }
+
+  @Override
+  public void print(CfPrinter printer) {
+    printer.print(this);
+  }
+
+  public ValueType getType() {
+    return type;
+  }
+
+  public int getLocalIndex() {
+    return var;
   }
 }

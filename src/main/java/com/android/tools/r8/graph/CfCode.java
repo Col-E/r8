@@ -4,33 +4,53 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.ApiLevelException;
+import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfTryCatch;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.InternalOptions;
+import java.util.Collections;
 import java.util.List;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Type;
 
 public class CfCode extends Code {
 
+  private final DexMethod method;
   private final int maxStack;
   private final int maxLocals;
   private final List<CfInstruction> instructions;
   private final List<CfTryCatch> tryCatchRanges;
 
   public CfCode(
+      DexMethod method,
       int maxStack,
       int maxLocals,
       List<CfInstruction> instructions,
       List<CfTryCatch> tryCatchRanges) {
+    this.method = method;
     this.maxStack = maxStack;
     this.maxLocals = maxLocals;
     this.instructions = instructions;
     this.tryCatchRanges = tryCatchRanges;
+  }
+
+  public DexMethod getMethod() {
+    return method;
+  }
+
+  public int getMaxStack() {
+    return maxStack;
+  }
+
+  public int getMaxLocals() {
+    return maxLocals;
+  }
+
+  public List<CfInstruction> getInstructions() {
+    return Collections.unmodifiableList(instructions);
   }
 
   @Override
@@ -59,9 +79,7 @@ public class CfCode extends Code {
             start,
             end,
             target,
-            guard == DexItemFactory.catchAllType
-                ? null
-                : Type.getType(guard.toDescriptorString()).getInternalName());
+            guard == DexItemFactory.catchAllType ? null : guard.getInternalName());
       }
     }
   }
@@ -89,11 +107,7 @@ public class CfCode extends Code {
 
   @Override
   public String toString() {
-    StringBuilder builder = new StringBuilder();
-    for (CfInstruction instruction : instructions) {
-      builder.append(instruction.toString()).append('\n');
-    }
-    return builder.toString();
+    return new CfPrinter(this).toString();
   }
 
   @Override
