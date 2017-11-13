@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.jasmin;
 
-import static java.util.Collections.emptyList;
-
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassFileVersion;
@@ -120,189 +118,6 @@ public class MemberResolutionTest extends JasminTestBase {
     ensureICCE(builder);
   }
 
-  @Test
-  @Ignore("b/69101406")
-  public void lookupVirtualMethodWithConflictingPrivate() throws Exception {
-    JasminBuilder builder = new JasminBuilder();
-
-    ClassBuilder superClass = builder.addClass("SuperClass");
-    superClass.addDefaultConstructor();
-    superClass.addVirtualMethod("aMethod", emptyList(), "V",
-        ".limit stack 2",
-        ".limit locals 1",
-        "  getstatic java/lang/System/out Ljava/io/PrintStream;",
-        "  bipush 42",
-        "  invokevirtual java/io/PrintStream/println(I)V",
-        "  return");
-
-    ClassBuilder subClass = builder.addClass("SubClass", "SuperClass");
-    subClass.addDefaultConstructor();
-    subClass.addPrivateVirtualMethod("aMethod", emptyList(), "V",
-        ".limit stack 2",
-        ".limit locals 1",
-        "  getstatic java/lang/System/out Ljava/io/PrintStream;",
-        "  bipush 123",
-        "  invokevirtual java/io/PrintStream/println(I)V",
-        "  return");
-
-    ClassBuilder mainClass = builder.addClass(MAIN_CLASS);
-    mainClass.addMainMethod(
-        ".limit stack 2",
-        ".limit locals 1",
-        "  new SubClass",
-        "  dup",
-        "  invokespecial SubClass/<init>()V",
-        "  invokevirtual SubClass/aMethod()V",
-        "  return");
-    ensureIAEExceptJava(builder);
-  }
-
-  @Test
-  @Ignore("b/69152228")
-  public void lookupDirectMethodFromWrongContext() throws Exception {
-    JasminBuilder builder = new JasminBuilder();
-
-    ClassBuilder superClass = builder.addClass("SuperClass");
-    superClass.addDefaultConstructor();
-    superClass.addVirtualMethod("aMethod", emptyList(), "V",
-        ".limit stack 2",
-        ".limit locals 1",
-        "  getstatic java/lang/System/out Ljava/io/PrintStream;",
-        "  bipush 42",
-        "  invokevirtual java/io/PrintStream/println(I)V",
-        "  return");
-
-    ClassBuilder subClass = builder.addClass("SubClass", "SuperClass");
-    subClass.addDefaultConstructor();
-    subClass.addPrivateVirtualMethod("aMethod", emptyList(), "V",
-        ".limit stack 2",
-        ".limit locals 1",
-        "  getstatic java/lang/System/out Ljava/io/PrintStream;",
-        "  bipush 123",
-        "  invokevirtual java/io/PrintStream/println(I)V",
-        "  return");
-
-    ClassBuilder mainClass = builder.addClass(MAIN_CLASS);
-    mainClass.addMainMethod(
-        ".limit stack 2",
-        ".limit locals 1",
-        "  new SubClass",
-        "  dup",
-        "  invokespecial SubClass/<init>()V",
-        "  invokespecial SubClass/aMethod()V",
-        "  return");
-    ensureIAEExceptJava(builder);
-  }
-
-  @Test
-  public void lookupPrivateSuperFromSubClass() throws Exception {
-    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_5);
-
-    ClassBuilder superClass = builder.addClass("SuperClass");
-    superClass.addDefaultConstructor();
-    superClass.addPrivateVirtualMethod("aMethod", emptyList(), "V",
-        ".limit stack 2",
-        ".limit locals 1",
-        "  getstatic java/lang/System/out Ljava/io/PrintStream;",
-        "  bipush 42",
-        "  invokevirtual java/io/PrintStream/println(I)V",
-        "  return");
-
-    ClassBuilder subClass = builder.addClass("SubClass", "SuperClass");
-    subClass.addDefaultConstructor();
-    subClass.addVirtualMethod("callAMethod", emptyList(), "V",
-        ".limit stack 1",
-        ".limit locals 1",
-        "  aload 0",
-        "  invokespecial SuperClass/aMethod()V",
-        "  return");
-
-    ClassBuilder mainClass = builder.addClass(MAIN_CLASS);
-    mainClass.addMainMethod(
-        ".limit stack 2",
-        ".limit locals 1",
-        "  new SubClass",
-        "  dup",
-        "  invokespecial SubClass/<init>()V",
-        "  invokevirtual SubClass/callAMethod()V",
-        "  return");
-
-    ensureIAEExceptJava(builder);
-  }
-
-  @Test
-  @Ignore("b/69101406")
-  public void lookupStaticMethodWithConflictingVirtual() throws Exception {
-    JasminBuilder builder = new JasminBuilder();
-
-    ClassBuilder superClass = builder.addClass("SuperClass");
-    superClass.addDefaultConstructor();
-    superClass.addStaticMethod("aMethod", emptyList(), "V",
-        ".limit stack 2",
-        ".limit locals 1",
-        "  getstatic java/lang/System/out Ljava/io/PrintStream;",
-        "  bipush 42",
-        "  invokevirtual java/io/PrintStream/println(I)V",
-        "  return");
-
-    ClassBuilder subClass = builder.addClass("SubClass", "SuperClass");
-    subClass.addDefaultConstructor();
-    subClass.addVirtualMethod("aMethod", emptyList(), "V",
-        ".limit stack 2",
-        ".limit locals 1",
-        "  getstatic java/lang/System/out Ljava/io/PrintStream;",
-        "  bipush 123",
-        "  invokevirtual java/io/PrintStream/println(I)V",
-        "  return");
-
-    ClassBuilder mainClass = builder.addClass(MAIN_CLASS);
-    mainClass.addMainMethod(
-        ".limit stack 2",
-        ".limit locals 1",
-        "  new SubClass",
-        "  dup",
-        "  invokespecial SubClass/<init>()V",
-        "  invokestatic SubClass/aMethod()V",
-        "  return");
-    ensureICCE(builder);
-  }
-
-  @Test
-  @Ignore("b/69101406")
-  public void lookupVirtualMethodWithConflictingStatic() throws Exception {
-    JasminBuilder builder = new JasminBuilder();
-
-    ClassBuilder superClass = builder.addClass("SuperClass");
-    superClass.addDefaultConstructor();
-    superClass.addVirtualMethod("aMethod", emptyList(), "V",
-        ".limit stack 2",
-        ".limit locals 1",
-        "  getstatic java/lang/System/out Ljava/io/PrintStream;",
-        "  bipush 42",
-        "  invokevirtual java/io/PrintStream/println(I)V",
-        "  return");
-
-    ClassBuilder subClass = builder.addClass("SubClass", "SuperClass");
-    subClass.addDefaultConstructor();
-    subClass.addStaticMethod("aMethod", emptyList(), "V",
-        ".limit stack 2",
-        ".limit locals 1",
-        "  getstatic java/lang/System/out Ljava/io/PrintStream;",
-        "  bipush 123",
-        "  invokevirtual java/io/PrintStream/println(I)V",
-        "  return");
-
-    ClassBuilder mainClass = builder.addClass(MAIN_CLASS);
-    mainClass.addMainMethod(
-        ".limit stack 2",
-        ".limit locals 1",
-        "  new SubClass",
-        "  dup",
-        "  invokespecial SubClass/<init>()V",
-        "  invokevirtual SubClass/aMethod()V",
-        "  return");
-    ensureICCE(builder);
-  }
 
   private void ensureSameOutput(JasminBuilder app) throws Exception {
     String dxOutput = runOnArtDx(app, MAIN_CLASS);
@@ -315,23 +130,13 @@ public class MemberResolutionTest extends JasminTestBase {
   }
 
   private void ensureICCE(JasminBuilder app) throws Exception {
-    ensureRuntimeException(app, IncompatibleClassChangeError.class);
-  }
-
-  private void ensureIAEExceptJava(JasminBuilder app)
-      throws Exception {
-    ensureRuntimeException(app, IllegalAccessError.class);
-  }
-
-  private void ensureRuntimeException(JasminBuilder app, Class exception) throws Exception {
-    String name = exception.getSimpleName();
     ProcessResult dxOutput = runOnArtDxRaw(app, MAIN_CLASS);
-    Assert.assertTrue(dxOutput.stderr.contains(name));
+    Assert.assertTrue(dxOutput.stderr.contains("IncompatibleClassChangeError"));
     ProcessResult d8Output = runOnArtD8Raw(app, MAIN_CLASS);
-    Assert.assertTrue(d8Output.stderr.contains(name));
+    Assert.assertTrue(d8Output.stderr.contains("IncompatibleClassChangeError"));
     ProcessResult r8Output = runOnArtR8Raw(app, MAIN_CLASS, null);
-    Assert.assertTrue(r8Output.stderr.contains(name));
+    Assert.assertTrue(r8Output.stderr.contains("IncompatibleClassChangeError"));
     ProcessResult javaOutput = runOnJavaRaw(app, MAIN_CLASS);
-    Assert.assertTrue(javaOutput.stderr.contains(name));
+    Assert.assertTrue(javaOutput.stderr.contains("IncompatibleClassChangeError"));
   }
 }

@@ -55,7 +55,7 @@ public class JasminTestBase extends TestBase {
         ByteStreams.copy(input, output);
       }
     }
-    return ToolHelper.runJavaNoVerify(ImmutableList.of(out.getPath()), main);
+    return ToolHelper.runJava(ImmutableList.of(out.getPath()), main);
   }
 
   protected String runOnJava(JasminBuilder builder, String main) throws Exception {
