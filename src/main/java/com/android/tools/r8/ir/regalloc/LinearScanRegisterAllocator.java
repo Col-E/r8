@@ -291,7 +291,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     for (BasicBlock block : blocks) {
       ListIterator<Instruction> instructionIterator = block.listIterator();
       // Close ranges up-to but excluding the first instruction. Ends are exclusive but the values
-      // are live upon entering the first instruction.
+      // might be live upon entering the first instruction (if they are used by it).
       int entryIndex = block.entry().getNumber();
       if (block.entry().isMoveException()) {
         // Close locals at a move exception since they close as part of the exceptional transfer.
@@ -301,7 +301,12 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
         ListIterator<LocalRange> it = openRanges.listIterator(0);
         while (it.hasNext()) {
           LocalRange openRange = it.next();
-          if (openRange.end < entryIndex) {
+          if (openRange.end < entryIndex ||
+              // Don't close the local if it is used by the entry instruction. Exclude move
+              // exception instruction that are managed in other way that should be clean.
+              (openRange.end == entryIndex
+                  && !block.entry().isMoveException()
+                  && !usesValues(openRange.value, block.entry()))) {
             it.remove();
             assert currentLocals.get(openRange.register) == openRange.local;
             currentLocals.remove(openRange.register);
@@ -371,6 +376,11 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
         localsChanged = false;
       }
     }
+  }
+
+  private static boolean usesValues(Value usedValue, Instruction instruction) {
+    return instruction.inValues().contains(usedValue)
+        || instruction.getDebugValues().contains(usedValue);
   }
 
   private void fixupLocalsLiveAtMoveException(
