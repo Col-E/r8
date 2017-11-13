@@ -20,7 +20,7 @@ public class Regress65432240 extends JasminTestBase {
 
   @Test
   public void testConstantNotIntoEntryBlock() throws Exception {
-    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_6);
+    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JDK_1_4);
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
 
     MethodSignature signature = clazz.addStaticMethod("test1", ImmutableList.of("I"), "I",

@@ -21,7 +21,7 @@ public class BooleanByteConfusion extends JasminTestBase {
 
   @Test
   public void booleanByteConfusion() throws Exception {
-    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_6);
+    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JDK_1_4);
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
 
     // public static void foo(boolean condition) {
