@@ -10,6 +10,7 @@ import com.android.tools.r8.cf.code.CfConstString;
 import com.android.tools.r8.cf.code.CfFrame;
 import com.android.tools.r8.cf.code.CfGoto;
 import com.android.tools.r8.cf.code.CfIf;
+import com.android.tools.r8.cf.code.CfIfCmp;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.cf.code.CfLabel;
@@ -17,6 +18,7 @@ import com.android.tools.r8.cf.code.CfLoad;
 import com.android.tools.r8.cf.code.CfNew;
 import com.android.tools.r8.cf.code.CfPop;
 import com.android.tools.r8.cf.code.CfReturn;
+import com.android.tools.r8.cf.code.CfReturnVoid;
 import com.android.tools.r8.cf.code.CfStaticGet;
 import com.android.tools.r8.cf.code.CfStore;
 import com.android.tools.r8.errors.Unreachable;
@@ -24,6 +26,8 @@ import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.code.If;
+import com.android.tools.r8.ir.code.If.Type;
 import com.android.tools.r8.ir.code.ValueType;
 import java.util.HashMap;
 import java.util.Map;
@@ -101,8 +105,12 @@ public class CfPrinter {
     }
   }
 
-  public void print(CfReturn ret) {
+  public void print(CfReturnVoid ret) {
     print("return");
+  }
+
+  public void print(CfReturn ret) {
+    print(typePrefix(ret.getType()) + "return");
   }
 
   public void print(CfPop pop) {
@@ -198,37 +206,27 @@ public class CfPrinter {
     builder.append("goto ").append(getLabel(jump.getTarget()));
   }
 
+  private String ifPostfix(If.Type kind) {
+    return kind.toString().toLowerCase();
+  }
+
   public void print(CfIf conditional) {
     indent();
-    switch (conditional.getOpcode()) {
-      case Opcodes.IFNULL:
-        builder.append("ifnull");
-        break;
-      case Opcodes.IFNONNULL:
-        builder.append("ifnonnull");
-        break;
-      case Opcodes.IFEQ:
-        builder.append("ifeq");
-        break;
-      case Opcodes.IFNE:
-        builder.append("ifne");
-        break;
-      case Opcodes.IFLT:
-        builder.append("iflt");
-        break;
-      case Opcodes.IFGE:
-        builder.append("ifge");
-        break;
-      case Opcodes.IFGT:
-        builder.append("ifgt");
-        break;
-      case Opcodes.IFLE:
-        builder.append("ifle");
-        break;
-      default:
-        throw new Unreachable();
+    if (conditional.getType().isObject()) {
+      builder.append("if").append(conditional.getKind() == Type.EQ ? "null" : "nonnull");
+    } else {
+      builder.append("if").append(ifPostfix(conditional.getKind()));
     }
     builder.append(' ').append(getLabel(conditional.getTarget()));
+  }
+
+  public void print(CfIfCmp conditional) {
+    indent();
+    builder
+        .append(conditional.getType().isObject() ? "if_acmp" : "if_icmp")
+        .append(ifPostfix(conditional.getKind()))
+        .append(' ')
+        .append(getLabel(conditional.getTarget()));
   }
 
   public void print(CfLoad load) {

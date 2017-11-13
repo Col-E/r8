@@ -128,6 +128,12 @@ public class CfRegisterAllocator implements RegisterAllocator {
 
   private void performLinearScan() {
     unhandled.addAll(liveIntervals);
+
+    while (!unhandled.isEmpty() && unhandled.peek().getValue().isArgument()) {
+      LiveIntervals argument = unhandled.poll();
+      assignRegisterToUnhandledInterval(argument, getNextFreeRegister(argument.getType().isWide()));
+    }
+
     while (!unhandled.isEmpty()) {
       LiveIntervals unhandledInterval = unhandled.poll();
       int start = unhandledInterval.getStart();

@@ -11,24 +11,24 @@ import com.android.tools.r8.ir.code.ValueType;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
-public class CfIf extends CfInstruction {
+public class CfIfCmp extends CfInstruction {
 
   private final If.Type kind;
   private final ValueType type;
   private final CfLabel target;
 
-  public CfIf(If.Type kind, ValueType type, CfLabel target) {
+  public CfIfCmp(If.Type kind, ValueType type, CfLabel target) {
     this.kind = kind;
     this.type = type;
     this.target = target;
   }
 
-  public ValueType getType() {
-    return type;
-  }
-
   public Type getKind() {
     return kind;
+  }
+
+  public ValueType getType() {
+    return type;
   }
 
   public CfLabel getTarget() {
@@ -38,17 +38,17 @@ public class CfIf extends CfInstruction {
   public int getOpcode() {
     switch (kind) {
       case EQ:
-        return type.isObject() ? Opcodes.IFNULL : Opcodes.IFEQ;
+        return type.isObject() ? Opcodes.IF_ACMPEQ : Opcodes.IF_ICMPEQ;
       case GE:
-        return Opcodes.IFGE;
+        return Opcodes.IF_ICMPGE;
       case GT:
-        return Opcodes.IFGT;
+        return Opcodes.IF_ICMPGT;
       case LE:
-        return Opcodes.IFLE;
+        return Opcodes.IF_ICMPLE;
       case LT:
-        return Opcodes.IFLT;
+        return Opcodes.IF_ICMPLT;
       case NE:
-        return type.isObject() ? Opcodes.IFNONNULL : Opcodes.IFNE;
+        return type.isObject() ? Opcodes.IF_ACMPNE : Opcodes.IF_ICMPNE;
       default:
         throw new Unreachable("Unexpected type " + type);
     }

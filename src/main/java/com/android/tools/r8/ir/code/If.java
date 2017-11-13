@@ -8,6 +8,7 @@ import static com.android.tools.r8.dex.Constants.U8BIT_MAX;
 
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.code.CfIf;
+import com.android.tools.r8.cf.code.CfIfCmp;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
@@ -197,7 +198,12 @@ public class If extends JumpInstruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    assert inValues.size() == 1;
-    builder.add(new CfIf(type, inValues.get(0).type, builder.getLabel(getTrueTarget())));
+    if (inValues.size() == 1) {
+      builder.add(new CfIf(type, inValues.get(0).type, builder.getLabel(getTrueTarget())));
+      return;
+    }
+    assert inValues.size() == 2;
+    assert inValues.get(0).type == inValues.get(1).type;
+    builder.add(new CfIfCmp(type, inValues.get(0).type, builder.getLabel(getTrueTarget())));
   }
 }

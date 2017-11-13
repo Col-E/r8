@@ -4,14 +4,43 @@
 package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
+import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.ir.code.ValueType;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 public class CfReturn extends CfInstruction {
 
+  private final ValueType type;
+
+  public CfReturn(ValueType type) {
+    this.type = type;
+  }
+
+  public ValueType getType() {
+    return type;
+  }
+
+  private int getOpcode() {
+    switch (type) {
+      case INT:
+        return Opcodes.IRETURN;
+      case FLOAT:
+        return Opcodes.FRETURN;
+      case LONG:
+        return Opcodes.LRETURN;
+      case DOUBLE:
+        return Opcodes.DRETURN;
+      case OBJECT:
+        return Opcodes.ARETURN;
+      default:
+        throw new Unreachable("Unexpected return type: " + type);
+    }
+  }
+
   @Override
   public void write(MethodVisitor visitor) {
-    visitor.visitInsn(Opcodes.RETURN);
+    visitor.visitInsn(getOpcode());
   }
 
   @Override

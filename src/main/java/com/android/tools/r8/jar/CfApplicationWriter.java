@@ -62,7 +62,7 @@ public class CfApplicationWriter {
 
   private void writeClass(DexProgramClass clazz, OutputSink outputSink) throws IOException {
     ClassWriter writer = new ClassWriter(0);
-    writer.visitSource(clazz.sourceFile.toString(), null);
+    writer.visitSource(clazz.sourceFile != null ? clazz.sourceFile.toString() : null, null);
     int version = downgrade(clazz.getClassFileVersion());
     int access = clazz.accessFlags.getAsCfAccessFlags();
     String desc = clazz.type.toDescriptorString();
@@ -75,8 +75,11 @@ public class CfApplicationWriter {
       interfaces[i] = clazz.interfaces.values[i].getInternalName();
     }
     writer.visit(version, access, name, signature, superName, interfaces);
-    // TODO(zerny): Methods and fields.
+    // TODO(zerny): Fields.
     for (DexEncodedMethod method : clazz.directMethods()) {
+      writeMethod(method, writer);
+    }
+    for (DexEncodedMethod method : clazz.virtualMethods()) {
       writeMethod(method, writer);
     }
     writer.visitEnd();
@@ -93,7 +96,9 @@ public class CfApplicationWriter {
     String signature = null; // TODO(zerny): Support generic signatures.
     String[] exceptions = null;
     MethodVisitor visitor = writer.visitMethod(access, name, desc, signature, exceptions);
-    writeCode(method.getCode(), visitor);
+    if (!method.accessFlags.isAbstract()) {
+      writeCode(method.getCode(), visitor);
+    }
   }
 
   private void writeCode(Code code, MethodVisitor visitor) {

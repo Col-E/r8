@@ -149,6 +149,11 @@ public abstract class Instruction {
     }
   }
 
+  public void replaceValue(int index, Value newValue) {
+    inValues.set(index, newValue);
+    newValue.addUser(this);
+  }
+
   public void replaceDebugValue(Value oldValue, Value newValue) {
     if (debugValues.remove(oldValue)) {
       if (newValue.hasLocalInfo()) {

@@ -5,6 +5,7 @@ package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.code.CfReturn;
+import com.android.tools.r8.cf.code.CfReturnVoid;
 import com.android.tools.r8.code.MoveType;
 import com.android.tools.r8.code.ReturnObject;
 import com.android.tools.r8.code.ReturnVoid;
@@ -125,6 +126,6 @@ public class Return extends JumpInstruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfReturn());
+    builder.add(isReturnVoid() ? new CfReturnVoid() : new CfReturn(returnType));
   }
 }

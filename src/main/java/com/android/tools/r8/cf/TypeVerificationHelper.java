@@ -67,8 +67,10 @@ public class TypeVerificationHelper {
                 ? code.method.method.getHolder()
                 : code.method.method.proto.parameters.values[argumentIndex];
         Value outValue = instruction.outValue();
-        types.put(outValue, argumentType);
-        addUsers(outValue, worklist);
+        if (outValue.outType().isObject()) {
+          types.put(outValue, argumentType);
+          addUsers(outValue, worklist);
+        }
         ++argumentIndex;
       }
       // Compute the out-value type of each normal instruction with an out-value but no in values.
@@ -90,6 +92,7 @@ public class TypeVerificationHelper {
     while (!worklist.isEmpty()) {
       Value item = worklist.iterator().next();
       worklist.remove(item);
+      assert item.outType().isObject();
       DexType previousType = types.get(item);
       DexType refinedType = computeVerificationType(item);
       if (previousType != refinedType) {
