@@ -171,7 +171,7 @@ public class DebugLocalTests extends JasminTestBase {
   // Check that we properly handle switching a local slot from one variable to another.
   @Test
   public void checkLocalChange() throws Exception {
-    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_6);
+    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JDK_1_4);
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
 
     MethodSignature foo = clazz.addStaticMethod("foo", ImmutableList.of("I"), "I",
@@ -342,7 +342,7 @@ public class DebugLocalTests extends JasminTestBase {
 
   @Test
   public void argumentLiveAtReturn() throws Exception {
-    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_6);
+    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JDK_1_4);
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
 
     /*
@@ -443,7 +443,7 @@ public class DebugLocalTests extends JasminTestBase {
 
   @Test
   public void testLocalSwitchRewriteToIfs() throws Exception {
-    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_6);
+    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JDK_1_4);
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
 
     /*
@@ -541,7 +541,7 @@ public class DebugLocalTests extends JasminTestBase {
 
   @Test
   public void testLocalSwitchRewriteToSwitches() throws Exception {
-    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_6);
+    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JDK_1_4);
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
 
     /*

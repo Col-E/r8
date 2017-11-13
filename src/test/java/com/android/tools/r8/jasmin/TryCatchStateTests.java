@@ -14,7 +14,7 @@ public class TryCatchStateTests extends JasminTestBase {
 
   @Test
   public void testTryCatchStackHeight() throws Exception {
-    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_6);
+    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JDK_1_4);
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
 
     clazz.addStaticMethod("foo", ImmutableList.of("I"), "I",
@@ -60,7 +60,7 @@ public class TryCatchStateTests extends JasminTestBase {
 
   @Test
   public void testTryCatchLocals() throws Exception {
-    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_6);
+    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JDK_1_4);
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
 
     clazz.addStaticMethod("foo", ImmutableList.of("I"), "I",
@@ -108,7 +108,7 @@ public class TryCatchStateTests extends JasminTestBase {
 
   @Test
   public void testTryCatchOnUnreachableLabel() throws Exception {
-    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_6);
+    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JDK_1_4);
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
 
     clazz.addStaticMethod("foo", ImmutableList.of("I"), "I",

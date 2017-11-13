@@ -16,7 +16,7 @@ public class JumpSubroutineDebugInfoTests extends JasminTestBase {
 
   @Test
   public void testJsrWithStraightlineAndDebugInfoCode() throws Exception {
-    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_6);
+    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JDK_1_4);
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
 
     MethodSignature foo = clazz.addStaticMethod("foo", ImmutableList.of("I"), "I",

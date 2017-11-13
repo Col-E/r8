@@ -13,7 +13,7 @@ public class Regress63598979 extends JasminTestBase {
 
   @Test
   public void testSimplifyIf() throws Exception {
-    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_6);
+    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JDK_1_4);
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
 
     clazz.addStaticMethod("test1", ImmutableList.of("Z"), "Z",

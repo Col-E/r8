@@ -55,36 +55,6 @@ public class JasminBuilder {
       public int getMajorVersion() {
         return 48;
       }
-    },
-    JSE_5 {
-      @Override
-      public int getMajorVersion() {
-        return 49;
-      }
-    },
-    JSE_6 {
-      @Override
-      public int getMajorVersion() {
-        return 50;
-      }
-    },
-    JSE_7 {
-      @Override
-      public int getMajorVersion() {
-        return 51;
-      }
-    },
-    JSE_8 {
-      @Override
-      public int getMajorVersion() {
-        return 52;
-      }
-    },
-    JSE_9 {
-      @Override
-      public int getMajorVersion() {
-        return 53;
-      }
     };
 
     public abstract int getMajorVersion();
@@ -248,7 +218,7 @@ public class JasminBuilder {
   private final int majorVersion;
 
   public JasminBuilder() {
-    this(ClassFileVersion.JSE_8);
+    this(ClassFileVersion.JDK_1_4);
   }
 
   public JasminBuilder(ClassFileVersion version) {

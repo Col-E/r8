@@ -161,7 +161,7 @@ public class JumpSubroutineTests extends JasminTestBase {
 
   @Test
   public void testJsrWithStraightlineCode() throws Exception {
-    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_6);
+    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JDK_1_4);
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
 
     clazz.addStaticMethod("foo", ImmutableList.of(), "I",
@@ -193,7 +193,7 @@ public class JumpSubroutineTests extends JasminTestBase {
 
   @Test
   public void testJsrWithStraightlineCodeMultiple() throws Exception {
-    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_6);
+    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JDK_1_4);
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
 
     clazz.addStaticMethod("foo", ImmutableList.of(), "I",
@@ -233,7 +233,7 @@ public class JumpSubroutineTests extends JasminTestBase {
 
   @Test
   public void testJsrWithStraightlineCodeMultiple2() throws Exception {
-    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_6);
+    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JDK_1_4);
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
 
     clazz.addStaticMethod("foo", ImmutableList.of(), "I",
@@ -279,7 +279,7 @@ public class JumpSubroutineTests extends JasminTestBase {
 
   @Test
   public void testJsrWithControlFlowCode() throws Exception {
-    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_6);
+    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JDK_1_4);
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
 
     clazz.addStaticMethod("foo", ImmutableList.of(), "V",
@@ -316,7 +316,7 @@ public class JumpSubroutineTests extends JasminTestBase {
 
   @Test
   public void testJsrWithNestedJsr() throws Exception {
-    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_6);
+    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JDK_1_4);
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
 
     clazz.addStaticMethod("foo", ImmutableList.of(), "V",
@@ -361,7 +361,7 @@ public class JumpSubroutineTests extends JasminTestBase {
 
   @Test
   public void testJsrWithNestedJsrPopReturnAddress() throws Exception {
-    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_6);
+    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JDK_1_4);
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
 
     clazz.addStaticMethod("foo", ImmutableList.of(), "V",
@@ -393,7 +393,7 @@ public class JumpSubroutineTests extends JasminTestBase {
 
   @Test
   public void testJsrWithNestedPopReturnAddress2() throws Exception {
-    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_6);
+    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JDK_1_4);
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
 
     clazz.addStaticMethod("foo", ImmutableList.of(), "V",
@@ -419,7 +419,7 @@ public class JumpSubroutineTests extends JasminTestBase {
 
   @Test
   public void testJsrJustThrows() throws Exception {
-    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_6);
+    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JDK_1_4);
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
 
     clazz.addStaticMethod("foo", ImmutableList.of(), "V",
@@ -451,7 +451,7 @@ public class JumpSubroutineTests extends JasminTestBase {
 
   @Test
   public void testJsrJustThrows2() throws Exception {
-    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_6);
+    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JDK_1_4);
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
 
     clazz.addStaticMethod("foo", ImmutableList.of(), "V",
@@ -490,7 +490,7 @@ public class JumpSubroutineTests extends JasminTestBase {
 
   @Test
   public void testJsrWithException() throws Exception {
-    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_6);
+    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JDK_1_4);
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
 
     clazz.addStaticMethod("foo", ImmutableList.of(), "V",
@@ -538,7 +538,7 @@ public class JumpSubroutineTests extends JasminTestBase {
 
   @Test
   public void testJsrWithAddressManipulation() throws Exception {
-    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_6);
+    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JDK_1_4);
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
 
     clazz.addStaticMethod("foo", ImmutableList.of(), "V",
@@ -574,7 +574,7 @@ public class JumpSubroutineTests extends JasminTestBase {
   @Test
   public void testJsrWithSharedExceptionHandler() throws Exception {
     // Regression test for b/37659886
-    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_6);
+    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JDK_1_4);
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
 
     clazz.addStaticMethod("foo", ImmutableList.of("I"), "V",
@@ -616,7 +616,7 @@ public class JumpSubroutineTests extends JasminTestBase {
 
   @Test
   public void regressJsrHitParentCatchHandler() throws Exception {
-    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_6);
+    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JDK_1_4);
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
 
     clazz.addStaticMethod("test", ImmutableList.of(), "I",
@@ -708,7 +708,7 @@ public class JumpSubroutineTests extends JasminTestBase {
 
   @Test
   public void regressJsrHitParentCatchHandler2() throws Exception {
-    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_6);
+    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JDK_1_4);
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
 
     generateRegressJsrHitParentCatchHandler2(clazz, "test1", "java/lang/Exception", false);
@@ -735,7 +735,7 @@ public class JumpSubroutineTests extends JasminTestBase {
   // https://github.com/cbeust/testng/blob/4a8459e36f2b0ed057ffa7e470f1057e8e5b0ff9/src/main/java/org/testng/internal/Invoker.java#L1066
   // compiled with some ancient version of javac generating code with jsr for try/finally.
   public void regress38156139() throws Exception {
-    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_6);
+    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JDK_1_4);
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
 
     clazz.addStaticMethod("foo", ImmutableList.of("Z"), "I",
@@ -788,7 +788,7 @@ public class JumpSubroutineTests extends JasminTestBase {
 
   @Test
   public void regress37767254() throws Exception {
-    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_6);
+    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JDK_1_4);
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
 
     // This is the code for the method org.apache.log4j.net.SocketAppender$Connector.run() from
@@ -1351,7 +1351,7 @@ public class JumpSubroutineTests extends JasminTestBase {
   @Test
   // This test is based on the example on http://asm.ow2.org/doc/developer-guide.html.
   public void testJsrWithNestedRetBasedOnControlFlow2() throws Exception {
-    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_6);
+    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JDK_1_4);
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
 
     clazz.addStaticMethod("foo", ImmutableList.of("Z"), "I",
@@ -1399,7 +1399,7 @@ public class JumpSubroutineTests extends JasminTestBase {
   @Test
   // This test is based on the example on http://asm.ow2.org/doc/developer-guide.html.
   public void testJsrWithNestedRetBasedOnControlFlow3() throws Exception {
-    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_6);
+    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JDK_1_4);
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
 
     clazz.addStaticMethod("foo", ImmutableList.of("Z"), "I",

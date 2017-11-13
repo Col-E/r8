@@ -45,7 +45,7 @@ public class FillBooleanArrayTruncation extends JasminTestBase {
 
   @Test
   public void filledArray() throws Exception {
-    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_6);
+    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JDK_1_4);
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
 
     // Corresponds to something like the following (which doesn't compile with javac):
