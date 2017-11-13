@@ -5,7 +5,6 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.utils.VersionProperties;
-import java.io.IOException;
 
 public final class Version {
 
@@ -16,13 +15,10 @@ public final class Version {
 
   public static void printToolVersion(String toolName) {
     System.out.println(toolName + " " + Version.LABEL);
-    try {
-      VersionProperties version =
-          new VersionProperties(Version.class.getClassLoader());
-      System.out.println(version.getDescription());
-    } catch (IOException e) {
-      System.out.println("eng build");
-    }
+    System.out.println(VersionProperties.INSTANCE.getDescription());
+  }
 
+  public static boolean isDev() {
+    return LABEL.endsWith("-dev") || VersionProperties.INSTANCE.isEngineering();
   }
 }
