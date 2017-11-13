@@ -55,6 +55,13 @@ public class JasminBuilder {
       public int getMajorVersion() {
         return 48;
       }
+    },
+    /** JSE 5 is not fully supported by Jasmin. Interfaces will not work. */
+    JSE_5 {
+      @Override
+      public int getMajorVersion() {
+        return 49;
+      }
     };
 
     public abstract int getMajorVersion();
@@ -71,6 +78,7 @@ public class JasminBuilder {
     private final List<String> methods = new ArrayList<>();
     private final List<String> fields = new ArrayList<>();
     private boolean makeInit = false;
+    private boolean hasInit = false;
     private boolean isInterface = false;
 
     private ClassBuilder(String name) {
@@ -180,7 +188,7 @@ public class JasminBuilder {
       for (String iface : interfaces) {
         builder.append(".implements ").append(iface).append('\n');
       }
-      if (makeInit) {
+      if (makeInit && !hasInit) {
         builder
             .append(".method public <init>()V\n")
             .append(".limit locals 1\n")
@@ -204,6 +212,8 @@ public class JasminBuilder {
     }
 
     public MethodSignature addDefaultConstructor() {
+      assert !hasInit;
+      hasInit = true;
       return addMethod("public", "<init>", Collections.emptyList(), "V",
           ".limit stack 1",
           ".limit locals 1",
@@ -245,6 +255,9 @@ public class JasminBuilder {
   }
 
   public ClassBuilder addInterface(String name, String... interfaces) {
+    // Interfaces are broken in Jasmin (the ACC_SUPER access flag is set) and the JSE_5 and later
+    // will not load corresponding classes.
+    assert majorVersion <= ClassFileVersion.JDK_1_4.getMajorVersion();
     ClassBuilder builder = new ClassBuilder(name, "java/lang/Object", interfaces);
     builder.setIsInterface();
     classes.add(builder);
