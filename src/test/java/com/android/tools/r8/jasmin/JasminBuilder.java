@@ -26,7 +26,75 @@ import java.util.List;
 
 public class JasminBuilder {
 
-  public static class ClassBuilder {
+  public enum ClassFileVersion {
+    JDK_1_1 {
+      @Override
+      public int getMajorVersion() {
+        return 45;
+      }
+
+      @Override
+      public int getMinorVersion() {
+        return 3;
+      }
+    },
+    JDK_1_2 {
+      @Override
+      public int getMajorVersion() {
+        return 46;
+      }
+    },
+    JDK_1_3 {
+      @Override
+      public int getMajorVersion() {
+        return 47;
+      }
+    },
+    JDK_1_4 {
+      @Override
+      public int getMajorVersion() {
+        return 48;
+      }
+    },
+    JSE_5 {
+      @Override
+      public int getMajorVersion() {
+        return 49;
+      }
+    },
+    JSE_6 {
+      @Override
+      public int getMajorVersion() {
+        return 50;
+      }
+    },
+    JSE_7 {
+      @Override
+      public int getMajorVersion() {
+        return 51;
+      }
+    },
+    JSE_8 {
+      @Override
+      public int getMajorVersion() {
+        return 52;
+      }
+    },
+    JSE_9 {
+      @Override
+      public int getMajorVersion() {
+        return 53;
+      }
+    };
+
+    public abstract int getMajorVersion();
+
+    public int getMinorVersion() {
+      return 0;
+    }
+  }
+
+  public class ClassBuilder {
     public final String name;
     public final String superName;
     public final ImmutableList<String> interfaces;
@@ -34,10 +102,8 @@ public class JasminBuilder {
     private final List<String> fields = new ArrayList<>();
     private boolean makeInit = false;
     private boolean isInterface = false;
-    private int minorVersion = 0;
-    private int majorVersion = 52; // JSE 8
 
-    public ClassBuilder(String name) {
+    private ClassBuilder(String name) {
       this(name, "java/lang/Object");
     }
 
@@ -135,10 +201,9 @@ public class JasminBuilder {
       builder.append(".bytecode ").append(majorVersion).append('.').append(minorVersion)
           .append('\n');
       builder.append(".source ").append(getSourceFile()).append('\n');
+      builder.append(".class");
       if (isInterface) {
-        builder.append(".interface");
-      } else {
-        builder.append(".class");
+        builder.append(" interface abstract");
       }
       builder.append(" public ").append(name).append('\n');
       builder.append(".super ").append(superName).append('\n');
@@ -168,11 +233,6 @@ public class JasminBuilder {
       isInterface = true;
     }
 
-    void setVersion(int majorVersion, int minorVersion) {
-      this.majorVersion = majorVersion;
-      this.minorVersion = minorVersion;
-    }
-
     public MethodSignature addDefaultConstructor() {
       return addMethod("public", "<init>", Collections.emptyList(), "V",
           ".limit stack 1",
@@ -184,8 +244,17 @@ public class JasminBuilder {
   }
 
   private final List<ClassBuilder> classes = new ArrayList<>();
+  private final int minorVersion;
+  private final int majorVersion;
 
-  public JasminBuilder() {}
+  public JasminBuilder() {
+    this(ClassFileVersion.JSE_8);
+  }
+
+  public JasminBuilder(ClassFileVersion version) {
+    majorVersion = version.getMajorVersion();
+    minorVersion = version.getMinorVersion();
+  }
 
   public ClassBuilder addClass(String name) {
     ClassBuilder builder = new ClassBuilder(name);

@@ -5,6 +5,7 @@ package com.android.tools.r8.jasmin;
 
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
+import com.android.tools.r8.jasmin.JasminBuilder.ClassFileVersion;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -15,7 +16,7 @@ public class MemberResolutionTest extends JasminTestBase {
 
   @Test
   public void lookupStaticFieldFromDiamondInterface() throws Exception {
-    JasminBuilder builder = new JasminBuilder();
+    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JDK_1_4);
 
     ClassBuilder interfaceA = builder.addInterface("InterfaceA");
     interfaceA.addStaticFinalField("aField", "I", "42");
@@ -39,7 +40,7 @@ public class MemberResolutionTest extends JasminTestBase {
 
   @Test
   public void lookupStaticFieldFromInterfaceNotSuper() throws Exception {
-    JasminBuilder builder = new JasminBuilder();
+    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JDK_1_4);
 
     ClassBuilder superClass = builder.addClass("SuperClass");
     superClass.addStaticFinalField("aField", "I", "42");
@@ -63,7 +64,7 @@ public class MemberResolutionTest extends JasminTestBase {
 
   @Test
   public void lookupStaticFieldFromSupersInterfaceNotSupersSuper() throws Exception {
-    JasminBuilder builder = new JasminBuilder();
+    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JDK_1_4);
 
     ClassBuilder superSuperClass = builder.addClass("SuperSuperClass");
     superSuperClass.addStaticFinalField("aField", "I", "123");

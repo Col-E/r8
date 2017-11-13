@@ -7,6 +7,7 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.jasmin.JasminBuilder.ClassFileVersion;
 import com.google.common.collect.ImmutableList;
 import org.junit.Test;
 
@@ -44,7 +45,7 @@ public class FillBooleanArrayTruncation extends JasminTestBase {
 
   @Test
   public void filledArray() throws Exception {
-    JasminBuilder builder = new JasminBuilder();
+    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_6);
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
 
     // Corresponds to something like the following (which doesn't compile with javac):

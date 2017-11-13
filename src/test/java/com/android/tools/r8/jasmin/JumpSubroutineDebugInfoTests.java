@@ -6,6 +6,7 @@ package com.android.tools.r8.jasmin;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.debuginfo.DebugInfoInspector;
+import com.android.tools.r8.jasmin.JasminBuilder.ClassFileVersion;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.AndroidApp;
 import com.google.common.collect.ImmutableList;
@@ -15,7 +16,7 @@ public class JumpSubroutineDebugInfoTests extends JasminTestBase {
 
   @Test
   public void testJsrWithStraightlineAndDebugInfoCode() throws Exception {
-    JasminBuilder builder = new JasminBuilder();
+    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_6);
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
 
     MethodSignature foo = clazz.addStaticMethod("foo", ImmutableList.of("I"), "I",

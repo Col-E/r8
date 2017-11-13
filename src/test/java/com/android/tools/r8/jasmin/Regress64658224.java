@@ -5,6 +5,7 @@ package com.android.tools.r8.jasmin;
 
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.jasmin.JasminBuilder.ClassFileVersion;
 import com.google.common.collect.ImmutableList;
 import org.junit.Test;
 
@@ -12,7 +13,7 @@ public class Regress64658224 extends JasminTestBase {
 
   @Test
   public void testInvalidTypeInfoFromLocals() throws Exception {
-    JasminBuilder builder = new JasminBuilder();
+    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_6);
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
 
     clazz.addStaticMethod("foo", ImmutableList.of("I"), "V",

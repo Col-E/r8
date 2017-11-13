@@ -9,6 +9,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.debuginfo.DebugInfoInspector;
+import com.android.tools.r8.jasmin.JasminBuilder.ClassFileVersion;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.StringUtils;
@@ -26,7 +27,7 @@ public class InvalidDebugInfoTests extends JasminTestBase {
   // will actually be a read of 'x'.
   @Test
   public void testInvalidInfoThrow() throws Exception {
-    JasminBuilder builder = new JasminBuilder();
+    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_6);
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
 
     clazz.addStaticMethod("foo", ImmutableList.of("I"), "V",
@@ -85,7 +86,7 @@ public class InvalidDebugInfoTests extends JasminTestBase {
   // in this test the scope of "y" (local 2) spans the exceptional edge in which it is not live.
   @Test
   public void testInvalidInfoBug37722432() throws Exception {
-    JasminBuilder builder = new JasminBuilder();
+    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_6);
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
 
     clazz.addStaticMethod("foo", ImmutableList.of("I", "I"), "V",
@@ -218,7 +219,7 @@ public class InvalidDebugInfoTests extends JasminTestBase {
 
   @Test
   public void invalidInfoBug63412730_onMove() throws Throwable {
-    JasminBuilder builder = new JasminBuilder();
+    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_6);
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
     MethodSignature method = clazz.addStaticMethod("bar", ImmutableList.of(), "V",
         ".limit stack 3",

@@ -10,6 +10,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.code.IfNez;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.jasmin.JasminBuilder.ClassFileVersion;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.AndroidApp;
 import com.google.common.collect.ImmutableList;
@@ -19,7 +20,7 @@ public class Regress65432240 extends JasminTestBase {
 
   @Test
   public void testConstantNotIntoEntryBlock() throws Exception {
-    JasminBuilder builder = new JasminBuilder();
+    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_6);
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
 
     MethodSignature signature = clazz.addStaticMethod("test1", ImmutableList.of("I"), "I",

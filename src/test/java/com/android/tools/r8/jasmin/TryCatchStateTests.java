@@ -6,6 +6,7 @@ package com.android.tools.r8.jasmin;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.jasmin.JasminBuilder.ClassFileVersion;
 import com.google.common.collect.ImmutableList;
 import org.junit.Test;
 
@@ -13,7 +14,7 @@ public class TryCatchStateTests extends JasminTestBase {
 
   @Test
   public void testTryCatchStackHeight() throws Exception {
-    JasminBuilder builder = new JasminBuilder();
+    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_6);
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
 
     clazz.addStaticMethod("foo", ImmutableList.of("I"), "I",
@@ -59,7 +60,7 @@ public class TryCatchStateTests extends JasminTestBase {
 
   @Test
   public void testTryCatchLocals() throws Exception {
-    JasminBuilder builder = new JasminBuilder();
+    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_6);
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
 
     clazz.addStaticMethod("foo", ImmutableList.of("I"), "I",
@@ -107,7 +108,7 @@ public class TryCatchStateTests extends JasminTestBase {
 
   @Test
   public void testTryCatchOnUnreachableLabel() throws Exception {
-    JasminBuilder builder = new JasminBuilder();
+    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_6);
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
 
     clazz.addStaticMethod("foo", ImmutableList.of("I"), "I",
