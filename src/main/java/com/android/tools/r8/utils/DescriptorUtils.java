@@ -299,4 +299,11 @@ public class DescriptorUtils {
     }
     return 'L' + descriptor + ';';
   }
+
+  public static String getPathFromDescriptor(String descriptor) {
+    // We are quite loose on names here to support testing illegal names, too.
+    assert descriptor.startsWith("L");
+    assert descriptor.endsWith(";");
+    return descriptor.substring(1, descriptor.length() - 1) + ".class";
+  }
 }

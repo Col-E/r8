@@ -3,28 +3,20 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.jasmin;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
-import com.android.tools.r8.Resource;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OutputMode;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
-import com.google.common.io.ByteStreams;
-import jasmin.ClassFile;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.StringReader;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,45 +25,32 @@ import java.util.function.Consumer;
 
 public class JasminTestBase extends TestBase {
 
-  public static String getPathFromDescriptor(String classDescriptor) {
-    assert classDescriptor.startsWith("L");
-    assert classDescriptor.endsWith(";");
-    return classDescriptor.substring(1, classDescriptor.length() - 1) + ".class";
-  }
-
   protected ProcessResult runOnJavaRaw(JasminBuilder builder, String main) throws Exception {
-    return runOnJavaRaw(builder.build(), main);
+    Path out = temp.newFolder().toPath();
+    builder.writeClassFiles(out);
+    return ToolHelper.runJava(ImmutableList.of(out.toString()), main);
   }
 
-  protected ProcessResult runOnJavaRaw(AndroidApp app, String main) throws Exception {
-    File out = temp.newFolder();
-    for (Resource clazz : app.getClassProgramResources()) {
-      assert clazz.getClassDescriptors().size() == 1;
-      String desc = clazz.getClassDescriptors().iterator().next();
-      Path path = out.toPath().resolve(getPathFromDescriptor(desc));
-      Files.createDirectories(path.getParent());
-      try (InputStream input = clazz.getStream();
-          OutputStream output = Files.newOutputStream(path)) {
-        ByteStreams.copy(input, output);
-      }
-    }
-    return ToolHelper.runJava(ImmutableList.of(out.getPath()), main);
+  protected ProcessResult runOnJavaNoVerifyRaw(JasminBuilder builder, String main)
+      throws Exception {
+    Path out = temp.newFolder().toPath();
+    builder.writeClassFiles(out);
+    return ToolHelper.runJavaNoVerify(ImmutableList.of(out.toString()), main);
   }
 
-  protected String runOnJava(JasminBuilder builder, String main) throws Exception {
-    return runOnJava(builder.build(), main);
-  }
-
-  protected String runOnJava(AndroidApp app, String main) throws Exception {
-    ProcessResult result = runOnJavaRaw(app, main);
+  private String assertNormalExitAndGetStdout(ProcessResult result) {
     if (result.exitCode != 0) {
       System.out.println("Std out:");
       System.out.println(result.stdout);
       System.out.println("Std err:");
       System.out.println(result.stderr);
-      assertEquals(0, result.exitCode);
+      fail("Process terminated abnormally.");
     }
     return result.stdout;
+  }
+
+  protected String runOnJava(JasminBuilder builder, String main) throws Exception {
+    return assertNormalExitAndGetStdout(runOnJavaRaw(builder, main));
   }
 
   protected AndroidApp compileWithD8(JasminBuilder builder) throws Exception {
@@ -120,14 +99,7 @@ public class JasminTestBase extends TestBase {
   }
 
   private ProcessResult runDx(JasminBuilder builder, File classes, Path dex) throws Exception {
-    for (ClassBuilder clazz : builder.getClasses()) {
-      ClassFile file = new ClassFile();
-      file.readJasmin(new StringReader(clazz.toString()), clazz.name, false);
-      try (OutputStream outputStream =
-          Files.newOutputStream(classes.toPath().resolve(clazz.name + ".class"))) {
-        file.write(outputStream);
-      }
-    }
+    builder.writeClassFiles(classes.toPath());
     List<String> args = new ArrayList<>();
     args.add("--output=" + dex.toString());
     args.add(classes.toString());
@@ -143,26 +115,14 @@ public class JasminTestBase extends TestBase {
   protected String runOnArtDx(JasminBuilder builder, String main) throws Exception {
     Path dex = temp.getRoot().toPath().resolve("classes.dex");
     ProcessResult result = runDx(builder, temp.newFolder("classes_for_dx"), dex);
-    if (result.exitCode != 0) {
-      System.out.println("Std out:");
-      System.out.println(result.stdout);
-      System.out.println("Std err:");
-      System.out.println(result.stderr);
-      assertEquals(0, result.exitCode);
-    }
+    assertNormalExitAndGetStdout(result);
     return ToolHelper.runArtNoVerificationErrors(dex.toString(), main);
   }
 
   protected ProcessResult runOnArtDxRaw(JasminBuilder builder, String main) throws Exception {
     Path dex = temp.getRoot().toPath().resolve("classes.dex");
     ProcessResult result = runDx(builder, temp.newFolder("classes_for_dx"), dex);
-    if (result.exitCode != 0) {
-      System.out.println("Std out:");
-      System.out.println(result.stdout);
-      System.out.println("Std err:");
-      System.out.println(result.stderr);
-      assertEquals(0, result.exitCode);
-    }
+    assertNormalExitAndGetStdout(result);
     return ToolHelper.runArtRaw(dex.toString(), main);
   }
 
