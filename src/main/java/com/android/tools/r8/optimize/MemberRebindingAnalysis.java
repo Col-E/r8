@@ -206,7 +206,10 @@ public class MemberRebindingAnalysis {
   }
 
   public GraphLense run() {
+    // TODO(b/69101406): Use correct resolution for interface vs. virtual.
     computeMethodRebinding(appInfo.virtualInvokes, this::virtualLookup,
+        DexClass::lookupVirtualMethod, DexProgramClass::addVirtualMethod);
+    computeMethodRebinding(appInfo.interfaceInvokes, this::virtualLookup,
         DexClass::lookupVirtualMethod, DexProgramClass::addVirtualMethod);
     computeMethodRebinding(appInfo.superInvokes, this::superLookup, DexClass::lookupVirtualMethod,
         DexProgramClass::addVirtualMethod);
