@@ -9,7 +9,6 @@ import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
-import it.unimi.dsi.fastutil.ints.Int2ReferenceMap.Entry;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -22,24 +21,45 @@ public class CfFrame extends CfInstruction {
     this.locals = locals;
   }
 
+  private boolean isWide(DexType type) {
+    return type.isPrimitiveType() && (type.toShorty() == 'J' || type.toShorty() == 'D');
+  }
+
   @Override
   public void write(MethodVisitor visitor) {
-    int type = F_NEW;
-    int localsSize = locals.size();
-    Object[] localsCopy = new Object[localsSize];
-    int localIndex = 0;
-    for (Entry<DexType> entry : locals.int2ReferenceEntrySet()) {
-      Object typeOpcode = getType(entry.getValue());
-      if (typeOpcode == Opcodes.LONG || typeOpcode == Opcodes.DOUBLE) {
-        localsCopy[localIndex++] = Opcodes.TOP;
+    if (locals.isEmpty()) {
+      visitor.visitFrame(F_NEW, 0, null, 0, null);
+      return;
+    }
+    // Compute the size of locals. Absent indexes are denoted by a single-width element (ie, TOP).
+    int maxRegister = locals.lastIntKey();
+    int localsCount = 0;
+    for (int i = 0; i <= maxRegister; i++) {
+      localsCount++;
+      DexType type = locals.get(i);
+      if (type != null && isWide(type)) {
+        i++;
       }
+    }
+    // Construct the locals type descriptions.
+    Object[] localsCopy = new Object[localsCount];
+    int localIndex = 0;
+    for (int i = 0; i <= maxRegister; i++) {
+      DexType type = locals.get(i);
+      Object typeOpcode = getType(type);
       localsCopy[localIndex++] = typeOpcode;
+      if (type != null && isWide(type)) {
+        i++;
+      }
     }
     // TODO(zerny): Compute the stack types too.
-    visitor.visitFrame(type, localsSize, localsCopy, 0, new Object[0]);
+    visitor.visitFrame(F_NEW, localsCount, localsCopy, 0, null);
   }
 
   private Object getType(DexType type) {
+    if (type == null) {
+      return Opcodes.TOP;
+    }
     if (type == DexItemFactory.nullValueType) {
       return Opcodes.NULL;
     }

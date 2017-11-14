@@ -611,7 +611,7 @@ public class IRConverter {
   }
 
   private void finalizeToCf(DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
-    assert method.getCode().isJarCode();
+    assert !method.getCode().isDexCode();
     CfBuilder builder = new CfBuilder(method, code, options.itemFactory);
     // TODO(zerny): Change the return type of CfBuilder::build CfCode once complete.
     Code result = builder.build(codeRewriter, options);

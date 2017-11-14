@@ -19,7 +19,7 @@ public class StackValue extends Value {
   }
 
   public static StackValue forObjectType(DexType type, int height) {
-    assert DexItemFactory.nullValueType == type || type.isClassType();
+    assert DexItemFactory.nullValueType == type || type.isClassType() || type.isArrayType();
     return new StackValue(type, ValueType.OBJECT, height);
   }
 

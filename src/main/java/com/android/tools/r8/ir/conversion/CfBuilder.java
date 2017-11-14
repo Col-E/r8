@@ -244,6 +244,7 @@ public class CfBuilder {
     assert stack.isEmpty();
     Collection<Value> locals = registerAllocator.getLocalsAtPosition(block.entry().getNumber());
     Int2ReferenceSortedMap<DexType> mapping = new Int2ReferenceAVLTreeMap<>();
+
     for (Value local : locals) {
       DexType type;
       switch (local.outType()) {

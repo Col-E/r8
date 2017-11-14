@@ -18,6 +18,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -60,6 +61,30 @@ public class R8RunExamplesTest {
   private static final Map<String, TestCondition> failingRun =
       new ImmutableMap.Builder<String, TestCondition>()
           .put("memberrebinding2.Test", match(R8_COMPILER)) // b/38187737
+          .build();
+
+  private static final Map<String, TestCondition> failingRunCf =
+      new ImmutableMap.Builder<String, TestCondition>()
+          .put("floating_point_annotations.FloatingPointValuedAnnotationTest", match(R8_COMPILER))
+          .put("filledarray.FilledArray", match(R8_COMPILER)) // missing field
+          .put("instancevariable.InstanceVariable", match(R8_COMPILER)) // missing field
+          .put("newarray.NewArray", match(R8_COMPILER)) // missing field
+          .put("regalloc.RegAlloc", match(R8_COMPILER)) // missing field
+          .put("staticfield.StaticField", match(R8_COMPILER)) // missing field
+          .put("sync.Sync", match(R8_COMPILER)) // missing field
+          .put("throwing.Throwing", match(R8_COMPILER)) // missing field
+          .put("regress_64881691.Regress", match(R8_COMPILER)) // missing field
+          .put("memberrebinding2.Memberrebinding", match(R8_COMPILER)) // missing field
+          .put("interfaceinlining.Main", match(R8_COMPILER)) // missing field
+          .put("switchmaps.Switches", match(R8_COMPILER)) // missing field
+          .put("regress_62300145.Regress", match(R8_COMPILER)) // verify <init> failed
+          .put("enclosingmethod.Main", match(R8_COMPILER)) // verify <init> failed
+          .build();
+
+  private static final Set<String> failingCompileCf =
+      new ImmutableSet.Builder<String>()
+          .add("invoke.Invoke") // outline / CF->IR
+          .add("trycatch.TryCatch") // inline / CF->IR
           .build();
 
   private static final Map<String, TestCondition> outputNotIdenticalToJVMOutput =
@@ -123,16 +148,9 @@ public class R8RunExamplesTest {
         "switchmaps.Switches",
     };
 
-    String[] javaBytecodeTests = {
-        "constants.Constants",
-        "hello.Hello",
-        "arithmetic.Arithmetic",
-        "barray.BArray",
-    };
-
     List<String[]> fullTestList = new ArrayList<>(tests.length * 2);
-    if (!ONLY_RUN_CF_TESTS) {
-      for (String test : tests) {
+    for (String test : tests) {
+      if (!ONLY_RUN_CF_TESTS) {
         fullTestList.add(makeTest(Input.JAVAC, CompilerUnderTest.D8, CompilationMode.DEBUG, test));
         fullTestList.add(makeTest(Input.JAVAC_ALL, CompilerUnderTest.D8, CompilationMode.DEBUG,
             test));
@@ -146,16 +164,10 @@ public class R8RunExamplesTest {
             test));
         fullTestList.add(makeTest(Input.DX, CompilerUnderTest.R8, CompilationMode.RELEASE, test));
       }
-    }
-    // TODO(zerny): Once all tests pass create the java tests in the main test loop.
-    for (String test : javaBytecodeTests) {
-      fullTestList.add(
-          makeTest(Input.JAVAC_ALL, CompilerUnderTest.R8, CompilationMode.DEBUG, test, Output.CF));
       fullTestList.add(
           makeTest(
               Input.JAVAC_ALL, CompilerUnderTest.R8, CompilationMode.RELEASE, test, Output.CF));
     }
-
     return fullTestList;
   }
 
@@ -236,6 +248,9 @@ public class R8RunExamplesTest {
   @Before
   public void compile()
       throws IOException, ProguardRuleParserException, ExecutionException, CompilationException {
+    if (output == Output.CF && failingCompileCf.contains(mainClass)) {
+      thrown.expect(Throwable.class);
+    }
     switch (compiler) {
       case D8: {
         assertTrue(output == Output.DEX);
@@ -277,6 +292,15 @@ public class R8RunExamplesTest {
       fail("JVM failed for: " + mainClass);
     }
 
+    DexVm vm = ToolHelper.getDexVm();
+    TestCondition condition =
+        output == Output.CF ? failingRunCf.get(mainClass) : failingRun.get(mainClass);
+    if (condition != null && condition.test(getTool(), compiler, vm.getVersion(), mode)) {
+      thrown.expect(Throwable.class);
+    } else {
+      thrown = ExpectedException.none();
+    }
+
     if (output == Output.CF) {
       ToolHelper.ProcessResult result =
           ToolHelper.runJava(ImmutableList.of(generated.toString()), mainClass);
@@ -289,14 +313,6 @@ public class R8RunExamplesTest {
           javaResult.stdout,
           result.stdout);
       return;
-    }
-
-    DexVm vm = ToolHelper.getDexVm();
-    TestCondition condition = failingRun.get(mainClass);
-    if (condition != null && condition.test(getTool(), compiler, vm.getVersion(), mode)) {
-      thrown.expect(Throwable.class);
-    } else {
-      thrown = ExpectedException.none();
     }
 
     // Check output against Art output on original dex file.

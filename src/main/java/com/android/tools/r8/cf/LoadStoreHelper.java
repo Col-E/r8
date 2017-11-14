@@ -86,11 +86,12 @@ public class LoadStoreHelper {
   public void loadInValues(Instruction instruction, InstructionListIterator it) {
     int topOfStack = 0;
     it.previous();
-    for (Value value : instruction.inValues()) {
+    for (int i = 0; i < instruction.inValues().size(); i++) {
+      Value value = instruction.inValues().get(i);
       StackValue stackValue = createStackValue(value, topOfStack++);
       add(load(stackValue, value), instruction, it);
       value.removeUser(instruction);
-      instruction.replaceValue(value, stackValue);
+      instruction.replaceValue(i, stackValue);
     }
     it.next();
   }
