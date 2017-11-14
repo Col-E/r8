@@ -74,7 +74,7 @@ public class MemberRebindingAnalysis {
     if (clazz.superType != null) {
       DexType matchingSuper = firstLibraryClassForInterfaceTarget(target, clazz.superType, lookup);
       if (matchingSuper != null) {
-        // Found in supertype, return first libray class.
+        // Found in supertype, return first library class.
         return clazz.isLibraryClass() ? current : matchingSuper;
       }
     }
@@ -216,9 +216,9 @@ public class MemberRebindingAnalysis {
         DexClass::lookupDirectMethod, DexProgramClass::addStaticMethod);
 
     computeFieldRebinding(Sets.union(appInfo.staticFieldReads, appInfo.staticFieldWrites),
-        appInfo::resolveFieldOn, DexClass::lookupStaticField);
+        appInfo::resolveFieldOn, DexClass::lookupField);
     computeFieldRebinding(Sets.union(appInfo.instanceFieldReads, appInfo.instanceFieldWrites),
-        appInfo::resolveFieldOn, DexClass::lookupInstanceField);
+        appInfo::resolveFieldOn, DexClass::lookupField);
     return builder.build(appInfo.dexItemFactory, lense);
   }
 }
