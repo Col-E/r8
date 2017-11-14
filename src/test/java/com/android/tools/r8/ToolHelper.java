@@ -748,9 +748,22 @@ public class ToolHelper {
     return runJava(ImmutableList.of(path.toString()), main);
   }
 
+  public static ProcessResult runJavaNoVerify(Class clazz) throws Exception {
+    String main = clazz.getCanonicalName();
+    Path path = getClassPathForTests();
+    return runJavaNoVerify(ImmutableList.of(path.toString()), main);
+  }
+
   public static ProcessResult runJava(List<String> classpath, String mainClass) throws IOException {
     ProcessBuilder builder = new ProcessBuilder(
         getJavaExecutable(), "-cp", String.join(PATH_SEPARATOR, classpath), mainClass);
+    return runProcess(builder);
+  }
+
+  public static ProcessResult runJavaNoVerify(List<String> classpath, String mainClass)
+      throws IOException {
+    ProcessBuilder builder = new ProcessBuilder(
+        getJavaExecutable(), "-cp", String.join(PATH_SEPARATOR, classpath), "-noverify", mainClass);
     return runProcess(builder);
   }
 
