@@ -77,6 +77,14 @@ sourceSets {
             ]
         }
     }
+    bsPatch {
+        java {
+            srcDirs = [
+                'src/bspatch/java',
+                'src/main/java'
+            ]
+        }
+    }
     apiUsageSample {
         java {
             srcDirs = ['src/test/apiUsageSample']
@@ -172,7 +180,6 @@ dependencies {
         exclude group: 'org.codehaus.mojo'
     })
     compile group: 'it.unimi.dsi', name: 'fastutil', version: '7.2.0'
-    compile group: 'org.apache.commons', name: 'commons-compress', version: '1.12'
     compile group: 'org.ow2.asm', name: 'asm', version: '6.0'
     compile group: 'org.ow2.asm', name: 'asm-commons', version: '6.0'
     compile group: 'org.ow2.asm', name: 'asm-tree', version: '6.0'
@@ -184,6 +191,7 @@ dependencies {
     testCompile files('third_party/jasmin/jasmin-2.4.jar')
     testCompile files('third_party/jdwp-tests/apache-harmony-jdwp-tests-host.jar')
     testCompile files('third_party/ddmlib/ddmlib.jar')
+    bsPatchCompile group: 'org.apache.commons', name: 'commons-compress', version: '1.12'
     jctfCommonCompile 'junit:junit:4.12'
     jctfTestsCompile 'junit:junit:4.12'
     jctfTestsCompile sourceSets.jctfCommon.output
@@ -201,6 +209,8 @@ dependencies {
     debugTestResourcesKotlinCompileOnly 'org.jetbrains.kotlin:kotlin-stdlib:1.1.4-3'
     apt 'com.google.auto.value:auto-value:1.5'
 }
+
+configurations.bsPatchCompile.extendsFrom configurations.compile
 
 licenseTools {
     licensesYaml = file('LIBRARY-LICENSE')
@@ -594,6 +604,22 @@ task ExtractMarker(type: Jar) {
     if (!project.hasProperty('exclude_deps')) {
         // Also include dependencies
         from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    }
+}
+
+task bspatch(type: Jar) {
+    from sourceSets.bsPatch.output
+    baseName 'bspatch'
+    manifest {
+        attributes 'Main-Class': 'com.android.tools.r8.dex.BSPatch'
+    }
+    // In order to build without dependencies, pass the exclude_deps property using:
+    // gradle -Pexclude_deps maindex
+    if (!project.hasProperty('exclude_deps')) {
+        // Also include dependencies
+        from {
+            configurations.bsPatchCompile.collect { it.isDirectory() ? it : zipTree(it) }
+        }
     }
 }
 
