@@ -219,7 +219,7 @@ public abstract class DexValue extends DexItem {
 
     @Override
     public Object asAsmEncodedObject() {
-      return new Integer(value);
+      return Integer.valueOf(value);
     }
 
     @Override
@@ -270,7 +270,7 @@ public abstract class DexValue extends DexItem {
 
     @Override
     public Object asAsmEncodedObject() {
-      return new Integer(value);
+      return Integer.valueOf(value);
     }
 
     @Override
@@ -325,7 +325,7 @@ public abstract class DexValue extends DexItem {
 
     @Override
     public Object asAsmEncodedObject() {
-      return new Integer(value);
+      return Integer.valueOf(value);
     }
 
     @Override
@@ -376,7 +376,7 @@ public abstract class DexValue extends DexItem {
 
     @Override
     public Object asAsmEncodedObject() {
-      return new Integer(value);
+      return Integer.valueOf(value);
     }
 
     @Override
@@ -427,7 +427,7 @@ public abstract class DexValue extends DexItem {
 
     @Override
     public Object asAsmEncodedObject() {
-      return new Long(value);
+      return Long.valueOf(value);
     }
 
     @Override
@@ -482,7 +482,7 @@ public abstract class DexValue extends DexItem {
 
     @Override
     public Object asAsmEncodedObject() {
-      return new Float(value);
+      return Float.valueOf(value);
     }
 
     @Override
@@ -535,7 +535,7 @@ public abstract class DexValue extends DexItem {
 
     @Override
     public Object asAsmEncodedObject() {
-      return new Double(value);
+      return Double.valueOf(value);
     }
 
     @Override
@@ -904,7 +904,7 @@ public abstract class DexValue extends DexItem {
 
     @Override
     public Object asAsmEncodedObject() {
-      return new Integer(value ? 1 : 0);
+      return Integer.valueOf(value ? 1 : 0);
     }
 
     @Override
