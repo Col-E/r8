@@ -31,15 +31,18 @@ public class DexDebugPositionState implements DexDebugEventVisitor {
     currentMethod = method;
   }
 
+  @Override
   public void visit(AdvancePC advancePC) {
     assert advancePC.delta >= 0;
     currentPc += advancePC.delta;
   }
 
+  @Override
   public void visit(AdvanceLine advanceLine) {
     currentLine += advanceLine.delta;
   }
 
+  @Override
   public void visit(SetInlineFrame setInlineFrame) {
     assert (setInlineFrame.caller == null && setInlineFrame.callee == method)
         || (setInlineFrame.caller != null
@@ -48,12 +51,14 @@ public class DexDebugPositionState implements DexDebugEventVisitor {
     currentCallerPosition = setInlineFrame.caller;
   }
 
+  @Override
   public void visit(Default defaultEvent) {
     assert defaultEvent.getPCDelta() >= 0;
     currentPc += defaultEvent.getPCDelta();
     currentLine += defaultEvent.getLineDelta();
   }
 
+  @Override
   public void visit(SetFile setFile) {
     currentFile = setFile.fileName;
   }
