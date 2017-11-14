@@ -75,6 +75,7 @@ public class Enqueuer {
   private RootSet rootSet;
 
   private Map<DexType, Set<DexMethod>> virtualInvokes = Maps.newIdentityHashMap();
+  private Map<DexType, Set<DexMethod>> interfaceInvokes = Maps.newIdentityHashMap();
   private Map<DexType, Set<DexMethod>> superInvokes = Maps.newIdentityHashMap();
   private Map<DexType, Set<DexMethod>> directInvokes = Maps.newIdentityHashMap();
   private Map<DexType, Set<DexMethod>> staticInvokes = Maps.newIdentityHashMap();
@@ -238,7 +239,7 @@ public class Enqueuer {
 
     @Override
     public boolean registerInvokeInterface(DexMethod method) {
-      if (!registerItemWithTarget(virtualInvokes, method)) {
+      if (!registerItemWithTarget(interfaceInvokes, method)) {
         return false;
       }
       if (Log.ENABLED) {
@@ -1150,6 +1151,10 @@ public class Enqueuer {
      */
     public final SortedSet<DexMethod> virtualInvokes;
     /**
+     * Set of all methods referenced in interface invokes;
+     */
+    public final SortedSet<DexMethod> interfaceInvokes;
+    /**
      * Set of all methods referenced in super invokes;
      */
     public final SortedSet<DexMethod> superInvokes;
@@ -1207,6 +1212,7 @@ public class Enqueuer {
       this.fieldsWritten = enqueuer.collectFieldsWritten();
       this.pinnedItems = rewritePinnedItemsToDescriptors(enqueuer.pinnedItems);
       this.virtualInvokes = joinInvokedMethods(enqueuer.virtualInvokes);
+      this.interfaceInvokes = joinInvokedMethods(enqueuer.interfaceInvokes);
       this.superInvokes = joinInvokedMethods(enqueuer.superInvokes);
       this.directInvokes = joinInvokedMethods(enqueuer.directInvokes);
       this.staticInvokes = joinInvokedMethods(enqueuer.staticInvokes);
@@ -1240,6 +1246,7 @@ public class Enqueuer {
       this.noSideEffects = previous.noSideEffects;
       this.assumedValues = previous.assumedValues;
       this.virtualInvokes = previous.virtualInvokes;
+      this.interfaceInvokes = previous.interfaceInvokes;
       this.superInvokes = previous.superInvokes;
       this.directInvokes = previous.directInvokes;
       this.staticInvokes = previous.staticInvokes;
@@ -1268,6 +1275,7 @@ public class Enqueuer {
       this.fieldsWritten = rewriteItems(previous.fieldsWritten, lense::lookupField);
       this.pinnedItems = rewriteMixedItems(previous.pinnedItems, lense);
       this.virtualInvokes = rewriteItems(previous.virtualInvokes, lense::lookupMethod);
+      this.interfaceInvokes = rewriteItems(previous.interfaceInvokes, lense::lookupMethod);
       this.superInvokes = rewriteItems(previous.superInvokes, lense::lookupMethod);
       this.directInvokes = rewriteItems(previous.directInvokes, lense::lookupMethod);
       this.staticInvokes = rewriteItems(previous.staticInvokes, lense::lookupMethod);
