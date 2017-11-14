@@ -65,6 +65,30 @@ public class MemberResolutionTest extends JasminTestBase {
   }
 
   @Test
+  public void lookupStaticFieldWithFieldGetFromNullReference() throws Exception {
+    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JDK_1_4);
+
+    ClassBuilder superClass = builder.addClass("SuperClass");
+    superClass.addDefaultConstructor();
+    superClass.addStaticFinalField("aField", "I", "42");
+
+    ClassBuilder subClass = builder.addClass("SubClass", "SuperClass");
+    subClass.addDefaultConstructor();
+
+    ClassBuilder mainClass = builder.addClass(MAIN_CLASS);
+    mainClass.addMainMethod(
+        ".limit stack 3",
+        ".limit locals 1",
+        "  getstatic java/lang/System/out Ljava/io/PrintStream;",
+        "  aconst_null",
+        "  getfield SubClass/aField I",
+        "  invokevirtual java/io/PrintStream/print(I)V",
+        "  return");
+
+    ensureICCE(builder);
+  }
+
+  @Test
   public void lookupStaticFieldFromSupersInterfaceNotSupersSuper() throws Exception {
     JasminBuilder builder = new JasminBuilder(ClassFileVersion.JDK_1_4);
 
@@ -91,7 +115,6 @@ public class MemberResolutionTest extends JasminTestBase {
   }
 
   @Test
-  @Ignore("b/69101406")
   public void lookupInstanceFieldWithShadowingStatic() throws Exception {
     JasminBuilder builder = new JasminBuilder();
 
@@ -114,6 +137,30 @@ public class MemberResolutionTest extends JasminTestBase {
         "  dup",
         "  invokespecial SubClass/<init>()V",
         "  getfield SubClass/aField I",
+        "  invokevirtual java/io/PrintStream/print(I)V",
+        "  return");
+
+    ensureICCE(builder);
+  }
+
+  @Test
+  public void lookupStaticFieldWithShadowingInstance() throws Exception {
+    JasminBuilder builder = new JasminBuilder();
+
+    ClassBuilder superClass = builder.addClass("SuperClass");
+    superClass.addStaticField("aField", "I", "42");
+    superClass.addDefaultConstructor();
+
+    ClassBuilder subClass = builder.addClass("SubClass", "SuperClass");
+    subClass.addField("public", "aField", "I", "123");
+    subClass.addDefaultConstructor();
+
+    ClassBuilder mainClass = builder.addClass(MAIN_CLASS);
+    mainClass.addMainMethod(
+        ".limit stack 2",
+        ".limit locals 1",
+        "  getstatic java/lang/System/out Ljava/io/PrintStream;",
+        "  getstatic SubClass/aField I",
         "  invokevirtual java/io/PrintStream/print(I)V",
         "  return");
 
@@ -195,6 +242,7 @@ public class MemberResolutionTest extends JasminTestBase {
   }
 
   @Test
+  @Ignore("b/69101406")
   public void lookupPrivateSuperFromSubClass() throws Exception {
     JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_5);
 
@@ -305,13 +353,16 @@ public class MemberResolutionTest extends JasminTestBase {
   }
 
   private void ensureSameOutput(JasminBuilder app) throws Exception {
+    String javaOutput = runOnJava(app, MAIN_CLASS);
     String dxOutput = runOnArtDx(app, MAIN_CLASS);
     String d8Output = runOnArtD8(app, MAIN_CLASS);
-    Assert.assertEquals(dxOutput, d8Output);
     String r8Output = runOnArtR8(app, MAIN_CLASS);
-    Assert.assertEquals(dxOutput, r8Output);
-    String javaOutput = runOnJava(app, MAIN_CLASS);
+    String r8ShakenOutput = runOnArtR8(app, MAIN_CLASS, keepMainProguardConfiguration(MAIN_CLASS),
+        null);
+    Assert.assertEquals(javaOutput, dxOutput);
+    Assert.assertEquals(javaOutput, d8Output);
     Assert.assertEquals(javaOutput, r8Output);
+    Assert.assertEquals(javaOutput, r8ShakenOutput);
   }
 
   private void ensureICCE(JasminBuilder app) throws Exception {
@@ -331,6 +382,9 @@ public class MemberResolutionTest extends JasminTestBase {
     Assert.assertTrue(d8Output.stderr.contains(name));
     ProcessResult r8Output = runOnArtR8Raw(app, MAIN_CLASS, null);
     Assert.assertTrue(r8Output.stderr.contains(name));
+    ProcessResult r8ShakenOutput = runOnArtR8Raw(app, MAIN_CLASS,
+        keepMainProguardConfiguration(MAIN_CLASS), null);
+    Assert.assertTrue(r8ShakenOutput.stderr.contains(name));
     ProcessResult javaOutput = runOnJavaNoVerifyRaw(app, MAIN_CLASS);
     Assert.assertTrue(javaOutput.stderr.contains(name));
   }

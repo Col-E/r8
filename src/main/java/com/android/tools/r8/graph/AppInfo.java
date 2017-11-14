@@ -80,7 +80,7 @@ public class AppInfo {
 
   private DexEncodedMethod lookupDirectStaticOrConstructorTarget(DexMethod method) {
     assert method.holder.isClassType();
-    return lookupTargetAlongSuperChain(method.holder, method, DexClass::findDirectTarget);
+    return lookupTargetAlongSuperChain(method.holder, method, DexClass::lookupDirectMethod);
   }
 
   /**
@@ -118,13 +118,13 @@ public class AppInfo {
   public DexEncodedMethod lookupVirtualTarget(DexType type, DexMethod method) {
     assert type.isClassType();
     DexEncodedMethod result
-        = lookupTargetAlongSuperChain(type, method, DexClass::findVirtualTarget);
+        = lookupTargetAlongSuperChain(type, method, DexClass::lookupVirtualMethod);
     if (result != null) {
       return result;
     }
     return lookupTargetAlongInterfaceChain(type, method,
         (dexClass, dexMethod) -> {
-          DexEncodedMethod virtualTarget = dexClass.findVirtualTarget(dexMethod);
+          DexEncodedMethod virtualTarget = dexClass.lookupVirtualMethod(dexMethod);
           return virtualTarget != null && virtualTarget.getCode() != null
               ? virtualTarget
               : null;
@@ -140,27 +140,68 @@ public class AppInfo {
   public DexEncodedMethod lookupVirtualDefinition(DexType type, DexMethod method) {
     assert type.isClassType();
     DexEncodedMethod result
-        = lookupTargetAlongSuperChain(type, method, DexClass::findVirtualTarget);
+        = lookupTargetAlongSuperChain(type, method, DexClass::lookupVirtualMethod);
     if (result != null) {
       return result;
     }
-    return lookupTargetAlongInterfaceChain(type, method, DexClass::findVirtualTarget);
+    return lookupTargetAlongInterfaceChain(type, method, DexClass::lookupVirtualMethod);
   }
 
   /**
-   * Lookup instance field starting in type and following the super chain.
+   * Lookup instance field starting in type and following the interface and super chain.
+   * <p>
+   * The result is the field that will be hit at runtime, if such field is known. A result
+   * of null indicates that the field is either undefined or not an instance field.
    */
   public DexEncodedField lookupInstanceTarget(DexType type, DexField field) {
     assert type.isClassType();
-    return resolveFieldOn(type, field, false);
+    DexEncodedField result = resolveFieldOn(type, field);
+    return result == null || result.accessFlags.isStatic() ? null : result;
   }
 
   /**
    * Lookup static field starting in type and following the interface and super chain.
+   * <p>
+   * The result is the field that will be hit at runtime, if such field is known. A result
+   * of null indicates that the field is either undefined or not a static field.
    */
   public DexEncodedField lookupStaticTarget(DexType type, DexField field) {
     assert type.isClassType();
-    return resolveFieldOn(type, field, true);
+    DexEncodedField result = resolveFieldOn(type, field);
+    return result == null || !result.accessFlags.isStatic() ? null : result;
+  }
+
+  /**
+   * Implements resolution of a field descriptor against a type.
+   * <p>
+   * See <a href="https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-5.html#jvms-5.4.3.2">
+   * Section 5.4.3.2 of the JVM Spec</a>.
+   */
+  public DexEncodedField resolveFieldOn(DexType type, DexField desc) {
+    DexClass holder = definitionFor(type);
+    if (holder == null) {
+      return null;
+    }
+    // Step 1: Class declares the field.
+    DexEncodedField result = holder.lookupField(desc);
+    if (result != null) {
+      return result;
+    }
+    // Step 2: Apply recursively to direct superinterfaces. First match succeeds.
+    for (DexType iface : holder.interfaces.values) {
+      result = resolveFieldOn(iface, desc);
+      if (result != null) {
+        return result;
+      }
+    }
+    // Step 3: Apply recursively to superclass.
+    if (holder.superType != null) {
+      result = resolveFieldOn(holder.superType, desc);
+      if (result != null) {
+        return result;
+      }
+    }
+    return null;
   }
 
   /**
@@ -223,45 +264,6 @@ public class AppInfo {
     }
     return applyToInterfacesAndDisambiguate(holder.interfaces.values, desc, lookup,
         this::lookupTargetAlongSuperAndInterfaceChain);
-  }
-
-  /**
-   * Implements resolution of a field descriptor against a type.
-   * <p>
-   * See <a href="https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-5.html#jvms-5.4.3.2">
-   * Section 5.4.3.2 of the JVM Spec</a>.
-   */
-  private DexEncodedField resolveFieldOn(DexType type, DexField desc, boolean isStatic) {
-    DexClass holder = definitionFor(type);
-    if (holder == null) {
-      return null;
-    }
-    // Step 1: Class declares the field.
-    DexEncodedField result =
-        isStatic ? holder.findStaticTarget(desc) : holder.findInstanceTarget(desc);
-    if (result != null) {
-      return result;
-    }
-    // Step 2: Apply recursively to direct superinterfaces. First match succeeds.
-    //
-    // We short-cut here, as we know that interfaces cannot have instance fields.
-    // See https://docs.oracle.com/javase/specs/jvms/se9/html/jvms-4.html#jvms-4.5.
-    if (isStatic) {
-      for (DexType iface : holder.interfaces.values) {
-        result = resolveFieldOn(iface, desc, isStatic);
-        if (result != null) {
-          return result;
-        }
-      }
-    }
-    // Step 3: Apply recursively to superclass.
-    if (holder.superType != null) {
-      result = resolveFieldOn(holder.superType, desc, isStatic);
-      if (result != null) {
-        return result;
-      }
-    }
-    return null;
   }
 
   private boolean isDefaultMethod(DexEncodedMethod encodedMethod) {

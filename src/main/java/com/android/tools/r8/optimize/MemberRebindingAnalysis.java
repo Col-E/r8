@@ -207,18 +207,18 @@ public class MemberRebindingAnalysis {
 
   public GraphLense run() {
     computeMethodRebinding(appInfo.virtualInvokes, this::virtualLookup,
-        DexClass::findVirtualTarget, DexProgramClass::addVirtualMethod);
-    computeMethodRebinding(appInfo.superInvokes, this::superLookup, DexClass::findVirtualTarget,
+        DexClass::lookupVirtualMethod, DexProgramClass::addVirtualMethod);
+    computeMethodRebinding(appInfo.superInvokes, this::superLookup, DexClass::lookupVirtualMethod,
         DexProgramClass::addVirtualMethod);
     computeMethodRebinding(appInfo.directInvokes, appInfo::lookupDirectTarget,
-        DexClass::findDirectTarget, MemberRebindingAnalysis::privateMethodsCheck);
+        DexClass::lookupDirectMethod, MemberRebindingAnalysis::privateMethodsCheck);
     computeMethodRebinding(appInfo.staticInvokes, appInfo::lookupStaticTarget,
-        DexClass::findDirectTarget, DexProgramClass::addStaticMethod);
+        DexClass::lookupDirectMethod, DexProgramClass::addStaticMethod);
 
     computeFieldRebinding(Sets.union(appInfo.staticFieldReads, appInfo.staticFieldWrites),
-        appInfo::lookupStaticTarget, DexClass::findStaticTarget);
+        appInfo::resolveFieldOn, DexClass::lookupStaticField);
     computeFieldRebinding(Sets.union(appInfo.instanceFieldReads, appInfo.instanceFieldWrites),
-        appInfo::lookupInstanceTarget, DexClass::findInstanceTarget);
+        appInfo::resolveFieldOn, DexClass::lookupInstanceField);
     return builder.build(appInfo.dexItemFactory, lense);
   }
 }

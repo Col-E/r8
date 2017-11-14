@@ -178,34 +178,42 @@ public abstract class DexClass extends DexItem {
   }
 
   /**
-   * Find direct method in this class matching method
+   * Find static field in this class matching field
    */
-  public DexEncodedMethod findDirectTarget(DexMethod method) {
-    return findTarget(directMethods(), method);
+  public DexEncodedField lookupStaticField(DexField field) {
+    return lookupTarget(staticFields(), field);
   }
 
   /**
-   * Find static field in this class matching field
+   * Find instance field in this class matching field.
    */
-  public DexEncodedField findStaticTarget(DexField field) {
-    return findTarget(staticFields(), field);
+  public DexEncodedField lookupInstanceField(DexField field) {
+    return lookupTarget(instanceFields(), field);
+  }
+
+  /**
+   * Find field in this class matching field.
+   */
+  public DexEncodedField lookupField(DexField field) {
+    DexEncodedField result = lookupInstanceField(field);
+    return result == null ? lookupStaticField(field) : result;
+  }
+
+  /**
+   * Find direct method in this class matching method
+   */
+  public DexEncodedMethod lookupDirectMethod(DexMethod method) {
+    return lookupTarget(directMethods(), method);
   }
 
   /**
    * Find virtual method in this class matching method
    */
-  public DexEncodedMethod findVirtualTarget(DexMethod method) {
-    return findTarget(virtualMethods(), method);
+  public DexEncodedMethod lookupVirtualMethod(DexMethod method) {
+    return lookupTarget(virtualMethods(), method);
   }
 
-  /**
-   * Find instance field in this class matching field
-   */
-  public DexEncodedField findInstanceTarget(DexField field) {
-    return findTarget(instanceFields(), field);
-  }
-
-  private <T extends DexItem, S extends Descriptor<T, S>> T findTarget(T[] items, S descriptor) {
+  private <T extends DexItem, S extends Descriptor<T, S>> T lookupTarget(T[] items, S descriptor) {
     for (T entry : items) {
       if (descriptor.match(entry)) {
         return entry;

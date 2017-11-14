@@ -5,6 +5,7 @@ package com.android.tools.r8.jasmin;
 
 import static org.junit.Assert.fail;
 
+import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
@@ -80,6 +81,16 @@ public class JasminTestBase extends TestBase {
     return ToolHelper.runR8(builder.build(), optionsConsumer);
   }
 
+  protected AndroidApp compileWithR8(JasminBuilder builder, String proguardConfig,
+      Consumer<InternalOptions> optionsConsumer)
+      throws Exception {
+    R8Command command =
+        ToolHelper.prepareR8CommandBuilder(builder.build())
+            .addProguardConfiguration(ImmutableList.of(proguardConfig))
+            .build();
+    return ToolHelper.runR8(command, optionsConsumer);
+  }
+
   protected String runOnArtR8(JasminBuilder builder, String main) throws Exception {
     return runOnArtR8(builder, main, null);
   }
@@ -91,10 +102,24 @@ public class JasminTestBase extends TestBase {
     return runOnArt(result, main);
   }
 
+  protected String runOnArtR8(JasminBuilder builder, String main, String proguardConfig,
+      Consumer<InternalOptions> optionsConsumer)
+      throws Exception {
+    AndroidApp result = compileWithR8(builder, proguardConfig, optionsConsumer);
+    return runOnArt(result, main);
+  }
+
   protected ProcessResult runOnArtR8Raw(JasminBuilder builder, String main,
       Consumer<InternalOptions> optionsConsumer)
       throws Exception {
     AndroidApp result = compileWithR8(builder, optionsConsumer);
+    return runOnArtRaw(result, main);
+  }
+
+  protected ProcessResult runOnArtR8Raw(JasminBuilder builder, String main, String proguardConfig,
+      Consumer<InternalOptions> optionsConsumer)
+      throws Exception {
+    AndroidApp result = compileWithR8(builder, proguardConfig, optionsConsumer);
     return runOnArtRaw(result, main);
   }
 

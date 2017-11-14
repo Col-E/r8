@@ -137,7 +137,7 @@ public class AppInfoWithSubtyping extends AppInfo {
       for (DexType type : set) {
         DexClass clazz = definitionFor(type);
         if (!clazz.isInterface()) {
-          DexEncodedMethod t = clazz.findVirtualTarget(method);
+          DexEncodedMethod t = clazz.lookupVirtualMethod(method);
           if (t != null) {
             result.add(t);
           }
@@ -176,7 +176,7 @@ public class AppInfoWithSubtyping extends AppInfo {
       for (DexType type : set) {
         DexClass clazz = definitionFor(type);
         if (!clazz.isInterface()) {
-          DexEncodedMethod t = clazz.findVirtualTarget(method);
+          DexEncodedMethod t = clazz.lookupVirtualMethod(method);
           if (t != null) {
             if (result != null) {
               return null;  // We have more than one target method.

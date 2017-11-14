@@ -50,6 +50,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 import java.util.SortedSet;
@@ -565,13 +566,24 @@ public class Enqueuer {
     // supertypes as live, so even if the field is actually on a supertype, its class will be live.
     markTypeAsLive(field.clazz);
     // Find the actual field.
-    DexEncodedField encodedField = appInfo.lookupStaticTarget(field.clazz, field);
+    DexEncodedField encodedField = appInfo.resolveFieldOn(field.clazz, field);
     if (encodedField == null) {
       reportMissingField(field);
       return;
     }
-    if (Log.ENABLED) {
-      Log.verbose(getClass(), "Adding static field `%s` to live set.", encodedField.field);
+    // This field might be an instance field reachable from a static context, e.g. a getStatic that
+    // resolves to an instance field. We have to keep the instance field nonetheless, as otherwise
+    // we might unmask a shadowed static field and hence change semantics.
+
+    if (encodedField.accessFlags.isStatic()) {
+      if (Log.ENABLED) {
+        Log.verbose(getClass(), "Adding static field `%s` to live set.", encodedField.field);
+      }
+    } else {
+      if (Log.ENABLED) {
+        Log.verbose(getClass(), "Adding instance field `%s` to live set (static context).",
+            encodedField.field);
+      }
     }
     liveFields.add(encodedField, reason);
     // Add all dependent members to the workqueue.
@@ -633,21 +645,29 @@ public class Enqueuer {
         || appInfo.subtypes(type).stream().anyMatch(instantiatedTypes::contains);
   }
 
-  private void markFieldAsReachable(DexField field, KeepReason reason) {
+  private void markInstanceFieldAsReachable(DexField field, KeepReason reason) {
     if (Log.ENABLED) {
       Log.verbose(getClass(), "Marking instance field `%s` as reachable.", field);
     }
-    DexEncodedField encodedField = appInfo.lookupInstanceTarget(field.clazz, field);
+    DexEncodedField encodedField = appInfo.resolveFieldOn(field.clazz, field);
     if (encodedField == null) {
       reportMissingField(field);
       return;
     }
-    SetWithReason<DexEncodedField> reachable = reachableInstanceFields
-        .computeIfAbsent(encodedField.field.clazz, ignore -> new SetWithReason<>());
-    if (reachable.add(encodedField, reason) && isInstantiatedOrHasInstantiatedSubtype(
-        encodedField.field.clazz)) {
-      // We have at least one live subtype, so mark it as live.
-      markInstanceFieldAsLive(encodedField, reason);
+    // We might have a instance field access that is dispatched to a static field. In such case,
+    // we have to keep the static field, so that the dispatch fails at runtime in the same way that
+    // it did before. We have to keep the field even if the receiver has no live inhabitants, as
+    // field resolution happens before the receiver is inspected.
+    if (encodedField.accessFlags.isStatic()) {
+      markStaticFieldAsLive(encodedField.field, reason);
+    } else {
+      SetWithReason<DexEncodedField> reachable = reachableInstanceFields
+          .computeIfAbsent(encodedField.field.clazz, ignore -> new SetWithReason<>());
+      if (reachable.add(encodedField, reason) && isInstantiatedOrHasInstantiatedSubtype(
+          encodedField.field.clazz)) {
+        // We have at least one live subtype, so mark it as live.
+        markInstanceFieldAsLive(encodedField, reason);
+      }
     }
   }
 
@@ -717,7 +737,7 @@ public class Enqueuer {
               DexType current = worklist.pollFirst();
               DexClass currentHolder = appInfo.definitionFor(current);
               if (currentHolder == null
-                  || currentHolder.findVirtualTarget(encodedMethod.method) != null) {
+                  || currentHolder.lookupVirtualMethod(encodedMethod.method) != null) {
                 continue;
               }
               if (instantiatedTypes.contains(current)) {
@@ -808,7 +828,7 @@ public class Enqueuer {
             processNewlyInstantiatedClass((DexClass) action.target, action.reason);
             break;
           case MARK_REACHABLE_FIELD:
-            markFieldAsReachable((DexField) action.target, action.reason);
+            markInstanceFieldAsReachable((DexField) action.target, action.reason);
             break;
           case MARK_REACHABLE_VIRTUAL:
             markVirtualMethodAsReachable((DexMethod) action.target, false, action.reason);
@@ -886,7 +906,7 @@ public class Enqueuer {
     if (target.accessFlags.isStatic()) {
       markStaticFieldAsLive(target.field, reason);
     } else {
-      markFieldAsReachable(target.field, reason);
+      markInstanceFieldAsReachable(target.field, reason);
     }
   }
 
@@ -972,18 +992,18 @@ public class Enqueuer {
 
   private Set<DexField> collectReachedFields(Map<DexType, Set<DexField>> map,
       Function<DexField, DexField> lookup) {
-    return map.values().stream().flatMap(set -> set.stream().map(lookup))
+    return map.values().stream().flatMap(set -> set.stream().map(lookup).filter(Objects::nonNull))
         .collect(Collectors.toCollection(Sets::newIdentityHashSet));
   }
 
   private DexField tryLookupInstanceField(DexField field) {
     DexEncodedField target = appInfo.lookupInstanceTarget(field.clazz, field);
-    return target == null ? field : target.field;
+    return target == null ? null : target.field;
   }
 
   private DexField tryLookupStaticField(DexField field) {
     DexEncodedField target = appInfo.lookupStaticTarget(field.clazz, field);
-    return target == null ? field : target.field;
+    return target == null ? null : target.field;
   }
 
   SortedSet<DexField> collectFieldsRead() {
@@ -1487,17 +1507,17 @@ public class Enqueuer {
       if (holder == null) {
         return false;
       }
-      DexEncodedField target = holder.findStaticTarget(field);
+      DexEncodedField target = holder.lookupStaticField(field);
       if (target != null) {
         // There is no dispatch on annotations, so only keep what is directly referenced.
         if (target.field == field) {
           markStaticFieldAsLive(field, KeepReason.referencedInAnnotation(annotationHolder));
         }
       } else {
-        target = holder.findInstanceTarget(field);
+        target = holder.lookupInstanceField(field);
         // There is no dispatch on annotations, so only keep what is directly referenced.
         if (target != null && target.field != field) {
-          markFieldAsReachable(field, KeepReason.referencedInAnnotation(annotationHolder));
+          markInstanceFieldAsReachable(field, KeepReason.referencedInAnnotation(annotationHolder));
         }
       }
       return false;
@@ -1509,7 +1529,7 @@ public class Enqueuer {
       if (holder == null) {
         return false;
       }
-      DexEncodedMethod target = holder.findDirectTarget(method);
+      DexEncodedMethod target = holder.lookupDirectMethod(method);
       if (target != null) {
         // There is no dispatch on annotations, so only keep what is directly referenced.
         if (target.method == method) {
@@ -1517,7 +1537,7 @@ public class Enqueuer {
               target, KeepReason.referencedInAnnotation(annotationHolder));
         }
       } else {
-        target = holder.findVirtualTarget(method);
+        target = holder.lookupVirtualMethod(method);
         // There is no dispatch on annotations, so only keep what is directly referenced.
         if (target != null && target.method == method) {
           markMethodAsTargeted(target, KeepReason.referencedInAnnotation(annotationHolder));

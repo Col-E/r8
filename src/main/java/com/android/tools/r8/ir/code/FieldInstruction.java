@@ -41,6 +41,11 @@ abstract class FieldInstruction extends Instruction {
     return field;
   }
 
+  /**
+   * Returns the target of this field instruction, if such target is known, or null.
+   * <p>
+   * A result of null indicates that the field is either undefined or not of the right kind.
+   */
   abstract DexEncodedField lookupTarget(DexType type, AppInfo appInfo);
 
   @Override
