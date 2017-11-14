@@ -109,6 +109,8 @@ public abstract class DexValue extends DexItem {
     return true;
   }
 
+  public abstract Object asAsmEncodedObject();
+
   static public class UnknownDexValue extends DexValue {
 
     // Singleton instance.
@@ -134,6 +136,11 @@ public abstract class DexValue extends DexItem {
 
     @Override
     public void writeTo(DexOutputBuffer dest, ObjectToOffsetMapping mapping) {
+      throw new Unreachable();
+    }
+
+    @Override
+    public Object asAsmEncodedObject() {
       throw new Unreachable();
     }
 
@@ -184,7 +191,6 @@ public abstract class DexValue extends DexItem {
       writeHeader(type, length - 1, dest);
       dest.forward(length);
     }
-
   }
 
   static public class DexValueByte extends SimpleDexValue {
@@ -209,6 +215,11 @@ public abstract class DexValue extends DexItem {
     public void writeTo(DexOutputBuffer dest, ObjectToOffsetMapping mapping) {
       writeHeader(VALUE_BYTE, 0, dest);
       dest.putSignedEncodedValue(value, 1);
+    }
+
+    @Override
+    public Object asAsmEncodedObject() {
+      return new Integer(value);
     }
 
     @Override
@@ -255,6 +266,11 @@ public abstract class DexValue extends DexItem {
     @Override
     public void writeTo(DexOutputBuffer dest, ObjectToOffsetMapping mapping) {
       writeIntegerTo(VALUE_SHORT, value, Short.BYTES, dest);
+    }
+
+    @Override
+    public Object asAsmEncodedObject() {
+      return new Integer(value);
     }
 
     @Override
@@ -308,6 +324,11 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
+    public Object asAsmEncodedObject() {
+      return new Integer(value);
+    }
+
+    @Override
     public int hashCode() {
       return value * 5;
     }
@@ -354,6 +375,11 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
+    public Object asAsmEncodedObject() {
+      return new Integer(value);
+    }
+
+    @Override
     public int hashCode() {
       return value * 11;
     }
@@ -397,6 +423,11 @@ public abstract class DexValue extends DexItem {
     @Override
     public void writeTo(DexOutputBuffer dest, ObjectToOffsetMapping mapping) {
       writeIntegerTo(VALUE_LONG, value, Long.BYTES, dest);
+    }
+
+    @Override
+    public Object asAsmEncodedObject() {
+      return new Long(value);
     }
 
     @Override
@@ -450,6 +481,11 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
+    public Object asAsmEncodedObject() {
+      return new Float(value);
+    }
+
+    @Override
     public int hashCode() {
       return (int) value * 19;
     }
@@ -498,6 +534,11 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
+    public Object asAsmEncodedObject() {
+      return new Double(value);
+    }
+
+    @Override
     public int hashCode() {
       return (int) value * 29;
     }
@@ -535,6 +576,11 @@ public abstract class DexValue extends DexItem {
       dest.rewind(length + 1);
       writeHeader(getValueKind(), length - 1, dest);
       dest.forward(length);
+    }
+
+    @Override
+    public Object asAsmEncodedObject() {
+      throw new Unreachable("No ASM conversion for DexValue " + this.getClass().getSimpleName());
     }
 
     @Override
@@ -578,6 +624,11 @@ public abstract class DexValue extends DexItem {
 
     public DexString getValue() {
       return value;
+    }
+
+    @Override
+    public Object asAsmEncodedObject() {
+      return value.toString();
     }
 
     @Override
@@ -698,6 +749,11 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
+    public Object asAsmEncodedObject() {
+      throw new Unreachable("No ASM conversion for DexValueArray");
+    }
+
+    @Override
     public void sort() {
       for (DexValue value : values) {
         value.sort();
@@ -747,6 +803,11 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
+    public Object asAsmEncodedObject() {
+      throw new Unreachable("No ASM conversion for DexValueAnnotation");
+    }
+
+    @Override
     public void sort() {
       value.sort();
     }
@@ -792,6 +853,11 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
+    public Object asAsmEncodedObject() {
+      return null;
+    }
+
+    @Override
     public int hashCode() {
       return 42;
     }
@@ -834,6 +900,11 @@ public abstract class DexValue extends DexItem {
     @Override
     public void writeTo(DexOutputBuffer dest, ObjectToOffsetMapping mapping) {
       writeHeader(VALUE_BOOLEAN, value ? 1 : 0, dest);
+    }
+
+    @Override
+    public Object asAsmEncodedObject() {
+      return new Integer(value ? 1 : 0);
     }
 
     @Override

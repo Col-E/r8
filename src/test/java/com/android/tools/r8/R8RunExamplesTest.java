@@ -53,10 +53,6 @@ public class R8RunExamplesTest {
 
   private static final String EXAMPLE_DIR = ToolHelper.EXAMPLES_BUILD_DIR;
 
-  // For local testing on a specific Art version(s) change this set. e.g. to
-  // ImmutableSet.of(DexVm.ART_DEFAULT) or pass the option -Ddex_vm=<version> to the Java VM.
-  private static final Set<DexVm> artVersions = ToolHelper.getArtVersions();
-
   // Tests failing to run.
   private static final Map<String, TestCondition> failingRun =
       new ImmutableMap.Builder<String, TestCondition>()
@@ -66,19 +62,8 @@ public class R8RunExamplesTest {
   private static final Map<String, TestCondition> failingRunCf =
       new ImmutableMap.Builder<String, TestCondition>()
           .put("floating_point_annotations.FloatingPointValuedAnnotationTest", match(R8_COMPILER))
-          .put("filledarray.FilledArray", match(R8_COMPILER)) // missing field
-          .put("instancevariable.InstanceVariable", match(R8_COMPILER)) // missing field
-          .put("newarray.NewArray", match(R8_COMPILER)) // missing field
-          .put("regalloc.RegAlloc", match(R8_COMPILER)) // missing field
-          .put("staticfield.StaticField", match(R8_COMPILER)) // missing field
-          .put("sync.Sync", match(R8_COMPILER)) // missing field
-          .put("throwing.Throwing", match(R8_COMPILER)) // missing field
-          .put("regress_64881691.Regress", match(R8_COMPILER)) // missing field
-          .put("memberrebinding2.Memberrebinding", match(R8_COMPILER)) // missing field
-          .put("interfaceinlining.Main", match(R8_COMPILER)) // missing field
-          .put("switchmaps.Switches", match(R8_COMPILER)) // missing field
-          .put("regress_62300145.Regress", match(R8_COMPILER)) // verify <init> failed
-          .put("enclosingmethod.Main", match(R8_COMPILER)) // verify <init> failed
+          .put("regress_62300145.Regress", match(R8_COMPILER)) // npe
+          .put("enclosingmethod.Main", match(R8_COMPILER)) // output differs
           .build();
 
   private static final Set<String> failingCompileCf =

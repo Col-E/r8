@@ -9,6 +9,7 @@ import com.android.tools.r8.OutputSink;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.utils.InternalOptions;
@@ -75,7 +76,12 @@ public class CfApplicationWriter {
       interfaces[i] = clazz.interfaces.values[i].getInternalName();
     }
     writer.visit(version, access, name, signature, superName, interfaces);
-    // TODO(zerny): Fields.
+    for (DexEncodedField field : clazz.staticFields()) {
+      writeField(field, writer);
+    }
+    for (DexEncodedField field : clazz.instanceFields()) {
+      writeField(field, writer);
+    }
     for (DexEncodedMethod method : clazz.directMethods()) {
       writeMethod(method, writer);
     }
@@ -87,6 +93,23 @@ public class CfApplicationWriter {
     byte[] result = writer.toByteArray();
     assert verifyCf(result);
     outputSink.writeClassFile(result, Collections.singleton(desc), desc);
+  }
+
+  private Object getStaticValue(DexEncodedField field) {
+    if (!field.accessFlags.isStatic() || field.staticValue == null) {
+      return null;
+    }
+    return field.staticValue.asAsmEncodedObject();
+  }
+
+  private void writeField(DexEncodedField field, ClassWriter writer) {
+    int access = field.accessFlags.getAsCfAccessFlags();
+    String name = field.field.name.toString();
+    String desc = field.field.type.toDescriptorString();
+    String signature = null; // TODO(zerny): Support generic signatures.
+    Object value = getStaticValue(field);
+    writer.visitField(access, name, desc, signature, value);
+    // TODO(zerny): Add annotations to the field.
   }
 
   private void writeMethod(DexEncodedMethod method, ClassWriter writer) {
