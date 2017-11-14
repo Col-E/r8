@@ -27,7 +27,7 @@ public class DexDebugInfo extends CachedHashValueDexItem {
   public List<DexDebugEntry> computeEntries(DexMethod method) {
     DexDebugEntryBuilder builder = new DexDebugEntryBuilder(startLine, method);
     for (DexDebugEvent event : events) {
-      event.addToBuilder(builder);
+      event.accept(builder);
     }
     return builder.build();
   }

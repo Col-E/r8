@@ -34,7 +34,7 @@ abstract public class DexDebugEvent extends DexItem {
 
   public abstract void writeOn(DebugBytecodeWriter writer, ObjectToOffsetMapping mapping);
 
-  public abstract void addToBuilder(DexDebugEntryBuilder builder);
+  public abstract void accept(DexDebugEventVisitor visitor);
 
   public static class AdvancePC extends DexDebugEvent {
 
@@ -51,10 +51,11 @@ abstract public class DexDebugEvent extends DexItem {
     }
 
     @Override
-    public void addToBuilder(DexDebugEntryBuilder builder) {
+    public void accept(DexDebugEventVisitor visitor) {
       assert delta >= 0;
-      builder.advancePC(delta);
+      visitor.visit(this);
     }
+
 
     @Override
     public String toString() {
@@ -85,8 +86,8 @@ abstract public class DexDebugEvent extends DexItem {
     }
 
     @Override
-    public void addToBuilder(DexDebugEntryBuilder builder) {
-      builder.endPrologue();
+    public void accept(DexDebugEventVisitor visitor) {
+      visitor.visit(this);
     }
 
     @Override
@@ -118,8 +119,8 @@ abstract public class DexDebugEvent extends DexItem {
     }
 
     @Override
-    public void addToBuilder(DexDebugEntryBuilder builder) {
-      builder.beginEpilogue();
+    public void accept(DexDebugEventVisitor visitor) {
+      visitor.visit(this);
     }
 
     @Override
@@ -153,8 +154,8 @@ abstract public class DexDebugEvent extends DexItem {
     }
 
     @Override
-    public void addToBuilder(DexDebugEntryBuilder builder) {
-      builder.advanceLine(delta);
+    public void accept(DexDebugEventVisitor visitor) {
+      visitor.visit(this);
     }
 
     @Override
@@ -220,8 +221,8 @@ abstract public class DexDebugEvent extends DexItem {
     }
 
     @Override
-    public void addToBuilder(DexDebugEntryBuilder builder) {
-      builder.startLocal(registerNum, name, type, signature);
+    public void accept(DexDebugEventVisitor visitor) {
+      visitor.visit(this);
     }
 
     @Override
@@ -272,8 +273,8 @@ abstract public class DexDebugEvent extends DexItem {
     }
 
     @Override
-    public void addToBuilder(DexDebugEntryBuilder builder) {
-      builder.endLocal(registerNum);
+    public void accept(DexDebugEventVisitor visitor) {
+      visitor.visit(this);
     }
 
     @Override
@@ -309,8 +310,8 @@ abstract public class DexDebugEvent extends DexItem {
     }
 
     @Override
-    public void addToBuilder(DexDebugEntryBuilder builder) {
-      builder.restartLocal(registerNum);
+    public void accept(DexDebugEventVisitor visitor) {
+      visitor.visit(this);
     }
 
     @Override
@@ -339,14 +340,6 @@ abstract public class DexDebugEvent extends DexItem {
       this.fileName = fileName;
     }
 
-    public DexString getFileName() {
-      return fileName;
-    }
-
-    public void setFileName(DexString fileName) {
-      this.fileName = fileName;
-    }
-
     @Override
     public void writeOn(DebugBytecodeWriter writer, ObjectToOffsetMapping mapping) {
       writer.putByte(Constants.DBG_SET_FILE);
@@ -359,8 +352,8 @@ abstract public class DexDebugEvent extends DexItem {
     }
 
     @Override
-    public void addToBuilder(DexDebugEntryBuilder builder) {
-      builder.setFile(fileName);
+    public void accept(DexDebugEventVisitor visitor) {
+      visitor.visit(this);
     }
 
     @Override
@@ -398,8 +391,8 @@ abstract public class DexDebugEvent extends DexItem {
     }
 
     @Override
-    public void addToBuilder(DexDebugEntryBuilder builder) {
-      builder.setInlineFrame(callee, caller);
+    public void accept(DexDebugEventVisitor visitor) {
+      visitor.visit(this);
     }
 
     @Override
@@ -437,11 +430,8 @@ abstract public class DexDebugEvent extends DexItem {
     }
 
     @Override
-    public void addToBuilder(DexDebugEntryBuilder builder) {
-      int adjustedOpcode = value - Constants.DBG_FIRST_SPECIAL;
-      int line = Constants.DBG_LINE_BASE + (adjustedOpcode % Constants.DBG_LINE_RANGE);
-      int address = adjustedOpcode / Constants.DBG_LINE_RANGE;
-      builder.setPosition(address, line);
+    public void accept(DexDebugEventVisitor visitor) {
+      visitor.visit(this);
     }
 
     public int getPCDelta() {
@@ -456,7 +446,7 @@ abstract public class DexDebugEvent extends DexItem {
 
     @Override
     public String toString() {
-      return "DEFAULT " + value;
+      return String.format("DEFAULT %d (dpc %d, %dline %d)", value, getPCDelta(), getLineDelta());
     }
 
     @Override

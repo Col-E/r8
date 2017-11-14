@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueType;
 import com.google.common.collect.ImmutableMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceArrayMap;
@@ -17,10 +16,10 @@ import java.util.Map.Entry;
 /**
  * Builder to construct a "per position" representation of the debug information.
  *
- * This builder is relatively relaxed about the stream of build operations and should accept
- * any stream from any input file we expect to process correctly.
+ * <p>This builder is relatively relaxed about the stream of build operations and should accept any
+ * stream from any input file we expect to process correctly.
  */
-public class DexDebugEntryBuilder {
+public class DexDebugEntryBuilder implements DexDebugEventVisitor {
 
   private static class LocalEntry {
     DebugLocalInfo current;
@@ -41,11 +40,6 @@ public class DexDebugEntryBuilder {
   }
 
   // The variables of the state machine.
-  private int currentPc = 0;
-  private int currentLine;
-  private DexString currentFile = null;
-  private DexMethod currentMethod = null;
-  private Position currentCallerPosition = null;
   private boolean prologueEnd = false;
   private boolean epilogueBegin = false;
   private final Map<Integer, LocalEntry> locals = new HashMap<>();
@@ -60,17 +54,20 @@ public class DexDebugEntryBuilder {
 
   // Resulting debug entries.
   private List<DexDebugEntry> entries = new ArrayList<>();
+  private DexDebugPositionState positionState;
 
   public DexDebugEntryBuilder(int startLine, DexMethod method) {
-    currentLine = startLine;
+    assert method != null;
     this.method = method;
-    assert this.method != null;
-    currentMethod = method;
+    positionState = new DexDebugPositionState(startLine, method);
   }
 
   public DexDebugEntryBuilder(DexEncodedMethod method, DexItemFactory factory) {
+    assert method != null && method.method != null;
     this.method = method.method;
-    assert this.method != null;
+    positionState =
+        new DexDebugPositionState(
+            method.getCode().asDexCode().getDebugInfo().startLine, method.method);
     DexCode code = method.getCode().asDexCode();
     DexDebugInfo info = code.getDebugInfo();
     int argumentRegister = code.registerSize - code.incomingRegisterSize;
@@ -89,10 +86,8 @@ public class DexDebugEntryBuilder {
       }
       argumentRegister += ValueType.fromDexType(types[i]).requiredRegisters();
     }
-    currentLine = info.startLine;
-    currentMethod = this.method;
     for (DexDebugEvent event : info.events) {
-      event.addToBuilder(this);
+      event.accept(this);
     }
   }
 
@@ -100,31 +95,39 @@ public class DexDebugEntryBuilder {
     return arguments;
   }
 
-  public void setFile(DexString file) {
-    currentFile = file;
+  @Override
+  public void visit(DexDebugEvent.AdvancePC advancePC) {
+    positionState.visit(advancePC);
   }
 
-  public void setInlineFrame(DexMethod callee, Position caller) {
-    assert (caller == null && callee == method)
-        || (caller != null && caller.getOutermostCaller().method == method);
-    currentMethod = callee;
-    currentCallerPosition = caller;
+  @Override
+  public void visit(DexDebugEvent.AdvanceLine advanceLine) {
+    positionState.visit(advanceLine);
   }
 
-  public void advancePC(int pcDelta) {
-    assert pcDelta >= 0;
-    currentPc += pcDelta;
+  @Override
+  public void visit(DexDebugEvent.SetInlineFrame setInlineFrame) {
+    positionState.visit(setInlineFrame);
   }
 
-  public void advanceLine(int line) {
-    currentLine += line;
+  @Override
+  public void visit(DexDebugEvent.Default defaultEvent) {
+    positionState.visit(defaultEvent);
+    defaultEventReceived();
   }
 
-  public void endPrologue() {
+  @Override
+  public void visit(DexDebugEvent.SetFile setFile) {
+    positionState.visit(setFile);
+  }
+
+  @Override
+  public void visit(DexDebugEvent.SetPrologueEnd setPrologueEnd) {
     prologueEnd = true;
   }
 
-  public void beginEpilogue() {
+  @Override
+  public void visit(DexDebugEvent.SetEpilogueBegin setEpilogueBegin) {
     epilogueBegin = true;
   }
 
@@ -134,20 +137,23 @@ public class DexDebugEntryBuilder {
     getEntry(register).set(argument);
   }
 
-  public void startLocal(int register, DexString name, DexType type, DexString signature) {
-    getEntry(register).set(canonicalize(name, type, signature));
+  @Override
+  public void visit(DexDebugEvent.StartLocal setStartLocal) {
+    getEntry(setStartLocal.registerNum)
+        .set(canonicalize(setStartLocal.name, setStartLocal.type, setStartLocal.signature));
   }
 
-  public void endLocal(int register) {
-    getEntry(register).unset();
+  @Override
+  public void visit(DexDebugEvent.EndLocal endLocal) {
+    getEntry(endLocal.registerNum).unset();
   }
 
-  public void restartLocal(int register) {
-    getEntry(register).reset();
+  @Override
+  public void visit(DexDebugEvent.RestartLocal restartLocal) {
+    getEntry(restartLocal.registerNum).reset();
   }
 
-  public void setPosition(int pcDelta, int lineDelta) {
-    assert pcDelta >= 0;
+  public void defaultEventReceived() {
     if (pending != null) {
       // Local changes contribute to the pending position entry.
       entries.add(
@@ -161,18 +167,16 @@ public class DexDebugEntryBuilder {
               pending.method,
               pending.callerPosition));
     }
-    currentPc += pcDelta;
-    currentLine += lineDelta;
     pending =
         new DexDebugEntry(
-            currentPc,
-            currentLine,
-            currentFile,
+            positionState.getCurrentPc(),
+            positionState.getCurrentLine(),
+            positionState.getCurrentFile(),
             prologueEnd,
             epilogueBegin,
             null,
-            currentMethod,
-            currentCallerPosition);
+            positionState.getCurrentMethod(),
+            positionState.getCurrentCallerPosition());
     prologueEnd = false;
     epilogueBegin = false;
   }
@@ -180,7 +184,7 @@ public class DexDebugEntryBuilder {
   public List<DexDebugEntry> build() {
     // Flush any pending entry.
     if (pending != null) {
-      setPosition(0, 0);
+      defaultEventReceived(); // To flush 'pending'.
       pending = null;
     }
     List<DexDebugEntry> result = entries;
