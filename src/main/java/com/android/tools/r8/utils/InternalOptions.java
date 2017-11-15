@@ -10,6 +10,7 @@ import com.android.tools.r8.errors.InvalidDebugInfoException;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.google.common.collect.ImmutableList;
@@ -138,7 +139,18 @@ public class InternalOptions {
     }
   }
 
-  public boolean warningMissingEnclosingMember = false;
+  private static class TypeVersionPair {
+
+    final int version;
+    final DexType type;
+
+    public TypeVersionPair(int version, DexType type) {
+      this.version = version;
+      this.type = type;
+    }
+  }
+
+  private Map<Origin, List<TypeVersionPair>> missingEnclosingMembers;
 
   private Map<Origin, List<InvalidParameterAnnotationInfo>> warningInvalidParameterAnnotations;
 
@@ -151,6 +163,14 @@ public class InternalOptions {
   public Path proguardMapOutput = null;
 
   public DiagnosticsHandler diagnosticsHandler = new DefaultDiagnosticsHandler();
+
+  public void warningMissingEnclosingMember(DexType clazz, Origin origin, int version) {
+    if (missingEnclosingMembers == null) {
+      missingEnclosingMembers = new HashMap<>();
+    }
+    missingEnclosingMembers.computeIfAbsent(origin, k -> new ArrayList<>()).add(
+        new TypeVersionPair(version, clazz));
+  }
 
   public void warningInvalidParameterAnnotations(
       DexMethod method, Origin origin, int expected, int actual) {
@@ -215,13 +235,26 @@ public class InternalOptions {
       printed = true;
       printOutdatedToolchain = true;
     }
-    if (warningMissingEnclosingMember) {
+    if (missingEnclosingMembers != null) {
       diagnosticsHandler.warning(
           new StringDiagnostic(
               "InnerClass annotations are missing corresponding EnclosingMember annotations."
                   + " Such InnerClass annotations are ignored."));
+      for (Origin origin : new TreeSet<>(missingEnclosingMembers.keySet())) {
+        StringBuilder builder = new StringBuilder("Classes with missing enclosing members: ");
+        boolean first = true;
+        for (TypeVersionPair pair : missingEnclosingMembers.get(origin)) {
+          if (first) {
+            first = false;
+          } else {
+            builder.append(", ");
+          }
+          builder.append(pair.type);
+          printOutdatedToolchain |= pair.version < 49;
+        }
+        diagnosticsHandler.info(new StringDiagnostic(builder.toString(), origin));
+      }
       printed = true;
-      printOutdatedToolchain = true;
     }
     if (printOutdatedToolchain) {
       diagnosticsHandler.info(

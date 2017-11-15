@@ -235,7 +235,7 @@ public class JarClassFileReader {
       }
       if (innerClassAnnotation != null) {
         if (enclosingAnnotation == null) {
-          application.options.warningMissingEnclosingMember = true;
+          application.options.warningMissingEnclosingMember(type, origin, version);
         } else {
           addAnnotation(innerClassAnnotation);
           addAnnotation(enclosingAnnotation);
