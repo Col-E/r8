@@ -113,7 +113,7 @@ public class IRConverter {
       this.lensCodeRewriter = new LensCodeRewriter(graphLense, appInfo.withSubtyping());
       if (appInfo.hasLiveness()) {
         this.protoLiteRewriter = new ProtoLitePruner(appInfo.withLiveness());
-        if (!appInfo.withLiveness().identifierNameStrings.isEmpty()) {
+        if (!appInfo.withLiveness().identifierNameStrings.isEmpty() && !options.skipMinification) {
           this.identifierNameStringMarker = new IdentifierNameStringMarker(appInfo.withLiveness());
         } else {
           this.identifierNameStringMarker = null;
