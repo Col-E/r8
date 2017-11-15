@@ -11,6 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Set;
+import java.util.zip.CRC32;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -49,8 +50,13 @@ public class ZipFileOutputSink extends FileSystemOutputSink {
   }
 
   private synchronized void writeToZipFile(String outputPath, byte[] content) throws IOException {
+    CRC32 crc = new CRC32();
+    crc.update(content);
     ZipEntry zipEntry = new ZipEntry(outputPath);
+    zipEntry.setMethod(ZipEntry.STORED);
     zipEntry.setSize(content.length);
+    zipEntry.setCompressedSize(content.length);
+    zipEntry.setCrc(crc.getValue());
     outputStream.putNextEntry(zipEntry);
     outputStream.write(content);
     outputStream.closeEntry();
