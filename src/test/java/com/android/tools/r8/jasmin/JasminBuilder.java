@@ -5,8 +5,8 @@ package com.android.tools.r8.jasmin;
 
 import static com.android.tools.r8.utils.DescriptorUtils.getPathFromDescriptor;
 
-import com.android.tools.r8.Resource.Origin;
-import com.android.tools.r8.Resource.PathOrigin;
+import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;

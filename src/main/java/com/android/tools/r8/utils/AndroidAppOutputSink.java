@@ -4,7 +4,7 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.OutputSink;
-import com.android.tools.r8.Resource.Origin;
+import com.android.tools.r8.origin.Origin;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;

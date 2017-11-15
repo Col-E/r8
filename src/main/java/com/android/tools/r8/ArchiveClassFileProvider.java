@@ -7,8 +7,9 @@ import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.isArchive;
 import static com.android.tools.r8.utils.FileUtils.isClassFile;
 
-import com.android.tools.r8.Resource.Origin;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.shaking.FilteredClassPath;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.io.ByteStreams;
@@ -56,7 +57,7 @@ public class ArchiveClassFileProvider implements ClassFileResourceProvider, Clos
 
   private ArchiveClassFileProvider(FilteredClassPath archive) throws IOException {
     assert isArchive(archive.getPath());
-    origin = new Resource.PathOrigin(archive.getPath(), Origin.root());
+    origin = new PathOrigin(archive.getPath(), Origin.root());
     zipFile = new ZipFile(archive.getPath().toFile());
     final Enumeration<? extends ZipEntry> entries = zipFile.entries();
     while (entries.hasMoreElements()) {

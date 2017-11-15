@@ -11,7 +11,7 @@ import static com.android.tools.r8.utils.FileUtils.isVDexFile;
 import com.android.tools.r8.ArchiveClassFileProvider;
 import com.android.tools.r8.ClassFileResourceProvider;
 import com.android.tools.r8.Resource;
-import com.android.tools.r8.Resource.Origin;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.dex.VDexFile;
 import com.android.tools.r8.dex.VDexFileReader;
 import com.android.tools.r8.errors.CompilationError;

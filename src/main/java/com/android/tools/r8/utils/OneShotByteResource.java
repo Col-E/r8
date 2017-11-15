@@ -4,6 +4,7 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.Resource;
+import com.android.tools.r8.origin.Origin;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;

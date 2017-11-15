@@ -5,7 +5,7 @@ package com.android.tools.r8.utils;
 
 import com.android.tools.r8.ClassFileResourceProvider;
 import com.android.tools.r8.Resource;
-import com.android.tools.r8.Resource.Origin;
+import com.android.tools.r8.origin.Origin;
 import com.google.common.collect.Sets;
 import java.util.Collections;
 import java.util.HashMap;

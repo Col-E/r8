@@ -4,7 +4,7 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.ApiLevelException;
-import com.android.tools.r8.Resource.Origin;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.errors.InvalidDebugInfoException;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Position;

@@ -8,8 +8,8 @@ import static com.android.tools.r8.utils.FileUtils.isClassFile;
 import static com.android.tools.r8.utils.FileUtils.isDexFile;
 
 import com.android.tools.r8.Resource;
-import com.android.tools.r8.Resource.Origin;
-import com.android.tools.r8.Resource.PathOrigin;
+import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.shaking.FilteredClassPath;
 import com.google.common.io.ByteStreams;

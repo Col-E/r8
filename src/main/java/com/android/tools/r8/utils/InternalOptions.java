@@ -4,7 +4,7 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.DiagnosticsHandler;
-import com.android.tools.r8.Resource.Origin;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.errors.InvalidDebugInfoException;
 import com.android.tools.r8.graph.DexEncodedMethod;

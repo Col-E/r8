@@ -4,7 +4,7 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.Diagnostic;
-import com.android.tools.r8.Resource.Origin;
+import com.android.tools.r8.origin.Origin;
 
 public class StringDiagnostic implements Diagnostic {
 
