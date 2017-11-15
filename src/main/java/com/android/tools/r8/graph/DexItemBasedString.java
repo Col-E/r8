@@ -42,7 +42,8 @@ public class DexItemBasedString extends DexString {
   @Override
   public void collectIndexedItems(IndexedItemCollection indexedItems) {
     // This instance should not exist when collecting indexed items.
-    // {@link IdentifierMinifier} will replace this with an appropriate {@link DexString}.
+    // {@link com.android.tools.r8.naming.IdentifierMinifier} will replace this with an appropriate
+    // {@link DexString}.
     throw new Unreachable("Remaining DexItemBasedString: " + this.toString());
   }
 }
