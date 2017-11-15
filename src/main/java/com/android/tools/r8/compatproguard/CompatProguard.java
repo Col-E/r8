@@ -38,8 +38,13 @@ public class CompatProguard {
     public final String mainDexList;
     public final List<String> proguardConfig;
 
-    CompatProguardOptions(List<String> proguardConfig, String output, int minApi,
-        boolean multiDex, boolean forceProguardCompatibility, boolean ignoreMissingClasses,
+    CompatProguardOptions(
+        List<String> proguardConfig,
+        String output,
+        int minApi,
+        boolean multiDex,
+        boolean forceProguardCompatibility,
+        boolean ignoreMissingClasses,
         String mainDexList) {
       this.output = output;
       this.minApi = minApi;
@@ -103,8 +108,14 @@ public class CompatProguard {
         }
         builder.add(currentLine.toString());
       }
-      return new CompatProguardOptions(builder.build(), output, minApi, multiDex,
-          forceProguardCompatibility, ignoreMissingClasses, mainDexList);
+      return new CompatProguardOptions(
+          builder.build(),
+          output,
+          minApi,
+          multiDex,
+          forceProguardCompatibility,
+          ignoreMissingClasses,
+          mainDexList);
     }
   }
 

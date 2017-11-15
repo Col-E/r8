@@ -90,11 +90,12 @@ public class IdentifierMinifierTest {
 
   @Parameters(name = "test: {0} keep: {1}")
   public static Collection<Object[]> data() {
-    List<String> tests = Arrays.asList("adaptclassstrings", "identifiernamestring");
+    List<String> tests = Arrays.asList("adaptclassstrings", "forname", "identifiernamestring");
 
     Map<String, Consumer<DexInspector>> inspections = new HashMap<>();
     inspections.put("adaptclassstrings:keep-rules-1.txt", IdentifierMinifierTest::test1_rule1);
     inspections.put("adaptclassstrings:keep-rules-2.txt", IdentifierMinifierTest::test1_rule2);
+    inspections.put("forname:keep-rules.txt", IdentifierMinifierTest::test_forname);
     inspections.put("identifiernamestring:keep-rules-1.txt", IdentifierMinifierTest::test2_rule1);
     inspections.put("identifiernamestring:keep-rules-2.txt", IdentifierMinifierTest::test2_rule2);
 
@@ -144,6 +145,16 @@ public class IdentifierMinifierTest {
 
     renamedYetFoundIdentifierCount =
         countRenamedClassIdentifier(inspector, aClass.getDexClass().staticFields());
+    assertEquals(1, renamedYetFoundIdentifierCount);
+  }
+
+  private static void test_forname(DexInspector inspector) {
+    ClassSubject mainClass = inspector.clazz("forname.Main");
+    MethodSubject main = mainClass.method(DexInspector.MAIN);
+    Code mainCode = main.getMethod().getCode();
+    verifyPresenceOfConstString(mainCode.asDexCode().instructions);
+    int renamedYetFoundIdentifierCount =
+        countRenamedClassIdentifier(inspector, mainCode.asDexCode().instructions);
     assertEquals(1, renamedYetFoundIdentifierCount);
   }
 
