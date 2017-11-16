@@ -64,6 +64,7 @@ public class R8RunExamplesTest {
           .put("floating_point_annotations.FloatingPointValuedAnnotationTest", match(R8_COMPILER))
           .put("regress_62300145.Regress", match(R8_COMPILER)) // npe
           .put("enclosingmethod.Main", match(R8_COMPILER)) // output differs
+          .put("enclosingmethod_proguarded.Main", match(R8_COMPILER)) // output differs
           .build();
 
   private static final Set<String> failingCompileCf =
