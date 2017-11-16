@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.utils;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
@@ -26,8 +25,11 @@ public class VersionProperties {
   private String releaser;
 
   private static VersionProperties get() {
-    try {
-      return new VersionProperties(VersionProperties.class.getClassLoader());
+    ClassLoader loader = VersionProperties.class.getClassLoader();
+    try (InputStream resourceStream = loader.getResourceAsStream(RESOURCE_NAME)) {
+      return resourceStream == null
+          ? new VersionProperties()
+          : new VersionProperties(resourceStream);
     } catch (IOException e) {
       return new VersionProperties();
     }
@@ -36,19 +38,9 @@ public class VersionProperties {
   private VersionProperties() {
   }
 
-  private VersionProperties(ClassLoader loader)
-      throws IOException {
-    try (InputStream resourceStream = loader.getResourceAsStream(RESOURCE_NAME)) {
-      if (resourceStream == null) {
-        throw new FileNotFoundException(RESOURCE_NAME);
-      }
-      initWithInputStream(resourceStream);
-    }
-  }
-
-  private void initWithInputStream(InputStream is) throws IOException {
+  private VersionProperties(InputStream resourceStream) throws IOException {
     Properties prop = new Properties();
-    prop.load(is);
+    prop.load(resourceStream);
 
     long versionFileVersion = Long.parseLong(prop.getProperty(VERSION_CODE_KEY));
     assert versionFileVersion >= 1;
