@@ -446,7 +446,7 @@ abstract public class DexDebugEvent extends DexItem {
 
     @Override
     public String toString() {
-      return String.format("DEFAULT %d (dpc %d, %dline %d)", value, getPCDelta(), getLineDelta());
+      return String.format("DEFAULT %d (dpc %d, dline %d)", value, getPCDelta(), getLineDelta());
     }
 
     @Override

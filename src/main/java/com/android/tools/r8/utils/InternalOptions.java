@@ -4,13 +4,13 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.DiagnosticsHandler;
-import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.errors.InvalidDebugInfoException;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.google.common.collect.ImmutableList;
@@ -24,6 +24,12 @@ import java.util.TreeSet;
 import java.util.function.Function;
 
 public class InternalOptions {
+
+  public enum LineNumberOptimization {
+    OFF,
+    ON,
+    IDENTITY_MAPPING
+  }
 
   public final DexItemFactory itemFactory;
   public final ProguardConfiguration proguardConfiguration;
@@ -124,6 +130,8 @@ public class InternalOptions {
 
   public ImmutableList<ProguardConfigurationRule> mainDexKeepRules = ImmutableList.of();
   public boolean minimalMainDex;
+
+  public LineNumberOptimization lineNumberOptimization = LineNumberOptimization.OFF;
 
   public static class InvalidParameterAnnotationInfo {
 

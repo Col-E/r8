@@ -17,8 +17,6 @@ import com.android.tools.r8.ir.code.Position;
  * the current state using the getters after a Default event.
  */
 public class DexDebugPositionState implements DexDebugEventVisitor {
-  private final DexMethod method;
-
   private int currentPc = 0;
   private int currentLine;
   private DexString currentFile = null;
@@ -26,7 +24,6 @@ public class DexDebugPositionState implements DexDebugEventVisitor {
   private Position currentCallerPosition = null;
 
   public DexDebugPositionState(int startLine, DexMethod method) {
-    this.method = method;
     currentLine = startLine;
     currentMethod = method;
   }
@@ -44,9 +41,6 @@ public class DexDebugPositionState implements DexDebugEventVisitor {
 
   @Override
   public void visit(SetInlineFrame setInlineFrame) {
-    assert (setInlineFrame.caller == null && setInlineFrame.callee == method)
-        || (setInlineFrame.caller != null
-            && setInlineFrame.caller.getOutermostCaller().method == method);
     currentMethod = setInlineFrame.callee;
     currentCallerPosition = setInlineFrame.caller;
   }

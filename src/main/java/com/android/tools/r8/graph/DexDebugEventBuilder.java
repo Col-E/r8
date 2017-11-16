@@ -29,7 +29,7 @@ import java.util.List;
  */
 public class DexDebugEventBuilder {
 
-  private static final int NO_PC_INFO = -1;
+  public static final int NO_PC_INFO = -1;
   private static final int NO_LINE_INFO = -1;
 
   private final DexEncodedMethod method;
@@ -234,7 +234,7 @@ public class DexDebugEventBuilder {
     }
   }
 
-  private static void emitAdvancementEvents(
+  public static void emitAdvancementEvents(
       int previousPc,
       Position previousPosition,
       int nextPc,

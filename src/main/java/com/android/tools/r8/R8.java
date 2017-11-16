@@ -45,6 +45,8 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppOutputSink;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
+import com.android.tools.r8.utils.LineNumberOptimizer;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
@@ -313,6 +315,15 @@ public class R8 {
               ? NamingLens.getIdentityLens()
               : new Minifier(appInfo.withLiveness(), rootSet, options).run(timing);
       timing.end();
+
+      if (options.lineNumberOptimization != LineNumberOptimization.OFF) {
+        timing.begin("Line number remapping");
+        LineNumberOptimizer.run(
+            application,
+            namingLens,
+            options.lineNumberOptimization == LineNumberOptimization.IDENTITY_MAPPING);
+        timing.end();
+      }
 
       // If a method filter is present don't produce output since the application is likely partial.
       if (options.hasMethodsFilter()) {
