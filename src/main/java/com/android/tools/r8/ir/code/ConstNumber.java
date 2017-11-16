@@ -194,6 +194,9 @@ public class ConstNumber extends ConstInstruction {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
+    if (other == this) {
+      return true;
+    }
     if (preciseTypeUnknown()) {
       return false;
     }
