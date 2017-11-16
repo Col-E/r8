@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableList;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -37,6 +38,17 @@ public class JasminTestBase extends TestBase {
     Path out = temp.newFolder().toPath();
     builder.writeClassFiles(out);
     return ToolHelper.runJavaNoVerify(ImmutableList.of(out.toString()), main);
+  }
+
+  protected ProcessResult runOnJavaNoVerifyRaw(JasminBuilder program, JasminBuilder library,
+      String main)
+      throws Exception {
+    Path out = temp.newFolder().toPath();
+    program.writeClassFiles(out);
+    Path libraryOut = temp.newFolder().toPath();
+    library.writeClassFiles(libraryOut);
+    return ToolHelper.runJavaNoVerify(ImmutableList.of(out.toString(), libraryOut.toString()),
+        main);
   }
 
   private String assertNormalExitAndGetStdout(ProcessResult result) {
@@ -71,6 +83,11 @@ public class JasminTestBase extends TestBase {
     return runOnArtRaw(compileWithD8(builder), main);
   }
 
+  protected ProcessResult runOnArtD8Raw(JasminBuilder program, JasminBuilder library, String main)
+      throws Exception {
+    return runOnArtRaw(compileWithD8(program), compileWithD8(library), main);
+  }
+
   protected AndroidApp compileWithR8(JasminBuilder builder) throws Exception {
     return compileWithR8(builder, null);
   }
@@ -86,7 +103,30 @@ public class JasminTestBase extends TestBase {
       throws Exception {
     R8Command command =
         ToolHelper.prepareR8CommandBuilder(builder.build())
+            .addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()))
             .addProguardConfiguration(ImmutableList.of(proguardConfig))
+            .build();
+    return ToolHelper.runR8(command, optionsConsumer);
+  }
+
+  protected AndroidApp compileWithR8(JasminBuilder program, Path library,
+      Consumer<InternalOptions> optionsConsumer)
+      throws Exception {
+    R8Command command =
+        ToolHelper.prepareR8CommandBuilder(program.build())
+            .addLibraryFiles(library)
+            .build();
+    return ToolHelper.runR8(command, optionsConsumer);
+  }
+
+  protected AndroidApp compileWithR8(JasminBuilder program, Path library,
+      String proguardConfig, Consumer<InternalOptions> optionsConsumer)
+      throws Exception {
+    R8Command command =
+        ToolHelper.prepareR8CommandBuilder(program.build())
+            .addProguardConfiguration(ImmutableList.of(proguardConfig))
+            .addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()))
+            .addLibraryFiles(library)
             .build();
     return ToolHelper.runR8(command, optionsConsumer);
   }
@@ -116,11 +156,23 @@ public class JasminTestBase extends TestBase {
     return runOnArtRaw(result, main);
   }
 
-  protected ProcessResult runOnArtR8Raw(JasminBuilder builder, String main, String proguardConfig,
-      Consumer<InternalOptions> optionsConsumer)
+  protected ProcessResult runOnArtR8Raw(JasminBuilder builder, String main,
+      String proguardConfig, Consumer<InternalOptions> optionsConsumer)
       throws Exception {
     AndroidApp result = compileWithR8(builder, proguardConfig, optionsConsumer);
     return runOnArtRaw(result, main);
+  }
+
+  protected ProcessResult runOnArtR8Raw(JasminBuilder program, JasminBuilder library, String main,
+      String proguardConfig, Consumer<InternalOptions> optionsConsumer)
+      throws Exception {
+    Path libraryClasses = temp.newFolder().toPath();
+    library.writeClassFiles(libraryClasses);
+    AndroidApp result = proguardConfig == null
+        ? compileWithR8(program, libraryClasses, optionsConsumer)
+        : compileWithR8(program, libraryClasses, proguardConfig, optionsConsumer);
+    AndroidApp libraryApp = compileWithR8(library);
+    return runOnArtRaw(result, libraryApp, main);
   }
 
   private ProcessResult runDx(JasminBuilder builder, File classes, Path dex) throws Exception {
@@ -151,10 +203,31 @@ public class JasminTestBase extends TestBase {
     return ToolHelper.runArtRaw(dex.toString(), main);
   }
 
+  protected ProcessResult runOnArtDxRaw(JasminBuilder program, JasminBuilder library, String main)
+      throws Exception {
+    Path dex = temp.getRoot().toPath().resolve("classes.dex");
+    ProcessResult result = runDx(program, temp.newFolder("classes_for_dx"), dex);
+    assertNormalExitAndGetStdout(result);
+    Path libraryDex = temp.getRoot().toPath().resolve("library.dex");
+    result = runDx(library, temp.newFolder("classes_for_library_dx"), libraryDex);
+    assertNormalExitAndGetStdout(result);
+    return ToolHelper.runArtRaw(ImmutableList.of(dex.toString(), libraryDex.toString()), main, null);
+  }
+
   protected ProcessResult runOnArtRaw(AndroidApp app, String main) throws IOException {
     Path out = temp.getRoot().toPath().resolve("out.zip");
     app.writeToZip(out, OutputMode.Indexed);
     return ToolHelper.runArtRaw(out.toString(), main);
+  }
+
+  protected ProcessResult runOnArtRaw(AndroidApp program, AndroidApp library, String main)
+      throws IOException {
+    Path out = temp.getRoot().toPath().resolve("out.zip");
+    program.writeToZip(out, OutputMode.Indexed);
+    Path libraryOut = temp.getRoot().toPath().resolve("libraryOut.zip");
+    library.writeToZip(libraryOut, OutputMode.Indexed);
+    return ToolHelper.runArtRaw(ImmutableList.of(out.toString(), libraryOut.toString()), main,
+        null);
   }
 
   protected String runOnArt(AndroidApp app, String main) throws IOException {
