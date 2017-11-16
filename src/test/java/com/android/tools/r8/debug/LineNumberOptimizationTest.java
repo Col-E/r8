@@ -60,7 +60,7 @@ public class LineNumberOptimizationTest extends DebugTestBase {
         stepOver(),
         checkMethod(class1, "callThisFromSameFile", "()V"),
         checkLine(file1, 8),
-        stepInto(),
+        stepInto(INTELLIJ_FILTER),
         checkMethod(class2, "callThisFromAnotherFile", "()V"),
         checkLine(file2, 28),
         run());
@@ -81,7 +81,7 @@ public class LineNumberOptimizationTest extends DebugTestBase {
         stepOver(),
         checkMethod(class1, "callThisFromSameFile", "()V"),
         checkLine(file1, 8),
-        stepInto(),
+        stepInto(INTELLIJ_FILTER),
         checkMethod(class2, "callThisFromAnotherFile", "()V"),
         checkLine(file2, 28),
         run());
