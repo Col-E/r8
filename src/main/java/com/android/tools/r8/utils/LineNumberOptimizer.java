@@ -106,25 +106,32 @@ public class LineNumberOptimizer {
 
   // PositionRemapper is a stateful function which takes a position (represented by a
   // DexDebugPositionState) and returns a remapped Position.
-  private static class PositionRemapper {
-    private int nextLineNumber;
+  private interface PositionRemapper {
+    Position createRemappedPosition(DexDebugPositionState positionState);
+  }
 
-    PositionRemapper(int nextLineNumber) {
-      this.nextLineNumber = nextLineNumber;
-    }
-
-    private Position createRemappedPosition(DexDebugPositionState positionState) {
-      // TODO(tamaskenez) Actual remapping is to be implemented here.
-      // For now this is only identity-mapping.
+  private static class IdentityPositionRemapper implements PositionRemapper {
+    public Position createRemappedPosition(DexDebugPositionState positionState) {
       return new Position(
           positionState.getCurrentLine(),
           positionState.getCurrentFile(),
           positionState.getCurrentMethod(),
           positionState.getCurrentCallerPosition());
     }
+  }
 
-    int getNextLineNumber() {
-      return nextLineNumber;
+  private static class OptimizingPositionRemapper implements PositionRemapper {
+    private int nextLineNumber = 1;
+
+    public Position createRemappedPosition(DexDebugPositionState positionState) {
+      Position newPosition =
+          new Position(
+              nextLineNumber,
+              positionState.getCurrentFile(),
+              positionState.getCurrentMethod(),
+              null);
+      ++nextLineNumber;
+      return newPosition;
     }
   }
 
@@ -210,7 +217,10 @@ public class LineNumberOptimizer {
                 return DexEncodedMethod.slowCompare(lhs, rhs);
               });
         }
-        int nextLineNumber = 1;
+
+        PositionRemapper positionRemapper =
+            identityMapping ? new IdentityPositionRemapper() : new OptimizingPositionRemapper();
+
         for (DexEncodedMethod method : methods) {
           // Do the actual processing for each method.
           DexCode dexCode = method.getCode().asDexCode();
@@ -222,7 +232,6 @@ public class LineNumberOptimizer {
           // [processedEvents]
           PositionEventEmitter positionEventEmitter =
               new PositionEventEmitter(application.dexItemFactory, method.method, processedEvents);
-          PositionRemapper positionRemapper = new PositionRemapper(nextLineNumber);
 
           EventFilter eventFilter =
               new EventFilter(
@@ -236,7 +245,7 @@ public class LineNumberOptimizer {
           for (DexDebugEvent event : debugInfo.events) {
             event.accept(eventFilter);
           }
-          nextLineNumber = positionRemapper.getNextLineNumber();
+
           DexDebugInfo optimizedDebugInfo =
               new DexDebugInfo(
                   positionEventEmitter.getStartLine(),

@@ -8,7 +8,17 @@ public class LineNumberOptimization1 {
     LineNumberOptimization2.callThisFromAnotherFile();
   }
 
+  private static void callThisFromSameFile(int a) {
+    System.out.println("callThisFromSameFile second overload");
+  }
+
+  private static void callThisFromSameFile(int a, int b) {
+    System.out.println("callThisFromSameFile third overload");
+  }
+
   public static void main(String[] args) {
     callThisFromSameFile();
+    callThisFromSameFile(1);
+    callThisFromSameFile(1, 2);
   }
 }

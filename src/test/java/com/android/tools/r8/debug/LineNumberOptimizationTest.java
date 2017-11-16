@@ -17,12 +17,6 @@ public class LineNumberOptimizationTest extends DebugTestBase {
   private static DebuggeePath debuggeePathNotOptimized;
   private static DebuggeePath debuggeePathIdentityTest;
 
-  private final String class1 = "LineNumberOptimization1";
-  private final String class2 = "LineNumberOptimization2";
-  private final String file1 = class1 + ".java";
-  private final String file2 = class2 + ".java";
-  private final String mainSignature = "([Ljava/lang/String;)V";
-
   private static DebuggeePath makeDex(LineNumberOptimization lineNumberOptimization)
       throws Exception {
     return DebuggeePath.makeDex(
@@ -47,43 +41,63 @@ public class LineNumberOptimizationTest extends DebugTestBase {
 
   @Test
   public void testNotOptimized() throws Throwable {
-    runDebugTest(
-        debuggeePathNotOptimized,
-        class1,
-        breakpoint(class1, "main", mainSignature),
-        run(),
-        checkMethod(class1, "main", mainSignature),
-        checkLine(file1, 12),
-        stepInto(),
-        checkMethod(class1, "callThisFromSameFile", "()V"),
-        checkLine(file1, 7),
-        stepOver(),
-        checkMethod(class1, "callThisFromSameFile", "()V"),
-        checkLine(file1, 8),
-        stepInto(INTELLIJ_FILTER),
-        checkMethod(class2, "callThisFromAnotherFile", "()V"),
-        checkLine(file2, 28),
-        run());
+    int[] lineNumbers = {20, 7, 8, 28, 8, 20, 21, 12, 21, 22, 16, 22};
+    test(debuggeePathNotOptimized, lineNumbers);
   }
 
   @Test
   public void testOptimized() throws Throwable {
+    int[] lineNumbers = {1, 1, 2, 1, 2, 1, 2, 3, 2, 3, 4, 3};
+    test(debuggeePathOptimized, lineNumbers);
+  }
+
+  private void test(DebuggeePath debuggeePath, int[] lineNumbers) throws Throwable {
+    final String class1 = "LineNumberOptimization1";
+    final String class2 = "LineNumberOptimization2";
+    final String file1 = class1 + ".java";
+    final String file2 = class2 + ".java";
+    final String mainSignature = "([Ljava/lang/String;)V";
+
     runDebugTest(
-        debuggeePathOptimized,
+        debuggeePath,
         class1,
         breakpoint(class1, "main", mainSignature),
         run(),
         checkMethod(class1, "main", mainSignature),
-        checkLine(file1, 12),
+        checkLine(file1, lineNumbers[0]),
         stepInto(),
         checkMethod(class1, "callThisFromSameFile", "()V"),
-        checkLine(file1, 7),
+        checkLine(file1, lineNumbers[1]),
         stepOver(),
         checkMethod(class1, "callThisFromSameFile", "()V"),
-        checkLine(file1, 8),
+        checkLine(file1, lineNumbers[2]),
         stepInto(INTELLIJ_FILTER),
         checkMethod(class2, "callThisFromAnotherFile", "()V"),
-        checkLine(file2, 28),
+        checkLine(file2, lineNumbers[3]),
+        stepOver(),
+        checkMethod(class1, "callThisFromSameFile", "()V"),
+        checkLine(file1, lineNumbers[4]),
+        stepOver(),
+        checkMethod(class1, "main", mainSignature),
+        checkLine(file1, lineNumbers[5]),
+        stepOver(),
+        checkMethod(class1, "main", mainSignature),
+        checkLine(file1, lineNumbers[6]),
+        stepInto(),
+        checkMethod(class1, "callThisFromSameFile", "(I)V"),
+        checkLine(file1, lineNumbers[7]),
+        stepOver(),
+        checkMethod(class1, "main", mainSignature),
+        checkLine(file1, lineNumbers[8]),
+        stepOver(),
+        checkMethod(class1, "main", mainSignature),
+        checkLine(file1, lineNumbers[9]),
+        stepInto(),
+        checkMethod(class1, "callThisFromSameFile", "(II)V"),
+        checkLine(file1, lineNumbers[10]),
+        stepOver(),
+        checkMethod(class1, "main", mainSignature),
+        checkLine(file1, lineNumbers[11]),
         run());
   }
 }
