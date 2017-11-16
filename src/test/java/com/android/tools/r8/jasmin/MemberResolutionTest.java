@@ -201,7 +201,7 @@ public class MemberResolutionTest extends JasminTestBase {
         "  invokespecial SubClass/<init>()V",
         "  invokevirtual SubClass/aMethod()V",
         "  return");
-    ensureIAEExceptJava(builder);
+    ensureIAE(builder);
   }
 
   @Test
@@ -238,7 +238,7 @@ public class MemberResolutionTest extends JasminTestBase {
         "  invokespecial SubClass/<init>()V",
         "  invokespecial SubClass/aMethod()V",
         "  return");
-    ensureIAEExceptJava(builder);
+    ensureIAE(builder);
   }
 
   @Test
@@ -275,7 +275,7 @@ public class MemberResolutionTest extends JasminTestBase {
         "  invokevirtual SubClass/callAMethod()V",
         "  return");
 
-    ensureIAEExceptJava(builder);
+    ensureIAE(builder);
   }
 
   @Test
@@ -352,6 +352,111 @@ public class MemberResolutionTest extends JasminTestBase {
     ensureICCE(builder);
   }
 
+  @Test
+  public void testRebindVirtualCallToStatic() throws Exception {
+    // Library classes.
+    JasminBuilder libraryBuilder = new JasminBuilder();
+    ClassBuilder classWithStatic = libraryBuilder.addClass("ClassWithStatic");
+    classWithStatic.addDefaultConstructor();
+    classWithStatic.addStaticMethod("aMethod", emptyList(), "V",
+        ".limit stack 2",
+        ".limit locals 1",
+        "  getstatic java/lang/System/out Ljava/io/PrintStream;",
+        "  bipush 42",
+        "  invokevirtual java/io/PrintStream/println(I)V",
+        "  return");
+
+    // Program classes.
+    JasminBuilder programBuilder = new JasminBuilder();
+    programBuilder.addClass("SubClass", "ClassWithStatic")
+        .addDefaultConstructor();
+    programBuilder.addClass("SubSubClass", "SubClass")
+        .addDefaultConstructor();
+    ClassBuilder mainClass = programBuilder.addClass("Main");
+    mainClass.addMainMethod(
+        ".limit stack 2",
+        ".limit locals 1",
+        "  new SubSubClass",
+        "  dup",
+        "  invokespecial SubSubClass/<init>()V",
+        "  invokevirtual SubSubClass/aMethod()V",
+        "  return");
+
+    ensureICCE(programBuilder, libraryBuilder);
+  }
+
+  @Test
+  public void testRebindVirtualCallToPackagePrivateStatic() throws Exception {
+    // Library classes.
+    JasminBuilder libraryBuilder = new JasminBuilder();
+    ClassBuilder classWithStatic = libraryBuilder.addClass("ClassWithStatic");
+    classWithStatic.addDefaultConstructor();
+    classWithStatic.addPackagePrivateStaticMethod("aMethod", emptyList(), "V",
+        ".limit stack 2",
+        ".limit locals 1",
+        "  getstatic java/lang/System/out Ljava/io/PrintStream;",
+        "  bipush 42",
+        "  invokevirtual java/io/PrintStream/println(I)V",
+        "  return");
+    libraryBuilder.addClass("p/LibSub", "ClassWithStatic")
+        .addDefaultConstructor();
+
+    // Program classes.
+    JasminBuilder programBuilder = new JasminBuilder();
+    programBuilder.addClass("p/SubClass", "p/LibSub")
+        .addDefaultConstructor();
+    programBuilder.addClass("SubSubClass", "p/SubClass")
+        .addDefaultConstructor();
+    ClassBuilder mainClass = programBuilder.addClass("Main");
+    mainClass.addMainMethod(
+        ".limit stack 2",
+        ".limit locals 1",
+        "  new SubSubClass",
+        "  dup",
+        "  invokespecial SubSubClass/<init>()V",
+        "  invokevirtual SubSubClass/aMethod()V",
+        "  return");
+
+    ensureICCE(programBuilder, libraryBuilder);
+  }
+
+  @Test
+  @Ignore("b/69356146")
+  public void testRebindVirtualCallToStaticInPackagePrivateClass() throws Exception {
+    // Library classes.
+    JasminBuilder libraryBuilder = new JasminBuilder();
+    ClassBuilder classWithStatic = libraryBuilder.addClass("ClassWithStatic");
+    classWithStatic.setAccess("");
+    classWithStatic.addDefaultConstructor();
+    classWithStatic.addStaticMethod("aMethod", emptyList(), "V",
+        ".limit stack 2",
+        ".limit locals 1",
+        "  getstatic java/lang/System/out Ljava/io/PrintStream;",
+        "  bipush 42",
+        "  invokevirtual java/io/PrintStream/println(I)V",
+        "  return");
+    libraryBuilder.addClass("LibSub", "ClassWithStatic");
+    libraryBuilder.addClass("p/LibSubSub", "LibSub");
+
+    // Program classes.
+    JasminBuilder programBuilder = new JasminBuilder();
+    programBuilder.addClass("p/SubClass", "p/LibSubSub")
+        .addDefaultConstructor();
+    programBuilder.addClass("SubSubClass", "p/SubClass")
+        .addDefaultConstructor();
+    ClassBuilder mainClass = programBuilder.addClass("Main");
+    mainClass.addMainMethod(
+        ".limit stack 2",
+        ".limit locals 1",
+        "  new SubSubClass",
+        "  dup",
+        "  invokespecial SubSubClass/<init>()V",
+        "  invokevirtual SubSubClass/aMethod()V",
+        "  return");
+
+    ensureICCE(programBuilder, libraryBuilder);
+  }
+
   private void ensureSameOutput(JasminBuilder app) throws Exception {
     String javaOutput = runOnJava(app, MAIN_CLASS);
     String dxOutput = runOnArtDx(app, MAIN_CLASS);
@@ -369,9 +474,16 @@ public class MemberResolutionTest extends JasminTestBase {
     ensureRuntimeException(app, IncompatibleClassChangeError.class);
   }
 
-  private void ensureIAEExceptJava(JasminBuilder app)
-      throws Exception {
+  private void ensureICCE(JasminBuilder app, JasminBuilder library) throws Exception {
+    ensureRuntimeException(app, library, IncompatibleClassChangeError.class);
+  }
+
+  private void ensureIAE(JasminBuilder app) throws Exception {
     ensureRuntimeException(app, IllegalAccessError.class);
+  }
+
+  private void ensureIAE(JasminBuilder app, JasminBuilder library) throws Exception {
+    ensureRuntimeException(app, library, IllegalAccessError.class);
   }
 
   private void ensureRuntimeException(JasminBuilder app, Class exception) throws Exception {
@@ -386,6 +498,22 @@ public class MemberResolutionTest extends JasminTestBase {
         keepMainProguardConfiguration(MAIN_CLASS), null);
     Assert.assertTrue(r8ShakenOutput.stderr.contains(name));
     ProcessResult javaOutput = runOnJavaNoVerifyRaw(app, MAIN_CLASS);
+    Assert.assertTrue(javaOutput.stderr.contains(name));
+  }
+
+  private void ensureRuntimeException(JasminBuilder app, JasminBuilder library, Class exception)
+      throws Exception {
+    String name = exception.getSimpleName();
+    ProcessResult dxOutput = runOnArtDxRaw(app, library, MAIN_CLASS);
+    Assert.assertTrue(dxOutput.stderr.contains(name));
+    ProcessResult d8Output = runOnArtD8Raw(app, library, MAIN_CLASS);
+    Assert.assertTrue(d8Output.stderr.contains(name));
+    ProcessResult r8Output = runOnArtR8Raw(app, library, MAIN_CLASS, null, null);
+    Assert.assertTrue(r8Output.stderr.contains(name));
+    ProcessResult r8ShakenOutput = runOnArtR8Raw(app, library, MAIN_CLASS,
+        keepMainProguardConfiguration(MAIN_CLASS), null);
+    Assert.assertTrue(r8ShakenOutput.stderr.contains(name));
+    ProcessResult javaOutput = runOnJavaNoVerifyRaw(app, library, MAIN_CLASS);
     Assert.assertTrue(javaOutput.stderr.contains(name));
   }
 }

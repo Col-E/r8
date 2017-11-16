@@ -84,6 +84,7 @@ public class JasminBuilder {
     private boolean makeInit = false;
     private boolean hasInit = false;
     private boolean isInterface = false;
+    private String access = "public";
 
     private ClassBuilder(String name) {
       this(name, "java/lang/Object");
@@ -133,6 +134,14 @@ public class JasminBuilder {
         String returnType,
         String... lines) {
       return addMethod("public static", name, argumentTypes, returnType, lines);
+    }
+
+    public MethodSignature addPackagePrivateStaticMethod(
+        String name,
+        List<String> argumentTypes,
+        String returnType,
+        String... lines) {
+      return addMethod("static", name, argumentTypes, returnType, lines);
     }
 
     public MethodSignature addMainMethod(String... lines) {
@@ -187,7 +196,7 @@ public class JasminBuilder {
       if (isInterface) {
         builder.append(" interface abstract");
       }
-      builder.append(" public ").append(name).append('\n');
+      builder.append(" ").append(access).append(" ").append(name).append('\n');
       builder.append(".super ").append(superName).append('\n');
       for (String iface : interfaces) {
         builder.append(".implements ").append(iface).append('\n');
@@ -213,6 +222,10 @@ public class JasminBuilder {
 
     void setIsInterface() {
       isInterface = true;
+    }
+
+    void setAccess(String access) {
+      this.access = access;
     }
 
     public MethodSignature addDefaultConstructor() {
