@@ -76,6 +76,10 @@ public class R8RunExamplesTest {
       new ImmutableMap.Builder<String, TestCondition>()
           // Traverses stack frames that contain Art specific frames.
           .put("throwing.Throwing", TestCondition.any())
+          // DEX inner-classes annotations can't distinguish member classes from local classes.
+          // This results in Class.isLocalClass always being false and Class.isMemberClass always
+          // being true even when the converse is the case when running on the JVM.
+          .put("enclosingmethod.Main", TestCondition.any())
           // Early art versions incorrectly print Float.MIN_VALUE.
           .put(
               "filledarray.FilledArray",
@@ -129,6 +133,7 @@ public class R8RunExamplesTest {
         "memberrebinding3.Memberrebinding",
         "minification.Minification",
         "enclosingmethod.Main",
+        "enclosingmethod_proguarded.Main",
         "interfaceinlining.Main",
         "switchmaps.Switches",
     };
