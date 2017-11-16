@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.origin;
 
-import com.android.tools.r8.Resource;
 import java.util.ArrayList;
 import java.util.List;
 
