@@ -1339,11 +1339,13 @@ public class CodeRewriter {
     ConstInstruction[] values = new ConstInstruction[size];
     int remaining = size;
     Set<Instruction> users = newArray.outValue().uniqueUsers();
+    Set<BasicBlock> visitedBlocks = Sets.newIdentityHashSet();
     // We allow the array instantiations to cross block boundaries as long as it hasn't encountered
     // an instruction instance that can throw an exception.
     InstructionListIterator it = block.listIterator();
     it.nextUntil(i -> i == newArray);
     do {
+      visitedBlocks.add(block);
       while (it.hasNext()) {
         Instruction instruction = it.next();
         // If we encounter an instruction that can throw an exception we need to bail out of the
@@ -1377,7 +1379,10 @@ public class CodeRewriter {
           return values;
         }
       }
-      block = block.exit().isGoto() ? block.exit().asGoto().getTarget() : null;
+      block =
+          block.exit().isGoto() && !visitedBlocks.contains(block.exit().asGoto().getTarget())
+              ? block.exit().asGoto().getTarget()
+              : null;
       it = block != null ? block.listIterator() : null;
     } while (it != null);
     return null;

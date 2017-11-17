@@ -38,8 +38,8 @@ import org.junit.rules.TemporaryFolder;
 public class CompatDxTests {
   private static final int MAX_METHOD_COUNT = Constants.U16BIT_MAX;
 
-  private static final String EXAMPLE_JAR_FILE1 = "build/test/examples/arithmetic.jar";
-  private static final String EXAMPLE_JAR_FILE2 = "build/test/examples/barray.jar";
+  private static final String EXAMPLE_JAR_FILE1 = ToolHelper.EXAMPLES_BUILD_DIR + "arithmetic.jar";
+  private static final String EXAMPLE_JAR_FILE2 = ToolHelper.EXAMPLES_BUILD_DIR + "barray.jar";
 
   private static final String NO_LOCALS = "--no-locals";
   private static final String NO_POSITIONS = "--positions=none";

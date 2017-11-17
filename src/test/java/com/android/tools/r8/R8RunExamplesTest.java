@@ -108,6 +108,7 @@ public class R8RunExamplesTest {
         "invoke.Invoke",
         "jumbostring.JumboString",
         "loadconst.LoadConst",
+        "loop.UdpServer",
         "newarray.NewArray",
         "regalloc.RegAlloc",
         "returns.Returns",
