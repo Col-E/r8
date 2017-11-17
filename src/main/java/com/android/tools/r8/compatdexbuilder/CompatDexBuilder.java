@@ -8,6 +8,7 @@ import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Output;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.CompilationFailedException;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.io.ByteStreams;
 import java.io.IOException;
@@ -130,7 +131,7 @@ public class CompatDexBuilder {
   }
 
   private D8Output dexEntry(ZipFile zipFile, ZipEntry classEntry, ExecutorService executor)
-      throws IOException, CompilationException {
+      throws IOException, CompilationException, CompilationFailedException {
     try (InputStream stream = zipFile.getInputStream(classEntry)) {
       CompatDexBuilderCommandBuilder builder = new CompatDexBuilderCommandBuilder();
       builder

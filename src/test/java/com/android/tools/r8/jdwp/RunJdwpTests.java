@@ -15,6 +15,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.utils.CompilationFailedException;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.io.File;
@@ -236,7 +237,7 @@ public class RunJdwpTests {
   public static TemporaryFolder temp = new TemporaryFolder();
 
   @BeforeClass
-  public static void compileLibraries() throws IOException, CompilationException {
+  public static void compileLibraries() throws Exception {
     // Selects appropriate jar according to min api level for the selected runtime.
     int minApi = ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm());
     Path jdwpTestsJar = ToolHelper.getJdwpTestsJarPath(minApi);

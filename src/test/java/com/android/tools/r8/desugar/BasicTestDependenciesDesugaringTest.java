@@ -3,10 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.desugar;
 
-import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.OffOrAuto;
@@ -79,7 +77,7 @@ public class BasicTestDependenciesDesugaringTest {
   }
 
   @Test
-  public void testCompile() throws IOException, CompilationException {
+  public void testCompile() throws Exception {
     if (knownIssues.contains(name)) {
       thrown.expect(CompilationError.class);
     }
@@ -93,7 +91,7 @@ public class BasicTestDependenciesDesugaringTest {
   }
 
   @Test
-  public void testCompileDontDesugarDefault() throws IOException, CompilationException {
+  public void testCompileDontDesugarDefault() throws Exception {
     if (knownIssues.contains(name)) {
       thrown.expect(CompilationError.class);
     }

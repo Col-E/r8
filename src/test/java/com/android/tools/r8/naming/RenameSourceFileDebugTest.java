@@ -24,8 +24,7 @@ public class RenameSourceFileDebugTest extends DebugTestBase {
   private static DebuggeePath debuggeePath;
 
   @BeforeClass
-  public static void initDebuggeePath()
-      throws IOException, CompilationException, ExecutionException, ProguardRuleParserException {
+  public static void initDebuggeePath() throws Exception {
     debuggeePath =
         DebuggeePath.makeDex(
             compileToDexViaR8(

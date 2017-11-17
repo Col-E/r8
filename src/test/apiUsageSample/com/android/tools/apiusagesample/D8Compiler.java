@@ -8,6 +8,7 @@ import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
+import com.android.tools.r8.utils.CompilationFailedException;
 import com.android.tools.r8.utils.OutputMode;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
@@ -109,7 +110,7 @@ public class D8Compiler {
   }
 
   private void merge(Path outputDir, Path mainDexClasses,
-      List<Path> toMerge) throws IOException, CompilationException {
+      List<Path> toMerge) throws IOException, CompilationException, CompilationFailedException {
     D8Command.Builder merger = D8Command.builder();
     merger.setEnableDesugaring(false);
 

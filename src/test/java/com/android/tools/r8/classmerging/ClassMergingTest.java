@@ -10,6 +10,7 @@ import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
+import com.android.tools.r8.utils.CompilationFailedException;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
@@ -40,7 +41,8 @@ public class ClassMergingTest {
   }
 
   private void runR8(Path proguardConfig, Consumer<InternalOptions> optionsConsumer)
-      throws IOException, ProguardRuleParserException, ExecutionException, CompilationException {
+      throws IOException, ProguardRuleParserException, ExecutionException, CompilationException,
+      CompilationFailedException {
     ToolHelper.runR8(
         R8Command.builder()
             .setOutputPath(Paths.get(temp.getRoot().getCanonicalPath()))
@@ -63,8 +65,7 @@ public class ClassMergingTest {
   );
 
   @Test
-  public void testClassesHaveBeenMerged()
-      throws IOException, ExecutionException, CompilationException, ProguardRuleParserException {
+  public void testClassesHaveBeenMerged() throws Exception {
     runR8(EXAMPLE_KEEP, this::configure);
     // GenericInterface should be merged into GenericInterfaceImpl.
     for (String candidate : CAN_BE_MERGED) {
@@ -77,8 +78,7 @@ public class ClassMergingTest {
   }
 
   @Test
-  public void testClassesShouldNotMerged()
-      throws IOException, ExecutionException, CompilationException, ProguardRuleParserException {
+  public void testClassesShouldNotMerged() throws Exception {
     runR8(DONT_OPTIMIZE, null);
     for (String candidate : CAN_BE_MERGED) {
       assertTrue(inspector.clazz(candidate).isPresent());
@@ -86,16 +86,14 @@ public class ClassMergingTest {
   }
 
   @Test
-  public void testConflictWasDetected()
-      throws IOException, ExecutionException, CompilationException, ProguardRuleParserException {
+  public void testConflictWasDetected() throws Exception {
     runR8(EXAMPLE_KEEP, this::configure);
     assertTrue(inspector.clazz("classmerging.ConflictingInterface").isPresent());
     assertTrue(inspector.clazz("classmerging.ConflictingInterfaceImpl").isPresent());
   }
 
   @Test
-  public void testSuperCallWasDetected()
-      throws IOException, ExecutionException, CompilationException, ProguardRuleParserException {
+  public void testSuperCallWasDetected() throws Exception {
     runR8(EXAMPLE_KEEP, this::configure);
     assertTrue(inspector.clazz("classmerging.SuperClassWithReferencedMethod").isPresent());
     assertTrue(inspector.clazz("classmerging.SubClassThatReferencesSuperMethod").isPresent());

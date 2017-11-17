@@ -54,8 +54,6 @@ public class InternalOptions {
     itemFactory = proguardConfiguration.getDexItemFactory();
   }
 
-  public final int NOT_SPECIFIED = -1;
-
   public boolean printTimes = false;
 
   public boolean outputClassFiles = false;
@@ -69,7 +67,7 @@ public class InternalOptions {
   public boolean propagateMemberValue = true;
 
   // Number of threads to use while processing the dex files.
-  public int numberOfThreads = NOT_SPECIFIED;
+  public int numberOfThreads = ThreadUtils.NOT_SPECIFIED;
   // Print smali disassembly.
   public boolean useSmaliSyntax = false;
   // Verbose output.

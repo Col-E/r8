@@ -8,6 +8,7 @@ import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.R8RunArtTestsTest.CompilerUnderTest;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.CompilationFailedException;
 import com.android.tools.r8.utils.InternalOptions;
 import java.io.IOException;
 import java.util.Collections;
@@ -18,7 +19,8 @@ public class GMSCoreDeployJarVerificationTest extends GMSCoreCompilationTestBase
 
   public AndroidApp buildFromDeployJar(
       CompilerUnderTest compiler, CompilationMode mode, String base, boolean hasReference)
-      throws ExecutionException, IOException, ProguardRuleParserException, CompilationException {
+      throws ExecutionException, IOException, ProguardRuleParserException, CompilationException,
+      CompilationFailedException {
     return runAndCheckVerification(
         compiler, mode, hasReference ? base + REFERENCE_APK : null, null, null, base + DEPLOY_JAR);
   }
@@ -27,7 +29,8 @@ public class GMSCoreDeployJarVerificationTest extends GMSCoreCompilationTestBase
   public AndroidApp buildFromDeployJar(
       CompilerUnderTest compiler, CompilationMode mode, String base, boolean hasReference,
       Consumer<InternalOptions> optionsConsumer)
-      throws ExecutionException, IOException, ProguardRuleParserException, CompilationException {
+      throws ExecutionException, IOException, ProguardRuleParserException, CompilationException,
+      CompilationFailedException {
     return runAndCheckVerification(
         compiler, mode, hasReference ? base + REFERENCE_APK : null, null, null,
         optionsConsumer, Collections.singletonList(base + DEPLOY_JAR));

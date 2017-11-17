@@ -6,7 +6,6 @@ package com.android.tools.r8.naming;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.code.ConstString;
@@ -15,7 +14,6 @@ import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexValue.DexValueString;
-import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.DexInspector;
@@ -23,7 +21,6 @@ import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.DexInspector.MethodSubject;
 import com.android.tools.r8.utils.ListUtils;
 import com.google.common.collect.ImmutableList;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -31,7 +28,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import org.junit.Before;
 import org.junit.Rule;
@@ -61,8 +57,7 @@ public class IdentifierMinifierTest {
   }
 
   @Before
-  public void generateR8ProcessedApp()
-      throws IOException, ExecutionException, ProguardRuleParserException, CompilationException {
+  public void generateR8ProcessedApp() throws Exception {
     Path out = temp.getRoot().toPath();
     R8Command command =
         R8Command.builder()

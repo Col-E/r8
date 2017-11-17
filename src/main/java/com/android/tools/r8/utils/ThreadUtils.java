@@ -11,6 +11,8 @@ import java.util.concurrent.Future;
 
 public class ThreadUtils {
 
+  public static final int NOT_SPECIFIED = -1;
+
   public static void awaitFutures(Iterable<? extends Future<?>> futures)
       throws ExecutionException {
     Iterator<? extends Future<?>> it = futures.iterator();
@@ -35,16 +37,16 @@ public class ThreadUtils {
   }
 
   public static ExecutorService getExecutorService(int threads) {
+    if (threads == NOT_SPECIFIED) {
+      // This heuristic is based on measurements on a 32 core (hyper-threaded) machine.
+      threads = Integer.min(Runtime.getRuntime().availableProcessors(), 16) / 2;
+    }
+
     // Don't use Executors.newSingleThreadExecutor() when threads == 1, see b/67338394.
     return Executors.newWorkStealingPool(threads);
   }
 
   public static ExecutorService getExecutorService(InternalOptions options) {
-    int threads = options.numberOfThreads;
-    if (threads == options.NOT_SPECIFIED) {
-      // This heuristic is based on measurements on a 32 core (hyper-threaded) machine.
-      threads = Integer.min(Runtime.getRuntime().availableProcessors(), 16) / 2;
-    }
-    return getExecutorService(threads);
+    return getExecutorService(options.numberOfThreads);
   }
 }

@@ -3,15 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.d8;
 
-import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.D8Output;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import org.junit.Before;
@@ -35,7 +32,7 @@ public class DexVersionTests {
   @Rule public TemporaryFolder androidNApiFolder2 = ToolHelper.getTemporaryFolderForTest();
 
   @Before
-  public void compileVersions() throws CompilationException, IOException {
+  public void compileVersions() throws Exception {
     D8Command.Builder arithmeticBuilder = D8Command.builder().addProgramFiles(ARITHMETIC_JAR);
     D8Command.Builder arrayAccessBuilder = D8Command.builder().addProgramFiles(ARRAYACCESS_JAR);
     D8Output output = D8.run(arrayAccessBuilder.build());
@@ -77,7 +74,7 @@ public class DexVersionTests {
   }
 
   @Test
-  public void mergeCompatibleVersions() throws CompilationException, IOException {
+  public void mergeCompatibleVersions() throws Exception {
     // Verify that we can merge between all versions when no explicit min sdk version is set.
     D8.run(D8Command.builder().addProgramFiles(default1()).addProgramFiles(default2()).build());
     D8.run(D8Command.builder().addProgramFiles(default1()).addProgramFiles(androidO2()).build());
@@ -154,7 +151,7 @@ public class DexVersionTests {
   }
 
   @Test(expected = CompilationError.class)
-  public void mergeErrorVersionNWithVersionOInput() throws CompilationException, IOException {
+  public void mergeErrorVersionNWithVersionOInput() throws Exception {
     D8.run(
         D8Command.builder()
             .setMinApiLevel(AndroidApiLevel.N.getLevel())
@@ -164,7 +161,7 @@ public class DexVersionTests {
   }
 
   @Test(expected = CompilationError.class)
-  public void mergeErrorVersionKWithVersionOInput() throws CompilationException, IOException {
+  public void mergeErrorVersionKWithVersionOInput() throws Exception {
     D8.run(
         D8Command.builder()
             .setMinApiLevel(AndroidApiLevel.K.getLevel())
@@ -174,7 +171,7 @@ public class DexVersionTests {
   }
 
   @Test(expected = CompilationError.class)
-  public void mergeErrorVersionKWithVersionNInput() throws CompilationException, IOException {
+  public void mergeErrorVersionKWithVersionNInput() throws Exception {
     D8.run(
         D8Command.builder()
             .setMinApiLevel(AndroidApiLevel.K.getLevel())

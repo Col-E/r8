@@ -13,6 +13,20 @@ import com.android.tools.r8.origin.Origin;
 public interface DiagnosticsHandler {
 
   /**
+   * Handle error diagnostics.
+   *
+   * @param error Diagnostic containing error information.
+   */
+  default void error(Diagnostic error) {
+    if (error.getOrigin() != Origin.unknown()) {
+      System.err.print("Error in " + error.getOrigin() + ":\n  ");
+    } else {
+      System.err.print("Error: ");
+    }
+    System.err.println(error.getDiagnosticMessage());
+  }
+
+  /**
    * Handle warning diagnostics.
    *
    * @param warning Diagnostic containing warning information.

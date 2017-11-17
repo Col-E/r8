@@ -3,11 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.d8;
 
-import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.ToolHelper;
-import java.io.IOException;
 import java.nio.file.Paths;
 import org.junit.Rule;
 import org.junit.Test;
@@ -22,7 +20,7 @@ public class WriteToArchiveTest {
   @Rule public TemporaryFolder jarFolder = ToolHelper.getTemporaryFolderForTest();
 
   @Test
-  public void writeToZip() throws IOException, CompilationException {
+  public void writeToZip() throws Exception {
     D8Command command =
         D8Command.builder()
             .addProgramFiles(Paths.get(input))
@@ -32,7 +30,7 @@ public class WriteToArchiveTest {
   }
 
   @Test
-  public void writeToJar() throws IOException, CompilationException {
+  public void writeToJar() throws Exception {
     D8Command command =
         D8Command.builder()
             .addProgramFiles(Paths.get(input))

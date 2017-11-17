@@ -58,8 +58,7 @@ public class ApplyMappingTest {
   }
 
   @Test
-  public void test044_obfuscate_and_apply()
-      throws IOException, CompilationException, ProguardRuleParserException, ExecutionException {
+  public void test044_obfuscate_and_apply() throws Exception {
     // keep rules that allow obfuscations while keeping everything.
     Path flagForObfuscation =
         Paths.get(ToolHelper.EXAMPLES_DIR, "naming044", "keep-rules-005.txt");
@@ -121,8 +120,7 @@ public class ApplyMappingTest {
   }
 
   @Test
-  public void test044_apply()
-      throws IOException, CompilationException, ProguardRuleParserException, ExecutionException {
+  public void test044_apply() throws Exception {
     Path flag =
         Paths.get(ToolHelper.EXAMPLES_DIR, "applymapping044", "keep-rules-apply-mapping.txt");
     AndroidApp outputApp = runR8(
@@ -165,8 +163,7 @@ public class ApplyMappingTest {
   }
 
   @Test
-  public void test_naming001_rule105()
-      throws IOException, CompilationException, ProguardRuleParserException, ExecutionException {
+  public void test_naming001_rule105() throws Exception {
     // keep rules to reserve D and E, along with a proguard map.
     Path flag = Paths.get(ToolHelper.EXAMPLES_DIR, "naming001", "keep-rules-105.txt");
     Path proguardMap = out.resolve(MAPPING);
@@ -196,8 +193,7 @@ public class ApplyMappingTest {
   }
 
   @Test
-  public void test_minification_conflict_mapping()
-      throws IOException, CompilationException, ExecutionException, ProguardRuleParserException {
+  public void test_minification_conflict_mapping() throws Exception {
     Path flag = Paths.get(
         ToolHelper.EXAMPLES_DIR, "minification", "keep-rules-apply-conflict-mapping.txt");
     try {

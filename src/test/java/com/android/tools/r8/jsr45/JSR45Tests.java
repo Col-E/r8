@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexAnnotationElement;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.CompilationFailedException;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.AnnotationSubject;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
@@ -47,7 +48,7 @@ public class JSR45Tests {
   public TemporaryFolder tmpOutputDir = ToolHelper.getTemporaryFolderForTest();
 
   private AndroidApp compileWithD8(Path intputPath, Path outputPath)
-      throws IOException, CompilationException {
+      throws IOException, CompilationException, CompilationFailedException {
     return ToolHelper.runD8(
         D8Command.builder()
             .setMinApiLevel(AndroidApiLevel.O.getLevel())
@@ -57,7 +58,7 @@ public class JSR45Tests {
   }
 
   private AndroidApp compileWithR8(Path inputPath, Path outputPath, Path keepRulesPath)
-      throws IOException, CompilationException {
+      throws IOException, CompilationException, CompilationFailedException {
     return R8.runInternal(
         R8Command.builder()
             .addProgramFiles(inputPath)
@@ -83,8 +84,7 @@ public class JSR45Tests {
   }
 
   @Test
-  public void testSourceDebugExtensionWithD8()
-      throws IOException, CompilationException, ExecutionException {
+  public void testSourceDebugExtensionWithD8() throws Exception {
     Path outputPath = tmpOutputDir.newFolder().toPath();
 
     AndroidApp result = compileWithD8(INPUT_PATH, outputPath);
@@ -93,8 +93,7 @@ public class JSR45Tests {
 
   /** Check that when dontshrink and dontobfuscate is used the annotation is transmitted. */
   @Test
-  public void testSourceDebugExtensionWithShrinking1()
-      throws IOException, CompilationException, ExecutionException {
+  public void testSourceDebugExtensionWithShrinking1() throws Exception {
     Path outputPath = tmpOutputDir.newFolder().toPath();
     AndroidApp result = compileWithR8(INPUT_PATH, outputPath, DONT_SHRINK_DONT_OBFUSCATE_CONFIG);
     checkAnnotationContent(INPUT_PATH, result);
@@ -104,8 +103,7 @@ public class JSR45Tests {
    * Check that when dontshrink is used the annotation is not removed due to obfuscation.
    */
   @Test
-  public void testSourceDebugExtensionWithShrinking2()
-      throws IOException, CompilationException, ExecutionException {
+  public void testSourceDebugExtensionWithShrinking2() throws Exception {
     Path outputPath = tmpOutputDir.newFolder().toPath();
     AndroidApp result = compileWithR8(INPUT_PATH, outputPath, DONT_SHRINK_CONFIG);
     checkAnnotationContent(INPUT_PATH, result);
@@ -115,8 +113,7 @@ public class JSR45Tests {
    * Check that the annotation is transmitted when shrinking is enabled with a keepattribute option.
    */
   @Test
-  public void testSourceDebugExtensionWithShrinking3()
-      throws IOException, CompilationException, ExecutionException {
+  public void testSourceDebugExtensionWithShrinking3() throws Exception {
     Path outputPath = tmpOutputDir.newFolder().toPath();
     AndroidApp result = compileWithR8(INPUT_PATH, outputPath, SHRINK_KEEP_CONFIG);
     checkAnnotationContent(INPUT_PATH, result);
@@ -127,8 +124,7 @@ public class JSR45Tests {
    * keepattributes option.
    */
   @Test
-  public void testSourceDebugExtensionWithShrinking4()
-      throws IOException, CompilationException, ExecutionException {
+  public void testSourceDebugExtensionWithShrinking4() throws Exception {
     Path outputPath = tmpOutputDir.newFolder().toPath();
 
     compileWithR8(INPUT_PATH, outputPath, SHRINK_NO_KEEP_CONFIG);

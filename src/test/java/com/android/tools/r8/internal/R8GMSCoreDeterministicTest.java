@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.CompilationFailedException;
 import com.android.tools.r8.utils.OutputMode;
 import com.beust.jcommander.internal.Lists;
 import java.io.IOException;
@@ -32,7 +33,8 @@ public class R8GMSCoreDeterministicTest extends GMSCoreCompilationTestBase {
   }
 
   private AndroidApp doRun()
-      throws IOException, ProguardRuleParserException, CompilationException, ExecutionException {
+      throws IOException, ProguardRuleParserException, CompilationException, ExecutionException,
+      CompilationFailedException {
     R8Command command =
         R8Command.builder().addProgramFiles(Paths.get(GMSCORE_V7_DIR, GMSCORE_APK)).build();
     return ToolHelper.runR8(
@@ -46,9 +48,7 @@ public class R8GMSCoreDeterministicTest extends GMSCoreCompilationTestBase {
   }
 
   @Test
-  public void deterministic()
-      throws ExecutionException, IOException, ProguardRuleParserException, InterruptedException,
-          CompilationException {
+  public void deterministic() throws Exception {
 
     // Run two independent compilations.
     AndroidApp app1 = doRun();

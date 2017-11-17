@@ -40,10 +40,13 @@ import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.shaking.SimpleClassMerger;
 import com.android.tools.r8.shaking.TreePruner;
 import com.android.tools.r8.shaking.protolite.ProtoLiteExtension;
+import com.android.tools.r8.utils.AbortException;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppOutputSink;
 import com.android.tools.r8.utils.CfgPrinter;
+import com.android.tools.r8.utils.CompilationFailedException;
+import com.android.tools.r8.utils.IOExceptionDiagnostic;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.android.tools.r8.utils.LineNumberOptimizer;
@@ -123,13 +126,13 @@ public class R8 {
       throws IOException, CompilationException {
     ExecutorService executor = ThreadUtils.getExecutorService(options);
     try {
-      runForTesting(app, outputSink, options, executor);
+      run(app, outputSink, options, executor);
     } finally {
       executor.shutdown();
     }
   }
 
-  private static void runForTesting(
+  private static void run(
       AndroidApp app,
       OutputSink outputSink,
       InternalOptions options,
@@ -393,7 +396,7 @@ public class R8 {
    *
    * @param command R8 command.
    */
-  public static void run(R8Command command) throws IOException, CompilationException {
+  public static void run(R8Command command) throws CompilationFailedException {
     InternalOptions options = command.getInternalOptions();
     ExecutorService executorService = ThreadUtils.getExecutorService(options);
     try {
@@ -427,9 +430,16 @@ public class R8 {
    * @param executor executor service from which to get threads for multi-threaded processing.
    */
   public static void run(R8Command command, ExecutorService executor)
-      throws IOException, CompilationException {
-    InternalOptions options = command.getInternalOptions();
-    runForTesting(command.getInputApp(), command.getOutputSink(), options, executor);
+      throws CompilationFailedException {
+    try {
+      InternalOptions options = command.getInternalOptions();
+      run(command.getInputApp(), command.getOutputSink(), options, executor);
+    } catch (IOException io) {
+      command.getDiagnosticsHandler().error(new IOExceptionDiagnostic(io));
+      throw new CompilationFailedException(io);
+    } catch (CompilationException e) {
+      throw new CompilationFailedException(e);
+    }
   }
 
   /**
@@ -439,11 +449,12 @@ public class R8 {
       throws IOException, CompilationException {
     InternalOptions options = command.getInternalOptions();
     AndroidAppOutputSink compatSink = new AndroidAppOutputSink(command.getOutputSink());
-    runForTesting(command.getInputApp(), compatSink, options, executor);
+    run(command.getInputApp(), compatSink, options, executor);
     return compatSink.build();
   }
 
-  private static void run(String[] args) throws IOException, CompilationException {
+  private static void run(String[] args)
+      throws IOException, CompilationException, CompilationFailedException {
     R8Command.Builder builder = R8Command.parse(args);
     if (builder.getOutputPath() == null) {
       builder.setOutputPath(Paths.get("."));
@@ -457,7 +468,13 @@ public class R8 {
       Version.printToolVersion("R8");
       return;
     }
-    run(command);
+    InternalOptions options = command.getInternalOptions();
+    ExecutorService executorService = ThreadUtils.getExecutorService(options);
+    try {
+      run(command.getInputApp(), command.getOutputSink(), options, executorService);
+    } finally {
+      executorService.shutdown();
+    }
   }
 
   public static void main(String[] args) {
@@ -470,6 +487,10 @@ public class R8 {
       System.err.println("File already exists: " + e.getFile());
     } catch (IOException e) {
       System.err.println("Failed to read or write Android app: " + e.getMessage());
+      System.exit(1);
+    } catch (CompilationFailedException | AbortException e) {
+      // Detail of the errors were already reported
+      System.err.println("Compilation failed");
       System.exit(1);
     } catch (RuntimeException e) {
       System.err.println("Compilation failed with an internal error.");

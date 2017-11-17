@@ -7,6 +7,7 @@ import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.R8RunArtTestsTest.CompilerUnderTest;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
+import com.android.tools.r8.utils.CompilationFailedException;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.concurrent.ExecutionException;
@@ -32,13 +33,15 @@ public abstract class GMSCoreCompilationTestBase extends CompilationTestBase {
   static final String REFERENCE_APK = "noshrink_x86_GmsCore_prod_alldpi_release_unsigned.apk";
 
   public void runR8AndCheckVerification(CompilationMode mode, String version)
-      throws ProguardRuleParserException, ExecutionException, IOException, CompilationException {
+      throws ProguardRuleParserException, ExecutionException, IOException, CompilationException,
+      CompilationFailedException {
     runAndCheckVerification(CompilerUnderTest.R8, mode, version);
   }
 
   public void runAndCheckVerification(
       CompilerUnderTest compiler, CompilationMode mode, String version)
-      throws ExecutionException, IOException, ProguardRuleParserException, CompilationException {
+      throws ExecutionException, IOException, ProguardRuleParserException, CompilationException,
+      CompilationFailedException {
     runAndCheckVerification(
         compiler, mode, version + GMSCORE_APK, null, null,
         Paths.get(version, GMSCORE_APK).toString());

@@ -5,6 +5,7 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.utils.CompilationFailedException;
 import com.android.tools.r8.utils.FileUtils;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
@@ -131,7 +132,8 @@ public class R8EntryPointTests extends TestBase {
     Assert.assertTrue(Files.isRegularFile(testFlags.getParent().resolve(SEEDS)));
   }
 
-  private R8Command getCommand(Path out) throws CompilationException, IOException {
+  private R8Command getCommand(Path out)
+      throws CompilationException, IOException, CompilationFailedException {
     return R8Command.builder()
       .addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()))
       .addProgramFiles(INPUT_JAR)

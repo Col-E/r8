@@ -55,7 +55,7 @@ public class D8FrameworkDexPassthroughMarkerTest {
   }
 
   @Test
-  public void compile() throws CompilationException, IOException, ExecutionException {
+  public void compile() throws Exception {
     D8Command command = D8Command.builder()
         .setMinApiLevel(AndroidApiLevel.N.getLevel())
         .addProgramFiles(FRAMEWORK_JAR)

@@ -23,6 +23,7 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.CompilationFailedException;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.collect.ImmutableList;
@@ -317,10 +318,13 @@ public class CompatDx {
       System.err.println(USAGE_HEADER);
       e.printHelpOn(System.err);
       System.exit(1);
+    } catch (CompilationFailedException e) {
+      System.exit(1);
     }
   }
 
-  private static void run(String[] args) throws DxUsageMessage, IOException, CompilationException {
+  private static void run(String[] args)
+      throws DxUsageMessage, IOException, CompilationException, CompilationFailedException {
     DxCompatOptions dexArgs = DxCompatOptions.parse(args);
     if (dexArgs.help) {
       printHelpOn(System.out);

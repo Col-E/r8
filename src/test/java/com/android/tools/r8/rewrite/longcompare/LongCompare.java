@@ -8,6 +8,7 @@ import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
+import com.android.tools.r8.utils.CompilationFailedException;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.DexInspector.InstructionSubject;
@@ -19,7 +20,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Iterator;
-import java.util.concurrent.ExecutionException;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
@@ -34,7 +34,7 @@ public class LongCompare {
   public TemporaryFolder tmpOutputDir = ToolHelper.getTemporaryFolderForTest();
 
   void compileWithD8(Path intputPath, Path outputPath)
-      throws IOException, CompilationException {
+      throws IOException, CompilationException, CompilationFailedException {
     D8.run(D8Command.builder().addProgramFiles(intputPath).setOutputPath(outputPath).build());
   }
 
@@ -53,8 +53,7 @@ public class LongCompare {
   }
 
   @Test
-  public void testLongCompareIsRewritten()
-      throws IOException, CompilationException, ExecutionException {
+  public void testLongCompareIsRewritten() throws Exception {
     final Path inputPath = Paths.get(ToolHelper.EXAMPLES_BUILD_DIR + "/rewrite.jar");
     Path outputPath = tmpOutputDir.newFolder().toPath();
 

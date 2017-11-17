@@ -17,6 +17,7 @@ import com.android.tools.r8.code.ReturnVoid;
 import com.android.tools.r8.code.SputObject;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.utils.CompilationFailedException;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.FileUtils;
@@ -95,7 +96,8 @@ public class MemberValuePropagationTest {
     });
   }
 
-  private Path runR8(Path proguardConfig) throws IOException, CompilationException {
+  private Path runR8(Path proguardConfig)
+      throws IOException, CompilationException, CompilationFailedException {
     Path dexOutputDir = temp.newFolder().toPath();
     ToolHelper.runR8(
         R8Command.builder()

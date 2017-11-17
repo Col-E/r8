@@ -14,16 +14,14 @@ import org.junit.Test;
 public class D8GMSCoreV9DeployJarVerificationTest extends GMSCoreDeployJarVerificationTest {
 
   @Test
-  public void buildDebugFromDeployJar()
-      throws ExecutionException, IOException, ProguardRuleParserException, CompilationException {
+  public void buildDebugFromDeployJar() throws Exception {
     buildFromDeployJar(
         CompilerUnderTest.D8, CompilationMode.DEBUG,
         GMSCoreCompilationTestBase.GMSCORE_V9_DIR, true);
   }
 
   @Test
-  public void buildReleaseFromDeployJar()
-      throws ExecutionException, IOException, ProguardRuleParserException, CompilationException {
+  public void buildReleaseFromDeployJar() throws Exception {
     buildFromDeployJar(
         CompilerUnderTest.D8, CompilationMode.RELEASE,
         GMSCoreCompilationTestBase.GMSCORE_V9_DIR, true);

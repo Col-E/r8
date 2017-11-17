@@ -76,8 +76,7 @@ public class R8InliningTest {
   public ExpectedException thrown = ExpectedException.none();
 
   @Before
-  public void generateR8Version()
-      throws IOException, ProguardRuleParserException, ExecutionException, CompilationException {
+  public void generateR8Version() throws Exception {
     Path out = temp.getRoot().toPath();
     R8Command command =
         R8Command.builder()

@@ -14,15 +14,13 @@ import org.junit.Test;
 public class D8YouTubeDeployJarVerificationTest extends YouTubeCompilationBase {
 
   @Test
-  public void buildDebugFromDeployJar()
-      throws ExecutionException, IOException, ProguardRuleParserException, CompilationException {
+  public void buildDebugFromDeployJar() throws Exception {
     runAndCheckVerification(
         CompilerUnderTest.D8, CompilationMode.DEBUG, BASE + APK, null, null, BASE + DEPLOY_JAR);
   }
 
   @Test
-  public void buildReleaseFromDeployJar()
-      throws ExecutionException, IOException, ProguardRuleParserException, CompilationException {
+  public void buildReleaseFromDeployJar() throws Exception {
     runAndCheckVerification(
         CompilerUnderTest.D8, CompilationMode.RELEASE, BASE + APK, null, null, BASE + DEPLOY_JAR);
   }
