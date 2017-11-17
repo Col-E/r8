@@ -17,10 +17,15 @@ import com.android.tools.r8.code.ReturnVoid;
 import com.android.tools.r8.code.SgetObject;
 import com.android.tools.r8.code.SputObject;
 import com.android.tools.r8.graph.DexCode;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
 import com.android.tools.r8.smali.SmaliTestBase;
+import com.android.tools.r8.utils.DexInspector;
+import com.android.tools.r8.utils.DexInspector.ClassSubject;
+import com.android.tools.r8.utils.DexInspector.FieldSubject;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.List;
@@ -230,6 +235,54 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
     assertNotEquals(BOO, constString.getString().toString());
     assertTrue(code.instructions[4] instanceof SputObject);
     assertTrue(code.instructions[5] instanceof ReturnVoid);
+  }
+
+  @Test
+  public void staticFieldWithDefaultValue() throws Exception {
+    SmaliBuilder builder = new SmaliBuilder("Example");
+    builder.addStaticField("sClassName", "Ljava/lang/String;", BOO);
+
+    List<String> pgConfigs = ImmutableList.of(
+        "-identifiernamestring class Example { static java.lang.String sClassName; }",
+        "-keep class Example { static java.lang.String sClassName; }",
+        "-dontshrink",
+        "-dontoptimize");
+    Path processedApp = runR8(builder, pgConfigs);
+
+    DexInspector inspector = new DexInspector(processedApp);
+
+    ClassSubject clazz = inspector.clazz("Example");
+    assertTrue(clazz.isPresent());
+    FieldSubject field = clazz.field("java.lang.String", "sClassName");
+    assertTrue(field.isPresent());
+    assertTrue(field.getStaticValue() instanceof DexValueString);
+    String defaultValue = ((DexValueString) field.getStaticValue()).getValue().toString();
+    assertEquals(BOO, defaultValue);
+  }
+
+  @Test
+  public void staticFieldWithDefaultValue_renamed() throws Exception {
+    SmaliBuilder builder = new SmaliBuilder("Example");
+    builder.addStaticField("sClassName", "Ljava/lang/String;", BOO);
+    builder.addClass(BOO);
+
+    List<String> pgConfigs = ImmutableList.of(
+        "-identifiernamestring class Example { static java.lang.String sClassName; }",
+        "-keep class Example { static java.lang.String sClassName; }",
+        "-keep,allowobfuscation class " + BOO,
+        "-dontshrink",
+        "-dontoptimize");
+    Path processedApp = runR8(builder, pgConfigs);
+
+    DexInspector inspector = new DexInspector(processedApp);
+
+    ClassSubject clazz = inspector.clazz("Example");
+    assertTrue(clazz.isPresent());
+    FieldSubject field = clazz.field("java.lang.String", "sClassName");
+    assertTrue(field.isPresent());
+    assertTrue(field.getStaticValue() instanceof DexValueString);
+    String defaultValue = ((DexValueString) field.getStaticValue()).getValue().toString();
+    assertNotEquals(BOO, defaultValue);
   }
 
   @Test

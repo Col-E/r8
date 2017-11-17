@@ -56,37 +56,42 @@ class IdentifierMinifier {
       if (!adaptClassStrings.matches(clazz.type)) {
         continue;
       }
-      for (DexEncodedField encodedField : clazz.allFieldsSorted()) {
-        if (encodedField.staticValue instanceof DexValueString) {
-          DexString original = ((DexValueString) encodedField.staticValue).getValue();
-          DexString renamed = getRenamedStringLiteral(original);
-          if (renamed != original) {
-            encodedField.staticValue = new DexValueString(renamed);
-          }
-        }
-      }
-      for (DexEncodedMethod encodedMethod : clazz.allMethodsSorted()) {
-        // Abstract methods do not have code_item.
-        if (encodedMethod.accessFlags.isAbstract()) {
-          continue;
-        }
-        Code code = encodedMethod.getCode();
-        if (code == null) {
-          continue;
-        }
-        assert code.isDexCode();
-        DexCode dexCode = code.asDexCode();
-        for (Instruction instr : dexCode.instructions) {
-          if (instr instanceof ConstString) {
-            ConstString cnst = (ConstString) instr;
-            DexString dexString = cnst.getString();
-            cnst.BBBB = getRenamedStringLiteral(dexString);
-          } else if (instr instanceof ConstStringJumbo) {
-            ConstStringJumbo cnst = (ConstStringJumbo) instr;
-            DexString dexString = cnst.getString();
-            cnst.BBBBBBBB = getRenamedStringLiteral(dexString);
-          }
-        }
+      clazz.forEachField(this::adaptClassStringsInField);
+      clazz.forEachMethod(this::adaptClassStringsInMethod);
+    }
+  }
+
+  private void adaptClassStringsInField(DexEncodedField encodedField) {
+    if (!(encodedField.staticValue instanceof DexValueString)) {
+      return;
+    }
+    DexString original = ((DexValueString) encodedField.staticValue).getValue();
+    DexString renamed = getRenamedStringLiteral(original);
+    if (renamed != original) {
+      encodedField.staticValue = new DexValueString(renamed);
+    }
+  }
+
+  private void adaptClassStringsInMethod(DexEncodedMethod encodedMethod) {
+    // Abstract methods do not have code_item.
+    if (encodedMethod.accessFlags.isAbstract()) {
+      return;
+    }
+    Code code = encodedMethod.getCode();
+    if (code == null) {
+      return;
+    }
+    assert code.isDexCode();
+    DexCode dexCode = code.asDexCode();
+    for (Instruction instr : dexCode.instructions) {
+      if (instr instanceof ConstString) {
+        ConstString cnst = (ConstString) instr;
+        DexString dexString = cnst.getString();
+        cnst.BBBB = getRenamedStringLiteral(dexString);
+      } else if (instr instanceof ConstStringJumbo) {
+        ConstStringJumbo cnst = (ConstStringJumbo) instr;
+        DexString dexString = cnst.getString();
+        cnst.BBBBBBBB = getRenamedStringLiteral(dexString);
       }
     }
   }
@@ -111,43 +116,47 @@ class IdentifierMinifier {
 
   private void replaceIdentifierNameString() {
     for (DexProgramClass clazz : appInfo.classes()) {
-      for (DexEncodedMethod encodedMethod : clazz.allMethodsSorted()) {
-        if (!encodedMethod.getOptimizationInfo().useIdentifierNameString()) {
-          continue;
-        }
-        Code code = encodedMethod.getCode();
-        if (code == null) {
-          continue;
-        }
-        assert code.isDexCode();
-        DexCode dexCode = code.asDexCode();
-        for (Instruction instr : dexCode.instructions) {
-          if (instr instanceof ConstString
-              && ((ConstString) instr).getString() instanceof DexItemBasedString) {
-            ConstString cnst = (ConstString) instr;
-            DexItemBasedString itemBasedString = (DexItemBasedString) cnst.getString();
-            cnst.BBBB = materialize(itemBasedString);
-          } else if (instr instanceof ConstStringJumbo
-              && ((ConstStringJumbo) instr).getString() instanceof DexItemBasedString) {
-            ConstStringJumbo cnst = (ConstStringJumbo) instr;
-            DexItemBasedString itemBasedString = (DexItemBasedString) cnst.getString();
-            cnst.BBBBBBBB = materialize(itemBasedString);
-          }
-        }
-      }
+      // Some const strings could be moved to field's static value (from <clinit>).
+      clazz.forEachField(this::replaceIdentifierNameStringInField);
+      clazz.forEachMethod(this::replaceIdentifierNameStringInMethod);
     }
-    // Some const strings could be moved to field's static value (from <clinit>).
-    for (DexItem dexItem : identifierNameStrings) {
-      if (!(dexItem instanceof DexField)) {
-        continue;
-      }
-      DexEncodedField encodedField = appInfo.definitionFor((DexField) dexItem);
-      if (!(encodedField.staticValue instanceof DexValueString)) {
-        continue;
-      }
-      DexString original = ((DexValueString) encodedField.staticValue).getValue();
-      if (original instanceof DexItemBasedString) {
-        encodedField.staticValue = new DexValueString(materialize((DexItemBasedString) original));
+  }
+
+  private void replaceIdentifierNameStringInField(DexEncodedField encodedField) {
+    if (!(encodedField.staticValue instanceof DexValueString)) {
+      return;
+    }
+    DexString original = ((DexValueString) encodedField.staticValue).getValue();
+    if (original instanceof DexItemBasedString) {
+      encodedField.staticValue = new DexValueString(materialize((DexItemBasedString) original));
+    }
+  }
+
+  private void replaceIdentifierNameStringInMethod(DexEncodedMethod encodedMethod) {
+    if (!encodedMethod.getOptimizationInfo().useIdentifierNameString()) {
+      return;
+    }
+    // Abstract methods do not have code_item.
+    if (encodedMethod.accessFlags.isAbstract()) {
+      return;
+    }
+    Code code = encodedMethod.getCode();
+    if (code == null) {
+      return;
+    }
+    assert code.isDexCode();
+    DexCode dexCode = code.asDexCode();
+    for (Instruction instr : dexCode.instructions) {
+      if (instr instanceof ConstString
+          && ((ConstString) instr).getString() instanceof DexItemBasedString) {
+        ConstString cnst = (ConstString) instr;
+        DexItemBasedString itemBasedString = (DexItemBasedString) cnst.getString();
+        cnst.BBBB = materialize(itemBasedString);
+      } else if (instr instanceof ConstStringJumbo
+          && ((ConstStringJumbo) instr).getString() instanceof DexItemBasedString) {
+        ConstStringJumbo cnst = (ConstStringJumbo) instr;
+        DexItemBasedString itemBasedString = (DexItemBasedString) cnst.getString();
+        cnst.BBBBBBBB = materialize(itemBasedString);
       }
     }
   }

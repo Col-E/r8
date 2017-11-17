@@ -395,6 +395,11 @@ public class IRConverter {
       timing.end();
     }
     clearDexMethodCompilationState();
+
+    if (identifierNameStringMarker != null) {
+      identifierNameStringMarker.decoupleIdentifierNameStringsInFields();
+    }
+
     return builder.build();
   }
 
@@ -525,7 +530,7 @@ public class IRConverter {
     }
 
     if (identifierNameStringMarker != null) {
-      identifierNameStringMarker.decoupleIdentifierNameStrings(method, code);
+      identifierNameStringMarker.decoupleIdentifierNameStringsInMethod(method, code);
       assert code.isConsistentSSA();
     }
 

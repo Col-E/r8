@@ -3,14 +3,18 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexItemBasedString;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
+import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.IRCode;
@@ -39,7 +43,31 @@ public class IdentifierNameStringMarker {
     this.identifierNameStrings = appInfo.identifierNameStrings;
   }
 
-  public void decoupleIdentifierNameStrings(DexEncodedMethod encodedMethod, IRCode code) {
+  public void decoupleIdentifierNameStringsInFields() {
+    for (DexProgramClass clazz : appInfo.classes()) {
+      clazz.forEachField(this::decoupleIdentifierNameStringInField);
+    }
+  }
+
+  private void decoupleIdentifierNameStringInField(DexEncodedField encodedField) {
+    if (!identifierNameStrings.contains(encodedField.field)) {
+      return;
+    }
+    if (!(encodedField.staticValue instanceof DexValueString)) {
+      return;
+    }
+    DexString original = ((DexValueString) encodedField.staticValue).getValue();
+    String maybeDescriptor =
+        DescriptorUtils.javaTypeToDescriptorIfValidJavaType(original.toString());
+    if (maybeDescriptor == null) {
+      return;
+    }
+    DexType type = dexItemFactory.createType(maybeDescriptor);
+    DexItemBasedString typeString = dexItemFactory.createItemBasedString(type);
+    encodedField.staticValue = new DexValueString(typeString);
+  }
+
+  public void decoupleIdentifierNameStringsInMethod(DexEncodedMethod encodedMethod, IRCode code) {
     for (BasicBlock block : code.blocks) {
       InstructionListIterator iterator = block.listIterator();
       while (iterator.hasNext()) {
