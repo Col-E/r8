@@ -208,7 +208,8 @@ public class ProguardConfigurationParserTest extends TestBase {
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(dexItemFactory, diagnosticsHandler);
     String dontwarnAll = "-dontwarn";
-    parser.parse(createConfigurationForTesting(ImmutableList.of(dontwarnAll)));
+    String otherOption = "-keep class *";
+    parser.parse(createConfigurationForTesting(ImmutableList.of(dontwarnAll, otherOption)));
     ProguardConfiguration config = parser.getConfig();
     assertTrue(
         config.getDontWarnPatterns().matches(dexItemFactory.createType("Lboobaz;")));
