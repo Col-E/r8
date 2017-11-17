@@ -46,7 +46,17 @@ public class ConstClass extends ConstInstruction {
   }
 
   @Override
+  public String toString() {
+    return super.toString() + clazz.toSourceString();
+  }
+
+  @Override
   public boolean instructionTypeCanThrow() {
+    return true;
+  }
+
+  @Override
+  public boolean isOutConstant() {
     return true;
   }
 

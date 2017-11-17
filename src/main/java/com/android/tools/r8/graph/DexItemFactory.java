@@ -113,6 +113,7 @@ public class DexItemFactory {
   public final DexString objectDescriptor = createString("Ljava/lang/Object;");
   public final DexString objectArrayDescriptor = createString("[Ljava/lang/Object;");
   public final DexString classDescriptor = createString("Ljava/lang/Class;");
+  public final DexString classArrayDescriptor = createString("[Ljava/lang/Class;");
   public final DexString fieldDescriptor = createString("Ljava/lang/reflect/Field;");
   public final DexString methodDescriptor = createString("Ljava/lang/reflect/Method;");
   public final DexString enumDescriptor = createString("Ljava/lang/Enum;");

@@ -37,7 +37,6 @@ public class ForNameTest extends SmaliTestBase {
         "invoke-static {v0}, Ljava/lang/Class;->forName(Ljava/lang/String;)Ljava/lang/Class;",
         "move-result-object v0",
         "return-void");
-
     builder.addClass(BOO);
 
     List<String> pgConfigs = ImmutableList.of(
@@ -45,7 +44,6 @@ public class ForNameTest extends SmaliTestBase {
         "-keep,allowobfuscation class " + BOO,
         "-dontshrink",
         "-dontoptimize");
-
     DexInspector inspector = runCompatProguard(builder, pgConfigs);
 
     ClassSubject clazz = inspector.clazz(CLASS_NAME);
@@ -74,7 +72,6 @@ public class ForNameTest extends SmaliTestBase {
         "invoke-static {v0}, Ljava/lang/Class;->forName(Ljava/lang/String;)Ljava/lang/Class;",
         "move-result-object v0",
         "return-void");
-
     builder.addClass(BOO);
 
     List<String> pgConfigs = ImmutableList.of(
@@ -83,7 +80,6 @@ public class ForNameTest extends SmaliTestBase {
         "-dontshrink",
         "-dontoptimize",
         "-dontobfuscate");
-
     DexInspector inspector = runCompatProguard(builder, pgConfigs);
 
     ClassSubject clazz = inspector.clazz(CLASS_NAME);
@@ -100,7 +96,7 @@ public class ForNameTest extends SmaliTestBase {
   }
 
   private DexInspector runCompatProguard(SmaliBuilder builder, List<String> proguardConfigurations)
-      throws Exception{
+      throws Exception {
     Path dexOutputDir = temp.newFolder().toPath();
     R8Command command =
         new CompatProguardCommandBuilder(true, true)

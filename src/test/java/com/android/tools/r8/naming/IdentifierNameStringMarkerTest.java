@@ -8,16 +8,19 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.code.AputObject;
+import com.android.tools.r8.code.Const4;
+import com.android.tools.r8.code.ConstClass;
 import com.android.tools.r8.code.ConstString;
 import com.android.tools.r8.code.InvokeDirect;
 import com.android.tools.r8.code.InvokeStatic;
 import com.android.tools.r8.code.InvokeVirtual;
 import com.android.tools.r8.code.IputObject;
+import com.android.tools.r8.code.NewArray;
 import com.android.tools.r8.code.ReturnVoid;
 import com.android.tools.r8.code.SgetObject;
 import com.android.tools.r8.code.SputObject;
 import com.android.tools.r8.graph.DexCode;
-import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.smali.SmaliBuilder;
@@ -27,17 +30,17 @@ import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.DexInspector.FieldSubject;
 import com.google.common.collect.ImmutableList;
-import java.nio.file.Path;
 import java.util.List;
 import org.junit.Test;
 
 public class IdentifierNameStringMarkerTest extends SmaliTestBase {
 
+  private final String CLASS_NAME = "Example";
   private final static String BOO = "Boo";
 
   @Test
   public void instancePut_singleUseOperand() throws Exception {
-    SmaliBuilder builder = new SmaliBuilder("Example");
+    SmaliBuilder builder = new SmaliBuilder(CLASS_NAME);
     builder.addInstanceField("aClassName", "Ljava/lang/String;");
     MethodSignature init = builder.addInitializer(ImmutableList.of(), 1,
         "invoke-direct {p0}, Ljava/lang/Object;-><init>()V",
@@ -46,12 +49,14 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
         "return-void");
 
     List<String> pgConfigs = ImmutableList.of(
-        "-identifiernamestring class Example { java.lang.String aClassName; }",
-        "-keep class Example",
+        "-identifiernamestring class " + CLASS_NAME + " { java.lang.String aClassName; }",
+        "-keep class " + CLASS_NAME,
         "-dontoptimize");
-    Path processedApp = runR8(builder, pgConfigs);
+    DexInspector inspector = getInspectorAfterRunR8(builder, pgConfigs);
 
-    DexEncodedMethod method = getMethod(processedApp, init);
+    ClassSubject clazz = inspector.clazz(CLASS_NAME);
+    assertTrue(clazz.isPresent());
+    DexEncodedMethod method = getMethod(inspector, init);
     assertNotNull(method);
 
     DexCode code = method.getCode().asDexCode();
@@ -69,7 +74,7 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
 
   @Test
   public void instancePut_sharedOperand() throws Exception {
-    SmaliBuilder builder = new SmaliBuilder("Example");
+    SmaliBuilder builder = new SmaliBuilder(CLASS_NAME);
     builder.addInstanceField("aClassName", "Ljava/lang/String;");
     MethodSignature init = builder.addInitializer(ImmutableList.of(), 2,
         "invoke-direct {p0}, Ljava/lang/Object;-><init>()V",
@@ -80,12 +85,14 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
         "return-void");
 
     List<String> pgConfigs = ImmutableList.of(
-        "-identifiernamestring class Example { java.lang.String aClassName; }",
-        "-keep class Example",
+        "-identifiernamestring class " + CLASS_NAME + " { java.lang.String aClassName; }",
+        "-keep class " + CLASS_NAME,
         "-dontoptimize");
-    Path processedApp = runR8(builder, pgConfigs);
+    DexInspector inspector = getInspectorAfterRunR8(builder, pgConfigs);
 
-    DexEncodedMethod method = getMethod(processedApp, init);
+    ClassSubject clazz = inspector.clazz(CLASS_NAME);
+    assertTrue(clazz.isPresent());
+    DexEncodedMethod method = getMethod(inspector, init);
     assertNotNull(method);
 
     DexCode code = method.getCode().asDexCode();
@@ -104,7 +111,7 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
 
   @Test
   public void instancePut_sharedOperand_renamed() throws Exception {
-    SmaliBuilder builder = new SmaliBuilder("Example");
+    SmaliBuilder builder = new SmaliBuilder(CLASS_NAME);
     builder.addInstanceField("aClassName", "Ljava/lang/String;");
     MethodSignature init = builder.addInitializer(ImmutableList.of(), 2,
         "invoke-direct {p0}, Ljava/lang/Object;-><init>()V",
@@ -116,13 +123,15 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
     builder.addClass(BOO);
 
     List<String> pgConfigs = ImmutableList.of(
-        "-identifiernamestring class Example { java.lang.String aClassName; }",
-        "-keep class Example",
+        "-identifiernamestring class " + CLASS_NAME + " { java.lang.String aClassName; }",
+        "-keep class " + CLASS_NAME,
         "-keep,allowobfuscation class " + BOO,
         "-dontoptimize");
-    Path processedApp = runR8(builder, pgConfigs);
+    DexInspector inspector = getInspectorAfterRunR8(builder, pgConfigs);
 
-    DexEncodedMethod method = getMethod(processedApp, init);
+    ClassSubject clazz = inspector.clazz(CLASS_NAME);
+    assertTrue(clazz.isPresent());
+    DexEncodedMethod method = getMethod(inspector, init);
     assertNotNull(method);
 
     DexCode code = method.getCode().asDexCode();
@@ -141,7 +150,7 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
 
   @Test
   public void staticPut_singleUseOperand() throws Exception {
-    SmaliBuilder builder = new SmaliBuilder("Example");
+    SmaliBuilder builder = new SmaliBuilder(CLASS_NAME);
     builder.addStaticField("sClassName", "Ljava/lang/String;");
     MethodSignature clinit = builder.addStaticInitializer(1,
         "const-string v0, \"" + BOO + "\"",
@@ -149,12 +158,14 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
         "return-void");
 
     List<String> pgConfigs = ImmutableList.of(
-        "-identifiernamestring class Example { static java.lang.String sClassName; }",
-        "-keep class Example",
+        "-identifiernamestring class " + CLASS_NAME + " { static java.lang.String sClassName; }",
+        "-keep class " + CLASS_NAME,
         "-dontoptimize");
-    Path processedApp = runR8(builder, pgConfigs);
+    DexInspector inspector = getInspectorAfterRunR8(builder, pgConfigs);
 
-    DexEncodedMethod method = getMethod(processedApp, clinit);
+    ClassSubject clazz = inspector.clazz(CLASS_NAME);
+    assertTrue(clazz.isPresent());
+    DexEncodedMethod method = getMethod(inspector, clinit);
     assertNotNull(method);
 
     DexCode code = method.getCode().asDexCode();
@@ -171,7 +182,7 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
 
   @Test
   public void staticPut_sharedOperand() throws Exception {
-    SmaliBuilder builder = new SmaliBuilder("Example");
+    SmaliBuilder builder = new SmaliBuilder(CLASS_NAME);
     builder.addStaticField("sClassName", "Ljava/lang/String;");
     MethodSignature clinit = builder.addStaticInitializer(2,
         "sget-object v0, Ljava/lang/System;->out:Ljava/io/PrintStream;",
@@ -181,12 +192,14 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
         "return-void");
 
     List<String> pgConfigs = ImmutableList.of(
-        "-identifiernamestring class Example { static java.lang.String sClassName; }",
-        "-keep class Example",
+        "-identifiernamestring class " + CLASS_NAME + " { static java.lang.String sClassName; }",
+        "-keep class " + CLASS_NAME,
         "-dontoptimize");
-    Path processedApp = runR8(builder, pgConfigs);
+    DexInspector inspector = getInspectorAfterRunR8(builder, pgConfigs);
 
-    DexEncodedMethod method = getMethod(processedApp, clinit);
+    ClassSubject clazz = inspector.clazz(CLASS_NAME);
+    assertTrue(clazz.isPresent());
+    DexEncodedMethod method = getMethod(inspector, clinit);
     assertNotNull(method);
 
     DexCode code = method.getCode().asDexCode();
@@ -204,7 +217,7 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
 
   @Test
   public void staticPut_sharedOperand_renamed() throws Exception {
-    SmaliBuilder builder = new SmaliBuilder("Example");
+    SmaliBuilder builder = new SmaliBuilder(CLASS_NAME);
     builder.addStaticField("sClassName", "Ljava/lang/String;");
     MethodSignature clinit = builder.addStaticInitializer(2,
         "sget-object v0, Ljava/lang/System;->out:Ljava/io/PrintStream;",
@@ -215,13 +228,15 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
     builder.addClass(BOO);
 
     List<String> pgConfigs = ImmutableList.of(
-        "-identifiernamestring class Example { static java.lang.String sClassName; }",
-        "-keep class Example",
+        "-identifiernamestring class " + CLASS_NAME + " { static java.lang.String sClassName; }",
+        "-keep class " + CLASS_NAME,
         "-keep,allowobfuscation class " + BOO,
         "-dontoptimize");
-    Path processedApp = runR8(builder, pgConfigs);
+    DexInspector inspector = getInspectorAfterRunR8(builder, pgConfigs);
 
-    DexEncodedMethod method = getMethod(processedApp, clinit);
+    ClassSubject clazz = inspector.clazz(CLASS_NAME);
+    assertTrue(clazz.isPresent());
+    DexEncodedMethod method = getMethod(inspector, clinit);
     assertNotNull(method);
 
     DexCode code = method.getCode().asDexCode();
@@ -239,19 +254,17 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
 
   @Test
   public void staticFieldWithDefaultValue() throws Exception {
-    SmaliBuilder builder = new SmaliBuilder("Example");
+    SmaliBuilder builder = new SmaliBuilder(CLASS_NAME);
     builder.addStaticField("sClassName", "Ljava/lang/String;", BOO);
 
     List<String> pgConfigs = ImmutableList.of(
-        "-identifiernamestring class Example { static java.lang.String sClassName; }",
-        "-keep class Example { static java.lang.String sClassName; }",
+        "-identifiernamestring class " + CLASS_NAME + " { static java.lang.String sClassName; }",
+        "-keep class " + CLASS_NAME + " { static java.lang.String sClassName; }",
         "-dontshrink",
         "-dontoptimize");
-    Path processedApp = runR8(builder, pgConfigs);
+    DexInspector inspector = getInspectorAfterRunR8(builder, pgConfigs);
 
-    DexInspector inspector = new DexInspector(processedApp);
-
-    ClassSubject clazz = inspector.clazz("Example");
+    ClassSubject clazz = inspector.clazz(CLASS_NAME);
     assertTrue(clazz.isPresent());
     FieldSubject field = clazz.field("java.lang.String", "sClassName");
     assertTrue(field.isPresent());
@@ -262,21 +275,19 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
 
   @Test
   public void staticFieldWithDefaultValue_renamed() throws Exception {
-    SmaliBuilder builder = new SmaliBuilder("Example");
+    SmaliBuilder builder = new SmaliBuilder(CLASS_NAME);
     builder.addStaticField("sClassName", "Ljava/lang/String;", BOO);
     builder.addClass(BOO);
 
     List<String> pgConfigs = ImmutableList.of(
-        "-identifiernamestring class Example { static java.lang.String sClassName; }",
-        "-keep class Example { static java.lang.String sClassName; }",
+        "-identifiernamestring class " + CLASS_NAME + " { static java.lang.String sClassName; }",
+        "-keep class " + CLASS_NAME + " { static java.lang.String sClassName; }",
         "-keep,allowobfuscation class " + BOO,
         "-dontshrink",
         "-dontoptimize");
-    Path processedApp = runR8(builder, pgConfigs);
+    DexInspector inspector = getInspectorAfterRunR8(builder, pgConfigs);
 
-    DexInspector inspector = new DexInspector(processedApp);
-
-    ClassSubject clazz = inspector.clazz("Example");
+    ClassSubject clazz = inspector.clazz(CLASS_NAME);
     assertTrue(clazz.isPresent());
     FieldSubject field = clazz.field("java.lang.String", "sClassName");
     assertTrue(field.isPresent());
@@ -287,7 +298,7 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
 
   @Test
   public void invoke_singleUseOperand() throws Exception {
-    SmaliBuilder builder = new SmaliBuilder("Example");
+    SmaliBuilder builder = new SmaliBuilder(CLASS_NAME);
     builder.addStaticMethod(
         "void",
         "foo",
@@ -302,12 +313,14 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
         "return-void");
 
     List<String> pgConfigs = ImmutableList.of(
-        "-identifiernamestring class Example { static void foo(...); }",
-        "-keep class Example",
+        "-identifiernamestring class " + CLASS_NAME + " { static void foo(...); }",
+        "-keep class " + CLASS_NAME,
         "-dontoptimize");
-    Path processedApp = runR8(builder, pgConfigs);
+    DexInspector inspector = getInspectorAfterRunR8(builder, pgConfigs);
 
-    DexEncodedMethod method = getMethod(processedApp, foo);
+    ClassSubject clazz = inspector.clazz(CLASS_NAME);
+    assertTrue(clazz.isPresent());
+    DexEncodedMethod method = getMethod(inspector, foo);
     assertNotNull(method);
 
     DexCode code = method.getCode().asDexCode();
@@ -328,7 +341,7 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
 
   @Test
   public void invoke_sharedOperand() throws Exception {
-    SmaliBuilder builder = new SmaliBuilder("Example");
+    SmaliBuilder builder = new SmaliBuilder(CLASS_NAME);
     builder.addStaticMethod(
         "void",
         "foo",
@@ -344,12 +357,14 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
         "return-void");
 
     List<String> pgConfigs = ImmutableList.of(
-        "-identifiernamestring class Example { static void foo(...); }",
-        "-keep class Example",
+        "-identifiernamestring class " + CLASS_NAME + " { static void foo(...); }",
+        "-keep class " + CLASS_NAME,
         "-dontoptimize");
-    Path processedApp = runR8(builder, pgConfigs);
+    DexInspector inspector = getInspectorAfterRunR8(builder, pgConfigs);
 
-    DexEncodedMethod method = getMethod(processedApp, foo);
+    ClassSubject clazz = inspector.clazz(CLASS_NAME);
+    assertTrue(clazz.isPresent());
+    DexEncodedMethod method = getMethod(inspector, foo);
     assertNotNull(method);
 
     DexCode code = method.getCode().asDexCode();
@@ -368,7 +383,7 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
 
   @Test
   public void invoke_sharedOperand_renamed() throws Exception {
-    SmaliBuilder builder = new SmaliBuilder("Example");
+    SmaliBuilder builder = new SmaliBuilder(CLASS_NAME);
     builder.addStaticMethod(
         "void",
         "foo",
@@ -385,13 +400,15 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
     builder.addClass(BOO);
 
     List<String> pgConfigs = ImmutableList.of(
-        "-identifiernamestring class Example { static void foo(...); }",
-        "-keep class Example",
+        "-identifiernamestring class " + CLASS_NAME + " { static void foo(...); }",
+        "-keep class " + CLASS_NAME,
         "-keep,allowobfuscation class " + BOO,
         "-dontoptimize");
-    Path processedApp = runR8(builder, pgConfigs);
+    DexInspector inspector = getInspectorAfterRunR8(builder, pgConfigs);
 
-    DexEncodedMethod method = getMethod(processedApp, foo);
+    ClassSubject clazz = inspector.clazz(CLASS_NAME);
+    assertTrue(clazz.isPresent());
+    DexEncodedMethod method = getMethod(inspector, foo);
     assertNotNull(method);
 
     DexCode code = method.getCode().asDexCode();
@@ -408,4 +425,238 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
     assertTrue(code.instructions[6] instanceof ReturnVoid);
   }
 
+  @Test
+  public void reflective_field_singleUseOperand() throws Exception {
+    SmaliBuilder builder = new SmaliBuilder(CLASS_NAME);
+
+    MethodSignature foo = builder.addInitializer(ImmutableList.of(), 2,
+        "invoke-direct {p0}, Ljava/lang/Object;-><init>()V",
+        "const-class v0, LR;",
+        "const-string v1, \"foo\"",
+        "invoke-static {v0, v1}, "
+            + "LR;->findField(Ljava/lang/Class;Ljava/lang/String;)Ljava/lang/reflect/Field;",
+        "return-void");
+
+    builder.addClass("R");
+    builder.addStaticField("foo", "Ljava/lang/String;");
+    builder.addStaticMethod(
+        "java.lang.reflect.Field",
+        "findField",
+        ImmutableList.of("java.lang.Class", "java.lang.String"),
+        1,
+        "invoke-virtual {p0, p1}, "
+            + "Ljava/lang/Class;->getDeclaredField(Ljava/lang/String;)Ljava/lang/reflect/Field;",
+        "move-result-object v0",
+        "return-object v0");
+
+    List<String> pgConfigs = ImmutableList.of(
+        "-identifiernamestring class * {\n"
+            + "  static java.lang.reflect.Field *(java.lang.Class,java.lang.String);\n"
+            + "}",
+        "-keep class " + CLASS_NAME,
+        "-keep class R { *; }",
+        "-dontoptimize");
+    DexInspector inspector = getInspectorAfterRunR8(builder, pgConfigs);
+
+    ClassSubject clazz = inspector.clazz(CLASS_NAME);
+    assertTrue(clazz.isPresent());
+    DexEncodedMethod method = getMethod(inspector, foo);
+    assertNotNull(method);
+
+    DexCode code = method.getCode().asDexCode();
+    assertTrue(code.instructions[0] instanceof InvokeDirect);
+    assertTrue(code.instructions[1] instanceof ConstClass);
+    // TODO(b/36799092): DeadCodeRemover should be able to remove this instruction.
+    assertTrue(code.instructions[2] instanceof ConstString);
+    ConstString constString = (ConstString) code.instructions[2];
+    assertEquals("foo", constString.getString().toString());
+    assertTrue(code.instructions[3] instanceof ConstString);
+    constString = (ConstString) code.instructions[3];
+    assertEquals("foo", constString.getString().toString());
+    assertTrue(code.instructions[4] instanceof InvokeStatic);
+    assertTrue(code.instructions[5] instanceof ReturnVoid);
+  }
+
+  @Test
+  public void reflective_field_singleUseOperand_renamed() throws Exception {
+    SmaliBuilder builder = new SmaliBuilder(CLASS_NAME);
+
+    MethodSignature foo = builder.addInitializer(ImmutableList.of(), 2,
+        "invoke-direct {p0}, Ljava/lang/Object;-><init>()V",
+        "const-class v0, LR;",
+        "const-string v1, \"foo\"",
+        "invoke-static {v0, v1}, "
+            + "LR;->findField(Ljava/lang/Class;Ljava/lang/String;)Ljava/lang/reflect/Field;",
+        "return-void");
+
+    builder.addClass("R");
+    builder.addStaticField("foo", "Ljava/lang/String;");
+    builder.addStaticMethod(
+        "java.lang.reflect.Field",
+        "findField",
+        ImmutableList.of("java.lang.Class", "java.lang.String"),
+        1,
+        "invoke-virtual {p0, p1}, "
+            + "Ljava/lang/Class;->getDeclaredField(Ljava/lang/String;)Ljava/lang/reflect/Field;",
+        "move-result-object v0",
+        "return-object v0");
+
+    List<String> pgConfigs = ImmutableList.of(
+        "-identifiernamestring class * {\n"
+            + "  static java.lang.reflect.Field *(java.lang.Class,java.lang.String);\n"
+            + "}",
+        "-keep class " + CLASS_NAME,
+        "-keep,allowobfuscation class R { *; }",
+        "-dontoptimize");
+    DexInspector inspector = getInspectorAfterRunR8(builder, pgConfigs);
+
+    ClassSubject clazz = inspector.clazz(CLASS_NAME);
+    assertTrue(clazz.isPresent());
+    DexEncodedMethod method = getMethod(inspector, foo);
+    assertNotNull(method);
+
+    DexCode code = method.getCode().asDexCode();
+    assertTrue(code.instructions[0] instanceof InvokeDirect);
+    assertTrue(code.instructions[1] instanceof ConstClass);
+    // TODO(b/36799092): DeadCodeRemover should be able to remove this instruction.
+    assertTrue(code.instructions[2] instanceof ConstString);
+    ConstString constString = (ConstString) code.instructions[2];
+    assertEquals("foo", constString.getString().toString());
+    assertTrue(code.instructions[3] instanceof ConstString);
+    constString = (ConstString) code.instructions[3];
+    assertNotEquals("foo", constString.getString().toString());
+    assertTrue(code.instructions[4] instanceof InvokeStatic);
+    assertTrue(code.instructions[5] instanceof ReturnVoid);
+  }
+
+  @Test
+  public void reflective_method_singleUseOperand() throws Exception {
+    SmaliBuilder builder = new SmaliBuilder(CLASS_NAME);
+
+    MethodSignature foo = builder.addInitializer(ImmutableList.of(), 3,
+        "invoke-direct {p0}, Ljava/lang/Object;-><init>()V",
+        "const-class v0, LR;",
+        "const/4 v2, 0x1",
+        "new-array v2, v2, [Ljava/lang/Class;",
+        "const/4 v1, 0x0",
+        "aput-object v0, v2, v1",
+        "const-string v1, \"foo\"",
+        "invoke-static {v0, v1, v2}, "
+            + "LR;->findMethod(Ljava/lang/Class;Ljava/lang/String;[Ljava/lang/Class;)"
+            + "Ljava/lang/reflect/Method;",
+        "return-void");
+
+    builder.addClass("R");
+    builder.addStaticMethod("void", "foo", ImmutableList.of("R"), 0,"return-void");
+    builder.addStaticMethod(
+        "java.lang.reflect.Method",
+        "findMethod",
+        ImmutableList.of("java.lang.Class", "java.lang.String", "java.lang.Class[]"),
+        1,
+        "invoke-virtual {p0, p1, p2}, "
+            + "Ljava/lang/Class;->getDeclaredMethod(Ljava/lang/String;[Ljava/lang/Class;)"
+            + "Ljava/lang/reflect/Method;",
+        "move-result-object v0",
+        "return-object v0");
+
+    List<String> pgConfigs = ImmutableList.of(
+        "-identifiernamestring class * {\n"
+            + "  static java.lang.reflect.Method"
+            + "    *(java.lang.Class,java.lang.String,java.lang.Class[]);\n"
+            + "}",
+        "-keep class " + CLASS_NAME,
+        "-keep class R { *; }",
+        "-dontoptimize");
+    DexInspector inspector = getInspectorAfterRunR8(builder, pgConfigs);
+
+    ClassSubject clazz = inspector.clazz(CLASS_NAME);
+    assertTrue(clazz.isPresent());
+    DexEncodedMethod method = getMethod(inspector, foo);
+    assertNotNull(method);
+
+    DexCode code = method.getCode().asDexCode();
+    assertTrue(code.instructions[0] instanceof InvokeDirect);
+    assertTrue(code.instructions[1] instanceof ConstClass);
+    assertTrue(code.instructions[2] instanceof Const4);
+    assertTrue(code.instructions[3] instanceof NewArray);
+    assertTrue(code.instructions[4] instanceof Const4);
+    assertTrue(code.instructions[5] instanceof AputObject);
+    // TODO(b/36799092): DeadCodeRemover should be able to remove this instruction.
+    assertTrue(code.instructions[6] instanceof ConstString);
+    ConstString constString = (ConstString) code.instructions[6];
+    assertEquals("foo", constString.getString().toString());
+    assertTrue(code.instructions[7] instanceof ConstString);
+    constString = (ConstString) code.instructions[7];
+    assertEquals("foo", constString.getString().toString());
+    assertTrue(code.instructions[8] instanceof InvokeStatic);
+    assertTrue(code.instructions[9] instanceof ReturnVoid);
+  }
+
+  @Test
+  public void reflective_method_singleUseOperand_renamed() throws Exception {
+    SmaliBuilder builder = new SmaliBuilder(CLASS_NAME);
+
+    MethodSignature foo = builder.addInitializer(ImmutableList.of(), 3,
+        "invoke-direct {p0}, Ljava/lang/Object;-><init>()V",
+        "const-class v0, LR;",
+        "const/4 v2, 0x1",
+        "new-array v2, v2, [Ljava/lang/Class;",
+        "const/4 v1, 0x0",
+        "aput-object v0, v2, v1",
+        "const-string v1, \"foo\"",
+        "invoke-static {v0, v1, v2}, "
+            + "LR;->findMethod(Ljava/lang/Class;Ljava/lang/String;[Ljava/lang/Class;)"
+            + "Ljava/lang/reflect/Method;",
+        "return-void");
+
+    builder.addClass("R");
+    builder.addStaticMethod("void", "foo", ImmutableList.of("R"), 0,"return-void");
+    builder.addStaticMethod(
+        "java.lang.reflect.Method",
+        "findMethod",
+        ImmutableList.of("java.lang.Class", "java.lang.String", "java.lang.Class[]"),
+        1,
+        "invoke-virtual {p0, p1, p2}, "
+            + "Ljava/lang/Class;->getDeclaredMethod(Ljava/lang/String;[Ljava/lang/Class;)"
+            + "Ljava/lang/reflect/Method;",
+        "move-result-object v0",
+        "return-object v0");
+
+    List<String> pgConfigs = ImmutableList.of(
+        "-identifiernamestring class * {\n"
+            + "  static java.lang.reflect.Method"
+            + "    *(java.lang.Class,java.lang.String,java.lang.Class[]);\n"
+            + "}",
+        "-keep class " + CLASS_NAME,
+        "-keep,allowobfuscation class R { *; }",
+        "-dontoptimize");
+    DexInspector inspector = getInspectorAfterRunR8(builder, pgConfigs);
+
+    ClassSubject clazz = inspector.clazz(CLASS_NAME);
+    assertTrue(clazz.isPresent());
+    DexEncodedMethod method = getMethod(inspector, foo);
+    assertNotNull(method);
+
+    DexCode code = method.getCode().asDexCode();
+    assertTrue(code.instructions[0] instanceof InvokeDirect);
+    assertTrue(code.instructions[1] instanceof ConstClass);
+    assertTrue(code.instructions[2] instanceof Const4);
+    assertTrue(code.instructions[3] instanceof NewArray);
+    assertTrue(code.instructions[4] instanceof Const4);
+    assertTrue(code.instructions[5] instanceof AputObject);
+    // TODO(b/36799092): DeadCodeRemover should be able to remove this instruction.
+    assertTrue(code.instructions[6] instanceof ConstString);
+    ConstString constString = (ConstString) code.instructions[6];
+    assertEquals("foo", constString.getString().toString());
+    assertTrue(code.instructions[7] instanceof ConstString);
+    constString = (ConstString) code.instructions[7];
+    assertNotEquals("foo", constString.getString().toString());
+    assertTrue(code.instructions[8] instanceof InvokeStatic);
+    assertTrue(code.instructions[9] instanceof ReturnVoid);
+  }
+
+  private DexInspector getInspectorAfterRunR8(
+      SmaliBuilder builder, List<String> proguardConfigurations) throws Exception {
+    return new DexInspector(runR8(builder, proguardConfigurations));
+  }
 }

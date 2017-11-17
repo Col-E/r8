@@ -2,8 +2,7 @@
 # for details. All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
-# Keep the application entry point. Get rid of everything that is not
-# reachable from there.
+# Keep the application entry point.
 -keep public class identifiernamestring.Main {
   public static void main(...);
 }

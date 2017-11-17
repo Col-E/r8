@@ -13,6 +13,6 @@
 -dontoptimize
 
 -identifiernamestring class * {
-  @identifiernamestring.IdentifierNameString *;
-  static java.lang.String TYPE_*;
+  static java.lang.reflect.Field *(java.lang.Class, java.lang.String);
+  static java.lang.reflect.Method *(java.lang.Class, java.lang.String, java.lang.Class[]);
 }

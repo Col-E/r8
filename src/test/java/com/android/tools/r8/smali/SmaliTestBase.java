@@ -135,15 +135,15 @@ public class SmaliTestBase extends TestBase {
   protected DexEncodedMethod getMethod(Path appPath, MethodSignature signature) {
     try {
       DexInspector inspector = new DexInspector(appPath);
-      return getMethod(
-          inspector,
-          signature.clazz,
-          signature.returnType,
-          signature.name,
-          signature.parameterTypes);
+      return getMethod(inspector, signature);
     } catch (IOException | ExecutionException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  protected DexEncodedMethod getMethod(DexInspector inspector, MethodSignature signature) {
+    return getMethod(
+        inspector, signature.clazz, signature.returnType, signature.name, signature.parameterTypes);
   }
 
   protected DexEncodedMethod getMethod(AndroidApp application, MethodSignature signature) {

@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
+import static com.android.tools.r8.utils.DescriptorUtils.descriptorToJavaType;
+import static com.android.tools.r8.utils.DescriptorUtils.isValidJavaType;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -15,12 +17,12 @@ import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.DexInspector.MethodSubject;
 import com.android.tools.r8.utils.ListUtils;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -28,7 +30,9 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -93,6 +97,7 @@ public class IdentifierMinifierTest {
     inspections.put("forname:keep-rules.txt", IdentifierMinifierTest::test_forname);
     inspections.put("identifiernamestring:keep-rules-1.txt", IdentifierMinifierTest::test2_rule1);
     inspections.put("identifiernamestring:keep-rules-2.txt", IdentifierMinifierTest::test2_rule2);
+    inspections.put("identifiernamestring:keep-rules-3.txt", IdentifierMinifierTest::test2_rule3);
 
     return NamingTestBase.createTests(tests, inspections);
   }
@@ -203,6 +208,21 @@ public class IdentifierMinifierTest {
     assertEquals(2, renamedYetFoundIdentifierCount);
   }
 
+  // With -identifiernamestring for reflective methods
+  private static void test2_rule3(DexInspector inspector) {
+    ClassSubject mainClass = inspector.clazz("identifiernamestring.Main");
+    MethodSubject main = mainClass.method(DexInspector.MAIN);
+    assertTrue(main.isPresent());
+    Code mainCode = main.getMethod().getCode();
+    assertTrue(mainCode.isDexCode());
+    verifyPresenceOfConstString(mainCode.asDexCode().instructions);
+
+    ClassSubject b = inspector.clazz("identifiernamestring.B");
+    Set<Instruction> constStringInstructions =
+        getRenamedMemberIdentifierConstStrings(b, mainCode.asDexCode().instructions);
+    assertEquals(2, constStringInstructions.size());
+  }
+
   private static void verifyPresenceOfConstString(Instruction[] instructions) {
     boolean presence =
         Arrays.stream(instructions)
@@ -221,17 +241,20 @@ public class IdentifierMinifierTest {
     return null;
   }
 
+  private static Stream<Instruction> getConstStringInstructions(Instruction[] instructions) {
+    return Arrays.stream(instructions)
+        .filter(instr -> instr instanceof ConstString || instr instanceof ConstStringJumbo);
+  }
+
   private static int countRenamedClassIdentifier(
       DexInspector inspector, Instruction[] instructions) {
-    return Arrays.stream(instructions)
-        .filter(instr -> instr instanceof ConstString || instr instanceof ConstStringJumbo)
+    return getConstStringInstructions(instructions)
         .reduce(0, (cnt, instr) -> {
           String cnstString = retrieveString(instr);
-          if (DescriptorUtils.isValidJavaType(cnstString)) {
+          if (isValidJavaType(cnstString)) {
             ClassSubject classSubject = inspector.clazz(cnstString);
             if (classSubject.isRenamed()
-                && DescriptorUtils.descriptorToJavaType(classSubject.getFinalDescriptor())
-                .equals(cnstString)) {
+                && descriptorToJavaType(classSubject.getFinalDescriptor()).equals(cnstString)) {
               return cnt + 1;
             }
           }
@@ -245,16 +268,34 @@ public class IdentifierMinifierTest {
         .filter(encodedField -> encodedField.staticValue instanceof DexValueString)
         .reduce(0, (cnt, encodedField) -> {
           String cnstString = ((DexValueString) encodedField.staticValue).getValue().toString();
-          if (DescriptorUtils.isValidJavaType(cnstString)) {
+          if (isValidJavaType(cnstString)) {
             ClassSubject classSubject = inspector.clazz(cnstString);
             if (classSubject.isRenamed()
-                && DescriptorUtils.descriptorToJavaType(classSubject.getFinalDescriptor())
-                .equals(cnstString)) {
+                && descriptorToJavaType(classSubject.getFinalDescriptor()).equals(cnstString)) {
               return cnt + 1;
             }
           }
           return cnt;
         }, Integer::sum);
+  }
+
+  private static Set<Instruction> getRenamedMemberIdentifierConstStrings(
+      ClassSubject clazz, Instruction[] instructions) {
+    Set<Instruction> result = Sets.newIdentityHashSet();
+    getConstStringInstructions(instructions).forEach(instr -> {
+      String cnstString = retrieveString(instr);
+      clazz.forAllMethods(foundMethodSubject -> {
+        if (foundMethodSubject.getFinalSignature().name.equals(cnstString)) {
+          result.add(instr);
+        }
+      });
+      clazz.forAllFields(foundFieldSubject -> {
+        if( foundFieldSubject.getFinalSignature().name.equals(cnstString)) {
+          result.add(instr);
+        }
+      });
+    });
+    return result;
   }
 
 }
