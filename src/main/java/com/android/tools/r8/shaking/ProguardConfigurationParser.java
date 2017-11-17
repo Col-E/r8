@@ -210,6 +210,7 @@ public class ProguardConfigurationParser {
       } else if (acceptString("ignorewarnings")) {
         configurationBuilder.setIgnoreWarnings(true);
       } else if (acceptString("dontwarn")) {
+        skipWhitespace();
         if (isOptionalArgumentGiven()) {
           configurationBuilder.addDontWarnPattern(parseClassNames());
         } else {
