@@ -17,6 +17,7 @@ import com.android.tools.r8.ir.conversion.DexSourceCode;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.android.tools.r8.utils.StringUtils;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import java.util.Arrays;
@@ -162,7 +163,9 @@ public class DexCode extends Code {
   @Override
   public IRCode buildIR(DexEncodedMethod encodedMethod, InternalOptions options)
       throws ApiLevelException {
-    DexSourceCode source = new DexSourceCode(this, encodedMethod, null);
+    DexSourceCode source =
+        new DexSourceCode(
+            this, encodedMethod, null, options.lineNumberOptimization == LineNumberOptimization.ON);
     IRBuilder builder = new IRBuilder(encodedMethod, source, options);
     return builder.build();
   }
@@ -173,7 +176,12 @@ public class DexCode extends Code {
       ValueNumberGenerator valueNumberGenerator,
       Position callerPosition)
       throws ApiLevelException {
-    DexSourceCode source = new DexSourceCode(this, encodedMethod, callerPosition);
+    DexSourceCode source =
+        new DexSourceCode(
+            this,
+            encodedMethod,
+            callerPosition,
+            options.lineNumberOptimization == LineNumberOptimization.ON);
     IRBuilder builder = new IRBuilder(encodedMethod, source, options, valueNumberGenerator);
     return builder.build();
   }

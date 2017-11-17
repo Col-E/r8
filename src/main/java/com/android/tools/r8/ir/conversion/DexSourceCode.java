@@ -76,11 +76,14 @@ public class DexSourceCode implements SourceCode {
   private List<DexDebugEntry> debugEntries = null;
   private Position callerPosition; // In case of inlining the position of the invoke in the caller.
   private final DexMethod method;
+  private final boolean preserveCaller;
 
-  public DexSourceCode(DexCode code, DexEncodedMethod method, Position callerPosition) {
+  public DexSourceCode(
+      DexCode code, DexEncodedMethod method, Position callerPosition, boolean preserveCaller) {
     this.code = code;
     this.proto = method.method.proto;
     this.accessFlags = method.accessFlags;
+    this.preserveCaller = preserveCaller;
     argumentTypes = computeArgumentTypes();
     DexDebugInfo info = code.getDebugInfo();
     if (info != null) {
@@ -242,6 +245,9 @@ public class DexSourceCode implements SourceCode {
   }
 
   private Position canonicalizeCallerPosition(Position caller) {
+    // We are not supposed to get here from getCanonicalPositionAppendCaller if !preserveCaller.
+    assert preserveCaller;
+
     if (caller == null) {
       return callerPosition;
     }
@@ -257,16 +263,15 @@ public class DexSourceCode implements SourceCode {
 
   private Position getCanonicalPositionAppendCaller(DexDebugEntry entry) {
     // If this instruction has already been inlined then this.method must be the outermost caller.
-    assert (entry.callerPosition == null && entry.method == method)
-        || (entry.callerPosition != null
-            && entry.callerPosition.getOutermostCaller().method == method);
+    assert entry.callerPosition == null
+        || entry.callerPosition.getOutermostCaller().method == method;
 
     return getCanonicalPosition(
         new Position(
             entry.line,
             entry.sourceFile,
             entry.method,
-            canonicalizeCallerPosition(entry.callerPosition)));
+            preserveCaller ? canonicalizeCallerPosition(entry.callerPosition) : null));
   }
 
   @Override

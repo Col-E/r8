@@ -370,7 +370,8 @@ public class Inliner {
               assert invokePosition.isNone();
               invokePosition = Position.noneWithMethod(method.method, null);
             }
-            assert invokePosition.getOutermostCaller().method == method.method;
+            assert invokePosition.callerPosition == null
+                || invokePosition.getOutermostCaller().method == method.method;
 
             IRCode inlinee =
                 result.buildIR(

@@ -111,6 +111,7 @@ public class LineNumberOptimizer {
   }
 
   private static class IdentityPositionRemapper implements PositionRemapper {
+    @Override
     public Position createRemappedPosition(DexDebugPositionState positionState) {
       return new Position(
           positionState.getCurrentLine(),
@@ -123,6 +124,7 @@ public class LineNumberOptimizer {
   private static class OptimizingPositionRemapper implements PositionRemapper {
     private int nextLineNumber = 1;
 
+    @Override
     public Position createRemappedPosition(DexDebugPositionState positionState) {
       Position newPosition =
           new Position(
