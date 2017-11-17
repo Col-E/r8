@@ -10,6 +10,7 @@ import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.R8RunArtTestsTest.CompilerUnderTest;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.CompilationFailedException;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
@@ -21,7 +22,8 @@ public class R8GMSCoreTreeShakeJarVerificationTest extends GMSCoreCompilationTes
   public AndroidApp buildAndTreeShakeFromDeployJar(
       CompilationMode mode, String base, boolean hasReference, int maxSize,
       Consumer<InternalOptions> optionsConsumer)
-      throws ExecutionException, IOException, ProguardRuleParserException, CompilationException {
+      throws ExecutionException, IOException, ProguardRuleParserException, CompilationException,
+      CompilationFailedException {
     AndroidApp app = runAndCheckVerification(
         CompilerUnderTest.R8,
         mode,

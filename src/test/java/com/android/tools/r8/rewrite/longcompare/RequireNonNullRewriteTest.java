@@ -10,6 +10,7 @@ import com.android.tools.r8.D8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.utils.CompilationFailedException;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.DexInspector.InstructionSubject;
@@ -33,7 +34,7 @@ public class RequireNonNullRewriteTest {
   public TemporaryFolder tmpOutputDir = ToolHelper.getTemporaryFolderForTest();
 
   void compileWithD8(Path intputPath, Path outputPath, CompilationMode mode)
-      throws IOException, CompilationException {
+      throws IOException, CompilationException, CompilationFailedException {
     D8.run(
         D8Command.builder()
             .setMode(mode)
@@ -58,19 +59,17 @@ public class RequireNonNullRewriteTest {
   }
 
   @Test
-  public void testDebugRequireNonNullIsRewritten()
-      throws IOException, CompilationException, ExecutionException {
+  public void testDebugRequireNonNullIsRewritten() throws Exception {
     runTest(CompilationMode.DEBUG);
   }
 
   @Test
-  public void testReleaseRequireNonNullIsRewritten()
-      throws IOException, CompilationException, ExecutionException {
+  public void testReleaseRequireNonNullIsRewritten() throws Exception {
     runTest(CompilationMode.RELEASE);
   }
 
   private void runTest(CompilationMode mode)
-      throws IOException, CompilationException, ExecutionException {
+      throws IOException, CompilationException, ExecutionException, CompilationFailedException {
     final Path inputPath = Paths.get(ToolHelper.EXAMPLES_BUILD_DIR + "/rewrite.jar");
     Path outputPath = tmpOutputDir.newFolder().toPath();
 

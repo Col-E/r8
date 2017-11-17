@@ -6,12 +6,9 @@ package com.android.tools.r8.memberrebinding;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
-import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.FieldAccessInstructionSubject;
@@ -77,8 +74,7 @@ public class MemberRebindingTest {
   }
 
   @Before
-  public void runR8()
-      throws IOException, ProguardRuleParserException, ExecutionException, CompilationException {
+  public void runR8() throws Exception {
     // Generate R8 processed version without library option.
     String out = temp.getRoot().getCanonicalPath();
     // NOTE: It is important to turn off inlining to ensure

@@ -12,8 +12,7 @@ import org.junit.Test;
 
 public class R8GMSCoreV4VerificationTest extends GMSCoreCompilationTestBase {
   @Test
-  public void verify()
-      throws ExecutionException, IOException, ProguardRuleParserException, CompilationException {
+  public void verify() throws Exception {
     runR8AndCheckVerification(CompilationMode.RELEASE, GMSCORE_V4_DIR);
   }
 }

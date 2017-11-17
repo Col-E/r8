@@ -12,6 +12,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.CompilationFailedException;
 import com.android.tools.r8.utils.OutputMode;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
@@ -29,7 +30,8 @@ public class DebugInfoTestBase {
   @Rule
   public TemporaryFolder temp = new TemporaryFolder();
 
-  static AndroidApp compileWithD8(Class... classes) throws CompilationException, IOException {
+  static AndroidApp compileWithD8(Class... classes) throws CompilationException, IOException,
+      CompilationFailedException {
     D8Command.Builder builder = D8Command.builder();
     for (Class clazz : classes) {
       builder.addProgramFiles(ToolHelper.getClassFileForTestClass(clazz));

@@ -21,8 +21,7 @@ import org.junit.Test;
 public class YouTubeTreeShakeJarVerificationTest extends YouTubeCompilationBase {
 
   @Test
-  public void buildAndTreeShakeFromDeployJar()
-      throws ExecutionException, IOException, ProguardRuleParserException, CompilationException {
+  public void buildAndTreeShakeFromDeployJar() throws Exception {
     int maxSize = 20000000;
     AndroidApp app = runAndCheckVerification(
         CompilerUnderTest.R8,

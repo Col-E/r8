@@ -8,6 +8,7 @@ import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.D8Output;
+import com.android.tools.r8.utils.CompilationFailedException;
 import com.android.tools.r8.utils.ThreadUtils;
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -16,7 +17,8 @@ import java.util.concurrent.ExecutorService;
 public class IncrementalDexingBenchmark {
   private static final int ITERATIONS = 1000;
 
-  public static void compile(ExecutorService executor) throws IOException, CompilationException {
+  public static void compile(ExecutorService executor)
+      throws IOException, CompilationException, CompilationFailedException {
     D8Output output =
         D8.run(
             D8Command.builder()
@@ -29,7 +31,8 @@ public class IncrementalDexingBenchmark {
     }
   }
 
-  public static void main(String[] args) throws IOException, CompilationException {
+  public static void main(String[] args)
+      throws IOException, CompilationException, CompilationFailedException {
     int threads = Integer.min(Runtime.getRuntime().availableProcessors(), 16) / 2;
     ExecutorService executor = ThreadUtils.getExecutorService(threads);
     try {

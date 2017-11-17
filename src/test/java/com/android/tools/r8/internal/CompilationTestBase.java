@@ -21,6 +21,7 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ArtErrorParser;
 import com.android.tools.r8.utils.ArtErrorParser.ArtErrorInfo;
 import com.android.tools.r8.utils.ArtErrorParser.ArtErrorParserException;
+import com.android.tools.r8.utils.CompilationFailedException;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
@@ -52,7 +53,8 @@ public abstract class CompilationTestBase {
       String pgMap,
       String pgConf,
       String... inputs)
-      throws ExecutionException, IOException, ProguardRuleParserException, CompilationException {
+      throws ExecutionException, IOException, ProguardRuleParserException, CompilationException,
+      CompilationFailedException{
     return runAndCheckVerification(
         compiler, mode, referenceApk, pgMap, pgConf, null, Arrays.asList(inputs));
   }
@@ -70,7 +72,8 @@ public abstract class CompilationTestBase {
       String pgConf,
       Consumer<InternalOptions> optionsConsumer,
       List<String> inputs)
-      throws ExecutionException, IOException, ProguardRuleParserException, CompilationException {
+      throws ExecutionException, IOException, ProguardRuleParserException, CompilationException,
+      CompilationFailedException {
     assertTrue(referenceApk == null || new File(referenceApk).exists());
     AndroidApp outputApp;
     if (compiler == CompilerUnderTest.R8) {

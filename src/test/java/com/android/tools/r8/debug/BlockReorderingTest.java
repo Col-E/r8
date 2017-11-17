@@ -3,10 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.debug;
 
-import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
-import java.io.IOException;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -22,7 +20,7 @@ public class BlockReorderingTest extends DebugTestBase {
   private static DebuggeePath debuggeePath;
 
   @BeforeClass
-  public static void initDebuggeePath() throws IOException, CompilationException {
+  public static void initDebuggeePath() throws Exception {
     // Force inversion of all conditionals to reliably construct a regression test for incorrect
     // line information when reordering blocks.
     debuggeePath =

@@ -50,7 +50,7 @@ public class R8CommandTest {
     verifyEmptyCommand(parse("\t", "\t"));
   }
 
-  private void verifyEmptyCommand(R8Command command) throws IOException {
+  private void verifyEmptyCommand(R8Command command) throws Throwable {
     assertEquals(0, ToolHelper.getApp(command).getDexProgramResources().size());
     assertEquals(0, ToolHelper.getApp(command).getClassProgramResources().size());
     assertFalse(ToolHelper.getApp(command).hasMainDexListResources());
@@ -63,7 +63,7 @@ public class R8CommandTest {
   }
 
   @Test
-  public void defaultOutIsCwd() throws IOException, InterruptedException {
+  public void defaultOutIsCwd() throws Throwable {
     Path working = temp.getRoot().toPath();
     Path input = Paths.get(EXAMPLES_BUILD_DIR, "arithmetic.jar").toAbsolutePath();
     Path output = working.resolve("classes.dex");
@@ -247,7 +247,8 @@ public class R8CommandTest {
   }
 
   private R8Command parse(String... args)
-      throws CompilationException, ProguardRuleParserException, IOException {
+      throws CompilationException, ProguardRuleParserException, IOException,
+      CompilationFailedException {
     return R8Command.parse(args).build();
   }
 }

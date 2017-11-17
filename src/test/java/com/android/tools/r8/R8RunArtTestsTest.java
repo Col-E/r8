@@ -17,6 +17,7 @@ import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.ArtErrorParser;
 import com.android.tools.r8.utils.ArtErrorParser.ArtErrorInfo;
+import com.android.tools.r8.utils.CompilationFailedException;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.ListUtils;
@@ -1311,7 +1312,8 @@ public abstract class R8RunArtTestsTest {
       String resultPath,
       CompilationMode compilationMode,
       boolean disableInlining)
-      throws IOException, ProguardRuleParserException, ExecutionException, CompilationException {
+      throws IOException, ProguardRuleParserException, ExecutionException, CompilationException,
+      CompilationFailedException {
     executeCompilerUnderTest(compilerUnderTest, fileNames, resultPath, compilationMode, null,
         disableInlining);
   }
@@ -1323,7 +1325,8 @@ public abstract class R8RunArtTestsTest {
       CompilationMode mode,
       String keepRulesFile,
       boolean disableInlining)
-      throws IOException, ProguardRuleParserException, ExecutionException, CompilationException {
+      throws IOException, ProguardRuleParserException, ExecutionException, CompilationException,
+        CompilationFailedException {
     assert mode != null;
     switch (compilerUnderTest) {
       case D8: {
@@ -1436,7 +1439,8 @@ public abstract class R8RunArtTestsTest {
 
   protected void runJctfTest(CompilerUnderTest compilerUnderTest, String classFilePath,
       String fullClassName)
-      throws IOException, ProguardRuleParserException, ExecutionException, CompilationException {
+      throws IOException, ProguardRuleParserException, ExecutionException, CompilationException,
+      CompilationFailedException {
 
     DexVm dexVm = ToolHelper.getDexVm();
 
@@ -1558,7 +1562,8 @@ public abstract class R8RunArtTestsTest {
       CompilationMode mode,
       DexVm dexVm,
       File resultDir)
-      throws IOException, ProguardRuleParserException, ExecutionException, CompilationException {
+      throws IOException, ProguardRuleParserException, ExecutionException, CompilationException,
+      CompilationFailedException {
     executeCompilerUnderTest(compilerUnderTest, fileNames, resultDir.getAbsolutePath(), mode,
         specification.disableInlining);
 

@@ -25,8 +25,7 @@ public class RewriteSwitchMapsTest extends TestBase {
           "-dontobfuscate";
 
   @Test
-  public void checkSwitchMapsRemoved()
-      throws IOException, ProguardRuleParserException, ExecutionException, CompilationException {
+  public void checkSwitchMapsRemoved() throws Exception {
     AndroidApp.Builder builder = AndroidApp.builder();
     builder.addLibraryFiles(
         FilteredClassPath.unfiltered(ToolHelper.getDefaultAndroidJar()));

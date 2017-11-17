@@ -16,9 +16,8 @@ import org.junit.Test;
 public class R8GMSCoreV10DeployJarVerificationTest extends GMSCoreDeployJarVerificationTest {
 
   @Test
-  public void buildFromDeployJar()
-      // TODO(tamaskenez): set hasReference = true when we have the noshrink file for V10
-      throws ExecutionException, IOException, ProguardRuleParserException, CompilationException {
+  public void buildFromDeployJar() throws Exception {
+    // TODO(tamaskenez): set hasReference = true when we have the noshrink file for V10
     AndroidApp app1 = buildFromDeployJar(
         CompilerUnderTest.R8, CompilationMode.RELEASE,
         GMSCoreCompilationTestBase.GMSCORE_V10_DIR, false);

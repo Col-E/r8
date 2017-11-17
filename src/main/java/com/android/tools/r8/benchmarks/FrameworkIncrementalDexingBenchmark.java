@@ -14,6 +14,7 @@ import com.android.tools.r8.D8Output;
 import com.android.tools.r8.Resource;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
+import com.android.tools.r8.utils.CompilationFailedException;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.OutputMode;
@@ -102,7 +103,7 @@ public class FrameworkIncrementalDexingBenchmark {
       boolean desugar,
       Map<String, Resource> outputs,
       ExecutorService executor)
-      throws IOException, CompilationException {
+      throws IOException, CompilationException, CompilationFailedException {
     long start = System.nanoTime();
     D8Output out =
         D8.run(
@@ -134,7 +135,7 @@ public class FrameworkIncrementalDexingBenchmark {
       boolean desugar,
       Map<String, Resource> outputs,
       ExecutorService executor)
-      throws IOException, CompilationException {
+      throws IOException, CompilationException, CompilationFailedException {
     descriptors.sort(String::compareTo);
     int increment = descriptors.size() / ITERATIONS;
     long start = System.nanoTime();
@@ -172,7 +173,7 @@ public class FrameworkIncrementalDexingBenchmark {
       boolean desugar,
       Map<String, Resource> outputs,
       ExecutorService executor)
-      throws IOException, CompilationException {
+      throws IOException, CompilationException, CompilationFailedException {
     List<byte[]> bytes = new ArrayList<>(outputs.size());
     for (Resource input : outputs.values()) {
       try (InputStream inputStream = input.getStream()) {
@@ -195,7 +196,8 @@ public class FrameworkIncrementalDexingBenchmark {
     return out;
   }
 
-  public static void main(String[] args) throws IOException, CompilationException {
+  public static void main(String[] args)
+      throws IOException, CompilationException, CompilationFailedException {
     boolean desugar = Arrays.asList(args).contains("--desugar");
     Path input = desugar ? JAR_NOT_DESUGARED : JAR_DESUGARED;
     InMemoryClassPathProvider provider = new InMemoryClassPathProvider(input);

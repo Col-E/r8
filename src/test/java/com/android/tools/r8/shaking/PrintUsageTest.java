@@ -7,7 +7,6 @@ import static com.android.tools.r8.shaking.TreeShakingTest.getTestOptionalParame
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.shaking.PrintUsageTest.PrintUsageInspector.ClassSubject;
@@ -63,8 +62,7 @@ public class PrintUsageTest {
   }
 
   @Before
-  public void runR8andGetPrintUsage()
-      throws IOException, ProguardRuleParserException, ExecutionException, CompilationException {
+  public void runR8andGetPrintUsage() throws Exception {
     Path out = temp.getRoot().toPath();
     R8Command command =
         R8Command.builder()

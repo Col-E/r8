@@ -9,7 +9,9 @@ import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.Version;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.utils.AbortException;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.CompilationFailedException;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -119,7 +121,8 @@ public class CompatProguard {
     }
   }
 
-  private static void run(String[] args) throws IOException, CompilationException {
+  private static void run(String[] args)
+      throws IOException, CompilationException, CompilationFailedException {
     if (args.length == 0) {
       Version.printToolVersion("CompatProguard");
       return;
@@ -152,6 +155,10 @@ public class CompatProguard {
       run(args);
     } catch (CompilationException e) {
       System.err.println(e.getMessage());
+      System.exit(1);
+    } catch (CompilationFailedException | AbortException e) {
+      // Detail of the errors were already reported
+      System.err.println("Compilation failed");
       System.exit(1);
     }
   }

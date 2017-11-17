@@ -5,7 +5,6 @@ package com.android.tools.r8.shaking;
 
 import static com.android.tools.r8.utils.AndroidApp.DEFAULT_PROGUARD_MAP_FILE;
 
-import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase.MinifyMode;
 import com.android.tools.r8.ToolHelper;
@@ -127,8 +126,7 @@ public class TreeShakingTest {
   }
 
   @Before
-  public void generateTreeShakedVersion()
-      throws IOException, ProguardRuleParserException, ExecutionException, CompilationException {
+  public void generateTreeShakedVersion() throws Exception {
     // Generate R8 processed version without library option.
     Path out = temp.getRoot().toPath();
     boolean inline = programFile.contains("inlining");

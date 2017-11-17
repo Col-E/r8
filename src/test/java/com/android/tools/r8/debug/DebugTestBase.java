@@ -21,6 +21,7 @@ import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.CompilationFailedException;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OffOrAuto;
@@ -157,7 +158,8 @@ public abstract class DebugTestBase {
     debuggeeKotlinDexD8 = null;
   }
 
-  protected static synchronized Path getDebuggeeDexD8() throws IOException, CompilationException {
+  protected static synchronized Path getDebuggeeDexD8()
+      throws IOException, CompilationException, CompilationFailedException {
     if (debuggeeDexD8 == null) {
       debuggeeDexD8 = compileToDex(DEBUGGEE_JAR, null);
     }
@@ -165,7 +167,7 @@ public abstract class DebugTestBase {
   }
 
   private static synchronized Path getDebuggeeJava8DexD8()
-      throws IOException, CompilationException {
+      throws IOException, CompilationException, CompilationFailedException {
     if (debuggeeJava8DexD8 == null) {
       debuggeeJava8DexD8 =
           compileToDex(
@@ -179,7 +181,7 @@ public abstract class DebugTestBase {
   }
 
   private static synchronized Path getDebuggeeKotlinDexD8()
-      throws IOException, CompilationException {
+      throws IOException, CompilationException, CompilationFailedException {
     if (debuggeeKotlinDexD8 == null) {
       debuggeeKotlinDexD8 = compileToDex(DEBUGGEE_KOTLIN_JAR, null);
     }
@@ -187,25 +189,25 @@ public abstract class DebugTestBase {
   }
 
   protected static DebuggeePath getDebuggeeDexD8OrCf(boolean cf)
-      throws IOException, CompilationException {
+      throws IOException, CompilationException, CompilationFailedException {
     return cf ? DebuggeePath.makeClassFile(DEBUGGEE_JAR) : DebuggeePath.makeDex(getDebuggeeDexD8());
   }
 
   protected static DebuggeePath getDebuggeeJava8DexD8OrCf(boolean cf)
-      throws IOException, CompilationException {
+      throws IOException, CompilationException, CompilationFailedException {
     return cf
         ? DebuggeePath.makeClassFile(DEBUGGEE_JAVA8_JAR)
         : DebuggeePath.makeDex(getDebuggeeJava8DexD8());
   }
 
   protected static Path compileToDex(Path jarToCompile, Consumer<InternalOptions> optionsConsumer)
-      throws IOException, CompilationException {
+      throws IOException, CompilationException, CompilationFailedException {
     return compileToDex(DEX_COMPILER_KIND, jarToCompile, optionsConsumer);
   }
 
   static Path compileToDex(
       DexCompilerKind compiler, Path jarToCompile, Consumer<InternalOptions> optionsConsumer)
-      throws IOException, CompilationException {
+      throws IOException, CompilationException, CompilationFailedException {
     int minSdk = ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm());
     assert jarToCompile.toFile().exists();
     Path dexOutputDir = temp.newFolder().toPath();
@@ -248,7 +250,8 @@ public abstract class DebugTestBase {
       List<String> proguardConfigurations,
       boolean writeProguardMap,
       CompilationMode compilationMode)
-      throws IOException, CompilationException, ExecutionException, ProguardRuleParserException {
+      throws IOException, CompilationException, ExecutionException, ProguardRuleParserException,
+      CompilationFailedException {
     int minSdk = ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm());
     assert jarToCompile.toFile().exists();
     Path dexOutputDir = temp.newFolder().toPath();

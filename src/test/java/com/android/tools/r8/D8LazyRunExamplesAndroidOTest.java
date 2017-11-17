@@ -11,6 +11,7 @@ import com.android.tools.r8.D8Command.Builder;
 import com.android.tools.r8.shaking.FilteredClassPath;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.CompilationFailedException;
 import com.android.tools.r8.utils.DirectoryClassFileProvider;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.OffOrAuto;
@@ -122,7 +123,7 @@ public class D8LazyRunExamplesAndroidOTest
   }
 
   private AndroidApp mergeDexResources(int minAPILevel, List<Resource> individalDexes)
-      throws IOException, CompilationException {
+      throws IOException, CompilationException, CompilationFailedException {
     D8Command.Builder builder = D8Command.builder()
         .setMinApiLevel(minAPILevel);
     for (Resource resource : individalDexes) {

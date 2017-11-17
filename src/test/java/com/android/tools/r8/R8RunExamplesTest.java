@@ -238,8 +238,7 @@ public class R8RunExamplesTest {
   public ExpectedException thrown = ExpectedException.none();
 
   @Before
-  public void compile()
-      throws IOException, ProguardRuleParserException, ExecutionException, CompilationException {
+  public void compile() throws Exception {
     if (output == Output.CF && failingCompileCf.contains(mainClass)) {
       thrown.expect(Throwable.class);
     }

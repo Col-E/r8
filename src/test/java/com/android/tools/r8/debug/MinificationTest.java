@@ -7,6 +7,7 @@ import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.TestBase.MinifyMode;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
+import com.android.tools.r8.utils.CompilationFailedException;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -55,7 +56,8 @@ public class MinificationTest extends DebugTestBase {
   private final Config config;
 
   private synchronized DebuggeePath getDebuggeePath()
-      throws IOException, CompilationException, ExecutionException, ProguardRuleParserException {
+      throws IOException, CompilationException, ExecutionException, ProguardRuleParserException,
+      CompilationFailedException {
     Path path = debuggeePathMap.get(config);
     if (path == null) {
       List<String> proguardConfigurations = Collections.<String>emptyList();

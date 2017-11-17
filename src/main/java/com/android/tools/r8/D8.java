@@ -13,10 +13,14 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.utils.AbortException;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppOutputSink;
 import com.android.tools.r8.utils.CfgPrinter;
+import com.android.tools.r8.utils.CompilationFailedException;
+import com.android.tools.r8.utils.IOExceptionDiagnostic;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.VersionProperties;
@@ -65,13 +69,13 @@ public final class D8 {
    * @param command D8 command.
    * @return the compilation result.
    */
-  public static D8Output run(D8Command command) throws IOException, CompilationException {
-    InternalOptions options = command.getInternalOptions();
-    AndroidAppOutputSink compatSink = new AndroidAppOutputSink(command.getOutputSink());
-    CompilationResult result = runForTesting(command.getInputApp(), compatSink, options);
-    assert result != null;
-    D8Output output = new D8Output(compatSink.build(), command.getOutputMode());
-    return output;
+  public static D8Output run(D8Command command) throws CompilationFailedException {
+    ExecutorService executor = ThreadUtils.getExecutorService(command.getInternalOptions());
+    try {
+      return run(command, executor);
+    } finally {
+      executor.shutdown();
+    }
   }
 
   /**
@@ -85,15 +89,27 @@ public final class D8 {
    * @return the compilation result
    */
   public static D8Output run(D8Command command, ExecutorService executor)
-      throws IOException, CompilationException {
-    InternalOptions options = command.getInternalOptions();
-    AndroidAppOutputSink compatSink = new AndroidAppOutputSink(command.getOutputSink());
-    CompilationResult result = runForTesting(command.getInputApp(), compatSink, options, executor);
-    assert result != null;
-    return new D8Output(compatSink.build(), command.getOutputMode());
+      throws CompilationFailedException {
+    try {
+      InternalOptions options = command.getInternalOptions();
+      AndroidAppOutputSink compatSink = new AndroidAppOutputSink(command.getOutputSink());
+      CompilationResult result =
+          run(command.getInputApp(), compatSink, options, executor);
+      assert result != null;
+      return new D8Output(compatSink.build(), command.getOutputMode());
+    } catch (IOException io) {
+      command.getDiagnosticsHandler().error(new IOExceptionDiagnostic(io));
+      throw new CompilationFailedException(io);
+    } catch (CompilationException e) {
+      command.getDiagnosticsHandler().error(new StringDiagnostic(e.getMessage()));
+      throw new CompilationFailedException(e);
+    } catch (AbortException e) {
+      throw new CompilationFailedException(e);
+    }
   }
 
-  private static void run(String[] args) throws IOException, CompilationException {
+  private static void run(String[] args)
+      throws IOException, CompilationException, CompilationFailedException {
     D8Command.Builder builder = D8Command.parse(args);
     if (builder.getOutputPath() == null) {
       builder.setOutputPath(Paths.get("."));
@@ -127,6 +143,10 @@ public final class D8 {
     } catch (IOException e) {
       System.err.println("Failed to read or write application files: " + e.getMessage());
       System.exit(STATUS_ERROR);
+    } catch (CompilationFailedException | AbortException e) {
+      // Detail of the errors were already reported
+      System.err.println("Compilation failed");
+      System.exit(STATUS_ERROR);
     } catch (RuntimeException e) {
       System.err.println("Compilation failed with an internal error.");
       Throwable cause = e.getCause() == null ? e : e.getCause();
@@ -141,9 +161,9 @@ public final class D8 {
   static CompilationResult runForTesting(AndroidApp inputApp, OutputSink outputSink,
       InternalOptions options)
       throws IOException, CompilationException {
-    ExecutorService executor = ThreadUtils.getExecutorService(options);
+    ExecutorService executor = ThreadUtils.getExecutorService(ThreadUtils.NOT_SPECIFIED);
     try {
-      return runForTesting(inputApp, outputSink, options, executor);
+      return run(inputApp, outputSink, options, executor);
     } finally {
       executor.shutdown();
     }
@@ -163,7 +183,7 @@ public final class D8 {
     return marker;
   }
 
-  private static CompilationResult runForTesting(
+  private static CompilationResult run(
       AndroidApp inputApp, OutputSink outputSink, InternalOptions options,
       ExecutorService executor)
       throws IOException, CompilationException {
