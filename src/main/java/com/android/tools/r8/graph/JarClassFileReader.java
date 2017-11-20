@@ -71,6 +71,13 @@ public class JarClassFileReader {
     return access & ~ACC_SYNTHETIC_ATTRIBUTE & ~ACC_DEPRECATED;
   }
 
+  public static MethodAccessFlags createMethodAccessFlags(String name, int access) {
+    boolean isConstructor =
+        name.equals(Constants.INSTANCE_INITIALIZER_NAME)
+            || name.equals(Constants.CLASS_INITIALIZER_NAME);
+    return MethodAccessFlags.fromCfAccessFlags(cleanAccessFlags(access), isConstructor);
+  }
+
   private static AnnotationVisitor createAnnotationVisitor(String desc, boolean visible,
       List<DexAnnotation> annotations,
       JarApplicationReader application) {
@@ -510,7 +517,7 @@ public class JarClassFileReader {
     @Override
     public void visitEnd() {
       DexMethod method = parent.application.getMethod(parent.type, name, desc);
-      MethodAccessFlags flags = createMethodAccessFlags(access);
+      MethodAccessFlags flags = createMethodAccessFlags(name, access);
       Code code = null;
       if (!flags.isAbstract()
           && !flags.isNative()
@@ -561,13 +568,6 @@ public class JarClassFileReader {
 
     private void addAnnotation(DexAnnotation annotation) {
       getAnnotations().add(annotation);
-    }
-
-    private MethodAccessFlags createMethodAccessFlags(int access) {
-      boolean isConstructor =
-          name.equals(Constants.INSTANCE_INITIALIZER_NAME)
-              || name.equals(Constants.CLASS_INITIALIZER_NAME);
-      return MethodAccessFlags.fromCfAccessFlags(cleanAccessFlags(access), isConstructor);
     }
   }
 
