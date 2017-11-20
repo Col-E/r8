@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.shaking;
 
+import com.android.tools.r8.origin.Origin;
 import com.google.common.annotations.VisibleForTesting;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -15,19 +16,21 @@ public class ProguardConfigurationSourceStrings implements ProguardConfiguration
 
   private final Path basePath;
   private final List<String> config;
+  private final Origin origin;
 
   /**
    * Creates {@link ProguardConfigurationSource} with raw {@param config}, along with
    * {@param basePath}, which allows all other options that use a relative path to reach out
    * to desired paths appropriately.
    */
-  public ProguardConfigurationSourceStrings(List<String> config, Path basePath) {
+  public ProguardConfigurationSourceStrings(List<String> config, Path basePath, Origin origin) {
     this.basePath = basePath;
     this.config = config;
+    this.origin = origin;
   }
 
   private ProguardConfigurationSourceStrings(List<String> config) {
-    this(config, Paths.get("."));
+    this(config, Paths.get("."), Origin.unknown());
   }
 
   @VisibleForTesting
@@ -50,4 +53,10 @@ public class ProguardConfigurationSourceStrings implements ProguardConfiguration
   public String getName() {
     return "<no file>";
   }
+
+  @Override
+  public Origin getOrigin() {
+    return origin;
+  }
+
 }

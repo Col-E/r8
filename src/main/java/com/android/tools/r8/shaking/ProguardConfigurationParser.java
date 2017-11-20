@@ -5,12 +5,15 @@ package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.DiagnosticsHandler;
+import com.android.tools.r8.TextRangeLocation;
+import com.android.tools.r8.Location;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.logging.Log;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.ProguardConfiguration.Builder;
 import com.android.tools.r8.shaking.ProguardTypeMatcher.ClassOrType;
 import com.android.tools.r8.shaking.ProguardTypeMatcher.MatchSpecificType;
@@ -110,26 +113,21 @@ public class ProguardConfigurationParser {
     }
   }
 
-  private void warnIgnoringOptions(String optionName) {
-    diagnosticsHandler.warning(new StringDiagnostic("Ignoring option: -" + optionName));
-  }
-
-  private void warnOverridingOptions(String optionName, String victim) {
-    diagnosticsHandler.warning(
-        new StringDiagnostic("Option -" + optionName + " overrides -" + victim));
-  }
-
   private class ProguardConfigurationSourceParser {
     private final String name;
     private final String contents;
     private int position = 0;
+    private int line = 1;
+    private int lineStartPosition = 0;
     private Path baseDirectory;
+    private final Origin origin;
 
     ProguardConfigurationSourceParser(ProguardConfigurationSource source)
         throws IOException {
       contents = source.get();
       baseDirectory = source.getBaseDirectory();
       name = source.getName();
+      this.origin = source.getOrigin();
     }
 
     public void parse() throws ProguardRuleParserException {
@@ -146,6 +144,8 @@ public class ProguardConfigurationParser {
       if (acceptArobaseInclude()) {
         return true;
       }
+      int optionLine = line;
+      int optionColumn = getColumn();
       expectChar('-');
       String option;
       if (Iterables.any(IGNORED_SINGLE_ARG_OPTIONS, this::skipOptionWithSingleArg)
@@ -159,7 +159,7 @@ public class ProguardConfigurationParser {
           (option = Iterables.find(WARNED_SINGLE_ARG_OPTIONS,
               this::skipOptionWithSingleArg, null)) != null
               || (option = Iterables.find(WARNED_FLAG_OPTIONS, this::skipFlag, null)) != null) {
-        warnIgnoringOptions(option);
+        warnIgnoringOptions(option, optionLine, optionColumn);
       } else if (
           (option = Iterables.find(UNSUPPORTED_FLAG_OPTIONS, this::skipFlag, null)) != null) {
         throw parseError("Unsupported option: -" + option);
@@ -194,7 +194,7 @@ public class ProguardConfigurationParser {
         if (expectedOptimizationPasses == null) {
           throw parseError("Missing n of \"-optimizationpasses n\"");
         }
-        warnIgnoringOptions("optimizationpasses");
+        warnIgnoringOptions("optimizationpasses", optionLine, optionColumn);
       } else if (acceptString("dontobfuscate")) {
         configurationBuilder.setObfuscating(false);
       } else if (acceptString("dontshrink")) {
@@ -219,7 +219,8 @@ public class ProguardConfigurationParser {
         }
       } else if (acceptString("repackageclasses")) {
         if (configurationBuilder.getPackageObfuscationMode() == PackageObfuscationMode.FLATTEN) {
-          warnOverridingOptions("repackageclasses", "flattenpackagehierarchy");
+          warnOverridingOptions("repackageclasses", "flattenpackagehierarchy",
+              optionLine, optionColumn);
         }
         skipWhitespace();
         if (acceptChar('\'')) {
@@ -230,7 +231,8 @@ public class ProguardConfigurationParser {
         }
       } else if (acceptString("flattenpackagehierarchy")) {
         if (configurationBuilder.getPackageObfuscationMode() == PackageObfuscationMode.REPACKAGE) {
-          warnOverridingOptions("repackageclasses", "flattenpackagehierarchy");
+          warnOverridingOptions("repackageclasses", "flattenpackagehierarchy",
+              optionLine, optionColumn);
           skipWhitespace();
           if (isOptionalArgumentGiven()) {
             skipSingleArgument();
@@ -300,7 +302,7 @@ public class ProguardConfigurationParser {
       } else if (acceptString("identifiernamestring")) {
         configurationBuilder.addRule(parseIdentifierNameStringRule());
         // TODO(b/36799092): warn until it is fully implemented.
-        warnIgnoringOptions("identifiernamestring");
+        warnIgnoringOptions("identifiernamestring", optionLine, optionColumn);
       } else {
         throw parseError("Unknown option");
       }
@@ -888,6 +890,10 @@ public class ProguardConfigurationParser {
 
     private void skipWhitespace() {
       while (!eof() && Character.isWhitespace(contents.charAt(position))) {
+        if (peekChar() == '\n') {
+          line++;
+          lineStartPosition = position + 1;
+        }
         position++;
       }
       skipComment();
@@ -898,8 +904,8 @@ public class ProguardConfigurationParser {
         return;
       }
       if (peekChar() == '#') {
-        while (!eof() && readChar() != '\n') {
-          ;
+        while (!eof() && peekChar() != '\n') {
+          position++;;
         }
         skipWhitespace();
       }
@@ -1118,6 +1124,27 @@ public class ProguardConfigurationParser {
 
     private ProguardRuleParserException parseError(String message, Throwable cause) {
       return new ProguardRuleParserException(message, snippetForPosition(), cause);
+    }
+
+    private void warnIgnoringOptions(String optionName, int startLine, int startColumn) {
+      diagnosticsHandler.warning(new StringDiagnostic(
+          "Ignoring option: -" + optionName,
+          getLocation(startLine, startColumn)));
+    }
+
+    private void warnOverridingOptions(String optionName, String victim, int optionLine,
+        int optionColumn) {
+      diagnosticsHandler.warning(
+          new StringDiagnostic("Option -" + optionName + " overrides -" + victim,
+              getLocation(optionLine, optionColumn)));
+    }
+
+    private Location getLocation(int startLine, int startColumn) {
+      return TextRangeLocation.get(origin, startLine, startColumn, line, getColumn());
+    }
+
+    private int getColumn() {
+      return position - lineStartPosition + 1 /* column starts at 1 */;
     }
   }
 }

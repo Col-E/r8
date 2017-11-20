@@ -18,8 +18,8 @@ public interface DiagnosticsHandler {
    * @param error Diagnostic containing error information.
    */
   default void error(Diagnostic error) {
-    if (error.getOrigin() != Origin.unknown()) {
-      System.err.print("Error in " + error.getOrigin() + ":\n  ");
+    if (error.getLocation() != Location.UNKNOWN) {
+      System.err.print("Error in " + error.getLocation() + ":\n  ");
     } else {
       System.err.print("Error: ");
     }
@@ -32,8 +32,8 @@ public interface DiagnosticsHandler {
    * @param warning Diagnostic containing warning information.
    */
   default void warning(Diagnostic warning) {
-    if (warning.getOrigin() != Origin.unknown()) {
-      System.err.print("Warning in " + warning.getOrigin() + ":\n  ");
+    if (warning.getLocation() != Location.UNKNOWN) {
+      System.err.print("Warning in " + warning.getLocation() + ":\n  ");
     } else {
       System.err.print("Warning: ");
     }
@@ -46,8 +46,8 @@ public interface DiagnosticsHandler {
    * @param info Diagnostic containing the information.
    */
   default void info(Diagnostic info) {
-    if (info.getOrigin() != Origin.unknown()) {
-      System.out.print("In " + info.getOrigin() + ":\n  ");
+    if (info.getLocation() != Location.UNKNOWN) {
+      System.out.print("In " + info.getLocation() + ":\n  ");
     }
     System.out.println(info.getDiagnosticMessage());
   }

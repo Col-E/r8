@@ -79,7 +79,7 @@ public class DexFileReader {
   private final ClassKind classKind;
 
   public static Segment[] parseMapFrom(Path file) throws IOException {
-    return parseMapFrom(new DexFile(file.toString()), new PathOrigin(file, Origin.root()));
+    return parseMapFrom(new DexFile(file.toString()), new PathOrigin(file));
   }
 
   public static Segment[] parseMapFrom(InputStream stream, Origin origin) throws IOException {

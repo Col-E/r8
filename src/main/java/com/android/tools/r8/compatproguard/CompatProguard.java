@@ -9,6 +9,7 @@ import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.Version;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.utils.AbortException;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.CompilationFailedException;
@@ -134,7 +135,7 @@ public class CompatProguard {
         new CompatProguardCommandBuilder(
             options.forceProguardCompatibility, options.ignoreMissingClasses);
     builder.setOutputPath(Paths.get(options.output))
-        .addProguardConfiguration(options.proguardConfig)
+        .addProguardConfiguration(options.proguardConfig, CommandLineOrigin.INSTANCE)
         .setMinApiLevel(options.minApi);
     if (options.mainDexList != null) {
       builder.addMainDexListFiles(Paths.get(options.mainDexList));

@@ -10,6 +10,7 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.SmaliWriter;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.FilteredClassPath;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApp;
@@ -259,7 +260,7 @@ public class TestBase {
       CompilationFailedException {
     R8Command command =
         ToolHelper.prepareR8CommandBuilder(app)
-            .addProguardConfiguration(ImmutableList.of(proguardConfig))
+            .addProguardConfiguration(ImmutableList.of(proguardConfig), Origin.unknown())
             .build();
     return ToolHelper.runR8(command, optionsConsumer);
   }

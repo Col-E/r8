@@ -56,7 +56,7 @@ public abstract class Resource {
     final Path file;
 
     FileResource(Path file) {
-      super(new PathOrigin(file, Origin.root()));
+      super(new PathOrigin(file));
       assert file != null;
       this.file = file;
     }

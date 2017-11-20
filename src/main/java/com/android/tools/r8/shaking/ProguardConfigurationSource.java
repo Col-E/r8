@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.shaking;
 
+import com.android.tools.r8.origin.Origin;
 import java.io.IOException;
 import java.nio.file.Path;
 
@@ -11,4 +12,5 @@ public interface ProguardConfigurationSource {
   String get() throws IOException;
   Path getBaseDirectory();
   String getName();
+  Origin getOrigin();
 }

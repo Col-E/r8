@@ -50,7 +50,7 @@ public class FrameworkIncrementalDexingBenchmark {
     Map<String, byte[]> resources;
 
     InMemoryClassPathProvider(Path archive) throws IOException {
-      origin = new PathOrigin(archive, Origin.root());
+      origin = new PathOrigin(archive);
       ImmutableMap.Builder<String, byte[]> builder = ImmutableMap.builder();
       ZipUtils.iter(
           archive.toString(),

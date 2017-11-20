@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.utils;
 
+import com.android.tools.r8.Location;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import java.io.FileNotFoundException;
@@ -15,17 +16,17 @@ import java.nio.file.Paths;
 
 public class IOExceptionDiagnostic extends DiagnosticWithThrowable {
 
-  private final Origin origin;
+  private final Location location;
   private final String message;
 
   public IOExceptionDiagnostic(IOException e) {
     super(e);
-    Origin origin = Origin.unknown();
+    Location location = Location.UNKNOWN;
 
     if (e instanceof FileSystemException) {
       FileSystemException fse = (FileSystemException) e;
       if (fse.getFile() != null && !fse.getFile().isEmpty()) {
-        origin = new PathOrigin(Paths.get(fse.getFile()), Origin.root());
+        location = new Location(new PathOrigin(Paths.get(fse.getFile())));
       }
     }
 
@@ -38,14 +39,14 @@ public class IOExceptionDiagnostic extends DiagnosticWithThrowable {
       }
     }
 
-    this.origin = origin;
+    this.location = location;
     this.message = message;
 
   }
 
   @Override
-  public Origin getOrigin() {
-    return origin;
+  public Location getLocation() {
+    return location;
   }
 
   @Override

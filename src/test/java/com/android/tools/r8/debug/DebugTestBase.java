@@ -18,6 +18,7 @@ import com.android.tools.r8.naming.ClassNamingForNameMapper;
 import com.android.tools.r8.naming.MemberNaming;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -26,7 +27,6 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OffOrAuto;
 import com.google.common.collect.ImmutableList;
-import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongList;
 import java.io.File;
@@ -267,7 +267,7 @@ public abstract class DebugTestBase {
       builder.setProguardMapOutput(dexOutputDir.resolve(PROGUARD_MAP_FILENAME));
     }
     if (!proguardConfigurations.isEmpty()) {
-      builder.addProguardConfiguration(proguardConfigurations);
+      builder.addProguardConfiguration(proguardConfigurations, Origin.unknown());
     }
     if (pgConsumer != null) {
       builder.addProguardConfigurationConsumer(pgConsumer);

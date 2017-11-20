@@ -12,6 +12,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.compatproguard.CompatProguardCommandBuilder;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.DexInspector.MethodSubject;
@@ -68,11 +69,13 @@ public class ForceProguardCompatibilityTest extends TestBase {
     builder.addProgramFiles(ToolHelper.getClassFileForTestClass(annotationClass));
     // Keep main class and the annotation class.
     builder.addProguardConfiguration(
-        ImmutableList.of(keepMainProguardConfiguration(mainClass, true, false)));
+        ImmutableList.of(keepMainProguardConfiguration(mainClass, true, false)), Origin.unknown());
     builder.addProguardConfiguration(
-        ImmutableList.of("-keep class " + annotationClass.getCanonicalName() + " { }"));
+        ImmutableList.of("-keep class " + annotationClass.getCanonicalName() + " { }"),
+        Origin.unknown());
     if (keepAnnotations) {
-      builder.addProguardConfiguration(ImmutableList.of("-keepattributes *Annotation*"));
+      builder.addProguardConfiguration(ImmutableList.of("-keepattributes *Annotation*"),
+          Origin.unknown());
     }
 
     DexInspector inspector = new DexInspector(ToolHelper.runR8(builder.build()));
@@ -104,7 +107,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
         "-keep class " + testClass.getCanonicalName() + " {",
         "  public void method();",
         "}");
-    builder.addProguardConfiguration(proguardConfig);
+    builder.addProguardConfiguration(proguardConfig, Origin.unknown());
     DexInspector inspector = new DexInspector(ToolHelper.runR8(builder.build()));
     ClassSubject clazz = inspector.clazz(getJavacGeneratedClassName(testClass));
     assertTrue(clazz.isPresent());
@@ -138,7 +141,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
         "  public static void main(java.lang.String[]);",
         "}",
         "-dontobfuscate");
-    builder.addProguardConfiguration(proguardConfig);
+    builder.addProguardConfiguration(proguardConfig, Origin.unknown());
 
     DexInspector inspector = new DexInspector(ToolHelper.runR8(builder.build()));
     assertTrue(inspector.clazz(getJavacGeneratedClassName(mainClass)).isPresent());

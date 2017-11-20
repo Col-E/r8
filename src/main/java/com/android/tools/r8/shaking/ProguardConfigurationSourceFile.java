@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.shaking;
 
+import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.origin.PathOrigin;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -36,5 +38,10 @@ public class ProguardConfigurationSourceFile implements ProguardConfigurationSou
   @Override
   public String getName() {
     return path.toString();
+  }
+
+  @Override
+  public Origin getOrigin() {
+    return new PathOrigin(path);
   }
 }

@@ -3,13 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
-import com.android.tools.r8.origin.Origin;
-
 /**
  * Interface for all diagnostic message produced by D8 and R8.
  */
 public interface Diagnostic {
-  Origin getOrigin();
+  Location getLocation();
 
   String getDiagnosticMessage();
 }

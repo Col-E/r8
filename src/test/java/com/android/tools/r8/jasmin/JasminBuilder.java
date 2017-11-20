@@ -302,7 +302,7 @@ public class JasminBuilder {
   }
 
   public AndroidApp build() throws Exception {
-    Origin root = new PathOrigin(Paths.get("JasminBuilder"), Origin.root());
+    Origin root = new PathOrigin(Paths.get("JasminBuilder"));
     AndroidApp.Builder builder = AndroidApp.builder();
     for (ClassBuilder clazz : classes) {
       Origin origin = new Origin(root) {

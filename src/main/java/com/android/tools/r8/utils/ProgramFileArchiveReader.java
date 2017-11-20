@@ -7,6 +7,7 @@ import static com.android.tools.r8.utils.FileUtils.isArchive;
 import static com.android.tools.r8.utils.FileUtils.isClassFile;
 import static com.android.tools.r8.utils.FileUtils.isDexFile;
 
+import com.android.tools.r8.origin.ArchiveEntryOrigin;
 import com.android.tools.r8.Resource;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
@@ -35,7 +36,7 @@ public class ProgramFileArchiveReader {
   private List<Resource> classResources = null;
 
   ProgramFileArchiveReader(FilteredClassPath archive, boolean ignoreDexInArchive) {
-    origin = new PathOrigin(archive.getPath(), Origin.root());
+    origin = new PathOrigin(archive.getPath());
     this.archive = archive;
     this.ignoreDexInArchive = ignoreDexInArchive;
   }
@@ -50,7 +51,7 @@ public class ProgramFileArchiveReader {
         ZipEntry entry = entries.nextElement();
         try (InputStream stream = zipFile.getInputStream(entry)) {
           Path name = Paths.get(entry.getName());
-          Origin entryOrigin = new PathOrigin(name, origin);
+          Origin entryOrigin = new ArchiveEntryOrigin(entry.getName(), origin);
           if (archive.matchesFile(name)) {
             if (isDexFile(name)) {
               if (!ignoreDexInArchive) {

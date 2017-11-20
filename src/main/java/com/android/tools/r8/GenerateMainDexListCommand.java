@@ -4,6 +4,7 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.ProguardConfigurationParser;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.shaking.ProguardConfigurationSource;
@@ -67,8 +68,8 @@ public class GenerateMainDexListCommand extends BaseCommand {
     /**
      * Add proguard configuration for automatic main dex list calculation.
      */
-    public GenerateMainDexListCommand.Builder addMainDexRules(List<String> lines) {
-      mainDexRules.add(new ProguardConfigurationSourceStrings(lines, Paths.get(".")));
+    public GenerateMainDexListCommand.Builder addMainDexRules(List<String> lines, Origin origin) {
+      mainDexRules.add(new ProguardConfigurationSourceStrings(lines, Paths.get("."), origin));
       return self();
     }
 
