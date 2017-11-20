@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.utils.InternalOptions;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -76,6 +77,15 @@ public class CfApplicationWriter {
       interfaces[i] = clazz.interfaces.values[i].getInternalName();
     }
     writer.visit(version, access, name, signature, superName, interfaces);
+
+    if (clazz.getEnclosingMethod() != null) {
+      clazz.getEnclosingMethod().write(writer);
+    }
+
+    for (InnerClassAttribute entry : clazz.getInnerClasses()) {
+      entry.write(writer);
+    }
+
     for (DexEncodedField field : clazz.staticFields()) {
       writeField(field, writer);
     }

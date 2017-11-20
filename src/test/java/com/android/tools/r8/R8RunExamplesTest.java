@@ -15,7 +15,6 @@ import com.android.tools.r8.R8RunArtTestsTest.DexTool;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -62,9 +61,6 @@ public class R8RunExamplesTest {
   private static final Map<String, TestCondition> failingRunCf =
       new ImmutableMap.Builder<String, TestCondition>()
           .put("floating_point_annotations.FloatingPointValuedAnnotationTest", match(R8_COMPILER))
-          .put("regress_62300145.Regress", match(R8_COMPILER)) // npe
-          .put("enclosingmethod.Main", match(R8_COMPILER)) // output differs
-          .put("enclosingmethod_proguarded.Main", match(R8_COMPILER)) // output differs
           .build();
 
   private static final Set<String> failingCompileCf =
@@ -73,11 +69,16 @@ public class R8RunExamplesTest {
           .add("trycatch.TryCatch") // inline / CF->IR
           .build();
 
+  private static final Set<String> failingOutputCf =
+      new ImmutableSet.Builder<String>()
+          .add("regress_62300145.Regress") // annotations
+          .build();
+
   private static final Map<String, TestCondition> outputNotIdenticalToJVMOutput =
       new ImmutableMap.Builder<String, TestCondition>()
           // Traverses stack frames that contain Art specific frames.
           .put("throwing.Throwing", TestCondition.any())
-          // DEX inner-classes annotations can't distinguish member classes from local classes.
+          // DEX enclosing-class annotations don't distinguish member classes from local classes.
           // This results in Class.isLocalClass always being false and Class.isMemberClass always
           // being true even when the converse is the case when running on the JVM.
           .put("enclosingmethod.Main", TestCondition.any())
@@ -299,10 +300,12 @@ public class R8RunExamplesTest {
         System.err.println(result.stderr);
         fail("JVM failed on compiled output for: " + mainClass);
       }
-      assertEquals(
-          "JavaC/JVM and " + compiler.name() + "/JVM output differ",
-          javaResult.stdout,
-          result.stdout);
+      if (!failingOutputCf.contains(mainClass)) {
+        assertEquals(
+            "JavaC/JVM and " + compiler.name() + "/JVM output differ",
+            javaResult.stdout,
+            result.stdout);
+      }
       return;
     }
 

@@ -53,6 +53,7 @@ import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -1077,21 +1078,24 @@ public class Outliner {
     DexTypeList interfaces = DexTypeList.empty();
     DexString sourceFile = dexItemFactory.createString("outline");
     ClassAccessFlags accessFlags = ClassAccessFlags.fromSharedAccessFlags(Constants.ACC_PUBLIC);
-    DexProgramClass clazz = new DexProgramClass(
-        type,
-        null,
-        null,
-        accessFlags,
-        superType,
-        interfaces,
-        sourceFile,
-        // TODO: Build dex annotations structure.
-        DexAnnotationSet.empty(),
-        DexEncodedField.EMPTY_ARRAY, // Static fields.
-        DexEncodedField.EMPTY_ARRAY, // Instance fields.
-        direct,
-        DexEncodedMethod.EMPTY_ARRAY // Virtual methods.
-    );
+    DexProgramClass clazz =
+        new DexProgramClass(
+            type,
+            null,
+            null,
+            accessFlags,
+            superType,
+            interfaces,
+            sourceFile,
+            null,
+            Collections.emptyList(),
+            // TODO: Build dex annotations structure.
+            DexAnnotationSet.empty(),
+            DexEncodedField.EMPTY_ARRAY, // Static fields.
+            DexEncodedField.EMPTY_ARRAY, // Instance fields.
+            direct,
+            DexEncodedMethod.EMPTY_ARRAY // Virtual methods.
+            );
 
     return clazz;
   }

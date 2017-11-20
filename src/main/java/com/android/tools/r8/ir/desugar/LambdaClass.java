@@ -31,6 +31,7 @@ import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -127,6 +128,8 @@ final class LambdaClass {
         rewriter.factory.objectType,
         buildInterfaces(),
         rewriter.factory.createString("lambda"),
+        null,
+        Collections.emptyList(),
         DexAnnotationSet.empty(),
         synthesizeStaticFields(),
         synthesizeInstanceFields(),

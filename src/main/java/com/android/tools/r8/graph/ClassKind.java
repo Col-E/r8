@@ -2,6 +2,7 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.ProgramResource;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -20,6 +21,8 @@ public enum ClassKind {
         DexType superType,
         DexTypeList interfaces,
         DexString sourceFile,
+        EnclosingMethodAttribute enclosingMember,
+        List<InnerClassAttribute> innerClasses,
         DexAnnotationSet annotations,
         DexEncodedField[] staticFields,
         DexEncodedField[] instanceFields,
@@ -43,6 +46,8 @@ public enum ClassKind {
       DexType superType,
       DexTypeList interfaces,
       DexString sourceFile,
+      EnclosingMethodAttribute enclosingMember,
+      List<InnerClassAttribute> innerClasses,
       DexAnnotationSet annotations,
       DexEncodedField[] staticFields,
       DexEncodedField[] instanceFields,
@@ -56,6 +61,8 @@ public enum ClassKind {
         superType,
         interfaces,
         sourceFile,
+        enclosingMember,
+        innerClasses,
         annotations,
         staticFields,
         instanceFields,

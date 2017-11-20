@@ -80,10 +80,10 @@ public class ForceProguardCompatibilityTest extends TestBase {
     ClassSubject clazz = inspector.clazz(getJavacGeneratedClassName(mentionedClassWithAnnotations));
     assertTrue(clazz.isPresent());
 
-    assertEquals(!keepAnnotations && forceProguardCompatibility,
-        clazz.annotation("dalvik.annotation.EnclosingClass").isPresent());
-    assertEquals(!keepAnnotations && forceProguardCompatibility,
-        clazz.annotation("dalvik.annotation.InnerClass").isPresent());
+    // The test contains only a member class so the enclosing-method attribute will be null.
+    assertEquals(
+        !keepAnnotations && forceProguardCompatibility,
+        !clazz.getDexClass().getInnerClasses().isEmpty());
     assertEquals(forceProguardCompatibility || keepAnnotations,
         clazz.annotation(annotationClass.getCanonicalName()).isPresent());
   }
