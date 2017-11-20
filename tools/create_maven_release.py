@@ -137,25 +137,23 @@ def main(argv):
     exit(1)
   # Create directory structure for this version.
   version = determine_version(jar)
-  tmp_dir = tempfile.mkdtemp()
-  version_dir = join(
-      tmp_dir, 'com', 'google', 'android', 'tools', 'r8', version, 'r8')
-  makedirs(version_dir)
-  # Write the pom file.
-  pom_file = join(version_dir, 'r8-' + version + '.pom')
-  write_pom_file(version, pom_file)
-  # Copy the jar to the output.
-  target_jar = join(version_dir, 'r8-' + version + '.jar')
-  copyfile(jar, target_jar)
-  # Create check sums.
-  write_md5_for(target_jar)
-  write_md5_for(pom_file)
-  write_sha1_for(target_jar)
-  write_sha1_for(pom_file)
-  # Zip it up.
-  make_archive(join(outdir, 'r8'), 'zip', tmp_dir)
-  # Cleanup.
-  rmtree(tmp_dir)
+  with utils.TempDir() as tmp_dir:
+    version_dir = join(
+        tmp_dir, 'com', 'google', 'android', 'tools', 'r8', version, 'r8')
+    makedirs(version_dir)
+    # Write the pom file.
+    pom_file = join(version_dir, 'r8-' + version + '.pom')
+    write_pom_file(version, pom_file)
+    # Copy the jar to the output.
+    target_jar = join(version_dir, 'r8-' + version + '.jar')
+    copyfile(jar, target_jar)
+    # Create check sums.
+    write_md5_for(target_jar)
+    write_md5_for(pom_file)
+    write_sha1_for(target_jar)
+    write_sha1_for(pom_file)
+    # Zip it up.
+    make_archive(join(outdir, 'r8'), 'zip', tmp_dir)
 
 if __name__ == "__main__":
   exit(main(sys.argv[1:]))

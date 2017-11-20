@@ -6,28 +6,46 @@
 import argparse
 import gradle
 import os
-import sys
-import utils
-
 from shutil import copyfile
+import sys
+import tempfile
+import utils
+import urllib
+
+MASTER_BUILD_ROOT = "http://storage.googleapis.com/r8-releases/raw/master/"
+TARGETS = [utils.D8, utils.R8, utils.COMPATDX, utils.COMPATPROGUARD]
 
 def parse_arguments():
   parser = argparse.ArgumentParser(
       description = 'Build and copy jars to an Android tree.')
   parser.add_argument('android_root', nargs=1,
       help='Android checkout root.')
+  parser.add_argument('--commit_hash', default=None, help='Commit hash')
   return parser.parse_args()
+
+def copy_targets(root, target_root):
+  for target in TARGETS:
+    src = os.path.join(root, target + '.jar')
+    dest = os.path.join(
+        target_root, 'prebuilts', 'r8', target + '-master.jar')
+    print 'Copying: ' + src + ' -> ' + dest
+    copyfile(src, dest)
 
 def Main():
   args = parse_arguments()
-  targets = ['r8', 'd8', 'compatdx', 'compatproguard']
-  gradle.RunGradle(targets)
-  for target in targets:
-    src = os.path.join(utils.REPO_ROOT, 'build', 'libs', target + '.jar')
-    dest = os.path.join(
-        args.android_root[0], 'prebuilts', 'r8', target + '-master.jar')
-    print 'Copying: ' + src + ' -> ' + dest
-    copyfile(src, dest)
+  target_root = args.android_root[0]
+  if args.commit_hash == None:
+    gradle.RunGradle(TARGETS)
+    root = os.path.join(utils.REPO_ROOT, 'build', 'libs')
+    copy_targets(root, target_root)
+  else:
+    with utils.TempDir() as root:
+      for target in TARGETS:
+        url = MASTER_BUILD_ROOT + args.commit_hash + '/' + target + '.jar'
+        download_path = os.path.join(root, target + '.jar')
+        print 'Downloading: ' + url + ' -> ' + download_path
+        urllib.urlretrieve(url, download_path)
+      copy_targets(root, target_root)
 
 if __name__ == '__main__':
   sys.exit(Main())
