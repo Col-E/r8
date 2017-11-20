@@ -18,6 +18,7 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.FilteredClassPath;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
@@ -100,7 +101,7 @@ public class SmaliTestBase extends TestBase {
               .setOutputPath(dexOutputDir)
               .setMode(CompilationMode.DEBUG)
               .addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()))
-              .addProguardConfiguration(proguardConfigurations)
+              .addProguardConfiguration(proguardConfigurations, Origin.unknown())
               .addProguardConfigurationConsumer(pgConsumer)
               .build();
       ToolHelper.runR8WithFullResult(command, optionsConsumer);

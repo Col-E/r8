@@ -7,6 +7,7 @@ import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.isArchive;
 import static com.android.tools.r8.utils.FileUtils.isClassFile;
 
+import com.android.tools.r8.origin.ArchiveEntryOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.origin.PathOrigin;
@@ -28,20 +29,6 @@ import java.util.zip.ZipFile;
 /** Lazy Java class file resource provider loading class files form a zip archive. */
 public class ArchiveClassFileProvider implements ClassFileResourceProvider, Closeable {
 
-  private static class ArchiveEntryOrigin extends Origin {
-    final String descriptor;
-
-    public ArchiveEntryOrigin(String descriptor, Origin parent) {
-      super(parent);
-      this.descriptor = descriptor;
-    }
-
-    @Override
-    public String part() {
-      return descriptor;
-    }
-  }
-
   private final Origin origin;
   private final Set<String> descriptors = new HashSet<>();
   private final ZipFile zipFile;
@@ -57,7 +44,7 @@ public class ArchiveClassFileProvider implements ClassFileResourceProvider, Clos
 
   private ArchiveClassFileProvider(FilteredClassPath archive) throws IOException {
     assert isArchive(archive.getPath());
-    origin = new PathOrigin(archive.getPath(), Origin.root());
+    origin = new PathOrigin(archive.getPath());
     zipFile = new ZipFile(archive.getPath().toFile());
     final Enumeration<? extends ZipEntry> entries = zipFile.entries();
     while (entries.hasMoreElements()) {
@@ -81,9 +68,10 @@ public class ArchiveClassFileProvider implements ClassFileResourceProvider, Clos
       return null;
     }
 
-    try (InputStream inputStream = zipFile.getInputStream(getZipEntryFromDescriptor(descriptor))) {
+    ZipEntry zipEntry = getZipEntryFromDescriptor(descriptor);
+    try (InputStream inputStream = zipFile.getInputStream(zipEntry)) {
       return Resource.fromBytes(
-          new ArchiveEntryOrigin(descriptor, origin),
+          new ArchiveEntryOrigin(zipEntry.getName(), origin),
           ByteStreams.toByteArray(inputStream),
           Collections.singleton(descriptor));
     } catch (IOException e) {

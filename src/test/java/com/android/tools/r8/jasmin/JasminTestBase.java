@@ -11,6 +11,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OutputMode;
@@ -104,7 +105,7 @@ public class JasminTestBase extends TestBase {
     R8Command command =
         ToolHelper.prepareR8CommandBuilder(builder.build())
             .addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()))
-            .addProguardConfiguration(ImmutableList.of(proguardConfig))
+            .addProguardConfiguration(ImmutableList.of(proguardConfig), Origin.unknown())
             .build();
     return ToolHelper.runR8(command, optionsConsumer);
   }
@@ -124,7 +125,7 @@ public class JasminTestBase extends TestBase {
       throws Exception {
     R8Command command =
         ToolHelper.prepareR8CommandBuilder(program.build())
-            .addProguardConfiguration(ImmutableList.of(proguardConfig))
+            .addProguardConfiguration(ImmutableList.of(proguardConfig), Origin.unknown())
             .addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()))
             .addLibraryFiles(library)
             .build();

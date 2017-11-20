@@ -13,6 +13,7 @@ import com.android.tools.r8.code.ConstString;
 import com.android.tools.r8.code.InvokeStatic;
 import com.android.tools.r8.code.ReturnVoid;
 import com.android.tools.r8.graph.DexCode;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.smali.SmaliTestBase;
 import com.android.tools.r8.utils.DexInspector;
@@ -102,7 +103,7 @@ public class ForNameTest extends SmaliTestBase {
         new CompatProguardCommandBuilder(true, true)
             .addDexProgramData(builder.compile())
             .setOutputPath(dexOutputDir)
-            .addProguardConfiguration(proguardConfigurations)
+            .addProguardConfiguration(proguardConfigurations, Origin.unknown())
             .build();
     return new DexInspector(ToolHelper.runR8(command));
   }

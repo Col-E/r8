@@ -5,6 +5,7 @@
 package com.android.tools.r8.compatproguard;
 
 import com.android.tools.r8.R8Command;
+import com.android.tools.r8.origin.EmbeddedOrigin;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 
@@ -20,6 +21,6 @@ public class CompatProguardCommandBuilder extends R8Command.Builder {
       boolean ignoreMissingClasses) {
     super(true, forceProguardCompatibility, true, ignoreMissingClasses);
     setEnableDesugaring(false);
-    addProguardConfiguration(CLASS_FOR_NAME);
+    addProguardConfiguration(CLASS_FOR_NAME, EmbeddedOrigin.INSTANCE);
   }
 }

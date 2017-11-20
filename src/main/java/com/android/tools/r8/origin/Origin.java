@@ -87,6 +87,23 @@ public abstract class Origin implements Comparable<Origin> {
     return parts;
   }
 
+  /**
+   * Find first parent or this instance of the given class.
+   * @return This {@link Origin} if it's an instance of the requested {@link Class} or the first
+   * parent found matching the condition. May return null if no satisfying instance is found.
+   */
+  public <T extends Origin> T getFromHierarchy(Class<T> type) {
+    Origin origin = this;
+    do {
+      if (type.isInstance(origin)) {
+        return (T) origin;
+      }
+      origin = origin.parent();
+    } while (origin != null);
+    return null;
+  }
+
+
   @Override
   public boolean equals(Object obj) {
     if (obj == this) {

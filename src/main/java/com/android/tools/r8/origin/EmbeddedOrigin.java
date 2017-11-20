@@ -4,27 +4,16 @@
 
 package com.android.tools.r8.origin;
 
-import java.nio.file.Path;
+public class EmbeddedOrigin extends Origin {
 
-/**
- * Path component in an origin description.
- */
-public class PathOrigin extends Origin {
+  public static final EmbeddedOrigin INSTANCE = new EmbeddedOrigin();
 
-  private final Path path;
-
-  public PathOrigin(Path path) {
+  private EmbeddedOrigin() {
     super(root());
-    assert path != null;
-    this.path = path;
   }
 
   @Override
   public String part() {
-    return path.toString();
-  }
-
-  public Path getPath() {
-    return path;
+    return "R8";
   }
 }

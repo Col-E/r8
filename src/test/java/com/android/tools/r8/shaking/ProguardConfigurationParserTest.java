@@ -11,13 +11,16 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.DiagnosticsHandler;
+import com.android.tools.r8.TextRangeLocation;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions.PackageObfuscationMode;
@@ -25,6 +28,7 @@ import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import org.junit.Test;
@@ -87,6 +91,8 @@ public class ProguardConfigurationParserTest extends TestBase {
       VALID_PROGUARD_DIR + "dontskipnonpubliclibraryclasses.flags";
   private static final String DONT_SKIP_NON_PUBLIC_LIBRARY_CLASS_MEMBERS =
       VALID_PROGUARD_DIR + "dontskipnonpubliclibraryclassmembers.flags";
+  private static final String IDENTIFIER_NAME_STRING =
+      VALID_PROGUARD_DIR + "identifiernamestring.flags";
   private static final String OVERLOAD_AGGRESIVELY =
       VALID_PROGUARD_DIR + "overloadaggressively.flags";
   private static final String DONT_OPTIMIZE =
@@ -109,6 +115,21 @@ public class ProguardConfigurationParserTest extends TestBase {
       VALID_PROGUARD_DIR + "target.flags";
 
   private static final DiagnosticsHandler diagnosticsHandler = new DefaultDiagnosticsHandler();
+
+  private static class KeepingDiagnosticHandler implements DiagnosticsHandler {
+    private final List<Diagnostic> infos = new ArrayList<>();
+    private final List<Diagnostic> warnings = new ArrayList<>();
+
+    @Override
+    public void info(Diagnostic info) {
+      infos.add(info);
+    }
+
+    @Override
+    public void warning(Diagnostic warning) {
+      warnings.add(warning);
+    }
+  }
 
   @Test
   public void parse() throws Exception {
@@ -695,6 +716,28 @@ public class ProguardConfigurationParserTest extends TestBase {
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
     parser.parse(Paths.get(DONT_SKIP_NON_PUBLIC_LIBRARY_CLASS_MEMBERS));
+  }
+
+  @Test
+  public void parseIdentifiernamestring() throws Exception {
+    KeepingDiagnosticHandler handler = new KeepingDiagnosticHandler();
+    ProguardConfigurationParser parser =
+        new ProguardConfigurationParser(new DexItemFactory(), handler);
+    Path source = Paths.get(IDENTIFIER_NAME_STRING);
+    parser.parse(source);
+    assertEquals(0, handler.infos.size());
+    assertEquals(1, handler.warnings.size());
+
+    assertTrue(handler.warnings.get(0).getLocation() instanceof TextRangeLocation);
+    TextRangeLocation warningLocation = (TextRangeLocation) handler.warnings.get(0).getLocation();
+
+    assertTrue(warningLocation.getOrigin() instanceof PathOrigin);
+    assertEquals(source, ((PathOrigin) warningLocation.getOrigin()).getPath());
+
+    assertEquals(2, warningLocation.getStart().getLine());
+    assertEquals(4, warningLocation.getStart().getColumn());
+    assertEquals(3, warningLocation.getEnd().getLine());
+    assertEquals(12, warningLocation.getEnd().getColumn());
   }
 
   @Test

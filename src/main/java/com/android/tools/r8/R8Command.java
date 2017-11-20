@@ -4,6 +4,7 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationParser;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
@@ -108,8 +109,8 @@ public class R8Command extends BaseCompilerCommand {
     /**
      * Add proguard configuration for automatic main dex list calculation.
      */
-    public Builder addMainDexRules(List<String> lines) {
-      mainDexRules.add(new ProguardConfigurationSourceStrings(lines, Paths.get(".")));
+    public Builder addMainDexRules(List<String> lines, Origin origin) {
+      mainDexRules.add(new ProguardConfigurationSourceStrings(lines, Paths.get("."), origin));
       return self();
     }
 
@@ -141,8 +142,8 @@ public class R8Command extends BaseCompilerCommand {
     /**
      * Add proguard configuration.
      */
-    public Builder addProguardConfiguration(List<String> lines) {
-      proguardConfigs.add(new ProguardConfigurationSourceStrings(lines, Paths.get(".")));
+    public Builder addProguardConfiguration(List<String> lines, Origin origin) {
+      proguardConfigs.add(new ProguardConfigurationSourceStrings(lines, Paths.get("."), origin));
       return self();
     }
 
