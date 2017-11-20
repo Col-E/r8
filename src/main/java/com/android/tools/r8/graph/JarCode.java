@@ -4,7 +4,6 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.ApiLevelException;
-import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.errors.InvalidDebugInfoException;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Position;
@@ -13,10 +12,12 @@ import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.JarSourceCode;
 import com.android.tools.r8.jar.JarRegisterEffectsVisitor;
 import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.IdentityHashMap;
+import java.util.ArrayList;
+import java.util.List;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
@@ -40,10 +41,10 @@ public class JarCode extends Code {
     // GC'd.
     public byte[] classCache;
     public DexProgramClass owner;
-    private IdentityHashMap<DexMethod, JarCode> lookupMap = new IdentityHashMap<>();
+    private List<JarCode> codeList = new ArrayList<>();
   }
 
-  private final DexType clazz;
+  private final DexMethod method;
   private final Origin origin;
   private MethodNode node;
   private ReparseContext context;
@@ -52,11 +53,11 @@ public class JarCode extends Code {
 
   public JarCode(
       DexMethod method, Origin origin, ReparseContext context, JarApplicationReader application) {
-    this.clazz = method.getHolder();
+    this.method = method;
     this.origin = origin;
     this.context = context;
     this.application = application;
-    context.lookupMap.put(method, this);
+    context.codeList.add(this);
   }
 
   @Override
@@ -136,8 +137,8 @@ public class JarCode extends Code {
     if (!options.debug) {
       node.localVariables.clear();
     }
-    JarSourceCode source =
-        new JarSourceCode(clazz, node, application, encodedMethod.method, callerPosition);
+    JarSourceCode source = new JarSourceCode(
+        method.getHolder(), node, application, encodedMethod.method, callerPosition);
     IRBuilder builder =
         (generator == null)
             ? new IRBuilder(encodedMethod, source, options)
@@ -148,7 +149,8 @@ public class JarCode extends Code {
   @Override
   public void registerReachableDefinitions(UseRegistry registry) {
     triggerDelayedParsingIfNeccessary();
-    node.instructions.accept(new JarRegisterEffectsVisitor(clazz, registry, application));
+    node.instructions.accept(
+        new JarRegisterEffectsVisitor(method.getHolder(), registry, application));
   }
 
   @Override
@@ -183,6 +185,7 @@ public class JarCode extends Code {
 
     private final ReparseContext context;
     private final JarApplicationReader application;
+    private int methodIndex = 0;
 
     public SecondVisitor(ReparseContext context, JarApplicationReader application) {
       super(Opcodes.ASM6);
@@ -194,7 +197,12 @@ public class JarCode extends Code {
     public MethodVisitor visitMethod(int access, String name, String desc, String signature,
         String[] exceptions) {
       MethodNode node = new JSRInlinerAdapter(null, access, name, desc, signature, exceptions);
-      JarCode code = context.lookupMap.get(application.getMethod(context.owner.type, name, desc));
+      JarCode code = null;
+      MethodAccessFlags flags = JarClassFileReader.createMethodAccessFlags(name, access);
+      if (!flags.isAbstract() && !flags.isNative()) {
+        code = context.codeList.get(methodIndex++);
+        assert code.method == application.getMethod(context.owner.type, name, desc);
+      }
       if (code != null) {
         code.context = null;
         code.node = node;
