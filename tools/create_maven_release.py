@@ -12,6 +12,7 @@ import subprocess
 import sys
 from string import Template
 import tempfile
+import utils
 
 LICENSETEMPLATE = Template(
 """
