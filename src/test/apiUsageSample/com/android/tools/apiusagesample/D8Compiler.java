@@ -4,7 +4,6 @@
 
 package com.android.tools.apiusagesample;
 
-import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
@@ -110,7 +109,7 @@ public class D8Compiler {
   }
 
   private void merge(Path outputDir, Path mainDexClasses,
-      List<Path> toMerge) throws IOException, CompilationException, CompilationFailedException {
+      List<Path> toMerge) throws IOException, CompilationFailedException {
     D8Command.Builder merger = D8Command.builder();
     merger.setEnableDesugaring(false);
 

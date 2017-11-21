@@ -38,7 +38,7 @@ public class DiscardedChecker {
 
   private void checkItem(DexItem item) {
     if (checkDiscarded.contains(item)) {
-      options.diagnosticsHandler.info(
+      options.reporter.info(
           new StringDiagnostic("Item " + item.toSourceString() + " was not discarded."));
       fail = true;
     }

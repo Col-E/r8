@@ -5,8 +5,11 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.dex.DexFileReader;
 import com.android.tools.r8.dex.Segment;
+import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.CompilationFailedException;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.Closer;
 import java.io.IOException;
@@ -26,7 +29,7 @@ public class DexSegments {
       }
 
       @Override
-      public Command build() throws CompilationException, IOException {
+      public Command build() throws CompilationFailedException {
         // If printing versions ignore everything else.
         if (isPrintHelp()) {
           return new Command(isPrintHelp());
@@ -47,15 +50,13 @@ public class DexSegments {
       return new Command.Builder().setVdexAllowed();
     }
 
-    public static Command.Builder parse(String[] args)
-        throws CompilationException, IOException {
+    public static Command.Builder parse(String[] args) {
       Command.Builder builder = builder();
       parse(args, builder);
       return builder;
     }
 
-    private static void parse(String[] args, Command.Builder builder)
-        throws CompilationException, IOException {
+    private static void parse(String[] args, Command.Builder builder) {
       for (int i = 0; i < args.length; i++) {
         String arg = args[i].trim();
         if (arg.length() == 0) {
@@ -64,7 +65,8 @@ public class DexSegments {
           builder.setPrintHelp(true);
         } else {
           if (arg.startsWith("--")) {
-            throw new CompilationException("Unknown option: " + arg);
+            builder.getReporter().error(new StringDiagnostic("Unknown option: " + arg,
+                new Location(CommandLineOrigin.INSTANCE)));
           }
           builder.addProgramFiles(Paths.get(arg));
         }
@@ -86,7 +88,7 @@ public class DexSegments {
   }
 
   public static void main(String[] args)
-      throws IOException, CompilationException {
+      throws IOException, CompilationFailedException {
     Command.Builder builder = Command.parse(args);
     Command command = builder.build();
     if (command.isPrintHelp()) {

@@ -28,6 +28,7 @@ import com.android.tools.r8.naming.SourceFileRewriter;
 import com.android.tools.r8.optimize.BridgeMethodAnalysis;
 import com.android.tools.r8.optimize.MemberRebindingAnalysis;
 import com.android.tools.r8.optimize.VisibilityBridgeRemover;
+import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.shaking.AbstractMethodRemover;
 import com.android.tools.r8.shaking.AnnotationRemover;
 import com.android.tools.r8.shaking.DiscardedChecker;
@@ -167,7 +168,7 @@ public class R8 {
         if (!missingClasses.isEmpty()) {
           missingClasses.forEach(
               clazz -> {
-                options.diagnosticsHandler.warning(
+                options.reporter.warning(
                     new StringDiagnostic("Missing class: " + clazz.toSourceString()));
               });
           if (!options.ignoreMissingClasses) {
@@ -435,7 +436,7 @@ public class R8 {
       InternalOptions options = command.getInternalOptions();
       run(command.getInputApp(), command.getOutputSink(), options, executor);
     } catch (IOException io) {
-      command.getDiagnosticsHandler().error(new IOExceptionDiagnostic(io));
+      command.getReporter().error(new IOExceptionDiagnostic(io));
       throw new CompilationFailedException(io);
     } catch (CompilationException e) {
       throw new CompilationFailedException(e);
@@ -455,7 +456,7 @@ public class R8 {
 
   private static void run(String[] args)
       throws IOException, CompilationException, CompilationFailedException {
-    R8Command.Builder builder = R8Command.parse(args);
+    R8Command.Builder builder = R8Command.parse(args, new Location(CommandLineOrigin.INSTANCE));
     if (builder.getOutputPath() == null) {
       builder.setOutputPath(Paths.get("."));
     }

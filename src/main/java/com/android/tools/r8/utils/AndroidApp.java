@@ -31,6 +31,7 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.CopyOption;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -500,8 +501,16 @@ public class AndroidApp {
      */
     public Builder addClasspathFiles(Collection<Path> files) throws IOException {
       for (Path file : files) {
-        addClassProvider(FilteredClassPath.unfiltered(file), classpathResourceProviders);
+        addClasspathFile(file);
       }
+      return this;
+    }
+
+    /**
+     * Add classpath file resources.
+     */
+    public Builder addClasspathFile(Path file) throws IOException {
+      addClassProvider(FilteredClassPath.unfiltered(file), classpathResourceProviders);
       return this;
     }
 
@@ -527,6 +536,14 @@ public class AndroidApp {
       for (FilteredClassPath file : files) {
         addClassProvider(file, libraryResourceProviders);
       }
+      return this;
+    }
+
+    /**
+     * Add library file resource.
+     */
+    public Builder addLibraryFile(FilteredClassPath file) throws IOException {
+      addClassProvider(file, libraryResourceProviders);
       return this;
     }
 
@@ -646,14 +663,14 @@ public class AndroidApp {
     /**
      * Add a main-dex list file.
      */
-    public Builder addMainDexListFiles(Path... files) throws IOException {
+    public Builder addMainDexListFiles(Path... files) throws NoSuchFileException {
       return addMainDexListFiles(Arrays.asList(files));
     }
 
-    public Builder addMainDexListFiles(Collection<Path> files) throws IOException {
+    public Builder addMainDexListFiles(Collection<Path> files) throws NoSuchFileException {
       for (Path file : files) {
         if (!Files.exists(file)) {
-          throw new FileNotFoundException("Non-existent input file: " + file);
+          throw new NoSuchFileException(file.toString());
         }
         // TODO(sgjesse): Should we just read the file here? This will sacrifice the parallelism
         // in ApplicationReader where all input resources are read in parallel.
@@ -728,7 +745,7 @@ public class AndroidApp {
           mainDexListOutput);
     }
 
-    private void addProgramFile(FilteredClassPath filteredClassPath) throws IOException {
+    public void addProgramFile(FilteredClassPath filteredClassPath) throws IOException {
       Path file = filteredClassPath.getPath();
       if (!Files.exists(file)) {
         throw new FileNotFoundException("Non-existent input file: " + file);

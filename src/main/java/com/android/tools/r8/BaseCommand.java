@@ -3,12 +3,21 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.shaking.FilteredClassPath;
+import com.android.tools.r8.utils.AbortException;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.CompilationFailedException;
+import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.Reporter;
+import com.android.tools.r8.utils.StringDiagnostic;
 import java.io.IOException;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -58,6 +67,7 @@ abstract class BaseCommand {
 
   abstract public static class Builder<C extends BaseCommand, B extends Builder<C, B>> {
 
+    protected final Reporter reporter;
     private boolean printHelp = false;
     private boolean printVersion = false;
     private final AndroidApp.Builder app;
@@ -65,17 +75,25 @@ abstract class BaseCommand {
     protected List<Path> programFiles = new ArrayList<>();
 
     protected Builder() {
-      this(AndroidApp.builder(), false);
+      this(AndroidApp.builder(), new DefaultDiagnosticsHandler());
     }
 
-    protected Builder(AndroidApp.Builder builder, boolean ignoreDexInArchive) {
+    protected Builder(DiagnosticsHandler handler) {
+      this(AndroidApp.builder(), handler);
+    }
+
+    protected Builder(AndroidApp.Builder builder) {
+      this(builder, new DefaultDiagnosticsHandler());
+    }
+
+    protected Builder(AndroidApp.Builder builder, DiagnosticsHandler handler) {
       this.app = builder;
-      app.setIgnoreDexInArchive(ignoreDexInArchive);
+      this.reporter = new Reporter(handler);
     }
 
     abstract B self();
 
-    public abstract C build() throws CompilationException, IOException;
+    public abstract C build() throws CompilationFailedException;
 
     // Internal accessor for the application resources.
     AndroidApp.Builder getAppBuilder() {
@@ -94,15 +112,25 @@ abstract class BaseCommand {
     }
 
     /** Add program file resources. */
-    public B addProgramFiles(Path... files) throws IOException {
+    public B addProgramFiles(Path... files) {
       addProgramFiles(Arrays.asList(files));
       return self();
     }
 
+    Reporter getReporter() {
+      return reporter;
+    }
+
     /** Add program file resources. */
-    public B addProgramFiles(Collection<Path> files) throws IOException {
-      app.addProgramFiles(ListUtils.map(files, FilteredClassPath::unfiltered));
-      programFiles.addAll(files);
+    public B addProgramFiles(Collection<Path> files) {
+      files.forEach(path -> {
+        try {
+          app.addProgramFile(FilteredClassPath.unfiltered(path));
+          programFiles.add(path);
+        } catch (IOException | CompilationError e) {
+          error("Error with input file: ", path, e);
+        }
+      });
       return self();
     }
 
@@ -113,14 +141,20 @@ abstract class BaseCommand {
     }
 
     /** Add library file resources. */
-    public B addLibraryFiles(Path... files) throws IOException {
+    public B addLibraryFiles(Path... files) {
       addLibraryFiles(Arrays.asList(files));
       return self();
     }
 
     /** Add library file resources. */
-    public B addLibraryFiles(Collection<Path> files) throws IOException {
-      app.addLibraryFiles(ListUtils.map(files, FilteredClassPath::unfiltered));
+    public B addLibraryFiles(Collection<Path> files) {
+      files.forEach(path -> {
+        try {
+          app.addLibraryFile(FilteredClassPath.unfiltered(path));
+        } catch (IOException | CompilationError e) {
+          error("Error with library file: ", path, e);
+        }
+      });
       return self();
     }
 
@@ -157,8 +191,13 @@ abstract class BaseCommand {
      * A class is specified using the following format: "com/example/MyClass.class". That is
      * "/" as separator between package components, and a trailing ".class".
      */
-    public B addMainDexListFiles(Path... files) throws IOException {
-      app.addMainDexListFiles(files);
+    public B addMainDexListFiles(Path... files) {
+      try {
+        app.addMainDexListFiles(files);
+      } catch (NoSuchFileException e) {
+        reporter.error(new StringDiagnostic(
+            "Main-dex-list file does not exist", new PathOrigin(Paths.get(e.getFile()))));
+      }
       return self();
     }
 
@@ -167,8 +206,13 @@ abstract class BaseCommand {
      *
      * @see #addMainDexListFiles(Path...)
      */
-    public B addMainDexListFiles(Collection<Path> files) throws IOException {
-      app.addMainDexListFiles(files);
+    public B addMainDexListFiles(Collection<Path> files) {
+      try {
+        app.addMainDexListFiles(files);
+      } catch (NoSuchFileException e) {
+        reporter.error(new StringDiagnostic(
+            "Main-dex-ist file does not exist", new PathOrigin(Paths.get(e.getFile()))));
+      }
       return self();
     }
 
@@ -220,8 +264,32 @@ abstract class BaseCommand {
       return self();
     }
 
-    protected void validate() throws CompilationException {
-      // Currently does nothing.
+    protected B setIgnoreDexInArchive(boolean value) {
+      app.setIgnoreDexInArchive(value);
+      return self();
+    }
+
+    protected void validate() throws CompilationFailedException {
+      failIfPendingErrors();
+    }
+
+    protected void failIfPendingErrors() throws CompilationFailedException {
+      try {
+        reporter.failIfPendingErrors();
+      } catch (AbortException e) {
+        throw new CompilationFailedException(e);
+      }
+    }
+
+    protected void error(String baseMessage, Path path, Throwable throwable) {
+      reporter.error(new StringDiagnostic(
+          baseMessage + throwable.getMessage(), new PathOrigin(path)), throwable);
+    }
+
+    protected RuntimeException fatalError(Throwable e) throws CompilationFailedException {
+      getReporter().error(new StringDiagnostic(e.getMessage()), e);
+      failIfPendingErrors();
+      throw new Unreachable();
     }
   }
 }

@@ -41,13 +41,7 @@ public class D8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<D8Command
     }
 
     D8TestRunner withClasspath(Path... classpath) {
-      return withBuilderTransformation(b -> {
-        try {
-          return b.addClasspathFiles(classpath);
-        } catch (IOException e) {
-          throw new AssertionError(e);
-        }
-      });
+      return withBuilderTransformation(b -> b.addClasspathFiles(classpath));
     }
 
 

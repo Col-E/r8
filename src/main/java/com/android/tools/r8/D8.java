@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.utils.AbortException;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppOutputSink;
@@ -98,10 +99,10 @@ public final class D8 {
       assert result != null;
       return new D8Output(compatSink.build(), command.getOutputMode());
     } catch (IOException io) {
-      command.getDiagnosticsHandler().error(new IOExceptionDiagnostic(io));
+      command.getReporter().error(new IOExceptionDiagnostic(io));
       throw new CompilationFailedException(io);
     } catch (CompilationException e) {
-      command.getDiagnosticsHandler().error(new StringDiagnostic(e.getMessage()));
+      command.getReporter().error(new StringDiagnostic(e.getMessage()));
       throw new CompilationFailedException(e);
     } catch (AbortException e) {
       throw new CompilationFailedException(e);
@@ -110,7 +111,7 @@ public final class D8 {
 
   private static void run(String[] args)
       throws IOException, CompilationException, CompilationFailedException {
-    D8Command.Builder builder = D8Command.parse(args);
+    D8Command.Builder builder = D8Command.parse(args, new Location(CommandLineOrigin.INSTANCE));
     if (builder.getOutputPath() == null) {
       builder.setOutputPath(Paths.get("."));
     }

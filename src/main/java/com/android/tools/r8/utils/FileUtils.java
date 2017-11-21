@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
-import com.android.tools.r8.CompilationException;
 import com.google.common.io.Closer;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -87,14 +86,14 @@ public class FileUtils {
     Files.write(file, Arrays.asList(lines));
   }
 
-  public static Path validateOutputFile(Path path) throws CompilationException {
+  public static Path validateOutputFile(Path path, Reporter reporter) {
     if (path != null) {
       boolean isJarOrZip = isZipFile(path) || isJarFile(path);
       if (!isJarOrZip  && !(Files.exists(path) && Files.isDirectory(path))) {
-        throw new CompilationException(
+        reporter.error(new StringDiagnostic(
             "Invalid output: "
                 + path
-                + "\nOutput must be a .zip or .jar archive or an existing directory");
+                + "\nOutput must be a .zip or .jar archive or an existing directory"));
       }
     }
     return path;

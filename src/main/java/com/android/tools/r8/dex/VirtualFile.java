@@ -294,7 +294,7 @@ public class VirtualFile {
             mainDexFile.addClass(programClass);
             classes.remove(programClass);
           } else {
-            options.diagnosticsHandler.warning(
+            options.reporter.warning(
                 new StringDiagnostic(
                     "Application does not contain `"
                         + type.toSourceString()

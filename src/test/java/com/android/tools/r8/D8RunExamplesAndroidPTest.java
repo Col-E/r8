@@ -4,28 +4,13 @@
 
 package com.android.tools.r8;
 
-import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
-import static com.android.tools.r8.utils.FileUtils.ZIP_EXTENSION;
-
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.DexInspector;
-import com.android.tools.r8.utils.OffOrAuto;
-import com.android.tools.r8.utils.OutputMode;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collection;
-import java.util.HashSet;
 import java.util.function.UnaryOperator;
-import org.hamcrest.core.CombinableMatcher;
-import org.hamcrest.core.IsInstanceOf;
-import org.hamcrest.core.StringContains;
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.internal.matchers.ThrowableMessageMatcher;
 
 public class D8RunExamplesAndroidPTest extends RunExamplesAndroidPTest<D8Command.Builder> {
 
@@ -41,13 +26,7 @@ public class D8RunExamplesAndroidPTest extends RunExamplesAndroidPTest<D8Command
     }
 
     D8TestRunner withClasspath(Path... classpath) {
-      return withBuilderTransformation(b -> {
-        try {
-          return b.addClasspathFiles(classpath);
-        } catch (IOException e) {
-          throw new AssertionError(e);
-        }
-      });
+      return withBuilderTransformation(b -> b.addClasspathFiles(classpath));
     }
 
 

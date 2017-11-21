@@ -19,6 +19,7 @@ import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppOutputSink;
+import com.android.tools.r8.utils.CompilationFailedException;
 import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
@@ -637,18 +638,30 @@ public class ToolHelper {
   }
 
   public static AndroidApp runR8(AndroidApp app) throws IOException, CompilationException {
-    return runR8(R8Command.builder(app).build());
+    try {
+      return runR8(R8Command.builder(app).build());
+    } catch (CompilationFailedException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   public static AndroidApp runR8(AndroidApp app, Path output)
       throws IOException, CompilationException {
     assert output != null;
-    return runR8(R8Command.builder(app).setOutputPath(output).build());
+    try {
+      return runR8(R8Command.builder(app).setOutputPath(output).build());
+    } catch (CompilationFailedException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   public static AndroidApp runR8(AndroidApp app, Consumer<InternalOptions> optionsConsumer)
       throws IOException, CompilationException {
-    return runR8(R8Command.builder(app).build(), optionsConsumer);
+    try {
+      return runR8(R8Command.builder(app).build(), optionsConsumer);
+    } catch (CompilationFailedException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   public static AndroidApp runR8(R8Command command) throws IOException, CompilationException {
@@ -690,11 +703,16 @@ public class ToolHelper {
 
   public static AndroidApp runR8(Collection<String> fileNames, String out)
       throws IOException, CompilationException {
-    R8Command command = R8Command.builder()
-        .addProgramFiles(ListUtils.map(fileNames, Paths::get))
-        .setOutputPath(Paths.get(out))
-        .setIgnoreMissingClasses(true)
-        .build();
+    R8Command command;
+    try {
+      command = R8Command.builder()
+          .addProgramFiles(ListUtils.map(fileNames, Paths::get))
+          .setOutputPath(Paths.get(out))
+          .setIgnoreMissingClasses(true)
+          .build();
+    } catch (CompilationFailedException e) {
+      throw new RuntimeException(e);
+    }
     AndroidAppOutputSink compatSink = new AndroidAppOutputSink(command.getOutputSink());
     R8.runForTesting(command.getInputApp(), compatSink, command.getInternalOptions());
     return compatSink.build();
@@ -706,7 +724,11 @@ public class ToolHelper {
 
   public static AndroidApp runD8(AndroidApp app, Consumer<InternalOptions> optionsConsumer)
       throws CompilationException, IOException {
-    return runD8(D8Command.builder(app).build(), optionsConsumer);
+    try {
+      return runD8(D8Command.builder(app).build(), optionsConsumer);
+    } catch (CompilationFailedException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   public static AndroidApp runD8(D8Command command) throws IOException, CompilationException {

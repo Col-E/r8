@@ -92,6 +92,7 @@ public class TextRangeLocation extends Location {
     return end;
   }
 
+  @Override
   public String getDescription() {
     return super.getDescription() + " line " + getStart().getLine();
   }

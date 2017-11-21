@@ -43,7 +43,7 @@ public class TreePruner {
     application.timing.begin("Pruning application...");
     if (options.debugKeepRules && !options.skipMinification) {
 
-      options.diagnosticsHandler.info(
+      options.reporter.info(
           new StringDiagnostic(
               "Debugging keep rules on a minified build might yield broken builds, as "
                   + "minification also depends on the used keep rules. We recommend using "

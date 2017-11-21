@@ -3,13 +3,17 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.CompilationFailedException;
 import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.FileSystemOutputSink;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.IOExceptionDiagnostic;
 import com.android.tools.r8.utils.IgnoreContentsOutputSink;
 import com.android.tools.r8.utils.OutputMode;
+import com.android.tools.r8.utils.Reporter;
 import java.io.IOException;
 import java.nio.file.Path;
 
@@ -24,7 +28,7 @@ abstract class BaseCompilerCommand extends BaseCommand {
   private final OutputMode outputMode;
   private final CompilationMode mode;
   private final int minApiLevel;
-  private final DiagnosticsHandler diagnosticsHandler;
+  private final Reporter reporter;
   private final boolean enableDesugaring;
   private OutputSink outputSink;
 
@@ -34,7 +38,7 @@ abstract class BaseCompilerCommand extends BaseCommand {
     outputMode = OutputMode.Indexed;
     mode = null;
     minApiLevel = 0;
-    diagnosticsHandler = new DefaultDiagnosticsHandler();
+    reporter = new Reporter(new DefaultDiagnosticsHandler());
     enableDesugaring = true;
   }
 
@@ -44,7 +48,7 @@ abstract class BaseCompilerCommand extends BaseCommand {
       OutputMode outputMode,
       CompilationMode mode,
       int minApiLevel,
-      DiagnosticsHandler diagnosticsHandler,
+      Reporter reporter,
       boolean enableDesugaring) {
     super(app);
     assert mode != null;
@@ -53,7 +57,7 @@ abstract class BaseCompilerCommand extends BaseCommand {
     this.outputMode = outputMode;
     this.mode = mode;
     this.minApiLevel = minApiLevel;
-    this.diagnosticsHandler = diagnosticsHandler;
+    this.reporter = reporter;
     this.enableDesugaring = enableDesugaring;
   }
 
@@ -73,21 +77,26 @@ abstract class BaseCompilerCommand extends BaseCommand {
     return outputMode;
   }
 
-  public DiagnosticsHandler getDiagnosticsHandler() {
-    return diagnosticsHandler;
+  public Reporter getReporter() {
+    return reporter;
   }
 
-  private OutputSink createOutputSink() throws IOException {
+  private OutputSink createOutputSink() {
     if (outputPath == null) {
       return new IgnoreContentsOutputSink();
     } else {
-      // TODO(zerny): Calling getInternalOptions here is incorrect since any modifications by an
-      // options consumer will not be visible to the sink.
-      return FileSystemOutputSink.create(outputPath, getInternalOptions());
+      try {
+        // TODO(zerny): Calling getInternalOptions here is incorrect since any modifications by an
+        // options consumer will not be visible to the sink.
+        return FileSystemOutputSink.create(outputPath, getInternalOptions());
+      } catch (IOException e) {
+        throw reporter.fatalError(
+            new IOExceptionDiagnostic(e, new Location(new PathOrigin(outputPath))));
+      }
     }
   }
 
-  public OutputSink getOutputSink() throws IOException {
+  public OutputSink getOutputSink() {
     if (outputSink == null) {
       outputSink = createOutputSink();
     }
@@ -105,26 +114,18 @@ abstract class BaseCompilerCommand extends BaseCommand {
     private OutputMode outputMode = OutputMode.Indexed;
     private CompilationMode mode;
     private int minApiLevel = AndroidApiLevel.getDefault().getLevel();
-    private DiagnosticsHandler diagnosticsHandler = new DefaultDiagnosticsHandler();
     private boolean enableDesugaring = true;
 
-    protected Builder(CompilationMode mode) {
-      this(mode, false, AndroidApp.builder());
-    }
-
-    protected Builder(CompilationMode mode, boolean ignoreDexInArchive) {
-      this(mode, ignoreDexInArchive, AndroidApp.builder());
+    protected Builder() {
     }
 
     // Internal constructor for testing.
-    Builder(CompilationMode mode, AndroidApp app) {
-      this(mode, false, AndroidApp.builder(app));
+    Builder(AndroidApp app) {
+      super(AndroidApp.builder(app));
     }
 
-    private Builder(CompilationMode mode, boolean ignoreDexInArchive, AndroidApp.Builder builder) {
-      super(builder, ignoreDexInArchive);
-      assert mode != null;
-      this.mode = mode;
+    protected Builder(DiagnosticsHandler diagnosticsHandler) {
+      super(diagnosticsHandler);
     }
 
     /**
@@ -189,15 +190,6 @@ abstract class BaseCompilerCommand extends BaseCommand {
       return self();
     }
 
-    public DiagnosticsHandler getDiagnosticsHandler() {
-      return diagnosticsHandler;
-    }
-
-    public B setDiagnosticsHandler(DiagnosticsHandler diagnosticsHandler) {
-      this.diagnosticsHandler = diagnosticsHandler;
-      return self();
-    }
-
     public B setEnableDesugaring(boolean enableDesugaring) {
       this.enableDesugaring = enableDesugaring;
       return self();
@@ -208,13 +200,13 @@ abstract class BaseCompilerCommand extends BaseCommand {
     }
 
     @Override
-    protected void validate() throws CompilationException {
-      super.validate();
+    protected void validate() throws CompilationFailedException {
+      assert mode != null;
       if (getAppBuilder().hasMainDexList() && outputMode == OutputMode.FilePerInputClass) {
-        throw new CompilationException(
-            "Option --main-dex-list cannot be used with --file-per-class");
+        reporter.error("Option --main-dex-list cannot be used with --file-per-class");
       }
-      FileUtils.validateOutputFile(outputPath);
+      FileUtils.validateOutputFile(outputPath, reporter);
+      super.validate();
     }
   }
 }

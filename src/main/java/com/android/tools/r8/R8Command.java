@@ -3,8 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationParser;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
@@ -13,9 +15,13 @@ import com.android.tools.r8.shaking.ProguardConfigurationSourceFile;
 import com.android.tools.r8.shaking.ProguardConfigurationSourceStrings;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.CompilationFailedException;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.IOExceptionDiagnostic;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OutputMode;
+import com.android.tools.r8.utils.Reporter;
+import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -42,19 +48,20 @@ public class R8Command extends BaseCompilerCommand {
     private Path proguardMapOutput = null;
 
     private Builder() {
-      super(CompilationMode.RELEASE);
+      setMode(CompilationMode.RELEASE);
     }
 
-    protected Builder(boolean ignoreDexInArchive, boolean forceProguardCompatibility,
+    protected Builder(boolean forceProguardCompatibility,
         boolean ignoreMissingClassesWhenNotShrinking, boolean ignoreMissingClasses) {
-      super(CompilationMode.RELEASE, ignoreDexInArchive);
+      setMode(CompilationMode.RELEASE);
       this.forceProguardCompatibility = forceProguardCompatibility;
       this.ignoreMissingClassesWhenNotShrinking = ignoreMissingClassesWhenNotShrinking;
       this.ignoreMissingClasses = ignoreMissingClasses;
     }
 
     private Builder(AndroidApp app) {
-      super(CompilationMode.RELEASE, app);
+      super(app);
+      setMode(CompilationMode.RELEASE);
     }
 
     @Override
@@ -185,30 +192,45 @@ public class R8Command extends BaseCompilerCommand {
     }
 
     @Override
-    protected void validate() throws CompilationException {
-      super.validate();
+    protected void validate() throws CompilationFailedException {
       if (mainDexListOutput != null && mainDexRules.isEmpty() && !getAppBuilder()
           .hasMainDexList()) {
-        throw new CompilationException(
+        reporter.error(
             "Option --main-dex-list-output require --main-dex-rules and/or --main-dex-list");
       }
+      super.validate();
     }
 
     @Override
-    public R8Command build() throws CompilationException, IOException {
+    public R8Command build() throws CompilationFailedException {
       // If printing versions ignore everything else.
       if (isPrintHelp() || isPrintVersion()) {
         return new R8Command(isPrintHelp(), isPrintVersion());
       }
 
       validate();
+      try {
+        return makeR8Command();
+      } catch (IOException e) {
+        reporter.error(new IOExceptionDiagnostic(e), e);
+        failIfPendingErrors();
+        throw new Unreachable();
+      } catch (CompilationException e) {
+        reporter.error(new StringDiagnostic(e.getMessage()), e);
+        failIfPendingErrors();
+        throw new Unreachable();
+      }
+    }
+
+    private R8Command makeR8Command()
+        throws IOException, CompilationException, CompilationFailedException {
       DexItemFactory factory = new DexItemFactory();
       ImmutableList<ProguardConfigurationRule> mainDexKeepRules;
       if (this.mainDexRules.isEmpty()) {
         mainDexKeepRules = ImmutableList.of();
       } else {
         ProguardConfigurationParser parser =
-            new ProguardConfigurationParser(factory, getDiagnosticsHandler());
+            new ProguardConfigurationParser(factory, reporter);
         try {
           parser.parse(mainDexRules);
           mainDexKeepRules = parser.getConfig().getRules();
@@ -222,7 +244,7 @@ public class R8Command extends BaseCompilerCommand {
         configurationBuilder = ProguardConfiguration.builder(factory);
       } else {
         ProguardConfigurationParser parser =
-            new ProguardConfigurationParser(factory, getDiagnosticsHandler());
+            new ProguardConfigurationParser(factory, reporter);
         try {
           parser.parse(proguardConfigs);
         } catch (ProguardRuleParserException e) {
@@ -243,7 +265,7 @@ public class R8Command extends BaseCompilerCommand {
       boolean useDiscardedChecker = discardedChecker.orElse(true);
       boolean useMinification = minification.orElse(configuration.isObfuscating());
 
-      return new R8Command(
+      R8Command command = new R8Command(
           getAppBuilder().build(),
           getOutputPath(),
           getOutputMode(),
@@ -252,7 +274,7 @@ public class R8Command extends BaseCompilerCommand {
           configuration,
           getMode(),
           getMinApiLevel(),
-          getDiagnosticsHandler(),
+          reporter,
           getEnableDesugaring(),
           useTreeShaking,
           useDiscardedChecker,
@@ -261,6 +283,10 @@ public class R8Command extends BaseCompilerCommand {
           forceProguardCompatibility,
           ignoreMissingClassesWhenNotShrinking,
           proguardMapOutput);
+
+      failIfPendingErrors();
+
+      return command;
     }
   }
 
@@ -313,14 +339,14 @@ public class R8Command extends BaseCompilerCommand {
     return new Builder(app);
   }
 
-  public static Builder parse(String[] args) throws CompilationException, IOException {
+  public static Builder parse(String[] args, Location argsLocation) {
     Builder builder = builder();
-    parse(args, builder, new ParseState());
+    parse(args, argsLocation, builder, new ParseState());
     return builder;
   }
 
-  private static ParseState parse(String[] args, Builder builder, ParseState state)
-      throws CompilationException, IOException {
+  private static ParseState parse(String[] args, Location argsLocation, Builder builder,
+      ParseState state) {
     for (int i = 0; i < args.length; i++) {
       String arg = args[i].trim();
       if (arg.length() == 0) {
@@ -331,25 +357,28 @@ public class R8Command extends BaseCompilerCommand {
         builder.setPrintVersion(true);
       } else if (arg.equals("--debug")) {
         if (state.mode == CompilationMode.RELEASE) {
-          throw new CompilationException("Cannot compile in both --debug and --release mode.");
+          builder.getReporter().error(new StringDiagnostic(
+              "Cannot compile in both --debug and --release mode.", argsLocation));
         }
         state.mode = CompilationMode.DEBUG;
         builder.setMode(state.mode);
       } else if (arg.equals("--release")) {
         if (state.mode == CompilationMode.DEBUG) {
-          throw new CompilationException("Cannot compile in both --debug and --release mode.");
+          builder.getReporter().error(new StringDiagnostic(
+              "Cannot compile in both --debug and --release mode.", argsLocation));
         }
         state.mode = CompilationMode.RELEASE;
         builder.setMode(state.mode);
       } else if (arg.equals("--output")) {
         String outputPath = args[++i];
         if (builder.getOutputPath() != null) {
-          throw new CompilationException(
+          builder.getReporter().error(new StringDiagnostic(
               "Cannot output both to '"
                   + builder.getOutputPath().toString()
                   + "' and '"
                   + outputPath
-                  + "'");
+                  + "'",
+              argsLocation));
         }
         builder.setOutputPath(Paths.get(outputPath));
       } else if (arg.equals("--lib")) {
@@ -376,9 +405,10 @@ public class R8Command extends BaseCompilerCommand {
         builder.setProguardMapOutput(Paths.get(args[++i]));
       } else if (arg.startsWith("@")) {
         // TODO(zerny): Replace this with pipe reading.
-        String argsFile = arg.substring(1);
+        Path argsFile = Paths.get(arg.substring(1));
+        Location argsFileLocation = new Location(new PathOrigin(argsFile));
         try {
-          List<String> linesInFile = FileUtils.readTextFile(Paths.get(argsFile));
+          List<String> linesInFile = FileUtils.readTextFile(argsFile);
           List<String> argsInFile = new ArrayList<>();
           for (String line : linesInFile) {
             for (String word : line.split("\\s")) {
@@ -389,14 +419,16 @@ public class R8Command extends BaseCompilerCommand {
             }
           }
           // TODO(zerny): We need to define what CWD should be for files referenced in an args file.
-          state = parse(argsInFile.toArray(new String[argsInFile.size()]), builder, state);
-        } catch (IOException | CompilationException e) {
-          throw new CompilationException(
-              "Failed to read arguments from file " + argsFile + ": " + e.getMessage());
+          state = parse(argsInFile.toArray(new String[argsInFile.size()]),
+              argsFileLocation, builder, state);
+        } catch (IOException e) {
+          builder.getReporter().error(new StringDiagnostic(
+              "Failed to read arguments from file " + argsFile + ": " + e.getMessage(),
+              argsFileLocation));
         }
       } else {
         if (arg.startsWith("--")) {
-          throw new CompilationException("Unknown option: " + arg);
+          builder.getReporter().error(new StringDiagnostic("Unknown option: " + arg, argsLocation));
         }
         builder.addProgramFiles(Paths.get(arg));
       }
@@ -413,7 +445,7 @@ public class R8Command extends BaseCompilerCommand {
       ProguardConfiguration proguardConfiguration,
       CompilationMode mode,
       int minApiLevel,
-      DiagnosticsHandler diagnosticsHandler,
+      Reporter reporter,
       boolean enableDesugaring,
       boolean useTreeShaking,
       boolean useDiscardedChecker,
@@ -422,7 +454,7 @@ public class R8Command extends BaseCompilerCommand {
       boolean forceProguardCompatibility,
       boolean ignoreMissingClassesWhenNotShrinking,
       Path proguardMapOutput) {
-    super(inputApp, outputPath, outputMode, mode, minApiLevel, diagnosticsHandler,
+    super(inputApp, outputPath, outputMode, mode, minApiLevel, reporter,
         enableDesugaring);
     assert proguardConfiguration != null;
     assert mainDexKeepRules != null;
@@ -466,7 +498,7 @@ public class R8Command extends BaseCompilerCommand {
 
   @Override
   InternalOptions getInternalOptions() {
-    InternalOptions internal = new InternalOptions(proguardConfiguration);
+    InternalOptions internal = new InternalOptions(proguardConfiguration, getReporter());
     assert !internal.debug;
     internal.debug = getMode() == CompilationMode.DEBUG;
     internal.minApiLevel = getMinApiLevel();

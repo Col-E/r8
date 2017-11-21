@@ -5,11 +5,14 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AssemblyWriter;
-import com.android.tools.r8.graph.DexByteCodeWriter;
 import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.graph.DexByteCodeWriter;
 import com.android.tools.r8.graph.SmaliWriter;
+import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.CompilationFailedException;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
@@ -55,7 +58,7 @@ public class Disassemble {
       }
 
       @Override
-      public DisassembleCommand build() throws CompilationException, IOException {
+      public DisassembleCommand build() throws CompilationFailedException {
         // If printing versions ignore everything else.
         if (isPrintHelp() || isPrintVersion()) {
           return new DisassembleCommand(isPrintHelp(), isPrintVersion());
@@ -83,15 +86,13 @@ public class Disassemble {
       return new DisassembleCommand.Builder();
     }
 
-    public static DisassembleCommand.Builder parse(String[] args)
-        throws CompilationException, IOException {
+    public static DisassembleCommand.Builder parse(String[] args) {
       DisassembleCommand.Builder builder = builder();
       parse(args, builder);
       return builder;
     }
 
-    private static void parse(String[] args, DisassembleCommand.Builder builder)
-        throws CompilationException, IOException {
+    private static void parse(String[] args, DisassembleCommand.Builder builder) {
       for (int i = 0; i < args.length; i++) {
         String arg = args[i].trim();
         if (arg.length() == 0) {
@@ -109,7 +110,8 @@ public class Disassemble {
           builder.setOutputPath(Paths.get(outputPath));
         } else {
           if (arg.startsWith("--")) {
-            throw new CompilationException("Unknown option: " + arg);
+            builder.getReporter().error(new StringDiagnostic("Unknown option: " + arg,
+                new Location(CommandLineOrigin.INSTANCE)));;
           }
           builder.addProgramFiles(Paths.get(arg));
         }
@@ -145,7 +147,7 @@ public class Disassemble {
   }
 
   public static void main(String[] args)
-      throws IOException, CompilationException, ExecutionException {
+      throws IOException, ExecutionException, CompilationFailedException {
     DisassembleCommand.Builder builder = DisassembleCommand.parse(args);
     DisassembleCommand command = builder.build();
     if (command.isPrintHelp()) {

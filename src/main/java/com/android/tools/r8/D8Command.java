@@ -6,12 +6,16 @@ package com.android.tools.r8;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.CompilationFailedException;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OutputMode;
+import com.android.tools.r8.utils.Reporter;
+import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Collection;
 
 /**
@@ -35,28 +39,38 @@ public class D8Command extends BaseCompilerCommand {
 
     private boolean intermediate = false;
 
-    protected Builder(boolean ignoreDexInArchive) {
-      super(CompilationMode.DEBUG, ignoreDexInArchive);
+    protected Builder() {
+      setMode(CompilationMode.DEBUG);
     }
 
-    protected Builder() {
-      super(CompilationMode.DEBUG);
+    protected Builder(DiagnosticsHandler diagnosticsHandler) {
+      super(diagnosticsHandler);
+      setMode(CompilationMode.DEBUG);
     }
 
     private Builder(AndroidApp app) {
-      super(CompilationMode.DEBUG, app);
-    }
+      super(app);
+      setMode(CompilationMode.DEBUG);
+   }
 
     /** Add classpath file resources. */
-    public Builder addClasspathFiles(Path... files) throws IOException {
-      getAppBuilder().addClasspathFiles(files);
+    public Builder addClasspathFiles(Path... files) {
+      Arrays.stream(files).forEach(this::addClasspathFile);
       return self();
     }
 
     /** Add classpath file resources. */
-    public Builder addClasspathFiles(Collection<Path> files) throws IOException {
-      getAppBuilder().addClasspathFiles(files);
+    public Builder addClasspathFiles(Collection<Path> files) {
+      files.forEach(this::addClasspathFile);
       return self();
+    }
+
+    private void addClasspathFile(Path file) {
+      try {
+        getAppBuilder().addClasspathFile(file);
+      } catch (IOException e) {
+        error("Error with classpath entry: ", file, e);
+      }
     }
 
     public Builder addClasspathResourceProvider(ClassFileResourceProvider provider) {
@@ -75,33 +89,36 @@ public class D8Command extends BaseCompilerCommand {
     }
 
     @Override
-    protected void validate() throws CompilationException {
-      super.validate();
+    protected void validate() throws CompilationFailedException {
       if (getAppBuilder().hasMainDexList() && intermediate) {
-        throw new CompilationException(
-            "Option --main-dex-list cannot be used with --intermediate");
+        reporter.error("Option --main-dex-list cannot be used with --intermediate");
       }
+      super.validate();
     }
 
     /**
      * Build the final D8Command.
      */
     @Override
-    public D8Command build() throws CompilationException {
+    public D8Command build() throws CompilationFailedException {
       if (isPrintHelp() || isPrintVersion()) {
         return new D8Command(isPrintHelp(), isPrintVersion());
       }
 
       validate();
-      return new D8Command(
+      D8Command command = new D8Command(
           getAppBuilder().build(),
           getOutputPath(),
           getOutputMode(),
           getMode(),
           getMinApiLevel(),
-          getDiagnosticsHandler(),
+          reporter,
           getEnableDesugaring(),
           intermediate);
+
+      failIfPendingErrors();
+
+      return command;
     }
   }
 
@@ -129,12 +146,16 @@ public class D8Command extends BaseCompilerCommand {
     return new Builder();
   }
 
+  public static Builder builder(DiagnosticsHandler diagnosticsHandler) {
+    return new Builder(diagnosticsHandler);
+  }
+
   // Internal builder to start from an existing AndroidApp.
   static Builder builder(AndroidApp app) {
     return new Builder(app);
   }
 
-  public static Builder parse(String[] args) throws CompilationException, IOException {
+  public static Builder parse(String[] args, Location location) throws CompilationFailedException {
     CompilationMode modeSet = null;
     Path outputPath = null;
     Builder builder = builder();
@@ -149,13 +170,19 @@ public class D8Command extends BaseCompilerCommand {
           builder.setPrintVersion(true);
         } else if (arg.equals("--debug")) {
           if (modeSet == CompilationMode.RELEASE) {
-            throw new CompilationException("Cannot compile in both --debug and --release mode.");
+            builder.getReporter().error(new StringDiagnostic(
+                "Cannot compile in both --debug and --release mode.",
+                location));
+            continue;
           }
           builder.setMode(CompilationMode.DEBUG);
           modeSet = CompilationMode.DEBUG;
         } else if (arg.equals("--release")) {
           if (modeSet == CompilationMode.DEBUG) {
-            throw new CompilationException("Cannot compile in both --debug and --release mode.");
+            builder.getReporter().error(new StringDiagnostic(
+                "Cannot compile in both --debug and --release mode.",
+                location));
+            continue;
           }
           builder.setMode(CompilationMode.RELEASE);
           modeSet = CompilationMode.RELEASE;
@@ -164,8 +191,10 @@ public class D8Command extends BaseCompilerCommand {
         } else if (arg.equals("--output")) {
           String output = args[++i];
           if (outputPath != null) {
-            throw new CompilationException(
-                "Cannot output both to '" + outputPath.toString() + "' and '" + output + "'");
+            builder.getReporter().error(new StringDiagnostic(
+                "Cannot output both to '" + outputPath.toString() + "' and '" + output + "'",
+                location));
+            continue;
           }
           outputPath = Paths.get(output);
         } else if (arg.equals("--lib")) {
@@ -180,14 +209,16 @@ public class D8Command extends BaseCompilerCommand {
           builder.setIntermediate(true);
         } else {
           if (arg.startsWith("--")) {
-            throw new CompilationException("Unknown option: " + arg);
+            builder.getReporter().error(new StringDiagnostic("Unknown option: " + arg,
+                location));
+            continue;
           }
           builder.addProgramFiles(Paths.get(arg));
         }
       }
       return builder.setOutputPath(outputPath);
     } catch (CompilationError e) {
-      throw new CompilationException(e.getMessage(), e);
+      throw builder.fatalError(e);
     }
   }
 
@@ -197,7 +228,7 @@ public class D8Command extends BaseCompilerCommand {
       OutputMode outputMode,
       CompilationMode mode,
       int minApiLevel,
-      DiagnosticsHandler diagnosticsHandler,
+      Reporter diagnosticsHandler,
       boolean enableDesugaring,
       boolean intermediate) {
     super(inputApp, outputPath, outputMode, mode, minApiLevel, diagnosticsHandler,
@@ -211,7 +242,7 @@ public class D8Command extends BaseCompilerCommand {
 
   @Override
   InternalOptions getInternalOptions() {
-    InternalOptions internal = new InternalOptions(new DexItemFactory());
+    InternalOptions internal = new InternalOptions(new DexItemFactory(), getReporter());
     assert !internal.debug;
     internal.debug = getMode() == CompilationMode.DEBUG;
     internal.minimalMainDex = internal.debug;
@@ -234,7 +265,6 @@ public class D8Command extends BaseCompilerCommand {
     internal.propagateMemberValue = false;
 
     internal.outputMode = getOutputMode();
-    internal.diagnosticsHandler = getDiagnosticsHandler();
     internal.enableDesugaring = getEnableDesugaring();
     return internal;
   }

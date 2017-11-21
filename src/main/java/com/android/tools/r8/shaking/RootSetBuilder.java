@@ -151,13 +151,13 @@ public class RootSetBuilder {
       // Warn if users got it wrong, but only warn once.
       if (extendsExpected && !rule.getInheritanceIsExtends()) {
         if (rulesThatUseExtendsOrImplementsWrong.add(rule)) {
-          options.diagnosticsHandler.warning(
+          options.reporter.warning(
               new StringDiagnostic(
                   "The rule `" + rule + "` uses implements but actually matches extends."));
         }
       } else if (implementsExpected && rule.getInheritanceIsExtends()) {
         if (rulesThatUseExtendsOrImplementsWrong.add(rule)) {
-          options.diagnosticsHandler.warning(
+          options.reporter.warning(
               new StringDiagnostic(
                   "The rule `" + rule + "` uses extends but actually matches implements."));
         }

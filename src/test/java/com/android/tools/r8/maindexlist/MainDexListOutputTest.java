@@ -10,6 +10,7 @@ import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.utils.CompilationFailedException;
 import com.android.tools.r8.utils.FileUtils;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
@@ -23,7 +24,7 @@ public class MainDexListOutputTest extends TestBase {
 
   @Test
   public void testNoMainDex() throws Exception {
-    thrown.expect(CompilationException.class);
+    thrown.expect(CompilationFailedException.class);
     Path mainDexListOutput = temp.getRoot().toPath().resolve("main-dex-output.txt");
     R8Command command =
         ToolHelper.prepareR8CommandBuilder(readClasses(HelloWorldMain.class))

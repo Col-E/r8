@@ -5,6 +5,7 @@ package com.android.tools.r8.utils;
 
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.DiagnosticsHandler;
+import com.android.tools.r8.errors.Unreachable;
 import java.util.ArrayList;
 import java.util.Collection;
 
@@ -47,21 +48,24 @@ public class Reporter implements DiagnosticsHandler {
     }
   }
 
-  public void fatalError(Diagnostic error) throws AbortException {
+  public RuntimeException fatalError(Diagnostic error) throws AbortException {
     error(error);
     failIfPendingErrors();
+    throw new Unreachable();
   }
 
-  public void fatalError(Diagnostic error, Throwable suppressedException) throws AbortException {
+  public RuntimeException fatalError(Diagnostic error, Throwable suppressedException)
+      throws AbortException {
     error(error, suppressedException);
     failIfPendingErrors();
+    throw new Unreachable();
   }
 
   public void failIfPendingErrors() throws AbortException {
     synchronized (this) {
       if (errorCount != 0) {
         AbortException abort = new AbortException();
-        suppressedExceptions.stream().forEach(throwable -> abort.addSuppressed(throwable));
+        suppressedExceptions.forEach(throwable -> abort.addSuppressed(throwable));
         throw abort;
       }
     }

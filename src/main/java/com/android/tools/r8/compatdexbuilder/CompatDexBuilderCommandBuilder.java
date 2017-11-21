@@ -7,7 +7,7 @@ import com.android.tools.r8.D8Command;
 
 public class CompatDexBuilderCommandBuilder extends D8Command.Builder {
   CompatDexBuilderCommandBuilder() {
-    super(true);
+    setIgnoreDexInArchive(true);
     setEnableDesugaring(false);
   }
 
