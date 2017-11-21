@@ -2749,7 +2749,10 @@ public class JarSourceCode implements SourceCode {
 
   private void build(IincInsnNode insn, IRBuilder builder) {
     int local = state.readLocal(insn.var, Type.INT_TYPE).register;
-    builder.addAddLiteral(NumericType.INT, local, local, insn.incr);
+    int tmp = state.push(Type.INT_TYPE);
+    builder.addIntConst(tmp, insn.incr);
+    int dest = state.writeLocal(insn.var, Type.INT_TYPE);
+    builder.addAdd(NumericType.INT, dest, local, state.pop(Type.INT_TYPE).register);
   }
 
   private void build(TableSwitchInsnNode insn, IRBuilder builder) {
