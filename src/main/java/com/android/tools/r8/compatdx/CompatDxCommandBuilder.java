@@ -8,7 +8,7 @@ import com.android.tools.r8.D8Command;
 
 public class CompatDxCommandBuilder extends D8Command.Builder {
   CompatDxCommandBuilder() {
-    super(true);
+    setIgnoreDexInArchive(true);
     setEnableDesugaring(false);
   }
 }

@@ -12,8 +12,12 @@ import com.android.tools.r8.shaking.ProguardConfigurationSourceFile;
 import com.android.tools.r8.shaking.ProguardConfigurationSourceStrings;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.CompilationFailedException;
 import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
+import com.android.tools.r8.utils.IOExceptionDiagnostic;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.Reporter;
+import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -92,7 +96,7 @@ public class GenerateMainDexListCommand extends BaseCommand {
 
 
     @Override
-    public GenerateMainDexListCommand build() throws CompilationException, IOException {
+    public GenerateMainDexListCommand build() throws CompilationFailedException {
       // If printing versions ignore everything else.
       if (isPrintHelp() || isPrintVersion()) {
         return new GenerateMainDexListCommand(isPrintHelp(), isPrintVersion());
@@ -104,12 +108,19 @@ public class GenerateMainDexListCommand extends BaseCommand {
         mainDexKeepRules = ImmutableList.of();
       } else {
         ProguardConfigurationParser parser =
-            new ProguardConfigurationParser(factory, new DefaultDiagnosticsHandler());
+            new ProguardConfigurationParser(factory, reporter);
         try {
           parser.parse(mainDexRules);
           mainDexKeepRules = parser.getConfig().getRules();
         } catch (ProguardRuleParserException e) {
-          throw new CompilationException(e.getMessage(), e.getCause());
+          reporter.error(new StringDiagnostic(e.getMessage()), e.getCause());
+          throw new CompilationFailedException(e);
+        } catch (CompilationException e) {
+          reporter.error(new StringDiagnostic(e.getMessage()), e.getCause());
+          throw new CompilationFailedException(e);
+        } catch (IOException e) {
+          reporter.error(new IOExceptionDiagnostic(e), e);
+          throw new CompilationFailedException(e);
         }
       }
 
@@ -189,7 +200,8 @@ public class GenerateMainDexListCommand extends BaseCommand {
 
   @Override
   InternalOptions getInternalOptions() {
-    InternalOptions internal = new InternalOptions(factory);
+    InternalOptions internal =
+        new InternalOptions(factory, new Reporter(new DefaultDiagnosticsHandler()));
     internal.mainDexKeepRules = mainDexKeepRules;
     if (mainDexListOutput != null) {
       internal.printMainDexListFile = mainDexListOutput;

@@ -13,9 +13,11 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8Command;
+import com.android.tools.r8.Location;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.origin.EmbeddedOrigin;
 import com.google.common.collect.ImmutableList;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -88,7 +90,7 @@ public class D8CommandTest {
 
   @Test
   public void nonExistingOutputDir() throws Throwable {
-    thrown.expect(CompilationException.class);
+    thrown.expect(CompilationFailedException.class);
     Path nonExistingDir = temp.getRoot().toPath().resolve("a/path/that/does/not/exist");
     D8Command.builder().setOutputPath(nonExistingDir).build();
   }
@@ -138,14 +140,14 @@ public class D8CommandTest {
 
   @Test
   public void invalidOutputFileType() throws Throwable {
-    thrown.expect(CompilationException.class);
+    thrown.expect(CompilationFailedException.class);
     Path invalidType = temp.getRoot().toPath().resolve("an-invalid-output-file-type.foobar");
     D8Command.builder().setOutputPath(invalidType).build();
   }
 
   @Test
   public void nonExistingOutputDirParse() throws Throwable {
-    thrown.expect(CompilationException.class);
+    thrown.expect(CompilationFailedException.class);
     Path nonExistingDir = temp.getRoot().toPath().resolve("a/path/that/does/not/exist");
     parse("--output", nonExistingDir.toString());
   }
@@ -171,14 +173,14 @@ public class D8CommandTest {
 
   @Test
   public void nonExistingMainDexList() throws Throwable {
-    thrown.expect(FileNotFoundException.class);
+    thrown.expect(CompilationFailedException.class);
     Path mainDexList = temp.getRoot().toPath().resolve("main-dex-list.txt");
     parse("--main-dex-list", mainDexList.toString());
   }
 
   @Test
   public void mainDexListWithFilePerClass() throws Throwable {
-    thrown.expect(CompilationException.class);
+    thrown.expect(CompilationFailedException.class);
     Path mainDexList = temp.newFile("main-dex-list.txt").toPath();
     D8Command command = parse("--main-dex-list", mainDexList.toString(), "--file-per-class");
     assertTrue(ToolHelper.getApp(command).hasMainDexListResources());
@@ -186,7 +188,7 @@ public class D8CommandTest {
 
   @Test
   public void mainDexListWithIntermediate() throws Throwable {
-    thrown.expect(CompilationException.class);
+    thrown.expect(CompilationFailedException.class);
     Path mainDexList = temp.newFile("main-dex-list.txt").toPath();
     D8Command command = parse("--main-dex-list", mainDexList.toString(), "--intermediate");
     assertTrue(ToolHelper.getApp(command).hasMainDexListResources());
@@ -194,7 +196,7 @@ public class D8CommandTest {
 
   @Test
   public void invalidOutputFileTypeParse() throws Throwable {
-    thrown.expect(CompilationException.class);
+    thrown.expect(CompilationFailedException.class);
     Path invalidType = temp.getRoot().toPath().resolve("an-invalid-output-file-type.foobar");
     parse("--output", invalidType.toString());
   }
@@ -218,7 +220,7 @@ public class D8CommandTest {
 
   @Test
   public void classFolderProgram() throws Throwable {
-    thrown.expect(CompilationException.class);
+    thrown.expect(CompilationFailedException.class);
     Path inputFile =
         Paths.get(ToolHelper.EXAMPLES_ANDROID_N_BUILD_DIR, "interfacemethods" + JAR_EXTENSION);
     Path tmpClassesDir = temp.newFolder().toPath();
@@ -228,7 +230,7 @@ public class D8CommandTest {
 
   @Test
   public void emptyFolderProgram() throws Throwable {
-    thrown.expect(CompilationException.class);
+    thrown.expect(CompilationFailedException.class);
     Path tmpClassesDir = temp.newFolder().toPath();
     parse(tmpClassesDir.toString());
   }
@@ -241,13 +243,13 @@ public class D8CommandTest {
 
   @Test
   public void vdexFileUnsupported() throws Throwable {
-    thrown.expect(CompilationError.class);
+    thrown.expect(CompilationFailedException.class);
     Path vdexFile = temp.newFile("test.vdex").toPath();
     D8Command.builder().addProgramFiles(vdexFile).build();
   }
 
   private D8Command parse(String... args)
-      throws IOException, CompilationException, CompilationFailedException {
-    return D8Command.parse(args).build();
+      throws CompilationFailedException {
+    return D8Command.parse(args, new Location(EmbeddedOrigin.INSTANCE)).build();
   }
 }

@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
-import com.android.tools.r8.origin.Origin;
-
 /**
  * A DiagnosticsHandler can be provided to customize handling of diagnostics information.
  *

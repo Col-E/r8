@@ -25,10 +25,12 @@ import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.IgnoreContentsOutputSink;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OutputMode;
+import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
@@ -126,7 +128,8 @@ public class SharedClassWritingTest {
     classes.forEach(builder::addProgramClass);
     DexApplication application = builder.build();
 
-    InternalOptions options = new InternalOptions(dexItemFactory);
+    InternalOptions options = new InternalOptions(dexItemFactory,
+        new Reporter(new DefaultDiagnosticsHandler()));
     options.outputMode = OutputMode.FilePerInputClass;
     ApplicationWriter writer = new ApplicationWriter(application,
         options, null, null, NamingLens.getIdentityLens(), null);

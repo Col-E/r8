@@ -23,6 +23,7 @@ import com.android.tools.r8.shaking.FilteredClassPath;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.CompilationFailedException;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.InternalOptions;
@@ -106,7 +107,8 @@ public class SmaliTestBase extends TestBase {
               .build();
       ToolHelper.runR8WithFullResult(command, optionsConsumer);
       return dexOutputDir.resolve("classes.dex");
-    } catch (CompilationException | IOException | RecognitionException | ExecutionException e) {
+    } catch (CompilationException | IOException | RecognitionException | ExecutionException
+        | CompilationFailedException e) {
       throw new RuntimeException(e);
     }
   }

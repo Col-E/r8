@@ -14,7 +14,9 @@ import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.shaking.RootSetBuilder;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
+import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
@@ -65,7 +67,8 @@ abstract class NamingTestBase {
       throws IOException, ProguardRuleParserException, ExecutionException, CompilationException {
     ProguardConfiguration configuration =
         ToolHelper.loadProguardConfiguration(dexItemFactory, configPaths);
-    InternalOptions options = new InternalOptions(configuration);
+    InternalOptions options = new InternalOptions(configuration,
+        new Reporter(new DefaultDiagnosticsHandler()));
 
     if (options.proguardConfiguration.isAccessModificationAllowed()) {
       ClassAndMemberPublicizer.run(program);

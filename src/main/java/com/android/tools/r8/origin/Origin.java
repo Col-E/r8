@@ -92,6 +92,7 @@ public abstract class Origin implements Comparable<Origin> {
    * @return This {@link Origin} if it's an instance of the requested {@link Class} or the first
    * parent found matching the condition. May return null if no satisfying instance is found.
    */
+  @SuppressWarnings("unchecked")
   public <T extends Origin> T getFromHierarchy(Class<T> type) {
     Origin origin = this;
     do {

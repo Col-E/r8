@@ -5,7 +5,6 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.Location;
-import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -21,15 +20,17 @@ public class IOExceptionDiagnostic extends DiagnosticWithThrowable {
 
   public IOExceptionDiagnostic(IOException e) {
     super(e);
-    Location location = Location.UNKNOWN;
+    location = extractLocation(e);
+    message = extractMessage(e);
+  }
 
-    if (e instanceof FileSystemException) {
-      FileSystemException fse = (FileSystemException) e;
-      if (fse.getFile() != null && !fse.getFile().isEmpty()) {
-        location = new Location(new PathOrigin(Paths.get(fse.getFile())));
-      }
-    }
+  public IOExceptionDiagnostic(IOException e, Location location) {
+    super(e);
+    this.location = location;
+    message = extractMessage(e);
+  }
 
+  private String extractMessage(IOException e) {
     String message = e.getMessage();
     if (message == null || message.isEmpty()) {
       if (e instanceof NoSuchFileException || e instanceof FileNotFoundException) {
@@ -38,10 +39,19 @@ public class IOExceptionDiagnostic extends DiagnosticWithThrowable {
         message = "File already exists";
       }
     }
+    return message;
+  }
 
-    this.location = location;
-    this.message = message;
+  private Location extractLocation(IOException e) {
+    Location location = Location.UNKNOWN;
 
+    if (e instanceof FileSystemException) {
+      FileSystemException fse = (FileSystemException) e;
+      if (fse.getFile() != null && !fse.getFile().isEmpty()) {
+        location = new Location(new PathOrigin(Paths.get(fse.getFile())));
+      }
+    }
+    return location;
   }
 
   @Override

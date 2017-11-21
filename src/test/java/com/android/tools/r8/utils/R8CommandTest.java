@@ -12,10 +12,12 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8Command;
+import com.android.tools.r8.Location;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.origin.EmbeddedOrigin;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.google.common.collect.ImmutableList;
 import java.io.FileNotFoundException;
@@ -101,7 +103,7 @@ public class R8CommandTest {
 
   @Test
   public void nonExistingMainDexRules() throws Throwable {
-    thrown.expect(NoSuchFileException.class);
+    thrown.expect(CompilationFailedException.class);
     Path mainDexRules = temp.getRoot().toPath().resolve("main-dex.rules");
     parse("--main-dex-rules", mainDexRules.toString());
   }
@@ -116,7 +118,7 @@ public class R8CommandTest {
 
   @Test
   public void nonExistingMainDexList() throws Throwable {
-    thrown.expect(FileNotFoundException.class);
+    thrown.expect(CompilationFailedException.class);
     Path mainDexList = temp.getRoot().toPath().resolve("main-dex-list.txt");
     parse("--main-dex-list", mainDexList.toString());
   }
@@ -134,7 +136,7 @@ public class R8CommandTest {
 
   @Test
   public void mainDexListOutputWithoutAnyMainDexSpecification() throws Throwable {
-    thrown.expect(CompilationException.class);
+    thrown.expect(CompilationFailedException.class);
     Path mainDexListOutput = temp.newFile("main-dex-out.txt").toPath();
     parse("--main-dex-list-output", mainDexListOutput.toString());
   }
@@ -178,7 +180,7 @@ public class R8CommandTest {
 
   @Test
   public void nonExistingOutputDir() throws Throwable {
-    thrown.expect(CompilationException.class);
+    thrown.expect(CompilationFailedException.class);
     Path nonExistingDir = temp.getRoot().toPath().resolve("a/path/that/does/not/exist");
     R8Command.builder().setOutputPath(nonExistingDir).build();
   }
@@ -191,14 +193,14 @@ public class R8CommandTest {
 
   @Test
   public void invalidOutputFileType() throws Throwable {
-    thrown.expect(CompilationException.class);
+    thrown.expect(CompilationFailedException.class);
     Path invalidType = temp.getRoot().toPath().resolve("an-invalid-output-file-type.foobar");
     R8Command.builder().setOutputPath(invalidType).build();
   }
 
   @Test
   public void nonExistingOutputDirParse() throws Throwable {
-    thrown.expect(CompilationException.class);
+    thrown.expect(CompilationFailedException.class);
     Path nonExistingDir = temp.getRoot().toPath().resolve("a/path/that/does/not/exist");
     parse("--output", nonExistingDir.toString());
   }
@@ -211,7 +213,7 @@ public class R8CommandTest {
 
   @Test
   public void invalidOutputFileTypeParse() throws Throwable {
-    thrown.expect(CompilationException.class);
+    thrown.expect(CompilationFailedException.class);
     Path invalidType = temp.getRoot().toPath().resolve("an-invalid-output-file-type.foobar");
     parse("--output", invalidType.toString());
   }
@@ -241,7 +243,7 @@ public class R8CommandTest {
 
   @Test
   public void vdexFileUnsupported() throws Throwable {
-    thrown.expect(CompilationError.class);
+    thrown.expect(CompilationFailedException.class);
     Path vdexFile = temp.newFile("test.vdex").toPath();
     D8Command.builder().addProgramFiles(vdexFile).build();
   }
@@ -249,6 +251,6 @@ public class R8CommandTest {
   private R8Command parse(String... args)
       throws CompilationException, ProguardRuleParserException, IOException,
       CompilationFailedException {
-    return R8Command.parse(args).build();
+    return R8Command.parse(args, new Location(EmbeddedOrigin.INSTANCE)).build();
   }
 }

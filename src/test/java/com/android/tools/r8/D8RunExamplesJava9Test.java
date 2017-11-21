@@ -27,13 +27,7 @@ public class D8RunExamplesJava9Test extends RunExamplesJava9Test<D8Command.Build
     }
 
     D8TestRunner withClasspath(Path... classpath) {
-      return withBuilderTransformation(b -> {
-        try {
-          return b.addClasspathFiles(classpath);
-        } catch (IOException e) {
-          throw new AssertionError(e);
-        }
-      });
+      return withBuilderTransformation(b -> b.addClasspathFiles(classpath));
     }
 
 

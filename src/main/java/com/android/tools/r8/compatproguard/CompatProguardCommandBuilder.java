@@ -19,7 +19,8 @@ public class CompatProguardCommandBuilder extends R8Command.Builder {
   public CompatProguardCommandBuilder(
       boolean forceProguardCompatibility,
       boolean ignoreMissingClasses) {
-    super(true, forceProguardCompatibility, true, ignoreMissingClasses);
+    super(forceProguardCompatibility, true, ignoreMissingClasses);
+    setIgnoreDexInArchive(true);
     setEnableDesugaring(false);
     addProguardConfiguration(CLASS_FOR_NAME, EmbeddedOrigin.INSTANCE);
   }

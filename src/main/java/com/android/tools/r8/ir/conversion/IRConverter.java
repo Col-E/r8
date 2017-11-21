@@ -495,7 +495,7 @@ public class IRConverter {
       BiConsumer<IRCode, DexEncodedMethod> outlineHandler)
       throws ApiLevelException {
     if (options.verbose) {
-      options.diagnosticsHandler.info(
+      options.reporter.info(
           new StringDiagnostic("Processing: " + method.toSourceString()));
     }
     if (Log.ENABLED) {

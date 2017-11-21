@@ -320,7 +320,7 @@ public final class InterfaceMethodRewriter {
           .append(implementing)
           .append("`");
     }
-    options.diagnosticsHandler.warning(
+    options.reporter.warning(
         new StringDiagnostic(builder.toString(), classToDesugar.getOrigin()));
   }
 
@@ -338,7 +338,7 @@ public final class InterfaceMethodRewriter {
         .append(referencedFrom.toSourceString())
         .append("`");
     DexClass referencedFromClass = converter.appInfo.definitionFor(referencedFrom.getHolder());
-    options.diagnosticsHandler.warning(
+    options.reporter.warning(
         new StringDiagnostic(builder.toString(), referencedFromClass.getOrigin()));
   }
 }

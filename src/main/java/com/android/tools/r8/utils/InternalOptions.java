@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
-import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.errors.InvalidDebugInfoException;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -33,23 +32,29 @@ public class InternalOptions {
 
   public final DexItemFactory itemFactory;
   public final ProguardConfiguration proguardConfiguration;
+  public final Reporter reporter;
 
   // Constructor for testing and/or other utilities.
   public InternalOptions() {
+    reporter = new Reporter(new DefaultDiagnosticsHandler());
     itemFactory = new DexItemFactory();
     proguardConfiguration = ProguardConfiguration.defaultConfiguration(itemFactory);
   }
 
   // Constructor for D8.
-  public InternalOptions(DexItemFactory factory) {
+  public InternalOptions(DexItemFactory factory, Reporter reporter) {
+    assert reporter != null;
     assert factory != null;
+    this.reporter = reporter;
     itemFactory = factory;
     proguardConfiguration = ProguardConfiguration.defaultConfiguration(itemFactory);
   }
 
   // Constructor for R8.
-  public InternalOptions(ProguardConfiguration proguardConfiguration) {
+  public InternalOptions(ProguardConfiguration proguardConfiguration, Reporter reporter) {
+    assert reporter != null;
     assert proguardConfiguration != null;
+    this.reporter = reporter;
     this.proguardConfiguration = proguardConfiguration;
     itemFactory = proguardConfiguration.getDexItemFactory();
   }
@@ -168,8 +173,6 @@ public class InternalOptions {
 
   public Path proguardMapOutput = null;
 
-  public DiagnosticsHandler diagnosticsHandler = new DefaultDiagnosticsHandler();
-
   public void warningMissingEnclosingMember(DexType clazz, Origin origin, int version) {
     if (missingEnclosingMembers == null) {
       missingEnclosingMembers = new HashMap<>();
@@ -201,7 +204,7 @@ public class InternalOptions {
     boolean printOutdatedToolchain = false;
     if (warningInvalidParameterAnnotations != null) {
       // TODO(b/67626202): Add a regression test with a program that hits this issue.
-      diagnosticsHandler.warning(
+      reporter.warning(
           new StringDiagnostic(
               "Invalid parameter counts in MethodParameter attributes. "
                   + "This is likely due to Proguard having removed a parameter."));
@@ -217,7 +220,7 @@ public class InternalOptions {
               .append(" actual count: ")
               .append(info.actualParameterCount);
         }
-        diagnosticsHandler.info(new StringDiagnostic(builder.toString(), origin));
+        reporter.info(new StringDiagnostic(builder.toString(), origin));
       }
       printed = true;
     }
@@ -226,7 +229,7 @@ public class InternalOptions {
       for (List<DexEncodedMethod> methods : warningInvalidDebugInfo.values()) {
         count += methods.size();
       }
-      diagnosticsHandler.warning(
+      reporter.warning(
           new StringDiagnostic(
               "Stripped invalid locals information from "
                   + count
@@ -236,13 +239,13 @@ public class InternalOptions {
         for (DexEncodedMethod method : warningInvalidDebugInfo.get(origin)) {
           builder.append("\n  ").append(method.toSourceString());
         }
-        diagnosticsHandler.info(new StringDiagnostic(builder.toString(), origin));
+        reporter.info(new StringDiagnostic(builder.toString(), origin));
       }
       printed = true;
       printOutdatedToolchain = true;
     }
     if (missingEnclosingMembers != null) {
-      diagnosticsHandler.warning(
+      reporter.warning(
           new StringDiagnostic(
               "InnerClass annotations are missing corresponding EnclosingMember annotations."
                   + " Such InnerClass annotations are ignored."));
@@ -258,12 +261,12 @@ public class InternalOptions {
           builder.append(pair.type);
           printOutdatedToolchain |= pair.version < 49;
         }
-        diagnosticsHandler.info(new StringDiagnostic(builder.toString(), origin));
+        reporter.info(new StringDiagnostic(builder.toString(), origin));
       }
       printed = true;
     }
     if (printOutdatedToolchain) {
-      diagnosticsHandler.info(
+      reporter.info(
           new StringDiagnostic(
               "Some warnings are typically a sign of using an outdated Java toolchain."
                   + " To fix, recompile the source with an updated toolchain."));
