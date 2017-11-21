@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.utils.InternalOptions;
+import java.io.UTFDataFormatException;
 
 public class ConstString extends ConstInstruction {
 
@@ -86,8 +87,21 @@ public class ConstString extends ConstInstruction {
 
   @Override
   public boolean canBeDeadCode(IRCode code, InternalOptions options) {
-    // The const-string instruction is a throwing instruction in DEX, but not so in CF.
-    return options.outputClassFiles;
+    // The const-string instruction can be a throwing instruction in DEX, if decode() fails,
+    // but not so in CF.
+    if (options.outputClassFiles) {
+      return true;
+    }
+    try {
+      value.toString();
+    } catch (RuntimeException e) {
+      if (e.getCause() instanceof UTFDataFormatException) {
+        return false;
+      } else {
+        throw e;
+      }
+    }
+    return true;
   }
 
   @Override
