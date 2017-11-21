@@ -67,13 +67,10 @@ public class IdentifierNameStringMarker {
       return;
     }
     DexString original = ((DexValueString) encodedField.staticValue).getValue();
-    String maybeDescriptor = javaTypeToDescriptorIfValidJavaType(original.toString());
-    if (maybeDescriptor == null) {
-      return;
+    DexItemBasedString itemBasedString = inferMemberOrTypeFromNameString(original);
+    if (itemBasedString != null) {
+      encodedField.staticValue = new DexValueString(itemBasedString);
     }
-    DexType type = dexItemFactory.createType(maybeDescriptor);
-    DexItemBasedString typeString = dexItemFactory.createItemBasedString(type);
-    encodedField.staticValue = new DexValueString(typeString);
   }
 
   public void decoupleIdentifierNameStringsInMethod(DexEncodedMethod encodedMethod, IRCode code) {
@@ -86,7 +83,7 @@ public class IdentifierNameStringMarker {
           DexField field = staticPut.getField();
           if (identifierNameStrings.contains(field)) {
             Value in = staticPut.inValue();
-            Value newIn = decoupleTypeIdentifierIfNecessary(code, iterator, staticPut, in);
+            Value newIn = decoupleIdentifierIfNecessary(code, iterator, staticPut, in);
             if (newIn != in) {
               iterator.replaceCurrentInstruction(
                   new StaticPut(staticPut.getType(), newIn, field));
@@ -98,7 +95,7 @@ public class IdentifierNameStringMarker {
           DexField field = instancePut.getField();
           if (identifierNameStrings.contains(field)) {
             Value in = instancePut.value();
-            Value newIn = decoupleTypeIdentifierIfNecessary(code, iterator, instancePut, in);
+            Value newIn = decoupleIdentifierIfNecessary(code, iterator, instancePut, in);
             if (newIn != in) {
               List<Value> values = new ArrayList<>(2);
               values.add(newIn);
@@ -123,7 +120,7 @@ public class IdentifierNameStringMarker {
             } else {
               for (int i = 0; i < ins.size(); i++) {
                 Value in = ins.get(i);
-                Value newIn = decoupleTypeIdentifierIfNecessary(code, iterator, invoke, in);
+                Value newIn = decoupleIdentifierIfNecessary(code, iterator, invoke, in);
                 if (newIn != in) {
                   changes[i] = newIn;
                 }
@@ -150,40 +147,17 @@ public class IdentifierNameStringMarker {
     }
   }
 
-  private Value decoupleTypeIdentifierIfNecessary(
+  private Value decoupleIdentifierIfNecessary(
       IRCode code, InstructionListIterator iterator, Instruction base, Value in) {
     if (!in.isConstString()) {
       return in;
     }
-    ConstString constString = in.getConstInstruction().asConstString();
-    String maybeDescriptor = javaTypeToDescriptorIfValidJavaType(constString.getValue().toString());
-    if (maybeDescriptor == null) {
+    DexString original = in.getConstInstruction().asConstString().getValue();
+    DexItemBasedString itemBasedString = inferMemberOrTypeFromNameString(original);
+    if (itemBasedString == null) {
       return in;
     }
-    DexType type = dexItemFactory.createType(maybeDescriptor);
-    DexItemBasedString typeString = dexItemFactory.createItemBasedString(type);
-    // v_n <- "x.y.z" // in.definition
-    // ...
-    // ... <- ... v_n ..
-    // ...
-    // this.fld <- v_n // base
-    //
-    //   ~>
-    //
-    // ...
-    // v_n' <- DexItemBasedString("Lx/y/z;") // decoupled
-    // this.fld <- v_n' // base
-    //
-    // 1) Move the cursor back to $base
-    iterator.previous();
-    // 2) Add $decoupled just before $base
-    Value newIn = code.createValue(in.outType(), in.getLocalInfo());
-    ConstString decoupled = new ConstString(newIn, typeString);
-    decoupled.setPosition(base.getPosition());
-    iterator.add(decoupled);
-    // 3) Restore the cursor
-    iterator.next();
-    return newIn;
+    return insertItemBasedString(code, iterator, base, in, itemBasedString);
   }
 
   private Value decoupleReflectiveMemberIdentifier(
@@ -204,55 +178,142 @@ public class IdentifierNameStringMarker {
     DexItemBasedString itemBasedString = null;
     int numOfParams = invoke.arguments().size();
     if (numOfParams == 2) {
-      for (DexEncodedField encodedField : holder.staticFields()) {
-        if (encodedField.field.name == dexString) {
-          itemBasedString = dexItemFactory.createItemBasedString(encodedField.field);
-          break;
-        }
-      }
-      if (itemBasedString == null) {
-        for (DexEncodedField encodedField : holder.instanceFields()) {
-          if (encodedField.field.name == dexString) {
-            itemBasedString = dexItemFactory.createItemBasedString(encodedField.field);
-            break;
-          }
-        }
-      }
+      itemBasedString = inferFieldInHolder(holder, dexString.toString());
     } else {
       assert numOfParams == 3;
       DexTypeList arguments = retrieveDexTypeListFromClassList(invoke, invoke.arguments().get(2));
-      if (arguments != null) {
-        for (DexEncodedMethod encodedMethod : holder.directMethods()) {
-          if (encodedMethod.method.name == dexString
-              && encodedMethod.method.proto.parameters.equals(arguments)) {
-            itemBasedString = dexItemFactory.createItemBasedString(encodedMethod.method);
-            break;
-          }
-        }
-        if (itemBasedString == null) {
-          for (DexEncodedMethod encodedMethod : holder.virtualMethods()) {
-            if (encodedMethod.method.name == dexString
-                && encodedMethod.method.proto.parameters.equals(arguments)) {
-              itemBasedString = dexItemFactory.createItemBasedString(encodedMethod.method);
-              break;
-            }
-          }
-        }
-      }
+      itemBasedString = inferMethodInHolder(holder, dexString.toString(), arguments);
     }
     if (itemBasedString == null) {
       return in;
     }
+    return insertItemBasedString(code, iterator, invoke, in, itemBasedString);
+  }
+
+  private Value insertItemBasedString(
+      IRCode code,
+      InstructionListIterator iterator,
+      Instruction base,
+      Value in,
+      DexItemBasedString itemBasedString) {
+    // v_n <- "x.y.z" // in.definition
+    // ...
+    // ... <- ... v_n ..
+    // ...
+    // this.fld <- v_n // base
+    //
+    //   ~>
+    //
+    // ...
+    // v_n' <- DexItemBasedString("Lx/y/z;") // decoupled
+    // this.fld <- v_n' // base
+    //
     // 1) Move the cursor back to $base
     iterator.previous();
     // 2) Add $decoupled just before $base
     Value newIn = code.createValue(in.outType(), in.getLocalInfo());
     ConstString decoupled = new ConstString(newIn, itemBasedString);
-    decoupled.setPosition(invoke.getPosition());
+    decoupled.setPosition(base.getPosition());
     iterator.add(decoupled);
     // 3) Restore the cursor
     iterator.next();
     return newIn;
+  }
+
+  private DexItemBasedString inferMemberOrTypeFromNameString(DexString dexString) {
+    // "fully.qualified.ClassName.fieldOrMethodName"
+    // "fully.qualified.ClassName#fieldOrMethodName"
+    DexItemBasedString itemBasedString = inferMemberFromNameString(dexString);
+    if (itemBasedString == null) {
+      // "fully.qualified.ClassName"
+      String maybeDescriptor = javaTypeToDescriptorIfValidJavaType(dexString.toString());
+      if (maybeDescriptor != null) {
+        DexType type = dexItemFactory.createType(maybeDescriptor);
+        itemBasedString = dexItemFactory.createItemBasedString(type);
+      }
+    }
+    return itemBasedString;
+  }
+
+  private DexItemBasedString inferMemberFromNameString(DexString dexString) {
+    String identifier = dexString.toString();
+    String typeIdentifier = null;
+    String memberIdentifier = null;
+    String[] items = identifier.split("#");
+    // "x#y#z"
+    if (items.length > 2) {
+      return null;
+    }
+    // "fully.qualified.ClassName#fieldOrMethodName"
+    if (items.length == 2) {
+      typeIdentifier = items[0];
+      memberIdentifier = items[1];
+    } else {
+      int lastDot = identifier.lastIndexOf(".");
+      // "fully.qualified.ClassName.fieldOrMethodName"
+      if (0 < lastDot && lastDot < identifier.length() - 1) {
+        typeIdentifier = identifier.substring(0, lastDot);
+        memberIdentifier = identifier.substring(lastDot + 1);
+      }
+    }
+    if (typeIdentifier == null) {
+      return null;
+    }
+    String maybeDescriptor = javaTypeToDescriptorIfValidJavaType(typeIdentifier);
+    if (maybeDescriptor == null) {
+      return null;
+    }
+    DexType type = dexItemFactory.createType(maybeDescriptor);
+    DexClass holder = appInfo.definitionFor(type);
+    if (holder == null) {
+      return null;
+    }
+    DexItemBasedString itemBasedString = inferFieldInHolder(holder, memberIdentifier);
+    if (itemBasedString == null) {
+      itemBasedString = inferMethodInHolder(holder, memberIdentifier, null);
+    }
+    return itemBasedString;
+  }
+
+  private DexItemBasedString inferFieldInHolder(DexClass holder, String name) {
+    DexItemBasedString itemBasedString = null;
+    for (DexEncodedField encodedField : holder.staticFields()) {
+      if (encodedField.field.name.toString().equals(name)) {
+        itemBasedString = dexItemFactory.createItemBasedString(encodedField.field);
+        break;
+      }
+    }
+    if (itemBasedString == null) {
+      for (DexEncodedField encodedField : holder.instanceFields()) {
+        if (encodedField.field.name.toString().equals(name)) {
+          itemBasedString = dexItemFactory.createItemBasedString(encodedField.field);
+          break;
+        }
+      }
+    }
+    return itemBasedString;
+  }
+
+  private DexItemBasedString inferMethodInHolder(
+      DexClass holder, String name, DexTypeList arguments) {
+    DexItemBasedString itemBasedString = null;
+    for (DexEncodedMethod encodedMethod : holder.directMethods()) {
+      if (encodedMethod.method.name.toString().equals(name)
+          && (arguments == null || encodedMethod.method.proto.parameters.equals(arguments))) {
+        itemBasedString = dexItemFactory.createItemBasedString(encodedMethod.method);
+        break;
+      }
+    }
+    if (itemBasedString == null) {
+      for (DexEncodedMethod encodedMethod : holder.virtualMethods()) {
+        if (encodedMethod.method.name.toString().equals(name)
+            && (arguments == null || encodedMethod.method.proto.parameters.equals(arguments))) {
+          itemBasedString = dexItemFactory.createItemBasedString(encodedMethod.method);
+          break;
+        }
+      }
+    }
+    return itemBasedString;
   }
 
   private boolean isReflectiveCase(DexProto proto) {

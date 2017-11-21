@@ -301,8 +301,6 @@ public class ProguardConfigurationParser {
         }
       } else if (acceptString("identifiernamestring")) {
         configurationBuilder.addRule(parseIdentifierNameStringRule());
-        // TODO(b/36799092): warn until it is fully implemented.
-        warnIgnoringOptions("identifiernamestring", optionLine, optionColumn);
       } else {
         throw parseError("Unknown option");
       }
