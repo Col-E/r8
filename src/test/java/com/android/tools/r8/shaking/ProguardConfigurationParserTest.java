@@ -726,18 +726,7 @@ public class ProguardConfigurationParserTest extends TestBase {
     Path source = Paths.get(IDENTIFIER_NAME_STRING);
     parser.parse(source);
     assertEquals(0, handler.infos.size());
-    assertEquals(1, handler.warnings.size());
-
-    assertTrue(handler.warnings.get(0).getLocation() instanceof TextRangeLocation);
-    TextRangeLocation warningLocation = (TextRangeLocation) handler.warnings.get(0).getLocation();
-
-    assertTrue(warningLocation.getOrigin() instanceof PathOrigin);
-    assertEquals(source, ((PathOrigin) warningLocation.getOrigin()).getPath());
-
-    assertEquals(2, warningLocation.getStart().getLine());
-    assertEquals(4, warningLocation.getStart().getColumn());
-    assertEquals(3, warningLocation.getEnd().getLine());
-    assertEquals(12, warningLocation.getEnd().getColumn());
+    assertEquals(0, handler.warnings.size());
   }
 
   @Test
