@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexValue.DexValueMethod;
 import com.android.tools.r8.graph.DexValue.DexValueNull;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.DexValue.DexValueType;
+import com.android.tools.r8.utils.Pair;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -69,10 +70,25 @@ public class DexAnnotation extends DexItem {
         new DexValueType(enclosingClass));
   }
 
+  public static DexType getEnclosingClassFromAnnotation(
+      DexAnnotation annotation, DexItemFactory factory) {
+    DexValueType typeValue =
+        (DexValueType) getSystemValueAnnotationValue(factory.annotationEnclosingClass, annotation);
+    return typeValue.value;
+  }
+
   public static DexAnnotation createEnclosingMethodAnnotation(DexMethod enclosingMethod,
       DexItemFactory factory) {
     return createSystemValueAnnotation(factory.annotationEnclosingMethod, factory,
         new DexValueMethod(enclosingMethod));
+  }
+
+  public static DexMethod getEnclosingMethodFromAnnotation(
+      DexAnnotation annotation, DexItemFactory factory) {
+    DexValueMethod methodValue =
+        (DexValueMethod)
+            getSystemValueAnnotationValue(factory.annotationEnclosingMethod, annotation);
+    return methodValue.value;
   }
 
   public static boolean isEnclosingClassAnnotation(DexAnnotation annotation,
@@ -85,26 +101,46 @@ public class DexAnnotation extends DexItem {
     return annotation.annotation.type == factory.annotationEnclosingMethod;
   }
 
-  public static boolean isInnerClassesAnnotation(DexAnnotation annotation,
-      DexItemFactory factory) {
-    return annotation.annotation.type == factory.annotationMemberClasses
-        || annotation.annotation.type == factory.annotationInnerClass;
+  public static boolean isInnerClassAnnotation(DexAnnotation annotation, DexItemFactory factory) {
+    return annotation.annotation.type == factory.annotationInnerClass;
   }
 
-  public static DexAnnotation createInnerClassAnnotation(String clazz, int access,
-      DexItemFactory factory) {
-    return new DexAnnotation(VISIBILITY_SYSTEM,
-        new DexEncodedAnnotation(factory.annotationInnerClass,
-            new DexAnnotationElement[]{
-                new DexAnnotationElement(
-                    factory.createString("accessFlags"),
-                    DexValueInt.create(access)),
-                new DexAnnotationElement(
-                    factory.createString("name"),
-                    (clazz == null)
-                        ? DexValueNull.NULL
-                        : new DexValueString(factory.createString(clazz)))
+  public static boolean isMemberClassesAnnotation(
+      DexAnnotation annotation, DexItemFactory factory) {
+    return annotation.annotation.type == factory.annotationMemberClasses;
+  }
+
+  public static DexAnnotation createInnerClassAnnotation(
+      DexString clazz, int access, DexItemFactory factory) {
+    return new DexAnnotation(
+        VISIBILITY_SYSTEM,
+        new DexEncodedAnnotation(
+            factory.annotationInnerClass,
+            new DexAnnotationElement[] {
+              new DexAnnotationElement(
+                  factory.createString("accessFlags"), DexValueInt.create(access)),
+              new DexAnnotationElement(
+                  factory.createString("name"),
+                  (clazz == null) ? DexValueNull.NULL : new DexValueString(clazz))
             }));
+  }
+
+  public static Pair<DexString, Integer> getInnerClassFromAnnotation(
+      DexAnnotation annotation, DexItemFactory factory) {
+    assert isInnerClassAnnotation(annotation, factory);
+    DexAnnotationElement[] elements = annotation.annotation.elements;
+    Pair<DexString, Integer> result = new Pair<>();
+    for (DexAnnotationElement element : elements) {
+      if (element.name == factory.createString("name")) {
+        if (element.value instanceof DexValueString) {
+          result.setFirst(((DexValueString) element.value).getValue());
+        }
+      } else {
+        assert element.name == factory.createString("accessFlags");
+        result.setSecond(((DexValueInt) element.value).getValue());
+      }
+    }
+    return result;
   }
 
   public static DexAnnotation createMemberClassesAnnotation(List<DexType> classes,
@@ -115,6 +151,17 @@ public class DexAnnotation extends DexItem {
     }
     return createSystemValueAnnotation(factory.annotationMemberClasses, factory,
         new DexValueArray(values));
+  }
+
+  public static List<DexType> getMemberClassesFromAnnotation(
+      DexAnnotation annotation, DexItemFactory factory) {
+    DexValueArray membersArray =
+        (DexValueArray) getSystemValueAnnotationValue(factory.annotationMemberClasses, annotation);
+    List<DexType> types = new ArrayList<>(membersArray.getValues().length);
+    for (DexValue value : membersArray.getValues()) {
+      types.add(((DexValueType) value).value);
+    }
+    return types;
   }
 
   public static DexAnnotation createSourceDebugExtensionAnnotation(DexValue value,
@@ -167,6 +214,12 @@ public class DexAnnotation extends DexItem {
         new DexEncodedAnnotation(type, new DexAnnotationElement[]{
             new DexAnnotationElement(factory.createString("value"), value)
         }));
+  }
+
+  private static DexValue getSystemValueAnnotationValue(DexType type, DexAnnotation annotation) {
+    assert annotation.visibility == VISIBILITY_SYSTEM;
+    assert annotation.annotation.type == type;
+    return annotation.annotation.elements[0].value;
   }
 
   public static boolean isThrowingAnnotation(DexAnnotation annotation,

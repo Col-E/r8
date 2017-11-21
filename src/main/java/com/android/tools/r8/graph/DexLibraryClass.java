@@ -3,12 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.ProgramResource;
 import com.android.tools.r8.utils.ProgramResource.Kind;
+import java.util.List;
 import java.util.function.Supplier;
 
 public class DexLibraryClass extends DexClass implements Supplier<DexLibraryClass> {
@@ -21,13 +22,27 @@ public class DexLibraryClass extends DexClass implements Supplier<DexLibraryClas
       DexType superType,
       DexTypeList interfaces,
       DexString sourceFile,
+      EnclosingMethodAttribute enclosingMember,
+      List<InnerClassAttribute> innerClasses,
       DexAnnotationSet annotations,
       DexEncodedField[] staticFields,
       DexEncodedField[] instanceFields,
       DexEncodedMethod[] directMethods,
       DexEncodedMethod[] virtualMethods) {
-    super(sourceFile, interfaces, accessFlags, superType, type,
-        staticFields, instanceFields, directMethods, virtualMethods, annotations, origin);
+    super(
+        sourceFile,
+        interfaces,
+        accessFlags,
+        superType,
+        type,
+        staticFields,
+        instanceFields,
+        directMethods,
+        virtualMethods,
+        enclosingMember,
+        innerClasses,
+        annotations,
+        origin);
     // Set all static field values to unknown. We don't want to use the value from the library
     // at compile time, as it can be different at runtime.
     for (DexEncodedField staticField : staticFields) {

@@ -7,7 +7,6 @@ import static org.objectweb.asm.ClassReader.SKIP_FRAMES;
 import static org.objectweb.asm.Opcodes.ACC_DEPRECATED;
 import static org.objectweb.asm.Opcodes.ASM6;
 
-import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexValue.DexValueAnnotation;
@@ -25,6 +24,7 @@ import com.android.tools.r8.graph.DexValue.DexValueShort;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.DexValue.DexValueType;
 import com.android.tools.r8.graph.JarCode.ReparseContext;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ProgramResource.Kind;
 import java.io.IOException;
@@ -113,11 +113,10 @@ public class JarClassFileReader {
     private DexType superType;
     private DexTypeList interfaces;
     private DexString sourceFile;
-    private List<DexType> memberClasses = null;
+    private EnclosingMethodAttribute enclosingMember = null;
+    private List<InnerClassAttribute> innerClasses = new ArrayList<>();
     private List<DexAnnotation> annotations = null;
     private List<DexAnnotationElement> defaultAnnotations = null;
-    private DexAnnotation innerClassAnnotation = null;
-    private DexAnnotation enclosingAnnotation = null;
     private final List<DexEncodedField> staticFields = new ArrayList<>();
     private final List<DexEncodedField> instanceFields = new ArrayList<>();
     private final List<DexEncodedMethod> directMethods = new ArrayList<>();
@@ -139,43 +138,23 @@ public class JarClassFileReader {
 
     @Override
     public void visitInnerClass(String name, String outerName, String innerName, int access) {
-      if (type == application.getTypeFromName(name)) {
-        // If the inner class is this class, record its original access flags and name in its
-        // InnerClass annotation. We defer storing the actual annotation until we have found
-        // a matching enclosing annotation.
-        assert innerClassAnnotation == null;
-        innerClassAnnotation = DexAnnotation.createInnerClassAnnotation(
-            innerName, access, application.getFactory());
-        // If this is a named inner class (in which case outerName and innerName are defined)
-        // record the outer class in its EnclosingClass annotation.
-        if (outerName != null && innerName != null) {
-          assert enclosingAnnotation == null;
-          enclosingAnnotation = DexAnnotation.createEnclosingClassAnnotation(
-              application.getTypeFromName(outerName),
-              application.getFactory());
-        }
-      } else if (outerName != null && innerName != null
-          && type == application.getTypeFromName(outerName)) {
-        // If the inner class is a member of this class, record it for the MemberClasses annotation.
-        if (memberClasses == null) {
-          memberClasses = new ArrayList<>();
-        }
-        memberClasses.add(application.getTypeFromName(name));
-      }
+      innerClasses.add(
+          new InnerClassAttribute(
+              access,
+              application.getTypeFromName(name),
+              outerName == null ? null : application.getTypeFromName(outerName),
+              innerName == null ? null : application.getString(innerName)));
     }
 
     @Override
     public void visitOuterClass(String owner, String name, String desc) {
-      assert enclosingAnnotation == null;
-      // This is called for anonymous inner classes defined in classes or in methods.
+      // This is called for anonymous and local inner classes defined in classes or in methods.
+      assert enclosingMember == null;
       DexType ownerType = application.getTypeFromName(owner);
-      if (name == null) {
-        enclosingAnnotation = DexAnnotation.createEnclosingClassAnnotation(
-            ownerType, application.getFactory());
-      } else {
-        enclosingAnnotation = DexAnnotation.createEnclosingMethodAnnotation(
-            application.getMethod(ownerType, name, desc), application.getFactory());
-      }
+      enclosingMember =
+          name == null
+              ? new EnclosingMethodAttribute(ownerType)
+              : new EnclosingMethodAttribute(application.getMethod(ownerType, name, desc));
     }
 
     @Override
@@ -235,36 +214,26 @@ public class JarClassFileReader {
 
     @Override
     public void visitEnd() {
-      if (memberClasses != null) {
-        assert !memberClasses.isEmpty();
-        addAnnotation(DexAnnotation.createMemberClassesAnnotation(
-            memberClasses, application.getFactory()));
-      }
-      if (innerClassAnnotation != null) {
-        if (enclosingAnnotation == null) {
-          application.options.warningMissingEnclosingMember(type, origin, version);
-        } else {
-          addAnnotation(innerClassAnnotation);
-          addAnnotation(enclosingAnnotation);
-        }
-      }
       if (defaultAnnotations != null) {
         addAnnotation(DexAnnotation.createAnnotationDefaultAnnotation(
             type, defaultAnnotations, application.getFactory()));
       }
-      DexClass clazz = classKind.create(
-          type,
-          Kind.CLASS,
-          origin,
-          accessFlags,
-          superType,
-          interfaces,
-          sourceFile,
-          createAnnotationSet(annotations),
-          staticFields.toArray(new DexEncodedField[staticFields.size()]),
-          instanceFields.toArray(new DexEncodedField[instanceFields.size()]),
-          directMethods.toArray(new DexEncodedMethod[directMethods.size()]),
-          virtualMethods.toArray(new DexEncodedMethod[virtualMethods.size()]));
+      DexClass clazz =
+          classKind.create(
+              type,
+              Kind.CLASS,
+              origin,
+              accessFlags,
+              superType,
+              interfaces,
+              sourceFile,
+              enclosingMember,
+              innerClasses,
+              createAnnotationSet(annotations),
+              staticFields.toArray(new DexEncodedField[staticFields.size()]),
+              instanceFields.toArray(new DexEncodedField[instanceFields.size()]),
+              directMethods.toArray(new DexEncodedMethod[directMethods.size()]),
+              virtualMethods.toArray(new DexEncodedMethod[virtualMethods.size()]));
       if (classKind == ClassKind.PROGRAM) {
         context.owner = clazz.asProgramClass();
       }

@@ -56,6 +56,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
+import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.ClassNamingForNameMapper;
 import com.android.tools.r8.naming.MemberNaming;
@@ -301,6 +302,12 @@ public class DexInspector {
     public abstract String getFinalDescriptor();
 
     public abstract boolean isRenamed();
+
+    public abstract boolean isMemberClass();
+
+    public abstract boolean isLocalClass();
+
+    public abstract boolean isAnonymousClass();
   }
 
   private class AbsentClassSubject extends ClassSubject {
@@ -355,6 +362,21 @@ public class DexInspector {
 
     @Override
     public boolean isRenamed() {
+      return false;
+    }
+
+    @Override
+    public boolean isMemberClass() {
+      return false;
+    }
+
+    @Override
+    public boolean isLocalClass() {
+      return false;
+    }
+
+    @Override
+    public boolean isAnonymousClass() {
       return false;
     }
   }
@@ -461,6 +483,10 @@ public class DexInspector {
 
     @Override
     public AnnotationSubject annotation(String name) {
+      // Ensure we don't check for annotations represented as attributes.
+      assert !name.endsWith("EnclosingClass")
+          && !name.endsWith("EnclosingMethod")
+          && !name.endsWith("InnerClass");
       DexAnnotation annotation = findAnnotation(name);
       return annotation == null
           ? new AbsentAnnotationSubject()
@@ -495,6 +521,40 @@ public class DexInspector {
     @Override
     public boolean isRenamed() {
       return naming == null || !getFinalDescriptor().equals(getOriginalDescriptor());
+    }
+
+    private InnerClassAttribute getInnerClassAttribute() {
+      for (InnerClassAttribute innerClassAttribute : dexClass.getInnerClasses()) {
+        if (dexClass.type == innerClassAttribute.getInner()) {
+          return innerClassAttribute;
+        }
+      }
+      return null;
+    }
+
+    @Override
+    public boolean isLocalClass() {
+      InnerClassAttribute innerClass = getInnerClassAttribute();
+      return innerClass != null
+          && innerClass.isNamed()
+          && dexClass.getEnclosingMethod() != null;
+    }
+
+    @Override
+    public boolean isMemberClass() {
+      InnerClassAttribute innerClass = getInnerClassAttribute();
+      return innerClass != null
+          && innerClass.getOuter() != null
+          && innerClass.isNamed()
+          && dexClass.getEnclosingMethod() == null;
+    }
+
+    @Override
+    public boolean isAnonymousClass() {
+      InnerClassAttribute innerClass = getInnerClassAttribute();
+      return innerClass != null
+          && innerClass.isAnonymous()
+          && dexClass.getEnclosingMethod() != null;
     }
 
     @Override

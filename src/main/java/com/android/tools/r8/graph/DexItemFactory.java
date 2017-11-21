@@ -17,15 +17,15 @@ import com.android.tools.r8.graph.DexDebugEvent.SetPrologueEnd;
 import com.android.tools.r8.graph.DexMethodHandle.MethodHandleType;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.naming.NamingLens;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
@@ -62,12 +62,17 @@ public class DexItemFactory {
   // Internal type containing only the null value.
   public static final DexType nullValueType = new DexType(new DexString("NULL"));
 
-  private static final Set<DexItem> internalSentinels = ImmutableSet.of(
-      catchAllType,
-      nullValueType);
+  public static final DexString unknownTypeName = new DexString("UNKNOWN");
+
+  private static final IdentityHashMap<DexItem, DexItem> internalSentinels =
+      new IdentityHashMap<>(
+          ImmutableMap.of(
+              catchAllType, catchAllType,
+              nullValueType, nullValueType,
+              unknownTypeName, unknownTypeName));
 
   public static boolean isInternalSentinel(DexItem item) {
-    return internalSentinels.contains(item);
+    return internalSentinels.containsKey(item);
   }
 
   public final DexString booleanDescriptor = createString("Z");

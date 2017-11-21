@@ -37,18 +37,12 @@ public class AnnotationRemover {
   private boolean filterAnnotations(DexAnnotation annotation) {
     switch (annotation.visibility) {
       case DexAnnotation.VISIBILITY_SYSTEM:
-        // EnclosingClass and InnerClass are used in Dalvik to represent the InnerClasses
-        // attribute section from class files.
         DexItemFactory factory = appInfo.dexItemFactory;
-        if (keep.innerClasses
-            && (DexAnnotation.isInnerClassesAnnotation(annotation, factory) ||
-                DexAnnotation.isEnclosingClassAnnotation(annotation, factory))) {
-          return true;
-        }
-        if (keep.enclosingMethod
-            && DexAnnotation.isEnclosingMethodAnnotation(annotation, factory)) {
-          return true;
-        }
+        // InnerClass and EnclosingMember are represented in class attributes, not annotations.
+        assert !DexAnnotation.isInnerClassAnnotation(annotation, factory);
+        assert !DexAnnotation.isMemberClassesAnnotation(annotation, factory);
+        assert !DexAnnotation.isEnclosingMethodAnnotation(annotation, factory);
+        assert !DexAnnotation.isEnclosingClassAnnotation(annotation, factory);
         if (keep.exceptions && DexAnnotation.isThrowingAnnotation(annotation, factory)) {
           return true;
         }
@@ -102,6 +96,7 @@ public class AnnotationRemover {
   public void run() {
     keep.ensureValid();
     for (DexProgramClass clazz : appInfo.classes()) {
+      stripAttributes(clazz);
       clazz.annotations = stripAnnotations(clazz.annotations, this::filterAnnotations);
       clazz.forEachMethod(this::processMethod);
       clazz.forEachField(this::processField);
@@ -116,6 +111,15 @@ public class AnnotationRemover {
 
   private void processField(DexEncodedField field) {
       field.annotations = stripAnnotations(field.annotations, this::filterAnnotations);
+  }
+
+  private void stripAttributes(DexProgramClass clazz) {
+    if (!keep.enclosingMethod && clazz.getEnclosingMethod() != null) {
+      clazz.clearEnclosingMethod();
+    }
+    if (!keep.innerClasses && !clazz.getInnerClasses().isEmpty()) {
+      clazz.clearInnerClasses();
+    }
   }
 
   private DexAnnotationSetRefList stripAnnotations(DexAnnotationSetRefList annotations,

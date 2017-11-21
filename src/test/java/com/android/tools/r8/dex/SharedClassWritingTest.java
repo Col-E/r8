@@ -94,6 +94,8 @@ public class SharedClassWritingTest {
         dexItemFactory.objectType,
         DexTypeList.empty(),
         null,
+        null,
+        Collections.emptyList(),
         DexAnnotationSet.empty(),
         DexEncodedField.EMPTY_ARRAY,
         DexEncodedField.EMPTY_ARRAY,

@@ -553,43 +553,40 @@ public class TreeShakingTest {
   private static void annotationRemovalHasAllInnerClassAnnotations(DexInspector inspector) {
     ClassSubject outer = inspector.clazz("annotationremoval.OuterClass");
     Assert.assertTrue(outer.isPresent());
-    Assert.assertTrue(outer.annotation("dalvik.annotation.MemberClasses").isPresent());
+    Assert.assertFalse(outer.getDexClass().getInnerClasses().isEmpty());
     ClassSubject inner = inspector.clazz("annotationremoval.OuterClass$InnerClass");
     Assert.assertTrue(inner.isPresent());
-    Assert.assertFalse(inner.annotation("dalvik.annotation.EnclosingMethod").isPresent());
-    Assert.assertTrue(inner.annotation("dalvik.annotation.EnclosingClass").isPresent());
-    Assert.assertTrue(inner.annotation("dalvik.annotation.InnerClass").isPresent());
+    Assert.assertTrue(inner.isMemberClass());
+    Assert.assertFalse(inner.isAnonymousClass());
+    Assert.assertFalse(inner.isLocalClass());
     ClassSubject anonymous = inspector.clazz("annotationremoval.OuterClass$1");
     Assert.assertTrue(anonymous.isPresent());
-    Assert.assertFalse(anonymous.annotation("dalvik.annotation.EnclosingClass").isPresent());
-    Assert.assertTrue(anonymous.annotation("dalvik.annotation.EnclosingMethod").isPresent());
-    Assert.assertTrue(anonymous.annotation("dalvik.annotation.InnerClass").isPresent());
+    Assert.assertTrue(anonymous.isAnonymousClass());
+    Assert.assertFalse(anonymous.isMemberClass());
+    Assert.assertFalse(anonymous.isLocalClass());
     ClassSubject local = inspector.clazz("annotationremoval.OuterClass$1LocalMagic");
     Assert.assertTrue(local.isPresent());
-    Assert.assertFalse(local.annotation("dalvik.annotation.EnclosingClass").isPresent());
-    Assert.assertTrue(local.annotation("dalvik.annotation.EnclosingMethod").isPresent());
-    Assert.assertTrue(local.annotation("dalvik.annotation.InnerClass").isPresent());
+    Assert.assertTrue(local.isLocalClass());
+    Assert.assertFalse(local.isMemberClass());
+    Assert.assertFalse(local.isAnonymousClass());
   }
 
   private static void annotationRemovalHasNoInnerClassAnnotations(DexInspector inspector) {
     ClassSubject outer = inspector.clazz("annotationremoval.OuterClass");
     Assert.assertTrue(outer.isPresent());
-    Assert.assertFalse(outer.annotation("dalvik.annotation.MemberClasses").isPresent());
+    Assert.assertTrue(outer.getDexClass().getInnerClasses().isEmpty());
     ClassSubject inner = inspector.clazz("annotationremoval.OuterClass$InnerClass");
     Assert.assertTrue(inner.isPresent());
-    Assert.assertFalse(inner.annotation("dalvik.annotation.EnclosingMethod").isPresent());
-    Assert.assertFalse(inner.annotation("dalvik.annotation.EnclosingClass").isPresent());
-    Assert.assertFalse(inner.annotation("dalvik.annotation.InnerClass").isPresent());
+    Assert.assertNull(inner.getDexClass().getEnclosingMethod());
+    Assert.assertTrue(inner.getDexClass().getInnerClasses().isEmpty());
     ClassSubject anonymous = inspector.clazz("annotationremoval.OuterClass$1");
     Assert.assertTrue(anonymous.isPresent());
-    Assert.assertFalse(anonymous.annotation("dalvik.annotation.EnclosingClass").isPresent());
-    Assert.assertFalse(anonymous.annotation("dalvik.annotation.EnclosingMethod").isPresent());
-    Assert.assertFalse(anonymous.annotation("dalvik.annotation.InnerClass").isPresent());
+    Assert.assertNull(anonymous.getDexClass().getEnclosingMethod());
+    Assert.assertTrue(anonymous.getDexClass().getInnerClasses().isEmpty());
     ClassSubject local = inspector.clazz("annotationremoval.OuterClass$1LocalMagic");
     Assert.assertTrue(local.isPresent());
-    Assert.assertFalse(local.annotation("dalvik.annotation.EnclosingClass").isPresent());
-    Assert.assertFalse(local.annotation("dalvik.annotation.EnclosingMethod").isPresent());
-    Assert.assertFalse(local.annotation("dalvik.annotation.InnerClass").isPresent());
+    Assert.assertNull(local.getDexClass().getEnclosingMethod());
+    Assert.assertTrue(local.getDexClass().getInnerClasses().isEmpty());
   }
 
   private static void checkSameStructure(DexInspector ref, DexInspector inspector) {

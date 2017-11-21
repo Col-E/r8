@@ -18,7 +18,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueArray;
 import com.android.tools.r8.graph.DexValue.DexValueString;
-import com.android.tools.r8.graph.DexValue.DexValueType;
+import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.naming.signature.GenericSignatureAction;
 import com.android.tools.r8.naming.signature.GenericSignatureParser;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
@@ -222,17 +222,23 @@ class ClassNameMinifier {
     if (clazz == null) {
       return null;
     }
-    DexAnnotation annotation =
-        clazz.annotations.getFirstMatching(appInfo.dexItemFactory.annotationEnclosingClass);
-    if (annotation != null) {
-      assert annotation.annotation.elements.length == 1;
-      DexValue value = annotation.annotation.elements[0].value;
-      return ((DexValueType) value).value;
-    }
     // We do not need to preserve the names for local or anonymous classes, as they do not result
     // in a member type declaration and hence cannot be referenced as nested classes in
     // method signatures.
     // See https://docs.oracle.com/javase/specs/jls/se7/html/jls-8.html#jls-8.5.
+    if (clazz.getEnclosingMethod() != null) {
+      return null;
+    }
+    for (InnerClassAttribute innerClassAttribute : clazz.getInnerClasses()) {
+      if (innerClassAttribute.getInner() == type) {
+        // For DEX inputs this could result in returning the outer class of a local class since we
+        // can't distinguish it from a member class based on just the enclosing-class annotation.
+        // We could filter out the local classes by looking for a corresponding entry in the
+        // inner-classes attribute table which must exist only for member classes. Since DEX files
+        // are not a supported mode for R8 we just return the outer class in both cases.
+        return innerClassAttribute.getOuter();
+      }
+    }
     return null;
   }
 

@@ -8,8 +8,6 @@ import static com.android.tools.r8.utils.EncodedValueUtils.parseFloat;
 import static com.android.tools.r8.utils.EncodedValueUtils.parseSigned;
 import static com.android.tools.r8.utils.EncodedValueUtils.parseUnsigned;
 
-import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.InstructionFactory;
 import com.android.tools.r8.graph.ClassAccessFlags;
@@ -50,10 +48,15 @@ import com.android.tools.r8.graph.DexValue.DexValueMethodHandle;
 import com.android.tools.r8.graph.DexValue.DexValueMethodType;
 import com.android.tools.r8.graph.DexValue.DexValueNull;
 import com.android.tools.r8.graph.DexValue.DexValueString;
+import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.FieldAccessFlags;
+import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.OffsetToObjectMapping;
 import com.android.tools.r8.logging.Log;
+import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.origin.PathOrigin;
+import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.ProgramResource.Kind;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
@@ -65,6 +68,7 @@ import java.nio.ShortBuffer;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -667,19 +671,26 @@ public class DexFileReader {
                 annotationsDirectory.parameters,
                 classKind != ClassKind.PROGRAM);
       }
-      clazz = classKind.create(
-          type,
-          Kind.DEX,
-          origin,
-          flags,
-          superclass,
-          typeListAt(interfacesOffsets[i]),
-          source,
-          annotationsDirectory.clazz,
-          staticFields,
-          instanceFields,
-          directMethods,
-          virtualMethods);
+
+      AttributesAndAnnotations attrs =
+          new AttributesAndAnnotations(type, annotationsDirectory.clazz, dexItemFactory);
+
+      clazz =
+          classKind.create(
+              type,
+              Kind.DEX,
+              origin,
+              flags,
+              superclass,
+              typeListAt(interfacesOffsets[i]),
+              source,
+              attrs.getEnclosingMethodAttribute(),
+              attrs.getInnerClasses(),
+              attrs.getAnnotations(),
+              staticFields,
+              instanceFields,
+              directMethods,
+              virtualMethods);
       classCollection.accept(clazz);  // Update the application object.
     }
   }
@@ -1037,6 +1048,124 @@ public class DexFileReader {
 
     public static AnnotationsDirectory empty() {
       return THE_EMPTY_ANNOTATIONS_DIRECTORY;
+    }
+  }
+
+  private static class AttributesAndAnnotations {
+
+    private final DexAnnotationSet originalAnnotations;
+    private EnclosingMethodAttribute enclosingMethodAttribute = null;
+    private List<InnerClassAttribute> innerClasses = null;
+    private List<DexAnnotation> lazyAnnotations = null;
+
+    public DexAnnotationSet getAnnotations() {
+      if (lazyAnnotations != null) {
+        int size = lazyAnnotations.size();
+        return size == 0
+            ? DexAnnotationSet.empty()
+            : new DexAnnotationSet(lazyAnnotations.toArray(new DexAnnotation[size]));
+      }
+      return originalAnnotations;
+    }
+
+    public List<InnerClassAttribute> getInnerClasses() {
+      return innerClasses == null ? Collections.emptyList() : innerClasses;
+    }
+
+    public EnclosingMethodAttribute getEnclosingMethodAttribute() {
+      return enclosingMethodAttribute;
+    }
+
+    public AttributesAndAnnotations(
+        DexType type, DexAnnotationSet annotations, DexItemFactory factory) {
+      this.originalAnnotations = annotations;
+      DexType enclosingClass = null;
+      DexMethod enclosingMethod = null;
+      List<DexType> memberClasses = null;
+
+      for (int i = 0; i < annotations.annotations.length; i++) {
+        DexAnnotation annotation = annotations.annotations[i];
+        if (DexAnnotation.isEnclosingClassAnnotation(annotation, factory)) {
+          ensureAnnotations(i);
+          enclosingClass = DexAnnotation.getEnclosingClassFromAnnotation(annotation, factory);
+        } else if (DexAnnotation.isEnclosingMethodAnnotation(annotation, factory)) {
+          ensureAnnotations(i);
+          enclosingMethod = DexAnnotation.getEnclosingMethodFromAnnotation(annotation, factory);
+        } else if (DexAnnotation.isInnerClassAnnotation(annotation, factory)) {
+          ensureAnnotations(i);
+          if (innerClasses == null) {
+            innerClasses = new ArrayList<>(annotations.annotations.length - i);
+          }
+          Pair<DexString, Integer> entry =
+              DexAnnotation.getInnerClassFromAnnotation(annotation, factory);
+          innerClasses.add(
+              new InnerClassAttribute(entry.getSecond(), type, null, entry.getFirst()));
+        } else if (DexAnnotation.isMemberClassesAnnotation(annotation, factory)) {
+          ensureAnnotations(i);
+          List<DexType> members = DexAnnotation.getMemberClassesFromAnnotation(annotation, factory);
+          if (memberClasses == null) {
+            memberClasses = members;
+          } else {
+            memberClasses.addAll(members);
+          }
+        } else {
+          copyAnnotation(annotation);
+        }
+      }
+
+      if (enclosingClass != null || enclosingMethod != null) {
+        assert enclosingClass == null || enclosingMethod == null;
+        if (enclosingMethod != null) {
+          enclosingMethodAttribute = new EnclosingMethodAttribute(enclosingMethod);
+        } else {
+          assert innerClasses != null;
+          InnerClassAttribute namedEnclosing = null;
+          for (InnerClassAttribute innerClass : innerClasses) {
+            if (type == innerClass.getInner()) {
+              // If inner-class is anonymous then we create an enclosing-method attribute.
+              // Unfortunately we can't distinguish member classes from local classes, and thus
+              // can't at this point conform to the spec which requires a enclosing-method attribute
+              // iff the inner-class is anonymous or local. A local inner class will thus be
+              // represented as an ordinary member class and given an inner-classes entry below.
+              namedEnclosing = innerClass.isNamed() ? innerClass : null;
+              break;
+            }
+          }
+          if (namedEnclosing == null) {
+            enclosingMethodAttribute = new EnclosingMethodAttribute(enclosingClass);
+          } else {
+            innerClasses.remove(namedEnclosing);
+            innerClasses.add(
+                new InnerClassAttribute(
+                    namedEnclosing.getAccess(),
+                    type,
+                    enclosingClass,
+                    namedEnclosing.getInnerName()));
+          }
+        }
+      }
+
+      if (memberClasses != null) {
+        if (innerClasses == null) {
+          innerClasses = new ArrayList<>(memberClasses.size());
+        }
+        for (DexType memberClass : memberClasses) {
+          innerClasses.add(InnerClassAttribute.createUnknownNamedInnerClass(memberClass, type));
+        }
+      }
+    }
+
+    private void ensureAnnotations(int index) {
+      if (lazyAnnotations == null) {
+        lazyAnnotations = new ArrayList<>(originalAnnotations.annotations.length);
+        lazyAnnotations.addAll(Arrays.asList(originalAnnotations.annotations).subList(0, index));
+      }
+    }
+
+    private void copyAnnotation(DexAnnotation annotation) {
+      if (lazyAnnotations != null) {
+        lazyAnnotations.add(annotation);
+      }
     }
   }
 }

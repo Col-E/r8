@@ -199,6 +199,11 @@ public class SimpleClassMerger {
     }
 
     public boolean merge() {
+      if (source.getEnclosingMethod() != null || !source.getInnerClasses().isEmpty()
+          || target.getEnclosingMethod() != null || !target.getInnerClasses().isEmpty()) {
+        // TODO(herhut): Consider supporting merging of inner-class attributes.
+        return false;
+      }
       // Merge the class [clazz] into [targetClass] by adding all methods to
       // targetClass that are not currently contained.
       // Step 1: Merge methods

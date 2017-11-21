@@ -126,21 +126,23 @@ final class InterfaceProcessor {
 
     // Create companion class.
     DexType companionClassType = rewriter.getCompanionClassType(iface.type);
-    DexProgramClass companionClass = new DexProgramClass(
-        companionClassType,
-        null,
-        null,
-        companionClassFlags,
-        rewriter.factory.objectType,
-        DexTypeList.empty(),
-        iface.sourceFile,
-        DexAnnotationSet.empty(),
-        DexEncodedField.EMPTY_ARRAY,
-        DexEncodedField.EMPTY_ARRAY,
-        companionMethods.toArray(new DexEncodedMethod[companionMethods.size()]),
-        DexEncodedMethod.EMPTY_ARRAY,
-        Collections.singletonList(iface)
-    );
+    DexProgramClass companionClass =
+        new DexProgramClass(
+            companionClassType,
+            null,
+            null,
+            companionClassFlags,
+            rewriter.factory.objectType,
+            DexTypeList.empty(),
+            iface.sourceFile,
+            null,
+            Collections.emptyList(),
+            DexAnnotationSet.empty(),
+            DexEncodedField.EMPTY_ARRAY,
+            DexEncodedField.EMPTY_ARRAY,
+            companionMethods.toArray(new DexEncodedMethod[companionMethods.size()]),
+            DexEncodedMethod.EMPTY_ARRAY,
+            Collections.singletonList(iface));
     companionClasses.put(iface, companionClass);
   }
 

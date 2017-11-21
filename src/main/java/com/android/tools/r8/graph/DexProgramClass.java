@@ -3,9 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.ProgramResource;
 import com.android.tools.r8.utils.ProgramResource.Kind;
 import java.util.ArrayList;
@@ -35,6 +35,8 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
       DexType superType,
       DexTypeList interfaces,
       DexString sourceFile,
+      EnclosingMethodAttribute enclosingMember,
+      List<InnerClassAttribute> innerClasses,
       DexAnnotationSet classAnnotations,
       DexEncodedField[] staticFields,
       DexEncodedField[] instanceFields,
@@ -48,6 +50,8 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
         superType,
         interfaces,
         sourceFile,
+        enclosingMember,
+        innerClasses,
         classAnnotations,
         staticFields,
         instanceFields,
@@ -64,14 +68,28 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
       DexType superType,
       DexTypeList interfaces,
       DexString sourceFile,
+      EnclosingMethodAttribute enclosingMember,
+      List<InnerClassAttribute> innerClasses,
       DexAnnotationSet classAnnotations,
       DexEncodedField[] staticFields,
       DexEncodedField[] instanceFields,
       DexEncodedMethod[] directMethods,
       DexEncodedMethod[] virtualMethods,
       Collection<DexProgramClass> synthesizedDirectlyFrom) {
-    super(sourceFile, interfaces, accessFlags, superType, type, staticFields,
-        instanceFields, directMethods, virtualMethods, classAnnotations, origin);
+    super(
+        sourceFile,
+        interfaces,
+        accessFlags,
+        superType,
+        type,
+        staticFields,
+        instanceFields,
+        directMethods,
+        virtualMethods,
+        enclosingMember,
+        innerClasses,
+        classAnnotations,
+        origin);
     assert classAnnotations != null;
     this.originKind = originKind;
     this.synthesizedFrom = accumulateSynthesizedFrom(new HashSet<>(), synthesizedDirectlyFrom);
@@ -87,6 +105,8 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
 
   @Override
   public void collectIndexedItems(IndexedItemCollection indexedItems) {
+    assert getEnclosingMethod() == null;
+    assert getInnerClasses().isEmpty();
     if (indexedItems.addClass(this)) {
       type.collectIndexedItems(indexedItems);
       if (superType != null) {
@@ -123,6 +143,8 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
 
   @Override
   void collectMixedSectionItems(MixedSectionCollection mixedItems) {
+    assert getEnclosingMethod() == null;
+    assert getInnerClasses().isEmpty();
     if (hasAnnotations()) {
       mixedItems.setAnnotationsDirectoryForClass(this, new DexAnnotationDirectory(this));
     }
@@ -130,6 +152,8 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
 
   @Override
   public void addDependencies(MixedSectionCollection collector) {
+    assert getEnclosingMethod() == null;
+    assert getInnerClasses().isEmpty();
     // We only have a class data item if there are methods or fields.
     if (hasMethodsOrFields()) {
       collector.add(this);

@@ -67,6 +67,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -608,6 +609,8 @@ public class MainDexListTests extends TestBase {
               factory.objectType,
               DexTypeList.empty(),
               null,
+              null,
+              Collections.emptyList(),
               DexAnnotationSet.empty(),
               DexEncodedField.EMPTY_ARRAY,
               DexEncodedField.EMPTY_ARRAY,

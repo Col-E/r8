@@ -3,13 +3,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.google.common.base.MoreObjects;
 import java.util.Arrays;
+import java.util.List;
 import java.util.function.Consumer;
 
 public abstract class DexClass extends DexItem {
@@ -40,6 +41,13 @@ public abstract class DexClass extends DexItem {
    * Access has to be synchronized during concurrent collection/writing phase.
    */
   protected DexEncodedMethod[] virtualMethods;
+
+  /** Enclosing context of this class if it is an inner class, null otherwise. */
+  private EnclosingMethodAttribute enclosingMethod;
+
+  /** InnerClasses table. If this class is an inner class, it will have an entry here. */
+  private final List<InnerClassAttribute> innerClasses;
+
   public DexAnnotationSet annotations;
 
   public DexClass(
@@ -52,6 +60,8 @@ public abstract class DexClass extends DexItem {
       DexEncodedField[] instanceFields,
       DexEncodedMethod[] directMethods,
       DexEncodedMethod[] virtualMethods,
+      EnclosingMethodAttribute enclosingMethod,
+      List<InnerClassAttribute> innerClasses,
       DexAnnotationSet annotations,
       Origin origin) {
     this.origin = origin;
@@ -64,6 +74,8 @@ public abstract class DexClass extends DexItem {
     setInstanceFields(instanceFields);
     setDirectMethods(directMethods);
     setVirtualMethods(virtualMethods);
+    this.enclosingMethod = enclosingMethod;
+    this.innerClasses = innerClasses;
     this.annotations = annotations;
     if (type == superType) {
       throw new CompilationError("Class " + type.toString() + " cannot extend itself");
@@ -302,5 +314,21 @@ public abstract class DexClass extends DexItem {
   public boolean defaultValuesForStaticFieldsMayTriggerAllocation() {
     return Arrays.stream(staticFields())
         .anyMatch(field -> !field.staticValue.mayTriggerAllocation());
+  }
+
+  public List<InnerClassAttribute> getInnerClasses() {
+    return innerClasses;
+  }
+
+  public EnclosingMethodAttribute getEnclosingMethod() {
+    return enclosingMethod;
+  }
+
+  public void clearEnclosingMethod() {
+    enclosingMethod = null;
+  }
+
+  public void clearInnerClasses() {
+    innerClasses.clear();
   }
 }

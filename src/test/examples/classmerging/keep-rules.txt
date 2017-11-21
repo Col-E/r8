@@ -7,3 +7,6 @@
 -keep public class classmerging.Test {
   public static void main(...);
 }
+
+# TODO(herhut): Consider supporting merging of inner-class attributes.
+# -keepattributes *
