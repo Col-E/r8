@@ -104,7 +104,6 @@ public class DeadCodeRemover {
           && !current.outValue().isUsed()) {
         current.setOutValue(null);
       }
-      // Never remove instructions that can have side effects, except for const-class.
       if (!current.canBeDeadCode(code, options)) {
         continue;
       }
