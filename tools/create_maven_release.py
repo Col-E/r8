@@ -3,8 +3,9 @@
 # for details. All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
-import hashlib
 import argparse
+import gradle
+import hashlib
 from os import makedirs
 from os.path import join
 from shutil import copyfile, make_archive, rmtree
@@ -14,13 +15,13 @@ from string import Template
 import tempfile
 import utils
 
-LICENSETEMPLATE = Template(
+DEPENDENCYTEMPLATE = Template(
 """
-    <license>
-      <name>$name</name>
-      <url>$url</url>
-      <distribution>repo</distribution>
-    </license>""")
+    <dependency>
+        <groupId>$group</groupId>
+        <artifactId>$artifact</artifactId>
+        <version>$version</version>
+    </dependency>""")
 
 POMTEMPLATE = Template(
 """<project
@@ -42,8 +43,10 @@ POMTEMPLATE = Template(
       <name>BSD-3-Clause</name>
       <url>https://opensource.org/licenses/BSD-3-Clause</url>
       <distribution>repo</distribution>
-    </license>$library_licenses
+    </license>
   </licenses>
+  <dependencies>$dependencies
+  </dependencies>
   <developers>
     <developer>
       <name>The Android Open Source Project</name>
@@ -62,19 +65,19 @@ POMTEMPLATE = Template(
 
 def parse_options(argv):
   result = argparse.ArgumentParser()
-  result.add_argument('--jar', help='jar file to package')
   result.add_argument('--out', help='directory in which to put the output zip file')
   return result.parse_args(argv)
 
-def determine_version(jar):
-  cmd = []
-  cmd.append('java')
-  cmd.extend(['-jar', jar]);
-  cmd.append('--version')
-  output = subprocess.check_output(cmd)
-  version_string = output.split()[1]
-  assert version_string.startswith("v")
-  return version_string[1:]
+def determine_version():
+  version_file = join(
+      utils.SRC_ROOT, 'com', 'android', 'tools', 'r8', 'Version.java')
+  with open(version_file, 'r') as file:
+    for line in file:
+      if 'final String LABEL ' in line:
+        result = line[line.find('"v') + 2:]
+        result = result[:result.find('"')]
+        return result
+  raise Exception('Unable to determine version.')
 
 def generate_library_licenses():
   license_prefix = 'license: '
@@ -103,9 +106,76 @@ def generate_library_licenses():
     result += LICENSETEMPLATE.substitute(name=name, url=url)
   return result
 
+
+# Generate the dependencies block for the pom file.
+#
+# We ask gradle to list all dependencies. In that output
+# we locate the runtimeClasspath block for 'main' which
+# looks something like:
+#
+# runtimeClasspath - Runtime classpath of source set 'main'.
+# +--- net.sf.jopt-simple:jopt-simple:4.6
+# +--- com.googlecode.json-simple:json-simple:1.1
+# +--- com.google.guava:guava:23.0
+# +--- it.unimi.dsi:fastutil:7.2.0
+# +--- org.ow2.asm:asm:6.0
+# +--- org.ow2.asm:asm-commons:6.0
+# |    \--- org.ow2.asm:asm-tree:6.0
+# |         \--- org.ow2.asm:asm:6.0
+# +--- org.ow2.asm:asm-tree:6.0 (*)
+# +--- org.ow2.asm:asm-analysis:6.0
+# |    \--- org.ow2.asm:asm-tree:6.0 (*)
+# \--- org.ow2.asm:asm-util:6.0
+#      \--- org.ow2.asm:asm-tree:6.0 (*)
+#
+# We filter out the repeats that are marked by '(*)'.
+#
+# For each remaining line, we remove the junk at the start
+# in chunks. As an example:
+#
+# '  |    \--- org.ow2.asm:asm-tree:6.0  '  --strip-->
+# '|    \--- org.ow2.asm:asm-tree:6.0'  -->
+# '\--- org.ow2.asm:asm-tree:6.0'  -->
+# 'org.ow2.asm:asm-tree:6.0'
+#
+# The end result is the dependency we are looking for:
+#
+# groupId: org.ow2.asm
+# artifact: asm-tree
+# version: 6.0
+def generate_dependencies():
+  dependencies = gradle.RunGradleGetOutput(['dependencies'])
+  dependency_lines = []
+  collect = False
+  for line in dependencies.splitlines():
+    if 'runtimeClasspath' in line and "'main'" in line:
+      collect = True
+      continue
+    if collect:
+      if not len(line) == 0:
+        if not '(*)' in line:
+          trimmed = line.strip()
+          while trimmed.find(' ') != -1:
+            trimmed = trimmed[trimmed.find(' ') + 1:].strip()
+          if not trimmed in dependency_lines:
+            dependency_lines.append(trimmed)
+      else:
+        break
+  result = ''
+  for dep in dependency_lines:
+    components = dep.split(':')
+    assert len(components) == 3
+    group = components[0]
+    artifact = components[1]
+    version = components[2]
+    result += DEPENDENCYTEMPLATE.substitute(
+        group=group, artifact=artifact, version=version)
+  return result
+
 def write_pom_file(version, pom_file):
-  library_licenses = generate_library_licenses()
-  version_pom = POMTEMPLATE.substitute(version=version, library_licenses=library_licenses)
+  dependencies = generate_dependencies()
+  version_pom = POMTEMPLATE.substitute(
+      version=version, dependencies=dependencies)
   with open(pom_file, 'w') as file:
     file.write(version_pom)
 
@@ -131,13 +201,14 @@ def write_sha1_for(file):
 
 def main(argv):
   options = parse_options(argv)
-  jar = options.jar
   outdir = options.out
-  if jar == None or outdir == None:
-    print 'Need to supply --jar and --out.'
+  if outdir == None:
+    print 'Need to supply output dir with --out.'
     exit(1)
+  # Build the R8 no deps artifact.
+  gradle.RunGradleExcludeDeps([utils.R8])
   # Create directory structure for this version.
-  version = determine_version(jar)
+  version = determine_version()
   with utils.TempDir() as tmp_dir:
     version_dir = join(
         tmp_dir, 'com', 'google', 'android', 'tools', 'r8', version, 'r8')
@@ -147,7 +218,7 @@ def main(argv):
     write_pom_file(version, pom_file)
     # Copy the jar to the output.
     target_jar = join(version_dir, 'r8-' + version + '.jar')
-    copyfile(jar, target_jar)
+    copyfile(utils.R8_JAR, target_jar)
     # Create check sums.
     write_md5_for(target_jar)
     write_md5_for(pom_file)

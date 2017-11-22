@@ -54,9 +54,12 @@ def EnsureShadow():
   else:
     print 'gradle.py: Shadow library present'
 
-def RunGradle(args, throw_on_failure=True):
+def EnsureDeps():
   EnsureGradle()
   EnsureShadow()
+
+def RunGradle(args, throw_on_failure=True):
+  EnsureDeps()
   cmd = [GRADLE]
   cmd.extend(args)
   utils.PrintCmd(cmd)
@@ -65,6 +68,19 @@ def RunGradle(args, throw_on_failure=True):
     if throw_on_failure and return_value != 0:
       raise
     return return_value
+
+def RunGradleExcludeDeps(args, throw_on_failure=True):
+  EnsureDeps()
+  args.append('-Pexclude_deps')
+  RunGradle(args, throw_on_failure)
+
+def RunGradleGetOutput(args):
+  EnsureDeps()
+  cmd = [GRADLE]
+  cmd.extend(args)
+  utils.PrintCmd(cmd)
+  with utils.ChangedWorkingDirectory(utils.REPO_ROOT):
+    return subprocess.check_output(cmd)
 
 def Main():
   RunGradle(sys.argv[1:])

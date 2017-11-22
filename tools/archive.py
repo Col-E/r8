@@ -65,10 +65,11 @@ def GetUrl(version, file_name, is_master):
 def Main():
   if not 'BUILDBOT_BUILDERNAME' in os.environ:
     raise Exception('You are not a bot, don\'t archive builds')
+
+  create_maven_release.main(["--out", utils.LIBS])
+
   # Ensure all archived artifacts has been built before archiving.
   gradle.RunGradle([utils.D8, utils.R8, utils.COMPATDX, utils.COMPATPROGUARD])
-  create_maven_release.main(['--jar', utils.R8_JAR, "--out", utils.LIBS])
-
   version = GetVersion()
   is_master = IsMaster(version)
   if is_master:
