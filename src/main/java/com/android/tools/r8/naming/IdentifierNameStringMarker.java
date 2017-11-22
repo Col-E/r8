@@ -17,8 +17,8 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.DexTypeList;
+import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstString;
@@ -389,7 +389,7 @@ public class IdentifierNameStringMarker {
       ArrayPut arrayPut = instr.asArrayPut();
       assert arrayPut.array() == classListValue;
       // Ignore statically unknown index.
-      if (!(arrayPut.source().isConstClass() && arrayPut.index().isConstNumber())) {
+      if (!(arrayPut.value().isConstClass() && arrayPut.index().isConstNumber())) {
         return null;
       }
       int index = arrayPut.index().getConstInstruction().asConstNumber().getIntValue();
@@ -398,7 +398,7 @@ public class IdentifierNameStringMarker {
         return null;
       }
       maxIndex = maxIndex < index ? index : maxIndex;
-      DexType type = arrayPut.source().getConstInstruction().asConstClass().getValue();
+      DexType type = arrayPut.value().getConstInstruction().asConstClass().getValue();
       typeMap.put(index, type);
     }
     if (maxIndex < 0) {

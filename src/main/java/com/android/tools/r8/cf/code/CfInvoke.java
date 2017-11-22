@@ -32,8 +32,8 @@ public class CfInvoke extends CfInstruction {
     String owner = method.getHolder().getInternalName();
     String name = method.name.toString();
     String desc = method.proto.toDescriptorString();
-    boolean iface = method.holder.isInterface();
-    visitor.visitMethodInsn(opcode, owner, name, desc, iface);
+    boolean isInterface = opcode == Opcodes.INVOKEINTERFACE;
+    visitor.visitMethodInsn(opcode, owner, name, desc, isInterface);
   }
 
   @Override

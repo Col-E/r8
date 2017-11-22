@@ -20,6 +20,7 @@ import com.android.tools.r8.code.LongToFloat;
 import com.android.tools.r8.code.LongToInt;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import org.objectweb.asm.Opcodes;
 
 public class NumberConversion extends Unop {
 
@@ -138,5 +139,63 @@ public class NumberConversion extends Unop {
   @Override
   public NumberConversion asNumberConversion() {
     return this;
+  }
+
+  @Override
+  public int getCfOpcode() {
+    switch (from) {
+      case INT:
+        switch (to) {
+          case BYTE:
+            return Opcodes.I2B;
+          case CHAR:
+            return Opcodes.I2C;
+          case SHORT:
+            return Opcodes.I2S;
+          case FLOAT:
+            return Opcodes.I2F;
+          case LONG:
+            return Opcodes.I2L;
+          case DOUBLE:
+            return Opcodes.I2D;
+          default:
+            throw new Unreachable("Unexpected type conversion: " + from + " -> " + to);
+        }
+      case FLOAT:
+        switch (to) {
+          case INT:
+            return Opcodes.F2I;
+          case LONG:
+            return Opcodes.F2L;
+          case DOUBLE:
+            return Opcodes.F2D;
+          default:
+            throw new Unreachable("Unexpected type conversion: " + from + " -> " + to);
+        }
+      case LONG:
+        switch (to) {
+          case INT:
+            return Opcodes.L2I;
+          case FLOAT:
+            return Opcodes.L2F;
+          case DOUBLE:
+            return Opcodes.L2D;
+          default:
+            throw new Unreachable("Unexpected type conversion: " + from + " -> " + to);
+        }
+      case DOUBLE:
+        switch (to) {
+          case INT:
+            return Opcodes.D2I;
+          case LONG:
+            return Opcodes.D2L;
+          case FLOAT:
+            return Opcodes.D2F;
+          default:
+            throw new Unreachable("Unexpected type conversion: " + from + " -> " + to);
+        }
+      default:
+        throw new Unreachable("Unexpected type conversion: " + from + " -> " + to);
+    }
   }
 }

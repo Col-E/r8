@@ -944,6 +944,14 @@ public abstract class Instruction {
     return null;
   }
 
+  public boolean isPop() {
+    return false;
+  }
+
+  public Pop asPop() {
+    return null;
+  }
+
   public boolean isStore() {
     return false;
   }

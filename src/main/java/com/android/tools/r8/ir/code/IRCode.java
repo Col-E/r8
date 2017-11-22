@@ -461,7 +461,7 @@ public class IRCode {
             seenThrowing = true;
             continue;
           }
-          // After the throwing instruction only debug instructions an the final jump
+          // After the throwing instruction only debug instructions and the final jump
           // instruction is allowed.
           // TODO(ager): For now allow const instructions due to the way consts are pushed
           // towards their use
@@ -470,7 +470,8 @@ public class IRCode {
                 || instruction.isJumpInstruction()
                 || instruction.isConstInstruction()
                 || instruction.isNewArrayFilledData()
-                || instruction.isStore();
+                || instruction.isStore()
+                || instruction.isPop();
           }
         }
       }

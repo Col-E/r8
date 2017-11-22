@@ -57,4 +57,8 @@ public enum NumericType {
         return null;
     }
   }
+
+  public boolean isWide() {
+    return this == LONG || this == DOUBLE;
+  }
 }

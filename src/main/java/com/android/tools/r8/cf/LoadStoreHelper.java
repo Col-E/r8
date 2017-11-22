@@ -101,6 +101,10 @@ public class LoadStoreHelper {
       assert instruction.isConstInstruction();
       return;
     }
+    if (!instruction.outValue().isUsed()) {
+      popOutValue(instruction.outValue(), instruction, it);
+      return;
+    }
     StackValue newOutValue = createStackValue(instruction.outValue(), 0);
     Value oldOutValue = instruction.swapOutValue(newOutValue);
     add(new Store(oldOutValue, newOutValue), instruction, it);

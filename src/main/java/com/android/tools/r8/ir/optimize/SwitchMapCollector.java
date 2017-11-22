@@ -114,7 +114,7 @@ public class SwitchMapCollector {
     while ((insn = it.nextUntil(predicate)) != null) {
       for (Instruction use : insn.outValue().uniqueUsers()) {
         if (use.isArrayPut()) {
-          Instruction index = use.asArrayPut().source().definition;
+          Instruction index = use.asArrayPut().value().definition;
           if (index == null || !index.isConstNumber()) {
             return;
           }

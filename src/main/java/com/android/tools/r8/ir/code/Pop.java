@@ -18,6 +18,16 @@ public class Pop extends Instruction {
   }
 
   @Override
+  public boolean isPop() {
+    return true;
+  }
+
+  @Override
+  public Pop asPop() {
+    return this;
+  }
+
+  @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
     return true;
   }

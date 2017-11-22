@@ -3,10 +3,15 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.LoadStoreHelper;
+import com.android.tools.r8.cf.code.CfBinop;
+import com.android.tools.r8.cf.code.CfConstNumber;
 import com.android.tools.r8.code.NotInt;
 import com.android.tools.r8.code.NotLong;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import org.objectweb.asm.Opcodes;
 
 public class Not extends Unop {
 
@@ -74,5 +79,22 @@ public class Not extends Unop {
   @Override
   public Not asNot() {
     return this;
+  }
+
+  @Override
+  public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
+    helper.loadInValues(this, it);
+    helper.storeOutValue(this, it);
+  }
+
+  @Override
+  public int getCfOpcode() {
+    throw new Unreachable("Unexpected request for 'not' opcode which is translated to 'xor -1'");
+  }
+
+  @Override
+  public void buildCf(CfBuilder builder) {
+    builder.add(new CfConstNumber(-1, ValueType.fromNumericType(type)));
+    builder.add(new CfBinop(type.isWide() ? Opcodes.LXOR : Opcodes.IXOR));
   }
 }

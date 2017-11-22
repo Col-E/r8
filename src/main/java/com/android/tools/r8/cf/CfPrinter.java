@@ -3,7 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.cf;
 
+import com.android.tools.r8.cf.code.CfArrayLength;
 import com.android.tools.r8.cf.code.CfArrayLoad;
+import com.android.tools.r8.cf.code.CfArrayStore;
+import com.android.tools.r8.cf.code.CfBinop;
 import com.android.tools.r8.cf.code.CfConstNull;
 import com.android.tools.r8.cf.code.CfConstNumber;
 import com.android.tools.r8.cf.code.CfConstString;
@@ -16,22 +19,26 @@ import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.cf.code.CfLabel;
 import com.android.tools.r8.cf.code.CfLoad;
 import com.android.tools.r8.cf.code.CfNew;
+import com.android.tools.r8.cf.code.CfNewArray;
 import com.android.tools.r8.cf.code.CfPop;
 import com.android.tools.r8.cf.code.CfReturn;
 import com.android.tools.r8.cf.code.CfReturnVoid;
 import com.android.tools.r8.cf.code.CfStaticGet;
 import com.android.tools.r8.cf.code.CfStore;
+import com.android.tools.r8.cf.code.CfUnop;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.If;
-import com.android.tools.r8.ir.code.If.Type;
+import com.android.tools.r8.ir.code.MemberType;
+import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.ValueType;
+import com.android.tools.r8.utils.DescriptorUtils;
 import java.util.HashMap;
 import java.util.Map;
-import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
 
 /**
  * Utility to print CF code and instructions.
@@ -113,6 +120,14 @@ public class CfPrinter {
     print(typePrefix(ret.getType()) + "return");
   }
 
+  public void print(CfBinop binop) {
+    print(CfConstants.opcodeName(binop.getOpcode()));
+  }
+
+  public void print(CfUnop unop) {
+    print(CfConstants.opcodeName(unop.getOpcode()));
+  }
+
   public void print(CfPop pop) {
     print("pop");
   }
@@ -123,59 +138,18 @@ public class CfPrinter {
   }
 
   public void print(CfArrayLoad arrayLoad) {
-    switch (arrayLoad.getType()) {
-      case OBJECT:
-        print("aaload");
-        break;
-      case BOOLEAN:
-      case BYTE:
-        print("baload");
-        break;
-      case CHAR:
-        print("caload");
-        break;
-      case SHORT:
-        print("saload");
-        break;
-      case INT:
-        print("iaload");
-        break;
-      case FLOAT:
-        print("faload");
-        break;
-      case LONG:
-        print("laload");
-        break;
-      case DOUBLE:
-        print("daload");
-        break;
-      default:
-        throw new Unreachable("Unexpected array-load type: " + arrayLoad.getType());
-    }
+    indent();
+    builder.append(typePrefix(arrayLoad.getType())).append("aload");
+  }
+
+  public void print(CfArrayStore arrayStore) {
+    indent();
+    builder.append(typePrefix(arrayStore.getType())).append("astore");
   }
 
   public void print(CfInvoke invoke) {
     indent();
-    switch (invoke.getOpcode()) {
-      case Opcodes.INVOKEVIRTUAL:
-        builder.append("invokevirtual");
-        break;
-      case Opcodes.INVOKESPECIAL:
-        builder.append("invokespecial");
-        break;
-      case Opcodes.INVOKESTATIC:
-        builder.append("invokestatic");
-        break;
-      case Opcodes.INVOKEINTERFACE:
-        builder.append("invokeinterface");
-        break;
-      case Opcodes.INVOKEDYNAMIC:
-        builder.append("invokedynamic");
-        break;
-      default:
-        throw new Unreachable("Unexpected invoke opcode: " + invoke.getOpcode());
-    }
-    builder.append(' ');
+    builder.append(invoke.getOpcode()).append(' ');
     appendMethod(invoke.getMethod());
   }
 
@@ -196,6 +170,29 @@ public class CfPrinter {
     appendClass(newInstance.getType());
   }
 
+  public void print(CfNewArray newArray) {
+    indent();
+    String elementDescriptor = newArray.getType().toDescriptorString().substring(1);
+    if (newArray.getType().isPrimitiveArrayType()) {
+      // Primitive arrays are formatted as the Java type: int, byte, etc.
+      builder.append("newarray ");
+      builder.append(DescriptorUtils.descriptorToJavaType(elementDescriptor));
+    } else {
+      builder.append("anewarray ");
+      if (elementDescriptor.charAt(0) == '[') {
+        // Arrays of arrays are formatted using the descriptor syntax.
+        builder.append(elementDescriptor);
+      } else {
+        // Arrays of class types are formatted using the "internal name".
+        builder.append(Type.getType(elementDescriptor).getInternalName());
+      }
+    }
+  }
+
+  public void print(CfArrayLength arrayLength) {
+    print("arraylength");
+  }
+
   public void print(CfLabel label) {
     newline();
     builder.append(getLabel(label)).append(':');
@@ -213,7 +210,7 @@ public class CfPrinter {
   public void print(CfIf conditional) {
     indent();
     if (conditional.getType().isObject()) {
-      builder.append("if").append(conditional.getKind() == Type.EQ ? "null" : "nonnull");
+      builder.append("if").append(conditional.getKind() == If.Type.EQ ? "null" : "nonnull");
     } else {
       builder.append("if").append(ifPostfix(conditional.getKind()));
     }
@@ -256,6 +253,48 @@ public class CfPrinter {
         return 'd';
       default:
         throw new Unreachable("Unexpected type for prefix: " + type);
+    }
+  }
+
+  public char typePrefix(MemberType type) {
+    switch (type) {
+      case OBJECT:
+        return 'a';
+      case BOOLEAN:
+      case BYTE:
+        return 'b';
+      case CHAR:
+        return 'c';
+      case SHORT:
+        return 's';
+      case INT:
+        return 'i';
+      case FLOAT:
+        return 'f';
+      case LONG:
+        return 'l';
+      case DOUBLE:
+        return 'd';
+      default:
+        throw new Unreachable("Unexpected member type for prefix: " + type);
+    }
+  }
+
+  public char typePrefix(NumericType type) {
+    switch (type) {
+      case BYTE:
+      case CHAR:
+      case SHORT:
+      case INT:
+        return 'i';
+      case FLOAT:
+        return 'f';
+      case LONG:
+        return 'l';
+      case DOUBLE:
+        return 'd';
+      default:
+        throw new Unreachable("Unexpected numeric type for prefix: " + type);
     }
   }
 

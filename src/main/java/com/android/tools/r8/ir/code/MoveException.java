@@ -78,11 +78,7 @@ public class MoveException extends Instruction {
 
   @Override
   public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
-    if (outValue.isUsed()) {
-      helper.storeOutValue(this, it);
-    } else {
-      helper.popOutValue(outValue, this, it);
-    }
+    helper.storeOutValue(this, it);
   }
 
   @Override

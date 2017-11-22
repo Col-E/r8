@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.LoadStoreHelper;
+import com.android.tools.r8.cf.code.CfArrayStore;
 import com.android.tools.r8.code.Aput;
 import com.android.tools.r8.code.AputBoolean;
 import com.android.tools.r8.code.AputByte;
@@ -14,37 +16,45 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.utils.InternalOptions;
-import java.util.List;
+import java.util.Arrays;
 
 public class ArrayPut extends Instruction {
 
+  // Input values are ordered according to the stack order of the Java bytecode astore.
+  private static final int ARRAY_INDEX = 0;
+  private static final int INDEX_INDEX = 1;
+  private static final int VALUE_INDEX = 2;
+
   private final MemberType type;
 
-  public ArrayPut(MemberType type, List<Value> ins) {
-    super(null, ins);
+  public ArrayPut(MemberType type, Value array, Value index, Value value) {
+    super(null, Arrays.asList(array, index, value));
     assert type != null;
+    assert array.type.isObjectOrNull();
+    assert index.type.isSingleOrZero();
     this.type = type;
   }
 
-  public Value source() {
-    return inValues.get(0);
-  }
-
   public Value array() {
-    return inValues.get(1);
+    return inValues.get(ARRAY_INDEX);
   }
 
   public Value index() {
-    return inValues.get(2);
+    return inValues.get(INDEX_INDEX);
+  }
+
+  public Value value() {
+    return inValues.get(VALUE_INDEX);
   }
 
   @Override
   public void buildDex(DexBuilder builder) {
-    int source = builder.allocatedRegister(source(), getNumber());
+    int value = builder.allocatedRegister(value(), getNumber());
     int array = builder.allocatedRegister(array(), getNumber());
     int index = builder.allocatedRegister(index(), getNumber());
     com.android.tools.r8.code.Instruction instruction;
@@ -52,27 +62,27 @@ public class ArrayPut extends Instruction {
       case INT:
       case FLOAT:
       case INT_OR_FLOAT:
-        instruction = new Aput(source, array, index);
+        instruction = new Aput(value, array, index);
         break;
       case LONG:
       case DOUBLE:
       case LONG_OR_DOUBLE:
-        instruction = new AputWide(source, array, index);
+        instruction = new AputWide(value, array, index);
         break;
       case OBJECT:
-        instruction = new AputObject(source, array, index);
+        instruction = new AputObject(value, array, index);
         break;
       case BOOLEAN:
-        instruction = new AputBoolean(source, array, index);
+        instruction = new AputBoolean(value, array, index);
         break;
       case BYTE:
-        instruction = new AputByte(source, array, index);
+        instruction = new AputByte(value, array, index);
         break;
       case CHAR:
-        instruction = new AputChar(source, array, index);
+        instruction = new AputChar(value, array, index);
         break;
       case SHORT:
-        instruction = new AputShort(source, array, index);
+        instruction = new AputShort(value, array, index);
         break;
       default:
         throw new Unreachable("Unexpected type " + type);
@@ -146,5 +156,15 @@ public class ArrayPut extends Instruction {
   @Override
   public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType holder) {
     return Constraint.ALWAYS;
+  }
+
+  @Override
+  public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
+    helper.loadInValues(this, it);
+  }
+
+  @Override
+  public void buildCf(CfBuilder builder) {
+    builder.add(new CfArrayStore(type));
   }
 }

@@ -751,11 +751,10 @@ public class IRBuilder {
   }
 
   public void addArrayPut(MemberType type, int value, int array, int index) {
-    List<Value> ins = new ArrayList<>(3);
-    ins.add(readRegister(value, ValueType.fromMemberType(type)));
-    ins.add(readRegister(array, ValueType.OBJECT));
-    ins.add(readRegister(index, ValueType.INT));
-    ArrayPut instruction = new ArrayPut(type, ins);
+    Value inValue = readRegister(value, ValueType.fromMemberType(type));
+    Value inArray = readRegister(array, ValueType.OBJECT);
+    Value inIndex = readRegister(index, ValueType.INT);
+    ArrayPut instruction = new ArrayPut(type, inArray, inIndex, inValue);
     add(instruction);
   }
 

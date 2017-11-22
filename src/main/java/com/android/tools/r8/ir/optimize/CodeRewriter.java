@@ -1364,7 +1364,7 @@ public class CodeRewriter {
           return null;
         }
         ArrayPut arrayPut = instruction.asArrayPut();
-        if (!(arrayPut.source().isConstant() && arrayPut.index().isConstNumber())) {
+        if (!(arrayPut.value().isConstant() && arrayPut.index().isConstNumber())) {
           return null;
         }
         int index = arrayPut.index().getConstInstruction().asConstNumber().getIntValue();
@@ -1372,7 +1372,7 @@ public class CodeRewriter {
         if (values[index] != null) {
           return null;
         }
-        ConstInstruction value = arrayPut.source().getConstInstruction();
+        ConstInstruction value = arrayPut.value().getConstInstruction();
         values[index] = value;
         --remaining;
         if (remaining == 0) {
@@ -1413,6 +1413,9 @@ public class CodeRewriter {
    * and fill-array-data / filled-new-array.
    */
   public void simplifyArrayConstruction(IRCode code) {
+    if (options.outputClassFiles) {
+      return;
+    }
     for (BasicBlock block : code.blocks) {
       // Map from the array value to the number of array put instruction to remove for that value.
       Map<Value, Instruction> instructionToInsertForArray = new HashMap<>();

@@ -72,6 +72,7 @@ public class R8RunExamplesTest {
   private static final Set<String> failingOutputCf =
       new ImmutableSet.Builder<String>()
           .add("regress_62300145.Regress") // annotations
+          .add("throwing.Throwing") // no line info
           .build();
 
   private static final Map<String, TestCondition> outputNotIdenticalToJVMOutput =

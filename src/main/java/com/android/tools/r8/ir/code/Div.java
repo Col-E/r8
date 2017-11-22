@@ -14,6 +14,8 @@ import com.android.tools.r8.code.DivIntLit16;
 import com.android.tools.r8.code.DivIntLit8;
 import com.android.tools.r8.code.DivLong;
 import com.android.tools.r8.code.DivLong2Addr;
+import com.android.tools.r8.errors.Unreachable;
+import org.objectweb.asm.Opcodes;
 
 public class Div extends ArithmeticBinop {
 
@@ -124,5 +126,24 @@ public class Div extends ArithmeticBinop {
   @Override
   public boolean instructionTypeCanThrow() {
     return type != NumericType.DOUBLE && type != NumericType.FLOAT;
+  }
+
+  @Override
+  int getCfOpcode() {
+    switch (type) {
+      case BYTE:
+      case CHAR:
+      case SHORT:
+      case INT:
+        return Opcodes.IDIV;
+      case FLOAT:
+        return Opcodes.FDIV;
+      case LONG:
+        return Opcodes.LDIV;
+      case DOUBLE:
+        return Opcodes.DDIV;
+      default:
+        throw new Unreachable("Unexpected numeric type: " + type);
+    }
   }
 }

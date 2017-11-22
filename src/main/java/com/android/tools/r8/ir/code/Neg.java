@@ -9,6 +9,7 @@ import com.android.tools.r8.code.NegInt;
 import com.android.tools.r8.code.NegLong;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import org.objectweb.asm.Opcodes;
 
 public class Neg extends Unop {
 
@@ -92,5 +93,21 @@ public class Neg extends Unop {
   @Override
   public Neg asNeg() {
     return this;
+  }
+
+  @Override
+  public int getCfOpcode() {
+    switch (type) {
+      case INT:
+        return Opcodes.INEG;
+      case FLOAT:
+        return Opcodes.FNEG;
+      case LONG:
+        return Opcodes.LNEG;
+      case DOUBLE:
+        return Opcodes.DNEG;
+      default:
+        throw new Unreachable("Unexpected type: " + type);
+    }
   }
 }

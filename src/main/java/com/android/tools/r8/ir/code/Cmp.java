@@ -15,6 +15,7 @@ import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.utils.LongInterval;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
+import org.objectweb.asm.Opcodes;
 
 public class Cmp extends Binop {
 
@@ -192,5 +193,20 @@ public class Cmp extends Binop {
   @Override
   public Cmp asCmp() {
     return this;
+  }
+
+  @Override
+  int getCfOpcode() {
+    switch (type) {
+      case LONG:
+        assert bias == Bias.NONE;
+        return Opcodes.LCMP;
+      case FLOAT:
+        return bias == Bias.GT ? Opcodes.FCMPG : Opcodes.FCMPL;
+      case DOUBLE:
+        return bias == Bias.GT ? Opcodes.DCMPG : Opcodes.DCMPL;
+      default:
+        throw new Unreachable("Unexpected cmp type: " + type);
+    }
   }
 }

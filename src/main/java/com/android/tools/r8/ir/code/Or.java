@@ -9,6 +9,8 @@ import com.android.tools.r8.code.OrIntLit16;
 import com.android.tools.r8.code.OrIntLit8;
 import com.android.tools.r8.code.OrLong;
 import com.android.tools.r8.code.OrLong2Addr;
+import com.android.tools.r8.errors.Unreachable;
+import org.objectweb.asm.Opcodes;
 
 public class Or extends LogicalBinop {
 
@@ -85,5 +87,20 @@ public class Or extends LogicalBinop {
   @Override
   long foldLongs(long left, long right) {
     return left | right;
+  }
+
+  @Override
+  int getCfOpcode() {
+    switch (type) {
+      case BYTE:
+      case CHAR:
+      case SHORT:
+      case INT:
+        return Opcodes.IOR;
+      case LONG:
+        return Opcodes.LOR;
+      default:
+        throw new Unreachable("Unexpected numeric type for or: " + type);
+    }
   }
 }

@@ -6,9 +6,12 @@ package com.android.tools.r8.ir.code;
 import static com.android.tools.r8.dex.Constants.U4BIT_MAX;
 import static com.android.tools.r8.dex.Constants.U8BIT_MAX;
 
+import com.android.tools.r8.cf.LoadStoreHelper;
+import com.android.tools.r8.cf.code.CfBinop;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 
@@ -114,5 +117,18 @@ public abstract class Binop extends Instruction {
   @Override
   public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType holder) {
     return Constraint.ALWAYS;
+  }
+
+  @Override
+  public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
+    helper.loadInValues(this, it);
+    helper.storeOutValue(this, it);
+  }
+
+  abstract int getCfOpcode();
+
+  @Override
+  public void buildCf(CfBuilder builder) {
+    builder.add(new CfBinop(getCfOpcode()));
   }
 }

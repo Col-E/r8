@@ -9,6 +9,7 @@ import com.android.tools.r8.code.ShrIntLit8;
 import com.android.tools.r8.code.ShrLong;
 import com.android.tools.r8.code.ShrLong2Addr;
 import com.android.tools.r8.errors.Unreachable;
+import org.objectweb.asm.Opcodes;
 
 public class Shr extends LogicalBinop {
 
@@ -85,5 +86,20 @@ public class Shr extends LogicalBinop {
   @Override
   long foldLongs(long left, long right) {
     return left >> right;
+  }
+
+  @Override
+  int getCfOpcode() {
+    switch (type) {
+      case BYTE:
+      case CHAR:
+      case SHORT:
+      case INT:
+        return Opcodes.ISHR;
+      case LONG:
+        return Opcodes.LSHR;
+      default:
+        throw new Unreachable("Unexpected numeric type in shift: " + type);
+    }
   }
 }

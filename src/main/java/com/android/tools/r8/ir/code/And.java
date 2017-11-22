@@ -10,6 +10,8 @@ import com.android.tools.r8.code.AndIntLit16;
 import com.android.tools.r8.code.AndIntLit8;
 import com.android.tools.r8.code.AndLong;
 import com.android.tools.r8.code.AndLong2Addr;
+import com.android.tools.r8.errors.Unreachable;
+import org.objectweb.asm.Opcodes;
 
 public class And extends LogicalBinop {
 
@@ -86,5 +88,22 @@ public class And extends LogicalBinop {
   @Override
   long foldLongs(long left, long right) {
     return left & right;
+  }
+
+  @Override
+  int getCfOpcode() {
+    switch (type) {
+      case BYTE:
+      case CHAR:
+      case SHORT:
+      case INT:
+      case FLOAT:
+        return Opcodes.IAND;
+      case LONG:
+      case DOUBLE:
+        return Opcodes.LAND;
+      default:
+        throw new Unreachable("Unexpected numeric type in logical and: " + type);
+    }
   }
 }
