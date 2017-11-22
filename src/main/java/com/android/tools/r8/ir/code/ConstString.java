@@ -86,22 +86,24 @@ public class ConstString extends ConstInstruction {
   }
 
   @Override
-  public boolean canBeDeadCode(IRCode code, InternalOptions options) {
-    // The const-string instruction can be a throwing instruction in DEX, if decode() fails,
-    // but not so in CF.
-    if (options.outputClassFiles) {
-      return true;
-    }
+  public boolean instructionInstanceCanThrow() {
+    // The const-string instruction can be a throwing instruction in DEX, if decode() fails.
     try {
       value.toString();
     } catch (RuntimeException e) {
       if (e.getCause() instanceof UTFDataFormatException) {
-        return false;
+        return true;
       } else {
         throw e;
       }
     }
-    return true;
+    return false;
+  }
+
+  @Override
+  public boolean canBeDeadCode(IRCode code, InternalOptions options) {
+    // No side-effect, such as throwing an exception, in CF.
+    return options.outputClassFiles || !instructionInstanceCanThrow();
   }
 
   @Override
