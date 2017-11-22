@@ -62,14 +62,10 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
     DexCode code = method.getCode().asDexCode();
     assertTrue(code.instructions[0] instanceof InvokeDirect);
     assertTrue(code.instructions[1] instanceof ConstString);
-    // TODO(b/36799092): DeadCodeRemover should be able to remove this instruction.
     ConstString constString = (ConstString) code.instructions[1];
     assertEquals(BOO, constString.getString().toString());
-    assertTrue(code.instructions[2] instanceof ConstString);
-    constString = (ConstString) code.instructions[2];
-    assertEquals(BOO, constString.getString().toString());
-    assertTrue(code.instructions[3] instanceof IputObject);
-    assertTrue(code.instructions[4] instanceof ReturnVoid);
+    assertTrue(code.instructions[2] instanceof IputObject);
+    assertTrue(code.instructions[3] instanceof ReturnVoid);
   }
 
   @Test
@@ -169,15 +165,11 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
     assertNotNull(method);
 
     DexCode code = method.getCode().asDexCode();
-    // TODO(b/36799092): DeadCodeRemover should be able to remove this instruction.
     assertTrue(code.instructions[0] instanceof ConstString);
     ConstString constString = (ConstString) code.instructions[0];
     assertEquals(BOO, constString.getString().toString());
-    assertTrue(code.instructions[1] instanceof ConstString);
-    constString = (ConstString) code.instructions[1];
-    assertEquals(BOO, constString.getString().toString());
-    assertTrue(code.instructions[2] instanceof SputObject);
-    assertTrue(code.instructions[3] instanceof ReturnVoid);
+    assertTrue(code.instructions[1] instanceof SputObject);
+    assertTrue(code.instructions[2] instanceof ReturnVoid);
   }
 
   @Test
@@ -375,18 +367,14 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
 
     DexCode code = method.getCode().asDexCode();
     assertTrue(code.instructions[0] instanceof InvokeDirect);
-    // TODO(b/36799092): DeadCodeRemover should be able to remove this instruction.
     assertTrue(code.instructions[1] instanceof ConstString);
     ConstString constString = (ConstString) code.instructions[1];
-    assertEquals(BOO, constString.getString().toString());
+    assertEquals("Mixed/form.Boo", constString.getString().toString());
     assertTrue(code.instructions[2] instanceof ConstString);
     constString = (ConstString) code.instructions[2];
-    assertEquals("Mixed/form.Boo", constString.getString().toString());
-    assertTrue(code.instructions[3] instanceof ConstString);
-    constString = (ConstString) code.instructions[3];
     assertEquals(BOO, constString.getString().toString());
-    assertTrue(code.instructions[4] instanceof InvokeStatic);
-    assertTrue(code.instructions[5] instanceof ReturnVoid);
+    assertTrue(code.instructions[3] instanceof InvokeStatic);
+    assertTrue(code.instructions[4] instanceof ReturnVoid);
   }
 
   @Test
@@ -516,15 +504,11 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
     DexCode code = method.getCode().asDexCode();
     assertTrue(code.instructions[0] instanceof InvokeDirect);
     assertTrue(code.instructions[1] instanceof ConstClass);
-    // TODO(b/36799092): DeadCodeRemover should be able to remove this instruction.
     assertTrue(code.instructions[2] instanceof ConstString);
     ConstString constString = (ConstString) code.instructions[2];
     assertEquals("foo", constString.getString().toString());
-    assertTrue(code.instructions[3] instanceof ConstString);
-    constString = (ConstString) code.instructions[3];
-    assertEquals("foo", constString.getString().toString());
-    assertTrue(code.instructions[4] instanceof InvokeStatic);
-    assertTrue(code.instructions[5] instanceof ReturnVoid);
+    assertTrue(code.instructions[3] instanceof InvokeStatic);
+    assertTrue(code.instructions[4] instanceof ReturnVoid);
   }
 
   @Test
@@ -568,15 +552,11 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
     DexCode code = method.getCode().asDexCode();
     assertTrue(code.instructions[0] instanceof InvokeDirect);
     assertTrue(code.instructions[1] instanceof ConstClass);
-    // TODO(b/36799092): DeadCodeRemover should be able to remove this instruction.
     assertTrue(code.instructions[2] instanceof ConstString);
     ConstString constString = (ConstString) code.instructions[2];
-    assertEquals("foo", constString.getString().toString());
-    assertTrue(code.instructions[3] instanceof ConstString);
-    constString = (ConstString) code.instructions[3];
     assertNotEquals("foo", constString.getString().toString());
-    assertTrue(code.instructions[4] instanceof InvokeStatic);
-    assertTrue(code.instructions[5] instanceof ReturnVoid);
+    assertTrue(code.instructions[3] instanceof InvokeStatic);
+    assertTrue(code.instructions[4] instanceof ReturnVoid);
   }
 
   @Test
@@ -631,15 +611,11 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
     assertTrue(code.instructions[3] instanceof NewArray);
     assertTrue(code.instructions[4] instanceof Const4);
     assertTrue(code.instructions[5] instanceof AputObject);
-    // TODO(b/36799092): DeadCodeRemover should be able to remove this instruction.
     assertTrue(code.instructions[6] instanceof ConstString);
     ConstString constString = (ConstString) code.instructions[6];
     assertEquals("foo", constString.getString().toString());
-    assertTrue(code.instructions[7] instanceof ConstString);
-    constString = (ConstString) code.instructions[7];
-    assertEquals("foo", constString.getString().toString());
-    assertTrue(code.instructions[8] instanceof InvokeStatic);
-    assertTrue(code.instructions[9] instanceof ReturnVoid);
+    assertTrue(code.instructions[7] instanceof InvokeStatic);
+    assertTrue(code.instructions[8] instanceof ReturnVoid);
   }
 
   @Test
@@ -694,15 +670,11 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
     assertTrue(code.instructions[3] instanceof NewArray);
     assertTrue(code.instructions[4] instanceof Const4);
     assertTrue(code.instructions[5] instanceof AputObject);
-    // TODO(b/36799092): DeadCodeRemover should be able to remove this instruction.
     assertTrue(code.instructions[6] instanceof ConstString);
     ConstString constString = (ConstString) code.instructions[6];
-    assertEquals("foo", constString.getString().toString());
-    assertTrue(code.instructions[7] instanceof ConstString);
-    constString = (ConstString) code.instructions[7];
     assertNotEquals("foo", constString.getString().toString());
-    assertTrue(code.instructions[8] instanceof InvokeStatic);
-    assertTrue(code.instructions[9] instanceof ReturnVoid);
+    assertTrue(code.instructions[7] instanceof InvokeStatic);
+    assertTrue(code.instructions[8] instanceof ReturnVoid);
   }
 
   private DexInspector getInspectorAfterRunR8(

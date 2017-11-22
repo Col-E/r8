@@ -53,15 +53,11 @@ public class ForNameTest extends SmaliTestBase {
     assertTrue(method.isPresent());
 
     DexCode code = method.getMethod().getCode().asDexCode();
-    // TODO(b/36799092): DeadCodeRemover should be able to remove this instruction.
     assertTrue(code.instructions[0] instanceof ConstString);
     ConstString constString = (ConstString) code.instructions[0];
-    assertEquals(BOO, constString.getString().toString());
-    assertTrue(code.instructions[1] instanceof ConstString);
-    constString = (ConstString) code.instructions[1];
     assertNotEquals(BOO, constString.getString().toString());
-    assertTrue(code.instructions[2] instanceof InvokeStatic);
-    assertTrue(code.instructions[3] instanceof ReturnVoid);
+    assertTrue(code.instructions[1] instanceof InvokeStatic);
+    assertTrue(code.instructions[2] instanceof ReturnVoid);
   }
 
   @Test
