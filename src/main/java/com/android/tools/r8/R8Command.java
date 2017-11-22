@@ -46,6 +46,7 @@ public class R8Command extends BaseCompilerCommand {
     private boolean ignoreMissingClasses = false;
     private boolean forceProguardCompatibility = false;
     private Path proguardMapOutput = null;
+    protected Path proguardCompatibilityRulesOutput = null;
 
     private Builder() {
       setMode(CompilationMode.RELEASE);
@@ -282,7 +283,8 @@ public class R8Command extends BaseCompilerCommand {
           ignoreMissingClasses,
           forceProguardCompatibility,
           ignoreMissingClassesWhenNotShrinking,
-          proguardMapOutput);
+          proguardMapOutput,
+          proguardCompatibilityRulesOutput);
 
       failIfPendingErrors();
 
@@ -329,6 +331,7 @@ public class R8Command extends BaseCompilerCommand {
   private final boolean forceProguardCompatibility;
   private final boolean ignoreMissingClassesWhenNotShrinking;
   private final Path proguardMapOutput;
+  private final Path proguardCompatibilityRulesOutput;
 
   public static Builder builder() {
     return new Builder();
@@ -453,7 +456,8 @@ public class R8Command extends BaseCompilerCommand {
       boolean ignoreMissingClasses,
       boolean forceProguardCompatibility,
       boolean ignoreMissingClassesWhenNotShrinking,
-      Path proguardMapOutput) {
+      Path proguardMapOutput,
+      Path proguardCompatibilityRulesOutput) {
     super(inputApp, outputPath, outputMode, mode, minApiLevel, reporter,
         enableDesugaring);
     assert proguardConfiguration != null;
@@ -469,6 +473,7 @@ public class R8Command extends BaseCompilerCommand {
     this.forceProguardCompatibility = forceProguardCompatibility;
     this.ignoreMissingClassesWhenNotShrinking = ignoreMissingClassesWhenNotShrinking;
     this.proguardMapOutput = proguardMapOutput;
+    this.proguardCompatibilityRulesOutput = proguardCompatibilityRulesOutput;
   }
 
   private R8Command(boolean printHelp, boolean printVersion) {
@@ -483,6 +488,7 @@ public class R8Command extends BaseCompilerCommand {
     forceProguardCompatibility = false;
     ignoreMissingClassesWhenNotShrinking = false;
     proguardMapOutput = null;
+    proguardCompatibilityRulesOutput = null;
   }
   public boolean useTreeShaking() {
     return useTreeShaking;
@@ -537,6 +543,7 @@ public class R8Command extends BaseCompilerCommand {
       internal.inlineAccessors = false;
     }
     internal.proguardMapOutput = proguardMapOutput;
+    internal.proguardCompatibilityRulesOutput = proguardCompatibilityRulesOutput;
 
     // EXPERIMENTAL flags.
     assert !internal.forceProguardCompatibility;

@@ -57,6 +57,10 @@ public abstract class ProguardTypeMatcher {
     }
   }
 
+  public static ProguardTypeMatcher create(DexType type) {
+    return new MatchSpecificType(type);
+  }
+
   public static ProguardTypeMatcher defaultAllMatcher() {
     return MatchAllTypes.MATCH_ALL_TYPES;
   }

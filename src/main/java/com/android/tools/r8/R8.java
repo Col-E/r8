@@ -35,6 +35,7 @@ import com.android.tools.r8.shaking.DiscardedChecker;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.MainDexListBuilder;
 import com.android.tools.r8.shaking.ProguardClassFilter;
+import com.android.tools.r8.shaking.ProguardKeepRule;
 import com.android.tools.r8.shaking.ReasonPrinter;
 import com.android.tools.r8.shaking.RootSetBuilder;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
@@ -47,6 +48,7 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppOutputSink;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.CompilationFailedException;
+import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.IOExceptionDiagnostic;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
@@ -56,15 +58,18 @@ import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.VersionProperties;
 import com.google.common.io.ByteStreams;
+import com.google.common.io.Closer;
 import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -197,6 +202,25 @@ public class R8 {
           appInfo = appInfo.withLiveness().prunedCopyFrom(application, pruner.getRemovedClasses());
           new AbstractMethodRemover(appInfo).run();
           new AnnotationRemover(appInfo.withLiveness(), options).run();
+        }
+
+        // TODO(69445518): This is still work in progress, and this file writing is currently used
+        // for testing.
+        if (options.forceProguardCompatibility
+            && options.proguardCompatibilityRulesOutput != null) {
+          try (Closer closer = Closer.create()) {
+            OutputStream outputStream =
+                FileUtils.openPath(
+                    closer,
+                    options.proguardCompatibilityRulesOutput,
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.TRUNCATE_EXISTING,
+                    StandardOpenOption.WRITE);
+            PrintStream ps = new PrintStream(outputStream);
+            for (ProguardKeepRule rule : appInfo.withLiveness().getProguardCompatibilityRules()) {
+              ps.println(rule);
+            }
+          }
         }
       } finally {
         timing.end();

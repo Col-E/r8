@@ -99,6 +99,15 @@ public class FileUtils {
     return path;
   }
 
+  public static OutputStream openPath(
+      Closer closer,
+      Path file,
+      OpenOption... openOptions)
+      throws IOException {
+    assert file != null;
+    return openPathWithDefault(closer, file, null, openOptions);
+  }
+
   public static OutputStream openPathWithDefault(
       Closer closer,
       Path file,
@@ -107,6 +116,7 @@ public class FileUtils {
       throws IOException {
     OutputStream mapOut;
     if (file == null) {
+      assert defaultOutput != null;
       mapOut = defaultOutput;
     } else {
       mapOut = Files.newOutputStream(file, openOptions);

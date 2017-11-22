@@ -139,6 +139,11 @@ public class Enqueuer {
   private Queue<Action> workList = Queues.newArrayDeque();
 
   /**
+   * A queue of items that have been added to try to keep Proguard compatibility.
+   */
+  private Queue<Action> proguardCompatibilityWorkList = Queues.newArrayDeque();
+
+  /**
    * A cache for DexMethod that have been marked reachable.
    */
   private Set<DexMethod> virtualTargetsMarkedAsReachable = Sets.newIdentityHashSet();
@@ -159,6 +164,11 @@ public class Enqueuer {
    * become live.
    */
   private final Map<DexType, Set<DexAnnotation>> deferredAnnotations = new IdentityHashMap<>();
+
+  /**
+   * Set of keep rules generated for Proguard compatibility in Proguard compatibility mode.
+   */
+  private final Set<ProguardKeepRule> proguardCompatibilityRules = Sets.newHashSet();
 
   public Enqueuer(AppInfoWithSubtyping appInfo, InternalOptions options) {
     this.appInfo = appInfo;
@@ -368,14 +378,16 @@ public class Enqueuer {
       // Add all dependent static members to the workqueue.
       enqueueRootItems(rootSet.getDependentStaticMembers(type));
 
-      // For Proguard compatibility mark default initializer for live type as live.
+      // For Proguard compatibility keep the default initializer for live types.
       if (options.forceProguardCompatibility) {
-        if (holder.hasDefaultInitializer()) {
+        if (holder.isProgramClass() && holder.hasDefaultInitializer()) {
           DexEncodedMethod init = holder.getDefaultInitializer();
-          // TODO(68246915): For now just register the default constructor as the source of
-          // instantiation.
-          markInstantiated(type, init);
-          markDirectStaticOrConstructorMethodAsLive(init, KeepReason.reachableFromLiveType(type));
+          ProguardKeepRule rule =
+              ProguardConfigurationUtils.buildDefaultInitializerKeepRule(holder);
+          proguardCompatibilityWorkList.add(
+              Action.markInstantiated(holder, KeepReason.dueToProguardCompatibilityKeepRule(rule)));
+          proguardCompatibilityWorkList.add(
+              Action.markMethodLive(init, KeepReason.dueToProguardCompatibilityKeepRule(rule)));
         }
       }
     }
@@ -452,6 +464,7 @@ public class Enqueuer {
     if (!instantiatedTypes.add(clazz.type, reason)) {
       return;
     }
+    collectProguardCompatibilityRule(reason);
     if (Log.ENABLED) {
       Log.verbose(getClass(), "Class `%s` is instantiated, processing...", clazz);
     }
@@ -815,44 +828,53 @@ public class Enqueuer {
     this.rootSet = rootSet;
     // Translate the result of root-set computation into enqueuer actions.
     enqueueRootItems(rootSet.noShrinking);
-    appInfo.libraryClasses().forEach(this::markAllVirtualMethodsReachable);
+    appInfo.libraryClasses().forEach(this::markAllLibraryVirtualMethodsReachable);
     return trace(timing);
   }
 
   private AppInfoWithLiveness trace(Timing timing) {
     timing.begin("Grow the tree.");
     try {
-      while (!workList.isEmpty()) {
-        Action action = workList.poll();
-        switch (action.kind) {
-          case MARK_INSTANTIATED:
-            processNewlyInstantiatedClass((DexClass) action.target, action.reason);
-            break;
-          case MARK_REACHABLE_FIELD:
-            markInstanceFieldAsReachable((DexField) action.target, action.reason);
-            break;
-          case MARK_REACHABLE_VIRTUAL:
-            markVirtualMethodAsReachable((DexMethod) action.target, false, action.reason);
-            break;
-          case MARK_REACHABLE_INTERFACE:
-            markVirtualMethodAsReachable((DexMethod) action.target, true, action.reason);
-            break;
-          case MARK_REACHABLE_SUPER:
-            markSuperMethodAsReachable((DexMethod) action.target,
-                (DexEncodedMethod) action.context);
-            break;
-          case MARK_METHOD_KEPT:
-            markMethodAsKept((DexEncodedMethod) action.target, action.reason);
-            break;
-          case MARK_FIELD_KEPT:
-            markFieldAsKept((DexEncodedField) action.target, action.reason);
-            break;
-          case MARK_METHOD_LIVE:
-            processNewlyLiveMethod(((DexEncodedMethod) action.target), action.reason);
-            break;
-          default:
-            throw new IllegalArgumentException(action.kind.toString());
+      while (true) {
+        while (!workList.isEmpty()) {
+          Action action = workList.poll();
+          switch (action.kind) {
+            case MARK_INSTANTIATED:
+              processNewlyInstantiatedClass((DexClass) action.target, action.reason);
+              break;
+            case MARK_REACHABLE_FIELD:
+              markInstanceFieldAsReachable((DexField) action.target, action.reason);
+              break;
+            case MARK_REACHABLE_VIRTUAL:
+              markVirtualMethodAsReachable((DexMethod) action.target, false, action.reason);
+              break;
+            case MARK_REACHABLE_INTERFACE:
+              markVirtualMethodAsReachable((DexMethod) action.target, true, action.reason);
+              break;
+            case MARK_REACHABLE_SUPER:
+              markSuperMethodAsReachable((DexMethod) action.target,
+                  (DexEncodedMethod) action.context);
+              break;
+            case MARK_METHOD_KEPT:
+              markMethodAsKept((DexEncodedMethod) action.target, action.reason);
+              break;
+            case MARK_FIELD_KEPT:
+              markFieldAsKept((DexEncodedField) action.target, action.reason);
+              break;
+            case MARK_METHOD_LIVE:
+              processNewlyLiveMethod(((DexEncodedMethod) action.target), action.reason);
+              break;
+            default:
+              throw new IllegalArgumentException(action.kind.toString());
+          }
         }
+        // Continue fix-point processing while there are additional work items to ensure
+        // Proguard compatibility.
+        if (proguardCompatibilityWorkList.isEmpty()) {
+          break;
+        }
+        workList.addAll(proguardCompatibilityWorkList);
+        proguardCompatibilityWorkList.clear();
       }
       if (Log.ENABLED) {
         Set<DexEncodedMethod> allLive = Sets.newIdentityHashSet();
@@ -911,7 +933,8 @@ public class Enqueuer {
     }
   }
 
-  private void markAllVirtualMethodsReachable(DexClass clazz) {
+  private void markAllLibraryVirtualMethodsReachable(DexClass clazz) {
+    assert clazz.isLibraryClass();
     if (Log.ENABLED) {
       Log.verbose(getClass(), "Marking all methods of library class `%s` as reachable.",
           clazz.type);
@@ -925,6 +948,7 @@ public class Enqueuer {
 
   private void processNewlyLiveMethod(DexEncodedMethod method, KeepReason reason) {
     if (liveMethods.add(method, reason)) {
+      collectProguardCompatibilityRule(reason);
       DexClass holder = appInfo.definitionFor(method.method.holder);
       assert holder != null;
       if (holder.isLibraryClass()) {
@@ -963,6 +987,12 @@ public class Enqueuer {
       }
       // Add all dependent members to the workqueue.
       enqueueRootItems(rootSet.getDependentItems(method));
+    }
+  }
+
+  private void collectProguardCompatibilityRule(KeepReason reason) {
+    if (reason.isDueToProguardCompatibility()) {
+      proguardCompatibilityRules.add(reason.getProguardKeepRule());
     }
   }
 
@@ -1195,6 +1225,11 @@ public class Enqueuer {
      */
     final Set<DexType> prunedTypes;
 
+    /**
+     * Set of keep rules generated for Proguard compatibility in Proguard compatibility mode.
+     */
+    final Set<ProguardKeepRule> proguardCompatibilityRules;
+
     private AppInfoWithLiveness(AppInfoWithSubtyping appInfo, Enqueuer enqueuer) {
       super(appInfo);
       this.liveTypes = ImmutableSortedSet.copyOf(
@@ -1222,6 +1257,7 @@ public class Enqueuer {
       this.identifierNameStrings = enqueuer.rootSet.identifierNameStrings;
       this.extensions = enqueuer.extensionsState;
       this.prunedTypes = Collections.emptySet();
+      this.proguardCompatibilityRules = ImmutableSet.copyOf(enqueuer.proguardCompatibilityRules);
       assert Sets.intersection(instanceFieldReads, staticFieldReads).size() == 0;
       assert Sets.intersection(instanceFieldWrites, staticFieldWrites).size() == 0;
     }
@@ -1254,6 +1290,7 @@ public class Enqueuer {
       this.alwaysInline = previous.alwaysInline;
       this.identifierNameStrings = previous.identifierNameStrings;
       this.prunedTypes = mergeSets(previous.prunedTypes, removedClasses);
+      this.proguardCompatibilityRules = previous.proguardCompatibilityRules;
       assert Sets.intersection(instanceFieldReads, staticFieldReads).size() == 0;
       assert Sets.intersection(instanceFieldWrites, staticFieldWrites).size() == 0;
     }
@@ -1280,6 +1317,7 @@ public class Enqueuer {
       this.directInvokes = rewriteItems(previous.directInvokes, lense::lookupMethod);
       this.staticInvokes = rewriteItems(previous.staticInvokes, lense::lookupMethod);
       this.prunedTypes = rewriteItems(previous.prunedTypes, lense::lookupType);
+      this.proguardCompatibilityRules = previous.proguardCompatibilityRules;
       // TODO(herhut): Migrate these to Descriptors, as well.
       assert assertNotModifiedByLense(previous.noSideEffects.keySet(), lense);
       this.noSideEffects = previous.noSideEffects;
@@ -1444,6 +1482,9 @@ public class Enqueuer {
       return pinnedItems;
     }
 
+    public Set<ProguardKeepRule> getProguardCompatibilityRules() {
+      return proguardCompatibilityRules;
+    }
     /**
      * Returns a copy of this AppInfoWithLiveness where the set of classes is pruned using the
      * given DexApplication object.

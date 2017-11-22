@@ -34,7 +34,7 @@ public abstract class ProguardConfigurationRule extends ProguardClassSpecificati
 
   @Override
   public String toString() {
-    StringBuilder builder = new StringBuilder();
+    StringBuilder builder = new StringBuilder("-");
     builder.append(typeString());
     StringUtils.appendNonEmpty(builder, ",", modifierString(), null);
     builder.append(' ');

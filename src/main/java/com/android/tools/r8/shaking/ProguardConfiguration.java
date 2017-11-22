@@ -185,22 +185,7 @@ public class ProguardConfiguration {
       this.overloadAggressively = overloadAggressively;
     }
 
-    public ProguardConfiguration build() throws CompilationException {
-      boolean rulesWasEmpty = rules.isEmpty();
-      if (rulesWasEmpty) {
-        setObfuscating(false);
-        setShrinking(false);
-        addRule(ProguardKeepRule.defaultKeepAllRule());
-      }
-
-      ProguardKeepAttributes keepAttributes;
-      if (keepAttributePatterns.isEmpty()
-          && (rulesWasEmpty || (forceProguardCompatibility && !isObfuscating()))) {
-        keepAttributes = ProguardKeepAttributes.fromPatterns(ProguardKeepAttributes.KEEP_ALL);
-      } else {
-        keepAttributes = ProguardKeepAttributes.fromPatterns(keepAttributePatterns);
-      }
-
+    ProguardConfiguration buildRaw() throws CompilationException {
       return new ProguardConfiguration(
           dexItemFactory,
           injars,
@@ -219,7 +204,7 @@ public class ProguardConfiguration {
           applyMappingFile,
           verbose,
           renameSourceFileAttribute,
-          keepAttributes,
+          ProguardKeepAttributes.fromPatterns(keepAttributePatterns),
           dontWarnPatterns.build(),
           rules,
           printSeeds,
@@ -231,6 +216,21 @@ public class ProguardConfiguration {
           useUniqueClassMemberNames,
           keepParameterNames,
           adaptClassStrings.build());
+    }
+
+    public ProguardConfiguration build() throws CompilationException {
+      boolean rulesWasEmpty = rules.isEmpty();
+      if (rules.isEmpty()) {
+        setObfuscating(false);
+        setShrinking(false);
+        addRule(ProguardKeepRule.defaultKeepAllRule());
+      }
+      if (keepAttributePatterns.isEmpty()
+            && (rulesWasEmpty || (forceProguardCompatibility && !isObfuscating()))) {
+        keepAttributePatterns.addAll(ProguardKeepAttributes.KEEP_ALL);
+      }
+
+      return buildRaw();
     }
   }
 
