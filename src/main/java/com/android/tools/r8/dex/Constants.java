@@ -14,9 +14,6 @@ public class Constants {
   /** vdex file version number for Android O (API level 26) */
   public static final int ANDROID_O_VDEX_VERSION = 10;
 
-  // We apply Java 7 class file constraints on DEX files.
-  public static final int CORRESPONDING_CLASS_FILE_VERSION = 51;
-
   public static final int DEX_MAGIC_SIZE = 8;
 
   public static final int MAGIC_OFFSET = 0;

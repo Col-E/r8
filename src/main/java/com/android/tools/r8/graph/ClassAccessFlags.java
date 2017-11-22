@@ -33,7 +33,6 @@ public class ClassAccessFlags extends AccessFlags {
         .add("abstract")
         .add("annotation")
         .add("enum")
-        .add("super")
         .build();
   }
 
@@ -45,7 +44,6 @@ public class ClassAccessFlags extends AccessFlags {
         .add(this::isAbstract)
         .add(this::isAnnotation)
         .add(this::isEnum)
-        .add(this::isSuper)
         .build();
   }
 
@@ -80,27 +78,6 @@ public class ClassAccessFlags extends AccessFlags {
   @Override
   public int getAsCfAccessFlags() {
     return flags;
-  }
-
-  /**
-   * Checks whether the constraints from
-   * https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-4.html#jvms-4.1 are met.
-   */
-  public boolean areValid(int majorVersion) {
-    if (isInterface()) {
-      // We ignore the super flags prior to JDK 9, as so did the VM.
-      if ((majorVersion >= 53) && isSuper()) {
-        return false;
-      }
-      // We require interfaces to be abstract from JDK 7 onwards. Old versions of javac seem to
-      // have produces package-info classes that are interfaces but not abstract.
-      if ((majorVersion >= 51) && (!isAbstract())) {
-        return false;
-      }
-      return !isFinal() && !isEnum();
-    } else {
-      return !isAnnotation() && (!isFinal() || !isAbstract());
-    }
   }
 
   public boolean isInterface() {
