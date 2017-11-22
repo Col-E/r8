@@ -10,6 +10,7 @@ import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
+import com.android.tools.r8.D8Command.Builder;
 import com.android.tools.r8.D8Output;
 import com.android.tools.r8.Resource;
 import com.android.tools.r8.origin.Origin;
@@ -141,21 +142,20 @@ public class FrameworkIncrementalDexingBenchmark {
     long start = System.nanoTime();
     for (int iteration = 0; iteration < ITERATIONS; iteration++) {
       int index = iteration * increment;
-      List<byte[]> inputs = new ArrayList<>(count);
+      Builder builder = D8Command.builder()
+          .setMinApiLevel(API)
+          .setIntermediate(true)
+          .setMode(CompilationMode.DEBUG)
+          .addClasspathResourceProvider(provider)
+          .addLibraryFiles(LIB)
+          .setOutputMode(OutputMode.FilePerInputClass)
+          .setEnableDesugaring(desugar);
       for (int j = 0; j < count; j++) {
-        provider.resources.get(descriptors.get(index + j));
+        builder.addClassProgramData(provider.resources.get(descriptors.get(index + j)));
       }
       D8Output out =
           D8.run(
-              D8Command.builder()
-                  .setMinApiLevel(API)
-                  .setIntermediate(true)
-                  .setMode(CompilationMode.DEBUG)
-                  .addClassProgramData(inputs)
-                  .addClasspathResourceProvider(provider)
-                  .addLibraryFiles(LIB)
-                  .setOutputMode(OutputMode.FilePerInputClass)
-                  .setEnableDesugaring(desugar)
+              builder
                   .build(),
               executor);
       for (Resource resource : out.getDexResources()) {
