@@ -8,7 +8,6 @@ import static org.objectweb.asm.Opcodes.ACC_DEPRECATED;
 import static org.objectweb.asm.Opcodes.ASM6;
 
 import com.android.tools.r8.dex.Constants;
-import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexValue.DexValueAnnotation;
 import com.android.tools.r8.graph.DexValue.DexValueArray;
@@ -32,7 +31,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import org.objectweb.asm.AnnotationVisitor;
@@ -102,7 +100,6 @@ public class JarClassFileReader {
   }
 
   private static class CreateDexClassVisitor extends ClassVisitor {
-
     private final Origin origin;
     private final ClassKind classKind;
     private final JarApplicationReader application;
@@ -166,21 +163,6 @@ public class JarClassFileReader {
       this.version = version;
       accessFlags = ClassAccessFlags.fromCfAccessFlags(cleanAccessFlags(access));
       type = application.getTypeFromName(name);
-      // Check if constraints from
-      // https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-4.html#jvms-4.1 are met.
-      if (!accessFlags.areValid(getMajorVersion())) {
-        throw new CompilationError("Illegal class file: Class " + name
-            + " has invalid access flags. Found: " + accessFlags.toString(), origin);
-      }
-      if (superName == null && !name.equals(Constants.JAVA_LANG_OBJECT_NAME)) {
-        throw new CompilationError("Illegal class file: Class " + name
-            + " is missing a super type.", origin);
-      }
-      if (accessFlags.isInterface()
-          && !Objects.equals(superName, Constants.JAVA_LANG_OBJECT_NAME)) {
-        throw new CompilationError("Illegal class file: Interface " + name
-            + " must extend class java.lang.Object. Found: " + Objects.toString(superName), origin);
-      }
       assert superName != null || name.equals(Constants.JAVA_LANG_OBJECT_NAME);
       superType = superName == null ? null : application.getTypeFromName(superName);
       this.interfaces = application.getTypeListFromNames(interfaces);
@@ -196,8 +178,8 @@ public class JarClassFileReader {
       }
       if (debug != null) {
         getAnnotations().add(
-            DexAnnotation.createSourceDebugExtensionAnnotation(
-                new DexValueString(application.getString(debug)), application.getFactory()));
+                DexAnnotation.createSourceDebugExtensionAnnotation(
+                    new DexValueString(application.getString(debug)), application.getFactory()));
       }
     }
 
@@ -278,14 +260,6 @@ public class JarClassFileReader {
       }
       return annotations;
     }
-
-    private int getMajorVersion() {
-      return version & 0xFFFF;
-    }
-
-    private int getMinorVersion() {
-      return ((version >> 16) & 0xFFFF);
-    }
   }
 
   private static DexAnnotationSet createAnnotationSet(List<DexAnnotation> annotations) {
@@ -295,7 +269,6 @@ public class JarClassFileReader {
   }
 
   private static class CreateFieldVisitor extends FieldVisitor {
-
     private final CreateDexClassVisitor parent;
     private final int access;
     private final String name;
@@ -393,7 +366,6 @@ public class JarClassFileReader {
   }
 
   private static class CreateMethodVisitor extends MethodVisitor {
-
     private final int access;
     private final String name;
     private final String desc;
@@ -569,7 +541,6 @@ public class JarClassFileReader {
   }
 
   private static class CreateAnnotationVisitor extends AnnotationVisitor {
-
     private final JarApplicationReader application;
     private final BiConsumer<List<DexString>, List<DexValue>> onVisitEnd;
     private List<DexString> names = null;
@@ -615,7 +586,7 @@ public class JarClassFileReader {
 
     private void addElement(String name, DexValue value) {
       if (name != null) {
-        if (names == null) {
+        if (names == null){
           names = new ArrayList<>();
         }
         names.add(application.getString(name));

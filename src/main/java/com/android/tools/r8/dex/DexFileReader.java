@@ -10,7 +10,6 @@ import static com.android.tools.r8.utils.EncodedValueUtils.parseUnsigned;
 
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.InstructionFactory;
-import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.ClassKind;
 import com.android.tools.r8.graph.Descriptor;
@@ -638,14 +637,10 @@ public class DexFileReader {
       DexType superclass = superclassIdx == NO_INDEX ? null : indexedItems.getType(superclassIdx);
       int srcIdx = sourceFileIndices[i];
       DexString source = srcIdx == NO_INDEX ? null : indexedItems.getString(srcIdx);
+      // fix annotations.
       DexType type = indexedItems.getType(classIndices[i]);
       ClassAccessFlags flags = ClassAccessFlags.fromDexAccessFlags(accessFlags[i]);
-      // Check if constraints from
-      // https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-4.html#jvms-4.1 are met.
-      if (!flags.areValid(Constants.CORRESPONDING_CLASS_FILE_VERSION)) {
-        throw new CompilationError("Class " + type.toSourceString()
-            + " has illegal access flags. Found: " + flags, origin);
-      }
+      DexClass clazz;
       DexEncodedField[] staticFields = DexEncodedField.EMPTY_ARRAY;
       DexEncodedField[] instanceFields = DexEncodedField.EMPTY_ARRAY;
       DexEncodedMethod[] directMethods = DexEncodedMethod.EMPTY_ARRAY;
@@ -680,21 +675,22 @@ public class DexFileReader {
       AttributesAndAnnotations attrs =
           new AttributesAndAnnotations(type, annotationsDirectory.clazz, dexItemFactory);
 
-      DexClass clazz = classKind.create(
-          type,
-          Kind.DEX,
-          origin,
-          flags,
-          superclass,
-          typeListAt(interfacesOffsets[i]),
-          source,
-          attrs.getEnclosingMethodAttribute(),
-          attrs.getInnerClasses(),
-          attrs.getAnnotations(),
-          staticFields,
-          instanceFields,
-          directMethods,
-          virtualMethods);
+      clazz =
+          classKind.create(
+              type,
+              Kind.DEX,
+              origin,
+              flags,
+              superclass,
+              typeListAt(interfacesOffsets[i]),
+              source,
+              attrs.getEnclosingMethodAttribute(),
+              attrs.getInnerClasses(),
+              attrs.getAnnotations(),
+              staticFields,
+              instanceFields,
+              directMethods,
+              virtualMethods);
       classCollection.accept(clazz);  // Update the application object.
     }
   }
@@ -941,7 +937,7 @@ public class DexFileReader {
     MethodHandleType type = MethodHandleType.getKind(file.getUshort());
     file.getUshort(); // unused
     int indexFieldOrMethod = file.getUshort();
-    Descriptor<? extends DexItem, ? extends Descriptor<?, ?>> fieldOrMethod;
+    Descriptor<? extends DexItem, ? extends Descriptor<?,?>> fieldOrMethod;
     switch (type) {
       case INSTANCE_GET:
       case INSTANCE_PUT:
