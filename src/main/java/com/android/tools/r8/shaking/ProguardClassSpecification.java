@@ -251,9 +251,9 @@ public abstract class ProguardClassSpecification {
   @Override
   public String toString() {
     StringBuilder builder = new StringBuilder();
-    StringUtils.appendNonEmpty(builder, " @", classAnnotation, null);
-    StringUtils.appendNonEmpty(builder, " ", classAccessFlags, null);
-    StringUtils.appendNonEmpty(builder, " !", negatedClassAccessFlags.toString().replace(" ", " !"),
+    StringUtils.appendNonEmpty(builder, "@", classAnnotation, null);
+    StringUtils.appendNonEmpty(builder, "", classAccessFlags, null);
+    StringUtils.appendNonEmpty(builder, "!", negatedClassAccessFlags.toString().replace(" ", " !"),
         null);
     if (builder.length() > 0) {
       builder.append(' ');
@@ -262,8 +262,8 @@ public abstract class ProguardClassSpecification {
     builder.append(' ');
     classNames.writeTo(builder);
     if (hasInheritanceClassName()) {
-      builder.append(inheritanceIsExtends ? " extends" : " implements");
-      StringUtils.appendNonEmpty(builder, " @", inheritanceAnnotation, null);
+      builder.append(inheritanceIsExtends ? "extends" : "implements");
+      StringUtils.appendNonEmpty(builder, "@", inheritanceAnnotation, null);
       builder.append(' ');
       builder.append(inheritanceClassName);
     }

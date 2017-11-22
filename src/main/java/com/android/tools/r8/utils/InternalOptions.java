@@ -173,6 +173,8 @@ public class InternalOptions {
 
   public Path proguardMapOutput = null;
 
+  public Path proguardCompatibilityRulesOutput = null;
+
   public void warningMissingEnclosingMember(DexType clazz, Origin origin, int version) {
     if (missingEnclosingMembers == null) {
       missingEnclosingMembers = new HashMap<>();

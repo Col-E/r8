@@ -85,7 +85,7 @@ public class ProguardConfigurationParser {
     return configurationBuilder;
   }
 
-  public ProguardConfiguration getConfig()
+  private void validate()
       throws ProguardRuleParserException, CompilationException {
     if (configurationBuilder.isKeepParameterNames()
         && configurationBuilder.isObfuscating()) {
@@ -93,8 +93,25 @@ public class ProguardConfigurationParser {
       // are not.
       throw new ProguardRuleParserException("-keepparameternames is not supported");
     }
+  }
 
+  /**
+   * Returns the Proguard configuration with default rules derived from empty rules added.
+   */
+  public ProguardConfiguration getConfig()
+      throws ProguardRuleParserException, CompilationException {
+    validate();
     return configurationBuilder.build();
+  }
+
+  /**
+   * Returns the Proguard configuration from exactly the rules parsed, without any
+   * defaults derived from empty rules.
+   */
+  public ProguardConfiguration getConfigRawForTesting()
+      throws ProguardRuleParserException, CompilationException {
+    validate();
+    return configurationBuilder.buildRaw();
   }
 
   public void parse(Path path) throws ProguardRuleParserException, IOException {

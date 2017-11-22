@@ -15,6 +15,10 @@ abstract class KeepReason {
     return new DueToKeepRule(rule);
   }
 
+  static KeepReason dueToProguardCompatibilityKeepRule(ProguardKeepRule rule) {
+    return new DueToProguardCompatibilityKeepRule(rule);
+  }
+
   static KeepReason instantiatedIn(DexEncodedMethod method) {
     return new InstatiatedIn(method);
   }
@@ -45,12 +49,25 @@ abstract class KeepReason {
 
   public abstract void print(ReasonFormatter formatter);
 
+  public boolean isDueToProguardCompatibility() {
+    return false;
+  }
+
+  public ProguardKeepRule getProguardKeepRule() {
+    return null;
+  }
+
   private static class DueToKeepRule extends KeepReason {
 
-    private final ProguardKeepRule keepRule;
+    final ProguardKeepRule keepRule;
 
     private DueToKeepRule(ProguardKeepRule keepRule) {
       this.keepRule = keepRule;
+    }
+
+    @Override
+    public ProguardKeepRule getProguardKeepRule() {
+      return keepRule;
     }
 
     @Override
@@ -66,6 +83,17 @@ abstract class KeepReason {
         }
       }
       formatter.addMessage("  };");
+    }
+  }
+
+  private static class DueToProguardCompatibilityKeepRule extends DueToKeepRule {
+    private DueToProguardCompatibilityKeepRule(ProguardKeepRule keepRule) {
+      super(keepRule);
+    }
+
+    @Override
+    public boolean isDueToProguardCompatibility() {
+      return true;
     }
   }
 

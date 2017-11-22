@@ -11,7 +11,13 @@ import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.compatproguard.CompatProguardCommandBuilder;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
+import com.android.tools.r8.shaking.ProguardClassNameList;
+import com.android.tools.r8.shaking.ProguardConfiguration;
+import com.android.tools.r8.shaking.ProguardConfigurationParser;
+import com.android.tools.r8.shaking.ProguardMemberRule;
+import com.android.tools.r8.shaking.ProguardMemberType;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
@@ -101,18 +107,40 @@ public class ForceProguardCompatibilityTest extends TestBase {
 
   private void runDefaultConstructorTest(boolean forceProguardCompatibility,
       Class<?> testClass, boolean hasDefaultConstructor) throws Exception {
-    R8Command.Builder builder = new CompatProguardCommandBuilder(forceProguardCompatibility, false);
+    CompatProguardCommandBuilder builder =
+        new CompatProguardCommandBuilder(forceProguardCompatibility, false);
     builder.addProgramFiles(ToolHelper.getClassFileForTestClass(testClass));
     List<String> proguardConfig = ImmutableList.of(
         "-keep class " + testClass.getCanonicalName() + " {",
         "  public void method();",
         "}");
     builder.addProguardConfiguration(proguardConfig, Origin.unknown());
+    Path proguardCompatibilityRules = temp.newFile().toPath();
+    builder.setProguardCompatibilityRulesOutput(proguardCompatibilityRules);
+
     DexInspector inspector = new DexInspector(ToolHelper.runR8(builder.build()));
     ClassSubject clazz = inspector.clazz(getJavacGeneratedClassName(testClass));
     assertTrue(clazz.isPresent());
     assertEquals(forceProguardCompatibility && hasDefaultConstructor,
         clazz.init(ImmutableList.of()).isPresent());
+
+    // Check the Proguard compatibility rules generated.
+    ProguardConfigurationParser parser =
+        new ProguardConfigurationParser(new DexItemFactory(), null);
+    parser.parse(proguardCompatibilityRules);
+    ProguardConfiguration configuration = parser.getConfigRawForTesting();
+    if (forceProguardCompatibility && hasDefaultConstructor) {
+      assertEquals(1, configuration.getRules().size());
+      ProguardClassNameList classNames = configuration.getRules().get(0).getClassNames();
+      assertEquals(1, classNames.size());
+      assertEquals(testClass.getCanonicalName(),
+          classNames.asSpecificDexTypes().get(0).toSourceString());
+      Set<ProguardMemberRule> memberRules = configuration.getRules().get(0).getMemberRules();
+      assertEquals(1, memberRules.size());
+      assertEquals(ProguardMemberType.INIT, memberRules.iterator().next().getRuleType());
+    } else {
+      assertEquals(0, configuration.getRules().size());
+    }
 
     if (RUN_PROGUARD) {
       Path proguardedJar = File.createTempFile("proguarded", ".jar", temp.getRoot()).toPath();
@@ -133,7 +161,8 @@ public class ForceProguardCompatibilityTest extends TestBase {
   public void testCheckCast(boolean forceProguardCompatibility, Class mainClass,
       Class instantiatedClass, boolean containsCheckCast)
       throws Exception {
-    R8Command.Builder builder = new CompatProguardCommandBuilder(forceProguardCompatibility, false);
+    R8Command.Builder builder =
+        new CompatProguardCommandBuilder(forceProguardCompatibility, false);
     builder.addProgramFiles(ToolHelper.getClassFileForTestClass(mainClass));
     builder.addProgramFiles(ToolHelper.getClassFileForTestClass(instantiatedClass));
     List<String> proguardConfig = ImmutableList.of(
