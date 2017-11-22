@@ -7,6 +7,7 @@ package com.android.tools.r8.smali;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.origin.EmbeddedOrigin;
 import com.android.tools.r8.shaking.FilteredClassPath;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DexInspector;
@@ -60,7 +61,7 @@ public class SmaliBuildTest extends SmaliTestBase {
     );
 
     AndroidApp originalApp = AndroidApp.builder()
-        .addDexProgramData(builder.compile())
+        .addDexProgramData(builder.compile(), EmbeddedOrigin.INSTANCE)
         .addLibraryFiles(FilteredClassPath.unfiltered(ToolHelper.getDefaultAndroidJar()))
         .build();
 

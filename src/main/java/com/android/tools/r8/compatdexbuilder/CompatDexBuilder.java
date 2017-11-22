@@ -7,6 +7,8 @@ import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Output;
+import com.android.tools.r8.origin.ArchiveEntryOrigin;
+import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.CompilationFailedException;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -135,7 +137,9 @@ public class CompatDexBuilder {
     try (InputStream stream = zipFile.getInputStream(classEntry)) {
       CompatDexBuilderCommandBuilder builder = new CompatDexBuilderCommandBuilder();
       builder
-          .addClassProgramData(ByteStreams.toByteArray(stream))
+          .addClassProgramData(ByteStreams.toByteArray(stream),
+              new ArchiveEntryOrigin(classEntry.getName(),
+                  new PathOrigin(Paths.get(zipFile.getName()))))
           .setMode(noLocals ? CompilationMode.RELEASE : CompilationMode.DEBUG)
           .setMinApiLevel(AndroidApiLevel.H_MR2.getLevel());
       return D8.run(builder.build(), executor);

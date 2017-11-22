@@ -18,6 +18,7 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.origin.EmbeddedOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.FilteredClassPath;
 import com.android.tools.r8.shaking.ProguardConfiguration;
@@ -55,7 +56,7 @@ public class SmaliTestBase extends TestBase {
   protected AndroidApp buildApplicationWithAndroidJar(SmaliBuilder builder) {
     try {
       return AndroidApp.builder()
-          .addDexProgramData(builder.compile())
+          .addDexProgramData(builder.compile(), EmbeddedOrigin.INSTANCE)
           .addLibraryFiles(FilteredClassPath.unfiltered(ToolHelper.getDefaultAndroidJar()))
           .build();
     } catch (IOException | RecognitionException | ExecutionException | DexOverflowException e) {
@@ -98,7 +99,7 @@ public class SmaliTestBase extends TestBase {
       Path dexOutputDir = temp.newFolder().toPath();
       R8Command command =
           R8Command.builder()
-              .addDexProgramData(builder.compile())
+              .addDexProgramData(builder.compile(), EmbeddedOrigin.INSTANCE)
               .setOutputPath(dexOutputDir)
               .setMode(CompilationMode.DEBUG)
               .addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()))

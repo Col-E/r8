@@ -97,7 +97,7 @@ public class ForNameTest extends SmaliTestBase {
     Path dexOutputDir = temp.newFolder().toPath();
     R8Command command =
         new CompatProguardCommandBuilder(true, true)
-            .addDexProgramData(builder.compile())
+            .addDexProgramData(builder.compile(), Origin.unknown())
             .setOutputPath(dexOutputDir)
             .addProguardConfiguration(proguardConfigurations, Origin.unknown())
             .build();
