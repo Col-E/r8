@@ -12,137 +12,40 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
-import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 public class ExtractMarker {
-  private static class Command {
 
-    public static class Builder {
-      private boolean printHelp = false;
-      private boolean verbose;
-      private boolean summary;
-      private List<Path> programFiles = new ArrayList<>();
+  public static Marker extractMarkerFromDexFile(Path file) throws IOException, ExecutionException {
+    AndroidApp.Builder appBuilder = AndroidApp.builder();
+    appBuilder.setVdexAllowed();
+    appBuilder.addProgramFiles(FilteredClassPath.unfiltered(file));
+    return extractMarker(appBuilder.build());
+  }
 
-      public Builder setPrintHelp(boolean printHelp) {
-        this.printHelp = printHelp;
-        return this;
-      }
+  public static Marker extractMarkerFromDexProgramData(byte[] data)
+      throws IOException, ExecutionException {
+    AndroidApp app = AndroidApp.fromDexProgramData(data);
+    return extractMarker(app);
+  }
 
-      public boolean isPrintHelp() {
-        return printHelp;
-      }
-
-      public Builder setVerbose(boolean verbose) {
-        this.verbose = verbose;
-        return this;
-      }
-
-      public Builder setSummary(boolean summary) {
-        this.summary = summary;
-        return this;
-      }
-
-      public Builder addProgramFile(Path programFile) {
-        programFiles.add(programFile);
-        return this;
-      }
-
-      public ExtractMarker.Command build() throws CompilationException, IOException {
-        // If printing versions ignore everything else.
-        if (isPrintHelp()) {
-          return new ExtractMarker.Command(isPrintHelp());
-        }
-        return new ExtractMarker.Command(verbose, summary, programFiles);
-      }
-    }
-
-    static final String USAGE_MESSAGE = String.join("\n", ImmutableList.of(
-        "Usage: extractmarker [options] <input-files>",
-        " where <input-files> are dex or vdex files",
-        "  --verbose               # More verbose output.",
-        "  --summary               # Print summary at the end.",
-        "  --help                  # Print this message."));
-
-    public static ExtractMarker.Command.Builder builder() {
-      return new Builder();
-    }
-
-    public static ExtractMarker.Command.Builder parse(String[] args)
-        throws CompilationException, IOException {
-      ExtractMarker.Command.Builder builder = builder();
-      parse(args, builder);
-      return builder;
-    }
-
-    private static void parse(String[] args, ExtractMarker.Command.Builder builder)
-        throws CompilationException, IOException {
-      for (int i = 0; i < args.length; i++) {
-        String arg = args[i].trim();
-        if (arg.length() == 0) {
-          continue;
-        } else if (arg.equals("--verbose")) {
-          builder.setVerbose(true);
-        } else if (arg.equals("--summary")) {
-          builder.setSummary(true);
-        } else if (arg.equals("--help")) {
-          builder.setPrintHelp(true);
-        } else {
-          if (arg.startsWith("--")) {
-            throw new CompilationException("Unknown option: " + arg);
-          }
-          builder.addProgramFile(Paths.get(arg));
-        }
-      }
-    }
-
-    private final boolean printHelp;
-    private final boolean verbose;
-    private final boolean summary;
-    private final List<Path> programFiles;
-
-    private Command(boolean verbose, boolean summary, List<Path> programFiles) {
-      this.printHelp = false;
-      this.verbose = verbose;
-      this.summary = summary;
-      this.programFiles = programFiles;
-    }
-
-    private Command(boolean printHelp) {
-      this.printHelp = printHelp;
-      this.verbose = false;
-      this.summary = false;
-      programFiles = ImmutableList.of();
-    }
-
-    public boolean isPrintHelp() {
-      return printHelp;
-    }
-
-    public List<Path> getProgramFiles() {
-      return programFiles;
-    }
-
-    public boolean getVerbose() {
-      return verbose;
-    }
-
-    public boolean getSummary() {
-      return summary;
-    }
+  private static Marker extractMarker(AndroidApp app) throws IOException, ExecutionException {
+    InternalOptions options = new InternalOptions();
+    options.skipReadingDexCode = true;
+    options.minApiLevel = AndroidApiLevel.P.getLevel();
+    DexApplication dexApp =
+        new ApplicationReader(app, options, new Timing("ExtractMarker")).read();
+    return dexApp.dexItemFactory.extractMarker();
   }
 
   public static void main(String[] args)
       throws IOException, CompilationException, ExecutionException {
-    ExtractMarker.Command.Builder builder = ExtractMarker.Command.parse(args);
-    ExtractMarker.Command command = builder.build();
+    ExtractMarkerCommand.Builder builder = ExtractMarkerCommand.parse(args);
+    ExtractMarkerCommand command = builder.build();
     if (command.isPrintHelp()) {
-      System.out.println(ExtractMarker.Command.USAGE_MESSAGE);
+      System.out.println(ExtractMarkerCommand.USAGE_MESSAGE);
       return;
     }
 
@@ -153,26 +56,17 @@ public class ExtractMarker {
     int otherCount = 0;
     for (Path programFile : command.getProgramFiles()) {
       try {
-        InternalOptions options = new InternalOptions();
-        options.skipReadingDexCode = true;
-        options.minApiLevel = AndroidApiLevel.P.getLevel();
-        AndroidApp.Builder appBuilder = AndroidApp.builder();
-        appBuilder.setVdexAllowed();
-        appBuilder.addProgramFiles(FilteredClassPath.unfiltered(programFile));
-        DexApplication dexApp =
-            new ApplicationReader(appBuilder.build(), options, new Timing("ExtractMarker"))
-                .read();
-        Marker readMarker = dexApp.dexItemFactory.extractMarker();
         if (command.getVerbose()) {
           System.out.print(programFile);
           System.out.print(": ");
         }
-        if (readMarker == null) {
+        Marker marker = extractMarkerFromDexFile(programFile);
+        if (marker == null) {
           System.out.println("D8/R8 marker not found.");
           otherCount++;
         } else {
-          System.out.println(readMarker.toString());
-          if (readMarker.isD8()) {
+          System.out.println(marker.toString());
+          if (marker.isD8()) {
             d8Count++;
           } else {
             r8Count++;

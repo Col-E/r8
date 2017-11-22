@@ -51,6 +51,10 @@ public class Marker {
     return tool == Tool.R8;
   }
 
+  public String getVersion() {
+    return (String) content.get("version");
+  }
+
   public Marker put(String key, int value) {
     // value is converted to Long ensuring equals works with the parsed json string.
     return internalPut(key, Long.valueOf(value));
