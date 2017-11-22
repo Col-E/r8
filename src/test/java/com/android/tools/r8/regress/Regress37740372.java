@@ -9,7 +9,10 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.D8Command;
+import com.android.tools.r8.D8Command.Builder;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.origin.EmbeddedOrigin;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.smali.SmaliTestBase;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DexInspector;
@@ -133,14 +136,16 @@ public class Regress37740372 extends SmaliTestBase {
     AndroidApp output =
         ToolHelper.runD8(
             D8Command.builder()
-                .addClassProgramData(Base64.getDecoder().decode(javaLangObjectClassFile))
+                .addClassProgramData(Base64.getDecoder().decode(javaLangObjectClassFile),
+                    EmbeddedOrigin.INSTANCE)
                 .build());
     checkApplicationOnlyHasJavaLangObject(output);
 
     // Build an application with the java.lang.Object stub from a dex file.
     List<byte[]> dex = output.writeToMemory();
     assertEquals(1, dex.size());
-    checkApplicationOnlyHasJavaLangObject(
-        ToolHelper.runD8(D8Command.builder().addDexProgramData(dex).build()));
+    Builder builder = D8Command.builder();
+    dex.forEach(data -> builder.addDexProgramData(data, Origin.unknown()));
+    checkApplicationOnlyHasJavaLangObject(ToolHelper.runD8(builder.build()));
   }
 }

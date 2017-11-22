@@ -151,7 +151,8 @@ public class FrameworkIncrementalDexingBenchmark {
           .setOutputMode(OutputMode.FilePerInputClass)
           .setEnableDesugaring(desugar);
       for (int j = 0; j < count; j++) {
-        builder.addClassProgramData(provider.resources.get(descriptors.get(index + j)));
+        builder.addClassProgramData(provider.resources.get(descriptors.get(index + j)),
+            Origin.unknown());
       }
       D8Output out =
           D8.run(
@@ -174,22 +175,21 @@ public class FrameworkIncrementalDexingBenchmark {
       Map<String, Resource> outputs,
       ExecutorService executor)
       throws IOException, CompilationException, CompilationFailedException {
-    List<byte[]> bytes = new ArrayList<>(outputs.size());
+    Builder builder = D8Command.builder()
+        .setMinApiLevel(API)
+        .setIntermediate(false)
+        .setMode(CompilationMode.DEBUG)
+        .setOutputMode(OutputMode.Indexed)
+        .setEnableDesugaring(false);
     for (Resource input : outputs.values()) {
       try (InputStream inputStream = input.getStream()) {
-        bytes.add(ByteStreams.toByteArray(inputStream));
+        builder.addDexProgramData(ByteStreams.toByteArray(inputStream), input.origin);
       }
     }
     long start = System.nanoTime();
     D8Output out =
         D8.run(
-            D8Command.builder()
-                .setMinApiLevel(API)
-                .setIntermediate(false)
-                .setMode(CompilationMode.DEBUG)
-                .addDexProgramData(bytes)
-                .setOutputMode(OutputMode.Indexed)
-                .setEnableDesugaring(false) // never need to desugar when merging dex.
+            builder // never need to desugar when merging dex.
                 .build(),
             executor);
     printRuntimeNanoseconds(title("DexMerge", desugar), System.nanoTime() - start);

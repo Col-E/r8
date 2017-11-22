@@ -5,6 +5,7 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.shaking.FilteredClassPath;
 import com.android.tools.r8.utils.AbortException;
@@ -159,26 +160,14 @@ abstract class BaseCommand {
     }
 
     /** Add Java-bytecode program-data. */
-    public B addClassProgramData(byte[]... data) {
-      app.addClassProgramData(data);
-      return self();
-    }
-
-    /** Add Java-bytecode program-data. */
-    public B addClassProgramData(Collection<byte[]> data) {
-      app.addClassProgramData(data);
+    public B addClassProgramData(byte[] data, Origin origin) {
+      app.addClassProgramData(data, origin);
       return self();
     }
 
     /** Add dex program-data. */
-    public B addDexProgramData(byte[]... data) {
-      app.addDexProgramData(data);
-      return self();
-    }
-
-    /** Add dex program-data. */
-    public B addDexProgramData(Collection<byte[]> data) {
-      app.addDexProgramData(data);
+    public B addDexProgramData(byte[] data, Origin origin) {
+      app.addDexProgramData(data, origin);
       return self();
     }
 

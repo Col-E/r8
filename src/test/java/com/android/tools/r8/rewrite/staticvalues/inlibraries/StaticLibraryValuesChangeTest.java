@@ -10,6 +10,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.jasmin.JasminBuilder;
+import com.android.tools.r8.origin.EmbeddedOrigin;
 import com.android.tools.r8.shaking.FilteredClassPath;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.utils.AndroidApp;
@@ -75,7 +76,7 @@ public class StaticLibraryValuesChangeTest extends TestBase {
 
     // Merge the compiled TestMain with the runtime version of LibraryClass.
     builder = AndroidApp.builder(app);
-    builder.addDexProgramData(runtimeLibrary.compile());
+    builder.addDexProgramData(runtimeLibrary.compile(), EmbeddedOrigin.INSTANCE);
     String result = runOnArt(builder.build(), TestMain.class);
     assertEquals("33", result);
   }

@@ -579,8 +579,9 @@ public class AndroidApp {
     /**
      * Add dex program-data.
      */
-    public Builder addDexProgramData(byte[]... data) {
-      return addDexProgramData(Arrays.asList(data));
+    public Builder addDexProgramData(byte[] data, Origin origin) {
+      addProgramResources(Kind.DEX, Resource.fromBytes(origin, data));
+      return this;
     }
 
     /**
@@ -591,13 +592,6 @@ public class AndroidApp {
         addProgramResources(Kind.DEX, Resource.fromBytes(Origin.unknown(), datum));
       }
       return this;
-    }
-
-    /**
-     * Add Java-bytecode program data.
-     */
-    public Builder addClassProgramData(byte[]... data) {
-      return addClassProgramData(Arrays.asList(data));
     }
 
     /**

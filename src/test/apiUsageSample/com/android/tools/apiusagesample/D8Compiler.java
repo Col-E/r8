@@ -7,6 +7,7 @@ package com.android.tools.apiusagesample;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
+import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.CompilationFailedException;
 import com.android.tools.r8.utils.OutputMode;
 import java.io.IOException;
@@ -99,7 +100,7 @@ public class D8Compiler {
         @Override
         public FileVisitResult visitFile(Path path, BasicFileAttributes basicFileAttributes)
             throws IOException {
-          builder.addClassProgramData(Files.readAllBytes(path));
+          builder.addClassProgramData(Files.readAllBytes(path), new PathOrigin(path));
           return FileVisitResult.CONTINUE;
         }
       });
@@ -118,7 +119,7 @@ public class D8Compiler {
         @Override
         public FileVisitResult visitFile(Path path, BasicFileAttributes basicFileAttributes)
             throws IOException {
-          merger.addDexProgramData(Files.readAllBytes(path));
+          merger.addDexProgramData(Files.readAllBytes(path), new PathOrigin(path));
           return FileVisitResult.CONTINUE;
         }
       });
