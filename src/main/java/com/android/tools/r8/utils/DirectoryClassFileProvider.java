@@ -4,6 +4,7 @@
 package com.android.tools.r8.utils;
 
 import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
+import static com.android.tools.r8.utils.FileUtils.isClassFile;
 
 import com.android.tools.r8.ClassFileResourceProvider;
 import com.android.tools.r8.Resource;
@@ -41,10 +42,9 @@ public final class DirectoryClassFileProvider implements ClassFileResourceProvid
           if (child.isDirectory()) {
             collectClassDescriptors(child.toPath(), result);
           } else {
-            String relative = root.relativize(child.toPath()).toString();
-            if (relative.endsWith(CLASS_EXTENSION)) {
-              result.add("L" + relative.substring(
-                  0, relative.length() - CLASS_EXTENSION.length()) + ";");
+            Path relative = root.relativize(child.toPath());
+            if (isClassFile(relative)) {
+              result.add(DescriptorUtils.guessTypeDescriptor(relative));
             }
           }
         }
