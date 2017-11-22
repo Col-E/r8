@@ -39,6 +39,7 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import java.util.HashMap;
 import java.util.Map;
 import org.objectweb.asm.Type;
+import org.objectweb.asm.util.Printer;
 
 /**
  * Utility to print CF code and instructions.
@@ -121,11 +122,11 @@ public class CfPrinter {
   }
 
   public void print(CfBinop binop) {
-    print(CfConstants.opcodeName(binop.getOpcode()));
+    print(opcodeName(binop.getOpcode()));
   }
 
   public void print(CfUnop unop) {
-    print(CfConstants.opcodeName(unop.getOpcode()));
+    print(opcodeName(unop.getOpcode()));
   }
 
   public void print(CfPop pop) {
@@ -149,7 +150,7 @@ public class CfPrinter {
 
   public void print(CfInvoke invoke) {
     indent();
-    builder.append(invoke.getOpcode()).append(' ');
+    builder.append(opcodeName(invoke.getOpcode())).append(' ');
     appendMethod(invoke.getMethod());
   }
 
@@ -334,6 +335,10 @@ public class CfPrinter {
   private void appendMethod(DexMethod method) {
     builder.append(method.qualifiedName());
     builder.append(method.proto.toDescriptorString());
+  }
+
+  private String opcodeName(int opcode) {
+    return Printer.OPCODES[opcode].toLowerCase();
   }
 
   @Override
