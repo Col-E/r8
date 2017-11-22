@@ -29,6 +29,7 @@ COMPATPROGUARD = 'compatproguard'
 
 D8_JAR = os.path.join(LIBS, 'd8.jar')
 R8_JAR = os.path.join(LIBS, 'r8.jar')
+R8_EXCLUDE_DEPS_JAR = os.path.join(LIBS, 'r8-exclude-deps.jar')
 COMPATDX_JAR = os.path.join(LIBS, 'compatdx.jar')
 COMPATPROGUARD_JAR = os.path.join(LIBS, 'compatproguard.jar')
 

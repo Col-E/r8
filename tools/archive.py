@@ -65,8 +65,12 @@ def GetUrl(version, file_name, is_master):
 def Main():
   if not 'BUILDBOT_BUILDERNAME' in os.environ:
     raise Exception('You are not a bot, don\'t archive builds')
-
+  # Create maven release first which uses a build that exclude dependencies.
   create_maven_release.main(["--out", utils.LIBS])
+
+  # Generate and copy the build that exclude dependencies.
+  gradle.RunGradleExcludeDeps([utils.R8])
+  shutil.copyfile(utils.R8_JAR, utils.R8_EXCLUDE_DEPS_JAR)
 
   # Ensure all archived artifacts has been built before archiving.
   gradle.RunGradle([utils.D8, utils.R8, utils.COMPATDX, utils.COMPATPROGUARD])
@@ -87,6 +91,7 @@ def Main():
 
     for file in [utils.D8_JAR,
                  utils.R8_JAR,
+                 utils.R8_EXCLUDE_DEPS_JAR,
                  utils.COMPATDX_JAR,
                  utils.COMPATPROGUARD_JAR,
                  utils.MAVEN_ZIP]:
