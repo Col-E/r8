@@ -6,13 +6,25 @@ package com.android.tools.r8.debug;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 public class CfDebugTestConfig extends DebugTestConfig {
 
   public static final Path JDWP_JAR = ToolHelper.getJdwpTestsJarPath(AndroidApiLevel.N.getLevel());
 
   public CfDebugTestConfig() {
+    this(Collections.emptyList());
+  }
+
+  public CfDebugTestConfig(Path... paths) {
+    this(Arrays.asList(paths));
+  }
+
+  public CfDebugTestConfig(List<Path> paths) {
     addPaths(JDWP_JAR);
+    addPaths(paths);
   }
 
   @Override

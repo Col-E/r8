@@ -4,54 +4,59 @@
 package com.android.tools.r8.debug;
 
 import com.android.tools.r8.CompilationMode;
+import com.android.tools.r8.R8Command;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
-import java.util.Collections;
-import org.junit.BeforeClass;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import org.junit.Test;
 
 /** Tests source file and line numbers on inlined methods. */
 public class LineNumberOptimizationTest extends DebugTestBase {
 
   public static final String SOURCE_FILE = "LineNumberOptimization1.java";
-  private static DebuggeePath debuggeePathOptimized;
-  private static DebuggeePath debuggeePathNotOptimized;
-  private static DebuggeePath debuggeePathIdentityTest;
 
-  private static DebuggeePath makeDex(LineNumberOptimization lineNumberOptimization)
+  private static DebugTestConfig makeConfig(LineNumberOptimization lineNumberOptimization)
       throws Exception {
-    return DebuggeePath.makeDex(
-        compileToDexViaR8(
-            oc -> {
-              oc.lineNumberOptimization = lineNumberOptimization;
-              oc.inlineAccessors = false;
-            },
-            null,
-            DEBUGGEE_JAR,
-            Collections.<String>emptyList(),
-            true,
-            CompilationMode.RELEASE));
+    int minSdk = ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm());
+    Path outdir = temp.newFolder().toPath();
+    Path outjar = outdir.resolve("r8_compiled.jar");
+    ToolHelper.runR8(
+        R8Command.builder()
+            .addProgramFiles(DEBUGGEE_JAR)
+            .setMinApiLevel(minSdk)
+            .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(minSdk)))
+            .setMode(CompilationMode.RELEASE)
+            .setOutputPath(outjar)
+            .build(),
+        options -> {
+          options.lineNumberOptimization = lineNumberOptimization;
+          options.inlineAccessors = false;
+        });
+    DebugTestConfig config = new D8DebugTestConfig(temp);
+    config.addPaths(outjar);
+    return config;
   }
 
-  @BeforeClass
-  public static void initDebuggeePath() throws Exception {
-    debuggeePathNotOptimized = makeDex(LineNumberOptimization.OFF);
-    debuggeePathOptimized = makeDex(LineNumberOptimization.ON);
-    debuggeePathIdentityTest = makeDex(LineNumberOptimization.IDENTITY_MAPPING);
+  @Test
+  public void testIdentityCompilation() throws Throwable {
+    // Compilation will fail if the identity translation does.
+    makeConfig(LineNumberOptimization.IDENTITY_MAPPING);
   }
 
   @Test
   public void testNotOptimized() throws Throwable {
     int[] lineNumbers = {20, 7, 8, 28, 8, 20, 21, 12, 21, 22, 16, 22};
-    test(debuggeePathNotOptimized, lineNumbers);
+    test(makeConfig(LineNumberOptimization.OFF), lineNumbers);
   }
 
   @Test
   public void testOptimized() throws Throwable {
     int[] lineNumbers = {1, 1, 2, 1, 2, 1, 2, 3, 2, 3, 4, 3};
-    test(debuggeePathOptimized, lineNumbers);
+    test(makeConfig(LineNumberOptimization.ON), lineNumbers);
   }
 
-  private void test(DebuggeePath debuggeePath, int[] lineNumbers) throws Throwable {
+  private void test(DebugTestConfig config, int[] lineNumbers) throws Throwable {
     final String class1 = "LineNumberOptimization1";
     final String class2 = "LineNumberOptimization2";
     final String file1 = class1 + ".java";
@@ -59,7 +64,7 @@ public class LineNumberOptimizationTest extends DebugTestBase {
     final String mainSignature = "([Ljava/lang/String;)V";
 
     runDebugTest(
-        debuggeePath,
+        config,
         class1,
         breakpoint(class1, "main", mainSignature),
         run(),

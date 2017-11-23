@@ -31,12 +31,12 @@ public class D8DebugTestConfig extends DebugTestConfig {
 
   private static synchronized AndroidApp getCompiledJdwp() {
     if (compiledJdwp == null) {
-      compiledJdwp = compile(Collections.singletonList(JDWP_JAR), null);
+      compiledJdwp = d8Compile(Collections.singletonList(JDWP_JAR), null);
     }
     return compiledJdwp;
   }
 
-  public static AndroidApp compile(List<Path> paths, Consumer<InternalOptions> optionsConsumer) {
+  public static AndroidApp d8Compile(List<Path> paths, Consumer<InternalOptions> optionsConsumer) {
     try {
       int minSdk = ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm());
       return ToolHelper.runD8(
@@ -86,7 +86,7 @@ public class D8DebugTestConfig extends DebugTestConfig {
       TemporaryFolder temp, List<Path> paths, Consumer<InternalOptions> optionsConsumer) {
     try {
       Path out = temp.newFolder().toPath().resolve("d8_compiled.jar");
-      compile(paths, optionsConsumer).write(out, OutputMode.Indexed);
+      d8Compile(paths, optionsConsumer).write(out, OutputMode.Indexed);
       addPaths(out);
     } catch (Exception e) {
       throw new RuntimeException(e);

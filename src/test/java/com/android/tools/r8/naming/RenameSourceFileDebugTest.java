@@ -3,14 +3,16 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
-import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationMode;
+import com.android.tools.r8.R8Command;
+import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.debug.D8DebugTestConfig;
 import com.android.tools.r8.debug.DebugTestBase;
-import com.android.tools.r8.shaking.ProguardRuleParserException;
+import com.android.tools.r8.debug.DebugTestConfig;
 import com.google.common.collect.ImmutableList;
-import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collections;
-import java.util.concurrent.ExecutionException;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -21,22 +23,27 @@ public class RenameSourceFileDebugTest extends DebugTestBase {
 
   private static final String TEST_FILE = "TestFile.java";
 
-  private static DebuggeePath debuggeePath;
+  private static DebugTestConfig config;
 
   @BeforeClass
   public static void initDebuggeePath() throws Exception {
-    debuggeePath =
-        DebuggeePath.makeDex(
-            compileToDexViaR8(
-                null,
+    int minSdk = ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm());
+    Path outdir = temp.newFolder().toPath();
+    Path outjar = outdir.resolve("r8_compiled.jar");
+    ToolHelper.runR8(
+        R8Command.builder()
+            .addProgramFiles(DEBUGGEE_JAR)
+            .setMinApiLevel(minSdk)
+            .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(minSdk)))
+            .setMode(CompilationMode.DEBUG)
+            .setOutputPath(outjar)
+            .addProguardConfigurationConsumer(
                 pg -> {
                   pg.setRenameSourceFileAttribute(TEST_FILE);
                   pg.addKeepAttributePatterns(ImmutableList.of("SourceFile", "LineNumberTable"));
-                },
-                DEBUGGEE_JAR,
-                Collections.<String>emptyList(),
-                false,
-                CompilationMode.DEBUG));
+                })
+            .build());
+    config = D8DebugTestConfig.fromCompiledPaths(temp, Collections.singletonList(outjar));
   }
 
   /**
@@ -46,7 +53,7 @@ public class RenameSourceFileDebugTest extends DebugTestBase {
   public void testBreakpointInEmptyClassInitializer() throws Throwable {
     final String CLASS = "ClassInitializerEmpty";
     runDebugTest(
-        debuggeePath, CLASS, breakpoint(CLASS, "<clinit>"), run(), checkLine(TEST_FILE, 8), run());
+        config, CLASS, breakpoint(CLASS, "<clinit>"), run(), checkLine(TEST_FILE, 8), run());
   }
 
   /**
@@ -58,7 +65,7 @@ public class RenameSourceFileDebugTest extends DebugTestBase {
     final String className = "Locals";
     final String methodName = "noLocals";
     runDebugTest(
-        debuggeePath,
+        config,
         className,
         breakpoint(className, methodName),
         run(),
@@ -78,7 +85,7 @@ public class RenameSourceFileDebugTest extends DebugTestBase {
   @Test
   public void testMultipleReturns() throws Throwable {
     runDebugTest(
-        debuggeePath,
+        config,
         "MultipleReturns",
         breakpoint("MultipleReturns", "multipleReturns"),
         run(),

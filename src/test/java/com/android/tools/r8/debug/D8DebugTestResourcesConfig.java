@@ -16,7 +16,7 @@ public class D8DebugTestResourcesConfig extends D8DebugTestConfig {
 
   private static synchronized AndroidApp getCompiledResources() throws Throwable {
     if (compiledResources == null) {
-      compiledResources = compile(Collections.singletonList(DebugTestBase.DEBUGGEE_JAR), null);
+      compiledResources = d8Compile(Collections.singletonList(DebugTestBase.DEBUGGEE_JAR), null);
     }
     return compiledResources;
   }

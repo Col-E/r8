@@ -3,9 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.debug;
 
-import com.android.tools.r8.CompilationException;
-import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.DexVm;
@@ -16,18 +13,12 @@ import com.android.tools.r8.naming.ClassNamingForNameMapper;
 import com.android.tools.r8.naming.MemberNaming;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
-import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.shaking.ProguardConfiguration;
-import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.CompilationFailedException;
 import com.android.tools.r8.utils.DescriptorUtils;
-import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongList;
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayDeque;
@@ -39,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.TreeMap;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -88,24 +78,6 @@ public abstract class DebugTestBase {
   public static final StepFilter INTELLIJ_FILTER = new StepFilter.IntelliJStepFilter();
   private static final StepFilter DEFAULT_FILTER = NO_FILTER;
 
-  protected static class DebuggeePath {
-    public final RuntimeKind kind;
-    public final Path path;
-
-    public static DebuggeePath makeDex(Path path) {
-      return new DebuggeePath(DebugTestConfig.RuntimeKind.DEX, path);
-    }
-
-    public static DebuggeePath makeClassFile(Path path) {
-      return new DebuggeePath(DebugTestConfig.RuntimeKind.CF, path);
-    }
-
-    public DebuggeePath(RuntimeKind kind, Path path) {
-      this.kind = kind;
-      this.path = path;
-    }
-  }
-
   private static final int FIRST_LINE = -1;
 
   // Set to true to enable verbose logs
@@ -117,46 +89,11 @@ public abstract class DebugTestBase {
   public static final Path DEBUGGEE_JAVA8_JAR = Paths
       .get(ToolHelper.BUILD_DIR, "test", "debug_test_resources_java8.jar");
 
-  private static final String PROGUARD_MAP_FILENAME = "proguard.map";
-
   @ClassRule
   public static TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
   @Rule
   public TestName testName = new TestName();
-
-  public static Path compileToDexViaR8(
-      Consumer<InternalOptions> optionsConsumer,
-      Consumer<ProguardConfiguration.Builder> pgConsumer,
-      Path jarToCompile,
-      List<String> proguardConfigurations,
-      boolean writeProguardMap,
-      CompilationMode compilationMode)
-      throws IOException, CompilationException, ExecutionException, ProguardRuleParserException,
-      CompilationFailedException {
-    int minSdk = ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm());
-    assert jarToCompile.toFile().exists();
-    Path dexOutputDir = temp.newFolder().toPath();
-    R8Command.Builder builder =
-        R8Command.builder()
-            .addProgramFiles(jarToCompile)
-            .setOutputPath(dexOutputDir)
-            .setMinApiLevel(minSdk)
-            .setMode(CompilationMode.DEBUG)
-            .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(minSdk)))
-            .setMode(compilationMode);
-    if (writeProguardMap) {
-      builder.setProguardMapOutput(dexOutputDir.resolve(PROGUARD_MAP_FILENAME));
-    }
-    if (!proguardConfigurations.isEmpty()) {
-      builder.addProguardConfiguration(proguardConfigurations, Origin.unknown());
-    }
-    if (pgConsumer != null) {
-      builder.addProguardConfigurationConsumer(pgConsumer);
-    }
-    ToolHelper.runR8(builder.build(), optionsConsumer);
-    return dexOutputDir.resolve("classes.dex");
-  }
 
   private RuntimeKind currentlyRunningBinaryKind = null;
 
@@ -217,44 +154,6 @@ public abstract class DebugTestBase {
         },
         debuggeeClass,
         Arrays.asList(commands));
-  }
-
-  protected void runDebugTest(
-      DebuggeePath debuggeePath, String debuggeeClass, JUnit3Wrapper.Command... commands)
-      throws Throwable {
-    runDebugTest(debuggeePath, ImmutableList.of(), debuggeeClass, Arrays.asList(commands));
-  }
-
-  protected void runDebugTest(
-      DebuggeePath debuggeePath, String debuggeeClass, List<JUnit3Wrapper.Command> commands)
-      throws Throwable {
-    runDebugTest(debuggeePath, ImmutableList.of(), debuggeeClass, commands);
-  }
-
-  protected void runDebugTest(
-      DebuggeePath debuggeePath,
-      List<Path> extraPaths,
-      String debuggeeClass,
-      JUnit3Wrapper.Command... commands)
-      throws Throwable {
-    runDebugTest(debuggeePath, extraPaths, debuggeeClass, Arrays.asList(commands));
-  }
-
-  protected void runDebugTest(
-      DebuggeePath debuggeePath,
-      List<Path> extraPaths,
-      String debuggeeClass,
-      List<JUnit3Wrapper.Command> commands)
-      throws Throwable {
-    DebugTestConfig debuggeeConfig;
-    if (debuggeePath.kind == DebugTestConfig.RuntimeKind.CF) {
-      debuggeeConfig = new CfDebugTestConfig();
-    } else {
-      debuggeeConfig = new D8DebugTestConfig(temp);
-    }
-    debuggeeConfig.addPaths(extraPaths);
-    debuggeeConfig.addPaths(debuggeePath.path);
-    runInternal(debuggeeConfig, debuggeeClass, commands);
   }
 
   private void runInternal(
