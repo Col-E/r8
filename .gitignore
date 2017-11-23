@@ -1,5 +1,7 @@
 build/
+buildSrc/out/
 .idea/
+r8.iml
 .gradle/
 android-data*/
 tests/2016-12-19/art.tar.gz

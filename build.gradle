@@ -12,6 +12,17 @@ apply plugin: 'com.cookpad.android.licensetools'
 apply plugin: 'net.ltgt.errorprone-base'
 apply plugin: "net.ltgt.apt"
 
+// Ensure importing into IntelliJ IDEA use the same output directories as Gradle. In tests we
+// use the output path for tests (ultimately through ToolHelper.getClassPathForTests()) and
+// therefore these paths need to be the same. See https://youtrack.jetbrains.com/issue/IDEA-175172
+// for context.
+idea {
+    module {
+        outputDir file('build/classes/main')
+        testOutputDir file('build/classes/test')
+    }
+}
+
 def errorProneConfiguration = [
     '-XepDisableAllChecks',
     // D8 want to use reference equality, thus disable the checker explicitly
