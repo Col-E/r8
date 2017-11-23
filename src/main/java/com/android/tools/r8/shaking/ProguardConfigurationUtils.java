@@ -18,11 +18,13 @@ public class ProguardConfigurationUtils {
     ProguardClassNameList.Builder classNameListBuilder = ProguardClassNameList.builder();
     classNameListBuilder.addClassName(false, ProguardTypeMatcher.create(clazz.type));
     builder.setClassNames(classNameListBuilder.build());
-    ProguardMemberRule.Builder memberRuleBuilder = ProguardMemberRule.builder();
-    memberRuleBuilder.setRuleType(ProguardMemberType.INIT);
-    memberRuleBuilder.setName("<init>");
-    memberRuleBuilder.setArguments(ImmutableList.of());
-    builder.getMemberRules().add(memberRuleBuilder.build());
+    if (clazz.hasDefaultInitializer()) {
+      ProguardMemberRule.Builder memberRuleBuilder = ProguardMemberRule.builder();
+      memberRuleBuilder.setRuleType(ProguardMemberType.INIT);
+      memberRuleBuilder.setName("<init>");
+      memberRuleBuilder.setArguments(ImmutableList.of());
+      builder.getMemberRules().add(memberRuleBuilder.build());
+    }
     return builder.build();
   }
 }
