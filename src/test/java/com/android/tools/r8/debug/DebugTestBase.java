@@ -118,6 +118,7 @@ public abstract class DebugTestBase {
 
   private static final Path DEBUGGEE_JAVA8_JAR = Paths
       .get(ToolHelper.BUILD_DIR, "test", "debug_test_resources_java8.jar");
+
   private static final String PROGUARD_MAP_FILENAME = "proguard.map";
 
   @ClassRule
@@ -277,30 +278,12 @@ public abstract class DebugTestBase {
       throws Throwable {
     DebugTestConfig debuggeeConfig;
     if (debuggeePath.kind == DebugTestConfig.RuntimeKind.CF) {
-      debuggeeConfig =
-          new CfBaseDebugTestConfig() {
-            @Override
-            public List<Path> getPaths() {
-              return new ImmutableList.Builder<Path>()
-                  .addAll(super.getPaths())
-                  .addAll(extraPaths)
-                  .add(debuggeePath.path)
-                  .build();
-            }
-          };
+      debuggeeConfig = new CfDebugTestConfig();
     } else {
-      debuggeeConfig =
-          new D8BaseDebugTestConfig(temp) {
-            @Override
-            public List<Path> getPaths() {
-              return new ImmutableList.Builder<Path>()
-                  .addAll(super.getPaths())
-                  .addAll(extraPaths)
-                  .add(debuggeePath.path)
-                  .build();
-            }
-          };
+      debuggeeConfig = new D8DebugTestConfig(temp);
     }
+    debuggeeConfig.addPaths(extraPaths);
+    debuggeeConfig.addPaths(debuggeePath.path);
     runInternal(debuggeeConfig, debuggeeClass, commands);
   }
 

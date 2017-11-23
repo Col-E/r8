@@ -5,26 +5,18 @@ package com.android.tools.r8.debug;
 
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
-import java.util.List;
 
-public class CfBaseDebugTestConfig extends DebugTestConfig {
+public class CfDebugTestConfig extends DebugTestConfig {
 
   public static final Path JDWP_JAR = ToolHelper.getJdwpTestsJarPath(AndroidApiLevel.N.getLevel());
+
+  public CfDebugTestConfig() {
+    addPaths(JDWP_JAR);
+  }
 
   @Override
   public RuntimeKind getRuntimeKind() {
     return RuntimeKind.CF;
-  }
-
-  @Override
-  public List<Path> getPaths() {
-    return ImmutableList.of(JDWP_JAR);
-  }
-
-  @Override
-  public Path getProguardMap() {
-    return null;
   }
 }
