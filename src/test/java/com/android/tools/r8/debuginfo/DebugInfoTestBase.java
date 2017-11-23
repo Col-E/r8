@@ -28,7 +28,7 @@ public class DebugInfoTestBase {
       Paths.get(ToolHelper.BUILD_DIR, "test", "debuginfo_examples_dex.jar");
 
   @Rule
-  public TemporaryFolder temp = new TemporaryFolder();
+  public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
   static AndroidApp compileWithD8(Class... classes) throws CompilationException, IOException,
       CompilationFailedException {

@@ -4,15 +4,69 @@
 
 package com.android.tools.r8.debug;
 
+import com.android.tools.r8.CompilationMode;
+import com.android.tools.r8.D8Command;
+import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.OutputMode;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 import org.apache.harmony.jpda.tests.framework.jdwp.Frame.Variable;
 import org.apache.harmony.jpda.tests.framework.jdwp.Location;
+import org.junit.BeforeClass;
+import org.junit.rules.TemporaryFolder;
 
 /**
  * A specialization for Kotlin-based tests which provides extra commands.
  */
 public abstract class KotlinDebugTestBase extends DebugTestBase {
+
+  private static final Path DEBUGGEE_KOTLIN_JAR =
+      Paths.get(ToolHelper.BUILD_DIR, "test", "debug_test_resources_kotlin.jar");
+
+  protected static class KotlinD8Config extends D8BaseDebugTestConfig {
+
+    private static AndroidApp compiledResources = null;
+
+    private static synchronized AndroidApp getCompiledResources() throws Throwable {
+      if (compiledResources == null) {
+        int minSdk = ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm());
+        compiledResources =
+            ToolHelper.runD8(
+                D8Command.builder()
+                    .addProgramFiles(DEBUGGEE_KOTLIN_JAR)
+                    .setMinApiLevel(minSdk)
+                    .setMode(CompilationMode.DEBUG)
+                    .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(minSdk)))
+                    .build());
+      }
+      return compiledResources;
+    }
+
+    public KotlinD8Config(TemporaryFolder temp) {
+      super(temp);
+      try {
+        Path out = temp.newFolder().toPath().resolve("d8_debug_test_resources_kotlin.jar");
+        getCompiledResources().write(out, OutputMode.Indexed);
+        addPaths(out);
+      } catch (Throwable e) {
+        throw new RuntimeException(e);
+      }
+    }
+  }
+
+  private static KotlinD8Config d8Config;
+
+  @BeforeClass
+  public static void setup() {
+    d8Config = new KotlinD8Config(temp);
+  }
+
+  protected KotlinD8Config getD8Config() {
+    return d8Config;
+  }
 
   protected final JUnit3Wrapper.Command kotlinStepOver() {
     return testBaseBeforeStep -> {

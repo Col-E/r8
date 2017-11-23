@@ -11,8 +11,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
-import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.debug.DebugTestConfig.RuntimeKind;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.ClassNamingForNameMapper;
 import com.android.tools.r8.naming.MemberNaming;
@@ -31,7 +30,6 @@ import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongList;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayDeque;
@@ -74,7 +72,6 @@ import org.apache.harmony.jpda.tests.jdwp.share.JDWPTestCase;
 import org.apache.harmony.jpda.tests.share.JPDATestOptions;
 import org.junit.Assert;
 import org.junit.Assume;
-import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -93,104 +90,50 @@ public abstract class DebugTestBase {
   public static final StepFilter INTELLIJ_FILTER = new StepFilter.IntelliJStepFilter();
   private static final StepFilter DEFAULT_FILTER = NO_FILTER;
 
-  enum DexCompilerKind {
-    DX,
-    D8
-  }
-
-  enum BinaryKind {
-    CF,
-    DEX
-  }
-
   protected static class DebuggeePath {
-    public final BinaryKind kind;
+    public final RuntimeKind kind;
     public final Path path;
 
     public static DebuggeePath makeDex(Path path) {
-      return new DebuggeePath(BinaryKind.DEX, path);
+      return new DebuggeePath(DebugTestConfig.RuntimeKind.DEX, path);
     }
 
     public static DebuggeePath makeClassFile(Path path) {
-      return new DebuggeePath(BinaryKind.CF, path);
+      return new DebuggeePath(DebugTestConfig.RuntimeKind.CF, path);
     }
 
-    public DebuggeePath(BinaryKind kind, Path path) {
+    public DebuggeePath(RuntimeKind kind, Path path) {
       this.kind = kind;
       this.path = path;
     }
   }
-
-  private static final DexCompilerKind DEX_COMPILER_KIND = DexCompilerKind.D8;
 
   private static final int FIRST_LINE = -1;
 
   // Set to true to enable verbose logs
   private static final boolean DEBUG_TESTS = false;
 
-  private static final Path JDWP_JAR = ToolHelper
-      .getJdwpTestsJarPath(ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm()));
-  protected static final Path DEBUGGEE_JAR =
+  public static final Path DEBUGGEE_JAR =
       Paths.get(ToolHelper.BUILD_DIR, "test", "debug_test_resources.jar");
+
   private static final Path DEBUGGEE_JAVA8_JAR = Paths
       .get(ToolHelper.BUILD_DIR, "test", "debug_test_resources_java8.jar");
-  private static final Path DEBUGGEE_KOTLIN_JAR = Paths
-      .get(ToolHelper.BUILD_DIR, "test", "debug_test_resources_kotlin.jar");
   private static final String PROGUARD_MAP_FILENAME = "proguard.map";
 
   @ClassRule
-  public static TemporaryFolder temp = new TemporaryFolder();
-
-  // TODO(tamaskenez): Separate test setup from test runner.
-  private static Path jdwpDexD8;
-  private static Path debuggeeDexD8;
-  private static Path debuggeeJava8DexD8;
-  private static Path debuggeeKotlinDexD8;
+  public static TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
   @Rule
   public TestName testName = new TestName();
 
-  @BeforeClass
-  public static void setUp() throws Exception {
-    jdwpDexD8 = compileToDex(JDWP_JAR, null);
-    debuggeeDexD8 = null;
-    debuggeeJava8DexD8 = null;
-    debuggeeKotlinDexD8 = null;
-  }
-
-  protected static synchronized Path getDebuggeeDexD8()
+  private static Path getDebuggeeJava8DexD8()
       throws IOException, CompilationException, CompilationFailedException {
-    if (debuggeeDexD8 == null) {
-      debuggeeDexD8 = compileToDex(DEBUGGEE_JAR, null);
-    }
-    return debuggeeDexD8;
-  }
-
-  private static synchronized Path getDebuggeeJava8DexD8()
-      throws IOException, CompilationException, CompilationFailedException {
-    if (debuggeeJava8DexD8 == null) {
-      debuggeeJava8DexD8 =
-          compileToDex(
-              DEBUGGEE_JAVA8_JAR,
-              options -> {
-                // Enable desugaring for preN runtimes
-                options.interfaceMethodDesugaring = OffOrAuto.Auto;
-              });
-    }
-    return debuggeeJava8DexD8;
-  }
-
-  private static synchronized Path getDebuggeeKotlinDexD8()
-      throws IOException, CompilationException, CompilationFailedException {
-    if (debuggeeKotlinDexD8 == null) {
-      debuggeeKotlinDexD8 = compileToDex(DEBUGGEE_KOTLIN_JAR, null);
-    }
-    return debuggeeKotlinDexD8;
-  }
-
-  protected static DebuggeePath getDebuggeeDexD8OrCf(boolean cf)
-      throws IOException, CompilationException, CompilationFailedException {
-    return cf ? DebuggeePath.makeClassFile(DEBUGGEE_JAR) : DebuggeePath.makeDex(getDebuggeeDexD8());
+    return compileToDex(
+        DEBUGGEE_JAVA8_JAR,
+        options -> {
+          // Enable desugaring for preN runtimes
+          options.interfaceMethodDesugaring = OffOrAuto.Auto;
+        });
   }
 
   protected static DebuggeePath getDebuggeeJava8DexD8OrCf(boolean cf)
@@ -200,46 +143,20 @@ public abstract class DebugTestBase {
         : DebuggeePath.makeDex(getDebuggeeJava8DexD8());
   }
 
-  protected static Path compileToDex(Path jarToCompile, Consumer<InternalOptions> optionsConsumer)
-      throws IOException, CompilationException, CompilationFailedException {
-    return compileToDex(DEX_COMPILER_KIND, jarToCompile, optionsConsumer);
-  }
-
-  static Path compileToDex(
-      DexCompilerKind compiler, Path jarToCompile, Consumer<InternalOptions> optionsConsumer)
+  static Path compileToDex(Path jarToCompile, Consumer<InternalOptions> optionsConsumer)
       throws IOException, CompilationException, CompilationFailedException {
     int minSdk = ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm());
     assert jarToCompile.toFile().exists();
     Path dexOutputDir = temp.newFolder().toPath();
-    switch (compiler) {
-      case D8:
-        {
-          ToolHelper.runD8(
-              D8Command.builder()
-                  .addProgramFiles(jarToCompile)
-                  .setOutputPath(dexOutputDir)
-                  .setMinApiLevel(minSdk)
-                  .setMode(CompilationMode.DEBUG)
-                  .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(minSdk)))
-                  .build(),
-              optionsConsumer);
-          break;
-        }
-      case DX:
-        {
-          ProcessResult result =
-              ToolHelper.runDX(
-                  new String[] {
-                    "--output=" + dexOutputDir,
-                    "--min-sdk-version=" + minSdk,
-                    jarToCompile.toString()
-                  });
-          Assert.assertEquals(result.stderr, 0, result.exitCode);
-          break;
-        }
-      default:
-        throw new Unreachable();
-    }
+    ToolHelper.runD8(
+        D8Command.builder()
+            .addProgramFiles(jarToCompile)
+            .setOutputPath(dexOutputDir)
+            .setMinApiLevel(minSdk)
+            .setMode(CompilationMode.DEBUG)
+            .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(minSdk)))
+            .build(),
+        optionsConsumer);
     return dexOutputDir.resolve("classes.dex");
   }
 
@@ -276,9 +193,9 @@ public abstract class DebugTestBase {
     return dexOutputDir.resolve("classes.dex");
   }
 
-  private BinaryKind currentlyRunningBinaryKind = null;
+  private RuntimeKind currentlyRunningBinaryKind = null;
 
-  protected final BinaryKind getCurrentlyRunningBinaryKind() {
+  protected final RuntimeKind getCurrentlyRunningBinaryKind() {
     if (currentlyRunningBinaryKind == null) {
       throw new RuntimeException("Nothing is running currently.");
     }
@@ -291,63 +208,42 @@ public abstract class DebugTestBase {
   }
 
   protected final boolean isRunningJava() {
-    return getCurrentlyRunningBinaryKind() == BinaryKind.CF;
+    return getCurrentlyRunningBinaryKind() == DebugTestConfig.RuntimeKind.CF;
   }
 
   protected final boolean isRunningArt() {
-    return getCurrentlyRunningBinaryKind() == BinaryKind.DEX;
+    return getCurrentlyRunningBinaryKind() == DebugTestConfig.RuntimeKind.DEX;
+  }
+
+  protected final void runDebugTest(
+      DebugTestConfig config, String debuggeeClass, JUnit3Wrapper.Command... commands)
+      throws Throwable {
+    runInternal(config, debuggeeClass, Arrays.asList(commands));
   }
 
   protected final void runDebugTest(String debuggeeClass, JUnit3Wrapper.Command... commands)
       throws Throwable {
-    runDebugTest(
-        DebuggeePath.makeDex(getDebuggeeDexD8()),
-        Collections.<Path>emptyList(),
-        debuggeeClass,
-        Arrays.asList(commands));
-  }
-
-  protected final void runDebugTest(List<Path> extraPaths, String debuggeeClass,
-      JUnit3Wrapper.Command... commands) throws Throwable {
-    runDebugTest(
-        DebuggeePath.makeDex(getDebuggeeDexD8()),
-        extraPaths,
-        debuggeeClass,
-        Arrays.asList(commands));
+    runDebugTest(debuggeeClass, Arrays.asList(commands));
   }
 
   protected final void runDebugTest(String debuggeeClass, List<JUnit3Wrapper.Command> commands)
       throws Throwable {
-    runDebugTest(
-        DebuggeePath.makeDex(getDebuggeeDexD8()),
-        Collections.<Path>emptyList(),
-        debuggeeClass,
-        commands);
+    runInternal(new D8DebugTestResourcesConfig(temp), debuggeeClass, commands);
   }
 
-  protected final void runDebugTestJava8(String debuggeeClass, JUnit3Wrapper.Command... commands)
+  protected final void runDebugTest(
+      List<Path> extraPaths, String debuggeeClass, JUnit3Wrapper.Command... commands)
       throws Throwable {
-    runDebugTest(
-        DebuggeePath.makeDex(getDebuggeeJava8DexD8()),
-        Collections.<Path>emptyList(),
-        debuggeeClass,
-        Arrays.asList(commands));
-  }
-
-  protected final void runDebugTestJava8(String debuggeeClass, List<JUnit3Wrapper.Command> commands)
-      throws Throwable {
-    runDebugTest(
-        DebuggeePath.makeDex(getDebuggeeJava8DexD8()),
-        Collections.<Path>emptyList(),
-        debuggeeClass,
-        commands);
-  }
-
-  protected final void runDebugTestKotlin(String debuggeeClass, JUnit3Wrapper.Command... commands)
-      throws Throwable {
-    runDebugTest(
-        DebuggeePath.makeDex(getDebuggeeKotlinDexD8()),
-        Collections.<Path>emptyList(),
+    runInternal(
+        new D8DebugTestResourcesConfig(temp) {
+          @Override
+          public List<Path> getPaths() {
+            return new ImmutableList.Builder<Path>()
+                .addAll(super.getPaths())
+                .addAll(extraPaths)
+                .build();
+          }
+        },
         debuggeeClass,
         Arrays.asList(commands));
   }
@@ -355,14 +251,13 @@ public abstract class DebugTestBase {
   protected void runDebugTest(
       DebuggeePath debuggeePath, String debuggeeClass, JUnit3Wrapper.Command... commands)
       throws Throwable {
-    runDebugTest(
-        debuggeePath, Collections.<Path>emptyList(), debuggeeClass, Arrays.asList(commands));
+    runDebugTest(debuggeePath, ImmutableList.of(), debuggeeClass, Arrays.asList(commands));
   }
 
   protected void runDebugTest(
       DebuggeePath debuggeePath, String debuggeeClass, List<JUnit3Wrapper.Command> commands)
       throws Throwable {
-    runDebugTest(debuggeePath, Collections.<Path>emptyList(), debuggeeClass, commands);
+    runDebugTest(debuggeePath, ImmutableList.of(), debuggeeClass, commands);
   }
 
   protected void runDebugTest(
@@ -380,6 +275,38 @@ public abstract class DebugTestBase {
       String debuggeeClass,
       List<JUnit3Wrapper.Command> commands)
       throws Throwable {
+    DebugTestConfig debuggeeConfig;
+    if (debuggeePath.kind == DebugTestConfig.RuntimeKind.CF) {
+      debuggeeConfig =
+          new CfBaseDebugTestConfig() {
+            @Override
+            public List<Path> getPaths() {
+              return new ImmutableList.Builder<Path>()
+                  .addAll(super.getPaths())
+                  .addAll(extraPaths)
+                  .add(debuggeePath.path)
+                  .build();
+            }
+          };
+    } else {
+      debuggeeConfig =
+          new D8BaseDebugTestConfig(temp) {
+            @Override
+            public List<Path> getPaths() {
+              return new ImmutableList.Builder<Path>()
+                  .addAll(super.getPaths())
+                  .addAll(extraPaths)
+                  .add(debuggeePath.path)
+                  .build();
+            }
+          };
+    }
+    runInternal(debuggeeConfig, debuggeeClass, commands);
+  }
+
+  private void runInternal(
+      DebugTestConfig config, String debuggeeClass, List<JUnit3Wrapper.Command> commands)
+      throws Throwable {
     // Skip test due to unsupported runtime.
     Assume.assumeTrue("Skipping test " + testName.getMethodName() + " because ART is not supported",
         ToolHelper.artSupported());
@@ -387,25 +314,19 @@ public abstract class DebugTestBase {
             + " because debug tests are not yet supported on Windows",
         !ToolHelper.isWindows());
 
-    String[] paths = new String[extraPaths.size() + 2];
-    int indexPath = 0;
-    ClassNameMapper classNameMapper = null;
-    if (debuggeePath.kind == BinaryKind.CF) {
-      paths[indexPath++] = JDWP_JAR.toString();
-    } else {
-      paths[indexPath++] = jdwpDexD8.toString();
-      Path proguardMapPath = debuggeePath.path.resolveSibling(PROGUARD_MAP_FILENAME);
-      if (Files.exists(proguardMapPath)) {
-        classNameMapper = ClassNameMapper.mapperFromFile(proguardMapPath);
-      }
-    }
-    paths[indexPath++] = debuggeePath.path.toString();
-    for (Path extraPath : extraPaths) {
-      paths[indexPath++] = extraPath.toString();
-    }
+    ClassNameMapper classNameMapper =
+        config.getProguardMap() == null
+            ? null
+            : ClassNameMapper.mapperFromFile(config.getProguardMap());
 
-    currentlyRunningBinaryKind = debuggeePath.kind;
-    new JUnit3Wrapper(debuggeeClass, paths, commands, classNameMapper, isRunningArt()).runBare();
+    currentlyRunningBinaryKind = config.getRuntimeKind();
+    new JUnit3Wrapper(
+            debuggeeClass,
+            config.getPaths().stream().map(Path::toString).toArray(String[]::new),
+            commands,
+            classNameMapper,
+            isRunningArt())
+        .runBare();
   }
 
   protected final JUnit3Wrapper.Command run() {

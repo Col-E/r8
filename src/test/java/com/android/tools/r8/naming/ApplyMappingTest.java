@@ -48,7 +48,7 @@ public class ApplyMappingTest {
       Paths.get(ToolHelper.EXAMPLES_BUILD_DIR, "applymapping044" + FileUtils.JAR_EXTENSION);
 
   @Rule
-  public TemporaryFolder temp = new TemporaryFolder();
+  public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
   private Path out;
 

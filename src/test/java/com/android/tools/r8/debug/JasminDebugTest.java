@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.debug;
 
+import com.android.tools.r8.CompilationMode;
+import com.android.tools.r8.D8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
@@ -13,6 +15,7 @@ import java.io.OutputStream;
 import java.io.StringReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.Rule;
@@ -22,7 +25,48 @@ import org.junit.rules.TemporaryFolder;
 // TODO(b/65474850) Should we build Jasmin at compile time or runtime ?
 public class JasminDebugTest extends DebugTestBase {
 
-  public static final boolean RUN_JAVA = false;
+  static class JasminTestConfig extends D8BaseDebugTestConfig {
+
+    public JasminTestConfig(TemporaryFolder temp, JasminBuilder builder) {
+      super(temp, compile(temp, builder));
+    }
+
+    private static Path compile(TemporaryFolder temp, JasminBuilder builder) {
+      try {
+        ImmutableList<ClassBuilder> classes = builder.getClasses();
+        File out = temp.newFolder();
+        List<Path> classFiles = new ArrayList<>(classes.size());
+        for (ClassBuilder clazz : classes) {
+          ClassFile file = new ClassFile();
+          file.readJasmin(new StringReader(clazz.toString()), clazz.name, false);
+          Path path = out.toPath().resolve(clazz.name + ".class");
+          Files.createDirectories(path.getParent());
+          try (OutputStream outputStream = Files.newOutputStream(path)) {
+            file.write(outputStream);
+          }
+          classFiles.add(path);
+        }
+        return compile(temp, classFiles);
+      } catch (Throwable e) {
+        throw new RuntimeException(e);
+      }
+    }
+
+    private static Path compile(TemporaryFolder temp, List<Path> paths) throws Throwable {
+      int minSdk = ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm());
+      Path out = temp.newFolder().toPath().resolve("d8_jasmin.jar");
+      ToolHelper.runD8(
+          D8Command.builder()
+              .addProgramFiles(paths)
+              .setOutputPath(out)
+              .setMinApiLevel(minSdk)
+              .setMode(CompilationMode.DEBUG)
+              .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(minSdk)))
+              .build(),
+          null);
+      return out;
+    }
+  }
 
   @Rule
   public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
@@ -32,10 +76,8 @@ public class JasminDebugTest extends DebugTestBase {
     final String className = "UselessCheckCast";
     final String sourcefile = className + ".j";
     final String methodName = "test";
-    List<Path> paths = getExtraPaths(getBuilderForUselessCheckcast(className, methodName));
     runDebugTest(
-        getDebuggeeDexD8OrCf(RUN_JAVA),
-        paths,
+        new JasminTestConfig(temp, getBuilderForUselessCheckcast(className, methodName)),
         className,
         breakpoint(className, methodName),
         run(),
@@ -80,28 +122,5 @@ public class JasminDebugTest extends DebugTestBase {
         "return");
 
     return builder;
-  }
-
-  private List<Path> getExtraPaths(JasminBuilder builder) throws Exception {
-    ImmutableList<ClassBuilder> classes = builder.getClasses();
-    List<Path> extraPaths = new ArrayList<>(classes.size());
-    File out = temp.newFolder();
-
-    for (ClassBuilder clazz : classes) {
-      ClassFile file = new ClassFile();
-      file.readJasmin(new StringReader(clazz.toString()), clazz.name, false);
-      Path path = out.toPath().resolve(clazz.name + ".class");
-      Files.createDirectories(path.getParent());
-      try (OutputStream outputStream = Files.newOutputStream(path)) {
-        file.write(outputStream);
-      }
-      if (RUN_JAVA) {
-        extraPaths.add(path);
-      } else {
-        extraPaths.add(compileToDex(path, null));
-      }
-    }
-
-    return extraPaths;
   }
 }

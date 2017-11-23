@@ -7,7 +7,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import org.apache.harmony.jpda.tests.framework.jdwp.Value;
-import org.junit.Ignore;
 import org.junit.Test;
 
 // TODO check double-depth inline (an inline in another inline)
@@ -16,7 +15,9 @@ public class KotlinInlineTest extends KotlinDebugTestBase {
   @Test
   public void testStepOverInline() throws Throwable {
     String methodName = "singleInline";
-    runDebugTestKotlin("KotlinInline",
+    runDebugTest(
+        getD8Config(),
+        "KotlinInline",
         breakpoint("KotlinInline", methodName),
         run(),
         inspect(s -> {
@@ -48,7 +49,9 @@ public class KotlinInlineTest extends KotlinDebugTestBase {
   @Test
   public void testStepIntoInline() throws Throwable {
     String methodName = "singleInline";
-    runDebugTestKotlin("KotlinInline",
+    runDebugTest(
+        getD8Config(),
+        "KotlinInline",
         breakpoint("KotlinInline", methodName),
         run(),
         inspect(s -> {
@@ -84,7 +87,9 @@ public class KotlinInlineTest extends KotlinDebugTestBase {
   @Test
   public void testStepOutInline() throws Throwable {
     String methodName = "singleInline";
-    runDebugTestKotlin("KotlinInline",
+    runDebugTest(
+        getD8Config(),
+        "KotlinInline",
         breakpoint("KotlinInline", methodName),
         run(),
         inspect(s -> {
@@ -121,7 +126,9 @@ public class KotlinInlineTest extends KotlinDebugTestBase {
   @Test
   public void testKotlinInline() throws Throwable {
     final String inliningMethodName = "invokeInlinedFunctions";
-    runDebugTestKotlin("KotlinInline",
+    runDebugTest(
+        getD8Config(),
+        "KotlinInline",
         breakpoint("KotlinInline", inliningMethodName),
         run(),
         inspect(s -> {

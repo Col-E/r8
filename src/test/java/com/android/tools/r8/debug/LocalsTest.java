@@ -12,15 +12,12 @@ import java.util.Map;
 import org.apache.harmony.jpda.tests.framework.jdwp.JDWPConstants.Tag;
 import org.apache.harmony.jpda.tests.framework.jdwp.Value;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
  * Tests local variable information.
  */
 public class LocalsTest extends DebugTestBase {
-
-  private static final boolean RUN_JAVA = false;
 
   public static final String SOURCE_FILE = "Locals.java";
 
@@ -726,6 +723,6 @@ public class LocalsTest extends DebugTestBase {
     commands.add(checkLocal("i", Value.createInt(0)));
     commands.add(run());
 
-    runDebugTest(getDebuggeeDexD8OrCf(RUN_JAVA), className, commands);
+    runDebugTest(className, commands);
   }
 }

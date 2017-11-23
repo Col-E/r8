@@ -94,7 +94,8 @@ public class MainDexListTests extends TestBase {
   private static List<String> MANY_CLASSES;
 
   @ClassRule
-  public static TemporaryFolder generatedApplicationsFolder = new TemporaryFolder();
+  public static TemporaryFolder generatedApplicationsFolder =
+      ToolHelper.getTemporaryFolderForTest();
 
   // Generate the test applications in a @BeforeClass method, as they are used by several tests.
   @BeforeClass
