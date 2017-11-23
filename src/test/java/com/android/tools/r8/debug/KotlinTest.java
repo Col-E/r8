@@ -14,7 +14,9 @@ public class KotlinTest extends KotlinDebugTestBase {
   // TODO(shertz) add more variables ?
   @Test
   public void testStepOver() throws Throwable {
-    runDebugTestKotlin("KotlinApp",
+    runDebugTest(
+        getD8Config(),
+        "KotlinApp",
         breakpoint("KotlinApp$Companion", "main"),
         run(),
         inspect(s -> {
@@ -44,7 +46,9 @@ public class KotlinTest extends KotlinDebugTestBase {
 
   @Test
   public void testStepIntoAndOut() throws Throwable {
-    runDebugTestKotlin("KotlinApp",
+    runDebugTest(
+        getD8Config(),
+        "KotlinApp",
         breakpoint("KotlinApp$Companion", "main"),
         run(),
         inspect(s -> {

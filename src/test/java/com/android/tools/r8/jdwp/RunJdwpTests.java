@@ -232,7 +232,7 @@ public class RunJdwpTests {
   private static File d8Out = null;
 
   @ClassRule
-  public static TemporaryFolder temp = new TemporaryFolder();
+  public static TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
   @BeforeClass
   public static void compileLibraries() throws Exception {
