@@ -855,6 +855,9 @@ public abstract class R8RunArtTestsTest {
           .put("960-default-smali", TestCondition.match(TestCondition.R8_COMPILER))
           .put("966-default-conflict", TestCondition.match(TestCondition.R8_COMPILER))
           .put("972-iface-super-multidex", TestCondition.match(TestCondition.R8_COMPILER))
+          // These tests have illegal class flag combinations, so we reject them.
+          .put("161-final-abstract-class", TestCondition.any())
+          .put("004-JniTest", TestCondition.any())
           .build();
 
   // Tests that does not have dex input for some toolchains.

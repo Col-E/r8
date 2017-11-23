@@ -166,20 +166,26 @@ public abstract class AccessFlags {
 
 
   public String toSmaliString() {
-    return toString();
+    return toStringInternal(true);
   }
 
   @Override
   public String toString() {
+    return toStringInternal(false);
+  }
+
+  private String toStringInternal(boolean ignoreSuper) {
     List<String> names = getNames();
     List<BooleanSupplier> predicates = getPredicates();
     StringBuilder builder = new StringBuilder();
     for (int i = 0; i < names.size(); i++) {
       if (predicates.get(i).getAsBoolean()) {
-        if (builder.length() > 0) {
-          builder.append(' ');
+        if (!ignoreSuper || !names.get(i).equals("super")) {
+          if (builder.length() > 0) {
+            builder.append(' ');
+          }
+          builder.append(names.get(i));
         }
-        builder.append(names.get(i));
       }
     }
     return builder.toString();
