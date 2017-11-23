@@ -12,6 +12,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.compatproguard.CompatProguardCommandBuilder;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.shaking.ProguardClassNameList;
 import com.android.tools.r8.shaking.ProguardConfiguration;
@@ -203,5 +204,79 @@ public class ForceProguardCompatibilityTest extends TestBase {
         false, TestMainWithCheckCast.class, TestClassWithDefaultConstructor.class, true);
     testCheckCast(
         false, TestMainWithoutCheckCast.class, TestClassWithDefaultConstructor.class, false);
+  }
+
+  public void testClassForName(boolean forceProguardCompatibility) throws Exception {
+    CompatProguardCommandBuilder builder =
+        new CompatProguardCommandBuilder(forceProguardCompatibility, false);
+    Class mainClass = TestMainWithClassForName.class;
+    Class forNameClass1 = TestClassWithDefaultConstructor.class;
+    Class forNameClass2 = TestClassWithoutDefaultConstructor.class;
+    List<Class> forNameClasses = ImmutableList.of(forNameClass1, forNameClass2);
+    builder.addProgramFiles(ToolHelper.getClassFileForTestClass(mainClass));
+    builder.addProgramFiles(ToolHelper.getClassFileForTestClass(forNameClass1));
+    builder.addProgramFiles(ToolHelper.getClassFileForTestClass(forNameClass2));
+    List<String> proguardConfig = ImmutableList.of(
+        "-keep class " + mainClass.getCanonicalName() + " {",
+        "  <init>();",  // Add <init>() so it does not become a compatibility rule below.
+        "  public static void main(java.lang.String[]);",
+        "}",
+        "-dontobfuscate");
+    builder.addProguardConfiguration(proguardConfig, Origin.unknown());
+    Path proguardCompatibilityRules = temp.newFile().toPath();
+    builder.setProguardCompatibilityRulesOutput(proguardCompatibilityRules);
+
+    DexInspector inspector = new DexInspector(ToolHelper.runR8(builder.build()));
+    assertTrue(inspector.clazz(getJavacGeneratedClassName(mainClass)).isPresent());
+    forNameClasses.forEach(clazz -> {
+      assertEquals(forceProguardCompatibility,
+          inspector.clazz(getJavacGeneratedClassName(clazz)).isPresent());
+    });
+
+    // Check the Proguard compatibility rules generated.
+    ProguardConfigurationParser parser =
+        new ProguardConfigurationParser(new DexItemFactory(), null);
+    parser.parse(proguardCompatibilityRules);
+    ProguardConfiguration configuration = parser.getConfigRawForTesting();
+    if (forceProguardCompatibility) {
+      assertEquals(2, configuration.getRules().size());
+      configuration.getRules().forEach(rule -> {
+        Set<ProguardMemberRule> memberRules = rule.getMemberRules();
+        ProguardClassNameList classNames = rule.getClassNames();
+        assertEquals(1, classNames.size());
+        DexType type = classNames.asSpecificDexTypes().get(0);
+        if (type.toSourceString().equals(forNameClass1.getCanonicalName())) {
+          assertEquals(1, memberRules.size());
+          assertEquals(ProguardMemberType.INIT, memberRules.iterator().next().getRuleType());
+        } else {
+          assertTrue(type.toSourceString().equals(forNameClass2.getCanonicalName()));
+          // During parsing we add in the default constructor if there are otherwise no single
+          // member rule.
+          assertEquals(1, memberRules.size());
+          assertEquals(ProguardMemberType.INIT, memberRules.iterator().next().getRuleType());
+        }
+      });
+    } else {
+      assertEquals(0, configuration.getRules().size());
+    }
+
+    if (RUN_PROGUARD) {
+      Path proguardedJar = File.createTempFile("proguarded", ".jar", temp.getRoot()).toPath();
+      Path proguardConfigFile = File.createTempFile("proguard", ".config", temp.getRoot()).toPath();
+      FileUtils.writeTextFile(proguardConfigFile, proguardConfig);
+      ToolHelper.runProguard(jarTestClasses(
+          ImmutableList.of(mainClass, forNameClass1, forNameClass2)),
+          proguardedJar, proguardConfigFile);
+      Set<String> classesAfterProguard = readClassesInJar(proguardedJar);
+      assertTrue(classesAfterProguard.contains(mainClass.getCanonicalName()));
+      assertTrue(classesAfterProguard.contains(forNameClass1.getCanonicalName()));
+      assertTrue(classesAfterProguard.contains(forNameClass2.getCanonicalName()));
+    }
+  }
+
+  @Test
+  public void classForNameTest() throws Exception {
+    testClassForName(true);
+    testClassForName(false);
   }
 }

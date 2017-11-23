@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
@@ -28,8 +29,12 @@ import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.KeyedDexItem;
 import com.android.tools.r8.graph.PresortedComparable;
+import com.android.tools.r8.ir.code.ConstString;
+import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
+import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableMap;
@@ -144,6 +149,12 @@ public class Enqueuer {
   private Queue<Action> proguardCompatibilityWorkList = Queues.newArrayDeque();
 
   /**
+   * A set of methods that need code inspection for Proguard compatibility rules.
+   */
+  private final Set<DexEncodedMethod> pendingProguardReflectiveCompatibility =
+      Sets.newLinkedHashSet();
+
+  /**
    * A cache for DexMethod that have been marked reachable.
    */
   private Set<DexMethod> virtualTargetsMarkedAsReachable = Sets.newIdentityHashSet();
@@ -237,6 +248,10 @@ public class Enqueuer {
 
     @Override
     public boolean registerInvokeStatic(DexMethod method) {
+      if (options.forceProguardCompatibility &&
+          method == appInfo.dexItemFactory.classMethods.forName) {
+        pendingProguardReflectiveCompatibility.add(currentMethod);
+      }
       if (!registerItemWithTarget(staticInvokes, method)) {
         return false;
       }
@@ -381,13 +396,7 @@ public class Enqueuer {
       // For Proguard compatibility keep the default initializer for live types.
       if (options.forceProguardCompatibility) {
         if (holder.isProgramClass() && holder.hasDefaultInitializer()) {
-          DexEncodedMethod init = holder.getDefaultInitializer();
-          ProguardKeepRule rule =
-              ProguardConfigurationUtils.buildDefaultInitializerKeepRule(holder);
-          proguardCompatibilityWorkList.add(
-              Action.markInstantiated(holder, KeepReason.dueToProguardCompatibilityKeepRule(rule)));
-          proguardCompatibilityWorkList.add(
-              Action.markMethodLive(init, KeepReason.dueToProguardCompatibilityKeepRule(rule)));
+          markClassAsInstantiatedWithCompatRule(holder);
         }
       }
     }
@@ -870,11 +879,14 @@ public class Enqueuer {
         }
         // Continue fix-point processing while there are additional work items to ensure
         // Proguard compatibility.
-        if (proguardCompatibilityWorkList.isEmpty()) {
+        if (proguardCompatibilityWorkList.isEmpty() &&
+            pendingProguardReflectiveCompatibility.isEmpty()) {
           break;
         }
+        pendingProguardReflectiveCompatibility.forEach(this::handleProguardReflectiveBehavior);
         workList.addAll(proguardCompatibilityWorkList);
         proguardCompatibilityWorkList.clear();
+        pendingProguardReflectiveCompatibility.clear();
       }
       if (Log.ENABLED) {
         Set<DexEncodedMethod> allLive = Sets.newIdentityHashSet();
@@ -1047,6 +1059,49 @@ public class Enqueuer {
     return ImmutableSortedSet.copyOf(PresortedComparable<DexField>::slowCompareTo,
         Sets.union(collectReachedFields(instanceFieldsWritten, this::tryLookupInstanceField),
             collectReachedFields(staticFieldsWritten, this::tryLookupStaticField)));
+  }
+
+  private void markClassAsInstantiatedWithCompatRule(DexClass clazz) {
+    ProguardKeepRule rule =
+        ProguardConfigurationUtils.buildDefaultInitializerKeepRule(clazz);
+    proguardCompatibilityWorkList.add(
+        Action.markInstantiated(clazz, KeepReason.dueToProguardCompatibilityKeepRule(rule)));
+    if (clazz.hasDefaultInitializer()) {
+      proguardCompatibilityWorkList.add(
+          Action.markMethodLive(
+              clazz.getDefaultInitializer(), KeepReason.dueToProguardCompatibilityKeepRule(rule)));
+    }
+  }
+
+  private void handleProguardReflectiveBehavior(DexEncodedMethod method) {
+    try {
+      IRCode code = method.buildIR(options);
+      code.instructionIterator().forEachRemaining(this::handleProguardReflectiveBehavior);
+    } catch (ApiLevelException e) {
+      // Ignore this exception here. It will be hit again further in the pipeline when
+      // generating code.
+    }
+  }
+
+  private void handleProguardReflectiveBehavior(Instruction instruction) {
+    // Handle actual invokes of Class.forName(className) where className is a const string
+    // representing a known class as an implicit keep rule on that class.
+    if (instruction.isInvokeStatic()
+        && (instruction.asInvokeStatic().getInvokedMethod() ==
+            appInfo.dexItemFactory.classMethods.forName)
+        && instruction.asInvokeStatic().arguments().get(0).isConstant()) {
+      assert instruction.asInvokeStatic().arguments().get(0).getConstInstruction().isConstString();
+      ConstString constString =
+          instruction.asInvokeStatic().arguments().get(0).getConstInstruction().asConstString();
+      DexString forNameArgument = constString.getValue();
+      DexString forNameDescriptor = appInfo.dexItemFactory.createString(
+          DescriptorUtils.javaTypeToDescriptor(forNameArgument.toString()));
+      DexType forNameType = appInfo.dexItemFactory.createType(forNameDescriptor);
+      DexClass forNameClass = appInfo.definitionFor(forNameType);
+      if (forNameClass != null) {
+        markClassAsInstantiatedWithCompatRule(forNameClass);
+      }
+    }
   }
 
   private static class Action {
