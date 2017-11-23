@@ -7,9 +7,17 @@ package com.android.tools.r8.debug;
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.Command;
 import java.util.ArrayList;
 import java.util.List;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class SyntheticMethodTest extends DebugTestBase {
+
+  private static DebugTestConfig config;
+
+  @BeforeClass
+  public static void setup() {
+    config = new D8DebugTestResourcesConfig(temp);
+  }
 
   @Test
   public void testInnerAccessors_NoFilter() throws Throwable {
@@ -45,7 +53,7 @@ public class SyntheticMethodTest extends DebugTestBase {
     commands.add(checkMethod(debuggeeClass, "privateMethod"));
     commands.add(checkLine(sourceFile, 8));
     commands.add(run());
-    runDebugTest(debuggeeClass, commands);
+    runDebugTest(config, debuggeeClass, commands);
   }
 
   private void debugGenericBridges(StepFilter stepFilter) throws Throwable {
@@ -65,7 +73,7 @@ public class SyntheticMethodTest extends DebugTestBase {
     commands.add(checkMethod(implementationClassName, methodName, "(Ljava/lang/String;)V"));
     commands.add(checkLine(sourceFile, 16));
     commands.add(run());
-    runDebugTest(debuggeeClass, commands);
+    runDebugTest(config, debuggeeClass, commands);
   }
 
 }

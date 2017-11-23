@@ -7,7 +7,6 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
-import com.android.tools.r8.debug.DebugTestConfig.RuntimeKind;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.ClassNamingForNameMapper;
 import com.android.tools.r8.naming.MemberNaming;
@@ -74,20 +73,22 @@ import org.junit.rules.TestName;
  */
 public abstract class DebugTestBase {
 
+  // Set to true to enable verbose logs
+  private static final boolean DEBUG_TESTS = false;
+
+  // Build-time compiled debug-test resources for Java SDK < 8. See build.gradle
+  public static final Path DEBUGGEE_JAR =
+      Paths.get(ToolHelper.BUILD_DIR, "test", "debug_test_resources.jar");
+
+  // Build-time compiled debug-test resources for Java SDK 8. See build.gradle
+  public static final Path DEBUGGEE_JAVA8_JAR =
+      Paths.get(ToolHelper.BUILD_DIR, "test", "debug_test_resources_java8.jar");
+
   public static final StepFilter NO_FILTER = new StepFilter.NoStepFilter();
   public static final StepFilter INTELLIJ_FILTER = new StepFilter.IntelliJStepFilter();
   private static final StepFilter DEFAULT_FILTER = NO_FILTER;
 
   private static final int FIRST_LINE = -1;
-
-  // Set to true to enable verbose logs
-  private static final boolean DEBUG_TESTS = false;
-
-  public static final Path DEBUGGEE_JAR =
-      Paths.get(ToolHelper.BUILD_DIR, "test", "debug_test_resources.jar");
-
-  public static final Path DEBUGGEE_JAVA8_JAR = Paths
-      .get(ToolHelper.BUILD_DIR, "test", "debug_test_resources_java8.jar");
 
   @ClassRule
   public static TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
@@ -95,26 +96,26 @@ public abstract class DebugTestBase {
   @Rule
   public TestName testName = new TestName();
 
-  private RuntimeKind currentlyRunningBinaryKind = null;
+  private DebugTestConfig currentConfig = null;
 
-  protected final RuntimeKind getCurrentlyRunningBinaryKind() {
-    if (currentlyRunningBinaryKind == null) {
-      throw new RuntimeException("Nothing is running currently.");
-    }
-    return currentlyRunningBinaryKind;
-  }
-
-  protected static final boolean supportsDefaultMethod(boolean isRunningJava) {
-    return isRunningJava
+  protected static final boolean supportsDefaultMethod(DebugTestConfig config) {
+    return config.isCfRuntime()
         || ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm()) >= AndroidApiLevel.N.getLevel();
   }
 
-  protected final boolean isRunningJava() {
-    return getCurrentlyRunningBinaryKind() == DebugTestConfig.RuntimeKind.CF;
+  private DebugTestConfig getCurrentConfig() {
+    if (currentConfig == null) {
+      throw new RuntimeException("Nothing is running currently.");
+    }
+    return currentConfig;
   }
 
-  protected final boolean isRunningArt() {
-    return getCurrentlyRunningBinaryKind() == DebugTestConfig.RuntimeKind.DEX;
+  protected final boolean isCfRuntime() {
+    return getCurrentConfig().isCfRuntime();
+  }
+
+  protected final boolean isDexRuntime() {
+    return getCurrentConfig().isDexRuntime();
   }
 
   protected final void runDebugTest(
@@ -127,33 +128,6 @@ public abstract class DebugTestBase {
       DebugTestConfig config, String debuggeeClass, List<JUnit3Wrapper.Command> commands)
       throws Throwable {
     runInternal(config, debuggeeClass, commands);
-  }
-
-  protected final void runDebugTest(String debuggeeClass, JUnit3Wrapper.Command... commands)
-      throws Throwable {
-    runDebugTest(debuggeeClass, Arrays.asList(commands));
-  }
-
-  protected final void runDebugTest(String debuggeeClass, List<JUnit3Wrapper.Command> commands)
-      throws Throwable {
-    runInternal(new D8DebugTestResourcesConfig(temp), debuggeeClass, commands);
-  }
-
-  protected final void runDebugTest(
-      List<Path> extraPaths, String debuggeeClass, JUnit3Wrapper.Command... commands)
-      throws Throwable {
-    runInternal(
-        new D8DebugTestResourcesConfig(temp) {
-          @Override
-          public List<Path> getPaths() {
-            return new ImmutableList.Builder<Path>()
-                .addAll(super.getPaths())
-                .addAll(extraPaths)
-                .build();
-          }
-        },
-        debuggeeClass,
-        Arrays.asList(commands));
   }
 
   private void runInternal(
@@ -171,14 +145,15 @@ public abstract class DebugTestBase {
             ? null
             : ClassNameMapper.mapperFromFile(config.getProguardMap());
 
-    currentlyRunningBinaryKind = config.getRuntimeKind();
+    currentConfig = config;
     new JUnit3Wrapper(
             debuggeeClass,
             config.getPaths().stream().map(Path::toString).toArray(String[]::new),
             commands,
             classNameMapper,
-            isRunningArt())
+            isDexRuntime())
         .runBare();
+    currentConfig = null;
   }
 
   protected final JUnit3Wrapper.Command run() {
@@ -346,7 +321,7 @@ public abstract class DebugTestBase {
       // when breaking in <clinit>. Last known good version is 7.0.0.
       Assume.assumeTrue(
           "Skipping test " + testName.getMethodName() + " because ART version is not supported",
-          isRunningJava() || ToolHelper.getDexVm().getVersion().isOlderThanOrEqual(Version.V7_0_0));
+          isCfRuntime() || ToolHelper.getDexVm().getVersion().isOlderThanOrEqual(Version.V7_0_0));
       checkStaticField(className, fieldName, fieldSignature, expectedValue);
     });
   }

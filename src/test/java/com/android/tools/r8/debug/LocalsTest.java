@@ -12,6 +12,7 @@ import java.util.Map;
 import org.apache.harmony.jpda.tests.framework.jdwp.JDWPConstants.Tag;
 import org.apache.harmony.jpda.tests.framework.jdwp.Value;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
@@ -21,11 +22,20 @@ public class LocalsTest extends DebugTestBase {
 
   public static final String SOURCE_FILE = "Locals.java";
 
+  private static DebugTestConfig config;
+
+  @BeforeClass
+  public static void setup() {
+    config = new D8DebugTestResourcesConfig(temp);
+  }
+
   @Test
   public void testNoLocal() throws Throwable {
     final String className = "Locals";
     final String methodName = "noLocals";
-    runDebugTest(className,
+    runDebugTest(
+        config,
+        className,
         breakpoint(className, methodName),
         run(),
         checkMethod(className, methodName),
@@ -42,7 +52,9 @@ public class LocalsTest extends DebugTestBase {
   public void testUnusedLocal() throws Throwable {
     final String className = "Locals";
     final String methodName = "unusedLocals";
-    runDebugTest(className,
+    runDebugTest(
+        config,
+        className,
         breakpoint(className, methodName),
         run(),
         checkMethod(className, methodName),
@@ -62,7 +74,9 @@ public class LocalsTest extends DebugTestBase {
     Value cValue = Value.createInt(5);
     Value vValue = Value.createInt(pValue.getIntValue() + cValue.getIntValue());
 
-    runDebugTest(className,
+    runDebugTest(
+        config,
+        className,
         breakpoint(className, methodName),
         run(),
         checkMethod(className, methodName),
@@ -89,7 +103,9 @@ public class LocalsTest extends DebugTestBase {
     Value newValue = Value.createInt(5);
     Value vValue = Value.createInt(pValue.getIntValue() + newValue.getIntValue());
 
-    runDebugTest(className,
+    runDebugTest(
+        config,
+        className,
         breakpoint(className, methodName),
         run(),
         checkMethod(className, methodName),
@@ -100,7 +116,7 @@ public class LocalsTest extends DebugTestBase {
         checkLocal("p", pValue),
         checkLocal("c", cValue),
         setLocal("c", newValue),
-        checkLocal("c", newValue),  // we should see the updated value
+        checkLocal("c", newValue), // we should see the updated value
         stepOver(),
         checkLine(SOURCE_FILE, 19),
         checkLocal("p", pValue),
@@ -114,7 +130,9 @@ public class LocalsTest extends DebugTestBase {
     final String className = "Locals";
     final String methodName = "zeroLocals";
     final Value newValueForI = Value.createInt(10);
-    runDebugTest(className,
+    runDebugTest(
+        config,
+        className,
         breakpoint(className, methodName),
         run(),
         checkMethod(className, methodName),
@@ -138,7 +156,9 @@ public class LocalsTest extends DebugTestBase {
     final String methodName = "noFlowOptimization";
     final Value oldValueForI = Value.createInt(0);
     final Value newValueForI = Value.createInt(10);
-    runDebugTest(className,
+    runDebugTest(
+        config,
+        className,
         breakpoint(className, methodName),
         run(),
         checkMethod(className, methodName),
@@ -157,7 +177,9 @@ public class LocalsTest extends DebugTestBase {
 
   @Test
   public void testInvokeRange() throws Throwable {
-    runDebugTest("Locals",
+    runDebugTest(
+        config,
+        "Locals",
         breakpoint("Locals", "invokeRange"),
         run(),
         inspect(state -> {
@@ -203,7 +225,9 @@ public class LocalsTest extends DebugTestBase {
 
   @Test
   public void testInvokeRange2() throws Throwable {
-    runDebugTest("Locals",
+    runDebugTest(
+        config,
+        "Locals",
         breakpoint("Locals", "reverseRange"),
         run(),
         inspect(state -> {
@@ -247,7 +271,9 @@ public class LocalsTest extends DebugTestBase {
     final int minIndex = 1;
     final int maxIndex = 16;
     Map<String, Value> arrayLocals = new HashMap<>();
-    runDebugTest("Locals",
+    runDebugTest(
+        config,
+        "Locals",
         breakpoint("Locals", "breakpoint"),
         run(),
         inspect(state -> {
@@ -293,7 +319,9 @@ public class LocalsTest extends DebugTestBase {
     final int initialValueOfX = 21;
     final long expectedValueOfL = (long) initialValueOfX * 2;
     final int expectedValueOfX = (int) expectedValueOfL / initialValueOfX;
-    runDebugTest("Locals",
+    runDebugTest(
+        config,
+        "Locals",
         breakpoint("Locals", "invokerangeLong"),
         run(),
         inspect(state -> {
@@ -324,7 +352,9 @@ public class LocalsTest extends DebugTestBase {
   public void testInvokeRangeLongThrowOnDiv() throws Throwable {
     final int initialValueOfX = 21;
     final long expectedValueOfL = (long) initialValueOfX * 2;
-    runDebugTest("Locals",
+    runDebugTest(
+        config,
+        "Locals",
         breakpoint("Locals", "foo"),
         run(),
         // Initialize obj to 42 using original value of x.
@@ -333,9 +363,12 @@ public class LocalsTest extends DebugTestBase {
         checkLocal("x", Value.createInt(initialValueOfX)),
         setLocal("x", Value.createInt(0)),
         // Single step until the catch handler triggers.
-        checkLine(SOURCE_FILE, 166), stepOver(),
-        checkLine(SOURCE_FILE, 168), stepOver(),
-        checkLine(SOURCE_FILE, 169), stepOver(),
+        checkLine(SOURCE_FILE, 166),
+        stepOver(),
+        checkLine(SOURCE_FILE, 168),
+        stepOver(),
+        checkLine(SOURCE_FILE, 169),
+        stepOver(),
         // At the catch handler, inspect the initial state of locals.
         checkLine(SOURCE_FILE, 172),
         checkLocal("x", Value.createInt(0)),
@@ -354,6 +387,7 @@ public class LocalsTest extends DebugTestBase {
   @Test
   public void testStepEmptyForLoopBody1() throws Throwable {
     runDebugTest(
+        config,
         "Locals",
         breakpoint("Locals", "stepEmptyForLoopBody1"),
         run(),
@@ -368,6 +402,7 @@ public class LocalsTest extends DebugTestBase {
   @Test
   public void testStepEmptyForLoopBody2() throws Throwable {
     runDebugTest(
+        config,
         "Locals",
         breakpoint("Locals", "stepEmptyForLoopBody2"),
         run(),
@@ -390,6 +425,7 @@ public class LocalsTest extends DebugTestBase {
     final Value I2 = Value.createInt(2);
     final Value I3 = Value.createInt(3);
     runDebugTest(
+        config,
         "Locals",
         breakpoint("Locals", "stepNonEmptyForLoopBody"),
         run(),
@@ -430,6 +466,7 @@ public class LocalsTest extends DebugTestBase {
   @Test
   public void tempInCase() throws Throwable {
     runDebugTest(
+        config,
         "Locals",
         breakpoint("Locals", "tempInCase"),
         run(),
@@ -454,6 +491,7 @@ public class LocalsTest extends DebugTestBase {
   @Test
   public void localSwap() throws Throwable {
     runDebugTest(
+        config,
         "Locals",
         breakpoint("Locals", "localSwap"),
         run(),
@@ -477,6 +515,7 @@ public class LocalsTest extends DebugTestBase {
   @Test
   public void argumentLiveAtReturn() throws Throwable {
     runDebugTest(
+        config,
         "Locals",
         breakpoint("Locals", "argumentLiveAtReturn"),
         run(),
@@ -491,6 +530,7 @@ public class LocalsTest extends DebugTestBase {
   @Test
   public void switchRewriteToIfs() throws Throwable {
     runDebugTest(
+        config,
         "Locals",
         breakpoint("Locals", "switchRewriteToIfs"),
         run(),
@@ -513,6 +553,7 @@ public class LocalsTest extends DebugTestBase {
   @Test
   public void switchRewriteToSwitches() throws Throwable {
     runDebugTest(
+        config,
         "Locals",
         breakpoint("Locals", "switchRewriteToSwitches"),
         run(),
@@ -535,6 +576,7 @@ public class LocalsTest extends DebugTestBase {
   @Test
   public void regression65039701() throws Throwable {
     runDebugTest(
+        config,
         "Locals",
         breakpoint("Locals", "regression65039701"),
         run(),
@@ -553,6 +595,7 @@ public class LocalsTest extends DebugTestBase {
   @Test
   public void regression65066975() throws Throwable {
     runDebugTest(
+        config,
         "Locals",
         breakpoint("Locals", "regression65066975"),
         run(),
@@ -573,7 +616,9 @@ public class LocalsTest extends DebugTestBase {
   public void testLocalConstantBis() throws Throwable {
     final String className = "Locals";
     final String methodName = "localConstantBis";
-    runDebugTest(className,
+    runDebugTest(
+        config,
+        className,
         breakpoint(className, methodName),
         run(),
         checkLine(SOURCE_FILE, 332),
@@ -594,7 +639,9 @@ public class LocalsTest extends DebugTestBase {
   public void testLocalConstant() throws Throwable {
     final String className = "Locals";
     final String methodName = "localConstant";
-    runDebugTest(className,
+    runDebugTest(
+        config,
+        className,
         breakpoint(className, methodName),
         run(),
         checkLine(SOURCE_FILE, 322),
@@ -615,7 +662,9 @@ public class LocalsTest extends DebugTestBase {
   public void testLocalTriggeringCSE() throws Throwable {
     final String className = "Locals";
     final String methodName = "localTriggeringCSE";
-    runDebugTest(className,
+    runDebugTest(
+        config,
+        className,
         breakpoint(className, methodName),
         run(),
         checkLine(SOURCE_FILE, 342),
@@ -659,7 +708,9 @@ public class LocalsTest extends DebugTestBase {
   public void testLocalUsedBy2AddrInstruction() throws Throwable {
     final String className = "Locals";
     final String methodName = "intAddition";
-    runDebugTest(className,
+    runDebugTest(
+        config,
+        className,
         breakpoint(className, methodName),
         run(),
         checkLine(SOURCE_FILE, 350),
@@ -723,6 +774,6 @@ public class LocalsTest extends DebugTestBase {
     commands.add(checkLocal("i", Value.createInt(0)));
     commands.add(run());
 
-    runDebugTest(className, commands);
+    runDebugTest(config, className, commands);
   }
 }

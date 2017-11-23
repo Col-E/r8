@@ -14,7 +14,9 @@ public class SharedCodeTest extends DebugTestBase {
   @Test
   public void testSharedIf() throws Throwable {
     final String methodName = "sharedIf";
-    runDebugTest(CLASS,
+    runDebugTest(
+        new D8DebugTestResourcesConfig(temp),
+        CLASS,
         breakpoint(CLASS, methodName),
         run(),
         checkMethod(CLASS, methodName),

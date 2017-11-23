@@ -14,7 +14,9 @@ public class MultipleReturnsTest extends DebugTestBase {
 
   @Test
   public void testMultipleReturns() throws Throwable {
-    runDebugTest("MultipleReturns",
+    runDebugTest(
+        new D8DebugTestResourcesConfig(temp),
+        "MultipleReturns",
         breakpoint("MultipleReturns", "multipleReturns"),
         run(),
         stepOver(),

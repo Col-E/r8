@@ -55,7 +55,7 @@ public class InterfaceMethodTest extends DebugTestBase {
     commands.add(run());
     commands.add(checkMethod(debuggeeClass, "testDefaultMethod"));
     commands.add(checkLine(SOURCE_FILE, 31));
-    if (!supportsDefaultMethod(config.isCfRuntime())) {
+    if (!supportsDefaultMethod(config)) {
       // We desugared default method. This means we're going to step through an extra (forward)
       // method first.
       commands.add(stepInto(INTELLIJ_FILTER));
@@ -63,7 +63,7 @@ public class InterfaceMethodTest extends DebugTestBase {
     commands.add(stepInto(INTELLIJ_FILTER));
     commands.add(checkLine(SOURCE_FILE, 9));
     // TODO(shertz) we should see the local variable this even when desugaring.
-    if (supportsDefaultMethod(config.isCfRuntime())) {
+    if (supportsDefaultMethod(config)) {
       commands.add(checkLocal("this"));
     }
     commands.add(checkLocal(parameterName));

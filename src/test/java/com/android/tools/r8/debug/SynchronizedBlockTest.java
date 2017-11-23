@@ -8,6 +8,7 @@ import static org.hamcrest.core.IsNot.not;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm;
 import org.junit.Assume;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
@@ -18,10 +19,19 @@ public class SynchronizedBlockTest extends DebugTestBase {
   public static final String CLASS = "SynchronizedBlock";
   public static final String FILE = "SynchronizedBlock.java";
 
+  private static DebugTestConfig config;
+
+  @BeforeClass
+  public static void setup() {
+    config = new D8DebugTestResourcesConfig(temp);
+  }
+
   @Test
   public void testEmptyBlock() throws Throwable {
     final String method = "emptyBlock";
-    runDebugTest(CLASS,
+    runDebugTest(
+        config,
+        CLASS,
         breakpoint(CLASS, method),
         run(),
         checkLine(FILE, 8),
@@ -45,7 +55,9 @@ public class SynchronizedBlockTest extends DebugTestBase {
   @Test
   public void testNonThrowingBlock() throws Throwable {
     final String method = "nonThrowingBlock";
-    runDebugTest(CLASS,
+    runDebugTest(
+        config,
+        CLASS,
         breakpoint(CLASS, method),
         run(),
         checkLine(FILE, 15),
@@ -80,7 +92,9 @@ public class SynchronizedBlockTest extends DebugTestBase {
         "Connection timeout on 6.0.1 runtime. b/67671771",
         ToolHelper.getDexVm().getVersion(), not(DexVm.ART_6_0_1_TARGET.getVersion()));
     final String method = "throwingBlock";
-    runDebugTest(CLASS,
+    runDebugTest(
+        config,
+        CLASS,
         breakpoint(CLASS, method),
         run(),
         checkLine(FILE, 25),
@@ -113,7 +127,9 @@ public class SynchronizedBlockTest extends DebugTestBase {
   @Test
   public void testNestedNonThrowingBlock() throws Throwable {
     final String method = "nestedNonThrowingBlock";
-    runDebugTest(CLASS,
+    runDebugTest(
+        config,
+        CLASS,
         breakpoint(CLASS, method),
         run(),
         checkLine(FILE, 35),
@@ -166,7 +182,9 @@ public class SynchronizedBlockTest extends DebugTestBase {
   @Test
   public void testNestedThrowingBlock() throws Throwable {
     final String method = "nestedThrowingBlock";
-    runDebugTest(CLASS,
+    runDebugTest(
+        config,
+        CLASS,
         breakpoint(CLASS, method),
         run(),
         checkLine(FILE, 48),

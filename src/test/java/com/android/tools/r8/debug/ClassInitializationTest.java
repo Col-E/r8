@@ -5,16 +5,26 @@
 package com.android.tools.r8.debug;
 
 import org.apache.harmony.jpda.tests.framework.jdwp.Value;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class ClassInitializationTest extends DebugTestBase {
+
+  private static DebugTestConfig config;
+
+  @BeforeClass
+  public static void setup() {
+    config = new D8DebugTestResourcesConfig(temp);
+  }
 
   @Test
   public void testStaticAssingmentInitialization() throws Throwable {
     final String SOURCE_FILE = "ClassInitializerAssignmentInitialization.java";
     final String CLASS = "ClassInitializerAssignmentInitialization";
 
-    runDebugTest(CLASS,
+    runDebugTest(
+        config,
+        CLASS,
         breakpoint(CLASS, "<clinit>"),
         run(),
         checkLine(SOURCE_FILE, 7),
@@ -39,7 +49,9 @@ public class ClassInitializationTest extends DebugTestBase {
     final String SOURCE_FILE = "ClassInitializerEmpty.java";
     final String CLASS = "ClassInitializerEmpty";
 
-    runDebugTest(CLASS,
+    runDebugTest(
+        config,
+        CLASS,
         breakpoint(CLASS, "<clinit>"),
         run(),
         checkLine(SOURCE_FILE, 8),
@@ -51,7 +63,9 @@ public class ClassInitializationTest extends DebugTestBase {
     final String SOURCE_FILE = "ClassInitializerStaticBlockInitialization.java";
     final String CLASS = "ClassInitializerStaticBlockInitialization";
 
-    runDebugTest(CLASS,
+    runDebugTest(
+        config,
+        CLASS,
         breakpoint(CLASS, "<clinit>"),
         run(),
         checkLine(SOURCE_FILE, 12),
@@ -78,7 +92,9 @@ public class ClassInitializationTest extends DebugTestBase {
     final String SOURCE_FILE = "ClassInitializerMixedInitialization.java";
     final String CLASS = "ClassInitializerMixedInitialization";
 
-    runDebugTest(CLASS,
+    runDebugTest(
+        config,
+        CLASS,
         breakpoint(CLASS, "<clinit>"),
         run(),
         checkLine(SOURCE_FILE, 8),

@@ -20,7 +20,9 @@ public class FinallyBlockTest extends DebugTestBase {
         "Older runtimes incorrectly step out of function: b/67671565",
         ToolHelper.getDexVm().getVersion().isNewerThan(Version.V6_0_1));
     final String method = "finallyBlock";
-    runDebugTest(CLASS,
+    runDebugTest(
+        new D8DebugTestResourcesConfig(temp),
+        CLASS,
         breakpoint(CLASS, method),
         run(),
         checkLine(FILE, 8),

@@ -4,6 +4,7 @@
 package com.android.tools.r8.debug;
 
 import org.apache.harmony.jpda.tests.framework.jdwp.Value;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
@@ -14,12 +15,19 @@ public class DebugTestExamples extends DebugTestBase {
   public static final String SOURCE_FILE = "Arithmetic.java";
   public static final String DEBUGGEE_CLASS = "Arithmetic";
 
+  private static DebugTestConfig config;
+
+  @BeforeClass
+  public static void setup() {
+    config = new D8DebugTestResourcesConfig(temp);
+  }
+
   /**
    * Simple test that runs the debuggee until it exits.
    */
   @Test
   public void testRun() throws Throwable {
-    runDebugTest(DEBUGGEE_CLASS, run());
+    runDebugTest(config, DEBUGGEE_CLASS, run());
   }
 
   /**
@@ -27,7 +35,9 @@ public class DebugTestExamples extends DebugTestBase {
    */
   @Test
   public void testBreakpoint_Hit() throws Throwable {
-    runDebugTest(DEBUGGEE_CLASS,
+    runDebugTest(
+        config,
+        DEBUGGEE_CLASS,
         breakpoint(DEBUGGEE_CLASS, "bitwiseInts"),
         run(),
         checkLine(SOURCE_FILE, 12),
@@ -39,7 +49,9 @@ public class DebugTestExamples extends DebugTestBase {
    */
   @Test
   public void testLocalsOnBreakpoint() throws Throwable {
-    runDebugTest(DEBUGGEE_CLASS,
+    runDebugTest(
+        config,
+        DEBUGGEE_CLASS,
         breakpoint(DEBUGGEE_CLASS, "bitwiseInts"),
         run(),
         checkLine(SOURCE_FILE, 12),
@@ -53,7 +65,9 @@ public class DebugTestExamples extends DebugTestBase {
    */
   @Test
   public void testLocalsOnBreakpointThenStep() throws Throwable {
-    runDebugTest(DEBUGGEE_CLASS,
+    runDebugTest(
+        config,
+        DEBUGGEE_CLASS,
         breakpoint(DEBUGGEE_CLASS, "bitwiseInts"),
         run(),
         checkLine(SOURCE_FILE, 12),
