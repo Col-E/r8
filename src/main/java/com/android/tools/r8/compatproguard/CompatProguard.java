@@ -78,7 +78,8 @@ public class CompatProguard {
             if (arg.equals("--min-api")) {
               minApi = Integer.valueOf(args[++i]);
             } else if (arg.equals("--force-proguard-compatibility")) {
-              forceProguardCompatibility = true;
+              // TODO(sgjesse): Turn this back on!
+              // forceProguardCompatibility = true;
             } else if (arg.equals("--ignore-missing-classes")) {
               ignoreMissingClasses = true;
             } else if (arg.equals("--output")) {
