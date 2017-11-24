@@ -147,9 +147,9 @@ public class ClassNameMapper implements ProguardMap {
     return classNameMappings.get(name);
   }
 
-  public void write(Writer writer, boolean collapseRanges) throws IOException {
+  public void write(Writer writer) throws IOException {
     for (ClassNamingForNameMapper naming : classNameMappings.values()) {
-      naming.write(writer, collapseRanges);
+      naming.write(writer);
     }
   }
 
@@ -161,7 +161,7 @@ public class ClassNameMapper implements ProguardMap {
   public String toString() {
     try {
       StringWriter writer = new StringWriter();
-      write(writer, false);
+      write(writer);
       return writer.toString();
     } catch (IOException e) {
       return e.toString();

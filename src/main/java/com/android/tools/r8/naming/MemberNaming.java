@@ -20,6 +20,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
+import java.util.Objects;
 import org.objectweb.asm.Type;
 
 /**
@@ -29,7 +31,9 @@ import org.objectweb.asm.Type;
  */
 public class MemberNaming {
 
-  private static final int UNDEFINED_START_NUMBER = -1;
+  public static final int UNSPECIFIED_LINE_NUMBER = Integer.MIN_VALUE;
+  public static final Range UNSPECIFIED_RANGE =
+      new Range(UNSPECIFIED_LINE_NUMBER, UNSPECIFIED_LINE_NUMBER);
 
   @Override
   public boolean equals(Object o) {
@@ -43,16 +47,16 @@ public class MemberNaming {
     MemberNaming that = (MemberNaming) o;
     return signature.equals(that.signature)
         && renamedSignature.equals(that.renamedSignature)
-        && topLevelRange.equals(that.topLevelRange)
-        && inlineInformation.equals(that.inlineInformation);
+        && unconstrainedIdentityMapping == that.unconstrainedIdentityMapping
+        && mappedRanges.equals(that.mappedRanges);
   }
 
   @Override
   public int hashCode() {
     int result = signature.hashCode();
     result = 31 * result + renamedSignature.hashCode();
-    result = 31 * result + inlineInformation.hashCode();
-    result = 31 * result + topLevelRange.hashCode();
+    result = 31 * result + mappedRanges.hashCode();
+    result = 31 * result + (unconstrainedIdentityMapping ? 1 : 0);
     return result;
   }
 
@@ -64,30 +68,75 @@ public class MemberNaming {
    * Renamed signature where the name (but not the types) have been renamed.
    */
   final Signature renamedSignature;
-  public final List<InlineInformation> inlineInformation = new LinkedList<>();
-  public final Range topLevelRange;
 
-  private int collapsedStartLineNumber = UNDEFINED_START_NUMBER;
-  private int originalStartLineNumber = UNDEFINED_START_NUMBER;
+  /**
+   * List of line number ranges, mapped from original to target line numbers. These mapped ranges
+   * are either simple ranges or inlined ranges.
+   */
+  public final List<MappedRange> mappedRanges = new LinkedList<>();
 
-  MemberNaming(Signature signature, String renamedName, Range inlinedLineRange) {
+  /// See the comment for the constructor.
+  public final boolean unconstrainedIdentityMapping;
+
+  /**
+   * {@code unconstrainedIdentityMapping = true} means that any line number of the method with the
+   * name of renamedName is actually the same line number in the method signature. In Proguard-map
+   * syntax: "    a() -> b"
+   * In other cases use {@code unconstrainedIdentityMapping = false} and specify explicit ranges
+   * later with {@link #addMappedRange}.
+   */
+  MemberNaming(Signature signature, String renamedName, boolean unconstrainedIdentityMapping) {
     this.signature = signature;
     this.renamedSignature = signature.asRenamed(renamedName);
-    topLevelRange = inlinedLineRange == null ? fakeZeroRange : inlinedLineRange;
+    this.unconstrainedIdentityMapping = unconstrainedIdentityMapping;
   }
 
-  public void addInliningRange(Range inlinedRange, Signature signature, Range originalRange) {
-    inlineInformation.add(new InlineInformation(inlinedRange, originalRange, signature));
+  /**
+   * {@code originalRange} can be {@link #UNSPECIFIED_RANGE} which indicates either that it's the
+   * same as the {@code targetRange} or that it's not known.
+   */
+  public void addMappedRange(Range targetRange, MethodSignature signature, Range originalRange) {
+    mappedRanges.add(new MappedRange(targetRange, originalRange, signature));
   }
 
-  public List<Range> getInlineRanges() {
-    List<Range> inlineRanges = new ArrayList<>();
-    for (InlineInformation information : inlineInformation) {
-      if (information.isActualInlining()) {
-        inlineRanges.add(information.inlinedRange);
+  /**
+   * Specify inlining callers for the {@code targetRange} added previously with
+   * {@link #addMappedRange}
+   * {@code originalLineInCaller} can be {@link #UNSPECIFIED_LINE_NUMBER} which indicates it's
+   * either not known or the same as {@code targetRange.to}.
+   * Make the {@link #addCaller} calls in the same order as if moving outwards on the stack frame.
+   */
+  public void addCaller(Range targetRange, MethodSignature signature, int originalLineInCaller) {
+    assert !mappedRanges.isEmpty();
+    // Find the corresponding mappedRange. Usually we're adding callers to the last mappedRange,
+    // start with that one.
+    ListIterator<MappedRange> iterator = mappedRanges.listIterator(mappedRanges.size());
+    do {
+      MappedRange item = iterator.previous();
+      if (item.targetRange.equals(targetRange)) {
+        item.addCaller(originalLineInCaller, signature);
+        return;
+      }
+    } while (iterator.hasPrevious());
+    assert false;
+  }
+
+  /**
+   * Return the smallest target line number that can be found in {@link #mappedRanges}. Otherwise
+   * return 1.
+   * Between ranges with identical from value, favor greater ranges, because in Proguard-maps the
+   * full range of a method is usually printed before the inlining details which span less lines.
+   */
+  public int firstTargetLineNumber() {
+    Range bestRange = null;
+    for (MappedRange r : mappedRanges) {
+      if (bestRange == null
+          || (r.targetRange.from < bestRange.from
+              || (r.targetRange.from == bestRange.from && r.targetRange.to > bestRange.to))) {
+        bestRange = r.targetRange;
       }
     }
-    return inlineRanges;
+    return bestRange == null ? 1 : bestRange.from;
   }
 
   public Signature getOriginalSignature() {
@@ -106,64 +155,22 @@ public class MemberNaming {
     return renamedSignature.name;
   }
 
-  public void setCollapsedStartLineNumber(int value) {
-    assert collapsedStartLineNumber == UNDEFINED_START_NUMBER;
-    collapsedStartLineNumber = value;
-  }
-
   public boolean isMethodNaming() {
     return signature.kind() == SignatureKind.METHOD;
   }
 
-  private int getCollapsedStartLineNumber() {
-    return collapsedStartLineNumber;
-  }
-
-  protected void write(Writer writer, boolean collapseRanges, boolean indent) throws IOException {
-    if (indent) {
-      writer.append("    ");
-    }
-    int rangeCounter =
-        collapseRanges ? getCollapsedStartLineNumber() : InlineInformation.DO_NOT_COLLAPSE;
-    // Avoid printing the range information if there was none in the original file.
-    if (topLevelRange != fakeZeroRange || rangeCounter != UNDEFINED_START_NUMBER) {
-      if (collapseRanges) {
-        // Skip ranges for methods that are used only once, as they do not have debug information.
-        if (rangeCounter != UNDEFINED_START_NUMBER) {
-          String rangeString = Integer.toString(rangeCounter);
-          writer.append(rangeString).append(":").append(rangeString).append(":");
-        } else {
-          rangeCounter = 0;
-        }
-      } else {
-        writer.append(topLevelRange.toString());
-        writer.append(':');
+  protected void write(Writer writer, boolean indent) throws IOException {
+    if (unconstrainedIdentityMapping) {
+      if (indent) {
+        writer.append("    ");
       }
-    } else {
-      // We might end up in a case where we have no line information for the top entry but still
-      // have inline ranges. Just to be sure, set rangeCounter to a useful value.
-      if (collapseRanges) {
-        rangeCounter = 0;
-      }
+      signature.write(writer);
+      writer.append(" -> ");
+      writer.append(renamedSignature.name);
+      writer.append("\n");
     }
-    signature.write(writer);
-    if (originalStartLineNumber != UNDEFINED_START_NUMBER) {
-      // If we have original line number information, print it here.
-      String originalSourceLineString = Integer.toString(originalStartLineNumber);
-      writer.append(':')
-          .append(originalSourceLineString)
-          .append(':')
-          .append(originalSourceLineString);
-    }
-    writer.append(" -> ");
-    writer.append(renamedSignature.name);
-    writer.append("\n");
-    for (InlineInformation information : inlineInformation) {
-      assert !collapseRanges || rangeCounter >= 0;
-      if (collapseRanges && information.isActualInlining()) {
-        rangeCounter++;
-      }
-      information.write(writer, rangeCounter, indent);
+    for (MappedRange mappedRange : mappedRanges) {
+      mappedRange.write(writer, indent);
     }
   }
 
@@ -171,16 +178,11 @@ public class MemberNaming {
   public String toString() {
     try {
       StringWriter writer = new StringWriter();
-      write(writer, false, false);
+      write(writer, false);
       return writer.toString();
     } catch (IOException e) {
       return e.toString();
     }
-  }
-
-  public void setOriginalStartLineNumber(int originalStartLineNumber) {
-    assert this.originalStartLineNumber == UNDEFINED_START_NUMBER;
-    this.originalStartLineNumber = originalStartLineNumber;
   }
 
   public abstract static class Signature {
@@ -386,41 +388,103 @@ public class MemberNaming {
     }
   }
 
-  public class InlineInformation {
-    static final int DO_NOT_COLLAPSE = -1;
+  /**
+   * MappedRange describes an (original line numbers, signature) <-> (target line numbers) mapping
+   * with an optional list of inlining callers. If there are no inlining callers the signature is
+   * expected to be identical to the containing MemberNaming's signature (not enforced).
+   */
+  private class MappedRange {
+    /**
+     * Caller is an inlining caller with a single original line number.
+     */
+    private class Caller {
+      private final int originalLine; // Can be UNSPECIFIED_LINE_NUMBER.
+      private final MethodSignature signature;
 
-    public final Range inlinedRange;
-    public final Range originalRange;
-    public final Signature signature;
+      private Caller(int originalLine, MethodSignature signature) {
+        this.originalLine = originalLine;
+        this.signature = signature;
+      }
 
-    public InlineInformation(Range inlinedRange, Range originalRange, Signature signature) {
-      this.inlinedRange = inlinedRange;
+      @Override
+      public boolean equals(Object o) {
+        if (this == o) {
+          return true;
+        }
+        if (!(o instanceof Caller)) {
+          return false;
+        }
+
+        Caller that = (Caller) o;
+
+        return originalLine == that.originalLine && signature.equals(that.signature);
+      }
+
+      @Override
+      public int hashCode() {
+        int result = originalLine;
+        result = 31 * result + signature.hashCode();
+        return result;
+      }
+    }
+
+    private final Range targetRange;
+    private final Range originalRange;
+    private final MethodSignature signature;
+
+    /**
+     * Optional list of callers. If they are present, the last caller's signature is expected to be
+     * identical to the containing MemberNaming's signature (not enforced).
+     */
+    private List<Caller> callers = null;
+
+    /**
+     * {@code originalRange} can be {@link #UNSPECIFIED_RANGE}, which indicates that will be
+     * replaced by {@code targetRange}, indicating an identity mapping.
+     */
+    private MappedRange(Range targetRange, Range originalRange, MethodSignature signature) {
+      assert targetRange != null && originalRange != null;
+      this.targetRange = targetRange;
       this.originalRange = originalRange;
       this.signature = signature;
     }
 
-    public boolean isActualInlining() {
-      return !(originalRange instanceof SingleLineRange);
+    private void addCaller(int originalLine, MethodSignature signature) {
+      if (callers == null) {
+        callers = new ArrayList<>();
+      }
+      callers.add(new Caller(originalLine, signature));
     }
 
-    public void write(Writer writer, int collapsedRange, boolean indent) throws IOException {
+    private void write(Writer writer, boolean indent) throws IOException {
       if (indent) {
         writer.append("    ");
       }
-      if (collapsedRange == DO_NOT_COLLAPSE) {
-        writer.append(inlinedRange.toString());
-      } else {
-        writer.append(Range.toCollapsedString(collapsedRange));
-      }
+      writer.append(targetRange.toString());
       writer.append(":");
       signature.write(writer);
-      if (originalRange != null) {
+      if (!originalRange.equals(targetRange) && originalRange != UNSPECIFIED_RANGE) {
         writer.append(':')
             .append(originalRange.toString());
       }
       writer.append(" -> ")
           .append(renamedSignature.name);
       writer.append("\n");
+      if (callers != null) {
+        for (Caller caller : callers) {
+          if (indent) {
+            writer.append("    ");
+          }
+          writer.append(targetRange.toString());
+          writer.append(":");
+          caller.signature.write(writer);
+          if (caller.originalLine != UNSPECIFIED_LINE_NUMBER) {
+            writer.append(':').append(String.valueOf(caller.originalLine));
+          }
+          writer.append(" -> ").append(renamedSignature.name);
+          writer.append("\n");
+        }
+      }
     }
 
     @Override
@@ -428,24 +492,24 @@ public class MemberNaming {
       if (this == o) {
         return true;
       }
-      if (!(o instanceof InlineInformation)) {
+      if (!(o instanceof MappedRange)) {
         return false;
       }
 
-      InlineInformation that = (InlineInformation) o;
+      MappedRange that = (MappedRange) o;
 
-      return inlinedRange.equals(that.inlinedRange)
-          && ((originalRange == null && that.originalRange == null)
-              || originalRange.equals(that.originalRange))
-          && signature.equals(that.signature);
-
+      return targetRange.equals(that.targetRange)
+          && originalRange.equals(that.originalRange)
+          && signature.equals(that.signature)
+          && Objects.equals(callers, that.callers);
     }
 
     @Override
     public int hashCode() {
-      int result = inlinedRange.hashCode();
+      int result = targetRange.hashCode();
       result = 31 * result + originalRange.hashCode();
       result = 31 * result + signature.hashCode();
+      result = 31 * result + Objects.hashCode(callers);
       return result;
     }
   }
@@ -464,20 +528,12 @@ public class MemberNaming {
     }
 
     public boolean contains(int value) {
-      return value >= from && value <= to;
-    }
-
-    public boolean isSingle() {
-      return false;
+      return from <= value && value <= to;
     }
 
     @Override
     public String toString() {
       return from + ":" + to;
-    }
-
-    public static String toCollapsedString(int value) {
-      return value + ":" + value;
     }
 
     @Override
@@ -501,26 +557,4 @@ public class MemberNaming {
     }
 
   }
-
-  /**
-   * Represents a single linenumber range (':' followed by a signle number), which
-   * is different semantically from a normal range that has the same from and to.
-   */
-  public static class SingleLineRange extends Range {
-    public SingleLineRange(int fromAndTo) {
-      super(fromAndTo, fromAndTo);
-    }
-
-    @Override
-    public boolean isSingle() {
-      return true;
-    }
-
-    @Override
-    public String toString() {
-      return Integer.toString(from);
-    }
-  }
-
-  public final static Range fakeZeroRange = new Range(0, 0);
 }

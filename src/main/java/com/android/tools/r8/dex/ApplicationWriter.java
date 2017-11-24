@@ -350,7 +350,7 @@ public class ApplicationWriter {
     } else if (application.getProguardMap() != null) {
       ByteArrayOutputStream bytes = new ByteArrayOutputStream();
       Writer writer = new PrintWriter(bytes);
-      application.getProguardMap().write(writer, !options.skipDebugLineNumberOpt);
+      application.getProguardMap().write(writer);
       writer.flush();
       return bytes.toByteArray();
     }

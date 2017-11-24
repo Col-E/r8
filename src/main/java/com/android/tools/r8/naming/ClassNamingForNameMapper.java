@@ -146,19 +146,34 @@ public class ClassNamingForNameMapper implements ClassNaming {
     }
   }
 
-  void write(Writer writer, boolean collapseRanges) throws IOException {
+  void write(Writer writer) throws IOException {
     writer.append(originalName);
     writer.append(" -> ");
     writer.append(renamedName);
     writer.append(":\n");
-    forAllMemberNaming(memberNaming -> memberNaming.write(writer, collapseRanges, true));
+    // Sort members by first line numbers, then renamed name to have more deterministic output for
+    // tests.
+    List<MemberNaming> sortedMembers = new ArrayList<>();
+    forAllMemberNaming(sortedMembers::add);
+    sortedMembers.sort(
+        (lhs, rhs) -> {
+          int lhsNum = lhs.firstTargetLineNumber();
+          int rhsNum = rhs.firstTargetLineNumber();
+          if (lhsNum != rhsNum) {
+            return lhsNum - rhsNum;
+          }
+          return lhs.getRenamedName().compareTo(rhs.getRenamedName());
+        });
+    for (MemberNaming m : sortedMembers) {
+      m.write(writer, true);
+    }
   }
 
   @Override
   public String toString() {
     try {
       StringWriter writer = new StringWriter();
-      write(writer, false);
+      write(writer);
       return writer.toString();
     } catch (IOException e) {
       return e.toString();

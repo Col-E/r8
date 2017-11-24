@@ -3,18 +3,17 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
-import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Range;
 import com.android.tools.r8.naming.MemberNaming.Signature;
-import com.android.tools.r8.naming.MemberNaming.SingleLineRange;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 /**
@@ -154,85 +153,128 @@ public class ProguardMapReader implements AutoCloseable {
   }
 
   private void parseMemberMappings(ClassNaming.Builder classNamingBuilder) throws IOException {
-    MemberNaming current = null;
-    Range previousInlineRange = null;
+    MemberNaming activeMemberNaming = null;
+    Range previousTargetRange = null;
     Signature previousSignature = null;
     String previousRenamedName = null;
-    List<Consumer<MemberNaming>> collectedInfos = new ArrayList<>(10);
-
-    while (Character.isWhitespace(peek())) {
-      skipWhitespace();
-      Range inlinedLineRange = maybeParseRange();
-      if (inlinedLineRange != null) {
-        expect(':');
-      }
-      Signature signature = parseSignature();
-      Range originalLineRange;
-      if (peek() == ':') {
-        // This is an inlining definition
-        next();
-        originalLineRange = maybeParseRange();
-        if (originalLineRange == null) {
-          if (!skipLine()) {
-            break;
+    List<Consumer<MemberNaming>> deferredChanges = new ArrayList<>(10);
+    Consumer<MemberNaming> flushMemberNaming =
+        m -> {
+          if (m != null) {
+            classNamingBuilder.addMemberEntry(m);
           }
+        };
+    boolean lastRound = false;
+    for (; ; ) {
+      Signature signature = null;
+      Range originalRange = null;
+      String renamedName = null;
+      Range targetRange = null;
+
+      // In the last round we're only here to flush deferredChanges and activeMemberNaming, so skip
+      // parsing.
+      if (!lastRound) {
+        if (!Character.isWhitespace(peek())) {
+          lastRound = true;
           continue;
         }
-      } else {
-        originalLineRange = null;
-      }
-      skipWhitespace();
-      skipArrow();
-      skipWhitespace();
-      String renamedName = parseMethodName();
-      // If there is no line number information at the front or if it changes, we have a new
-      // segment. Likewise, if the range information on the right hand side has two values, we have
-      // a new segment.
-      if (inlinedLineRange == null
-          || previousInlineRange == null
-          || originalLineRange == null
-          || !previousInlineRange.equals(inlinedLineRange)
-          || !originalLineRange.isSingle()) {
-        // We are at a range boundary. Either we parsed something new, or an inline frame is over.
-        // We detect this by checking whether the previous signature matches the one of current.
-        if (current == null || !previousSignature.equals(current.signature)) {
-          if (collectedInfos.size() == 1) {
-            current = new MemberNaming(previousSignature, previousRenamedName, previousInlineRange);
-            classNamingBuilder.addMemberEntry(current);
-          } else {
-            if (Log.ENABLED && !collectedInfos.isEmpty()) {
-              Log.warn(getClass(),
-                  "More than one member entry that forms a new group at %s %s -> %s",
-                  previousInlineRange, previousSignature, previousRenamedName);
-            }
-          }
+        skipWhitespace();
+        Range maybeRange = maybeParseRange();
+        if (maybeRange != null) {
+          targetRange = maybeRange;
+          expect(':');
         } else {
-          MemberNaming finalCurrent = current;
-          collectedInfos.forEach(info -> info.accept(finalCurrent));
+          targetRange = null;
         }
-        collectedInfos.clear();
+        signature = parseSignature();
+        if (peek() == ':') {
+          // This is a mapping or inlining definition
+          next();
+          originalRange = maybeParseRange();
+          if (originalRange == null) {
+            throw new ParseException("No number follows the colon after the method signature.");
+          }
+        }
+        skipWhitespace();
+        skipArrow();
+        skipWhitespace();
+        renamedName = parseMethodName();
       }
-      // Defer the creation of the info until we have the correct member.
-      collectedInfos.add((m) -> m.addInliningRange(inlinedLineRange, signature, originalLineRange));
-      // We have parsed the whole line, move on.
-      previousInlineRange = inlinedLineRange;
-      previousSignature = signature;
-      previousRenamedName = renamedName;
-      if (!nextLine()) {
+
+      // If there are deferred changes and the line we've just read cannot possibly belong to the
+      // deferred changes (different target line numbers or renamed name) then we need to flush the
+      // deferred changes now.
+      // In the last round both targetRange and renamedName will be null so the condition will be
+      // true.
+      if (!deferredChanges.isEmpty()
+          && (!Objects.equals(previousTargetRange, targetRange)
+              || !Objects.equals(previousRenamedName, renamedName))) {
+        // Flush activeMemberNaming if it's for a different member.
+        if (activeMemberNaming != null
+            && (!activeMemberNaming.getOriginalSignature().equals(previousSignature)
+                || !activeMemberNaming.getRenamedName().equals(previousRenamedName))) {
+          classNamingBuilder.addMemberEntry(activeMemberNaming);
+          activeMemberNaming = null;
+        }
+        if (activeMemberNaming == null) {
+          activeMemberNaming = new MemberNaming(previousSignature, previousRenamedName, false);
+        }
+        final MemberNaming finalActiveMemberNaming = activeMemberNaming;
+        deferredChanges.forEach(ch -> ch.accept(finalActiveMemberNaming));
+        deferredChanges.clear();
+      }
+
+      if (lastRound) {
+        flushMemberNaming.accept(activeMemberNaming);
+        assert deferredChanges.isEmpty();
         break;
       }
-    }
-    // Process the last round if lines have been read.
-    if (current == null || !previousSignature.equals(current.signature)) {
-      if (collectedInfos.size() == 1) {
-        current = new MemberNaming(previousSignature, previousRenamedName, previousInlineRange);
-        classNamingBuilder.addMemberEntry(current);
+
+      // Interpret what we've just parsed.
+      if (targetRange == null) {
+        if (originalRange != null) {
+          throw new ParseException("No mapping for original range " + originalRange + ".");
+        }
+        // Here we have a line like 'a() -> b' or a field like 'a -> b'
+        flushMemberNaming.accept(activeMemberNaming);
+        activeMemberNaming = new MemberNaming(signature, renamedName, true);
+      } else {
+
+        // Note that at this point originalRange may be null which either means, it's the same as
+        // the targetRange (identity mapping) or that it's unknown (source line number information
+        // was not available).
+
+        assert signature instanceof MethodSignature;
+
+        // Defer this change until we parse a line that has a different target range / renamed name.
+        final Range finalTargetRange = targetRange;
+        final MethodSignature finalSignature = (MethodSignature) signature;
+        if (deferredChanges.isEmpty()) {
+          // If this is the first deferred change with this target range / renamed name, then it's
+          // either an actual original <-> target range mapping or the innermost callee of an
+          // inlined stack.
+          final Range finalOriginalRange =
+              originalRange == null ? MemberNaming.UNSPECIFIED_RANGE : originalRange;
+          deferredChanges.add(
+              m -> m.addMappedRange(finalTargetRange, finalSignature, finalOriginalRange));
+        } else {
+          // This is not the first deferred change with this target range / renamed name, it must be
+          // a caller. Add the original range as a single number.
+          final int finalOriginalRangeTo =
+              originalRange == null ? MemberNaming.UNSPECIFIED_LINE_NUMBER : originalRange.to;
+          deferredChanges.add(
+              m -> m.addCaller(finalTargetRange, finalSignature, finalOriginalRangeTo));
+        }
       }
-    } else {
-      MemberNaming finalCurrent = current;
-      collectedInfos.forEach(info -> info.accept(finalCurrent));
+
+      previousRenamedName = renamedName;
+      previousTargetRange = targetRange;
+      previousSignature = signature;
+
+      if (!nextLine()) {
+        lastRound = true;
+      }
     }
-    collectedInfos.clear();
   }
 
   // Parsing of components
@@ -357,7 +399,7 @@ public class ProguardMapReader implements AutoCloseable {
     }
     int from = parseNumber();
     if (peek() != ':') {
-      return new SingleLineRange(from);
+      return new Range(from, from);
     }
     expect(':');
     int to = parseNumber();
