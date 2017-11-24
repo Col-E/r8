@@ -7,24 +7,19 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.R8Command;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.code.ConstString;
 import com.android.tools.r8.code.InvokeStatic;
 import com.android.tools.r8.code.ReturnVoid;
 import com.android.tools.r8.graph.DexCode;
-import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.smali.SmaliBuilder;
-import com.android.tools.r8.smali.SmaliTestBase;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.DexInspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
-import java.nio.file.Path;
 import java.util.List;
 import org.junit.Test;
 
-public class ForNameTest extends SmaliTestBase {
+public class ForNameTest extends CompatProguardSmaliTestBase {
 
   private final String CLASS_NAME = "Example";
   private final static String BOO = "Boo";
@@ -92,15 +87,4 @@ public class ForNameTest extends SmaliTestBase {
     assertTrue(code.instructions[2] instanceof ReturnVoid);
   }
 
-  private DexInspector runCompatProguard(SmaliBuilder builder, List<String> proguardConfigurations)
-      throws Exception {
-    Path dexOutputDir = temp.newFolder().toPath();
-    R8Command command =
-        new CompatProguardCommandBuilder(true, true)
-            .addDexProgramData(builder.compile(), Origin.unknown())
-            .setOutputPath(dexOutputDir)
-            .addProguardConfiguration(proguardConfigurations, Origin.unknown())
-            .build();
-    return new DexInspector(ToolHelper.runR8(command));
-  }
 }
