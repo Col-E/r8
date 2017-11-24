@@ -11,9 +11,13 @@ import java.nio.file.Path;
 import java.util.List;
 
 public class CompatProguardCommandBuilder extends R8Command.Builder {
-  private static final List<String> CLASS_FOR_NAME = ImmutableList.of(
+  private static final List<String> REFLECTIONS = ImmutableList.of(
       "-identifiernamestring public class java.lang.Class {",
       "  public static java.lang.Class forName(java.lang.String);",
+      "  public java.lang.reflect.Field getField(java.lang.String);",
+      "  public java.lang.reflect.Field getDeclaredField(java.lang.String);",
+      "  public java.lang.reflect.Method getMethod(java.lang.String, java.lang.Class[]);",
+      "  public java.lang.reflect.Method getDeclaredMethod(java.lang.String, java.lang.Class[]);",
       "}"
   );
 
@@ -23,7 +27,7 @@ public class CompatProguardCommandBuilder extends R8Command.Builder {
     super(forceProguardCompatibility, true, ignoreMissingClasses);
     setIgnoreDexInArchive(true);
     setEnableDesugaring(false);
-    addProguardConfiguration(CLASS_FOR_NAME, EmbeddedOrigin.INSTANCE);
+    addProguardConfiguration(REFLECTIONS, EmbeddedOrigin.INSTANCE);
   }
 
   public void setProguardCompatibilityRulesOutput(Path path) {

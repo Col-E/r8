@@ -89,12 +89,17 @@ public class IdentifierMinifierTest {
 
   @Parameters(name = "test: {0} keep: {1}")
   public static Collection<Object[]> data() {
-    List<String> tests = Arrays.asList("adaptclassstrings", "forname", "identifiernamestring");
+    List<String> tests = Arrays.asList(
+        "adaptclassstrings",
+        "forname",
+        "getmembers",
+        "identifiernamestring");
 
     Map<String, Consumer<DexInspector>> inspections = new HashMap<>();
     inspections.put("adaptclassstrings:keep-rules-1.txt", IdentifierMinifierTest::test1_rule1);
     inspections.put("adaptclassstrings:keep-rules-2.txt", IdentifierMinifierTest::test1_rule2);
     inspections.put("forname:keep-rules.txt", IdentifierMinifierTest::test_forname);
+    inspections.put("getmembers:keep-rules.txt", IdentifierMinifierTest::test_getmembers);
     inspections.put("identifiernamestring:keep-rules-1.txt", IdentifierMinifierTest::test2_rule1);
     inspections.put("identifiernamestring:keep-rules-2.txt", IdentifierMinifierTest::test2_rule2);
     inspections.put("identifiernamestring:keep-rules-3.txt", IdentifierMinifierTest::test2_rule3);
@@ -156,6 +161,18 @@ public class IdentifierMinifierTest {
     int renamedYetFoundIdentifierCount =
         countRenamedClassIdentifier(inspector, mainCode.asDexCode().instructions);
     assertEquals(1, renamedYetFoundIdentifierCount);
+  }
+
+  private static void test_getmembers(DexInspector inspector) {
+    ClassSubject mainClass = inspector.clazz("getmembers.Main");
+    MethodSubject main = mainClass.method(DexInspector.MAIN);
+    Code mainCode = main.getMethod().getCode();
+    verifyPresenceOfConstString(mainCode.asDexCode().instructions);
+
+    ClassSubject a = inspector.clazz("getmembers.A");
+    Set<Instruction> constStringInstructions =
+        getRenamedMemberIdentifierConstStrings(a, mainCode.asDexCode().instructions);
+    assertEquals(2, constStringInstructions.size());
   }
 
   // Without -identifiernamestring
@@ -290,7 +307,7 @@ public class IdentifierMinifierTest {
         }
       });
       clazz.forAllFields(foundFieldSubject -> {
-        if( foundFieldSubject.getFinalSignature().name.equals(cnstString)) {
+        if (foundFieldSubject.getFinalSignature().name.equals(cnstString)) {
           result.add(instr);
         }
       });

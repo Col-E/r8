@@ -14,7 +14,6 @@ import com.android.tools.r8.graph.DexItemBasedString;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
@@ -111,7 +110,7 @@ public class IdentifierNameStringMarker {
           if (identifierNameStrings.contains(invokedMethod)) {
             List<Value> ins = invoke.arguments();
             Value[] changes = new Value [ins.size()];
-            if (isReflectiveCase(invokedMethod.proto)) {
+            if (isReflectiveCase(invokedMethod)) {
               Value in = ins.get(1);
               Value newIn = decoupleReflectiveMemberIdentifier(code, iterator, invoke, in);
               if (newIn != in) {
@@ -316,31 +315,60 @@ public class IdentifierNameStringMarker {
     return itemBasedString;
   }
 
-  private boolean isReflectiveCase(DexProto proto) {
-    // (Class, String) -> java.lang.reflect.Field
-    // (Class, String, Class[]) -> java.lang.reflect.Method
-    int numOfParams = proto.parameters.size();
-    if (numOfParams != 2 && numOfParams != 3) {
-      return false;
-    }
-    if (numOfParams == 2) {
-      if (proto.returnType.descriptor != dexItemFactory.fieldDescriptor) {
+  private boolean isReflectiveCase(DexMethod method) {
+    // For java.lang.Class:
+    //   (String) -> java.lang.reflect.Field
+    //   (String, Class[]) -> java.lang.reflect.Method
+    // For any other types:
+    //   (Class, String) -> java.lang.reflect.Field
+    //   (Class, String, Class[]) -> java.lang.reflect.Method
+    int arity = method.getArity();
+    if (method.holder.descriptor == dexItemFactory.classDescriptor) {
+      // Virtual methods of java.lang.Class, such as getField, getMethod, etc.
+      if (arity != 1 && arity !=2) {
         return false;
+      }
+      if (arity == 1) {
+        if (method.proto.returnType.descriptor != dexItemFactory.fieldDescriptor) {
+          return false;
+        }
+      } else {
+        if (method.proto.returnType.descriptor != dexItemFactory.methodDescriptor) {
+          return false;
+        }
+      }
+      if (method.proto.parameters.values[0].descriptor != dexItemFactory.stringDescriptor) {
+        return false;
+      }
+      if (arity == 2) {
+        if (method.proto.parameters.values[1].descriptor != dexItemFactory.classArrayDescriptor) {
+          return false;
+        }
       }
     } else {
-      if (proto.returnType.descriptor != dexItemFactory.methodDescriptor) {
+      // Methods whose first argument is of java.lang.Class type.
+      if (arity != 2 && arity != 3) {
         return false;
       }
-    }
-    if (proto.parameters.values[0].descriptor != dexItemFactory.classDescriptor) {
-      return false;
-    }
-    if (proto.parameters.values[1].descriptor != dexItemFactory.stringDescriptor) {
-      return false;
-    }
-    if (numOfParams == 3) {
-      if (proto.parameters.values[2].descriptor != dexItemFactory.classArrayDescriptor) {
+      if (arity == 2) {
+        if (method.proto.returnType.descriptor != dexItemFactory.fieldDescriptor) {
+          return false;
+        }
+      } else {
+        if (method.proto.returnType.descriptor != dexItemFactory.methodDescriptor) {
+          return false;
+        }
+      }
+      if (method.proto.parameters.values[0].descriptor != dexItemFactory.classDescriptor) {
         return false;
+      }
+      if (method.proto.parameters.values[1].descriptor != dexItemFactory.stringDescriptor) {
+        return false;
+      }
+      if (arity == 3) {
+        if (method.proto.parameters.values[2].descriptor != dexItemFactory.classArrayDescriptor) {
+          return false;
+        }
       }
     }
     return true;
