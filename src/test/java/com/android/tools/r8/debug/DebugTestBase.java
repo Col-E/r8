@@ -5,7 +5,6 @@ package com.android.tools.r8.debug;
 
 import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.D8Command;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
@@ -24,7 +23,6 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.CompilationFailedException;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.OffOrAuto;
 import com.google.common.collect.ImmutableList;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongList;
@@ -116,7 +114,7 @@ public abstract class DebugTestBase {
   public static final Path DEBUGGEE_JAR =
       Paths.get(ToolHelper.BUILD_DIR, "test", "debug_test_resources.jar");
 
-  private static final Path DEBUGGEE_JAVA8_JAR = Paths
+  public static final Path DEBUGGEE_JAVA8_JAR = Paths
       .get(ToolHelper.BUILD_DIR, "test", "debug_test_resources_java8.jar");
 
   private static final String PROGUARD_MAP_FILENAME = "proguard.map";
@@ -126,40 +124,6 @@ public abstract class DebugTestBase {
 
   @Rule
   public TestName testName = new TestName();
-
-  private static Path getDebuggeeJava8DexD8()
-      throws IOException, CompilationException, CompilationFailedException {
-    return compileToDex(
-        DEBUGGEE_JAVA8_JAR,
-        options -> {
-          // Enable desugaring for preN runtimes
-          options.interfaceMethodDesugaring = OffOrAuto.Auto;
-        });
-  }
-
-  protected static DebuggeePath getDebuggeeJava8DexD8OrCf(boolean cf)
-      throws IOException, CompilationException, CompilationFailedException {
-    return cf
-        ? DebuggeePath.makeClassFile(DEBUGGEE_JAVA8_JAR)
-        : DebuggeePath.makeDex(getDebuggeeJava8DexD8());
-  }
-
-  static Path compileToDex(Path jarToCompile, Consumer<InternalOptions> optionsConsumer)
-      throws IOException, CompilationException, CompilationFailedException {
-    int minSdk = ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm());
-    assert jarToCompile.toFile().exists();
-    Path dexOutputDir = temp.newFolder().toPath();
-    ToolHelper.runD8(
-        D8Command.builder()
-            .addProgramFiles(jarToCompile)
-            .setOutputPath(dexOutputDir)
-            .setMinApiLevel(minSdk)
-            .setMode(CompilationMode.DEBUG)
-            .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(minSdk)))
-            .build(),
-        optionsConsumer);
-    return dexOutputDir.resolve("classes.dex");
-  }
 
   public static Path compileToDexViaR8(
       Consumer<InternalOptions> optionsConsumer,
@@ -220,6 +184,12 @@ public abstract class DebugTestBase {
       DebugTestConfig config, String debuggeeClass, JUnit3Wrapper.Command... commands)
       throws Throwable {
     runInternal(config, debuggeeClass, Arrays.asList(commands));
+  }
+
+  protected final void runDebugTest(
+      DebugTestConfig config, String debuggeeClass, List<JUnit3Wrapper.Command> commands)
+      throws Throwable {
+    runInternal(config, debuggeeClass, commands);
   }
 
   protected final void runDebugTest(String debuggeeClass, JUnit3Wrapper.Command... commands)

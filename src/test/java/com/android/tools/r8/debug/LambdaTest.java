@@ -4,21 +4,51 @@
 
 package com.android.tools.r8.debug;
 
+import com.google.common.collect.ImmutableList;
+import java.nio.file.Path;
+import java.util.Collection;
+import java.util.Collections;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 // TODO(shertz) test local variables
+@RunWith(Parameterized.class)
 public class LambdaTest extends DebugTestBase {
 
-  public static final String SOURCE_FILE = "DebugLambda.java";
-  private static final boolean RUN_JAVA = false;
+  private static final Path JAR = DebugTestBase.DEBUGGEE_JAVA8_JAR;
+  private static final String SOURCE_FILE = "DebugLambda.java";
+
+  @Parameters(name = "{0}")
+  public static Collection configs() {
+    ImmutableList.Builder<Object[]> builder = ImmutableList.builder();
+    DelayedDebugTestConfig cfConfig = temp -> {
+      DebugTestConfig config = new CfDebugTestConfig();
+      config.addPaths(JAR);
+      return config;
+    };
+    DelayedDebugTestConfig d8Config = temp -> {
+      return D8DebugTestConfig.fromUncompiledPaths(temp, Collections.singletonList(JAR));
+    };
+    builder.add(new Object[]{"CF", cfConfig});
+    builder.add(new Object[]{"D8", d8Config});
+    return builder.build();
+  }
+
+  private final DebugTestConfig config;
+
+  public LambdaTest(String name, DelayedDebugTestConfig delayedConfig) {
+    this.config = delayedConfig.getConfig(temp);
+  }
 
   @Test
   public void testLambda_ExpressionOnSameLine() throws Throwable {
     String debuggeeClass = "DebugLambda";
     String initialMethodName = "printInt";
     runDebugTest(
-        getDebuggeeJava8DexD8OrCf(RUN_JAVA),
+        config,
         debuggeeClass,
         breakpoint(debuggeeClass, initialMethodName),
         run(),
@@ -34,7 +64,7 @@ public class LambdaTest extends DebugTestBase {
     String debuggeeClass = "DebugLambda";
     String initialMethodName = "printInt3";
     runDebugTest(
-        getDebuggeeJava8DexD8OrCf(RUN_JAVA),
+        config,
         debuggeeClass,
         breakpoint(debuggeeClass, initialMethodName),
         run(),
@@ -50,14 +80,14 @@ public class LambdaTest extends DebugTestBase {
     String debuggeeClass = "DebugLambda";
     String initialMethodName = "printInt2";
     runDebugTest(
-        getDebuggeeJava8DexD8OrCf(RUN_JAVA),
+        config,
         debuggeeClass,
         breakpoint(debuggeeClass, initialMethodName),
         run(),
         checkMethod(debuggeeClass, initialMethodName),
         checkLine(SOURCE_FILE, 20),
         stepInto(INTELLIJ_FILTER),
-        RUN_JAVA ? LambdaTest::doNothing : stepInto(INTELLIJ_FILTER),
+        config.isCfRuntime() ? LambdaTest::doNothing : stepInto(INTELLIJ_FILTER),
         checkMethod(debuggeeClass, "returnOne"),
         checkLine(SOURCE_FILE, 28),
         checkNoLocal(),
@@ -69,7 +99,7 @@ public class LambdaTest extends DebugTestBase {
     String debuggeeClass = "DebugLambda";
     String initialMethodName = "testLambdaWithMethodReferenceAndConversion";
     runDebugTest(
-        getDebuggeeJava8DexD8OrCf(RUN_JAVA),
+        config,
         debuggeeClass,
         breakpoint(debuggeeClass, initialMethodName),
         run(),
