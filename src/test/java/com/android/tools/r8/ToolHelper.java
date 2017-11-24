@@ -448,11 +448,19 @@ public class ToolHelper {
         minSdkVersion == AndroidApiLevel.getDefault().getLevel() ? DEFAULT_MIN_SDK : minSdkVersion);
   }
 
-  public static Path getJdwpTestsJarPath(int minSdk) {
+  public static Path getJdwpTestsCfJarPath(int minSdk) {
     if (minSdk >= AndroidApiLevel.N.getLevel()) {
       return Paths.get("third_party", "jdwp-tests", "apache-harmony-jdwp-tests-host.jar");
     } else {
       return Paths.get(ToolHelper.BUILD_DIR, "libs", "jdwp-tests-preN.jar");
+    }
+  }
+
+  public static Path getJdwpTestsDexJarPath(int minSdk) {
+    if (minSdk >= AndroidApiLevel.N.getLevel()) {
+      return Paths.get("third_party", "jdwp-tests", "apache-harmony-jdwp-tests-hostdex.jar");
+    } else {
+      return Paths.get(ToolHelper.BUILD_DIR, "libs", "jdwp-tests-preN-dex.jar");
     }
   }
 

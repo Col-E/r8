@@ -84,9 +84,7 @@ public class MinificationTest extends DebugTestBase {
     }
     ToolHelper.runR8(builder.build());
 
-    D8DebugTestConfig config =
-        D8DebugTestConfig.fromCompiledPaths(
-            temp, Collections.singletonList(dexOutputDir.resolve("classes.dex")));
+    DexDebugTestConfig config = new DexDebugTestConfig(dexOutputDir.resolve("classes.dex"));
     config.setProguardMap(proguardMap);
     return config;
   }

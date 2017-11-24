@@ -1165,6 +1165,23 @@ task buildPreNJdwpTestsJar(type: Jar) {
     includeEmptyDirs = false
 }
 
+task buildPreNJdwpTestsDex(type: Exec, dependsOn: "buildPreNJdwpTestsJar") {
+    def inFile = buildPreNJdwpTestsJar.archivePath
+    def outFile = new File(buildPreNJdwpTestsJar.destinationDir, buildPreNJdwpTestsJar.baseName + '-dex.jar')
+    inputs.file inFile
+    outputs.file outFile
+    if (OperatingSystem.current().isWindows()) {
+        executable file("tools/windows/dx/bin/dx.bat")
+    } else if (OperatingSystem.current().isMacOsX()) {
+        executable file("tools/mac/dx/bin/dx");
+    } else {
+        executable file("tools/linux/dx/bin/dx");
+    }
+    args "--dex"
+    args "--output=${outFile}"
+    args inFile
+}
+
 task supportLibDir() {
     doLast {
         File dir = file("build/supportlibraries")

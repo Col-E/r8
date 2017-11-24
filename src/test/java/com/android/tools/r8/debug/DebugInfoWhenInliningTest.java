@@ -33,9 +33,7 @@ public class DebugInfoWhenInliningTest extends DebugTestBase {
             .setOutputPath(outjar)
             .build(),
         options -> options.lineNumberOptimization = lineNumberOptimization);
-    DebugTestConfig config = new D8DebugTestConfig(temp);
-    config.addPaths(outjar);
-    return config;
+    return new DexDebugTestConfig(outjar);
   }
 
   @Test

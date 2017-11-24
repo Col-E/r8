@@ -36,7 +36,7 @@ public class JasminDebugTest extends DebugTestBase {
   public void testUselessCheckcastD8() throws Throwable {
     JasminBuilder builder = getBuilderForUselessCheckcast(className, methodName);
     List<Path> outputs = builder.writeClassFiles(temp.newFolder().toPath());
-    runUselessCheckcast(D8DebugTestConfig.fromUncompiledPaths(temp, outputs));
+    runUselessCheckcast(new D8DebugTestConfig().compileAndAdd(temp, outputs));
   }
 
   private void runUselessCheckcast(DebugTestConfig config) throws Throwable {

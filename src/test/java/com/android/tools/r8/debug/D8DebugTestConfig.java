@@ -11,30 +11,13 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OutputMode;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
 import org.junit.rules.TemporaryFolder;
 
-/**
- * Base test configuration for running a DEX debuggee with a D8 compiled version of JDWP.
- *
- * <p>This class also provides utilities for compiling with D8 and adding it to the classpath.
- */
-public class D8DebugTestConfig extends DebugTestConfig {
-
-  public static final Path JDWP_JAR =
-      ToolHelper.getJdwpTestsJarPath(ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm()));
-
-  // Internal cache to avoid multiple compilations of the base JDWP code.
-  private static AndroidApp compiledJdwp = null;
-
-  private static synchronized AndroidApp getCompiledJdwp() {
-    if (compiledJdwp == null) {
-      compiledJdwp = d8Compile(Collections.singletonList(JDWP_JAR), null);
-    }
-    return compiledJdwp;
-  }
+/** Test configuration with utilities for compiling with D8 and adding results to the classpath. */
+public class D8DebugTestConfig extends DexDebugTestConfig {
 
   public static AndroidApp d8Compile(List<Path> paths, Consumer<InternalOptions> optionsConsumer) {
     try {
@@ -52,42 +35,21 @@ public class D8DebugTestConfig extends DebugTestConfig {
     }
   }
 
-  public static D8DebugTestConfig fromUncompiledPaths(TemporaryFolder temp, List<Path> paths) {
-    D8DebugTestConfig config = new D8DebugTestConfig(temp);
-    config.compileAndAddPaths(temp, paths);
-    return config;
+  public D8DebugTestConfig compileAndAdd(TemporaryFolder temp, Path... paths) {
+    return compileAndAdd(temp, Arrays.asList(paths), null);
   }
 
-  public static D8DebugTestConfig fromCompiledPaths(TemporaryFolder temp, List<Path> paths) {
-    D8DebugTestConfig config = new D8DebugTestConfig(temp);
-    config.addPaths(paths);
-    return config;
+  public D8DebugTestConfig compileAndAdd(TemporaryFolder temp, List<Path> paths) {
+    return compileAndAdd(temp, paths, null);
   }
 
-  public D8DebugTestConfig(TemporaryFolder temp) {
-    try {
-      Path out = temp.newFolder().toPath().resolve("d8_jdwp.jar");
-      getCompiledJdwp().write(out, OutputMode.Indexed);
-    } catch (Throwable e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  @Override
-  public RuntimeKind getRuntimeKind() {
-    return RuntimeKind.DEX;
-  }
-
-  public void compileAndAddPaths(TemporaryFolder temp, List<Path> paths) {
-    compileAndAddPaths(temp, paths, null);
-  }
-
-  public void compileAndAddPaths(
+  public D8DebugTestConfig compileAndAdd(
       TemporaryFolder temp, List<Path> paths, Consumer<InternalOptions> optionsConsumer) {
     try {
       Path out = temp.newFolder().toPath().resolve("d8_compiled.jar");
       d8Compile(paths, optionsConsumer).write(out, OutputMode.Indexed);
       addPaths(out);
+      return this;
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
