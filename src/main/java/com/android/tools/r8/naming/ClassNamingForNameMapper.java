@@ -157,7 +157,12 @@ public class ClassNamingForNameMapper implements ClassNaming {
     forAllMemberNaming(sortedMembers::add);
     sortedMembers.sort(
         (lhs, rhs) -> {
-          return lhs.sequenceNumber - rhs.sequenceNumber;
+          int lhsNum = lhs.firstTargetLineNumber();
+          int rhsNum = rhs.firstTargetLineNumber();
+          if (lhsNum != rhsNum) {
+            return lhsNum - rhsNum;
+          }
+          return lhs.getRenamedName().compareTo(rhs.getRenamedName());
         });
     for (MemberNaming m : sortedMembers) {
       m.write(writer, true);
