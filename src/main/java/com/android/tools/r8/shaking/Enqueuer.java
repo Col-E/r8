@@ -248,8 +248,8 @@ public class Enqueuer {
 
     @Override
     public boolean registerInvokeStatic(DexMethod method) {
-      if (options.forceProguardCompatibility &&
-          method == appInfo.dexItemFactory.classMethods.forName) {
+      if (options.forceProguardCompatibility
+          && method == appInfo.dexItemFactory.classMethods.forName) {
         pendingProguardReflectiveCompatibility.add(currentMethod);
       }
       if (!registerItemWithTarget(staticInvokes, method)) {
@@ -879,8 +879,8 @@ public class Enqueuer {
         }
         // Continue fix-point processing while there are additional work items to ensure
         // Proguard compatibility.
-        if (proguardCompatibilityWorkList.isEmpty() &&
-            pendingProguardReflectiveCompatibility.isEmpty()) {
+        if (proguardCompatibilityWorkList.isEmpty()
+            && pendingProguardReflectiveCompatibility.isEmpty()) {
           break;
         }
         pendingProguardReflectiveCompatibility.forEach(this::handleProguardReflectiveBehavior);
@@ -1089,17 +1089,18 @@ public class Enqueuer {
     if (instruction.isInvokeStatic()
         && (instruction.asInvokeStatic().getInvokedMethod() ==
             appInfo.dexItemFactory.classMethods.forName)
-        && instruction.asInvokeStatic().arguments().get(0).isConstant()) {
-      assert instruction.asInvokeStatic().arguments().get(0).getConstInstruction().isConstString();
+        && instruction.asInvokeStatic().arguments().get(0).isConstString()) {
       ConstString constString =
           instruction.asInvokeStatic().arguments().get(0).getConstInstruction().asConstString();
-      DexString forNameArgument = constString.getValue();
-      DexString forNameDescriptor = appInfo.dexItemFactory.createString(
-          DescriptorUtils.javaTypeToDescriptor(forNameArgument.toString()));
-      DexType forNameType = appInfo.dexItemFactory.createType(forNameDescriptor);
-      DexClass forNameClass = appInfo.definitionFor(forNameType);
-      if (forNameClass != null) {
-        markClassAsInstantiatedWithCompatRule(forNameClass);
+      String forNameArgument = constString.getValue().toString();
+      if (DescriptorUtils.isValidJavaType(forNameArgument)) {
+        DexString forNameDescriptor = appInfo.dexItemFactory.createString(
+            DescriptorUtils.javaTypeToDescriptor(forNameArgument));
+        DexType forNameType = appInfo.dexItemFactory.createType(forNameDescriptor);
+        DexClass forNameClass = appInfo.definitionFor(forNameType);
+        if (forNameClass != null) {
+          markClassAsInstantiatedWithCompatRule(forNameClass);
+        }
       }
     }
   }
