@@ -164,6 +164,9 @@ public class DexInspector {
     return clazz(clazz.getTypeName());
   }
 
+  /**
+   * Lookup a class by name. This allows both original and obfuscated names.
+   */
   public ClassSubject clazz(String name) {
     ClassNamingForNameMapper naming = null;
     if (mapping != null) {
@@ -171,6 +174,12 @@ public class DexInspector {
       if (obfuscated != null) {
         naming = mapping.getClassNaming(obfuscated);
         name = obfuscated;
+      } else {
+        // Figure out if the name is an already obfuscated name.
+        String original = originalToObfuscatedMapping.inverse().get(name);
+        if (original != null) {
+          naming = mapping.getClassNaming(name);
+        }
       }
     }
     DexClass clazz = application.definitionFor(toDexType(name));
@@ -520,7 +529,7 @@ public class DexInspector {
 
     @Override
     public boolean isRenamed() {
-      return naming == null || !getFinalDescriptor().equals(getOriginalDescriptor());
+      return naming != null && !getFinalDescriptor().equals(getOriginalDescriptor());
     }
 
     private InnerClassAttribute getInnerClassAttribute() {
@@ -673,7 +682,7 @@ public class DexInspector {
 
     @Override
     public boolean isRenamed() {
-      return clazz.naming == null || !getFinalSignature().name.equals(getOriginalSignature().name);
+      return clazz.naming != null && !getFinalSignature().name.equals(getOriginalSignature().name);
     }
 
     @Override
@@ -826,7 +835,7 @@ public class DexInspector {
 
     @Override
     public boolean isRenamed() {
-      return clazz.naming == null || !getFinalSignature().name.equals(getOriginalSignature().name);
+      return clazz.naming != null && !getFinalSignature().name.equals(getOriginalSignature().name);
     }
 
 

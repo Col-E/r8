@@ -6,6 +6,7 @@ package com.android.tools.r8.naming;
 import static com.android.tools.r8.utils.DescriptorUtils.descriptorToJavaType;
 import static com.android.tools.r8.utils.DescriptorUtils.isValidJavaType;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.R8Command;
@@ -251,6 +252,7 @@ public class IdentifierMinifierTest {
     return getConstStringInstructions(instructions)
         .reduce(0, (cnt, instr) -> {
           String cnstString = retrieveString(instr);
+          assertNotNull(cnstString);
           if (isValidJavaType(cnstString)) {
             ClassSubject classSubject = inspector.clazz(cnstString);
             if (classSubject.isRenamed()
