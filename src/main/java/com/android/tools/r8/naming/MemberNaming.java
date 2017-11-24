@@ -35,6 +35,12 @@ public class MemberNaming {
   public static final Range UNSPECIFIED_RANGE =
       new Range(UNSPECIFIED_LINE_NUMBER, UNSPECIFIED_LINE_NUMBER);
 
+  private static int nextSequenceNumber = 0;
+
+  private synchronized int getNextSequenceNumber() {
+    return nextSequenceNumber++;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {
@@ -45,6 +51,7 @@ public class MemberNaming {
     }
 
     MemberNaming that = (MemberNaming) o;
+    // sequenceNumber is intentionally omitted from equality test.
     return signature.equals(that.signature)
         && renamedSignature.equals(that.renamedSignature)
         && unconstrainedIdentityMapping == that.unconstrainedIdentityMapping
@@ -53,6 +60,7 @@ public class MemberNaming {
 
   @Override
   public int hashCode() {
+    // sequenceNumber is intentionally omitted from hashCode since it's not used in equality test.
     int result = signature.hashCode();
     result = 31 * result + renamedSignature.hashCode();
     result = 31 * result + mappedRanges.hashCode();
@@ -77,6 +85,12 @@ public class MemberNaming {
 
   /// See the comment for the constructor.
   public final boolean unconstrainedIdentityMapping;
+
+  /**
+   * The sole purpose of {@link #sequenceNumber} is to preserve the order of members read from a
+   * Proguard-map.
+   */
+  public final int sequenceNumber = getNextSequenceNumber();
 
   /**
    * {@code unconstrainedIdentityMapping = true} means that any line number of the method with the
@@ -119,24 +133,6 @@ public class MemberNaming {
       }
     } while (iterator.hasPrevious());
     assert false;
-  }
-
-  /**
-   * Return the smallest target line number that can be found in {@link #mappedRanges}. Otherwise
-   * return 1.
-   * Between ranges with identical from value, favor greater ranges, because in Proguard-maps the
-   * full range of a method is usually printed before the inlining details which span less lines.
-   */
-  public int firstTargetLineNumber() {
-    Range bestRange = null;
-    for (MappedRange r : mappedRanges) {
-      if (bestRange == null
-          || (r.targetRange.from < bestRange.from
-              || (r.targetRange.from == bestRange.from && r.targetRange.to > bestRange.to))) {
-        bestRange = r.targetRange;
-      }
-    }
-    return bestRange == null ? 1 : bestRange.from;
   }
 
   public Signature getOriginalSignature() {
