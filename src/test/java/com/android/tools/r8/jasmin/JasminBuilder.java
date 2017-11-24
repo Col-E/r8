@@ -5,12 +5,12 @@ package com.android.tools.r8.jasmin;
 
 import static com.android.tools.r8.utils.DescriptorUtils.getPathFromDescriptor;
 
-import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
+import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -317,12 +317,15 @@ public class JasminBuilder {
     return builder.build();
   }
 
-  public void writeClassFiles(Path output) throws Exception {
+  public List<Path> writeClassFiles(Path output) throws Exception {
+    List<Path> outputs = new ArrayList<>(classes.size());
     for (ClassBuilder clazz : classes) {
       Path path = output.resolve(getPathFromDescriptor(clazz.getDescriptor()));
       Files.createDirectories(path.getParent());
       Files.write(path, compile(clazz));
+      outputs.add(path);
     }
+    return outputs;
   }
 
   public DexApplication read() throws Exception {

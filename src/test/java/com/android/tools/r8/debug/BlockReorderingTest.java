@@ -3,15 +3,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.debug;
 
-import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.D8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.util.Collections;
 import org.junit.Assume;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 /**
  * Test single stepping behaviour across reordered blocks.
@@ -21,24 +20,20 @@ public class BlockReorderingTest extends DebugTestBase {
   public static final String CLASS = "BlockReordering";
   public static final String FILE = "BlockReordering.java";
 
-  private static DebugTestConfig dexConfig;
+  private static D8DebugTestConfig d8Config;
+
+  @ClassRule
+  public static TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
   @BeforeClass
   public static void setup() throws Exception {
     // Force inversion of all conditionals to reliably construct a regression test for incorrect
     // line information when reordering blocks.
-    Path result = temp.newFolder().toPath().resolve("inverted_conditionals.jar");
-    int minSdk = ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm());
-    ToolHelper.runD8(
-        D8Command.builder()
-            .addProgramFiles(DEBUGGEE_JAR)
-            .setOutputPath(result)
-            .setMinApiLevel(minSdk)
-            .setMode(CompilationMode.DEBUG)
-            .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(minSdk)))
-            .build(),
+    d8Config = new D8DebugTestConfig(temp);
+    d8Config.compileAndAddPaths(
+        temp,
+        Collections.singletonList(DEBUGGEE_JAR),
         options -> options.testing.invertConditionals = true);
-    dexConfig = new D8BaseDebugTestConfig(temp, result);
   }
 
   @Test
@@ -48,7 +43,7 @@ public class BlockReorderingTest extends DebugTestBase {
         ToolHelper.getDexVm().getVersion().isNewerThan(Version.V6_0_1));
     final String method = "conditionalReturn";
     runDebugTest(
-        dexConfig,
+        d8Config,
         CLASS,
         breakpoint(CLASS, method),
         run(),
@@ -71,7 +66,7 @@ public class BlockReorderingTest extends DebugTestBase {
         ToolHelper.getDexVm().getVersion().isNewerThan(Version.V6_0_1));
     final String method = "invertConditionalReturn";
     runDebugTest(
-        dexConfig,
+        d8Config,
         CLASS,
         breakpoint(CLASS, method),
         run(),
@@ -94,7 +89,7 @@ public class BlockReorderingTest extends DebugTestBase {
         ToolHelper.getDexVm().getVersion().isNewerThan(Version.V6_0_1));
     final String method = "fallthroughReturn";
     runDebugTest(
-        dexConfig,
+        d8Config,
         CLASS,
         breakpoint(CLASS, method),
         run(),
