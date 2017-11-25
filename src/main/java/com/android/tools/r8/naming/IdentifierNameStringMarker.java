@@ -319,13 +319,15 @@ public class IdentifierNameStringMarker {
     // For java.lang.Class:
     //   (String) -> java.lang.reflect.Field
     //   (String, Class[]) -> java.lang.reflect.Method
+    // For java.util.concurrent.atomic.Atomic(Integer|Long)FieldUpdater:
+    //   (Class, String) -> $holderType
     // For any other types:
     //   (Class, String) -> java.lang.reflect.Field
     //   (Class, String, Class[]) -> java.lang.reflect.Method
     int arity = method.getArity();
     if (method.holder.descriptor == dexItemFactory.classDescriptor) {
       // Virtual methods of java.lang.Class, such as getField, getMethod, etc.
-      if (arity != 1 && arity !=2) {
+      if (arity != 1 && arity != 2) {
         return false;
       }
       if (arity == 1) {
@@ -344,6 +346,21 @@ public class IdentifierNameStringMarker {
         if (method.proto.parameters.values[1].descriptor != dexItemFactory.classArrayDescriptor) {
           return false;
         }
+      }
+    } else if (
+        method.holder.descriptor == dexItemFactory.intFieldUpdaterDescriptor
+        || method.holder.descriptor == dexItemFactory.longFieldUpdaterDescriptor) {
+      if (arity != 2) {
+        return false;
+      }
+      if (method.proto.returnType.descriptor != method.holder.descriptor) {
+        return false;
+      }
+      if (method.proto.parameters.values[0].descriptor != dexItemFactory.classDescriptor) {
+        return false;
+      }
+      if (method.proto.parameters.values[1].descriptor != dexItemFactory.stringDescriptor) {
+        return false;
       }
     } else {
       // Methods whose first argument is of java.lang.Class type.

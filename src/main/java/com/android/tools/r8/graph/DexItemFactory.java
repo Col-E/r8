@@ -130,6 +130,11 @@ public class DexItemFactory {
   public final DexString stringBufferDescriptor = createString("Ljava/lang/StringBuffer;");
   public final DexString varHandleDescriptor = createString("Ljava/lang/invoke/VarHandle;");
 
+  public final DexString intFieldUpdaterDescriptor =
+      createString("Ljava/util/concurrent/atomic/AtomicIntegerFieldUpdater;");
+  public final DexString longFieldUpdaterDescriptor =
+      createString("Ljava/util/concurrent/atomic/AtomicLongFieldUpdater;");
+
   public final DexString constructorMethodName = createString(Constants.INSTANCE_INITIALIZER_NAME);
   public final DexString classConstructorMethodName = createString(Constants.CLASS_INITIALIZER_NAME);
 

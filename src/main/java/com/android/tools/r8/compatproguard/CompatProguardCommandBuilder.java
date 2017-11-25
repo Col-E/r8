@@ -18,6 +18,14 @@ public class CompatProguardCommandBuilder extends R8Command.Builder {
       "  public java.lang.reflect.Field getDeclaredField(java.lang.String);",
       "  public java.lang.reflect.Method getMethod(java.lang.String, java.lang.Class[]);",
       "  public java.lang.reflect.Method getDeclaredMethod(java.lang.String, java.lang.Class[]);",
+      "}",
+      "-identifiernamestring public class java.util.concurrent.atomic.AtomicIntegerFieldUpdater {",
+      "  public static java.util.concurrent.atomic.AtomicIntegerFieldUpdater",
+      "      newUpdater(java.lang.Class, java.lang.String);",
+      "}",
+      "-identifiernamestring public class java.util.concurrent.atomic.AtomicLongFieldUpdater {",
+      "  public static java.util.concurrent.atomic.AtomicLongFieldUpdater",
+      "      newUpdater(java.lang.Class, java.lang.String);",
       "}"
   );
 

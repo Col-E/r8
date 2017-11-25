@@ -91,6 +91,7 @@ public class IdentifierMinifierTest {
   public static Collection<Object[]> data() {
     List<String> tests = Arrays.asList(
         "adaptclassstrings",
+        "atomicfieldupdater",
         "forname",
         "getmembers",
         "identifiernamestring");
@@ -98,6 +99,8 @@ public class IdentifierMinifierTest {
     Map<String, Consumer<DexInspector>> inspections = new HashMap<>();
     inspections.put("adaptclassstrings:keep-rules-1.txt", IdentifierMinifierTest::test1_rule1);
     inspections.put("adaptclassstrings:keep-rules-2.txt", IdentifierMinifierTest::test1_rule2);
+    inspections.put(
+        "atomicfieldupdater:keep-rules.txt", IdentifierMinifierTest::test_atomicfieldupdater);
     inspections.put("forname:keep-rules.txt", IdentifierMinifierTest::test_forname);
     inspections.put("getmembers:keep-rules.txt", IdentifierMinifierTest::test_getmembers);
     inspections.put("identifiernamestring:keep-rules-1.txt", IdentifierMinifierTest::test2_rule1);
@@ -151,6 +154,18 @@ public class IdentifierMinifierTest {
     renamedYetFoundIdentifierCount =
         countRenamedClassIdentifier(inspector, aClass.getDexClass().staticFields());
     assertEquals(1, renamedYetFoundIdentifierCount);
+  }
+
+  private static void test_atomicfieldupdater(DexInspector inspector) {
+    ClassSubject mainClass = inspector.clazz("atomicfieldupdater.Main");
+    MethodSubject main = mainClass.method(DexInspector.MAIN);
+    Code mainCode = main.getMethod().getCode();
+    verifyPresenceOfConstString(mainCode.asDexCode().instructions);
+
+    ClassSubject a = inspector.clazz("atomicfieldupdater.A");
+    Set<Instruction> constStringInstructions =
+        getRenamedMemberIdentifierConstStrings(a, mainCode.asDexCode().instructions);
+    assertEquals(2, constStringInstructions.size());
   }
 
   private static void test_forname(DexInspector inspector) {
