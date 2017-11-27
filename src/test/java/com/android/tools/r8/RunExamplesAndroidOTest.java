@@ -342,7 +342,6 @@ public abstract class RunExamplesAndroidOTest
   public void paramNames() throws Throwable {
     test("paramnames", "paramnames", "ParameterNames")
         .withMinApiLevel(AndroidApiLevel.O.getLevel())
-        .withOptionConsumer((internalOptions) -> internalOptions.allowParameterName = true)
         .run();
   }
 

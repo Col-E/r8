@@ -532,8 +532,7 @@ public class JarClassFileReader {
         parameterAnnotationSets = new DexAnnotationSetRefList(sets);
       }
       InternalOptions internalOptions = parent.application.options;
-      if (parameterNames != null && internalOptions.allowParameterName
-          && internalOptions.canUseParameterNameAnnotations()) {
+      if (parameterNames != null && internalOptions.canUseParameterNameAnnotations()) {
         assert parameterFlags != null;
         if (parameterNames.size() != parameterCount) {
           internalOptions.warningInvalidParameterAnnotations(

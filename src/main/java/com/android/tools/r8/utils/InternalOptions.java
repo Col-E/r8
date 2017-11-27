@@ -126,7 +126,6 @@ public class InternalOptions {
   public boolean skipMinification = false;
   public boolean disableAssertions = true;
   public boolean debugKeepRules = false;
-  public boolean allowParameterName = false;
 
   public boolean debug = false;
   public final TestingOptions testing = new TestingOptions();
