@@ -13,7 +13,8 @@ import utils
 import urllib
 
 MASTER_BUILD_ROOT = "http://storage.googleapis.com/r8-releases/raw/master/"
-TARGETS = [utils.D8, utils.R8, utils.COMPATDX, utils.COMPATPROGUARD]
+JAR_TARGETS = [utils.D8, utils.R8, utils.COMPATDX, utils.COMPATPROGUARD]
+OTHER_TARGETS = ["LICENSE"]
 
 def parse_arguments():
   parser = argparse.ArgumentParser(
@@ -23,29 +24,41 @@ def parse_arguments():
   parser.add_argument('--commit_hash', default=None, help='Commit hash')
   return parser.parse_args()
 
-def copy_targets(root, target_root):
-  for target in TARGETS:
-    src = os.path.join(root, target + '.jar')
-    dest = os.path.join(
-        target_root, 'prebuilts', 'r8', target + '-master.jar')
+def copy_targets(root, target_root, srcs, dests):
+  for i in range(len(srcs)):
+    src = os.path.join(root, srcs[i])
+    dest = os.path.join(target_root, 'prebuilts', 'r8', dests[i])
     print 'Copying: ' + src + ' -> ' + dest
     copyfile(src, dest)
+
+def copy_jar_targets(root, target_root):
+  srcs = map((lambda t: t + '.jar'), JAR_TARGETS)
+  dests = map((lambda t: t + '-master.jar'), JAR_TARGETS)
+  copy_targets(root, target_root, srcs, dests)
+
+def copy_other_targets(root, target_root):
+  copy_targets(root, target_root, OTHER_TARGETS, OTHER_TARGETS)
+
+def download_target(root, commit_hash, target):
+  url = MASTER_BUILD_ROOT + commit_hash + '/' + target
+  download_path = os.path.join(root, target)
+  print 'Downloading: ' + url + ' -> ' + download_path
+  urllib.urlretrieve(url, download_path)
 
 def Main():
   args = parse_arguments()
   target_root = args.android_root[0]
   if args.commit_hash == None:
-    gradle.RunGradle(TARGETS)
-    root = os.path.join(utils.REPO_ROOT, 'build', 'libs')
-    copy_targets(root, target_root)
+    gradle.RunGradle(JAR_TARGETS)
+    copy_jar_targets(utils.LIBS, target_root)
+    copy_other_targets(utils.GENERATED_LICENSE_DIR, target_root)
   else:
+    targets = map((lambda t: t + '.jar'), JAR_TARGETS) + OTHER_TARGETS
     with utils.TempDir() as root:
-      for target in TARGETS:
-        url = MASTER_BUILD_ROOT + args.commit_hash + '/' + target + '.jar'
-        download_path = os.path.join(root, target + '.jar')
-        print 'Downloading: ' + url + ' -> ' + download_path
-        urllib.urlretrieve(url, download_path)
-      copy_targets(root, target_root)
+      for target in targets:
+        download_target(root, args.commit_hash, target)
+      copy_jar_targets(root, target_root)
+      copy_other_targets(root, target_root)
 
 if __name__ == '__main__':
   sys.exit(Main())

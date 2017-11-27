@@ -18,8 +18,9 @@ MEMORY_USE_TMP_FILE = 'memory_use.tmp'
 DEX_SEGMENTS_JAR = os.path.join(REPO_ROOT, 'build', 'libs',
     'dexsegments.jar')
 DEX_SEGMENTS_RESULT_PATTERN = re.compile('- ([^:]+): ([0-9]+)')
-LIBS = os.path.join(REPO_ROOT, 'build', 'libs')
-MAVEN_ZIP = os.path.join(LIBS, 'r8.zip')
+BUILD = os.path.join(REPO_ROOT, 'build')
+LIBS = os.path.join(BUILD, 'libs')
+GENERATED_LICENSE_DIR = os.path.join(BUILD, 'generatedLicense')
 SRC_ROOT = os.path.join(REPO_ROOT, 'src', 'main', 'java')
 
 D8 = 'd8'
@@ -32,6 +33,8 @@ R8_JAR = os.path.join(LIBS, 'r8.jar')
 R8_EXCLUDE_DEPS_JAR = os.path.join(LIBS, 'r8-exclude-deps.jar')
 COMPATDX_JAR = os.path.join(LIBS, 'compatdx.jar')
 COMPATPROGUARD_JAR = os.path.join(LIBS, 'compatproguard.jar')
+MAVEN_ZIP = os.path.join(LIBS, 'r8.zip')
+GENERATED_LICENSE = os.path.join(GENERATED_LICENSE_DIR, 'LICENSE')
 
 def PrintCmd(s):
   if type(s) is list:
