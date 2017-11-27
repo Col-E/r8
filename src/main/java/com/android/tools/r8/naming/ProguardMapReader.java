@@ -154,7 +154,7 @@ public class ProguardMapReader implements AutoCloseable {
 
   private void parseMemberMappings(ClassNaming.Builder classNamingBuilder) throws IOException {
     MemberNaming activeMemberNaming = null;
-    Range previousTargetRange = null;
+    Range previousObfuscatedRange = null;
     Signature previousSignature = null;
     String previousRenamedName = null;
     List<Consumer<MemberNaming>> deferredChanges = new ArrayList<>(10);
@@ -167,9 +167,9 @@ public class ProguardMapReader implements AutoCloseable {
     boolean lastRound = false;
     for (; ; ) {
       Signature signature = null;
-      Range originalRange = null;
+      Object originalRange = null;
       String renamedName = null;
-      Range targetRange = null;
+      Range obfuscatedRange = null;
 
       // In the last round we're only here to flush deferredChanges and activeMemberNaming, so skip
       // parsing.
@@ -179,18 +179,20 @@ public class ProguardMapReader implements AutoCloseable {
           continue;
         }
         skipWhitespace();
-        Range maybeRange = maybeParseRange();
-        if (maybeRange != null) {
-          targetRange = maybeRange;
+        Object maybeRangeOrInt = maybeParseRangeOrInt();
+        if (maybeRangeOrInt != null) {
+          if (!(maybeRangeOrInt instanceof Range)) {
+            throw new ParseException(
+                String.format("Invalid obfuscated line number range (%s).", maybeRangeOrInt));
+          }
+          obfuscatedRange = (Range) maybeRangeOrInt;
           expect(':');
-        } else {
-          targetRange = null;
         }
         signature = parseSignature();
         if (peek() == ':') {
           // This is a mapping or inlining definition
           next();
-          originalRange = maybeParseRange();
+          originalRange = maybeParseRangeOrInt();
           if (originalRange == null) {
             throw new ParseException("No number follows the colon after the method signature.");
           }
@@ -202,19 +204,23 @@ public class ProguardMapReader implements AutoCloseable {
       }
 
       // If there are deferred changes and the line we've just read cannot possibly belong to the
-      // deferred changes (different target line numbers or renamed name) then we need to flush the
-      // deferred changes now.
-      // In the last round both targetRange and renamedName will be null so the condition will be
+      // deferred changes (different obfuscated line numbers or renamed name or x:y-formatted
+      // original range) then we need to flush the deferred changes now.
+      // In the last round both obfuscatedRange and renamedName will be null so the condition will
+      // be
       // true.
       if (!deferredChanges.isEmpty()
-          && (!Objects.equals(previousTargetRange, targetRange)
-              || !Objects.equals(previousRenamedName, renamedName))) {
+          && (!Objects.equals(previousObfuscatedRange, obfuscatedRange)
+              || !Objects.equals(previousRenamedName, renamedName)
+              || (originalRange != null && originalRange instanceof Range))) {
         // Flush activeMemberNaming if it's for a different member.
-        if (activeMemberNaming != null
-            && (!activeMemberNaming.getOriginalSignature().equals(previousSignature)
-                || !activeMemberNaming.getRenamedName().equals(previousRenamedName))) {
-          classNamingBuilder.addMemberEntry(activeMemberNaming);
-          activeMemberNaming = null;
+        if (activeMemberNaming != null) {
+          if (!activeMemberNaming.getOriginalSignature().equals(previousSignature)) {
+            classNamingBuilder.addMemberEntry(activeMemberNaming);
+            activeMemberNaming = null;
+          } else {
+            assert (activeMemberNaming.getRenamedName().equals(previousRenamedName));
+          }
         }
         if (activeMemberNaming == null) {
           activeMemberNaming = new MemberNaming(previousSignature, previousRenamedName, false);
@@ -231,7 +237,7 @@ public class ProguardMapReader implements AutoCloseable {
       }
 
       // Interpret what we've just parsed.
-      if (targetRange == null) {
+      if (obfuscatedRange == null) {
         if (originalRange != null) {
           throw new ParseException("No mapping for original range " + originalRange + ".");
         }
@@ -241,34 +247,23 @@ public class ProguardMapReader implements AutoCloseable {
       } else {
 
         // Note that at this point originalRange may be null which either means, it's the same as
-        // the targetRange (identity mapping) or that it's unknown (source line number information
+        // the obfuscatedRange (identity mapping) or that it's unknown (source line number
+        // information
         // was not available).
 
         assert signature instanceof MethodSignature;
 
-        // Defer this change until we parse a line that has a different target range / renamed name.
-        final Range finalTargetRange = targetRange;
+        // Defer this change until we parse a line that has a different obfuscated range / renamed
+        // name.
+        final Range finalObfuscatedRange = obfuscatedRange;
         final MethodSignature finalSignature = (MethodSignature) signature;
-        if (deferredChanges.isEmpty()) {
-          // If this is the first deferred change with this target range / renamed name, then it's
-          // either an actual original <-> target range mapping or the innermost callee of an
-          // inlined stack.
-          final Range finalOriginalRange =
-              originalRange == null ? MemberNaming.UNSPECIFIED_RANGE : originalRange;
-          deferredChanges.add(
-              m -> m.addMappedRange(finalTargetRange, finalSignature, finalOriginalRange));
-        } else {
-          // This is not the first deferred change with this target range / renamed name, it must be
-          // a caller. Add the original range as a single number.
-          final int finalOriginalRangeTo =
-              originalRange == null ? MemberNaming.UNSPECIFIED_LINE_NUMBER : originalRange.to;
-          deferredChanges.add(
-              m -> m.addCaller(finalTargetRange, finalSignature, finalOriginalRangeTo));
-        }
+        final Object finalOriginalRange = originalRange;
+        deferredChanges.add(
+            m -> m.addMappedRange(finalObfuscatedRange, finalSignature, finalOriginalRange));
       }
 
       previousRenamedName = renamedName;
-      previousTargetRange = targetRange;
+      previousObfuscatedRange = obfuscatedRange;
       previousSignature = signature;
 
       if (!nextLine()) {
@@ -393,13 +388,13 @@ public class ProguardMapReader implements AutoCloseable {
     return true;
   }
 
-  private Range maybeParseRange() {
+  private Object maybeParseRangeOrInt() {
     if (!Character.isDigit(peek())) {
       return null;
     }
     int from = parseNumber();
     if (peek() != ':') {
-      return new Range(from, from);
+      return from;
     }
     expect(':');
     int to = parseNumber();

@@ -15,12 +15,10 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Objects;
 import org.objectweb.asm.Type;
 
@@ -30,10 +28,6 @@ import org.objectweb.asm.Type;
  * This includes the signature, the original name and inlining range information.
  */
 public class MemberNaming {
-
-  public static final int UNSPECIFIED_LINE_NUMBER = Integer.MIN_VALUE;
-  public static final Range UNSPECIFIED_RANGE =
-      new Range(UNSPECIFIED_LINE_NUMBER, UNSPECIFIED_LINE_NUMBER);
 
   private static int nextSequenceNumber = 0;
 
@@ -78,8 +72,8 @@ public class MemberNaming {
   final Signature renamedSignature;
 
   /**
-   * List of line number ranges, mapped from original to target line numbers. These mapped ranges
-   * are either simple ranges or inlined ranges.
+   * List of obfuscated line number ranges, mapped to original line numbers. These mapped ranges
+   * correspond to the "a:b:(signature)[:x[:y]] -> n" lines in the Proguard-map.
    */
   public final List<MappedRange> mappedRanges = new LinkedList<>();
 
@@ -93,11 +87,10 @@ public class MemberNaming {
   public final int sequenceNumber = getNextSequenceNumber();
 
   /**
-   * {@code unconstrainedIdentityMapping = true} means that any line number of the method with the
-   * name of renamedName is actually the same line number in the method signature. In Proguard-map
-   * syntax: "    a() -> b"
-   * In other cases use {@code unconstrainedIdentityMapping = false} and specify explicit ranges
-   * later with {@link #addMappedRange}.
+   * {@code unconstrainedIdentityMapping = true} means that any obfuscated line number is the same
+   * as the original. In Proguard-map syntax: " a() -> b" In other cases use
+   * {@code unconstrainedIdentityMapping = false} and specify explicit ranges later with
+   * {@link #addMappedRange}.
    */
   MemberNaming(Signature signature, String renamedName, boolean unconstrainedIdentityMapping) {
     this.signature = signature;
@@ -106,33 +99,16 @@ public class MemberNaming {
   }
 
   /**
-   * {@code originalRange} can be {@link #UNSPECIFIED_RANGE} which indicates either that it's the
-   * same as the {@code targetRange} or that it's not known.
+   * @param originalRange can be {@code null} which means unknown original range or same as the
+   *     obfuscated range, @{code Integer} which indicates the caller of the preceding line, or
+   *     {@link Range}.
    */
-  public void addMappedRange(Range targetRange, MethodSignature signature, Range originalRange) {
-    mappedRanges.add(new MappedRange(targetRange, originalRange, signature));
-  }
-
-  /**
-   * Specify inlining callers for the {@code targetRange} added previously with
-   * {@link #addMappedRange}
-   * {@code originalLineInCaller} can be {@link #UNSPECIFIED_LINE_NUMBER} which indicates it's
-   * either not known or the same as {@code targetRange.to}.
-   * Make the {@link #addCaller} calls in the same order as if moving outwards on the stack frame.
-   */
-  public void addCaller(Range targetRange, MethodSignature signature, int originalLineInCaller) {
-    assert !mappedRanges.isEmpty();
-    // Find the corresponding mappedRange. Usually we're adding callers to the last mappedRange,
-    // start with that one.
-    ListIterator<MappedRange> iterator = mappedRanges.listIterator(mappedRanges.size());
-    do {
-      MappedRange item = iterator.previous();
-      if (item.targetRange.equals(targetRange)) {
-        item.addCaller(originalLineInCaller, signature);
-        return;
-      }
-    } while (iterator.hasPrevious());
-    assert false;
+  public void addMappedRange(
+      Range obfuscatedRange, MethodSignature signature, Object originalRange) {
+    assert originalRange == null
+        || originalRange instanceof Integer
+        || originalRange instanceof Range;
+    mappedRanges.add(new MappedRange(obfuscatedRange, originalRange, signature));
   }
 
   public Signature getOriginalSignature() {
@@ -385,102 +361,47 @@ public class MemberNaming {
   }
 
   /**
-   * MappedRange describes an (original line numbers, signature) <-> (target line numbers) mapping
-   * with an optional list of inlining callers. If there are no inlining callers the signature is
-   * expected to be identical to the containing MemberNaming's signature (not enforced).
+   * MappedRange describes an (original line numbers, signature) <-> (obfuscated line numbers)
+   * mapping. It can describe two different things:
+   *
+   * <p>1. The source lines of a method in the original range are renumbered to the obfuscated
+   * range. In this case the {@link MappedRange#originalRange} is either a {@code Range} or null,
+   * indicating that the original range is unknown or is the same as the {@link
+   * MappedRange#obfuscatedRange}
+   *
+   * <p>2. The source line of a method is the inlining caller of the previous {@code MappedRange}.
+   * In this case the {@link MappedRange@originalRange} is either an {@code int} or null, indicating
+   * that the original source line is unknown, or may be identical to a line of the obfuscated
+   * range.
    */
   private class MappedRange {
-    /**
-     * Caller is an inlining caller with a single original line number.
-     */
-    private class Caller {
-      private final int originalLine; // Can be UNSPECIFIED_LINE_NUMBER.
-      private final MethodSignature signature;
 
-      private Caller(int originalLine, MethodSignature signature) {
-        this.originalLine = originalLine;
-        this.signature = signature;
-      }
-
-      @Override
-      public boolean equals(Object o) {
-        if (this == o) {
-          return true;
-        }
-        if (!(o instanceof Caller)) {
-          return false;
-        }
-
-        Caller that = (Caller) o;
-
-        return originalLine == that.originalLine && signature.equals(that.signature);
-      }
-
-      @Override
-      public int hashCode() {
-        int result = originalLine;
-        result = 31 * result + signature.hashCode();
-        return result;
-      }
-    }
-
-    private final Range targetRange;
-    private final Range originalRange;
+    private final Range obfuscatedRange;
+    private final Object originalRange; // null, Integer or Range
     private final MethodSignature signature;
 
-    /**
-     * Optional list of callers. If they are present, the last caller's signature is expected to be
-     * identical to the containing MemberNaming's signature (not enforced).
-     */
-    private List<Caller> callers = null;
-
-    /**
-     * {@code originalRange} can be {@link #UNSPECIFIED_RANGE}, which indicates that will be
-     * replaced by {@code targetRange}, indicating an identity mapping.
-     */
-    private MappedRange(Range targetRange, Range originalRange, MethodSignature signature) {
-      assert targetRange != null && originalRange != null;
-      this.targetRange = targetRange;
+    private MappedRange(Range obfuscatedRange, Object originalRange, MethodSignature signature) {
+      assert obfuscatedRange != null;
+      assert originalRange == null
+          || originalRange instanceof Integer
+          || originalRange instanceof Range;
+      this.obfuscatedRange = obfuscatedRange;
       this.originalRange = originalRange;
       this.signature = signature;
-    }
-
-    private void addCaller(int originalLine, MethodSignature signature) {
-      if (callers == null) {
-        callers = new ArrayList<>();
-      }
-      callers.add(new Caller(originalLine, signature));
     }
 
     private void write(Writer writer, boolean indent) throws IOException {
       if (indent) {
         writer.append("    ");
       }
-      writer.append(targetRange.toString());
+      writer.append(obfuscatedRange.toString());
       writer.append(":");
       signature.write(writer);
-      if (!originalRange.equals(targetRange) && originalRange != UNSPECIFIED_RANGE) {
-        writer.append(':')
-            .append(originalRange.toString());
+      if (originalRange != null) {
+        writer.append(':').append(originalRange.toString());
       }
-      writer.append(" -> ")
-          .append(renamedSignature.name);
+      writer.append(" -> ").append(renamedSignature.name);
       writer.append("\n");
-      if (callers != null) {
-        for (Caller caller : callers) {
-          if (indent) {
-            writer.append("    ");
-          }
-          writer.append(targetRange.toString());
-          writer.append(":");
-          caller.signature.write(writer);
-          if (caller.originalLine != UNSPECIFIED_LINE_NUMBER) {
-            writer.append(':').append(String.valueOf(caller.originalLine));
-          }
-          writer.append(" -> ").append(renamedSignature.name);
-          writer.append("\n");
-        }
-      }
     }
 
     @Override
@@ -494,18 +415,16 @@ public class MemberNaming {
 
       MappedRange that = (MappedRange) o;
 
-      return targetRange.equals(that.targetRange)
-          && originalRange.equals(that.originalRange)
-          && signature.equals(that.signature)
-          && Objects.equals(callers, that.callers);
+      return obfuscatedRange.equals(that.obfuscatedRange)
+          && Objects.equals(originalRange, that.originalRange)
+          && signature.equals(that.signature);
     }
 
     @Override
     public int hashCode() {
-      int result = targetRange.hashCode();
-      result = 31 * result + originalRange.hashCode();
+      int result = obfuscatedRange.hashCode();
+      result = 31 * result + Objects.hashCode(originalRange);
       result = 31 * result + signature.hashCode();
-      result = 31 * result + Objects.hashCode(callers);
       return result;
     }
   }
