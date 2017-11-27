@@ -12,7 +12,9 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
+import com.google.common.io.ByteStreams;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.concurrent.ExecutionException;
 
@@ -23,6 +25,19 @@ public class ExtractMarker {
     appBuilder.setVdexAllowed();
     appBuilder.addProgramFiles(FilteredClassPath.unfiltered(file));
     return extractMarker(appBuilder.build());
+  }
+
+  public static int extractDexSize(Path file) throws IOException, ExecutionException {
+    AndroidApp.Builder appBuilder = AndroidApp.builder();
+    appBuilder.setVdexAllowed();
+    appBuilder.addProgramFiles(FilteredClassPath.unfiltered(file));
+    int size = 0;
+    for (Resource resource : appBuilder.build().getDexProgramResources()) {
+      try (InputStream input = resource.getStream()) {
+        size += ByteStreams.toByteArray(input).length;
+      }
+    }
+    return size;
   }
 
   public static Marker extractMarkerFromDexProgramData(byte[] data)
@@ -56,22 +71,38 @@ public class ExtractMarker {
     int otherCount = 0;
     for (Path programFile : command.getProgramFiles()) {
       try {
-        if (command.getVerbose()) {
-          System.out.print(programFile);
-          System.out.print(": ");
-        }
         Marker marker = extractMarkerFromDexFile(programFile);
         if (marker == null) {
-          System.out.println("D8/R8 marker not found.");
           otherCount++;
+          if (!command.getIncludeOther()) {
+            continue;
+          }
         } else {
-          System.out.println(marker.toString());
           if (marker.isD8()) {
             d8Count++;
           } else {
             r8Count++;
           }
         }
+        if (command.getCSV()) {
+          System.out.print("\"" + programFile + "\"");
+          System.out.print(", ");
+          if (marker == null) {
+            System.out.print("\"no marker\"");
+          } else {
+            System.out.print("\"" + (marker.isD8() ? "D8" : "R8") + "\"");
+          }
+          System.out.print(", ");
+          System.out.print(extractDexSize(programFile));
+        } else {
+          if (command.getVerbose()) {
+            System.out.print(programFile);
+            System.out.print(": ");
+          }
+          System.out.print(marker == null ? "D8/R8 marker not found" : marker);
+          System.out.print(", " + extractDexSize(programFile) + " bytes");
+        }
+        System.out.println();
       } catch (CompilationError e) {
         System.out.println(
             "Failed to read dex/vdex file `" + programFile +"`: '" + e.getMessage() + "'");

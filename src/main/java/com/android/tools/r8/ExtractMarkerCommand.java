@@ -14,8 +14,10 @@ class ExtractMarkerCommand {
 
   public static class Builder {
     private boolean printHelp = false;
+    private boolean includeOther = true;
     private boolean verbose;
     private boolean summary;
+    private boolean csv;
     private List<Path> programFiles = new ArrayList<>();
 
     public Builder setPrintHelp(boolean printHelp) {
@@ -27,6 +29,11 @@ class ExtractMarkerCommand {
       return printHelp;
     }
 
+    public Builder setIncludeOther(boolean includeOther) {
+      this.includeOther = includeOther;
+      return this;
+    }
+
     public Builder setVerbose(boolean verbose) {
       this.verbose = verbose;
       return this;
@@ -34,6 +41,11 @@ class ExtractMarkerCommand {
 
     public Builder setSummary(boolean summary) {
       this.summary = summary;
+      return this;
+    }
+
+    public Builder setCSV(boolean csv) {
+      this.csv = csv;
       return this;
     }
 
@@ -47,15 +59,17 @@ class ExtractMarkerCommand {
       if (isPrintHelp()) {
         return new ExtractMarkerCommand(isPrintHelp());
       }
-      return new ExtractMarkerCommand(verbose, summary, programFiles);
+      return new ExtractMarkerCommand(includeOther, verbose, summary, csv, programFiles);
     }
   }
 
   static final String USAGE_MESSAGE = String.join("\n", ImmutableList.of(
       "Usage: extractmarker [options] <input-files>",
       " where <input-files> are dex or vdex files",
+      "  --no-other              # Only show information for D8 or R8 processed files.",
       "  --verbose               # More verbose output.",
       "  --summary               # Print summary at the end.",
+      "  --csv                   # Output in CSV format.",
       "  --help                  # Print this message."));
 
   public static Builder builder() {
@@ -75,10 +89,14 @@ class ExtractMarkerCommand {
       String arg = args[i].trim();
       if (arg.length() == 0) {
         continue;
+      } else if (arg.equals("--no-other")) {
+        builder.setIncludeOther(false);
       } else if (arg.equals("--verbose")) {
         builder.setVerbose(true);
       } else if (arg.equals("--summary")) {
         builder.setSummary(true);
+      } else if (arg.equals("--csv")) {
+        builder.setCSV(true);
       } else if (arg.equals("--help")) {
         builder.setPrintHelp(true);
       } else {
@@ -91,21 +109,28 @@ class ExtractMarkerCommand {
   }
 
   private final boolean printHelp;
+  private final boolean includeOther;
   private final boolean verbose;
   private final boolean summary;
+  private final boolean csv;
   private final List<Path> programFiles;
 
-  private ExtractMarkerCommand(boolean verbose, boolean summary, List<Path> programFiles) {
+  private ExtractMarkerCommand(boolean includeOther, boolean verbose, boolean summary,
+      boolean csv, List<Path> programFiles) {
     this.printHelp = false;
+    this.includeOther = includeOther;
     this.verbose = verbose;
     this.summary = summary;
+    this.csv = csv;
     this.programFiles = programFiles;
   }
 
   private ExtractMarkerCommand(boolean printHelp) {
     this.printHelp = printHelp;
+    this.includeOther = true;
     this.verbose = false;
     this.summary = false;
+    this.csv = false;
     programFiles = ImmutableList.of();
   }
 
@@ -117,11 +142,19 @@ class ExtractMarkerCommand {
     return programFiles;
   }
 
+  public boolean getIncludeOther() {
+    return includeOther;
+  }
+
   public boolean getVerbose() {
     return verbose;
   }
 
   public boolean getSummary() {
     return summary;
+  }
+
+  public boolean getCSV() {
+    return csv;
   }
 }
