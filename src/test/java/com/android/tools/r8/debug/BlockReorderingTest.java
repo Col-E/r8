@@ -29,11 +29,12 @@ public class BlockReorderingTest extends DebugTestBase {
   public static void setup() throws Exception {
     // Force inversion of all conditionals to reliably construct a regression test for incorrect
     // line information when reordering blocks.
-    d8Config = new D8DebugTestConfig(temp);
-    d8Config.compileAndAddPaths(
-        temp,
-        Collections.singletonList(DEBUGGEE_JAR),
-        options -> options.testing.invertConditionals = true);
+    d8Config =
+        new D8DebugTestConfig()
+            .compileAndAdd(
+                temp,
+                Collections.singletonList(DEBUGGEE_JAR),
+                options -> options.testing.invertConditionals = true);
   }
 
   @Test

@@ -33,7 +33,7 @@ public class LineNumberOptimizationTest extends DebugTestBase {
           options.lineNumberOptimization = lineNumberOptimization;
           options.inlineAccessors = false;
         });
-    DebugTestConfig config = new D8DebugTestConfig(temp);
+    DebugTestConfig config = new D8DebugTestConfig();
     config.addPaths(outjar);
     return config;
   }

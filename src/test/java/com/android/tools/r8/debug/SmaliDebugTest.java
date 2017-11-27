@@ -46,7 +46,7 @@ public class SmaliDebugTest extends DebugTestBase {
   public void testSimpleIf() throws Throwable {
     String methodName = "simpleIf";
     runDebugTest(
-        D8DebugTestConfig.fromCompiledPaths(temp, buildSimpleIf(methodName)),
+        new DexDebugTestConfig(buildSimpleIf(methodName)),
         CLASS,
         breakpoint(CLASS, methodName),
         run(),
@@ -129,7 +129,7 @@ public class SmaliDebugTest extends DebugTestBase {
 
     // Run debugger to verify that we step to line 4 and the values of v0 and v1 are unchanged.
     runDebugTest(
-        D8DebugTestConfig.fromCompiledPaths(temp, outs),
+        new DexDebugTestConfig(outs),
         CLASS,
         breakpoint(CLASS, methodName),
         run(),

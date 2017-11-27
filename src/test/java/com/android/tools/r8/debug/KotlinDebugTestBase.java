@@ -4,14 +4,13 @@
 
 package com.android.tools.r8.debug;
 
-import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.D8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.OutputMode;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import org.apache.harmony.jpda.tests.framework.jdwp.Frame.Variable;
 import org.apache.harmony.jpda.tests.framework.jdwp.Location;
@@ -32,21 +31,14 @@ public abstract class KotlinDebugTestBase extends DebugTestBase {
 
     private static synchronized AndroidApp getCompiledResources() throws Throwable {
       if (compiledResources == null) {
-        int minSdk = ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm());
         compiledResources =
-            ToolHelper.runD8(
-                D8Command.builder()
-                    .addProgramFiles(DEBUGGEE_KOTLIN_JAR)
-                    .setMinApiLevel(minSdk)
-                    .setMode(CompilationMode.DEBUG)
-                    .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(minSdk)))
-                    .build());
+            D8DebugTestConfig.d8Compile(Collections.singletonList(DEBUGGEE_KOTLIN_JAR), null);
       }
       return compiledResources;
     }
 
     public KotlinD8Config(TemporaryFolder temp) {
-      super(temp);
+      super();
       try {
         Path out = temp.newFolder().toPath().resolve("d8_debug_test_resources_kotlin.jar");
         getCompiledResources().write(out, OutputMode.Indexed);

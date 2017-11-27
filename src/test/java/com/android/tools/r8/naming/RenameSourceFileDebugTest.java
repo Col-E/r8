@@ -6,13 +6,12 @@ package com.android.tools.r8.naming;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.debug.D8DebugTestConfig;
 import com.android.tools.r8.debug.DebugTestBase;
 import com.android.tools.r8.debug.DebugTestConfig;
+import com.android.tools.r8.debug.DexDebugTestConfig;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collections;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -43,7 +42,7 @@ public class RenameSourceFileDebugTest extends DebugTestBase {
                   pg.addKeepAttributePatterns(ImmutableList.of("SourceFile", "LineNumberTable"));
                 })
             .build());
-    config = D8DebugTestConfig.fromCompiledPaths(temp, Collections.singletonList(outjar));
+    config = new DexDebugTestConfig(outjar);
   }
 
   /**

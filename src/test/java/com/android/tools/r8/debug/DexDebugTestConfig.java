@@ -4,33 +4,32 @@
 package com.android.tools.r8.debug;
 
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-/** Base test configuration with CF version of JDWP. */
-public class CfDebugTestConfig extends DebugTestConfig {
+/** Base test configuration with DEX version of JDWP. */
+public class DexDebugTestConfig extends DebugTestConfig {
 
-  public static final Path JDWP_JAR =
-      ToolHelper.getJdwpTestsCfJarPath(AndroidApiLevel.N.getLevel());
+  public static final Path JDWP_DEX_JAR =
+      ToolHelper.getJdwpTestsDexJarPath(ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm()));
 
-  public CfDebugTestConfig() {
+  public DexDebugTestConfig() {
     this(Collections.emptyList());
   }
 
-  public CfDebugTestConfig(Path... paths) {
+  public DexDebugTestConfig(Path... paths) {
     this(Arrays.asList(paths));
   }
 
-  public CfDebugTestConfig(List<Path> paths) {
-    addPaths(JDWP_JAR);
+  public DexDebugTestConfig(List<Path> paths) {
+    addPaths(JDWP_DEX_JAR);
     addPaths(paths);
   }
 
   @Override
   public final RuntimeKind getRuntimeKind() {
-    return RuntimeKind.CF;
+    return RuntimeKind.DEX;
   }
 }

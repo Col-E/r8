@@ -7,7 +7,6 @@ package com.android.tools.r8.debug;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.Collections;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -24,14 +23,8 @@ public class LambdaTest extends DebugTestBase {
   @Parameters(name = "{0}")
   public static Collection configs() {
     ImmutableList.Builder<Object[]> builder = ImmutableList.builder();
-    DelayedDebugTestConfig cfConfig = temp -> {
-      DebugTestConfig config = new CfDebugTestConfig();
-      config.addPaths(JAR);
-      return config;
-    };
-    DelayedDebugTestConfig d8Config = temp -> {
-      return D8DebugTestConfig.fromUncompiledPaths(temp, Collections.singletonList(JAR));
-    };
+    DelayedDebugTestConfig cfConfig = temp -> new CfDebugTestConfig(JAR);
+    DelayedDebugTestConfig d8Config = temp -> new D8DebugTestConfig().compileAndAdd(temp, JAR);
     builder.add(new Object[]{"CF", cfConfig});
     builder.add(new Object[]{"D8", d8Config});
     return builder.build();

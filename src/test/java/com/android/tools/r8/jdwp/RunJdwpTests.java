@@ -29,11 +29,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-/**
- * Wrapper for the art JDWP tests.
- *
- * A new version of this file can be generated using ./tools/create-jdwp-tests.py.
- */
+/** Wrapper for the art JDWP tests. */
 public class RunJdwpTests {
 
   enum Tool {
@@ -238,7 +234,7 @@ public class RunJdwpTests {
   public static void compileLibraries() throws Exception {
     // Selects appropriate jar according to min api level for the selected runtime.
     int minApi = ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm());
-    Path jdwpTestsJar = ToolHelper.getJdwpTestsJarPath(minApi);
+    Path jdwpTestsJar = ToolHelper.getJdwpTestsCfJarPath(minApi);
 
     d8Out = temp.newFolder("d8-out");
     D8.run(
