@@ -99,8 +99,9 @@ def Main():
       file_name = os.path.basename(file)
       tagged_jar = os.path.join(temp, file_name)
       shutil.copyfile(file, tagged_jar)
-      with zipfile.ZipFile(tagged_jar, 'a') as zip:
-        zip.write(version_file, os.path.basename(version_file))
+      if file_name.endsWith('.jar'):
+        with zipfile.ZipFile(tagged_jar, 'a') as zip:
+          zip.write(version_file, os.path.basename(version_file))
       destination = GetUploadDestination(version, file_name, is_master)
       print('Uploading %s to %s' % (tagged_jar, destination))
       utils.upload_file_to_cloud_storage(tagged_jar, destination)
