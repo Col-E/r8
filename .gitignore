@@ -63,6 +63,9 @@ gradle-app.setting
 gradlew
 gradlew.bat
 gradle/*
+r8.iml
+r8.ipr
+r8.iws
 #*#
 *~
 .#*
