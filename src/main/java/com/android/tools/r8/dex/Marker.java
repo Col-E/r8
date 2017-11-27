@@ -9,11 +9,17 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
+import javax.annotation.Nullable;
+
 
 /**
  * Abstraction for hidden dex marker intended for the main dex file.
  */
 public class Marker {
+
+  public static final String VERSION = "version";
+  public static final String MIN_API = "min-api";
+  public static final String SHA1 = "sha-1";
 
   public enum Tool {D8, R8}
 
@@ -51,17 +57,34 @@ public class Marker {
     return tool == Tool.R8;
   }
 
+  @Nullable
   public String getVersion() {
-    return (String) content.get("version");
+    return (String) content.get(VERSION);
   }
 
-  public Marker put(String key, int value) {
-    // value is converted to Long ensuring equals works with the parsed json string.
-    return internalPut(key, Long.valueOf(value));
+  public Marker setVersion(String version) {
+    internalPut(VERSION, version);
+    return this;
   }
 
-  public Marker put(String key, String value) {
-    return internalPut(key, value);
+  @Nullable
+  public Integer getMinApi() {
+    return (Integer) content.get(MIN_API);
+  }
+
+  public Marker setMinApi(int minApi) {
+    internalPut(MIN_API, minApi);
+    return this;
+  }
+
+  @Nullable
+  public String getSha1() {
+    return (String) content.get(SHA1);
+  }
+
+  public Marker setSha1(String sha1) {
+    internalPut(SHA1, sha1);
+    return this;
   }
 
   private Marker internalPut(String key, Object value) {

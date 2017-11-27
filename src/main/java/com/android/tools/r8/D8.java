@@ -176,10 +176,10 @@ public final class D8 {
       return options.getMarker();
     }
     Marker marker = new Marker(Tool.D8)
-        .put("version", Version.LABEL)
-        .put("min-api", options.minApiLevel);
+        .setVersion(Version.LABEL)
+        .setMinApi(options.minApiLevel);
     if (Version.isDev()) {
-      marker.put("sha-1", VersionProperties.INSTANCE.getSha());
+      marker.setSha1(VersionProperties.INSTANCE.getSha());
     }
     return marker;
   }
