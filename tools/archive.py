@@ -99,7 +99,7 @@ def Main():
       file_name = os.path.basename(file)
       tagged_jar = os.path.join(temp, file_name)
       shutil.copyfile(file, tagged_jar)
-      if file_name.endsWith('.jar'):
+      if file_name.endswith('.jar'):
         with zipfile.ZipFile(tagged_jar, 'a') as zip:
           zip.write(version_file, os.path.basename(version_file))
       destination = GetUploadDestination(version, file_name, is_master)
