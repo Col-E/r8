@@ -18,8 +18,7 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.OffOrAuto;
 import com.android.tools.r8.utils.OutputMode;
 import com.beust.jcommander.internal.Lists;
-import com.google.common.io.Closer;
-import java.io.ByteArrayOutputStream;
+import com.google.common.io.ByteStreams;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -183,7 +182,7 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
     Resource mergeClassFiles(List<Resource> dexFiles, Path out) throws Throwable {
       D8Command.Builder builder = D8Command.builder();
       for (Resource dexFile : dexFiles) {
-        builder.addDexProgramData(readFromResource(dexFile), dexFile.origin);
+        builder.addDexProgramData(readResource(dexFile), dexFile.origin);
       }
       for (UnaryOperator<D8Command.Builder> transformation : builderTransformations) {
         builder = transformation.apply(builder);
@@ -226,7 +225,7 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
     for (Map.Entry<String, Resource> entry : compiledSeparately.entrySet()) {
       Resource otherResource = compiledTogether.get(entry.getKey());
       Assert.assertNotNull(otherResource);
-      Assert.assertArrayEquals(readFromResource(entry.getValue()), readFromResource(otherResource));
+      Assert.assertArrayEquals(readResource(entry.getValue()), readResource(otherResource));
     }
 
     Resource mergedFromCompiledSeparately =
@@ -234,8 +233,8 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
     Resource mergedFromCompiledTogether =
         test.mergeClassFiles(Lists.newArrayList(compiledTogether.values()), null);
     Assert.assertArrayEquals(
-        readFromResource(mergedFromCompiledSeparately),
-        readFromResource(mergedFromCompiledTogether));
+        readResource(mergedFromCompiledSeparately),
+        readResource(mergedFromCompiledTogether));
   }
 
   @Test
@@ -257,8 +256,8 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
             test.compileClassesTogether(inputJarFile, null).values()), null);
 
     Assert.assertArrayEquals(
-        readFromResource(mergedFromCompiledSeparately),
-        readFromResource(mergedFromCompiledTogether));
+        readResource(mergedFromCompiledSeparately),
+        readResource(mergedFromCompiledTogether));
   }
 
   @Test
@@ -299,16 +298,9 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
   @Override
   abstract D8IncrementalTestRunner test(String testName, String packageName, String mainClass);
 
-  static byte[] readFromResource(Resource resource) throws IOException {
-    ByteArrayOutputStream output = new ByteArrayOutputStream();
-    byte[] buffer = new byte[16384];
-    try (Closer closer = Closer.create()) {
-      InputStream stream = closer.register(resource.getStream());
-      int read;
-      while ((read = stream.read(buffer, 0, buffer.length)) != -1) {
-        output.write(buffer, 0, read);
-      }
+  static byte[] readResource(Resource resource) throws IOException {
+    try (InputStream input = resource.getStream()) {
+      return ByteStreams.toByteArray(input);
     }
-    return output.toByteArray();
   }
 }

@@ -118,8 +118,8 @@ public class D8LazyRunExamplesAndroidOTest
     AndroidApp mergedResult = mergeDexResources(minAPILevel, individalDexes);
 
     assertTrue(Arrays.equals(
-        readFromResource(fullBuildResult.getDexProgramResources().get(0)),
-        readFromResource(mergedResult.getDexProgramResources().get(0))));
+        readResource(fullBuildResult.getDexProgramResources().get(0)),
+        readResource(mergedResult.getDexProgramResources().get(0))));
   }
 
   private AndroidApp mergeDexResources(int minAPILevel, List<Resource> individalDexes)
@@ -127,7 +127,7 @@ public class D8LazyRunExamplesAndroidOTest
     D8Command.Builder builder = D8Command.builder()
         .setMinApiLevel(minAPILevel);
     for (Resource resource : individalDexes) {
-      builder.addDexProgramData(readFromResource(resource), resource.origin);
+      builder.addDexProgramData(readResource(resource), resource.origin);
     }
     AndroidApp mergedResult = ToolHelper.runD8(builder.build(),
         options -> options.setMarker(null));
