@@ -69,7 +69,7 @@ def Main():
   create_maven_release.main(["--out", utils.LIBS])
 
   # Generate and copy the build that exclude dependencies.
-  gradle.RunGradleExcludeDeps([utils.R8])
+  gradle.RunGradleExcludeDeps([utils.R8, utils.R8_SRC])
   shutil.copyfile(utils.R8_JAR, utils.R8_EXCLUDE_DEPS_JAR)
 
   # Ensure all archived artifacts has been built before archiving.
@@ -91,6 +91,7 @@ def Main():
 
     for file in [utils.D8_JAR,
                  utils.R8_JAR,
+                 utils.R8_SRC_JAR,
                  utils.R8_EXCLUDE_DEPS_JAR,
                  utils.COMPATDX_JAR,
                  utils.COMPATPROGUARD_JAR,
@@ -99,7 +100,7 @@ def Main():
       file_name = os.path.basename(file)
       tagged_jar = os.path.join(temp, file_name)
       shutil.copyfile(file, tagged_jar)
-      if file_name.endswith('.jar'):
+      if file_name.endswith('.jar') and not file_name.endswith('-src.jar'):
         with zipfile.ZipFile(tagged_jar, 'a') as zip:
           zip.write(version_file, os.path.basename(version_file))
       destination = GetUploadDestination(version, file_name, is_master)

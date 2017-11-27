@@ -25,11 +25,13 @@ SRC_ROOT = os.path.join(REPO_ROOT, 'src', 'main', 'java')
 
 D8 = 'd8'
 R8 = 'r8'
+R8_SRC = 'sourceJar'
 COMPATDX = 'compatdx'
 COMPATPROGUARD = 'compatproguard'
 
 D8_JAR = os.path.join(LIBS, 'd8.jar')
 R8_JAR = os.path.join(LIBS, 'r8.jar')
+R8_SRC_JAR = os.path.join(LIBS, 'r8-src.jar')
 R8_EXCLUDE_DEPS_JAR = os.path.join(LIBS, 'r8-exclude-deps.jar')
 COMPATDX_JAR = os.path.join(LIBS, 'compatdx.jar')
 COMPATPROGUARD_JAR = os.path.join(LIBS, 'compatproguard.jar')
