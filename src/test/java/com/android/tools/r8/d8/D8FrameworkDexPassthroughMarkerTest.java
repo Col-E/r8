@@ -61,8 +61,8 @@ public class D8FrameworkDexPassthroughMarkerTest {
         .addProgramFiles(FRAMEWORK_JAR)
         .build();
     Marker marker = new Marker(Tool.D8)
-        .put("revision", "1.0.0")
-        .put("threads", threads);
+        .setVersion("1.0.0")
+        .setMinApi(threads);
     Marker selfie = Marker.parse(marker.toString());
     assert marker.equals(selfie);
     AndroidApp app = ToolHelper.runD8(command, options -> {

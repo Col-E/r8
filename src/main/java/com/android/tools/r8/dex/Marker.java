@@ -68,11 +68,11 @@ public class Marker {
   }
 
   @Nullable
-  public Integer getMinApi() {
-    return (Integer) content.get(MIN_API);
+  public Long getMinApi() {
+    return (Long) content.get(MIN_API);
   }
 
-  public Marker setMinApi(int minApi) {
+  public Marker setMinApi(long minApi) {
     internalPut(MIN_API, minApi);
     return this;
   }
