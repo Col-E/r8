@@ -15,7 +15,6 @@ public class ProguardMapReaderTest {
 
   public static final String ROOT = ToolHelper.EXAMPLES_BUILD_DIR;
   public static final String EXAMPLE_MAP = "throwing/throwing.map";
-
   public static final String EXAMPLE_MAP_WITH_PACKAGE_INFO =
       "dagger.android.package-info -> dagger.android.package-info\n";
 

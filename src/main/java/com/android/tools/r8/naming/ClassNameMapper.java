@@ -69,7 +69,7 @@ public class ClassNameMapper implements ProguardMap {
     return mapperFromInputStream(Files.newInputStream(path));
   }
 
-  static ClassNameMapper mapperFromString(String contents) throws IOException {
+  public static ClassNameMapper mapperFromString(String contents) throws IOException {
     return mapperFromInputStream(
         new ByteArrayInputStream(contents.getBytes(StandardCharsets.UTF_8)));
   }
