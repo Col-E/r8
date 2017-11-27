@@ -1,0 +1,24 @@
+# Copyright (c) 2017, the R8 project authors. Please see the AUTHORS file
+# for details. All rights reserved. Use of this source code is governed by a
+# BSD-style license that can be found in the LICENSE file.
+
+# Keep the application entry point.
+-keep public class atomicfieldupdater.Main {
+  public static void main(...);
+}
+
+-keep,allowobfuscation class atomicfieldupdater.A
+
+-dontshrink
+-dontoptimize
+
+# This will be added to CompatProguard by default.
+# We are testing whether R8 shows the same behavior.
+-identifiernamestring public class java.util.concurrent.atomic.AtomicIntegerFieldUpdater {
+  public static java.util.concurrent.atomic.AtomicIntegerFieldUpdater
+      newUpdater(java.lang.Class, java.lang.String);
+}
+-identifiernamestring public class java.util.concurrent.atomic.AtomicLongFieldUpdater {
+  public static java.util.concurrent.atomic.AtomicLongFieldUpdater
+      newUpdater(java.lang.Class, java.lang.String);
+}
