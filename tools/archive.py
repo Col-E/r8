@@ -94,7 +94,8 @@ def Main():
                  utils.R8_EXCLUDE_DEPS_JAR,
                  utils.COMPATDX_JAR,
                  utils.COMPATPROGUARD_JAR,
-                 utils.MAVEN_ZIP]:
+                 utils.MAVEN_ZIP,
+                 utils.GENERATED_LICENSE]:
       file_name = os.path.basename(file)
       tagged_jar = os.path.join(temp, file_name)
       shutil.copyfile(file, tagged_jar)
