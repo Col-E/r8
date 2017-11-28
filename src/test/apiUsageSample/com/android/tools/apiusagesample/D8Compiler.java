@@ -8,7 +8,7 @@ import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.origin.PathOrigin;
-import com.android.tools.r8.utils.CompilationFailedException;
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.utils.OutputMode;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
@@ -77,7 +77,7 @@ public class D8Compiler {
 
   private void compile(Path output, Path input) throws Throwable {
     D8Command.Builder builder =
-        D8Command.builder()
+        D8Command.builder(new D8DiagnosticsHandler())
             // Compile in debug and merge in release to assert access to both modes
             .setMode(CompilationMode.DEBUG)
             .setMinApiLevel(minSdkVersion)
@@ -111,7 +111,7 @@ public class D8Compiler {
 
   private void merge(Path outputDir, Path mainDexClasses,
       List<Path> toMerge) throws IOException, CompilationFailedException {
-    D8Command.Builder merger = D8Command.builder();
+    D8Command.Builder merger = D8Command.builder(new D8DiagnosticsHandler());
     merger.setEnableDesugaring(false);
 
     for (Path mergeInput : toMerge) {

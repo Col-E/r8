@@ -1646,12 +1646,17 @@ task javadocD8(type: Javadoc) {
   include '**/com/android/tools/r8/BaseCommand.java'
   include '**/com/android/tools/r8/BaseOutput.java'
   include '**/com/android/tools/r8/ClassFileResourceProvider.java'
-  include '**/com/android/tools/r8/CompilationException.java'
+  include '**/com/android/tools/r8/CompilationFailedException.java'
   include '**/com/android/tools/r8/CompilationMode.java'
   include '**/com/android/tools/r8/D8.java'
   include '**/com/android/tools/r8/D8Command.java'
   include '**/com/android/tools/r8/D8Output.java'
+  include '**/com/android/tools/r8/Diagnostic.java'
+  include '**/com/android/tools/r8/DiagnosticsHandler.java'
+  include '**/com/android/tools/r8/Location.java'
   include '**/com/android/tools/r8/Resource.java'
+  include '**/com/android/tools/r8/TextRangeLocation.java'
+  include '**/com/android/tools/r8/origin/*.java'
 }
 
 task copyMavenDeps(type: Copy) {
