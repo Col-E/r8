@@ -5,6 +5,7 @@ package atomicfieldupdater;
 
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.atomic.AtomicLongFieldUpdater;
+import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 public class Main {
   public static void main(String[] args) throws Exception {
@@ -14,5 +15,9 @@ public class Main {
 
     AtomicLongFieldUpdater<A> lUpdater = AtomicLongFieldUpdater.newUpdater(A.class, "l");
     lUpdater.set(a, 8L);
+
+    AtomicReferenceFieldUpdater<A, Object> oUpdater =
+        AtomicReferenceFieldUpdater.newUpdater(A.class, Object.class, "o");
+    oUpdater.set(a, null);
   }
 }

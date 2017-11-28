@@ -165,7 +165,7 @@ public class IdentifierMinifierTest {
     ClassSubject a = inspector.clazz("atomicfieldupdater.A");
     Set<Instruction> constStringInstructions =
         getRenamedMemberIdentifierConstStrings(a, mainCode.asDexCode().instructions);
-    assertEquals(2, constStringInstructions.size());
+    assertEquals(3, constStringInstructions.size());
   }
 
   private static void test_forname(DexInspector inspector) {

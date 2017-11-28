@@ -111,11 +111,7 @@ public class IdentifierNameStringMarker {
             List<Value> ins = invoke.arguments();
             Value[] changes = new Value [ins.size()];
             if (isReflectiveCase(invokedMethod)) {
-              Value in = ins.get(1);
-              Value newIn = decoupleReflectiveMemberIdentifier(code, iterator, invoke, in);
-              if (newIn != in) {
-                changes[1] = newIn;
-              }
+              decoupleReflectiveMemberIdentifier(code, iterator, invoke, changes);
             } else {
               for (int i = 0; i < ins.size(); i++) {
                 Value in = ins.get(i);
@@ -159,34 +155,49 @@ public class IdentifierNameStringMarker {
     return insertItemBasedString(code, iterator, base, in, itemBasedString);
   }
 
-  private Value decoupleReflectiveMemberIdentifier(
-    IRCode code, InstructionListIterator iterator, InvokeMethod invoke, Value in) {
+  private void decoupleReflectiveMemberIdentifier(
+      IRCode code, InstructionListIterator iterator, InvokeMethod invoke, Value[] changes) {
+    List<Value> ins = invoke.arguments();
+    boolean isReferenceFieldUpdater =
+        invoke.getReturnType().descriptor == dexItemFactory.referenceFieldUpdaterDescriptor;
+    int positionOfIdentifier = isReferenceFieldUpdater ? 2 : 1;
+    Value in = ins.get(positionOfIdentifier);
     if (!in.isConstString()) {
-      return in;
+      return;
     }
-    Value classValue = invoke.arguments().get(0);
+    Value classValue = ins.get(0);
     if (!classValue.isConstClass()) {
-      return in;
+      return;
     }
     DexType holderType = classValue.getConstInstruction().asConstClass().getValue();
     DexClass holder = appInfo.definitionFor(holderType);
     if (holder == null) {
-      return in;
+      return;
     }
     DexString dexString = in.getConstInstruction().asConstString().getValue();
     DexItemBasedString itemBasedString = null;
-    int numOfParams = invoke.arguments().size();
-    if (numOfParams == 2) {
-      itemBasedString = inferFieldInHolder(holder, dexString.toString());
+    int numOfParams = ins.size();
+    if (isReferenceFieldUpdater) {
+      Value fieldTypeValue = ins.get(1);
+      if (!fieldTypeValue.isConstClass()) {
+        return;
+      }
+      DexType fieldType = fieldTypeValue.getConstInstruction().asConstClass().getValue();
+      itemBasedString = inferFieldInHolder(holder, dexString.toString(), fieldType);
+    } else if (numOfParams == 2) {
+      itemBasedString = inferFieldInHolder(holder, dexString.toString(), null);
     } else {
       assert numOfParams == 3;
-      DexTypeList arguments = retrieveDexTypeListFromClassList(invoke, invoke.arguments().get(2));
+      DexTypeList arguments = retrieveDexTypeListFromClassList(invoke, ins.get(2));
       itemBasedString = inferMethodInHolder(holder, dexString.toString(), arguments);
     }
     if (itemBasedString == null) {
-      return in;
+      return;
     }
-    return insertItemBasedString(code, iterator, invoke, in, itemBasedString);
+    Value newIn = insertItemBasedString(code, iterator, invoke, in, itemBasedString);
+    if (newIn != in) {
+      changes[positionOfIdentifier] = newIn;
+    }
   }
 
   private Value insertItemBasedString(
@@ -267,24 +278,27 @@ public class IdentifierNameStringMarker {
     if (holder == null) {
       return null;
     }
-    DexItemBasedString itemBasedString = inferFieldInHolder(holder, memberIdentifier);
+    DexItemBasedString itemBasedString = inferFieldInHolder(holder, memberIdentifier, null);
     if (itemBasedString == null) {
       itemBasedString = inferMethodInHolder(holder, memberIdentifier, null);
     }
     return itemBasedString;
   }
 
-  private DexItemBasedString inferFieldInHolder(DexClass holder, String name) {
+  private DexItemBasedString inferFieldInHolder(
+      DexClass holder, String name, DexType fieldType) {
     DexItemBasedString itemBasedString = null;
     for (DexEncodedField encodedField : holder.staticFields()) {
-      if (encodedField.field.name.toString().equals(name)) {
+      if (encodedField.field.name.toString().equals(name)
+          && (fieldType == null || encodedField.field.type == fieldType)) {
         itemBasedString = dexItemFactory.createItemBasedString(encodedField.field);
         break;
       }
     }
     if (itemBasedString == null) {
       for (DexEncodedField encodedField : holder.instanceFields()) {
-        if (encodedField.field.name.toString().equals(name)) {
+        if (encodedField.field.name.toString().equals(name)
+            && (fieldType == null || encodedField.field.type == fieldType)) {
           itemBasedString = dexItemFactory.createItemBasedString(encodedField.field);
           break;
         }
@@ -321,6 +335,8 @@ public class IdentifierNameStringMarker {
     //   (String, Class[]) -> java.lang.reflect.Method
     // For java.util.concurrent.atomic.Atomic(Integer|Long)FieldUpdater:
     //   (Class, String) -> $holderType
+    // For java.util.concurrent.atomic.AtomicReferenceFieldUpdater:
+    //   (Class, Class, String) -> $holderType
     // For any other types:
     //   (Class, String) -> java.lang.reflect.Field
     //   (Class, String, Class[]) -> java.lang.reflect.Method
@@ -350,6 +366,7 @@ public class IdentifierNameStringMarker {
     } else if (
         method.holder.descriptor == dexItemFactory.intFieldUpdaterDescriptor
         || method.holder.descriptor == dexItemFactory.longFieldUpdaterDescriptor) {
+      // Atomic(Integer|Long)FieldUpdater->newUpdater(Class, String)AtomicFieldUpdater
       if (arity != 2) {
         return false;
       }
@@ -360,6 +377,23 @@ public class IdentifierNameStringMarker {
         return false;
       }
       if (method.proto.parameters.values[1].descriptor != dexItemFactory.stringDescriptor) {
+        return false;
+      }
+    } else if (method.holder.descriptor == dexItemFactory.referenceFieldUpdaterDescriptor) {
+      // AtomicReferenceFieldUpdater->newUpdater(Class, Class, String)AtomicFieldUpdater
+      if (arity != 3) {
+        return false;
+      }
+      if (method.proto.returnType.descriptor != method.holder.descriptor) {
+        return false;
+      }
+      if (method.proto.parameters.values[0].descriptor != dexItemFactory.classDescriptor) {
+        return false;
+      }
+      if (method.proto.parameters.values[1].descriptor != dexItemFactory.classDescriptor) {
+        return false;
+      }
+      if (method.proto.parameters.values[2].descriptor != dexItemFactory.stringDescriptor) {
         return false;
       }
     } else {
