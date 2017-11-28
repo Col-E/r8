@@ -7,6 +7,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public abstract class DebugTestConfig {
 
@@ -51,5 +52,23 @@ public abstract class DebugTestConfig {
 
   public void setProguardMap(Path proguardMap) {
     this.proguardMap = proguardMap;
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder builder =
+        new StringBuilder()
+            .append("DebugTestConfig{")
+            .append("runtime:")
+            .append(getRuntimeKind())
+            .append(", classpath:[")
+            .append(
+                String.join(", ", paths.stream().map(Path::toString).collect(Collectors.toList())))
+            .append("]");
+    if (proguardMap != null) {
+      builder.append(", pgmap:").append(proguardMap);
+    }
+    builder.append("}");
+    return builder.toString();
   }
 }

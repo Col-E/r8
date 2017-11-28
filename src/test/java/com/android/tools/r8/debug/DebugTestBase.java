@@ -31,7 +31,9 @@ import java.util.Optional;
 import java.util.TreeMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.harmony.jpda.tests.framework.TestErrorException;
 import org.apache.harmony.jpda.tests.framework.jdwp.CommandPacket;
 import org.apache.harmony.jpda.tests.framework.jdwp.Event;
@@ -86,6 +88,7 @@ public abstract class DebugTestBase {
 
   public static final StepFilter NO_FILTER = new StepFilter.NoStepFilter();
   public static final StepFilter INTELLIJ_FILTER = new StepFilter.IntelliJStepFilter();
+  public static final StepFilter ANDROID_FILTER = new StepFilter.AndroidRuntimeStepFilter();
   private static final StepFilter DEFAULT_FILTER = NO_FILTER;
 
   private static final int FIRST_LINE = -1;
@@ -96,26 +99,9 @@ public abstract class DebugTestBase {
   @Rule
   public TestName testName = new TestName();
 
-  private DebugTestConfig currentConfig = null;
-
   protected static final boolean supportsDefaultMethod(DebugTestConfig config) {
     return config.isCfRuntime()
         || ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm()) >= AndroidApiLevel.N.getLevel();
-  }
-
-  private DebugTestConfig getCurrentConfig() {
-    if (currentConfig == null) {
-      throw new RuntimeException("Nothing is running currently.");
-    }
-    return currentConfig;
-  }
-
-  protected final boolean isCfRuntime() {
-    return getCurrentConfig().isCfRuntime();
-  }
-
-  protected final boolean isDexRuntime() {
-    return getCurrentConfig().isDexRuntime();
   }
 
   protected final void runDebugTest(
@@ -145,15 +131,69 @@ public abstract class DebugTestBase {
             ? null
             : ClassNameMapper.mapperFromFile(config.getProguardMap());
 
-    currentConfig = config;
-    new JUnit3Wrapper(
+    new JUnit3Wrapper(config, debuggeeClass, commands, classNameMapper).runBare();
+  }
+
+  /** Lazily debug-step an execution producing a stream of successive debuggee states. */
+  public Stream<JUnit3Wrapper.DebuggeeState> streamDebugTest(
+      DebugTestConfig config, String debuggeeClass, StepFilter filter) throws Throwable {
+
+    // Continuous single-step command.
+    // The execution of the command pushes itself onto the command queue ensuring the next step.
+    JUnit3Wrapper.Command streamCommand =
+        new JUnit3Wrapper.Command() {
+          @Override
+          public void perform(JUnit3Wrapper testBase) {
+            stepInto(filter).perform(testBase);
+            testBase.commandsQueue.push(this);
+          }
+        };
+
+    // Initial setup of the debug tests. Assumes execution starts at the "main" method of the class.
+    final JUnit3Wrapper wrapper =
+        new JUnit3Wrapper(
+            config,
             debuggeeClass,
-            config.getPaths().stream().map(Path::toString).toArray(String[]::new),
-            commands,
-            classNameMapper,
-            isDexRuntime())
-        .runBare();
-    currentConfig = null;
+            ImmutableList.of(breakpoint(debuggeeClass, "main", "([Ljava/lang/String;)V"), run()),
+            null);
+
+    // Setup the initial state for the JDWP test base and run the program to the initial breakpoint.
+    wrapper.prepareForStreaming();
+    boolean running = true;
+    while (running
+        && !(wrapper.commandsQueue.isEmpty()
+            && wrapper.state == JUnit3Wrapper.State.ProcessCommand)) {
+      running = wrapper.mainLoopStep();
+    }
+
+    // Add the "infinite streaming" command.
+    wrapper.commandsQueue.addLast(streamCommand);
+    final boolean initiallyRunning = running;
+
+    // Construct an infinite stream of states. Each element denotes the next debuggee state reached
+    // by single-stepping the program. On and after exit, all elements are null.
+    return Stream.generate(
+        new Supplier<JUnit3Wrapper.DebuggeeState>() {
+
+          private boolean initial = true;
+          private boolean running = initiallyRunning;
+
+          @Override
+          public JUnit3Wrapper.DebuggeeState get() {
+            if (initial) {
+              initial = false;
+              return wrapper.getDebuggeeState();
+            }
+            while (running) {
+              running = wrapper.mainLoopStep();
+              JUnit3Wrapper.DebuggeeState state = wrapper.getDebuggeeState();
+              if (state != null && !state.frames.isEmpty()) {
+                return state;
+              }
+            }
+            return null;
+          }
+        });
   }
 
   protected final JUnit3Wrapper.Command run() {
@@ -321,7 +361,7 @@ public abstract class DebugTestBase {
       // when breaking in <clinit>. Last known good version is 7.0.0.
       Assume.assumeTrue(
           "Skipping test " + testName.getMethodName() + " because ART version is not supported",
-          isCfRuntime() || ToolHelper.getDexVm().getVersion().isOlderThanOrEqual(Version.V7_0_0));
+          t.isCfRuntime() || ToolHelper.getDexVm().getVersion().isOlderThanOrEqual(Version.V7_0_0));
       checkStaticField(className, fieldName, fieldSignature, expectedValue);
     });
   }
@@ -352,8 +392,6 @@ public abstract class DebugTestBase {
 
     private final String debuggeeClassName;
 
-    private final String[] debuggeePath;
-
     // Initially, the runtime is suspended so we're ready to process commands.
     private State state = State.ProcessCommand;
 
@@ -369,7 +407,7 @@ public abstract class DebugTestBase {
     // Active event requests.
     private final Map<Integer, EventHandler> events = new TreeMap<>();
 
-    private final boolean isRunningArt;
+    private final DebugTestConfig config;
 
     /**
      * The Translator interface provides mapping between the class and method names and line numbers
@@ -521,20 +559,22 @@ public abstract class DebugTestBase {
     }
 
     JUnit3Wrapper(
+        DebugTestConfig config,
         String debuggeeClassName,
-        String[] debuggeePath,
         List<Command> commands,
-        ClassNameMapper classNameMapper,
-        boolean isRunningArt) {
+        ClassNameMapper classNameMapper) {
+      this.config = config;
       this.debuggeeClassName = debuggeeClassName;
-      this.debuggeePath = debuggeePath;
       this.commandsQueue = new ArrayDeque<>(commands);
       if (classNameMapper == null) {
         this.translator = new IdentityTranslator();
       } else {
         this.translator = new ClassNameMapperTranslator(classNameMapper);
       }
-      this.isRunningArt = isRunningArt;
+    }
+
+    void prepareForStreaming() throws Exception {
+      setUp();
     }
 
     @Override
@@ -543,52 +583,56 @@ public abstract class DebugTestBase {
         logWriter.println("Starts loop with " + commandsQueue.size() + " command(s) to process");
       }
 
-      boolean exited = false;
-      while (!exited) {
-        if (DEBUG_TESTS) {
-          logWriter.println("Loop on state " + state.name());
-        }
-        switch (state) {
-          case ProcessCommand: {
-            Command command = commandsQueue.poll();
-            assert command != null;
-            if (DEBUG_TESTS) {
-              logWriter.println("Process command " + command.toString());
-            }
-            try {
-              command.perform(this);
-            } catch (TestErrorException e) {
-              boolean ignoreException = false;
-              if (ToolHelper.getDexVm().getVersion() == Version.V4_4_4) {
-                // Dalvik has flaky synchronization issue on shutdown. The workaround is to ignore
-                // the exception if and only if we know that it's the final resume command.
-                if (debuggeeState == null && commandsQueue.isEmpty()) {
-                  // We should receive the VMDeath event and transition to the Exit state here.
-                  processEvents();
-                  assert state == State.Exit;
-                  ignoreException = true;
-                }
-              }
-              if (!ignoreException) {
-                throw e;
-              }
-            }
-            break;
-          }
-          case WaitForEvent:
-            processEvents();
-            break;
-          case Exit:
-            exited = true;
-            break;
-          default:
-            throw new AssertionError();
-        }
+      while (mainLoopStep()) {
+        // Continue stepping until mainLoopStep exits with false.
       }
 
-      assertTrue("All commands have NOT been processed", commandsQueue.isEmpty());
+      assertTrue(
+          "All commands have NOT been processed for config: " + config, commandsQueue.isEmpty());
 
       logWriter.println("Finish loop");
+    }
+
+    private boolean mainLoopStep() {
+      if (DEBUG_TESTS) {
+        logWriter.println("Loop on state " + state.name());
+      }
+      switch (state) {
+        case ProcessCommand: {
+          Command command = commandsQueue.poll();
+          assert command != null;
+          if (DEBUG_TESTS) {
+            logWriter.println("Process command " + command.toString());
+          }
+          try {
+            command.perform(this);
+          } catch (TestErrorException e) {
+            boolean ignoreException = false;
+            if (ToolHelper.getDexVm().getVersion() == Version.V4_4_4) {
+              // Dalvik has flaky synchronization issue on shutdown. The workaround is to ignore
+              // the exception if and only if we know that it's the final resume command.
+              if (debuggeeState == null && commandsQueue.isEmpty()) {
+                // We should receive the VMDeath event and transition to the Exit state here.
+                processEvents();
+                assert state == State.Exit;
+                ignoreException = true;
+              }
+            }
+            if (!ignoreException) {
+              throw e;
+            }
+          }
+          break;
+        }
+        case WaitForEvent:
+          processEvents();
+          break;
+        case Exit:
+          return false;
+        default:
+          throw new AssertionError();
+      }
+      return true;
     }
 
     @Override
@@ -671,7 +715,7 @@ public abstract class DebugTestBase {
 
         ArtTestOptions(String[] debuggeePath) {
           // Set debuggee command-line.
-          if (isRunningArt) {
+          if (config.isDexRuntime()) {
             ArtCommandBuilder artCommandBuilder = new ArtCommandBuilder(ToolHelper.getDexVm());
             if (ToolHelper.getDexVm().getVersion().isNewerThan(DexVm.Version.V5_1_1)) {
               artCommandBuilder.appendArtOption("-Xcompiler-option");
@@ -695,7 +739,8 @@ public abstract class DebugTestBase {
           setProperty("jpda.settings.verbose", Boolean.toString(DEBUG_TESTS));
         }
       }
-      return new ArtTestOptions(debuggeePath);
+      return new ArtTestOptions(
+          config.getPaths().stream().map(Path::toString).toArray(String[]::new));
     }
 
     public void enqueueCommandFirst(Command command) {
@@ -951,14 +996,29 @@ public abstract class DebugTestBase {
         }
       }
 
+      private final DebugTestConfig config;
       private final VmMirror mirror;
       private final long threadId;
       private final List<DebuggeeFrame> frames;
 
-      public DebuggeeState(VmMirror mirror, long threadId, List<DebuggeeFrame> frames) {
+      public DebuggeeState(
+          DebugTestConfig config, VmMirror mirror, long threadId, List<DebuggeeFrame> frames) {
+        this.config = config;
         this.mirror = mirror;
         this.threadId = threadId;
         this.frames = frames;
+      }
+
+      public DebugTestConfig getConfig() {
+        return config;
+      }
+
+      public boolean isCfRuntime() {
+        return getConfig().isCfRuntime();
+      }
+
+      public boolean isDexRuntime() {
+        return getConfig().isDexRuntime();
       }
 
       public VmMirror getMirror() {
@@ -1159,7 +1219,7 @@ public abstract class DebugTestBase {
     private void updateEventContext(EventThread event) {
       final long threadId = event.getThreadID();
       final List<JUnit3Wrapper.DebuggeeState.DebuggeeFrame> frames = new ArrayList<>();
-      debuggeeState = new DebuggeeState(getMirror(), threadId, frames);
+      debuggeeState = new DebuggeeState(config, getMirror(), threadId, frames);
 
       // ART returns an error if we ask for frames when there is none. Workaround by asking the
       // frame count first.
@@ -1536,8 +1596,7 @@ public abstract class DebugTestBase {
             "javassist.*",
             "org.apache.webbeans.*",
             "com.ibm.ws.*",
-            "kotlin.*"
-        );
+            "kotlin.*");
       }
 
       @Override
@@ -1615,6 +1674,20 @@ public abstract class DebugTestBase {
         return methodName.startsWith("lambda$");
       }
     }
-  }
 
+    /**
+     * IntelliJ derived step filter that also skips all android runtime specific libraries.
+     */
+    class AndroidRuntimeStepFilter extends IntelliJStepFilter {
+
+      @Override
+      public List<String> getExcludedClasses() {
+        return ImmutableList.<String>builder()
+            .addAll(super.getExcludedClasses())
+            .add("libcore.*")
+            .add("dalvik.*")
+            .build();
+      }
+    }
+  }
 }
