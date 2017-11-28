@@ -1294,10 +1294,14 @@ public class CodeRewriter {
     InstructionListIterator insertAt = block.listIterator();
     // Place the instruction as late in the block as we can. It needs to go before users
     // and if we have catch handlers it needs to be placed before the throwing instruction.
+    // Also, in an attempt to help Art VMs with broken bounds check elimination code,
+    // we also do not lower the constants past array-length instructions in their
+    // target block. See comment on options.canHaveBoundsCheckEliminationBug.
     insertAt.nextUntil(i ->
         i.inValues().contains(instruction.outValue())
         || i.isJumpInstruction()
-        || (hasCatchHandlers && i.instructionTypeCanThrow()));
+        || (hasCatchHandlers && i.instructionTypeCanThrow())
+        || (options.canHaveBoundsCheckEliminationBug() && i.isArrayLength()));
     Instruction next = insertAt.previous();
     instruction.forceSetPosition(
         next.isGoto() ? next.asGoto().getTarget().getPosition() : next.getPosition());
