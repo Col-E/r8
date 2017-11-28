@@ -20,7 +20,9 @@ import com.android.tools.r8.cf.code.CfLabel;
 import com.android.tools.r8.cf.code.CfLoad;
 import com.android.tools.r8.cf.code.CfNew;
 import com.android.tools.r8.cf.code.CfNewArray;
+import com.android.tools.r8.cf.code.CfNop;
 import com.android.tools.r8.cf.code.CfPop;
+import com.android.tools.r8.cf.code.CfPosition;
 import com.android.tools.r8.cf.code.CfReturn;
 import com.android.tools.r8.cf.code.CfReturnVoid;
 import com.android.tools.r8.cf.code.CfStaticGet;
@@ -34,6 +36,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.NumericType;
+import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.utils.DescriptorUtils;
 import java.util.HashMap;
@@ -86,6 +89,10 @@ public class CfPrinter {
   private void print(String name) {
     indent();
     builder.append(name);
+  }
+
+  public void print(CfNop nop) {
+    print("nop");
   }
 
   public void print(CfConstNull constNull) {
@@ -199,6 +206,15 @@ public class CfPrinter {
     builder.append(getLabel(label)).append(':');
   }
 
+  public void print(CfPosition instruction) {
+    Position position = instruction.getPosition();
+    indent();
+    builder.append(".line ").append(position.line);
+    if (position.file != null || position.callerPosition != null) {
+      comment(position.toString());
+    }
+  }
+
   public void print(CfGoto jump) {
     indent();
     builder.append("goto ").append(getLabel(jump.getTarget()));
@@ -228,14 +244,14 @@ public class CfPrinter {
   }
 
   public void print(CfLoad load) {
-    print(load.getType(), "load", load.getLocalIndex());
+    printPrefixed(load.getType(), "load", load.getLocalIndex());
   }
 
   public void print(CfStore store) {
-    print(store.getType(), "store", store.getLocalIndex());
+    printPrefixed(store.getType(), "store", store.getLocalIndex());
   }
 
-  private void print(ValueType type, String instruction, int local) {
+  private void printPrefixed(ValueType type, String instruction, int local) {
     indent();
     builder.append(typePrefix(type)).append(instruction).append(' ').append(local);
   }

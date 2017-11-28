@@ -20,12 +20,43 @@ import java.util.stream.Stream;
 import org.apache.harmony.jpda.tests.framework.jdwp.Frame.Variable;
 
 public class DebugStreamComparator {
+  private boolean verifyLines = true;
+  private boolean verifyFiles = true;
+  private boolean verifyMethods = true;
+  private boolean verifyClasses = true;
+  private boolean verifyVariables = true;
+
   private final List<String> names = new ArrayList<>();
   private final List<Stream<DebuggeeState>> streams = new ArrayList<>();
 
   public DebugStreamComparator add(String name, Stream<DebuggeeState> stream) {
     names.add(name);
     streams.add(stream);
+    return this;
+  }
+
+  public DebugStreamComparator setVerifyLines(boolean verifyLines) {
+    this.verifyLines = verifyLines;
+    return this;
+  }
+
+  public DebugStreamComparator setVerifyFiles(boolean verifyFiles) {
+    this.verifyFiles = verifyFiles;
+    return this;
+  }
+
+  public DebugStreamComparator setVerifyMethods(boolean verifyMethods) {
+    this.verifyMethods = verifyMethods;
+    return this;
+  }
+
+  public DebugStreamComparator setVerifyClasses(boolean verifyClasses) {
+    this.verifyClasses = verifyClasses;
+    return this;
+  }
+
+  public DebugStreamComparator setVerifyVariables(boolean verifyVariables) {
+    this.verifyVariables = verifyVariables;
     return this;
   }
 
@@ -74,7 +105,7 @@ public class DebugStreamComparator {
             + state.getMethodSignature());
   }
 
-  private static void verifyStatesEqual(List<DebuggeeState> states) {
+  private void verifyStatesEqual(List<DebuggeeState> states) {
     DebuggeeState reference = states.get(0);
     int line = reference.getLineNumber();
     String file = reference.getSourceFile();
@@ -84,12 +115,22 @@ public class DebugStreamComparator {
     List<Variable> variables = reference.getVisibleVariables();
     for (int i = 1; i < states.size(); i++) {
       DebuggeeState state = states.get(i);
-      assertEquals("source file mismatch", file, state.getSourceFile());
-      assertEquals("line number mismatch", line, state.getLineNumber());
-      assertEquals("class name mismatch", clazz, state.getClassName());
-      assertEquals(
-          "method mismatch", method + sig, state.getMethodName() + state.getMethodSignature());
-      verifyVariablesEqual(variables, state.getVisibleVariables());
+      if (verifyFiles) {
+        assertEquals("source file mismatch", file, state.getSourceFile());
+      }
+      if (verifyLines) {
+        assertEquals("line number mismatch", line, state.getLineNumber());
+      }
+      if (verifyClasses) {
+        assertEquals("class name mismatch", clazz, state.getClassName());
+      }
+      if (verifyMethods) {
+        assertEquals(
+            "method mismatch", method + sig, state.getMethodName() + state.getMethodSignature());
+      }
+      if (verifyVariables) {
+        verifyVariablesEqual(variables, state.getVisibleVariables());
+      }
     }
   }
 

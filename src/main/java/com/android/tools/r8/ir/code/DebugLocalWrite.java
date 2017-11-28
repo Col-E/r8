@@ -3,8 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
+import com.android.tools.r8.cf.code.CfStore;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.conversion.CfBuilder;
 
 /**
  * Instruction introducing an SSA value with attached local information.
@@ -54,5 +57,16 @@ public class DebugLocalWrite extends Move {
   @Override
   public DexType computeVerificationType(TypeVerificationHelper helper) {
     return helper.getType(src());
+  }
+
+  @Override
+  public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
+    helper.loadInValues(this, it);
+    // A local-write does not have an outgoing stack value, but in writes directly to the local.
+  }
+
+  @Override
+  public void buildCf(CfBuilder builder) {
+    builder.add(new CfStore(outType(), builder.getLocalRegister(outValue())));
   }
 }

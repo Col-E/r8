@@ -9,6 +9,8 @@ import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfFrame;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfLabel;
+import com.android.tools.r8.cf.code.CfNop;
+import com.android.tools.r8.cf.code.CfPosition;
 import com.android.tools.r8.cf.code.CfTryCatch;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
@@ -25,6 +27,7 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Load;
+import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.StackValue;
 import com.android.tools.r8.ir.code.Store;
 import com.android.tools.r8.ir.code.Value;
@@ -55,6 +58,7 @@ public class CfBuilder {
   private Set<CfLabel> emittedLabels;
   private List<CfInstruction> instructions;
   private CfRegisterAllocator registerAllocator;
+  private Position currentPosition = Position.none();
 
   // Internal abstraction of the stack values and height.
   private static class Stack {
@@ -235,8 +239,33 @@ public class CfBuilder {
           stack.push(outValue);
         }
       }
+      Position position = instruction.getPosition();
+      if (position.isSome() && position != currentPosition) {
+        CfInstruction previous = getLastInstruction();
+        if (instruction.isDebugPosition() && previous instanceof CfPosition) {
+          // Insert a nop instruction if the position changes without any intermediate instruction.
+          add(new CfNop());
+        }
+        CfLabel label = ensureLabel();
+        add(new CfPosition(label, position));
+        currentPosition = position;
+      }
       instruction.buildCf(this);
     }
+  }
+
+  private CfLabel ensureLabel() {
+    CfInstruction last = getLastInstruction();
+    if (last instanceof CfLabel) {
+      return (CfLabel) last;
+    }
+    CfLabel label = new CfLabel();
+    add(label);
+    return label;
+  }
+
+  private CfInstruction getLastInstruction() {
+    return instructions.isEmpty() ? null : instructions.get(instructions.size() - 1);
   }
 
   private void addFrame(BasicBlock block, Collection<StackValue> stack) {
