@@ -43,32 +43,33 @@ public class D8FrameworkDexPassthroughMarkerTest {
   @Rule
   public TemporaryFolder output = ToolHelper.getTemporaryFolderForTest();
 
-  @Parameters(name = "Number of threads = {0}")
+  @Parameters(name = "Min api = {0}")
   public static Collection<Object[]> data() {
-    return Arrays.asList(new Object[][] { {1}, {2}, {4}, {8}, {16} });
+    return Arrays.asList(new Object[][]{
+        {AndroidApiLevel.N.getLevel()},
+        {AndroidApiLevel.O.getLevel()},
+        {AndroidApiLevel.O_MR1.getLevel()}
+    });
   }
 
-  private final int threads;
+  private final int minApi;
 
-  public D8FrameworkDexPassthroughMarkerTest(int threads) {
-    this.threads = threads;
+  public D8FrameworkDexPassthroughMarkerTest(int minApi) {
+    this.minApi = minApi;
   }
 
   @Test
   public void compile() throws Exception {
     D8Command command = D8Command.builder()
-        .setMinApiLevel(AndroidApiLevel.N.getLevel())
+        .setMinApiLevel(minApi)
         .addProgramFiles(FRAMEWORK_JAR)
         .build();
     Marker marker = new Marker(Tool.D8)
         .setVersion("1.0.0")
-        .setMinApi(threads);
+        .setMinApi(minApi);
     Marker selfie = Marker.parse(marker.toString());
     assert marker.equals(selfie);
-    AndroidApp app = ToolHelper.runD8(command, options -> {
-      options.setMarker(marker);
-      options.numberOfThreads = threads;
-    });
+    AndroidApp app = ToolHelper.runD8(command, options -> options.setMarker(marker));
     DexApplication dexApp =
         new ApplicationReader(
                 app, new InternalOptions(), new Timing("D8FrameworkDexPassthroughMarkerTest"))
