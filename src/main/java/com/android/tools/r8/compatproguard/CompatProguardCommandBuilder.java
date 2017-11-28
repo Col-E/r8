@@ -26,6 +26,11 @@ public class CompatProguardCommandBuilder extends R8Command.Builder {
       "-identifiernamestring public class java.util.concurrent.atomic.AtomicLongFieldUpdater {",
       "  public static java.util.concurrent.atomic.AtomicLongFieldUpdater",
       "      newUpdater(java.lang.Class, java.lang.String);",
+      "}",
+      "-identifiernamestring public class",
+      "    java.util.concurrent.atomic.AtomicReferenceFieldUpdater {",
+      "  public static java.util.concurrent.atomic.AtomicReferenceFieldUpdater",
+      "      newUpdater(java.lang.Class, java.lang.Class, java.lang.String);",
       "}"
   );
 

@@ -6,4 +6,5 @@ package atomicfieldupdater;
 public class A {
   volatile int i;
   volatile long l;
+  volatile Object o;
 }

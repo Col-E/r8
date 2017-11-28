@@ -134,6 +134,8 @@ public class DexItemFactory {
       createString("Ljava/util/concurrent/atomic/AtomicIntegerFieldUpdater;");
   public final DexString longFieldUpdaterDescriptor =
       createString("Ljava/util/concurrent/atomic/AtomicLongFieldUpdater;");
+  public final DexString referenceFieldUpdaterDescriptor =
+      createString("Ljava/util/concurrent/atomic/AtomicReferenceFieldUpdater;");
 
   public final DexString constructorMethodName = createString(Constants.INSTANCE_INITIALIZER_NAME);
   public final DexString classConstructorMethodName = createString(Constants.CLASS_INITIALIZER_NAME);

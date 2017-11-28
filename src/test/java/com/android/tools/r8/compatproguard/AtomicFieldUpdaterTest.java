@@ -97,4 +97,43 @@ public class AtomicFieldUpdaterTest extends CompatProguardSmaliTestBase {
     assertTrue(code.instructions[2] instanceof InvokeStatic);
     assertTrue(code.instructions[3] instanceof ReturnVoid);
   }
+
+  @Test
+  public void referenceFieldUpdater_renamed() throws Exception {
+    SmaliBuilder builder = new SmaliBuilder(CLASS_NAME);
+    builder.addMainMethod(
+        3,
+        "const-class v0, LBoo;",
+        "const-class v1, Ljava/lang/Object;",
+        "const-string v2, \"foo\"",
+        "invoke-static {v0, v1, v2}, "
+            + "Ljava/util/concurrent/atomic/AtomicReferenceFieldUpdater;"
+            + "->newUpdater(Ljava/lang/Class;Ljava/lang/Class;Ljava/lang/String;)"
+            + "Ljava/util/concurrent/atomic/AtomicReferenceFieldUpdater;",
+        "return-void");
+
+    builder.addClass(BOO);
+    builder.addStaticField("foo", "Ljava/lang/Object;");
+
+    List<String> pgConfigs = ImmutableList.of(
+        "-keep class " + CLASS_NAME + " { *; }",
+        "-keep,allowobfuscation class " + BOO,
+        "-dontshrink",
+        "-dontoptimize");
+    DexInspector inspector = runCompatProguard(builder, pgConfigs);
+
+    ClassSubject clazz = inspector.clazz(CLASS_NAME);
+    assertTrue(clazz.isPresent());
+    MethodSubject method = clazz.method(DexInspector.MAIN);
+    assertTrue(method.isPresent());
+
+    DexCode code = method.getMethod().getCode().asDexCode();
+    assertTrue(code.instructions[0] instanceof ConstClass);
+    assertTrue(code.instructions[1] instanceof ConstClass);
+    assertTrue(code.instructions[2] instanceof ConstString);
+    ConstString constString = (ConstString) code.instructions[2];
+    assertNotEquals("foo", constString.getString().toString());
+    assertTrue(code.instructions[3] instanceof InvokeStatic);
+    assertTrue(code.instructions[4] instanceof ReturnVoid);
+  }
 }
