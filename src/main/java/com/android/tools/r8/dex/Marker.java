@@ -9,9 +9,6 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
-import javax.annotation.Nullable;
-
-
 /**
  * Abstraction for hidden dex marker intended for the main dex file.
  */
@@ -57,7 +54,6 @@ public class Marker {
     return tool == Tool.R8;
   }
 
-  @Nullable
   public String getVersion() {
     return (String) content.get(VERSION);
   }
@@ -67,7 +63,6 @@ public class Marker {
     return this;
   }
 
-  @Nullable
   public Long getMinApi() {
     return (Long) content.get(MIN_API);
   }
@@ -77,7 +72,6 @@ public class Marker {
     return this;
   }
 
-  @Nullable
   public String getSha1() {
     return (String) content.get(SHA1);
   }
