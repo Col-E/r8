@@ -8,7 +8,7 @@ import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.R8RunArtTestsTest.CompilerUnderTest;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.CompilationFailedException;
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.utils.InternalOptions;
 import java.io.IOException;
 import java.util.Collections;

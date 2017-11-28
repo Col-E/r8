@@ -7,7 +7,6 @@ import com.android.tools.r8.dex.DexFileReader;
 import com.android.tools.r8.dex.Segment;
 import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.CompilationFailedException;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableList;

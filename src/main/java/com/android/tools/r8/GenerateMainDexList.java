@@ -12,7 +12,6 @@ import com.android.tools.r8.shaking.MainDexListBuilder;
 import com.android.tools.r8.shaking.RootSetBuilder;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.CompilationFailedException;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;

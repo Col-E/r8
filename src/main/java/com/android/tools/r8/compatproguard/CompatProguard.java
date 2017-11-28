@@ -12,7 +12,7 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.utils.AbortException;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.CompilationFailedException;
+import com.android.tools.r8.CompilationFailedException;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Paths;

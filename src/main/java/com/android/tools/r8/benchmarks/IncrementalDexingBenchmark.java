@@ -8,7 +8,7 @@ import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.D8Output;
-import com.android.tools.r8.utils.CompilationFailedException;
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.utils.ThreadUtils;
 import java.io.IOException;
 import java.nio.file.Paths;

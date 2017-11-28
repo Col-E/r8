@@ -10,7 +10,7 @@ import com.android.tools.r8.D8Output;
 import com.android.tools.r8.origin.ArchiveEntryOrigin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.CompilationFailedException;
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.io.ByteStreams;
 import java.io.IOException;

@@ -10,7 +10,7 @@ import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
-import com.android.tools.r8.utils.CompilationFailedException;
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;

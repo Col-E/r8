@@ -5,7 +5,6 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.utils.CompilationFailedException;
 import com.android.tools.r8.utils.FileUtils;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;

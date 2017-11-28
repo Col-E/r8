@@ -5,7 +5,6 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
-import com.android.tools.r8.utils.CompilationFailedException;
 import com.google.common.io.ByteStreams;
 import java.io.IOException;
 import java.nio.file.Paths;

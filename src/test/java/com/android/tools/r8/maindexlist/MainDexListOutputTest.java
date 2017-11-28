@@ -6,11 +6,10 @@ package com.android.tools.r8.maindexlist;
 
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.utils.CompilationFailedException;
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.utils.FileUtils;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;

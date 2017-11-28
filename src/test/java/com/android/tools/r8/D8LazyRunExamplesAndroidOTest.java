@@ -11,7 +11,6 @@ import com.android.tools.r8.D8Command.Builder;
 import com.android.tools.r8.shaking.FilteredClassPath;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.CompilationFailedException;
 import com.android.tools.r8.utils.DirectoryClassFileProvider;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.OffOrAuto;

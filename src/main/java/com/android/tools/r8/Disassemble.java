@@ -10,7 +10,6 @@ import com.android.tools.r8.graph.DexByteCodeWriter;
 import com.android.tools.r8.graph.SmaliWriter;
 import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.CompilationFailedException;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;

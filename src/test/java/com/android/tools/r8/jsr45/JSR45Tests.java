@@ -12,7 +12,7 @@ import com.android.tools.r8.graph.DexAnnotationElement;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.CompilationFailedException;
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.AnnotationSubject;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
