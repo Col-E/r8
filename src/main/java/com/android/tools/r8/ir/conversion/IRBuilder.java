@@ -793,23 +793,7 @@ public class IRBuilder {
     } else {
       Value out = writeRegister(dest, type, ThrowingInfo.NO_THROW);
       ConstNumber instruction = new ConstNumber(out, value);
-      BasicBlock entryBlock = blocks.get(0);
-      if (currentBlock != entryBlock) {
-        // Insert the constant instruction at the start of the block right after the argument
-        // instructions. It is important that the const instruction is put before any instruction
-        // that can throw exceptions (since the value could be used on the exceptional edge).
-        InstructionListIterator it = entryBlock.listIterator();
-        while (it.hasNext()) {
-          if (!it.next().isArgument()) {
-            it.previous();
-            break;
-          }
-        }
-        it.add(instruction);
-        instruction.setPosition(Position.none());
-      } else {
-        add(instruction);
-      }
+      insertCanonicalizedConstant(instruction);
       table.put(value, instruction);
     }
   }
@@ -1647,9 +1631,12 @@ public class IRBuilder {
   }
 
   public Value readLiteral(NumericType type, long constant) {
-    Value value = new Value(valueNumberGenerator.next(), ValueType.fromNumericType(type), null);
-    add(new ConstNumber(value, constant));
-    return value;
+    return intConstants.computeIfAbsent(constant, (c) -> {
+      Value value = new Value(valueNumberGenerator.next(), ValueType.fromNumericType(type), null);
+      ConstNumber number = new ConstNumber(value, constant);
+      insertCanonicalizedConstant(number);
+      return number;
+    }).outValue();
   }
 
   // This special write register is needed when changing the scoping of a local variable.
@@ -2030,6 +2017,26 @@ public class IRBuilder {
       builder.append("\n");
     }
     return builder.toString();
+  }
+
+  private void insertCanonicalizedConstant(ConstNumber number) {
+    BasicBlock entryBlock = blocks.get(0);
+    if (currentBlock != entryBlock) {
+      // Insert the constant instruction at the start of the block right after the argument
+      // instructions. It is important that the const instruction is put before any instruction
+      // that can throw exceptions (since the value could be used on the exceptional edge).
+      InstructionListIterator it = entryBlock.listIterator();
+      while (it.hasNext()) {
+        if (!it.next().isArgument()) {
+          it.previous();
+          break;
+        }
+      }
+      it.add(number);
+      number.setPosition(Position.none());
+    } else {
+      add(number);
+    }
   }
 }
 

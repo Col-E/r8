@@ -479,7 +479,6 @@ public abstract class R8RunArtTestsTest {
           "099-vmdebug",
           "412-new-array",
           "530-checker-lse2",
-          "534-checker-bce-deoptimization",
           "550-new-instance-clinit",
           "580-checker-round",
           "594-invoke-super",
@@ -571,6 +570,9 @@ public abstract class R8RunArtTestsTest {
               TestCondition.match(
                   TestCondition.D8_COMPILER,
                   TestCondition.runtimes(DexVm.Version.V4_4_4)))
+          .put("534-checker-bce-deoptimization",
+              TestCondition
+                  .match(TestCondition.D8_COMPILER, TestCondition.runtimes(DexVm.Version.V6_0_1)))
           // Type not present.
           .put("124-missing-classes",
               TestCondition.match(TestCondition.runtimes(DexVm.Version.V4_4_4)))
