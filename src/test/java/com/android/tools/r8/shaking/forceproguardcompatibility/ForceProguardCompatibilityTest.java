@@ -14,12 +14,12 @@ import com.android.tools.r8.compatproguard.CompatProguardCommandBuilder;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.ProguardClassNameList;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationParser;
 import com.android.tools.r8.shaking.ProguardMemberRule;
 import com.android.tools.r8.shaking.ProguardMemberType;
-import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.DexInspector.MethodSubject;
@@ -206,7 +206,8 @@ public class ForceProguardCompatibilityTest extends TestBase {
         false, TestMainWithoutCheckCast.class, TestClassWithDefaultConstructor.class, false);
   }
 
-  public void testClassForName(boolean forceProguardCompatibility) throws Exception {
+  public void testClassForName(
+      boolean forceProguardCompatibility, boolean allowObfuscation) throws Exception {
     CompatProguardCommandBuilder builder =
         new CompatProguardCommandBuilder(forceProguardCompatibility, false);
     Class mainClass = TestMainWithClassForName.class;
@@ -216,21 +217,29 @@ public class ForceProguardCompatibilityTest extends TestBase {
     builder.addProgramFiles(ToolHelper.getClassFileForTestClass(mainClass));
     builder.addProgramFiles(ToolHelper.getClassFileForTestClass(forNameClass1));
     builder.addProgramFiles(ToolHelper.getClassFileForTestClass(forNameClass2));
-    List<String> proguardConfig = ImmutableList.of(
+    ImmutableList.Builder<String> proguardConfigurationBuilder = ImmutableList.builder();
+    proguardConfigurationBuilder.add(
         "-keep class " + mainClass.getCanonicalName() + " {",
         "  <init>();",  // Add <init>() so it does not become a compatibility rule below.
         "  public static void main(java.lang.String[]);",
-        "}",
-        "-dontobfuscate");
+        "}");
+    if (!allowObfuscation) {
+      proguardConfigurationBuilder.add("-dontobfuscate");
+    }
+    List<String> proguardConfig = proguardConfigurationBuilder.build();
     builder.addProguardConfiguration(proguardConfig, Origin.unknown());
     Path proguardCompatibilityRules = temp.newFile().toPath();
     builder.setProguardCompatibilityRulesOutput(proguardCompatibilityRules);
+    if (allowObfuscation) {
+      builder.setProguardMapOutput(temp.newFile().toPath());
+    }
 
     DexInspector inspector = new DexInspector(ToolHelper.runR8(builder.build()));
     assertTrue(inspector.clazz(getJavacGeneratedClassName(mainClass)).isPresent());
     forNameClasses.forEach(clazz -> {
-      assertEquals(forceProguardCompatibility,
-          inspector.clazz(getJavacGeneratedClassName(clazz)).isPresent());
+      ClassSubject subject = inspector.clazz(getJavacGeneratedClassName(clazz));
+      assertEquals(forceProguardCompatibility, subject.isPresent());
+      assertEquals(subject.isPresent() && allowObfuscation, subject.isRenamed());
     });
 
     // Check the Proguard compatibility rules generated.
@@ -276,7 +285,9 @@ public class ForceProguardCompatibilityTest extends TestBase {
 
   @Test
   public void classForNameTest() throws Exception {
-    testClassForName(true);
-    testClassForName(false);
+    testClassForName(true, false);
+    testClassForName(false, false);
+    testClassForName(true, true);
+    testClassForName(false, true);
   }
 }
