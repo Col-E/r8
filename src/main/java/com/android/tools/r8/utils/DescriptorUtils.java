@@ -306,4 +306,9 @@ public class DescriptorUtils {
     assert descriptor.endsWith(";");
     return descriptor.substring(1, descriptor.length() - 1) + ".class";
   }
+
+  public static String getPathFromJavaType(String typeName) {
+    assert isValidJavaType(typeName);
+    return typeName.replace(".", "/") + ".class";
+  }
 }
