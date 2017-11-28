@@ -12,7 +12,6 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.utils.InternalOptions;
-import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap.Entry;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMaps;
@@ -197,7 +196,7 @@ public class DexDebugEventBuilder {
     if (!pendingLocalChanges) {
       return false;
     }
-    pendingLocalChanges = !localsEqual(emittedLocals, pendingLocals);
+    pendingLocalChanges = !DebugLocalInfo.localsInfoMapsEqual(emittedLocals, pendingLocals);
     return pendingLocalChanges;
   }
 
@@ -218,7 +217,7 @@ public class DexDebugEventBuilder {
     emittedPosition = position;
     if (localsChanged()) {
       emitLocalChangeEvents(emittedLocals, pendingLocals, lastKnownLocals, events, factory);
-      assert localsEqual(emittedLocals, pendingLocals);
+      assert DebugLocalInfo.localsInfoMapsEqual(emittedLocals, pendingLocals);
     }
     pendingLocalChanges = false;
   }
@@ -230,7 +229,7 @@ public class DexDebugEventBuilder {
       emittedPc = pc;
       emitLocalChangeEvents(emittedLocals, pendingLocals, lastKnownLocals, events, factory);
       pendingLocalChanges = false;
-      assert localsEqual(emittedLocals, pendingLocals);
+      assert DebugLocalInfo.localsInfoMapsEqual(emittedLocals, pendingLocals);
     }
   }
 
@@ -272,28 +271,16 @@ public class DexDebugEventBuilder {
     events.add(factory.createDefault(specialOpcode));
   }
 
-  public static void emitLocalChangeEvents(
+  private static void emitLocalChangeEvents(
       Int2ReferenceMap<DebugLocalInfo> previousLocals,
       Int2ReferenceMap<DebugLocalInfo> nextLocals,
       Int2ReferenceMap<DebugLocalInfo> lastKnownLocals,
       List<DexDebugEvent> events,
       DexItemFactory factory) {
-    Int2ReferenceSortedMap<DebugLocalInfo> ending = new Int2ReferenceAVLTreeMap<>();
-    Int2ReferenceSortedMap<DebugLocalInfo> starting = new Int2ReferenceAVLTreeMap<>();
-    for (Entry<DebugLocalInfo> entry : previousLocals.int2ReferenceEntrySet()) {
-      int register = entry.getIntKey();
-      DebugLocalInfo local = entry.getValue();
-      if (nextLocals.get(register) != local) {
-        ending.put(register, local);
-      }
-    }
-    for (Entry<DebugLocalInfo> entry : nextLocals.int2ReferenceEntrySet()) {
-      int register = entry.getIntKey();
-      DebugLocalInfo local = entry.getValue();
-      if (previousLocals.get(register) != local) {
-        starting.put(register, local);
-      }
-    }
+    Int2ReferenceSortedMap<DebugLocalInfo> ending =
+        DebugLocalInfo.endingLocals(previousLocals, nextLocals);
+    Int2ReferenceSortedMap<DebugLocalInfo> starting =
+        DebugLocalInfo.startingLocals(previousLocals, nextLocals);
     assert !ending.isEmpty() || !starting.isEmpty();
     for (Entry<DebugLocalInfo> end : ending.int2ReferenceEntrySet()) {
       int register = end.getIntKey();
@@ -313,21 +300,5 @@ public class DexDebugEventBuilder {
         lastKnownLocals.put(register, local);
       }
     }
-  }
-
-  private static boolean localsEqual(
-      Int2ReferenceMap<DebugLocalInfo> locals1, Int2ReferenceMap<DebugLocalInfo> locals2) {
-    if (locals1 == locals2) {
-      return true;
-    }
-    if (locals1.size() != locals2.size()) {
-      return false;
-    }
-    for (Int2ReferenceMap.Entry<DebugLocalInfo> entry : locals1.int2ReferenceEntrySet()) {
-      if (locals2.get(entry.getIntKey()) != entry.getValue()) {
-        return false;
-      }
-    }
-    return true;
   }
 }

@@ -15,7 +15,9 @@ import com.android.tools.r8.cf.code.CfTryCatch;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.CfCode;
+import com.android.tools.r8.graph.CfCode.LocalVariableInfo;
 import com.android.tools.r8.graph.Code;
+import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
@@ -35,6 +37,9 @@ import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover;
 import com.android.tools.r8.utils.InternalOptions;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceMap.Entry;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -58,7 +63,15 @@ public class CfBuilder {
   private Set<CfLabel> emittedLabels;
   private List<CfInstruction> instructions;
   private CfRegisterAllocator registerAllocator;
+
   private Position currentPosition = Position.none();
+
+  private Int2ReferenceMap<DebugLocalInfo> emittedLocals = new Int2ReferenceOpenHashMap<>();
+  private Int2ReferenceMap<DebugLocalInfo> pendingLocals = null;
+  private boolean pendingLocalChanges = false;
+
+  private List<LocalVariableInfo> localVariablesTable = new ArrayList<>();
+  private Int2ReferenceMap<LocalVariableInfo> openLocalVariables = new Int2ReferenceOpenHashMap<>();
 
   // Internal abstraction of the stack values and height.
   private static class Stack {
@@ -201,6 +214,13 @@ public class CfBuilder {
       }
       BasicBlock nextBlock = blockIterator.hasNext() ? blockIterator.next() : null;
       boolean fallthrough = block.exit().isGoto() && block.exit().asGoto().getTarget() == nextBlock;
+      Int2ReferenceMap<DebugLocalInfo> locals = block.getLocalsAtEntry();
+      if (locals == null) {
+        assert pendingLocals == null;
+      } else {
+        pendingLocals = new Int2ReferenceOpenHashMap<>(locals);
+        pendingLocalChanges = true;
+      }
       buildCfInstructions(block, fallthrough, stack);
       if (nextBlock != null && (!fallthrough || nextBlock.getPredecessors().size() > 1)) {
         assert stack.isEmpty();
@@ -212,12 +232,18 @@ public class CfBuilder {
       block = nextBlock;
     } while (block != null);
     assert stack.isEmpty();
+    CfLabel endLabel = ensureLabel();
+    for (LocalVariableInfo info : openLocalVariables.values()) {
+      info.setEnd(endLabel);
+      localVariablesTable.add(info);
+    }
     return new CfCode(
         method.method,
         stack.maxHeight,
         registerAllocator.registersUsed(),
         instructions,
-        tryCatchRanges);
+        tryCatchRanges,
+        localVariablesTable);
   }
 
   private void buildCfInstructions(BasicBlock block, boolean fallthrough, Stack stack) {
@@ -239,19 +265,58 @@ public class CfBuilder {
           stack.push(outValue);
         }
       }
-      Position position = instruction.getPosition();
-      if (position.isSome() && position != currentPosition) {
-        CfInstruction previous = getLastInstruction();
-        if (instruction.isDebugPosition() && previous instanceof CfPosition) {
-          // Insert a nop instruction if the position changes without any intermediate instruction.
-          add(new CfNop());
+      if (instruction.isDebugLocalsChange()) {
+        if (instruction.asDebugLocalsChange().apply(pendingLocals)) {
+          pendingLocalChanges = true;
         }
-        CfLabel label = ensureLabel();
-        add(new CfPosition(label, position));
-        currentPosition = position;
+      } else {
+        if (localsChanged()) {
+          Int2ReferenceSortedMap<DebugLocalInfo> ending =
+              DebugLocalInfo.endingLocals(emittedLocals, pendingLocals);
+          Int2ReferenceSortedMap<DebugLocalInfo> starting =
+              DebugLocalInfo.startingLocals(emittedLocals, pendingLocals);
+          assert !ending.isEmpty() || !starting.isEmpty();
+          CfLabel label = ensureLabel();
+          for (Entry<DebugLocalInfo> entry : ending.int2ReferenceEntrySet()) {
+            int localIndex = entry.getIntKey();
+            LocalVariableInfo info = openLocalVariables.remove(localIndex);
+            info.setEnd(label);
+            localVariablesTable.add(info);
+            DebugLocalInfo removed = emittedLocals.remove(localIndex);
+            assert removed == entry.getValue();
+          }
+          for (Entry<DebugLocalInfo> entry : starting.int2ReferenceEntrySet()) {
+            int localIndex = entry.getIntKey();
+            assert !emittedLocals.containsKey(localIndex);
+            assert !openLocalVariables.containsKey(localIndex);
+            openLocalVariables.put(
+                localIndex, new LocalVariableInfo(localIndex, entry.getValue(), label));
+            emittedLocals.put(localIndex, entry.getValue());
+          }
+          pendingLocalChanges = false;
+        }
+        Position position = instruction.getPosition();
+        if (position.isSome() && position != currentPosition) {
+          CfInstruction previous = getLastInstruction();
+          if (instruction.isDebugPosition() && previous instanceof CfPosition) {
+            // Insert a nop instruction if position changes without any intermediate instruction.
+            add(new CfNop());
+          }
+          CfLabel label = ensureLabel();
+          add(new CfPosition(label, position));
+          currentPosition = position;
+        }
+        instruction.buildCf(this);
       }
-      instruction.buildCf(this);
     }
+  }
+
+  private boolean localsChanged() {
+    if (!pendingLocalChanges) {
+      return false;
+    }
+    pendingLocalChanges = !DebugLocalInfo.localsInfoMapsEqual(emittedLocals, pendingLocals);
+    return pendingLocalChanges;
   }
 
   private CfLabel ensureLabel() {

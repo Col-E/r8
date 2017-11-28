@@ -223,6 +223,11 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   }
 
   private void computeDebugInfo(BasicBlock[] blocks) {
+    computeDebugInfo(blocks, liveIntervals, this);
+  }
+
+  public static void computeDebugInfo(
+      BasicBlock[] blocks, List<LiveIntervals> liveIntervals, RegisterAllocator allocator) {
     // Collect live-ranges for all SSA values with local information.
     List<LocalRange> ranges = new ArrayList<>();
     for (LiveIntervals interval : liveIntervals) {
@@ -253,7 +258,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
           // information, we always use the argument register whenever a local corresponds to an
           // argument value. That avoids ending and restarting locals whenever we move arguments
           // to lower register.
-          int register = getArgumentOrAllocateRegisterForValue(value, start);
+          int register = allocator.getArgumentOrAllocateRegisterForValue(value, start);
           ranges.add(new LocalRange(value, register, start, nextEnd));
           Integer nextStart = nextInRange(nextEnd, end, starts);
           if (nextStart == null) {
@@ -263,8 +268,12 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
           start = nextStart;
         }
         if (start >= 0) {
-          ranges.add(new LocalRange(value, getArgumentOrAllocateRegisterForValue(value, start),
-              start, end));
+          ranges.add(
+              new LocalRange(
+                  value,
+                  allocator.getArgumentOrAllocateRegisterForValue(value, start),
+                  start,
+                  end));
         }
       }
     }
@@ -326,7 +335,8 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
         nextStartingRange = rangeIterator.hasNext() ? rangeIterator.next() : null;
       }
       if (block.entry().isMoveException()) {
-        fixupLocalsLiveAtMoveException(block, instructionIterator, openRanges, currentLocals);
+        fixupLocalsLiveAtMoveException(
+            block, instructionIterator, openRanges, currentLocals, allocator);
       } else {
         block.setLocalsAtEntry(new Int2ReferenceOpenHashMap<>(currentLocals));
       }
@@ -383,15 +393,17 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
         || instruction.getDebugValues().contains(usedValue);
   }
 
-  private void fixupLocalsLiveAtMoveException(
+  private static void fixupLocalsLiveAtMoveException(
       BasicBlock block,
       ListIterator<Instruction> instructionIterator,
       List<LocalRange> openRanges,
-      Int2ReferenceMap<DebugLocalInfo> finalLocals) {
+      Int2ReferenceMap<DebugLocalInfo> finalLocals,
+      RegisterAllocator allocator) {
     Int2ReferenceMap<DebugLocalInfo> initialLocals = new Int2ReferenceOpenHashMap<>();
     int exceptionalIndex = block.getPredecessors().get(0).exceptionalExit().getNumber();
     for (LocalRange open : openRanges) {
-      int exceptionalRegister = getArgumentOrAllocateRegisterForValue(open.value, exceptionalIndex);
+      int exceptionalRegister =
+          allocator.getArgumentOrAllocateRegisterForValue(open.value, exceptionalIndex);
       initialLocals.put(exceptionalRegister, open.local);
     }
     block.setLocalsAtEntry(new Int2ReferenceOpenHashMap<>(initialLocals));
@@ -424,7 +436,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     }
   }
 
-  private DebugLocalsChange createLocalsChange(
+  private static DebugLocalsChange createLocalsChange(
       Int2ReferenceMap<DebugLocalInfo> ending, Int2ReferenceMap<DebugLocalInfo> starting) {
     if (ending.isEmpty() && starting.isEmpty()) {
       return null;

@@ -3,10 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.utils.InternalOptions;
@@ -100,14 +102,29 @@ public class DebugLocalsChange extends Instruction {
     return Constraint.ALWAYS;
   }
 
-  public void apply(Int2ReferenceMap<DebugLocalInfo> locals) {
+  public boolean apply(Int2ReferenceMap<DebugLocalInfo> locals) {
+    boolean changed = false;
     for (Entry<DebugLocalInfo> end : getEnding().int2ReferenceEntrySet()) {
       assert locals.get(end.getIntKey()) == end.getValue();
-      locals.remove(end.getIntKey());
+      if (locals.remove(end.getIntKey()) != null) {
+        changed = true;
+      }
     }
     for (Entry<DebugLocalInfo> start : getStarting().int2ReferenceEntrySet()) {
       assert !locals.containsKey(start.getIntKey());
-      locals.put(start.getIntKey(), start.getValue());
+      DebugLocalInfo old = locals.put(start.getIntKey(), start.getValue());
+      changed |= old == null || old != start.getValue();
     }
+    return changed;
+  }
+
+  @Override
+  public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
+    throw new Unreachable();
+  }
+
+  @Override
+  public void buildCf(CfBuilder builder) {
+    throw new Unreachable();
   }
 }

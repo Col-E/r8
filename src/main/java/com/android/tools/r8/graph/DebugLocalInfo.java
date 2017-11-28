@@ -5,9 +5,13 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.DescriptorUtils;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceMap.Entry;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 
 public class DebugLocalInfo {
+
   public enum PrintLevel {
     NONE,
     NAME,
@@ -43,6 +47,34 @@ public class DebugLocalInfo {
       }
     }
     return true;
+  }
+
+  public static Int2ReferenceSortedMap<DebugLocalInfo> endingLocals(
+      Int2ReferenceMap<DebugLocalInfo> previousLocals,
+      Int2ReferenceMap<DebugLocalInfo> nextLocals) {
+    Int2ReferenceSortedMap<DebugLocalInfo> ending = new Int2ReferenceAVLTreeMap<>();
+    for (Entry<DebugLocalInfo> entry : previousLocals.int2ReferenceEntrySet()) {
+      int register = entry.getIntKey();
+      DebugLocalInfo local = entry.getValue();
+      if (nextLocals.get(register) != local) {
+        ending.put(register, local);
+      }
+    }
+    return ending;
+  }
+
+  public static Int2ReferenceSortedMap<DebugLocalInfo> startingLocals(
+      Int2ReferenceMap<DebugLocalInfo> previousLocals,
+      Int2ReferenceMap<DebugLocalInfo> nextLocals) {
+    Int2ReferenceSortedMap<DebugLocalInfo> starting = new Int2ReferenceAVLTreeMap<>();
+    for (Entry<DebugLocalInfo> entry : nextLocals.int2ReferenceEntrySet()) {
+      int register = entry.getIntKey();
+      DebugLocalInfo local = entry.getValue();
+      if (previousLocals.get(register) != local) {
+        starting.put(register, local);
+      }
+    }
+    return starting;
   }
 
   @Override

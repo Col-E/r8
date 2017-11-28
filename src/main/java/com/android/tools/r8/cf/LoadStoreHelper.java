@@ -107,7 +107,10 @@ public class LoadStoreHelper {
     }
     StackValue newOutValue = createStackValue(instruction.outValue(), 0);
     Value oldOutValue = instruction.swapOutValue(newOutValue);
-    add(new Store(oldOutValue, newOutValue), instruction, it);
+    Store store = new Store(oldOutValue, newOutValue);
+    // Move the debugging-locals liveness pertaining to the instruction to the store.
+    instruction.moveDebugValues(store);
+    add(store, instruction, it);
   }
 
   public void popOutValue(Value value, Instruction instruction, InstructionListIterator it) {

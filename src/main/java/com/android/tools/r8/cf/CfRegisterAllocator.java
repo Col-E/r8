@@ -94,7 +94,7 @@ public class CfRegisterAllocator implements RegisterAllocator {
 
   @Override
   public int getArgumentOrAllocateRegisterForValue(Value value, int instructionNumber) {
-    throw new Unreachable();
+    return getRegisterForValue(value);
   }
 
   @Override
@@ -105,8 +105,11 @@ public class CfRegisterAllocator implements RegisterAllocator {
 
   public void allocateRegisters() {
     computeNeedsRegister();
-    computeLivenessInformation();
+    BasicBlock[] blocks = computeLivenessInformation();
     performLinearScan();
+    if (options.debug) {
+      LinearScanRegisterAllocator.computeDebugInfo(blocks, liveIntervals, this);
+    }
   }
 
   private void computeNeedsRegister() {
@@ -120,10 +123,11 @@ public class CfRegisterAllocator implements RegisterAllocator {
     }
   }
 
-  private void computeLivenessInformation() {
-    code.numberInstructions();
+  private BasicBlock[] computeLivenessInformation() {
+    BasicBlock[] blocks = code.numberInstructions();
     liveAtEntrySets = code.computeLiveAtEntrySets();
     LinearScanRegisterAllocator.computeLiveRanges(options, code, liveAtEntrySets, liveIntervals);
+    return blocks;
   }
 
   private void performLinearScan() {

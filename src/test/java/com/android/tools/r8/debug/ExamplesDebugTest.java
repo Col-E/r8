@@ -53,8 +53,6 @@ public class ExamplesDebugTest extends DebugTestBase {
         .add("CF", cf)
         .add("D8", d8)
         .add("R8/CF", r8)
-        // TODO(zerny): Implement debug locals info in the CF backend.
-        .setVerifyVariables(false)
         .compare();
   }
 }

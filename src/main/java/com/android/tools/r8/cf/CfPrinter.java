@@ -30,6 +30,8 @@ import com.android.tools.r8.cf.code.CfStore;
 import com.android.tools.r8.cf.code.CfUnop;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.CfCode;
+import com.android.tools.r8.graph.CfCode.LocalVariableInfo;
+import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
@@ -78,6 +80,24 @@ public class CfPrinter {
     builder.append(".limit stack ").append(code.getMaxStack());
     newline();
     builder.append(".limit locals ").append(code.getMaxLocals());
+    for (LocalVariableInfo local : code.getLocalVariables()) {
+      DebugLocalInfo info = local.getLocal();
+      newline();
+      builder
+          .append(".var ")
+          .append(local.getIndex())
+          .append(" is ")
+          .append(info.name)
+          .append(" ")
+          .append(info.type.toDescriptorString())
+          .append(" from ")
+          .append(getLabel(local.getStart()))
+          .append(" to ")
+          .append(getLabel(local.getEnd()));
+      if (info.signature != null) {
+        appendComment(info.signature.toString());
+      }
+    }
     for (CfInstruction instruction : code.getInstructions()) {
       instruction.print(this);
     }
@@ -211,7 +231,7 @@ public class CfPrinter {
     indent();
     builder.append(".line ").append(position.line);
     if (position.file != null || position.callerPosition != null) {
-      comment(position.toString());
+      appendComment(position.toString());
     }
   }
 
@@ -333,6 +353,10 @@ public class CfPrinter {
   private void comment(String comment) {
     indent();
     builder.append("; ").append(comment);
+  }
+
+  private void appendComment(String comment) {
+    builder.append(" ; ").append(comment);
   }
 
   private void appendDescriptor(DexType type) {
