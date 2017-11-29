@@ -20,6 +20,7 @@ public abstract class Resource {
   public final Origin origin;
 
   protected Resource(Origin origin) {
+    assert origin != null;
     this.origin = origin;
   }
 

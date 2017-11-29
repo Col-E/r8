@@ -47,6 +47,7 @@ import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.SourceCode;
 import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.OutlineOptions;
 import com.android.tools.r8.utils.StringUtils;
@@ -1082,7 +1083,7 @@ public class Outliner {
         new DexProgramClass(
             type,
             null,
-            null,
+            new SynthesizedOrigin("outlining", getClass()),
             accessFlags,
             superType,
             interfaces,

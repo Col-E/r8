@@ -64,6 +64,7 @@ public abstract class DexClass extends DexItem {
       List<InnerClassAttribute> innerClasses,
       DexAnnotationSet annotations,
       Origin origin) {
+    assert origin != null;
     this.origin = origin;
     this.sourceFile = sourceFile;
     this.interfaces = interfaces;

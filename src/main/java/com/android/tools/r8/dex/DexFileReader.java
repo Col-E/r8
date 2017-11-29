@@ -119,6 +119,7 @@ public class DexFileReader {
 
   public DexFileReader(
       Origin origin, DexFile file, ClassKind classKind, DexItemFactory dexItemFactory) {
+    assert origin != null;
     this.origin = origin;
     this.file = file;
     this.dexItemFactory = dexItemFactory;

@@ -17,6 +17,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.origin.SynthesizedOrigin;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.IdentityHashMap;
@@ -130,7 +131,7 @@ final class InterfaceProcessor {
         new DexProgramClass(
             companionClassType,
             null,
-            null,
+            new SynthesizedOrigin("interface desugaring", getClass()),
             companionClassFlags,
             rewriter.factory.objectType,
             DexTypeList.empty(),
