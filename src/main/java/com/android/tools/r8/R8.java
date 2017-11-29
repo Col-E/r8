@@ -502,6 +502,10 @@ public class R8 {
   }
 
   public static void main(String[] args) {
+    if (args.length == 0) {
+      System.err.println(USAGE_MESSAGE);
+      System.exit(1);
+    }
     try {
       run(args);
     } catch (NoSuchFileException e) {
