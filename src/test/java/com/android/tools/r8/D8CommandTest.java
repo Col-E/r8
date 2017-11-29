@@ -10,11 +10,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.D8Command;
-import com.android.tools.r8.Location;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.origin.EmbeddedOrigin;
 import com.android.tools.r8.utils.AndroidApp;
