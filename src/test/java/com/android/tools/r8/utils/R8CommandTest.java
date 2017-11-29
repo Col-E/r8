@@ -74,6 +74,14 @@ public class R8CommandTest {
   }
 
   @Test
+  public void printsHelpOnNoInput() throws Throwable {
+    ProcessResult result = ToolHelper.forkR8NoIgnoreMissing(temp.getRoot().toPath());
+    assertFalse(result.exitCode == 0);
+    assertTrue(result.stderr.contains("Usage"));
+    assertFalse(result.stderr.contains("R8_foobar")); // Sanity check
+  }
+
+  @Test
   public void validOutputPath() throws Throwable {
     Path existingDir = temp.getRoot().toPath();
     Path nonExistingZip = existingDir.resolve("a-non-existing-archive.zip");

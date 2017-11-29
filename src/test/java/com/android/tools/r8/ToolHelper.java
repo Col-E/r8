@@ -28,6 +28,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import com.google.common.collect.ObjectArrays;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.CharStreams;
 import java.io.File;
@@ -803,11 +804,13 @@ public class ToolHelper {
 
   public static ProcessResult forkR8(Path dir, String... args)
       throws IOException, InterruptedException {
-    return forkJava(dir, R8.class, ImmutableList.builder()
-        .addAll(Arrays.asList(args))
-        .add("--ignore-missing-classes")
-        .build()
-        .toArray(new String[0]));
+    return forkR8NoIgnoreMissing(dir,
+        ObjectArrays.concat(args, "--ignore-missing-classes"));
+  }
+
+  public static ProcessResult forkR8NoIgnoreMissing(Path dir, String... args)
+      throws IOException, InterruptedException {
+    return forkJava(dir, R8.class, args);
   }
 
   public static ProcessResult forkGenerateMainDexList(Path dir, List<String> args1, String... args2)
