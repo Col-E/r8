@@ -393,4 +393,23 @@ public class InternalOptions {
   public boolean canUseSameArrayAndResultRegisterInArrayGetWide() {
     return minApiLevel > AndroidApiLevel.O_MR1.getLevel();
   }
+
+  // Some Lollipop versions of Art found in the wild perform invalid bounds
+  // check elimination. There is a fast path of loops and a slow path.
+  // The bailout to the slow path is performed too early and therefore
+  // the loop variable might not be defined in the slow path code leading
+  // to use of undefined registers as indices into arrays. The result
+  // is ArrayIndexOutOfBounds exceptions.
+  //
+  // In an attempt to help these Art VMs get the loop variable initialized
+  // early, we do not lower constants past array-length instructions when
+  // building for Lollipop or below.
+  //
+  // There is no guarantee that this works, but it does make the problem
+  // disappear on the one known instance of this problem.
+  //
+  // See b/69364976.
+  public boolean canHaveBoundsCheckEliminationBug() {
+    return minApiLevel <= AndroidApiLevel.L.getLevel();
+  }
 }
