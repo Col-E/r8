@@ -5,7 +5,11 @@ package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.ir.analysis.Bottom;
+import com.android.tools.r8.ir.analysis.ConstLatticeElement;
+import com.android.tools.r8.ir.analysis.LatticeElement;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import java.util.Map;
 
 public abstract class LogicalBinop extends Binop {
 
@@ -28,31 +32,6 @@ public abstract class LogicalBinop extends Binop {
   @Override
   public boolean canBeFolded() {
     return leftValue().isConstant() && rightValue().isConstant();
-  }
-
-  @Override
-  public ConstInstruction fold(IRCode code) {
-    assert canBeFolded();
-    if (type == NumericType.INT) {
-      int left = leftValue().getConstInstruction().asConstNumber().getIntValue();
-      int right = rightValue().getConstInstruction().asConstNumber().getIntValue();
-      int result = foldIntegers(left, right);
-      Value value = code.createValue(ValueType.INT, getLocalInfo());
-      return new ConstNumber(value, result);
-    } else {
-      assert type == NumericType.LONG;
-      long left = leftValue().getConstInstruction().asConstNumber().getLongValue();
-      long right;
-      if (isShl() || isShr() || isUshr()) {
-        // Right argument for shl, shr and ushr is always of type single.
-        right = rightValue().getConstInstruction().asConstNumber().getIntValue();
-      } else {
-        right = rightValue().getConstInstruction().asConstNumber().getLongValue();
-      }
-      long result = foldLongs(left, right);
-      Value value = code.createValue(ValueType.LONG, getLocalInfo());
-      return new ConstNumber(value, result);
-    }
   }
 
   @Override
@@ -123,5 +102,35 @@ public abstract class LogicalBinop extends Binop {
   @Override
   public LogicalBinop asLogicalBinop() {
     return this;
+  }
+
+  @Override
+  public LatticeElement evaluate(IRCode code, Map<Value, LatticeElement> mapping) {
+    LatticeElement leftLattice = mapping.get(leftValue());
+    LatticeElement rightLattice = mapping.get(rightValue());
+    if (leftLattice.isConst() && rightLattice.isConst()) {
+      ConstNumber leftConst = leftLattice.asConst().getConstNumber();
+      ConstNumber rightConst = rightLattice.asConst().getConstNumber();
+      ConstNumber newConst;
+      if (type == NumericType.INT) {
+        int result = foldIntegers(leftConst.getIntValue(), rightConst.getIntValue());
+        Value value = code.createValue(ValueType.INT, getLocalInfo());
+        newConst = new ConstNumber(value, result);
+      } else {
+        assert type == NumericType.LONG;
+        long right;
+        if (isShl() || isShr() || isUshr()) {
+          // Right argument for shl, shr and ushr is always of type single.
+          right = rightConst.getIntValue();
+        } else {
+          right = rightConst.getLongValue();
+        }
+        long result = foldLongs(leftConst.getLongValue(), right);
+        Value value = code.createValue(ValueType.LONG, getLocalInfo());
+        newConst = new ConstNumber(value, result);
+      }
+      return new ConstLatticeElement(newConst);
+    }
+    return Bottom.getInstance();
   }
 }

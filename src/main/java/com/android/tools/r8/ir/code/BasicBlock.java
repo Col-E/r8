@@ -82,6 +82,11 @@ public class BasicBlock {
       }
       return 0;
     }
+
+    @Override
+    public String toString() {
+      return "Edge: " + first.getNumber() + " -> " + second.getNumber();
+    }
   }
 
   private final List<BasicBlock> successors = new ArrayList<>();
