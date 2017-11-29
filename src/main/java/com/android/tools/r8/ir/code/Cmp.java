@@ -11,14 +11,10 @@ import com.android.tools.r8.code.CmplDouble;
 import com.android.tools.r8.code.CmplFloat;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.ir.analysis.Bottom;
-import com.android.tools.r8.ir.analysis.ConstLatticeElement;
-import com.android.tools.r8.ir.analysis.LatticeElement;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.utils.LongInterval;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
-import java.util.Map;
 import org.objectweb.asm.Opcodes;
 
 public class Cmp extends Binop {
@@ -152,64 +148,41 @@ public class Cmp extends Binop {
   }
 
   @Override
-  public LatticeElement evaluate(IRCode code, Map<Value, LatticeElement> mapping) {
-    LatticeElement leftLattice = mapping.get(leftValue());
-    LatticeElement rightLattice = mapping.get(rightValue());
-    if (leftLattice.isConst() && rightLattice.isConst()) {
-      ConstNumber leftConst = leftLattice.asConst().getConstNumber();
-      ConstNumber rightConst = rightLattice.asConst().getConstNumber();
-      int result;
-      if (type == NumericType.LONG) {
-        result = Integer.signum(Long.compare(leftConst.getLongValue(), rightConst.getLongValue()));
-      } else if (type == NumericType.FLOAT) {
-        float left = leftConst.getFloatValue();
-        float right = rightConst.getFloatValue();
-        if (Float.isNaN(left) || Float.isNaN(right)) {
-          result = bias == Bias.GT ? 1 : -1;
-        } else {
-          result = (int) Math.signum(left - right);
-        }
+  public ConstInstruction fold(IRCode code) {
+    assert canBeFolded();
+    int result;
+    if (type == NumericType.LONG) {
+      if (leftValue().isConstNumber() && rightValue().isConstNumber()) {
+        long left = leftValue().getConstInstruction().asConstNumber().getLongValue();
+        long right = rightValue().getConstInstruction().asConstNumber().getLongValue();
+        result = Integer.signum(Long.compare(left, right));
       } else {
-        assert type == NumericType.DOUBLE;
-        double left = leftConst.getDoubleValue();
-        double right = rightConst.getDoubleValue();
-        if (Double.isNaN(left) || Double.isNaN(right)) {
-          result = bias == Bias.GT ? 1 : -1;
-        } else {
-          result = (int) Math.signum(left - right);
-        }
+        assert nonOverlapingRanges();
+        LongInterval leftRange = leftValue().getValueRange();
+        LongInterval rightRange = rightValue().getValueRange();
+        result = Integer.signum(Long.compare(leftRange.getMin(), rightRange.getMin()));
       }
-      Value value = code.createValue(ValueType.INT, getLocalInfo());
-      ConstNumber newConst = new ConstNumber(value, result);
-      return new ConstLatticeElement(newConst);
-    } else if (leftLattice.isValueRange() && rightLattice.isConst()) {
-      Value leftValueRange = leftLattice.asConstRange().getConstRange();
-      ConstNumber rightConst = rightLattice.asConst().getConstNumber();
-      return buildLatticeResult(code, leftValueRange.getValueRange(),
-          rightConst.outValue().getValueRange());
-    } else if (leftLattice.isConst() && rightLattice.isValueRange()) {
-      Value rigthValueRange = rightLattice.asConstRange().getConstRange();
-      ConstNumber leftConst = leftLattice.asConst().getConstNumber();
-      return buildLatticeResult(code, leftConst.outValue().getValueRange(),
-          rigthValueRange.getValueRange());
-    } else if (leftLattice.isValueRange() && rightLattice.isValueRange()) {
-      Value rigthValueRange = rightLattice.asConstRange().getConstRange();
-      Value leftValueRange = leftLattice.asConstRange().getConstRange();
-      return buildLatticeResult(code, leftValueRange.getValueRange(),
-          rigthValueRange.getValueRange());
+    } else if (type == NumericType.FLOAT) {
+      float left = leftValue().getConstInstruction().asConstNumber().getFloatValue();
+      float right = rightValue().getConstInstruction().asConstNumber().getFloatValue();
+      if (Float.isNaN(left) || Float.isNaN(right)) {
+        result = bias == Bias.GT ? 1 : -1;
+      } else {
+        result = (int) Math.signum(left - right);
+      }
+    } else {
+      assert type == NumericType.DOUBLE;
+      double left = leftValue().getConstInstruction().asConstNumber().getDoubleValue();
+      double right = rightValue().getConstInstruction().asConstNumber().getDoubleValue();
+      if (Double.isNaN(left) || Double.isNaN(right)) {
+        result = bias == Bias.GT ? 1 : -1;
+      } else {
+        result = (int) Math.signum(left - right);
+      }
     }
-    return Bottom.getInstance();
-  }
-
-  private LatticeElement buildLatticeResult(IRCode code, LongInterval leftRange,
-      LongInterval rightRange) {
-    if (leftRange.overlapsWith(rightRange)) {
-      return Bottom.getInstance();
-    }
-    int result = Integer.signum(Long.compare(leftRange.getMin(), rightRange.getMin()));
+    assert result == -1 || result == 0 || result == 1;
     Value value = code.createValue(ValueType.INT, getLocalInfo());
-    ConstNumber newConst = new ConstNumber(value, result);
-    return new ConstLatticeElement(newConst);
+    return new ConstNumber(value, result);
   }
 
   @Override

@@ -10,9 +10,6 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.analysis.Bottom;
-import com.android.tools.r8.ir.analysis.ConstRangeLatticeElement;
-import com.android.tools.r8.ir.analysis.LatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
@@ -25,7 +22,6 @@ import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 public abstract class Instruction {
@@ -976,6 +972,10 @@ public abstract class Instruction {
     return false;
   }
 
+  public ConstInstruction fold(IRCode code) {
+    throw new Unreachable("Unsupported folding for " + this);
+  }
+
   // Returns the inlining constraint for this instruction.
   public abstract Constraint inliningConstraint(AppInfoWithSubtyping info, DexType holder);
 
@@ -993,12 +993,5 @@ public abstract class Instruction {
     }
     throw new Unimplemented(
         "Implement has-invariant verification type for: " + getInstructionName());
-  }
-
-  public LatticeElement evaluate(IRCode code, Map<Value, LatticeElement> mapping) {
-    if (outValue.hasValueRange()) {
-      return new ConstRangeLatticeElement(outValue);
-    }
-    return Bottom.getInstance();
   }
 }
