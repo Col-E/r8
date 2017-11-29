@@ -16,6 +16,13 @@ public interface ClassNaming {
   abstract class Builder {
     abstract Builder addMemberEntry(MemberNaming entry);
     abstract ClassNaming build();
+
+    /** This is an optional method, may be implemented as no-op */
+    abstract void addMappedRange(
+        Range obfuscatedRange,
+        MemberNaming.MethodSignature originalSignature,
+        Object originalRange,
+        String obfuscatedName);
   }
 
   MemberNaming lookup(Signature renamedSignature);

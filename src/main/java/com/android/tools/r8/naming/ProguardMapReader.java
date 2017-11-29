@@ -5,16 +5,13 @@ package com.android.tools.r8.naming;
 
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
-import com.android.tools.r8.naming.MemberNaming.Range;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Consumer;
 
 /**
  * Parses a Proguard mapping file and produces mappings from obfuscated class names to the original
@@ -157,13 +154,6 @@ public class ProguardMapReader implements AutoCloseable {
     Range previousObfuscatedRange = null;
     Signature previousSignature = null;
     String previousRenamedName = null;
-    List<Consumer<MemberNaming>> deferredChanges = new ArrayList<>(10);
-    Consumer<MemberNaming> flushMemberNaming =
-        m -> {
-          if (m != null) {
-            classNamingBuilder.addMemberEntry(m);
-          }
-        };
     boolean lastRound = false;
     for (; ; ) {
       Signature signature = null;
@@ -171,8 +161,8 @@ public class ProguardMapReader implements AutoCloseable {
       String renamedName = null;
       Range obfuscatedRange = null;
 
-      // In the last round we're only here to flush deferredChanges and activeMemberNaming, so skip
-      // parsing.
+      // In the last round we're only here to flush the last line read (which may trigger adding a
+      // new MemberNaming) and flush activeMemberNaming, so skip parsing.
       if (!lastRound) {
         if (!Character.isWhitespace(peek())) {
           lastRound = true;
@@ -203,13 +193,11 @@ public class ProguardMapReader implements AutoCloseable {
         renamedName = parseMethodName();
       }
 
-      // If there are deferred changes and the line we've just read cannot possibly belong to the
-      // deferred changes (different obfuscated line numbers or renamed name or x:y-formatted
-      // original range) then we need to flush the deferred changes now.
-      // In the last round both obfuscatedRange and renamedName will be null so the condition will
-      // be
-      // true.
-      if (!deferredChanges.isEmpty()
+      // If this line refers to a member that should be added to classNamingBuilder (as opposed to
+      // an inner inlined callee) and it's different from the activeMemberNaming, then flush (add)
+      // the current activeMemberNaming and create a new one.
+      // We're also entering this in the last round when there's no current line.
+      if (previousRenamedName != null
           && (!Objects.equals(previousObfuscatedRange, obfuscatedRange)
               || !Objects.equals(previousRenamedName, renamedName)
               || (originalRange != null && originalRange instanceof Range))) {
@@ -223,16 +211,14 @@ public class ProguardMapReader implements AutoCloseable {
           }
         }
         if (activeMemberNaming == null) {
-          activeMemberNaming = new MemberNaming(previousSignature, previousRenamedName, false);
+          activeMemberNaming = new MemberNaming(previousSignature, previousRenamedName);
         }
-        final MemberNaming finalActiveMemberNaming = activeMemberNaming;
-        deferredChanges.forEach(ch -> ch.accept(finalActiveMemberNaming));
-        deferredChanges.clear();
       }
 
       if (lastRound) {
-        flushMemberNaming.accept(activeMemberNaming);
-        assert deferredChanges.isEmpty();
+        if (activeMemberNaming != null) {
+          classNamingBuilder.addMemberEntry(activeMemberNaming);
+        }
         break;
       }
 
@@ -242,8 +228,10 @@ public class ProguardMapReader implements AutoCloseable {
           throw new ParseException("No mapping for original range " + originalRange + ".");
         }
         // Here we have a line like 'a() -> b' or a field like 'a -> b'
-        flushMemberNaming.accept(activeMemberNaming);
-        activeMemberNaming = new MemberNaming(signature, renamedName, true);
+        if (activeMemberNaming != null) {
+          classNamingBuilder.addMemberEntry(activeMemberNaming);
+        }
+        activeMemberNaming = new MemberNaming(signature, renamedName);
       } else {
 
         // Note that at this point originalRange may be null which either means, it's the same as
@@ -252,14 +240,11 @@ public class ProguardMapReader implements AutoCloseable {
         // was not available).
 
         assert signature instanceof MethodSignature;
+      }
 
-        // Defer this change until we parse a line that has a different obfuscated range / renamed
-        // name.
-        final Range finalObfuscatedRange = obfuscatedRange;
-        final MethodSignature finalSignature = (MethodSignature) signature;
-        final Object finalOriginalRange = originalRange;
-        deferredChanges.add(
-            m -> m.addMappedRange(finalObfuscatedRange, finalSignature, finalOriginalRange));
+      if (signature instanceof MethodSignature) {
+        classNamingBuilder.addMappedRange(
+            obfuscatedRange, (MethodSignature) signature, originalRange, renamedName);
       }
 
       previousRenamedName = renamedName;

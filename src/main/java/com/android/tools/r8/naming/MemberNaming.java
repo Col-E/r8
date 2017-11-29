@@ -17,23 +17,14 @@ import java.io.StringWriter;
 import java.io.Writer;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Objects;
 import org.objectweb.asm.Type;
 
 /**
  * Stores renaming information for a member.
- * <p>
- * This includes the signature, the original name and inlining range information.
+ *
+ * <p>This includes the signature and the original name.
  */
 public class MemberNaming {
-
-  private static int nextSequenceNumber = 0;
-
-  private synchronized int getNextSequenceNumber() {
-    return nextSequenceNumber++;
-  }
 
   @Override
   public boolean equals(Object o) {
@@ -45,20 +36,13 @@ public class MemberNaming {
     }
 
     MemberNaming that = (MemberNaming) o;
-    // sequenceNumber is intentionally omitted from equality test.
-    return signature.equals(that.signature)
-        && renamedSignature.equals(that.renamedSignature)
-        && unconstrainedIdentityMapping == that.unconstrainedIdentityMapping
-        && mappedRanges.equals(that.mappedRanges);
+    return signature.equals(that.signature) && renamedSignature.equals(that.renamedSignature);
   }
 
   @Override
   public int hashCode() {
-    // sequenceNumber is intentionally omitted from hashCode since it's not used in equality test.
     int result = signature.hashCode();
     result = 31 * result + renamedSignature.hashCode();
-    result = 31 * result + mappedRanges.hashCode();
-    result = 31 * result + (unconstrainedIdentityMapping ? 1 : 0);
     return result;
   }
 
@@ -71,44 +55,9 @@ public class MemberNaming {
    */
   final Signature renamedSignature;
 
-  /**
-   * List of obfuscated line number ranges, mapped to original line numbers. These mapped ranges
-   * correspond to the "a:b:(signature)[:x[:y]] -> n" lines in the Proguard-map.
-   */
-  public final List<MappedRange> mappedRanges = new LinkedList<>();
-
-  /// See the comment for the constructor.
-  public final boolean unconstrainedIdentityMapping;
-
-  /**
-   * The sole purpose of {@link #sequenceNumber} is to preserve the order of members read from a
-   * Proguard-map.
-   */
-  public final int sequenceNumber = getNextSequenceNumber();
-
-  /**
-   * {@code unconstrainedIdentityMapping = true} means that any obfuscated line number is the same
-   * as the original. In Proguard-map syntax: " a() -> b" In other cases use
-   * {@code unconstrainedIdentityMapping = false} and specify explicit ranges later with
-   * {@link #addMappedRange}.
-   */
-  MemberNaming(Signature signature, String renamedName, boolean unconstrainedIdentityMapping) {
+  MemberNaming(Signature signature, String renamedName) {
     this.signature = signature;
     this.renamedSignature = signature.asRenamed(renamedName);
-    this.unconstrainedIdentityMapping = unconstrainedIdentityMapping;
-  }
-
-  /**
-   * @param originalRange can be {@code null} which means unknown original range or same as the
-   *     obfuscated range, @{code Integer} which indicates the caller of the preceding line, or
-   *     {@link Range}.
-   */
-  public void addMappedRange(
-      Range obfuscatedRange, MethodSignature signature, Object originalRange) {
-    assert originalRange == null
-        || originalRange instanceof Integer
-        || originalRange instanceof Range;
-    mappedRanges.add(new MappedRange(obfuscatedRange, originalRange, signature));
   }
 
   public Signature getOriginalSignature() {
@@ -131,30 +80,9 @@ public class MemberNaming {
     return signature.kind() == SignatureKind.METHOD;
   }
 
-  protected void write(Writer writer, boolean indent) throws IOException {
-    if (unconstrainedIdentityMapping) {
-      if (indent) {
-        writer.append("    ");
-      }
-      signature.write(writer);
-      writer.append(" -> ");
-      writer.append(renamedSignature.name);
-      writer.append("\n");
-    }
-    for (MappedRange mappedRange : mappedRanges) {
-      mappedRange.write(writer, indent);
-    }
-  }
-
   @Override
   public String toString() {
-    try {
-      StringWriter writer = new StringWriter();
-      write(writer, false);
-      return writer.toString();
-    } catch (IOException e) {
-      return e.toString();
-    }
+    return signature.toString() + " -> " + renamedSignature.name;
   }
 
   public abstract static class Signature {
@@ -358,118 +286,5 @@ public class MemberNaming {
       }
       writer.append(')');
     }
-  }
-
-  /**
-   * MappedRange describes an (original line numbers, signature) <-> (obfuscated line numbers)
-   * mapping. It can describe two different things:
-   *
-   * <p>1. The source lines of a method in the original range are renumbered to the obfuscated
-   * range. In this case the {@link MappedRange#originalRange} is either a {@code Range} or null,
-   * indicating that the original range is unknown or is the same as the {@link
-   * MappedRange#obfuscatedRange}
-   *
-   * <p>2. The source line of a method is the inlining caller of the previous {@code MappedRange}.
-   * In this case the {@link MappedRange@originalRange} is either an {@code int} or null, indicating
-   * that the original source line is unknown, or may be identical to a line of the obfuscated
-   * range.
-   */
-  private class MappedRange {
-
-    private final Range obfuscatedRange;
-    private final Object originalRange; // null, Integer or Range
-    private final MethodSignature signature;
-
-    private MappedRange(Range obfuscatedRange, Object originalRange, MethodSignature signature) {
-      assert obfuscatedRange != null;
-      assert originalRange == null
-          || originalRange instanceof Integer
-          || originalRange instanceof Range;
-      this.obfuscatedRange = obfuscatedRange;
-      this.originalRange = originalRange;
-      this.signature = signature;
-    }
-
-    private void write(Writer writer, boolean indent) throws IOException {
-      if (indent) {
-        writer.append("    ");
-      }
-      writer.append(obfuscatedRange.toString());
-      writer.append(":");
-      signature.write(writer);
-      if (originalRange != null) {
-        writer.append(':').append(originalRange.toString());
-      }
-      writer.append(" -> ").append(renamedSignature.name);
-      writer.append("\n");
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (!(o instanceof MappedRange)) {
-        return false;
-      }
-
-      MappedRange that = (MappedRange) o;
-
-      return obfuscatedRange.equals(that.obfuscatedRange)
-          && Objects.equals(originalRange, that.originalRange)
-          && signature.equals(that.signature);
-    }
-
-    @Override
-    public int hashCode() {
-      int result = obfuscatedRange.hashCode();
-      result = 31 * result + Objects.hashCode(originalRange);
-      result = 31 * result + signature.hashCode();
-      return result;
-    }
-  }
-
-  /**
-   * Represents a linenumber range.
-   */
-  public static class Range {
-
-    public final int from;
-    public final int to;
-
-    Range(int from, int to) {
-      this.from = from;
-      this.to = to;
-    }
-
-    public boolean contains(int value) {
-      return from <= value && value <= to;
-    }
-
-    @Override
-    public String toString() {
-      return from + ":" + to;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (!(o instanceof Range)) {
-        return false;
-      }
-
-      Range range = (Range) o;
-      return from == range.from && to == range.to;
-    }
-
-    @Override
-    public int hashCode() {
-      int result = from;
-      result = 31 * result + to;
-      return result;
-    }
-
   }
 }

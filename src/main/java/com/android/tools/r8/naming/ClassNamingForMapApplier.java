@@ -56,6 +56,14 @@ public class ClassNamingForMapApplier implements ClassNaming {
     ClassNamingForMapApplier build() {
       return new ClassNamingForMapApplier(renamedName, originalName, methodMembers, fieldMembers);
     }
+
+    @Override
+    /** No-op */
+    void addMappedRange(
+        Range obfuscatedRange,
+        MemberNaming.MethodSignature originalSignature,
+        Object originalRange,
+        String obfuscatedName) {}
   }
 
   static Builder builder(String renamedName, String originalName) {

@@ -13,9 +13,9 @@ import org.junit.Test;
 
 public class ProguardMapReaderTest {
 
-  public static final String ROOT = ToolHelper.EXAMPLES_BUILD_DIR;
-  public static final String EXAMPLE_MAP = "throwing/throwing.map";
-  public static final String EXAMPLE_MAP_WITH_PACKAGE_INFO =
+  private static final String ROOT = ToolHelper.EXAMPLES_BUILD_DIR;
+  private static final String EXAMPLE_MAP = "throwing/throwing.map";
+  private static final String EXAMPLE_MAP_WITH_PACKAGE_INFO =
       "dagger.android.package-info -> dagger.android.package-info\n";
 
   @Test
@@ -85,7 +85,7 @@ public class ProguardMapReaderTest {
     for (String s : ss) {
       ClassNameMapper cnm = ClassNameMapper.mapperFromString(s);
       String result = cnm.toString();
-      Assert.assertEquals(result, s);
+      Assert.assertEquals(s, result);
     }
   }
 }
