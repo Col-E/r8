@@ -34,8 +34,8 @@ public class GenerateMainDexList {
     this.options = options;
   }
 
-  private List<String> run(AndroidApp app) throws IOException, ExecutionException {
-    ExecutorService executor = ThreadUtils.getExecutorService(options);
+  private List<String> run(AndroidApp app, ExecutorService executor)
+      throws IOException, ExecutionException {
     DexApplication application =
         new ApplicationReader(app, options, timing).read(executor).toDirect();
     AppInfoWithSubtyping appInfo = new AppInfoWithSubtyping(application);
@@ -101,7 +101,7 @@ public class GenerateMainDexList {
       throws IOException, ExecutionException {
     AndroidApp app = command.getInputApp();
     InternalOptions options = command.getInternalOptions();
-    return new GenerateMainDexList(options).run(app);
+    return new GenerateMainDexList(options).run(app, executor);
   }
 
   public static void main(String[] args)
