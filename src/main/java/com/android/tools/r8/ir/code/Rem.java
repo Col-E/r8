@@ -15,6 +15,9 @@ import com.android.tools.r8.code.RemIntLit8;
 import com.android.tools.r8.code.RemLong;
 import com.android.tools.r8.code.RemLong2Addr;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.ir.analysis.Bottom;
+import com.android.tools.r8.ir.analysis.LatticeElement;
+import java.util.Map;
 import org.objectweb.asm.Opcodes;
 
 public class Rem extends ArithmeticBinop {
@@ -126,6 +129,15 @@ public class Rem extends ArithmeticBinop {
   @Override
   public boolean instructionTypeCanThrow() {
     return type != NumericType.DOUBLE && type != NumericType.FLOAT;
+  }
+
+  @Override
+  public LatticeElement evaluate(IRCode code, Map<Value, LatticeElement> mapping) {
+    LatticeElement rightLattice = mapping.get(rightValue());
+    if (rightLattice.isConst() && !rightLattice.asConst().getConstNumber().isZero()) {
+      return super.evaluate(code, mapping);
+    }
+    return Bottom.getInstance();
   }
 
   @Override

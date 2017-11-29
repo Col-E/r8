@@ -95,7 +95,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
-import java.util.Queue;
 import java.util.Set;
 
 public class CodeRewriter {
@@ -1025,25 +1024,6 @@ public class CodeRewriter {
   private boolean canBeFolded(Instruction instruction) {
     return (instruction.isBinop() && instruction.asBinop().canBeFolded()) ||
         (instruction.isUnop() && instruction.asUnop().canBeFolded());
-  }
-
-  public void foldConstants(IRCode code) {
-    Queue<BasicBlock> worklist = new LinkedList<>();
-    worklist.addAll(code.blocks);
-    for (BasicBlock block = worklist.poll(); block != null; block = worklist.poll()) {
-      InstructionIterator iterator = block.iterator();
-      while (iterator.hasNext()) {
-        Instruction current = iterator.next();
-        Instruction folded;
-        if (canBeFolded(current)) {
-          folded = current.fold(code);
-          iterator.replaceCurrentInstruction(folded);
-          folded.outValue().uniqueUsers()
-              .forEach(instruction -> worklist.add(instruction.getBlock()));
-        }
-      }
-    }
-    assert code.isConsistentSSA();
   }
 
   // Split constants that flow into ranged invokes. This gives the register allocator more
