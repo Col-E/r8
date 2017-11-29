@@ -6,12 +6,13 @@ package com.android.tools.r8.debug;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.DebuggeeState;
 import com.android.tools.r8.utils.FileUtils;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.stream.Stream;
-import org.junit.Ignore;
+import org.junit.Assume;
 import org.junit.Test;
 
 public class ExamplesDebugTest extends DebugTestBase {
@@ -43,8 +44,10 @@ public class ExamplesDebugTest extends DebugTestBase {
   }
 
   @Test
-  @Ignore("fails on older dex runtimes")
   public void testArithmetic() throws Throwable {
+    // See verifyStateLocation in DebugTestBase.
+    Assume.assumeTrue("Streaming on Dalvik DEX runtimes has some unknown interference issue",
+        ToolHelper.getDexVm().getVersion().isAtLeast(Version.V6_0_1));
     String pkg = "arithmetic";
     String clazzName = pkg + ".Arithmetic";
     Stream<DebuggeeState> cf = streamDebugTest(cfConfig("arithmetic"), clazzName, ANDROID_FILTER);

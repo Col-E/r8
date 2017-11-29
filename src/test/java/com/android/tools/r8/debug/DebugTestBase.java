@@ -144,7 +144,11 @@ public abstract class DebugTestBase {
         new JUnit3Wrapper.Command() {
           @Override
           public void perform(JUnit3Wrapper testBase) {
+            if (DEBUG_TESTS) {
+              System.out.println("Running stream stepping command");
+            }
             stepInto(filter).perform(testBase);
+            assert testBase.commandsQueue.isEmpty();
             testBase.commandsQueue.push(this);
           }
         };
@@ -163,9 +167,15 @@ public abstract class DebugTestBase {
     while (running
         && !(wrapper.commandsQueue.isEmpty()
             && wrapper.state == JUnit3Wrapper.State.ProcessCommand)) {
+      if (DEBUG_TESTS) {
+        System.out.println("Running stream initialization step");
+      }
       running = wrapper.mainLoopStep();
     }
 
+    if (DEBUG_TESTS) {
+      System.out.println("Finished initialization of stream");
+    }
     // Add the "infinite streaming" command.
     wrapper.commandsQueue.addLast(streamCommand);
     final boolean initiallyRunning = running;
@@ -180,9 +190,16 @@ public abstract class DebugTestBase {
 
           @Override
           public JUnit3Wrapper.DebuggeeState get() {
+            assert verifyStateLocation(wrapper.getDebuggeeState());
             if (initial) {
+              if (DEBUG_TESTS) {
+                System.out.println("Request for initial stream state");
+              }
               initial = false;
               return wrapper.getDebuggeeState();
+            }
+            if (DEBUG_TESTS) {
+              System.out.println("Request for next stream state");
             }
             while (running) {
               running = wrapper.mainLoopStep();
@@ -190,8 +207,25 @@ public abstract class DebugTestBase {
               if (state != null && !state.frames.isEmpty()) {
                 return state;
               }
+              if (DEBUG_TESTS) {
+                System.out.println("Continuing search for next stream state");
+              }
+            }
+            if (DEBUG_TESTS) {
+              System.out.println("Debuggee exited, no next stream state");
             }
             return null;
+          }
+
+          // When the set of streaming tests includes a Dalvik runtime it appears to interfere with
+          // the state of other tests. In such a case, the below check fails and the 'state' of
+          // the streams (both CF or DEX) appear to have become invalid.
+          private boolean verifyStateLocation(JUnit3Wrapper.DebuggeeState state) {
+            Location thisLocation = state.getLocation();
+            Location procLocation =
+                state.getMirror().getAllThreadFrames(state.threadId).get(0).getLocation();
+            assert thisLocation.methodID == procLocation.methodID;
+            return true;
           }
         });
   }
@@ -574,6 +608,9 @@ public abstract class DebugTestBase {
     }
 
     void prepareForStreaming() throws Exception {
+      if (DEBUG_TESTS) {
+        System.out.println("Preparing test for stream execution");
+      }
       setUp();
     }
 
@@ -608,7 +645,7 @@ public abstract class DebugTestBase {
             command.perform(this);
           } catch (TestErrorException e) {
             boolean ignoreException = false;
-            if (ToolHelper.getDexVm().getVersion() == Version.V4_4_4) {
+            if (config.isDexRuntime() && ToolHelper.getDexVm().getVersion() == Version.V4_4_4) {
               // Dalvik has flaky synchronization issue on shutdown. The workaround is to ignore
               // the exception if and only if we know that it's the final resume command.
               if (debuggeeState == null && commandsQueue.isEmpty()) {
