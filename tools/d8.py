@@ -36,7 +36,13 @@ def main():
       build = arg == "--build"
     else:
       args.append(arg)
-  run(args, build)
+  try:
+    run(args, build)
+  except subprocess.CalledProcessError as e:
+    # In case anything relevant was printed to stdout, normally this is already
+    # on stderr.
+    print(e.output)
+    return e.returncode
 
 if __name__ == '__main__':
   sys.exit(main())

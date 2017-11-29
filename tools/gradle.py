@@ -66,7 +66,7 @@ def RunGradle(args, throw_on_failure=True):
   with utils.ChangedWorkingDirectory(utils.REPO_ROOT):
     return_value = subprocess.call(cmd)
     if throw_on_failure and return_value != 0:
-      raise
+      raise Exception('Failed to execute gradle')
     return return_value
 
 def RunGradleExcludeDeps(args, throw_on_failure=True):
