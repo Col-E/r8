@@ -20,10 +20,12 @@ import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationParser;
 import com.android.tools.r8.shaking.ProguardMemberRule;
 import com.android.tools.r8.shaking.ProguardMemberType;
+import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.DexInspector.MethodSubject;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.ImmutableList;
 import java.io.File;
 import java.nio.file.Path;
@@ -127,7 +129,8 @@ public class ForceProguardCompatibilityTest extends TestBase {
 
     // Check the Proguard compatibility rules generated.
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(), null);
+        new ProguardConfigurationParser(new DexItemFactory(),
+            new Reporter(new DefaultDiagnosticsHandler()));
     parser.parse(proguardCompatibilityRules);
     ProguardConfiguration configuration = parser.getConfigRawForTesting();
     if (forceProguardCompatibility && hasDefaultConstructor) {
@@ -244,7 +247,8 @@ public class ForceProguardCompatibilityTest extends TestBase {
 
     // Check the Proguard compatibility rules generated.
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(), null);
+        new ProguardConfigurationParser(new DexItemFactory(),
+            new Reporter(new DefaultDiagnosticsHandler()));
     parser.parse(proguardCompatibilityRules);
     ProguardConfiguration configuration = parser.getConfigRawForTesting();
     if (forceProguardCompatibility) {

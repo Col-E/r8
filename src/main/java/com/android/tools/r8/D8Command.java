@@ -88,7 +88,7 @@ public class D8Command extends BaseCompilerCommand {
     }
 
     @Override
-    protected void validate() throws CompilationFailedException {
+    protected void validate() {
       if (getAppBuilder().hasMainDexList() && intermediate) {
         reporter.error("Option --main-dex-list cannot be used with --intermediate");
       }
@@ -99,13 +99,12 @@ public class D8Command extends BaseCompilerCommand {
      * Build the final D8Command.
      */
     @Override
-    public D8Command build() throws CompilationFailedException {
+    protected D8Command makeCommand() {
       if (isPrintHelp() || isPrintVersion()) {
         return new D8Command(isPrintHelp(), isPrintVersion());
       }
 
-      validate();
-      D8Command command = new D8Command(
+      return new D8Command(
           getAppBuilder().build(),
           getOutputPath(),
           getOutputMode(),
@@ -114,10 +113,6 @@ public class D8Command extends BaseCompilerCommand {
           reporter,
           getEnableDesugaring(),
           intermediate);
-
-      failIfPendingErrors();
-
-      return command;
     }
   }
 
@@ -154,7 +149,7 @@ public class D8Command extends BaseCompilerCommand {
     return new Builder(app);
   }
 
-  public static Builder parse(String[] args, Location location) throws CompilationFailedException {
+  static Builder parse(String[] args, Location location) {
     CompilationMode modeSet = null;
     Path outputPath = null;
     Builder builder = builder();
@@ -217,7 +212,7 @@ public class D8Command extends BaseCompilerCommand {
       }
       return builder.setOutputPath(outputPath);
     } catch (CompilationError e) {
-      throw builder.fatalError(e);
+      throw builder.getReporter().fatalError(e);
     }
   }
 

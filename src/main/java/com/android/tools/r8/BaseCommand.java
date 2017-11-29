@@ -4,7 +4,6 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.shaking.FilteredClassPath;
@@ -93,7 +92,18 @@ abstract class BaseCommand {
 
     abstract B self();
 
-    public abstract C build() throws CompilationFailedException;
+    public final C build() throws CompilationFailedException {
+      try {
+        validate();
+        C c = makeCommand();
+        reporter.failIfPendingErrors();
+        return c;
+      } catch (AbortException e) {
+        throw new CompilationFailedException(e);
+      }
+    }
+
+    protected abstract C makeCommand();
 
     // Internal accessor for the application resources.
     AndroidApp.Builder getAppBuilder() {
@@ -257,27 +267,12 @@ abstract class BaseCommand {
       return self();
     }
 
-    protected void validate() throws CompilationFailedException {
-      failIfPendingErrors();
-    }
-
-    protected void failIfPendingErrors() throws CompilationFailedException {
-      try {
-        reporter.failIfPendingErrors();
-      } catch (AbortException e) {
-        throw new CompilationFailedException(e);
-      }
+    protected void validate() {
     }
 
     protected void error(String baseMessage, Path path, Throwable throwable) {
       reporter.error(new StringDiagnostic(
           baseMessage + throwable.getMessage(), new PathOrigin(path)), throwable);
-    }
-
-    protected RuntimeException fatalError(Throwable e) throws CompilationFailedException {
-      getReporter().error(new StringDiagnostic(e.getMessage()), e);
-      failIfPendingErrors();
-      throw new Unreachable();
     }
   }
 }

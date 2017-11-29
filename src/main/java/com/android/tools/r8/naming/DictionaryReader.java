@@ -3,7 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
-import com.android.tools.r8.CompilationException;
+import com.android.tools.r8.Location;
+import com.android.tools.r8.origin.PathOrigin;
+import com.android.tools.r8.utils.Reporter;
+import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import java.io.BufferedReader;
@@ -52,7 +55,7 @@ public class DictionaryReader implements AutoCloseable {
     }
   }
 
-  public static ImmutableList<String> readAllNames(Path path) throws CompilationException {
+  public static ImmutableList<String> readAllNames(Path path, Reporter reporter) {
     if (path != null) {
       Builder<String> namesBuilder = new ImmutableList.Builder<String>();
       try (DictionaryReader reader = new DictionaryReader(path);) {
@@ -62,8 +65,9 @@ public class DictionaryReader implements AutoCloseable {
           name = reader.readName();
         }
       } catch (IOException e) {
-        throw new CompilationException(
-            "Unable to create dictionary from file " + path.toString(), e);
+        reporter.error(new StringDiagnostic(
+            "Unable to create dictionary from file " + path.toString(),
+            new Location(new PathOrigin(path))));
       }
       return namesBuilder.build();
     } else {

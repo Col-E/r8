@@ -105,7 +105,7 @@ public class GenerateMainDexList {
   }
 
   public static void main(String[] args)
-      throws IOException, CompilationException, ExecutionException, CompilationFailedException {
+      throws IOException, ExecutionException, CompilationFailedException {
     GenerateMainDexListCommand.Builder builder = GenerateMainDexListCommand.parse(args);
     GenerateMainDexListCommand command = builder.build();
     if (command.isPrintHelp()) {

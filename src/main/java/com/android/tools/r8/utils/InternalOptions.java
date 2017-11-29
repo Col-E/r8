@@ -38,7 +38,7 @@ public class InternalOptions {
   public InternalOptions() {
     reporter = new Reporter(new DefaultDiagnosticsHandler());
     itemFactory = new DexItemFactory();
-    proguardConfiguration = ProguardConfiguration.defaultConfiguration(itemFactory);
+    proguardConfiguration = ProguardConfiguration.defaultConfiguration(itemFactory, reporter);
   }
 
   // Constructor for D8.
@@ -47,7 +47,7 @@ public class InternalOptions {
     assert factory != null;
     this.reporter = reporter;
     itemFactory = factory;
-    proguardConfiguration = ProguardConfiguration.defaultConfiguration(itemFactory);
+    proguardConfiguration = ProguardConfiguration.defaultConfiguration(itemFactory, reporter);
   }
 
   // Constructor for R8.

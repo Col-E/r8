@@ -7,9 +7,9 @@ import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.isArchive;
 import static com.android.tools.r8.utils.FileUtils.isClassFile;
 
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.origin.ArchiveEntryOrigin;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.shaking.FilteredClassPath;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -17,6 +17,8 @@ import com.google.common.io.ByteStreams;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
@@ -45,7 +47,15 @@ public class ArchiveClassFileProvider implements ClassFileResourceProvider, Clos
   private ArchiveClassFileProvider(FilteredClassPath archive) throws IOException {
     assert isArchive(archive.getPath());
     origin = new PathOrigin(archive.getPath());
-    zipFile = new ZipFile(archive.getPath().toFile());
+    try {
+      zipFile = new ZipFile(archive.getPath().toFile());
+    } catch (IOException e) {
+      if (!Files.exists(archive.getPath())) {
+        throw new NoSuchFileException(archive.getPath().toString());
+      } else {
+        throw e;
+      }
+    }
     final Enumeration<? extends ZipEntry> entries = zipFile.entries();
     while (entries.hasMoreElements()) {
       ZipEntry entry = entries.nextElement();

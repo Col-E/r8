@@ -6,7 +6,6 @@ package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.origin.Origin;
 import com.google.common.annotations.VisibleForTesting;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
@@ -40,7 +39,7 @@ public class ProguardConfigurationSourceStrings implements ProguardConfiguration
   }
 
   @Override
-  public String get() throws IOException {
+  public String get() {
     return Strings.join(config, System.lineSeparator());
   }
 

@@ -5,17 +5,13 @@ package com.android.tools.r8.internal;
 
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.R8RunArtTestsTest.CompilerUnderTest;
-import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.Resource;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.Closer;
-import java.io.IOException;
-import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 
 public class YouTubeTreeShakeJarVerificationTest extends YouTubeCompilationBase {

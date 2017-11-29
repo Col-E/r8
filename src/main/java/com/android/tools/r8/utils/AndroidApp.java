@@ -10,12 +10,14 @@ import static com.android.tools.r8.utils.FileUtils.isVDexFile;
 
 import com.android.tools.r8.ArchiveClassFileProvider;
 import com.android.tools.r8.ClassFileResourceProvider;
+import com.android.tools.r8.Location;
 import com.android.tools.r8.Resource;
-import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.dex.VDexFile;
 import com.android.tools.r8.dex.VDexFileReader;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.shaking.FilteredClassPath;
 import com.android.tools.r8.utils.ProgramResource.Kind;
 import com.google.common.collect.ImmutableList;
@@ -24,7 +26,6 @@ import com.google.common.io.ByteStreams;
 import com.google.common.io.Closer;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -475,14 +476,14 @@ public class AndroidApp {
     /**
      * Add program file resources.
      */
-    public Builder addProgramFiles(FilteredClassPath... files) throws IOException {
+    public Builder addProgramFiles(FilteredClassPath... files) throws NoSuchFileException {
       return addProgramFiles(Arrays.asList(files));
     }
 
     /**
      * Add program file resources.
      */
-    public Builder addProgramFiles(Collection<FilteredClassPath> files) throws IOException {
+    public Builder addProgramFiles(Collection<FilteredClassPath> files) throws NoSuchFileException {
       for (FilteredClassPath file : files) {
         addProgramFile(file);
       }
@@ -739,10 +740,10 @@ public class AndroidApp {
           mainDexListOutput);
     }
 
-    public void addProgramFile(FilteredClassPath filteredClassPath) throws IOException {
+    public void addProgramFile(FilteredClassPath filteredClassPath) throws NoSuchFileException {
       Path file = filteredClassPath.getPath();
       if (!Files.exists(file)) {
-        throw new FileNotFoundException("Non-existent input file: " + file);
+        throw new NoSuchFileException(file.toString());
       }
       if (isDexFile(file)) {
         addProgramResources(Kind.DEX, Resource.fromFile(file));
@@ -754,7 +755,8 @@ public class AndroidApp {
         programFileArchiveReaders
             .add(new ProgramFileArchiveReader(filteredClassPath, ignoreDexInArchive));
       } else {
-        throw new CompilationError("Unsupported source file type for file: " + file);
+        throw new CompilationError("Unsupported source file type",
+            new Location(new PathOrigin(file)));
       }
     }
 
@@ -774,7 +776,7 @@ public class AndroidApp {
         throws IOException {
       Path file = classPath.getPath();
       if (!Files.exists(file)) {
-        throw new FileNotFoundException("Non-existent input file: " + file);
+        throw new NoSuchFileException(file.toString());
       }
       if (isArchive(file)) {
         providerList.add(ArchiveClassFileProvider.fromArchive(classPath));
@@ -783,7 +785,8 @@ public class AndroidApp {
         assert classPath.isUnfiltered();
         providerList.add(DirectoryClassFileProvider.fromDirectory(file));
       } else {
-        throw new CompilationError("Unsupported source file type for file: " + file);
+        throw new CompilationError("Unsupported source file type",
+            new Location(new PathOrigin(file)));
       }
     }
   }

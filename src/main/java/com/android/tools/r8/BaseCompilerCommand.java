@@ -199,7 +199,7 @@ abstract class BaseCompilerCommand extends BaseCommand {
     }
 
     @Override
-    protected void validate() throws CompilationFailedException {
+    protected void validate() {
       assert mode != null;
       if (getAppBuilder().hasMainDexList() && outputMode == OutputMode.FilePerInputClass) {
         reporter.error("Option --main-dex-list cannot be used with --file-per-class");

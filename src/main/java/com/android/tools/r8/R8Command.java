@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
@@ -13,7 +12,6 @@ import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.shaking.ProguardConfigurationSource;
 import com.android.tools.r8.shaking.ProguardConfigurationSourceFile;
 import com.android.tools.r8.shaking.ProguardConfigurationSourceStrings;
-import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.IOExceptionDiagnostic;
@@ -192,7 +190,7 @@ public class R8Command extends BaseCompilerCommand {
     }
 
     @Override
-    protected void validate() throws CompilationFailedException {
+    protected void validate() {
       if (mainDexListOutput != null && mainDexRules.isEmpty() && !getAppBuilder()
           .hasMainDexList()) {
         reporter.error(
@@ -202,28 +200,23 @@ public class R8Command extends BaseCompilerCommand {
     }
 
     @Override
-    public R8Command build() throws CompilationFailedException {
-      // If printing versions ignore everything else.
-      if (isPrintHelp() || isPrintVersion()) {
-        return new R8Command(isPrintHelp(), isPrintVersion());
-      }
-
-      validate();
+    protected R8Command makeCommand() {
       try {
+        // If printing versions ignore everything else.
+        if (isPrintHelp() || isPrintVersion()) {
+          return new R8Command(isPrintHelp(), isPrintVersion());
+        }
+
         return makeR8Command();
       } catch (IOException e) {
-        reporter.error(new IOExceptionDiagnostic(e), e);
-        failIfPendingErrors();
-        throw new Unreachable();
+        throw reporter.fatalError(new IOExceptionDiagnostic(e), e);
       } catch (CompilationException e) {
-        reporter.error(new StringDiagnostic(e.getMessage()), e);
-        failIfPendingErrors();
-        throw new Unreachable();
+        throw reporter.fatalError(new StringDiagnostic(e.getMessage()), e);
       }
     }
 
     private R8Command makeR8Command()
-        throws IOException, CompilationException, CompilationFailedException {
+        throws IOException, CompilationException {
       DexItemFactory factory = new DexItemFactory();
       ImmutableList<ProguardConfigurationRule> mainDexKeepRules;
       if (this.mainDexRules.isEmpty()) {
@@ -231,25 +224,17 @@ public class R8Command extends BaseCompilerCommand {
       } else {
         ProguardConfigurationParser parser =
             new ProguardConfigurationParser(factory, reporter);
-        try {
-          parser.parse(mainDexRules);
-          mainDexKeepRules = parser.getConfig().getRules();
-        } catch (ProguardRuleParserException e) {
-          throw new CompilationException(e.getMessage(), e.getCause());
-        }
+        parser.parse(mainDexRules);
+        mainDexKeepRules = parser.getConfig().getRules();
       }
 
       ProguardConfiguration.Builder configurationBuilder;
       if (proguardConfigs.isEmpty()) {
-        configurationBuilder = ProguardConfiguration.builder(factory);
+        configurationBuilder = ProguardConfiguration.builder(factory, reporter);
       } else {
         ProguardConfigurationParser parser =
             new ProguardConfigurationParser(factory, reporter);
-        try {
-          parser.parse(proguardConfigs);
-        } catch (ProguardRuleParserException e) {
-          throw new CompilationException(e.getMessage(), e.getCause());
-        }
+        parser.parse(proguardConfigs);
         configurationBuilder = parser.getConfigurationBuilder();
         configurationBuilder.setForceProguardCompatibility(forceProguardCompatibility);
       }
@@ -284,8 +269,6 @@ public class R8Command extends BaseCompilerCommand {
           ignoreMissingClassesWhenNotShrinking,
           proguardMapOutput,
           proguardCompatibilityRulesOutput);
-
-      failIfPendingErrors();
 
       return command;
     }

@@ -4,21 +4,19 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.ProguardConfigurationParser;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.shaking.ProguardConfigurationSource;
 import com.android.tools.r8.shaking.ProguardConfigurationSourceFile;
 import com.android.tools.r8.shaking.ProguardConfigurationSourceStrings;
-import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
-import com.android.tools.r8.utils.IOExceptionDiagnostic;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableList;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -95,32 +93,20 @@ public class GenerateMainDexListCommand extends BaseCommand {
 
 
     @Override
-    public GenerateMainDexListCommand build() throws CompilationFailedException {
+    protected GenerateMainDexListCommand makeCommand() {
       // If printing versions ignore everything else.
       if (isPrintHelp() || isPrintVersion()) {
         return new GenerateMainDexListCommand(isPrintHelp(), isPrintVersion());
       }
 
-      validate();
       ImmutableList<ProguardConfigurationRule> mainDexKeepRules;
       if (this.mainDexRules.isEmpty()) {
         mainDexKeepRules = ImmutableList.of();
       } else {
         ProguardConfigurationParser parser =
             new ProguardConfigurationParser(factory, reporter);
-        try {
-          parser.parse(mainDexRules);
-          mainDexKeepRules = parser.getConfig().getRules();
-        } catch (ProguardRuleParserException e) {
-          reporter.error(new StringDiagnostic(e.getMessage()), e.getCause());
-          throw new CompilationFailedException(e);
-        } catch (CompilationException e) {
-          reporter.error(new StringDiagnostic(e.getMessage()), e.getCause());
-          throw new CompilationFailedException(e);
-        } catch (IOException e) {
-          reporter.error(new IOExceptionDiagnostic(e), e);
-          throw new CompilationFailedException(e);
-        }
+        parser.parse(mainDexRules);
+        mainDexKeepRules = parser.getConfig().getRules();
       }
 
       return new GenerateMainDexListCommand(
@@ -147,15 +133,13 @@ public class GenerateMainDexListCommand extends BaseCommand {
     return new GenerateMainDexListCommand.Builder();
   }
 
-  public static GenerateMainDexListCommand.Builder parse(String[] args)
-      throws CompilationException, IOException {
+  public static GenerateMainDexListCommand.Builder parse(String[] args) {
     GenerateMainDexListCommand.Builder builder = builder();
     parse(args, builder);
     return builder;
   }
 
-  private static void parse(String[] args, GenerateMainDexListCommand.Builder builder)
-      throws CompilationException, IOException {
+  private static void parse(String[] args, GenerateMainDexListCommand.Builder builder) {
     for (int i = 0; i < args.length; i++) {
       String arg = args[i].trim();
       if (arg.length() == 0) {
@@ -172,7 +156,8 @@ public class GenerateMainDexListCommand extends BaseCommand {
         builder.setMainDexListOutputPath(Paths.get(args[++i]));
       } else {
         if (arg.startsWith("--")) {
-          throw new CompilationException("Unknown option: " + arg);
+          builder.getReporter().error(new StringDiagnostic("Unknown option: " + arg,
+              CommandLineOrigin.INSTANCE));
         }
         builder.addProgramFiles(Paths.get(arg));
       }

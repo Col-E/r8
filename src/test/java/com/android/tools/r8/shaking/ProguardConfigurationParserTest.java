@@ -13,17 +13,19 @@ import static org.junit.Assert.fail;
 
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.DiagnosticsHandler;
-import com.android.tools.r8.TextRangeLocation;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TextRangeLocation;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.origin.PathOrigin;
+import com.android.tools.r8.utils.AbortException;
 import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions.PackageObfuscationMode;
+import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -31,6 +33,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import org.junit.Before;
 import org.junit.Test;
 
 public class ProguardConfigurationParserTest extends TestBase {
@@ -114,11 +117,10 @@ public class ProguardConfigurationParserTest extends TestBase {
   private static final String TARGET =
       VALID_PROGUARD_DIR + "target.flags";
 
-  private static final DiagnosticsHandler diagnosticsHandler = new DefaultDiagnosticsHandler();
-
   private static class KeepingDiagnosticHandler implements DiagnosticsHandler {
     private final List<Diagnostic> infos = new ArrayList<>();
     private final List<Diagnostic> warnings = new ArrayList<>();
+    private final List<Diagnostic> errors = new ArrayList<>();
 
     @Override
     public void info(Diagnostic info) {
@@ -129,6 +131,20 @@ public class ProguardConfigurationParserTest extends TestBase {
     public void warning(Diagnostic warning) {
       warnings.add(warning);
     }
+
+    @Override
+    public void error(Diagnostic error) {
+      errors.add(error);
+    }
+  }
+
+  private Reporter reporter;
+  private KeepingDiagnosticHandler handler;
+
+  @Before
+  public void setup() {
+    handler = new KeepingDiagnosticHandler();
+    reporter = new Reporter(handler);
   }
 
   @Test
@@ -136,14 +152,14 @@ public class ProguardConfigurationParserTest extends TestBase {
     ProguardConfigurationParser parser;
 
     // Parse from file.
-    parser = new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
+    parser = new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(Paths.get(PROGUARD_SPEC_FILE));
     List<ProguardConfigurationRule> rules = parser.getConfig().getRules();
     assertEquals(24, rules.size());
     assertEquals(1, rules.get(0).getMemberRules().size());
 
     // Parse from strings.
-    parser = new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
+    parser = new ProguardConfigurationParser(new DexItemFactory(), reporter);
     List<String> lines = FileUtils.readTextFile(Paths.get(PROGUARD_SPEC_FILE));
     parser.parse(createConfigurationForTesting(lines));
     rules = parser.getConfig().getRules();
@@ -154,7 +170,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   @Test
   public void parseMultipleNamePatterns() throws Exception {
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(Paths.get(MULTIPLE_NAME_PATTERNS_FILE));
     List<ProguardConfigurationRule> rules = parser.getConfig().getRules();
     assertEquals(1, rules.size());
@@ -176,7 +192,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   public void testDontWarn() throws Exception {
     DexItemFactory dexItemFactory = new DexItemFactory();
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(dexItemFactory, diagnosticsHandler);
+        new ProguardConfigurationParser(dexItemFactory, reporter);
     String dontwarn = "-dontwarn !foobar,*bar";
     parser.parse(createConfigurationForTesting(ImmutableList.of(dontwarn)));
     ProguardConfiguration config = parser.getConfig();
@@ -192,7 +208,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   public void testDontWarnMultiple() throws Exception {
     DexItemFactory dexItemFactory = new DexItemFactory();
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(dexItemFactory, diagnosticsHandler);
+        new ProguardConfigurationParser(dexItemFactory, reporter);
     List<String> configuration1 = ImmutableList.of("-dontwarn foo.**, bar.**");
     List<String> configuration2 = ImmutableList.of("-dontwarn foo.**", "-dontwarn bar.**");
     for (List<String> configuration : ImmutableList.of(configuration1, configuration2)) {
@@ -211,7 +227,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   public void testDontWarnAllExplicitly() throws Exception {
     DexItemFactory dexItemFactory = new DexItemFactory();
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(dexItemFactory, diagnosticsHandler);
+        new ProguardConfigurationParser(dexItemFactory, reporter);
     String dontwarnAll = "-dontwarn *";
     parser.parse(createConfigurationForTesting(ImmutableList.of(dontwarnAll)));
     ProguardConfiguration config = parser.getConfig();
@@ -227,7 +243,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   public void testDontWarnAllImplicitly() throws Exception {
     DexItemFactory dexItemFactory = new DexItemFactory();
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(dexItemFactory, diagnosticsHandler);
+        new ProguardConfigurationParser(dexItemFactory, reporter);
     String dontwarnAll = "-dontwarn";
     String otherOption = "-keep class *";
     parser.parse(createConfigurationForTesting(ImmutableList.of(dontwarnAll, otherOption)));
@@ -243,7 +259,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   @Test
   public void parseAccessFlags() throws Exception {
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(Paths.get(ACCESS_FLAGS_FILE));
     List<ProguardConfigurationRule> rules = parser.getConfig().getRules();
     assertEquals(1, rules.size());
@@ -288,7 +304,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   @Test
   public void parseWhyAreYouKeeping() throws Exception {
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(Paths.get(WHY_ARE_YOU_KEEPING_FILE));
     List<ProguardConfigurationRule> rules = parser.getConfig().getRules();
     assertEquals(1, rules.size());
@@ -302,7 +318,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   @Test
   public void parseAssumeNoSideEffects() throws Exception {
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(Paths.get(ASSUME_NO_SIDE_EFFECTS));
     List<ProguardConfigurationRule> assumeNoSideEffects = parser.getConfig().getRules();
     assertEquals(1, assumeNoSideEffects.size());
@@ -314,7 +330,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   @Test
   public void parseAssumeNoSideEffectsWithReturnValue() throws Exception {
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(Paths.get(ASSUME_NO_SIDE_EFFECTS_WITH_RETURN_VALUE));
     List<ProguardConfigurationRule> assumeNoSideEffects = parser.getConfig().getRules();
     assertEquals(1, assumeNoSideEffects.size());
@@ -354,7 +370,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   @Test
   public void parseAssumeValuesWithReturnValue() throws Exception {
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(Paths.get(ASSUME_VALUES_WITH_RETURN_VALUE));
     List<ProguardConfigurationRule> assumeValues = parser.getConfig().getRules();
     assertEquals(1, assumeValues.size());
@@ -395,7 +411,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   public void testAdaptClassStrings() throws Exception {
     DexItemFactory dexItemFactory = new DexItemFactory();
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(dexItemFactory, diagnosticsHandler);
+        new ProguardConfigurationParser(dexItemFactory, reporter);
     String adaptClassStrings = "-adaptclassstrings !foobar,*bar";
     parser.parse(createConfigurationForTesting(ImmutableList.of(adaptClassStrings)));
     ProguardConfiguration config = parser.getConfig();
@@ -411,7 +427,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   public void testAdaptClassStringsMultiple() throws Exception {
     DexItemFactory dexItemFactory = new DexItemFactory();
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(dexItemFactory, diagnosticsHandler);
+        new ProguardConfigurationParser(dexItemFactory, reporter);
     List<String> configuration1 = ImmutableList.of("-adaptclassstrings foo.**, bar.**");
     List<String> configuration2 =
         ImmutableList.of("-adaptclassstrings foo.**", "-adaptclassstrings bar.**");
@@ -431,7 +447,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   public void testAdaptClassStringsAllExplicitly() throws Exception {
     DexItemFactory dexItemFactory = new DexItemFactory();
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(dexItemFactory, diagnosticsHandler);
+        new ProguardConfigurationParser(dexItemFactory, reporter);
     String adaptAll = "-adaptclassstrings *";
     parser.parse(createConfigurationForTesting(ImmutableList.of(adaptAll)));
     ProguardConfiguration config = parser.getConfig();
@@ -447,7 +463,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   public void testAdaptClassStringsAllImplicitly() throws Exception {
     DexItemFactory dexItemFactory = new DexItemFactory();
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(dexItemFactory, diagnosticsHandler);
+        new ProguardConfigurationParser(dexItemFactory, reporter);
     String adaptAll = "-adaptclassstrings";
     parser.parse(createConfigurationForTesting(ImmutableList.of(adaptAll)));
     ProguardConfiguration config = parser.getConfig();
@@ -462,7 +478,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   @Test
   public void testIdentifierNameString() throws Exception {
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
     String config1 =
         "-identifiernamestring class a.b.c.*GeneratedClass {\n"
         + "  static java.lang.String CONTAINING_TYPE_*;\n"
@@ -506,7 +522,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   @Test
   public void parseDontobfuscate() throws Exception {
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(Paths.get(DONT_OBFUSCATE));
     ProguardConfiguration config = parser.getConfig();
     assertFalse(config.isObfuscating());
@@ -515,7 +531,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   @Test
   public void parseRepackageClassesEmpty() throws Exception {
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(Paths.get(PACKAGE_OBFUSCATION_1));
     ProguardConfiguration config = parser.getConfig();
     assertEquals(PackageObfuscationMode.REPACKAGE, config.getPackageObfuscationMode());
@@ -526,7 +542,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   @Test
   public void parseRepackageClassesNonEmpty() throws Exception {
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(Paths.get(PACKAGE_OBFUSCATION_2));
     ProguardConfiguration config = parser.getConfig();
     assertEquals(PackageObfuscationMode.REPACKAGE, config.getPackageObfuscationMode());
@@ -537,7 +553,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   @Test
   public void parseFlattenPackageHierarchyEmpty() throws Exception {
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(Paths.get(PACKAGE_OBFUSCATION_3));
     ProguardConfiguration config = parser.getConfig();
     assertEquals(PackageObfuscationMode.FLATTEN, config.getPackageObfuscationMode());
@@ -548,7 +564,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   @Test
   public void parseFlattenPackageHierarchyNonEmpty() throws Exception {
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(Paths.get(PACKAGE_OBFUSCATION_4));
     ProguardConfiguration config = parser.getConfig();
     assertEquals(PackageObfuscationMode.FLATTEN, config.getPackageObfuscationMode());
@@ -560,7 +576,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   public void flattenPackageHierarchyCannotOverrideRepackageClasses()
       throws Exception {
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(Paths.get(PACKAGE_OBFUSCATION_5));
     ProguardConfiguration config = parser.getConfig();
     assertEquals(PackageObfuscationMode.REPACKAGE, config.getPackageObfuscationMode());
@@ -572,7 +588,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   public void repackageClassesOverridesFlattenPackageHierarchy()
       throws Exception {
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(Paths.get(PACKAGE_OBFUSCATION_6));
     ProguardConfiguration config = parser.getConfig();
     assertEquals(PackageObfuscationMode.REPACKAGE, config.getPackageObfuscationMode());
@@ -583,7 +599,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   @Test
   public void parseApplyMapping() throws Exception {
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(Paths.get(APPLY_MAPPING));
     ProguardConfiguration config = parser.getConfig();
     assertTrue(config.hasApplyMappingFile());
@@ -591,53 +607,51 @@ public class ProguardConfigurationParserTest extends TestBase {
 
   @Test
   public void parseApplyMappingWithoutFile() throws Exception {
+    Path path = Paths.get(APPLY_MAPPING_WITHOUT_FILE);
     try {
       ProguardConfigurationParser parser =
-          new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
-      parser.parse(Paths.get(APPLY_MAPPING_WITHOUT_FILE));
+          new ProguardConfigurationParser(new DexItemFactory(), reporter);
+      parser.parse(path);
       fail("Expect to fail due to the lack of file name.");
-    } catch (ProguardRuleParserException e) {
-      assertTrue(e.getMessage().contains("File name expected"));
+    } catch (AbortException e) {
+      checkDiagnostic(handler.errors, path, 6, 14, "File name expected");
     }
   }
 
   @Test
   public void parseIncluding() throws Exception {
-    new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler)
+    new ProguardConfigurationParser(new DexItemFactory(), reporter)
         .parse(Paths.get(INCLUDING));
   }
 
   @Test
   public void parseInvalidIncluding1() throws IOException {
+    Path path = Paths.get(INVALID_INCLUDING_1);
     try {
-      new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler)
-          .parse(Paths.get(INVALID_INCLUDING_1));
+      new ProguardConfigurationParser(new DexItemFactory(), reporter)
+          .parse(path);
       fail();
-    } catch (ProguardRuleParserException e) {
-      assertTrue(e.getMessage().contains("6")); // line
-      assertTrue(e.getMessage().contains("including-1.flags")); // file in error
-      assertTrue(e.getMessage().contains("does-not-exist.flags")); // missing file
+    } catch (AbortException e) {
+      checkDiagnostic(handler.errors, path, 6, 10,"does-not-exist.flags");
     }
   }
 
   @Test
   public void parseInvalidIncluding2() throws IOException {
+    Path path = Paths.get(INVALID_INCLUDING_2);
     try {
-      new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler)
-          .parse(Paths.get(INVALID_INCLUDING_2));
+      new ProguardConfigurationParser(new DexItemFactory(), reporter)
+          .parse(path);
       fail();
-    } catch (ProguardRuleParserException e) {
-      String message = e.getMessage();
-      assertTrue(message, message.contains("6")); // line
-      assertTrue(message, message.contains("including-2.flags")); // file in error
-      assertTrue(message, message.contains("does-not-exist.flags")); // missing file
+    } catch (AbortException e) {
+      checkDiagnostic(handler.errors, path, 6,2, "does-not-exist.flags");
     }
   }
 
   @Test
   public void parseLibraryJars() throws Exception {
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
     if (!ToolHelper.isLinux() && !ToolHelper.isMac()) {
       parser.parse(Paths.get(LIBRARY_JARS_WIN));
     } else {
@@ -650,10 +664,11 @@ public class ProguardConfigurationParserTest extends TestBase {
   public void parseInvalidFilePattern() throws IOException {
     try {
       ProguardConfigurationParser parser =
-          new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
+          new ProguardConfigurationParser(new DexItemFactory(), reporter);
       parser.parse(createConfigurationForTesting(
           Collections.singletonList("-injars abc.jar(*.zip;*.class)")));
-    } catch (ProguardRuleParserException e) {
+    } catch (AbortException e) {
+      assertEquals(1, handler.errors.size());
       return;
     }
     fail();
@@ -662,7 +677,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   @Test
   public void parseSeeds() throws Exception {
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(Paths.get(SEEDS));
     ProguardConfiguration config = parser.getConfig();
     assertTrue(config.isPrintSeeds());
@@ -672,7 +687,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   @Test
   public void parseSeeds2() throws Exception {
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(Paths.get(SEEDS_2));
     ProguardConfiguration config = parser.getConfig();
     assertTrue(config.isPrintSeeds());
@@ -682,7 +697,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   @Test
   public void parseVerbose() throws Exception {
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(Paths.get(VERBOSE));
     ProguardConfiguration config = parser.getConfig();
     assertTrue(config.isVerbose());
@@ -691,14 +706,14 @@ public class ProguardConfigurationParserTest extends TestBase {
   @Test
   public void parseKeepdirectories() throws Exception {
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(Paths.get(KEEPDIRECTORIES));
   }
 
   @Test
   public void parseDontshrink() throws Exception {
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(Paths.get(DONT_SHRINK));
     ProguardConfiguration config = parser.getConfig();
     assertFalse(config.isShrinking());
@@ -707,22 +722,21 @@ public class ProguardConfigurationParserTest extends TestBase {
   @Test
   public void parseDontSkipNonPublicLibraryClasses() throws Exception {
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(Paths.get(DONT_SKIP_NON_PUBLIC_LIBRARY_CLASSES));
   }
 
   @Test
   public void parseDontskipnonpubliclibraryclassmembers() throws Exception {
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(Paths.get(DONT_SKIP_NON_PUBLIC_LIBRARY_CLASS_MEMBERS));
   }
 
   @Test
   public void parseIdentifiernamestring() throws Exception {
-    KeepingDiagnosticHandler handler = new KeepingDiagnosticHandler();
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(), handler);
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
     Path source = Paths.get(IDENTIFIER_NAME_STRING);
     parser.parse(source);
     assertEquals(0, handler.infos.size());
@@ -732,14 +746,14 @@ public class ProguardConfigurationParserTest extends TestBase {
   @Test
   public void parseOverloadAggressively() throws Exception {
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(Paths.get(OVERLOAD_AGGRESIVELY));
   }
 
   @Test
   public void parseDontOptimize() throws Exception {
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(Paths.get(DONT_OPTIMIZE));
     ProguardConfiguration config = parser.getConfig();
   }
@@ -747,7 +761,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   @Test
   public void parseDontOptimizeOverridesPasses() throws Exception {
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(Paths.get(DONT_OPTIMIZE_OVERRIDES_PASSES));
     ProguardConfiguration config = parser.getConfig();
   }
@@ -755,46 +769,49 @@ public class ProguardConfigurationParserTest extends TestBase {
   @Test
   public void parseOptimizationPasses() throws Exception {
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(Paths.get(OPTIMIZATION_PASSES));
     ProguardConfiguration config = parser.getConfig();
   }
 
   @Test
   public void parseOptimizationPassesError() throws Exception {
+    Path path = Paths.get(OPTIMIZATION_PASSES_WITHOUT_N);
     try {
       ProguardConfigurationParser parser =
-          new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
-      parser.parse(Paths.get(OPTIMIZATION_PASSES_WITHOUT_N));
+          new ProguardConfigurationParser(new DexItemFactory(), reporter);
+      parser.parse(path);
       fail();
-    } catch (ProguardRuleParserException e) {
-      assertTrue(e.getMessage().contains("Missing n"));
+    } catch (AbortException e) {
+      checkDiagnostic(handler.errors, path, 6, 1, "Missing n");
     }
   }
 
   @Test
   public void parseSkipNonPublicLibraryClasses() throws IOException {
+    Path path = Paths.get(SKIP_NON_PUBLIC_LIBRARY_CLASSES);
     try {
       ProguardConfigurationParser parser =
-          new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
-      parser.parse(Paths.get(SKIP_NON_PUBLIC_LIBRARY_CLASSES));
+          new ProguardConfigurationParser(new DexItemFactory(), reporter);
+      parser.parse(path);
       fail();
-    } catch (ProguardRuleParserException e) {
-      assertTrue(e.getMessage().contains("Unsupported option: -skipnonpubliclibraryclasses"));
+    } catch (AbortException e) {
+      checkDiagnostic(handler.errors, path, 5, 1, "Unsupported option",
+          "-skipnonpubliclibraryclasses");
     }
   }
 
   @Test
   public void parseAndskipSingleArgument() throws Exception {
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(Paths.get(PARSE_AND_SKIP_SINGLE_ARGUMENT));
   }
 
   @Test
   public void parsePrintUsage() throws Exception {
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(Paths.get(PRINT_USAGE));
     ProguardConfiguration config = parser.getConfig();
     assertTrue(config.isPrintUsage());
@@ -804,7 +821,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   @Test
   public void parsePrintUsageToFile() throws Exception {
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(Paths.get(PRINT_USAGE_TO_FILE));
     ProguardConfiguration config = parser.getConfig();
     assertTrue(config.isPrintUsage());
@@ -814,31 +831,31 @@ public class ProguardConfigurationParserTest extends TestBase {
   @Test
   public void parseTarget() throws Exception {
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(Paths.get(TARGET));
   }
 
   @Test
   public void parseInvalidKeepClassOption() throws Exception {
+    Path proguardConfig = writeTextToTempFile(
+        "-keepclassx public class * {  ",
+        "  native <methods>;           ",
+        "}                             "
+    );
     try {
       ProguardConfigurationParser parser =
-          new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
-      Path proguardConfig = writeTextToTempFile(
-          "-keepclassx public class * {  ",
-          "  native <methods>;           ",
-          "}                             "
-      );
+          new ProguardConfigurationParser(new DexItemFactory(), reporter);
       parser.parse(proguardConfig);
       fail();
-    } catch (ProguardRuleParserException e) {
-      assertTrue(e.getMessage().contains("Unknown option at "));
+    } catch (AbortException e) {
+      checkDiagnostic(handler.errors, proguardConfig, 1, 1, "Unknown option", "-keepclassx");
     }
   }
 
   @Test
   public void parseCustomFlags() throws Exception {
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
     // Custom Proguard flags -runtype and -laststageoutput are ignored.
     Path proguardConfig = writeTextToTempFile(
         "-runtype FINAL                    ",
@@ -850,7 +867,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   @Test
   public void testRenameSourceFileAttribute() throws Exception {
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
     String config1 = "-renamesourcefileattribute PG\n";
     String config2 = "-keepattributes SourceFile,SourceDir\n";
     parser.parse(createConfigurationForTesting(ImmutableList.of(config1, config2)));
@@ -863,7 +880,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   @Test
   public void testRenameSourceFileAttributeEmpty() throws Exception {
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
     String config1 = "-renamesourcefileattribute\n";
     String config2 = "-keepattributes SourceFile\n";
     parser.parse(createConfigurationForTesting(ImmutableList.of(config1, config2)));
@@ -874,7 +891,7 @@ public class ProguardConfigurationParserTest extends TestBase {
 
   private void testKeepattributes(List<String> expected, String config) throws Exception {
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(createConfigurationForTesting(ImmutableList.of(config)));
     assertEquals(
         ProguardKeepAttributes.fromPatterns(expected),
@@ -903,18 +920,18 @@ public class ProguardConfigurationParserTest extends TestBase {
   public void parseInvalidKeepattributes() throws Exception {
     try {
       ProguardConfigurationParser parser =
-          new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
+          new ProguardConfigurationParser(new DexItemFactory(), reporter);
       parser.parse(createConfigurationForTesting(ImmutableList.of("-keepattributes xxx,")));
       fail();
-    } catch (ProguardRuleParserException e) {
-      assertTrue(e.getMessage().contains("Expected list element at "));
+    } catch (AbortException e) {
+      assertTrue(handler.errors.get(0).getDiagnosticMessage().contains("Expected list element at "));
     }
   }
 
   @Test
   public void parseUseUniqueClassMemberNames() throws Exception {
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(createConfigurationForTesting(ImmutableList.of(
         "-useuniqueclassmembernames"
     )));
@@ -926,21 +943,22 @@ public class ProguardConfigurationParserTest extends TestBase {
   public void parseKeepParameterNames() throws Exception {
     try {
       ProguardConfigurationParser parser =
-          new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
+          new ProguardConfigurationParser(new DexItemFactory(), reporter);
       parser.parse(createConfigurationForTesting(ImmutableList.of(
           "-keepparameternames"
       )));
       parser.getConfig();
       fail();
-    } catch (ProguardRuleParserException e) {
-      assertTrue(e.getMessage().contains("-keepparameternames is not supported"));
+    } catch (AbortException e) {
+      assertTrue(handler.errors.get(0).getDiagnosticMessage().contains(
+          "-keepparameternames is not supported"));
     }
   }
 
   @Test
   public void parseKeepParameterNamesWithoutMinification() throws Exception {
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(createConfigurationForTesting(ImmutableList.of(
         "-keepparameternames",
         "-dontobfuscate"
@@ -948,7 +966,7 @@ public class ProguardConfigurationParserTest extends TestBase {
     ProguardConfiguration config = parser.getConfig();
     assertTrue(config.isKeepParameterNames());
 
-    parser = new ProguardConfigurationParser(new DexItemFactory(), diagnosticsHandler);
+    parser = new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(createConfigurationForTesting(ImmutableList.of(
         "-keepparameternames"
     )));
@@ -957,5 +975,19 @@ public class ProguardConfigurationParserTest extends TestBase {
     )));
     config = parser.getConfig();
     assertTrue(config.isKeepParameterNames());
+  }
+
+  private Diagnostic checkDiagnostic(List<Diagnostic> diagnostics, Path path, int lineStart,
+      int columnStart, String... messageParts) {
+    assertEquals(1, diagnostics.size());
+    Diagnostic diagnostic = diagnostics.get(0);
+    assertEquals(path, ((PathOrigin) diagnostic.getLocation().getOrigin()).getPath());
+    assertEquals(new TextRangeLocation.TextPosition(lineStart, columnStart),
+        ((TextRangeLocation) diagnostic.getLocation()).getStart());
+    for (String part:messageParts) {
+      assertTrue(diagnostic.getDiagnosticMessage()+ "doesn't contain \"" + part + "\"",
+          diagnostic.getDiagnosticMessage().contains(part));
+    }
+    return diagnostic;
   }
 }

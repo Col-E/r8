@@ -3,10 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
-import com.android.tools.r8.CompilationException;
-import com.android.tools.r8.DiagnosticsHandler;
-import com.android.tools.r8.TextRangeLocation;
 import com.android.tools.r8.Location;
+import com.android.tools.r8.TextRangeLocation;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -20,7 +18,9 @@ import com.android.tools.r8.shaking.ProguardTypeMatcher.MatchSpecificType;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions.PackageObfuscationMode;
 import com.android.tools.r8.utils.LongInterval;
+import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.io.File;
@@ -40,7 +40,7 @@ public class ProguardConfigurationParser {
 
   private final DexItemFactory dexItemFactory;
 
-  private final DiagnosticsHandler diagnosticsHandler;
+  private final Reporter reporter;
 
   private static final List<String> IGNORED_SINGLE_ARG_OPTIONS = ImmutableList
       .of("protomapping",
@@ -74,32 +74,31 @@ public class ProguardConfigurationParser {
       .of("skipnonpubliclibraryclasses");
 
   public ProguardConfigurationParser(
-      DexItemFactory dexItemFactory, DiagnosticsHandler diagnosticsHandler) {
+      DexItemFactory dexItemFactory, Reporter reporter) {
     this.dexItemFactory = dexItemFactory;
-    configurationBuilder = ProguardConfiguration.builder(dexItemFactory);
+    configurationBuilder = ProguardConfiguration.builder(dexItemFactory, reporter);
 
-    this.diagnosticsHandler = diagnosticsHandler;
+    this.reporter = reporter;
   }
 
   public ProguardConfiguration.Builder getConfigurationBuilder() {
     return configurationBuilder;
   }
 
-  private void validate()
-      throws ProguardRuleParserException, CompilationException {
-    if (configurationBuilder.isKeepParameterNames()
-        && configurationBuilder.isObfuscating()) {
+  private void validate() {
+    if (configurationBuilder.isKeepParameterNames() && configurationBuilder.isObfuscating()) {
       // The flag -keepparameternames has only effect when minifying, so ignore it if we
       // are not.
-      throw new ProguardRuleParserException("-keepparameternames is not supported");
+      reporter.fatalError(new StringDiagnostic(
+          "-keepparameternames is not supported",
+          configurationBuilder.getKeepParameterNamesOptionLocation()));
     }
   }
 
   /**
    * Returns the Proguard configuration with default rules derived from empty rules added.
    */
-  public ProguardConfiguration getConfig()
-      throws ProguardRuleParserException, CompilationException {
+  public ProguardConfiguration getConfig() {
     validate();
     return configurationBuilder.build();
   }
@@ -108,26 +107,32 @@ public class ProguardConfigurationParser {
    * Returns the Proguard configuration from exactly the rules parsed, without any
    * defaults derived from empty rules.
    */
-  public ProguardConfiguration getConfigRawForTesting()
-      throws ProguardRuleParserException, CompilationException {
+  public ProguardConfiguration getConfigRawForTesting() {
     validate();
     return configurationBuilder.buildRaw();
   }
 
-  public void parse(Path path) throws ProguardRuleParserException, IOException {
+  public void parse(Path path) {
     parse(ImmutableList.of(new ProguardConfigurationSourceFile(path)));
   }
 
-  public void parse(ProguardConfigurationSource source)
-      throws ProguardRuleParserException, IOException {
+  // package visible for testing
+  void parse(ProguardConfigurationSource source) {
     parse(ImmutableList.of(source));
   }
 
-  public void parse(List<ProguardConfigurationSource> sources)
-      throws ProguardRuleParserException, IOException {
+  public void parse(List<ProguardConfigurationSource> sources) {
     for (ProguardConfigurationSource source : sources) {
-      new ProguardConfigurationSourceParser(source).parse();
+      try {
+        new ProguardConfigurationSourceParser(source).parse();
+      } catch (IOException e) {
+        reporter.error(new StringDiagnostic("Failed to read file: " + e.getMessage(),
+            source.getOrigin()));
+      } catch (ProguardRuleParserException e) {
+        reporter.error(e, MoreObjects.firstNonNull(e.getCause(), e));
+      }
     }
+    reporter.failIfPendingErrors();
   }
 
   private class ProguardConfigurationSourceParser {
@@ -139,8 +144,7 @@ public class ProguardConfigurationParser {
     private Path baseDirectory;
     private final Origin origin;
 
-    ProguardConfigurationSourceParser(ProguardConfigurationSource source)
-        throws IOException {
+    ProguardConfigurationSourceParser(ProguardConfigurationSource source) throws IOException {
       contents = source.get();
       baseDirectory = source.getBaseDirectory();
       name = source.getName();
@@ -179,7 +183,9 @@ public class ProguardConfigurationParser {
         warnIgnoringOptions(option, optionLine, optionColumn);
       } else if (
           (option = Iterables.find(UNSUPPORTED_FLAG_OPTIONS, this::skipFlag, null)) != null) {
-        throw parseError("Unsupported option: -" + option);
+        reporter.error(new StringDiagnostic(
+            "Unsupported option: -" + option,
+            getLocation(optionLine, optionColumn)));
       } else if (acceptString("renamesourcefileattribute")) {
         skipWhitespace();
         if (isOptionalArgumentGiven()) {
@@ -193,7 +199,8 @@ public class ProguardConfigurationParser {
         ProguardKeepPackageNamesRule rule = parseKeepPackageNamesRule();
         configurationBuilder.addRule(rule);
       } else if (acceptString("keepparameternames")) {
-        configurationBuilder.setKeepParameterNames(true);
+        configurationBuilder.setKeepParameterNames(true,
+            getLocation(optionLine, optionColumn));
       } else if (acceptString("checkdiscard")) {
         ProguardCheckDiscardRule rule = parseCheckDiscardRule();
         configurationBuilder.addRule(rule);
@@ -209,7 +216,9 @@ public class ProguardConfigurationParser {
         skipWhitespace();
         Integer expectedOptimizationPasses = acceptInteger();
         if (expectedOptimizationPasses == null) {
-          throw parseError("Missing n of \"-optimizationpasses n\"");
+          throw reporter.fatalError(new StringDiagnostic(
+              "Missing n of \"-optimizationpasses n\"",
+              getLocation(optionLine, optionColumn)));
         }
         warnIgnoringOptions("optimizationpasses", optionLine, optionColumn);
       } else if (acceptString("dontobfuscate")) {
@@ -319,21 +328,27 @@ public class ProguardConfigurationParser {
       } else if (acceptString("identifiernamestring")) {
         configurationBuilder.addRule(parseIdentifierNameStringRule());
       } else {
-        throw parseError("Unknown option");
+        String unknownOption = acceptString();
+        reporter.error(new StringDiagnostic("Unknown option \"-" + unknownOption + "\"",
+            getLocation(optionLine, optionColumn)));
       }
       return true;
     }
 
 
     private void parseInclude() throws ProguardRuleParserException {
+      int startLine = line;
+      int startColumn = getColumn();
       Path included = parseFileName();
       try {
         new ProguardConfigurationSourceParser(new ProguardConfigurationSourceFile(included))
             .parse();
       } catch (FileNotFoundException | NoSuchFileException e) {
-        throw parseError("Included file '" + included.toString() + "' not found", e);
+        throw parseError("Included file '" + included.toString() + "' not found",
+            startLine, startColumn, e);
       } catch (IOException e) {
-        throw parseError("Failed to read included file '" + included.toString() + "'", e);
+        throw parseError("Failed to read included file '" + included.toString() + "'",
+            startLine, startColumn, e);
       }
     }
 
@@ -401,8 +416,7 @@ public class ProguardConfigurationParser {
           parseClassSpec(keepRuleBuilder, true);
           return true;
         } catch (ProguardRuleParserException e) {
-          System.out.println(e);
-          return false;
+          throw reporter.fatalError(e, MoreObjects.firstNonNull(e.getCause(), e));
         }
       }
       return false;
@@ -521,7 +535,13 @@ public class ProguardConfigurationParser {
         } else {
           // The only path to here is through "-keep" followed by "class".
           unacceptString("-keepclass");
-          throw parseError("Unknown option");
+          int startLine = line;
+          int startColumn = getColumn();
+          acceptString("-");
+          String unknownOption = acceptString();
+          throw reporter.fatalError(new StringDiagnostic(
+              "Unknown option \"-" + unknownOption + "\"",
+              getLocation(startLine, startColumn)));
         }
       } else {
         builder.setType(ProguardKeepRuleType.KEEP);
@@ -545,7 +565,9 @@ public class ProguardConfigurationParser {
       }
     }
 
-    private ProguardTypeMatcher parseAnnotation() throws ProguardRuleParserException {
+    private ProguardTypeMatcher parseAnnotation()
+      throws ProguardRuleParserException {
+
       skipWhitespace();
       int startPosition = position;
       if (acceptChar('@')) {
@@ -597,6 +619,8 @@ public class ProguardConfigurationParser {
 
     private ProguardClassType parseClassType() throws ProguardRuleParserException {
       skipWhitespace();
+      int startLine = line;
+      int startColumn = getColumn();
       if (acceptString("interface")) {
         return ProguardClassType.INTERFACE;
       } else if (acceptString("@interface")) {
@@ -606,7 +630,8 @@ public class ProguardConfigurationParser {
       } else if (acceptString("enum")) {
         return ProguardClassType.ENUM;
       } else {
-        throw parseError("Expected interface|class|enum");
+        throw reporter.fatalError(new StringDiagnostic("Expected interface|class|enum",
+            getLocation(startLine, startColumn)));
       }
     }
 
@@ -756,6 +781,8 @@ public class ProguardConfigurationParser {
                   } else if (acceptString("false")) {
                     ruleBuilder.setReturnValue(new ProguardMemberRuleReturnValue(false));
                   } else {
+                    int fieldStartLine = line;
+                    int fieldStartColumn = getColumn();
                     String qualifiedFieldName = acceptFieldName();
                     if (qualifiedFieldName != null) {
                       if (ruleBuilder.getTypeMatcher() instanceof MatchSpecificType) {
@@ -772,9 +799,12 @@ public class ProguardConfigurationParser {
                             .createField(fieldClass, fieldType, fieldName);
                         ruleBuilder.setReturnValue(new ProguardMemberRuleReturnValue(field));
                       } else {
-                        throw parseError("Expected specific type");
+                        throw parseError("Expected specific type", fieldStartLine,
+                            fieldStartColumn);
                       }
                     } else {
+                      int valueStartLine = line;
+                      int valueStartColumn = getColumn();
                       Integer min = acceptInteger();
                       Integer max = min;
                       if (min == null) {
@@ -788,7 +818,8 @@ public class ProguardConfigurationParser {
                         }
                       }
                       if (!allowValueSpecification) {
-                        throw parseError("Unexpected value specification");
+                        throw parseError("Unexpected value specification", valueStartLine,
+                            valueStartColumn);
                       }
                       ruleBuilder.setReturnValue(
                           new ProguardMemberRuleReturnValue(new LongInterval(min, max)));
@@ -834,13 +865,15 @@ public class ProguardConfigurationParser {
     }
 
     private Path parseFileName() throws ProguardRuleParserException {
+      int startLine = this.line;
+      int startColumn = getColumn();
       skipWhitespace();
       String fileName = acceptString(character ->
           character != File.pathSeparatorChar
               && !Character.isWhitespace(character)
               && character != '(');
       if (fileName == null) {
-        throw parseError("File name expected");
+        throw parseError("File name expected", startLine, startColumn);
       }
       return baseDirectory.resolve(fileName);
     }
@@ -869,7 +902,7 @@ public class ProguardConfigurationParser {
           filters.add(parseFileFilter());
           skipWhitespace();
         }
-        if (acceptChar(';')) {
+        if (peekChar() == ';') {
           throw parseError("Only class file filters are supported in classpath");
         }
         expectChar(')');
@@ -880,12 +913,14 @@ public class ProguardConfigurationParser {
     }
 
     private String parseFileFilter() throws ProguardRuleParserException {
+      int startLine = line;
+      int startColumn = getColumn();
       skipWhitespace();
       String fileFilter = acceptString(character ->
           character != ',' && character != ';' && character != ')'
               && !Character.isWhitespace(character));
       if (fileFilter == null) {
-        throw parseError("file filter expected");
+        throw parseError("file filter expected", startLine, startColumn);
       }
       return fileFilter;
     }
@@ -966,19 +1001,8 @@ public class ProguardConfigurationParser {
     }
 
     private void expectChar(char c) throws ProguardRuleParserException {
-      if (eof() || readChar() != c) {
+      if (!acceptChar(c)) {
         throw parseError("Expected char '" + c + "'");
-      }
-    }
-
-    private void expectString(String expected) throws ProguardRuleParserException {
-      if (remainingChars() < expected.length()) {
-        throw parseError("Expected string '" + expected + "'");
-      }
-      for (int i = 0; i < expected.length(); i++) {
-        if (expected.charAt(i) != readChar()) {
-          throw parseError("Expected string '" + expected + "'");
-        }
       }
     }
 
@@ -1044,10 +1068,12 @@ public class ProguardConfigurationParser {
       while (pattern != null) {
         patterns.add(pattern);
         skipWhitespace();
+        int startLine = line;
+        int startColumn = getColumn();
         if (acceptChar(',')) {
           pattern = acceptPattern();
           if (pattern == null) {
-            throw parseError("Expected list element");
+            throw parseError("Expected list element", startLine, startColumn);
           }
         } else {
           pattern = null;
@@ -1125,37 +1151,60 @@ public class ProguardConfigurationParser {
         String line = lines[lineNumber];
         if (remaining <= line.length() || lineNumber == lines.length - 1) {
           String arrow = CharBuffer.allocate(remaining).toString().replace('\0', ' ') + '^';
-          return name + ":" + (lineNumber + 1) + ":" + remaining + "\n" + line
+          return name + ":" + (lineNumber + 1) + ":" + (remaining + 1) + "\n" + line
               + '\n' + arrow;
         }
         remaining -= (line.length() + 1); // Include newline.
       }
       return name;
     }
+    private String snippetForPosition(int lineNumber, int columnNumber) {
+      // TODO(ager): really should deal with \r as well to get column right.
+      String[] lines = contents.split("\n", -1);  // -1 to get trailing empty lines represented.
+      String line = lines[lineNumber-1];
+      String arrow = CharBuffer.allocate(columnNumber - 1).toString().replace('\0', ' ') + '^';
+      return name + ":" + (lineNumber + 1) + ":" + columnNumber + "\n" + line
+          + '\n' + arrow;
+    }
 
     private ProguardRuleParserException parseError(String message) {
-      return new ProguardRuleParserException(message, snippetForPosition());
+      return new ProguardRuleParserException(message, snippetForPosition(), getLocation());
     }
 
     private ProguardRuleParserException parseError(String message, Throwable cause) {
-      return new ProguardRuleParserException(message, snippetForPosition(), cause);
+      return new ProguardRuleParserException(message, snippetForPosition(), getLocation(), cause);
+    }
+
+    private ProguardRuleParserException parseError(String message, int startLine, int startColumn,
+        Throwable cause) {
+      return new ProguardRuleParserException(message, snippetForPosition(startLine, startColumn),
+          getLocation(startLine, startColumn), cause);
+    }
+
+    private ProguardRuleParserException parseError(String message, int startLine, int startColumn) {
+      return new ProguardRuleParserException(message, snippetForPosition(startLine, startColumn),
+          getLocation(startLine, startColumn));
     }
 
     private void warnIgnoringOptions(String optionName, int startLine, int startColumn) {
-      diagnosticsHandler.warning(new StringDiagnostic(
+      reporter.warning(new StringDiagnostic(
           "Ignoring option: -" + optionName,
           getLocation(startLine, startColumn)));
     }
 
     private void warnOverridingOptions(String optionName, String victim, int optionLine,
         int optionColumn) {
-      diagnosticsHandler.warning(
+      reporter.warning(
           new StringDiagnostic("Option -" + optionName + " overrides -" + victim,
               getLocation(optionLine, optionColumn)));
     }
 
     private Location getLocation(int startLine, int startColumn) {
       return TextRangeLocation.get(origin, startLine, startColumn, line, getColumn());
+    }
+
+    private Location getLocation() {
+      return TextRangeLocation.get(origin, line, getColumn());
     }
 
     private int getColumn() {

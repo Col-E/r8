@@ -3,10 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
-import com.android.tools.r8.CompilationException;
+import com.android.tools.r8.Location;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.naming.DictionaryReader;
 import com.android.tools.r8.utils.InternalOptions.PackageObfuscationMode;
+import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -18,6 +19,7 @@ public class ProguardConfiguration {
 
     private final List<FilteredClassPath> injars = new ArrayList<>();
     private final List<FilteredClassPath> libraryjars = new ArrayList<>();
+    private final Reporter reporter;
     private PackageObfuscationMode packageObfuscationMode = PackageObfuscationMode.NONE;
     private String packagePrefix = "";
     private boolean allowAccessModification;
@@ -43,12 +45,14 @@ public class ProguardConfiguration {
     private Path packageObfuscationDictionary;
     private boolean useUniqueClassMemberNames;
     private boolean keepParameterNames;
+    private Location keepParameterNamesOptionLocation;
     private ProguardClassFilter.Builder adaptClassStrings = ProguardClassFilter.builder();
     private boolean forceProguardCompatibility = false;
     private boolean overloadAggressively;
 
-    private Builder(DexItemFactory dexItemFactory) {
+    private Builder(DexItemFactory dexItemFactory, Reporter reporter) {
       this.dexItemFactory = dexItemFactory;
+      this.reporter = reporter;
     }
 
     public void addInjars(List<FilteredClassPath> injars) {
@@ -165,12 +169,18 @@ public class ProguardConfiguration {
       return useUniqueClassMemberNames;
     }
 
-    public void setKeepParameterNames(boolean keepParameterNames) {
+    public void setKeepParameterNames(boolean keepParameterNames, Location optionLocation) {
+      assert optionLocation != null || !keepParameterNames;
       this.keepParameterNames = keepParameterNames;
+      this.keepParameterNamesOptionLocation = optionLocation;
     }
 
     boolean isKeepParameterNames() {
       return keepParameterNames;
+    }
+
+    Location getKeepParameterNamesOptionLocation() {
+      return keepParameterNamesOptionLocation;
     }
 
     public void addAdaptClassStringsPattern(ProguardClassNameList pattern) {
@@ -185,8 +195,9 @@ public class ProguardConfiguration {
       this.overloadAggressively = overloadAggressively;
     }
 
-    ProguardConfiguration buildRaw() throws CompilationException {
-      return new ProguardConfiguration(
+    ProguardConfiguration buildRaw() {
+
+      ProguardConfiguration configuration = new ProguardConfiguration(
           dexItemFactory,
           injars,
           libraryjars,
@@ -210,15 +221,19 @@ public class ProguardConfiguration {
           printSeeds,
           seedFile,
           overloadAggressively,
-          DictionaryReader.readAllNames(obfuscationDictionary),
-          DictionaryReader.readAllNames(classObfuscationDictionary),
-          DictionaryReader.readAllNames(packageObfuscationDictionary),
+          DictionaryReader.readAllNames(obfuscationDictionary, reporter),
+          DictionaryReader.readAllNames(classObfuscationDictionary, reporter),
+          DictionaryReader.readAllNames(packageObfuscationDictionary, reporter),
           useUniqueClassMemberNames,
           keepParameterNames,
           adaptClassStrings.build());
+
+      reporter.failIfPendingErrors();
+
+      return configuration;
     }
 
-    public ProguardConfiguration build() throws CompilationException {
+    public ProguardConfiguration build() {
       boolean rulesWasEmpty = rules.isEmpty();
       if (rules.isEmpty()) {
         setObfuscating(false);
@@ -328,8 +343,9 @@ public class ProguardConfiguration {
   /**
    * Create a new empty builder.
    */
-  public static Builder builder(DexItemFactory dexItemFactory) {
-    return new Builder(dexItemFactory);
+  public static Builder builder(DexItemFactory dexItemFactory,
+      Reporter reporter) {
+    return new Builder(dexItemFactory, reporter);
   }
 
   public DexItemFactory getDexItemFactory() {
@@ -444,14 +460,9 @@ public class ProguardConfiguration {
     return adaptClassStrings;
   }
 
-  public static ProguardConfiguration defaultConfiguration(DexItemFactory dexItemFactory) {
-    try {
-      return builder(dexItemFactory).build();
-    } catch (CompilationException e) {
-      // Building a builder initialized with defaults will not throw CompilationException because
-      // DictionaryReader is called with empty lists.
-      throw new RuntimeException();
-    }
+  public static ProguardConfiguration defaultConfiguration(DexItemFactory dexItemFactory,
+      Reporter reporter) {
+    return builder(dexItemFactory, reporter).build();
   }
 
   public boolean isPrintSeeds() {

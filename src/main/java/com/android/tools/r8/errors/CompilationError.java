@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.errors;
 
+import com.android.tools.r8.Diagnostic;
+import com.android.tools.r8.Location;
 import com.android.tools.r8.origin.Origin;
 
 /**
@@ -11,17 +13,37 @@ import com.android.tools.r8.origin.Origin;
  * This is always an expected error and considered a user input issue. A user-understandable message
  * must be provided.
  */
-public class CompilationError extends RuntimeException {
+public class CompilationError extends RuntimeException implements Diagnostic {
 
+  private final Location location;
   public CompilationError(String message) {
-    super(message);
+    this(message, Location.UNKNOWN);
   }
 
   public CompilationError(String message, Throwable cause) {
-    super(message, cause);
+    this(message, cause, Location.UNKNOWN);
+  }
+
+  public CompilationError(String message, Location location) {
+    this(message, null, location);
   }
 
   public CompilationError(String message, Origin origin) {
-    super(origin + ": " + message);
+    this(message, new Location(origin));
+  }
+
+  public CompilationError(String message, Throwable cause, Location location) {
+    super(message, cause);
+    this.location = location;
+  }
+
+  @Override
+  public Location getLocation() {
+    return location;
+  }
+
+  @Override
+  public String getDiagnosticMessage() {
+    return getMessage();
   }
 }

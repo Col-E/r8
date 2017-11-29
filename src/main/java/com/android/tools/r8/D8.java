@@ -91,18 +91,20 @@ public final class D8 {
   public static D8Output run(D8Command command, ExecutorService executor)
       throws CompilationFailedException {
     try {
-      InternalOptions options = command.getInternalOptions();
-      AndroidAppOutputSink compatSink = new AndroidAppOutputSink(command.getOutputSink());
-      CompilationResult result =
-          run(command.getInputApp(), compatSink, options, executor);
-      assert result != null;
-      return new D8Output(compatSink.build(), command.getOutputMode());
-    } catch (IOException io) {
-      command.getReporter().error(new IOExceptionDiagnostic(io));
-      throw new CompilationFailedException(io);
-    } catch (CompilationException e) {
-      command.getReporter().error(new StringDiagnostic(e.getMessage()));
-      throw new CompilationFailedException(e);
+      try {
+        InternalOptions options = command.getInternalOptions();
+        AndroidAppOutputSink compatSink = new AndroidAppOutputSink(command.getOutputSink());
+        CompilationResult result =
+            run(command.getInputApp(), compatSink, options, executor);
+        assert result != null;
+        D8Output d8Output = new D8Output(compatSink.build(), command.getOutputMode());
+        command.getReporter().failIfPendingErrors();
+        return d8Output;
+      } catch (IOException io) {
+        throw command.getReporter().fatalError(new IOExceptionDiagnostic(io));
+      } catch (CompilationException e) {
+        throw command.getReporter().fatalError(new StringDiagnostic(e.getMessageForD8()));
+      }
     } catch (AbortException e) {
       throw new CompilationFailedException(e);
     }

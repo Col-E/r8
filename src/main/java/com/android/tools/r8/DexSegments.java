@@ -28,12 +28,11 @@ public class DexSegments {
       }
 
       @Override
-      public Command build() throws CompilationFailedException {
+      protected Command makeCommand() {
         // If printing versions ignore everything else.
         if (isPrintHelp()) {
           return new Command(isPrintHelp());
         }
-        validate();
         return new Command(getAppBuilder().build());
       }
     }

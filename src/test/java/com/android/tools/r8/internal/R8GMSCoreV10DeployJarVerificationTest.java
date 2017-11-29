@@ -4,13 +4,9 @@
 
 package com.android.tools.r8.internal;
 
-import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.R8RunArtTestsTest.CompilerUnderTest;
-import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApp;
-import java.io.IOException;
-import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 
 public class R8GMSCoreV10DeployJarVerificationTest extends GMSCoreDeployJarVerificationTest {

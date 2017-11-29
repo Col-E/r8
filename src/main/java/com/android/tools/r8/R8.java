@@ -456,12 +456,16 @@ public class R8 {
   public static void run(R8Command command, ExecutorService executor)
       throws CompilationFailedException {
     try {
-      InternalOptions options = command.getInternalOptions();
-      run(command.getInputApp(), command.getOutputSink(), options, executor);
-    } catch (IOException io) {
-      command.getReporter().error(new IOExceptionDiagnostic(io));
-      throw new CompilationFailedException(io);
-    } catch (CompilationException e) {
+      try {
+        InternalOptions options = command.getInternalOptions();
+        run(command.getInputApp(), command.getOutputSink(), options, executor);
+      } catch (IOException io) {
+        throw command.getReporter().fatalError(new IOExceptionDiagnostic(io));
+      } catch (CompilationException e) {
+        throw command.getReporter().fatalError(new StringDiagnostic(e.getMessageForR8()), e);
+      }
+      command.getReporter().failIfPendingErrors();
+    } catch (AbortException e) {
       throw new CompilationFailedException(e);
     }
   }

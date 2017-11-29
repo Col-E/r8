@@ -1,7 +1,7 @@
 // Copyright (c) 2017, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-package com.android.tools.r8.utils;
+package com.android.tools.r8;
 
 import static com.android.tools.r8.ToolHelper.EXAMPLES_BUILD_DIR;
 import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
@@ -17,6 +17,10 @@ import com.android.tools.r8.Location;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.origin.EmbeddedOrigin;
+import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.CompilationFailedException;
+import com.android.tools.r8.utils.DirectoryClassFileProvider;
+import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Files;
 import java.nio.file.Path;

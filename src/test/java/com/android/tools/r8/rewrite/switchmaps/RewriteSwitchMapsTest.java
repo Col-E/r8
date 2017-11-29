@@ -3,16 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.rewrite.switchmaps;
 
-import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.shaking.FilteredClassPath;
-import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DexInspector;
-import java.io.IOException;
 import java.nio.file.Paths;
-import java.util.concurrent.ExecutionException;
 import org.junit.Assert;
 import org.junit.Test;
 

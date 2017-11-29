@@ -57,14 +57,15 @@ public class Disassemble {
       }
 
       @Override
-      public DisassembleCommand build() throws CompilationFailedException {
+      protected DisassembleCommand makeCommand() {
         // If printing versions ignore everything else.
         if (isPrintHelp() || isPrintVersion()) {
           return new DisassembleCommand(isPrintHelp(), isPrintVersion());
         }
 
-        validate();
-        return new DisassembleCommand(getAppBuilder().build(), getOutputPath(), useSmali);
+        DisassembleCommand command = new DisassembleCommand(getAppBuilder().build(),
+            getOutputPath(), useSmali);
+        return command;
       }
     }
 

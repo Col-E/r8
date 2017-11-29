@@ -22,6 +22,7 @@ import com.android.tools.r8.utils.AndroidAppOutputSink;
 import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
@@ -626,11 +627,12 @@ public class ToolHelper {
   public static ProguardConfiguration loadProguardConfiguration(
       DexItemFactory factory, List<Path> configPaths)
       throws IOException, ProguardRuleParserException, CompilationException {
+    Reporter reporter = new Reporter(new DefaultDiagnosticsHandler());
     if (configPaths.isEmpty()) {
-      return ProguardConfiguration.defaultConfiguration(factory);
+      return ProguardConfiguration.defaultConfiguration(factory, reporter);
     }
-    ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(factory, new DefaultDiagnosticsHandler());
+     ProguardConfigurationParser parser =
+        new ProguardConfigurationParser(factory, reporter);
     for (Path configPath : configPaths) {
       parser.parse(configPath);
     }

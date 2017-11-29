@@ -48,20 +48,28 @@ public class Reporter implements DiagnosticsHandler {
     }
   }
 
-  public RuntimeException fatalError(Diagnostic error) throws AbortException {
+  /**
+   * @throws AbortException always.
+   */
+  public RuntimeException fatalError(Diagnostic error) {
     error(error);
     failIfPendingErrors();
     throw new Unreachable();
   }
 
-  public RuntimeException fatalError(Diagnostic error, Throwable suppressedException)
-      throws AbortException {
+  /**
+   * @throws AbortException always.
+   */
+  public RuntimeException fatalError(Diagnostic error, Throwable suppressedException) {
     error(error, suppressedException);
     failIfPendingErrors();
     throw new Unreachable();
   }
 
-  public void failIfPendingErrors() throws AbortException {
+  /**
+   * @throws AbortException if any error was reported.
+   */
+  public void failIfPendingErrors() {
     synchronized (this) {
       if (errorCount != 0) {
         AbortException abort = new AbortException();

@@ -19,7 +19,7 @@ public class TextRangeLocation extends Location {
     private final int line;
     private final int column;
 
-    private TextPosition(int line, int column) {
+    public TextPosition(int line, int column) {
       this.line = line;
       this.column = column;
     }
@@ -37,6 +37,28 @@ public class TextRangeLocation extends Location {
      */
     public int getColumn() {
       return column;
+    }
+
+    @Override
+    public String toString() {
+      return "Line: " + line + ", column: " + column;
+    }
+
+    @Override
+    public final int hashCode() {
+      return line ^ (column << 16);
+    }
+
+    @Override
+    public final boolean equals(Object o) {
+      if (o == this) {
+        return true;
+      }
+      if (o instanceof TextPosition) {
+        TextPosition other = (TextPosition) o;
+        return line == other.line && column == other.column;
+      }
+      return false;
     }
   }
 
