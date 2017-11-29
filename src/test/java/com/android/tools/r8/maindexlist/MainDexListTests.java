@@ -46,6 +46,7 @@ import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
@@ -605,7 +606,7 @@ public class MainDexListTests extends TestBase {
           new DexProgramClass(
               type,
               null,
-              null,
+              new SynthesizedOrigin("test", MainDexListTests.class),
               ClassAccessFlags.fromSharedAccessFlags(0),
               factory.objectType,
               DexTypeList.empty(),

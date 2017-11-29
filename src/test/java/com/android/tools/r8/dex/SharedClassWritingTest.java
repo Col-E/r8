@@ -25,6 +25,7 @@ import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.IgnoreContentsOutputSink;
@@ -91,7 +92,7 @@ public class SharedClassWritingTest {
     return new DexProgramClass(
         type,
         null,
-        null,
+        new SynthesizedOrigin("test", getClass()),
         ClassAccessFlags.fromSharedAccessFlags(Constants.ACC_PUBLIC),
         dexItemFactory.objectType,
         DexTypeList.empty(),

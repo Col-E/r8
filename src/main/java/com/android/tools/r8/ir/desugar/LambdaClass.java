@@ -29,6 +29,7 @@ import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
+import com.android.tools.r8.origin.SynthesizedOrigin;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -123,7 +124,7 @@ final class LambdaClass {
     return new DexProgramClass(
         type,
         null,
-        null,
+        new SynthesizedOrigin("lambda desugaring", getClass()),
         ClassAccessFlags.fromDexAccessFlags(Constants.ACC_FINAL | Constants.ACC_SYNTHETIC),
         rewriter.factory.objectType,
         buildInterfaces(),
