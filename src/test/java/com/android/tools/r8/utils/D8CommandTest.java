@@ -68,6 +68,14 @@ public class D8CommandTest {
   }
 
   @Test
+  public void printsHelpOnNoInput() throws Throwable {
+    ProcessResult result = ToolHelper.forkD8(temp.getRoot().toPath());
+    assertFalse(result.exitCode == 0);
+    assertTrue(result.stderr.contains("Usage"));
+    assertFalse(result.stderr.contains("D8_foobar")); // Sanity check
+  }
+
+  @Test
   public void validOutputPath() throws Throwable {
     Path existingDir = temp.getRoot().toPath();
     Path nonExistingZip = existingDir.resolve("a-non-existing-archive.zip");
