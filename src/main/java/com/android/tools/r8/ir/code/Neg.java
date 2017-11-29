@@ -8,11 +8,7 @@ import com.android.tools.r8.code.NegFloat;
 import com.android.tools.r8.code.NegInt;
 import com.android.tools.r8.code.NegLong;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.ir.analysis.Bottom;
-import com.android.tools.r8.ir.analysis.ConstLatticeElement;
-import com.android.tools.r8.ir.analysis.LatticeElement;
 import com.android.tools.r8.ir.conversion.DexBuilder;
-import java.util.Map;
 import org.objectweb.asm.Opcodes;
 
 public class Neg extends Unop {
@@ -29,6 +25,30 @@ public class Neg extends Unop {
     return (type == NumericType.INT || type == NumericType.LONG || type == NumericType.FLOAT
             || type == NumericType.DOUBLE)
         && source().isConstant();
+  }
+
+  @Override
+  public ConstInstruction fold(IRCode code) {
+    assert canBeFolded();
+    ValueType valueType = ValueType.fromNumericType(type);
+    if (type == NumericType.INT) {
+      int result = -source().getConstInstruction().asConstNumber().getIntValue();
+      Value value = code.createValue(valueType, getLocalInfo());
+      return new ConstNumber(value, result);
+    } else if (type == NumericType.LONG) {
+      long result = -source().getConstInstruction().asConstNumber().getLongValue();
+      Value value = code.createValue(valueType, getLocalInfo());
+      return new ConstNumber(value, result);
+    } else if (type == NumericType.FLOAT) {
+      float result = -source().getConstInstruction().asConstNumber().getFloatValue();
+      Value value = code.createValue(valueType, getLocalInfo());
+      return new ConstNumber(value, Float.floatToIntBits(result));
+    } else {
+      assert type == NumericType.DOUBLE;
+      double result = -source().getConstInstruction().asConstNumber().getDoubleValue();
+      Value value = code.createValue(valueType, getLocalInfo());
+      return new ConstNumber(value, Double.doubleToLongBits(result));
+    }
   }
 
   @Override
@@ -73,29 +93,6 @@ public class Neg extends Unop {
   @Override
   public Neg asNeg() {
     return this;
-  }
-
-  @Override
-  public LatticeElement evaluate(IRCode code, Map<Value, LatticeElement> mapping) {
-    LatticeElement sourceLattice = mapping.get(source());
-    if (sourceLattice.isConst()) {
-      ConstNumber sourceConst = sourceLattice.asConst().getConstNumber();
-      ValueType valueType = ValueType.fromNumericType(type);
-      Value value = code.createValue(valueType, getLocalInfo());
-      ConstNumber newConst;
-      if (type == NumericType.INT) {
-        newConst = new ConstNumber(value, -sourceConst.getIntValue());
-      } else if (type == NumericType.LONG) {
-        newConst = new ConstNumber(value, -sourceConst.getLongValue());
-      } else if (type == NumericType.FLOAT) {
-        newConst = new ConstNumber(value, Float.floatToIntBits(-sourceConst.getFloatValue()));
-      } else {
-        assert type == NumericType.DOUBLE;
-        newConst = new ConstNumber(value, Double.doubleToLongBits(-sourceConst.getDoubleValue()));
-      }
-      return new ConstLatticeElement(newConst);
-    }
-    return Bottom.getInstance();
   }
 
   @Override

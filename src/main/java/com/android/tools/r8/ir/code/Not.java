@@ -9,12 +9,8 @@ import com.android.tools.r8.cf.code.CfConstNumber;
 import com.android.tools.r8.code.NotInt;
 import com.android.tools.r8.code.NotLong;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.ir.analysis.Bottom;
-import com.android.tools.r8.ir.analysis.ConstLatticeElement;
-import com.android.tools.r8.ir.analysis.LatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
-import java.util.Map;
 import org.objectweb.asm.Opcodes;
 
 public class Not extends Unop {
@@ -32,22 +28,19 @@ public class Not extends Unop {
   }
 
   @Override
-  public LatticeElement evaluate(IRCode code, Map<Value, LatticeElement> mapping) {
-    LatticeElement sourceLattice = mapping.get(source());
-    if (sourceLattice.isConst()) {
-      ConstNumber sourceConst = sourceLattice.asConst().getConstNumber();
-      ValueType valueType = ValueType.fromNumericType(type);
+  public ConstInstruction fold(IRCode code) {
+    assert canBeFolded();
+    ValueType valueType = ValueType.fromNumericType(type);
+    if (type == NumericType.INT) {
+      int result = ~(source().getConstInstruction().asConstNumber().getIntValue());
       Value value = code.createValue(valueType, getLocalInfo());
-      ConstNumber newConst;
-      if (type == NumericType.INT) {
-        newConst = new ConstNumber(value, ~sourceConst.getIntValue());
-      } else {
-        assert type == NumericType.LONG;
-        newConst = new ConstNumber(value, ~sourceConst.getLongValue());
-      }
-      return new ConstLatticeElement(newConst);
+      return new ConstNumber(value, result);
+    } else {
+      assert type == NumericType.LONG;
+      long result = ~source().getConstInstruction().asConstNumber().getLongValue();
+      Value value = code.createValue(valueType, getLocalInfo());
+      return new ConstNumber(value, result);
     }
-    return Bottom.getInstance();
   }
 
   @Override

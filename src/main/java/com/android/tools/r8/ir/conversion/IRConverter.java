@@ -21,7 +21,6 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
-import com.android.tools.r8.ir.analysis.SparseConditionalConstantPropagation;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
@@ -557,7 +556,7 @@ public class IRConverter {
     codeRewriter.simplifyArrayConstruction(code);
     codeRewriter.rewriteMoveResult(code);
     codeRewriter.splitRangeInvokeConstants(code);
-    new SparseConditionalConstantPropagation(code).run();
+    codeRewriter.foldConstants(code);
     codeRewriter.rewriteSwitch(code);
     codeRewriter.simplifyIf(code);
     if (!options.debug) {
