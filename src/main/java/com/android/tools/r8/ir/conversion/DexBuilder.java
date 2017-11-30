@@ -203,8 +203,6 @@ public class DexBuilder {
       debugEventBuilder.add(instructionStartOffset, instructionOffset, ir);
     }
 
-    ir.method.debugPositionRangeList = debugEventBuilder.buildPositionRanges();
-
     // Compute switch payloads.
     for (SwitchPayloadInfo switchPayloadInfo : switchPayloadInfos) {
       // Align payloads at even addresses.

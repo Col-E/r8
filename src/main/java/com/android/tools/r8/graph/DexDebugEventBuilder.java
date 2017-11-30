@@ -5,7 +5,6 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.DexDebugEvent.StartLocal;
-import com.android.tools.r8.graph.DexEncodedMethod.DebugPositionRange;
 import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.DebugLocalsChange;
 import com.android.tools.r8.ir.code.IRCode;
@@ -61,9 +60,6 @@ public class DexDebugEventBuilder {
 
   // True if running in debug-mode with input code that contains line information, otherwise false.
   private boolean hasDebugPositions;
-
-  private DexEncodedMethod.DebugPositionRangeList.Builder debugPositionListBuilder =
-      new DexEncodedMethod.DebugPositionRangeList.Builder();
 
   public DexDebugEventBuilder(IRCode code, InternalOptions options) {
     this.method = code.method;
@@ -139,10 +135,6 @@ public class DexDebugEventBuilder {
     return new DexDebugInfo(startLine, params, events.toArray(new DexDebugEvent[events.size()]));
   }
 
-  public List<DebugPositionRange> buildPositionRanges() {
-    return debugPositionListBuilder.build();
-  }
-
   private void updateBlockEntry(Instruction instruction) {
     assert pendingLocals == null;
     assert !pendingLocalChanges;
@@ -211,7 +203,6 @@ public class DexDebugEventBuilder {
       startLine = position.line;
       emittedPosition = new Position(position.line, null, method.method, null);
     }
-    debugPositionListBuilder.add(position.line, position.line);
     emitAdvancementEvents(emittedPc, emittedPosition, pc, position, events, factory);
     emittedPc = pc;
     emittedPosition = position;

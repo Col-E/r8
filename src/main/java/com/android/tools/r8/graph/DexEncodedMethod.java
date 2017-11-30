@@ -38,10 +38,6 @@ import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.utils.InternalOptions;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.ListIterator;
 
 public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
 
@@ -92,100 +88,6 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
   private Code code;
   private CompilationState compilationState = CompilationState.NOT_PROCESSED;
   private OptimizationInfo optimizationInfo = DefaultOptimizationInfo.DEFAULT;
-
-  // Encodes a mapping from a range of original to emitted line numbers:
-  // (originalFirst, originalFirst + length) -> (emittedFirst, emittedFirst + length)
-  public static class DebugPositionRange {
-    public final int originalFirst;
-    public final int emittedFirst;
-    private final int length; // 0 for a single line.
-
-    // The original source line numbers are compressed to a tight range
-    public DebugPositionRange(int originalFirst, int emittedFirst, int length) {
-      assert originalFirst >= 0 && emittedFirst >= 0 && length >= 0;
-      this.originalFirst = originalFirst;
-      this.length = length;
-      this.emittedFirst = emittedFirst;
-    }
-
-    public int getOriginalLast() {
-      return originalFirst + length;
-    }
-
-    public int getEmittedLast() {
-      return emittedFirst + length;
-    }
-  }
-
-  public static class DebugPositionRangeList {
-    // Build sorted list of DebugPositionRange objects (sorted by emitted position) from single
-    // line-to-line mappings
-    public static class Builder {
-      private static class Mapping implements Comparable<Mapping> {
-        public int original;
-        public int emitted;
-
-        Mapping(int original, int emitted) {
-          this.original = original;
-          this.emitted = emitted;
-        }
-
-        @Override
-        public int compareTo(Mapping rhs) {
-          if (emitted == rhs.emitted) {
-            return original - rhs.original;
-          } else {
-            return emitted - rhs.emitted;
-          }
-        }
-      }
-
-      public void add(int original, int emitted) {
-        list.add(new Mapping(original, emitted));
-      }
-
-      public List<DebugPositionRange> build() {
-        if (list.isEmpty()) {
-          return Collections.<DebugPositionRange>emptyList();
-        }
-
-        Collections.sort(list);
-
-        List<DebugPositionRange> result = new ArrayList<>();
-
-        ListIterator<Mapping> iterator = list.listIterator();
-        Mapping pendingMapping = iterator.next();
-        int pendingLength = 0;
-        while (iterator.hasNext()) {
-          Mapping mapping = iterator.next();
-          // Try to merge with last interval.
-          int originalDiff = mapping.original - (pendingMapping.original + pendingLength);
-          int emittedDiff = mapping.emitted - (pendingMapping.emitted + pendingLength);
-          if (originalDiff == 0 && emittedDiff == 0) {
-            // Skip duplicates.
-            continue;
-          }
-          assert emittedDiff > 0;
-          if (originalDiff == emittedDiff) {
-            pendingLength = mapping.original - pendingMapping.original;
-          } else {
-            result.add(
-                new DebugPositionRange(
-                    pendingMapping.original, pendingMapping.emitted, pendingLength));
-            pendingMapping = mapping;
-            pendingLength = 0;
-          }
-        }
-        result.add(
-            new DebugPositionRange(pendingMapping.original, pendingMapping.emitted, pendingLength));
-        return Collections.unmodifiableList(result);
-      }
-
-      private List<Mapping> list = new ArrayList<>();
-    }
-  }
-
-  public List<DebugPositionRange> debugPositionRangeList = null;
 
   public DexEncodedMethod(
       DexMethod method,
