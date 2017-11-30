@@ -1,6 +1,7 @@
 // Copyright (c) 2016, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import net.ltgt.gradle.errorprone.ErrorProneToolChain
 import org.gradle.internal.os.OperatingSystem
 import utils.Utils
@@ -448,9 +449,32 @@ task consolidatedLicense {
     }
 }
 
-task R8(type: com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar) {
+static configureRelocations(ShadowJar task) {
+    task.relocate('com.google.common', 'com.android.tools.r8.com.google.common')
+    task.relocate('com.google.thirdparty', 'com.android.tools.r8.com.google.thirdparty')
+    task.relocate('joptsimple', 'com.android.tools.r8.joptsimple')
+    task.relocate('org.apache.commons', 'com.android.tools.r8.org.apache.commons')
+    task.relocate('org.objectweb.asm', 'com.android.tools.r8.org.objectweb.asm')
+    task.relocate('org.json.simple', 'com.android.tools.r8.org.json.simple')
+    task.relocate('it.unimi.dsi.fastutil', 'com.android.tools.r8.it.unimi.dsi.fastutil')
+}
+
+task repackageDeps(type: ShadowJar) {
+    configurations = [project.configurations.compile]
+    configureRelocations(it)
+    baseName 'deps'
+}
+
+task repackageSources(type: ShadowJar) {
     from sourceSets.main.output
+    configureRelocations(it)
+    baseName 'sources'
+}
+
+
+task R8(type: ShadowJar) {
     from consolidatedLicense.outputs.files
+    from repackageSources.outputs.files
     exclude { path ->
       path.getRelativePath().getPathString().startsWith("META-INF")
     }
@@ -463,22 +487,12 @@ task R8(type: com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar) {
     // In order to build without dependencies, pass the exclude_deps property using:
     // gradle -Pexclude_deps R8
     if (!project.hasProperty('exclude_deps')) {
-        // Relocating dependencies to avoid conflicts. Keep this as precise as possible
-        // to avoid rewriting unrelated strings.
-        relocate 'com.google.common', 'com.android.tools.r8.com.google.common'
-        relocate 'com.google.thirdparty', 'com.android.tools.r8.com.google.thirdparty'
-        relocate 'joptsimple', 'com.android.tools.r8.joptsimple'
-        relocate 'org.apache.commons', 'com.android.tools.r8.org.apache.commons'
-        relocate 'org.objectweb.asm', 'com.android.tools.r8.org.objectweb.asm'
-        relocate 'org.json.simple', 'com.android.tools.r8.org.json.simple'
-        relocate 'it.unimi.dsi.fastutil', 'com.android.tools.r8.it.unimi.dsi.fastutil'
-        // Also include dependencies
-        configurations = [project.configurations.compile]
+        from repackageDeps.outputs.files
     }
 }
 
-task D8(type: com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar) {
-    from sourceSets.main.output
+task D8(type: ShadowJar) {
+    from repackageSources.outputs.files
     from consolidatedLicense.outputs.files
     exclude { path ->
       path.getRelativePath().getPathString().startsWith("META-INF")
@@ -492,17 +506,7 @@ task D8(type: com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar) {
     // In order to build without dependencies, pass the exclude_deps property using:
     // gradle -Pexclude_deps D8
     if (!project.hasProperty('exclude_deps')) {
-        // Relocating dependencies to avoid conflicts. Keep this as precise as possible
-        // to avoid rewriting unrelated strings.
-        relocate 'com.google.common', 'com.android.tools.r8.com.google.common'
-        relocate 'com.google.thirdparty', 'com.android.tools.r8.com.google.thirdparty'
-        relocate 'joptsimple', 'com.android.tools.r8.joptsimple'
-        relocate 'org.apache.commons', 'com.android.tools.r8.org.apache.commons'
-        relocate 'org.objectweb.asm', 'com.android.tools.r8.org.objectweb.asm'
-        relocate 'org.json.simple', 'com.android.tools.r8.org.json.simple'
-        relocate 'it.unimi.dsi.fastutil', 'com.android.tools.r8.it.unimi.dsi.fastutil'
-        // Also include dependencies
-        configurations = [project.configurations.compile]
+        from repackageDeps.outputs.files
     }
 }
 
