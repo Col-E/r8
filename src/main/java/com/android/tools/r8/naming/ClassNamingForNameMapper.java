@@ -88,7 +88,7 @@ public class ClassNamingForNameMapper implements ClassNaming {
 
     /**
      * Return the first MappedRange that contains {@code line}. Return general MappedRange ("a() ->
-     * b") if no concrete mapping found.
+     * b") if no concrete mapping found or null if nothing found.
      */
     public MappedRange firstRangeForLine(int line) {
       MappedRange bestRange = null;
@@ -105,6 +105,35 @@ public class ClassNamingForNameMapper implements ClassNaming {
         }
       }
       return bestRange;
+    }
+
+    /**
+     * Search for a MappedRange where the obfuscated range contains the specified {@code line} and
+     * return that and the subsequent MappedRanges with the same obfuscated range. Return general
+     * MappedRange ("a() -> b") if no concrete mapping found or empty list if nothing found.
+     */
+    public List<MappedRange> allRangesForLine(int line) {
+      MappedRange noLineRange = null;
+      for (int i = 0; i < mappedRanges.size(); ++i) {
+        MappedRange rangeI = mappedRanges.get(i);
+        if (rangeI.obfuscatedRange == null) {
+          if (noLineRange == null) {
+            // This is an "a() -> b" mapping (no concrete line numbers), remember this if there'll
+            // be no better one.
+            noLineRange = rangeI;
+          }
+        } else if (rangeI.obfuscatedRange.contains(line)) {
+          // Concrete obfuscated range found ("x:y:a()[:u[:v]] -> b")
+          int j = i + 1;
+          for (; j < mappedRanges.size(); ++j) {
+            if (!Objects.equals(mappedRanges.get(j).obfuscatedRange, rangeI.obfuscatedRange)) {
+              break;
+            }
+          }
+          return mappedRanges.subList(i, j);
+        }
+      }
+      return noLineRange == null ? Collections.emptyList() : Collections.singletonList(noLineRange);
     }
 
     @Override

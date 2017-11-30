@@ -343,14 +343,23 @@ public class LineNumberOptimizer {
 
             classNamingBuilder.addMappedRange(
                 targetRange,
-                signatures.computeIfAbsent(firstPosition.method, MethodSignature::fromDexMethod),
+                signatures.computeIfAbsent(
+                    firstPosition.method,
+                    m ->
+                        MethodSignature.fromDexMethod(
+                            m, firstPosition.method.holder != clazz.getType())),
                 originalRange,
                 obfuscatedName);
             Position caller = firstPosition.caller;
             while (caller != null) {
+              Position finalCaller = caller;
               classNamingBuilder.addMappedRange(
                   targetRange,
-                  signatures.computeIfAbsent(caller.method, MethodSignature::fromDexMethod),
+                  signatures.computeIfAbsent(
+                      caller.method,
+                      m ->
+                          MethodSignature.fromDexMethod(
+                              m, finalCaller.method.holder != clazz.getType())),
                   caller.line,
                   obfuscatedName);
               caller = caller.callerPosition;
