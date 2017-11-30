@@ -17,9 +17,13 @@ import com.android.tools.r8.code.ConstWide32;
 import com.android.tools.r8.code.ConstWideHigh16;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.Bottom;
+import com.android.tools.r8.ir.analysis.ConstLatticeElement;
+import com.android.tools.r8.ir.analysis.LatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.utils.NumberUtils;
+import java.util.Map;
 
 public class ConstNumber extends ConstInstruction {
 
@@ -250,5 +254,13 @@ public class ConstNumber extends ConstInstruction {
   public DexType computeVerificationType(TypeVerificationHelper helper) {
     assert outType().isObject();
     return helper.getFactory().nullValueType;
+  }
+
+  @Override
+  public LatticeElement evaluate(IRCode code, Map<Value, LatticeElement> mapping) {
+    if (outValue.hasLocalInfo()) {
+      return Bottom.getInstance();
+    }
+    return new ConstLatticeElement(this);
   }
 }

@@ -162,8 +162,7 @@ public class If extends JumpInstruction {
     return 0;
   }
 
-
-  public BasicBlock targetFromCondition(int cond) {
+  public BasicBlock targetFromCondition(long cond) {
     switch (type) {
       case EQ:
         return cond == 0 ? getTrueTarget() : fallthroughBlock();
