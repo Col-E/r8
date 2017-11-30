@@ -54,6 +54,22 @@ public class LongInterval {
   }
 
   @Override
+  public int hashCode() {
+    return super.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object other) {
+    if (this == other) {
+      return true;
+    }
+    if (other instanceof LongInterval) {
+      return ((LongInterval) other).min == min && ((LongInterval) other).max == max;
+    }
+    return false;
+  }
+
+  @Override
   public String toString() {
     return "[" + min + ", " + max + "]";
   }
