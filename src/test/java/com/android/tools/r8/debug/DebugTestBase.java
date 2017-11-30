@@ -17,6 +17,8 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.collect.ImmutableList;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongList;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import it.unimi.dsi.fastutil.longs.LongSet;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -698,9 +700,12 @@ public abstract class DebugTestBase {
       if (DEBUG_TESTS) {
         logWriter.println("Received " + parsedEvents.length + " event(s)");
         for (int i = 0; i < parsedEvents.length; ++i) {
-          String msg = String.format("#%d: %s (id=%d)", Integer.valueOf(i),
-              JDWPConstants.EventKind.getName(parsedEvents[i].getEventKind()),
-              Integer.valueOf(parsedEvents[i].getRequestID()));
+          String msg =
+              String.format(
+                  "#%d: %s (id=%d)",
+                  i,
+                  JDWPConstants.EventKind.getName(parsedEvents[i].getEventKind()),
+                  parsedEvents[i].getRequestID());
           logWriter.println(msg);
         }
       }
@@ -729,9 +734,10 @@ public abstract class DebugTestBase {
           String methodSig = VmMirrorUtils
               .getMethodSignature(getMirror(), debuggeeState.getLocation().classID,
                   debuggeeState.getLocation().methodID);
-          String msg = String
-              .format("Suspended in %s#%s%s@0x%x", classSig, methodName, methodSig,
-                  Long.valueOf(debuggeeState.getLocation().index));
+          String msg =
+              String.format(
+                  "Suspended in %s#%s%s@0x%x",
+                  classSig, methodName, methodSig, debuggeeState.getLocation().index);
           if (debuggeeState.getLocation().index >= 0) {
             msg += " (line " + debuggeeState.getLineNumber() + ")";
           }
@@ -905,30 +911,32 @@ public abstract class DebugTestBase {
         }
 
         public List<String> getLocalNames() {
-          return getVisibleVariables().stream().map(v -> v.getName()).collect(Collectors.toList());
+          return getVisibleVariables().stream().map(Variable::getName).collect(Collectors.toList());
         }
 
         @Override
         public Map<String, Value> getLocalValues() {
-          return JUnit3Wrapper.getVariablesAt(mirror, location).stream()
-              .collect(Collectors.toMap(
-                  v -> v.getName(),
-                  v -> {
-                    // Get local value
-                    CommandPacket commandPacket = new CommandPacket(
-                        JDWPCommands.StackFrameCommandSet.CommandSetID,
-                        JDWPCommands.StackFrameCommandSet.GetValuesCommand);
-                    commandPacket.setNextValueAsThreadID(getThreadId());
-                    commandPacket.setNextValueAsFrameID(getFrameId());
-                    commandPacket.setNextValueAsInt(1);
-                    commandPacket.setNextValueAsInt(v.getSlot());
-                    commandPacket.setNextValueAsByte(v.getTag());
-                    ReplyPacket replyPacket = getMirror().performCommand(commandPacket);
-                    int valuesCount = replyPacket.getNextValueAsInt();
-                    assert valuesCount == 1;
-                    return replyPacket.getNextValueAsValue();
-                  }
-              ));
+          return JUnit3Wrapper.getVariablesAt(mirror, location)
+              .stream()
+              .collect(
+                  Collectors.toMap(
+                      Variable::getName,
+                      v -> {
+                        // Get local value
+                        CommandPacket commandPacket =
+                            new CommandPacket(
+                                JDWPCommands.StackFrameCommandSet.CommandSetID,
+                                JDWPCommands.StackFrameCommandSet.GetValuesCommand);
+                        commandPacket.setNextValueAsThreadID(getThreadId());
+                        commandPacket.setNextValueAsFrameID(getFrameId());
+                        commandPacket.setNextValueAsInt(1);
+                        commandPacket.setNextValueAsInt(v.getSlot());
+                        commandPacket.setNextValueAsByte(v.getTag());
+                        ReplyPacket replyPacket = getMirror().performCommand(commandPacket);
+                        int valuesCount = replyPacket.getNextValueAsInt();
+                        assert valuesCount == 1;
+                        return replyPacket.getNextValueAsValue();
+                      }));
         }
 
         private void failNoLocal(String localName) {
@@ -1364,23 +1372,27 @@ public abstract class DebugTestBase {
           if (classId == -1) {
             // The class is not ready yet. Request a CLASS_PREPARE to delay the installation of the
             // breakpoint.
-            assert requestedClassPrepare == false : "Already requested class prepare";
+            assert !requestedClassPrepare : "Already requested class prepare";
             requestedClassPrepare = true;
             ReplyPacket replyPacket = mirror.setClassPrepared(obfuscatedClassName);
             final int classPrepareRequestId = replyPacket.getNextValueAsInt();
-            testBase.events.put(Integer.valueOf(classPrepareRequestId), wrapper -> {
-              // Remove the CLASS_PREPARE
-              wrapper.events.remove(Integer.valueOf(classPrepareRequestId));
-              wrapper.getMirror().clearEvent(JDWPConstants.EventKind.CLASS_PREPARE,
-                  classPrepareRequestId);
+            testBase.events.put(
+                Integer.valueOf(classPrepareRequestId),
+                wrapper -> {
+                  // Remove the CLASS_PREPARE
+                  wrapper.events.remove(Integer.valueOf(classPrepareRequestId));
+                  wrapper
+                      .getMirror()
+                      .clearEvent(JDWPConstants.EventKind.CLASS_PREPARE, classPrepareRequestId);
 
-              // Breakpoint then resume.
-              wrapper.enqueueCommandsFirst(
-                  Arrays.asList(BreakpointCommand.this, new JUnit3Wrapper.Command.RunCommand()));
+                  // Breakpoint then resume.
+                  wrapper.enqueueCommandsFirst(
+                      Arrays.asList(
+                          BreakpointCommand.this, new JUnit3Wrapper.Command.RunCommand()));
 
-              // Set wrapper ready to process next command.
-              wrapper.setState(State.ProcessCommand);
-            });
+                  // Set wrapper ready to process next command.
+                  wrapper.setState(State.ProcessCommand);
+                });
           } else {
             // The class is available: lookup the method then set the breakpoint.
             String obfuscatedMethodName =
@@ -1416,7 +1428,7 @@ public abstract class DebugTestBase {
           }
 
           int methodsCount = replyPacket.getNextValueAsInt();
-          List<Long> matchingMethodIds = new ArrayList<>();
+          LongSet matchingMethodIds = new LongOpenHashSet();
           for (int i = 0; i < methodsCount; ++i) {
             long currentMethodId = replyPacket.getNextValueAsMethodID();
             String currentMethodName = replyPacket.getNextValueAsString();
@@ -1429,7 +1441,7 @@ public abstract class DebugTestBase {
             // Filter methods based on name (and signature if there is).
             if (methodName.equals(currentMethodName)) {
               if (methodSignature == null || methodSignature.equals(currentMethodSignature)) {
-                matchingMethodIds.add(Long.valueOf(currentMethodId));
+                matchingMethodIds.add(currentMethodId);
               }
             }
           }
@@ -1440,22 +1452,14 @@ public abstract class DebugTestBase {
           // There must be only one matching method
           Assert.assertEquals("More than 1 method found: please specify a signature", 1,
               matchingMethodIds.size());
-          return matchingMethodIds.get(0);
+          return matchingMethodIds.iterator().nextLong();
         }
 
         @Override
         public String toString() {
-          StringBuilder sb = new StringBuilder();
-          sb.append("breakpoint");
-          sb.append(" class=");
-          sb.append(className);
-          sb.append(" method=");
-          sb.append(methodName);
-          sb.append(" signature=");
-          sb.append(methodSignature);
-          sb.append(" line=");
-          sb.append(line);
-          return sb.toString();
+          return String.format(
+              "breakpoint class=%s method=%s signature=%s line=%s",
+              className, methodName, methodSignature, line);
         }
       }
 
@@ -1478,7 +1482,7 @@ public abstract class DebugTestBase {
           {
             EventBuilder eventBuilder = Event.builder(EventKind.SINGLE_STEP, SuspendPolicy.ALL);
             eventBuilder.setStep(threadId, stepSize.jdwpValue, stepDepth.jdwpValue);
-            stepFilter.getExcludedClasses().stream().forEach(s -> eventBuilder.setClassExclude(s));
+            stepFilter.getExcludedClasses().forEach(eventBuilder::setClassExclude);
             ReplyPacket replyPacket = testBase.getMirror().setEvent(eventBuilder.build());
             stepRequestID = replyPacket.getNextValueAsInt();
             testBase.assertAllDataRead(replyPacket);
