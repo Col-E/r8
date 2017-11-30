@@ -3,8 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.dex;
 
+import static com.android.tools.r8.dex.Constants.MAX_VDEX_VERSION;
+import static com.android.tools.r8.dex.Constants.MIN_VDEX_VERSION;
 import static com.android.tools.r8.dex.Constants.VDEX_FILE_MAGIC_PREFIX;
-import static com.android.tools.r8.dex.Constants.VDEX_FILE_VERSION;
+import static com.android.tools.r8.dex.Constants.VDEX_FILE_VERSION_LENGTH;
 import static com.android.tools.r8.dex.Constants.VDEX_NUMBER_OF_DEX_FILES_OFFSET;
 
 import com.android.tools.r8.Resource;
@@ -28,6 +30,9 @@ public class VDexFile extends BaseFile {
     super(resource);
     this.name = "resource.vdex";
     version = parseMagic(buffer);
+    if (!supportedVersion(version)) {
+      throw new CompilationError("Unsupported vdex file version " + version);
+    }
   }
 
   // Probes the file for vdex magic and version.
@@ -45,7 +50,12 @@ public class VDexFile extends BaseFile {
   }
 
   static boolean couldBeVDexFile(ByteBuffer buffer) {
-    return parseMagic(buffer) == Constants.ANDROID_O_VDEX_VERSION;
+    int versionNumber = parseMagic(buffer);
+    return supportedVersion(versionNumber);
+  }
+
+  static boolean supportedVersion(int versionNumber) {
+    return MIN_VDEX_VERSION <= versionNumber && versionNumber <= MAX_VDEX_VERSION;
   }
 
   // Parse the magic header and determine the dex file version.
@@ -56,12 +66,25 @@ public class VDexFile extends BaseFile {
         throw new CompilationError("VDex file has invalid header");
       }
     }
-    for (byte prefixByte : VDEX_FILE_VERSION) {
-      if (buffer.get(index++) != prefixByte) {
+    byte[] version = new byte[VDEX_FILE_VERSION_LENGTH];
+    for (int i = 0; i < VDEX_FILE_VERSION_LENGTH; i++) {
+      if (!buffer.hasRemaining()) {
+        throw new CompilationError("Truncated VDex file - unable to read version");
+      }
+      version[i] = buffer.get(index++);
+    }
+    if (version[VDEX_FILE_VERSION_LENGTH - 1] != '\0') {
+      throw new CompilationError("VDex file has invalid version number");
+    }
+    int versionNumber = 0;
+    for (int i = 0; i < VDEX_FILE_VERSION_LENGTH - 1;i++) {
+      if (0x30 <= version[i] && version[i] <= 0x39) {
+        versionNumber = versionNumber * 10 + version[i] - 0x30;
+      } else {
         throw new CompilationError("VDex file has invalid version number");
       }
     }
-    return Constants.ANDROID_O_VDEX_VERSION;
+    return versionNumber;
   }
 
   public static int firstDexOffset(int numberOfDexFiles) {
