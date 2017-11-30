@@ -31,7 +31,7 @@ import java.util.function.Consumer;
 
 public class ClassNameMapper implements ProguardMap {
 
-  static class Builder extends ProguardMap.Builder {
+  public static class Builder extends ProguardMap.Builder {
     final ImmutableMap.Builder<String, ClassNamingForNameMapper.Builder> mapBuilder;
 
     private Builder() {
@@ -39,7 +39,8 @@ public class ClassNameMapper implements ProguardMap {
     }
 
     @Override
-    ClassNamingForNameMapper.Builder classNamingBuilder(String renamedName, String originalName) {
+    public ClassNamingForNameMapper.Builder classNamingBuilder(
+        String renamedName, String originalName) {
       ClassNamingForNameMapper.Builder classNamingBuilder =
           ClassNamingForNameMapper.builder(renamedName, originalName);
       mapBuilder.put(renamedName, classNamingBuilder);
@@ -47,12 +48,12 @@ public class ClassNameMapper implements ProguardMap {
     }
 
     @Override
-    ClassNameMapper build(){
+    public ClassNameMapper build() {
       return new ClassNameMapper(mapBuilder.build());
     }
   }
 
-  static Builder builder() {
+  public static Builder builder() {
     return new Builder();
   }
 
@@ -117,12 +118,13 @@ public class ClassNameMapper implements ProguardMap {
   /**
    * Deobfuscate a class name.
    *
-   * Returns the deobfuscated name if a mapping was found. Otherwise it returns the passed in name.
+   * <p>Returns the deobfuscated name if a mapping was found. Otherwise it returns the passed in
+   * name.
    */
-  public String deobfuscateClassName(String name) {
-    ClassNamingForNameMapper classNaming = classNameMappings.get(name);
+  public String deobfuscateClassName(String obfuscatedName) {
+    ClassNamingForNameMapper classNaming = classNameMappings.get(obfuscatedName);
     if (classNaming == null) {
-      return name;
+      return obfuscatedName;
     }
     return classNaming.originalName;
   }
@@ -143,8 +145,8 @@ public class ClassNameMapper implements ProguardMap {
     return classNameMappings.get(decoded);
   }
 
-  public ClassNamingForNameMapper getClassNaming(String name) {
-    return classNameMappings.get(name);
+  public ClassNamingForNameMapper getClassNaming(String obfuscatedName) {
+    return classNameMappings.get(obfuscatedName);
   }
 
   public void write(Writer writer) throws IOException {

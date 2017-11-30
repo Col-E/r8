@@ -104,8 +104,9 @@ public class Smali {
     try {
       DexApplication dexApp = new ApplicationReader(
           app, options, new Timing("smali")).read(executor);
-      ApplicationWriter writer = new ApplicationWriter(
-          dexApp, options, null, null, NamingLens.getIdentityLens(), null);
+      ApplicationWriter writer =
+          new ApplicationWriter(
+              dexApp, options, null, null, NamingLens.getIdentityLens(), null, null);
       SingleFileSink sink = new SingleFileSink();
       writer.write(sink, executor);
       return sink.contents;

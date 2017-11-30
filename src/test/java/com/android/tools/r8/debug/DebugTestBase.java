@@ -463,10 +463,20 @@ public abstract class DebugTestBase {
     private interface Translator {
       public String getOriginalClassName(String obfuscatedClassName);
 
+      public String getOriginalClassNameForLine(
+          String obfuscatedClassName, String obfuscatedMethodName, int obfuscatedLineNumber);
+
       public String getOriginalMethodName(
           String obfuscatedClassName, String obfuscatedMethodName, String methodSignature);
 
-      public int getOriginalLineNumber(int obfuscatedLineNumber);
+      public String getOriginalMethodNameForLine(
+          String obfuscatedClassName,
+          String obfuscatedMethodName,
+          String methodSignature,
+          int obfuscatedLineNumber);
+
+      public int getOriginalLineNumber(
+          String obfuscatedClassName, String obfuscatedMethodName, int obfuscatedLineNumber);
 
       public String getObfuscatedClassName(String originalClassName);
 
@@ -482,13 +492,29 @@ public abstract class DebugTestBase {
       }
 
       @Override
+      public String getOriginalClassNameForLine(
+          String obfuscatedClassName, String obfuscatedMethodName, int obfuscatedLineNumber) {
+        return obfuscatedClassName;
+      }
+
+      @Override
       public String getOriginalMethodName(
           String obfuscatedClassName, String obfuscatedMethodName, String methodSignature) {
         return obfuscatedMethodName;
       }
 
       @Override
-      public int getOriginalLineNumber(int obfuscatedLineNumber) {
+      public String getOriginalMethodNameForLine(
+          String obfuscatedClassName,
+          String obfuscatedMethodName,
+          String methodSignature,
+          int obfuscatedLineNumber) {
+        return obfuscatedMethodName;
+      }
+
+      @Override
+      public int getOriginalLineNumber(
+          String obfuscatedClassName, String obfuscatedMethodName, int obfuscatedLineNumber) {
         return obfuscatedLineNumber;
       }
 
@@ -513,8 +539,32 @@ public abstract class DebugTestBase {
 
       @Override
       public String getOriginalClassName(String obfuscatedClassName) {
-        // TODO(tamaskenez) Watch for inline methods (we can be in a different class).
         return classNameMapper.deobfuscateClassName(obfuscatedClassName);
+      }
+
+      private ClassNamingForNameMapper.MappedRange getMappedRangeForLine(
+          String obfuscatedClassName, String obfuscatedMethodName, int obfuscatedLineNumber) {
+        ClassNamingForNameMapper classNaming = classNameMapper.getClassNaming(obfuscatedClassName);
+        if (classNaming == null) {
+          return null;
+        }
+        ClassNamingForNameMapper.MappedRangesOfName ranges =
+            classNaming.mappedRangesByName.get(obfuscatedMethodName);
+        if (ranges == null) {
+          return null;
+        }
+        return ranges.firstRangeForLine(obfuscatedLineNumber);
+      }
+
+      @Override
+      public String getOriginalClassNameForLine(
+          String obfuscatedClassName, String obfuscatedMethodName, int obfuscatedLineNumber) {
+        ClassNamingForNameMapper.MappedRange range =
+            getMappedRangeForLine(obfuscatedClassName, obfuscatedMethodName, obfuscatedLineNumber);
+        if (range == null) {
+          return obfuscatedClassName;
+        }
+        return range.signature.type;
       }
 
       @Override
@@ -531,10 +581,28 @@ public abstract class DebugTestBase {
       }
 
       @Override
-      public int getOriginalLineNumber(int obfuscatedLineNumber) {
-        return obfuscatedLineNumber;
-        // TODO(tamaskenez) Map possibly reassigned line number to original, watch for inline.
-        // methods
+      public String getOriginalMethodNameForLine(
+          String obfuscatedClassName,
+          String obfuscatedMethodName,
+          String methodSignature,
+          int obfuscatedLineNumber) {
+        ClassNamingForNameMapper.MappedRange range =
+            getMappedRangeForLine(obfuscatedClassName, obfuscatedMethodName, obfuscatedLineNumber);
+        if (range == null) {
+          return obfuscatedMethodName;
+        }
+        return range.signature.name;
+      }
+
+      @Override
+      public int getOriginalLineNumber(
+          String obfuscatedClassName, String obfuscatedMethodName, int obfuscatedLineNumber) {
+        ClassNamingForNameMapper.MappedRange range =
+            getMappedRangeForLine(obfuscatedClassName, obfuscatedMethodName, obfuscatedLineNumber);
+        if (range == null) {
+          return obfuscatedLineNumber;
+        }
+        return range.originalLineFromObfuscated(obfuscatedLineNumber);
       }
 
       @Override
@@ -883,7 +951,8 @@ public abstract class DebugTestBase {
         }
 
         public int getLineNumber() {
-          return translator.getOriginalLineNumber(getObfuscatedLineNumber());
+          return translator.getOriginalLineNumber(
+              getObfuscatedClassName(), getObfuscatedMethodName(), getObfuscatedLineNumber());
         }
 
         public String getSourceFile() {

@@ -93,10 +93,27 @@ public class ProguardMapReader implements AutoCloseable {
     return skipLine();
   }
 
+  private static boolean isEmptyOrCommentLine(String line) {
+    if (line == null) {
+      return true;
+    }
+    for (int i = 0; i < line.length(); ++i) {
+      char c = line.charAt(i);
+      if (c == '#') {
+        return true;
+      } else if (!Character.isWhitespace(c)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   private boolean skipLine() throws IOException {
-    lineNo++;
     lineOffset = 0;
-    line = reader.readLine();
+    do {
+      lineNo++;
+      line = reader.readLine();
+    } while (hasLine() && isEmptyOrCommentLine(line));
     return hasLine();
   }
 
@@ -120,7 +137,10 @@ public class ProguardMapReader implements AutoCloseable {
 
   void parse(ProguardMap.Builder mapBuilder) throws IOException {
     // Read the first line.
-    line = reader.readLine();
+    do {
+      lineNo++;
+      line = reader.readLine();
+    } while (hasLine() && isEmptyOrCommentLine(line));
     parseClassMappings(mapBuilder);
   }
 

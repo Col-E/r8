@@ -11,6 +11,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import com.android.tools.r8.CompilationException;
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.R8Command;
@@ -51,7 +52,6 @@ import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppOutputSink;
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.FoundClassSubject;
@@ -620,8 +620,9 @@ public class MainDexListTests extends TestBase {
               DexEncodedMethod.EMPTY_ARRAY));
     }
     DirectMappedDexApplication application = builder.build().toDirect();
-    ApplicationWriter writer = new ApplicationWriter(
-        application, options, null, null, NamingLens.getIdentityLens(), null);
+    ApplicationWriter writer =
+        new ApplicationWriter(
+            application, options, null, null, NamingLens.getIdentityLens(), null, null);
     ExecutorService executor = ThreadUtils.getExecutorService(options);
     AndroidAppOutputSink compatSink = new AndroidAppOutputSink();
     try {

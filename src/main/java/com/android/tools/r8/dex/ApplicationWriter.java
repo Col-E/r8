@@ -22,8 +22,8 @@ import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
-import com.android.tools.r8.naming.MinifiedNameMapPrinter;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.naming.ProguardMapSupplier;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OutputMode;
@@ -31,9 +31,7 @@ import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.collect.ObjectArrays;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.io.PrintWriter;
-import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -51,6 +49,7 @@ public class ApplicationWriter {
   public final byte[] proguardSeedsData;
   public final InternalOptions options;
   public DexString markerString;
+  public final ProguardMapSupplier proguardMapSupplier;
 
   private static class SortAnnotations extends MixedSectionCollection {
 
@@ -115,7 +114,8 @@ public class ApplicationWriter {
       Marker marker,
       byte[] deadCode,
       NamingLens namingLens,
-      byte[] proguardSeedsData) {
+      byte[] proguardSeedsData,
+      ProguardMapSupplier proguardMapSupplier) {
     assert application != null;
     this.application = application;
     assert options != null;
@@ -126,6 +126,7 @@ public class ApplicationWriter {
     this.deadCode = deadCode;
     this.namingLens = namingLens;
     this.proguardSeedsData = proguardSeedsData;
+    this.proguardMapSupplier = proguardMapSupplier;
   }
 
   private Iterable<VirtualFile> distribute()
@@ -213,8 +214,10 @@ public class ApplicationWriter {
       }
       // Write the proguard map file after writing the dex files, as the map writer traverses
       // the DexProgramClass structures, which are destructively updated during dex file writing.
-      if (options.proguardMapOutput != null || options.proguardConfiguration.isPrintMapping()) {
-        byte[] proguardMapResult = writeProguardMapFile();
+      if (proguardMapSupplier != null
+          && (options.proguardMapOutput != null
+              || options.proguardConfiguration.isPrintMapping())) {
+        byte[] proguardMapResult = proguardMapSupplier.get();
         if (proguardMapResult != null) {
           outputSink.writeProguardMapFile(proguardMapResult);
         }
@@ -336,25 +339,6 @@ public class ApplicationWriter {
     fileWriter.collect();
     // Generate and write the bytes.
     return fileWriter.generate();
-  }
-
-  private byte[] writeProguardMapFile() throws IOException {
-    // TODO(herhut): Should writing of the proguard-map file be split like this?
-    if (!namingLens.isIdentityLens()) {
-      MinifiedNameMapPrinter printer = new MinifiedNameMapPrinter(application, namingLens);
-      ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-      PrintStream stream = new PrintStream(bytes);
-      printer.write(stream);
-      stream.flush();
-      return bytes.toByteArray();
-    } else if (application.getProguardMap() != null) {
-      ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-      Writer writer = new PrintWriter(bytes);
-      application.getProguardMap().write(writer);
-      writer.flush();
-      return bytes.toByteArray();
-    }
-    return null;
   }
 
   private String mapMainDexListName(DexType type) {

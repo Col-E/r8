@@ -134,8 +134,9 @@ public class SharedClassWritingTest {
     InternalOptions options = new InternalOptions(dexItemFactory,
         new Reporter(new DefaultDiagnosticsHandler()));
     options.outputMode = OutputMode.FilePerInputClass;
-    ApplicationWriter writer = new ApplicationWriter(application,
-        options, null, null, NamingLens.getIdentityLens(), null);
+    ApplicationWriter writer =
+        new ApplicationWriter(
+            application, options, null, null, NamingLens.getIdentityLens(), null, null);
     ExecutorService executorService = ThreadUtils.getExecutorService(options);
     CollectInfoOutputSink sink = new CollectInfoOutputSink();
     writer.write(sink, executorService);

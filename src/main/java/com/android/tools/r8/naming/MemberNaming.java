@@ -55,7 +55,7 @@ public class MemberNaming {
    */
   final Signature renamedSignature;
 
-  MemberNaming(Signature signature, String renamedName) {
+  public MemberNaming(Signature signature, String renamedName) {
     this.signature = signature;
     this.renamedSignature = signature.asRenamed(renamedName);
   }

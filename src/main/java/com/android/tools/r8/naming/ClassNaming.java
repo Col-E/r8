@@ -14,11 +14,12 @@ import com.android.tools.r8.utils.ThrowingConsumer;
 public interface ClassNaming {
 
   abstract class Builder {
-    abstract Builder addMemberEntry(MemberNaming entry);
-    abstract ClassNaming build();
+    public abstract Builder addMemberEntry(MemberNaming entry);
+
+    public abstract ClassNaming build();
 
     /** This is an optional method, may be implemented as no-op */
-    abstract void addMappedRange(
+    public abstract void addMappedRange(
         Range obfuscatedRange,
         MemberNaming.MethodSignature originalSignature,
         Object originalRange,

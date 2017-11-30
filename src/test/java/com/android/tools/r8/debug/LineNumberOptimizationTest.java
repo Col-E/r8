@@ -14,13 +14,15 @@ import org.junit.Test;
 /** Tests source file and line numbers on inlined methods. */
 public class LineNumberOptimizationTest extends DebugTestBase {
 
-  public static final String SOURCE_FILE = "LineNumberOptimization1.java";
+  private static final int[] ORIGINAL_LINE_NUMBERS = {20, 7, 8, 28, 8, 20, 21, 12, 21, 22, 16, 22};
+  private static final int[] OPTIMIZED_LINE_NUMBERS = {1, 1, 2, 1, 2, 1, 2, 3, 2, 3, 4, 3};
 
-  private static DebugTestConfig makeConfig(LineNumberOptimization lineNumberOptimization)
-      throws Exception {
+  private static DebugTestConfig makeConfig(
+      LineNumberOptimization lineNumberOptimization, boolean writeProguardMap) throws Exception {
     int minSdk = ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm());
     Path outdir = temp.newFolder().toPath();
     Path outjar = outdir.resolve("r8_compiled.jar");
+    Path proguardMapPath = writeProguardMap ? outdir.resolve("proguard.map") : null;
     ToolHelper.runR8(
         R8Command.builder()
             .addProgramFiles(DEBUGGEE_JAR)
@@ -28,6 +30,7 @@ public class LineNumberOptimizationTest extends DebugTestBase {
             .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(minSdk)))
             .setMode(CompilationMode.RELEASE)
             .setOutputPath(outjar)
+            .setProguardMapOutput(proguardMapPath)
             .build(),
         options -> {
           options.lineNumberOptimization = lineNumberOptimization;
@@ -35,25 +38,34 @@ public class LineNumberOptimizationTest extends DebugTestBase {
         });
     DebugTestConfig config = new D8DebugTestConfig();
     config.addPaths(outjar);
+    config.setProguardMap(proguardMapPath);
     return config;
   }
 
   @Test
   public void testIdentityCompilation() throws Throwable {
     // Compilation will fail if the identity translation does.
-    makeConfig(LineNumberOptimization.IDENTITY_MAPPING);
+    makeConfig(LineNumberOptimization.IDENTITY_MAPPING, true);
   }
 
   @Test
   public void testNotOptimized() throws Throwable {
-    int[] lineNumbers = {20, 7, 8, 28, 8, 20, 21, 12, 21, 22, 16, 22};
-    test(makeConfig(LineNumberOptimization.OFF), lineNumbers);
+    test(makeConfig(LineNumberOptimization.OFF, false), ORIGINAL_LINE_NUMBERS);
+  }
+
+  @Test
+  public void testNotOptimizedWithMap() throws Throwable {
+    test(makeConfig(LineNumberOptimization.OFF, true), ORIGINAL_LINE_NUMBERS);
   }
 
   @Test
   public void testOptimized() throws Throwable {
-    int[] lineNumbers = {1, 1, 2, 1, 2, 1, 2, 3, 2, 3, 4, 3};
-    test(makeConfig(LineNumberOptimization.ON), lineNumbers);
+    test(makeConfig(LineNumberOptimization.ON, false), OPTIMIZED_LINE_NUMBERS);
+  }
+
+  @Test
+  public void testOptimizedWithMap() throws Throwable {
+    test(makeConfig(LineNumberOptimization.ON, true), ORIGINAL_LINE_NUMBERS);
   }
 
   private void test(DebugTestConfig config, int[] lineNumbers) throws Throwable {

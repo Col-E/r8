@@ -39,7 +39,7 @@ public class ClassNamingForNameMapper implements ClassNaming {
     }
 
     @Override
-    ClassNaming.Builder addMemberEntry(MemberNaming entry) {
+    public ClassNaming.Builder addMemberEntry(MemberNaming entry) {
       if (entry.isMethodNaming()) {
         methodMembers.put((MethodSignature) entry.getRenamedSignature(), entry);
       } else {
@@ -49,7 +49,7 @@ public class ClassNamingForNameMapper implements ClassNaming {
     }
 
     @Override
-    ClassNamingForNameMapper build() {
+    public ClassNamingForNameMapper build() {
       Map<String, MappedRangesOfName> map;
 
       if (mappedRangesByName.isEmpty()) {
@@ -67,7 +67,7 @@ public class ClassNamingForNameMapper implements ClassNaming {
 
     /** The parameters are forwarded to MappedRange constructor, see explanation there. */
     @Override
-    void addMappedRange(
+    public void addMappedRange(
         Range obfuscatedRange,
         MemberNaming.MethodSignature originalSignature,
         Object originalRange,
@@ -79,11 +79,32 @@ public class ClassNamingForNameMapper implements ClassNaming {
   }
 
   /** List of MappedRanges that belong to the same obfuscated name. */
-  private static class MappedRangesOfName {
+  public static class MappedRangesOfName {
     private final List<MappedRange> mappedRanges;
 
     MappedRangesOfName(List<MappedRange> mappedRanges) {
       this.mappedRanges = mappedRanges;
+    }
+
+    /**
+     * Return the first MappedRange that contains {@code line}. Return general MappedRange ("a() ->
+     * b") if no concrete mapping found.
+     */
+    public MappedRange firstRangeForLine(int line) {
+      MappedRange bestRange = null;
+      for (MappedRange range : mappedRanges) {
+        if (range.obfuscatedRange == null) {
+          if (bestRange == null) {
+            // This is an "a() -> b" mapping (no concrete line numbers), remember this if there'll
+            // be no better one.
+            bestRange = range;
+          }
+        } else if (range.obfuscatedRange.contains(line)) {
+          // Concrete obfuscated range found ("x:y:a()[:u[:v]] -> b")
+          return range;
+        }
+      }
+      return bestRange;
     }
 
     @Override
@@ -123,7 +144,7 @@ public class ClassNamingForNameMapper implements ClassNaming {
   private final ImmutableMap<FieldSignature, MemberNaming> fieldMembers;
 
   /** Map of obfuscated name -> MappedRangesOfName */
-  private final Map<String, MappedRangesOfName> mappedRangesByName;
+  public final Map<String, MappedRangesOfName> mappedRangesByName;
 
   private ClassNamingForNameMapper(
       String renamedName,
@@ -294,7 +315,7 @@ public class ClassNamingForNameMapper implements ClassNaming {
    * that the original source line is unknown, or may be identical to a line of the obfuscated
    * range. The corresponding Proguard-map syntax is "x:y:a(...) -> b" or "x:y:a(...):u -> b"
    */
-  private static class MappedRange {
+  public static class MappedRange {
 
     private static int nextSequenceNumber = 0;
 
@@ -302,10 +323,10 @@ public class ClassNamingForNameMapper implements ClassNaming {
       return nextSequenceNumber++;
     }
 
-    private final Range obfuscatedRange; // Can be null, if so then originalRange must also be null.
-    private final MethodSignature signature;
-    private final Object originalRange; // null, Integer or Range.
-    private final String obfuscatedName;
+    public final Range obfuscatedRange; // Can be null, if so then originalRange must also be null.
+    public final MethodSignature signature;
+    public final Object originalRange; // null, Integer or Range.
+    public final String obfuscatedName;
 
     /**
      * The sole purpose of {@link #sequenceNumber} is to preserve the order of members read from a
@@ -328,6 +349,25 @@ public class ClassNamingForNameMapper implements ClassNaming {
       this.signature = signature;
       this.originalRange = originalRange;
       this.obfuscatedName = obfuscatedName;
+    }
+
+    public int originalLineFromObfuscated(int obfuscatedLineNumber) {
+      if (obfuscatedRange == null) {
+        // General mapping without concrete line numbers: "a() -> b"
+        return obfuscatedLineNumber;
+      }
+      assert obfuscatedRange.contains(obfuscatedLineNumber);
+      if (originalRange == null) {
+        // Concrete identity mapping: "x:y:a() -> b"
+        return obfuscatedLineNumber;
+      } else if (originalRange instanceof Integer) {
+        // Inlinee: "x:y:a():u -> b"
+        return (int) originalRange;
+      } else {
+        // "x:y:a():u:v -> b"
+        assert originalRange instanceof Range;
+        return ((Range) originalRange).from + obfuscatedLineNumber - obfuscatedRange.from;
+      }
     }
 
     @Override

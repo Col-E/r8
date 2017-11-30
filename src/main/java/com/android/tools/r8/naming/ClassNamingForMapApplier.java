@@ -41,7 +41,7 @@ public class ClassNamingForMapApplier implements ClassNaming {
     }
 
     @Override
-    ClassNaming.Builder addMemberEntry(MemberNaming entry) {
+    public ClassNaming.Builder addMemberEntry(MemberNaming entry) {
       // Unlike {@link ClassNamingForNameMapper.Builder#addMemberEntry},
       // the key is original signature.
       if (entry.isMethodNaming()) {
@@ -53,13 +53,13 @@ public class ClassNamingForMapApplier implements ClassNaming {
     }
 
     @Override
-    ClassNamingForMapApplier build() {
+    public ClassNamingForMapApplier build() {
       return new ClassNamingForMapApplier(renamedName, originalName, methodMembers, fieldMembers);
     }
 
     @Override
     /** No-op */
-    void addMappedRange(
+    public void addMappedRange(
         Range obfuscatedRange,
         MemberNaming.MethodSignature originalSignature,
         Object originalRange,

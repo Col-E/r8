@@ -207,7 +207,7 @@ public final class D8 {
         return null;
       }
       Marker marker = getMarker(options);
-      new ApplicationWriter(app, options, marker, null, NamingLens.getIdentityLens(), null)
+      new ApplicationWriter(app, options, marker, null, NamingLens.getIdentityLens(), null, null)
           .write(outputSink, executor);
       CompilationResult output = new CompilationResult(outputSink, app, appInfo);
       options.printWarnings();

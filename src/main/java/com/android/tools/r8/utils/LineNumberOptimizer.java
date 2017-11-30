@@ -17,10 +17,17 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.naming.ClassNaming;
+import com.android.tools.r8.naming.MemberNaming;
+import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.naming.Range;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 public class LineNumberOptimizer {
 
@@ -176,9 +183,10 @@ public class LineNumberOptimizer {
     }
   }
 
-  public static void run(
+  public static ClassNameMapper run(
       DexApplication application, NamingLens namingLens, boolean identityMapping) {
     IdentityHashMap<DexString, List<DexProgramClass>> classesOfFiles = new IdentityHashMap<>();
+    ClassNameMapper.Builder classNameMapperBuilder = ClassNameMapper.builder();
     // Collect which files contain which classes that need to have their line numbers optimized.
     for (DexProgramClass clazz : application.classes()) {
 
@@ -204,6 +212,13 @@ public class LineNumberOptimizer {
                   });
             }
           });
+
+      ClassNaming.Builder classNamingBuilder =
+          classNameMapperBuilder.classNamingBuilder(
+              clazz.toString(),
+              DescriptorUtils.descriptorToJavaType(
+                  namingLens.lookupDescriptor(clazz.getType()).toString()));
+
       for (List<DexEncodedMethod> methods : methodsByName.values()) {
         if (methods.size() > 1) {
           // If there are multiple methods with the same name (overloaded) then sort them for
@@ -235,6 +250,23 @@ public class LineNumberOptimizer {
           PositionEventEmitter positionEventEmitter =
               new PositionEventEmitter(application.dexItemFactory, method.method, processedEvents);
 
+          class MappedPosition {
+            private final DexMethod method;
+            private final int originalLine;
+            private final Position caller;
+            private final int targetLine;
+
+            private MappedPosition(
+                DexMethod method, int originalLine, Position caller, int targetline) {
+              this.method = method;
+              this.originalLine = originalLine;
+              this.caller = caller;
+              this.targetLine = targetline;
+            }
+          }
+
+          List<MappedPosition> mappedPositions = new ArrayList<>();
+
           EventFilter eventFilter =
               new EventFilter(
                   debugInfo.startLine,
@@ -242,6 +274,12 @@ public class LineNumberOptimizer {
                   processedEvents::add,
                   positionState -> {
                     Position position = positionRemapper.createRemappedPosition(positionState);
+                    mappedPositions.add(
+                        new MappedPosition(
+                            positionState.getCurrentMethod(),
+                            positionState.getCurrentLine(),
+                            positionState.getCurrentCallerPosition(),
+                            position.line));
                     positionEventEmitter.emitPositionEvents(positionState.getCurrentPc(), position);
                   });
           for (DexDebugEvent event : debugInfo.events) {
@@ -264,9 +302,65 @@ public class LineNumberOptimizer {
             }
           }
           dexCode.setDebugInfo(optimizedDebugInfo);
-        }
-      }
-    }
+
+          MethodSignature originalSignature = MethodSignature.fromDexMethod(method.method);
+
+          Map<DexMethod, MethodSignature> signatures = new IdentityHashMap<>();
+          signatures.put(method.method, originalSignature);
+
+          String obfuscatedName = namingLens.lookupName(method.method).toString();
+
+          MemberNaming memberNaming = new MemberNaming(originalSignature, obfuscatedName);
+          classNamingBuilder.addMemberEntry(memberNaming);
+
+          if (mappedPositions.isEmpty()) {
+            classNamingBuilder.addMappedRange(null, originalSignature, null, obfuscatedName);
+          }
+
+          // Update memberNaming with the collected positions, merging multiple positions into a
+          // single region whenever possible.
+          for (int i = 0; i < mappedPositions.size(); /* updated in body */ ) {
+            MappedPosition firstPosition = mappedPositions.get(i);
+            int j = i + 1;
+            MappedPosition lastPosition = firstPosition;
+            for (; j < mappedPositions.size(); j++) {
+              // Break if this position cannot be merged with lastPosition.
+              MappedPosition mp = mappedPositions.get(j);
+              assert (mp.caller == lastPosition.caller)
+                  == (Objects.equals(
+                      mp.caller,
+                      lastPosition.caller)); // Test if callers are properly canonicalized.
+              if ((mp.caller != lastPosition.caller)
+                  || (mp.method != lastPosition.method)
+                  || (mp.originalLine - lastPosition.originalLine
+                      != mp.targetLine - lastPosition.targetLine)) {
+                break;
+              }
+              lastPosition = mp;
+            }
+            Range targetRange = new Range(firstPosition.targetLine, lastPosition.targetLine);
+            Range originalRange = new Range(firstPosition.originalLine, lastPosition.originalLine);
+
+            classNamingBuilder.addMappedRange(
+                targetRange,
+                signatures.computeIfAbsent(firstPosition.method, MethodSignature::fromDexMethod),
+                originalRange,
+                obfuscatedName);
+            Position caller = firstPosition.caller;
+            while (caller != null) {
+              classNamingBuilder.addMappedRange(
+                  targetRange,
+                  signatures.computeIfAbsent(caller.method, MethodSignature::fromDexMethod),
+                  caller.line,
+                  obfuscatedName);
+              caller = caller.callerPosition;
+            }
+            i = j;
+          }
+        } // for each method of the group
+      } // for each method group, grouped by name
+    } // for each class
+    return classNameMapperBuilder.build();
   }
 
   // Return true if any of the methods' debug infos describe a Position which lists the containing

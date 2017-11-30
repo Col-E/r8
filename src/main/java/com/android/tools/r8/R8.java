@@ -20,9 +20,11 @@ import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.optimize.EnumOrdinalMapCollector;
 import com.android.tools.r8.ir.optimize.SwitchMapCollector;
 import com.android.tools.r8.jar.CfApplicationWriter;
+import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.Minifier;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.ProguardMapApplier;
+import com.android.tools.r8.naming.ProguardMapSupplier;
 import com.android.tools.r8.naming.SeedMapper;
 import com.android.tools.r8.naming.SourceFileRewriter;
 import com.android.tools.r8.optimize.BridgeMethodAnalysis;
@@ -105,14 +107,22 @@ public class R8 {
       byte[] deadCode,
       NamingLens namingLens,
       byte[] proguardSeedsData,
-      InternalOptions options)
+      InternalOptions options,
+      ProguardMapSupplier proguardMapSupplier)
       throws ExecutionException, DexOverflowException {
     try {
       Marker marker = getMarker(options);
       if (options.outputClassFiles) {
         new CfApplicationWriter(application, options).write(outputSink, executorService);
       } else {
-        new ApplicationWriter(application, options, marker, deadCode, namingLens, proguardSeedsData)
+        new ApplicationWriter(
+                application,
+                options,
+                marker,
+                deadCode,
+                namingLens,
+                proguardSeedsData,
+                proguardMapSupplier)
             .write(outputSink, executorService);
       }
     } catch (IOException e) {
@@ -343,13 +353,19 @@ public class R8 {
               : new Minifier(appInfo.withLiveness(), rootSet, options).run(timing);
       timing.end();
 
+      ProguardMapSupplier proguardMapSupplier;
+
       if (options.lineNumberOptimization != LineNumberOptimization.OFF) {
         timing.begin("Line number remapping");
-        LineNumberOptimizer.run(
-            application,
-            namingLens,
-            options.lineNumberOptimization == LineNumberOptimization.IDENTITY_MAPPING);
+        ClassNameMapper classNameMapper =
+            LineNumberOptimizer.run(
+                application,
+                namingLens,
+                options.lineNumberOptimization == LineNumberOptimization.IDENTITY_MAPPING);
         timing.end();
+        proguardMapSupplier = ProguardMapSupplier.fromClassNameMapper(classNameMapper);
+      } else {
+        proguardMapSupplier = ProguardMapSupplier.fromNamingLens(namingLens, application);
       }
 
       // If a method filter is present don't produce output since the application is likely partial.
@@ -367,7 +383,8 @@ public class R8 {
           application.deadCode,
           namingLens,
           proguardSeedsData,
-          options);
+          options,
+          proguardMapSupplier);
 
       options.printWarnings();
     } catch (ExecutionException e) {

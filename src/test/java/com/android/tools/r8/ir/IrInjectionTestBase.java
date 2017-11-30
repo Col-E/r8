@@ -126,7 +126,8 @@ public class IrInjectionTestBase extends SmaliTestBase {
             null,
             NamingLens.getIdentityLens(),
             null,
-            options);
+            options,
+            null);
         compatSink.close();
         return compatSink.build();
       } catch (ExecutionException | IOException e) {
