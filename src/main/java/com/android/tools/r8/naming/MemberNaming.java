@@ -201,13 +201,19 @@ public class MemberNaming {
     }
 
     public static MethodSignature fromDexMethod(DexMethod method) {
+      return fromDexMethod(method, false);
+    }
+
+    public static MethodSignature fromDexMethod(DexMethod method, boolean withQualifiedName) {
       String[] paramNames = new String[method.getArity()];
       DexType[] values = method.proto.parameters.values;
       for (int i = 0; i < values.length; i++) {
         paramNames[i] = values[i].toSourceString();
       }
-      return new MethodSignature(method.name.toSourceString(),
-          method.proto.returnType.toSourceString(), paramNames);
+      return new MethodSignature(
+          withQualifiedName ? method.qualifiedName() : method.name.toSourceString(),
+          method.proto.returnType.toSourceString(),
+          paramNames);
     }
 
     public static MethodSignature fromSignature(String name, String signature) {

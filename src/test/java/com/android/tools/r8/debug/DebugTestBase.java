@@ -9,6 +9,7 @@ import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.ClassNamingForNameMapper;
+import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRange;
 import com.android.tools.r8.naming.MemberNaming;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
@@ -94,6 +95,16 @@ public abstract class DebugTestBase {
   private static final StepFilter DEFAULT_FILTER = NO_FILTER;
 
   private static final int FIRST_LINE = -1;
+
+  static class SignatureAndLine {
+    final String signature;
+    int line;
+
+    SignatureAndLine(String signature, int line) {
+      this.signature = signature;
+      this.line = line;
+    }
+  }
 
   @ClassRule
   public static TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
@@ -374,6 +385,20 @@ public abstract class DebugTestBase {
     });
   }
 
+  protected final JUnit3Wrapper.Command checkInlineFrames(List<SignatureAndLine> expectedFrames) {
+    return inspect(
+        t -> {
+          List<SignatureAndLine> actualFrames = t.getInlineFrames();
+          Assert.assertEquals(expectedFrames.size(), actualFrames.size());
+          for (int i = 0; i < expectedFrames.size(); ++i) {
+            SignatureAndLine expectedFrame = expectedFrames.get(i);
+            SignatureAndLine actualFrame = actualFrames.get(i);
+            Assert.assertEquals(expectedFrame.signature, actualFrame.signature);
+            Assert.assertEquals(expectedFrame.line, actualFrame.line);
+          }
+        });
+  }
+
   protected final JUnit3Wrapper.Command checkMethod(String className, String methodName) {
     return checkMethod(className, methodName, null);
   }
@@ -461,26 +486,29 @@ public abstract class DebugTestBase {
      * place.
      */
     private interface Translator {
-      public String getOriginalClassName(String obfuscatedClassName);
+      String getOriginalClassName(String obfuscatedClassName);
 
-      public String getOriginalClassNameForLine(
+      String getOriginalClassNameForLine(
           String obfuscatedClassName, String obfuscatedMethodName, int obfuscatedLineNumber);
 
-      public String getOriginalMethodName(
+      String getOriginalMethodName(
           String obfuscatedClassName, String obfuscatedMethodName, String methodSignature);
 
-      public String getOriginalMethodNameForLine(
+      String getOriginalMethodNameForLine(
           String obfuscatedClassName,
           String obfuscatedMethodName,
           String methodSignature,
           int obfuscatedLineNumber);
 
-      public int getOriginalLineNumber(
+      int getOriginalLineNumber(
           String obfuscatedClassName, String obfuscatedMethodName, int obfuscatedLineNumber);
 
-      public String getObfuscatedClassName(String originalClassName);
+      List<SignatureAndLine> getInlineFramesForLine(
+          String obfuscatedClassName, String obfuscatedMethodName, int obfuscatedLineNumber);
 
-      public String getObfuscatedMethodName(
+      String getObfuscatedClassName(String originalClassName);
+
+      String getObfuscatedMethodName(
           String originalClassName, String originalMethodName, String methodSignature);
     }
 
@@ -516,6 +544,12 @@ public abstract class DebugTestBase {
       public int getOriginalLineNumber(
           String obfuscatedClassName, String obfuscatedMethodName, int obfuscatedLineNumber) {
         return obfuscatedLineNumber;
+      }
+
+      @Override
+      public List<SignatureAndLine> getInlineFramesForLine(
+          String obfuscatedClassName, String obfuscatedMethodName, int obfuscatedLineNumber) {
+        return null;
       }
 
       @Override
@@ -603,6 +637,32 @@ public abstract class DebugTestBase {
           return obfuscatedLineNumber;
         }
         return range.originalLineFromObfuscated(obfuscatedLineNumber);
+      }
+
+      @Override
+      public List<SignatureAndLine> getInlineFramesForLine(
+          String obfuscatedClassName, String obfuscatedMethodName, int obfuscatedLineNumber) {
+        ClassNamingForNameMapper classNaming = classNameMapper.getClassNaming(obfuscatedClassName);
+        if (classNaming == null) {
+          return null;
+        }
+        ClassNamingForNameMapper.MappedRangesOfName ranges =
+            classNaming.mappedRangesByName.get(obfuscatedMethodName);
+        if (ranges == null) {
+          return null;
+        }
+        List<MappedRange> mappedRanges = ranges.allRangesForLine(obfuscatedLineNumber);
+        if (mappedRanges.isEmpty()) {
+          return null;
+        }
+        List<SignatureAndLine> lines = new ArrayList<>(mappedRanges.size());
+        for (MappedRange range : mappedRanges) {
+          lines.add(
+              new SignatureAndLine(
+                  range.signature.toString(),
+                  range.originalLineFromObfuscated(obfuscatedLineNumber)));
+        }
+        return lines;
       }
 
       @Override
@@ -873,6 +933,9 @@ public abstract class DebugTestBase {
       Location getLocation();
 
       int getLineNumber();
+
+      List<SignatureAndLine> getInlineFrames();
+
       String getSourceFile();
       String getClassName();
       String getClassSignature();
@@ -952,6 +1015,11 @@ public abstract class DebugTestBase {
 
         public int getLineNumber() {
           return translator.getOriginalLineNumber(
+              getObfuscatedClassName(), getObfuscatedMethodName(), getObfuscatedLineNumber());
+        }
+
+        public List<SignatureAndLine> getInlineFrames() {
+          return translator.getInlineFramesForLine(
               getObfuscatedClassName(), getObfuscatedMethodName(), getObfuscatedLineNumber());
         }
 
@@ -1183,6 +1251,11 @@ public abstract class DebugTestBase {
       @Override
       public int getLineNumber() {
         return getTopFrame().getLineNumber();
+      }
+
+      @Override
+      public List<SignatureAndLine> getInlineFrames() {
+        return getTopFrame().getInlineFrames();
       }
 
       @Override
