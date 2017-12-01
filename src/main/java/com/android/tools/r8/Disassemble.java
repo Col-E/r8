@@ -38,7 +38,7 @@ public class Disassemble {
       }
 
       public DisassembleCommand.Builder setProguardMapFile(Path path) {
-        getAppBuilder().setProguardMapFile(path);
+        guard(() -> getAppBuilder().setProguardMapFile(path));
         return this;
       }
 

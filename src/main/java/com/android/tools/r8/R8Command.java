@@ -105,9 +105,11 @@ public class R8Command extends BaseCompilerCommand {
      * Add proguard configuration file resources for automatic main dex list calculation.
      */
     public Builder addMainDexRulesFiles(Path... paths) {
-      for (Path path : paths) {
-        mainDexRules.add(new ProguardConfigurationSourceFile(path));
-      }
+      guard(() -> {
+        for (Path path : paths) {
+          mainDexRules.add(new ProguardConfigurationSourceFile(path));
+        }
+      });
       return self();
     }
 
@@ -115,9 +117,11 @@ public class R8Command extends BaseCompilerCommand {
      * Add proguard configuration file resources for automatic main dex list calculation.
      */
     public Builder addMainDexRulesFiles(List<Path> paths) {
-      for (Path path : paths) {
-        mainDexRules.add(new ProguardConfigurationSourceFile(path));
-      }
+      guard(() -> {
+        for (Path path : paths) {
+          mainDexRules.add(new ProguardConfigurationSourceFile(path));
+        }
+      });
       return self();
     }
 
@@ -125,7 +129,8 @@ public class R8Command extends BaseCompilerCommand {
      * Add proguard configuration for automatic main dex list calculation.
      */
     public Builder addMainDexRules(List<String> lines, Origin origin) {
-      mainDexRules.add(new ProguardConfigurationSourceStrings(lines, Paths.get("."), origin));
+      guard(() -> mainDexRules.add(
+          new ProguardConfigurationSourceStrings(lines, Paths.get("."), origin)));
       return self();
     }
 
@@ -138,9 +143,11 @@ public class R8Command extends BaseCompilerCommand {
      * Add proguard configuration file resources.
      */
     public Builder addProguardConfigurationFiles(Path... paths) {
-      for (Path path : paths) {
-        proguardConfigs.add(new ProguardConfigurationSourceFile(path));
-      }
+      guard(() -> {
+        for (Path path : paths) {
+          proguardConfigs.add(new ProguardConfigurationSourceFile(path));
+        }
+      });
       return self();
     }
 
@@ -148,9 +155,11 @@ public class R8Command extends BaseCompilerCommand {
      * Add proguard configuration file resources.
      */
     public Builder addProguardConfigurationFiles(List<Path> paths) {
-      for (Path path : paths) {
-        proguardConfigs.add(new ProguardConfigurationSourceFile(path));
-      }
+      guard(() -> {
+        for (Path path : paths) {
+          proguardConfigs.add(new ProguardConfigurationSourceFile(path));
+        }
+      });
       return self();
     }
 
@@ -158,7 +167,8 @@ public class R8Command extends BaseCompilerCommand {
      * Add proguard configuration.
      */
     public Builder addProguardConfiguration(List<String> lines, Origin origin) {
-      proguardConfigs.add(new ProguardConfigurationSourceStrings(lines, Paths.get("."), origin));
+      guard(() -> proguardConfigs.add(
+          new ProguardConfigurationSourceStrings(lines, Paths.get("."), origin)));
       return self();
     }
 
@@ -180,7 +190,7 @@ public class R8Command extends BaseCompilerCommand {
      * Set a proguard mapping file resource.
      */
     public Builder setProguardMapFile(Path path) {
-      getAppBuilder().setProguardMapFile(path);
+      guard(() -> getAppBuilder().setProguardMapFile(path));
       return self();
     }
 

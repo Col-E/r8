@@ -3,8 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.DiagnosticsHandler;
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -73,9 +75,24 @@ public class Reporter implements DiagnosticsHandler {
     synchronized (this) {
       if (errorCount != 0) {
         AbortException abort = new AbortException();
-        suppressedExceptions.forEach(throwable -> abort.addSuppressed(throwable));
-        throw abort;
+        throw addSuppressedExceptions(abort);
       }
+    }
+  }
+
+  private <T extends Throwable> T addSuppressedExceptions(T t) {
+    suppressedExceptions.forEach(throwable -> t.addSuppressed(throwable));
+    return t;
+  }
+
+  public void guard(Runnable action) throws CompilationFailedException {
+    try {
+      action.run();
+    } catch (CompilationError e) {
+      error(e);
+      throw addSuppressedExceptions(new CompilationFailedException());
+    } catch (AbortException e) {
+      throw new CompilationFailedException(e);
     }
   }
 }
