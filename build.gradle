@@ -31,7 +31,6 @@ def errorProneConfiguration = [
     '-Xep:OperatorPrecedence:ERROR',
     '-Xep:RemoveUnusedImports:ERROR',
     '-Xep:MissingOverride:ERROR',
-    '-Xep:OvershadowingSubclassFields:ERROR',
     '-Xep:IntLongMath:ERROR',
     '-Xep:EqualsHashCode:ERROR',
     '-Xep:InconsistentOverloads:ERROR',
