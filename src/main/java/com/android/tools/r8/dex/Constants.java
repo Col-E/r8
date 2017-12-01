@@ -9,10 +9,11 @@ public class Constants {
   public static final byte DEX_FILE_MAGIC_SUFFIX = '\0';
 
   public static final byte[] VDEX_FILE_MAGIC_PREFIX = {'v', 'd', 'e', 'x'};
-  public static final byte[] VDEX_FILE_VERSION = {'0', '1', '0', '\0'};
+  public static final int VDEX_FILE_VERSION_LENGTH = 4;
 
-  /** vdex file version number for Android O (API level 26) */
-  public static final int ANDROID_O_VDEX_VERSION = 10;
+  /** Supported vdex file versions */
+  public static final int MIN_VDEX_VERSION = 10;
+  public static final int MAX_VDEX_VERSION = 11;
 
   // We apply Java 7 class file constraints on DEX files.
   public static final int CORRESPONDING_CLASS_FILE_VERSION = 51;
