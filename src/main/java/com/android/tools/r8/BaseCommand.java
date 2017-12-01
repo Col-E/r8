@@ -117,7 +117,7 @@ abstract class BaseCommand {
      * Default is that vdex is not allowed.
      */
     B setVdexAllowed() {
-      getAppBuilder().setVdexAllowed();
+      guard(() -> getAppBuilder().setVdexAllowed());
       return self();
     }
 
@@ -133,20 +133,22 @@ abstract class BaseCommand {
 
     /** Add program file resources. */
     public B addProgramFiles(Collection<Path> files) {
-      files.forEach(path -> {
-        try {
-          app.addProgramFile(FilteredClassPath.unfiltered(path));
-          programFiles.add(path);
-        } catch (IOException | CompilationError e) {
-          error("Error with input file: ", path, e);
-        }
+      guard(() -> {
+        files.forEach(path -> {
+          try {
+            app.addProgramFile(FilteredClassPath.unfiltered(path));
+            programFiles.add(path);
+          } catch (IOException | CompilationError e) {
+            error("Error with input file: ", path, e);
+          }
+        });
       });
       return self();
     }
 
     /** Add library file resource provider. */
     public B addLibraryResourceProvider(ClassFileResourceProvider provider) {
-      getAppBuilder().addLibraryResourceProvider(provider);
+      guard(() -> getAppBuilder().addLibraryResourceProvider(provider));
       return self();
     }
 
@@ -158,25 +160,27 @@ abstract class BaseCommand {
 
     /** Add library file resources. */
     public B addLibraryFiles(Collection<Path> files) {
-      files.forEach(path -> {
-        try {
-          app.addLibraryFile(FilteredClassPath.unfiltered(path));
-        } catch (IOException | CompilationError e) {
-          error("Error with library file: ", path, e);
-        }
+      guard(() -> {
+        files.forEach(path -> {
+          try {
+            app.addLibraryFile(FilteredClassPath.unfiltered(path));
+          } catch (IOException | CompilationError e) {
+            error("Error with library file: ", path, e);
+          }
+        });
       });
       return self();
     }
 
     /** Add Java-bytecode program-data. */
     public B addClassProgramData(byte[] data, Origin origin) {
-      app.addClassProgramData(data, origin);
+      guard(() -> app.addClassProgramData(data, origin));
       return self();
     }
 
     /** Add dex program-data. */
     public B addDexProgramData(byte[] data, Origin origin) {
-      app.addDexProgramData(data, origin);
+      guard(() -> app.addDexProgramData(data, origin));
       return self();
     }
 
@@ -190,12 +194,14 @@ abstract class BaseCommand {
      * "/" as separator between package components, and a trailing ".class".
      */
     public B addMainDexListFiles(Path... files) {
-      try {
-        app.addMainDexListFiles(files);
-      } catch (NoSuchFileException e) {
-        reporter.error(new StringDiagnostic(
-            "Main-dex-list file does not exist", new PathOrigin(Paths.get(e.getFile()))));
-      }
+      guard(() -> {
+        try {
+          app.addMainDexListFiles(files);
+        } catch (NoSuchFileException e) {
+          reporter.error(new StringDiagnostic(
+              "Main-dex-list file does not exist", new PathOrigin(Paths.get(e.getFile()))));
+        }
+      });
       return self();
     }
 
@@ -205,12 +211,14 @@ abstract class BaseCommand {
      * @see #addMainDexListFiles(Path...)
      */
     public B addMainDexListFiles(Collection<Path> files) {
-      try {
-        app.addMainDexListFiles(files);
-      } catch (NoSuchFileException e) {
-        reporter.error(new StringDiagnostic(
-            "Main-dex-ist file does not exist", new PathOrigin(Paths.get(e.getFile()))));
-      }
+      guard(() -> {
+        try {
+          app.addMainDexListFiles(files);
+        } catch (NoSuchFileException e) {
+          reporter.error(new StringDiagnostic(
+              "Main-dex-ist file does not exist", new PathOrigin(Paths.get(e.getFile()))));
+        }
+      });
       return self();
     }
 
@@ -223,7 +231,7 @@ abstract class BaseCommand {
      * (e.g. "com.example.MyClass"), and <i>not</i> the format used by the main-dex list file.
      */
     public B addMainDexClasses(String... classes) {
-      app.addMainDexClasses(classes);
+      guard(() -> app.addMainDexClasses(classes));
       return self();
     }
 
@@ -236,7 +244,7 @@ abstract class BaseCommand {
      * (e.g. "com.example.MyClass"), and <i>not</i> the format used by the main-dex list file.
      */
     public B addMainDexClasses(Collection<String> classes) {
-      app.addMainDexClasses(classes);
+      guard(() -> app.addMainDexClasses(classes));
       return self();
     }
 
@@ -263,7 +271,7 @@ abstract class BaseCommand {
     }
 
     protected B setIgnoreDexInArchive(boolean value) {
-      app.setIgnoreDexInArchive(value);
+      guard(() -> app.setIgnoreDexInArchive(value));
       return self();
     }
 
@@ -274,5 +282,17 @@ abstract class BaseCommand {
       reporter.error(new StringDiagnostic(
           baseMessage + throwable.getMessage(), new PathOrigin(path)), throwable);
     }
+
+
+    protected void guard(Runnable action) {
+      try {
+        action.run();
+      } catch (CompilationError e) {
+        reporter.error(e);
+      } catch (AbortException e) {
+        // Error was reported and exception will be thrown by build.
+      }
+    }
+
   }
 }

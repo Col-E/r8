@@ -50,9 +50,11 @@ public class GenerateMainDexListCommand extends BaseCommand {
      * Add proguard configuration file resources for automatic main dex list calculation.
      */
     public GenerateMainDexListCommand.Builder addMainDexRulesFiles(Path... paths) {
-      for (Path path : paths) {
-        mainDexRules.add(new ProguardConfigurationSourceFile(path));
-      }
+      guard(() -> {
+        for (Path path : paths) {
+          mainDexRules.add(new ProguardConfigurationSourceFile(path));
+        }
+      });
       return self();
     }
 
@@ -60,9 +62,11 @@ public class GenerateMainDexListCommand extends BaseCommand {
      * Add proguard configuration file resources for automatic main dex list calculation.
      */
     public GenerateMainDexListCommand.Builder addMainDexRulesFiles(List<Path> paths) {
-      for (Path path : paths) {
-        mainDexRules.add(new ProguardConfigurationSourceFile(path));
-      }
+      guard(() -> {
+        for (Path path : paths) {
+          mainDexRules.add(new ProguardConfigurationSourceFile(path));
+        }
+      });
       return self();
     }
 
@@ -70,7 +74,8 @@ public class GenerateMainDexListCommand extends BaseCommand {
      * Add proguard configuration for automatic main dex list calculation.
      */
     public GenerateMainDexListCommand.Builder addMainDexRules(List<String> lines, Origin origin) {
-      mainDexRules.add(new ProguardConfigurationSourceStrings(lines, Paths.get("."), origin));
+      guard(() -> mainDexRules.add(
+          new ProguardConfigurationSourceStrings(lines, Paths.get("."), origin)));
       return self();
     }
 

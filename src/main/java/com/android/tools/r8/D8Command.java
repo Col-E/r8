@@ -55,26 +55,28 @@ public class D8Command extends BaseCompilerCommand {
 
     /** Add classpath file resources. */
     public Builder addClasspathFiles(Path... files) {
-      Arrays.stream(files).forEach(this::addClasspathFile);
+      guard(() -> Arrays.stream(files).forEach(this::addClasspathFile));
       return self();
     }
 
     /** Add classpath file resources. */
     public Builder addClasspathFiles(Collection<Path> files) {
-      files.forEach(this::addClasspathFile);
+      guard(() -> files.forEach(this::addClasspathFile));
       return self();
     }
 
     private void addClasspathFile(Path file) {
-      try {
-        getAppBuilder().addClasspathFile(file);
-      } catch (IOException e) {
-        error("Error with classpath entry: ", file, e);
-      }
+      guard(() -> {
+        try {
+          getAppBuilder().addClasspathFile(file);
+        } catch (IOException e) {
+          error("Error with classpath entry: ", file, e);
+        }
+      });
     }
 
     public Builder addClasspathResourceProvider(ClassFileResourceProvider provider) {
-      getAppBuilder().addClasspathResourceProvider(provider);
+      guard(() -> getAppBuilder().addClasspathResourceProvider(provider));
       return self();
     }
 
