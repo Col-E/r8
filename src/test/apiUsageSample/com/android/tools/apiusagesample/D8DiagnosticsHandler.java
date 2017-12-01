@@ -6,11 +6,10 @@ package com.android.tools.apiusagesample;
 
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.DiagnosticsHandler;
-import com.android.tools.r8.Location;
-import com.android.tools.r8.TextRangeLocation;
 import com.android.tools.r8.origin.ArchiveEntryOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
+import com.android.tools.r8.origin.TextRangeOrigin;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -45,19 +44,19 @@ class D8DiagnosticsHandler implements DiagnosticsHandler {
   protected void convertToMessage(Diagnostic diagnostic) {
     String textMessage = diagnostic.getDiagnosticMessage();
 
-    Location location = diagnostic.getLocation();
+    Origin origin = diagnostic.getOrigin();
     String position;
-    if (location instanceof TextRangeLocation && location.getOrigin() instanceof PathOrigin) {
-      TextRangeLocation textRange = (TextRangeLocation) location;
-      position = ((PathOrigin) location.getOrigin()).getPath().toFile() + ": "
+    if (origin instanceof TextRangeOrigin && origin.parent() instanceof PathOrigin) {
+      TextRangeOrigin textRange = (TextRangeOrigin) origin;
+      position = ((PathOrigin) origin.parent()).getPath().toFile() + ": "
           + textRange.getStart().getLine() + "," + textRange.getStart().getColumn()
           + " - " + textRange.getEnd().getLine() + "," + textRange.getEnd().getColumn();
-    } else if (location.getOrigin() instanceof PathOrigin) {
-      position = ((PathOrigin) location.getOrigin()).getPath().toFile().toString();
+    } else if (origin.parent() instanceof PathOrigin) {
+      position = ((PathOrigin) origin.parent()).getPath().toFile().toString();
     } else {
       position = "UNKNOWN";
-      if (location != Location.UNKNOWN) {
-        textMessage = location.getDescription() + ": " + textMessage;
+      if (origin != Origin.unknown()) {
+        textMessage = origin.toString() + ": " + textMessage;
       }
     }
 

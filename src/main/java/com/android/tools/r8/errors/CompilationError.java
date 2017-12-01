@@ -4,7 +4,6 @@
 package com.android.tools.r8.errors;
 
 import com.android.tools.r8.Diagnostic;
-import com.android.tools.r8.Location;
 import com.android.tools.r8.origin.Origin;
 
 /**
@@ -15,31 +14,27 @@ import com.android.tools.r8.origin.Origin;
  */
 public class CompilationError extends RuntimeException implements Diagnostic {
 
-  private final Location location;
+  private final Origin origin;
   public CompilationError(String message) {
-    this(message, Location.UNKNOWN);
+    this(message, Origin.unknown());
   }
 
   public CompilationError(String message, Throwable cause) {
-    this(message, cause, Location.UNKNOWN);
-  }
-
-  public CompilationError(String message, Location location) {
-    this(message, null, location);
+    this(message, cause, Origin.unknown());
   }
 
   public CompilationError(String message, Origin origin) {
-    this(message, new Location(origin));
+    this(message, null, origin);
   }
 
-  public CompilationError(String message, Throwable cause, Location location) {
+  public CompilationError(String message, Throwable cause, Origin location) {
     super(message, cause);
-    this.location = location;
+    this.origin = location;
   }
 
   @Override
-  public Location getLocation() {
-    return location;
+  public Origin getOrigin() {
+    return origin;
   }
 
   @Override

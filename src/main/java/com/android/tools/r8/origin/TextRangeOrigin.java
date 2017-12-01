@@ -2,14 +2,12 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8;
-
-import com.android.tools.r8.origin.Origin;
+package com.android.tools.r8.origin;
 
 /**
- * A location with a position in a text file.
+ * An {@link Origin} with a position in a text file.
  */
-public class TextRangeLocation extends Location {
+public class TextRangeOrigin extends Origin {
 
   /**
    * A position in a text file determined by line and column.
@@ -70,14 +68,14 @@ public class TextRangeLocation extends Location {
   private final TextPosition start;
   private final TextPosition end;
 
-  public static Location get(Origin origin, int startLine, int startColumn) {
-    return get(origin, startLine, startColumn, startLine, startColumn);
+  public static Origin get(Origin fileOrigin, int startLine, int startColumn) {
+    return get(fileOrigin, startLine, startColumn, startLine, startColumn);
   }
 
-  public static Location get(Origin origin, int startLine, int startColumn, int endLine,
+  public static Origin get(Origin fileOrigin, int startLine, int startColumn, int endLine,
       int endColumn) {
-    if (origin == Origin.unknown()) {
-      return Location.UNKNOWN;
+    if (fileOrigin == Origin.unknown()) {
+      return Origin.unknown();
     } else {
       assert startLine > 0
           && endLine >= startLine
@@ -90,12 +88,12 @@ public class TextRangeLocation extends Location {
       } else {
         end = new TextPosition(endLine, endColumn);
       }
-      return new TextRangeLocation(origin, start, end);
+      return new TextRangeOrigin(fileOrigin, start, end);
     }
   }
 
-  private TextRangeLocation(Origin origin, TextPosition start, TextPosition end) {
-    super(origin);
+  private TextRangeOrigin(Origin fileOrigin, TextPosition start, TextPosition end) {
+    super(fileOrigin);
     this.start = start;
     this.end = end;
   }
@@ -115,7 +113,7 @@ public class TextRangeLocation extends Location {
   }
 
   @Override
-  public String getDescription() {
-    return super.getDescription() + " line " + getStart().getLine();
+  public String part() {
+    return " line " + getStart().getLine();
   }
 }

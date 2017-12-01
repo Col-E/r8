@@ -5,6 +5,7 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OutputMode;
@@ -149,7 +150,7 @@ public class D8Command extends BaseCompilerCommand {
     return new Builder(app);
   }
 
-  static Builder parse(String[] args, Location location) {
+  static Builder parse(String[] args, Origin origin) {
     CompilationMode modeSet = null;
     Path outputPath = null;
     Builder builder = builder();
@@ -166,7 +167,7 @@ public class D8Command extends BaseCompilerCommand {
           if (modeSet == CompilationMode.RELEASE) {
             builder.getReporter().error(new StringDiagnostic(
                 "Cannot compile in both --debug and --release mode.",
-                location));
+                origin));
             continue;
           }
           builder.setMode(CompilationMode.DEBUG);
@@ -175,7 +176,7 @@ public class D8Command extends BaseCompilerCommand {
           if (modeSet == CompilationMode.DEBUG) {
             builder.getReporter().error(new StringDiagnostic(
                 "Cannot compile in both --debug and --release mode.",
-                location));
+                origin));
             continue;
           }
           builder.setMode(CompilationMode.RELEASE);
@@ -187,7 +188,7 @@ public class D8Command extends BaseCompilerCommand {
           if (outputPath != null) {
             builder.getReporter().error(new StringDiagnostic(
                 "Cannot output both to '" + outputPath.toString() + "' and '" + output + "'",
-                location));
+                origin));
             continue;
           }
           outputPath = Paths.get(output);
@@ -204,7 +205,7 @@ public class D8Command extends BaseCompilerCommand {
         } else {
           if (arg.startsWith("--")) {
             builder.getReporter().error(new StringDiagnostic("Unknown option: " + arg,
-                location));
+                origin));
             continue;
           }
           builder.addProgramFiles(Paths.get(arg));

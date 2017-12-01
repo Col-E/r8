@@ -251,6 +251,6 @@ public class R8CommandTest {
   private R8Command parse(String... args)
       throws CompilationException, ProguardRuleParserException, IOException,
       CompilationFailedException {
-    return R8Command.parse(args, new Location(EmbeddedOrigin.INSTANCE)).build();
+    return R8Command.parse(args, EmbeddedOrigin.INSTANCE).build();
   }
 }

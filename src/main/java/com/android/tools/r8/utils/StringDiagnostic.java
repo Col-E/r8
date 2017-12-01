@@ -4,30 +4,25 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.Diagnostic;
-import com.android.tools.r8.Location;
 import com.android.tools.r8.origin.Origin;
 
 public class StringDiagnostic implements Diagnostic {
 
-  private final Location location;
+  private final Origin origin;
   private final String message;
 
   public StringDiagnostic(String message) {
-    this(message, Location.UNKNOWN);
+    this(message, Origin.unknown());
   }
 
   public StringDiagnostic(String message, Origin origin) {
-    this(message, new Location(origin));
-  }
-
-  public StringDiagnostic(String message, Location location) {
-    this.location = location;
+    this.origin = origin;
     this.message = message;
   }
 
   @Override
-  public Location getLocation() {
-    return location;
+  public Origin getOrigin() {
+    return origin;
   }
 
   @Override

@@ -89,8 +89,7 @@ abstract class BaseCompilerCommand extends BaseCommand {
         // options consumer will not be visible to the sink.
         return FileSystemOutputSink.create(outputPath, getInternalOptions());
       } catch (IOException e) {
-        throw reporter.fatalError(
-            new IOExceptionDiagnostic(e, new Location(new PathOrigin(outputPath))));
+        throw reporter.fatalError(new IOExceptionDiagnostic(e, new PathOrigin(outputPath)));
       }
     }
   }

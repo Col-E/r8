@@ -10,7 +10,6 @@ import static com.android.tools.r8.utils.FileUtils.isVDexFile;
 
 import com.android.tools.r8.ArchiveClassFileProvider;
 import com.android.tools.r8.ClassFileResourceProvider;
-import com.android.tools.r8.Location;
 import com.android.tools.r8.Resource;
 import com.android.tools.r8.dex.VDexFile;
 import com.android.tools.r8.dex.VDexFileReader;
@@ -755,8 +754,7 @@ public class AndroidApp {
         programFileArchiveReaders
             .add(new ProgramFileArchiveReader(filteredClassPath, ignoreDexInArchive));
       } else {
-        throw new CompilationError("Unsupported source file type",
-            new Location(new PathOrigin(file)));
+        throw new CompilationError("Unsupported source file type", new PathOrigin(file));
       }
     }
 
@@ -785,8 +783,7 @@ public class AndroidApp {
         assert classPath.isUnfiltered();
         providerList.add(DirectoryClassFileProvider.fromDirectory(file));
       } else {
-        throw new CompilationError("Unsupported source file type",
-            new Location(new PathOrigin(file)));
+        throw new CompilationError("Unsupported source file type", new PathOrigin(file));
       }
     }
   }

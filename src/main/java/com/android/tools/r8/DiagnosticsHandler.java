@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.origin.Origin;
+
 /**
  * A DiagnosticsHandler can be provided to customize handling of diagnostics information.
  *
@@ -16,8 +18,8 @@ public interface DiagnosticsHandler {
    * @param error Diagnostic containing error information.
    */
   default void error(Diagnostic error) {
-    if (error.getLocation() != Location.UNKNOWN) {
-      System.err.print("Error in " + error.getLocation() + ":\n  ");
+    if (error.getOrigin() != Origin.unknown()) {
+      System.err.print("Error in " + error.getOrigin() + ":\n  ");
     } else {
       System.err.print("Error: ");
     }
@@ -30,8 +32,8 @@ public interface DiagnosticsHandler {
    * @param warning Diagnostic containing warning information.
    */
   default void warning(Diagnostic warning) {
-    if (warning.getLocation() != Location.UNKNOWN) {
-      System.err.print("Warning in " + warning.getLocation() + ":\n  ");
+    if (warning.getOrigin() != Origin.unknown()) {
+      System.err.print("Warning in " + warning.getOrigin() + ":\n  ");
     } else {
       System.err.print("Warning: ");
     }
@@ -44,8 +46,8 @@ public interface DiagnosticsHandler {
    * @param info Diagnostic containing the information.
    */
   default void info(Diagnostic info) {
-    if (info.getLocation() != Location.UNKNOWN) {
-      System.out.print("In " + info.getLocation() + ":\n  ");
+    if (info.getOrigin() != Origin.unknown()) {
+      System.out.print("In " + info.getOrigin() + ":\n  ");
     }
     System.out.println(info.getDiagnosticMessage());
   }

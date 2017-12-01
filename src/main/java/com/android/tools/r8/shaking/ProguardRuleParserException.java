@@ -4,29 +4,29 @@
 package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.Diagnostic;
-import com.android.tools.r8.Location;
+import com.android.tools.r8.origin.Origin;
 
 public class ProguardRuleParserException extends Exception implements Diagnostic {
 
   private final String message;
   private final String snippet;
-  private final Location location;
+  private final Origin origin;
 
-  public ProguardRuleParserException(String message, String snippet, Location location) {
+  public ProguardRuleParserException(String message, String snippet, Origin origin) {
     this.message = message;
     this.snippet = snippet;
-    this.location = location;
+    this.origin = origin;
   }
 
-  public ProguardRuleParserException(String message, String snippet, Location location,
+  public ProguardRuleParserException(String message, String snippet, Origin origin,
       Throwable cause) {
-    this(message, snippet,location);
+    this(message, snippet,origin);
     initCause(cause);
   }
 
   @Override
-  public Location getLocation() {
-    return location;
+  public Origin getOrigin() {
+    return origin;
   }
 
   @Override

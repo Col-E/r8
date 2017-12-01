@@ -344,13 +344,13 @@ public class R8Command extends BaseCompilerCommand {
     return new Builder(app, diagnosticsHandler);
   }
 
-  public static Builder parse(String[] args, Location argsLocation) {
+  public static Builder parse(String[] args, Origin argsOrigin) {
     Builder builder = builder();
-    parse(args, argsLocation, builder, new ParseState());
+    parse(args, argsOrigin, builder, new ParseState());
     return builder;
   }
 
-  private static ParseState parse(String[] args, Location argsLocation, Builder builder,
+  private static ParseState parse(String[] args, Origin argsOrigin, Builder builder,
       ParseState state) {
     for (int i = 0; i < args.length; i++) {
       String arg = args[i].trim();
@@ -363,14 +363,14 @@ public class R8Command extends BaseCompilerCommand {
       } else if (arg.equals("--debug")) {
         if (state.mode == CompilationMode.RELEASE) {
           builder.getReporter().error(new StringDiagnostic(
-              "Cannot compile in both --debug and --release mode.", argsLocation));
+              "Cannot compile in both --debug and --release mode.", argsOrigin));
         }
         state.mode = CompilationMode.DEBUG;
         builder.setMode(state.mode);
       } else if (arg.equals("--release")) {
         if (state.mode == CompilationMode.DEBUG) {
           builder.getReporter().error(new StringDiagnostic(
-              "Cannot compile in both --debug and --release mode.", argsLocation));
+              "Cannot compile in both --debug and --release mode.", argsOrigin));
         }
         state.mode = CompilationMode.RELEASE;
         builder.setMode(state.mode);
@@ -383,7 +383,7 @@ public class R8Command extends BaseCompilerCommand {
                   + "' and '"
                   + outputPath
                   + "'",
-              argsLocation));
+              argsOrigin));
         }
         builder.setOutputPath(Paths.get(outputPath));
       } else if (arg.equals("--lib")) {
@@ -411,7 +411,7 @@ public class R8Command extends BaseCompilerCommand {
       } else if (arg.startsWith("@")) {
         // TODO(zerny): Replace this with pipe reading.
         Path argsFile = Paths.get(arg.substring(1));
-        Location argsFileLocation = new Location(new PathOrigin(argsFile));
+        Origin argsFileOrigin = new PathOrigin(argsFile);
         try {
           List<String> linesInFile = FileUtils.readTextFile(argsFile);
           List<String> argsInFile = new ArrayList<>();
@@ -425,15 +425,15 @@ public class R8Command extends BaseCompilerCommand {
           }
           // TODO(zerny): We need to define what CWD should be for files referenced in an args file.
           state = parse(argsInFile.toArray(new String[argsInFile.size()]),
-              argsFileLocation, builder, state);
+              argsFileOrigin, builder, state);
         } catch (IOException e) {
           builder.getReporter().error(new StringDiagnostic(
               "Failed to read arguments from file " + argsFile + ": " + e.getMessage(),
-              argsFileLocation));
+              argsFileOrigin));
         }
       } else {
         if (arg.startsWith("--")) {
-          builder.getReporter().error(new StringDiagnostic("Unknown option: " + arg, argsLocation));
+          builder.getReporter().error(new StringDiagnostic("Unknown option: " + arg, argsOrigin));
         }
         builder.addProgramFiles(Paths.get(arg));
       }

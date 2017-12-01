@@ -112,7 +112,7 @@ public final class D8 {
 
   private static void run(String[] args)
       throws IOException, CompilationException, CompilationFailedException {
-    D8Command.Builder builder = D8Command.parse(args, new Location(CommandLineOrigin.INSTANCE));
+    D8Command.Builder builder = D8Command.parse(args, CommandLineOrigin.INSTANCE);
     if (builder.getOutputPath() == null) {
       builder.setOutputPath(Paths.get("."));
     }

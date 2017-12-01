@@ -3,8 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
-import com.android.tools.r8.Location;
-import com.android.tools.r8.TextRangeLocation;
+import com.android.tools.r8.origin.TextRangeOrigin;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -91,7 +90,7 @@ public class ProguardConfigurationParser {
       // are not.
       reporter.fatalError(new StringDiagnostic(
           "-keepparameternames is not supported",
-          configurationBuilder.getKeepParameterNamesOptionLocation()));
+          configurationBuilder.getKeepParameterNamesOptionOrigin()));
     }
   }
 
@@ -185,7 +184,7 @@ public class ProguardConfigurationParser {
           (option = Iterables.find(UNSUPPORTED_FLAG_OPTIONS, this::skipFlag, null)) != null) {
         reporter.error(new StringDiagnostic(
             "Unsupported option: -" + option,
-            getLocation(optionLine, optionColumn)));
+            getOrigin(optionLine, optionColumn)));
       } else if (acceptString("renamesourcefileattribute")) {
         skipWhitespace();
         if (isOptionalArgumentGiven()) {
@@ -200,7 +199,7 @@ public class ProguardConfigurationParser {
         configurationBuilder.addRule(rule);
       } else if (acceptString("keepparameternames")) {
         configurationBuilder.setKeepParameterNames(true,
-            getLocation(optionLine, optionColumn));
+            getOrigin(optionLine, optionColumn));
       } else if (acceptString("checkdiscard")) {
         ProguardCheckDiscardRule rule = parseCheckDiscardRule();
         configurationBuilder.addRule(rule);
@@ -218,7 +217,7 @@ public class ProguardConfigurationParser {
         if (expectedOptimizationPasses == null) {
           throw reporter.fatalError(new StringDiagnostic(
               "Missing n of \"-optimizationpasses n\"",
-              getLocation(optionLine, optionColumn)));
+              getOrigin(optionLine, optionColumn)));
         }
         warnIgnoringOptions("optimizationpasses", optionLine, optionColumn);
       } else if (acceptString("dontobfuscate")) {
@@ -330,7 +329,7 @@ public class ProguardConfigurationParser {
       } else {
         String unknownOption = acceptString();
         reporter.error(new StringDiagnostic("Unknown option \"-" + unknownOption + "\"",
-            getLocation(optionLine, optionColumn)));
+            getOrigin(optionLine, optionColumn)));
       }
       return true;
     }
@@ -541,7 +540,7 @@ public class ProguardConfigurationParser {
           String unknownOption = acceptString();
           throw reporter.fatalError(new StringDiagnostic(
               "Unknown option \"-" + unknownOption + "\"",
-              getLocation(startLine, startColumn)));
+              getOrigin(startLine, startColumn)));
         }
       } else {
         builder.setType(ProguardKeepRuleType.KEEP);
@@ -631,7 +630,7 @@ public class ProguardConfigurationParser {
         return ProguardClassType.ENUM;
       } else {
         throw reporter.fatalError(new StringDiagnostic("Expected interface|class|enum",
-            getLocation(startLine, startColumn)));
+            getOrigin(startLine, startColumn)));
       }
     }
 
@@ -1168,43 +1167,43 @@ public class ProguardConfigurationParser {
     }
 
     private ProguardRuleParserException parseError(String message) {
-      return new ProguardRuleParserException(message, snippetForPosition(), getLocation());
+      return new ProguardRuleParserException(message, snippetForPosition(), getOrigin());
     }
 
     private ProguardRuleParserException parseError(String message, Throwable cause) {
-      return new ProguardRuleParserException(message, snippetForPosition(), getLocation(), cause);
+      return new ProguardRuleParserException(message, snippetForPosition(), getOrigin(), cause);
     }
 
     private ProguardRuleParserException parseError(String message, int startLine, int startColumn,
         Throwable cause) {
       return new ProguardRuleParserException(message, snippetForPosition(startLine, startColumn),
-          getLocation(startLine, startColumn), cause);
+          getOrigin(startLine, startColumn), cause);
     }
 
     private ProguardRuleParserException parseError(String message, int startLine, int startColumn) {
       return new ProguardRuleParserException(message, snippetForPosition(startLine, startColumn),
-          getLocation(startLine, startColumn));
+          getOrigin(startLine, startColumn));
     }
 
     private void warnIgnoringOptions(String optionName, int startLine, int startColumn) {
       reporter.warning(new StringDiagnostic(
           "Ignoring option: -" + optionName,
-          getLocation(startLine, startColumn)));
+          getOrigin(startLine, startColumn)));
     }
 
     private void warnOverridingOptions(String optionName, String victim, int optionLine,
         int optionColumn) {
       reporter.warning(
           new StringDiagnostic("Option -" + optionName + " overrides -" + victim,
-              getLocation(optionLine, optionColumn)));
+              getOrigin(optionLine, optionColumn)));
     }
 
-    private Location getLocation(int startLine, int startColumn) {
-      return TextRangeLocation.get(origin, startLine, startColumn, line, getColumn());
+    private Origin getOrigin(int startLine, int startColumn) {
+      return TextRangeOrigin.get(origin, startLine, startColumn, line, getColumn());
     }
 
-    private Location getLocation() {
-      return TextRangeLocation.get(origin, line, getColumn());
+    private Origin getOrigin() {
+      return TextRangeOrigin.get(origin, line, getColumn());
     }
 
     private int getColumn() {

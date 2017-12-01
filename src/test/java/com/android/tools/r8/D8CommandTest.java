@@ -253,6 +253,6 @@ public class D8CommandTest {
 
   private D8Command parse(String... args)
       throws CompilationFailedException {
-    return D8Command.parse(args, new Location(EmbeddedOrigin.INSTANCE)).build();
+    return D8Command.parse(args, EmbeddedOrigin.INSTANCE).build();
   }
 }

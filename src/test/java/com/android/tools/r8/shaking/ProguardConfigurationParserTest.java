@@ -14,7 +14,7 @@ import static org.junit.Assert.fail;
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.TextRangeLocation;
+import com.android.tools.r8.origin.TextRangeOrigin;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -22,7 +22,6 @@ import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.AbortException;
-import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions.PackageObfuscationMode;
 import com.android.tools.r8.utils.Reporter;
@@ -981,9 +980,9 @@ public class ProguardConfigurationParserTest extends TestBase {
       int columnStart, String... messageParts) {
     assertEquals(1, diagnostics.size());
     Diagnostic diagnostic = diagnostics.get(0);
-    assertEquals(path, ((PathOrigin) diagnostic.getLocation().getOrigin()).getPath());
-    assertEquals(new TextRangeLocation.TextPosition(lineStart, columnStart),
-        ((TextRangeLocation) diagnostic.getLocation()).getStart());
+    assertEquals(path, ((PathOrigin) diagnostic.getOrigin().parent()).getPath());
+    assertEquals(new TextRangeOrigin.TextPosition(lineStart, columnStart),
+        ((TextRangeOrigin) diagnostic.getOrigin()).getStart());
     for (String part:messageParts) {
       assertTrue(diagnostic.getDiagnosticMessage()+ "doesn't contain \"" + part + "\"",
           diagnostic.getDiagnosticMessage().contains(part));

@@ -111,7 +111,7 @@ public class Disassemble {
         } else {
           if (arg.startsWith("--")) {
             builder.getReporter().error(new StringDiagnostic("Unknown option: " + arg,
-                new Location(CommandLineOrigin.INSTANCE)));;
+                CommandLineOrigin.INSTANCE));
           }
           builder.addProgramFiles(Paths.get(arg));
         }

@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
-import com.android.tools.r8.Location;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -67,7 +66,7 @@ public class DictionaryReader implements AutoCloseable {
       } catch (IOException e) {
         reporter.error(new StringDiagnostic(
             "Unable to create dictionary from file " + path.toString(),
-            new Location(new PathOrigin(path))));
+            new PathOrigin(path)));
       }
       return namesBuilder.build();
     } else {

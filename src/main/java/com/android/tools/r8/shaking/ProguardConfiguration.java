@@ -3,9 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
-import com.android.tools.r8.Location;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.naming.DictionaryReader;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions.PackageObfuscationMode;
 import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.ImmutableList;
@@ -45,7 +45,7 @@ public class ProguardConfiguration {
     private Path packageObfuscationDictionary;
     private boolean useUniqueClassMemberNames;
     private boolean keepParameterNames;
-    private Location keepParameterNamesOptionLocation;
+    private Origin keepParameterNamesOptionOrigin;
     private ProguardClassFilter.Builder adaptClassStrings = ProguardClassFilter.builder();
     private boolean forceProguardCompatibility = false;
     private boolean overloadAggressively;
@@ -169,18 +169,18 @@ public class ProguardConfiguration {
       return useUniqueClassMemberNames;
     }
 
-    public void setKeepParameterNames(boolean keepParameterNames, Location optionLocation) {
-      assert optionLocation != null || !keepParameterNames;
+    public void setKeepParameterNames(boolean keepParameterNames, Origin optionOrigin) {
+      assert optionOrigin != null || !keepParameterNames;
       this.keepParameterNames = keepParameterNames;
-      this.keepParameterNamesOptionLocation = optionLocation;
+      this.keepParameterNamesOptionOrigin = optionOrigin;
     }
 
     boolean isKeepParameterNames() {
       return keepParameterNames;
     }
 
-    Location getKeepParameterNamesOptionLocation() {
-      return keepParameterNamesOptionLocation;
+    Origin getKeepParameterNamesOptionOrigin() {
+      return keepParameterNamesOptionOrigin;
     }
 
     public void addAdaptClassStringsPattern(ProguardClassNameList pattern) {

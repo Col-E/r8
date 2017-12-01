@@ -500,7 +500,7 @@ public class R8 {
 
   private static void run(String[] args)
       throws IOException, CompilationException, CompilationFailedException {
-    R8Command.Builder builder = R8Command.parse(args, new Location(CommandLineOrigin.INSTANCE));
+    R8Command.Builder builder = R8Command.parse(args, CommandLineOrigin.INSTANCE);
     if (builder.getOutputPath() == null) {
       builder.setOutputPath(Paths.get("."));
     }
