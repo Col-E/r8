@@ -5,12 +5,17 @@
 package com.android.tools.r8.maindexlist;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
+import com.android.tools.r8.Diagnostic;
+import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import org.junit.Rule;
@@ -18,18 +23,35 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 public class MainDexListOutputTest extends TestBase {
+
+  class Reporter implements DiagnosticsHandler {
+    int errorCount = 0;
+
+    @Override
+    public void error(Diagnostic error) {
+      errorCount++;
+      assertTrue(error instanceof StringDiagnostic);
+      assertTrue(error.getDiagnosticMessage().contains("main-dex"));
+    }
+  }
+
   @Rule
   public ExpectedException thrown = ExpectedException.none();
 
   @Test
   public void testNoMainDex() throws Exception {
-    thrown.expect(CompilationFailedException.class);
-    Path mainDexListOutput = temp.getRoot().toPath().resolve("main-dex-output.txt");
-    R8Command command =
-        ToolHelper.prepareR8CommandBuilder(readClasses(HelloWorldMain.class))
-            .setMainDexListOutputPath(mainDexListOutput)
-            .build();
-    ToolHelper.runR8(command);
+    Reporter reporter = new Reporter();
+    try {
+      Path mainDexListOutput = temp.getRoot().toPath().resolve("main-dex-output.txt");
+      R8Command command =
+          ToolHelper.prepareR8CommandBuilder(readClasses(HelloWorldMain.class), reporter)
+              .setMainDexListOutputPath(mainDexListOutput)
+              .build();
+    } catch (CompilationFailedException e) {
+      assertEquals(1, reporter.errorCount);
+      return;
+    }
+    fail("Expected CompilationFailedException");
   }
 
   @Test

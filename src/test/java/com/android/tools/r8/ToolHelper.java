@@ -647,6 +647,11 @@ public class ToolHelper {
     return R8Command.builder(app);
   }
 
+  public static R8Command.Builder prepareR8CommandBuilder(
+      AndroidApp app, DiagnosticsHandler diagnosticsHandler) {
+    return R8Command.builder(app, diagnosticsHandler);
+  }
+
   public static AndroidApp runR8(AndroidApp app) throws IOException, CompilationException {
     try {
       return runR8(R8Command.builder(app).build());

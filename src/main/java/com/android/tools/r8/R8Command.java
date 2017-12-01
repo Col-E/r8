@@ -57,8 +57,18 @@ public class R8Command extends BaseCompilerCommand {
       this.ignoreMissingClasses = ignoreMissingClasses;
     }
 
+    protected Builder(DiagnosticsHandler diagnosticsHandler) {
+      super(diagnosticsHandler);
+      setMode(CompilationMode.DEBUG);
+    }
+
     private Builder(AndroidApp app) {
       super(app);
+      setMode(CompilationMode.RELEASE);
+    }
+
+    private Builder(AndroidApp app, DiagnosticsHandler diagnosticsHandler) {
+      super(app, diagnosticsHandler);
       setMode(CompilationMode.RELEASE);
     }
 
@@ -319,9 +329,19 @@ public class R8Command extends BaseCompilerCommand {
     return new Builder();
   }
 
+  public static Builder builder(DiagnosticsHandler diagnosticsHandler) {
+    return new Builder(diagnosticsHandler);
+  }
+
+
   // Internal builder to start from an existing AndroidApp.
   static Builder builder(AndroidApp app) {
     return new Builder(app);
+  }
+
+  // Internal builder to start from an existing AndroidApp.
+  static Builder builder(AndroidApp app, DiagnosticsHandler diagnosticsHandler) {
+    return new Builder(app, diagnosticsHandler);
   }
 
   public static Builder parse(String[] args, Location argsLocation) {

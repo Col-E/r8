@@ -123,6 +123,10 @@ abstract class BaseCompilerCommand extends BaseCommand {
       super(AndroidApp.builder(app));
     }
 
+    Builder(AndroidApp app, DiagnosticsHandler diagnosticsHandler) {
+      super(AndroidApp.builder(app), diagnosticsHandler);
+    }
+
     protected Builder(DiagnosticsHandler diagnosticsHandler) {
       super(diagnosticsHandler);
     }
