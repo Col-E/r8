@@ -74,13 +74,7 @@ public class ClassAccessFlags extends AccessFlags {
 
   @Override
   public int getAsDexAccessFlags() {
-    // We unset the super flag here, as it is meaningless in DEX. Furthermore, we add missing
-    // abstract to interfaces to work around a javac bug when generating package-info classes.
-    if (isInterface()) {
-      return flags & ~Constants.ACC_SUPER & Constants.ACC_ABSTRACT;
-    } else {
-      return flags & ~Constants.ACC_SUPER;
-    }
+    return flags & ~Constants.ACC_SUPER;
   }
 
   @Override
