@@ -6,6 +6,7 @@ package com.android.tools.r8.utils;
 
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
+import com.android.tools.r8.position.Position;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.FileAlreadyExistsException;
@@ -57,6 +58,11 @@ public class IOExceptionDiagnostic extends DiagnosticWithThrowable {
   @Override
   public Origin getOrigin() {
     return origin;
+  }
+
+  @Override
+  public Position getPosition() {
+    return Position.UNKNOWN;
   }
 
   @Override

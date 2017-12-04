@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
-import com.android.tools.r8.origin.TextRangeOrigin;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -11,6 +10,9 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.position.Position;
+import com.android.tools.r8.position.TextPosition;
+import com.android.tools.r8.position.TextRange;
 import com.android.tools.r8.shaking.ProguardConfiguration.Builder;
 import com.android.tools.r8.shaking.ProguardTypeMatcher.ClassOrType;
 import com.android.tools.r8.shaking.ProguardTypeMatcher.MatchSpecificType;
@@ -90,7 +92,8 @@ public class ProguardConfigurationParser {
       // are not.
       reporter.fatalError(new StringDiagnostic(
           "-keepparameternames is not supported",
-          configurationBuilder.getKeepParameterNamesOptionOrigin()));
+          configurationBuilder.getKeepParameterNamesOptionOrigin(),
+          configurationBuilder.getKeepParameterNamesOptionPosition()));
     }
   }
 
@@ -164,8 +167,7 @@ public class ProguardConfigurationParser {
       if (acceptArobaseInclude()) {
         return true;
       }
-      int optionLine = line;
-      int optionColumn = getColumn();
+      TextPosition optionStart = getPosition();
       expectChar('-');
       String option;
       if (Iterables.any(IGNORED_SINGLE_ARG_OPTIONS, this::skipOptionWithSingleArg)
@@ -179,12 +181,13 @@ public class ProguardConfigurationParser {
           (option = Iterables.find(WARNED_SINGLE_ARG_OPTIONS,
               this::skipOptionWithSingleArg, null)) != null
               || (option = Iterables.find(WARNED_FLAG_OPTIONS, this::skipFlag, null)) != null) {
-        warnIgnoringOptions(option, optionLine, optionColumn);
+        warnIgnoringOptions(option, optionStart);
       } else if (
           (option = Iterables.find(UNSUPPORTED_FLAG_OPTIONS, this::skipFlag, null)) != null) {
         reporter.error(new StringDiagnostic(
             "Unsupported option: -" + option,
-            getOrigin(optionLine, optionColumn)));
+            origin,
+            getPostion(optionStart)));
       } else if (acceptString("renamesourcefileattribute")) {
         skipWhitespace();
         if (isOptionalArgumentGiven()) {
@@ -199,7 +202,7 @@ public class ProguardConfigurationParser {
         configurationBuilder.addRule(rule);
       } else if (acceptString("keepparameternames")) {
         configurationBuilder.setKeepParameterNames(true,
-            getOrigin(optionLine, optionColumn));
+            origin, getPostion(optionStart));
       } else if (acceptString("checkdiscard")) {
         ProguardCheckDiscardRule rule = parseCheckDiscardRule();
         configurationBuilder.addRule(rule);
@@ -217,9 +220,10 @@ public class ProguardConfigurationParser {
         if (expectedOptimizationPasses == null) {
           throw reporter.fatalError(new StringDiagnostic(
               "Missing n of \"-optimizationpasses n\"",
-              getOrigin(optionLine, optionColumn)));
+              origin,
+              getPostion(optionStart)));
         }
-        warnIgnoringOptions("optimizationpasses", optionLine, optionColumn);
+        warnIgnoringOptions("optimizationpasses", optionStart);
       } else if (acceptString("dontobfuscate")) {
         configurationBuilder.setObfuscating(false);
       } else if (acceptString("dontshrink")) {
@@ -245,7 +249,7 @@ public class ProguardConfigurationParser {
       } else if (acceptString("repackageclasses")) {
         if (configurationBuilder.getPackageObfuscationMode() == PackageObfuscationMode.FLATTEN) {
           warnOverridingOptions("repackageclasses", "flattenpackagehierarchy",
-              optionLine, optionColumn);
+              optionStart);
         }
         skipWhitespace();
         if (acceptChar('\'')) {
@@ -257,7 +261,7 @@ public class ProguardConfigurationParser {
       } else if (acceptString("flattenpackagehierarchy")) {
         if (configurationBuilder.getPackageObfuscationMode() == PackageObfuscationMode.REPACKAGE) {
           warnOverridingOptions("repackageclasses", "flattenpackagehierarchy",
-              optionLine, optionColumn);
+              optionStart);
           skipWhitespace();
           if (isOptionalArgumentGiven()) {
             skipSingleArgument();
@@ -329,25 +333,24 @@ public class ProguardConfigurationParser {
       } else {
         String unknownOption = acceptString();
         reporter.error(new StringDiagnostic("Unknown option \"-" + unknownOption + "\"",
-            getOrigin(optionLine, optionColumn)));
+            origin, getPostion(optionStart)));
       }
       return true;
     }
 
 
     private void parseInclude() throws ProguardRuleParserException {
-      int startLine = line;
-      int startColumn = getColumn();
+      TextPosition start = getPosition();
       Path included = parseFileName();
       try {
         new ProguardConfigurationSourceParser(new ProguardConfigurationSourceFile(included))
             .parse();
       } catch (FileNotFoundException | NoSuchFileException e) {
         throw parseError("Included file '" + included.toString() + "' not found",
-            startLine, startColumn, e);
+            start, e);
       } catch (IOException e) {
         throw parseError("Failed to read included file '" + included.toString() + "'",
-            startLine, startColumn, e);
+            start, e);
       }
     }
 
@@ -534,13 +537,13 @@ public class ProguardConfigurationParser {
         } else {
           // The only path to here is through "-keep" followed by "class".
           unacceptString("-keepclass");
-          int startLine = line;
-          int startColumn = getColumn();
+          TextPosition start = getPosition();
           acceptString("-");
           String unknownOption = acceptString();
           throw reporter.fatalError(new StringDiagnostic(
               "Unknown option \"-" + unknownOption + "\"",
-              getOrigin(startLine, startColumn)));
+              origin,
+              start));
         }
       } else {
         builder.setType(ProguardKeepRuleType.KEEP);
@@ -618,8 +621,7 @@ public class ProguardConfigurationParser {
 
     private ProguardClassType parseClassType() throws ProguardRuleParserException {
       skipWhitespace();
-      int startLine = line;
-      int startColumn = getColumn();
+      TextPosition start = getPosition();
       if (acceptString("interface")) {
         return ProguardClassType.INTERFACE;
       } else if (acceptString("@interface")) {
@@ -630,7 +632,7 @@ public class ProguardConfigurationParser {
         return ProguardClassType.ENUM;
       } else {
         throw reporter.fatalError(new StringDiagnostic("Expected interface|class|enum",
-            getOrigin(startLine, startColumn)));
+            origin, getPostion(start)));
       }
     }
 
@@ -780,8 +782,7 @@ public class ProguardConfigurationParser {
                   } else if (acceptString("false")) {
                     ruleBuilder.setReturnValue(new ProguardMemberRuleReturnValue(false));
                   } else {
-                    int fieldStartLine = line;
-                    int fieldStartColumn = getColumn();
+                    TextPosition fieldStart = getPosition();
                     String qualifiedFieldName = acceptFieldName();
                     if (qualifiedFieldName != null) {
                       if (ruleBuilder.getTypeMatcher() instanceof MatchSpecificType) {
@@ -798,12 +799,10 @@ public class ProguardConfigurationParser {
                             .createField(fieldClass, fieldType, fieldName);
                         ruleBuilder.setReturnValue(new ProguardMemberRuleReturnValue(field));
                       } else {
-                        throw parseError("Expected specific type", fieldStartLine,
-                            fieldStartColumn);
+                        throw parseError("Expected specific type", fieldStart);
                       }
                     } else {
-                      int valueStartLine = line;
-                      int valueStartColumn = getColumn();
+                      TextPosition valueStart = getPosition();
                       Integer min = acceptInteger();
                       Integer max = min;
                       if (min == null) {
@@ -817,8 +816,7 @@ public class ProguardConfigurationParser {
                         }
                       }
                       if (!allowValueSpecification) {
-                        throw parseError("Unexpected value specification", valueStartLine,
-                            valueStartColumn);
+                        throw parseError("Unexpected value specification", valueStart);
                       }
                       ruleBuilder.setReturnValue(
                           new ProguardMemberRuleReturnValue(new LongInterval(min, max)));
@@ -864,15 +862,14 @@ public class ProguardConfigurationParser {
     }
 
     private Path parseFileName() throws ProguardRuleParserException {
-      int startLine = this.line;
-      int startColumn = getColumn();
+      TextPosition start = getPosition();
       skipWhitespace();
       String fileName = acceptString(character ->
           character != File.pathSeparatorChar
               && !Character.isWhitespace(character)
               && character != '(');
       if (fileName == null) {
-        throw parseError("File name expected", startLine, startColumn);
+        throw parseError("File name expected", start);
       }
       return baseDirectory.resolve(fileName);
     }
@@ -912,14 +909,13 @@ public class ProguardConfigurationParser {
     }
 
     private String parseFileFilter() throws ProguardRuleParserException {
-      int startLine = line;
-      int startColumn = getColumn();
+      TextPosition start = getPosition();
       skipWhitespace();
       String fileFilter = acceptString(character ->
           character != ',' && character != ';' && character != ')'
               && !Character.isWhitespace(character));
       if (fileFilter == null) {
-        throw parseError("file filter expected", startLine, startColumn);
+        throw parseError("file filter expected", start);
       }
       return fileFilter;
     }
@@ -1067,12 +1063,11 @@ public class ProguardConfigurationParser {
       while (pattern != null) {
         patterns.add(pattern);
         skipWhitespace();
-        int startLine = line;
-        int startColumn = getColumn();
+        TextPosition start = getPosition();
         if (acceptChar(',')) {
           pattern = acceptPattern();
           if (pattern == null) {
-            throw parseError("Expected list element", startLine, startColumn);
+            throw parseError("Expected list element", start);
           }
         } else {
           pattern = null;
@@ -1157,53 +1152,58 @@ public class ProguardConfigurationParser {
       }
       return name;
     }
-    private String snippetForPosition(int lineNumber, int columnNumber) {
+    private String snippetForPosition(TextPosition start) {
       // TODO(ager): really should deal with \r as well to get column right.
       String[] lines = contents.split("\n", -1);  // -1 to get trailing empty lines represented.
-      String line = lines[lineNumber-1];
-      String arrow = CharBuffer.allocate(columnNumber - 1).toString().replace('\0', ' ') + '^';
-      return name + ":" + (lineNumber + 1) + ":" + columnNumber + "\n" + line
+      String line = lines[start.getLine() - 1];
+      String arrow = CharBuffer.allocate(start.getColumn() - 1).toString().replace('\0', ' ') + '^';
+      return name + ":" + (start.getLine() + 1) + ":" + start.getColumn() + "\n" + line
           + '\n' + arrow;
     }
 
     private ProguardRuleParserException parseError(String message) {
-      return new ProguardRuleParserException(message, snippetForPosition(), getOrigin());
+      return new ProguardRuleParserException(message, snippetForPosition(), origin, getPosition());
     }
 
     private ProguardRuleParserException parseError(String message, Throwable cause) {
-      return new ProguardRuleParserException(message, snippetForPosition(), getOrigin(), cause);
+      return new ProguardRuleParserException(message, snippetForPosition(), origin, getPosition(),
+          cause);
     }
 
-    private ProguardRuleParserException parseError(String message, int startLine, int startColumn,
+    private ProguardRuleParserException parseError(String message, TextPosition start,
         Throwable cause) {
-      return new ProguardRuleParserException(message, snippetForPosition(startLine, startColumn),
-          getOrigin(startLine, startColumn), cause);
+      return new ProguardRuleParserException(message, snippetForPosition(start),
+          origin, getPostion(start), cause);
     }
 
-    private ProguardRuleParserException parseError(String message, int startLine, int startColumn) {
-      return new ProguardRuleParserException(message, snippetForPosition(startLine, startColumn),
-          getOrigin(startLine, startColumn));
+    private ProguardRuleParserException parseError(String message, TextPosition start) {
+      return new ProguardRuleParserException(message, snippetForPosition(start),
+          origin, getPostion(start));
     }
 
-    private void warnIgnoringOptions(String optionName, int startLine, int startColumn) {
+    private void warnIgnoringOptions(String optionName, TextPosition start) {
       reporter.warning(new StringDiagnostic(
           "Ignoring option: -" + optionName,
-          getOrigin(startLine, startColumn)));
+          origin,
+          getPostion(start)));
     }
 
-    private void warnOverridingOptions(String optionName, String victim, int optionLine,
-        int optionColumn) {
+    private void warnOverridingOptions(String optionName, String victim, TextPosition start) {
       reporter.warning(
           new StringDiagnostic("Option -" + optionName + " overrides -" + victim,
-              getOrigin(optionLine, optionColumn)));
+              origin, getPostion(start)));
     }
 
-    private Origin getOrigin(int startLine, int startColumn) {
-      return TextRangeOrigin.get(origin, startLine, startColumn, line, getColumn());
+    private Position getPostion(TextPosition start) {
+      if (start.getOffset() == position) {
+        return start;
+      } else {
+        return new TextRange(start, getPosition());
+      }
     }
 
-    private Origin getOrigin() {
-      return TextRangeOrigin.get(origin, line, getColumn());
+    private TextPosition getPosition() {
+      return new TextPosition(position, line, getColumn());
     }
 
     private int getColumn() {

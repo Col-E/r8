@@ -5,10 +5,12 @@ package com.android.tools.r8.utils;
 
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.position.Position;
 
 public class StringDiagnostic implements Diagnostic {
 
   private final Origin origin;
+  private final Position position;
   private final String message;
 
   public StringDiagnostic(String message) {
@@ -16,13 +18,23 @@ public class StringDiagnostic implements Diagnostic {
   }
 
   public StringDiagnostic(String message, Origin origin) {
+    this(message, origin, Position.UNKNOWN);
+  }
+
+  public StringDiagnostic(String message, Origin origin, Position position) {
     this.origin = origin;
+    this.position = position;
     this.message = message;
   }
 
   @Override
   public Origin getOrigin() {
     return origin;
+  }
+
+  @Override
+  public Position getPosition() {
+    return position;
   }
 
   @Override

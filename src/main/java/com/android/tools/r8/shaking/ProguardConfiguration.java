@@ -6,6 +6,7 @@ package com.android.tools.r8.shaking;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.naming.DictionaryReader;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.position.Position;
 import com.android.tools.r8.utils.InternalOptions.PackageObfuscationMode;
 import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.ImmutableList;
@@ -46,6 +47,7 @@ public class ProguardConfiguration {
     private boolean useUniqueClassMemberNames;
     private boolean keepParameterNames;
     private Origin keepParameterNamesOptionOrigin;
+    private Position keepParameterNamesOptionPosition;
     private ProguardClassFilter.Builder adaptClassStrings = ProguardClassFilter.builder();
     private boolean forceProguardCompatibility = false;
     private boolean overloadAggressively;
@@ -169,10 +171,12 @@ public class ProguardConfiguration {
       return useUniqueClassMemberNames;
     }
 
-    public void setKeepParameterNames(boolean keepParameterNames, Origin optionOrigin) {
+    public void setKeepParameterNames(boolean keepParameterNames, Origin optionOrigin,
+        Position optionPosition) {
       assert optionOrigin != null || !keepParameterNames;
       this.keepParameterNames = keepParameterNames;
       this.keepParameterNamesOptionOrigin = optionOrigin;
+      this.keepParameterNamesOptionPosition = optionPosition;
     }
 
     boolean isKeepParameterNames() {
@@ -181,6 +185,10 @@ public class ProguardConfiguration {
 
     Origin getKeepParameterNamesOptionOrigin() {
       return keepParameterNamesOptionOrigin;
+    }
+
+    Position getKeepParameterNamesOptionPosition() {
+      return keepParameterNamesOptionPosition;
     }
 
     public void addAdaptClassStringsPattern(ProguardClassNameList pattern) {

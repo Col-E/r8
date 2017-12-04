@@ -4,12 +4,27 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.position.Position;
 
 /**
  * Interface for all diagnostic message produced by D8 and R8.
  */
 public interface Diagnostic {
+
+  /**
+   * Origin of the resource causing the problem.
+   * @return Origin.unknown() when origin is not available.
+   */
   Origin getOrigin();
 
+  /**
+   * Position of the problem in the origin.
+   * @return {@link Position#UNKNOWN} when position is not available.
+   */
+  Position getPosition();
+
+  /**
+   * User friendly description of the problem.
+   */
   String getDiagnosticMessage();
 }
