@@ -1,11 +1,10 @@
 // Copyright (c) 2017, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-
 package com.android.tools.r8.position;
 
 /**
- * A position in a text file determined by line and column.
+ * A {@link Position} in a text file determined by line and column.
  * Line and column numbers start at 1.
  */
 public class TextPosition implements Position {
@@ -23,7 +22,7 @@ public class TextPosition implements Position {
   private final int column;
 
   public TextPosition(long offset, int line, int column) {
-    assert (offset >= 1)
+    assert (offset >= 0)
         && (line >= 1)
         && (column >= 1 || column == UNKNOWN_COLUMN);
     this.offset = offset;
