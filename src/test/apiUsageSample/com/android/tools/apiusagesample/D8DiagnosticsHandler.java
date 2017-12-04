@@ -9,7 +9,9 @@ import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.origin.ArchiveEntryOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
-import com.android.tools.r8.origin.TextRangeOrigin;
+import com.android.tools.r8.position.Position;
+import com.android.tools.r8.position.TextPosition;
+import com.android.tools.r8.position.TextRange;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -45,14 +47,21 @@ class D8DiagnosticsHandler implements DiagnosticsHandler {
     String textMessage = diagnostic.getDiagnosticMessage();
 
     Origin origin = diagnostic.getOrigin();
+    Position positionInOrigin = diagnostic.getPosition();
     String position;
-    if (origin instanceof TextRangeOrigin && origin.parent() instanceof PathOrigin) {
-      TextRangeOrigin textRange = (TextRangeOrigin) origin;
-      position = ((PathOrigin) origin.parent()).getPath().toFile() + ": "
-          + textRange.getStart().getLine() + "," + textRange.getStart().getColumn()
-          + " - " + textRange.getEnd().getLine() + "," + textRange.getEnd().getColumn();
-    } else if (origin.parent() instanceof PathOrigin) {
-      position = ((PathOrigin) origin.parent()).getPath().toFile().toString();
+    if (origin instanceof PathOrigin) {
+      if (positionInOrigin instanceof TextRange) {
+        TextRange textRange = (TextRange) positionInOrigin;
+        position = ((PathOrigin) origin.parent()).getPath().toFile() + ": "
+            + textRange.getStart().getLine() + "," + textRange.getStart().getColumn()
+            + " - " + textRange.getEnd().getLine() + "," + textRange.getEnd().getColumn();
+      } else if (positionInOrigin instanceof TextPosition) {
+        TextPosition textPosition = (TextPosition) positionInOrigin;
+        position = ((PathOrigin) origin.parent()).getPath().toFile() + ": "
+            + textPosition.getLine() + "," + textPosition.getColumn();
+      } else {
+        position = ((PathOrigin) origin.parent()).getPath().toFile().toString();
+      }
     } else {
       position = "UNKNOWN";
       if (origin != Origin.unknown()) {
