@@ -4,6 +4,7 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import net.ltgt.gradle.errorprone.ErrorProneToolChain
 import org.gradle.internal.os.OperatingSystem
+import tasks.GetJarsFromConfiguration
 import utils.Utils
 
 apply plugin: 'java'
@@ -470,7 +471,6 @@ task repackageSources(type: ShadowJar) {
     baseName 'sources'
 }
 
-
 task R8(type: ShadowJar) {
     from consolidatedLicense.outputs.files
     from repackageSources.outputs.files
@@ -780,7 +780,7 @@ task buildExampleJars {
     }
     task extractExamplesRuntime(type: Sync) {
         dependsOn configurations.examplesRuntime
-        from configurations.examplesRuntime.collect { zipTree(it) }
+        from { configurations.examplesRuntime.collect { zipTree(it) } }
         include "**/*.class"
         includeEmptyDirs false
         into "$buildDir/runtime/examples/"
@@ -1185,53 +1185,8 @@ task buildPreNJdwpTestsDex(type: Exec, dependsOn: "buildPreNJdwpTestsJar") {
     args inFile
 }
 
-task supportLibDir() {
-    doLast {
-        File dir = file("build/supportlibraries")
-        dir.mkdir()
-    }
-}
-
-configurations.supportLibs.files.each { file ->
-    if (file.getName().endsWith(".aar")) {
-        def name = "extract_"+file.getName()
-        task "${name}"(type: Copy) {
-            dependsOn supportLibDir
-            from zipTree(file)
-            into "build/supportlibraries"
-            eachFile { FileCopyDetails fcp ->
-                if (fcp.relativePath.pathString.equals("classes.jar")) {
-                    // remap the file to the root with correct name
-                    fcp.relativePath = new RelativePath(true, file.getName().replace(".aar", ".jar"))
-                } else {
-                    fcp.exclude()
-                }
-            }
-        }
-    }
-}
-
-task supportLibList() {
-    configurations.supportLibs.files.each {
-        if (it.getName().endsWith(".aar")) {
-            dependsOn "extract_"+it.getName()
-        }
-    }
-    doLast {
-        file("build/generated").mkdir()
-        def file = file("build/generated/supportlibraries.txt")
-        file.createNewFile()
-        file.text = ""
-        configurations.supportLibs.files.each {
-            if (it.getName().endsWith(".aar")) {
-                def outName =  it.getName().replace(".aar", ".jar")
-                file.text += ("build/supportlibraries/"
-                  + outName + "\n")
-            } else {
-                file.text += (it.getPath() + "\n")
-            }
-        }
-    }
+task getJarsFromSupportLibs(type: GetJarsFromConfiguration) {
+    setConfiguration(configurations.supportLibs)
 }
 
 task AospJarTest(type: Exec) {
@@ -1243,7 +1198,7 @@ task AospJarTest(type: Exec) {
 }
 
 test {
-    dependsOn supportLibList
+    dependsOn getJarsFromSupportLibs
     testLogging.exceptionFormat = 'full'
     if (project.hasProperty('print_test_stdout')) {
         testLogging.showStandardStreams = true
