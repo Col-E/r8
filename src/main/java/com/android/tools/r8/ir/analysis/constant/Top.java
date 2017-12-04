@@ -1,30 +1,30 @@
 // Copyright (c) 2017, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-package com.android.tools.r8.ir.analysis;
+package com.android.tools.r8.ir.analysis.constant;
 
-public class Bottom extends LatticeElement {
-  private static final Bottom INSTANCE = new Bottom();
+public class Top extends LatticeElement {
+  private static final Top INSTANCE = new Top();
 
-  private Bottom() {
+  private Top() {
   }
 
-  public static Bottom getInstance() {
+  public static Top getInstance() {
     return INSTANCE;
   }
 
   @Override
   public LatticeElement meet(LatticeElement other) {
-    return this;
+    return other;
   }
 
   @Override
-  public boolean isBottom() {
+  public boolean isTop() {
     return true;
   }
 
   @Override
   public String toString() {
-    return "BOTTOM";
+    return "TOP";
   }
 }

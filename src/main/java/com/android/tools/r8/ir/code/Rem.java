@@ -1,7 +1,6 @@
 // Copyright (c) 2016, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.code.RemDouble;
@@ -15,8 +14,8 @@ import com.android.tools.r8.code.RemIntLit8;
 import com.android.tools.r8.code.RemLong;
 import com.android.tools.r8.code.RemLong2Addr;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.ir.analysis.Bottom;
-import com.android.tools.r8.ir.analysis.LatticeElement;
+import com.android.tools.r8.ir.analysis.constant.Bottom;
+import com.android.tools.r8.ir.analysis.constant.LatticeElement;
 import java.util.Map;
 import org.objectweb.asm.Opcodes;
 
