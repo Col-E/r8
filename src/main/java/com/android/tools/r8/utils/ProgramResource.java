@@ -12,7 +12,6 @@ public class ProgramResource {
   public enum Kind {
     DEX,
     CLASS,
-    VDEX
   }
 
   public final Kind kind;

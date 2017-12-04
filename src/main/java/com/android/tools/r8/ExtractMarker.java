@@ -5,11 +5,16 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.Marker;
+import com.android.tools.r8.dex.VDexFile;
+import com.android.tools.r8.dex.VDexFileReader;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.shaking.FilteredClassPath;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.io.ByteStreams;
@@ -19,18 +24,30 @@ import java.nio.file.Path;
 import java.util.concurrent.ExecutionException;
 
 public class ExtractMarker {
+  public static class VdexOrigin extends Origin {
+
+    private final int index;
+
+    public VdexOrigin(Origin vdexOrigin, int index) {
+      super(vdexOrigin);
+      this.index = index;
+    }
+
+    @Override
+    public String part() {
+      return Integer.toString(index);
+    }
+  }
 
   public static Marker extractMarkerFromDexFile(Path file) throws IOException, ExecutionException {
     AndroidApp.Builder appBuilder = AndroidApp.builder();
-    appBuilder.setVdexAllowed();
-    appBuilder.addProgramFiles(FilteredClassPath.unfiltered(file));
+    addDexResources(appBuilder, file);
     return extractMarker(appBuilder.build());
   }
 
   public static int extractDexSize(Path file) throws IOException, ExecutionException {
     AndroidApp.Builder appBuilder = AndroidApp.builder();
-    appBuilder.setVdexAllowed();
-    appBuilder.addProgramFiles(FilteredClassPath.unfiltered(file));
+    addDexResources(appBuilder, file);
     int size = 0;
     for (Resource resource : appBuilder.build().getDexProgramResources()) {
       try (InputStream input = resource.getStream()) {
@@ -44,6 +61,20 @@ public class ExtractMarker {
       throws IOException, ExecutionException {
     AndroidApp app = AndroidApp.fromDexProgramData(data);
     return extractMarker(app);
+  }
+
+  private static void addDexResources(AndroidApp.Builder appBuilder, Path file) throws IOException {
+    if (FileUtils.isVDexFile(file)) {
+      PathOrigin vdexOrigin = new PathOrigin(file);
+      VDexFileReader reader = new VDexFileReader(new VDexFile(Resource.fromFile(file)));
+      int index = 0;
+      for (byte[] bytes : reader.getDexFiles()) {
+        appBuilder.addDexProgramData(bytes, new VdexOrigin(vdexOrigin, index));
+        index++;
+      }
+    } else {
+      appBuilder.addProgramFiles(FilteredClassPath.unfiltered(file));
+    }
   }
 
   private static Marker extractMarker(AndroidApp app) throws IOException, ExecutionException {
