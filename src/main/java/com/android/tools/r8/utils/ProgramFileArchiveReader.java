@@ -7,8 +7,8 @@ import static com.android.tools.r8.utils.FileUtils.isArchive;
 import static com.android.tools.r8.utils.FileUtils.isClassFile;
 import static com.android.tools.r8.utils.FileUtils.isDexFile;
 
+import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.ProgramResource.Kind;
-import com.android.tools.r8.Resource;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.origin.ArchiveEntryOrigin;
 import com.android.tools.r8.origin.Origin;
@@ -33,8 +33,8 @@ public class ProgramFileArchiveReader {
   private final Origin origin;
   private final FilteredClassPath archive;
   private boolean ignoreDexInArchive;
-  private List<Resource> dexResources = null;
-  private List<Resource> classResources = null;
+  private List<ProgramResource> dexResources = null;
+  private List<ProgramResource> classResources = null;
 
   ProgramFileArchiveReader(FilteredClassPath archive, boolean ignoreDexInArchive) {
     origin = new PathOrigin(archive.getPath());
@@ -56,21 +56,19 @@ public class ProgramFileArchiveReader {
           if (archive.matchesFile(name)) {
             if (isDexFile(name)) {
               if (!ignoreDexInArchive) {
-                Resource resource =
+                ProgramResource resource =
                     OneShotByteResource.create(
-                        Kind.DEX,
-                        entryOrigin,
-                        ByteStreams.toByteArray(stream),
-                        null);
+                        Kind.DEX, entryOrigin, ByteStreams.toByteArray(stream), null);
                 dexResources.add(resource);
               }
             } else if (isClassFile(name)) {
               String descriptor = DescriptorUtils.guessTypeDescriptor(name);
-              Resource resource = OneShotByteResource.create(
-                  Kind.CF,
-                  entryOrigin,
-                  ByteStreams.toByteArray(stream),
-                  Collections.singleton(descriptor));
+              ProgramResource resource =
+                  OneShotByteResource.create(
+                      Kind.CF,
+                      entryOrigin,
+                      ByteStreams.toByteArray(stream),
+                      Collections.singleton(descriptor));
               classResources.add(resource);
             }
           }
@@ -87,20 +85,20 @@ public class ProgramFileArchiveReader {
     }
   }
 
-  public Collection<Resource> getDexProgramResources() throws IOException {
+  public Collection<ProgramResource> getDexProgramResources() throws IOException {
     if (dexResources == null) {
       readArchive();
     }
-    List<Resource> result = dexResources;
+    List<ProgramResource> result = dexResources;
     dexResources = null;
     return result;
   }
 
-  public Collection<Resource> getClassProgramResources() throws IOException {
+  public Collection<ProgramResource> getClassProgramResources() throws IOException {
     if (classResources == null) {
       readArchive();
     }
-    List<Resource> result = classResources;
+    List<ProgramResource> result = classResources;
     classResources = null;
     return result;
   }

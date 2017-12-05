@@ -8,6 +8,7 @@ import static com.android.tools.r8.graph.ClassKind.LIBRARY;
 import static com.android.tools.r8.graph.ClassKind.PROGRAM;
 
 import com.android.tools.r8.ClassFileResourceProvider;
+import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.Resource;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.ClassKind;
@@ -157,12 +158,13 @@ public class ApplicationReader {
       this.futures = futures;
     }
 
-    private <T extends DexClass> void readDexSources(List<Resource> dexSources,
-        ClassKind classKind, Queue<T> classes) throws IOException {
+    private <T extends DexClass> void readDexSources(
+        List<ProgramResource> dexSources, ClassKind classKind, Queue<T> classes)
+        throws IOException {
       if (dexSources.size() > 0) {
         List<DexFileReader> fileReaders = new ArrayList<>(dexSources.size());
         int computedMinApiLevel = options.minApiLevel;
-        for (Resource input : dexSources) {
+        for (ProgramResource input : dexSources) {
           try (InputStream is = input.getStream()) {
             DexFile file = new DexFile(is);
             computedMinApiLevel = verifyOrComputeMinApiLevel(computedMinApiLevel, file);
@@ -186,12 +188,12 @@ public class ApplicationReader {
       }
     }
 
-    private <T extends DexClass> void readClassSources(List<Resource> classSources,
-        ClassKind classKind, Queue<T> classes) {
+    private <T extends DexClass> void readClassSources(
+        List<ProgramResource> classSources, ClassKind classKind, Queue<T> classes) {
       JarClassFileReader reader = new JarClassFileReader(
           application, classKind.bridgeConsumer(classes::add));
       // Read classes in parallel.
-      for (Resource input : classSources) {
+      for (ProgramResource input : classSources) {
         futures.add(executorService.submit(() -> {
           try (InputStream is = input.getStream()) {
             reader.read(input.getOrigin(), classKind, is);

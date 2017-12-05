@@ -7,9 +7,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.CompilationException;
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
+import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.R8Command;
-import com.android.tools.r8.Resource;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationReader;
@@ -24,7 +25,6 @@ import com.android.tools.r8.shaking.FilteredClassPath;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.InternalOptions;
@@ -176,9 +176,9 @@ public class SmaliTestBase extends TestBase {
     return buildApplication(builder);
   }
 
-  private int getNumberOfClassesForResources(Iterable<Resource> resources) {
+  private int getNumberOfClassesForResources(Iterable<ProgramResource> resources) {
     int count = 0;
-    for (Resource resource : resources) {
+    for (ProgramResource resource : resources) {
       Collection<String> descriptors = resource.getClassDescriptors();
       if (descriptors == null) {
         throw new IllegalStateException("Cannot count classes in application without descriptors.");

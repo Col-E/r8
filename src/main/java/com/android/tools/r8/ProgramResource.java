@@ -6,6 +6,7 @@ package com.android.tools.r8;
 import com.android.tools.r8.origin.Origin;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Path;
 import java.util.Set;
 
 /** Represents program application resources. */
@@ -17,6 +18,26 @@ public class ProgramResource implements Resource {
     CF,
     /** Format-kind for Android dex-file resources. */
     DEX,
+  }
+
+  /**
+   * Create a program resource for a given file.
+   *
+   * <p>The origin of a file resource is the path of the file.
+   */
+  public static ProgramResource fromFile(Kind kind, Path file) {
+    return new ProgramResource(kind, Resource.fromFile(file), null);
+  }
+
+  /**
+   * Create a program resource for a given type, content and type descriptor.
+   *
+   * <p>The origin of a byte resource must be supplied upon construction. If no reasonable origin
+   * exits, use {@code Origin.unknown()}.
+   */
+  public static ProgramResource fromBytes(
+      Kind kind, Origin origin, byte[] bytes, Set<String> typeDescriptors) {
+    return new ProgramResource(kind, Resource.fromBytes(origin, bytes), typeDescriptors);
   }
 
   private final Kind kind;

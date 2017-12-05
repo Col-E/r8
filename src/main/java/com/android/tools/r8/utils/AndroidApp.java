@@ -158,22 +158,22 @@ public class AndroidApp {
   }
 
   /** Get input streams for all dex program resources. */
-  public List<Resource> getDexProgramResources() throws IOException {
-    List<Resource> dexResources = filter(programResources, Kind.DEX);
+  public List<ProgramResource> getDexProgramResources() throws IOException {
+    List<ProgramResource> dexResources = filter(programResources, Kind.DEX);
     for (ProgramFileArchiveReader reader : programFileArchiveReaders) {
       dexResources.addAll(reader.getDexProgramResources());
     }
     return dexResources;
   }
 
-  public List<Resource> getDexProgramResourcesForOutput() {
+  public List<ProgramResource> getDexProgramResourcesForOutput() {
     assert programFileArchiveReaders.isEmpty();
     return filter(programResources, Kind.DEX);
   }
 
   /** Get input streams for all Java-bytecode program resources. */
-  public List<Resource> getClassProgramResources() throws IOException {
-    List<Resource> classResources = filter(programResources, Kind.CF);
+  public List<ProgramResource> getClassProgramResources() throws IOException {
+    List<ProgramResource> classResources = filter(programResources, Kind.CF);
     for (ProgramFileArchiveReader reader : programFileArchiveReaders) {
       classResources.addAll(reader.getClassProgramResources());
     }
@@ -194,8 +194,8 @@ public class AndroidApp {
     return programFileArchiveReaders;
   }
 
-  private List<Resource> filter(List<ProgramResource> resources, Kind kind) {
-    List<Resource> out = new ArrayList<>(resources.size());
+  private List<ProgramResource> filter(List<ProgramResource> resources, Kind kind) {
+    List<ProgramResource> out = new ArrayList<>(resources.size());
     for (ProgramResource code : resources) {
       if (code.getKind() == kind) {
         out.add(code);
@@ -314,7 +314,7 @@ public class AndroidApp {
     }
     CopyOption[] options = new CopyOption[] {StandardCopyOption.REPLACE_EXISTING};
     try (Closer closer = Closer.create()) {
-      List<Resource> dexProgramSources = getDexProgramResources();
+      List<ProgramResource> dexProgramSources = getDexProgramResources();
       for (int i = 0; i < dexProgramSources.size(); i++) {
         Path filePath = directory.resolve(getOutputPath(outputMode, dexProgramSources.get(i), i));
         if (!Files.exists(filePath.getParent())) {
@@ -341,7 +341,7 @@ public class AndroidApp {
   public List<byte[]> writeToMemory() throws IOException {
     List<byte[]> dex = new ArrayList<>();
     try (Closer closer = Closer.create()) {
-      List<Resource> dexProgramSources = getDexProgramResources();
+      List<ProgramResource> dexProgramSources = getDexProgramResources();
       for (int i = 0; i < dexProgramSources.size(); i++) {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         ByteStreams.copy(closer.register(dexProgramSources.get(i).getStream()), out);
@@ -360,7 +360,7 @@ public class AndroidApp {
         new OpenOption[] {StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING};
     try (Closer closer = Closer.create()) {
       try (ZipOutputStream out = new ZipOutputStream(Files.newOutputStream(archive, options))) {
-        List<Resource> dexProgramSources = getDexProgramResources();
+        List<ProgramResource> dexProgramSources = getDexProgramResources();
         for (int i = 0; i < dexProgramSources.size(); i++) {
           ZipEntry zipEntry = new ZipEntry(getOutputPath(outputMode, dexProgramSources.get(i), i));
           byte[] bytes =
@@ -552,7 +552,8 @@ public class AndroidApp {
      * Add dex program-data with class descriptor.
      */
     public Builder addDexProgramData(byte[] data, Set<String> classDescriptors) {
-      addProgramResources(Kind.DEX, Resource.fromBytes(Origin.unknown(), data, classDescriptors));
+      addProgramResources(
+          ProgramResource.fromBytes(Kind.DEX, Origin.unknown(), data, classDescriptors));
       return this;
     }
 
@@ -574,7 +575,7 @@ public class AndroidApp {
      * Add dex program-data.
      */
     public Builder addDexProgramData(byte[] data, Origin origin) {
-      addProgramResources(Kind.DEX, Resource.fromBytes(origin, data));
+      addProgramResources(ProgramResource.fromBytes(Kind.DEX, origin, data, null));
       return this;
     }
 
@@ -583,7 +584,7 @@ public class AndroidApp {
      */
     public Builder addDexProgramData(Collection<byte[]> data) {
       for (byte[] datum : data) {
-        addProgramResources(Kind.DEX, Resource.fromBytes(Origin.unknown(), datum));
+        addProgramResources(ProgramResource.fromBytes(Kind.DEX, Origin.unknown(), datum, null));
       }
       return this;
     }
@@ -593,7 +594,7 @@ public class AndroidApp {
      */
     public Builder addClassProgramData(Collection<byte[]> data) {
       for (byte[] datum : data) {
-        addProgramResources(Kind.CF, Resource.fromBytes(Origin.unknown(), datum));
+        addClassProgramData(datum, Origin.unknown());
       }
       return this;
     }
@@ -602,11 +603,12 @@ public class AndroidApp {
      * Add Java-bytecode program data.
      */
     public Builder addClassProgramData(byte[] data, Origin origin) {
-      return addProgramResources(Kind.CF, Resource.fromBytes(origin, data));
+      return addClassProgramData(data, origin, null);
     }
 
     public Builder addClassProgramData(byte[] data, Origin origin, Set<String> classDescriptors) {
-      return addProgramResources(Kind.CF, Resource.fromBytes(origin, data, classDescriptors));
+      addProgramResources(ProgramResource.fromBytes(Kind.CF, origin, data, classDescriptors));
+      return this;
     }
 
     /**
@@ -730,9 +732,9 @@ public class AndroidApp {
         throw new NoSuchFileException(file.toString());
       }
       if (isDexFile(file)) {
-        addProgramResources(Kind.DEX, Resource.fromFile(file));
+        addProgramResources(ProgramResource.fromFile(Kind.DEX, file));
       } else if (isClassFile(file)) {
-        addProgramResources(Kind.CF, Resource.fromFile(file));
+        addProgramResources(ProgramResource.fromFile(Kind.CF, file));
       } else if (isArchive(file)) {
         programFileArchiveReaders
             .add(new ProgramFileArchiveReader(filteredClassPath, ignoreDexInArchive));
@@ -741,16 +743,12 @@ public class AndroidApp {
       }
     }
 
-    private Builder addProgramResources(Kind kind, Resource... resources) {
-      return addProgramResources(kind, Arrays.asList(resources));
+    private void addProgramResources(ProgramResource... resources) {
+      addProgramResources(Arrays.asList(resources));
     }
 
-    private Builder addProgramResources(Kind kind, Collection<Resource> resources) {
-      for (Resource resource : resources) {
-        assert !(resource instanceof ProgramResource);
-        programResources.add(new ProgramResource(kind, resource));
-      }
-      return this;
+    private void addProgramResources(Collection<ProgramResource> resources) {
+      programResources.addAll(resources);
     }
 
     private void addClassProvider(FilteredClassPath classPath,

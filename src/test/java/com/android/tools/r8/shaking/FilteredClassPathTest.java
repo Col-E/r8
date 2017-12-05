@@ -4,6 +4,7 @@
 package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.ClassFileResourceProvider;
+import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.Resource;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApp;
@@ -101,7 +102,7 @@ public class FilteredClassPathTest {
     });
   }
 
-  private static Stream<Resource> getClassProgramResources(ProgramFileArchiveReader reader) {
+  private static Stream<ProgramResource> getClassProgramResources(ProgramFileArchiveReader reader) {
     try {
       return reader.getClassProgramResources().stream();
     } catch (IOException e) {

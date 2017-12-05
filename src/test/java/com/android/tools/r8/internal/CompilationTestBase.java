@@ -8,8 +8,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.CompilationException;
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8Command;
+import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.R8RunArtTestsTest.CompilerUnderTest;
 import com.android.tools.r8.Resource;
@@ -20,7 +22,6 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ArtErrorParser;
 import com.android.tools.r8.utils.ArtErrorParser.ArtErrorInfo;
 import com.android.tools.r8.utils.ArtErrorParser.ArtErrorParserException;
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
@@ -160,8 +161,8 @@ public abstract class CompilationTestBase {
         app1.writeToDirectory(temp.newFolder("app1").toPath(), OutputMode.Indexed);
         app2.writeToDirectory(temp.newFolder("app2").toPath(), OutputMode.Indexed);
       }
-      List<Resource> files1 = app1.getDexProgramResources();
-      List<Resource> files2 = app2.getDexProgramResources();
+      List<ProgramResource> files1 = app1.getDexProgramResources();
+      List<ProgramResource> files2 = app2.getDexProgramResources();
       assertEquals(files1.size(), files2.size());
       for (int index = 0; index < files1.size(); index++) {
         InputStream file1 = closer.register(files1.get(index).getStream());

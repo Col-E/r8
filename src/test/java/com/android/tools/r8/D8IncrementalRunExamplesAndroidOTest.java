@@ -80,7 +80,7 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
       List<String> classFiles = collectClassFiles(testJarFile);
       AndroidApp app = compileClassFiles(
           testJarFile, classFiles, output, OutputMode.FilePerInputClass);
-      for (Resource resource : app.getDexProgramResources()) {
+      for (ProgramResource resource : app.getDexProgramResources()) {
         Set<String> descriptors = resource.getClassDescriptors();
         String mainClassDescriptor = app.getPrimaryClassDescriptor(resource);
         Assert.assertNotNull(mainClassDescriptor);
