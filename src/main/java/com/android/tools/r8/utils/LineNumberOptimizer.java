@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexDebugEventVisitor;
 import com.android.tools.r8.graph.DexDebugInfo;
 import com.android.tools.r8.graph.DexDebugPositionState;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -20,6 +21,7 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.ClassNaming;
 import com.android.tools.r8.naming.MemberNaming;
+import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.Range;
@@ -215,10 +217,24 @@ public class LineNumberOptimizer {
 
       ClassNaming.Builder classNamingBuilder =
           classNameMapperBuilder.classNamingBuilder(
-              clazz.toString(),
               DescriptorUtils.descriptorToJavaType(
-                  namingLens.lookupDescriptor(clazz.getType()).toString()));
+                  namingLens.lookupDescriptor(clazz.getType()).toString()),
+              clazz.toString());
 
+      // First transfer renamed fields to classNamingBuilder.
+      clazz.forEachField(
+          dexEncodedField -> {
+            DexField dexField = dexEncodedField.field;
+            DexString renamedName = namingLens.lookupName(dexField);
+            if (!renamedName.equals(dexField.name)) {
+              FieldSignature signature =
+                  new FieldSignature(dexField.name.toString(), dexField.type.toString());
+              MemberNaming memberNaming = new MemberNaming(signature, renamedName.toString());
+              classNamingBuilder.addMemberEntry(memberNaming);
+            }
+          });
+
+      // Then process the methods.
       for (List<DexEncodedMethod> methods : methodsByName.values()) {
         if (methods.size() > 1) {
           // If there are multiple methods with the same name (overloaded) then sort them for
