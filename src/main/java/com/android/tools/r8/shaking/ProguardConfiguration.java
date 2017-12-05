@@ -116,6 +116,7 @@ public class ProguardConfiguration {
     }
 
     public void setPrintMappingFile(Path file) {
+      assert printMapping;
       this.printMappingFile = file;
     }
 

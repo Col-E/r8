@@ -3,7 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
+import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.OutputSink;
+import com.android.tools.r8.Utf8Consumer;
 import com.android.tools.r8.origin.Origin;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -19,12 +21,30 @@ public class AndroidAppOutputSink extends ForwardingOutputSink {
   private final List<DescriptorsWithContents> classFiles = new ArrayList<>();
   private boolean closed = false;
 
-  public AndroidAppOutputSink(OutputSink forwardTo) {
+  private Utf8Consumer proguardMapConsumer = null;
+
+  public AndroidAppOutputSink(OutputSink forwardTo, InternalOptions options) {
     super(forwardTo);
+    options.proguardMapConsumer = wrapProguardMapConsumer(options.proguardMapConsumer);
   }
 
   public AndroidAppOutputSink() {
     super(new IgnoreContentsOutputSink());
+  }
+
+  private Utf8Consumer wrapProguardMapConsumer(Utf8Consumer consumer) {
+    assert proguardMapConsumer == null;
+    if (consumer != null) {
+      proguardMapConsumer =
+          new Utf8Consumer.ForwardingConsumer(consumer) {
+            @Override
+            public void accept(byte[] data, DiagnosticsHandler handler) {
+              super.accept(data, handler);
+              builder.setProguardMapData(data);
+            }
+          };
+    }
+    return proguardMapConsumer;
   }
 
   @Override
@@ -59,12 +79,6 @@ public class AndroidAppOutputSink extends ForwardingOutputSink {
   public void writePrintUsedInformation(byte[] contents) throws IOException {
     builder.setDeadCode(contents);
     super.writePrintUsedInformation(contents);
-  }
-
-  @Override
-  public void writeProguardMapFile(byte[] contents) throws IOException {
-    builder.setProguardMapData(contents);
-    super.writeProguardMapFile(contents);
   }
 
   @Override

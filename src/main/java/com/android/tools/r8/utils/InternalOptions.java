@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
+import com.android.tools.r8.Utf8Consumer;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.errors.InvalidDebugInfoException;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -170,7 +171,9 @@ public class InternalOptions {
   // the code contains unsupported byte codes.
   public boolean skipReadingDexCode = false;
 
-  public Path proguardMapOutput = null;
+  // If null, no proguad map needs to be computed.
+  // If non null it must be and passed to the consumer.
+  public Utf8Consumer proguardMapConsumer = null;
 
   public Path proguardCompatibilityRulesOutput = null;
 

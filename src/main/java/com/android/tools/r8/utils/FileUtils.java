@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -148,5 +149,20 @@ public class FileUtils {
       }
     }
     return true;
+  }
+
+  public static void writeToFile(Path output, OutputStream defValue, byte[] contents)
+      throws IOException {
+    try (Closer closer = Closer.create()) {
+      OutputStream outputStream =
+          openPathWithDefault(
+              closer,
+              output,
+              defValue,
+              StandardOpenOption.CREATE,
+              StandardOpenOption.TRUNCATE_EXISTING,
+              StandardOpenOption.WRITE);
+      outputStream.write(contents);
+    }
   }
 }

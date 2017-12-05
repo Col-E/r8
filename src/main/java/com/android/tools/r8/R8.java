@@ -493,7 +493,7 @@ public class R8 {
   public static AndroidApp runInternal(R8Command command, ExecutorService executor)
       throws IOException, CompilationException {
     InternalOptions options = command.getInternalOptions();
-    AndroidAppOutputSink compatSink = new AndroidAppOutputSink(command.getOutputSink());
+    AndroidAppOutputSink compatSink = new AndroidAppOutputSink(command.getOutputSink(), options);
     run(command.getInputApp(), compatSink, options, executor);
     return compatSink.build();
   }

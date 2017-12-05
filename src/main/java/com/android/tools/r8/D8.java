@@ -93,7 +93,8 @@ public final class D8 {
     try {
       try {
         InternalOptions options = command.getInternalOptions();
-        AndroidAppOutputSink compatSink = new AndroidAppOutputSink(command.getOutputSink());
+        AndroidAppOutputSink compatSink =
+            new AndroidAppOutputSink(command.getOutputSink(), options);
         CompilationResult result =
             run(command.getInputApp(), compatSink, options, executor);
         assert result != null;

@@ -706,7 +706,7 @@ public class ToolHelper {
     if (optionsConsumer != null) {
       optionsConsumer.accept(options);
     }
-    AndroidAppOutputSink compatSink = new AndroidAppOutputSink(command.getOutputSink());
+    AndroidAppOutputSink compatSink = new AndroidAppOutputSink(command.getOutputSink(), options);
     R8.runForTesting(app, compatSink, options);
     return compatSink.build();
   }
@@ -728,8 +728,9 @@ public class ToolHelper {
     } catch (CompilationFailedException e) {
       throw new RuntimeException(e);
     }
-    AndroidAppOutputSink compatSink = new AndroidAppOutputSink(command.getOutputSink());
-    R8.runForTesting(command.getInputApp(), compatSink, command.getInternalOptions());
+    InternalOptions options = command.getInternalOptions();
+    AndroidAppOutputSink compatSink = new AndroidAppOutputSink(command.getOutputSink(), options);
+    R8.runForTesting(command.getInputApp(), compatSink, options);
     return compatSink.build();
   }
 
@@ -756,7 +757,7 @@ public class ToolHelper {
     if (optionsConsumer != null) {
       optionsConsumer.accept(options);
     }
-    AndroidAppOutputSink compatSink = new AndroidAppOutputSink(command.getOutputSink());
+    AndroidAppOutputSink compatSink = new AndroidAppOutputSink(command.getOutputSink(), options);
     D8.runForTesting(command.getInputApp(), compatSink, options);
     return compatSink.build();
   }
