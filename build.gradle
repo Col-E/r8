@@ -473,7 +473,6 @@ task repackageSources(type: ShadowJar) {
 
 task R8(type: ShadowJar) {
     from consolidatedLicense.outputs.files
-    from repackageSources.outputs.files
     exclude { path ->
       path.getRelativePath().getPathString().startsWith("META-INF")
     }
@@ -486,12 +485,14 @@ task R8(type: ShadowJar) {
     // In order to build without dependencies, pass the exclude_deps property using:
     // gradle -Pexclude_deps R8
     if (!project.hasProperty('exclude_deps')) {
+        from repackageSources.outputs.files
         from repackageDeps.outputs.files
+    } else {
+        from sourceSets.main.output
     }
 }
 
 task D8(type: ShadowJar) {
-    from repackageSources.outputs.files
     from consolidatedLicense.outputs.files
     exclude { path ->
       path.getRelativePath().getPathString().startsWith("META-INF")
@@ -505,7 +506,10 @@ task D8(type: ShadowJar) {
     // In order to build without dependencies, pass the exclude_deps property using:
     // gradle -Pexclude_deps D8
     if (!project.hasProperty('exclude_deps')) {
+        from repackageSources.outputs.files
         from repackageDeps.outputs.files
+    } else {
+        from sourceSets.main.output
     }
 }
 
