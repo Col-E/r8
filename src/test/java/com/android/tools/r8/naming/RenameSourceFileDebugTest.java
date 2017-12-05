@@ -29,6 +29,7 @@ public class RenameSourceFileDebugTest extends DebugTestBase {
     int minSdk = ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm());
     Path outdir = temp.newFolder().toPath();
     Path outjar = outdir.resolve("r8_compiled.jar");
+    Path proguardMapPath = outdir.resolve("proguard.map");
     ToolHelper.runR8(
         R8Command.builder()
             .addProgramFiles(DEBUGGEE_JAR)
@@ -36,6 +37,7 @@ public class RenameSourceFileDebugTest extends DebugTestBase {
             .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(minSdk)))
             .setMode(CompilationMode.DEBUG)
             .setOutputPath(outjar)
+            .setProguardMapOutput(proguardMapPath)
             .addProguardConfigurationConsumer(
                 pg -> {
                   pg.setRenameSourceFileAttribute(TEST_FILE);
@@ -43,6 +45,7 @@ public class RenameSourceFileDebugTest extends DebugTestBase {
                 })
             .build());
     config = new DexDebugTestConfig(outjar);
+    config.setProguardMap(proguardMapPath);
   }
 
   /**

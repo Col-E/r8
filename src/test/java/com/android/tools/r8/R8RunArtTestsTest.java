@@ -19,6 +19,7 @@ import com.android.tools.r8.utils.ArtErrorParser;
 import com.android.tools.r8.utils.ArtErrorParser.ArtErrorInfo;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.android.tools.r8.utils.ListUtils;
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
@@ -1352,30 +1353,32 @@ public abstract class R8RunArtTestsTest {
         output.write(Paths.get(resultPath));
         break;
       }
-      case R8: {
-        R8Command.Builder builder =
-            R8Command.builder()
-                .setMode(mode)
-                .setOutputPath(Paths.get(resultPath))
-                .addProgramFiles(ListUtils.map(fileNames, Paths::get))
-                .setIgnoreMissingClasses(true);
-        Integer minSdkVersion = needMinSdkVersion.get(name);
-        if (minSdkVersion != null) {
-          builder.setMinApiLevel(minSdkVersion);
+      case R8:
+        {
+          R8Command.Builder builder =
+              R8Command.builder()
+                  .setMode(mode)
+                  .setOutputPath(Paths.get(resultPath))
+                  .addProgramFiles(ListUtils.map(fileNames, Paths::get))
+                  .setIgnoreMissingClasses(true);
+          Integer minSdkVersion = needMinSdkVersion.get(name);
+          if (minSdkVersion != null) {
+            builder.setMinApiLevel(minSdkVersion);
+          }
+          if (keepRulesFile != null) {
+            builder.addProguardConfigurationFiles(Paths.get(keepRulesFile));
+          }
+          // Add internal flags for testing purposes.
+          ToolHelper.runR8(
+              builder.build(),
+              options -> {
+                if (disableInlining) {
+                  options.inlineAccessors = false;
+                }
+                options.lineNumberOptimization = LineNumberOptimization.OFF;
+              });
+          break;
         }
-        if (keepRulesFile != null) {
-          builder.addProguardConfigurationFiles(Paths.get(keepRulesFile));
-        }
-        // Add internal flags for testing purposes.
-        ToolHelper.runR8(
-            builder.build(),
-            options -> {
-              if (disableInlining) {
-                options.inlineAccessors = false;
-              }
-            });
-        break;
-      }
       default:
         assert false : compilerUnderTest;
     }

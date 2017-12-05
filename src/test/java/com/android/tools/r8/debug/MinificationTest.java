@@ -8,6 +8,7 @@ import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase.MinifyMode;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -82,7 +83,12 @@ public class MinificationTest extends DebugTestBase {
     if (!proguardConfigurations.isEmpty()) {
       builder.addProguardConfiguration(proguardConfigurations, Origin.unknown());
     }
-    ToolHelper.runR8(builder.build());
+    // Disable line number optimization if we're not using a Proguard map.
+    ToolHelper.runR8(
+        builder.build(),
+        proguardMap == null
+            ? (oc -> oc.lineNumberOptimization = LineNumberOptimization.OFF)
+            : null);
 
     DexDebugTestConfig config = new DexDebugTestConfig(dexOutputDir.resolve("classes.dex"));
     config.setProguardMap(proguardMap);
