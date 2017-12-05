@@ -166,7 +166,7 @@ public class ApplicationReader {
           try (InputStream is = input.getStream()) {
             DexFile file = new DexFile(is);
             computedMinApiLevel = verifyOrComputeMinApiLevel(computedMinApiLevel, file);
-            fileReaders.add(new DexFileReader(input.origin, file, classKind, itemFactory));
+            fileReaders.add(new DexFileReader(input.getOrigin(), file, classKind, itemFactory));
           }
         }
         options.minApiLevel = computedMinApiLevel;
@@ -194,7 +194,7 @@ public class ApplicationReader {
       for (Resource input : classSources) {
         futures.add(executorService.submit(() -> {
           try (InputStream is = input.getStream()) {
-            reader.read(input.origin, classKind, is);
+            reader.read(input.getOrigin(), classKind, is);
           }
           // No other way to have a void callable, but we want the IOException from the previous
           // line to be wrapped into an ExecutionException.

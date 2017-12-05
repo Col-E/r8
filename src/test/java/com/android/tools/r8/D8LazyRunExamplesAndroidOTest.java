@@ -126,7 +126,7 @@ public class D8LazyRunExamplesAndroidOTest
     D8Command.Builder builder = D8Command.builder()
         .setMinApiLevel(minAPILevel);
     for (Resource resource : individalDexes) {
-      builder.addDexProgramData(readResource(resource), resource.origin);
+      builder.addDexProgramData(readResource(resource), resource.getOrigin());
     }
     AndroidApp mergedResult = ToolHelper.runD8(builder.build(),
         options -> options.setMarker(null));

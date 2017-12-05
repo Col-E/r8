@@ -182,7 +182,7 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
     Resource mergeClassFiles(List<Resource> dexFiles, Path out) throws Throwable {
       D8Command.Builder builder = D8Command.builder();
       for (Resource dexFile : dexFiles) {
-        builder.addDexProgramData(readResource(dexFile), dexFile.origin);
+        builder.addDexProgramData(readResource(dexFile), dexFile.getOrigin());
       }
       for (UnaryOperator<D8Command.Builder> transformation : builderTransformations) {
         builder = transformation.apply(builder);

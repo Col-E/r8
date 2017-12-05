@@ -97,7 +97,8 @@ public class DexSegments {
     try (Closer closer = Closer.create()) {
       for (Resource resource : app.getDexProgramResources()) {
         for (Segment segment :
-            DexFileReader.parseMapFrom(closer.register(resource.getStream()), resource.origin)) {
+            DexFileReader.parseMapFrom(
+                closer.register(resource.getStream()), resource.getOrigin())) {
           int value = result.computeIfAbsent(segment.typeName(), (key) -> 0);
           result.put(segment.typeName(), value + segment.size());
         }

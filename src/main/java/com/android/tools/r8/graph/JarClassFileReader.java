@@ -7,6 +7,7 @@ import static org.objectweb.asm.ClassReader.SKIP_FRAMES;
 import static org.objectweb.asm.Opcodes.ACC_DEPRECATED;
 import static org.objectweb.asm.Opcodes.ASM6;
 
+import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
@@ -27,7 +28,6 @@ import com.android.tools.r8.graph.DexValue.DexValueType;
 import com.android.tools.r8.graph.JarCode.ReparseContext;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.ProgramResource.Kind;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -239,7 +239,7 @@ public class JarClassFileReader {
       DexClass clazz =
           classKind.create(
               type,
-              Kind.CLASS,
+              Kind.CF,
               origin,
               accessFlags,
               superType,

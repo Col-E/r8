@@ -7,11 +7,12 @@ import static com.android.tools.r8.utils.FileUtils.isArchive;
 import static com.android.tools.r8.utils.FileUtils.isClassFile;
 import static com.android.tools.r8.utils.FileUtils.isDexFile;
 
-import com.android.tools.r8.origin.ArchiveEntryOrigin;
+import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.Resource;
+import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.origin.ArchiveEntryOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
-import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.shaking.FilteredClassPath;
 import com.google.common.io.ByteStreams;
 import java.io.IOException;
@@ -56,7 +57,8 @@ public class ProgramFileArchiveReader {
             if (isDexFile(name)) {
               if (!ignoreDexInArchive) {
                 Resource resource =
-                    new OneShotByteResource(
+                    OneShotByteResource.create(
+                        Kind.DEX,
                         entryOrigin,
                         ByteStreams.toByteArray(stream),
                         null);
@@ -64,7 +66,8 @@ public class ProgramFileArchiveReader {
               }
             } else if (isClassFile(name)) {
               String descriptor = DescriptorUtils.guessTypeDescriptor(name);
-              Resource resource = new OneShotByteResource(
+              Resource resource = OneShotByteResource.create(
+                  Kind.CF,
                   entryOrigin,
                   ByteStreams.toByteArray(stream),
                   Collections.singleton(descriptor));

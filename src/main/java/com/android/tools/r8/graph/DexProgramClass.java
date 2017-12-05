@@ -3,11 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.ProgramResource;
+import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.ProgramResource;
-import com.android.tools.r8.utils.ProgramResource.Kind;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -100,7 +100,7 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
   }
 
   public boolean originatesFromClassResource() {
-    return originKind == Kind.CLASS;
+    return originKind == Kind.CF;
   }
 
   @Override

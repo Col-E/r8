@@ -9,13 +9,14 @@ import static com.android.tools.r8.utils.FileUtils.isDexFile;
 
 import com.android.tools.r8.ArchiveClassFileProvider;
 import com.android.tools.r8.ClassFileResourceProvider;
+import com.android.tools.r8.ProgramResource;
+import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.Resource;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.shaking.FilteredClassPath;
-import com.android.tools.r8.utils.ProgramResource.Kind;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.ByteStreams;
@@ -172,7 +173,7 @@ public class AndroidApp {
 
   /** Get input streams for all Java-bytecode program resources. */
   public List<Resource> getClassProgramResources() throws IOException {
-    List<Resource> classResources = filter(programResources, Kind.CLASS);
+    List<Resource> classResources = filter(programResources, Kind.CF);
     for (ProgramFileArchiveReader reader : programFileArchiveReaders) {
       classResources.addAll(reader.getClassProgramResources());
     }
@@ -196,8 +197,8 @@ public class AndroidApp {
   private List<Resource> filter(List<ProgramResource> resources, Kind kind) {
     List<Resource> out = new ArrayList<>(resources.size());
     for (ProgramResource code : resources) {
-      if (code.kind == kind) {
-        out.add(code.resource);
+      if (code.getKind() == kind) {
+        out.add(code);
       }
     }
     return out;
@@ -400,6 +401,7 @@ public class AndroidApp {
 
   // Public for testing.
   public String getPrimaryClassDescriptor(Resource resource) {
+    assert resource instanceof ProgramResource;
     return programResourcesMainDescriptor.get(resource);
   }
 
@@ -409,7 +411,7 @@ public class AndroidApp {
   public static class Builder {
 
     private final List<ProgramResource> programResources = new ArrayList<>();
-    private final Map<Resource, String> programResourcesMainDescriptor = new HashMap<>();
+    private final Map<ProgramResource, String> programResourcesMainDescriptor = new HashMap<>();
     private final List<ProgramFileArchiveReader> programFileArchiveReaders = new ArrayList<>();
     private final List<ClassFileResourceProvider> classpathResourceProviders = new ArrayList<>();
     private final List<ClassFileResourceProvider> libraryResourceProviders = new ArrayList<>();
@@ -561,8 +563,9 @@ public class AndroidApp {
         byte[] data,
         Set<String> classDescriptors,
         String primaryClassDescriptor) {
-      Resource resource = Resource.fromBytes(Origin.unknown(), data, classDescriptors);
-      addProgramResources(Kind.DEX, resource);
+      ProgramResource resource = new ProgramResource(
+          Kind.DEX, Resource.fromBytes(Origin.unknown(), data), classDescriptors);
+      programResources.add(resource);
       programResourcesMainDescriptor.put(resource, primaryClassDescriptor);
       return this;
     }
@@ -590,7 +593,7 @@ public class AndroidApp {
      */
     public Builder addClassProgramData(Collection<byte[]> data) {
       for (byte[] datum : data) {
-        addProgramResources(Kind.CLASS, Resource.fromBytes(Origin.unknown(), datum));
+        addProgramResources(Kind.CF, Resource.fromBytes(Origin.unknown(), datum));
       }
       return this;
     }
@@ -599,11 +602,11 @@ public class AndroidApp {
      * Add Java-bytecode program data.
      */
     public Builder addClassProgramData(byte[] data, Origin origin) {
-      return addProgramResources(Kind.CLASS, Resource.fromBytes(origin, data));
+      return addProgramResources(Kind.CF, Resource.fromBytes(origin, data));
     }
 
     public Builder addClassProgramData(byte[] data, Origin origin, Set<String> classDescriptors) {
-      return addProgramResources(Kind.CLASS, Resource.fromBytes(origin, data, classDescriptors));
+      return addProgramResources(Kind.CF, Resource.fromBytes(origin, data, classDescriptors));
     }
 
     /**
@@ -729,7 +732,7 @@ public class AndroidApp {
       if (isDexFile(file)) {
         addProgramResources(Kind.DEX, Resource.fromFile(file));
       } else if (isClassFile(file)) {
-        addProgramResources(Kind.CLASS, Resource.fromFile(file));
+        addProgramResources(Kind.CF, Resource.fromFile(file));
       } else if (isArchive(file)) {
         programFileArchiveReaders
             .add(new ProgramFileArchiveReader(filteredClassPath, ignoreDexInArchive));
@@ -738,12 +741,13 @@ public class AndroidApp {
       }
     }
 
-    private Builder addProgramResources(ProgramResource.Kind kind, Resource... resources) {
+    private Builder addProgramResources(Kind kind, Resource... resources) {
       return addProgramResources(kind, Arrays.asList(resources));
     }
 
-    private Builder addProgramResources(ProgramResource.Kind kind, Collection<Resource> resources) {
+    private Builder addProgramResources(Kind kind, Collection<Resource> resources) {
       for (Resource resource : resources) {
+        assert !(resource instanceof ProgramResource);
         programResources.add(new ProgramResource(kind, resource));
       }
       return this;

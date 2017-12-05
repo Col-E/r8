@@ -7,6 +7,7 @@ import static com.android.tools.r8.benchmarks.BenchmarkUtils.printRuntimeNanosec
 
 import com.android.tools.r8.ClassFileResourceProvider;
 import com.android.tools.r8.CompilationException;
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
@@ -15,7 +16,6 @@ import com.android.tools.r8.D8Output;
 import com.android.tools.r8.Resource;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.OutputMode;
@@ -183,7 +183,7 @@ public class FrameworkIncrementalDexingBenchmark {
         .setEnableDesugaring(false);
     for (Resource input : outputs.values()) {
       try (InputStream inputStream = input.getStream()) {
-        builder.addDexProgramData(ByteStreams.toByteArray(inputStream), input.origin);
+        builder.addDexProgramData(ByteStreams.toByteArray(inputStream), input.getOrigin());
       }
     }
     long start = System.nanoTime();

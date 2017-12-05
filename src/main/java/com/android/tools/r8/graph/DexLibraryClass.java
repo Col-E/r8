@@ -3,12 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.ProgramResource;
+import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.ProgramResource;
-import com.android.tools.r8.utils.ProgramResource.Kind;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -48,7 +48,7 @@ public class DexLibraryClass extends DexClass implements Supplier<DexLibraryClas
     for (DexEncodedField staticField : staticFields) {
       staticField.staticValue = DexValue.UNKNOWN;
     }
-    assert kind == Kind.CLASS : "Invalid kind " + kind + " for library-path class " + type;
+    assert kind == Kind.CF : "Invalid kind " + kind + " for library-path class " + type;
   }
 
   @Override

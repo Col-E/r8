@@ -1,7 +1,7 @@
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.ProgramResource;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
