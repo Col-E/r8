@@ -5,7 +5,7 @@ package com.android.tools.r8.utils;
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.OutputSink;
-import com.android.tools.r8.Utf8Consumer;
+import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.origin.Origin;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -21,7 +21,7 @@ public class AndroidAppOutputSink extends ForwardingOutputSink {
   private final List<DescriptorsWithContents> classFiles = new ArrayList<>();
   private boolean closed = false;
 
-  private Utf8Consumer proguardMapConsumer = null;
+  private StringConsumer proguardMapConsumer = null;
 
   public AndroidAppOutputSink(OutputSink forwardTo, InternalOptions options) {
     super(forwardTo);
@@ -32,13 +32,13 @@ public class AndroidAppOutputSink extends ForwardingOutputSink {
     super(new IgnoreContentsOutputSink());
   }
 
-  private Utf8Consumer wrapProguardMapConsumer(Utf8Consumer consumer) {
+  private StringConsumer wrapProguardMapConsumer(StringConsumer consumer) {
     assert proguardMapConsumer == null;
     if (consumer != null) {
       proguardMapConsumer =
-          new Utf8Consumer.ForwardingConsumer(consumer) {
+          new StringConsumer.ForwardingConsumer(consumer) {
             @Override
-            public void accept(byte[] data, DiagnosticsHandler handler) {
+            public void accept(String data, DiagnosticsHandler handler) {
               super.accept(data, handler);
               builder.setProguardMapData(data);
             }

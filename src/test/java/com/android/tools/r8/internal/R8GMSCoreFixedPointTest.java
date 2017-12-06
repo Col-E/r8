@@ -6,8 +6,8 @@ package com.android.tools.r8.internal;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.CompilationException;
+import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.Utf8Consumer;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
@@ -28,7 +28,7 @@ public class R8GMSCoreFixedPointTest extends GMSCoreCompilationTestBase {
             app,
             options -> {
               options.minApiLevel = AndroidApiLevel.L.getLevel();
-              options.proguardMapConsumer = Utf8Consumer.emptyConsumer();
+              options.proguardMapConsumer = StringConsumer.emptyConsumer();
             });
 
     // Second compilation.
@@ -42,7 +42,7 @@ public class R8GMSCoreFixedPointTest extends GMSCoreCompilationTestBase {
             options -> {
               options.outline.enabled = false;
               options.minApiLevel = AndroidApiLevel.L.getLevel();
-              options.proguardMapConsumer = Utf8Consumer.emptyConsumer();
+              options.proguardMapConsumer = StringConsumer.emptyConsumer();
             });
 
     // TODO: Require that the results of the two compilations are the same.
