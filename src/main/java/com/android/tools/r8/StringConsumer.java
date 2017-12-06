@@ -80,10 +80,20 @@ public interface StringConsumer {
       this.outputPath = outputPath;
     }
 
-    /** Set the encoding. Defaults to UTF8. */
+    /** Get the output path that the consumer will write to. */
+    public Path getOutputPath() {
+      return outputPath;
+    }
+
+    /** Set the output encoding. Defaults to UTF8. */
     public void setEncoding(Charset encoding) {
       assert encoding != null;
       this.encoding = encoding;
+    }
+
+    /** Get the output encoding. Defaults to UTF8. */
+    public Charset getEncoding() {
+      return encoding;
     }
 
     @Override

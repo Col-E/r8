@@ -16,10 +16,6 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PrintWriter;
-import java.nio.file.Files;
-import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -50,13 +46,8 @@ public class GenerateMainDexList {
         .sorted()
         .collect(Collectors.toList());
 
-    if (options.printMainDexListFile != null) {
-      try (OutputStream mainDexOut = Files.newOutputStream(options.printMainDexListFile,
-          StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
-        PrintWriter writer = new PrintWriter(mainDexOut);
-        result.forEach(writer::println);
-        writer.flush();
-      }
+    if (options.mainDexListConsumer != null) {
+      options.mainDexListConsumer.accept(String.join("\n", result), options.reporter);
     }
 
     return result;

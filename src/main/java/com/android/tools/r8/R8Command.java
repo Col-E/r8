@@ -271,6 +271,9 @@ public class R8Command extends BaseCompilerCommand {
       boolean useDiscardedChecker = discardedChecker.orElse(true);
       boolean useMinification = minification.orElse(configuration.isObfuscating());
 
+      StringConsumer mainDexListConsumer =
+          mainDexListOutput != null ? new StringConsumer.FileConsumer(mainDexListOutput) : null;
+
       StringConsumer proguardMapConsumer =
           proguardMapOutput != null ? new StringConsumer.FileConsumer(proguardMapOutput) : null;
 
@@ -280,7 +283,7 @@ public class R8Command extends BaseCompilerCommand {
               getOutputPath(),
               getOutputMode(),
               mainDexKeepRules,
-              mainDexListOutput,
+              mainDexListConsumer,
               configuration,
               getMode(),
               getMinApiLevel(),
@@ -329,7 +332,7 @@ public class R8Command extends BaseCompilerCommand {
       "  --help                   # Print this message."));
 
   private final ImmutableList<ProguardConfigurationRule> mainDexKeepRules;
-  private final Path mainDexListOutput;
+  private final StringConsumer mainDexListConsumer;
   private final ProguardConfiguration proguardConfiguration;
   private final boolean useTreeShaking;
   private final boolean useDiscardedChecker;
@@ -461,7 +464,7 @@ public class R8Command extends BaseCompilerCommand {
       Path outputPath,
       OutputMode outputMode,
       ImmutableList<ProguardConfigurationRule> mainDexKeepRules,
-      Path mainDexListOutput,
+      StringConsumer mainDexListConsumer,
       ProguardConfiguration proguardConfiguration,
       CompilationMode mode,
       int minApiLevel,
@@ -481,7 +484,7 @@ public class R8Command extends BaseCompilerCommand {
     assert mainDexKeepRules != null;
     assert getOutputMode() == OutputMode.Indexed : "Only regular mode is supported in R8";
     this.mainDexKeepRules = mainDexKeepRules;
-    this.mainDexListOutput = mainDexListOutput;
+    this.mainDexListConsumer = mainDexListConsumer;
     this.proguardConfiguration = proguardConfiguration;
     this.useTreeShaking = useTreeShaking;
     this.useDiscardedChecker = useDiscardedChecker;
@@ -496,7 +499,7 @@ public class R8Command extends BaseCompilerCommand {
   private R8Command(boolean printHelp, boolean printVersion) {
     super(printHelp, printVersion);
     mainDexKeepRules = ImmutableList.of();
-    mainDexListOutput = null;
+    mainDexListConsumer = null;
     proguardConfiguration = null;
     useTreeShaking = false;
     useDiscardedChecker = false;
@@ -549,9 +552,8 @@ public class R8Command extends BaseCompilerCommand {
     assert !internal.verbose;
     internal.mainDexKeepRules = mainDexKeepRules;
     internal.minimalMainDex = internal.debug;
-    if (mainDexListOutput != null) {
-      internal.printMainDexListFile = mainDexListOutput;
-    }
+    internal.mainDexListConsumer = mainDexListConsumer;
+
     internal.outputMode = getOutputMode();
     if (internal.debug) {
       // TODO(zerny): Should we support removeSwitchMaps in debug mode? b/62936642

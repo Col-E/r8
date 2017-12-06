@@ -30,9 +30,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OutputMode;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.collect.ObjectArrays;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -223,9 +221,9 @@ public class ApplicationWriter {
           outputSink.writeProguardSeedsFile(proguardSeedsData);
         }
       }
-      byte[] mainDexList = writeMainDexList();
-      if (mainDexList != null) {
-        outputSink.writeMainDexListFile(mainDexList);
+      if (options.mainDexListConsumer != null) {
+        ExceptionUtils.withConsumeResourceHandler(
+            options.reporter, writeMainDexList(), options.mainDexListConsumer);
       }
     } finally {
       application.timing.end();
@@ -342,16 +340,9 @@ public class ApplicationWriter {
         .replace('.', '/') + ".class";
   }
 
-  private byte[] writeMainDexList() {
-    if (application.mainDexList.isEmpty()) {
-      return null;
-    }
-    ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-    PrintWriter writer = new PrintWriter(bytes);
-    application.mainDexList.forEach(
-        type -> writer.println(mapMainDexListName(type))
-    );
-    writer.flush();
-    return bytes.toByteArray();
+  private String writeMainDexList() {
+    StringBuilder builder = new StringBuilder();
+    application.mainDexList.forEach(type -> builder.append(mapMainDexListName(type)).append('\n'));
+    return builder.toString();
   }
 }

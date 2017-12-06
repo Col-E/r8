@@ -39,11 +39,6 @@ public abstract class FileSystemOutputSink implements OutputSink {
     FileUtils.writeToFile(options.proguardConfiguration.getSeedFile(), System.out, contents);
   }
 
-  @Override
-  public void writeMainDexListFile(byte[] contents) throws IOException {
-    FileUtils.writeToFile(options.printMainDexListFile, System.out, contents);
-  }
-
   protected OutputMode getOutputMode() {
     return options.outputMode;
   }

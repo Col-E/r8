@@ -25,14 +25,15 @@ import java.util.List;
 public class GenerateMainDexListCommand extends BaseCommand {
 
   private final ImmutableList<ProguardConfigurationRule> mainDexKeepRules;
-  private final Path mainDexListOutput;
+  private final StringConsumer mainDexListConsumer;
   private final DexItemFactory factory;
 
-  /**
-   * Get the output path for the main-dex list. Null if not set.
-   */
+  /** Get the output path for the main-dex list. Null if not set. */
+  @Deprecated
   public Path getMainDexListOutputPath() {
-    return mainDexListOutput;
+    return mainDexListConsumer instanceof StringConsumer.FileConsumer
+        ? ((StringConsumer.FileConsumer) mainDexListConsumer).getOutputPath()
+        : null;
   }
 
   public static class Builder extends BaseCommand.Builder<GenerateMainDexListCommand, Builder> {
@@ -114,11 +115,11 @@ public class GenerateMainDexListCommand extends BaseCommand {
         mainDexKeepRules = parser.getConfig().getRules();
       }
 
+      StringConsumer mainDexListConsumer =
+          mainDexListOutput != null ? new StringConsumer.FileConsumer(mainDexListOutput) : null;
+
       return new GenerateMainDexListCommand(
-          factory,
-          getAppBuilder().build(),
-          mainDexKeepRules,
-          mainDexListOutput);
+          factory, getAppBuilder().build(), mainDexKeepRules, mainDexListConsumer);
     }
   }
 
@@ -173,18 +174,18 @@ public class GenerateMainDexListCommand extends BaseCommand {
       DexItemFactory factory,
       AndroidApp inputApp,
       ImmutableList<ProguardConfigurationRule> mainDexKeepRules,
-      Path mainDexListOutput) {
+      StringConsumer mainDexListConsumer) {
     super(inputApp);
     this.factory = factory;
     this.mainDexKeepRules = mainDexKeepRules;
-    this.mainDexListOutput = mainDexListOutput;
+    this.mainDexListConsumer = mainDexListConsumer;
   }
 
   private GenerateMainDexListCommand(boolean printHelp, boolean printVersion) {
     super(printHelp, printVersion);
     this.factory = new DexItemFactory();
     this.mainDexKeepRules = ImmutableList.of();
-    this.mainDexListOutput = null;
+    this.mainDexListConsumer = null;
   }
 
   @Override
@@ -192,9 +193,7 @@ public class GenerateMainDexListCommand extends BaseCommand {
     InternalOptions internal =
         new InternalOptions(factory, new Reporter(new DefaultDiagnosticsHandler()));
     internal.mainDexKeepRules = mainDexKeepRules;
-    if (mainDexListOutput != null) {
-      internal.printMainDexListFile = mainDexListOutput;
-    }
+    internal.mainDexListConsumer = mainDexListConsumer;
     internal.minimalMainDex = internal.debug;
     internal.removeSwitchMaps = false;
     internal.inlineAccessors = false;

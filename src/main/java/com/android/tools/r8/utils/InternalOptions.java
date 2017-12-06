@@ -120,7 +120,6 @@ public class InternalOptions {
 
   public boolean printCfg = false;
   public String printCfgFile;
-  public Path printMainDexListFile;
   public boolean ignoreMissingClasses = false;
   // EXPERIMENTAL flag to get behaviour as close to Proguard as possible.
   public boolean forceProguardCompatibility = false;
@@ -170,6 +169,10 @@ public class InternalOptions {
   // Don't read code from dex files. Used to extract non-code information from vdex files where
   // the code contains unsupported byte codes.
   public boolean skipReadingDexCode = false;
+
+  // If null, no main-dex list needs to be computed.
+  // If non null it must be and passed to the consumer.
+  public StringConsumer mainDexListConsumer = null;
 
   // If null, no proguad map needs to be computed.
   // If non null it must be and passed to the consumer.

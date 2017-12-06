@@ -31,11 +31,6 @@ public class IgnoreContentsOutputSink implements OutputSink {
   }
 
   @Override
-  public void writeMainDexListFile(byte[] contents) {
-    // Intentionally left empty.
-  }
-
-  @Override
   public void close() throws IOException {
     // Intentionally left empty.
   }

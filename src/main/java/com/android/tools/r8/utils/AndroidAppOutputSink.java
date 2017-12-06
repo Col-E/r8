@@ -22,11 +22,13 @@ public class AndroidAppOutputSink extends ForwardingOutputSink {
   private final List<DescriptorsWithContents> classFiles = new ArrayList<>();
   private boolean closed = false;
 
+  private StringConsumer mainDexListConsumer = null;
   private StringConsumer proguardMapConsumer = null;
   private StringConsumer usageInformationConsumer = null;
 
   public AndroidAppOutputSink(OutputSink forwardTo, InternalOptions options) {
     super(forwardTo);
+    options.mainDexListConsumer = wrapMainDexListConsumer(options.mainDexListConsumer);
     options.proguardMapConsumer = wrapProguardMapConsumer(options.proguardMapConsumer);
     options.usageInformationConsumer =
         wrapUsageInformationConsumer(options.usageInformationConsumer);
@@ -34,6 +36,21 @@ public class AndroidAppOutputSink extends ForwardingOutputSink {
 
   public AndroidAppOutputSink() {
     super(new IgnoreContentsOutputSink());
+  }
+
+  private StringConsumer wrapMainDexListConsumer(StringConsumer consumer) {
+    assert mainDexListConsumer == null;
+    if (consumer != null) {
+      mainDexListConsumer =
+          new StringConsumer.ForwardingConsumer(consumer) {
+            @Override
+            public void accept(String string, DiagnosticsHandler handler) {
+              super.accept(string, handler);
+              builder.setMainDexListOutputData(string.getBytes(StandardCharsets.UTF_8));
+            }
+          };
+    }
+    return mainDexListConsumer;
   }
 
   private StringConsumer wrapProguardMapConsumer(StringConsumer consumer) {
@@ -97,12 +114,6 @@ public class AndroidAppOutputSink extends ForwardingOutputSink {
   public void writeProguardSeedsFile(byte[] contents) throws IOException {
     builder.setProguardSeedsData(contents);
     super.writeProguardSeedsFile(contents);
-  }
-
-  @Override
-  public void writeMainDexListFile(byte[] contents) throws IOException {
-    builder.setMainDexListOutputData(contents);
-    super.writeMainDexListFile(contents);
   }
 
   @Override

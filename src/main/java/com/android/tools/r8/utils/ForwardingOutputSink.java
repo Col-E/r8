@@ -44,11 +44,6 @@ public abstract class ForwardingOutputSink implements OutputSink {
   }
 
   @Override
-  public void writeMainDexListFile(byte[] contents) throws IOException {
-    forwardTo.writeMainDexListFile(contents);
-  }
-
-  @Override
   public void close() throws IOException {
     forwardTo.close();
   }
