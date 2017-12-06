@@ -741,9 +741,11 @@ public class LocalsTest extends DebugTestBase {
     final String methodName = "localVisibilityIntoLoop";
 
     List<Command> commands = new ArrayList<>();
-    commands.add(breakpoint(className, methodName, 359));
+    commands.add(breakpoint(className, methodName, 358));
     commands.add(run());
     commands.add(checkMethod(className, methodName));
+    commands.add(checkLine(SOURCE_FILE, 358));
+    commands.add(stepOver());
     commands.add(checkLine(SOURCE_FILE, 359));
     commands.add(checkNoLocal("Ai"));
     commands.add(checkNoLocal("Bi"));
@@ -766,7 +768,9 @@ public class LocalsTest extends DebugTestBase {
     commands.add(checkLocal("Ai"));
     commands.add(checkLocal("Bi"));
     commands.add(checkLocal("i", Value.createInt(0)));
-    commands.add(run());
+    commands.add(stepOver());
+    commands.add(stepOver());
+    commands.add(stepOver());
     commands.add(checkMethod(className, methodName));
     commands.add(checkLine(SOURCE_FILE, 359));
     commands.add(checkNoLocal("Ai"));

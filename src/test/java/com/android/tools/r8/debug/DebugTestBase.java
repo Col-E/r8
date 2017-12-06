@@ -7,6 +7,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.ClassNamingForNameMapper;
 import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRange;
@@ -147,9 +148,32 @@ public abstract class DebugTestBase {
     new JUnit3Wrapper(config, debuggeeClass, commands, classNameMapper).runBare();
   }
 
-  /** Lazily debug-step an execution producing a stream of successive debuggee states. */
+  /**
+   *  Lazily debug-step an execution starting from main(String[]) in {@code debuggeeClass}.
+   *
+   *  @return A stream of successive debuggee states.
+   *  */
   public Stream<JUnit3Wrapper.DebuggeeState> streamDebugTest(
       DebugTestConfig config, String debuggeeClass, StepFilter filter) throws Throwable {
+    return streamDebugTest(
+        config,
+        debuggeeClass,
+        breakpoint(debuggeeClass, "main", "([Ljava/lang/String;)V"),
+        filter);
+  }
+
+  /**
+   * Lazily debug-step an execution starting from {@code breakpoint}.
+   *
+   * @return A stream of successive debuggee states.
+   */
+  public Stream<JUnit3Wrapper.DebuggeeState> streamDebugTest(
+      DebugTestConfig config,
+      String debuggeeClass,
+      JUnit3Wrapper.Command breakpoint,
+      StepFilter filter)
+      throws Throwable {
+    assert breakpoint instanceof JUnit3Wrapper.Command.BreakpointCommand;
 
     // Continuous single-step command.
     // The execution of the command pushes itself onto the command queue ensuring the next step.
@@ -171,7 +195,7 @@ public abstract class DebugTestBase {
         new JUnit3Wrapper(
             config,
             debuggeeClass,
-            ImmutableList.of(breakpoint(debuggeeClass, "main", "([Ljava/lang/String;)V"), run()),
+            ImmutableList.of(breakpoint, run()),
             null);
 
     // Setup the initial state for the JDWP test base and run the program to the initial breakpoint.
@@ -822,6 +846,22 @@ public abstract class DebugTestBase {
       Exit
     }
 
+    // We expect to have either a single event or two events with one being an installed breakpoint.
+    private ParsedEvent getPrimaryEvent(ParsedEvent[] events) {
+      assertTrue(events.length == 1 || events.length == 2);
+      if (events.length == 1) {
+        return events[0];
+      }
+      assertEquals(2, events.length);
+      for (ParsedEvent event : events) {
+        if (event.getEventKind() == EventKind.BREAKPOINT) {
+          return event;
+        }
+      }
+      fail("Expected breakpoint when receiving multiple events.");
+      throw new Unreachable();
+    }
+
     private void processEvents() {
       EventPacket eventPacket = getMirror().receiveEvent();
       ParsedEvent[] parsedEvents = ParsedEvent.parseEventPacket(eventPacket);
@@ -837,9 +877,7 @@ public abstract class DebugTestBase {
           logWriter.println(msg);
         }
       }
-      // We only expect one event at a time.
-      assertEquals(1, parsedEvents.length);
-      ParsedEvent parsedEvent = parsedEvents[0];
+      ParsedEvent parsedEvent = getPrimaryEvent(parsedEvents);
       byte eventKind = parsedEvent.getEventKind();
       int requestID = parsedEvent.getRequestID();
 

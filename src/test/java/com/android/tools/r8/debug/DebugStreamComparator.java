@@ -84,25 +84,24 @@ public class DebugStreamComparator {
         }
       } catch (AssertionError e) {
         for (int i = 0; i < names.size(); i++) {
-          print(names.get(i), states.get(i));
+          System.err.println(names.get(i) + ": " + prettyPrintState(states.get(i)));
         }
         throw e;
       }
     }
   }
 
-  private void print(String name, DebuggeeState state) {
-    System.err.println(
-        name
-            + ": "
-            + state.getSourceFile()
-            + ":"
-            + state.getLineNumber()
-            + " "
-            + state.getClassName()
-            + "."
-            + state.getMethodName()
-            + state.getMethodSignature());
+  public static String prettyPrintState(DebuggeeState state) {
+    StringBuilder builder = new StringBuilder()
+        .append(state.getSourceFile())
+        .append(':')
+        .append(state.getLineNumber())
+        .append(' ')
+        .append(state.getClassName())
+        .append('.')
+        .append(state.getMethodName())
+        .append(state.getMethodSignature());
+    return builder.toString();
   }
 
   private void verifyStatesEqual(List<DebuggeeState> states) {
