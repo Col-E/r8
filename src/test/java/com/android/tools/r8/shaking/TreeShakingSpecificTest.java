@@ -101,6 +101,6 @@ public class TreeShakingSpecificTest {
 
   private static String sorted(String str) {
     return new BufferedReader(new StringReader(str))
-        .lines().sorted().collect(Collectors.joining("\n"));
+        .lines().sorted().filter(s -> !s.isEmpty()).collect(Collectors.joining("\n"));
   }
 }
