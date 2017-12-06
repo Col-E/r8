@@ -8,6 +8,7 @@ import com.android.tools.r8.OutputSink;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.origin.Origin;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -22,10 +23,13 @@ public class AndroidAppOutputSink extends ForwardingOutputSink {
   private boolean closed = false;
 
   private StringConsumer proguardMapConsumer = null;
+  private StringConsumer usageInformationConsumer = null;
 
   public AndroidAppOutputSink(OutputSink forwardTo, InternalOptions options) {
     super(forwardTo);
     options.proguardMapConsumer = wrapProguardMapConsumer(options.proguardMapConsumer);
+    options.usageInformationConsumer =
+        wrapUsageInformationConsumer(options.usageInformationConsumer);
   }
 
   public AndroidAppOutputSink() {
@@ -38,13 +42,27 @@ public class AndroidAppOutputSink extends ForwardingOutputSink {
       proguardMapConsumer =
           new StringConsumer.ForwardingConsumer(consumer) {
             @Override
-            public void accept(String data, DiagnosticsHandler handler) {
-              super.accept(data, handler);
-              builder.setProguardMapData(data);
+            public void accept(String string, DiagnosticsHandler handler) {
+              super.accept(string, handler);
+              builder.setProguardMapData(string);
             }
           };
     }
     return proguardMapConsumer;
+  }
+
+  private StringConsumer wrapUsageInformationConsumer(StringConsumer consumer) {
+    assert usageInformationConsumer == null;
+    if (consumer != null) {
+      usageInformationConsumer = new StringConsumer.ForwardingConsumer(consumer) {
+        @Override
+        public void accept(String string, DiagnosticsHandler handler) {
+          super.accept(string, handler);
+          builder.setDeadCode(string.getBytes(StandardCharsets.UTF_8));
+        }
+      };
+    }
+    return usageInformationConsumer;
   }
 
   @Override
@@ -73,12 +91,6 @@ public class AndroidAppOutputSink extends ForwardingOutputSink {
     assert dexFilesWithPrimary.isEmpty() && dexFilesWithId.isEmpty();
     classFiles.add(new DescriptorsWithContents(classDescriptors, contents));
     super.writeClassFile(contents, classDescriptors, primaryClassName);
-  }
-
-  @Override
-  public void writePrintUsedInformation(byte[] contents) throws IOException {
-    builder.setDeadCode(contents);
-    super.writePrintUsedInformation(contents);
   }
 
   @Override

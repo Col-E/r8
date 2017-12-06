@@ -26,11 +26,6 @@ public class IgnoreContentsOutputSink implements OutputSink {
   }
 
   @Override
-  public void writePrintUsedInformation(byte[] contents) {
-    // Intentionally left empty.
-  }
-
-  @Override
   public void writeProguardSeedsFile(byte[] contents) {
     // Intentionally left empty.
   }

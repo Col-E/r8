@@ -12,7 +12,6 @@ import com.android.tools.r8.utils.ProgramClassCollection;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-import com.google.common.primitives.Bytes;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -25,7 +24,7 @@ public abstract class DexApplication {
   ProgramClassCollection programClasses;
 
   public final ImmutableSet<DexType> mainDexList;
-  public final byte[] deadCode;
+  public final String deadCode;
 
   private final ClassNameMapper proguardMap;
 
@@ -43,7 +42,7 @@ public abstract class DexApplication {
       ClassNameMapper proguardMap,
       ProgramClassCollection programClasses,
       ImmutableSet<DexType> mainDexList,
-      byte[] deadCode,
+      String deadCode,
       DexItemFactory dexItemFactory,
       DexString highestSortingString,
       Timing timing) {
@@ -106,7 +105,7 @@ public abstract class DexApplication {
     final Timing timing;
 
     DexString highestSortingString;
-    byte[] deadCode;
+    String deadCode;
     final Set<DexType> mainDexList = Sets.newIdentityHashSet();
     private final Collection<DexProgramClass> synthesizedClasses;
 
@@ -144,7 +143,7 @@ public abstract class DexApplication {
       return self();
     }
 
-    public T appendDeadCode(byte[] deadCodeAtAnotherRound) {
+    public T appendDeadCode(String deadCodeAtAnotherRound) {
       if (deadCodeAtAnotherRound == null) {
         return self();
       }
@@ -152,8 +151,8 @@ public abstract class DexApplication {
         this.deadCode = deadCodeAtAnotherRound;
         return self();
       }
-      // Concatenate existing byte[] and the given byte[].
-      this.deadCode = Bytes.concat(this.deadCode, deadCodeAtAnotherRound);
+      // Concatenate existing deadCode info with next round.
+      this.deadCode += deadCodeAtAnotherRound;
       return self();
     }
 

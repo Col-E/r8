@@ -560,6 +560,13 @@ public class R8Command extends BaseCompilerCommand {
       internal.inlineAccessors = false;
     }
 
+    // Setup a usage information consumer.
+    if (proguardConfiguration.isPrintUsage()) {
+      internal.usageInformationConsumer = proguardConfiguration.getPrintUsageFile() != null
+          ? new StringConsumer.FileConsumer(proguardConfiguration.getPrintUsageFile())
+          : new StringConsumer.StreamConsumer(StandardOutOrigin.instance(), System.out);
+    }
+
     // Amend the proguard-map consumer with options from the proguard configuration.
     {
       StringConsumer wrappedConsumer;

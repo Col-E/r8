@@ -45,7 +45,7 @@ import java.util.concurrent.Future;
 public class ApplicationWriter {
 
   public final DexApplication application;
-  public final byte[] deadCode;
+  public final String deadCode;
   public final NamingLens namingLens;
   public final byte[] proguardSeedsData;
   public final InternalOptions options;
@@ -113,7 +113,7 @@ public class ApplicationWriter {
       DexApplication application,
       InternalOptions options,
       Marker marker,
-      byte[] deadCode,
+      String deadCode,
       NamingLens namingLens,
       byte[] proguardSeedsData,
       ProguardMapSupplier proguardMapSupplier) {
@@ -208,10 +208,9 @@ public class ApplicationWriter {
       // Wait for all files to be processed before moving on.
       ThreadUtils.awaitFutures(dexDataFutures);
 
-      if (options.proguardConfiguration.isPrintUsage()) {
-        if (deadCode != null) {
-          outputSink.writePrintUsedInformation(deadCode);
-        }
+      if (options.usageInformationConsumer != null && deadCode != null) {
+        ExceptionUtils.withConsumeResourceHandler(
+            options.reporter, deadCode, options.usageInformationConsumer);
       }
       // Write the proguard map file after writing the dex files, as the map writer traverses
       // the DexProgramClass structures, which are destructively updated during dex file writing.

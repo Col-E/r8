@@ -21,6 +21,10 @@ class UsagePrinter {
     writer = new StringBuilder();
   }
 
+  String toStringContent() {
+    return writer.toString();
+  }
+
   byte[] toByteArray() {
     return writer.toString().getBytes(StandardCharsets.UTF_8);
   }
