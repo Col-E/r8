@@ -69,14 +69,6 @@ public interface OutputSink {
       throws IOException;
 
   /**
-   * Provides the raw bytes that would be generated for the <code>-printusage</code> flag.
-   * <p>
-   * This method is only invoked by R8 and only if R8 is instructed to generate printusage
-   * information.
-   */
-  void writePrintUsedInformation(byte[] contents) throws IOException;
-
-  /**
    * Provides the raw bytes that would be generated for the <code>-printseeds</code> flag.
    * <p>
    * This method is only invoked by R8 and only if R8 is instructed to generate seeds information.

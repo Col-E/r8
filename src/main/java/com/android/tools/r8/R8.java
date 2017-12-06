@@ -104,7 +104,7 @@ public class R8 {
       ExecutorService executorService,
       DexApplication application,
       OutputSink outputSink,
-      byte[] deadCode,
+      String deadCode,
       NamingLens namingLens,
       byte[] proguardSeedsData,
       InternalOptions options,

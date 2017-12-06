@@ -51,7 +51,7 @@ public class TreePruner {
     }
     DexApplication result;
     try {
-      result = removeUnused(application).appendDeadCode(usagePrinter.toByteArray()).build();
+      result = removeUnused(application).appendDeadCode(usagePrinter.toStringContent()).build();
     } finally {
       application.timing.end();
     }

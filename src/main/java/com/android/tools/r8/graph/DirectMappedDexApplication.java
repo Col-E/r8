@@ -24,7 +24,7 @@ public class DirectMappedDexApplication extends DexApplication {
   private DirectMappedDexApplication(ClassNameMapper proguardMap,
       ProgramClassCollection programClasses,
       ImmutableMap<DexType, DexLibraryClass> libraryClasses,
-      ImmutableSet<DexType> mainDexList, byte[] deadCode,
+      ImmutableSet<DexType> mainDexList, String deadCode,
       DexItemFactory dexItemFactory, DexString highestSortingString,
       Timing timing) {
     super(proguardMap, programClasses, mainDexList, deadCode,

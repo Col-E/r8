@@ -175,6 +175,10 @@ public class InternalOptions {
   // If non null it must be and passed to the consumer.
   public StringConsumer proguardMapConsumer = null;
 
+  // If null, no usage information needs to be computed.
+  // If non-null, it must be and is passed to the consumer.
+  public StringConsumer usageInformationConsumer = null;
+
   public Path proguardCompatibilityRulesOutput = null;
 
   public void warningMissingEnclosingMember(DexType clazz, Origin origin, int version) {

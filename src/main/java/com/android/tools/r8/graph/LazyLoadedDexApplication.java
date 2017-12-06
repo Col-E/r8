@@ -27,7 +27,7 @@ public class LazyLoadedDexApplication extends DexApplication {
       ProgramClassCollection programClasses,
       ClasspathClassCollection classpathClasses,
       LibraryClassCollection libraryClasses,
-      ImmutableSet<DexType> mainDexList, byte[] deadCode,
+      ImmutableSet<DexType> mainDexList, String deadCode,
       DexItemFactory dexItemFactory, DexString highestSortingString,
       Timing timing) {
     super(proguardMap, programClasses, mainDexList, deadCode,
