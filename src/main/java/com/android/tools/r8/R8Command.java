@@ -6,6 +6,7 @@ package com.android.tools.r8;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
+import com.android.tools.r8.origin.StandardOutOrigin;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationParser;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
@@ -270,25 +271,29 @@ public class R8Command extends BaseCompilerCommand {
       boolean useDiscardedChecker = discardedChecker.orElse(true);
       boolean useMinification = minification.orElse(configuration.isObfuscating());
 
-      R8Command command = new R8Command(
-          getAppBuilder().build(),
-          getOutputPath(),
-          getOutputMode(),
-          mainDexKeepRules,
-          mainDexListOutput,
-          configuration,
-          getMode(),
-          getMinApiLevel(),
-          reporter,
-          getEnableDesugaring(),
-          useTreeShaking,
-          useDiscardedChecker,
-          useMinification,
-          ignoreMissingClasses,
-          forceProguardCompatibility,
-          ignoreMissingClassesWhenNotShrinking,
-          proguardMapOutput,
-          proguardCompatibilityRulesOutput);
+      Utf8Consumer proguardMapConsumer =
+          proguardMapOutput != null ? new Utf8Consumer.FileConsumer(proguardMapOutput) : null;
+
+      R8Command command =
+          new R8Command(
+              getAppBuilder().build(),
+              getOutputPath(),
+              getOutputMode(),
+              mainDexKeepRules,
+              mainDexListOutput,
+              configuration,
+              getMode(),
+              getMinApiLevel(),
+              reporter,
+              getEnableDesugaring(),
+              useTreeShaking,
+              useDiscardedChecker,
+              useMinification,
+              ignoreMissingClasses,
+              forceProguardCompatibility,
+              ignoreMissingClassesWhenNotShrinking,
+              proguardMapConsumer,
+              proguardCompatibilityRulesOutput);
 
       return command;
     }
@@ -332,7 +337,7 @@ public class R8Command extends BaseCompilerCommand {
   private final boolean ignoreMissingClasses;
   private final boolean forceProguardCompatibility;
   private final boolean ignoreMissingClassesWhenNotShrinking;
-  private final Path proguardMapOutput;
+  private final Utf8Consumer proguardMapConsumer;
   private final Path proguardCompatibilityRulesOutput;
 
   public static Builder builder() {
@@ -468,7 +473,7 @@ public class R8Command extends BaseCompilerCommand {
       boolean ignoreMissingClasses,
       boolean forceProguardCompatibility,
       boolean ignoreMissingClassesWhenNotShrinking,
-      Path proguardMapOutput,
+      Utf8Consumer proguardMapConsumer,
       Path proguardCompatibilityRulesOutput) {
     super(inputApp, outputPath, outputMode, mode, minApiLevel, reporter,
         enableDesugaring);
@@ -484,7 +489,7 @@ public class R8Command extends BaseCompilerCommand {
     this.ignoreMissingClasses = ignoreMissingClasses;
     this.forceProguardCompatibility = forceProguardCompatibility;
     this.ignoreMissingClassesWhenNotShrinking = ignoreMissingClassesWhenNotShrinking;
-    this.proguardMapOutput = proguardMapOutput;
+    this.proguardMapConsumer = proguardMapConsumer;
     this.proguardCompatibilityRulesOutput = proguardCompatibilityRulesOutput;
   }
 
@@ -499,7 +504,7 @@ public class R8Command extends BaseCompilerCommand {
     ignoreMissingClasses = false;
     forceProguardCompatibility = false;
     ignoreMissingClassesWhenNotShrinking = false;
-    proguardMapOutput = null;
+    proguardMapConsumer = null;
     proguardCompatibilityRulesOutput = null;
   }
   public boolean useTreeShaking() {
@@ -554,7 +559,26 @@ public class R8Command extends BaseCompilerCommand {
       // TODO(zerny): Should we support inlining in debug mode? b/62937285
       internal.inlineAccessors = false;
     }
-    internal.proguardMapOutput = proguardMapOutput;
+
+    // Amend the proguard-map consumer with options from the proguard configuration.
+    {
+      Utf8Consumer wrappedConsumer;
+      if (proguardConfiguration.isPrintMapping()) {
+        if (proguardConfiguration.getPrintMappingFile() != null) {
+          wrappedConsumer =
+              new Utf8Consumer.FileConsumer(
+                  proguardConfiguration.getPrintMappingFile(), proguardMapConsumer);
+        } else {
+          wrappedConsumer =
+              new Utf8Consumer.StreamConsumer(
+                  StandardOutOrigin.instance(), System.out, proguardMapConsumer);
+        }
+      } else {
+        wrappedConsumer = proguardMapConsumer;
+      }
+      internal.proguardMapConsumer = wrappedConsumer;
+    }
+
     internal.proguardCompatibilityRulesOutput = proguardCompatibilityRulesOutput;
 
     // EXPERIMENTAL flags.

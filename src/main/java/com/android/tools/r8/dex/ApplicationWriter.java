@@ -25,6 +25,7 @@ import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.ProguardMapSupplier;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OutputMode;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -214,12 +215,11 @@ public class ApplicationWriter {
       }
       // Write the proguard map file after writing the dex files, as the map writer traverses
       // the DexProgramClass structures, which are destructively updated during dex file writing.
-      if (proguardMapSupplier != null
-          && (options.proguardMapOutput != null
-              || options.proguardConfiguration.isPrintMapping())) {
+      if (proguardMapSupplier != null && options.proguardMapConsumer != null) {
         byte[] proguardMapResult = proguardMapSupplier.get();
         if (proguardMapResult != null) {
-          outputSink.writeProguardMapFile(proguardMapResult);
+          ExceptionUtils.withConsumeResourceHandler(
+              options.reporter, proguardMapResult, options.proguardMapConsumer);
         }
       }
       if (options.proguardConfiguration.isPrintSeeds()) {

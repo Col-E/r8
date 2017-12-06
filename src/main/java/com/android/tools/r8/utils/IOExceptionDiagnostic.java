@@ -31,7 +31,7 @@ public class IOExceptionDiagnostic extends DiagnosticWithThrowable {
     message = extractMessage(e);
   }
 
-  private String extractMessage(IOException e) {
+  private static String extractMessage(IOException e) {
     String message = e.getMessage();
     if (message == null || message.isEmpty()) {
       if (e instanceof NoSuchFileException || e instanceof FileNotFoundException) {
@@ -43,7 +43,7 @@ public class IOExceptionDiagnostic extends DiagnosticWithThrowable {
     return message;
   }
 
-  private Origin extractOrigin(IOException e) {
+  private static Origin extractOrigin(IOException e) {
     Origin origin = Origin.unknown();
 
     if (e instanceof FileSystemException) {

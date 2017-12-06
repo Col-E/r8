@@ -40,7 +40,7 @@ public class DirectoryOutputSink extends FileSystemOutputSink {
       throws IOException {
     Path target = outputDirectory.resolve(getOutputFileName(fileId));
     Files.createDirectories(target.getParent());
-    writeToFile(target, null, contents);
+    FileUtils.writeToFile(target, null, contents);
   }
 
   @Override
@@ -59,7 +59,7 @@ public class DirectoryOutputSink extends FileSystemOutputSink {
       throws IOException {
     Path target = outputDirectory.resolve(getOutputFileName(descriptor, extension));
     Files.createDirectories(target.getParent());
-    writeToFile(target, null, contents);
+    FileUtils.writeToFile(target, null, contents);
   }
 
   @Override

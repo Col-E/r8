@@ -7,6 +7,7 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.Utf8Consumer;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
@@ -23,21 +24,26 @@ public class R8GMSCoreFixedPointTest extends GMSCoreCompilationTestBase {
     // First compilation.
     AndroidApp app = AndroidApp.fromProgramDirectory(Paths.get(GMSCORE_V7_DIR));
     AndroidApp app1 =
-        ToolHelper.runR8(app, options -> {
-          options.minApiLevel = AndroidApiLevel.L.getLevel();
-          options.proguardMapOutput = Paths.get("this-path-is-ignored-anyway.map");
-        });
+        ToolHelper.runR8(
+            app,
+            options -> {
+              options.minApiLevel = AndroidApiLevel.L.getLevel();
+              options.proguardMapConsumer = Utf8Consumer.emptyConsumer();
+            });
 
     // Second compilation.
     // Add option --skip-outline-opt for second compilation. The second compilation can find
     // additional outlining opportunities as member rebinding from the first compilation can move
     // methods.
     // See b/33410508 and b/33475705.
-    AndroidApp app2 = ToolHelper.runR8(app1, options -> {
-      options.outline.enabled = false;
-      options.minApiLevel = AndroidApiLevel.L.getLevel();
-      options.proguardMapOutput = Paths.get("this-path-is-ignored-anyway.map");
-    });
+    AndroidApp app2 =
+        ToolHelper.runR8(
+            app1,
+            options -> {
+              options.outline.enabled = false;
+              options.minApiLevel = AndroidApiLevel.L.getLevel();
+              options.proguardMapConsumer = Utf8Consumer.emptyConsumer();
+            });
 
     // TODO: Require that the results of the two compilations are the same.
     assertEquals(

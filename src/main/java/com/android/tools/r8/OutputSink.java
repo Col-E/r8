@@ -77,14 +77,6 @@ public interface OutputSink {
   void writePrintUsedInformation(byte[] contents) throws IOException;
 
   /**
-   * Provides the raw bytes that would be generated for the <code>-printmapping</code> flag.
-   * <p>
-   * This method is only invoked by R8 and only if R8 is instructed to generate a proguard map and
-   * if such map is non-empty.
-   */
-  void writeProguardMapFile(byte[] contents) throws IOException;
-
-  /**
    * Provides the raw bytes that would be generated for the <code>-printseeds</code> flag.
    * <p>
    * This method is only invoked by R8 and only if R8 is instructed to generate seeds information.
