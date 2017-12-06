@@ -210,7 +210,7 @@ public class JarClassFileReader {
     @Override
     public MethodVisitor visitMethod(
         int access, String name, String desc, String signature, String[] exceptions) {
-      return new CreateMethodVisitor(access, name, desc, signature, exceptions, this);
+      return new CreateMethodVisitor(application, access, name, desc, signature, exceptions, this);
     }
 
     @Override
@@ -406,14 +406,14 @@ public class JarClassFileReader {
     private List<DexValue> parameterNames = null;
     private List<DexValue> parameterFlags = null;
 
-    public CreateMethodVisitor(int access, String name, String desc, String signature,
-        String[] exceptions, CreateDexClassVisitor parent) {
+    public CreateMethodVisitor(JarApplicationReader application, int access, String name,
+        String desc, String signature, String[] exceptions, CreateDexClassVisitor parent) {
       super(ASM6);
       this.access = access;
       this.name = name;
       this.desc = desc;
       this.parent = parent;
-      parameterCount = Type.getArgumentTypes(desc).length;
+      parameterCount = application.getArgumentCount(desc);
       if (exceptions != null && exceptions.length > 0) {
         DexValue[] values = new DexValue[exceptions.length];
         for (int i = 0; i < exceptions.length; i++) {
