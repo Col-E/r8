@@ -284,62 +284,46 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
 
     // For each debug position compute the set of live locals.
     boolean localsChanged = false;
-    Int2ReferenceMap<DebugLocalInfo> currentLocals = new Int2ReferenceOpenHashMap<>();
-
     LinkedList<LocalRange> openRanges = new LinkedList<>();
     Iterator<LocalRange> rangeIterator = ranges.iterator();
     LocalRange nextStartingRange = rangeIterator.next();
 
-    // Open initial (argument) ranges.
-    while (nextStartingRange != null && nextStartingRange.start == 0) {
-      currentLocals.put(nextStartingRange.register, nextStartingRange.local);
-      openRanges.add(nextStartingRange);
-      nextStartingRange = rangeIterator.hasNext() ? rangeIterator.next() : null;
-    }
-
     for (BasicBlock block : blocks) {
-      ListIterator<Instruction> instructionIterator = block.listIterator();
+      // Skip past all spill moves to obtain the instruction number of the actual first instruction.
+      InstructionListIterator instructionIterator = block.listIterator();
+      instructionIterator.nextUntil(
+          i -> !i.isArgument() && !i.isMoveException() && !isSpillInstruction(i));
+      Instruction firstInstruction = instructionIterator.previous();
+      int firstIndex = firstInstruction.getNumber();
+
       // Close ranges up-to but excluding the first instruction. Ends are exclusive but the values
-      // might be live upon entering the first instruction (if they are used by it).
-      int entryIndex = block.entry().getNumber();
-      if (block.entry().isMoveException()) {
-        // Close locals at a move exception since they close as part of the exceptional transfer.
-        entryIndex++;
-      }
-      {
-        ListIterator<LocalRange> it = openRanges.listIterator(0);
-        while (it.hasNext()) {
-          LocalRange openRange = it.next();
-          if (openRange.end < entryIndex ||
-              // Don't close the local if it is used by the entry instruction. Exclude move
-              // exception instruction that are managed in other way that should be clean.
-              (openRange.end == entryIndex
-                  && !block.entry().isMoveException()
-                  && !usesValues(openRange.value, block.entry()))) {
-            it.remove();
-            assert currentLocals.get(openRange.register) == openRange.local;
-            currentLocals.remove(openRange.register);
-          }
-        }
-      }
+      // might be live upon entering the first instruction (if they are used by it). Since we
+      // skipped move-exception this closes locals at the move exception which should close as part
+      // of the exceptional transfer.
+      openRanges.removeIf(openRange -> !isLocalLiveAtInstruction(openRange, firstInstruction));
+
       // Open ranges up-to but excluding the first instruction. Starts are inclusive but entry is
       // prior to the first instruction.
-      while (nextStartingRange != null && nextStartingRange.start < entryIndex) {
+      while (nextStartingRange != null && nextStartingRange.start < firstIndex) {
         // If the range is live at this index open it. Again the end is inclusive here because the
         // instruction is live at block entry if it is live at entry to the first instruction.
-        if (entryIndex <= nextStartingRange.end) {
+        if (isLocalLiveAtInstruction(nextStartingRange, firstInstruction)) {
           openRanges.add(nextStartingRange);
-          assert !currentLocals.containsKey(nextStartingRange.register);
-          currentLocals.put(nextStartingRange.register, nextStartingRange.local);
         }
         nextStartingRange = rangeIterator.hasNext() ? rangeIterator.next() : null;
       }
-      if (block.entry().isMoveException()) {
-        fixupLocalsLiveAtMoveException(
-            block, instructionIterator, openRanges, currentLocals, allocator);
-      } else {
-        block.setLocalsAtEntry(new Int2ReferenceOpenHashMap<>(currentLocals));
+
+      // Initialize current locals (registers after any spill instructions).
+      Int2ReferenceMap<DebugLocalInfo> currentLocals =
+          new Int2ReferenceOpenHashMap<>(openRanges.size());
+      for (LocalRange openRange : openRanges) {
+        currentLocals.put(openRange.register, openRange.local);
       }
+
+      // Set locals at entry. This will adjust initial local registers in case of spilling.
+      setLocalsAtEntry(block, instructionIterator, openRanges, currentLocals, allocator);
+
+      // Iterate the block instructions and emit locals changed events.
       while (instructionIterator.hasNext()) {
         Instruction instruction = instructionIterator.next();
         if (instruction.isDebugLocalRead()) {
@@ -388,36 +372,45 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     }
   }
 
+  private static boolean isLocalLiveAtInstruction(LocalRange range, Instruction instruction) {
+    int number = instruction.getNumber();
+    assert range.start < number;
+    return number < range.end || (number == range.end && usesValues(range.value, instruction));
+  }
+
   private static boolean usesValues(Value usedValue, Instruction instruction) {
     return instruction.inValues().contains(usedValue)
         || instruction.getDebugValues().contains(usedValue);
   }
 
-  private static void fixupLocalsLiveAtMoveException(
+  private static void setLocalsAtEntry(
       BasicBlock block,
-      ListIterator<Instruction> instructionIterator,
+      InstructionListIterator instructionIterator,
       List<LocalRange> openRanges,
       Int2ReferenceMap<DebugLocalInfo> finalLocals,
       RegisterAllocator allocator) {
-    Int2ReferenceMap<DebugLocalInfo> initialLocals = new Int2ReferenceOpenHashMap<>();
-    int exceptionalIndex = block.getPredecessors().get(0).exceptionalExit().getNumber();
+    // If this is the graph-entry or there are no moves entry locals are current locals.
+    if (block.getPredecessors().isEmpty() || block.entry() == instructionIterator.peekNext()) {
+      assert !block.entry().isMoveException();
+      assert !isSpillInstruction(block.entry());
+      block.setLocalsAtEntry(new Int2ReferenceOpenHashMap<>(finalLocals));
+      return;
+    }
+    // Otherwise entry locals are the registers of the predecessor, ie, prior to spill instructions.
+    Int2ReferenceMap<DebugLocalInfo> initialLocals =
+        new Int2ReferenceOpenHashMap<>(openRanges.size());
+    int predecessorExitIndex =
+        block.entry().isMoveException()
+            ? block.getPredecessors().get(0).exceptionalExit().getNumber()
+            : block.getPredecessors().get(0).exit().getNumber();
     for (LocalRange open : openRanges) {
-      int exceptionalRegister =
-          allocator.getArgumentOrAllocateRegisterForValue(open.value, exceptionalIndex);
-      initialLocals.put(exceptionalRegister, open.local);
+      int predecessorRegister =
+          allocator.getArgumentOrAllocateRegisterForValue(open.value, predecessorExitIndex);
+      initialLocals.put(predecessorRegister, open.local);
     }
-    block.setLocalsAtEntry(new Int2ReferenceOpenHashMap<>(initialLocals));
-    Instruction entry = instructionIterator.next();
-    assert block.entry() == entry;
-    assert block.entry().isMoveException();
-    // Skip past spill instructions.
-    while (instructionIterator.hasNext()) {
-      if (!isSpillInstruction(instructionIterator.next())) {
-        instructionIterator.previous();
-        break;
-      }
-    }
-    // Compute the final change in locals and insert it after the last move.
+    block.setLocalsAtEntry(initialLocals);
+
+    // Compute the final change in locals and insert it after the last spill instruction.
     Int2ReferenceMap<DebugLocalInfo> ending = new Int2ReferenceOpenHashMap<>();
     Int2ReferenceMap<DebugLocalInfo> starting = new Int2ReferenceOpenHashMap<>();
     for (Entry<DebugLocalInfo> initialLocal : initialLocals.int2ReferenceEntrySet()) {
