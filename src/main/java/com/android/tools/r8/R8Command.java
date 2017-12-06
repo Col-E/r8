@@ -271,8 +271,8 @@ public class R8Command extends BaseCompilerCommand {
       boolean useDiscardedChecker = discardedChecker.orElse(true);
       boolean useMinification = minification.orElse(configuration.isObfuscating());
 
-      Utf8Consumer proguardMapConsumer =
-          proguardMapOutput != null ? new Utf8Consumer.FileConsumer(proguardMapOutput) : null;
+      StringConsumer proguardMapConsumer =
+          proguardMapOutput != null ? new StringConsumer.FileConsumer(proguardMapOutput) : null;
 
       R8Command command =
           new R8Command(
@@ -337,7 +337,7 @@ public class R8Command extends BaseCompilerCommand {
   private final boolean ignoreMissingClasses;
   private final boolean forceProguardCompatibility;
   private final boolean ignoreMissingClassesWhenNotShrinking;
-  private final Utf8Consumer proguardMapConsumer;
+  private final StringConsumer proguardMapConsumer;
   private final Path proguardCompatibilityRulesOutput;
 
   public static Builder builder() {
@@ -473,7 +473,7 @@ public class R8Command extends BaseCompilerCommand {
       boolean ignoreMissingClasses,
       boolean forceProguardCompatibility,
       boolean ignoreMissingClassesWhenNotShrinking,
-      Utf8Consumer proguardMapConsumer,
+      StringConsumer proguardMapConsumer,
       Path proguardCompatibilityRulesOutput) {
     super(inputApp, outputPath, outputMode, mode, minApiLevel, reporter,
         enableDesugaring);
@@ -562,15 +562,15 @@ public class R8Command extends BaseCompilerCommand {
 
     // Amend the proguard-map consumer with options from the proguard configuration.
     {
-      Utf8Consumer wrappedConsumer;
+      StringConsumer wrappedConsumer;
       if (proguardConfiguration.isPrintMapping()) {
         if (proguardConfiguration.getPrintMappingFile() != null) {
           wrappedConsumer =
-              new Utf8Consumer.FileConsumer(
+              new StringConsumer.FileConsumer(
                   proguardConfiguration.getPrintMappingFile(), proguardMapConsumer);
         } else {
           wrappedConsumer =
-              new Utf8Consumer.StreamConsumer(
+              new StringConsumer.StreamConsumer(
                   StandardOutOrigin.instance(), System.out, proguardMapConsumer);
         }
       } else {

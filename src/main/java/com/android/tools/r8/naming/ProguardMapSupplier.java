@@ -39,33 +39,32 @@ public class ProguardMapSupplier {
   private final NamingLens namingLens;
   private final DexApplication application;
 
-  public byte[] get() {
+  public String get() {
     if (useClassNameMapper) {
       assert classNameMapper != null;
-      return classNameMapper.toString().getBytes();
-    } else {
-      assert namingLens != null && application != null;
-      // TODO(herhut): Should writing of the proguard-map file be split like this?
-      if (!namingLens.isIdentityLens()) {
-        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-        PrintStream stream = new PrintStream(bytes);
-        new MinifiedNameMapPrinter(application, namingLens).write(stream);
-        stream.flush();
-        return bytes.toByteArray();
-      } else if (application.getProguardMap() != null) {
-        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-        Writer writer = new PrintWriter(bytes);
-        try {
-          application.getProguardMap().write(writer);
-          writer.flush();
-        } catch (IOException e) {
-          throw new RuntimeException("IOException while creating Proguard-map output: " + e);
-        }
-        return bytes.toByteArray();
-      } else {
-        return "# This Proguard-map is intentionally empty because no names or line numbers have been changed.\n"
-            .getBytes();
-      }
+      return classNameMapper.toString();
     }
+    assert namingLens != null && application != null;
+    // TODO(herhut): Should writing of the proguard-map file be split like this?
+    if (!namingLens.isIdentityLens()) {
+      ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+      PrintStream stream = new PrintStream(bytes);
+      new MinifiedNameMapPrinter(application, namingLens).write(stream);
+      stream.flush();
+      return bytes.toString();
+    }
+    if (application.getProguardMap() != null) {
+      ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+      Writer writer = new PrintWriter(bytes);
+      try {
+        application.getProguardMap().write(writer);
+        writer.flush();
+      } catch (IOException e) {
+        throw new RuntimeException("IOException while creating Proguard-map output: " + e);
+      }
+      return bytes.toString();
+    }
+    return "# This Proguard-map is intentionally empty"
+        + " because no names or line numbers have been changed.\n";
   }
 }

@@ -3,12 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
-import com.android.tools.r8.Utf8Consumer;
+import com.android.tools.r8.StringConsumer;
 
 public abstract class ExceptionUtils {
 
   public static void withConsumeResourceHandler(
-      Reporter reporter, byte[] data, Utf8Consumer consumer) {
+      Reporter reporter, String data, StringConsumer consumer) {
     // Unchecked exceptions simply propagate out, aborting the compilation forcefully.
     consumer.accept(data, reporter);
     // Fail fast for now. We might consider delaying failure since consumer failure does not affect
