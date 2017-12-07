@@ -45,7 +45,7 @@ public class ApplicationWriter {
   public final DexApplication application;
   public final String deadCode;
   public final NamingLens namingLens;
-  public final byte[] proguardSeedsData;
+  public final String proguardSeedsData;
   public final InternalOptions options;
   public DexString markerString;
   public final ProguardMapSupplier proguardMapSupplier;
@@ -113,7 +113,7 @@ public class ApplicationWriter {
       Marker marker,
       String deadCode,
       NamingLens namingLens,
-      byte[] proguardSeedsData,
+      String proguardSeedsData,
       ProguardMapSupplier proguardMapSupplier) {
     assert application != null;
     this.application = application;
@@ -216,10 +216,9 @@ public class ApplicationWriter {
         ExceptionUtils.withConsumeResourceHandler(
             options.reporter, proguardMapSupplier.get(), options.proguardMapConsumer);
       }
-      if (options.proguardConfiguration.isPrintSeeds()) {
-        if (proguardSeedsData != null) {
-          outputSink.writeProguardSeedsFile(proguardSeedsData);
-        }
+      if (options.proguardSeedsConsumer != null && proguardSeedsData != null) {
+        ExceptionUtils.withConsumeResourceHandler(
+            options.reporter, proguardSeedsData, options.proguardSeedsConsumer);
       }
       if (options.mainDexListConsumer != null) {
         ExceptionUtils.withConsumeResourceHandler(

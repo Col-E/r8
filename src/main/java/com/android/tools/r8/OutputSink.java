@@ -69,13 +69,6 @@ public interface OutputSink {
       throws IOException;
 
   /**
-   * Provides the raw bytes that would be generated for the <code>-printseeds</code> flag.
-   * <p>
-   * This method is only invoked by R8 and only if R8 is instructed to generate seeds information.
-   */
-  void writeProguardSeedsFile(byte[] contents) throws IOException;
-
-  /**
    * Closes the output sink.
    * <p>
    * This method is invokes once all output has been generated.

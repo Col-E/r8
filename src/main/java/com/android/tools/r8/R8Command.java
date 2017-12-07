@@ -569,6 +569,13 @@ public class R8Command extends BaseCompilerCommand {
           : new StringConsumer.StreamConsumer(StandardOutOrigin.instance(), System.out);
     }
 
+    // Setup pg-seeds consumer.
+    if (proguardConfiguration.isPrintSeeds()) {
+      internal.proguardSeedsConsumer =  proguardConfiguration.getSeedFile() != null
+          ? new StringConsumer.FileConsumer(proguardConfiguration.getSeedFile())
+          : new StringConsumer.StreamConsumer(StandardOutOrigin.instance(), System.out);
+    }
+
     // Amend the proguard-map consumer with options from the proguard configuration.
     {
       StringConsumer wrappedConsumer;

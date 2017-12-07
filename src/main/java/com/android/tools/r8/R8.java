@@ -106,7 +106,7 @@ public class R8 {
       OutputSink outputSink,
       String deadCode,
       NamingLens namingLens,
-      byte[] proguardSeedsData,
+      String proguardSeedsData,
       InternalOptions options,
       ProguardMapSupplier proguardMapSupplier)
       throws ExecutionException, DexOverflowException {
@@ -173,7 +173,7 @@ public class R8 {
 
       AppInfoWithSubtyping appInfo = new AppInfoWithSubtyping(application);
       RootSet rootSet;
-      byte[] proguardSeedsData = null;
+      String proguardSeedsData = null;
       timing.begin("Strip unused code");
       try {
         Set<DexType> missingClasses = appInfo.getMissingClasses();
@@ -202,7 +202,7 @@ public class R8 {
           PrintStream out = new PrintStream(bytes);
           RootSetBuilder.writeSeeds(appInfo.withLiveness(), out);
           out.flush();
-          proguardSeedsData = bytes.toByteArray();
+          proguardSeedsData = bytes.toString();
         }
         if (options.useTreeShaking) {
           TreePruner pruner = new TreePruner(application, appInfo.withLiveness(), options);

@@ -111,12 +111,6 @@ public class AndroidAppOutputSink extends ForwardingOutputSink {
   }
 
   @Override
-  public void writeProguardSeedsFile(byte[] contents) throws IOException {
-    builder.setProguardSeedsData(contents);
-    super.writeProguardSeedsFile(contents);
-  }
-
-  @Override
   public void close() throws IOException {
     assert !closed;
     if (!dexFilesWithPrimary.isEmpty()) {

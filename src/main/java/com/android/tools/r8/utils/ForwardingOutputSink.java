@@ -39,11 +39,6 @@ public abstract class ForwardingOutputSink implements OutputSink {
   }
 
   @Override
-  public void writeProguardSeedsFile(byte[] contents) throws IOException {
-    forwardTo.writeProguardSeedsFile(contents);
-  }
-
-  @Override
   public void close() throws IOException {
     forwardTo.close();
   }

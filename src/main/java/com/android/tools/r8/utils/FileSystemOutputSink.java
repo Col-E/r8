@@ -34,11 +34,6 @@ public abstract class FileSystemOutputSink implements OutputSink {
     return DescriptorUtils.getClassBinaryNameFromDescriptor(classDescriptor) + extension;
   }
 
-  @Override
-  public void writeProguardSeedsFile(byte[] contents) throws IOException {
-    FileUtils.writeToFile(options.proguardConfiguration.getSeedFile(), System.out, contents);
-  }
-
   protected OutputMode getOutputMode() {
     return options.outputMode;
   }
