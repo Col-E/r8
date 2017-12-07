@@ -141,8 +141,11 @@ public interface StringConsumer {
     @Override
     public void accept(String string, DiagnosticsHandler handler) {
       super.accept(string, handler);
-      try (BufferedWriter writer =
-          new BufferedWriter(new OutputStreamWriter(outputStream, encoding.newEncoder()))) {
+      // Don't close this writer as it will close the underlying stream, which we specifically do
+      // not want.
+      BufferedWriter writer =
+          new BufferedWriter(new OutputStreamWriter(outputStream, encoding.newEncoder()));
+      try {
         writer.write(string);
       } catch (IOException e) {
         handler.error(new IOExceptionDiagnostic(e, origin));
