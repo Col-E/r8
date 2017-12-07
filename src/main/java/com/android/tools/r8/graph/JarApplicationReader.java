@@ -4,6 +4,7 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.errors.InternalCompilerError;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexMethodHandle.MethodHandleType;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.List;
@@ -21,10 +22,22 @@ public class JarApplicationReader {
 
   public final InternalOptions options;
 
+  private ConcurrentHashMap<String, Type> asmObjectTypeCache = new ConcurrentHashMap<>();
+
+  private ConcurrentHashMap<String, Type> asmTypeCache = new ConcurrentHashMap<>();
+
   ConcurrentHashMap<String, DexString> stringCache = new ConcurrentHashMap<>();
 
   public JarApplicationReader(InternalOptions options) {
     this.options = options;
+  }
+
+  public Type getAsmObjectType(String name) {
+    return asmObjectTypeCache.computeIfAbsent(name, (key) -> Type.getObjectType(key));
+  }
+
+  public Type getAsmType(String name) {
+    return asmTypeCache.computeIfAbsent(name, (key) -> Type.getType(key));
   }
 
   public DexItemFactory getFactory() {
@@ -41,7 +54,7 @@ public class JarApplicationReader {
 
   public DexType getTypeFromName(String name) {
     assert isValidInternalName(name);
-    return getType(Type.getObjectType(name));
+    return getType(getAsmObjectType(name));
   }
 
   public DexType getTypeFromDescriptor(String desc) {
@@ -101,9 +114,8 @@ public class JarApplicationReader {
 
   public DexProto getProto(String desc) {
     assert isValidDescriptor(desc);
-    Type returnType = Type.getReturnType(desc);
-    Type[] arguments = Type.getArgumentTypes(desc);
-
+    Type returnType = getReturnType(desc);
+    Type[] arguments = getArgumentTypes(desc);
     StringBuilder shortyDescriptor = new StringBuilder();
     String[] argumentDescriptors = new String[arguments.length];
     shortyDescriptor.append(getShortyDescriptor(returnType));
@@ -131,10 +143,86 @@ public class JarApplicationReader {
   }
 
   private boolean isValidDescriptor(String desc) {
-    return Type.getType(desc).getDescriptor().equals(desc);
+    return getAsmType(desc).getDescriptor().equals(desc);
   }
 
   private boolean isValidInternalName(String name) {
-    return Type.getObjectType(name).getInternalName().equals(name);
+    return getAsmObjectType(name).getInternalName().equals(name);
+  }
+
+  public Type getReturnType(final String methodDescriptor) {
+    assert methodDescriptor.indexOf(')') != -1;
+    return getAsmType(methodDescriptor.substring(methodDescriptor.indexOf(')') + 1));
+  }
+
+  public int getArgumentCount(final String methodDescriptor) {
+    int charIdx = 1;
+    char c;
+    int argCount = 0;
+    while ((c = methodDescriptor.charAt(charIdx++)) != ')') {
+      if (c == 'L') {
+        while (methodDescriptor.charAt(charIdx++) != ';');
+        argCount++;
+      } else if (c != '[') {
+        argCount++;
+      }
+    }
+    return argCount;
+  }
+
+  public Type[] getArgumentTypes(final String methodDescriptor) {
+    Type[] args = new Type[getArgumentCount(methodDescriptor)];
+    int charIdx = 1;
+    char c;
+    int argIdx = 0;
+    int startType;
+    while ((c = methodDescriptor.charAt(charIdx)) != ')') {
+      switch (c) {
+        case 'V':
+          throw new Unreachable();
+        case 'Z':
+          args[argIdx++] = Type.BOOLEAN_TYPE;
+          break;
+        case 'C':
+          args[argIdx++] = Type.CHAR_TYPE;
+          break;
+        case 'B':
+          args[argIdx++] = Type.BYTE_TYPE;
+          break;
+        case 'S':
+          args[argIdx++] = Type.SHORT_TYPE;
+          break;
+        case 'I':
+          args[argIdx++] = Type.INT_TYPE;
+          break;
+        case 'F':
+          args[argIdx++] = Type.FLOAT_TYPE;
+          break;
+        case 'J':
+          args[argIdx++] = Type.LONG_TYPE;
+          break;
+        case 'D':
+          args[argIdx++] = Type.DOUBLE_TYPE;
+          break;
+        case '[':
+          startType = charIdx;
+          while (methodDescriptor.charAt(++charIdx) == '[') {
+          }
+          if (methodDescriptor.charAt(charIdx) == 'L') {
+            while (methodDescriptor.charAt(++charIdx) != ';');
+          }
+          args[argIdx++] = getAsmType(methodDescriptor.substring(startType, charIdx + 1));
+          break;
+        case 'L':
+          startType = charIdx;
+          while (methodDescriptor.charAt(++charIdx) != ';');
+          args[argIdx++] = getAsmType(methodDescriptor.substring(startType, charIdx + 1));
+          break;
+        default:
+          throw new Unreachable();
+      }
+      charIdx++;
+    }
+    return args;
   }
 }

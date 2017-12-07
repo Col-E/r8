@@ -197,7 +197,7 @@ public class JarSourceCode implements SourceCode {
     this.method = method;
     this.clazz = clazz;
     this.callerPosition = callerPosition;
-    parameterTypes = Arrays.asList(Type.getArgumentTypes(node.desc));
+    parameterTypes = Arrays.asList(application.getArgumentTypes(node.desc));
     state = new JarState(node.maxLocals, node.localVariables, this, application);
     AbstractInsnNode first = node.instructions.getFirst();
     initialLabel = first instanceof LabelNode ? (LabelNode) first : null;
@@ -263,7 +263,7 @@ public class JarSourceCode implements SourceCode {
       LocalVariableNode local = (LocalVariableNode) o;
       Type localType;
       ValueType localValueType;
-      switch (Type.getType(local.desc).getSort()) {
+      switch (application.getAsmType(local.desc).getSort()) {
         case Type.OBJECT:
         case Type.ARRAY: {
           localType = JarState.NULL_TYPE;
@@ -331,7 +331,7 @@ public class JarSourceCode implements SourceCode {
 
     if (isSynchronized()) {
       generatingMethodSynchronization = true;
-      Type clazzType = Type.getType(clazz.toDescriptorString());
+      Type clazzType = application.getAsmType(clazz.toDescriptorString());
       int monitorRegister;
       if (isStatic()) {
         // Load the class using a temporary on the stack.
@@ -354,7 +354,7 @@ public class JarSourceCode implements SourceCode {
   private void buildArgumentInstructions(IRBuilder builder) {
     int argumentRegister = 0;
     if (!isStatic()) {
-      Type thisType = Type.getType(clazz.descriptor.toString());
+      Type thisType = application.getAsmType(clazz.descriptor.toString());
       Slot slot = state.readLocal(argumentRegister++, thisType);
       builder.addThisArgument(slot.register);
     }
@@ -375,7 +375,7 @@ public class JarSourceCode implements SourceCode {
         new Int2ReferenceOpenHashMap<>(node.localVariables.size());
     int argumentRegister = 0;
     if (!isStatic()) {
-      Type thisType = Type.getType(clazz.descriptor.toString());
+      Type thisType = application.getAsmType(clazz.descriptor.toString());
       int register = state.writeLocal(argumentRegister++, thisType);
       initializedLocals.put(register, valueType(thisType));
     }
@@ -878,8 +878,8 @@ public class JarSourceCode implements SourceCode {
     }
   }
 
-  private static MemberType memberType(String fieldDesc) {
-    return memberType(Type.getType(fieldDesc));
+  private MemberType memberType(String fieldDesc) {
+    return memberType(application.getAsmType(fieldDesc));
   }
 
   private static NumericType numericType(Type type) {
@@ -927,8 +927,8 @@ public class JarSourceCode implements SourceCode {
     }
   }
 
-  private static Type makeArrayType(Type elementType) {
-    return Type.getObjectType("[" + elementType.getDescriptor());
+  private Type makeArrayType(Type elementType) {
+    return application.getAsmObjectType("[" + elementType.getDescriptor());
   }
 
   private static String arrayTypeDesc(int arrayTypeCode) {
@@ -1205,7 +1205,7 @@ public class JarSourceCode implements SourceCode {
       }
       case Opcodes.POP: {
         Slot value = state.pop();
-        assert value.isCategory1();
+        value.isCategory1();
         break;
       }
       case Opcodes.POP2: {
@@ -1539,7 +1539,7 @@ public class JarSourceCode implements SourceCode {
       }
       case Opcodes.NEWARRAY: {
         String desc = arrayTypeDesc(insn.operand);
-        Type type = Type.getType(desc);
+        Type type = application.getAsmType(desc);
         state.pop();
         state.push(type);
         break;
@@ -1594,7 +1594,7 @@ public class JarSourceCode implements SourceCode {
   }
 
   private void updateState(TypeInsnNode insn) {
-    Type type = Type.getObjectType(insn.desc);
+    Type type = application.getAsmObjectType(insn.desc);
     switch (insn.getOpcode()) {
       case Opcodes.NEW: {
         state.push(type);
@@ -1624,7 +1624,7 @@ public class JarSourceCode implements SourceCode {
   }
 
   private void updateState(FieldInsnNode insn) {
-    Type type = Type.getType(insn.desc);
+    Type type = application.getAsmType(insn.desc);
     switch (insn.getOpcode()) {
       case Opcodes.GETSTATIC:
         state.push(type);
@@ -1657,14 +1657,13 @@ public class JarSourceCode implements SourceCode {
 
   private void updateStateForInvoke(String desc, boolean implicitReceiver) {
     // Pop arguments.
-    Type[] parameterTypes = Type.getArgumentTypes(desc);
-    state.popReverse(parameterTypes.length);
+    state.popReverse(application.getArgumentCount(desc));
     // Pop implicit receiver if needed.
     if (implicitReceiver) {
       state.pop();
     }
     // Push return value if needed.
-    Type returnType = Type.getReturnType(desc);
+    Type returnType = application.getReturnType(desc);
     if (returnType != Type.VOID_TYPE) {
       state.push(returnType);
     }
@@ -1747,7 +1746,7 @@ public class JarSourceCode implements SourceCode {
 
   private void updateState(MultiANewArrayInsnNode insn) {
     // Type of the full array.
-    Type arrayType = Type.getObjectType(insn.desc);
+    Type arrayType = application.getAsmObjectType(insn.desc);
     state.popReverse(insn.dims, Type.INT_TYPE);
     state.push(arrayType);
   }
@@ -2368,7 +2367,7 @@ public class JarSourceCode implements SourceCode {
       }
       case Opcodes.NEWARRAY: {
         String desc = arrayTypeDesc(insn.operand);
-        Type type = Type.getType(desc);
+        Type type = application.getAsmType(desc);
         DexType dexType = application.getTypeFromDescriptor(desc);
         int count = state.pop(Type.INT_TYPE).register;
         int array = state.push(type);
@@ -2423,7 +2422,7 @@ public class JarSourceCode implements SourceCode {
   }
 
   private void build(TypeInsnNode insn, IRBuilder builder) {
-    Type type = Type.getObjectType(insn.desc);
+    Type type = application.getAsmObjectType(insn.desc);
     switch (insn.getOpcode()) {
       case Opcodes.NEW: {
         DexType dexType = application.getTypeFromName(insn.desc);
@@ -2461,7 +2460,7 @@ public class JarSourceCode implements SourceCode {
 
   private void build(FieldInsnNode insn, IRBuilder builder) {
     DexField field = application.getField(insn.owner, insn.name, insn.desc);
-    Type type = Type.getType(insn.desc);
+    Type type = application.getAsmType(insn.desc);
     switch (insn.getOpcode()) {
       case Opcodes.GETSTATIC:
         builder.addStaticGet(state.push(type), field);
@@ -2492,7 +2491,7 @@ public class JarSourceCode implements SourceCode {
 
     buildInvoke(
         insn.desc,
-        Type.getObjectType(insn.owner),
+        application.getAsmObjectType(insn.owner),
         insn.getOpcode() != Opcodes.INVOKESTATIC,
         builder,
         (types, registers) -> {
@@ -2517,7 +2516,7 @@ public class JarSourceCode implements SourceCode {
 
     // Build the argument list of the form [owner, param1, ..., paramN].
     // The arguments are in reverse order on the stack, so we pop off the parameters here.
-    Type[] parameterTypes = Type.getArgumentTypes(methodDesc);
+    Type[] parameterTypes = application.getArgumentTypes(methodDesc);
     Slot[] parameterRegisters = state.popReverse(parameterTypes.length);
 
     List<ValueType> types = new ArrayList<>(parameterTypes.length + 1);
@@ -2537,7 +2536,7 @@ public class JarSourceCode implements SourceCode {
     creator.accept(types, registers);
 
     // Move the result to the "top of stack".
-    Type returnType = Type.getReturnType(methodDesc);
+    Type returnType = application.getReturnType(methodDesc);
     if (returnType != Type.VOID_TYPE) {
       builder.addMoveResult(state.push(returnType));
     }
@@ -2780,7 +2779,7 @@ public class JarSourceCode implements SourceCode {
 
   private void build(MultiANewArrayInsnNode insn, IRBuilder builder) throws ApiLevelException {
     // Type of the full array.
-    Type arrayType = Type.getObjectType(insn.desc);
+    Type arrayType = application.getAsmObjectType(insn.desc);
     DexType dexArrayType = application.getType(arrayType);
     // Type of the members. Can itself be of array type, eg, 'int[]' for 'new int[x][y][]'
     DexType memberType = application.getTypeFromDescriptor(insn.desc.substring(insn.dims));
