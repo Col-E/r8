@@ -6,6 +6,7 @@ package com.android.tools.r8.naming;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
+import com.android.tools.r8.utils.IdentifierUtils;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.HashMap;
@@ -78,6 +79,10 @@ public class ProguardMapReader implements AutoCloseable {
         : '\n';
   }
 
+  private boolean hasNext() {
+    return lineOffset < line.length();
+  }
+
   private char next() {
     try {
       return line.charAt(lineOffset++);
@@ -129,6 +134,9 @@ public class ProguardMapReader implements AutoCloseable {
   }
 
   private char expect(char c) {
+    if (!hasNext()) {
+      throw new ParseException("Expected '" + c + "'", true);
+    }
     if (next() != c) {
       throw new ParseException("Expected '" + c + "'");
     }
@@ -151,13 +159,18 @@ public class ProguardMapReader implements AutoCloseable {
       String before = parseType(false);
       skipWhitespace();
       // Workaround for proguard map files that contain entries for package-info.java files.
-      if (!acceptArrow()) {
-        // If this was a package-info line, we parsed the "package" string.
-        if (!before.endsWith("package") || !acceptString("-info")) {
-          throw new ParseException("Expected arrow after class name " + before);
-        }
+      assert IdentifierUtils.isDexIdentifierPart('-');
+      if (before.endsWith("package-info")) {
         skipLine();
         continue;
+      }
+      if (before.endsWith("-") && acceptString(">")) {
+        // With - as a legal identifier part the grammar is ambiguous, and we treat a->b as a -> b,
+        // and not as a- > b (which would be a parse error).
+        before = before.substring(0, before.length() - 1);
+      } else {
+        skipWhitespace();
+        acceptArrow();
       }
       skipWhitespace();
       String after = parseType(false);
@@ -286,17 +299,17 @@ public class ProguardMapReader implements AutoCloseable {
       next();
       isInit = true;
     }
-    if (!Character.isJavaIdentifierStart(peek())) {
+    if (!IdentifierUtils.isDexIdentifierStart(peek())) {
       throw new ParseException("Identifier expected");
     }
     next();
-    while (Character.isJavaIdentifierPart(peek())) {
+    while (IdentifierUtils.isDexIdentifierPart(peek())) {
       next();
     }
     if (isInit) {
       expect('>');
     }
-    if (Character.isJavaIdentifierPart(peek())) {
+    if (IdentifierUtils.isDexIdentifierPart(peek())) {
       throw new ParseException("End of identifier expected");
     }
   }
@@ -422,17 +435,27 @@ public class ProguardMapReader implements AutoCloseable {
 
     private final int lineNo;
     private final int lineOffset;
+    private final boolean eol;
     private final String msg;
 
     ParseException(String msg) {
+      this(msg, false);
+    }
+
+    ParseException(String msg, boolean eol) {
       lineNo = ProguardMapReader.this.lineNo;
       lineOffset = ProguardMapReader.this.lineOffset;
+      this.eol = eol;
       this.msg = msg;
     }
 
     @Override
     public String toString() {
-      return "Parse error [" + lineNo + ":" + lineOffset + "] " + msg;
+      if (eol) {
+        return "Parse error [" + lineNo + ":eol] " + msg;
+      } else {
+        return "Parse error [" + lineNo + ":" + lineOffset + "] " + msg;
+      }
     }
   }
 }
