@@ -105,8 +105,8 @@ public class DexDebugEventBuilder {
       }
     }
 
-    if (!isBlockExit && emittedPc != pc && pcAdvancing) {
-      // For non-exit / pc-advancing instructions emit any pending changes.
+    if (emittedPc != pc && pcAdvancing) {
+      // For pc-advancing instructions emit any pending changes.
       emitLocalChanges(pc);
     }
 
