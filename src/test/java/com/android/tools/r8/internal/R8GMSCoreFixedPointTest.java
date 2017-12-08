@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.internal;
 
-import static org.junit.Assert.assertEquals;
-
 import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.ToolHelper;
@@ -45,9 +43,6 @@ public class R8GMSCoreFixedPointTest extends GMSCoreCompilationTestBase {
               options.proguardMapConsumer = StringConsumer.emptyConsumer();
             });
 
-    // TODO: Require that the results of the two compilations are the same.
-    assertEquals(
-        app1.getDexProgramResources().size(),
-        app2.getDexProgramResources().size());
+    assertIdenticalApplicationsUpToCode(app1, app2, false);
   }
 }

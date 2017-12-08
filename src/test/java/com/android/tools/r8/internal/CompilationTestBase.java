@@ -5,6 +5,7 @@ package com.android.tools.r8.internal;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.CompilationException;
@@ -16,6 +17,8 @@ import com.android.tools.r8.R8Command;
 import com.android.tools.r8.R8RunArtTestsTest.CompilerUnderTest;
 import com.android.tools.r8.Resource;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.naming.MemberNaming.FieldSignature;
+import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
@@ -23,6 +26,9 @@ import com.android.tools.r8.utils.ArtErrorParser;
 import com.android.tools.r8.utils.ArtErrorParser.ArtErrorInfo;
 import com.android.tools.r8.utils.ArtErrorParser.ArtErrorParserException;
 import com.android.tools.r8.utils.DexInspector;
+import com.android.tools.r8.utils.DexInspector.FoundClassSubject;
+import com.android.tools.r8.utils.DexInspector.FoundFieldSubject;
+import com.android.tools.r8.utils.DexInspector.FoundMethodSubject;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.OutputMode;
@@ -34,8 +40,11 @@ import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import org.junit.ComparisonFailure;
 import org.junit.Rule;
@@ -170,6 +179,145 @@ public abstract class CompilationTestBase {
         byte[] bytes1 = ByteStreams.toByteArray(file1);
         byte[] bytes2 = ByteStreams.toByteArray(file2);
         assertArrayEquals("File index " + index, bytes1, bytes2);
+      }
+    }
+  }
+
+  public void assertIdenticalApplicationsUpToCode(
+      AndroidApp app1, AndroidApp app2, boolean allowNewClassesInApp2)
+      throws IOException, ExecutionException {
+    DexInspector inspect1 = new DexInspector(app1);
+    DexInspector inspect2 = new DexInspector(app2);
+
+    class Pair<T> {
+      private T first;
+      private T second;
+
+      private void set(boolean selectFirst, T value) {
+        if (selectFirst) {
+          first = value;
+        } else {
+          second = value;
+        }
+      }
+    }
+
+    // Collect all classes from both inspectors, indexed by finalDescriptor.
+    Map<String, Pair<FoundClassSubject>> allClasses = new HashMap<>();
+
+    BiConsumer<DexInspector, Boolean> collectClasses =
+        (inspector, selectFirst) -> {
+          inspector.forAllClasses(
+              clazz -> {
+                String finalDescriptor = clazz.getFinalDescriptor();
+                allClasses.compute(
+                    finalDescriptor,
+                    (k, v) -> {
+                      if (v == null) {
+                        v = new Pair<>();
+                      }
+                      v.set(selectFirst, clazz);
+                      return v;
+                    });
+              });
+        };
+
+    collectClasses.accept(inspect1, true);
+    collectClasses.accept(inspect2, false);
+
+    for (Map.Entry<String, Pair<FoundClassSubject>> classEntry : allClasses.entrySet()) {
+      String className = classEntry.getKey();
+      FoundClassSubject class1 = classEntry.getValue().first;
+      FoundClassSubject class2 = classEntry.getValue().second;
+
+      assert class1 != null || class2 != null;
+
+      if (!allowNewClassesInApp2) {
+        assertNotNull(String.format("Class %s is missing from the first app.", className), class1);
+      }
+      assertNotNull(String.format("Class %s is missing from the second app.", className), class2);
+
+      if (class1 == null) {
+        continue;
+      }
+
+      // Collect all methods for this class from both apps.
+      Map<MethodSignature, Pair<FoundMethodSubject>> allMethods = new HashMap<>();
+
+      BiConsumer<FoundClassSubject, Boolean> collectMethods =
+          (classSubject, selectFirst) -> {
+            classSubject.forAllMethods(
+                m -> {
+                  MethodSignature fs = m.getFinalSignature();
+                  allMethods.compute(
+                      fs,
+                      (k, v) -> {
+                        if (v == null) {
+                          v = new Pair<>();
+                        }
+                        v.set(selectFirst, m);
+                        return v;
+                      });
+                });
+          };
+
+      collectMethods.accept(class1, true);
+      collectMethods.accept(class2, false);
+
+      for (Map.Entry<MethodSignature, Pair<FoundMethodSubject>> methodEntry :
+          allMethods.entrySet()) {
+        MethodSignature signature = methodEntry.getKey();
+        FoundMethodSubject method1 = methodEntry.getValue().first;
+        FoundMethodSubject method2 = methodEntry.getValue().second;
+        assert method1 != null || method2 != null;
+
+        assertNotNull(
+            String.format(
+                "Method %s of class %s is missing from the first app.", signature, className),
+            method1);
+        assertNotNull(
+            String.format(
+                "Method %s of class %s is missing from the second app.", signature, className),
+            method2);
+      }
+
+      // Collect all fields for this class from both apps.
+      Map<FieldSignature, Pair<FoundFieldSubject>> allFields = new HashMap<>();
+
+      BiConsumer<FoundClassSubject, Boolean> collectFields =
+          (classSubject, selectFirst) -> {
+            classSubject.forAllFields(
+                f -> {
+                  FieldSignature fs = f.getFinalSignature();
+                  allFields.compute(
+                      fs,
+                      (k, v) -> {
+                        if (v == null) {
+                          v = new Pair<>();
+                        }
+                        v.set(selectFirst, f);
+                        return v;
+                      });
+                });
+          };
+
+      collectFields.accept(class1, true);
+      collectFields.accept(class2, false);
+
+      for (Map.Entry<FieldSignature, Pair<FoundFieldSubject>> fieldEntry : allFields.entrySet()) {
+        FieldSignature signature = fieldEntry.getKey();
+        FoundFieldSubject field1 = fieldEntry.getValue().first;
+        FoundFieldSubject field2 = fieldEntry.getValue().second;
+        assert field1 != null || field2 != null;
+
+        assertNotNull(
+            String.format(
+                "Field %s of class %s is missing from the first app.", signature, className),
+            field1);
+        assertNotNull(
+            String.format(
+                "Field %s of class %s is missing from the second app.", signature, className),
+            field2);
       }
     }
   }
