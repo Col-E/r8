@@ -173,14 +173,17 @@ public abstract class RunExamplesJava9Test
   private static Map<DexVm.Version, List<String>> failsOn =
       ImmutableMap.of(
           DexVm.Version.V4_4_4, ImmutableList.of(
+              "native-private-interface-methods",
               // Dex version not supported
               "varhandle"
           ),
           DexVm.Version.V5_1_1, ImmutableList.of(
+              "native-private-interface-methods",
               // Dex version not supported
               "varhandle"
           ),
           DexVm.Version.V6_0_1, ImmutableList.of(
+              "native-private-interface-methods",
               // Dex version not supported
               "varhandle"
           ),
@@ -192,6 +195,21 @@ public abstract class RunExamplesJava9Test
               // TODO(mikaelpeltier): Update runtime when the support will be ready
               "varhandle"
           )
+      );
+
+  // Defines methods failing on JVM, specifies the output to be used for comparison.
+  private static Map<String, String> expectedJvmResult =
+      ImmutableMap.of(
+          "native-private-interface-methods", "0: s>i>a\n"
+              + "1: d>i>s>i>a\n"
+              + "2: l>i>s>i>a\n"
+              + "3: x>s\n"
+              + "4: c>d>i>s>i>a\n",
+          "desugared-private-interface-methods", "0: s>i>a\n"
+              + "1: d>i>s>i>a\n"
+              + "2: l>i>s>i>a\n"
+              + "3: x>s\n"
+              + "4: c>d>i>s>i>a\n"
       );
 
   @Rule
@@ -212,6 +230,21 @@ public abstract class RunExamplesJava9Test
 
   boolean minSdkErrorExpected(String testName) {
     return minSdkErrorExpected.contains(testName);
+  }
+
+  @Test
+  public void nativePrivateInterfaceMethods() throws Throwable {
+    test("native-private-interface-methods", "privateinterfacemethods", "PrivateInterfaceMethods")
+        .withMinApiLevel(AndroidApiLevel.N.getLevel())
+        .run();
+  }
+
+  @Test
+  public void desugaredPrivateInterfaceMethods() throws Throwable {
+    test("desugared-private-interface-methods", "privateinterfacemethods",
+        "PrivateInterfaceMethods")
+        .withMinApiLevel(AndroidApiLevel.M.getLevel())
+        .run();
   }
 
   @Test
@@ -244,18 +277,25 @@ public abstract class RunExamplesJava9Test
         Arrays.stream(dexes).map(path -> path.toString()).collect(Collectors.toList()),
         qualifiedMainClass,
         null);
-    if (!expectedToFail) {
+    String jvmResult = null;
+    if (expectedJvmResult.containsKey(testName)) {
+      jvmResult = expectedJvmResult.get(testName);
+    } else if (!expectedToFail) {
       ToolHelper.ProcessResult javaResult =
           ToolHelper.runJava(
               Arrays.stream(jars).map(path -> path.toString()).collect(Collectors.toList()),
               qualifiedMainClass);
       assertEquals("JVM run failed", javaResult.exitCode, 0);
+      jvmResult = javaResult.stdout;
+    }
+
+    if (jvmResult != null) {
       assertTrue(
           "JVM output does not match art output.\n\tjvm: "
-              + javaResult.stdout
+              + jvmResult
               + "\n\tart: "
               + output.replace("\r", ""),
-          output.equals(javaResult.stdout.replace("\r", "")));
+          output.equals(jvmResult.replace("\r", "")));
     }
   }
 
