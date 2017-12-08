@@ -31,6 +31,22 @@ public class ProguardMapReaderTest {
   }
 
   @Test
+  public void parseIdentifierArrowAmbiguity1() throws IOException {
+    ClassNameMapper mapper = ClassNameMapper.mapperFromString("a->b:");
+    ClassNameMapper.Builder builder = ClassNameMapper.builder();
+    builder.classNamingBuilder("b", "a");
+    Assert.assertEquals(builder.build(), mapper);
+  }
+
+  @Test
+  public void parseIdentifierArrowAmbiguity2() throws IOException {
+    ClassNameMapper mapper = ClassNameMapper.mapperFromString("-->b:");
+    ClassNameMapper.Builder builder = ClassNameMapper.builder();
+    builder.classNamingBuilder("b", "-");
+    Assert.assertEquals(builder.build(), mapper);
+  }
+
+  @Test
   public void parseMapWithPackageInfo() throws IOException {
     ClassNameMapper mapper = ClassNameMapper.mapperFromString(EXAMPLE_MAP_WITH_PACKAGE_INFO);
     Assert.assertTrue(mapper.getObfuscatedToOriginalMapping().isEmpty());

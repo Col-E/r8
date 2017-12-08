@@ -6,6 +6,7 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.utils.IdentifierUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.io.UTFDataFormatException;
 import java.util.Arrays;
@@ -206,37 +207,6 @@ public class DexString extends IndexedDexItem implements PresortedComparable<Dex
     return slowCompareTo(other);
   }
 
-  private boolean isSimpleNameChar(char ch) {
-    if (ch >= 'A' && ch <= 'Z') {
-      return true;
-    }
-    if (ch >= 'a' && ch <= 'z') {
-      return true;
-    }
-    if (ch >= '0' && ch <= '9') {
-      return true;
-    }
-    if (ch == '$' || ch == '-' || ch == '_') {
-      return true;
-    }
-    if (ch >= 0x00a1 && ch <= 0x1fff) {
-      return true;
-    }
-    if (ch >= 0x2010 && ch <= 0x2027) {
-      return true;
-    }
-    if (ch >= 0x2030 && ch <= 0xd7ff) {
-      return true;
-    }
-    if (ch >= 0xe000 && ch <= 0xffef) {
-      return true;
-    }
-    if (ch >= 0x10000 && ch <= 0x10ffff) {
-      return true;
-    }
-    return false;
-  }
-
   private boolean isValidClassDescriptor(String string) {
     if (string.length() < 3
         || string.charAt(0) != 'L'
@@ -251,7 +221,7 @@ public class DexString extends IndexedDexItem implements PresortedComparable<Dex
       if (ch == '/') {
         continue;
       }
-      if (isSimpleNameChar(ch)) {
+      if (IdentifierUtils.isDexIdentifierPart(ch)) {
         continue;
       }
       return false;
@@ -273,7 +243,7 @@ public class DexString extends IndexedDexItem implements PresortedComparable<Dex
     }
     for (int i = 0; i < string.length(); i++) {
       char ch = string.charAt(i);
-      if (isSimpleNameChar(ch)) {
+      if (IdentifierUtils.isDexIdentifierPart(ch)) {
         continue;
       }
       return false;
@@ -296,7 +266,7 @@ public class DexString extends IndexedDexItem implements PresortedComparable<Dex
       }
     }
     for (int i = start; i < end; i++) {
-      if (isSimpleNameChar(string.charAt(i))) {
+      if (IdentifierUtils.isDexIdentifierPart(string.charAt(i))) {
         continue;
       }
       return false;
