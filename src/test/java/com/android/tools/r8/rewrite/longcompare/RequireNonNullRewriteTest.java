@@ -4,19 +4,18 @@
 package com.android.tools.r8.rewrite.longcompare;
 
 import com.android.tools.r8.CompilationException;
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.DexInspector.InstructionSubject;
 import com.android.tools.r8.utils.DexInspector.InvokeInstructionSubject;
 import com.android.tools.r8.utils.DexInspector.MethodSubject;
-import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -50,8 +49,7 @@ public class RequireNonNullRewriteTest {
     builder.setMainClass(mainClass);
     try {
       String output = ToolHelper.runArt(builder);
-      ProcessResult javaResult = ToolHelper
-          .runJava(ImmutableList.of(jarFile.toString()), mainClass);
+      ProcessResult javaResult = ToolHelper.runJava(jarFile, mainClass);
       Assert.assertEquals(javaResult.stdout, output);
     } catch (IOException e) {
       Assert.fail();

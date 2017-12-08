@@ -11,8 +11,6 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.dex.Constants;
-import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OffOrAuto;
@@ -87,8 +85,7 @@ public abstract class RunExamplesAndroidNTest<B> {
       }
       String output = ToolHelper.runArtNoVerificationErrors(out.toString(), qualifiedMainClass);
       if (!expectedToFail) {
-        ProcessResult javaResult =
-            ToolHelper.runJava(ImmutableList.of(inputFile.toString()), qualifiedMainClass);
+        ProcessResult javaResult = ToolHelper.runJava(inputFile, qualifiedMainClass);
         assertEquals("JVM run failed", javaResult.exitCode, 0);
         assertTrue(
             "JVM output does not match art output.\n\tjvm: "

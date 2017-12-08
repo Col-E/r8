@@ -10,7 +10,6 @@ import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
-import com.google.common.collect.ImmutableList;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -47,7 +46,7 @@ public class AsmTestBase extends TestBase {
 
   protected ProcessResult runOnJava(String main, byte[]... classes) throws IOException {
     Path file = writeToZip(classes);
-    return ToolHelper.runJavaNoVerify(ImmutableList.of(file.toString()), main);
+    return ToolHelper.runJavaNoVerify(file, main);
   }
 
   private Path writeToZip(byte[]... classes) throws IOException {
