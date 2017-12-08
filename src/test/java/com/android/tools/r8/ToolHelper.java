@@ -783,25 +783,35 @@ public class ToolHelper {
   public static ProcessResult runJava(Class clazz) throws Exception {
     String main = clazz.getCanonicalName();
     Path path = getClassPathForTests();
-    return runJava(ImmutableList.of(path.toString()), main);
+    return runJava(path, main);
   }
 
   public static ProcessResult runJavaNoVerify(Class clazz) throws Exception {
     String main = clazz.getCanonicalName();
     Path path = getClassPathForTests();
-    return runJavaNoVerify(ImmutableList.of(path.toString()), main);
+    return runJavaNoVerify(path, main);
   }
 
-  public static ProcessResult runJava(List<String> classpath, String mainClass) throws IOException {
-    ProcessBuilder builder = new ProcessBuilder(
-        getJavaExecutable(), "-cp", String.join(PATH_SEPARATOR, classpath), mainClass);
+  public static ProcessResult runJava(Path classpath, String mainClass) throws IOException {
+    return runJava(ImmutableList.of(classpath), mainClass);
+  }
+
+  public static ProcessResult runJava(List<Path> classpath, String mainClass) throws IOException {
+    String cp = classpath.stream().map(Path::toString).collect(Collectors.joining(PATH_SEPARATOR));
+    ProcessBuilder builder = new ProcessBuilder(getJavaExecutable(), "-cp", cp, mainClass);
     return runProcess(builder);
   }
 
-  public static ProcessResult runJavaNoVerify(List<String> classpath, String mainClass)
+  public static ProcessResult runJavaNoVerify(Path classpath, String mainClass)
       throws IOException {
+    return runJavaNoVerify(ImmutableList.of(classpath), mainClass);
+  }
+
+  public static ProcessResult runJavaNoVerify(List<Path> classpath, String mainClass)
+      throws IOException {
+    String cp = classpath.stream().map(Path::toString).collect(Collectors.joining(PATH_SEPARATOR));
     ProcessBuilder builder = new ProcessBuilder(
-        getJavaExecutable(), "-cp", String.join(PATH_SEPARATOR, classpath), "-noverify", mainClass);
+        getJavaExecutable(), "-cp", cp, "-noverify", mainClass);
     return runProcess(builder);
   }
 

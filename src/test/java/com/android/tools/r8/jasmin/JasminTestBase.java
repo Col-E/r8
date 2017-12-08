@@ -31,14 +31,14 @@ public class JasminTestBase extends TestBase {
   protected ProcessResult runOnJavaRaw(JasminBuilder builder, String main) throws Exception {
     Path out = temp.newFolder().toPath();
     builder.writeClassFiles(out);
-    return ToolHelper.runJava(ImmutableList.of(out.toString()), main);
+    return ToolHelper.runJava(out, main);
   }
 
   protected ProcessResult runOnJavaNoVerifyRaw(JasminBuilder builder, String main)
       throws Exception {
     Path out = temp.newFolder().toPath();
     builder.writeClassFiles(out);
-    return ToolHelper.runJavaNoVerify(ImmutableList.of(out.toString()), main);
+    return ToolHelper.runJavaNoVerify(out, main);
   }
 
   protected ProcessResult runOnJavaNoVerifyRaw(JasminBuilder program, JasminBuilder library,
@@ -48,8 +48,7 @@ public class JasminTestBase extends TestBase {
     program.writeClassFiles(out);
     Path libraryOut = temp.newFolder().toPath();
     library.writeClassFiles(libraryOut);
-    return ToolHelper.runJavaNoVerify(ImmutableList.of(out.toString(), libraryOut.toString()),
-        main);
+    return ToolHelper.runJavaNoVerify(ImmutableList.of(out, libraryOut), main);
   }
 
   private String assertNormalExitAndGetStdout(ProcessResult result) {

@@ -15,7 +15,6 @@ import com.android.tools.r8.R8RunArtTestsTest.DexTool;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.errors.Unreachable;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
@@ -281,8 +280,7 @@ public class R8RunExamplesTest {
     String original = getOriginalDexFile().toString();
     Path generated = getOutputFile();
 
-    ToolHelper.ProcessResult javaResult =
-        ToolHelper.runJava(ImmutableList.of(getOriginalJarFile("").toString()), mainClass);
+    ToolHelper.ProcessResult javaResult = ToolHelper.runJava(getOriginalJarFile(""), mainClass);
     if (javaResult.exitCode != 0) {
       System.out.println(javaResult.stdout);
       System.err.println(javaResult.stderr);
@@ -299,8 +297,7 @@ public class R8RunExamplesTest {
     }
 
     if (output == Output.CF) {
-      ToolHelper.ProcessResult result =
-          ToolHelper.runJava(ImmutableList.of(generated.toString()), mainClass);
+      ToolHelper.ProcessResult result = ToolHelper.runJava(generated, mainClass);
       if (result.exitCode != 0) {
         System.err.println(result.stderr);
         fail("JVM failed on compiled output for: " + mainClass);

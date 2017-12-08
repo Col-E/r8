@@ -244,9 +244,7 @@ public abstract class RunExamplesAndroidPTest
         null);
     if (!expectedToFail) {
       ToolHelper.ProcessResult javaResult =
-          ToolHelper.runJava(
-              Arrays.stream(jars).map(path -> path.toString()).collect(Collectors.toList()),
-              qualifiedMainClass);
+          ToolHelper.runJava(ImmutableList.copyOf(jars), qualifiedMainClass);
       assertEquals("JVM run failed", javaResult.exitCode, 0);
       assertTrue(
           "JVM output does not match art output.\n\tjvm: "
