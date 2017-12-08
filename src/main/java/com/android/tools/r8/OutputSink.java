@@ -54,21 +54,6 @@ public interface OutputSink {
       throws IOException;
 
   /**
-   * Write a Java classfile that contains the class primaryClassName and its companion classes.
-   * <p>
-   * This is equivalent to writing out the file com/foo/bar/Test.class given a primaryClassName of
-   * com.foo.bar.Test.
-   * <p>
-   * There is no guaranteed order and files might be written concurrently. However, for each
-   * primaryClassName only one file is ever written.
-   * <p>
-   * This method is only invoked by R8 and only if compiling to Java bytecode. If this method is
-   * called, the other writeDexFile and writeClassFile methods will not be called.
-   */
-  void writeClassFile(byte[] contents, Set<String> classDescriptors, String primaryClassName)
-      throws IOException;
-
-  /**
    * Closes the output sink.
    * <p>
    * This method is invokes once all output has been generated.

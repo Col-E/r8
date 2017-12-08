@@ -15,8 +15,10 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.function.Predicate;
+import java.util.zip.CRC32;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+import java.util.zip.ZipOutputStream;
 
 public class ZipUtils {
 
@@ -61,5 +63,19 @@ public class ZipUtils {
         }
       });
     return outFiles;
+  }
+
+  public static void writeToZipStream(ZipOutputStream stream, String entry, byte[] content)
+      throws IOException {
+    CRC32 crc = new CRC32();
+    crc.update(content);
+    ZipEntry zipEntry = new ZipEntry(entry);
+    zipEntry.setMethod(ZipEntry.STORED);
+    zipEntry.setSize(content.length);
+    zipEntry.setCompressedSize(content.length);
+    zipEntry.setCrc(crc.getValue());
+    stream.putNextEntry(zipEntry);
+    stream.write(content);
+    stream.closeEntry();
   }
 }

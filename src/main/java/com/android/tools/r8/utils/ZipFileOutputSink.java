@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
-import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.DEX_EXTENSION;
 
 import java.io.IOException;
@@ -11,8 +10,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Set;
-import java.util.zip.CRC32;
-import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 public class ZipFileOutputSink extends FileSystemOutputSink {
@@ -39,26 +36,11 @@ public class ZipFileOutputSink extends FileSystemOutputSink {
   }
 
   @Override
-  public void writeClassFile(byte[] contents, Set<String> classDescriptors, String primaryClassName)
-      throws IOException {
-    writeToZipFile(getOutputFileName(primaryClassName, CLASS_EXTENSION), contents);
-  }
-
-  @Override
   public void close() throws IOException {
     outputStream.close();
   }
 
   private synchronized void writeToZipFile(String outputPath, byte[] content) throws IOException {
-    CRC32 crc = new CRC32();
-    crc.update(content);
-    ZipEntry zipEntry = new ZipEntry(outputPath);
-    zipEntry.setMethod(ZipEntry.STORED);
-    zipEntry.setSize(content.length);
-    zipEntry.setCompressedSize(content.length);
-    zipEntry.setCrc(crc.getValue());
-    outputStream.putNextEntry(zipEntry);
-    outputStream.write(content);
-    outputStream.closeEntry();
+    ZipUtils.writeToZipStream(outputStream, outputPath, content);
   }
 }

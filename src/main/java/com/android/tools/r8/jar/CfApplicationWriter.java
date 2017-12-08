@@ -5,7 +5,7 @@ package com.android.tools.r8.jar;
 
 import static org.objectweb.asm.Opcodes.ASM6;
 
-import com.android.tools.r8.OutputSink;
+import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexApplication;
@@ -13,11 +13,11 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.InnerClassAttribute;
+import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.Collections;
 import java.util.concurrent.ExecutorService;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
@@ -37,20 +37,20 @@ public class CfApplicationWriter {
     this.options = options;
   }
 
-  public void write(OutputSink outputSink, ExecutorService executor) throws IOException {
+  public void write(ClassFileConsumer consumer, ExecutorService executor) throws IOException {
     application.timing.begin("CfApplicationWriter.write");
     try {
-      writeApplication(outputSink, executor);
+      writeApplication(consumer, executor);
     } finally {
       application.timing.end();
     }
   }
 
-  private void writeApplication(OutputSink outputSink, ExecutorService executor)
+  private void writeApplication(ClassFileConsumer consumer, ExecutorService executor)
       throws IOException {
     for (DexProgramClass clazz : application.classes()) {
       if (clazz.getSynthesizedFrom().isEmpty()) {
-        writeClass(clazz, outputSink);
+        writeClass(clazz, consumer);
       } else {
         throw new Unimplemented("No support for synthetics in the Java bytecode backend.");
       }
@@ -62,7 +62,7 @@ public class CfApplicationWriter {
     return version > 49 ? 49 : version;
   }
 
-  private void writeClass(DexProgramClass clazz, OutputSink outputSink) throws IOException {
+  private void writeClass(DexProgramClass clazz, ClassFileConsumer consumer) throws IOException {
     ClassWriter writer = new ClassWriter(0);
     writer.visitSource(clazz.sourceFile != null ? clazz.sourceFile.toString() : null, null);
     int version = downgrade(clazz.getClassFileVersion());
@@ -102,7 +102,8 @@ public class CfApplicationWriter {
 
     byte[] result = writer.toByteArray();
     assert verifyCf(result);
-    outputSink.writeClassFile(result, Collections.singleton(desc), desc);
+    ExceptionUtils.withConsumeResourceHandler(
+        options.reporter, handler -> consumer.accept(result, desc, handler));
   }
 
   private Object getStaticValue(DexEncodedField field) {

@@ -609,9 +609,10 @@ public class IRConverter {
   }
 
   private void finalizeIR(DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
-    if (options.outputClassFiles) {
+    if (options.isGeneratingClassFiles()) {
       finalizeToCf(method, code, feedback);
     } else {
+      assert options.isGeneratingDex();
       finalizeToDex(method, code, feedback);
     }
   }

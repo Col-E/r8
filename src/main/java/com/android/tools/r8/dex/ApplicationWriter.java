@@ -208,21 +208,21 @@ public class ApplicationWriter {
 
       if (options.usageInformationConsumer != null && deadCode != null) {
         ExceptionUtils.withConsumeResourceHandler(
-            options.reporter, deadCode, options.usageInformationConsumer);
+            options.reporter, options.usageInformationConsumer, deadCode);
       }
       // Write the proguard map file after writing the dex files, as the map writer traverses
       // the DexProgramClass structures, which are destructively updated during dex file writing.
       if (proguardMapSupplier != null && options.proguardMapConsumer != null) {
         ExceptionUtils.withConsumeResourceHandler(
-            options.reporter, proguardMapSupplier.get(), options.proguardMapConsumer);
+            options.reporter, options.proguardMapConsumer, proguardMapSupplier.get());
       }
       if (options.proguardSeedsConsumer != null && proguardSeedsData != null) {
         ExceptionUtils.withConsumeResourceHandler(
-            options.reporter, proguardSeedsData, options.proguardSeedsConsumer);
+            options.reporter, options.proguardSeedsConsumer, proguardSeedsData);
       }
       if (options.mainDexListConsumer != null) {
         ExceptionUtils.withConsumeResourceHandler(
-            options.reporter, writeMainDexList(), options.mainDexListConsumer);
+            options.reporter, options.mainDexListConsumer, writeMainDexList());
       }
     } finally {
       application.timing.end();

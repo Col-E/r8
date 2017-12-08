@@ -631,6 +631,7 @@ public class MainDexListTests extends TestBase {
       executor.shutdown();
     }
     compatSink.close();
+    options.closeProgramConsumer();
     return compatSink.build();
   }
 

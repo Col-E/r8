@@ -112,8 +112,9 @@ public class R8 {
       throws ExecutionException, DexOverflowException {
     try {
       Marker marker = getMarker(options);
-      if (options.outputClassFiles) {
-        new CfApplicationWriter(application, options).write(outputSink, executorService);
+      if (options.isGeneratingClassFiles()) {
+        new CfApplicationWriter(application, options)
+            .write(options.getClassFileConsumer(), executorService);
       } else {
         new ApplicationWriter(
                 application,
@@ -392,6 +393,7 @@ public class R8 {
       throw new AssertionError(e); // unwrapping method should have thrown
     } finally {
       outputSink.close();
+      options.closeProgramConsumer();
       // Dump timings.
       if (options.printTimes) {
         timing.report();

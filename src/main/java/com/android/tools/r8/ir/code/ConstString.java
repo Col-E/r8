@@ -103,7 +103,7 @@ public class ConstString extends ConstInstruction {
   @Override
   public boolean canBeDeadCode(IRCode code, InternalOptions options) {
     // No side-effect, such as throwing an exception, in CF.
-    return options.outputClassFiles || !instructionInstanceCanThrow();
+    return options.isGeneratingClassFiles() || !instructionInstanceCanThrow();
   }
 
   @Override

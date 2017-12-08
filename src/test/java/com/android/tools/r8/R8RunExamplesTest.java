@@ -257,10 +257,14 @@ public class R8RunExamplesTest {
       case R8: {
         ToolHelper.runR8(R8Command.builder()
             .addProgramFiles(getInputFile())
-            .setOutputPath(getOutputFile())
+            .setOutputPath(output == Output.CF ? null : getOutputFile())
             .setMode(mode)
             .build(),
-            options -> options.outputClassFiles = (output == Output.CF));
+            options -> {
+              if (output == Output.CF) {
+                options.programConsumer = new ClassFileConsumer.ArchiveConsumer(getOutputFile());
+              }
+            });
         break;
       }
       default:
