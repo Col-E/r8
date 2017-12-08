@@ -103,14 +103,6 @@ public class AndroidAppOutputSink extends ForwardingOutputSink {
   }
 
   @Override
-  public synchronized void writeClassFile(
-      byte[] contents, Set<String> classDescriptors, String primaryClassName) throws IOException {
-    assert dexFilesWithPrimary.isEmpty() && dexFilesWithId.isEmpty();
-    classFiles.add(new DescriptorsWithContents(classDescriptors, contents));
-    super.writeClassFile(contents, classDescriptors, primaryClassName);
-  }
-
-  @Override
   public void close() throws IOException {
     assert !closed;
     if (!dexFilesWithPrimary.isEmpty()) {

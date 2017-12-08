@@ -217,6 +217,7 @@ public final class D8 {
       R8.unwrapExecutionException(e);
       throw new AssertionError(e); // unwrapping method should have thrown
     } finally {
+      options.closeProgramConsumer();
       outputSink.close();
     }
   }

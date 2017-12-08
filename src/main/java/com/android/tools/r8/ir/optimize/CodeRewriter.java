@@ -709,7 +709,7 @@ public class CodeRewriter {
 
   // Replace result uses for methods where something is known about what is returned.
   public void rewriteMoveResult(IRCode code) {
-    if (options.outputClassFiles) {
+    if (options.isGeneratingClassFiles()) {
       return;
     }
     AppInfoWithSubtyping appInfoWithSubtyping = appInfo.withSubtyping();
@@ -739,7 +739,7 @@ public class CodeRewriter {
                     argumentIndex)) {
                   Value argument = invoke.arguments().get(argumentIndex);
                   assert invoke.outType().compatible(argument.outType())
-                      || (!options.outputClassFiles && verifyCompatibleFromDex(invoke, argument));
+                      || (options.isGeneratingDex() && verifyCompatibleFromDex(invoke, argument));
                   invoke.outValue().replaceUsers(argument);
                   invoke.setOutValue(null);
                 }
@@ -1397,7 +1397,7 @@ public class CodeRewriter {
    * and fill-array-data / filled-new-array.
    */
   public void simplifyArrayConstruction(IRCode code) {
-    if (options.outputClassFiles) {
+    if (options.isGeneratingClassFiles()) {
       return;
     }
     for (BasicBlock block : code.blocks) {

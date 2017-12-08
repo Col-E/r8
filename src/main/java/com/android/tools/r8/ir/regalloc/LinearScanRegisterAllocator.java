@@ -1934,7 +1934,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       }
       intervals.addRange(new LiveRange(instructionNumber, end));
       assert unconstrainedForCf(intervals.getRegisterLimit(), options);
-      if (!options.outputClassFiles && !value.isPhi()) {
+      if (options.isGeneratingDex() && !value.isPhi()) {
         int constraint = value.definition.maxOutValueRegister();
         intervals.addUse(new LiveIntervalsUse(instructionNumber, constraint));
       }
@@ -1996,7 +1996,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
                 instruction.getNumber() + INSTRUCTION_NUMBER_DELTA,
                 liveIntervals,
                 options);
-            assert !options.outputClassFiles || instruction.isArgument()
+            assert !options.isGeneratingClassFiles() || instruction.isArgument()
                 : "Arguments should be the only potentially unused local in CF";
           }
           live.remove(definition);
@@ -2008,7 +2008,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
               live.add(use);
               addLiveRange(use, block, instruction.getNumber(), liveIntervals, options);
             }
-            if (!options.outputClassFiles) {
+            if (options.isGeneratingDex()) {
               int inConstraint = instruction.maxInValueRegister();
               LiveIntervals useIntervals = use.getLiveIntervals();
               useIntervals.addUse(new LiveIntervalsUse(instruction.getNumber(), inConstraint));
@@ -2030,7 +2030,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   }
 
   private static boolean unconstrainedForCf(int constraint, InternalOptions options) {
-    return !options.outputClassFiles || constraint == Constants.U16BIT_MAX;
+    return !options.isGeneratingClassFiles() || constraint == Constants.U16BIT_MAX;
   }
 
   private void clearUserInfo() {

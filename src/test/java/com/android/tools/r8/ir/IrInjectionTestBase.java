@@ -128,6 +128,7 @@ public class IrInjectionTestBase extends SmaliTestBase {
             null,
             options,
             null);
+        options.closeProgramConsumer();
         compatSink.close();
         return compatSink.build();
       } catch (ExecutionException | IOException e) {

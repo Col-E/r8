@@ -25,6 +25,7 @@ public interface StringConsumer {
    * <p>The consumer is expected not to throw, but instead report any errors via the diagnostics
    * {@param handler}. If an error is reported via {@param handler} and no exceptions are thrown,
    * then the compiler guaranties to exit with an error.
+   *
    * @param string String resource.
    * @param handler Diagnostics handler for reporting.
    */

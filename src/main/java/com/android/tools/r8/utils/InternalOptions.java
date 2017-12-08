@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
+import com.android.tools.r8.ClassFileConsumer;
+import com.android.tools.r8.ProgramConsumer;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.errors.InvalidDebugInfoException;
@@ -35,6 +37,9 @@ public class InternalOptions {
   public final ProguardConfiguration proguardConfiguration;
   public final Reporter reporter;
 
+  // TODO(zerny): Make this private-final once we have full program-consumer support.
+  public ProgramConsumer programConsumer = null;
+
   // Constructor for testing and/or other utilities.
   public InternalOptions() {
     reporter = new Reporter(new DefaultDiagnosticsHandler());
@@ -61,8 +66,6 @@ public class InternalOptions {
   }
 
   public boolean printTimes = false;
-
-  public boolean outputClassFiles = false;
 
   // Optimization-related flags. These should conform to -dontoptimize.
   public boolean skipDebugLineNumberOpt = false;
@@ -97,6 +100,24 @@ public class InternalOptions {
   public Marker getMarker() {
     assert hasMarker();
     return marker;
+  }
+
+  public boolean isGeneratingDex() {
+    return programConsumer == null;
+  }
+
+  public boolean isGeneratingClassFiles() {
+    return programConsumer instanceof ClassFileConsumer;
+  }
+
+  public ClassFileConsumer getClassFileConsumer() {
+    return (ClassFileConsumer) programConsumer;
+  }
+
+  public void closeProgramConsumer() {
+    if (programConsumer != null) {
+      programConsumer.finished(reporter);
+    }
   }
 
   public List<String> methodsFilter = ImmutableList.of();

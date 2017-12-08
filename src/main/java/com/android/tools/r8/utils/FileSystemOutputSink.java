@@ -25,7 +25,6 @@ public abstract class FileSystemOutputSink implements OutputSink {
   }
 
   String getOutputFileName(int index) {
-    assert !options.outputClassFiles;
     return index == 0 ? "classes.dex" : ("classes" + (index + 1) + FileUtils.DEX_EXTENSION);
   }
 
