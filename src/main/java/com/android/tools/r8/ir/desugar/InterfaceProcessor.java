@@ -55,7 +55,7 @@ final class InterfaceProcessor {
         Code code = virtual.getCode();
         if (code == null) {
           throw new CompilationError("Code is missing for default "
-              + "interface method: " + virtual.method.toSourceString());
+              + "interface method: " + virtual.method.toSourceString(), iface.origin);
         }
 
         MethodAccessFlags newFlags = virtual.accessFlags.copy();
@@ -88,24 +88,53 @@ final class InterfaceProcessor {
     }
     remainingMethods.clear();
 
-    // Process static methods, move them into companion class as well.
+    // Process static and private methods, move them into companion class as well,
+    // make private instance methods static.
     for (DexEncodedMethod direct : iface.directMethods()) {
-      if (direct.accessFlags.isPrivate()) {
-        // We only expect to see private methods which are lambda$ methods,
-        // and they are supposed to be relaxed to package private static methods
-        // by this time by lambda rewriter.
-        throw new Unimplemented("Private method are not yet supported.");
+      MethodAccessFlags originalFlags = direct.accessFlags;
+      MethodAccessFlags newFlags = originalFlags.copy();
+      if (originalFlags.isPrivate()) {
+        newFlags.unsetPrivate();
+        newFlags.setPublic();
       }
 
       if (isStaticMethod(direct)) {
+        assert originalFlags.isPrivate() || originalFlags.isPublic()
+            : "Static interface method " + direct.toSourceString() + " is expected to "
+            + "either be public or private in " + iface.origin;
         companionMethods.add(new DexEncodedMethod(
-            rewriter.staticAsMethodOfCompanionClass(direct.method), direct.accessFlags,
+            rewriter.staticAsMethodOfCompanionClass(direct.method), newFlags,
             direct.annotations, direct.parameterAnnotations, direct.getCode()));
+
       } else {
-        // Since there are no interface constructors at this point,
-        // this should only be class constructor.
-        assert rewriter.factory.isClassConstructor(direct.method);
-        remainingMethods.add(direct);
+        if (originalFlags.isPrivate()) {
+          assert !rewriter.factory.isClassConstructor(direct.method)
+              : "Unexpected private constructor " + direct.toSourceString()
+              + " in " + iface.origin;
+          newFlags.setStatic();
+
+          DexMethod companionMethod = rewriter.privateAsMethodOfCompanionClass(direct.method);
+
+          Code code = direct.getCode();
+          if (code == null) {
+            throw new CompilationError("Code is missing for private instance "
+                + "interface method: " + direct.method.toSourceString(), iface.origin);
+          }
+          DexCode dexCode = code.asDexCode();
+          // TODO(ager): Should we give the new first parameter an actual name? Maybe 'this'?
+          dexCode.setDebugInfo(dexCode.debugInfoWithAdditionalFirstParameter(null));
+          assert (dexCode.getDebugInfo() == null)
+              || (companionMethod.getArity() == dexCode.getDebugInfo().parameters.length);
+
+          companionMethods.add(new DexEncodedMethod(companionMethod,
+              newFlags, direct.annotations, direct.parameterAnnotations, code));
+
+        } else {
+          // Since there are no interface constructors at this point,
+          // this should only be class constructor.
+          assert rewriter.factory.isClassConstructor(direct.method);
+          remainingMethods.add(direct);
+        }
       }
     }
     if (remainingMethods.size() < iface.directMethods().length) {

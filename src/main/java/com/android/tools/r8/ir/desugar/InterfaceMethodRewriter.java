@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.ApiLevelException;
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.DexApplication.Builder;
 import com.android.tools.r8.graph.DexCallSite;
@@ -21,9 +22,11 @@ import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
+import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeSuper;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.Sets;
@@ -62,6 +65,7 @@ public final class InterfaceMethodRewriter {
   // Public for testing.
   public static final String COMPANION_CLASS_NAME_SUFFIX = "-CC";
   private static final String DEFAULT_METHOD_PREFIX = "$default$";
+  private static final String PRIVATE_METHOD_PREFIX = "$private$";
 
   private final IRConverter converter;
   private final InternalOptions options;
@@ -156,7 +160,7 @@ public final class InterfaceMethodRewriter {
             // exception but we can not report it as error since it can also be the intended
             // behavior.
             warnMissingType(encodedMethod.method, method.holder);
-          } else if (clazz != null && (clazz.isInterface() && !clazz.isLibraryClass())) {
+          } else if (clazz.isInterface() && !clazz.isLibraryClass()) {
             // NOTE: we intentionally don't desugar super calls into interface methods
             // coming from android.jar since it is only possible in case v24+ version
             // of android.jar is provided.
@@ -165,6 +169,35 @@ public final class InterfaceMethodRewriter {
             instructions.replaceCurrentInstruction(
                 new InvokeStatic(defaultAsMethodOfCompanionClass(method),
                     invokeSuper.outValue(), invokeSuper.arguments()));
+          }
+          continue;
+        }
+
+        if (instruction.isInvokeDirect()) {
+          InvokeDirect invokeDirect = instruction.asInvokeDirect();
+          DexMethod method = invokeDirect.getInvokedMethod();
+          if (factory.isConstructor(method)) {
+            continue;
+          }
+
+          // This is a private instance method call. Note that the referenced method
+          // is expected to be in the current class since it is private, but desugaring
+          // may move some methods or their code into other classes.
+          DexClass clazz = findDefinitionFor(method.holder);
+          if (clazz == null) {
+            // Report missing class since we don't know if it is an interface.
+            warnMissingType(encodedMethod.method, method.holder);
+
+          } else if (clazz.isInterface()) {
+            if (clazz.isLibraryClass()) {
+              throw new CompilationError("Unexpected call to a private method " +
+                  "defined in library class " + clazz.toSourceString(),
+                  getMethodOrigin(encodedMethod.method));
+
+            }
+            instructions.replaceCurrentInstruction(
+                new InvokeStatic(privateAsMethodOfCompanionClass(method),
+                    invokeDirect.outValue(), invokeDirect.arguments()));
           }
         }
       }
@@ -204,6 +237,20 @@ public final class InterfaceMethodRewriter {
     return factory.createType(ccTypeDescriptor);
   }
 
+  // Checks if `type` is a companion class.
+  private boolean isCompanionClassType(DexType type) {
+    return type.descriptor.toString().endsWith(COMPANION_CLASS_NAME_SUFFIX + ";");
+  }
+
+  // Gets the interface class for a companion class `type`.
+  private DexType getInterfaceClassType(DexType type) {
+    assert isCompanionClassType(type);
+    String descriptor = type.descriptor.toString();
+    String interfaceTypeDescriptor = descriptor.substring(0,
+        descriptor.length() - 1 - COMPANION_CLASS_NAME_SUFFIX.length()) + ";";
+    return factory.createType(interfaceTypeDescriptor);
+  }
+
   private boolean isInMainDexList(DexType iface) {
     return converter.appInfo.isInMainDexList(iface);
   }
@@ -214,8 +261,7 @@ public final class InterfaceMethodRewriter {
     return factory.createMethod(getCompanionClassType(method.holder), method.proto, method.name);
   }
 
-  // Represent a default interface method as a method of companion class.
-  final DexMethod defaultAsMethodOfCompanionClass(DexMethod method) {
+  private DexMethod instanceAsMethodOfCompanionClass(DexMethod method, String prefix) {
     // Add an implicit argument to represent the receiver.
     DexType[] params = method.proto.parameters.values;
     DexType[] newParams = new DexType[params.length + 1];
@@ -225,7 +271,18 @@ public final class InterfaceMethodRewriter {
     // Add prefix to avoid name conflicts.
     return factory.createMethod(getCompanionClassType(method.holder),
         factory.createProto(method.proto.returnType, newParams),
-        factory.createString(DEFAULT_METHOD_PREFIX + method.name.toString()));
+        factory.createString(prefix + method.name.toString()));
+  }
+
+  // Represent a default interface method as a method of companion class.
+  final DexMethod defaultAsMethodOfCompanionClass(DexMethod method) {
+    return instanceAsMethodOfCompanionClass(method, DEFAULT_METHOD_PREFIX);
+  }
+
+  // Represent a private instance interface method as a method of companion class.
+  final DexMethod privateAsMethodOfCompanionClass(DexMethod method) {
+    // Add an implicit argument to represent the receiver.
+    return instanceAsMethodOfCompanionClass(method, PRIVATE_METHOD_PREFIX);
   }
 
   /**
@@ -337,8 +394,16 @@ public final class InterfaceMethodRewriter {
         .append("it is required for default or static interface methods desugaring of `")
         .append(referencedFrom.toSourceString())
         .append("`");
-    DexClass referencedFromClass = converter.appInfo.definitionFor(referencedFrom.getHolder());
     options.reporter.warning(
-        new StringDiagnostic(builder.toString(), referencedFromClass.getOrigin()));
+        new StringDiagnostic(builder.toString(), getMethodOrigin(referencedFrom)));
+  }
+
+  private Origin getMethodOrigin(DexMethod method) {
+    DexType holder = method.getHolder();
+    if (isCompanionClassType(holder)) {
+      holder = getInterfaceClassType(holder);
+    }
+    DexClass clazz = converter.appInfo.definitionFor(holder);
+    return clazz == null ? Origin.unknown() : clazz.getOrigin();
   }
 }
