@@ -14,4 +14,8 @@ public class Unreachable extends InternalCompilerError {
   public Unreachable(String s) {
     super(s);
   }
+
+  public Unreachable(Throwable cause) {
+    super(cause);
+  }
 }

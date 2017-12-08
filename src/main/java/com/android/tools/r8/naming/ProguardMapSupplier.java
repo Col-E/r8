@@ -6,7 +6,6 @@ package com.android.tools.r8.naming;
 import com.android.tools.r8.graph.DexApplication;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.Writer;
 
@@ -47,11 +46,9 @@ public class ProguardMapSupplier {
     assert namingLens != null && application != null;
     // TODO(herhut): Should writing of the proguard-map file be split like this?
     if (!namingLens.isIdentityLens()) {
-      ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-      PrintStream stream = new PrintStream(bytes);
-      new MinifiedNameMapPrinter(application, namingLens).write(stream);
-      stream.flush();
-      return bytes.toString();
+      StringBuilder map = new StringBuilder();
+      new MinifiedNameMapPrinter(application, namingLens).write(map);
+      return map.toString();
     }
     if (application.getProguardMap() != null) {
       ByteArrayOutputStream bytes = new ByteArrayOutputStream();

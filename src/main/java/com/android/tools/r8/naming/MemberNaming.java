@@ -6,6 +6,7 @@ package com.android.tools.r8.naming;
 import static com.android.tools.r8.utils.DescriptorUtils.javaTypeToDescriptor;
 
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -112,7 +113,8 @@ public class MemberNaming {
         write(writer);
         return writer.toString();
       } catch (IOException e) {
-        return e.toString();
+        // StringWriter is not throwing IOException
+        throw new Unreachable(e);
       }
     }
 
