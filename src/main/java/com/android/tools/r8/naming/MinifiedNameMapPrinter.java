@@ -14,11 +14,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.collect.Sets;
-import java.io.IOException;
-import java.io.PrintStream;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -27,6 +22,7 @@ import java.util.Set;
 
 public class MinifiedNameMapPrinter {
 
+  private static final String NEW_LINE = "\n";
   private final DexApplication application;
   private final NamingLens namingLens;
   private final Set<DexType> seenTypes = Sets.newIdentityHashSet();
@@ -42,13 +38,13 @@ public class MinifiedNameMapPrinter {
     return copy;
   }
 
-  private void writeClass(DexProgramClass clazz, PrintStream out) {
+  private void writeClass(DexProgramClass clazz, StringBuilder out) {
     seenTypes.add(clazz.type);
     DexString descriptor = namingLens.lookupDescriptor(clazz.type);
-    out.print(DescriptorUtils.descriptorToJavaType(clazz.type.descriptor.toSourceString()));
-    out.print(" -> ");
-    out.print(DescriptorUtils.descriptorToJavaType(descriptor.toSourceString()));
-    out.println(":");
+    out.append(DescriptorUtils.descriptorToJavaType(clazz.type.descriptor.toSourceString()));
+    out.append(" -> ");
+    out.append(DescriptorUtils.descriptorToJavaType(descriptor.toSourceString()));
+    out.append(":").append(NEW_LINE);
     writeFields(sortedCopy(
         clazz.instanceFields(), Comparator.comparing(DexEncodedField::toSourceString)), out);
     writeFields(sortedCopy(
@@ -59,39 +55,39 @@ public class MinifiedNameMapPrinter {
         clazz.virtualMethods(), Comparator.comparing(DexEncodedMethod::toSourceString)), out);
   }
 
-  private void writeType(DexType type, PrintStream out) {
+  private void writeType(DexType type, StringBuilder out) {
     if (type.isClassType() && seenTypes.add(type)) {
       DexString descriptor = namingLens.lookupDescriptor(type);
-      out.print(DescriptorUtils.descriptorToJavaType(type.descriptor.toSourceString()));
-      out.print(" -> ");
-      out.print(DescriptorUtils.descriptorToJavaType(descriptor.toSourceString()));
-      out.println(":");
+      out.append(DescriptorUtils.descriptorToJavaType(type.descriptor.toSourceString()));
+      out.append(" -> ");
+      out.append(DescriptorUtils.descriptorToJavaType(descriptor.toSourceString()));
+      out.append(":").append(NEW_LINE);
     }
   }
 
-  private void writeFields(DexEncodedField[] fields, PrintStream out) {
+  private void writeFields(DexEncodedField[] fields, StringBuilder out) {
     for (DexEncodedField encodedField : fields) {
       DexField field = encodedField.field;
       DexString renamed = namingLens.lookupName(field);
       if (renamed != field.name) {
-        out.print("    ");
-        out.print(field.type.toSourceString());
-        out.print(" ");
-        out.print(field.name.toSourceString());
-        out.print(" -> ");
-        out.println(renamed.toSourceString());
+        out.append("    ");
+        out.append(field.type.toSourceString());
+        out.append(" ");
+        out.append(field.name.toSourceString());
+        out.append(" -> ");
+        out.append(renamed.toSourceString()).append(NEW_LINE);
       }
     }
   }
 
-  private void writeMethod(MethodSignature signature, String renamed, PrintStream out) {
-    out.print("    ");
-    out.print(signature);
-    out.print(" -> ");
-    out.println(renamed);
+  private void writeMethod(MethodSignature signature, String renamed, StringBuilder out) {
+    out.append("    ");
+    out.append(signature.toString());
+    out.append(" -> ");
+    out.append(renamed).append(NEW_LINE);
   }
 
-  private void writeMethods(DexEncodedMethod[] methods, PrintStream out) {
+  private void writeMethods(DexEncodedMethod[] methods, StringBuilder out) {
     for (DexEncodedMethod encodedMethod : methods) {
       DexMethod method = encodedMethod.method;
       DexString renamed = namingLens.lookupName(method);
@@ -103,7 +99,7 @@ public class MinifiedNameMapPrinter {
     }
   }
 
-  public void write(PrintStream out) {
+  public void write(StringBuilder out) {
     // First write out all classes that have been renamed.
     List<DexProgramClass> classes = new ArrayList<>(application.classes());
     classes.sort(Comparator.comparing(DexProgramClass::toSourceString));
@@ -111,11 +107,4 @@ public class MinifiedNameMapPrinter {
     // Now write out all types only mentioned in descriptors that have been renamed.
     namingLens.forAllRenamedTypes(type -> writeType(type, out));
   }
-
-  public void write(Path destination) throws IOException {
-    PrintStream out = new PrintStream(Files.newOutputStream(destination), true,
-        StandardCharsets.UTF_8.name());
-    write(out);
-  }
-
 }
