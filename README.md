@@ -101,5 +101,14 @@ point the code review tool will send emails to reviewers.
 
 ## Getting help
 
-For questions, bug reports and other issues reach out to us at
-r8-dev@googlegroups.com.
+For questions, reach out to us at r8-dev@googlegroups.com.
+
+For D8, find known issues in the
+[D8 issue tracker](https://issuetracker.google.com/issues?q=componentid:317603)
+or file a new
+[D8 bug report](https://issuetracker.google.com/issues/new?component=317603).
+
+For R8, find known issues in the
+[R8 issue tracker](https://issuetracker.google.com/issues?q=componentid:326788)
+or file a new
+[R8 bug report](https://issuetracker.google.com/issues/new?component=326788).
