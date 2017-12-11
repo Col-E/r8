@@ -17,6 +17,7 @@ import com.android.tools.r8.shaking.ProguardConfiguration.Builder;
 import com.android.tools.r8.shaking.ProguardTypeMatcher.ClassOrType;
 import com.android.tools.r8.shaking.ProguardTypeMatcher.MatchSpecificType;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.IdentifierUtils;
 import com.android.tools.r8.utils.InternalOptions.PackageObfuscationMode;
 import com.android.tools.r8.utils.LongInterval;
 import com.android.tools.r8.utils.Reporter;
@@ -782,44 +783,43 @@ public class ProguardConfigurationParser {
                   } else if (acceptString("false")) {
                     ruleBuilder.setReturnValue(new ProguardMemberRuleReturnValue(false));
                   } else {
-                    TextPosition fieldStart = getPosition();
-                    String qualifiedFieldName = acceptFieldName();
-                    if (qualifiedFieldName != null) {
-                      if (ruleBuilder.getTypeMatcher() instanceof MatchSpecificType) {
-                        int lastDotIndex = qualifiedFieldName.lastIndexOf(".");
-                        DexType fieldType = ((MatchSpecificType) ruleBuilder.getTypeMatcher()).type;
-                        DexType fieldClass =
-                            dexItemFactory.createType(
-                                DescriptorUtils.javaTypeToDescriptor(
-                                    qualifiedFieldName.substring(0, lastDotIndex)));
-                        DexString fieldName =
-                            dexItemFactory.createString(
-                                qualifiedFieldName.substring(lastDotIndex + 1));
-                        DexField field = dexItemFactory
-                            .createField(fieldClass, fieldType, fieldName);
-                        ruleBuilder.setReturnValue(new ProguardMemberRuleReturnValue(field));
+                    TextPosition fieldOrValueStart = getPosition();
+                    String qualifiedFieldNameOrInteger = acceptFieldNameOrIntegerForReturn();
+                    if (qualifiedFieldNameOrInteger != null) {
+                      if (isInteger(qualifiedFieldNameOrInteger)) {
+                        Integer min = Integer.parseInt(qualifiedFieldNameOrInteger);
+                        Integer max = min;
+                        skipWhitespace();
+                        if (acceptString("..")) {
+                          max = acceptInteger();
+                          if (max == null) {
+                            throw parseError("Expected integer value");
+                          }
+                        }
+                        if (!allowValueSpecification) {
+                          throw parseError("Unexpected value specification", fieldOrValueStart);
+                        }
+                        ruleBuilder.setReturnValue(
+                            new ProguardMemberRuleReturnValue(new LongInterval(min, max)));
                       } else {
-                        throw parseError("Expected specific type", fieldStart);
-                      }
-                    } else {
-                      TextPosition valueStart = getPosition();
-                      Integer min = acceptInteger();
-                      Integer max = min;
-                      if (min == null) {
-                        throw parseError("Expected integer value");
-                      }
-                      skipWhitespace();
-                      if (acceptString("..")) {
-                        max = acceptInteger();
-                        if (max == null) {
-                          throw parseError("Expected integer value");
+                        if (ruleBuilder.getTypeMatcher() instanceof MatchSpecificType) {
+                          int lastDotIndex = qualifiedFieldNameOrInteger.lastIndexOf(".");
+                          DexType fieldType = ((MatchSpecificType) ruleBuilder
+                              .getTypeMatcher()).type;
+                          DexType fieldClass =
+                              dexItemFactory.createType(
+                                  DescriptorUtils.javaTypeToDescriptor(
+                                      qualifiedFieldNameOrInteger.substring(0, lastDotIndex)));
+                          DexString fieldName =
+                              dexItemFactory.createString(
+                                  qualifiedFieldNameOrInteger.substring(lastDotIndex + 1));
+                          DexField field = dexItemFactory
+                              .createField(fieldClass, fieldType, fieldName);
+                          ruleBuilder.setReturnValue(new ProguardMemberRuleReturnValue(field));
+                        } else {
+                          throw parseError("Expected specific type", fieldOrValueStart);
                         }
                       }
-                      if (!allowValueSpecification) {
-                        throw parseError("Unexpected value specification", valueStart);
-                      }
-                      ruleBuilder.setReturnValue(
-                          new ProguardMemberRuleReturnValue(new LongInterval(min, max)));
                     }
                   }
                 }
@@ -956,6 +956,15 @@ public class ProguardConfigurationParser {
       }
     }
 
+    private boolean isInteger(String s) {
+      for (int i = 0; i < s.length(); i++) {
+        if (!Character.isDigit(s.charAt(i))) {
+          return false;
+        }
+      }
+      return true;
+    }
+
     private boolean eof() {
       return position == contents.length();
     }
@@ -984,6 +993,11 @@ public class ProguardConfigurationParser {
     }
 
     private char peekChar() {
+      return contents.charAt(position);
+    }
+
+    private char peekCharAt(int position) {
+      assert !eof(position);
       return contents.charAt(position);
     }
 
@@ -1028,7 +1042,7 @@ public class ProguardConfigurationParser {
 
     private String acceptClassName() {
       return acceptString(character ->
-          Character.isJavaIdentifierPart(character)
+          IdentifierUtils.isDexIdentifierPart(character)
               || character == '.'
               || character == '*'
               || character == '?'
@@ -1037,14 +1051,18 @@ public class ProguardConfigurationParser {
               || character == ']');
     }
 
-    private String acceptFieldName() {
+    private String acceptFieldNameOrIntegerForReturn() {
       skipWhitespace();
       int start = position;
       int end = position;
       while (!eof(end)) {
         char current = contents.charAt(end);
-        if ((start == end && Character.isJavaIdentifierStart(current)) ||
-            ((start < end) && (Character.isJavaIdentifierPart(current) || current == '.'))) {
+        if (current == '.' && !eof(end + 1) && peekCharAt(end + 1) == '.') {
+          // The grammar is ambiguous. End accepting before .. token used in return ranges.
+          break;
+        }
+        if ((start == end && IdentifierUtils.isDexIdentifierStart(current)) ||
+            ((start < end) && (IdentifierUtils.isDexIdentifierPart(current) || current == '.'))) {
           end++;
         } else {
           break;
@@ -1078,7 +1096,7 @@ public class ProguardConfigurationParser {
 
     private String acceptPattern() {
       return acceptString(character ->
-          Character.isJavaIdentifierPart(character) || character == '!' || character == '*');
+          IdentifierUtils.isDexIdentifierPart(character) || character == '!' || character == '*');
     }
 
     private String acceptString(Predicate<Character> characterAcceptor) {
