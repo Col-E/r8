@@ -89,7 +89,7 @@ public class FileWriter {
     this.application = application;
     this.options = options;
     this.namingLens = namingLens;
-    this.mixedSectionOffsets = new MixedSectionOffsets();
+    this.mixedSectionOffsets = new MixedSectionOffsets(options);
   }
 
   public static void writeEncodedAnnotation(DexEncodedAnnotation annotation, DexOutputBuffer dest,
@@ -499,7 +499,6 @@ public class FileWriter {
   }
 
   private void writeAnnotationSet(DexAnnotationSet set) {
-    assert !set.isEmpty();
     assert PresortedComparable.isSorted(set.annotations, (item) -> item.annotation.type);
     mixedSectionOffsets.setOffsetFor(set, dest.align(4));
     if (Log.ENABLED) {
@@ -1000,6 +999,8 @@ public class FileWriter {
     private final Map<DexProgramClass, DexAnnotationDirectory> clazzToAnnotationDirectory
         = new HashMap<>();
 
+    private final int minApiLevel;
+
     private static <T> Object2IntMap<T> createObject2IntMap() {
       Object2IntMap<T> result = new Object2IntLinkedOpenHashMap<>();
       result.defaultReturnValue(NOT_KNOWN);
@@ -1010,6 +1011,10 @@ public class FileWriter {
       Reference2IntMap<T> result = new Reference2IntLinkedOpenHashMap<>();
       result.defaultReturnValue(NOT_KNOWN);
       return result;
+    }
+
+    private MixedSectionOffsets(InternalOptions options) {
+      this.minApiLevel = options.minApiLevel;
     }
 
     private <T> boolean add(Object2IntMap<T> map, T item) {
@@ -1040,7 +1045,9 @@ public class FileWriter {
 
     @Override
     public boolean add(DexAnnotationSet annotationSet) {
-      if (annotationSet.isEmpty()) {
+      // Until we fully drop support for API levels < 17, we have to emit an empty annotation set to
+      // work around a DALVIK bug. See b/36951668.
+      if ((minApiLevel >= AndroidApiLevel.J_MR1.getLevel()) && annotationSet.isEmpty()) {
         return false;
       }
       return add(annotationSets, annotationSet);
@@ -1185,7 +1192,9 @@ public class FileWriter {
     }
 
     public int getOffsetFor(DexAnnotationSet annotationSet) {
-      if (annotationSet.isEmpty()) {
+      // Until we fully drop support for API levels < 17, we have to emit an empty annotation set to
+      // work around a DALVIK bug. See b/36951668.
+      if ((minApiLevel >= AndroidApiLevel.J_MR1.getLevel()) && annotationSet.isEmpty()) {
         return 0;
       }
       return lookup(annotationSet, annotationSets);
@@ -1234,6 +1243,9 @@ public class FileWriter {
     }
 
     void setOffsetFor(DexAnnotationSet annotationSet, int offset) {
+      // Until we fully drop support for API levels < 17, we have to emit an empty annotation set to
+      // work around a DALVIK bug. See b/36951668.
+      assert (minApiLevel < AndroidApiLevel.J_MR1.getLevel()) || !annotationSet.isEmpty();
       setOffsetFor(annotationSet, offset, annotationSets);
     }
 
