@@ -1,0 +1,39 @@
+Build from branch android-4.0.4_r2.1
+
+mkdir jellybean
+cd jellybean
+repo init -u https://android.googlesource.com/platform/manifest -b android-4.0.4_r2.1
+repo sync
+source build/envsetup.sh
+lunch full_x86-eng
+m -j24
+m -j24 dalvik
+m -j24 dalvikvm
+
+Collect
+ bin
+ framework/*-hostdex.jar
+ lib
+ usr
+into tools/linux/dalvik-4.0.4
+
+The old dalvikvm script is hardwired to a specific directory. Instead, copy over
+the updated script from a 4.4.4 build.
+
+Note that building AOSP at that versions requires gcc 4.4 and an older version
+of libc. I have build this on Debian weezy with the following extra steps on
+top of the normal Android requirements:
+
+apt-get install gcc-4.4
+apt-get install g++-4.4
+rm /usr/bin/gcc
+rm /usr/bin/g++
+ln -s /usr/bin/gcc-4.4 /usr/bin/gcc
+ln -s /usr/bin/g++-4.4 /usr/bin/g++
+apt-get install g++-4.4-multilib
+dpkg --add-architecture i386
+apt-get install libgl1-mesa-glx:i386
+apt-get install libgl1-mesa-dev:i386
+apt-get install libx11-6:i386
+apt-get install libx11-dev:i386
+
