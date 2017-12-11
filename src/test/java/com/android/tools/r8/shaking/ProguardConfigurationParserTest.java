@@ -8,6 +8,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -17,12 +18,14 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.position.TextPosition;
 import com.android.tools.r8.position.TextRange;
 import com.android.tools.r8.utils.AbortException;
+import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions.PackageObfuscationMode;
 import com.android.tools.r8.utils.Reporter;
@@ -189,6 +192,47 @@ public class ProguardConfigurationParserTest extends TestBase {
   }
 
   @Test
+  public void parseNonJavaIdentifiers() throws Exception {
+    DexItemFactory dexItemFactory = new DexItemFactory();
+    ProguardConfigurationParser parser =
+        new ProguardConfigurationParser(dexItemFactory,
+            new Reporter(new DefaultDiagnosticsHandler()));
+    String nonJavaIdentifiers =
+        String.join("\n", ImmutableList.of(
+            "-keep class -package-.-ClassNameWithDash-{",
+            "  -NameWithDash- -field-;",
+            "  p-.-OtherNameWithDash- -method-(-p.-WithDash-, -package-.-ClassNameWithDash-[]); ",
+            "}"));
+    parser.parse(createConfigurationForTesting(ImmutableList.of(nonJavaIdentifiers)));
+    List<ProguardConfigurationRule> rules = parser.getConfig().getRules();
+    assertEquals(1, rules.size());
+    assertEquals(ProguardClassType.CLASS, rules.get(0).getClassType());
+    assertEquals(1, rules.get(0).getClassNames().size());
+    List<DexType> classTypes = rules.get(0).getClassNames().asSpecificDexTypes();
+    assertEquals(1, classTypes.size());
+    assertSame(dexItemFactory.createType("L-package-/-ClassNameWithDash-;"), classTypes.get(0));
+    ProguardConfigurationRule rule = rules.get(0);
+    assertEquals(2, rule.getMemberRules().size());
+    int matches = 0;
+    for (ProguardMemberRule memberRule : rule.getMemberRules()) {
+      if (memberRule.getRuleType() == ProguardMemberType.FIELD) {
+        assertTrue(memberRule.getName().matches("-field-"));
+        matches |= 0x01;
+      } else {
+        assertEquals(ProguardMemberType.METHOD, memberRule.getRuleType());
+        assertTrue(memberRule.getName().matches("-method-"));
+        assertFalse(memberRule.getArguments().get(0).getSpecificType().isArrayType());
+        assertSame(dexItemFactory.createType("L-p/-WithDash-;"),
+            memberRule.getArguments().get(0).getSpecificType());
+        assertSame(dexItemFactory.createType("[L-package-/-ClassNameWithDash-;"),
+            memberRule.getArguments().get(1).getSpecificType());
+        matches |= 0x02;
+      }
+    }
+    assertEquals(0x03, matches);
+  }
+
+  @Test
   public void testDontWarn() throws Exception {
     DexItemFactory dexItemFactory = new DexItemFactory();
     ProguardConfigurationParser parser =
@@ -334,13 +378,15 @@ public class ProguardConfigurationParserTest extends TestBase {
     parser.parse(Paths.get(ASSUME_NO_SIDE_EFFECTS_WITH_RETURN_VALUE));
     List<ProguardConfigurationRule> assumeNoSideEffects = parser.getConfig().getRules();
     assertEquals(1, assumeNoSideEffects.size());
-    assumeNoSideEffects.get(0).getMemberRules().forEach(rule -> {
+    int matches = 0;
+    for (ProguardMemberRule rule : assumeNoSideEffects.get(0).getMemberRules()) {
       assertTrue(rule.hasReturnValue());
       if (rule.getName().matches("returnsTrue") || rule.getName().matches("returnsFalse")) {
         assertTrue(rule.getReturnValue().isBoolean());
         assertFalse(rule.getReturnValue().isValueRange());
         assertFalse(rule.getReturnValue().isField());
         assertEquals(rule.getName().matches("returnsTrue"), rule.getReturnValue().getBoolean());
+        matches |= 1 << 0;
       } else if (rule.getName().matches("returns1")) {
         assertFalse(rule.getReturnValue().isBoolean());
         assertTrue(rule.getReturnValue().isValueRange());
@@ -349,6 +395,7 @@ public class ProguardConfigurationParserTest extends TestBase {
         assertEquals(1, rule.getReturnValue().getValueRange().getMin());
         assertEquals(1, rule.getReturnValue().getValueRange().getMax());
         assertEquals(1, rule.getReturnValue().getSingleValue());
+        matches |= 1 << 1;
       } else if (rule.getName().matches("returns2To4")) {
         assertFalse(rule.getReturnValue().isBoolean());
         assertTrue(rule.getReturnValue().isValueRange());
@@ -356,6 +403,15 @@ public class ProguardConfigurationParserTest extends TestBase {
         assertFalse(rule.getReturnValue().isSingleValue());
         assertEquals(2, rule.getReturnValue().getValueRange().getMin());
         assertEquals(4, rule.getReturnValue().getValueRange().getMax());
+        matches |= 1 << 2;
+      } else if (rule.getName().matches("returns234To567")) {
+        assertFalse(rule.getReturnValue().isBoolean());
+        assertTrue(rule.getReturnValue().isValueRange());
+        assertFalse(rule.getReturnValue().isField());
+        assertFalse(rule.getReturnValue().isSingleValue());
+        assertEquals(234, rule.getReturnValue().getValueRange().getMin());
+        assertEquals(567, rule.getReturnValue().getValueRange().getMax());
+        matches |= 1 << 3;
       } else if (rule.getName().matches("returnsField")) {
         assertFalse(rule.getReturnValue().isBoolean());
         assertFalse(rule.getReturnValue().isValueRange());
@@ -363,8 +419,12 @@ public class ProguardConfigurationParserTest extends TestBase {
         assertEquals("com.google.C", rule.getReturnValue().getField().clazz.toString());
         assertEquals("int", rule.getReturnValue().getField().type.toString());
         assertEquals("X", rule.getReturnValue().getField().name.toString());
+        matches |= 1 << 4;
+      } else {
+        fail("Unexpected");
       }
-    });
+    }
+    assertEquals((1 << 5) - 1, matches);
   }
 
   @Test
@@ -374,13 +434,15 @@ public class ProguardConfigurationParserTest extends TestBase {
     parser.parse(Paths.get(ASSUME_VALUES_WITH_RETURN_VALUE));
     List<ProguardConfigurationRule> assumeValues = parser.getConfig().getRules();
     assertEquals(1, assumeValues.size());
-    assumeValues.get(0).getMemberRules().forEach(rule -> {
+    int matches = 0;
+    for (ProguardMemberRule rule : assumeValues.get(0).getMemberRules()) {
       assertTrue(rule.hasReturnValue());
       if (rule.getName().matches("isTrue") || rule.getName().matches("isFalse")) {
         assertTrue(rule.getReturnValue().isBoolean());
         assertFalse(rule.getReturnValue().isValueRange());
         assertFalse(rule.getReturnValue().isField());
         assertEquals(rule.getName().matches("isTrue"), rule.getReturnValue().getBoolean());
+        matches |= 1 << 0;
       } else if (rule.getName().matches("is1")) {
         assertFalse(rule.getReturnValue().isBoolean());
         assertTrue(rule.getReturnValue().isValueRange());
@@ -389,6 +451,7 @@ public class ProguardConfigurationParserTest extends TestBase {
         assertEquals(1, rule.getReturnValue().getValueRange().getMin());
         assertEquals(1, rule.getReturnValue().getValueRange().getMax());
         assertEquals(1, rule.getReturnValue().getSingleValue());
+        matches |= 1 << 1;
       } else if (rule.getName().matches("is2To4")) {
         assertFalse(rule.getReturnValue().isBoolean());
         assertTrue(rule.getReturnValue().isValueRange());
@@ -396,6 +459,15 @@ public class ProguardConfigurationParserTest extends TestBase {
         assertFalse(rule.getReturnValue().isSingleValue());
         assertEquals(2, rule.getReturnValue().getValueRange().getMin());
         assertEquals(4, rule.getReturnValue().getValueRange().getMax());
+        matches |= 1 << 2;
+      } else if (rule.getName().matches("is234To567")) {
+        assertFalse(rule.getReturnValue().isBoolean());
+        assertTrue(rule.getReturnValue().isValueRange());
+        assertFalse(rule.getReturnValue().isField());
+        assertFalse(rule.getReturnValue().isSingleValue());
+        assertEquals(234, rule.getReturnValue().getValueRange().getMin());
+        assertEquals(567, rule.getReturnValue().getValueRange().getMax());
+        matches |= 1 << 3;
       } else if (rule.getName().matches("isField")) {
         assertFalse(rule.getReturnValue().isBoolean());
         assertFalse(rule.getReturnValue().isValueRange());
@@ -403,8 +475,12 @@ public class ProguardConfigurationParserTest extends TestBase {
         assertEquals("com.google.C", rule.getReturnValue().getField().clazz.toString());
         assertEquals("int", rule.getReturnValue().getField().type.toString());
         assertEquals("X", rule.getReturnValue().getField().name.toString());
+        matches |= 1 << 4;
+      } else {
+        fail("Unexpected");
       }
-    });
+    }
+    assertEquals((1 << 5) - 1, matches);
   }
 
   @Test

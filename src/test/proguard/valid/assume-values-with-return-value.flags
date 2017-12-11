@@ -7,5 +7,6 @@
     public static final boolean isFalse() return false;
     public static final int is1() return 1;
     public static final int is2To4() return 2..4;
+    public static final int is234To567() return 234..567;
     public static final int isField() return com.google.C.X;
 }
