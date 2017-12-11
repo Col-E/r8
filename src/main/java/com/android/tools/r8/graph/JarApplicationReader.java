@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexMethodHandle.MethodHandleType;
 import com.android.tools.r8.utils.InternalOptions;
@@ -114,32 +113,26 @@ public class JarApplicationReader {
 
   public DexProto getProto(String desc) {
     assert isValidDescriptor(desc);
-    Type returnType = getReturnType(desc);
-    Type[] arguments = getArgumentTypes(desc);
+    String returnTypeDescriptor = getReturnTypeDescriptor(desc);
+    String[] argumentDescriptors = getArgumentTypeDescriptors(desc);
     StringBuilder shortyDescriptor = new StringBuilder();
-    String[] argumentDescriptors = new String[arguments.length];
-    shortyDescriptor.append(getShortyDescriptor(returnType));
-    for (int i = 0; i < arguments.length; i++) {
-      shortyDescriptor.append(getShortyDescriptor(arguments[i]));
-      argumentDescriptors[i] = arguments[i].getDescriptor();
+    shortyDescriptor.append(getShortyDescriptor(returnTypeDescriptor));
+    for (int i = 0; i < argumentDescriptors.length; i++) {
+      shortyDescriptor.append(getShortyDescriptor(argumentDescriptors[i]));
     }
     DexProto proto = options.itemFactory.createProto(
-        getTypeFromDescriptor(returnType.getDescriptor()),
+        getTypeFromDescriptor(returnTypeDescriptor),
         getString(shortyDescriptor.toString()),
         getTypeListFromDescriptors(argumentDescriptors));
     return proto;
   }
 
-  private static String getShortyDescriptor(Type type) {
-    switch (type.getSort()) {
-      case Type.METHOD:
-        throw new InternalCompilerError("Cannot produce a shorty decriptor for methods");
-      case Type.ARRAY:
-      case Type.OBJECT:
-        return "L";
-      default:
-        return type.getDescriptor();
+  private static String getShortyDescriptor(String descriptor) {
+    if (descriptor.length() == 1) {
+      return descriptor;
     }
+    assert descriptor.charAt(0) == 'L' || descriptor.charAt(0) == '[';
+    return "L";
   }
 
   private boolean isValidDescriptor(String desc) {
@@ -151,11 +144,15 @@ public class JarApplicationReader {
   }
 
   public Type getReturnType(final String methodDescriptor) {
-    assert methodDescriptor.indexOf(')') != -1;
-    return getAsmType(methodDescriptor.substring(methodDescriptor.indexOf(')') + 1));
+    return getAsmType(getReturnTypeDescriptor(methodDescriptor));
   }
 
-  public int getArgumentCount(final String methodDescriptor) {
+  private static String getReturnTypeDescriptor(final String methodDescriptor) {
+    assert methodDescriptor.indexOf(')') != -1;
+    return methodDescriptor.substring(methodDescriptor.indexOf(')') + 1);
+  }
+
+  public static int getArgumentCount(final String methodDescriptor) {
     int charIdx = 1;
     char c;
     int argCount = 0;
@@ -171,7 +168,17 @@ public class JarApplicationReader {
   }
 
   public Type[] getArgumentTypes(final String methodDescriptor) {
-    Type[] args = new Type[getArgumentCount(methodDescriptor)];
+    String[] argDescriptors = getArgumentTypeDescriptors(methodDescriptor);
+    Type[] args = new Type[argDescriptors.length];
+    int argIdx = 0;
+    for (String argDescriptor : argDescriptors) {
+      args[argIdx++] = getAsmType(argDescriptor);
+    }
+    return args;
+  }
+
+  private static String[] getArgumentTypeDescriptors(final String methodDescriptor) {
+    String[] argDescriptors = new String[getArgumentCount(methodDescriptor)];
     int charIdx = 1;
     char c;
     int argIdx = 0;
@@ -181,28 +188,14 @@ public class JarApplicationReader {
         case 'V':
           throw new Unreachable();
         case 'Z':
-          args[argIdx++] = Type.BOOLEAN_TYPE;
-          break;
         case 'C':
-          args[argIdx++] = Type.CHAR_TYPE;
-          break;
         case 'B':
-          args[argIdx++] = Type.BYTE_TYPE;
-          break;
         case 'S':
-          args[argIdx++] = Type.SHORT_TYPE;
-          break;
         case 'I':
-          args[argIdx++] = Type.INT_TYPE;
-          break;
         case 'F':
-          args[argIdx++] = Type.FLOAT_TYPE;
-          break;
         case 'J':
-          args[argIdx++] = Type.LONG_TYPE;
-          break;
         case 'D':
-          args[argIdx++] = Type.DOUBLE_TYPE;
+          argDescriptors[argIdx++] = Character.toString(c);
           break;
         case '[':
           startType = charIdx;
@@ -211,18 +204,18 @@ public class JarApplicationReader {
           if (methodDescriptor.charAt(charIdx) == 'L') {
             while (methodDescriptor.charAt(++charIdx) != ';');
           }
-          args[argIdx++] = getAsmType(methodDescriptor.substring(startType, charIdx + 1));
+          argDescriptors[argIdx++] = methodDescriptor.substring(startType, charIdx + 1);
           break;
         case 'L':
           startType = charIdx;
           while (methodDescriptor.charAt(++charIdx) != ';');
-          args[argIdx++] = getAsmType(methodDescriptor.substring(startType, charIdx + 1));
+          argDescriptors[argIdx++] = methodDescriptor.substring(startType, charIdx + 1);
           break;
         default:
           throw new Unreachable();
       }
       charIdx++;
     }
-    return args;
+    return argDescriptors;
   }
 }
