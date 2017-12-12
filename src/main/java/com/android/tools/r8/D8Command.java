@@ -109,13 +109,26 @@ public class D8Command extends BaseCompilerCommand {
 
       return new D8Command(
           getAppBuilder().build(),
-          getOutputPath(),
-          getOutputMode(),
           getMode(),
+          getProgramConsumer(),
           getMinApiLevel(),
           reporter,
           getEnableDesugaring(),
           intermediate);
+    }
+
+    @Override
+    protected DexIndexedConsumer createIndexedConsumer() {
+      return getOutputPath() == null
+          ? DexIndexedConsumer.emptyConsumer()
+          : super.createIndexedConsumer();
+    }
+
+    @Override
+    protected DexFilePerClassFileConsumer createPerClassFileConsumer() {
+      return getOutputPath() == null
+          ? DexFilePerClassFileConsumer.emptyConsumer()
+          : super.createPerClassFileConsumer();
     }
   }
 
@@ -221,15 +234,13 @@ public class D8Command extends BaseCompilerCommand {
 
   private D8Command(
       AndroidApp inputApp,
-      Path outputPath,
-      OutputMode outputMode,
       CompilationMode mode,
+      ProgramConsumer programConsumer,
       int minApiLevel,
       Reporter diagnosticsHandler,
       boolean enableDesugaring,
       boolean intermediate) {
-    super(inputApp, outputPath, outputMode, mode, minApiLevel, diagnosticsHandler,
-        enableDesugaring);
+    super(inputApp, mode, programConsumer, minApiLevel, diagnosticsHandler, enableDesugaring);
     this.intermediate = intermediate;
   }
 
@@ -242,6 +253,7 @@ public class D8Command extends BaseCompilerCommand {
     InternalOptions internal = new InternalOptions(new DexItemFactory(), getReporter());
     assert !internal.debug;
     internal.debug = getMode() == CompilationMode.DEBUG;
+    internal.programConsumer = getProgramConsumer();
     internal.minimalMainDex = internal.debug;
     internal.minApiLevel = getMinApiLevel();
     internal.intermediate = intermediate;
@@ -261,7 +273,6 @@ public class D8Command extends BaseCompilerCommand {
     assert internal.propagateMemberValue;
     internal.propagateMemberValue = false;
 
-    internal.outputMode = getOutputMode();
     internal.enableDesugaring = getEnableDesugaring();
     return internal;
   }

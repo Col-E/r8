@@ -256,7 +256,7 @@ public class R8RunExamplesTest {
       case R8: {
         ToolHelper.runR8(R8Command.builder()
             .addProgramFiles(getInputFile())
-            .setOutputPath(output == Output.CF ? null : getOutputFile())
+            .setOutputPath(getOutputFile())
             .setMode(mode)
             .build(),
             options -> {

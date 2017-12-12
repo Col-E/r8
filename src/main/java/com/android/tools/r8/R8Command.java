@@ -280,8 +280,7 @@ public class R8Command extends BaseCompilerCommand {
       R8Command command =
           new R8Command(
               getAppBuilder().build(),
-              getOutputPath(),
-              getOutputMode(),
+              getOutputPath() == null ? null : getProgramConsumer(),
               mainDexKeepRules,
               mainDexListConsumer,
               configuration,
@@ -350,7 +349,6 @@ public class R8Command extends BaseCompilerCommand {
   public static Builder builder(DiagnosticsHandler diagnosticsHandler) {
     return new Builder(diagnosticsHandler);
   }
-
 
   // Internal builder to start from an existing AndroidApp.
   static Builder builder(AndroidApp app) {
@@ -461,8 +459,7 @@ public class R8Command extends BaseCompilerCommand {
 
   private R8Command(
       AndroidApp inputApp,
-      Path outputPath,
-      OutputMode outputMode,
+      ProgramConsumer programConsumer,
       ImmutableList<ProguardConfigurationRule> mainDexKeepRules,
       StringConsumer mainDexListConsumer,
       ProguardConfiguration proguardConfiguration,
@@ -478,8 +475,7 @@ public class R8Command extends BaseCompilerCommand {
       boolean ignoreMissingClassesWhenNotShrinking,
       StringConsumer proguardMapConsumer,
       Path proguardCompatibilityRulesOutput) {
-    super(inputApp, outputPath, outputMode, mode, minApiLevel, reporter,
-        enableDesugaring);
+    super(inputApp, mode, programConsumer, minApiLevel, reporter, enableDesugaring);
     assert proguardConfiguration != null;
     assert mainDexKeepRules != null;
     assert getOutputMode() == OutputMode.Indexed : "Only regular mode is supported in R8";
@@ -510,6 +506,7 @@ public class R8Command extends BaseCompilerCommand {
     proguardMapConsumer = null;
     proguardCompatibilityRulesOutput = null;
   }
+
   public boolean useTreeShaking() {
     return useTreeShaking;
   }
@@ -527,6 +524,7 @@ public class R8Command extends BaseCompilerCommand {
     InternalOptions internal = new InternalOptions(proguardConfiguration, getReporter());
     assert !internal.debug;
     internal.debug = getMode() == CompilationMode.DEBUG;
+    internal.programConsumer = getProgramConsumer();
     internal.minApiLevel = getMinApiLevel();
     // -dontoptimize disables optimizations by flipping related flags.
     if (!proguardConfiguration.isOptimizing()) {
@@ -554,7 +552,6 @@ public class R8Command extends BaseCompilerCommand {
     internal.minimalMainDex = internal.debug;
     internal.mainDexListConsumer = mainDexListConsumer;
 
-    internal.outputMode = getOutputMode();
     if (internal.debug) {
       // TODO(zerny): Should we support removeSwitchMaps in debug mode? b/62936642
       internal.removeSwitchMaps = false;

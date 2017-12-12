@@ -8,12 +8,10 @@ import com.android.tools.r8.graph.DexApplication;
 
 public class CompilationResult {
 
-  public final OutputSink outputSink;
   public final DexApplication dexApplication;
   public final AppInfo appInfo;
 
-  public CompilationResult(OutputSink outputSink, DexApplication dexApplication, AppInfo appInfo) {
-    this.outputSink = outputSink;
+  public CompilationResult(DexApplication dexApplication, AppInfo appInfo) {
     this.dexApplication = dexApplication;
     this.appInfo = appInfo;
   }

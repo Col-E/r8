@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
+import com.android.tools.r8.DexIndexedConsumer;
+import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.errors.DexOverflowException;
@@ -98,8 +100,10 @@ public class Smali {
     // This returns the full backingstore from MemoryDataStore, which by default is 1024k bytes.
     // We process it via our reader and writer to trim it to the exact size and update its checksum.
     byte[] data = dataStore.getData();
+    SingleFileConsumer consumer = new SingleFileConsumer();
     AndroidApp app = AndroidApp.fromDexProgramData(data);
     InternalOptions options = new InternalOptions();
+    options.programConsumer = consumer;
     ExecutorService executor = ThreadUtils.getExecutorService(1);
     try {
       DexApplication dexApp = new ApplicationReader(
@@ -107,29 +111,24 @@ public class Smali {
       ApplicationWriter writer =
           new ApplicationWriter(
               dexApp, options, null, null, NamingLens.getIdentityLens(), null, null);
-      SingleFileSink sink = new SingleFileSink();
-      writer.write(sink, executor);
-      return sink.contents;
+      writer.write(executor);
+      return consumer.contents;
     } finally {
       executor.shutdown();
     }
   }
 
-  private static class SingleFileSink extends IgnoreContentsOutputSink {
+  private static class SingleFileConsumer implements DexIndexedConsumer {
 
     byte[] contents;
 
     @Override
-    public void writeDexFile(byte[] contents, Set<String> classDescriptors,
-        String primaryClassName) {
-      assert contents != null;
-      this.contents = contents;
+    public void accept(
+        int fileIndex, byte[] data, Set<String> descriptors, DiagnosticsHandler handler) {
+      contents = data;
     }
 
     @Override
-    public void writeDexFile(byte[] contents, Set<String> classDescriptors, int fileId) {
-      assert contents != null;
-      this.contents = contents;
-    }
+    public void finished(DiagnosticsHandler handler) {}
   }
 }

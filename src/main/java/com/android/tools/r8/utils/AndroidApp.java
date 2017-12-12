@@ -9,11 +9,12 @@ import static com.android.tools.r8.utils.FileUtils.isDexFile;
 
 import com.android.tools.r8.ArchiveClassFileProvider;
 import com.android.tools.r8.ClassFileResourceProvider;
+import com.android.tools.r8.DexFilePerClassFileConsumer;
+import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.Resource;
 import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.shaking.FilteredClassPath;
@@ -27,13 +28,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.CopyOption;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
-import java.nio.file.OpenOption;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -42,9 +39,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
 
 /**
  * Collection of program files needed for processing.
@@ -303,38 +297,12 @@ public class AndroidApp {
    * Write the dex program resources and proguard resource to @code{directory}.
    */
   public void writeToDirectory(Path directory, OutputMode outputMode) throws IOException {
+    List<ProgramResource> dexProgramSources = getDexProgramResources();
     if (outputMode == OutputMode.Indexed) {
-      try (Stream<Path> filesInDir = Files.list(directory)) {
-        for (Path path : filesInDir.collect(Collectors.toList())) {
-          if (FileUtils.isClassesDexFile(path)) {
-            Files.delete(path);
-          }
-        }
-      }
-    }
-    CopyOption[] options = new CopyOption[] {StandardCopyOption.REPLACE_EXISTING};
-    try (Closer closer = Closer.create()) {
-      List<ProgramResource> dexProgramSources = getDexProgramResources();
-      for (int i = 0; i < dexProgramSources.size(); i++) {
-        Path filePath = directory.resolve(getOutputPath(outputMode, dexProgramSources.get(i), i));
-        if (!Files.exists(filePath.getParent())) {
-          Files.createDirectories(filePath.getParent());
-        }
-        Files.copy(closer.register(dexProgramSources.get(i).getStream()), filePath, options);
-      }
-    }
-  }
-
-  private String getOutputPath(OutputMode outputMode, Resource resource, int index) {
-    switch (outputMode) {
-      case Indexed:
-        return index == 0 ? "classes.dex" : ("classes" + (index + 1) + ".dex");
-      case FilePerInputClass:
-        String classDescriptor = programResourcesMainDescriptor.get(resource);
-        assert classDescriptor!= null && DescriptorUtils.isClassDescriptor(classDescriptor);
-        return classDescriptor.substring(1, classDescriptor.length() - 1) + ".dex";
-      default:
-        throw new Unreachable("Unknown output mode: " + outputMode);
+      DexIndexedConsumer.DirectoryConsumer.writeResources(directory, dexProgramSources);
+    } else {
+      DexFilePerClassFileConsumer.DirectoryConsumer.writeResources(
+          directory, dexProgramSources, programResourcesMainDescriptor);
     }
   }
 
@@ -356,21 +324,12 @@ public class AndroidApp {
    * Write the dex program resources to @code{archive} and the proguard resource as its sibling.
    */
   public void writeToZip(Path archive, OutputMode outputMode) throws IOException {
-    OpenOption[] options =
-        new OpenOption[] {StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING};
-    try (Closer closer = Closer.create()) {
-      try (ZipOutputStream out = new ZipOutputStream(Files.newOutputStream(archive, options))) {
-        List<ProgramResource> dexProgramSources = getDexProgramResources();
-        for (int i = 0; i < dexProgramSources.size(); i++) {
-          ZipEntry zipEntry = new ZipEntry(getOutputPath(outputMode, dexProgramSources.get(i), i));
-          byte[] bytes =
-              ByteStreams.toByteArray(closer.register(dexProgramSources.get(i).getStream()));
-          zipEntry.setSize(bytes.length);
-          out.putNextEntry(zipEntry);
-          out.write(bytes);
-          out.closeEntry();
-        }
-      }
+    List<ProgramResource> resources = getDexProgramResources();
+    if (outputMode == OutputMode.Indexed) {
+      DexIndexedConsumer.ArchiveConsumer.writeResources(archive, resources);
+    } else {
+      DexFilePerClassFileConsumer.ArchiveConsumer.writeResources(
+          archive, resources, programResourcesMainDescriptor);
     }
   }
 

@@ -18,7 +18,7 @@ import com.android.tools.r8.shaking.ProguardConfigurationParser;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.AndroidAppOutputSink;
+import com.android.tools.r8.utils.AndroidAppConsumers;
 import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
@@ -706,8 +706,8 @@ public class ToolHelper {
     if (optionsConsumer != null) {
       optionsConsumer.accept(options);
     }
-    AndroidAppOutputSink compatSink = new AndroidAppOutputSink(command.getOutputSink(), options);
-    R8.runForTesting(app, compatSink, options);
+    AndroidAppConsumers compatSink = new AndroidAppConsumers(options);
+    R8.runForTesting(app, options);
     return compatSink.build();
   }
 
@@ -729,8 +729,8 @@ public class ToolHelper {
       throw new RuntimeException(e);
     }
     InternalOptions options = command.getInternalOptions();
-    AndroidAppOutputSink compatSink = new AndroidAppOutputSink(command.getOutputSink(), options);
-    R8.runForTesting(command.getInputApp(), compatSink, options);
+    AndroidAppConsumers compatSink = new AndroidAppConsumers(options);
+    R8.runForTesting(command.getInputApp(), options);
     return compatSink.build();
   }
 
@@ -757,8 +757,8 @@ public class ToolHelper {
     if (optionsConsumer != null) {
       optionsConsumer.accept(options);
     }
-    AndroidAppOutputSink compatSink = new AndroidAppOutputSink(command.getOutputSink(), options);
-    D8.runForTesting(command.getInputApp(), compatSink, options);
+    AndroidAppConsumers compatSink = new AndroidAppConsumers(options);
+    D8.runForTesting(command.getInputApp(), options);
     return compatSink.build();
   }
 

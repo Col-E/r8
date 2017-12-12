@@ -4,6 +4,8 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.ClassFileConsumer;
+import com.android.tools.r8.DexFilePerClassFileConsumer;
+import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.ProgramConsumer;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.dex.Marker;
@@ -103,18 +105,34 @@ public class InternalOptions {
   }
 
   public boolean isGeneratingDex() {
-    return programConsumer == null;
+    return isGeneratingDexIndexed() || isGeneratingDexFilePerClassFile();
+  }
+
+  public boolean isGeneratingDexIndexed() {
+    return programConsumer instanceof DexIndexedConsumer;
+  }
+
+  public boolean isGeneratingDexFilePerClassFile() {
+    return programConsumer instanceof DexFilePerClassFileConsumer;
   }
 
   public boolean isGeneratingClassFiles() {
     return programConsumer instanceof ClassFileConsumer;
   }
 
+  public DexIndexedConsumer getDexIndexedConsumer() {
+    return (DexIndexedConsumer) programConsumer;
+  }
+
+  public DexFilePerClassFileConsumer getDexFilePerClassFileConsumer() {
+    return (DexFilePerClassFileConsumer) programConsumer;
+  }
+
   public ClassFileConsumer getClassFileConsumer() {
     return (ClassFileConsumer) programConsumer;
   }
 
-  public void closeProgramConsumer() {
+  public void signalFinishedToProgramConsumer() {
     if (programConsumer != null) {
       programConsumer.finished(reporter);
     }
@@ -132,9 +150,6 @@ public class InternalOptions {
   public OffOrAuto interfaceMethodDesugaring = OffOrAuto.Auto;
   // Defines try-with-resources rewriter behavior.
   public OffOrAuto tryWithResourcesDesugaring = OffOrAuto.Auto;
-
-  // Application writing mode.
-  public OutputMode outputMode = OutputMode.Indexed;
 
   public boolean useTreeShaking = true;
   public boolean useDiscardedChecker = true;

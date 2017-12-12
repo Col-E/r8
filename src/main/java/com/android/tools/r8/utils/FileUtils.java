@@ -126,7 +126,7 @@ public class FileUtils {
     return mapOut;
   }
 
-  static boolean isClassesDexFile(Path file) {
+  public static boolean isClassesDexFile(Path file) {
     String name = file.getFileName().toString().toLowerCase();
     if (!name.startsWith("classes") || !name.endsWith(DEX_EXTENSION)) {
       return false;

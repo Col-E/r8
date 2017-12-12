@@ -3,11 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.dex;
 
+import com.android.tools.r8.DexFilePerClassFileConsumer;
+import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.code.ConstString;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.ReturnVoid;
 import com.android.tools.r8.errors.DexOverflowException;
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexAnnotationSetRefList;
@@ -28,9 +29,7 @@ import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.DescriptorUtils;
-import com.android.tools.r8.utils.IgnoreContentsOutputSink;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.OutputMode;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -131,16 +130,16 @@ public class SharedClassWritingTest {
     classes.forEach(builder::addProgramClass);
     DexApplication application = builder.build();
 
+    CollectInfoConsumer consumer = new CollectInfoConsumer();
     InternalOptions options = new InternalOptions(dexItemFactory,
         new Reporter(new DefaultDiagnosticsHandler()));
-    options.outputMode = OutputMode.FilePerInputClass;
+    options.programConsumer = consumer;
     ApplicationWriter writer =
         new ApplicationWriter(
             application, options, null, null, NamingLens.getIdentityLens(), null, null);
     ExecutorService executorService = ThreadUtils.getExecutorService(options);
-    CollectInfoOutputSink sink = new CollectInfoOutputSink();
-    writer.write(sink, executorService);
-    List<Set<String>> generatedDescriptors = sink.getDescriptors();
+    writer.write(executorService);
+    List<Set<String>> generatedDescriptors = consumer.getDescriptors();
     // Check all files present.
     Assert.assertEquals(NUMBER_OF_FILES, generatedDescriptors.size());
     // And each file contains two classes of which one is the shared one.
@@ -151,23 +150,28 @@ public class SharedClassWritingTest {
     }
   }
 
-  private static class CollectInfoOutputSink extends IgnoreContentsOutputSink {
+  private static class CollectInfoConsumer implements DexFilePerClassFileConsumer {
 
     private final List<Set<String>> descriptors = new ArrayList<>();
 
     @Override
-    public void writeDexFile(byte[] contents, Set<String> classDescriptors, int fileId) {
-      throw new Unreachable();
+    public void accept(
+        String primaryClassDescriptor,
+        byte[] data,
+        Set<String> descriptors,
+        DiagnosticsHandler handler) {
+      addDescriptors(descriptors);
     }
 
-    @Override
-    public synchronized void writeDexFile(byte[] contents, Set<String> classDescriptors,
-        String primaryClassName) {
-      descriptors.add(classDescriptors);
+    synchronized void addDescriptors(Set<String> descriptors) {
+      this.descriptors.add(descriptors);
     }
 
     public List<Set<String>> getDescriptors() {
       return descriptors;
     }
+
+    @Override
+    public void finished(DiagnosticsHandler handler) {}
   }
 }

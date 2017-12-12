@@ -94,6 +94,7 @@ public class IRConverter {
       boolean enableWholeProgramOptimizations) {
     assert appInfo != null;
     assert options != null;
+    assert options.programConsumer != null;
     this.timing = timing != null ? timing : new Timing("internal");
     this.appInfo = appInfo;
     this.graphLense = graphLense != null ? graphLense : GraphLense.getIdentityLense();

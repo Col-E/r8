@@ -7,6 +7,7 @@ package com.android.tools.r8;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.OutputMode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.nio.file.Path;
@@ -58,8 +59,8 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
     }
 
     @Override
-    void build(Path inputFile, Path out) throws Throwable {
-      R8Command.Builder builder = R8Command.builder();
+    void build(Path inputFile, Path out, OutputMode mode) throws Throwable {
+      R8Command.Builder builder = R8Command.builder().setOutputMode(mode);
       for (UnaryOperator<R8Command.Builder> transformation : builderTransformations) {
         builder = transformation.apply(builder);
       }

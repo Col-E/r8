@@ -53,9 +53,9 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
     }
 
     @Override
-    void build(Path testJarFile, Path out) throws Throwable {
+    void build(Path testJarFile, Path out, OutputMode mode) throws Throwable {
       Map<String, Resource> files = compileClassesTogether(testJarFile, null);
-      mergeClassFiles(Lists.newArrayList(files.values()), out);
+      mergeClassFiles(Lists.newArrayList(files.values()), out, mode);
     }
 
     // Dex classes separately.
@@ -180,7 +180,11 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
     }
 
     Resource mergeClassFiles(List<Resource> dexFiles, Path out) throws Throwable {
-      D8Command.Builder builder = D8Command.builder();
+      return mergeClassFiles(dexFiles, out, OutputMode.Indexed);
+    }
+
+    Resource mergeClassFiles(List<Resource> dexFiles, Path out, OutputMode mode) throws Throwable {
+      D8Command.Builder builder = D8Command.builder().setOutputMode(mode);
       for (Resource dexFile : dexFiles) {
         builder.addDexProgramData(readResource(dexFile), dexFile.getOrigin());
       }

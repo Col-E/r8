@@ -4,7 +4,6 @@
 package com.android.tools.r8.dex;
 
 import com.android.tools.r8.ApiLevelException;
-import com.android.tools.r8.OutputSink;
 import com.android.tools.r8.errors.DexOverflowException;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationDirectory;
@@ -27,7 +26,6 @@ import com.android.tools.r8.naming.ProguardMapSupplier;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.OutputMode;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.collect.ObjectArrays;
 import java.io.IOException;
@@ -132,7 +130,7 @@ public class ApplicationWriter {
       throws ExecutionException, IOException, DexOverflowException {
     // Distribute classes into dex files.
     VirtualFile.Distributor distributor;
-    if (options.outputMode == OutputMode.FilePerInputClass) {
+    if (options.isGeneratingDexFilePerClassFile()) {
       distributor = new VirtualFile.FilePerInputClassDistributor(this);
     } else if (!options.canUseMultidex()
         && options.mainDexKeepRules.isEmpty()
@@ -145,7 +143,7 @@ public class ApplicationWriter {
     return distributor.run();
   }
 
-  public void write(OutputSink outputSink, ExecutorService executorService)
+  public void write(ExecutorService executorService)
       throws IOException, ExecutionException, DexOverflowException {
     application.timing.begin("DexApplication.write");
     try {
@@ -183,19 +181,29 @@ public class ApplicationWriter {
         for (VirtualFile virtualFile : offsetMappingFutures.keySet()) {
           assert !virtualFile.isEmpty();
           final ObjectToOffsetMapping mapping = offsetMappingFutures.get(virtualFile).get();
-          dexDataFutures.add(executorService.submit(() -> {
-            byte[] result = writeDexFile(mapping);
-            if (virtualFile.getPrimaryClassDescriptor() != null) {
-              outputSink.writeDexFile(
-                  result,
-                  virtualFile.getClassDescriptors(),
-                  virtualFile.getPrimaryClassDescriptor());
-            } else {
-              outputSink
-                  .writeDexFile(result, virtualFile.getClassDescriptors(), virtualFile.getId());
-            }
-            return true;
-          }));
+          dexDataFutures.add(
+              executorService.submit(
+                  () -> {
+                    byte[] result = writeDexFile(mapping);
+                    if (virtualFile.getPrimaryClassDescriptor() != null) {
+                      options
+                          .getDexFilePerClassFileConsumer()
+                          .accept(
+                              virtualFile.getPrimaryClassDescriptor(),
+                              result,
+                              virtualFile.getClassDescriptors(),
+                              options.reporter);
+                    } else {
+                      options
+                          .getDexIndexedConsumer()
+                          .accept(
+                              virtualFile.getId(),
+                              result,
+                              virtualFile.getClassDescriptors(),
+                              options.reporter);
+                    }
+                    return true;
+                  }));
         }
       } catch (InterruptedException e) {
         throw new RuntimeException("Interrupted while waiting for future.", e);
@@ -205,6 +213,8 @@ public class ApplicationWriter {
       offsetMappingFutures.clear();
       // Wait for all files to be processed before moving on.
       ThreadUtils.awaitFutures(dexDataFutures);
+      // Fail if there are pending errors, e.g., the program consumers may have reported errors.
+      options.reporter.failIfPendingErrors();
 
       if (options.usageInformationConsumer != null && deadCode != null) {
         ExceptionUtils.withConsumeResourceHandler(

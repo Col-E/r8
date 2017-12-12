@@ -14,7 +14,6 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.OffOrAuto;
 import com.android.tools.r8.utils.OutputMode;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
@@ -44,10 +43,9 @@ public class D8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<D8Command
       return withBuilderTransformation(b -> b.addClasspathFiles(classpath));
     }
 
-
     @Override
-    void build(Path inputFile, Path out) throws Throwable {
-      D8Command.Builder builder = D8Command.builder();
+    void build(Path inputFile, Path out, OutputMode mode) throws Throwable {
+      D8Command.Builder builder = D8Command.builder().setOutputMode(mode);
       for (UnaryOperator<D8Command.Builder> transformation : builderTransformations) {
         builder = transformation.apply(builder);
       }
@@ -631,11 +629,10 @@ public class D8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<D8Command
         test(packageName + "intermediate", packageName, "N/A")
             .withInterfaceMethodDesugaring(OffOrAuto.Auto)
             .withMinApiLevel(minApi)
-            .withOptionConsumer(option -> option.outputMode = outputMode)
             .withIntermediate(true);
     Path intermediateDex =
         temp.getRoot().toPath().resolve(packageName + "intermediate" + ZIP_EXTENSION);
-    intermediate.build(input, intermediateDex);
+    intermediate.build(input, intermediateDex, outputMode);
 
     TestRunner<?> end =
         test(packageName + "dex", packageName, "N/A")

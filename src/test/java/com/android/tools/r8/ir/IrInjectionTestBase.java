@@ -20,7 +20,7 @@ import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
 import com.android.tools.r8.smali.SmaliTestBase;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.AndroidAppOutputSink;
+import com.android.tools.r8.utils.AndroidAppConsumers;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
@@ -73,6 +73,7 @@ public class IrInjectionTestBase extends SmaliTestBase {
     public final List<IRCode> additionalCode;
     public final ValueNumberGenerator valueNumberGenerator;
     public final InternalOptions options;
+    public final AndroidAppConsumers consumers;
 
     public TestApplication(
         DexApplication application,
@@ -96,6 +97,7 @@ public class IrInjectionTestBase extends SmaliTestBase {
       this.additionalCode = additionalCode;
       this.valueNumberGenerator = valueNumberGenerator;
       this.options = options;
+      consumers = new AndroidAppConsumers(options);
     }
 
     public int countArgumentInstructions() {
@@ -118,20 +120,17 @@ public class IrInjectionTestBase extends SmaliTestBase {
     private AndroidApp writeDex(DexApplication application, InternalOptions options)
         throws DexOverflowException {
       try {
-        AndroidAppOutputSink compatSink = new AndroidAppOutputSink();
         R8.writeApplication(
             Executors.newSingleThreadExecutor(),
             application,
-            compatSink,
             null,
             NamingLens.getIdentityLens(),
             null,
             options,
             null);
-        options.closeProgramConsumer();
-        compatSink.close();
-        return compatSink.build();
-      } catch (ExecutionException | IOException e) {
+        options.signalFinishedToProgramConsumer();
+        return consumers.build();
+      } catch (ExecutionException e) {
         throw new RuntimeException(e);
       }
     }

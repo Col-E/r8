@@ -11,7 +11,7 @@ import com.android.tools.r8.errors.DexOverflowException;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.AndroidAppOutputSink;
+import com.android.tools.r8.utils.AndroidAppConsumers;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OutputMode;
 import com.android.tools.r8.utils.Timing;
@@ -177,9 +177,9 @@ public class Bisect {
   private static void writeApp(DexApplication app, Path output, ExecutorService executor)
       throws IOException, ExecutionException, DexOverflowException {
     InternalOptions options = new InternalOptions();
-    AndroidAppOutputSink compatSink = new AndroidAppOutputSink();
+    AndroidAppConsumers compatSink = new AndroidAppConsumers(options);
     ApplicationWriter writer = new ApplicationWriter(app, options, null, null, null, null, null);
-    writer.write(compatSink, executor);
+    writer.write(executor);
     compatSink.build().writeToDirectory(output, OutputMode.Indexed);
   }
 

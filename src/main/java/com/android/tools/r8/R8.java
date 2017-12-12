@@ -47,7 +47,7 @@ import com.android.tools.r8.shaking.protolite.ProtoLiteExtension;
 import com.android.tools.r8.utils.AbortException;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.AndroidAppOutputSink;
+import com.android.tools.r8.utils.AndroidAppConsumers;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.IOExceptionDiagnostic;
@@ -103,7 +103,6 @@ public class R8 {
   public static void writeApplication(
       ExecutorService executorService,
       DexApplication application,
-      OutputSink outputSink,
       String deadCode,
       NamingLens namingLens,
       String proguardSeedsData,
@@ -124,7 +123,7 @@ public class R8 {
                 namingLens,
                 proguardSeedsData,
                 proguardMapSupplier)
-            .write(outputSink, executorService);
+            .write(executorService);
       }
     } catch (IOException e) {
       throw new RuntimeException("Cannot write application", e);
@@ -138,11 +137,11 @@ public class R8 {
     return result;
   }
 
-  static void runForTesting(AndroidApp app, OutputSink outputSink, InternalOptions options)
+  static void runForTesting(AndroidApp app, InternalOptions options)
       throws IOException, CompilationException {
     ExecutorService executor = ThreadUtils.getExecutorService(options);
     try {
-      run(app, outputSink, options, executor);
+      run(app, options, executor);
     } finally {
       executor.shutdown();
     }
@@ -150,15 +149,15 @@ public class R8 {
 
   private static void run(
       AndroidApp app,
-      OutputSink outputSink,
       InternalOptions options,
       ExecutorService executor)
       throws IOException, CompilationException {
-    new R8(options).run(app, outputSink, executor);
+    new R8(options).run(app, executor);
   }
 
-  private void run(AndroidApp inputApp, OutputSink outputSink, ExecutorService executorService)
+  private void run(AndroidApp inputApp, ExecutorService executorService)
       throws IOException, CompilationException {
+    assert options.programConsumer != null;
     if (options.quiet) {
       System.setOut(new PrintStream(ByteStreams.nullOutputStream()));
     }
@@ -380,7 +379,6 @@ public class R8 {
       writeApplication(
           executorService,
           application,
-          outputSink,
           application.deadCode,
           namingLens,
           proguardSeedsData,
@@ -392,8 +390,7 @@ public class R8 {
       unwrapExecutionException(e);
       throw new AssertionError(e); // unwrapping method should have thrown
     } finally {
-      outputSink.close();
-      options.closeProgramConsumer();
+      options.signalFinishedToProgramConsumer();
       // Dump timings.
       if (options.printTimes) {
         timing.report();
@@ -477,7 +474,7 @@ public class R8 {
     try {
       try {
         InternalOptions options = command.getInternalOptions();
-        run(command.getInputApp(), command.getOutputSink(), options, executor);
+        run(command.getInputApp(), options, executor);
       } catch (IOException io) {
         throw command.getReporter().fatalError(new IOExceptionDiagnostic(io));
       } catch (CompilationException e) {
@@ -495,9 +492,9 @@ public class R8 {
   public static AndroidApp runInternal(R8Command command, ExecutorService executor)
       throws IOException, CompilationException {
     InternalOptions options = command.getInternalOptions();
-    AndroidAppOutputSink compatSink = new AndroidAppOutputSink(command.getOutputSink(), options);
-    run(command.getInputApp(), compatSink, options, executor);
-    return compatSink.build();
+    AndroidAppConsumers compatConsumers = new AndroidAppConsumers(options);
+    run(command.getInputApp(), options, executor);
+    return compatConsumers.build();
   }
 
   private static void run(String[] args)
@@ -518,7 +515,7 @@ public class R8 {
     InternalOptions options = command.getInternalOptions();
     ExecutorService executorService = ThreadUtils.getExecutorService(options);
     try {
-      run(command.getInputApp(), command.getOutputSink(), options, executorService);
+      run(command.getInputApp(), options, executorService);
     } finally {
       executorService.shutdown();
     }

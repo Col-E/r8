@@ -3,17 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
-import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
-import com.android.tools.r8.utils.FileSystemOutputSink;
 import com.android.tools.r8.utils.FileUtils;
-import com.android.tools.r8.utils.IOExceptionDiagnostic;
-import com.android.tools.r8.utils.IgnoreContentsOutputSink;
 import com.android.tools.r8.utils.OutputMode;
 import com.android.tools.r8.utils.Reporter;
-import java.io.IOException;
 import java.nio.file.Path;
 
 /**
@@ -23,18 +18,15 @@ import java.nio.file.Path;
  */
 abstract class BaseCompilerCommand extends BaseCommand {
 
-  private final Path outputPath;
-  private final OutputMode outputMode;
+  private final ProgramConsumer programConsumer;
   private final CompilationMode mode;
   private final int minApiLevel;
   private final Reporter reporter;
   private final boolean enableDesugaring;
-  private OutputSink outputSink;
 
   BaseCompilerCommand(boolean printHelp, boolean printVersion) {
     super(printHelp, printVersion);
-    outputPath = null;
-    outputMode = OutputMode.Indexed;
+    programConsumer = null;
     mode = null;
     minApiLevel = 0;
     reporter = new Reporter(new DefaultDiagnosticsHandler());
@@ -43,25 +35,24 @@ abstract class BaseCompilerCommand extends BaseCommand {
 
   BaseCompilerCommand(
       AndroidApp app,
-      Path outputPath,
-      OutputMode outputMode,
       CompilationMode mode,
+      ProgramConsumer programConsumer,
       int minApiLevel,
       Reporter reporter,
       boolean enableDesugaring) {
     super(app);
-    assert mode != null;
     assert minApiLevel > 0;
-    this.outputPath = outputPath;
-    this.outputMode = outputMode;
+    assert mode != null;
     this.mode = mode;
+    this.programConsumer = programConsumer;
     this.minApiLevel = minApiLevel;
     this.reporter = reporter;
     this.enableDesugaring = enableDesugaring;
   }
 
+  @Deprecated
   public Path getOutputPath() {
-    return outputPath;
+    return programConsumer == null ? null : programConsumer.getOutputPath();
   }
 
   public CompilationMode getMode() {
@@ -72,33 +63,19 @@ abstract class BaseCompilerCommand extends BaseCommand {
     return minApiLevel;
   }
 
+  @Deprecated
   public OutputMode getOutputMode() {
-    return outputMode;
+    return programConsumer instanceof DexFilePerClassFileConsumer
+        ? OutputMode.FilePerInputClass
+        : OutputMode.Indexed;
+  }
+
+  public ProgramConsumer getProgramConsumer() {
+    return programConsumer;
   }
 
   public Reporter getReporter() {
     return reporter;
-  }
-
-  private OutputSink createOutputSink() {
-    if (outputPath == null) {
-      return new IgnoreContentsOutputSink();
-    } else {
-      try {
-        // TODO(zerny): Calling getInternalOptions here is incorrect since any modifications by an
-        // options consumer will not be visible to the sink.
-        return FileSystemOutputSink.create(outputPath, getInternalOptions());
-      } catch (IOException e) {
-        throw reporter.fatalError(new IOExceptionDiagnostic(e, new PathOrigin(outputPath)));
-      }
-    }
-  }
-
-  public OutputSink getOutputSink() {
-    if (outputSink == null) {
-      outputSink = createOutputSink();
-    }
-    return outputSink;
   }
 
   public boolean getEnableDesugaring() {
@@ -160,20 +137,24 @@ abstract class BaseCompilerCommand extends BaseCommand {
       return outputMode;
     }
 
-    /**
-     * Set an output path. Must be an existing directory or a zip file.
-     */
+    /** Set an output path. Must be an existing directory or a zip file. */
+    @Deprecated
     public B setOutputPath(Path outputPath) {
       this.outputPath = outputPath;
       return self();
     }
 
-    /**
-     * Set an output mode.
-     */
+    /** Set an output mode. */
+    @Deprecated
     public B setOutputMode(OutputMode outputMode) {
       this.outputMode = outputMode;
       return self();
+    }
+
+    public ProgramConsumer getProgramConsumer() {
+      return getOutputMode() == OutputMode.Indexed
+          ? createIndexedConsumer()
+          : createPerClassFileConsumer();
     }
 
     /**
@@ -209,6 +190,20 @@ abstract class BaseCompilerCommand extends BaseCommand {
       }
       FileUtils.validateOutputFile(outputPath, reporter);
       super.validate();
+    }
+
+    protected DexIndexedConsumer createIndexedConsumer() {
+      Path path = getOutputPath();
+      return FileUtils.isArchive(path)
+          ? new DexIndexedConsumer.ArchiveConsumer(path)
+          : new DexIndexedConsumer.DirectoryConsumer(path);
+    }
+
+    protected DexFilePerClassFileConsumer createPerClassFileConsumer() {
+      Path path = getOutputPath();
+      return FileUtils.isArchive(path)
+          ? new DexFilePerClassFileConsumer.ArchiveConsumer(path)
+          : new DexFilePerClassFileConsumer.DirectoryConsumer(path);
     }
   }
 }

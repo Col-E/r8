@@ -33,12 +33,11 @@ public class R8UnreachableCodeTest {
     AndroidApp input = AndroidApp.fromProgramFiles(SMALI_DIR.resolve(name).resolve(name + ".dex"));
     ExecutorService executorService = Executors.newSingleThreadExecutor();
     Timing timing = new Timing("R8UnreachableCodeTest");
+    InternalOptions options = new InternalOptions();
+    options.programConsumer = DexIndexedConsumer.emptyConsumer();
     DirectMappedDexApplication application =
-        new ApplicationReader(input, new InternalOptions(), timing)
-            .read(executorService)
-            .toDirect();
-    IRConverter converter =
-        new IRConverter(new AppInfoWithSubtyping(application), new InternalOptions());
+        new ApplicationReader(input, options, timing).read(executorService).toDirect();
+    IRConverter converter = new IRConverter(new AppInfoWithSubtyping(application), options);
     converter.optimize(application);
     DexProgramClass clazz = application.classes().iterator().next();
     assertEquals(4, clazz.directMethods().length);

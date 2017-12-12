@@ -40,21 +40,14 @@ public interface ClassFileConsumer extends ProgramConsumer {
   void accept(byte[] data, String descriptor, DiagnosticsHandler handler);
 
   /** Empty consumer to request the production of the resource but ignore its value. */
-  class EmptyConsumer implements ClassFileConsumer {
-
-    @Override
-    public void accept(byte[] data, String descriptor, DiagnosticsHandler handler) {
-      // Ignore data.
-    }
-
-    @Override
-    public void finished(DiagnosticsHandler handler) {
-      // Nothing to close.
-    }
+  static ClassFileConsumer emptyConsumer() {
+    return ForwardingConsumer.EMPTY_CONSUMER;
   }
 
   /** Forwarding consumer to delegate to an optional existing consumer. */
   class ForwardingConsumer implements ClassFileConsumer {
+
+    private static final ClassFileConsumer EMPTY_CONSUMER = new ForwardingConsumer(null);
 
     private final ClassFileConsumer consumer;
 
@@ -74,6 +67,11 @@ public interface ClassFileConsumer extends ProgramConsumer {
       if (consumer != null) {
         consumer.finished(handler);
       }
+    }
+
+    @Override
+    public Path getOutputPath() {
+      return consumer == null ? null : consumer.getOutputPath();
     }
   }
 
@@ -114,6 +112,11 @@ public interface ClassFileConsumer extends ProgramConsumer {
       } catch (IOException e) {
         handler.error(new IOExceptionDiagnostic(e, origin));
       }
+    }
+
+    @Override
+    public Path getOutputPath() {
+      return archive;
     }
 
     private ZipOutputStream getStream(DiagnosticsHandler handler) {
@@ -174,6 +177,11 @@ public interface ClassFileConsumer extends ProgramConsumer {
     @Override
     public void finished(DiagnosticsHandler handler) {
       super.finished(handler);
+    }
+
+    @Override
+    public Path getOutputPath() {
+      return directory;
     }
 
     private static void writeFileFromDescriptor(byte[] contents, Path target) throws IOException {
