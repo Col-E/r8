@@ -132,6 +132,12 @@ sourceSets {
         }
         output.resourcesDir = 'build/classes/examples'
     }
+    examplesKotlin {
+        java {
+            srcDirs = ['src/test/examplesKotlin']
+        }
+        output.resourcesDir = 'build/classes/examplesKotlin'
+    }
     examplesAndroidN {
         java {
             srcDirs = ['src/test/examplesAndroidN']
@@ -218,7 +224,8 @@ dependencies {
     supportLibs 'junit:junit:4.12'
     supportLibs 'com.android.support.test.espresso:espresso-core:3.0.0'
     apiUsageSampleCompile sourceSets.main.output
-    debugTestResourcesKotlinCompileOnly 'org.jetbrains.kotlin:kotlin-stdlib:1.1.4-3'
+    debugTestResourcesKotlinCompileOnly 'org.jetbrains.kotlin:kotlin-stdlib:1.2.0'
+    examplesKotlinCompileOnly 'org.jetbrains.kotlin:kotlin-stdlib:1.2.0'
     apt 'com.google.auto.value:auto-value:1.5'
 }
 
@@ -768,6 +775,18 @@ task buildDebugTestResourcesJars {
     dependsOn jar_debugTestResourcesKotlin
 }
 
+task buildExampleKotlinJars {
+    def kotlinSrcDir = file("src/test/examplesKotlin")
+    kotlinSrcDir.eachDir { dir ->
+        def name = dir.getName();
+        dependsOn "compile_example_kotlin_${name}"
+        task "compile_example_kotlin_${name}"(type: kotlin.Kotlinc) {
+            source = fileTree(dir: file("src/test/examplesKotlin/${name}"), include: '**/*.kt')
+            destination = file("build/test/examplesKotlin/${name}.jar")
+        }
+    }
+}
+
 // Proto lite generated code yields warnings when compiling with javac.
 // We change the options passed to javac to ignore it.
 compileExamplesJava.options.compilerArgs = ["-Xlint:none"]
@@ -1055,6 +1074,36 @@ task buildExampleJava9Jars {
     }
 }
 
+task buildExamplesKotlin {
+    if (OperatingSystem.current().isMacOsX() || OperatingSystem.current().isWindows()) {
+        logger.lifecycle("WARNING: Testing (including building kotlin examples) is only partially" +
+                " supported on your platform (" + OperatingSystem.current().getName() + ").")
+    } else if (!OperatingSystem.current().isLinux()) {
+        logger.lifecycle("WARNING: Testing (including building kotlin examples) is not supported " +
+                "on your platform. It is fully supported on Linux and partially supported on " +
+                "Mac OS and Windows")
+        return;
+    }
+    def examplesDir = file("src/test/examplesKotlin")
+    examplesDir.eachDir { dir ->
+        def name = dir.getName();
+        dependsOn "dex_example_kotlin_${name}"
+        def exampleOutputDir = file("build/test/examplesKotlin/" + name);
+        def dexPath = file("${exampleOutputDir}")
+        task "dex_example_kotlin_${name}"(type: dx.Dx,
+                dependsOn: "compile_example_kotlin_${name}") {
+            doFirst {
+                if (!dexPath.exists()) {
+                    dexPath.mkdirs()
+                }
+            }
+            source = files(tasks.getByPath("compile_example_kotlin_${name}")).asFileTree
+            destination = dexPath
+            debug = false
+        }
+    }
+}
+
 task buildExamples {
     if (OperatingSystem.current().isMacOsX() || OperatingSystem.current().isWindows()) {
         logger.lifecycle("WARNING: Testing (including building examples) is only partially supported on your " +
@@ -1280,6 +1329,7 @@ test {
         }
         dependsOn downloadDeps
         dependsOn buildExamples
+        dependsOn buildExamplesKotlin
         dependsOn buildSmali
         dependsOn jctfCommonJar
         dependsOn jctfTestsClasses
