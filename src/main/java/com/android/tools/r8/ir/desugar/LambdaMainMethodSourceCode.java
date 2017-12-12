@@ -275,7 +275,7 @@ final class LambdaMainMethodSourceCode extends SynthesizedLambdaSourceCode {
   private int prepareReturnValue(int register,
       DexType erasedType, DexType enforcedType, DexType actualType) {
     // `actualType` must be adjusted to `enforcedType` first.
-    register = adjustType(register, actualType, enforcedType);
+    register = adjustType(register, actualType, enforcedType, true);
 
     // `erasedType` and `enforcedType` may only differ when they both
     // are class types and `erasedType` is a base type of `enforcedType`,
@@ -294,11 +294,11 @@ final class LambdaMainMethodSourceCode extends SynthesizedLambdaSourceCode {
   private int prepareParameterValue(int register,
       DexType erasedType, DexType enforcedType, DexType expectedType) {
     register = enforceParameterType(register, erasedType, enforcedType);
-    register = adjustType(register, enforcedType, expectedType);
+    register = adjustType(register, enforcedType, expectedType, false);
     return register;
   }
 
-  private int adjustType(int register, DexType fromType, DexType toType) {
+  private int adjustType(int register, DexType fromType, DexType toType, boolean returnType) {
     if (fromType == toType) {
       return register;
     }
@@ -348,10 +348,14 @@ final class LambdaMainMethodSourceCode extends SynthesizedLambdaSourceCode {
     }
 
     if (fromType.isClassType() && toType.isClassType()) {
-      // If `fromType` and `toType` are both reference types, `fromType` must
-      // be deriving from `toType`.
-      // NOTE: we don't check `toType` for being actually a supertype, since we
-      // might not have full classpath with inheritance information to do that.
+      if (returnType) {
+        // For return type adjustment in case `fromType` and `toType` are both reference types,
+        // `fromType` does NOT have to be deriving from `toType` and we need to add a cast.
+        // NOTE: we don't check `toType` for being actually a supertype, since we
+        // might not have full classpath with inheritance information to do that.
+        int finalRegister = register;
+        add(builder -> builder.addCheckCast(finalRegister, toType));
+      }
       return register;
     }
 

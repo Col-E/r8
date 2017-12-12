@@ -89,6 +89,45 @@ public class ValueAdjustments {
     Double f();
   }
 
+  static class B70348575_A {
+    String greet() {
+      return "Hello from A";
+    }
+  }
+
+  static class B70348575_A1 extends B70348575_A {
+    @Override
+    String greet() {
+      return "Hello from A1";
+    }
+  }
+
+  interface B70348575_B {
+    B70348575_A1 get();
+  }
+
+  static class B70348575_C<B70348575_AA extends B70348575_A> {
+    private B70348575_AA a;
+
+    B70348575_C(B70348575_AA a) {
+      this.a = a;
+    }
+
+    B70348575_AA getA() {
+      return a;
+    }
+  }
+
+  static class B70348575_C1 extends B70348575_C<B70348575_A1> {
+    B70348575_C1() {
+      super(new B70348575_A1());
+    }
+
+    B70348575_B getB() {
+      return this::getA;
+    }
+  }
+
   private static void checkObject(StringBuffer builder) {
     builder
         .append(((iObject) ValueAdjustments::z).f()).append(' ')
@@ -351,6 +390,12 @@ public class ValueAdjustments {
     return -0.64;
   }
 
+  private static void bB70348575(StringBuffer builder) {
+    B70348575_C1 c1 = new B70348575_C1();
+    B70348575_A1 a = c1.getB().get();
+    builder.append(a.greet()).append('\n');;
+  }
+
   public static void main(String[] args) {
     StringBuffer builder = new StringBuffer();
 
@@ -368,6 +413,7 @@ public class ValueAdjustments {
     checkObject(builder);
 
     checkMisc(builder);
+    bB70348575(builder);
 
     System.out.println(builder.toString());
   }
