@@ -41,8 +41,6 @@ public class CompatDexBuilder {
   }
 
   private void run(String[] args) throws IOException, InterruptedException, ExecutionException {
-    System.out.println("CompatDexBuilder " + String.join(" ", args));
-
     List<String> flags = new ArrayList<>();
 
     for (String arg : args) {
