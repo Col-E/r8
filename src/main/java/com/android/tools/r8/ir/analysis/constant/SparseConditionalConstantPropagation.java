@@ -106,18 +106,21 @@ public class SparseConditionalConstantPropagation {
           ConstNumber evaluatedConst = entry.getValue().asConst().getConstNumber();
           if (value.definition != evaluatedConst) {
             if (value.isPhi()) {
-              BasicBlock block = value.asPhi().getBlock();
-              // Create a new constant, because it can be an existing constant that flow directly
-              // into the phi.
-              ConstNumber newConst = ConstNumber.copyOf(code, evaluatedConst);
-              InstructionListIterator iterator = block.listIterator();
-              Instruction inst = iterator.nextUntil((i) -> !i.isMoveException());
-              newConst.setPosition(inst.getPosition());
-              if (!inst.isDebugPosition()) {
-                iterator.previous();
+              // D8 relies on dead code removal to get rid of the dead phi itself.
+              if (value.numberOfAllUsers() != 0) {
+                BasicBlock block = value.asPhi().getBlock();
+                // Create a new constant, because it can be an existing constant that flow directly
+                // into the phi.
+                ConstNumber newConst = ConstNumber.copyOf(code, evaluatedConst);
+                InstructionListIterator iterator = block.listIterator();
+                Instruction inst = iterator.nextUntil((i) -> !i.isMoveException());
+                newConst.setPosition(inst.getPosition());
+                if (!inst.isDebugPosition()) {
+                  iterator.previous();
+                }
+                iterator.add(newConst);
+                value.replaceUsers(newConst.outValue());
               }
-              iterator.add(newConst);
-              value.replaceUsers(newConst.outValue());
             } else {
               BasicBlock block = value.definition.getBlock();
               InstructionListIterator iterator = block.listIterator();
