@@ -705,7 +705,7 @@ public class IRBuilder {
   public void addAddLiteral(NumericType type, int dest, int value, int constant) {
     assert isNonLongIntegerType(type);
     Value in1 = readNumericRegister(value, type);
-    Value in2 = readLiteral(type, constant);
+    Value in2 = readIntLiteral(constant);
     Value out = writeNumericRegister(dest, type, ThrowingInfo.NO_THROW);
     Add instruction = new Add(type, out, in1, in2);
     assert !instruction.instructionTypeCanThrow();
@@ -725,7 +725,7 @@ public class IRBuilder {
   public void addAndLiteral(NumericType type, int dest, int value, int constant) {
     assert isNonLongIntegerType(type);
     Value in1 = readNumericRegister(value, type);
-    Value in2 = readLiteral(type, constant);
+    Value in2 = readIntLiteral(constant);
     Value out = writeNumericRegister(dest, type, ThrowingInfo.NO_THROW);
     And instruction = new And(type, out, in1, in2);
     assert !instruction.instructionTypeCanThrow();
@@ -872,7 +872,7 @@ public class IRBuilder {
     assert isNonLongIntegerType(type);
     boolean canThrow = type != NumericType.DOUBLE && type != NumericType.FLOAT;
     Value in1 = readNumericRegister(value, type);
-    Value in2 = readLiteral(type, constant);
+    Value in2 = readIntLiteral(constant);
     Value out = writeNumericRegister(dest, type,
         canThrow ? ThrowingInfo.CAN_THROW : ThrowingInfo.NO_THROW);
     Div instruction = new Div(type, out, in1, in2);
@@ -912,7 +912,7 @@ public class IRBuilder {
   public void addMulLiteral(NumericType type, int dest, int value, int constant) {
     assert isNonLongIntegerType(type);
     Value in1 = readNumericRegister(value, type);
-    Value in2 = readLiteral(type, constant);
+    Value in2 = readIntLiteral(constant);
     Value out = writeNumericRegister(dest, type, ThrowingInfo.NO_THROW);
     Mul instruction = new Mul(type, out, in1, in2);
     assert !instruction.instructionTypeCanThrow();
@@ -934,7 +934,7 @@ public class IRBuilder {
     assert isNonLongIntegerType(type);
     boolean canThrow = type != NumericType.DOUBLE && type != NumericType.FLOAT;
     Value in1 = readNumericRegister(value, type);
-    Value in2 = readLiteral(type, constant);
+    Value in2 = readIntLiteral(constant);
     Value out = writeNumericRegister(dest, type,
         canThrow ? ThrowingInfo.CAN_THROW : ThrowingInfo.NO_THROW);
     Rem instruction = new Rem(type, out, in1, in2);
@@ -1342,7 +1342,7 @@ public class IRBuilder {
   public void addRsubLiteral(NumericType type, int dest, int value, int constant) {
     assert type != NumericType.DOUBLE;
     Value in1 = readNumericRegister(value, type);
-    Value in2 = readLiteral(type, constant);
+    Value in2 = readIntLiteral(constant);
     Value out = writeNumericRegister(dest, type, ThrowingInfo.NO_THROW);
     // Add this as a sub instruction - sub instructions with literals need to have the constant
     // on the left side (rsub).
@@ -1459,7 +1459,7 @@ public class IRBuilder {
   public void addOrLiteral(NumericType type, int dest, int value, int constant) {
     assert isNonLongIntegerType(type);
     Value in1 = readNumericRegister(value, type);
-    Value in2 = readLiteral(type, constant);
+    Value in2 = readIntLiteral(constant);
     Value out = writeNumericRegister(dest, type, ThrowingInfo.NO_THROW);
     Or instruction = new Or(type, out, in1, in2);
     assert !instruction.instructionTypeCanThrow();
@@ -1479,7 +1479,7 @@ public class IRBuilder {
   public void addShlLiteral(NumericType type, int dest, int value, int constant) {
     assert isNonLongIntegerType(type);
     Value in1 = readNumericRegister(value, type);
-    Value in2 = readLiteral(type, constant);
+    Value in2 = readIntLiteral(constant);
     Value out = writeNumericRegister(dest, type, ThrowingInfo.NO_THROW);
     Shl instruction = new Shl(type, out, in1, in2);
     assert !instruction.instructionTypeCanThrow();
@@ -1499,7 +1499,7 @@ public class IRBuilder {
   public void addShrLiteral(NumericType type, int dest, int value, int constant) {
     assert isNonLongIntegerType(type);
     Value in1 = readNumericRegister(value, type);
-    Value in2 = readLiteral(type, constant);
+    Value in2 = readIntLiteral(constant);
     Value out = writeNumericRegister(dest, type, ThrowingInfo.NO_THROW);
     Shr instruction = new Shr(type, out, in1, in2);
     assert !instruction.instructionTypeCanThrow();
@@ -1519,7 +1519,7 @@ public class IRBuilder {
   public void addUshrLiteral(NumericType type, int dest, int value, int constant) {
     assert isNonLongIntegerType(type);
     Value in1 = readNumericRegister(value, type);
-    Value in2 = readLiteral(type, constant);
+    Value in2 = readIntLiteral(constant);
     Value out = writeNumericRegister(dest, type, ThrowingInfo.NO_THROW);
     Ushr instruction = new Ushr(type, out, in1, in2);
     assert !instruction.instructionTypeCanThrow();
@@ -1550,7 +1550,7 @@ public class IRBuilder {
       Value out = writeNumericRegister(dest, type, ThrowingInfo.NO_THROW);
       instruction = new Not(type, out, in1);
     } else {
-      Value in2 = readLiteral(type, constant);
+      Value in2 = readIntLiteral(constant);
       Value out = writeNumericRegister(dest, type, ThrowingInfo.NO_THROW);
       instruction = new Xor(type, out, in1, in2);
     }
@@ -1630,9 +1630,9 @@ public class IRBuilder {
     return readRegister(register, ValueType.fromNumericType(type));
   }
 
-  public Value readLiteral(NumericType type, long constant) {
+  public Value readIntLiteral(long constant) {
     return intConstants.computeIfAbsent(constant, (c) -> {
-      Value value = new Value(valueNumberGenerator.next(), ValueType.fromNumericType(type), null);
+      Value value = new Value(valueNumberGenerator.next(), ValueType.INT, null);
       ConstNumber number = new ConstNumber(value, constant);
       insertCanonicalizedConstant(number);
       return number;
