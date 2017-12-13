@@ -1842,7 +1842,7 @@ public class JarSourceCode implements SourceCode {
         // Intentionally left empty.
         break;
       case Opcodes.ACONST_NULL:
-        builder.addNullConst(state.push(JarState.NULL_TYPE), 0);
+        builder.addNullConst(state.push(JarState.NULL_TYPE));
         break;
       case Opcodes.ICONST_M1:
       case Opcodes.ICONST_0:

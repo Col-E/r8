@@ -814,8 +814,8 @@ public class IRBuilder {
     canonicalizeAndAddConst(ValueType.FLOAT, dest, value, floatConstants);
   }
 
-  public void addNullConst(int dest, long value) {
-    canonicalizeAndAddConst(ValueType.OBJECT, dest, value, nullConstants);
+  public void addNullConst(int dest) {
+    canonicalizeAndAddConst(ValueType.OBJECT, dest, 0L, nullConstants);
   }
 
   public void addConstClass(int dest, DexType type) {
