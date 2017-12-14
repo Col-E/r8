@@ -528,7 +528,6 @@ public class R8Command extends BaseCompilerCommand {
     internal.minApiLevel = getMinApiLevel();
     // -dontoptimize disables optimizations by flipping related flags.
     if (!proguardConfiguration.isOptimizing()) {
-      internal.skipDebugLineNumberOpt = true;
       internal.skipClassMerging = true;
       internal.inlineAccessors = false;
       internal.removeSwitchMaps = false;
@@ -557,6 +556,8 @@ public class R8Command extends BaseCompilerCommand {
       internal.removeSwitchMaps = false;
       // TODO(zerny): Should we support inlining in debug mode? b/62937285
       internal.inlineAccessors = false;
+      // TODO(zerny): Should we support outlining in debug mode? b/62937285
+      internal.outline.enabled = false;
     }
 
     // Setup a usage information consumer.

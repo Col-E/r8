@@ -70,7 +70,6 @@ public class InternalOptions {
   public boolean printTimes = false;
 
   // Optimization-related flags. These should conform to -dontoptimize.
-  public boolean skipDebugLineNumberOpt = false;
   public boolean skipClassMerging = true;
   public boolean inlineAccessors = true;
   public boolean removeSwitchMaps = true;
@@ -169,7 +168,7 @@ public class InternalOptions {
   public ImmutableList<ProguardConfigurationRule> mainDexKeepRules = ImmutableList.of();
   public boolean minimalMainDex;
 
-  public LineNumberOptimization lineNumberOptimization = LineNumberOptimization.OFF;
+  public LineNumberOptimization lineNumberOptimization = LineNumberOptimization.ON;
 
   public static class InvalidParameterAnnotationInfo {
 
