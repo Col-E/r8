@@ -25,11 +25,13 @@ import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.Range;
+import com.google.common.base.Suppliers;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Supplier;
 
 public class LineNumberOptimizer {
 
@@ -202,7 +204,9 @@ public class LineNumberOptimizer {
           new IdentityHashMap<>(clazz.directMethods().length + clazz.virtualMethods().length);
       clazz.forEachMethod(
           method -> {
-            if (doesContainPositions(method)) {
+            // Add method only if renamed or contains positions.
+            if (namingLens.lookupName(method.method) != method.method.name
+                || doesContainPositions(method)) {
               methodsByName.compute(
                   method.method.name,
                   (name, methods) -> {
@@ -215,22 +219,33 @@ public class LineNumberOptimizer {
             }
           });
 
-      ClassNaming.Builder classNamingBuilder =
-          classNameMapperBuilder.classNamingBuilder(
-              DescriptorUtils.descriptorToJavaType(
-                  namingLens.lookupDescriptor(clazz.getType()).toString()),
-              clazz.toString());
+      // At this point we don't know if we really need to add this class to the builder.
+      // It depends on whether any methods/fields are renamed or some methods contain positions.
+      // Create a supplier which creates a new, cached ClassNaming.Builder on-demand.
+      DexString renamedClassName = namingLens.lookupDescriptor(clazz.getType());
+      Supplier<ClassNaming.Builder> onDemandClassNamingBuilder =
+          Suppliers.memoize(
+              () ->
+                  classNameMapperBuilder.classNamingBuilder(
+                      DescriptorUtils.descriptorToJavaType(renamedClassName.toString()),
+                      clazz.toString()));
+
+      // We do know we need to create a ClassNaming.Builder if the class itself had been renamed.
+      if (!clazz.toString().equals(renamedClassName.toString())) {
+        // Not using return value, it's registered in classNameMapperBuilder
+        onDemandClassNamingBuilder.get();
+      }
 
       // First transfer renamed fields to classNamingBuilder.
       clazz.forEachField(
           dexEncodedField -> {
             DexField dexField = dexEncodedField.field;
             DexString renamedName = namingLens.lookupName(dexField);
-            if (!renamedName.equals(dexField.name)) {
+            if (renamedName != dexField.name) {
               FieldSignature signature =
                   new FieldSignature(dexField.name.toString(), dexField.type.toString());
               MemberNaming memberNaming = new MemberNaming(signature, renamedName.toString());
-              classNamingBuilder.addMemberEntry(memberNaming);
+              onDemandClassNamingBuilder.get().addMemberEntry(memberNaming);
             }
           });
 
@@ -243,9 +258,19 @@ public class LineNumberOptimizer {
           // need to be sorted.
           methods.sort(
               (lhs, rhs) -> {
-                int startLineDiff =
-                    lhs.getCode().asDexCode().getDebugInfo().startLine
-                        - rhs.getCode().asDexCode().getDebugInfo().startLine;
+                // Sort by startline, then DexEncodedMethod.slowCompare.
+                // Use startLine = 0 if no debuginfo.
+                Code lhsCode = lhs.getCode();
+                Code rhsCode = rhs.getCode();
+                DexCode lhsDexCode =
+                    lhsCode == null || !lhsCode.isDexCode() ? null : lhsCode.asDexCode();
+                DexCode rhsDexCode =
+                    rhsCode == null || !rhsCode.isDexCode() ? null : rhsCode.asDexCode();
+                DexDebugInfo lhsDebugInfo = lhsDexCode == null ? null : lhsDexCode.getDebugInfo();
+                DexDebugInfo rhsDebugInfo = rhsDexCode == null ? null : rhsDexCode.getDebugInfo();
+                int lhsStartLine = lhsDebugInfo == null ? 0 : lhsDebugInfo.startLine;
+                int rhsStartLine = rhsDebugInfo == null ? 0 : rhsDebugInfo.startLine;
+                int startLineDiff = lhsStartLine - rhsStartLine;
                 if (startLineDiff != 0) return startLineDiff;
                 return DexEncodedMethod.slowCompare(lhs, rhs);
               });
@@ -255,83 +280,99 @@ public class LineNumberOptimizer {
             identityMapping ? new IdentityPositionRemapper() : new OptimizingPositionRemapper();
 
         for (DexEncodedMethod method : methods) {
-          // Do the actual processing for each method.
-          DexCode dexCode = method.getCode().asDexCode();
-          DexDebugInfo debugInfo = dexCode.getDebugInfo();
-          List<DexDebugEvent> processedEvents = new ArrayList<>();
 
-          // Our pipeline will be:
-          // [debugInfo.events] -> eventFilter -> positionRemapper -> positionEventEmitter ->
-          // [processedEvents]
-          PositionEventEmitter positionEventEmitter =
-              new PositionEventEmitter(application.dexItemFactory, method.method, processedEvents);
-
+          // We will be remapping positional debug events and collect them as MappedPositions.
           class MappedPosition {
             private final DexMethod method;
             private final int originalLine;
             private final Position caller;
-            private final int targetLine;
+            private final int obfuscatedLine;
 
             private MappedPosition(
-                DexMethod method, int originalLine, Position caller, int targetline) {
+                DexMethod method, int originalLine, Position caller, int obfuscatedLine) {
               this.method = method;
               this.originalLine = originalLine;
               this.caller = caller;
-              this.targetLine = targetline;
+              this.obfuscatedLine = obfuscatedLine;
             }
           }
 
           List<MappedPosition> mappedPositions = new ArrayList<>();
 
-          EventFilter eventFilter =
-              new EventFilter(
-                  debugInfo.startLine,
-                  method.method,
-                  processedEvents::add,
-                  positionState -> {
-                    Position position = positionRemapper.createRemappedPosition(positionState);
-                    mappedPositions.add(
-                        new MappedPosition(
-                            positionState.getCurrentMethod(),
-                            positionState.getCurrentLine(),
-                            positionState.getCurrentCallerPosition(),
-                            position.line));
-                    positionEventEmitter.emitPositionEvents(positionState.getCurrentPc(), position);
-                  });
-          for (DexDebugEvent event : debugInfo.events) {
-            event.accept(eventFilter);
-          }
+          if (doesContainPositions(method)) {
+            // Do the actual processing for each method.
+            DexCode dexCode = method.getCode().asDexCode();
+            DexDebugInfo debugInfo = dexCode.getDebugInfo();
+            List<DexDebugEvent> processedEvents = new ArrayList<>();
 
-          DexDebugInfo optimizedDebugInfo =
-              new DexDebugInfo(
-                  positionEventEmitter.getStartLine(),
-                  debugInfo.parameters,
-                  processedEvents.toArray(new DexDebugEvent[processedEvents.size()]));
+            // Our pipeline will be:
+            // [debugInfo.events] -> eventFilter -> positionRemapper -> positionEventEmitter ->
+            // [processedEvents]
+            PositionEventEmitter positionEventEmitter =
+                new PositionEventEmitter(
+                    application.dexItemFactory, method.method, processedEvents);
 
-          // TODO(tamaskenez) Remove this as soon as we have external tests testing not only the
-          // remapping but whether the non-positional debug events remain intact.
-          if (identityMapping) {
-            assert (optimizedDebugInfo.startLine == debugInfo.startLine);
-            assert (optimizedDebugInfo.events.length == debugInfo.events.length);
-            for (int i = 0; i < debugInfo.events.length; ++i) {
-              assert optimizedDebugInfo.events[i].equals(debugInfo.events[i]);
+            EventFilter eventFilter =
+                new EventFilter(
+                    debugInfo.startLine,
+                    method.method,
+                    processedEvents::add,
+                    positionState -> {
+                      int currentLine = positionState.getCurrentLine();
+                      assert currentLine >= 0;
+                      Position position = positionRemapper.createRemappedPosition(positionState);
+                      mappedPositions.add(
+                          new MappedPosition(
+                              positionState.getCurrentMethod(),
+                              currentLine,
+                              positionState.getCurrentCallerPosition(),
+                              position.line));
+                      positionEventEmitter.emitPositionEvents(
+                          positionState.getCurrentPc(), position);
+                    });
+            for (DexDebugEvent event : debugInfo.events) {
+              event.accept(eventFilter);
             }
+
+            DexDebugInfo optimizedDebugInfo =
+                new DexDebugInfo(
+                    positionEventEmitter.getStartLine(),
+                    debugInfo.parameters,
+                    processedEvents.toArray(new DexDebugEvent[processedEvents.size()]));
+
+            // TODO(tamaskenez) Remove this as soon as we have external tests testing not only the
+            // remapping but whether the non-positional debug events remain intact.
+            if (identityMapping) {
+              assert optimizedDebugInfo.startLine == debugInfo.startLine;
+              assert optimizedDebugInfo.events.length == debugInfo.events.length;
+              for (int i = 0; i < debugInfo.events.length; ++i) {
+                assert optimizedDebugInfo.events[i].equals(debugInfo.events[i]);
+              }
+            }
+            dexCode.setDebugInfo(optimizedDebugInfo);
           }
-          dexCode.setDebugInfo(optimizedDebugInfo);
 
           MethodSignature originalSignature = MethodSignature.fromDexMethod(method.method);
+
+          DexString obfuscatedNameDexString = namingLens.lookupName(method.method);
+          String obfuscatedName = obfuscatedNameDexString.toString();
+
+          // Add simple "a() -> b" mapping if we won't have any other with concrete line numbers
+          if (mappedPositions.isEmpty()) {
+            // But only if it's been renamed.
+            if (obfuscatedNameDexString != method.method.name) {
+              onDemandClassNamingBuilder
+                  .get()
+                  .addMappedRange(null, originalSignature, null, obfuscatedName);
+            }
+            continue;
+          }
 
           Map<DexMethod, MethodSignature> signatures = new IdentityHashMap<>();
           signatures.put(method.method, originalSignature);
 
-          String obfuscatedName = namingLens.lookupName(method.method).toString();
-
           MemberNaming memberNaming = new MemberNaming(originalSignature, obfuscatedName);
-          classNamingBuilder.addMemberEntry(memberNaming);
-
-          if (mappedPositions.isEmpty()) {
-            classNamingBuilder.addMappedRange(null, originalSignature, null, obfuscatedName);
-          }
+          onDemandClassNamingBuilder.get().addMemberEntry(memberNaming);
 
           // Update memberNaming with the collected positions, merging multiple positions into a
           // single region whenever possible.
@@ -342,23 +383,23 @@ public class LineNumberOptimizer {
             for (; j < mappedPositions.size(); j++) {
               // Break if this position cannot be merged with lastPosition.
               MappedPosition mp = mappedPositions.get(j);
-              assert (mp.caller == lastPosition.caller)
-                  == (Objects.equals(
-                      mp.caller,
-                      lastPosition.caller)); // Test if callers are properly canonicalized.
-              if ((mp.caller != lastPosition.caller)
-                  || (mp.method != lastPosition.method)
+              // Note that mp.caller and lastPosition.class must be deep-compared since multiple
+              // inlining passes lose the canonical property of the positions.
+              if ((mp.method != lastPosition.method)
                   || (mp.originalLine - lastPosition.originalLine
-                      != mp.targetLine - lastPosition.targetLine)) {
+                      != mp.obfuscatedLine - lastPosition.obfuscatedLine)
+                  || !Objects.equals(mp.caller, lastPosition.caller)) {
                 break;
               }
               lastPosition = mp;
             }
-            Range targetRange = new Range(firstPosition.targetLine, lastPosition.targetLine);
+            Range obfuscatedRange =
+                new Range(firstPosition.obfuscatedLine, lastPosition.obfuscatedLine);
             Range originalRange = new Range(firstPosition.originalLine, lastPosition.originalLine);
 
+            ClassNaming.Builder classNamingBuilder = onDemandClassNamingBuilder.get();
             classNamingBuilder.addMappedRange(
-                targetRange,
+                obfuscatedRange,
                 signatures.computeIfAbsent(
                     firstPosition.method,
                     m ->
@@ -370,13 +411,13 @@ public class LineNumberOptimizer {
             while (caller != null) {
               Position finalCaller = caller;
               classNamingBuilder.addMappedRange(
-                  targetRange,
+                  obfuscatedRange,
                   signatures.computeIfAbsent(
                       caller.method,
                       m ->
                           MethodSignature.fromDexMethod(
                               m, finalCaller.method.holder != clazz.getType())),
-                  caller.line,
+                  Math.max(caller.line, 0), // Prevent against "no-position".
                   obfuscatedName);
               caller = caller.callerPosition;
             }
@@ -386,34 +427,6 @@ public class LineNumberOptimizer {
       } // for each method group, grouped by name
     } // for each class
     return classNameMapperBuilder.build();
-  }
-
-  // Return true if any of the methods' debug infos describe a Position which lists the containing
-  // method as the outermost caller.
-  private static boolean checkMethodsForSelfReferenceInPositions(DexEncodedMethod[] methods) {
-    for (DexEncodedMethod method : methods) {
-      if (!doesContainPositions(method)) {
-        continue;
-      }
-      DexDebugInfo debugInfo = method.getCode().asDexCode().getDebugInfo();
-
-      DexDebugPositionState positionState =
-          new DexDebugPositionState(debugInfo.startLine, method.method);
-      for (DexDebugEvent event : debugInfo.events) {
-        event.accept(positionState);
-        if (event instanceof DexDebugEvent.Default) {
-          Position caller = positionState.getCurrentCallerPosition();
-          DexMethod outermostMethod =
-              caller == null
-                  ? positionState.getCurrentMethod()
-                  : caller.getOutermostCaller().method;
-          if (outermostMethod == method.method) {
-            return true;
-          }
-        }
-      }
-    }
-    return false;
   }
 
   private static boolean doesContainPositions(DexEncodedMethod method) {

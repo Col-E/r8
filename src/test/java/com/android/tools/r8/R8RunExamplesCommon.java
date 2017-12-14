@@ -12,7 +12,7 @@ import com.android.tools.r8.R8RunArtTestsTest.CompilerUnderTest;
 import com.android.tools.r8.R8RunArtTestsTest.DexTool;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.errors.Unreachable;
-import java.io.File;
+import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -125,19 +125,22 @@ public abstract class R8RunExamplesCommon {
             .build());
         break;
       }
-      case R8: {
-        ToolHelper.runR8(R8Command.builder()
-            .addProgramFiles(getInputFile())
-            .setOutputPath(output == Output.CF ? null : getOutputFile())
-            .setMode(mode)
-            .build(),
-            options -> {
-              if (output == Output.CF) {
-                options.programConsumer = new ClassFileConsumer.ArchiveConsumer(getOutputFile());
-              }
-            });
-        break;
-      }
+      case R8:
+        {
+          ToolHelper.runR8(
+              R8Command.builder()
+                  .addProgramFiles(getInputFile())
+                  .setOutputPath(output == Output.CF ? null : getOutputFile())
+                  .setMode(mode)
+                  .build(),
+              options -> {
+                if (output == Output.CF) {
+                  options.programConsumer = new ClassFileConsumer.ArchiveConsumer(getOutputFile());
+                }
+                options.lineNumberOptimization = LineNumberOptimization.OFF;
+              });
+          break;
+        }
       default:
         throw new Unreachable();
     }
