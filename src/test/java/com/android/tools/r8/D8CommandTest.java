@@ -3,39 +3,44 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import static com.android.tools.r8.R8CommandTest.getOutputPath;
 import static com.android.tools.r8.ToolHelper.EXAMPLES_BUILD_DIR;
 import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.origin.EmbeddedOrigin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DirectoryClassFileProvider;
+import com.android.tools.r8.utils.OutputMode;
 import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 public class D8CommandTest {
 
   @Rule
-  public ExpectedException thrown = ExpectedException.none();
-
-  @Rule
   public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
+
+  @Ignore("Enable when deprecated API is removed")
+  @Test(expected = CompilationFailedException.class)
+  public void emptyBuilder() throws Throwable {
+    verifyEmptyCommand(D8Command.builder().build());
+  }
 
   @Test
   public void emptyCommand() throws Throwable {
-    verifyEmptyCommand(D8Command.builder().build());
+    verifyEmptyCommand(
+        D8Command.builder().setProgramConsumer(DexIndexedConsumer.emptyConsumer()).build());
     verifyEmptyCommand(parse());
     verifyEmptyCommand(parse(""));
     verifyEmptyCommand(parse("", ""));
@@ -51,8 +56,23 @@ public class D8CommandTest {
     assertFalse(ToolHelper.getApp(command).hasMainDexListResources());
     assertFalse(ToolHelper.getApp(command).hasProguardMap());
     assertFalse(ToolHelper.getApp(command).hasProguardSeeds());
-    assertNull(command.getOutputPath());
     assertEquals(CompilationMode.DEBUG, command.getMode());
+    assertTrue(command.getProgramConsumer() instanceof DexIndexedConsumer);
+  }
+
+  @Test
+  public void allowDexFilePerClassFileBuilder() throws Throwable {
+    assertTrue(
+        D8Command.builder()
+                .setProgramConsumer(DexFilePerClassFileConsumer.emptyConsumer())
+                .build()
+                .getProgramConsumer()
+            instanceof DexFilePerClassFileConsumer);
+  }
+
+  @Test(expected = CompilationFailedException.class)
+  public void disallowClassFileConsumer() throws Throwable {
+    D8Command.builder().setProgramConsumer(ClassFileConsumer.emptyConsumer()).build();
   }
 
   @Test
@@ -79,23 +99,19 @@ public class D8CommandTest {
     Path nonExistingZip = existingDir.resolve("a-non-existing-archive.zip");
     assertEquals(
         existingDir,
-        D8Command.builder().setOutputPath(existingDir).build().getOutputPath());
+        getOutputPath(D8Command.builder().setOutput(existingDir, OutputMode.DexIndexed).build()));
     assertEquals(
         nonExistingZip,
-        D8Command.builder().setOutputPath(nonExistingZip).build().getOutputPath());
-    assertEquals(
-        existingDir,
-        parse("--output", existingDir.toString()).getOutputPath());
-    assertEquals(
-        nonExistingZip,
-        parse("--output", nonExistingZip.toString()).getOutputPath());
+        getOutputPath(
+            D8Command.builder().setOutput(nonExistingZip, OutputMode.DexIndexed).build()));
+    assertEquals(existingDir, getOutputPath(parse("--output", existingDir.toString())));
+    assertEquals(nonExistingZip, getOutputPath(parse("--output", nonExistingZip.toString())));
   }
 
-  @Test
+  @Test(expected = CompilationFailedException.class)
   public void nonExistingOutputDir() throws Throwable {
-    thrown.expect(CompilationFailedException.class);
     Path nonExistingDir = temp.getRoot().toPath().resolve("a/path/that/does/not/exist");
-    D8Command.builder().setOutputPath(nonExistingDir).build();
+    D8Command.builder().setOutput(nonExistingDir, OutputMode.DexIndexed).build();
   }
 
   @Test
@@ -138,19 +154,17 @@ public class D8CommandTest {
   @Test
   public void existingOutputZip() throws Throwable {
     Path existingZip = temp.newFile("an-existing-archive.zip").toPath();
-    D8Command.builder().setOutputPath(existingZip).build();
+    D8Command.builder().setOutput(existingZip, OutputMode.DexIndexed).build();
   }
 
-  @Test
+  @Test(expected = CompilationFailedException.class)
   public void invalidOutputFileType() throws Throwable {
-    thrown.expect(CompilationFailedException.class);
     Path invalidType = temp.getRoot().toPath().resolve("an-invalid-output-file-type.foobar");
-    D8Command.builder().setOutputPath(invalidType).build();
+    D8Command.builder().setOutput(invalidType, OutputMode.DexIndexed).build();
   }
 
-  @Test
+  @Test(expected = CompilationFailedException.class)
   public void nonExistingOutputDirParse() throws Throwable {
-    thrown.expect(CompilationFailedException.class);
     Path nonExistingDir = temp.getRoot().toPath().resolve("a/path/that/does/not/exist");
     parse("--output", nonExistingDir.toString());
   }
@@ -174,32 +188,28 @@ public class D8CommandTest {
     assertTrue(ToolHelper.getApp(command).hasMainDexListResources());
   }
 
-  @Test
+  @Test(expected = CompilationFailedException.class)
   public void nonExistingMainDexList() throws Throwable {
-    thrown.expect(CompilationFailedException.class);
     Path mainDexList = temp.getRoot().toPath().resolve("main-dex-list.txt");
     parse("--main-dex-list", mainDexList.toString());
   }
 
-  @Test
+  @Test(expected = CompilationFailedException.class)
   public void mainDexListWithFilePerClass() throws Throwable {
-    thrown.expect(CompilationFailedException.class);
     Path mainDexList = temp.newFile("main-dex-list.txt").toPath();
     D8Command command = parse("--main-dex-list", mainDexList.toString(), "--file-per-class");
     assertTrue(ToolHelper.getApp(command).hasMainDexListResources());
   }
 
-  @Test
+  @Test(expected = CompilationFailedException.class)
   public void mainDexListWithIntermediate() throws Throwable {
-    thrown.expect(CompilationFailedException.class);
     Path mainDexList = temp.newFile("main-dex-list.txt").toPath();
     D8Command command = parse("--main-dex-list", mainDexList.toString(), "--intermediate");
     assertTrue(ToolHelper.getApp(command).hasMainDexListResources());
   }
 
-  @Test
+  @Test(expected = CompilationFailedException.class)
   public void invalidOutputFileTypeParse() throws Throwable {
-    thrown.expect(CompilationFailedException.class);
     Path invalidType = temp.getRoot().toPath().resolve("an-invalid-output-file-type.foobar");
     parse("--output", invalidType.toString());
   }
@@ -221,9 +231,8 @@ public class D8CommandTest {
         ((DirectoryClassFileProvider) inputApp.getLibraryResourceProviders().get(0)).getRoot()));
   }
 
-  @Test
+  @Test(expected = CompilationFailedException.class)
   public void classFolderProgram() throws Throwable {
-    thrown.expect(CompilationFailedException.class);
     Path inputFile =
         Paths.get(ToolHelper.EXAMPLES_ANDROID_N_BUILD_DIR, "interfacemethods" + JAR_EXTENSION);
     Path tmpClassesDir = temp.newFolder().toPath();
@@ -231,9 +240,8 @@ public class D8CommandTest {
     parse(tmpClassesDir.toString());
   }
 
-  @Test
+  @Test(expected = CompilationFailedException.class)
   public void emptyFolderProgram() throws Throwable {
-    thrown.expect(CompilationFailedException.class);
     Path tmpClassesDir = temp.newFolder().toPath();
     parse(tmpClassesDir.toString());
   }
@@ -241,18 +249,16 @@ public class D8CommandTest {
   @Test
   public void nonExistingOutputJar() throws Throwable {
     Path nonExistingJar = temp.getRoot().toPath().resolve("non-existing-archive.jar");
-    D8Command.builder().setOutputPath(nonExistingJar).build();
+    D8Command.builder().setOutput(nonExistingJar, OutputMode.DexIndexed).build();
   }
 
-  @Test
+  @Test(expected = CompilationFailedException.class)
   public void vdexFileUnsupported() throws Throwable {
-    thrown.expect(CompilationFailedException.class);
     Path vdexFile = temp.newFile("test.vdex").toPath();
     D8Command.builder().addProgramFiles(vdexFile).build();
   }
 
-  private D8Command parse(String... args)
-      throws CompilationFailedException {
+  private D8Command parse(String... args) throws CompilationFailedException {
     return D8Command.parse(args, EmbeddedOrigin.INSTANCE).build();
   }
 }

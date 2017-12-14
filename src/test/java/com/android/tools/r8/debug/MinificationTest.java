@@ -9,6 +9,7 @@ import com.android.tools.r8.TestBase.MinifyMode;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
+import com.android.tools.r8.utils.OutputMode;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -73,7 +74,7 @@ public class MinificationTest extends DebugTestBase {
     R8Command.Builder builder =
         R8Command.builder()
             .addProgramFiles(DEBUGGEE_JAR)
-            .setOutputPath(dexOutputDir)
+            .setOutput(dexOutputDir, OutputMode.DexIndexed)
             .setMinApiLevel(minSdk)
             .setMode(CompilationMode.DEBUG)
             .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(minSdk)));

@@ -78,7 +78,7 @@ public class R8InliningTest {
     R8Command command =
         R8Command.builder()
             .addProgramFiles(getInputFile())
-            .setOutputPath(out)
+            .setOutput(out, OutputMode.DexIndexed)
             .addProguardConfigurationFiles(Paths.get(keepRulesFile))
             .build();
     // TODO(62048823): Enable minification.

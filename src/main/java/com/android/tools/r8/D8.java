@@ -30,7 +30,6 @@ import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.NoSuchFileException;
-import java.nio.file.Paths;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
@@ -111,11 +110,7 @@ public final class D8 {
 
   private static void run(String[] args)
       throws IOException, CompilationException, CompilationFailedException {
-    D8Command.Builder builder = D8Command.parse(args, CommandLineOrigin.INSTANCE);
-    if (builder.getOutputPath() == null) {
-      builder.setOutputPath(Paths.get("."));
-    }
-    D8Command command = builder.build();
+    D8Command command = D8Command.parse(args, CommandLineOrigin.INSTANCE).build();
     if (command.isPrintHelp()) {
       System.out.println(USAGE_MESSAGE);
       return;

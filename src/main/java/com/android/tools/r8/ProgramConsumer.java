@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
-import java.nio.file.Path;
-
 /**
  * Base for all program consumers to allow abstracting which concrete consumer is provided to D8/R8.
  */
@@ -19,8 +17,4 @@ public interface ProgramConsumer {
    */
   void finished(DiagnosticsHandler handler);
 
-  @Deprecated
-  default Path getOutputPath() {
-    return null;
-  }
 }

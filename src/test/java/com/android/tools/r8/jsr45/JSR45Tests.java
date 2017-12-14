@@ -4,6 +4,7 @@
 package com.android.tools.r8.jsr45;
 
 import com.android.tools.r8.CompilationException;
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
@@ -12,10 +13,10 @@ import com.android.tools.r8.graph.DexAnnotationElement;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.AnnotationSubject;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
+import com.android.tools.r8.utils.OutputMode;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -63,7 +64,7 @@ public class JSR45Tests {
         R8Command.builder()
             .addProgramFiles(inputPath)
             .addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()))
-            .setOutputPath(outputPath)
+            .setOutput(outputPath, OutputMode.DexIndexed)
             .addProguardConfigurationFiles(keepRulesPath)
             .build());
   }

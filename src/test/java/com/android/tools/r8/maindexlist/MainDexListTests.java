@@ -490,9 +490,11 @@ public class MainDexListTests extends TestBase {
     R8Command.Builder builder =
         R8Command.builder()
             .addProgramFiles(app)
-            .setMode(minimalMainDex && mainDex.size() > 0
-                ? CompilationMode.DEBUG : CompilationMode.RELEASE)
-            .setOutputPath(outDir)
+            .setMode(
+                minimalMainDex && mainDex.size() > 0
+                    ? CompilationMode.DEBUG
+                    : CompilationMode.RELEASE)
+            .setOutput(outDir, OutputMode.DexIndexed)
             .setTreeShaking(false)
             .setMinification(false);
 

@@ -13,6 +13,7 @@ import com.android.tools.r8.R8RunArtTestsTest.DexTool;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
+import com.android.tools.r8.utils.OutputMode;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -103,10 +104,6 @@ public abstract class R8RunExamplesCommon {
     return input == Input.DX ? DexTool.DX : DexTool.NONE;
   }
 
-  private Path getOutputPath() {
-    return temp.getRoot().toPath().resolve("out.jar");
-  }
-
   @Rule
   public ExpectedException thrown = ExpectedException.none();
 
@@ -115,32 +112,27 @@ public abstract class R8RunExamplesCommon {
     if (output == Output.CF && getFailingCompileCf().contains(mainClass)) {
       thrown.expect(Throwable.class);
     }
+    OutputMode outputMode = output == Output.CF ? OutputMode.ClassFile : OutputMode.DexIndexed;
     switch (compiler) {
       case D8: {
         assertTrue(output == Output.DEX);
         ToolHelper.runD8(D8Command.builder()
             .addProgramFiles(getInputFile())
-            .setOutputPath(getOutputFile())
+            .setOutput(getOutputFile(), outputMode)
             .setMode(mode)
             .build());
         break;
       }
-      case R8:
-        {
-          ToolHelper.runR8(
-              R8Command.builder()
-                  .addProgramFiles(getInputFile())
-                  .setOutputPath(output == Output.CF ? null : getOutputFile())
-                  .setMode(mode)
-                  .build(),
-              options -> {
-                if (output == Output.CF) {
-                  options.programConsumer = new ClassFileConsumer.ArchiveConsumer(getOutputFile());
-                }
-                options.lineNumberOptimization = LineNumberOptimization.OFF;
-              });
-          break;
-        }
+      case R8: {
+        ToolHelper.runR8(
+            R8Command.builder()
+                .addProgramFiles(getInputFile())
+                .setOutput(getOutputFile(), outputMode)
+                .setMode(mode)
+                .build(),
+            options -> options.lineNumberOptimization = LineNumberOptimization.OFF);
+        break;
+      }
       default:
         throw new Unreachable();
     }

@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
@@ -211,7 +212,25 @@ public class R8Command extends BaseCompilerCommand {
     }
 
     @Override
+    public Builder setOutputMode(OutputMode outputMode) {
+      throw new CompilationError("Invalid API use for R8");
+    }
+
+    @Override
+    public Builder setOutputPath(Path outputPath) {
+      throw new CompilationError("Invalid API use for R8");
+    }
+
+    @Override
     protected void validate() {
+      // TODO(b/70656566): Move up super once the deprecated API is removed.
+      if (getProgramConsumer() == null) {
+        // This is never the case for a command-line parse, so we report using API references.
+        reporter.error("A ProgramConsumer or Output is required for compilation");
+      }
+      if (getProgramConsumer() instanceof DexFilePerClassFileConsumer) {
+        reporter.error("R8 does not support compiling to a single DEX file per Java class file");
+      }
       if (mainDexListOutput != null && mainDexRules.isEmpty() && !getAppBuilder()
           .hasMainDexList()) {
         reporter.error(
@@ -277,10 +296,13 @@ public class R8Command extends BaseCompilerCommand {
       StringConsumer proguardMapConsumer =
           proguardMapOutput != null ? new StringConsumer.FileConsumer(proguardMapOutput) : null;
 
+      assert getProgramConsumer() != null;
+
       R8Command command =
           new R8Command(
               getAppBuilder().build(),
-              getOutputPath() == null ? null : getProgramConsumer(),
+              getProgramConsumer(),
+              null,
               mainDexKeepRules,
               mainDexListConsumer,
               configuration,
@@ -303,8 +325,9 @@ public class R8Command extends BaseCompilerCommand {
 
   // Internal state to verify parsing properties not enforced by the builder.
   private static class ParseState {
-
     CompilationMode mode = null;
+    OutputMode outputMode = null;
+    Path outputPath = null;
   }
 
   static final String USAGE_MESSAGE = String.join("\n", ImmutableList.of(
@@ -313,6 +336,8 @@ public class R8Command extends BaseCompilerCommand {
       " and options are:",
       "  --release                # Compile without debugging information (default).",
       "  --debug                  # Compile with debugging information.",
+      "  --dex                    # Compile program to DEX file format (default).",
+      "  --classfile              # Compile program to Java classfile format.",
       "  --output <file>          # Output result in <file>.",
       "                           # <file> must be an existing directory or a zip file.",
       "  --lib <file>             # Add <file> as a library resource.",
@@ -360,13 +385,32 @@ public class R8Command extends BaseCompilerCommand {
     return new Builder(app, diagnosticsHandler);
   }
 
-  public static Builder parse(String[] args, Origin argsOrigin) {
+  /**
+   * Parse the R8 command-line.
+   *
+   * Parsing will set the supplied options or their default value if they have any.
+   *
+   * @param args Command-line arguments array.
+   * @param origin Origin description of the command-line arguments.
+   * @return R8 command builder with state set up according to parsed command line.
+   */
+  public static Builder parse(String[] args, Origin origin) {
     Builder builder = builder();
-    parse(args, argsOrigin, builder, new ParseState());
+    ParseState state = new ParseState();
+    parse(args, origin, builder, state);
+    if (state.mode != null) {
+      builder.setMode(state.mode);
+    }
+    Path outputPath = state.outputPath != null ? state.outputPath : Paths.get(".");
+    OutputMode outputMode = state.outputMode != null ? state.outputMode : OutputMode.DexIndexed;
+    builder.setOutput(outputPath, outputMode);
     return builder;
   }
 
-  private static ParseState parse(String[] args, Origin argsOrigin, Builder builder,
+  private static ParseState parse(
+      String[] args,
+      Origin argsOrigin,
+      Builder builder,
       ParseState state) {
     for (int i = 0; i < args.length; i++) {
       String arg = args[i].trim();
@@ -382,26 +426,36 @@ public class R8Command extends BaseCompilerCommand {
               "Cannot compile in both --debug and --release mode.", argsOrigin));
         }
         state.mode = CompilationMode.DEBUG;
-        builder.setMode(state.mode);
       } else if (arg.equals("--release")) {
         if (state.mode == CompilationMode.DEBUG) {
           builder.getReporter().error(new StringDiagnostic(
               "Cannot compile in both --debug and --release mode.", argsOrigin));
         }
         state.mode = CompilationMode.RELEASE;
-        builder.setMode(state.mode);
+      } else if (arg.equals("--dex")) {
+        if (state.outputMode == OutputMode.ClassFile) {
+          builder.getReporter().error(new StringDiagnostic(
+              "Cannot compile in both --dex and --classfile output mode.", argsOrigin));
+        }
+        state.outputMode = OutputMode.DexIndexed;
+      } else if (arg.equals("--classfile")) {
+        if (state.outputMode == OutputMode.DexIndexed) {
+          builder.getReporter().error(new StringDiagnostic(
+              "Cannot compile in both --dex and --classfile output mode.", argsOrigin));
+        }
+        state.outputMode = OutputMode.ClassFile;
       } else if (arg.equals("--output")) {
         String outputPath = args[++i];
-        if (builder.getOutputPath() != null) {
+        if (state.outputPath != null) {
           builder.getReporter().error(new StringDiagnostic(
               "Cannot output both to '"
-                  + builder.getOutputPath().toString()
+                  + state.outputPath.toString()
                   + "' and '"
                   + outputPath
                   + "'",
               argsOrigin));
         }
-        builder.setOutputPath(Paths.get(outputPath));
+        state.outputPath = Paths.get(outputPath);
       } else if (arg.equals("--lib")) {
         builder.addLibraryFiles(Paths.get(args[++i]));
       } else if (arg.equals("--min-api")) {
@@ -460,6 +514,7 @@ public class R8Command extends BaseCompilerCommand {
   private R8Command(
       AndroidApp inputApp,
       ProgramConsumer programConsumer,
+      OutputOptions outputOptions,
       ImmutableList<ProguardConfigurationRule> mainDexKeepRules,
       StringConsumer mainDexListConsumer,
       ProguardConfiguration proguardConfiguration,
@@ -475,10 +530,9 @@ public class R8Command extends BaseCompilerCommand {
       boolean ignoreMissingClassesWhenNotShrinking,
       StringConsumer proguardMapConsumer,
       Path proguardCompatibilityRulesOutput) {
-    super(inputApp, mode, programConsumer, minApiLevel, reporter, enableDesugaring);
+    super(inputApp, mode, programConsumer, outputOptions, minApiLevel, reporter, enableDesugaring);
     assert proguardConfiguration != null;
     assert mainDexKeepRules != null;
-    assert getOutputMode() == OutputMode.Indexed : "Only regular mode is supported in R8";
     this.mainDexKeepRules = mainDexKeepRules;
     this.mainDexListConsumer = mainDexListConsumer;
     this.proguardConfiguration = proguardConfiguration;

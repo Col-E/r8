@@ -11,6 +11,7 @@ import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.shaking.PrintUsageTest.PrintUsageInspector.ClassSubject;
 import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.OutputMode;
 import com.google.common.collect.ImmutableList;
 import java.io.File;
 import java.io.IOException;
@@ -66,7 +67,7 @@ public class PrintUsageTest {
     Path out = temp.getRoot().toPath();
     R8Command command =
         R8Command.builder()
-            .setOutputPath(out)
+            .setOutput(out, OutputMode.DexIndexed)
             .addProgramFiles(Paths.get(programFile))
             .addProguardConfigurationFiles(ListUtils.map(keepRulesFiles, Paths::get))
             .addProguardConfigurationConsumer(builder -> {

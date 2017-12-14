@@ -69,7 +69,6 @@ import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.NoSuchFileException;
-import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.HashSet;
 import java.util.Set;
@@ -503,11 +502,7 @@ public class R8 {
 
   private static void run(String[] args)
       throws IOException, CompilationException, CompilationFailedException {
-    R8Command.Builder builder = R8Command.parse(args, CommandLineOrigin.INSTANCE);
-    if (builder.getOutputPath() == null) {
-      builder.setOutputPath(Paths.get("."));
-    }
-    R8Command command = builder.build();
+    R8Command command = R8Command.parse(args, CommandLineOrigin.INSTANCE).build();
     if (command.isPrintHelp()) {
       System.out.println(USAGE_MESSAGE);
       return;

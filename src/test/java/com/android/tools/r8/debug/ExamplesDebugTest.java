@@ -3,13 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.debug;
 
-import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.DebuggeeState;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.OutputMode;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.stream.Stream;
@@ -38,8 +38,8 @@ public class ExamplesDebugTest extends DebugTestBase {
         R8Command.builder()
             .addProgramFiles(input)
             .setMode(CompilationMode.DEBUG)
-            .build(),
-        options -> options.programConsumer = new ClassFileConsumer.ArchiveConsumer(output));
+            .setOutput(output, OutputMode.ClassFile)
+            .build());
     return new CfDebugTestConfig(output);
   }
 

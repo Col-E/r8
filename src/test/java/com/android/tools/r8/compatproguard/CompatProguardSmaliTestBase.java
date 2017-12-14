@@ -9,6 +9,7 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.smali.SmaliTestBase;
 import com.android.tools.r8.utils.DexInspector;
+import com.android.tools.r8.utils.OutputMode;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -19,7 +20,7 @@ class CompatProguardSmaliTestBase extends SmaliTestBase {
     R8Command command =
         new CompatProguardCommandBuilder(true, true)
             .addDexProgramData(builder.compile(), Origin.unknown())
-            .setOutputPath(dexOutputDir)
+            .setOutput(dexOutputDir, OutputMode.DexIndexed)
             .addProguardConfiguration(proguardConfigurations, Origin.unknown())
             .build();
     return new DexInspector(ToolHelper.runR8(command));

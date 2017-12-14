@@ -7,12 +7,13 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.CompilationException;
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.OutputMode;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -45,7 +46,7 @@ public class ClassMergingTest {
       CompilationFailedException {
     ToolHelper.runR8(
         R8Command.builder()
-            .setOutputPath(Paths.get(temp.getRoot().getCanonicalPath()))
+            .setOutput(Paths.get(temp.getRoot().getCanonicalPath()), OutputMode.DexIndexed)
             .addProgramFiles(EXAMPLE_JAR)
             .addProguardConfigurationFiles(proguardConfig)
             .setMinification(false)

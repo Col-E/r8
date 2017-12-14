@@ -15,6 +15,7 @@ import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.OutputMode;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
@@ -63,7 +64,7 @@ public class MainDexListOutputTest extends TestBase {
         ToolHelper.prepareR8CommandBuilder(readClasses(HelloWorldMain.class))
             .addMainDexRulesFiles(mainDexRules)
             .setMainDexListOutputPath(mainDexListOutput)
-            .setOutputPath(temp.getRoot().toPath())
+            .setOutput(temp.getRoot().toPath(), OutputMode.DexIndexed)
             .build();
     ToolHelper.runR8(command);
     // Main dex list with the single class.

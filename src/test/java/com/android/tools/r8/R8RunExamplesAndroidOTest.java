@@ -60,13 +60,13 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
 
     @Override
     void build(Path inputFile, Path out, OutputMode mode) throws Throwable {
-      R8Command.Builder builder = R8Command.builder().setOutputMode(mode);
+      R8Command.Builder builder = R8Command.builder().setOutput(out, mode.toNonDeprecated());
       for (UnaryOperator<R8Command.Builder> transformation : builderTransformations) {
         builder = transformation.apply(builder);
       }
       builder.addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(
           androidJarVersion == null ? builder.getMinApiLevel() : androidJarVersion)));
-      R8Command command = builder.addProgramFiles(inputFile).setOutputPath(out).build();
+      R8Command command = builder.addProgramFiles(inputFile).build();
       ToolHelper.runR8(command, this::combinedOptionConsumer);
     }
 

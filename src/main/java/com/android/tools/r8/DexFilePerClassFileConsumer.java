@@ -84,14 +84,10 @@ public interface DexFilePerClassFileConsumer extends ProgramConsumer {
       }
     }
 
-    @Override
-    public Path getOutputPath() {
-      return consumer == null ? null : consumer.getOutputPath();
-    }
   }
 
   /** Archive consumer to write program resources to a zip archive. */
-  class ArchiveConsumer extends ForwardingConsumer {
+  class ArchiveConsumer extends ForwardingConsumer implements InternalProgramOutputPathConsumer {
 
     private static String getDexFileName(String classDescriptor) {
       assert classDescriptor != null && DescriptorUtils.isClassDescriptor(classDescriptor);
@@ -139,7 +135,7 @@ public interface DexFilePerClassFileConsumer extends ProgramConsumer {
     }
 
     @Override
-    public Path getOutputPath() {
+    public Path internalGetOutputPath() {
       return archive;
     }
 
@@ -188,7 +184,7 @@ public interface DexFilePerClassFileConsumer extends ProgramConsumer {
   }
 
   /** Directory consumer to write program resources to a directory. */
-  class DirectoryConsumer extends ForwardingConsumer {
+  class DirectoryConsumer extends ForwardingConsumer implements InternalProgramOutputPathConsumer {
 
     private final Path directory;
 
@@ -222,7 +218,7 @@ public interface DexFilePerClassFileConsumer extends ProgramConsumer {
     }
 
     @Override
-    public Path getOutputPath() {
+    public Path internalGetOutputPath() {
       return directory;
     }
 

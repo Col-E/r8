@@ -16,6 +16,7 @@ import com.android.tools.r8.utils.DexInspector.InstructionSubject;
 import com.android.tools.r8.utils.DexInspector.InvokeInstructionSubject;
 import com.android.tools.r8.utils.DexInspector.MethodSubject;
 import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.OutputMode;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -81,7 +82,7 @@ public class MemberRebindingTest {
     // dex inspection of invokes is predictable.
     ToolHelper.runR8(
         R8Command.builder()
-            .setOutputPath(Paths.get(out))
+            .setOutput(Paths.get(out), OutputMode.DexIndexed)
             .addProgramFiles(programFile)
             .addLibraryFiles(JAR_LIBRARIES)
             .setMinApiLevel(minApiLevel)

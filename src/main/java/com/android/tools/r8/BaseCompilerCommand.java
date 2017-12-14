@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
@@ -18,8 +20,21 @@ import java.nio.file.Path;
  */
 abstract class BaseCompilerCommand extends BaseCommand {
 
-  private final ProgramConsumer programConsumer;
+  // TODO(b/70656566): Remove this once the deprecated API is removed.
+  protected static class OutputOptions {
+    final Path path;
+    final OutputMode mode;
+
+    public OutputOptions(Path path, OutputMode mode) {
+      this.path = path;
+      this.mode = mode;
+    }
+  }
+
+  private final OutputOptions outputOptions;
+
   private final CompilationMode mode;
+  private final ProgramConsumer programConsumer;
   private final int minApiLevel;
   private final Reporter reporter;
   private final boolean enableDesugaring;
@@ -31,12 +46,14 @@ abstract class BaseCompilerCommand extends BaseCommand {
     minApiLevel = 0;
     reporter = new Reporter(new DefaultDiagnosticsHandler());
     enableDesugaring = true;
+    outputOptions = null;
   }
 
   BaseCompilerCommand(
       AndroidApp app,
       CompilationMode mode,
       ProgramConsumer programConsumer,
+      OutputOptions outputOptions,
       int minApiLevel,
       Reporter reporter,
       boolean enableDesugaring) {
@@ -48,11 +65,7 @@ abstract class BaseCompilerCommand extends BaseCommand {
     this.minApiLevel = minApiLevel;
     this.reporter = reporter;
     this.enableDesugaring = enableDesugaring;
-  }
-
-  @Deprecated
-  public Path getOutputPath() {
-    return programConsumer == null ? null : programConsumer.getOutputPath();
+    this.outputOptions = outputOptions;
   }
 
   public CompilationMode getMode() {
@@ -64,10 +77,19 @@ abstract class BaseCompilerCommand extends BaseCommand {
   }
 
   @Deprecated
+  public Path getOutputPath() {
+    if (outputOptions == null) {
+      throw new CompilationError("Use of deprecated API may not be used with new consumer API");
+    }
+    return outputOptions.path;
+  }
+
+  @Deprecated
   public OutputMode getOutputMode() {
-    return programConsumer instanceof DexFilePerClassFileConsumer
-        ? OutputMode.FilePerInputClass
-        : OutputMode.Indexed;
+    if (outputOptions == null) {
+      throw new CompilationError("Use of deprecated API may not be used with new consumer API");
+    }
+    return outputOptions.mode;
   }
 
   public ProgramConsumer getProgramConsumer() {
@@ -85,8 +107,11 @@ abstract class BaseCompilerCommand extends BaseCommand {
   abstract public static class Builder<C extends BaseCompilerCommand, B extends Builder<C, B>>
       extends BaseCommand.Builder<C, B> {
 
+    private ProgramConsumer programConsumer = null;
     private Path outputPath = null;
+    // TODO(b/70656566): Remove default output mode when deprecated API is removed.
     private OutputMode outputMode = OutputMode.Indexed;
+
     private CompilationMode mode;
     private int minApiLevel = AndroidApiLevel.getDefault().getLevel();
     private boolean enableDesugaring = true;
@@ -124,7 +149,10 @@ abstract class BaseCompilerCommand extends BaseCommand {
     }
 
     /**
-     * Get the output path. Null if not set.
+     * Get the output path.
+     *
+     * @return Current output path, null if no output path-and-mode have been set.
+     * @see #setOutput(Path, OutputMode)
      */
     public Path getOutputPath() {
       return outputPath;
@@ -132,29 +160,109 @@ abstract class BaseCompilerCommand extends BaseCommand {
 
     /**
      * Get the output mode.
+     *
+     * @return Currently set output mode, null if no output path-and-mode have been set.
+     * @see #setOutput(Path, OutputMode)
      */
     public OutputMode getOutputMode() {
       return outputMode;
     }
 
-    /** Set an output path. Must be an existing directory or a zip file. */
+    /**
+     * Get the program consumer.
+     *
+     * @return The currently set program consumer, null if no program consumer or output
+     *     path-and-mode is set, e.g., neither {@link #setProgramConsumer} nor
+     *     {@link #setOutput} have been called.
+     */
+    public ProgramConsumer getProgramConsumer() {
+      return programConsumer;
+    }
+
+    /**
+     * Set the program consumer.
+     *
+     * <p>Setting the program consumer will override any previous set consumer or any previous set
+     * output path & mode.
+     *
+     * @param programConsumer Program consumer to set as current. A null argument will clear the
+     *     program consumer / output.
+     */
+    public B setProgramConsumer(ProgramConsumer programConsumer) {
+      // Setting an explicit program consumer resets any output-path/mode setup.
+      outputPath = null;
+      outputMode = null;
+      this.programConsumer = programConsumer;
+      return self();
+    }
+
+    /**
+     * Set the output path-and-mode.
+     *
+     * <p>Setting the output path-and-mode will override any previous set consumer or any previous
+     * output path-and-mode, and implicitly sets the appropriate program consumer to write the
+     * output.
+     *
+     * @param outputPath Path to write the output to. Must be an archive or and existing directory.
+     * @param outputMode Mode in which to write the output.
+     */
+    public B setOutput(Path outputPath, OutputMode outputMode) {
+      assert outputPath != null;
+      assert outputMode != null;
+      assert !outputMode.isDeprecated();
+      this.outputPath = outputPath;
+      this.outputMode = outputMode;
+      programConsumer = createProgramOutputConsumer(outputPath, outputMode);
+      return self();
+    }
+
+    /**
+     * Set an output path. Must be an existing directory or a zip file.
+     *
+     * @see #setOutput
+     */
     @Deprecated
     public B setOutputPath(Path outputPath) {
+      // Ensure this is not mixed with uses of the new consumer API.
+      assert programConsumer == null;
       this.outputPath = outputPath;
       return self();
     }
 
-    /** Set an output mode. */
+    /**
+     * Set an output mode.
+     *
+     * @see #setOutput
+     */
     @Deprecated
     public B setOutputMode(OutputMode outputMode) {
+      // Ensure this is not mixed with uses of the new consumer API.
+      assert programConsumer == null;
+      assert outputMode == null || outputMode.isDeprecated();
+      assert this.outputMode == null || this.outputMode.isDeprecated();
       this.outputMode = outputMode;
       return self();
     }
 
-    public ProgramConsumer getProgramConsumer() {
-      return getOutputMode() == OutputMode.Indexed
-          ? createIndexedConsumer()
-          : createPerClassFileConsumer();
+    private InternalProgramOutputPathConsumer createProgramOutputConsumer(
+        Path path,
+        OutputMode mode) {
+      if (mode.isDexIndexed()) {
+        return FileUtils.isArchive(path)
+            ? new DexIndexedConsumer.ArchiveConsumer(path)
+            : new DexIndexedConsumer.DirectoryConsumer(path);
+      }
+      if (mode.isDexFilePerClassFile()) {
+        return FileUtils.isArchive(path)
+            ? new DexFilePerClassFileConsumer.ArchiveConsumer(path)
+            : new DexFilePerClassFileConsumer.DirectoryConsumer(path);
+      }
+      if (mode.isClassFile()) {
+        return FileUtils.isArchive(path)
+            ? new ClassFileConsumer.ArchiveConsumer(path)
+            : new ClassFileConsumer.DirectoryConsumer(path);
+      }
+      throw new Unreachable("Unexpected output mode: " + mode);
     }
 
     /**
@@ -185,25 +293,8 @@ abstract class BaseCompilerCommand extends BaseCommand {
     @Override
     protected void validate() {
       assert mode != null;
-      if (getAppBuilder().hasMainDexList() && outputMode == OutputMode.FilePerInputClass) {
-        reporter.error("Option --main-dex-list cannot be used with --file-per-class");
-      }
       FileUtils.validateOutputFile(outputPath, reporter);
       super.validate();
-    }
-
-    protected DexIndexedConsumer createIndexedConsumer() {
-      Path path = getOutputPath();
-      return FileUtils.isArchive(path)
-          ? new DexIndexedConsumer.ArchiveConsumer(path)
-          : new DexIndexedConsumer.DirectoryConsumer(path);
-    }
-
-    protected DexFilePerClassFileConsumer createPerClassFileConsumer() {
-      Path path = getOutputPath();
-      return FileUtils.isArchive(path)
-          ? new DexFilePerClassFileConsumer.ArchiveConsumer(path)
-          : new DexFilePerClassFileConsumer.DirectoryConsumer(path);
     }
   }
 }

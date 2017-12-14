@@ -12,6 +12,7 @@ import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8Command;
+import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.R8RunArtTestsTest.CompilerUnderTest;
@@ -90,6 +91,7 @@ public abstract class CompilationTestBase {
         builder.addProguardConfigurationFiles(Paths.get(pgConf));
       }
       builder.setMode(mode);
+      builder.setProgramConsumer(DexIndexedConsumer.emptyConsumer());
       builder.setMinApiLevel(AndroidApiLevel.L.getLevel());
       builder.addProguardConfigurationConsumer(b -> {
         b.setPrintSeeds(false);

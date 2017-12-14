@@ -4,16 +4,11 @@
 
 package com.android.tools.r8;
 
-import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import com.android.tools.r8.utils.OutputMode;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
-import java.util.Map;
 import java.util.function.UnaryOperator;
-import org.junit.Test;
 
 public class R8RunExamplesJava9Test extends RunExamplesJava9Test<R8Command.Builder> {
 
@@ -36,7 +31,8 @@ public class R8RunExamplesJava9Test extends RunExamplesJava9Test<R8Command.Build
       }
       // TODO(mikaelpeltier) Add new android.jar build from aosp and use it
       builder.addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(AndroidApiLevel.P.getLevel())));
-      R8Command command = builder.addProgramFiles(inputFile).setOutputPath(out).build();
+      R8Command command =
+          builder.addProgramFiles(inputFile).setOutput(out, OutputMode.DexIndexed).build();
       ToolHelper.runR8(command, this::combinedOptionConsumer);
     }
 

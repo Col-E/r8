@@ -10,6 +10,7 @@ import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.utils.OutputMode;
 import java.io.BufferedReader;
 import java.io.PrintStream;
 import java.io.StringReader;
@@ -44,7 +45,7 @@ public class TreeShakingSpecificTest {
     R8.run(
         R8Command.builder()
             .addProgramFiles(originalDex)
-            .setOutputPath(out)
+            .setOutput(out, OutputMode.DexIndexed)
             .addProguardConfigurationFiles(keepRules, ignoreWarnings)
             .build());
   }
@@ -61,7 +62,7 @@ public class TreeShakingSpecificTest {
     R8.run(
         R8Command.builder()
             .addProgramFiles(originalDex)
-            .setOutputPath(out)
+            .setOutput(out, OutputMode.DexIndexed)
             .addProguardConfigurationFiles(keepRules)
             .build());
   }
@@ -84,7 +85,7 @@ public class TreeShakingSpecificTest {
     ToolHelper.runR8(
         R8Command.builder()
             .addProgramFiles(originalDex)
-            .setOutputPath(out)
+            .setOutput(out, OutputMode.DexIndexed)
             .addProguardConfigurationFiles(keepRules, printMapping)
             .build(),
         options -> {

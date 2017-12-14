@@ -5,6 +5,7 @@
 package com.android.tools.r8.compatproguard;
 
 import com.android.tools.r8.CompilationException;
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.Version;
@@ -12,7 +13,7 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.utils.AbortException;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.utils.OutputMode;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -134,7 +135,8 @@ public class CompatProguard {
     R8Command.Builder builder =
         new CompatProguardCommandBuilder(
             options.forceProguardCompatibility, options.ignoreMissingClasses);
-    builder.setOutputPath(Paths.get(options.output))
+    builder
+        .setOutput(Paths.get(options.output), OutputMode.DexIndexed)
         .addProguardConfiguration(options.proguardConfig, CommandLineOrigin.INSTANCE)
         .setMinApiLevel(options.minApi);
     if (options.mainDexList != null) {

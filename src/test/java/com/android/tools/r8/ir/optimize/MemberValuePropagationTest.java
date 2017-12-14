@@ -7,6 +7,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.CompilationException;
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.code.Const4;
@@ -17,10 +18,10 @@ import com.android.tools.r8.code.ReturnVoid;
 import com.android.tools.r8.code.SputObject;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.OutputMode;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -101,7 +102,7 @@ public class MemberValuePropagationTest {
     Path dexOutputDir = temp.newFolder().toPath();
     ToolHelper.runR8(
         R8Command.builder()
-            .setOutputPath(dexOutputDir)
+            .setOutput(dexOutputDir, OutputMode.DexIndexed)
             .addProgramFiles(EXAMPLE_JAR)
             .addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()))
             .addProguardConfigurationFiles(proguardConfig)

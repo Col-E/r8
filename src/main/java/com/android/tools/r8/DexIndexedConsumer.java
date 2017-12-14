@@ -79,14 +79,10 @@ public interface DexIndexedConsumer extends ProgramConsumer {
       }
     }
 
-    @Override
-    public Path getOutputPath() {
-      return consumer == null ? null : consumer.getOutputPath();
-    }
   }
 
   /** Archive consumer to write program resources to a zip archive. */
-  class ArchiveConsumer extends ForwardingConsumer {
+  class ArchiveConsumer extends ForwardingConsumer implements InternalProgramOutputPathConsumer {
 
     private static String getDexFileName(int fileIndex) {
       return fileIndex == 0
@@ -131,11 +127,6 @@ public interface DexIndexedConsumer extends ProgramConsumer {
       }
     }
 
-    @Override
-    public Path getOutputPath() {
-      return archive;
-    }
-
     private ZipOutputStream getStream(DiagnosticsHandler handler) {
       assert !closed;
       if (stream == null) {
@@ -175,10 +166,16 @@ public interface DexIndexedConsumer extends ProgramConsumer {
         }
       }
     }
+
+    @Override
+    public Path internalGetOutputPath() {
+      return archive;
+    }
+
   }
 
   /** Directory consumer to write program resources to a directory. */
-  class DirectoryConsumer extends ForwardingConsumer {
+  class DirectoryConsumer extends ForwardingConsumer implements InternalProgramOutputPathConsumer {
 
     private final Path directory;
     private boolean preparedDirectory = false;
@@ -208,11 +205,6 @@ public interface DexIndexedConsumer extends ProgramConsumer {
     @Override
     public void finished(DiagnosticsHandler handler) {
       super.finished(handler);
-    }
-
-    @Override
-    public Path getOutputPath() {
-      return directory;
     }
 
     private synchronized void prepareDirectory() throws IOException {
@@ -253,5 +245,11 @@ public interface DexIndexedConsumer extends ProgramConsumer {
       Files.createDirectories(target.getParent());
       FileUtils.writeToFile(target, null, contents);
     }
+
+    @Override
+    public Path internalGetOutputPath() {
+      return directory;
+    }
+
   }
 }

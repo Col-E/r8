@@ -6,6 +6,7 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.OutputMode;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -134,10 +135,10 @@ public class R8EntryPointTests extends TestBase {
   private R8Command getCommand(Path out)
       throws CompilationException, IOException, CompilationFailedException {
     return R8Command.builder()
-      .addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()))
-      .addProgramFiles(INPUT_JAR)
-      .setOutputPath(out)
-      .addProguardConfigurationFiles(PROGUARD_FLAGS, testFlags)
-      .build();
+        .addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()))
+        .addProgramFiles(INPUT_JAR)
+        .setOutput(out, OutputMode.DexIndexed)
+        .addProguardConfigurationFiles(PROGUARD_FLAGS, testFlags)
+        .build();
   }
 }

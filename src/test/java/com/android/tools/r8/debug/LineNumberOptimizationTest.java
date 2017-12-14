@@ -7,6 +7,7 @@ import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
+import com.android.tools.r8.utils.OutputMode;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import org.junit.Test;
@@ -29,7 +30,7 @@ public class LineNumberOptimizationTest extends DebugTestBase {
             .setMinApiLevel(minSdk)
             .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(minSdk)))
             .setMode(CompilationMode.RELEASE)
-            .setOutputPath(outjar)
+            .setOutput(outjar, OutputMode.DexIndexed)
             .setProguardMapOutput(proguardMapPath)
             .build(),
         options -> {

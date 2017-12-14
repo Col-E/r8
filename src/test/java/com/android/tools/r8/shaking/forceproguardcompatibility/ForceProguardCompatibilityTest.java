@@ -7,6 +7,7 @@ package com.android.tools.r8.shaking.forceproguardcompatibility;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
@@ -87,6 +88,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
           Origin.unknown());
     }
 
+    builder.setProgramConsumer(DexIndexedConsumer.emptyConsumer());
     DexInspector inspector = new DexInspector(ToolHelper.runR8(builder.build()));
     assertTrue(inspector.clazz(mainClass.getCanonicalName()).isPresent());
     ClassSubject clazz = inspector.clazz(getJavacGeneratedClassName(mentionedClassWithAnnotations));
@@ -121,6 +123,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
     Path proguardCompatibilityRules = temp.newFile().toPath();
     builder.setProguardCompatibilityRulesOutput(proguardCompatibilityRules);
 
+    builder.setProgramConsumer(DexIndexedConsumer.emptyConsumer());
     DexInspector inspector = new DexInspector(ToolHelper.runR8(builder.build()));
     ClassSubject clazz = inspector.clazz(getJavacGeneratedClassName(testClass));
     assertTrue(clazz.isPresent());
@@ -176,6 +179,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
         "-dontobfuscate");
     builder.addProguardConfiguration(proguardConfig, Origin.unknown());
 
+    builder.setProgramConsumer(DexIndexedConsumer.emptyConsumer());
     DexInspector inspector = new DexInspector(ToolHelper.runR8(builder.build()));
     assertTrue(inspector.clazz(getJavacGeneratedClassName(mainClass)).isPresent());
     ClassSubject clazz = inspector.clazz(getJavacGeneratedClassName(instantiatedClass));
@@ -237,6 +241,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
       builder.setProguardMapOutput(temp.newFile().toPath());
     }
 
+    builder.setProgramConsumer(DexIndexedConsumer.emptyConsumer());
     DexInspector inspector = new DexInspector(ToolHelper.runR8(builder.build()));
     assertTrue(inspector.clazz(getJavacGeneratedClassName(mainClass)).isPresent());
     forNameClasses.forEach(clazz -> {

@@ -6,6 +6,7 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.OutputMode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.nio.file.Path;
@@ -64,7 +65,8 @@ public class R8RunExamplesAndroidPTest extends RunExamplesAndroidPTest<R8Command
       }
       // TODO(mikaelpeltier) Add new android.jar build from aosp and use it
       builder.addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(AndroidApiLevel.O.getLevel())));
-      R8Command command = builder.addProgramFiles(inputFile).setOutputPath(out).build();
+      R8Command command =
+          builder.addProgramFiles(inputFile).setOutput(out, OutputMode.DexIndexed).build();
       ToolHelper.runR8(command, this::combinedOptionConsumer);
     }
 

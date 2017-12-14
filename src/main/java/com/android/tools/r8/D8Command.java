@@ -7,6 +7,7 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OutputMode;
 import com.android.tools.r8.utils.Reporter;
@@ -92,8 +93,21 @@ public class D8Command extends BaseCompilerCommand {
 
     @Override
     protected void validate() {
-      if (getAppBuilder().hasMainDexList() && intermediate) {
-        reporter.error("Option --main-dex-list cannot be used with --intermediate");
+      if (getProgramConsumer() instanceof ClassFileConsumer) {
+        reporter.error("D8 does not support compiling to Java class files");
+      }
+      // TODO(b/70656566): Move up super once the deprecated API is removed.
+      if (getProgramConsumer() == null && getOutputPath() == null && getOutputMode() == null) {
+        // This is never the case for a command-line parse, so we report using API references.
+        reporter.error("A ProgramConsumer or Output is required for compilation");
+      }
+      if (getAppBuilder().hasMainDexList()) {
+        if (intermediate) {
+          reporter.error("Option --main-dex-list cannot be used with --intermediate");
+        }
+        if (getProgramConsumer() instanceof DexFilePerClassFileConsumer) {
+          reporter.error("Option --main-dex-list cannot be used with --file-per-class");
+        }
       }
       super.validate();
     }
@@ -107,28 +121,47 @@ public class D8Command extends BaseCompilerCommand {
         return new D8Command(isPrintHelp(), isPrintVersion());
       }
 
+      // Usage of the deprecated API will not have set a consumer. In this case we setup the output
+      // options, indicating usage of the deprecated API, and construct a suitable program consumer.
+      OutputOptions outputOptions = null;
+      ProgramConsumer consumer = getProgramConsumer();
+      if (consumer == null) {
+        outputOptions = new OutputOptions(getOutputPath(), getOutputMode());
+        consumer =
+            getOutputMode().isDexIndexed()
+                ? createIndexedConsumer(getOutputPath())
+                : createPerClassFileConsumer(getOutputPath());
+      }
+
+      intermediate |= consumer instanceof DexFilePerClassFileConsumer;
+
       return new D8Command(
           getAppBuilder().build(),
           getMode(),
-          getProgramConsumer(),
+          consumer,
+          outputOptions,
           getMinApiLevel(),
           reporter,
           getEnableDesugaring(),
           intermediate);
     }
 
-    @Override
-    protected DexIndexedConsumer createIndexedConsumer() {
-      return getOutputPath() == null
-          ? DexIndexedConsumer.emptyConsumer()
-          : super.createIndexedConsumer();
+    private static DexIndexedConsumer createIndexedConsumer(Path path) {
+      if (path == null) {
+        return DexIndexedConsumer.emptyConsumer();
+      }
+      return FileUtils.isArchive(path)
+          ? new DexIndexedConsumer.ArchiveConsumer(path)
+          : new DexIndexedConsumer.DirectoryConsumer(path);
     }
 
-    @Override
-    protected DexFilePerClassFileConsumer createPerClassFileConsumer() {
-      return getOutputPath() == null
-          ? DexFilePerClassFileConsumer.emptyConsumer()
-          : super.createPerClassFileConsumer();
+    private static DexFilePerClassFileConsumer createPerClassFileConsumer(Path path) {
+      if (path == null) {
+        return DexFilePerClassFileConsumer.emptyConsumer();
+      }
+      return FileUtils.isArchive(path)
+          ? new DexFilePerClassFileConsumer.ArchiveConsumer(path)
+          : new DexFilePerClassFileConsumer.DirectoryConsumer(path);
     }
   }
 
@@ -145,7 +178,7 @@ public class D8Command extends BaseCompilerCommand {
       "  --min-api               # Minimum Android API level compatibility",
       "  --intermediate          # Compile an intermediate result intended for later",
       "                          # merging.",
-      "  --file-per-class        # Produce a separate dex file per class",
+      "  --file-per-class        # Produce a separate dex file per input class",
       "  --main-dex-list <file>  # List of classes to place in the primary dex file.",
       "  --version               # Print the version of d8.",
       "  --help                  # Print this message."));
@@ -165,9 +198,19 @@ public class D8Command extends BaseCompilerCommand {
     return new Builder(app);
   }
 
-  static Builder parse(String[] args, Origin origin) {
-    CompilationMode modeSet = null;
+  /**
+   * Parse the D8 command-line.
+   *
+   * <p>Parsing will set the supplied options or their default value if they have any.
+   *
+   * @param args Command-line arguments array.
+   * @param origin Origin description of the command-line arguments.
+   * @return D8 command builder with state set up according to parsed command line.
+   */
+  public static Builder parse(String[] args, Origin origin) {
+    CompilationMode compilationMode = null;
     Path outputPath = null;
+    OutputMode outputMode = null;
     Builder builder = builder();
     try {
       for (int i = 0; i < args.length; i++) {
@@ -179,25 +222,23 @@ public class D8Command extends BaseCompilerCommand {
         } else if (arg.equals("--version")) {
           builder.setPrintVersion(true);
         } else if (arg.equals("--debug")) {
-          if (modeSet == CompilationMode.RELEASE) {
+          if (compilationMode == CompilationMode.RELEASE) {
             builder.getReporter().error(new StringDiagnostic(
                 "Cannot compile in both --debug and --release mode.",
                 origin));
             continue;
           }
-          builder.setMode(CompilationMode.DEBUG);
-          modeSet = CompilationMode.DEBUG;
+          compilationMode = CompilationMode.DEBUG;
         } else if (arg.equals("--release")) {
-          if (modeSet == CompilationMode.DEBUG) {
+          if (compilationMode == CompilationMode.DEBUG) {
             builder.getReporter().error(new StringDiagnostic(
                 "Cannot compile in both --debug and --release mode.",
                 origin));
             continue;
           }
-          builder.setMode(CompilationMode.RELEASE);
-          modeSet = CompilationMode.RELEASE;
+          compilationMode = CompilationMode.RELEASE;
         } else if (arg.equals("--file-per-class")) {
-          builder.setOutputMode(OutputMode.FilePerInputClass);
+          outputMode = OutputMode.DexFilePerClassFile;
         } else if (arg.equals("--output")) {
           String output = args[++i];
           if (outputPath != null) {
@@ -226,7 +267,16 @@ public class D8Command extends BaseCompilerCommand {
           builder.addProgramFiles(Paths.get(arg));
         }
       }
-      return builder.setOutputPath(outputPath);
+      if (compilationMode != null) {
+        builder.setMode(compilationMode);
+      }
+      if (outputMode == null) {
+        outputMode = OutputMode.DexIndexed;
+      }
+      if (outputPath == null) {
+        outputPath = Paths.get(".");
+      }
+      return builder.setOutput(outputPath, outputMode);
     } catch (CompilationError e) {
       throw builder.getReporter().fatalError(e);
     }
@@ -236,11 +286,20 @@ public class D8Command extends BaseCompilerCommand {
       AndroidApp inputApp,
       CompilationMode mode,
       ProgramConsumer programConsumer,
+      OutputOptions outputOptions,
       int minApiLevel,
       Reporter diagnosticsHandler,
       boolean enableDesugaring,
       boolean intermediate) {
-    super(inputApp, mode, programConsumer, minApiLevel, diagnosticsHandler, enableDesugaring);
+    super(
+        inputApp,
+        mode,
+        programConsumer,
+        outputOptions,
+        minApiLevel,
+        diagnosticsHandler,
+        enableDesugaring);
+    assert programConsumer != null;
     this.intermediate = intermediate;
   }
 

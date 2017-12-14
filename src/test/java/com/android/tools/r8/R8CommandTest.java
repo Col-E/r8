@@ -6,35 +6,37 @@ package com.android.tools.r8;
 import static com.android.tools.r8.ToolHelper.EXAMPLES_BUILD_DIR;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.origin.EmbeddedOrigin;
-import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.OutputMode;
 import com.google.common.collect.ImmutableList;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 public class R8CommandTest {
 
   @Rule
-  public ExpectedException thrown = ExpectedException.none();
-
-  @Rule
   public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
+
+  @Test(expected = CompilationFailedException.class)
+  public void emptyBuilder() throws Throwable {
+    // The builder must have a program consumer.
+    R8Command.builder().build();
+  }
 
   @Test
   public void emptyCommand() throws Throwable {
-    verifyEmptyCommand(R8Command.builder().build());
+    verifyEmptyCommand(
+        // In the API we must set a consumer.
+        R8Command.builder().setProgramConsumer(DexIndexedConsumer.emptyConsumer()).build());
     verifyEmptyCommand(parse());
     verifyEmptyCommand(parse(""));
     verifyEmptyCommand(parse("", ""));
@@ -50,10 +52,25 @@ public class R8CommandTest {
     assertFalse(ToolHelper.getApp(command).hasMainDexListResources());
     assertFalse(ToolHelper.getApp(command).hasProguardMap());
     assertFalse(ToolHelper.getApp(command).hasProguardSeeds());
-    assertNull(command.getOutputPath());
     assertFalse(command.useMinification());
     assertFalse(command.useTreeShaking());
     assertEquals(CompilationMode.RELEASE, command.getMode());
+    assertTrue(command.getProgramConsumer() instanceof DexIndexedConsumer);
+  }
+
+  @Test(expected = CompilationFailedException.class)
+  public void disallowDexFilePerClassFileBuilder() throws Throwable {
+    R8Command.builder().setProgramConsumer(DexFilePerClassFileConsumer.emptyConsumer()).build();
+  }
+
+  @Test
+  public void allowClassFileConsumer() throws Throwable {
+    assertTrue(
+        R8Command.builder()
+                .setProgramConsumer(ClassFileConsumer.emptyConsumer())
+                .build()
+                .getProgramConsumer()
+            instanceof ClassFileConsumer);
   }
 
   @Test
@@ -81,16 +98,36 @@ public class R8CommandTest {
     Path nonExistingZip = existingDir.resolve("a-non-existing-archive.zip");
     assertEquals(
         existingDir,
-        R8Command.builder().setOutputPath(existingDir).build().getOutputPath());
+        getOutputPath(R8Command.builder().setOutput(existingDir, OutputMode.DexIndexed).build()));
     assertEquals(
         nonExistingZip,
-        R8Command.builder().setOutputPath(nonExistingZip).build().getOutputPath());
-    assertEquals(
-        existingDir,
-        parse("--output", existingDir.toString()).getOutputPath());
-    assertEquals(
-        nonExistingZip,
-        parse("--output", nonExistingZip.toString()).getOutputPath());
+        getOutputPath(
+            R8Command.builder().setOutput(nonExistingZip, OutputMode.DexIndexed).build()));
+    assertEquals(existingDir, getOutputPath(parse("--output", existingDir.toString())));
+    assertEquals(nonExistingZip, getOutputPath(parse("--output", nonExistingZip.toString())));
+  }
+
+  static Path getOutputPath(BaseCompilerCommand command) {
+    ProgramConsumer consumer = command.getProgramConsumer();
+    if (consumer instanceof InternalProgramOutputPathConsumer) {
+      return ((InternalProgramOutputPathConsumer) consumer).internalGetOutputPath();
+    }
+    return null;
+  }
+
+  @Test
+  public void classFileOutputModeOption() throws Throwable {
+    assertTrue(parse("--classfile").getProgramConsumer() instanceof ClassFileConsumer);
+  }
+
+  @Test
+  public void classFileOutputModeAPI() throws Throwable {
+    assertTrue(
+        R8Command.builder()
+                .setOutput(Paths.get("."), OutputMode.ClassFile)
+                .build()
+                .getProgramConsumer()
+            instanceof ClassFileConsumer);
   }
 
   @Test
@@ -101,9 +138,8 @@ public class R8CommandTest {
     parse("--main-dex-rules", mainDexRules1.toString(), "--main-dex-rules", mainDexRules2.toString());
   }
 
-  @Test
+  @Test(expected = CompilationFailedException.class)
   public void nonExistingMainDexRules() throws Throwable {
-    thrown.expect(CompilationFailedException.class);
     Path mainDexRules = temp.getRoot().toPath().resolve("main-dex.rules");
     parse("--main-dex-rules", mainDexRules.toString());
   }
@@ -116,9 +152,8 @@ public class R8CommandTest {
     parse("--main-dex-list", mainDexList1.toString(), "--main-dex-list", mainDexList2.toString());
   }
 
-  @Test
+  @Test(expected = CompilationFailedException.class)
   public void nonExistingMainDexList() throws Throwable {
-    thrown.expect(CompilationFailedException.class);
     Path mainDexList = temp.getRoot().toPath().resolve("main-dex-list.txt");
     parse("--main-dex-list", mainDexList.toString());
   }
@@ -134,9 +169,8 @@ public class R8CommandTest {
         "--main-dex-list-output", mainDexListOutput.toString());
   }
 
-  @Test
+  @Test(expected = CompilationFailedException.class)
   public void mainDexListOutputWithoutAnyMainDexSpecification() throws Throwable {
-    thrown.expect(CompilationFailedException.class);
     Path mainDexListOutput = temp.newFile("main-dex-out.txt").toPath();
     parse("--main-dex-list-output", mainDexListOutput.toString());
   }
@@ -178,29 +212,26 @@ public class R8CommandTest {
     }
   }
 
-  @Test
+  @Test(expected = CompilationFailedException.class)
   public void nonExistingOutputDir() throws Throwable {
-    thrown.expect(CompilationFailedException.class);
     Path nonExistingDir = temp.getRoot().toPath().resolve("a/path/that/does/not/exist");
-    R8Command.builder().setOutputPath(nonExistingDir).build();
+    R8Command.builder().setOutput(nonExistingDir, OutputMode.DexIndexed).build();
   }
 
   @Test
   public void existingOutputZip() throws Throwable {
     Path existingZip = temp.newFile("an-existing-archive.zip").toPath();
-    R8Command.builder().setOutputPath(existingZip).build();
+    R8Command.builder().setOutput(existingZip, OutputMode.DexIndexed).build();
   }
 
-  @Test
+  @Test(expected = CompilationFailedException.class)
   public void invalidOutputFileType() throws Throwable {
-    thrown.expect(CompilationFailedException.class);
     Path invalidType = temp.getRoot().toPath().resolve("an-invalid-output-file-type.foobar");
-    R8Command.builder().setOutputPath(invalidType).build();
+    R8Command.builder().setOutput(invalidType, OutputMode.DexIndexed).build();
   }
 
-  @Test
+  @Test(expected = CompilationFailedException.class)
   public void nonExistingOutputDirParse() throws Throwable {
-    thrown.expect(CompilationFailedException.class);
     Path nonExistingDir = temp.getRoot().toPath().resolve("a/path/that/does/not/exist");
     parse("--output", nonExistingDir.toString());
   }
@@ -211,9 +242,8 @@ public class R8CommandTest {
     parse("--output", existingZip.toString());
   }
 
-  @Test
+  @Test(expected = CompilationFailedException.class)
   public void invalidOutputFileTypeParse() throws Throwable {
-    thrown.expect(CompilationFailedException.class);
     Path invalidType = temp.getRoot().toPath().resolve("an-invalid-output-file-type.foobar");
     parse("--output", invalidType.toString());
   }
@@ -238,19 +268,16 @@ public class R8CommandTest {
   @Test
   public void nonExistingOutputJar() throws Throwable {
     Path nonExistingJar = temp.getRoot().toPath().resolve("non-existing-archive.jar");
-    R8Command.builder().setOutputPath(nonExistingJar).build();
+    R8Command.builder().setOutput(nonExistingJar, OutputMode.DexIndexed).build();
   }
 
-  @Test
+  @Test(expected = CompilationFailedException.class)
   public void vdexFileUnsupported() throws Throwable {
-    thrown.expect(CompilationFailedException.class);
     Path vdexFile = temp.newFile("test.vdex").toPath();
     D8Command.builder().addProgramFiles(vdexFile).build();
   }
 
-  private R8Command parse(String... args)
-      throws CompilationException, ProguardRuleParserException, IOException,
-      CompilationFailedException {
+  private R8Command parse(String... args) throws CompilationFailedException {
     return R8Command.parse(args, EmbeddedOrigin.INSTANCE).build();
   }
 }

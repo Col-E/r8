@@ -8,6 +8,7 @@ import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.Command;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
+import com.android.tools.r8.utils.OutputMode;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -32,7 +33,7 @@ public class DebugInfoWhenInliningTest extends DebugTestBase {
             .setMinApiLevel(minSdk)
             .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(minSdk)))
             .setMode(CompilationMode.RELEASE)
-            .setOutputPath(outjar)
+            .setOutput(outjar, OutputMode.DexIndexed)
             .setProguardMapOutput(proguardMapPath)
             .build(),
         options -> options.lineNumberOptimization = lineNumberOptimization);

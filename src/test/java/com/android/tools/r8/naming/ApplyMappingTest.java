@@ -21,6 +21,7 @@ import com.android.tools.r8.utils.DexInspector.InstructionSubject;
 import com.android.tools.r8.utils.DexInspector.InvokeInstructionSubject;
 import com.android.tools.r8.utils.DexInspector.MethodSubject;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.OutputMode;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -210,7 +211,7 @@ public class ApplyMappingTest {
     return R8Command.builder()
         .addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()), mainApp)
         .addProgramFiles(instrApp)
-        .setOutputPath(out)
+        .setOutput(out, OutputMode.DexIndexed)
         .addProguardConfigurationFiles(flag);
   }
 
@@ -220,7 +221,7 @@ public class ApplyMappingTest {
     return R8Command.builder()
         .addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()))
         .addProgramFiles(jars)
-        .setOutputPath(out)
+        .setOutput(out, OutputMode.DexIndexed)
         .addProguardConfigurationFiles(flag);
   }
 

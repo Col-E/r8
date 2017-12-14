@@ -100,7 +100,7 @@ public class SmaliTestBase extends TestBase {
       R8Command command =
           R8Command.builder()
               .addDexProgramData(builder.compile(), EmbeddedOrigin.INSTANCE)
-              .setOutputPath(dexOutputDir)
+              .setOutput(dexOutputDir, OutputMode.DexIndexed)
               .setMode(CompilationMode.DEBUG)
               .addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()))
               .addProguardConfiguration(proguardConfigurations, Origin.unknown())

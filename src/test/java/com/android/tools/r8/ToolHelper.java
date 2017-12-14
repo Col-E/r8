@@ -22,6 +22,7 @@ import com.android.tools.r8.utils.AndroidAppConsumers;
 import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.OutputMode;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.Timing;
@@ -645,17 +646,18 @@ public class ToolHelper {
   }
 
   public static R8Command.Builder prepareR8CommandBuilder(AndroidApp app) {
-    return R8Command.builder(app);
+    return R8Command.builder(app).setProgramConsumer(DexIndexedConsumer.emptyConsumer());
   }
 
   public static R8Command.Builder prepareR8CommandBuilder(
       AndroidApp app, DiagnosticsHandler diagnosticsHandler) {
-    return R8Command.builder(app, diagnosticsHandler);
+    return R8Command.builder(app, diagnosticsHandler)
+        .setProgramConsumer(DexIndexedConsumer.emptyConsumer());
   }
 
   public static AndroidApp runR8(AndroidApp app) throws IOException, CompilationException {
     try {
-      return runR8(R8Command.builder(app).build());
+      return runR8(prepareR8CommandBuilder(app).build());
     } catch (CompilationFailedException e) {
       throw new RuntimeException(e);
     }
@@ -665,7 +667,7 @@ public class ToolHelper {
       throws IOException, CompilationException {
     assert output != null;
     try {
-      return runR8(R8Command.builder(app).setOutputPath(output).build());
+      return runR8(R8Command.builder(app).setOutput(output, OutputMode.DexIndexed).build());
     } catch (CompilationFailedException e) {
       throw new RuntimeException(e);
     }
@@ -674,7 +676,7 @@ public class ToolHelper {
   public static AndroidApp runR8(AndroidApp app, Consumer<InternalOptions> optionsConsumer)
       throws IOException, CompilationException {
     try {
-      return runR8(R8Command.builder(app).build(), optionsConsumer);
+      return runR8(prepareR8CommandBuilder(app).build(), optionsConsumer);
     } catch (CompilationFailedException e) {
       throw new RuntimeException(e);
     }
@@ -721,11 +723,12 @@ public class ToolHelper {
       throws IOException, CompilationException {
     R8Command command;
     try {
-      command = R8Command.builder()
-          .addProgramFiles(ListUtils.map(fileNames, Paths::get))
-          .setOutputPath(Paths.get(out))
-          .setIgnoreMissingClasses(true)
-          .build();
+      command =
+          R8Command.builder()
+              .addProgramFiles(ListUtils.map(fileNames, Paths::get))
+              .setOutput(Paths.get(out), OutputMode.DexIndexed)
+              .setIgnoreMissingClasses(true)
+              .build();
     } catch (CompilationFailedException e) {
       throw new RuntimeException(e);
     }

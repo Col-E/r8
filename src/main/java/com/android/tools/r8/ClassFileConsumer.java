@@ -69,14 +69,10 @@ public interface ClassFileConsumer extends ProgramConsumer {
       }
     }
 
-    @Override
-    public Path getOutputPath() {
-      return consumer == null ? null : consumer.getOutputPath();
-    }
   }
 
   /** Archive consumer to write program resources to a zip archive. */
-  class ArchiveConsumer extends ForwardingConsumer {
+  class ArchiveConsumer extends ForwardingConsumer implements InternalProgramOutputPathConsumer {
 
     private final Path archive;
     private final Origin origin;
@@ -115,7 +111,7 @@ public interface ClassFileConsumer extends ProgramConsumer {
     }
 
     @Override
-    public Path getOutputPath() {
+    public Path internalGetOutputPath() {
       return archive;
     }
 
@@ -150,7 +146,7 @@ public interface ClassFileConsumer extends ProgramConsumer {
   }
 
   /** Directory consumer to write program resources to a directory. */
-  class DirectoryConsumer extends ForwardingConsumer {
+  class DirectoryConsumer extends ForwardingConsumer implements InternalProgramOutputPathConsumer {
 
     private final Path directory;
 
@@ -180,7 +176,7 @@ public interface ClassFileConsumer extends ProgramConsumer {
     }
 
     @Override
-    public Path getOutputPath() {
+    public Path internalGetOutputPath() {
       return directory;
     }
 

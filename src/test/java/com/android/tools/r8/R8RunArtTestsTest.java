@@ -21,6 +21,7 @@ import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.OutputMode;
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
@@ -1358,7 +1359,7 @@ public abstract class R8RunArtTestsTest {
           R8Command.Builder builder =
               R8Command.builder()
                   .setMode(mode)
-                  .setOutputPath(Paths.get(resultPath))
+                  .setOutput(Paths.get(resultPath), OutputMode.DexIndexed)
                   .addProgramFiles(ListUtils.map(fileNames, Paths::get))
                   .setIgnoreMissingClasses(true);
           Integer minSdkVersion = needMinSdkVersion.get(name);

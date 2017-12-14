@@ -4,6 +4,7 @@
 
 package com.android.tools.r8;
 
+import com.android.tools.r8.utils.OutputMode;
 import java.nio.file.Path;
 import java.util.function.UnaryOperator;
 
@@ -26,7 +27,8 @@ public class R8RunExamplesAndroidNTest extends RunExamplesAndroidNTest<R8Command
       for (UnaryOperator<R8Command.Builder> transformation : builderTransformations) {
         builder = transformation.apply(builder);
       }
-      R8Command command = builder.addProgramFiles(inputFile).setOutputPath(out).build();
+      R8Command command =
+          builder.addProgramFiles(inputFile).setOutput(out, OutputMode.DexIndexed).build();
       ToolHelper.runR8(command, this::combinedOptionConsumer);
     }
   }

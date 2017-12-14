@@ -15,6 +15,7 @@ import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.Resource;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.shaking.FilteredClassPath;
@@ -325,11 +326,13 @@ public class AndroidApp {
    */
   public void writeToZip(Path archive, OutputMode outputMode) throws IOException {
     List<ProgramResource> resources = getDexProgramResources();
-    if (outputMode == OutputMode.Indexed) {
+    if (outputMode.isDexIndexed()) {
       DexIndexedConsumer.ArchiveConsumer.writeResources(archive, resources);
-    } else {
+    } else if (outputMode.isDexFilePerClassFile()) {
       DexFilePerClassFileConsumer.ArchiveConsumer.writeResources(
           archive, resources, programResourcesMainDescriptor);
+    } else {
+      throw new Unreachable("Unsupported output-mode for writing: " + outputMode);
     }
   }
 

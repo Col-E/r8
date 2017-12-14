@@ -19,6 +19,7 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.OutputMode;
 import com.google.common.io.Closer;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -147,16 +148,18 @@ public class MainDexTracingTest {
 
       // Build main-dex list using R8.
       R8Command.Builder r8CommandBuilder = R8Command.builder();
-      R8Command command = r8CommandBuilder
-          .setMinApiLevel(minSdk)
-          .addProgramFiles(inputJar)
-          .addProgramFiles(Paths.get(EXAMPLE_BUILD_DIR, "multidexfakeframeworks" + JAR_EXTENSION))
-          .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(minSdk)))
-          .setOutputPath(out)
-          .addMainDexRulesFiles(mainDexRules)
-          .setMainDexListOutputPath(
-              temp.getRoot().toPath().resolve(testName + "-main-dex-list.txt"))
-          .build();
+      R8Command command =
+          r8CommandBuilder
+              .setMinApiLevel(minSdk)
+              .addProgramFiles(inputJar)
+              .addProgramFiles(
+                  Paths.get(EXAMPLE_BUILD_DIR, "multidexfakeframeworks" + JAR_EXTENSION))
+              .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(minSdk)))
+              .setOutput(out, OutputMode.DexIndexed)
+              .addMainDexRulesFiles(mainDexRules)
+              .setMainDexListOutputPath(
+                  temp.getRoot().toPath().resolve(testName + "-main-dex-list.txt"))
+              .build();
       AndroidApp result = ToolHelper.runR8WithFullResult(command, optionsConsumer);
       List<String> r8MainDexList;
       try (Closer closer = Closer.create()) {

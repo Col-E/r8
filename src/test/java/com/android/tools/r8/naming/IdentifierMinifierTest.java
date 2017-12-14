@@ -22,6 +22,7 @@ import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.DexInspector.MethodSubject;
 import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.OutputMode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.nio.file.Path;
@@ -66,7 +67,7 @@ public class IdentifierMinifierTest {
     Path out = temp.getRoot().toPath();
     R8Command command =
         R8Command.builder()
-            .setOutputPath(out)
+            .setOutput(out, OutputMode.DexIndexed)
             .addProgramFiles(Paths.get(appFileName))
             .addProguardConfigurationFiles(ListUtils.map(keepRulesFiles, Paths::get))
             .addProguardConfigurationConsumer(builder -> {
