@@ -73,11 +73,9 @@ public class Inliner {
     while (it.hasNext()) {
       Instruction instruction = it.next();
       Constraint state = instructionAllowedForInlining(method, instruction);
-      if (state == Constraint.NEVER) {
-        return Constraint.NEVER;
-      }
-      if (state.ordinal() < result.ordinal()) {
-        result = state;
+      result = Constraint.min(result, state);
+      if (result == Constraint.NEVER) {
+        break;
       }
     }
     return result;

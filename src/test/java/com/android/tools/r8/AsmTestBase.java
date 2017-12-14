@@ -3,11 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import static com.android.tools.r8.ToolHelper.getDefaultAndroidJar;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.shaking.FilteredClassPath;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
 import java.io.File;
@@ -31,11 +33,12 @@ public class AsmTestBase extends TestBase {
         exceptionClass);
   }
 
-  private AndroidApp buildAndroidApp(byte[]... classes) {
+  private AndroidApp buildAndroidApp(byte[]... classes) throws IOException {
     AndroidApp.Builder builder = AndroidApp.builder();
     for (byte[] clazz : classes) {
       builder.addClassProgramData(clazz, Origin.unknown());
     }
+    builder.addLibraryFiles(FilteredClassPath.unfiltered(getDefaultAndroidJar()));
     return builder.build();
   }
 

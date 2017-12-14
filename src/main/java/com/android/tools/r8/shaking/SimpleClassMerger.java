@@ -285,7 +285,7 @@ public class SimpleClassMerger {
     }
 
     private DexEncodedMethod filterShadowedInterfaceMethods(DexEncodedMethod m) {
-      DexEncodedMethod actual = appInfo.lookupVirtualDefinition(target.type, m.method);
+      DexEncodedMethod actual = appInfo.resolveMethod(target.type, m.method).asSingleTarget();
       assert actual != null;
       if (actual != m) {
         // We will drop a method here, so record it as a potential renaming.

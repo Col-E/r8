@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.optimize;
 
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -15,7 +14,6 @@ import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.google.common.collect.Sets;
 import java.util.Set;
-import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -31,8 +29,7 @@ public class MemberRebindingAnalysis {
     this.lense = lense;
   }
 
-  private DexMethod validTargetFor(DexMethod target, DexMethod original,
-      BiFunction<DexClass, DexMethod, DexEncodedMethod> lookup) {
+  private DexMethod validTargetFor(DexMethod target, DexMethod original) {
     DexClass clazz = appInfo.definitionFor(target.getHolder());
     assert clazz != null;
     if (!clazz.isLibraryClass()) {
@@ -40,7 +37,8 @@ public class MemberRebindingAnalysis {
     }
     DexType newHolder;
     if (clazz.isInterface()) {
-      newHolder = firstLibraryClassForInterfaceTarget(target, original.getHolder(), lookup);
+      newHolder =
+          firstLibraryClassForInterfaceTarget(target, original.getHolder(), DexClass::lookupMethod);
     } else {
       newHolder = firstLibraryClass(target.getHolder(), original.getHolder());
     }
@@ -97,18 +95,20 @@ public class MemberRebindingAnalysis {
     return searchClass.type;
   }
 
-  private DexEncodedMethod virtualLookup(DexMethod method) {
-    return appInfo.lookupVirtualDefinition(method.getHolder(), method);
+  private DexEncodedMethod classLookup(DexMethod method) {
+    return appInfo.resolveMethodOnClass(method.getHolder(), method).asResultOfResolve();
   }
 
-  private DexEncodedMethod superLookup(DexMethod method) {
-    return appInfo.lookupVirtualTarget(method.getHolder(), method);
+  private DexEncodedMethod interfaceLookup(DexMethod method) {
+    return appInfo.resolveMethodOnInterface(method.getHolder(), method).asResultOfResolve();
+  }
+
+  private DexEncodedMethod anyLookup(DexMethod method) {
+    return appInfo.resolveMethod(method.getHolder(), method).asResultOfResolve();
   }
 
   private void computeMethodRebinding(Set<DexMethod> methods,
-      Function<DexMethod, DexEncodedMethod> lookupTarget,
-      BiFunction<DexClass, DexMethod, DexEncodedMethod> lookupTargetOnClass,
-      BiConsumer<DexProgramClass, DexEncodedMethod> addMethod) {
+      Function<DexMethod, DexEncodedMethod> lookupTarget) {
     for (DexMethod method : methods) {
       method = lense.lookupMethod(method, null);
       // We can safely ignore array types, as the corresponding methods are defined in a library.
@@ -137,14 +137,14 @@ public class MemberRebindingAnalysis {
             DexProgramClass bridgeHolder = findBridgeMethodHolder(originalClass, targetClass,
                 packageDescriptor);
             assert bridgeHolder != null;
-            DexEncodedMethod bridgeMethod = target
-                .toForwardingMethod(bridgeHolder, appInfo.dexItemFactory);
-            addMethod.accept(bridgeHolder, bridgeMethod);
+            DexEncodedMethod bridgeMethod =
+                target.toForwardingMethod(bridgeHolder, appInfo.dexItemFactory);
+            bridgeHolder.addMethod(bridgeMethod);
             assert lookupTarget.apply(method) == bridgeMethod;
             target = bridgeMethod;
           }
         }
-        builder.map(method, validTargetFor(target.method, method, lookupTargetOnClass));
+        builder.map(method, validTargetFor(target.method, method));
       }
     }
   }
@@ -201,22 +201,17 @@ public class MemberRebindingAnalysis {
     return appInfo.definitionFor(field.field.getHolder()).accessFlags.isPublic();
   }
 
-  private static void privateMethodsCheck(DexProgramClass clazz, DexEncodedMethod method) {
-    throw new Unreachable("Direct invokes should not require forwarding.");
-  }
-
   public GraphLense run() {
-    // TODO(b/69101406): Use correct resolution for interface vs. virtual.
-    computeMethodRebinding(appInfo.virtualInvokes, this::virtualLookup,
-        DexClass::lookupVirtualMethod, DexProgramClass::addVirtualMethod);
-    computeMethodRebinding(appInfo.interfaceInvokes, this::virtualLookup,
-        DexClass::lookupVirtualMethod, DexProgramClass::addVirtualMethod);
-    computeMethodRebinding(appInfo.superInvokes, this::superLookup, DexClass::lookupVirtualMethod,
-        DexProgramClass::addVirtualMethod);
-    computeMethodRebinding(appInfo.directInvokes, appInfo::lookupDirectTarget,
-        DexClass::lookupDirectMethod, MemberRebindingAnalysis::privateMethodsCheck);
-    computeMethodRebinding(appInfo.staticInvokes, appInfo::lookupStaticTarget,
-        DexClass::lookupDirectMethod, DexProgramClass::addStaticMethod);
+    // Virtual invokes are on classes, so use class resolution.
+    computeMethodRebinding(appInfo.virtualInvokes, this::classLookup);
+    // Interface invokes are always on interfaces, so use interface resolution.
+    computeMethodRebinding(appInfo.interfaceInvokes, this::interfaceLookup);
+    // Super invokes can be on both kinds, decide using the holder class.
+    computeMethodRebinding(appInfo.superInvokes, this::anyLookup);
+    // Direct invokes (private/constructor) can also be on both kinds.
+    computeMethodRebinding(appInfo.directInvokes, this::anyLookup);
+    // Likewise static invokes.
+    computeMethodRebinding(appInfo.staticInvokes, this::anyLookup);
 
     computeFieldRebinding(Sets.union(appInfo.staticFieldReads, appInfo.staticFieldWrites),
         appInfo::resolveFieldOn, DexClass::lookupStaticField);

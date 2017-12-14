@@ -3,17 +3,16 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
-import com.android.tools.r8.utils.TriFunction;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.BiFunction;
+import java.util.function.Consumer;
 
 public class AppInfo {
 
@@ -78,22 +77,34 @@ public class AppInfo {
     return existing != null ? existing : typeDefinitions;
   }
 
-  private DexEncodedMethod lookupDirectStaticOrConstructorTarget(DexMethod method) {
-    assert method.holder.isClassType();
-    return lookupTargetAlongSuperChain(method.holder, method, DexClass::lookupDirectMethod);
-  }
-
   /**
    * Lookup static method following the super chain from the holder of {@code method}.
    * <p>
-   * This method will lookup only static methods.
+   * This method will resolve the method on the holder of {@code method} and only return a non-null
+   * value if the result of resolution was a static, non-abstract method.
    *
    * @param method the method to lookup
    * @return The actual target for {@code method} or {@code null} if none found.
    */
   public DexEncodedMethod lookupStaticTarget(DexMethod method) {
-    DexEncodedMethod target = lookupDirectStaticOrConstructorTarget(method);
-    return target == null || target.accessFlags.isStatic() ? target : null;
+    ResolutionResult resolutionResult = resolveMethod(method.holder, method);
+    DexEncodedMethod target = resolutionResult.asSingleTarget();
+    return target == null || target.isStaticMethod() ? target : null;
+  }
+
+  /**
+   * Lookup super method following the super chain from the holder of {@code method}.
+   * <p>
+   * This method will resolve the method on the holder of {@code method} and only return a non-null
+   * value if the result of resolution was a non-static, non-private method.
+   *
+   * @param method the method to lookup
+   * @return The actual target for {@code method} or {@code null} if none found.
+   */
+  public DexEncodedMethod lookupSuperTarget(DexMethod method) {
+    ResolutionResult resolutionResult = resolveMethod(method.holder, method);
+    DexEncodedMethod target = resolutionResult.asSingleTarget();
+    return target == null || target.isVirtualMethod() ? target : null;
   }
 
   /**
@@ -105,46 +116,205 @@ public class AppInfo {
    * @return The actual target for {@code method} or {@code null} if none found.
    */
   public DexEncodedMethod lookupDirectTarget(DexMethod method) {
-    DexEncodedMethod target = lookupDirectStaticOrConstructorTarget(method);
-    return target == null || !target.accessFlags.isStatic() ? target : null;
+    ResolutionResult resolutionResult = resolveMethod(method.holder, method);
+    DexEncodedMethod target = resolutionResult.asSingleTarget();
+    return target == null || target.isDirectMethod() ? target : null;
   }
 
   /**
    * Lookup virtual method starting in type and following the super chain.
    * <p>
-   * If the target cannot be found along the super-chain, look for a default implementation in one
-   * of the interfaces.
+   * This method will resolve the method on the holder of {@code method} and only return a
+   * non-null value if the result of resolution was a non-static, non-private method.
    */
   public DexEncodedMethod lookupVirtualTarget(DexType type, DexMethod method) {
     assert type.isClassType();
-    DexEncodedMethod result
-        = lookupTargetAlongSuperChain(type, method, DexClass::lookupVirtualMethod);
-    if (result != null) {
-      return result;
-    }
-    return lookupTargetAlongInterfaceChain(type, method,
-        (dexClass, dexMethod) -> {
-          DexEncodedMethod virtualTarget = dexClass.lookupVirtualMethod(dexMethod);
-          return virtualTarget != null && virtualTarget.getCode() != null
-              ? virtualTarget
-              : null;
-        });
+    ResolutionResult resolutionResult = resolveMethodOnClass(type, method);
+    DexEncodedMethod target = resolutionResult.asSingleTarget();
+    return target == null || target.isVirtualMethod() ? target : null;
   }
 
   /**
-   * Lookup virtual method starting in type and following the super chain.
+   * Implements resolution of a method descriptor against a target type.
    * <p>
-   * If the target cannot be found along the super-chain, look for a definition in one of
-   * the interfaces.
+   * This method will query the definition of the holder to decide on which resolution to use. If
+   * the holder is an interface, it delegates to {@link #resolveMethodOnInterface(DexType,
+   * DexMethod)}, otherwise {@link #resolveMethodOnClass(DexType, DexMethod)} is used.
+   * <p>
+   * This is to overcome the shortcoming of the DEX file format that does not allow to encode the
+   * kind of a method reference.
    */
-  public DexEncodedMethod lookupVirtualDefinition(DexType type, DexMethod method) {
-    assert type.isClassType();
-    DexEncodedMethod result
-        = lookupTargetAlongSuperChain(type, method, DexClass::lookupVirtualMethod);
+  public ResolutionResult resolveMethod(DexType holder, DexMethod method) {
+    DexClass definition = definitionFor(holder);
+    if (definition == null) {
+      return EmptyResult.get();
+    }
+    return definition.isInterface()
+        ? resolveMethodOnInterface(holder, method)
+        : resolveMethodOnClass(holder, method);
+  }
+
+  /**
+   * Implements resolution of a method descriptor against a class type.
+   * <p>
+   * See <a href="https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-5.html#jvms-5.4.3.3">
+   * Section 5.4.3.3 of the JVM Spec</a>.
+   * <p>
+   * The resolved method is not the method that will actually be invoked. Which methods gets
+   * invoked depends on the invoke instruction used. However, it is always safe to rewrite
+   * any invoke on the given descriptor to a corresponding invoke on the resolved descriptor, as the
+   * resolved method is used as basis for dispatch.
+   */
+  public ResolutionResult resolveMethodOnClass(DexType holder, DexMethod method) {
+    DexClass clazz = definitionFor(holder);
+    // Step 1: If holder is an interface, resolution fails with an ICCE. We return null.
+    if (clazz == null || clazz.isInterface()) {
+      return EmptyResult.get();
+    }
+    // Step 2:
+    DexEncodedMethod singleTarget = resolveMethodOnClassStep2(clazz, method);
+    if (singleTarget != null) {
+      return singleTarget;
+    }
+    // Finally Step 3:
+    return resolveMethodStep3(clazz, method);
+  }
+
+  /**
+   * Implements step 2 of method resolution on classes as per
+   * <a href="https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-5.html#jvms-5.4.3.3">
+   * Section 5.4.3.3 of the JVM Spec</a>.
+   */
+  private DexEncodedMethod resolveMethodOnClassStep2(DexClass clazz, DexMethod method) {
+    // Pt. 1: Signature polymorphic method check. Those are only allowed on
+    //        java.lang.invoke.MethodHandle, so we only need to look for it if we are looking at
+    //        that type.
+    // See also <a href="https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-2.html#jvms-2.9">
+    // Section 2.9 of the JVM Spec</a>.
+    if (clazz.type == dexItemFactory.methodHandleType) {
+      DexMethod signaturePolymorphic = dexItemFactory.createMethod(clazz.type,
+          dexItemFactory.createProto(
+              dexItemFactory.objectType, dexItemFactory.objectArrayType),
+          method.name);
+      DexEncodedMethod result = clazz.lookupMethod(signaturePolymorphic);
+      // Check we found a result and that it has the required access flags for signature polymorphic
+      // functions.
+      if (result != null && result.accessFlags.isNative() && result.accessFlags.isVarargs()) {
+        return result;
+      }
+    }
+    // Pt 2: Find a method that matches the descriptor.
+    DexEncodedMethod result = clazz.lookupMethod(method);
     if (result != null) {
       return result;
     }
-    return lookupTargetAlongInterfaceChain(type, method, DexClass::lookupVirtualMethod);
+    // Pt 3: Apply step two to direct superclass of holder.
+    if (clazz.superType != null) {
+      DexClass superClass = definitionFor(clazz.superType);
+      if (superClass != null) {
+        return resolveMethodOnClassStep2(superClass, method);
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Implements step 3 of
+   * <a href="https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-5.html#jvms-5.4.3.3">
+   * Section 5.4.3.3 of the JVM Spec</a>. As this is the same for interfaces and classes, we share
+   * one implementation.
+   * <p>
+   * This method will return all maximally specific default methods if there is more than one. If
+   * there is no default method, any of the found methods is returned.
+   */
+  private ResolutionResult resolveMethodStep3(DexClass clazz, DexMethod method) {
+    MultiResultBuilder builder = new MultiResultBuilder();
+    DexEncodedMethod anyTarget = resolveMethodStep3Helper(clazz, method, builder);
+    ResolutionResult result = builder.build();
+    if (result != null) {
+      // We have found default methods, return them.
+      return result;
+    }
+    // Return any of the non-default methods.
+    return anyTarget == null ? EmptyResult.get() : anyTarget;
+  }
+
+  /**
+   * Helper method that performs the actual search and adds all maximally specific default methods
+   * to the builder. Additionally, one of the maximally specific default methods or, if none exist,
+   * any of the found methods, is returned.
+   */
+  private DexEncodedMethod resolveMethodStep3Helper(DexClass clazz, DexMethod method,
+      MultiResultBuilder builder) {
+    // We are looking for the maximally-specific superinterfaces that have a
+    // non-abstract method or any of the abstract methods.
+    DexEncodedMethod result = null;
+    for (DexType iface : clazz.interfaces.values) {
+      DexClass definiton = definitionFor(iface);
+      if (definiton == null) {
+        // Ignore missing interface definitions.
+        continue;
+      }
+      DexEncodedMethod localResult = definiton.lookupMethod(method);
+      // Remember the result, if any, as local result.
+      result = selectCandidate(result, localResult);
+      if (localResult != null && localResult.isNonAbstractVirtualMethod()) {
+        // We have found a default method in this class. Remember it and stop the search.
+        builder.add(localResult);
+      } else {
+        // Look at the super-interfaces of this class and keep searching.
+        localResult = resolveMethodStep3Helper(definiton, method, builder);
+        result = selectCandidate(result, localResult);
+      }
+    }
+    // Now look at indirect super interfaces.
+    if (clazz.superType != null) {
+      DexClass superClass = definitionFor(clazz.superType);
+      if (superClass != null) {
+        DexEncodedMethod superResult = resolveMethodStep3Helper(superClass, method, builder);
+        result = selectCandidate(result, superResult);
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Implements resolution of a method descriptor against an interface type.
+   * <p>
+   * See <a href="https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-5.html#jvms-5.4.3.3">
+   * Section 5.4.3.4 of the JVM Spec</a>.
+   * <p>
+   * The resolved method is not the method that will actually be invoked. Which methods gets
+   * invoked depends on the invoke instruction used. However, it is always save to rewrite
+   * any invoke on the given descriptor to a corresponding invoke on the resolved descriptor, as the
+   * resolved method is used as basis for dispatch.
+   */
+  public ResolutionResult resolveMethodOnInterface(DexType holder, DexMethod desc) {
+    // Step 1: Lookup interface.
+    DexClass definition = definitionFor(holder);
+    // If the definition is not an interface, resolution fails with an ICCE. We just return the
+    // empty result here.
+    if (definition == null || !definition.isInterface()) {
+      return EmptyResult.get();
+    }
+    // Step 2: Look for exact method on interface.
+    DexEncodedMethod result = definition.lookupMethod(desc);
+    if (result != null) {
+      return result;
+    }
+    // Step 3: Look for matching method on object class.
+    DexClass objectClass = definitionFor(dexItemFactory.objectType);
+    if (objectClass == null) {
+      // TODO(herhut): This should never happen. How do we handle missing classes?
+      return EmptyResult.get();
+    }
+    result = objectClass.lookupMethod(desc);
+    if (result != null && result.accessFlags.isPublic() && !result.accessFlags.isAbstract()) {
+      return result;
+    }
+    // Step 3: Look for maximally-specific superinterface methods or any interface definition.
+    //         This is the same for classes and interfaces.
+    return resolveMethodStep3(definition, desc);
   }
 
   /**
@@ -205,176 +375,45 @@ public class AppInfo {
   }
 
   /**
-   * Traverse along the super chain until lookup returns non-null value.
+   * Implements the dispatch logic for a static invoke operation.
+   * <p>
+   * The only requirement is that the method is indeed static.
    */
-  private <S extends DexItem, T extends Descriptor<S, T>> S lookupTargetAlongSuperChain(
-      DexType type,
-      T desc,
-      BiFunction<DexClass, T, S> lookup) {
-    assert type != null;
-    DexClass holder = definitionFor(type);
-    while (holder != null) {
-      S result = lookup.apply(holder, desc);
-      if (result != null) {
-        return result;
-      }
-      if (holder.superType == null) {
-        return null;
-      }
-      holder = definitionFor(holder.superType);
+  public DexEncodedMethod dispatchStaticInvoke(ResolutionResult resolvedMethod) {
+    DexEncodedMethod target = resolvedMethod.asSingleTarget();
+    if (target != null && target.accessFlags.isStatic()) {
+      return target;
     }
     return null;
   }
 
-  private <S extends DexItem, T extends Descriptor<S, T>> S applyToInterfacesAndDisambiguate(
-      DexType[] interfaces,
-      T desc,
-      BiFunction<DexClass, T, S> lookup,
-      TriFunction<DexType, T, BiFunction<DexClass, T, S>, S> traversal) {
-    S result = null;
-    for (DexType iface : interfaces) {
-      S localResult = traversal.apply(iface, desc, lookup);
-      if (localResult != null) {
-        result = resolveAmbiguousResult(result, localResult);
-      }
+  /**
+   * Implements the dispatch logic for the direct parts of a invokespecial instruction.
+   * <p>
+   * The only requirement is that the method is not static.
+   */
+  public DexEncodedMethod dispatchDirectInvoke(ResolutionResult resolvedMethod) {
+    DexEncodedMethod target = resolvedMethod.asSingleTarget();
+    if (target != null && !target.accessFlags.isStatic()) {
+      return target;
     }
-    return result;
+    return null;
   }
 
   /**
-   * Traverse along the super chain and the interface chains until lookup returns non-null value.
+   * If previous is non-null, selects previous. If current is non-null and a non-private,
+   * non-static method, current is selected. Otherwise null is returned.
    */
-  private <S extends DexItem, T extends Descriptor<S, T>> S lookupTargetAlongSuperAndInterfaceChain(
-      DexType type,
-      T desc,
-      BiFunction<DexClass, T, S> lookup) {
-    DexClass holder = definitionFor(type);
-    if (holder == null) {
-      return null;
+  private DexEncodedMethod selectCandidate(DexEncodedMethod previous, DexEncodedMethod current) {
+    if (previous != null) {
+      assert !previous.accessFlags.isPrivate();
+      assert !previous.accessFlags.isStatic();
+      return previous;
     }
-    S result = lookup.apply(holder, desc);
-    if (result != null) {
-      return result;
+    if (current != null && !current.accessFlags.isPrivate() && !current.accessFlags.isStatic()) {
+      return current;
     }
-    if (holder.superType != null) {
-      result = lookupTargetAlongSuperAndInterfaceChain(holder.superType, desc, lookup);
-      if (result != null) {
-        return result;
-      }
-    }
-    return applyToInterfacesAndDisambiguate(holder.interfaces.values, desc, lookup,
-        this::lookupTargetAlongSuperAndInterfaceChain);
-  }
-
-  private boolean isDefaultMethod(DexEncodedMethod encodedMethod) {
-    return encodedMethod != null
-        && !encodedMethod.accessFlags.isStatic()
-        && encodedMethod.getCode() != null;
-  }
-
-  /** Returns if <code>interface1</code> is a super interface of <code>interface2</code> */
-  private boolean isSuperInterfaceOf(DexType interface1, DexType interface2) {
-    assert definitionFor(interface1).isInterface();
-    DexClass holder = definitionFor(interface2);
-    assert holder.isInterface();
-    for (DexType iface : holder.interfaces.values) {
-      if (iface == interface1 || isSuperInterfaceOf(interface1, iface)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  private <S extends DexItem> S resolveAmbiguousResult(S previousResult, S newResult) {
-    // For default methods return the item found lowest in the interface hierarchy. Different
-    // implementations can come from different paths in a diamond.
-    // See §9.4.1 in The Java® Language Specification, Java SE 8 Edition.
-    if (previousResult != null
-        && previousResult != newResult) {
-      if (newResult instanceof DexEncodedMethod) {
-        DexEncodedMethod previousMethod = (DexEncodedMethod) previousResult;
-        DexEncodedMethod newMethod = (DexEncodedMethod) newResult;
-        if (isDefaultMethod(previousMethod) && isDefaultMethod(newMethod)) {
-          if (isSuperInterfaceOf(previousMethod.method.getHolder(), newMethod.method.getHolder())) {
-            return newResult;
-          }
-          if (isSuperInterfaceOf(newMethod.method.getHolder(), previousMethod.method.getHolder())) {
-            return previousResult;
-          }
-          throw new CompilationError("Duplicate default methods named "
-              + previousResult.toSourceString()
-              + " are inherited from the types "
-              + previousMethod.method.holder.getName()
-              + " and "
-              + newMethod.method.holder.getName());
-        } else {
-          // Return the default method, if any, or the first item found.
-          return isDefaultMethod(newMethod) ? newResult : previousResult;
-        }
-      } else {
-        assert newResult instanceof DexEncodedField;
-        DexEncodedField previousField = (DexEncodedField) previousResult;
-        DexEncodedField newField = (DexEncodedField) newResult;
-        if (isSuperInterfaceOf(previousField.field.getHolder(), newField.field.getHolder())) {
-          return newResult;
-        }
-        if (isSuperInterfaceOf(newField.field.getHolder(), previousField.field.getHolder())) {
-          return previousResult;
-        }
-        throw new CompilationError("Duplicate fields named "
-            + previousResult.toSourceString()
-            + " are inherited from the types "
-            + previousField.field.getHolder().getName()
-            + " and "
-            + newField.field.getHolder().getName());
-      }
-    } else {
-      // Return the first item found.
-      return previousResult == null ? newResult : previousResult;
-    }
-  }
-
-  /**
-   * Traverse along the interface chains until lookup returns non-null value.
-   */
-  private <S extends DexItem, T extends Descriptor<S, T>> S lookupTargetAlongInterfaceChain(
-      DexType type,
-      T desc,
-      BiFunction<DexClass, T, S> lookup) {
-    DexClass holder = definitionFor(type);
-    if (holder == null) {
-      // TODO(herhut): The subtype hierarchy is broken. Handle this case.
-      return null;
-    }
-    S result = applyToInterfacesAndDisambiguate(holder.interfaces.values, desc, lookup,
-        this::lookupTargetAlongSuperAndInterfaceChain);
-    if (holder.superType != null) {
-      S localResult = lookupTargetAlongInterfaceChain(holder.superType, desc, lookup);
-      if (localResult != null) {
-        result = resolveAmbiguousResult(result, localResult);
-      }
-    }
-    return result;
-  }
-
-  public DexEncodedMethod lookup(Type type, DexMethod target) {
-    DexEncodedMethod definition;
-    DexType holder = target.getHolder();
-    if (!holder.isClassType()) {
-      return null;
-    }
-    if (type == Type.VIRTUAL || type == Type.INTERFACE) {
-      definition = lookupVirtualDefinition(holder, target);
-    } else if (type == Type.DIRECT) {
-      definition = lookupDirectTarget(target);
-    } else if (type == Type.STATIC) {
-      definition = lookupStaticTarget(target);
-    } else if (type == Type.SUPER) {
-      definition = lookupVirtualTarget(holder, target);
-    } else {
-      return null;
-    }
-    return definition;
+    return null;
   }
 
   public boolean hasSubtyping() {
@@ -412,5 +451,121 @@ public class AppInfo {
       type = clazz.superType;
     } while (type != null);
     return result;
+  }
+
+  public interface ResolutionResult {
+
+    DexEncodedMethod asResultOfResolve();
+
+    DexEncodedMethod asSingleTarget();
+
+    boolean hasSingleTarget();
+
+    List<DexEncodedMethod> asListOfTargets();
+
+    void forEachTarget(Consumer<DexEncodedMethod> consumer);
+  }
+
+  private static class MultiResultBuilder {
+
+    private ImmutableList.Builder<DexEncodedMethod> builder;
+    private DexEncodedMethod singleResult;
+
+    void add(DexEncodedMethod result) {
+      if (builder != null) {
+        builder.add(result);
+      } else if (singleResult != null) {
+        builder = ImmutableList.builder();
+        builder.add(singleResult, result);
+        singleResult = null;
+      } else {
+        singleResult = result;
+      }
+    }
+
+    ResolutionResult build() {
+      if (builder != null) {
+        return new MultiResult(builder.build());
+      } else {
+        return singleResult;
+      }
+    }
+  }
+
+  private static class MultiResult implements ResolutionResult {
+
+    private final ImmutableList<DexEncodedMethod> methods;
+
+    private MultiResult(ImmutableList<DexEncodedMethod> results) {
+      assert results.size() > 1;
+      this.methods = results;
+    }
+
+    @Override
+    public DexEncodedMethod asResultOfResolve() {
+      // Resolution may return any of the targets that were found.
+      return methods.get(0);
+    }
+
+    @Override
+    public DexEncodedMethod asSingleTarget() {
+      // There is no single target that is guaranteed to be called.
+      return null;
+    }
+
+    @Override
+    public boolean hasSingleTarget() {
+      return false;
+    }
+
+    @Override
+    public List<DexEncodedMethod> asListOfTargets() {
+      return methods;
+    }
+
+    @Override
+    public void forEachTarget(Consumer<DexEncodedMethod> consumer) {
+      methods.forEach(consumer);
+    }
+
+  }
+
+  private static class EmptyResult implements ResolutionResult {
+
+    private static final EmptyResult SINGLETON = new EmptyResult();
+
+    private EmptyResult() {
+      // Intentionally left empty.
+    }
+
+    private static EmptyResult get() {
+      return SINGLETON;
+    }
+
+    @Override
+    public DexEncodedMethod asResultOfResolve() {
+      return null;
+    }
+
+    @Override
+    public DexEncodedMethod asSingleTarget() {
+      return null;
+    }
+
+    @Override
+    public boolean hasSingleTarget() {
+      return false;
+    }
+
+    @Override
+    public List<DexEncodedMethod> asListOfTargets() {
+      return Collections.emptyList();
+    }
+
+    @Override
+    public void forEachTarget(Consumer<DexEncodedMethod> consumer) {
+      // Intentionally left empty.
+    }
+
   }
 }

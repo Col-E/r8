@@ -5,14 +5,17 @@ package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.code.InvokeStaticRange;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.InliningOracle;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import org.objectweb.asm.Opcodes;
 
@@ -80,9 +83,20 @@ public class InvokeStatic extends InvokeMethod {
   }
 
   @Override
-  DexEncodedMethod lookupTarget(AppInfo appInfo) {
+  public DexEncodedMethod lookupSingleTarget(AppInfoWithSubtyping appInfo) {
     DexMethod method = getInvokedMethod();
     return appInfo.lookupStaticTarget(method);
+  }
+
+  @Override
+  public Collection<DexEncodedMethod> lookupTargets(AppInfoWithSubtyping appInfo) {
+    DexEncodedMethod target = appInfo.lookupStaticTarget(getInvokedMethod());
+    return target == null ? Collections.emptyList() : Collections.singletonList(target);
+  }
+
+  @Override
+  public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType holder) {
+    return inliningConstraintForSinlgeTargetInvoke(info, holder);
   }
 
   @Override

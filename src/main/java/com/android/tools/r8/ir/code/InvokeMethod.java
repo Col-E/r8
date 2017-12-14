@@ -5,7 +5,6 @@ package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -14,6 +13,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.InliningOracle;
+import java.util.Collection;
 import java.util.List;
 
 public abstract class InvokeMethod extends Invoke {
@@ -59,27 +59,61 @@ public abstract class InvokeMethod extends Invoke {
     return this;
   }
 
-  abstract DexEncodedMethod lookupTarget(AppInfo appInfo);
+  public abstract DexEncodedMethod lookupSingleTarget(AppInfoWithSubtyping appInfo);
+
+  public abstract Collection<DexEncodedMethod> lookupTargets(AppInfoWithSubtyping appInfo);
 
   @Override
-  public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType holder) {
+  public abstract Constraint inliningConstraint(AppInfoWithSubtyping info, DexType holder);
+
+  protected Constraint inliningConstraintForSinlgeTargetInvoke(AppInfoWithSubtyping info,
+      DexType holder) {
     if (method.holder.isArrayType()) {
       return Constraint.ALWAYS;
     }
-    DexEncodedMethod target = lookupTarget(info);
+    DexEncodedMethod target = lookupSingleTarget(info);
     if (target != null) {
       DexType methodHolder = target.method.holder;
       DexClass methodClass = info.definitionFor(methodHolder);
       if ((methodClass != null)) {
-        Constraint methodConstrain = Constraint
+        Constraint methodConstraint = Constraint
             .deriveConstraint(holder, methodHolder, target.accessFlags, info);
         // We also have to take the constraint of the enclosing class into account.
         Constraint classConstraint = Constraint
             .deriveConstraint(holder, methodHolder, methodClass.accessFlags, info);
-        return Constraint.min(methodConstrain, classConstraint);
+        return Constraint.min(methodConstraint, classConstraint);
       }
     }
     return Constraint.NEVER;
+  }
+
+  protected Constraint inliningConstraintForVirtualInvoke(AppInfoWithSubtyping info,
+      DexType holder) {
+    if (method.holder.isArrayType()) {
+      return Constraint.ALWAYS;
+    }
+    Collection<DexEncodedMethod> targets = lookupTargets(info);
+    if (targets == null || targets.isEmpty()) {
+      return Constraint.NEVER;
+    }
+    Constraint result = Constraint.ALWAYS;
+    for (DexEncodedMethod target : targets) {
+      DexType methodHolder = target.method.holder;
+      DexClass methodClass = info.definitionFor(methodHolder);
+      if ((methodClass != null)) {
+        Constraint methodConstraint = Constraint
+            .deriveConstraint(holder, methodHolder, target.accessFlags, info);
+        result = Constraint.min(result, methodConstraint);
+        // We also have to take the constraint of the enclosing class into account.
+        Constraint classConstraint = Constraint
+            .deriveConstraint(holder, methodHolder, methodClass.accessFlags, info);
+        result = Constraint.min(methodConstraint, classConstraint);
+      }
+      if (result == Constraint.NEVER) {
+        break;
+      }
+    }
+    return result;
   }
 
   public abstract InlineAction computeInlining(InliningOracle decider);

@@ -5,12 +5,14 @@ package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.code.InvokeVirtualRange;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import com.android.tools.r8.ir.optimize.Inliner.Constraint;
+import java.util.Collection;
 import java.util.List;
 import org.objectweb.asm.Opcodes;
 
@@ -78,9 +80,19 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
   }
 
   @Override
-  DexEncodedMethod lookupTarget(AppInfo appInfo) {
+  public DexEncodedMethod lookupSingleTarget(AppInfoWithSubtyping appInfo) {
     DexMethod method = getInvokedMethod();
-    return appInfo.lookupVirtualTarget(method.holder, method);
+    return appInfo.lookupSingleVirtualTarget(method);
+  }
+
+  @Override
+  public Collection<DexEncodedMethod> lookupTargets(AppInfoWithSubtyping appInfo) {
+    return appInfo.lookupVirtualTargets(getInvokedMethod());
+  }
+
+  @Override
+  public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType holder) {
+    return inliningConstraintForVirtualInvoke(info, holder);
   }
 
   @Override

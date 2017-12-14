@@ -213,17 +213,25 @@ public abstract class DexClass extends DexItem {
   }
 
   /**
-   * Find direct method in this class matching method
+   * Find direct method in this class matching method.
    */
   public DexEncodedMethod lookupDirectMethod(DexMethod method) {
     return lookupTarget(directMethods(), method);
   }
 
   /**
-   * Find virtual method in this class matching method
+   * Find virtual method in this class matching method.
    */
   public DexEncodedMethod lookupVirtualMethod(DexMethod method) {
     return lookupTarget(virtualMethods(), method);
+  }
+
+  /**
+   * Find method in this class matching method.
+   */
+  public DexEncodedMethod lookupMethod(DexMethod method) {
+    DexEncodedMethod result = lookupDirectMethod(method);
+    return result == null ? lookupVirtualMethod(method) : result;
   }
 
   private <T extends DexItem, S extends Descriptor<T, S>> T lookupTarget(T[] items, S descriptor) {

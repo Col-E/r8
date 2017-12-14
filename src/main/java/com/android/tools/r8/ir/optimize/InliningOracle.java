@@ -59,6 +59,15 @@ public class InliningOracle {
       }
       return null;
     }
+    // Ignore the implicit receiver argument.
+    int numberOfArguments =
+        invoke.arguments().size() - (invoke.isInvokeMethodWithReceiver() ? 1 : 0);
+    if (numberOfArguments != candidate.method.getArity()) {
+      if (info != null) {
+        info.exclude(invoke, "Argument number mismatch");
+      }
+      return null;
+    }
     return candidate;
   }
 

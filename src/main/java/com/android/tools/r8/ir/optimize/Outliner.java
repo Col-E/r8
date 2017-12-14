@@ -7,7 +7,7 @@ package com.android.tools.r8.ir.optimize;
 import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DebugLocalInfo;
@@ -72,7 +72,7 @@ public class Outliner {
 
   static final int MAX_IN_SIZE = 5;  // Avoid using ranged calls for outlined code.
 
-  final private AppInfo appInfo;
+  final private AppInfoWithSubtyping appInfo;
   final private DexItemFactory dexItemFactory;
 
   // Representation of an outline.
@@ -442,17 +442,7 @@ public class Outliner {
 
       // Lookup the encoded method.
       DexMethod invokedMethod = invoke.getInvokedMethod();
-      DexEncodedMethod target;
-      if (invoke.isInvokeStatic()) {
-        target = appInfo.lookupStaticTarget(invokedMethod);
-      } else if (invoke.isInvokeDirect()) {
-        target = appInfo.lookupDirectTarget(invokedMethod);
-      } else {
-        if (invokedMethod.getHolder().isArrayType()) {
-          return false;
-        }
-        target = appInfo.lookupVirtualTarget(invokedMethod.getHolder(), invokedMethod);
-      }
+      DexEncodedMethod target = invoke.lookupSingleTarget(appInfo);
       // If the encoded method is found check the access flags.
       if (target != null) {
         if (!target.accessFlags.isPublic()) {
@@ -766,7 +756,7 @@ public class Outliner {
     }
   }
 
-  public Outliner(AppInfo appInfo, InternalOptions options) {
+  public Outliner(AppInfoWithSubtyping appInfo, InternalOptions options) {
     this.appInfo = appInfo;
     this.dexItemFactory = appInfo.dexItemFactory;
     this.options = options;
