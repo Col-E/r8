@@ -106,7 +106,9 @@ public class ToolHelper {
       V7_0_0("7.0.0"),
       DEFAULT("default");
 
-      Version (String shortName) { this.shortName = shortName; }
+      Version(String shortName) {
+        this.shortName = shortName;
+      }
 
       public boolean isNewerThan(Version other) {
         return compareTo(other) > 0;
@@ -131,7 +133,9 @@ public class ToolHelper {
       HOST("host"),
       TARGET("target");
 
-      Kind (String shortName) { this.shortName = shortName; }
+      Kind(String shortName) {
+        this.shortName = shortName;
+      }
 
       public String toString() {
         return shortName;
@@ -155,13 +159,19 @@ public class ToolHelper {
     public boolean isOlderThanOrEqual(DexVm other) {
       return version.isOlderThanOrEqual(other.version);
     }
+
     DexVm(Version version, Kind kind) {
       this.version = version;
       this.kind = kind;
     }
 
-    public Version getVersion() { return version; }
-    public Kind getKind() { return kind; }
+    public Version getVersion() {
+      return version;
+    }
+
+    public Kind getKind() {
+      return kind;
+    }
 
     private final Version version;
     private final Kind kind;
@@ -213,7 +223,7 @@ public class ToolHelper {
       // explicitly set it;
       if (shouldUseDocker()) {
         result.add("tools/docker/run.sh");
-      } else if (isLinux())  {
+      } else if (isLinux()) {
         result.add("/bin/bash");
       } else {
         assert isWindows();
@@ -295,12 +305,12 @@ public class ToolHelper {
 
     public DeviceRunner asDeviceRunner() {
       return new DeviceRunner()
-              .setVmOptions(options)
-              .setSystemProperties(systemProperties)
-              .setClasspath(toFileList(classpaths))
-              .setBootClasspath(toFileList(bootClassPaths))
-              .setMainClass(mainClass)
-              .setProgramArguments(programArguments);
+          .setVmOptions(options)
+          .setSystemProperties(systemProperties)
+          .setClasspath(toFileList(classpaths))
+          .setBootClasspath(toFileList(bootClassPaths))
+          .setMainClass(mainClass)
+          .setProgramArguments(programArguments);
     }
   }
 
@@ -354,17 +364,17 @@ public class ToolHelper {
   private static final Map<DexVm, String> ART_DIRS =
       ImmutableMap.<DexVm, String>builder()
           .put(DexVm.ART_DEFAULT, "art")
-              .put(DexVm.ART_7_0_0_HOST, "art-7.0.0")
-              .put(DexVm.ART_6_0_1_HOST, "art-6.0.1")
-              .put(DexVm.ART_5_1_1_HOST, "art-5.1.1")
-              .put(DexVm.ART_4_4_4_HOST, "dalvik").build();
+          .put(DexVm.ART_7_0_0_HOST, "art-7.0.0")
+          .put(DexVm.ART_6_0_1_HOST, "art-6.0.1")
+          .put(DexVm.ART_5_1_1_HOST, "art-5.1.1")
+          .put(DexVm.ART_4_4_4_HOST, "dalvik").build();
   private static final Map<DexVm, String> ART_BINARY_VERSIONS =
       ImmutableMap.<DexVm, String>builder()
-              .put(DexVm.ART_DEFAULT, "bin/art")
-              .put(DexVm.ART_7_0_0_HOST, "bin/art")
-              .put(DexVm.ART_6_0_1_HOST, "bin/art")
-              .put(DexVm.ART_5_1_1_HOST, "bin/art")
-              .put(DexVm.ART_4_4_4_HOST, "bin/dalvik").build();
+          .put(DexVm.ART_DEFAULT, "bin/art")
+          .put(DexVm.ART_7_0_0_HOST, "bin/art")
+          .put(DexVm.ART_6_0_1_HOST, "bin/art")
+          .put(DexVm.ART_5_1_1_HOST, "bin/art")
+          .put(DexVm.ART_4_4_4_HOST, "bin/dalvik").build();
 
   private static final Map<DexVm, String> ART_BINARY_VERSIONS_X64 =
       ImmutableMap.of(
@@ -632,7 +642,7 @@ public class ToolHelper {
     if (configPaths.isEmpty()) {
       return ProguardConfiguration.defaultConfiguration(factory, reporter);
     }
-     ProguardConfigurationParser parser =
+    ProguardConfigurationParser parser =
         new ProguardConfigurationParser(factory, reporter);
     for (Path configPath : configPaths) {
       parser.parse(configPath);

@@ -232,10 +232,8 @@ public abstract class R8RunArtTestsTest {
       // but allows interface-invokes to pass. As we rewrite one kind into the other, we remove
       // a verification error and thus change output.
       "135-MirandaDispatch",
-      // This test constructs a conflict between static and instance field and expects to throw
-      // an IllegalClassChangeException. However, with R8 or D8, the two accesses are rebound to
-      // their actual target, this resolving the conflict.
-      "073-mismatched-field"
+      // We resolve a conflicting definition of default methods, thus removing an ICCE.
+      "972-iface-super-multidex"
   );
 
   // Tests that make use of agents/native code.
@@ -854,9 +852,6 @@ public abstract class R8RunArtTestsTest {
           // It is not possible to compute target of method call due to ambiguous methods, thus fail
           // to generate one dex from several dex inputs that represent an invalid program.
           .put("004-JniTest", TestCondition.match(TestCondition.R8_COMPILER))
-          .put("960-default-smali", TestCondition.match(TestCondition.R8_COMPILER))
-          .put("966-default-conflict", TestCondition.match(TestCondition.R8_COMPILER))
-          .put("972-iface-super-multidex", TestCondition.match(TestCondition.R8_COMPILER))
           // These tests have illegal class flag combinations, so we reject them.
           .put("161-final-abstract-class", TestCondition.any())
           .put("004-JniTest", TestCondition.any())

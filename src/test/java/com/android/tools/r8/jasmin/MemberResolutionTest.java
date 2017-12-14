@@ -5,13 +5,18 @@ package com.android.tools.r8.jasmin;
 
 import static java.util.Collections.emptyList;
 
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.VmTestRunner;
+import com.android.tools.r8.VmTestRunner.IgnoreIfVmOlderOrEqualThan;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassFileVersion;
 import com.android.tools.r8.utils.ThrowingBiFunction;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
+@RunWith(VmTestRunner.class)
 public class MemberResolutionTest extends JasminTestBase {
 
   private static final String MAIN_CLASS = "Main";
@@ -168,6 +173,7 @@ public class MemberResolutionTest extends JasminTestBase {
   }
 
   @Test
+  @IgnoreIfVmOlderOrEqualThan(version = Version.V7_0_0)
   public void lookupVirtualMethodWithConflictingPrivate() throws Exception {
     JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_5);
 
@@ -204,6 +210,7 @@ public class MemberResolutionTest extends JasminTestBase {
   }
 
   @Test
+  @IgnoreIfVmOlderOrEqualThan(version = Version.V7_0_0)
   public void lookupDirectMethodFromWrongContext() throws Exception {
     JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_5);
 
@@ -276,6 +283,7 @@ public class MemberResolutionTest extends JasminTestBase {
   }
 
   @Test
+  @IgnoreIfVmOlderOrEqualThan(version = Version.V7_0_0)
   public void lookupStaticMethodWithConflictingVirtual() throws Exception {
     JasminBuilder builder = new JasminBuilder();
 
@@ -312,6 +320,7 @@ public class MemberResolutionTest extends JasminTestBase {
   }
 
   @Test
+  @IgnoreIfVmOlderOrEqualThan(version = Version.V7_0_0)
   public void lookupVirtualMethodWithConflictingStatic() throws Exception {
     JasminBuilder builder = new JasminBuilder();
 
@@ -348,6 +357,7 @@ public class MemberResolutionTest extends JasminTestBase {
   }
 
   @Test
+  @IgnoreIfVmOlderOrEqualThan(version = Version.V7_0_0)
   public void testInterfaceWithDifferentSuper() throws Exception {
     JasminBuilder builder = new JasminBuilder();
 
