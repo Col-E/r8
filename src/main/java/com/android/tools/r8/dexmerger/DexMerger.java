@@ -9,6 +9,7 @@ import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.D8Output;
 import com.google.common.io.MoreFiles;
+import com.google.common.io.RecursiveDeleteOption;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -58,7 +59,7 @@ public class DexMerger {
           Paths.get(args[0]),
           StandardCopyOption.REPLACE_EXISTING);
     } finally {
-      MoreFiles.deleteRecursively(tempDirectory);
+      MoreFiles.deleteRecursively(tempDirectory, RecursiveDeleteOption.ALLOW_INSECURE);
     }
   }
 
