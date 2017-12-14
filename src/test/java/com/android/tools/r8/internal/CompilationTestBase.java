@@ -39,7 +39,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -59,13 +59,12 @@ public abstract class CompilationTestBase {
       CompilerUnderTest compiler,
       CompilationMode mode,
       String referenceApk,
-      String pgMap,
       String pgConf,
-      String... inputs)
+      String input)
       throws ExecutionException, IOException, ProguardRuleParserException, CompilationException,
-      CompilationFailedException{
+          CompilationFailedException {
     return runAndCheckVerification(
-        compiler, mode, referenceApk, pgMap, pgConf, null, Arrays.asList(inputs));
+        compiler, mode, referenceApk, pgConf, null, Collections.singletonList(input));
   }
 
   public AndroidApp runAndCheckVerification(D8Command command, String referenceApk)
@@ -77,7 +76,6 @@ public abstract class CompilationTestBase {
       CompilerUnderTest compiler,
       CompilationMode mode,
       String referenceApk,
-      String pgMap,
       String pgConf,
       Consumer<InternalOptions> optionsConsumer,
       List<String> inputs)
@@ -88,9 +86,6 @@ public abstract class CompilationTestBase {
     if (compiler == CompilerUnderTest.R8) {
       R8Command.Builder builder = R8Command.builder();
       builder.addProgramFiles(ListUtils.map(inputs, Paths::get));
-      if (pgMap != null) {
-        builder.setProguardMapFile(Paths.get(pgMap));
-      }
       if (pgConf != null) {
         builder.addProguardConfigurationFiles(Paths.get(pgConf));
       }

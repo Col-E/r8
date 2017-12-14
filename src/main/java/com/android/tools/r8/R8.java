@@ -158,6 +158,10 @@ public class R8 {
   private void run(AndroidApp inputApp, ExecutorService executorService)
       throws IOException, CompilationException {
     assert options.programConsumer != null;
+
+    // Read Proguard-map only with the "applymapping" feature.
+    assert inputApp.getProguardMap() == null;
+
     if (options.quiet) {
       System.setOut(new PrintStream(ByteStreams.nullOutputStream()));
     }

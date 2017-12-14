@@ -12,12 +12,12 @@ public class YouTubeDeployJarVerificationTest extends YouTubeCompilationBase {
   @Test
   public void buildDebugFromDeployJar() throws Exception {
     runAndCheckVerification(
-        CompilerUnderTest.R8, CompilationMode.DEBUG, BASE + APK, null, null, BASE + DEPLOY_JAR);
+        CompilerUnderTest.R8, CompilationMode.DEBUG, BASE + APK, null, BASE + DEPLOY_JAR);
   }
 
   @Test
   public void buildReleaseFromDeployJar() throws Exception {
     runAndCheckVerification(
-        CompilerUnderTest.R8, CompilationMode.RELEASE, BASE + APK, null, null, BASE + DEPLOY_JAR);
+        CompilerUnderTest.R8, CompilationMode.RELEASE, BASE + APK, null, BASE + DEPLOY_JAR);
   }
 }

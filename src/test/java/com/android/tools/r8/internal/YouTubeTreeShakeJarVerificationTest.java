@@ -23,7 +23,6 @@ public class YouTubeTreeShakeJarVerificationTest extends YouTubeCompilationBase 
         CompilerUnderTest.R8,
         CompilationMode.RELEASE,
         BASE + APK,
-        null,
         BASE + PG_CONF,
         null,
         // Don't pass any inputs. The input will be read from the -injars in the Proguard

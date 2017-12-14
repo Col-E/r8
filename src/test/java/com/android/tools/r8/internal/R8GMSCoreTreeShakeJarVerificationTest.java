@@ -28,7 +28,6 @@ public class R8GMSCoreTreeShakeJarVerificationTest extends GMSCoreCompilationTes
         CompilerUnderTest.R8,
         mode,
         hasReference ? base + REFERENCE_APK : null,
-        null,
         base + PG_CONF,
         optionsConsumer,
         // Don't pass any inputs. The input will be read from the -injars in the Proguard

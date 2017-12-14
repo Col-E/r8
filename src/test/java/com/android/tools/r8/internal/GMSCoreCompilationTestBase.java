@@ -4,10 +4,10 @@
 package com.android.tools.r8.internal;
 
 import com.android.tools.r8.CompilationException;
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.R8RunArtTestsTest.CompilerUnderTest;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
-import com.android.tools.r8.CompilationFailedException;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.concurrent.ExecutionException;
@@ -43,7 +43,6 @@ public abstract class GMSCoreCompilationTestBase extends CompilationTestBase {
       throws ExecutionException, IOException, ProguardRuleParserException, CompilationException,
       CompilationFailedException {
     runAndCheckVerification(
-        compiler, mode, version + GMSCORE_APK, null, null,
-        Paths.get(version, GMSCORE_APK).toString());
+        compiler, mode, version + GMSCORE_APK, null, Paths.get(version, GMSCORE_APK).toString());
   }
 }

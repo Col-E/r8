@@ -12,13 +12,12 @@ public class YouTubeProguardJarVerificationTest extends YouTubeCompilationBase {
   @Test
   public void buildDebugFromProguardJar() throws Exception {
     runAndCheckVerification(
-        CompilerUnderTest.R8, CompilationMode.DEBUG, BASE + APK, BASE + PG_MAP, null, BASE + PG_JAR);
+        CompilerUnderTest.R8, CompilationMode.DEBUG, BASE + APK, null, BASE + PG_JAR);
   }
 
   @Test
   public void buildReleaseFromProguardJar() throws Exception {
     runAndCheckVerification(
-        CompilerUnderTest.R8, CompilationMode.RELEASE,
-        BASE + APK, BASE + PG_MAP, null, BASE + PG_JAR);
+        CompilerUnderTest.R8, CompilationMode.RELEASE, BASE + APK, null, BASE + PG_JAR);
   }
 }

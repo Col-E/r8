@@ -12,12 +12,12 @@ public class YouTubeDexVerificationTest extends YouTubeCompilationBase {
   @Test
   public void buildDebugFromDex() throws Exception {
     runAndCheckVerification(
-        CompilerUnderTest.R8, CompilationMode.DEBUG, BASE + APK, BASE + PG_MAP, null, BASE + APK);
+        CompilerUnderTest.R8, CompilationMode.DEBUG, BASE + APK, null, BASE + APK);
   }
 
   @Test
   public void buildReleaseFromDex() throws Exception {
     runAndCheckVerification(
-        CompilerUnderTest.R8, CompilationMode.RELEASE, BASE + APK, BASE + PG_MAP, null, BASE + APK);
+        CompilerUnderTest.R8, CompilationMode.RELEASE, BASE + APK, null, BASE + APK);
   }
 }

@@ -3,31 +3,30 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.internal;
 
-import com.android.tools.r8.CompilationException;
-import com.android.tools.r8.StringConsumer;
+import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
-import java.io.IOException;
 import java.nio.file.Paths;
-import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 
 public class R8GMSCoreFixedPointTest extends GMSCoreCompilationTestBase {
 
   @Test
-  public void fixedPoint()
-      throws ExecutionException, IOException, ProguardRuleParserException, CompilationException {
+  public void fixedPoint() throws Exception {
     // First compilation.
-    AndroidApp app = AndroidApp.fromProgramDirectory(Paths.get(GMSCORE_V7_DIR));
+    AndroidApp app =
+        AndroidApp.builder()
+            .addProgramDirectory(Paths.get(GMSCORE_V7_DIR))
+            .setProguardMapFile(null)
+            .build();
+
     AndroidApp app1 =
         ToolHelper.runR8(
-            app,
-            options -> {
-              options.minApiLevel = AndroidApiLevel.L.getLevel();
-              options.proguardMapConsumer = StringConsumer.emptyConsumer();
-            });
+            ToolHelper.prepareR8CommandBuilder(app)
+                .setMode(CompilationMode.DEBUG)
+                .setMinApiLevel(AndroidApiLevel.L.getLevel())
+                .build());
 
     // Second compilation.
     // Add option --skip-outline-opt for second compilation. The second compilation can find
@@ -36,12 +35,10 @@ public class R8GMSCoreFixedPointTest extends GMSCoreCompilationTestBase {
     // See b/33410508 and b/33475705.
     AndroidApp app2 =
         ToolHelper.runR8(
-            app1,
-            options -> {
-              options.outline.enabled = false;
-              options.minApiLevel = AndroidApiLevel.L.getLevel();
-              options.proguardMapConsumer = StringConsumer.emptyConsumer();
-            });
+            ToolHelper.prepareR8CommandBuilder(app1)
+                .setMode(CompilationMode.DEBUG)
+                .setMinApiLevel(AndroidApiLevel.L.getLevel())
+                .build());
 
     assertIdenticalApplicationsUpToCode(app1, app2, false);
   }
