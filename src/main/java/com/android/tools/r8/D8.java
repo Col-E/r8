@@ -18,9 +18,8 @@ import com.android.tools.r8.utils.AbortException;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
 import com.android.tools.r8.utils.CfgPrinter;
-import com.android.tools.r8.utils.IOExceptionDiagnostic;
+import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.VersionProperties;
@@ -69,12 +68,20 @@ public final class D8 {
    * @return the compilation result.
    */
   public static D8Output run(D8Command command) throws CompilationFailedException {
-    ExecutorService executor = ThreadUtils.getExecutorService(command.getInternalOptions());
-    try {
-      return run(command, executor);
-    } finally {
-      executor.shutdown();
-    }
+    AndroidApp app = command.getInputApp();
+    InternalOptions options = command.getInternalOptions();
+    ExecutorService executor = ThreadUtils.getExecutorService(options);
+    AndroidAppConsumers compatSink = new AndroidAppConsumers(options);
+    ExceptionUtils.withD8CompilationHandler(
+        command.getReporter(),
+        () -> {
+          try {
+            run(app, options, executor);
+          } finally {
+            executor.shutdown();
+          }
+        });
+    return new D8Output(compatSink.build(), command.getOutputMode());
   }
 
   /**
@@ -89,23 +96,15 @@ public final class D8 {
    */
   public static D8Output run(D8Command command, ExecutorService executor)
       throws CompilationFailedException {
-    try {
-      try {
-        InternalOptions options = command.getInternalOptions();
-        AndroidAppConsumers compatSink = new AndroidAppConsumers(options);
-        CompilationResult result = run(command.getInputApp(), options, executor);
-        assert result != null;
-        D8Output d8Output = new D8Output(compatSink.build(), command.getOutputMode());
-        command.getReporter().failIfPendingErrors();
-        return d8Output;
-      } catch (IOException io) {
-        throw command.getReporter().fatalError(new IOExceptionDiagnostic(io));
-      } catch (CompilationException e) {
-        throw command.getReporter().fatalError(new StringDiagnostic(e.getMessageForD8()));
-      }
-    } catch (AbortException e) {
-      throw new CompilationFailedException(e);
-    }
+    AndroidApp app = command.getInputApp();
+    InternalOptions options = command.getInternalOptions();
+    AndroidAppConsumers compatSink = new AndroidAppConsumers(options);
+    ExceptionUtils.withD8CompilationHandler(
+        command.getReporter(),
+        () -> {
+          run(app, options, executor);
+        });
+    return new D8Output(compatSink.build(), command.getOutputMode());
   }
 
   private static void run(String[] args)
@@ -154,11 +153,11 @@ public final class D8 {
     }
   }
 
-  static CompilationResult runForTesting(AndroidApp inputApp, InternalOptions options)
+  static void runForTesting(AndroidApp inputApp, InternalOptions options)
       throws IOException, CompilationException {
     ExecutorService executor = ThreadUtils.getExecutorService(ThreadUtils.NOT_SPECIFIED);
     try {
-      return run(inputApp, options, executor);
+      run(inputApp, options, executor);
     } finally {
       executor.shutdown();
     }
@@ -178,8 +177,7 @@ public final class D8 {
     return marker;
   }
 
-  private static CompilationResult run(
-      AndroidApp inputApp, InternalOptions options, ExecutorService executor)
+  private static void run(AndroidApp inputApp, InternalOptions options, ExecutorService executor)
       throws IOException, CompilationException {
     try {
       // Disable global optimizations.
@@ -196,14 +194,11 @@ public final class D8 {
       if (options.hasMethodsFilter()) {
         System.out.println("Finished compilation with method filter: ");
         options.methodsFilter.forEach((m) -> System.out.println("  - " + m));
-        return null;
       }
       Marker marker = getMarker(options);
       new ApplicationWriter(app, options, marker, null, NamingLens.getIdentityLens(), null, null)
           .write(executor);
-      CompilationResult output = new CompilationResult(app, appInfo);
       options.printWarnings();
-      return output;
     } catch (ExecutionException e) {
       R8.unwrapExecutionException(e);
       throw new AssertionError(e); // unwrapping method should have thrown
