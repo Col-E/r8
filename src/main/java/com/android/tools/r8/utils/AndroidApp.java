@@ -381,7 +381,6 @@ public class AndroidApp {
     private List<String> mainDexListClasses = new ArrayList<>();
     private Resource mainDexListOutput;
     private boolean ignoreDexInArchive = false;
-    private boolean vdexAllowed = false;
 
     // See AndroidApp::builder().
     private Builder() {
