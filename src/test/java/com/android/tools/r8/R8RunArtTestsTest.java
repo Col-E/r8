@@ -1340,7 +1340,8 @@ public abstract class R8RunArtTestsTest {
         D8Command.Builder builder =
             D8Command.builder()
                 .setMode(mode)
-                .addProgramFiles(ListUtils.map(fileNames, Paths::get));
+                .addProgramFiles(ListUtils.map(fileNames, Paths::get))
+                .setOutput(Paths.get(resultPath), OutputMode.DexIndexed);
         Integer minSdkVersion = needMinSdkVersion.get(name);
         if (minSdkVersion != null) {
           builder.setMinApiLevel(minSdkVersion);
@@ -1349,9 +1350,7 @@ public abstract class R8RunArtTestsTest {
           builder.addLibraryFiles(Paths.get(
               ToolHelper.getAndroidJar(AndroidApiLevel.getDefault().getLevel())));
         }
-
-        D8Output output = D8.run(builder.build());
-        output.write(Paths.get(resultPath));
+        ToolHelper.runD8(builder.build());
         break;
       }
       case R8:
