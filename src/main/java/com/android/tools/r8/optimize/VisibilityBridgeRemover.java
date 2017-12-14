@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.optimize;
 
-import com.google.common.collect.Sets;
-
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
@@ -13,7 +11,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.optimize.InvokeSingleTargetExtractor.InvokeKind;
-
+import com.google.common.collect.Sets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -41,7 +39,7 @@ public class VisibilityBridgeRemover {
         if (kind == InvokeKind.SUPER) {
           // This is a visibility forward, so check for the direct target.
           DexEncodedMethod targetMethod
-              = appInfo.lookupVirtualDefinition(target.getHolder(), target);
+              = appInfo.resolveMethod(target.getHolder(), target).asSingleTarget();
           if (targetMethod != null && targetMethod.accessFlags.isPublic()) {
             if (Log.ENABLED) {
               Log.info(getClass(), "Removing visibility forwarding %s -> %s", method.method,

@@ -4,7 +4,7 @@
 package com.android.tools.r8.ir.optimize;
 
 import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -27,7 +27,7 @@ import com.android.tools.r8.shaking.ProguardMemberRule;
 
 public class MemberValuePropagation {
 
-  private final AppInfo appInfo;
+  private final AppInfoWithSubtyping appInfo;
   private final AppInfoWithLiveness liveSet;
 
   private enum RuleType {
@@ -47,7 +47,7 @@ public class MemberValuePropagation {
     }
   }
 
-  public MemberValuePropagation(AppInfo appInfo) {
+  public MemberValuePropagation(AppInfoWithSubtyping appInfo) {
     this.appInfo = appInfo;
     this.liveSet = appInfo.withLiveness();
   }
@@ -130,6 +130,7 @@ public class MemberValuePropagation {
         if (!invokedHolder.isClassType()) {
           continue;
         }
+        // TODO(70550443): Maybe check all methods here.
         DexEncodedMethod definition = appInfo.lookup(invoke.getType(), invokedMethod);
 
         // Process invokes marked as having no side effects.

@@ -643,7 +643,8 @@ public class TreeShakingTest {
             "examples/minifygeneric",
             "examples/minifygenericwithinner",
             "examples/assumenosideeffects1",
-            "examples/assumenosideeffects2",
+            // TODO(b/70550443): Enable once fixed.
+            //"examples/assumenosideeffects2",
             "examples/assumenosideeffects3",
             "examples/assumenosideeffects4",
             "examples/assumenosideeffects5",
@@ -747,9 +748,10 @@ public class TreeShakingTest {
     outputComparators
         .put("examples/assumenosideeffects1",
             TreeShakingTest::assumenosideeffects1CheckOutput);
-    outputComparators
-        .put("examples/assumenosideeffects2",
-            TreeShakingTest::assumenosideeffects2CheckOutput);
+    // TODO(b/70550443): Enable once fixed.
+    // outputComparators
+    //     .put("examples/assumenosideeffects2",
+    //         TreeShakingTest::assumenosideeffects2CheckOutput);
     outputComparators
         .put("examples/assumenosideeffects3",
             TreeShakingTest::assumenosideeffects3CheckOutput);

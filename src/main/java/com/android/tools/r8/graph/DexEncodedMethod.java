@@ -22,6 +22,7 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.JumboStringRewriter;
 import com.android.tools.r8.dex.MixedSectionCollection;
+import com.android.tools.r8.graph.AppInfo.ResolutionResult;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.Position;
@@ -38,8 +39,11 @@ import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.utils.InternalOptions;
+import java.util.Collections;
+import java.util.List;
+import java.util.function.Consumer;
 
-public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
+public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements ResolutionResult {
 
   /**
    * Encodes the processing state of a method.
@@ -118,6 +122,26 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
   public boolean isClassInitializer() {
     return accessFlags.isConstructor() && accessFlags.isStatic();
   }
+
+  public boolean isVirtualMethod() {
+    return !accessFlags.isStatic() && !accessFlags.isPrivate() && !accessFlags.isConstructor();
+  }
+
+  public boolean isNonAbstractVirtualMethod() {
+    return !accessFlags.isStatic()
+        && !accessFlags.isPrivate()
+        && !accessFlags.isConstructor()
+        && !accessFlags.isAbstract();
+  }
+
+  public boolean isDirectMethod() {
+    return accessFlags.isPrivate() && !accessFlags.isStatic();
+  }
+
+  public boolean isStaticMethod() {
+    return accessFlags.isStatic() || accessFlags.isConstructor();
+  }
+
 
   public boolean isInliningCandidate(DexEncodedMethod container, Reason inliningReason,
       AppInfoWithSubtyping appInfo) {
@@ -638,4 +662,30 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
       return result;
     }
   }
+
+  @Override
+  public DexEncodedMethod asResultOfResolve() {
+    return this;
+  }
+
+  @Override
+  public DexEncodedMethod asSingleTarget() {
+    return this;
+  }
+
+  @Override
+  public boolean hasSingleTarget() {
+    return true;
+  }
+
+  @Override
+  public List<DexEncodedMethod> asListOfTargets() {
+    return Collections.singletonList(this);
+  }
+
+  @Override
+  public void forEachTarget(Consumer<DexEncodedMethod> consumer) {
+    consumer.accept(this);
+  }
+
 }

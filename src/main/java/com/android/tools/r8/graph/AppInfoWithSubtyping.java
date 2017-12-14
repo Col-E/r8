@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.ir.code.Invoke.Type;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -111,6 +112,27 @@ public class AppInfoWithSubtyping extends AppInfo {
     assert DexType.validateLevelsAreCorrect(app::definitionFor, dexItemFactory);
   }
 
+  public DexEncodedMethod lookup(Type type, DexMethod target) {
+    DexType holder = target.getHolder();
+    if (!holder.isClassType()) {
+      return null;
+    }
+    switch (type) {
+      case VIRTUAL:
+        return lookupSingleVirtualTarget(target);
+      case INTERFACE:
+        return lookupSingleInterfaceTarget(target);
+      case DIRECT:
+        return lookupDirectTarget(target);
+      case STATIC:
+        return lookupStaticTarget(target);
+      case SUPER:
+        return lookupSuperTarget(target);
+      default:
+        return null;
+    }
+  }
+
   // For mapping invoke virtual instruction to target methods.
   public Set<DexEncodedMethod> lookupVirtualTargets(DexMethod method) {
     Set<DexEncodedMethod> result = new HashSet<>();
@@ -120,27 +142,20 @@ public class AppInfoWithSubtyping extends AppInfo {
       // type specified in method does not have a materialized class.
       return null;
     }
-    DexEncodedMethod topMethod = lookupVirtualTarget(method.holder, method);
-    // The top method might be absent if this is an abstract class.
-    if (topMethod != null) {
-      result.add(topMethod);
-    } else {
-      if (!holderIsAbstract(method)) {
-        // This method is missing and the program we have is invalid.
-        // TODO(herhut): Find a better way to handle missing targets.
-        return Collections.emptySet();
-      }
+    ResolutionResult topTargets = resolveMethodOnClass(method.holder, method);
+    if (topTargets.asResultOfResolve() == null) {
+      // This will fail at runtime.
+      return null;
     }
+    topTargets.forEachTarget(result::add);
     // Add all matching targets from the subclass hierarchy.
     Set<DexType> set = subtypes(method.holder);
     if (set != null) {
       for (DexType type : set) {
         DexClass clazz = definitionFor(type);
         if (!clazz.isInterface()) {
-          DexEncodedMethod t = clazz.lookupVirtualMethod(method);
-          if (t != null) {
-            result.add(t);
-          }
+          ResolutionResult methods = resolveMethodOnClass(type, method);
+          methods.forEachTarget(result::add);
         }
       }
     }
@@ -153,36 +168,29 @@ public class AppInfoWithSubtyping extends AppInfo {
   public DexEncodedMethod lookupSingleVirtualTarget(DexMethod method) {
     assert method != null;
     DexClass holder = definitionFor(method.holder);
-    if ((holder == null) || holder.isLibraryClass()) {
+    if ((holder == null) || holder.isLibraryClass() || holder.isInterface()) {
       return null;
     }
     if (method.isSingleVirtualMethodCached()) {
       return method.getSingleVirtualMethodCache();
     }
-    DexEncodedMethod result = null;
     // First add the target for receiver type method.type.
-    DexEncodedMethod topMethod = lookupVirtualTarget(method.holder, method);
-    // The top method might be absent if this is an abstract class.
-    if (topMethod != null) {
-      result = topMethod;
-    } else {
-      if (!holderIsAbstract(method)) {
-        return null;
-      }
+    ResolutionResult topMethod = resolveMethod(method.holder, method);
+    // We might hit none or multiple targets. Both make this fail at runtime.
+    if (!topMethod.hasSingleTarget() || !topMethod.asSingleTarget().isVirtualMethod()) {
+      method.setSingleVirtualMethodCache(null);
+      return null;
     }
+    DexEncodedMethod result = topMethod.asSingleTarget();
     // Search for matching target in subtype hierarchy.
     Set<DexType> set = subtypes(method.holder);
     if (set != null) {
       for (DexType type : set) {
         DexClass clazz = definitionFor(type);
         if (!clazz.isInterface()) {
-          DexEncodedMethod t = clazz.lookupVirtualMethod(method);
-          if (t != null) {
-            if (result != null) {
-              return null;  // We have more than one target method.
-            } else {
-              result = t;
-            }
+          if (clazz.lookupMethod(method) != null) {
+            method.setSingleVirtualMethodCache(null);
+            return null;  // We have more than one target method.
           }
         }
       }
@@ -198,16 +206,21 @@ public class AppInfoWithSubtyping extends AppInfo {
 
   private boolean holderIsInterface(Descriptor<?, ?> desc) {
     DexClass holder = definitionFor(desc.getHolder());
-    return holder.accessFlags.isInterface();
+    return holder == null || holder.accessFlags.isInterface();
   }
 
   // For mapping invoke interface instruction to target methods.
   public Set<DexEncodedMethod> lookupInterfaceTargets(DexMethod method) {
+    // First check that there is a target for this invoke-interface to hit. If there is none,
+    // this will fail at runtime.
+    ResolutionResult topTarget = resolveMethodOnInterface(method.holder, method);
+    if (topTarget.asResultOfResolve() == null) {
+      return null;
+    }
     Set<DexType> set = subtypes(method.holder);
     if (set == null) {
       return Collections.emptySet();
     }
-    assert holderIsInterface(method);
     Set<DexEncodedMethod> result = new HashSet<>();
     for (DexType type : set) {
       DexClass clazz = definitionFor(type);
@@ -215,10 +228,8 @@ public class AppInfoWithSubtyping extends AppInfo {
       // override them, so we ignore interfaces here. Otherwise, we would look up default methods
       // that are factually never used.
       if (!clazz.isInterface()) {
-        DexEncodedMethod targetMethod = lookupVirtualTarget(type, method);
-        if (targetMethod != null) {
-          result.add(targetMethod);
-        }
+        ResolutionResult targetMethods = resolveMethodOnClass(type, method);
+        targetMethods.forEachTarget(result::add);
       }
     }
     return result;
@@ -227,6 +238,12 @@ public class AppInfoWithSubtyping extends AppInfo {
   public DexEncodedMethod lookupSingleInterfaceTarget(DexMethod method) {
     DexClass holder = definitionFor(method.holder);
     if ((holder == null) || holder.isLibraryClass() || !holder.accessFlags.isInterface()) {
+      return null;
+    }
+    // First check that there is a target for this invoke-interface to hit. If there is none,
+    // this will fail at runtime.
+    ResolutionResult topTarget = resolveMethodOnInterface(method.holder, method);
+    if (topTarget.asResultOfResolve() == null) {
       return null;
     }
     DexEncodedMethod result = null;
@@ -238,18 +255,18 @@ public class AppInfoWithSubtyping extends AppInfo {
         // override them, so we ignore interfaces here. Otherwise, we would look up default methods
         // that are factually never used.
         if (!clazz.isInterface()) {
-          DexEncodedMethod t = lookupVirtualTarget(type, method);
-          if (t != null) {
-            if (result != null) {
+          ResolutionResult resolutionResult = resolveMethodOnClass(type, method);
+          if (resolutionResult.hasSingleTarget()) {
+            if ((result != null) && (result != resolutionResult.asSingleTarget())) {
               return null;
             } else {
-              result = t;
+              result = resolutionResult.asSingleTarget();
             }
           }
         }
       }
     }
-    return result;
+    return result == null || !result.isVirtualMethod() ? null : result;
   }
 
   @Override

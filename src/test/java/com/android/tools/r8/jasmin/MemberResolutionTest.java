@@ -8,8 +8,8 @@ import static java.util.Collections.emptyList;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassFileVersion;
+import com.android.tools.r8.utils.ThrowingBiFunction;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class MemberResolutionTest extends JasminTestBase {
@@ -168,9 +168,8 @@ public class MemberResolutionTest extends JasminTestBase {
   }
 
   @Test
-  @Ignore("b/69101406")
   public void lookupVirtualMethodWithConflictingPrivate() throws Exception {
-    JasminBuilder builder = new JasminBuilder();
+    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_5);
 
     ClassBuilder superClass = builder.addClass("SuperClass");
     superClass.addDefaultConstructor();
@@ -205,9 +204,8 @@ public class MemberResolutionTest extends JasminTestBase {
   }
 
   @Test
-  @Ignore("b/69152228")
   public void lookupDirectMethodFromWrongContext() throws Exception {
-    JasminBuilder builder = new JasminBuilder();
+    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_5);
 
     ClassBuilder superClass = builder.addClass("SuperClass");
     superClass.addDefaultConstructor();
@@ -242,7 +240,6 @@ public class MemberResolutionTest extends JasminTestBase {
   }
 
   @Test
-  @Ignore("b/69101406")
   public void lookupPrivateSuperFromSubClass() throws Exception {
     JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_5);
 
@@ -279,7 +276,6 @@ public class MemberResolutionTest extends JasminTestBase {
   }
 
   @Test
-  @Ignore("b/69101406")
   public void lookupStaticMethodWithConflictingVirtual() throws Exception {
     JasminBuilder builder = new JasminBuilder();
 
@@ -316,7 +312,6 @@ public class MemberResolutionTest extends JasminTestBase {
   }
 
   @Test
-  @Ignore("b/69101406")
   public void lookupVirtualMethodWithConflictingStatic() throws Exception {
     JasminBuilder builder = new JasminBuilder();
 
@@ -350,6 +345,66 @@ public class MemberResolutionTest extends JasminTestBase {
         "  invokevirtual SubClass/aMethod()V",
         "  return");
     ensureICCE(builder);
+  }
+
+  @Test
+  public void testInterfaceWithDifferentSuper() throws Exception {
+    JasminBuilder builder = new JasminBuilder();
+
+    ClassBuilder superInterface = builder.addClass("SuperInterface");
+    superInterface.addStaticMethod("aMethod", emptyList(), "V",
+        ".limit stack 2",
+        ".limit locals 1",
+        "  getstatic java/lang/System/out Ljava/io/PrintStream;",
+        "  bipush 42",
+        "  invokevirtual java/io/PrintStream/println(I)V",
+        "  return");
+
+    ClassBuilder subInterface = builder.addClass("SubInterface", "SuperInterface");
+    subInterface.setIsInterface();
+
+    builder.addClass("Test", "java/lang/Object", "SubInterface");
+
+    ClassBuilder mainClass = builder.addClass(MAIN_CLASS);
+    mainClass.addMainMethod(
+        ".limit stack 2",
+        ".limit locals 1",
+        "  invokestatic SubInterface/aMethod()V",
+        "  return");
+
+    ensureAllFail(builder);
+  }
+
+  @Test
+  public void testCallMissingStaticMethod() throws Exception {
+    JasminBuilder builder = new JasminBuilder();
+
+    builder.addClass("Empty");
+
+    ClassBuilder main = builder.addClass("Main");
+    main.addMainMethod(
+        ".limit stack 2",
+        ".limit locals 1",
+        "  invokestatic Empty/aMethod()V",
+        "  return");
+
+    ensureRuntimeException(builder, NoSuchMethodError.class);
+  }
+
+  @Test
+  public void testReadMissingField() throws Exception {
+    JasminBuilder builder = new JasminBuilder();
+
+    builder.addClass("Empty");
+
+    ClassBuilder main = builder.addClass("Main");
+    main.addMainMethod(
+        ".limit stack 2",
+        ".limit locals 1",
+        "  getstatic Empty/aMethod I",
+        "  return");
+
+    ensureRuntimeException(builder, NoSuchFieldError.class);
   }
 
   @Test
@@ -421,7 +476,6 @@ public class MemberResolutionTest extends JasminTestBase {
   }
 
   @Test
-  @Ignore("b/69356146")
   public void testRebindVirtualCallToStaticInPackagePrivateClass() throws Exception {
     // Library classes.
     JasminBuilder libraryBuilder = new JasminBuilder();
@@ -435,8 +489,10 @@ public class MemberResolutionTest extends JasminTestBase {
         "  bipush 42",
         "  invokevirtual java/io/PrintStream/println(I)V",
         "  return");
-    libraryBuilder.addClass("LibSub", "ClassWithStatic");
-    libraryBuilder.addClass("p/LibSubSub", "LibSub");
+    libraryBuilder.addClass("LibSub", "ClassWithStatic")
+        .addDefaultConstructor();
+    libraryBuilder.addClass("p/LibSubSub", "LibSub")
+        .addDefaultConstructor();
 
     // Program classes.
     JasminBuilder programBuilder = new JasminBuilder();
@@ -468,6 +524,26 @@ public class MemberResolutionTest extends JasminTestBase {
     Assert.assertEquals(javaOutput, d8Output);
     Assert.assertEquals(javaOutput, r8Output);
     Assert.assertEquals(javaOutput, r8ShakenOutput);
+  }
+
+  private void ensureFails(JasminBuilder builder, String main,
+      ThrowingBiFunction<JasminBuilder, String, ProcessResult, Exception> runner) throws Exception {
+    ProcessResult result;
+    try {
+      result = runner.apply(builder, main);
+    } catch (Exception e) {
+      return;
+    }
+    Assert.assertNotEquals(0, result.exitCode);
+  }
+
+  private void ensureAllFail(JasminBuilder app) throws Exception {
+    ensureFails(app, MAIN_CLASS, this::runOnJavaRaw);
+    ensureFails(app, MAIN_CLASS, this::runOnArtDxRaw);
+    ensureFails(app, MAIN_CLASS, this::runOnArtD8Raw);
+    ensureFails(app, MAIN_CLASS, (a, m) -> runOnArtR8Raw(a, m, null));
+    ensureFails(app, MAIN_CLASS,
+        (a, m) -> runOnArtR8Raw(a, m, keepMainProguardConfiguration(MAIN_CLASS), null));
   }
 
   private void ensureICCE(JasminBuilder app) throws Exception {

@@ -279,6 +279,16 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
     return staticValues;
   }
 
+  public void addMethod(DexEncodedMethod method) {
+    if (method.accessFlags.isStatic()
+        || method.accessFlags.isPrivate()
+        || method.accessFlags.isConstructor()) {
+      addDirectMethod(method);
+    } else {
+      addVirtualMethod(method);
+    }
+  }
+
   public void addVirtualMethod(DexEncodedMethod virtualMethod) {
     assert !virtualMethod.accessFlags.isStatic();
     assert !virtualMethod.accessFlags.isPrivate();
@@ -289,9 +299,9 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
     }
   }
 
-  public void addStaticMethod(DexEncodedMethod staticMethod) {
-    assert staticMethod.accessFlags.isStatic();
-    assert !staticMethod.accessFlags.isPrivate();
+  public void addDirectMethod(DexEncodedMethod staticMethod) {
+    assert staticMethod.accessFlags.isStatic() || staticMethod.accessFlags.isPrivate()
+        || staticMethod.accessFlags.isConstructor();
     synchronized (directMethods) {
       directMethods = Arrays.copyOf(directMethods, directMethods.length + 1);
       directMethods[directMethods.length - 1] = staticMethod;

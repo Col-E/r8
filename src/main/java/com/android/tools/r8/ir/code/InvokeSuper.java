@@ -4,13 +4,14 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.code.InvokeSuperRange;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 public class InvokeSuper extends InvokeMethodWithReceiver {
@@ -77,9 +78,14 @@ public class InvokeSuper extends InvokeMethodWithReceiver {
   }
 
   @Override
-  DexEncodedMethod lookupTarget(AppInfo appInfo) {
-    DexMethod method = getInvokedMethod();
-    return appInfo.lookupVirtualDefinition(method.holder, method);
+  public DexEncodedMethod lookupSingleTarget(AppInfoWithSubtyping appInfo) {
+    return appInfo.lookupSuperTarget(getInvokedMethod());
+  }
+
+  @Override
+  public Collection<DexEncodedMethod> lookupTargets(AppInfoWithSubtyping appInfo) {
+    DexEncodedMethod target = appInfo.lookupSuperTarget(getInvokedMethod());
+    return target == null ? Collections.emptyList() : Collections.singletonList(target);
   }
 
   @Override

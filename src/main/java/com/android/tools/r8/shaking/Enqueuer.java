@@ -5,8 +5,8 @@ package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.dex.IndexedItemCollection;
-import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppInfo.ResolutionResult;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.Descriptor;
 import com.android.tools.r8.graph.DexAnnotation;
@@ -422,21 +422,35 @@ public class Enqueuer {
   }
 
   private void handleInvokeOfStaticTarget(DexMethod method, KeepReason reason) {
-    DexEncodedMethod encodedMethod = appInfo.lookupStaticTarget(method);
-    if (encodedMethod == null) {
+    // We have to mark the resolved method as targeted even if it cannot actually be invoked
+    // to make sure the invocation will keep failing in the appropriate way.
+    ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);
+    if (resolutionResult == null) {
       reportMissingMethod(method);
       return;
     }
-    markDirectStaticOrConstructorMethodAsLive(encodedMethod, reason);
+    resolutionResult.forEachTarget(m -> markMethodAsTargeted(m, reason));
+    // Only mark methods for which invocation will succeed at runtime live.
+    DexEncodedMethod targetMethod = appInfo.dispatchStaticInvoke(resolutionResult);
+    if (targetMethod != null) {
+      markDirectStaticOrConstructorMethodAsLive(targetMethod, reason);
+    }
   }
 
   private void handleInvokeOfDirectTarget(DexMethod method, KeepReason reason) {
-    DexEncodedMethod encodedMethod = appInfo.lookupDirectTarget(method);
-    if (encodedMethod == null) {
+    // We have to mark the resolved method as targeted even if it cannot actually be invoked
+    // to make sure the invocation will keep failing in the appropriate way.
+    ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);
+    if (resolutionResult == null) {
       reportMissingMethod(method);
       return;
     }
-    markDirectStaticOrConstructorMethodAsLive(encodedMethod, reason);
+    resolutionResult.forEachTarget(m -> markMethodAsTargeted(m, reason));
+    // Only mark methods for which invocation will succeed at runtime live.
+    DexEncodedMethod target = appInfo.dispatchDirectInvoke(resolutionResult);
+    if (target != null) {
+      markDirectStaticOrConstructorMethodAsLive(target, reason);
+    }
   }
 
   private void reportMissingClass(DexType clazz) {
@@ -511,14 +525,13 @@ public class Enqueuer {
         // TODO(herhut): In essence, our subtyping chain is broken here. Handle that case better.
         break;
       }
+      // We only have to look at virtual methods here, as only those can actually be executed at
+      // runtime. Illegal dispatch situations and the corresponding exceptions are already handled
+      // by the reachability logic.
       SetWithReason<DexEncodedMethod> reachableMethods = reachableVirtualMethods.get(type);
       if (reachableMethods != null) {
-        for (DexEncodedMethod encodedMethod : reachableMethods.getItems()) {
-          if (seen.addMethod(encodedMethod.method)) {
-            markVirtualMethodAsLive(encodedMethod,
-                KeepReason.reachableFromLiveType(instantiatedType));
-          }
-        }
+        transitionNonAbstractMethodsToLiveAndShadow(reachableMethods.getItems(), instantiatedType,
+            seen);
       }
       Collections.addAll(interfaces, clazz.interfaces.values);
       type = clazz.superType;
@@ -549,15 +562,24 @@ public class Enqueuer {
     SetWithReason<DexEncodedMethod> reachableMethods = reachableVirtualMethods.get(iface);
     if (reachableMethods != null) {
       seen = seen.newNestedScope();
-      for (DexEncodedMethod encodedMethod : reachableMethods.getItems()) {
-        assert !encodedMethod.accessFlags.isAbstract();
-        if (seen.addMethod(encodedMethod.method)) {
+      transitionNonAbstractMethodsToLiveAndShadow(reachableMethods.getItems(), instantiatedType,
+          seen);
+      for (DexType subInterface : clazz.interfaces.values) {
+        transitionDefaultMethodsForInstantiatedClass(subInterface, instantiatedType, seen);
+      }
+    }
+  }
+
+  private void transitionNonAbstractMethodsToLiveAndShadow(Iterable<DexEncodedMethod> reachable,
+      DexType instantiatedType, ScopedDexMethodSet seen) {
+    for (DexEncodedMethod encodedMethod : reachable) {
+      if (seen.addMethod(encodedMethod.method)) {
+        // Abstract methods do shadow implementations but they cannot be live, as they have no
+        // code.
+        if (!encodedMethod.accessFlags.isAbstract()) {
           markVirtualMethodAsLive(encodedMethod,
               KeepReason.reachableFromLiveType(instantiatedType));
         }
-      }
-      for (DexType subInterface : clazz.interfaces.values) {
-        transitionDefaultMethodsForInstantiatedClass(subInterface, instantiatedType, seen);
       }
     }
   }
@@ -655,6 +677,7 @@ public class Enqueuer {
 
   private void markVirtualMethodAsLive(DexEncodedMethod method, KeepReason reason) {
     assert method != null;
+    assert !method.accessFlags.isAbstract();
     if (!liveMethods.contains(method)) {
       if (Log.ENABLED) {
         Log.verbose(getClass(), "Adding virtual method `%s` to live set.", method.method);
@@ -718,7 +741,9 @@ public class Enqueuer {
       reportMissingClass(method.holder);
       return;
     }
-    DexEncodedMethod topTarget = appInfo.lookupVirtualDefinition(method.holder, method);
+    DexEncodedMethod topTarget = interfaceInvoke
+        ? appInfo.resolveMethodOnInterface(method.holder, method).asResultOfResolve()
+        : appInfo.resolveMethodOnClass(method.holder, method).asResultOfResolve();
     if (topTarget == null) {
       reportMissingMethod(method);
       return;
@@ -727,47 +752,41 @@ public class Enqueuer {
     // need at least an abstract version of it so that we have a target for the corresponding
     // invoke.
     markMethodAsTargeted(topTarget, reason);
-    Set<DexEncodedMethod> targets;
-    if (interfaceInvoke) {
-      if (!holder.isInterface()) {
-        throw new CompilationError(
-            "InvokeInterface on non-interface method " + method.toSourceString() + ".");
-      }
-      targets = appInfo.lookupInterfaceTargets(method);
-    } else {
-      if (holder.isInterface()) {
-        throw new CompilationError(
-            "InvokeVirtual on interface method " + method.toSourceString() + ".");
-      }
-      targets = appInfo.lookupVirtualTargets(method);
-    }
+    Set<DexEncodedMethod> targets = interfaceInvoke
+        ? appInfo.lookupInterfaceTargets(method)
+        : appInfo.lookupVirtualTargets(method);
     for (DexEncodedMethod encodedMethod : targets) {
-      SetWithReason<DexEncodedMethod> reachable = reachableVirtualMethods
-          .computeIfAbsent(encodedMethod.method.holder, (ignore) -> new SetWithReason<>());
+        SetWithReason<DexEncodedMethod> reachable = reachableVirtualMethods
+            .computeIfAbsent(encodedMethod.method.holder, (ignore) -> new SetWithReason<>());
       if (reachable.add(encodedMethod, reason)) {
-        // If the holder type is instantiated, the method is live. Otherwise check whether we find
-        // a subtype that does not shadow this methods but is instantiated.
-        // Note that library classes are always considered instantiated, as we do not know where
-        // they are instantiated.
-        if (isInstantiatedOrHasInstantiatedSubtype(encodedMethod.method.holder)) {
-          if (instantiatedTypes.contains(encodedMethod.method.holder)) {
-            markVirtualMethodAsLive(encodedMethod,
-                KeepReason.reachableFromLiveType(encodedMethod.method.holder));
-          } else {
-            Deque<DexType> worklist = new ArrayDeque<>();
-            fillWorkList(worklist, encodedMethod.method.holder);
-            while (!worklist.isEmpty()) {
-              DexType current = worklist.pollFirst();
-              DexClass currentHolder = appInfo.definitionFor(current);
-              if (currentHolder == null
-                  || currentHolder.lookupVirtualMethod(encodedMethod.method) != null) {
-                continue;
+        // Abstract methods cannot be live.
+        if (!encodedMethod.accessFlags.isAbstract()) {
+          // If the holder type is instantiated, the method is live. Otherwise check whether we find
+          // a subtype that does not shadow this methods but is instantiated.
+          // Note that library classes are always considered instantiated, as we do not know where
+          // they are instantiated.
+          if (isInstantiatedOrHasInstantiatedSubtype(encodedMethod.method.holder)) {
+            if (instantiatedTypes.contains(encodedMethod.method.holder)) {
+              markVirtualMethodAsLive(encodedMethod,
+                  KeepReason.reachableFromLiveType(encodedMethod.method.holder));
+            } else {
+              Deque<DexType> worklist = new ArrayDeque<>();
+              fillWorkList(worklist, encodedMethod.method.holder);
+              while (!worklist.isEmpty()) {
+                DexType current = worklist.pollFirst();
+                DexClass currentHolder = appInfo.definitionFor(current);
+                // If this class shadows the virtual, abort the search. Note, according to JVM spec,
+                // shadowing is independent of whether a method is public or private.
+                if (currentHolder == null
+                    || currentHolder.lookupMethod(encodedMethod.method) != null) {
+                  continue;
+                }
+                if (instantiatedTypes.contains(current)) {
+                  markVirtualMethodAsLive(encodedMethod, KeepReason.reachableFromLiveType(current));
+                  break;
+                }
+                fillWorkList(worklist, current);
               }
-              if (instantiatedTypes.contains(current)) {
-                markVirtualMethodAsLive(encodedMethod, KeepReason.reachableFromLiveType(current));
-                break;
-              }
-              fillWorkList(worklist, current);
             }
           }
         }
@@ -788,7 +807,7 @@ public class Enqueuer {
   }
 
   private void markSuperMethodAsReachable(DexMethod method, DexEncodedMethod from) {
-    DexEncodedMethod target = appInfo.lookupVirtualTarget(method.holder, method);
+    DexEncodedMethod target = appInfo.resolveMethod(method.holder, method).asResultOfResolve();
     if (target == null) {
       reportMissingMethod(method);
       return;
@@ -802,7 +821,9 @@ public class Enqueuer {
     superInvokeDependencies.computeIfAbsent(from, ignore -> Sets.newIdentityHashSet()).add(target);
     if (liveMethods.contains(from)) {
       markMethodAsTargeted(target, KeepReason.invokedViaSuperFrom(from));
-      markVirtualMethodAsLive(target, KeepReason.invokedViaSuperFrom(from));
+      if (!target.accessFlags.isAbstract()) {
+        markVirtualMethodAsLive(target, KeepReason.invokedViaSuperFrom(from));
+      }
     }
   }
 

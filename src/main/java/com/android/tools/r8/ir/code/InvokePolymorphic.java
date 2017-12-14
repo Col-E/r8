@@ -4,15 +4,16 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.code.InvokePolymorphicRange;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.InliningOracle;
+import java.util.Collection;
 import java.util.List;
 
 public class InvokePolymorphic extends InvokeMethod {
@@ -95,9 +96,20 @@ public class InvokePolymorphic extends InvokeMethod {
   }
 
   @Override
-  DexEncodedMethod lookupTarget(AppInfo appInfo) {
+  public DexEncodedMethod lookupSingleTarget(AppInfoWithSubtyping appInfo) {
     // TODO(herhut): Implement lookup target for invokePolymorphic.
     return null;
+  }
+
+  @Override
+  public Collection<DexEncodedMethod> lookupTargets(AppInfoWithSubtyping appInfo) {
+    // TODO(herhut): Implement lookup target for invokePolymorphic.
+    return null;
+  }
+
+  @Override
+  public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType holder) {
+    return Constraint.NEVER;
   }
 
   @Override

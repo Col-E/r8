@@ -4,11 +4,13 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.code.InvokeInterfaceRange;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import com.android.tools.r8.ir.optimize.Inliner.Constraint;
+import java.util.Collection;
 import java.util.List;
 
 public class InvokeInterface extends InvokeMethodWithReceiver {
@@ -75,8 +77,18 @@ public class InvokeInterface extends InvokeMethodWithReceiver {
   }
 
   @Override
-  DexEncodedMethod lookupTarget(AppInfo appInfo) {
+  public DexEncodedMethod lookupSingleTarget(AppInfoWithSubtyping appInfo) {
     DexMethod method = getInvokedMethod();
-    return appInfo.lookupVirtualDefinition(method.holder, method);
+    return appInfo.lookupSingleInterfaceTarget(method);
+  }
+
+  @Override
+  public Collection<DexEncodedMethod> lookupTargets(AppInfoWithSubtyping appInfo) {
+    return appInfo.lookupInterfaceTargets(getInvokedMethod());
+  }
+
+  @Override
+  public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType holder) {
+    return inliningConstraintForVirtualInvoke(info, holder);
   }
 }

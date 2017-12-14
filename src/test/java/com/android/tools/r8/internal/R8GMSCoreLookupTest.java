@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
@@ -53,8 +54,12 @@ public class R8GMSCoreLookupTest {
   }
 
   private void testInterfaceLookup(DexProgramClass clazz, DexEncodedMethod method) {
-    Set<DexEncodedMethod> targets = appInfo.lookupVirtualTargets(method.method);
-    assertFalse(targets.isEmpty());
+    Set<DexEncodedMethod> targets = appInfo.lookupInterfaceTargets(method.method);
+    if (appInfo.subtypes(method.method.holder).stream().allMatch(DexType::isInterface)) {
+      assertTrue(targets.isEmpty());
+    } else {
+      assertFalse(targets.isEmpty());
+    }
   }
 
   private void testLookup(DexProgramClass clazz) {
