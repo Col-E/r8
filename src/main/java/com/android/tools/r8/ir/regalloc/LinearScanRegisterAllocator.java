@@ -983,7 +983,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     maxRegisterNumber = Math.max(maxRegisterNumber, maxRegister);
   }
 
-  private int nextUnusedRegister(LiveIntervals intervals) {
+  private int getSpillRegister(LiveIntervals intervals) {
     int registerNumber = nextUnusedRegisterNumber++;
     maxRegisterNumber = registerNumber;
     if (intervals.getType().isWide()) {
@@ -991,32 +991,6 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       maxRegisterNumber++;
     }
     return registerNumber;
-  }
-
-  private boolean registersForIntervalAreFree(LiveIntervals intervals) {
-    boolean free = freeRegisters.contains(intervals.getRegister());
-    if (free && intervals.getType().isWide()) {
-      free = freeRegisters.contains(intervals.getRegister() + 1);
-    }
-    return free;
-  }
-
-  private int getSpillRegister(LiveIntervals intervals) {
-    LiveIntervals parent = intervals.getSplitParent();
-    for (LiveIntervals child : parent.getSplitChildren()) {
-      if (child != intervals && child.isSpilled()) {
-        if (registersForIntervalAreFree(child)) {
-          for (LiveIntervals inactive : inactive) {
-            if (inactive.usesRegister(child.getRegister(), child.getType().isWide()) &&
-                inactive.overlaps(intervals)) {
-              return nextUnusedRegister(intervals);
-            }
-          }
-          return child.getRegister();
-        }
-      }
-    }
-    return nextUnusedRegister(intervals);
   }
 
   private int toInstructionPosition(int position) {
@@ -1251,8 +1225,6 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       // of finding another candidate to spill via allocateBlockedRegister.
       if (!unhandledInterval.getUses().first().hasConstraint()) {
         int nextConstrainedPosition = unhandledInterval.firstUseWithConstraint().getPosition();
-        LiveIntervals split = unhandledInterval.splitBefore(nextConstrainedPosition);
-        unhandled.add(split);
         int register;
         // Arguments are always in the argument registers, so for arguments just use that register
         // for the unconstrained prefix. For everything else, get a spill register.
@@ -1261,7 +1233,9 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
         } else {
           register = getSpillRegister(unhandledInterval);
         }
+        LiveIntervals split = unhandledInterval.splitBefore(nextConstrainedPosition);
         assignRegisterToUnhandledInterval(unhandledInterval, needsRegisterPair, register);
+        unhandled.add(split);
       } else {
         allocateBlockedRegister(unhandledInterval);
       }
@@ -1642,7 +1616,8 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     Iterator<LiveIntervals> inactiveIterator = inactive.iterator();
     while (inactiveIterator.hasNext()) {
       LiveIntervals intervals = inactiveIterator.next();
-      if ((intervals.usesRegister(candidate, needsRegisterPair)) &&
+      if ((intervals.usesRegister(candidate) ||
+          (needsRegisterPair && intervals.usesRegister(candidate + 1))) &&
           intervals.overlaps(unhandledInterval)) {
         if (intervals.isLinked() && !intervals.isArgumentInterval()) {
           // If the inactive register is linked but not an argument, it needs to get the
@@ -1681,14 +1656,15 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     Iterator<LiveIntervals> activeIterator = active.iterator();
     while (activeIterator.hasNext()) {
       LiveIntervals intervals = activeIterator.next();
-      if (intervals.usesRegister(candidate, needsRegisterPair)) {
+      if (intervals.usesRegister(candidate) ||
+          (needsRegisterPair && intervals.usesRegister(candidate + 1))) {
         activeIterator.remove();
+        freeRegistersForIntervals(intervals);
         LiveIntervals splitChild = intervals.splitBefore(unhandledInterval.getStart());
-        int registerNumber = getSpillRegister(splitChild);
+        int registerNumber = getSpillRegister(intervals);
         assignRegister(splitChild, registerNumber);
         splitChild.setSpilled(true);
         takeRegistersForIntervals(splitChild);
-        freeRegistersForIntervals(intervals);
         assert splitChild.getRegister() != NO_REGISTER;
         assert intervals.getRegister() != NO_REGISTER;
         newActive.add(splitChild);

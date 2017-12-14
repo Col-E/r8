@@ -296,17 +296,9 @@ public class LiveIntervals implements Comparable<LiveIntervals> {
     return splitParent.computeMaxNonSpilledRegister();
   }
 
-  /**
-   * Does this LiveIntervals use the given register (pair).
-   *
-   * @param n the register in question
-   * @param isWide true if the input register is the first register in a register pair
-   */
-  public boolean usesRegister(int n, boolean isWide) {
-    for (int i = 0; i < (isWide ? 2 : 1); i++) {
-      if (register == (n + i) || (getType().isWide() && register + 1 == (n + i))) {
-        return true;
-      }
+  public boolean usesRegister(int n) {
+    if (register == n || (getType().isWide() && register + 1 == n)) {
+      return true;
     }
     return false;
   }
