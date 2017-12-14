@@ -7,13 +7,10 @@ package com.android.tools.r8.maindexlist;
 import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.ZIP_EXTENSION;
 
-import com.android.tools.r8.CompilationResult;
 import com.android.tools.r8.GenerateMainDexList;
 import com.android.tools.r8.GenerateMainDexListCommand;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
@@ -209,10 +206,5 @@ public class MainDexTracingTest {
       computed = computed.substring(0, computed.lastIndexOf('$'));
     }
     Assert.assertEquals(reference, computed);
-  }
-
-  private boolean isApplicationClass(DexType dexType, CompilationResult result) {
-    DexClass clazz = result.appInfo.definitionFor(dexType);
-    return clazz != null && clazz.isProgramClass();
   }
 }

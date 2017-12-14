@@ -49,8 +49,8 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
 import com.android.tools.r8.utils.CfgPrinter;
+import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.FileUtils;
-import com.android.tools.r8.utils.IOExceptionDiagnostic;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.android.tools.r8.utils.LineNumberOptimizer;
@@ -440,27 +440,18 @@ public class R8 {
    * @param command R8 command.
    */
   public static void run(R8Command command) throws CompilationFailedException {
+    AndroidApp app = command.getInputApp();
     InternalOptions options = command.getInternalOptions();
-    ExecutorService executorService = ThreadUtils.getExecutorService(options);
-    try {
-      run(command, executorService);
-    } finally {
-      executorService.shutdown();
-    }
-  }
-
-  /**
-   * TODO(sgjesse): Get rid of this.
-   */
-
-  public static AndroidApp runInternal(R8Command command) throws IOException, CompilationException {
-    InternalOptions options = command.getInternalOptions();
-    ExecutorService executorService = ThreadUtils.getExecutorService(options);
-    try {
-      return runInternal(command, executorService);
-    } finally {
-      executorService.shutdown();
-    }
+    ExecutorService executor = ThreadUtils.getExecutorService(options);
+    ExceptionUtils.withR8CompilationHandler(
+        command.getReporter(),
+        () -> {
+          try {
+            run(app, options, executor);
+          } finally {
+            executor.shutdown();
+          }
+        });
   }
 
   /**
@@ -474,18 +465,23 @@ public class R8 {
    */
   public static void run(R8Command command, ExecutorService executor)
       throws CompilationFailedException {
+    AndroidApp app = command.getInputApp();
+    InternalOptions options = command.getInternalOptions();
+    ExceptionUtils.withR8CompilationHandler(
+        command.getReporter(),
+        () -> {
+          run(app, options, executor);
+        });
+  }
+
+  /** TODO(sgjesse): Get rid of this. */
+  public static AndroidApp runInternal(R8Command command) throws IOException, CompilationException {
+    InternalOptions options = command.getInternalOptions();
+    ExecutorService executorService = ThreadUtils.getExecutorService(options);
     try {
-      try {
-        InternalOptions options = command.getInternalOptions();
-        run(command.getInputApp(), options, executor);
-      } catch (IOException io) {
-        throw command.getReporter().fatalError(new IOExceptionDiagnostic(io));
-      } catch (CompilationException e) {
-        throw command.getReporter().fatalError(new StringDiagnostic(e.getMessageForR8()), e);
-      }
-      command.getReporter().failIfPendingErrors();
-    } catch (AbortException e) {
-      throw new CompilationFailedException(e);
+      return runInternal(command, executorService);
+    } finally {
+      executorService.shutdown();
     }
   }
 
