@@ -6,10 +6,12 @@ package com.android.tools.r8.shaking;
 import static com.android.tools.r8.ToolHelper.EXAMPLES_BUILD_DIR;
 import static com.android.tools.r8.ToolHelper.EXAMPLES_DIR;
 
+import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.Diagnostic;
+import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.utils.OutputMode;
 import java.io.BufferedReader;
 import java.io.PrintStream;
@@ -50,21 +52,26 @@ public class TreeShakingSpecificTest {
             .build());
   }
 
-  @Test
+  @Test(expected = CompilationFailedException.class)
   public void testMissingLibrary() throws Exception {
     // Generate R8 processed version without library option.
     Path out = temp.getRoot().toPath();
     String test = "shaking2";
     Path originalDex = Paths.get(EXAMPLES_BUILD_DIR, test, "classes.dex");
     Path keepRules = Paths.get(EXAMPLES_DIR, test, "keep-rules.txt");
-    thrown.expect(CompilationError.class);
-    thrown.expectMessage("Shrinking can't be performed because some library classes are missing");
-    R8.run(
-        R8Command.builder()
-            .addProgramFiles(originalDex)
-            .setOutput(out, OutputMode.DexIndexed)
-            .addProguardConfigurationFiles(keepRules)
-            .build());
+    DiagnosticsHandler handler = new DiagnosticsHandler() {
+      @Override
+      public void error(Diagnostic error) {
+        if (!error.getDiagnosticMessage().contains("library classes are missing")) {
+          throw new RuntimeException("Unexpected compilation error");
+        }
+      }
+    };
+    R8.run(R8Command.builder(handler)
+        .addProgramFiles(originalDex)
+        .setOutput(out, OutputMode.DexIndexed)
+        .addProguardConfigurationFiles(keepRules)
+        .build());
   }
 
   @Test

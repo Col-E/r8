@@ -3,11 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.d8;
 
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.D8Output;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -150,7 +150,7 @@ public class DexVersionTests {
             .build());
   }
 
-  @Test(expected = CompilationError.class)
+  @Test(expected = CompilationFailedException.class)
   public void mergeErrorVersionNWithVersionOInput() throws Exception {
     D8.run(
         D8Command.builder()
@@ -160,7 +160,7 @@ public class DexVersionTests {
             .build());
   }
 
-  @Test(expected = CompilationError.class)
+  @Test(expected = CompilationFailedException.class)
   public void mergeErrorVersionKWithVersionOInput() throws Exception {
     D8.run(
         D8Command.builder()
@@ -170,7 +170,7 @@ public class DexVersionTests {
             .build());
   }
 
-  @Test(expected = CompilationError.class)
+  @Test(expected = CompilationFailedException.class)
   public void mergeErrorVersionKWithVersionNInput() throws Exception {
     D8.run(
         D8Command.builder()
