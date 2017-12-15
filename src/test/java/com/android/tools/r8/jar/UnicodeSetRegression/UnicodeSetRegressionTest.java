@@ -3,18 +3,19 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.jar.UnicodeSetRegression;
 
-import com.android.tools.r8.CompilationException;
+import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.AndroidAppConsumers;
 import com.android.tools.r8.utils.ArtErrorParser;
 import com.android.tools.r8.utils.ArtErrorParser.ArtErrorInfo;
 import com.android.tools.r8.utils.ArtErrorParser.ArtErrorParserException;
 import com.android.tools.r8.utils.DexInspector;
+import com.android.tools.r8.utils.OutputMode;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import org.junit.ComparisonFailure;
 import org.junit.Rule;
 import org.junit.Test;
@@ -33,24 +34,32 @@ public class UnicodeSetRegressionTest {
   }
 
   @Test
-  public void testUnicodeSetFromDex()
-      throws ExecutionException, IOException, ProguardRuleParserException, CompilationException {
+  public void testUnicodeSetFromDex() throws Throwable {
     Path combinedInput = temp.getRoot().toPath().resolve("all.zip");
     Path oatFile = temp.getRoot().toPath().resolve("all.oat");
-    ToolHelper.runR8(dexFromDX(), combinedInput);
+    AndroidApp output =
+        ToolHelper.runR8(dexFromDX(), options -> options.ignoreMissingClasses = true);
+    output.write(combinedInput, OutputMode.DexIndexed);
     ToolHelper.runDex2Oat(combinedInput, oatFile);
   }
 
   @Test
-  public void testUnicodeSetFromJar()
-      throws ExecutionException, IOException, ProguardRuleParserException, CompilationException {
+  public void testUnicodeSetFromJar() throws Throwable {
     Path combinedInput = temp.getRoot().toPath().resolve("all.zip");
     Path oatFile = temp.getRoot().toPath().resolve("all.oat");
-    AndroidApp result = ToolHelper.runR8(JAR_FILE, combinedInput.toString());
+    R8Command.Builder builder =
+        R8Command.builder()
+            .addProgramFiles(Paths.get(JAR_FILE))
+            .setOutput(Paths.get(combinedInput.toString()), OutputMode.DexIndexed);
+    AndroidAppConsumers compatSink = new AndroidAppConsumers(builder);
+    // Ignore missing classes since we don't want to link to the IBM text library.
+    ToolHelper.runR8(builder.build(), options -> options.ignoreMissingClasses = true);
+    AndroidApp result = compatSink.build();
     try {
       ToolHelper.runDex2Oat(combinedInput, oatFile);
     } catch (AssertionError e) {
-      AndroidApp fromDexApp = ToolHelper.runR8(dexFromDX());
+      AndroidApp fromDexApp =
+          ToolHelper.runR8(dexFromDX(), options -> options.ignoreMissingClasses = true);
       DexInspector fromDex = new DexInspector(fromDexApp);
       DexInspector fromJar = new DexInspector(result);
       List<ArtErrorInfo> errors;

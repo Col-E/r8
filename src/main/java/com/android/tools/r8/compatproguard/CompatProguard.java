@@ -37,7 +37,6 @@ public class CompatProguard {
     public final String output;
     public final int minApi;
     public final boolean forceProguardCompatibility;
-    public final boolean ignoreMissingClasses;
     public final boolean multiDex;
     public final String mainDexList;
     public final List<String> proguardConfig;
@@ -48,12 +47,10 @@ public class CompatProguard {
         int minApi,
         boolean multiDex,
         boolean forceProguardCompatibility,
-        boolean ignoreMissingClasses,
         String mainDexList) {
       this.output = output;
       this.minApi = minApi;
       this.forceProguardCompatibility = forceProguardCompatibility;
-      this.ignoreMissingClasses = ignoreMissingClasses;
       this.multiDex = multiDex;
       this.mainDexList = mainDexList;
       this.proguardConfig = proguardConfig;
@@ -63,7 +60,6 @@ public class CompatProguard {
       String output = null;
       int minApi = 1;
       boolean forceProguardCompatibility = false;
-      boolean ignoreMissingClasses = false;
       boolean multiDex = false;
       String mainDexList = null;
       // These two flags are currently ignored.
@@ -80,8 +76,6 @@ public class CompatProguard {
               minApi = Integer.valueOf(args[++i]);
             } else if (arg.equals("--force-proguard-compatibility")) {
               forceProguardCompatibility = true;
-            } else if (arg.equals("--ignore-missing-classes")) {
-              ignoreMissingClasses = true;
             } else if (arg.equals("--output")) {
               output = args[++i];
             } else if (arg.equals("--multi-dex")) {
@@ -118,7 +112,6 @@ public class CompatProguard {
           minApi,
           multiDex,
           forceProguardCompatibility,
-          ignoreMissingClasses,
           mainDexList);
     }
   }
@@ -133,8 +126,7 @@ public class CompatProguard {
     // Run R8 passing all the options from the command line as a Proguard configuration.
     CompatProguardOptions options = CompatProguardOptions.parse(args);
     R8Command.Builder builder =
-        new CompatProguardCommandBuilder(
-            options.forceProguardCompatibility, options.ignoreMissingClasses);
+        new CompatProguardCommandBuilder(options.forceProguardCompatibility);
     builder
         .setOutput(Paths.get(options.output), OutputMode.DexIndexed)
         .addProguardConfiguration(options.proguardConfig, CommandLineOrigin.INSTANCE)

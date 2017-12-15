@@ -26,7 +26,8 @@ public class R8GMSCoreFixedPointTest extends GMSCoreCompilationTestBase {
             ToolHelper.prepareR8CommandBuilder(app)
                 .setMode(CompilationMode.DEBUG)
                 .setMinApiLevel(AndroidApiLevel.L.getLevel())
-                .build());
+                .build(),
+            options -> options.ignoreMissingClasses = true);
 
     // Second compilation.
     // Add option --skip-outline-opt for second compilation. The second compilation can find
@@ -38,7 +39,8 @@ public class R8GMSCoreFixedPointTest extends GMSCoreCompilationTestBase {
             ToolHelper.prepareR8CommandBuilder(app1)
                 .setMode(CompilationMode.DEBUG)
                 .setMinApiLevel(AndroidApiLevel.L.getLevel())
-                .build());
+                .build(),
+            options -> options.ignoreMissingClasses = true);
 
     assertIdenticalApplicationsUpToCode(app1, app2, false);
   }

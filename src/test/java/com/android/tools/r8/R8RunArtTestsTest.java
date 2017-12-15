@@ -1354,8 +1354,7 @@ public abstract class R8RunArtTestsTest {
               R8Command.builder()
                   .setMode(mode)
                   .setOutput(Paths.get(resultPath), OutputMode.DexIndexed)
-                  .addProgramFiles(ListUtils.map(fileNames, Paths::get))
-                  .setIgnoreMissingClasses(true);
+                  .addProgramFiles(ListUtils.map(fileNames, Paths::get));
           Integer minSdkVersion = needMinSdkVersion.get(name);
           if (minSdkVersion != null) {
             builder.setMinApiLevel(minSdkVersion);
@@ -1371,6 +1370,8 @@ public abstract class R8RunArtTestsTest {
                   options.inlineAccessors = false;
                 }
                 options.lineNumberOptimization = LineNumberOptimization.OFF;
+                // TODO(zerny): Consider passing the correct library instead of suppressing errors.
+                options.ignoreMissingClasses = true;
               });
           break;
         }
