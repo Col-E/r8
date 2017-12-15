@@ -8,6 +8,7 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import java.util.Arrays;
 import org.junit.runners.BlockJUnit4ClassRunner;
 import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.InitializationError;
@@ -17,11 +18,37 @@ import org.junit.runners.model.InitializationError;
  */
 public class VmTestRunner extends BlockJUnit4ClassRunner {
 
+  /**
+   * Ignores the test for all VM versions up to and includion {@link #value()}.
+   */
   @Retention(RetentionPolicy.RUNTIME)
   @Target({ElementType.METHOD, ElementType.TYPE})
   public @interface IgnoreIfVmOlderOrEqualThan {
 
-    DexVm.Version version();
+    DexVm.Version value();
+  }
+
+  /**
+   * Ignores the test for all specified versions of the VM.
+   */
+  @Retention(RetentionPolicy.RUNTIME)
+  @Target({ElementType.METHOD, ElementType.TYPE})
+  public @interface IgnoreForVmVersions {
+
+    DexVm.Version[] value();
+  }
+
+
+  /**
+   * Ignores a test for all versions of the Vm between {@link #from()} and {@link #to()} inclusive.
+   */
+  @Retention(RetentionPolicy.RUNTIME)
+  @Target({ElementType.METHOD, ElementType.TYPE})
+  public @interface IgnoreForRangeOfVmVersions {
+
+    DexVm.Version from();
+
+    DexVm.Version to();
   }
 
   public VmTestRunner(Class<?> klass) throws InitializationError {
@@ -33,9 +60,23 @@ public class VmTestRunner extends BlockJUnit4ClassRunner {
     if (super.isIgnored(child)) {
       return true;
     }
-    IgnoreIfVmOlderOrEqualThan annotation = child.getAnnotation(IgnoreIfVmOlderOrEqualThan.class);
-    if (annotation != null
-        && ToolHelper.getDexVm().getVersion().isOlderThanOrEqual(annotation.version())) {
+    DexVm.Version currentVersion = ToolHelper.getDexVm().getVersion();
+    IgnoreIfVmOlderOrEqualThan ignoreIfVmOlderOrEqualThan =
+        child.getAnnotation(IgnoreIfVmOlderOrEqualThan.class);
+    if (ignoreIfVmOlderOrEqualThan != null
+        && currentVersion.isOlderThanOrEqual(ignoreIfVmOlderOrEqualThan.value())) {
+      return true;
+    }
+    IgnoreForVmVersions ignoreForVmVersions = child.getAnnotation(IgnoreForVmVersions.class);
+    if (ignoreForVmVersions != null
+        && Arrays.stream(ignoreForVmVersions.value()).anyMatch(currentVersion::equals)) {
+      return true;
+    }
+    IgnoreForRangeOfVmVersions ignoreForRangeOfVmVersions =
+        child.getAnnotation(IgnoreForRangeOfVmVersions.class);
+    if (ignoreForRangeOfVmVersions != null
+        && currentVersion.compareTo(ignoreForRangeOfVmVersions.from()) >= 0
+        && currentVersion.compareTo(ignoreForRangeOfVmVersions.to()) <= 0) {
       return true;
     }
     return false;
