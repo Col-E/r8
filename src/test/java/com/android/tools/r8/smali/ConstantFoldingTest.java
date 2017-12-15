@@ -49,7 +49,6 @@ public class ConstantFoldingTest extends SmaliTestBase {
       methodBilder.accept(builder, "m" + values.size(), value);
       values.add(value);
       checkers.add(methodChecker);
-      System.out.println(values.size());
     }
 
     public void run() throws Exception {
@@ -340,44 +339,59 @@ public class ConstantFoldingTest extends SmaliTestBase {
     assertEquals(expected, ((WideConstant) insn).decodedValue());
   }
 
-  public void testLogicalOperatorsFolding(String op, int[] v) {
-    int v0 = v[0];
-    int v1 = v[1];
-    int v2 = v[2];
-    int v3 = v[3];
+  class LogicalOperatorTestData {
+    final String op;
+    final int[] values;
+    final int expected;
 
-    int expected = 0;
-    switch (op) {
-      case "and":
-        expected = v0 & v1 & v2 & v3;
-        break;
-      case "or":
-        expected = v0 | v1 | v2 | v3;
-        break;
-      case "xor":
-        expected = v0 ^ v1 ^ v2 ^ v3;
-        break;
-      default:
-        fail("Unsupported logical binop " + op);
+    LogicalOperatorTestData(String op, int[] values) {
+      this.op = op;
+      this.values = values;
+
+      int v0 = values[0];
+      int v1 = values[1];
+      int v2 = values[2];
+      int v3 = values[3];
+
+      switch (op) {
+        case "and":
+          this.expected = v0 & v1 & v2 & v3;
+          break;
+        case "or":
+          this.expected = v0 | v1 | v2 | v3;
+          break;
+        case "xor":
+          this.expected = v0 ^ v1 ^ v2 ^ v3;
+          break;
+        default:
+          this.expected = 0;
+          fail("Unsupported logical binop " + op);
+      }
     }
+  }
 
-    DexEncodedMethod method = oneMethodApplication(
-        "int", Collections.singletonList("int"),
+  private void logicalOperatorMethodBuilder(SmaliBuilder builder, String name, Object parameters) {
+    LogicalOperatorTestData test = (LogicalOperatorTestData) parameters;
+    builder.addStaticMethod(
+        "int", name, Collections.singletonList("int"),
         4,
-        "    const v0, " + v0,
-        "    const v1, " + v1,
-        "    const v2, " + v2,
-        "    const v3, " + v3,
+        "    const v0, " + test.values[0],
+        "    const v1, " + test.values[1],
+        "    const v2, " + test.values[2],
+        "    const v3, " + test.values[3],
         // E.g. and-int//2addr v1, v0
-        "    " + op + "-int/2addr v1, v0    ",
-        "    " + op + "-int/2addr v2, v1    ",
-        "    " + op + "-int/2addr v3, v2    ",
-        "    return v3\n                    "
-    );
+        "    " + test.op + "-int/2addr v1, v0    ",
+        "    " + test.op + "-int/2addr v2, v1    ",
+        "    " + test.op + "-int/2addr v3, v2    ",
+        "    return v3\n                    ");
+  }
+
+  private void logicalOperatorMethodChecker(DexEncodedMethod method, Object parameters) {
+    LogicalOperatorTestData test = (LogicalOperatorTestData) parameters;
     DexCode code = method.getCode().asDexCode();
     // Test that this just returns a constant.
     assertEquals(2, code.instructions.length);
-    assertConstValue(expected, code.instructions[0]);
+    assertConstValue(test.expected, code.instructions[0]);
     assertTrue(code.instructions[1] instanceof Return);
   }
 
@@ -390,9 +404,12 @@ public class ConstantFoldingTest extends SmaliTestBase {
     };
 
     for (int[] values : testValues) {
-      testLogicalOperatorsFolding("and", values);
-      testLogicalOperatorsFolding("or", values);
-      testLogicalOperatorsFolding("xor", values);
+      for (String op : new String[]{"and", "or", "xor"}) {
+        testBuilder.addTest(
+            this::logicalOperatorMethodBuilder,
+            this::logicalOperatorMethodChecker,
+            new LogicalOperatorTestData(op, values));
+      }
     }
   }
 
