@@ -611,8 +611,7 @@ public abstract class R8RunArtTestsTest {
               TestCondition.match(TestCondition.runtimes(DexVm.Version.V4_4_4)))
           // Unsatisfiable link error:
           // libarttest.so: undefined symbol: _ZN3art6Thread18RunEmptyCheckpointEv
-          .put(
-              "543-env-long-ref",
+          .put("543-env-long-ref",
               TestCondition.match(
                   TestCondition.D8_COMPILER,
                   TestCondition
@@ -625,20 +624,23 @@ public abstract class R8RunArtTestsTest {
           // running the R8 generated code when starting from jar or from dex code generated with
           // dx. However, the code that R8 generates is valid and there is nothing we can do for
           // this one.
-          .put(
-              "551-implicit-null-checks",
+          .put("551-implicit-null-checks",
               TestCondition.match(
                   TestCondition.tools(DexTool.NONE, DexTool.DX),
                   TestCondition.R8_COMPILER,
                   TestCondition.runtimes(DexVm.Version.V5_1_1)))
           // Contains a method (B.<init>) which pass too few arguments to invoke. Also, contains an
           // iput on a static field.
-          .put(
-              "600-verifier-fails",
+          .put("600-verifier-fails",
               TestCondition.match(
                   TestCondition.D8_COMPILER,
                   TestCondition.runtimes(DexVm.Version.V7_0_0, DexVm.Version.V6_0_1,
                       DexVm.Version.V5_1_1)))
+          // Dalvik does some half baked call target verification, which only triggers after we did
+          // some inlining. The generated code is correct and hence runs on newer versions.
+          .put("077-method-override",
+              TestCondition.match(TestCondition.R8_COMPILER,
+                  TestCondition.runtimes(DexVm.Version.V4_4_4)))
           .build();
 
   // Tests where the output of R8/D8 runs in Art but produces different output than the expected.txt

@@ -98,8 +98,7 @@ public class LensCodeRewriter {
           DexMethod actualTarget = graphLense.lookupMethod(invokedMethod, method);
           Invoke.Type invokeType = getInvokeType(invoke, actualTarget, invokedMethod);
           if (actualTarget != invokedMethod || invoke.getType() != invokeType) {
-            Invoke newInvoke = Invoke
-                .create(invokeType, actualTarget, null,
+            Invoke newInvoke = Invoke.create(invokeType, actualTarget, null,
                     invoke.outValue(), invoke.inValues());
             iterator.replaceCurrentInstruction(newInvoke);
             // Fix up the return type if needed.
@@ -232,6 +231,8 @@ public class LensCodeRewriter {
       InvokeMethod invoke,
       DexMethod actualTarget,
       DexMethod originalTarget) {
+    // We might move methods from interfaces to classes and vice versa. So we have to support
+    // fixing the invoke kind, yet only if it was correct to start with.
     if (invoke.isInvokeVirtual() || invoke.isInvokeInterface()) {
       // Get the invoke type of the actual definition.
       DexClass newTargetClass = appInfo.definitionFor(actualTarget.holder);
@@ -239,8 +240,8 @@ public class LensCodeRewriter {
         return invoke.getType();
       } else {
         DexClass originalTargetClass = appInfo.definitionFor(originalTarget.holder);
-        if ((originalTargetClass != null && originalTargetClass.isInterface())
-            ^ (invoke.getType() == Type.INTERFACE)) {
+        if (originalTargetClass != null
+            && (originalTargetClass.isInterface() ^ (invoke.getType() == Type.INTERFACE))) {
           // The invoke was wrong to start with, so we keep it wrong. This is to ensure we get
           // the IncompatibleClassChangeError the original invoke would have triggered.
           return newTargetClass.accessFlags.isInterface()
