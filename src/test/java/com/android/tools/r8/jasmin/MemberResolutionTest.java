@@ -8,7 +8,7 @@ import static java.util.Collections.emptyList;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.VmTestRunner;
-import com.android.tools.r8.VmTestRunner.IgnoreIfVmOlderOrEqualThan;
+import com.android.tools.r8.VmTestRunner.IgnoreForRangeOfVmVersions;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassFileVersion;
 import com.android.tools.r8.utils.ThrowingBiFunction;
@@ -173,7 +173,7 @@ public class MemberResolutionTest extends JasminTestBase {
   }
 
   @Test
-  @IgnoreIfVmOlderOrEqualThan(version = Version.V7_0_0)
+  @IgnoreForRangeOfVmVersions(from = Version.V5_1_1, to = Version.V7_0_0)
   public void lookupVirtualMethodWithConflictingPrivate() throws Exception {
     JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_5);
 
@@ -210,7 +210,7 @@ public class MemberResolutionTest extends JasminTestBase {
   }
 
   @Test
-  @IgnoreIfVmOlderOrEqualThan(version = Version.V7_0_0)
+  @IgnoreForRangeOfVmVersions(from = Version.V5_1_1, to = Version.V7_0_0)
   public void lookupDirectMethodFromWrongContext() throws Exception {
     JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_5);
 
@@ -283,7 +283,7 @@ public class MemberResolutionTest extends JasminTestBase {
   }
 
   @Test
-  @IgnoreIfVmOlderOrEqualThan(version = Version.V7_0_0)
+  @IgnoreForRangeOfVmVersions(from = Version.V5_1_1, to = Version.V7_0_0)
   public void lookupStaticMethodWithConflictingVirtual() throws Exception {
     JasminBuilder builder = new JasminBuilder();
 
@@ -320,7 +320,7 @@ public class MemberResolutionTest extends JasminTestBase {
   }
 
   @Test
-  @IgnoreIfVmOlderOrEqualThan(version = Version.V7_0_0)
+  @IgnoreForRangeOfVmVersions(from = Version.V5_1_1, to = Version.V7_0_0)
   public void lookupVirtualMethodWithConflictingStatic() throws Exception {
     JasminBuilder builder = new JasminBuilder();
 
@@ -357,7 +357,7 @@ public class MemberResolutionTest extends JasminTestBase {
   }
 
   @Test
-  @IgnoreIfVmOlderOrEqualThan(version = Version.V7_0_0)
+  @IgnoreForRangeOfVmVersions(from = Version.V5_1_1, to = Version.V7_0_0)
   public void testInterfaceWithDifferentSuper() throws Exception {
     JasminBuilder builder = new JasminBuilder();
 
