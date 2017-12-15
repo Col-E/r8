@@ -41,8 +41,6 @@ public class R8Command extends BaseCompilerCommand {
     private Optional<Boolean> treeShaking = Optional.empty();
     private Optional<Boolean> discardedChecker = Optional.empty();
     private Optional<Boolean> minification = Optional.empty();
-    private boolean ignoreMissingClassesWhenNotShrinking = false;
-    private boolean ignoreMissingClasses = false;
     private boolean forceProguardCompatibility = false;
     private Path proguardMapOutput = null;
     protected Path proguardCompatibilityRulesOutput = null;
@@ -51,12 +49,9 @@ public class R8Command extends BaseCompilerCommand {
       setMode(CompilationMode.RELEASE);
     }
 
-    protected Builder(boolean forceProguardCompatibility,
-        boolean ignoreMissingClassesWhenNotShrinking, boolean ignoreMissingClasses) {
+    protected Builder(boolean forceProguardCompatibility) {
       setMode(CompilationMode.RELEASE);
       this.forceProguardCompatibility = forceProguardCompatibility;
-      this.ignoreMissingClassesWhenNotShrinking = ignoreMissingClassesWhenNotShrinking;
-      this.ignoreMissingClasses = ignoreMissingClasses;
     }
 
     protected Builder(DiagnosticsHandler diagnosticsHandler) {
@@ -196,16 +191,6 @@ public class R8Command extends BaseCompilerCommand {
       return self();
     }
 
-    /**
-     * Deprecated flag to avoid failing if classes are missing during compilation.
-     *
-     * <p>TODO: Make compilation safely assume this flag to be true and remove the flag.
-     */
-    Builder setIgnoreMissingClasses(boolean ignoreMissingClasses) {
-      this.ignoreMissingClasses = ignoreMissingClasses;
-      return self();
-    }
-
     public Builder setProguardMapOutput(Path path) {
       this.proguardMapOutput = path;
       return self();
@@ -313,9 +298,7 @@ public class R8Command extends BaseCompilerCommand {
               useTreeShaking,
               useDiscardedChecker,
               useMinification,
-              ignoreMissingClasses,
               forceProguardCompatibility,
-              ignoreMissingClassesWhenNotShrinking,
               proguardMapConsumer,
               proguardCompatibilityRulesOutput);
 
@@ -361,9 +344,7 @@ public class R8Command extends BaseCompilerCommand {
   private final boolean useTreeShaking;
   private final boolean useDiscardedChecker;
   private final boolean useMinification;
-  private final boolean ignoreMissingClasses;
   private final boolean forceProguardCompatibility;
-  private final boolean ignoreMissingClassesWhenNotShrinking;
   private final StringConsumer proguardMapConsumer;
   private final Path proguardCompatibilityRulesOutput;
 
@@ -474,8 +455,6 @@ public class R8Command extends BaseCompilerCommand {
         builder.setMainDexListOutputPath(Paths.get(args[++i]));
       } else if (arg.equals("--pg-conf")) {
         builder.addProguardConfigurationFiles(Paths.get(args[++i]));
-      } else if (arg.equals("--ignore-missing-classes")) {
-        builder.setIgnoreMissingClasses(true);
       } else if (arg.equals("--pg-map-output")) {
         builder.setProguardMapOutput(Paths.get(args[++i]));
       } else if (arg.startsWith("@")) {
@@ -525,9 +504,7 @@ public class R8Command extends BaseCompilerCommand {
       boolean useTreeShaking,
       boolean useDiscardedChecker,
       boolean useMinification,
-      boolean ignoreMissingClasses,
       boolean forceProguardCompatibility,
-      boolean ignoreMissingClassesWhenNotShrinking,
       StringConsumer proguardMapConsumer,
       Path proguardCompatibilityRulesOutput) {
     super(inputApp, mode, programConsumer, outputOptions, minApiLevel, reporter, enableDesugaring);
@@ -539,9 +516,7 @@ public class R8Command extends BaseCompilerCommand {
     this.useTreeShaking = useTreeShaking;
     this.useDiscardedChecker = useDiscardedChecker;
     this.useMinification = useMinification;
-    this.ignoreMissingClasses = ignoreMissingClasses;
     this.forceProguardCompatibility = forceProguardCompatibility;
-    this.ignoreMissingClassesWhenNotShrinking = ignoreMissingClassesWhenNotShrinking;
     this.proguardMapConsumer = proguardMapConsumer;
     this.proguardCompatibilityRulesOutput = proguardCompatibilityRulesOutput;
   }
@@ -554,9 +529,7 @@ public class R8Command extends BaseCompilerCommand {
     useTreeShaking = false;
     useDiscardedChecker = false;
     useMinification = false;
-    ignoreMissingClasses = false;
     forceProguardCompatibility = false;
-    ignoreMissingClassesWhenNotShrinking = false;
     proguardMapConsumer = null;
     proguardCompatibilityRulesOutput = null;
   }
@@ -595,10 +568,7 @@ public class R8Command extends BaseCompilerCommand {
     assert internal.useDiscardedChecker;
     internal.useDiscardedChecker = useDiscardedChecker();
     assert !internal.ignoreMissingClasses;
-    internal.ignoreMissingClasses = ignoreMissingClasses;
-    internal.ignoreMissingClasses |= proguardConfiguration.isIgnoreWarnings();
-    internal.ignoreMissingClasses |=
-        ignoreMissingClassesWhenNotShrinking && !proguardConfiguration.isShrinking();
+    internal.ignoreMissingClasses = proguardConfiguration.isIgnoreWarnings();
 
     assert !internal.verbose;
     internal.mainDexKeepRules = mainDexKeepRules;

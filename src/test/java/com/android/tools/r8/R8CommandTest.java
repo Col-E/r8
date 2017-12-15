@@ -77,16 +77,18 @@ public class R8CommandTest {
   public void defaultOutIsCwd() throws Throwable {
     Path working = temp.getRoot().toPath();
     Path input = Paths.get(EXAMPLES_BUILD_DIR, "arithmetic.jar").toAbsolutePath();
+    Path library = Paths.get(ToolHelper.getDefaultAndroidJar());
     Path output = working.resolve("classes.dex");
     assertFalse(Files.exists(output));
-    ProcessResult result = ToolHelper.forkR8(working, input.toString());
+    ProcessResult result =
+        ToolHelper.forkR8(working, input.toString(), "--lib", library.toAbsolutePath().toString());
     assertEquals("R8 run failed: " + result.stderr, 0, result.exitCode);
     assertTrue(Files.exists(output));
   }
 
   @Test
   public void printsHelpOnNoInput() throws Throwable {
-    ProcessResult result = ToolHelper.forkR8NoIgnoreMissing(temp.getRoot().toPath());
+    ProcessResult result = ToolHelper.forkR8(temp.getRoot().toPath());
     assertFalse(result.exitCode == 0);
     assertTrue(result.stderr.contains("Usage"));
     assertFalse(result.stderr.contains("R8_foobar")); // Sanity check
@@ -200,7 +202,13 @@ public class R8CommandTest {
     }
     Path input = Paths.get(EXAMPLES_BUILD_DIR, "arithmetic.jar");
     ProcessResult result =
-        ToolHelper.forkR8(Paths.get("."), input.toString(), "--output", existingDir.toString());
+        ToolHelper.forkR8(
+            Paths.get("."),
+            input.toString(),
+            "--output",
+            existingDir.toString(),
+            "--lib",
+            ToolHelper.getDefaultAndroidJar());
     assertEquals(0, result.exitCode);
     assertTrue(Files.exists(classesFiles.get(0)));
     for (int i = 1; i < classesFiles.size(); i++) {

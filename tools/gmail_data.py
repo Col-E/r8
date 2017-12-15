@@ -21,7 +21,6 @@ VERSIONS = {
       'inputs': [os.path.join(V170604_16_BASE, 'Gmail_release_unsigned.apk')],
       'pgmap': '%s_proguard.map' % V170604_16_PREFIX,
       'libraries' : [ANDROID_JAR],
-      'r8-flags': '--ignore-missing-classes',
     },
     'deploy' : {
       'inputs': ['%s_deploy.jar' % V170604_16_PREFIX],
