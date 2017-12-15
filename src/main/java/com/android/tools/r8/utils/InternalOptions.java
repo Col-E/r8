@@ -195,11 +195,12 @@ public class InternalOptions {
     }
   }
 
-  private Map<Origin, List<TypeVersionPair>> missingEnclosingMembers;
+  private Map<Origin, List<TypeVersionPair>> missingEnclosingMembers = new HashMap<>();
 
-  private Map<Origin, List<InvalidParameterAnnotationInfo>> warningInvalidParameterAnnotations;
+  private Map<Origin, List<InvalidParameterAnnotationInfo>> warningInvalidParameterAnnotations
+      = new HashMap<>();
 
-  private Map<Origin, List<DexEncodedMethod>> warningInvalidDebugInfo;
+  private Map<Origin, List<DexEncodedMethod>> warningInvalidDebugInfo = new HashMap<>();
 
   // Don't read code from dex files. Used to extract non-code information from vdex files where
   // the code contains unsupported byte codes.
@@ -224,35 +225,32 @@ public class InternalOptions {
   public Path proguardCompatibilityRulesOutput = null;
 
   public void warningMissingEnclosingMember(DexType clazz, Origin origin, int version) {
-    if (missingEnclosingMembers == null) {
-      missingEnclosingMembers = new HashMap<>();
+    TypeVersionPair pair = new TypeVersionPair(version, clazz);
+    synchronized (missingEnclosingMembers) {
+      missingEnclosingMembers.computeIfAbsent(origin, k -> new ArrayList<>()).add(pair);
     }
-    missingEnclosingMembers.computeIfAbsent(origin, k -> new ArrayList<>()).add(
-        new TypeVersionPair(version, clazz));
   }
 
   public void warningInvalidParameterAnnotations(
       DexMethod method, Origin origin, int expected, int actual) {
-    if (warningInvalidParameterAnnotations == null) {
-      warningInvalidParameterAnnotations = new HashMap<>();
+    InvalidParameterAnnotationInfo info =
+        new InvalidParameterAnnotationInfo(method, expected, actual);
+    synchronized (warningInvalidParameterAnnotations) {
+      warningInvalidParameterAnnotations.computeIfAbsent(origin, k -> new ArrayList<>()).add(info);
     }
-    warningInvalidParameterAnnotations
-        .computeIfAbsent(origin, k -> new ArrayList<>())
-        .add(new InvalidParameterAnnotationInfo(method, expected, actual));
   }
 
   public void warningInvalidDebugInfo(
       DexEncodedMethod method, Origin origin, InvalidDebugInfoException e) {
-    if (warningInvalidDebugInfo == null) {
-      warningInvalidDebugInfo = new HashMap<>();
+    synchronized (warningInvalidDebugInfo) {
+      warningInvalidDebugInfo.computeIfAbsent(origin, k -> new ArrayList<>()).add(method);
     }
-    warningInvalidDebugInfo.computeIfAbsent(origin, k -> new ArrayList<>()).add(method);
   }
 
   public boolean printWarnings() {
     boolean printed = false;
     boolean printOutdatedToolchain = false;
-    if (warningInvalidParameterAnnotations != null) {
+    if (warningInvalidParameterAnnotations.size() > 0) {
       // TODO(b/67626202): Add a regression test with a program that hits this issue.
       reporter.warning(
           new StringDiagnostic(
@@ -274,7 +272,7 @@ public class InternalOptions {
       }
       printed = true;
     }
-    if (warningInvalidDebugInfo != null) {
+    if (warningInvalidDebugInfo.size() > 0) {
       int count = 0;
       for (List<DexEncodedMethod> methods : warningInvalidDebugInfo.values()) {
         count += methods.size();
@@ -294,7 +292,7 @@ public class InternalOptions {
       printed = true;
       printOutdatedToolchain = true;
     }
-    if (missingEnclosingMembers != null) {
+    if (missingEnclosingMembers.size() > 0) {
       reporter.warning(
           new StringDiagnostic(
               "InnerClass annotations are missing corresponding EnclosingMember annotations."
