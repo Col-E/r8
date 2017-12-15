@@ -639,7 +639,7 @@ public abstract class R8RunArtTestsTest {
           // Dalvik does some half baked call target verification, which only triggers after we did
           // some inlining. The generated code is correct and hence runs on newer versions.
           .put("077-method-override",
-              TestCondition.match(TestCondition.R8_COMPILER,
+              TestCondition.match(TestCondition.compilers(CompilerUnderTest.R8),
                   TestCondition.runtimes(DexVm.Version.V4_4_4)))
           .build();
 
