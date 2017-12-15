@@ -29,8 +29,7 @@ import org.junit.rules.TemporaryFolder;
 
 public class DexMergerTests {
 
-  private static final String CLASS_DIR =
-      ToolHelper.TESTS_BUILD_DIR + "../classes/test/com/android/tools/r8/dexmerger";
+  private static final String CLASS_DIR = ToolHelper.EXAMPLES_BUILD_DIR + "classes/dexmergesample";
   private static final String CLASS1_CLASS = CLASS_DIR + "/Class1.class";
   private static final String CLASS2_CLASS = CLASS_DIR + "/Class2.class";
   private static final int MAX_METHOD_COUNT = Constants.U16BIT_MAX;
@@ -63,7 +62,7 @@ public class DexMergerTests {
     for (String className : new String[] {"Class1", "Class2"}) {
       ArtCommandBuilder builder = new ArtCommandBuilder();
       builder.appendClasspath(outDex.toString());
-      builder.setMainClass("com.android.tools.r8.dexmerger." + className);
+      builder.setMainClass("dexmergesample." + className);
       String out = ToolHelper.runArt(builder);
       assertEquals(out, className + "\n");
     }

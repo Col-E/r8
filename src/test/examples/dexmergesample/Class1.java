@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.dexmerger;
+package dexmergesample;
 
 public class Class1 {
   public static void main(String[] args) {
