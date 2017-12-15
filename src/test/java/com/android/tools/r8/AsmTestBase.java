@@ -3,15 +3,16 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
-import static com.android.tools.r8.ToolHelper.getDefaultAndroidJar;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.FilteredClassPath;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.google.common.io.ByteStreams;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -19,6 +20,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+import org.junit.Assert;
 
 public class AsmTestBase extends TestBase {
 
@@ -29,8 +31,36 @@ public class AsmTestBase extends TestBase {
     ensureExceptionThrown(runOnArtRaw(compileWithD8(app), main), exceptionClass);
     ensureExceptionThrown(runOnArtRaw(compileWithR8(app), main), exceptionClass);
     ensureExceptionThrown(
-        runOnArtRaw(compileWithR8(app, keepMainProguardConfiguration(main)), main),
+        runOnArtRaw(compileWithR8(app, keepMainProguardConfiguration(main) + "-dontobfuscate\n"),
+            main),
         exceptionClass);
+  }
+
+  protected void ensureSameOutput(String main, byte[]... classes) throws Exception {
+    ProcessResult javaResult = runOnJava(main, classes);
+    AndroidApp app = buildAndroidApp(classes);
+    ProcessResult d8Result = runOnArtRaw(compileWithD8(app), main);
+    ProcessResult r8Result = runOnArtRaw(compileWithR8(app), main);
+    ProcessResult r8ShakenResult = runOnArtRaw(
+        compileWithR8(app, keepMainProguardConfiguration(main) + "-dontobfuscate\n"), main);
+    Assert.assertEquals(javaResult.stdout, d8Result.stdout);
+    Assert.assertEquals(javaResult.stdout, r8Result.stdout);
+    Assert.assertEquals(javaResult.stdout, r8ShakenResult.stdout);
+  }
+
+  protected void ensureSameOutputD8R8(String main, byte[]... classes) throws Exception {
+    AndroidApp app = buildAndroidApp(classes);
+    ProcessResult d8Result = runOnArtRaw(compileWithD8(app), main);
+    ProcessResult r8Result = runOnArtRaw(compileWithR8(app), main);
+    ProcessResult r8ShakenResult = runOnArtRaw(
+        compileWithR8(app, keepMainProguardConfiguration(main) + "-dontobfuscate\n"), main);
+    Assert.assertEquals(d8Result.stdout, r8Result.stdout);
+    Assert.assertEquals(d8Result.stdout, r8ShakenResult.stdout);
+  }
+
+  protected byte[] asBytes(Class clazz) throws IOException {
+    return ByteStreams
+        .toByteArray(clazz.getResourceAsStream(clazz.getSimpleName() + ".class"));
   }
 
   private AndroidApp buildAndroidApp(byte[]... classes) throws IOException {
@@ -38,7 +68,8 @@ public class AsmTestBase extends TestBase {
     for (byte[] clazz : classes) {
       builder.addClassProgramData(clazz, Origin.unknown());
     }
-    builder.addLibraryFiles(FilteredClassPath.unfiltered(getDefaultAndroidJar()));
+    builder.addLibraryFiles(
+        FilteredClassPath.unfiltered(ToolHelper.getAndroidJar(AndroidApiLevel.N.getLevel())));
     return builder.build();
   }
 
