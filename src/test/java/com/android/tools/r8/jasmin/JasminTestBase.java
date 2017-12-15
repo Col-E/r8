@@ -114,6 +114,7 @@ public class JasminTestBase extends TestBase {
       throws Exception {
     R8Command command =
         ToolHelper.prepareR8CommandBuilder(program.build())
+            .addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()))
             .addLibraryFiles(library)
             .build();
     return ToolHelper.runR8(command, optionsConsumer);
