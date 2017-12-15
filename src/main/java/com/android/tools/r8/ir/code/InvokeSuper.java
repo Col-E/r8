@@ -32,7 +32,8 @@ public class InvokeSuper extends InvokeMethodWithReceiver {
 
   @Override
   public DexEncodedMethod computeSingleTarget(AppInfoWithSubtyping appInfo) {
-    return appInfo.lookupDirectTarget(getInvokedMethod());
+    // TODO(b/70707023) Use lookupSuperTarget here once fixed.
+    return null;
   }
 
   @Override
