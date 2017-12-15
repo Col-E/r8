@@ -39,17 +39,14 @@ public class R8GMSCoreDeterministicTest extends GMSCoreCompilationTestBase {
         R8Command.builder()
             .addProgramFiles(Paths.get(GMSCORE_V7_DIR, GMSCORE_APK))
             .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
-            .setMinApiLevel(AndroidApiLevel.L.getLevel())
             .build();
     return ToolHelper.runR8(
-        command,
-        options -> {
+        command, options -> {
           // For this test just do random shuffle.
           options.testing.irOrdering = this::shuffle;
           // Only use one thread to process to process in the order decided by the callback.
           options.numberOfThreads = 1;
-          // Ignore the missing classes.
-          options.ignoreMissingClasses = true;
+          options.minApiLevel = AndroidApiLevel.L.getLevel();
         });
   }
 

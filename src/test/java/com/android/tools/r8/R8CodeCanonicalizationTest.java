@@ -6,7 +6,6 @@ package com.android.tools.r8;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.DexFileReader;
 import com.android.tools.r8.dex.Segment;
-import com.android.tools.r8.utils.OutputMode;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -35,13 +34,7 @@ public class R8CodeCanonicalizationTest {
   @Test
   public void testNumberOfCodeItemsUnchanged() throws Exception {
     int numberOfCodes = readNumberOfCodes(Paths.get(ToolHelper.EXAMPLES_BUILD_DIR + SOURCE_DEX));
-    R8.run(
-        R8Command.builder()
-            .addProgramFiles(Paths.get(ToolHelper.EXAMPLES_BUILD_DIR + SOURCE_DEX))
-            .addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()))
-            .setOutput(temp.getRoot().toPath(), OutputMode.DexIndexed)
-            .build());
-
+    ToolHelper.runR8(ToolHelper.EXAMPLES_BUILD_DIR + SOURCE_DEX, temp.getRoot().getCanonicalPath());
     int newNumberOfCodes = readNumberOfCodes(
         Paths.get(temp.getRoot().getCanonicalPath(), "classes.dex"));
     Assert.assertEquals("Number of codeitems does not change.", numberOfCodes, newNumberOfCodes);

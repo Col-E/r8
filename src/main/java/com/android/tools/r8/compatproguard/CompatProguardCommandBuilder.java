@@ -34,8 +34,10 @@ public class CompatProguardCommandBuilder extends R8Command.Builder {
       "}"
   );
 
-  public CompatProguardCommandBuilder(boolean forceProguardCompatibility) {
-    super(forceProguardCompatibility);
+  public CompatProguardCommandBuilder(
+      boolean forceProguardCompatibility,
+      boolean ignoreMissingClasses) {
+    super(forceProguardCompatibility, true, ignoreMissingClasses);
     setIgnoreDexInArchive(true);
     setEnableDesugaring(false);
     addProguardConfiguration(REFLECTIONS, EmbeddedOrigin.INSTANCE);

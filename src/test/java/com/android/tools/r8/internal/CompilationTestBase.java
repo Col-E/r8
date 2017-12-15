@@ -95,7 +95,6 @@ public abstract class CompilationTestBase {
       builder.setMinApiLevel(AndroidApiLevel.L.getLevel());
       builder.addProguardConfigurationConsumer(b -> {
         b.setPrintSeeds(false);
-        b.setIgnoreWarnings(true);
       });
       outputApp = ToolHelper.runR8(builder.build(), optionsConsumer);
     } else {

@@ -57,7 +57,6 @@ public class StaticLibraryValuesChangeTest extends TestBase {
     AndroidApp.Builder builder = AndroidApp.builder();
     builder.addProgramFiles(
         FilteredClassPath.unfiltered(ToolHelper.getClassFileForTestClass(TestMain.class)));
-    builder.addLibraryFiles(FilteredClassPath.unfiltered(ToolHelper.getDefaultAndroidJar()));
     builder.addLibraryResourceProvider(PreloadedClassFileProvider.fromClassData(
         "Lcom/android/tools/r8/rewrite/staticvalues/inlibraries/LibraryClass;",
         compileTimeLibrary.buildClasses().get(0)));

@@ -7,11 +7,10 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
-import com.android.tools.r8.utils.OutputMode;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import java.nio.file.Path;
+import java.io.File;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
@@ -136,14 +135,9 @@ public class R8RunSmaliTestsTest {
 
   @Test
   public void SmaliTest() throws Exception {
-    Path originalDexFile = Paths.get(SMALI_DIR, directoryName, dexFileName);
+    File originalDexFile = Paths.get(SMALI_DIR, directoryName, dexFileName).toFile();
     String outputPath = temp.getRoot().getCanonicalPath();
-    R8.run(
-        R8Command.builder()
-            .addProgramFiles(originalDexFile)
-            .addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()))
-            .setOutput(Paths.get(outputPath), OutputMode.DexIndexed)
-            .build());
+    ToolHelper.runR8(originalDexFile.getCanonicalPath(), outputPath);
 
     if (!ToolHelper.artSupported()) {
       return;

@@ -67,7 +67,8 @@ public class ForceProguardCompatibilityTest extends TestBase {
 
   private void runAnnotationsTest(boolean forceProguardCompatibility, boolean keepAnnotations)
       throws Exception {
-    R8Command.Builder builder = new CompatProguardCommandBuilder(forceProguardCompatibility);
+    R8Command.Builder builder =
+        new CompatProguardCommandBuilder(forceProguardCompatibility, false);
     // Add application classes including the annotation class.
     Class mainClass = TestMain.class;
     Class mentionedClassWithAnnotations = TestMain.MentionedClassWithAnnotation.class;
@@ -112,7 +113,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
   private void runDefaultConstructorTest(boolean forceProguardCompatibility,
       Class<?> testClass, boolean hasDefaultConstructor) throws Exception {
     CompatProguardCommandBuilder builder =
-        new CompatProguardCommandBuilder(forceProguardCompatibility);
+        new CompatProguardCommandBuilder(forceProguardCompatibility, false);
     builder.addProgramFiles(ToolHelper.getClassFileForTestClass(testClass));
     List<String> proguardConfig = ImmutableList.of(
         "-keep class " + testClass.getCanonicalName() + " {",
@@ -167,7 +168,8 @@ public class ForceProguardCompatibilityTest extends TestBase {
   public void testCheckCast(boolean forceProguardCompatibility, Class mainClass,
       Class instantiatedClass, boolean containsCheckCast)
       throws Exception {
-    R8Command.Builder builder = new CompatProguardCommandBuilder(forceProguardCompatibility);
+    R8Command.Builder builder =
+        new CompatProguardCommandBuilder(forceProguardCompatibility, false);
     builder.addProgramFiles(ToolHelper.getClassFileForTestClass(mainClass));
     builder.addProgramFiles(ToolHelper.getClassFileForTestClass(instantiatedClass));
     List<String> proguardConfig = ImmutableList.of(
@@ -214,7 +216,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
   public void testClassForName(
       boolean forceProguardCompatibility, boolean allowObfuscation) throws Exception {
     CompatProguardCommandBuilder builder =
-        new CompatProguardCommandBuilder(forceProguardCompatibility);
+        new CompatProguardCommandBuilder(forceProguardCompatibility, false);
     Class mainClass = TestMainWithClassForName.class;
     Class forNameClass1 = TestClassWithDefaultConstructor.class;
     Class forNameClass2 = TestClassWithoutDefaultConstructor.class;
