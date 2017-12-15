@@ -9,7 +9,6 @@ import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.DexIndexedConsumer.ForwardingConsumer;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.ProgramConsumer;
-import com.android.tools.r8.R8Command;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.origin.Origin;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
@@ -30,11 +29,6 @@ public class AndroidAppConsumers {
   private StringConsumer mainDexListConsumer = null;
   private StringConsumer proguardMapConsumer = null;
   private StringConsumer usageInformationConsumer = null;
-
-  public AndroidAppConsumers(R8Command.Builder builder) {
-    programConsumer = wrapProgramConsumer(builder.getProgramConsumer());
-    builder.setProgramConsumer(programConsumer);
-  }
 
   public AndroidAppConsumers(InternalOptions options) {
     options.programConsumer = wrapProgramConsumer(options.programConsumer);

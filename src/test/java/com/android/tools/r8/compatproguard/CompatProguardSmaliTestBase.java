@@ -18,7 +18,7 @@ class CompatProguardSmaliTestBase extends SmaliTestBase {
       throws Exception {
     Path dexOutputDir = temp.newFolder().toPath();
     R8Command command =
-        new CompatProguardCommandBuilder(true)
+        new CompatProguardCommandBuilder(true, true)
             .addDexProgramData(builder.compile(), Origin.unknown())
             .setOutput(dexOutputDir, OutputMode.DexIndexed)
             .addProguardConfiguration(proguardConfigurations, Origin.unknown())

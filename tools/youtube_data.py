@@ -29,6 +29,7 @@ VERSIONS = {
       'inputs': [os.path.join(V12_10_BASE, 'YouTubeRelease_unsigned.apk')],
       'pgmap': '%s_proguard.map' % V12_10_PREFIX,
       'libraries' : [ANDROID_JAR],
+      'r8-flags': '--ignore-missing-classes',
       'min-api' : ANDROID_L_API,
     },
     'deploy' : {
@@ -48,6 +49,7 @@ VERSIONS = {
       'inputs': [os.path.join(V12_17_BASE, 'YouTubeRelease_unsigned.apk')],
       'pgmap': '%s_proguard.map' % V12_17_PREFIX,
       'libraries' : [ANDROID_JAR],
+      'r8-flags': '--ignore-missing-classes',
       'min-api' : ANDROID_L_API,
     },
     'deploy' : {
@@ -67,6 +69,7 @@ VERSIONS = {
       'inputs': [os.path.join(V12_22_BASE, 'YouTubeRelease_unsigned.apk')],
       'pgmap': '%s_proguard.map' % V12_22_PREFIX,
       'libraries' : [ANDROID_JAR],
+      'r8-flags': '--ignore-missing-classes',
       'min-api' : ANDROID_L_API,
     },
     'deploy' : {

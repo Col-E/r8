@@ -190,7 +190,7 @@ public class R8 {
               });
           if (!options.ignoreMissingClasses) {
             throw new CompilationError(
-                "Compilation can't be completed because some library classes are missing.");
+                "Shrinking can't be performed because some library classes are missing.");
           }
         }
         rootSet =

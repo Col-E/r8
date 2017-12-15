@@ -22,6 +22,7 @@ import com.android.tools.r8.utils.AndroidAppConsumers;
 import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.OutputMode;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.Timing;
@@ -29,6 +30,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import com.google.common.collect.ObjectArrays;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.CharStreams;
 import java.io.File;
@@ -671,6 +673,16 @@ public class ToolHelper {
     }
   }
 
+  public static AndroidApp runR8(AndroidApp app, Path output)
+      throws IOException, CompilationException {
+    assert output != null;
+    try {
+      return runR8(R8Command.builder(app).setOutput(output, OutputMode.DexIndexed).build());
+    } catch (CompilationFailedException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   public static AndroidApp runR8(AndroidApp app, Consumer<InternalOptions> optionsConsumer)
       throws IOException, CompilationException {
     try {
@@ -702,11 +714,37 @@ public class ToolHelper {
               .build();
     }
     InternalOptions options = command.getInternalOptions();
+    // TODO(zerny): Should we really be setting this in ToolHelper?
+    options.ignoreMissingClasses = true;
     if (optionsConsumer != null) {
       optionsConsumer.accept(options);
     }
     AndroidAppConsumers compatSink = new AndroidAppConsumers(options);
     R8.runForTesting(app, options);
+    return compatSink.build();
+  }
+
+  public static AndroidApp runR8(String fileName, String out)
+      throws IOException, CompilationException {
+    return runR8(Collections.singletonList(fileName), out);
+  }
+
+  public static AndroidApp runR8(Collection<String> fileNames, String out)
+      throws IOException, CompilationException {
+    R8Command command;
+    try {
+      command =
+          R8Command.builder()
+              .addProgramFiles(ListUtils.map(fileNames, Paths::get))
+              .setOutput(Paths.get(out), OutputMode.DexIndexed)
+              .setIgnoreMissingClasses(true)
+              .build();
+    } catch (CompilationFailedException e) {
+      throw new RuntimeException(e);
+    }
+    InternalOptions options = command.getInternalOptions();
+    AndroidAppConsumers compatSink = new AndroidAppConsumers(options);
+    R8.runForTesting(command.getInputApp(), options);
     return compatSink.build();
   }
 
@@ -797,6 +835,12 @@ public class ToolHelper {
   }
 
   public static ProcessResult forkR8(Path dir, String... args)
+      throws IOException, InterruptedException {
+    return forkR8NoIgnoreMissing(dir,
+        ObjectArrays.concat(args, "--ignore-missing-classes"));
+  }
+
+  public static ProcessResult forkR8NoIgnoreMissing(Path dir, String... args)
       throws IOException, InterruptedException {
     return forkJava(dir, R8.class, args);
   }
