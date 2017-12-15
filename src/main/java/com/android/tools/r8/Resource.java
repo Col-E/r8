@@ -13,54 +13,58 @@ import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.Set;
 
-/** Represents application resources. */
+/**
+ * Base interface for application resources.
+ *
+ * Resources are inputs to the compilation that are provided from outside sources, e.g., the
+ * command-line interface or API clients such as gradle. Each resource has an associated
+ * {@link Origin} which is some opaque description of where the resource comes from. The D8/R8
+ * compiler does not assume any particular structure of origin and does not rely on it for
+ * compilation. The origin will be provided to diagnostics handlers so that they may detail what
+ * resource was cause of some particular error.
+ *
+ * The D8/R8 compilers uses default implementations for various file-system resources, but the
+ * client is free to provide their own.
+ */
 public interface Resource {
 
   /**
-   * Create an application resource for a given file.
+   * Get the origin of the resource.
    *
-   * <p>The origin of a file resource is the path of the file.
+   * The origin is a description of where the resource originates from. The client is free to define
+   * what that means for a particular resource.
    */
+  Origin getOrigin();
+
+  // Deprecated API: See StringResource and ProgramResource.
+
+  @Deprecated
   static Resource fromFile(Path file) {
     return new FileResource(file);
   }
 
-  /**
-   * Create an application resource for a given content.
-   *
-   * <p>The origin of a byte resource must be supplied upon construction. If no reasonable origin
-   * exits, use {@code Origin.unknown()}.
-   */
+  @Deprecated
   static Resource fromBytes(Origin origin, byte[] bytes) {
     return new ByteResource(origin, bytes);
   }
 
-  /**
-   * Create an application resource for a given content and type descriptor.
-   *
-   * @deprecated Moved class descriptors to ProgramResource.
-   */
   @Deprecated
   static Resource fromBytes(Origin origin, byte[] bytes, Set<String> typeDescriptors) {
     return new ByteResource(origin, bytes, typeDescriptors);
   }
 
-  /** Get the origin of the resource. */
-  Origin getOrigin();
-
-  /** Get the resource as a stream. */
+  @Deprecated
   InputStream getStream() throws IOException;
 
-  /** @deprecated Moved to ProgramResource. */
   @Deprecated
   Set<String> getClassDescriptors();
 
-  /** File-based application resource. */
+  @Deprecated
   class FileResource implements Resource {
     final Origin origin;
     final Path file;
 
-    FileResource(Path file) {
+    private FileResource(Path file) {
       assert file != null;
       origin = new PathOrigin(file);
       this.file = file;
@@ -72,6 +76,7 @@ public interface Resource {
     }
 
     @Override
+    @Deprecated
     public InputStream getStream() throws IOException {
       return new FileInputStream(file.toFile());
     }
@@ -83,13 +88,13 @@ public interface Resource {
     }
   }
 
-  /** Byte-content based application resource. */
+  @Deprecated
   class ByteResource implements Resource {
     final Origin origin;
     final byte[] bytes;
     final Set<String> classDescriptors;
 
-    ByteResource(Origin origin, byte[] bytes) {
+    private ByteResource(Origin origin, byte[] bytes) {
       assert bytes != null;
       this.origin = origin;
       this.bytes = bytes;
@@ -106,6 +111,7 @@ public interface Resource {
     }
 
     @Override
+    @Deprecated
     public InputStream getStream() throws IOException {
       return new ByteArrayInputStream(bytes);
     }

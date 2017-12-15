@@ -14,7 +14,6 @@ import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.origin.Origin;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -29,7 +28,6 @@ public class AndroidAppConsumers {
   private ProgramConsumer programConsumer = null;
   private StringConsumer mainDexListConsumer = null;
   private StringConsumer proguardMapConsumer = null;
-  private StringConsumer usageInformationConsumer = null;
 
   public AndroidAppConsumers(R8Command.Builder builder) {
     programConsumer = wrapProgramConsumer(builder.getProgramConsumer());
@@ -38,10 +36,7 @@ public class AndroidAppConsumers {
 
   public AndroidAppConsumers(InternalOptions options) {
     options.programConsumer = wrapProgramConsumer(options.programConsumer);
-    options.mainDexListConsumer = wrapMainDexListConsumer(options.mainDexListConsumer);
     options.proguardMapConsumer = wrapProguardMapConsumer(options.proguardMapConsumer);
-    options.usageInformationConsumer =
-        wrapUsageInformationConsumer(options.usageInformationConsumer);
   }
 
   private ProgramConsumer wrapProgramConsumer(ProgramConsumer consumer) {
@@ -60,21 +55,6 @@ public class AndroidAppConsumers {
     return programConsumer;
   }
 
-  private StringConsumer wrapMainDexListConsumer(StringConsumer consumer) {
-    assert mainDexListConsumer == null;
-    if (consumer != null) {
-      mainDexListConsumer =
-          new StringConsumer.ForwardingConsumer(consumer) {
-            @Override
-            public void accept(String string, DiagnosticsHandler handler) {
-              super.accept(string, handler);
-              builder.setMainDexListOutputData(string.getBytes(StandardCharsets.UTF_8));
-            }
-          };
-    }
-    return mainDexListConsumer;
-  }
-
   private StringConsumer wrapProguardMapConsumer(StringConsumer consumer) {
     assert proguardMapConsumer == null;
     if (consumer != null) {
@@ -88,21 +68,6 @@ public class AndroidAppConsumers {
           };
     }
     return proguardMapConsumer;
-  }
-
-  private StringConsumer wrapUsageInformationConsumer(StringConsumer consumer) {
-    assert usageInformationConsumer == null;
-    if (consumer != null) {
-      usageInformationConsumer =
-          new StringConsumer.ForwardingConsumer(consumer) {
-            @Override
-            public void accept(String string, DiagnosticsHandler handler) {
-              super.accept(string, handler);
-              builder.setDeadCode(string.getBytes(StandardCharsets.UTF_8));
-            }
-          };
-    }
-    return usageInformationConsumer;
   }
 
   private DexIndexedConsumer wrapDexIndexedConsumer(DexIndexedConsumer consumer) {

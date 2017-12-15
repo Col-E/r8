@@ -35,7 +35,6 @@ public class R8Command extends BaseCompilerCommand {
   public static class Builder extends BaseCompilerCommand.Builder<R8Command, Builder> {
 
     private final List<ProguardConfigurationSource> mainDexRules = new ArrayList<>();
-    private Path mainDexListOutput = null;
     private Consumer<ProguardConfiguration.Builder> proguardConfigurationConsumer = null;
     private final List<ProguardConfigurationSource> proguardConfigs = new ArrayList<>();
     private Optional<Boolean> treeShaking = Optional.empty();
@@ -44,6 +43,8 @@ public class R8Command extends BaseCompilerCommand {
     private boolean forceProguardCompatibility = false;
     private Path proguardMapOutput = null;
     protected Path proguardCompatibilityRulesOutput = null;
+
+    private StringConsumer mainDexListConsumer = null;
 
     private Builder() {
       setMode(CompilationMode.RELEASE);
@@ -132,7 +133,12 @@ public class R8Command extends BaseCompilerCommand {
     }
 
     public Builder setMainDexListOutputPath(Path mainDexListOutputPath) {
-      mainDexListOutput = mainDexListOutputPath;
+      mainDexListConsumer = new StringConsumer.FileConsumer(mainDexListOutputPath);
+      return self();
+    }
+
+    public Builder setMainDexListConsumer(StringConsumer consumer) {
+      mainDexListConsumer = consumer;
       return self();
     }
 
@@ -216,8 +222,9 @@ public class R8Command extends BaseCompilerCommand {
       if (getProgramConsumer() instanceof DexFilePerClassFileConsumer) {
         reporter.error("R8 does not support compiling to a single DEX file per Java class file");
       }
-      if (mainDexListOutput != null && mainDexRules.isEmpty() && !getAppBuilder()
-          .hasMainDexList()) {
+      if (mainDexListConsumer != null
+          && mainDexRules.isEmpty()
+          && !getAppBuilder().hasMainDexList()) {
         reporter.error(
             "Option --main-dex-list-output require --main-dex-rules and/or --main-dex-list");
       }
@@ -274,9 +281,6 @@ public class R8Command extends BaseCompilerCommand {
       boolean useTreeShaking = treeShaking.orElse(configuration.isShrinking());
       boolean useDiscardedChecker = discardedChecker.orElse(true);
       boolean useMinification = minification.orElse(configuration.isObfuscating());
-
-      StringConsumer mainDexListConsumer =
-          mainDexListOutput != null ? new StringConsumer.FileConsumer(mainDexListOutput) : null;
 
       StringConsumer proguardMapConsumer =
           proguardMapOutput != null ? new StringConsumer.FileConsumer(proguardMapOutput) : null;
@@ -462,7 +466,7 @@ public class R8Command extends BaseCompilerCommand {
         Path argsFile = Paths.get(arg.substring(1));
         Origin argsFileOrigin = new PathOrigin(argsFile);
         try {
-          List<String> linesInFile = FileUtils.readTextFile(argsFile);
+          List<String> linesInFile = FileUtils.readAllLines(argsFile);
           List<String> argsInFile = new ArrayList<>();
           for (String line : linesInFile) {
             for (String word : line.split("\\s")) {

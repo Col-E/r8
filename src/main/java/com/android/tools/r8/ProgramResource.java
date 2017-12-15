@@ -4,16 +4,26 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.origin.PathOrigin;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Set;
 
-/** Represents program application resources. */
-public class ProgramResource implements Resource {
+/**
+ * Represents program application resources.
+ *
+ * The content kind or format of a program resource can be either a Java class-file or an Android
+ * DEX file. In both cases, the resource must be able to provide the content as a byte stream.
+ * A resource may optionally include a set describing the class descriptors for each type that is
+ * defined by the resource.
+ */
+public interface ProgramResource extends Resource {
 
   /** Type of program-format kinds. */
-  public enum Kind {
+  enum Kind {
     /** Format-kind for Java class-file resources. */
     CF,
     /** Format-kind for Android dex-file resources. */
@@ -25,59 +35,121 @@ public class ProgramResource implements Resource {
    *
    * <p>The origin of a file resource is the path of the file.
    */
-  public static ProgramResource fromFile(Kind kind, Path file) {
-    return new ProgramResource(kind, Resource.fromFile(file), null);
+  static ProgramResource fromFile(Kind kind, Path file) {
+    return new FileResource(kind, file, null);
   }
 
   /**
    * Create a program resource for a given type, content and type descriptor.
    *
-   * <p>The origin of a byte resource must be supplied upon construction. If no reasonable origin
+   * <p>The origin must be supplied upon construction. If no reasonable origin
    * exits, use {@code Origin.unknown()}.
    */
-  public static ProgramResource fromBytes(
-      Kind kind, Origin origin, byte[] bytes, Set<String> typeDescriptors) {
-    return new ProgramResource(kind, Resource.fromBytes(origin, bytes), typeDescriptors);
-  }
-
-  private final Kind kind;
-  private final Resource resource;
-  private final Set<String> classDescriptors;
-
-  public ProgramResource(Kind kind, Resource resource, Set<String> classDescriptors) {
-    assert !(resource instanceof ProgramResource);
-    this.kind = kind;
-    this.resource = resource;
-    this.classDescriptors = classDescriptors;
-  }
-
-  @Deprecated
-  public ProgramResource(Kind kind, Resource resource) {
-    this(kind, resource, resource.getClassDescriptors());
+  static ProgramResource fromBytes(
+      Origin origin, Kind kind, byte[] bytes, Set<String> typeDescriptors) {
+    return new ByteResource(origin, kind, bytes, typeDescriptors);
   }
 
   /** Get the program format-kind of the resource. */
-  public Kind getKind() {
-    return kind;
-  }
+  Kind getKind();
 
-  @Override
-  public Origin getOrigin() {
-    return resource.getOrigin();
-  }
-
-  @Override
-  public InputStream getStream() throws IOException {
-    return resource.getStream();
-  }
+  /** Get the bytes of the program resource. */
+  InputStream getByteStream() throws ResourceException;
 
   /**
    * Get the set of class descriptors for classes defined by this resource.
    *
    * <p>This is not deprecated and will remain after Resource::getClassDescriptors is removed.
+   *
+   * @return Set of class descriptors defined by the resource or null if unknown.
    */
   @Override // Need to keep this to not trip up error prone until the base method is gone.
-  public Set<String> getClassDescriptors() {
-    return classDescriptors;
+  Set<String> getClassDescriptors();
+
+  /** File-based program resource. */
+  class FileResource implements ProgramResource {
+    private final Origin origin;
+    private final Kind kind;
+    private final Path file;
+    private final Set<String> classDescriptors;
+
+    private FileResource(Kind kind, Path file, Set<String> classDescriptors) {
+      this.origin = new PathOrigin(file);
+      this.kind = kind;
+      this.file = file;
+      this.classDescriptors = classDescriptors;
+    }
+
+    @Override
+    public Origin getOrigin() {
+      return origin;
+    }
+
+    @Override
+    public Kind getKind() {
+      return kind;
+    }
+
+    @Override
+    public InputStream getByteStream() throws ResourceException {
+      try {
+        return Files.newInputStream(file);
+      } catch (IOException e) {
+        throw new ResourceException(getOrigin(), e);
+      }
+    }
+
+    @Override
+    public Set<String> getClassDescriptors() {
+      return classDescriptors;
+    }
+
+    @Override
+    @Deprecated
+    public InputStream getStream() throws IOException {
+      return Files.newInputStream(file);
+    }
+  }
+
+  /** Byte-content based program resource. */
+  class ByteResource implements ProgramResource {
+    private final Origin origin;
+    private final Kind kind;
+    private final byte[] bytes;
+    private final Set<String> classDescriptors;
+
+    private ByteResource(Origin origin, Kind kind, byte[] bytes, Set<String> classDescriptors) {
+      assert bytes != null;
+      this.origin = origin;
+      this.kind = kind;
+      this.bytes = bytes;
+      this.classDescriptors = classDescriptors;
+    }
+
+    @Override
+    public Origin getOrigin() {
+      return origin;
+    }
+
+    @Override
+    public Kind getKind() {
+      return kind;
+    }
+
+    @Override
+    public InputStream getByteStream() throws ResourceException {
+      return new ByteArrayInputStream(bytes);
+    }
+
+    @Override
+    public Set<String> getClassDescriptors() {
+      return classDescriptors;
+    }
+
+    @Override
+    @Deprecated
+    public InputStream getStream() throws IOException {
+      return new ByteArrayInputStream(bytes);
+    }
   }
 }

@@ -15,6 +15,7 @@ import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.R8Command;
+import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationWriter;
@@ -143,6 +144,10 @@ public class MainDexListTests extends TestBase {
     return generatedApplicationsFolder.getRoot().toPath().resolve("many-classes-stereo-forced.zip");
   }
 
+  private static Set<DexType> parse(Path path, DexItemFactory itemFactory) throws IOException {
+    return MainDexList.parseList(StringResource.fromFile(path), itemFactory);
+  }
+
   @Rule
   public ExpectedException thrown = ExpectedException.none();
 
@@ -231,11 +236,11 @@ public class MainDexListTests extends TestBase {
     DexItemFactory factory = new DexItemFactory();
     Path mainDexList = temp.getRoot().toPath().resolve("valid.txt");
     FileUtils.writeTextFile(mainDexList, list);
-    Set<DexType> types = MainDexList.parse(mainDexList, factory);
+    Set<DexType> types = parse(mainDexList, factory);
     for (String entry : list) {
       DexType type = factory.createType("L" + entry.replace(".class", "") + ";");
       assertTrue(types.contains(type));
-      assertSame(type, MainDexList.parse(entry, factory));
+      assertSame(type, MainDexList.parseEntry(entry, factory));
     }
   }
 
@@ -249,17 +254,16 @@ public class MainDexListTests extends TestBase {
     DexItemFactory factory = new DexItemFactory();
     Path mainDexList = temp.getRoot().toPath().resolve("valid.txt");
     FileUtils.writeTextFile(mainDexList, list);
-    Set<DexType> types = MainDexList.parse(mainDexList, factory);
+    Set<DexType> types = parse(mainDexList, factory);
     assertEquals(2, types.size());
   }
 
-  @Test
+  @Test(expected = CompilationError.class)
   public void invalidQualifiedEntry() throws IOException {
-    thrown.expect(CompilationError.class);
     DexItemFactory factory = new DexItemFactory();
     Path mainDexList = temp.getRoot().toPath().resolve("invalid.txt");
     FileUtils.writeTextFile(mainDexList, ImmutableList.of("a.b.c.D.class"));
-    MainDexList.parse(mainDexList, factory);
+    parse(mainDexList, factory);
   }
 
   private Path runD8WithMainDexList(
