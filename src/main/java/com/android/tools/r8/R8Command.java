@@ -568,7 +568,9 @@ public class R8Command extends BaseCompilerCommand {
     assert internal.useDiscardedChecker;
     internal.useDiscardedChecker = useDiscardedChecker();
     assert !internal.ignoreMissingClasses;
-    internal.ignoreMissingClasses = proguardConfiguration.isIgnoreWarnings();
+    internal.ignoreMissingClasses = proguardConfiguration.isIgnoreWarnings()
+        // TODO(sgjesse): Remove this or find a better way of supporting proguard compat.
+        || forceProguardCompatibility;
 
     assert !internal.verbose;
     internal.mainDexKeepRules = mainDexKeepRules;
