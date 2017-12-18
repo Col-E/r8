@@ -134,7 +134,8 @@ public class ApplicationWriter {
       distributor = new VirtualFile.FilePerInputClassDistributor(this);
     } else if (!options.canUseMultidex()
         && options.mainDexKeepRules.isEmpty()
-        && application.mainDexList.isEmpty()) {
+        && application.mainDexList.isEmpty()
+        && options.enableMainDexListCheck) {
       distributor = new VirtualFile.MonoDexDistributor(this, options);
     } else {
       distributor = new VirtualFile.FillFilesDistributor(this, options);
