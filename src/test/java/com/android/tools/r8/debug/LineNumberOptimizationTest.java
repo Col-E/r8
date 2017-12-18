@@ -20,6 +20,11 @@ public class LineNumberOptimizationTest extends DebugTestBase {
     20, 7, 8, 28, 29, 9, 21, 12, 13, 22, 16, 17
   };
   private static final int[] OPTIMIZED_LINE_NUMBERS = {1, 1, 2, 1, 2, 1, 2, 3, 2, 3, 4, 3};
+  private static final String CLASS1 = "LineNumberOptimization1";
+  private static final String CLASS2 = "LineNumberOptimization2";
+  private static final String FILE1 = CLASS1 + ".java";
+  private static final String FILE2 = CLASS2 + ".java";
+  private static final String MAIN_SIGNATURE = "([Ljava/lang/String;)V";
 
   private static DebugTestConfig makeConfig(
       LineNumberOptimization lineNumberOptimization,
@@ -59,94 +64,126 @@ public class LineNumberOptimizationTest extends DebugTestBase {
 
   @Test
   public void testNotOptimized() throws Throwable {
-    test(makeConfig(LineNumberOptimization.OFF, false, false), ORIGINAL_LINE_NUMBERS);
+    testRelease(makeConfig(LineNumberOptimization.OFF, false, false), ORIGINAL_LINE_NUMBERS);
   }
 
   @Test
   public void testNotOptimizedWithMap() throws Throwable {
-    test(makeConfig(LineNumberOptimization.OFF, true, false), ORIGINAL_LINE_NUMBERS);
+    testRelease(makeConfig(LineNumberOptimization.OFF, true, false), ORIGINAL_LINE_NUMBERS);
   }
 
   @Test
   public void testNotOptimizedByEnablingDebug() throws Throwable {
-    // TODO(tamaskenez) Investigate b/70779388 about the difference between release and debug modes.
-    test(makeConfig(LineNumberOptimization.OFF, false, true), ORIGINAL_LINE_NUMBERS_DEBUG, true);
+    testDebug(makeConfig(LineNumberOptimization.OFF, false, true), ORIGINAL_LINE_NUMBERS_DEBUG);
   }
 
   @Test
   public void testNotOptimizedByEnablingDebugWithMap() throws Throwable {
-    test(makeConfig(LineNumberOptimization.OFF, true, true), ORIGINAL_LINE_NUMBERS_DEBUG, true);
+    testDebug(makeConfig(LineNumberOptimization.OFF, true, true), ORIGINAL_LINE_NUMBERS_DEBUG);
   }
 
   @Test
   public void testOptimized() throws Throwable {
-    test(makeConfig(LineNumberOptimization.ON, false, false), OPTIMIZED_LINE_NUMBERS);
+    testRelease(makeConfig(LineNumberOptimization.ON, false, false), OPTIMIZED_LINE_NUMBERS);
   }
 
   @Test
   public void testOptimizedWithMap() throws Throwable {
-    test(makeConfig(LineNumberOptimization.ON, true, false), ORIGINAL_LINE_NUMBERS);
+    testRelease(makeConfig(LineNumberOptimization.ON, true, false), ORIGINAL_LINE_NUMBERS);
   }
 
-  private void test(DebugTestConfig config, int[] lineNumbers) throws Throwable {
-    test(config, lineNumbers, false);
-  }
-
-  private void test(DebugTestConfig config, int[] lineNumbers, boolean debug) throws Throwable {
-    final String class1 = "LineNumberOptimization1";
-    final String class2 = "LineNumberOptimization2";
-    final String file1 = class1 + ".java";
-    final String file2 = class2 + ".java";
-    final String mainSignature = "([Ljava/lang/String;)V";
-
+  private void testDebug(DebugTestConfig config, int[] lineNumbers) throws Throwable {
     runDebugTest(
         config,
-        class1,
-        breakpoint(class1, "main", mainSignature),
+        CLASS1,
+        breakpoint(CLASS1, "main", MAIN_SIGNATURE),
         run(),
-        checkMethod(class1, "main", mainSignature),
-        checkLine(file1, lineNumbers[0]),
+        checkMethod(CLASS1, "main", MAIN_SIGNATURE),
+        checkLine(FILE1, lineNumbers[0]),
         stepInto(),
-        checkMethod(class1, "callThisFromSameFile", "()V"),
-        checkLine(file1, lineNumbers[1]),
+        checkMethod(CLASS1, "callThisFromSameFile", "()V"),
+        checkLine(FILE1, lineNumbers[1]),
         stepOver(),
-        checkMethod(class1, "callThisFromSameFile", "()V"),
-        checkLine(file1, lineNumbers[2]),
+        checkMethod(CLASS1, "callThisFromSameFile", "()V"),
+        checkLine(FILE1, lineNumbers[2]),
         stepInto(INTELLIJ_FILTER),
-        checkMethod(class2, "callThisFromAnotherFile", "()V"),
-        checkLine(file2, lineNumbers[3]),
+        checkMethod(CLASS2, "callThisFromAnotherFile", "()V"),
+        checkLine(FILE2, lineNumbers[3]),
         stepOver(),
-        debug
-            ? checkMethod(class2, "callThisFromAnotherFile", "()V")
-            : checkMethod(class1, "callThisFromSameFile", "()V"),
-        checkLine(debug ? file2 : file1, lineNumbers[4]),
+        checkMethod(CLASS2, "callThisFromAnotherFile", "()V"),
+        checkLine(FILE2, lineNumbers[4]),
         stepOver(),
-        debug
-            ? checkMethod(class1, "callThisFromSameFile", "()V")
-            : checkMethod(class1, "main", mainSignature),
-        checkLine(file1, lineNumbers[5]),
+        checkMethod(CLASS1, "callThisFromSameFile", "()V"),
+        checkLine(FILE1, lineNumbers[5]),
         stepOver(),
-        checkMethod(class1, "main", mainSignature),
-        checkLine(file1, lineNumbers[6]),
+        checkMethod(CLASS1, "main", MAIN_SIGNATURE),
+        checkLine(FILE1, lineNumbers[6]),
         stepInto(),
-        checkMethod(class1, "callThisFromSameFile", "(I)V"),
-        checkLine(file1, lineNumbers[7]),
+        checkMethod(CLASS1, "callThisFromSameFile", "(I)V"),
+        checkLine(FILE1, lineNumbers[7]),
         stepOver(),
-        debug
-            ? checkMethod(class1, "callThisFromSameFile", "(I)V")
-            : checkMethod(class1, "main", mainSignature),
-        checkLine(file1, lineNumbers[8]),
+        checkMethod(CLASS1, "callThisFromSameFile", "(I)V"),
+        checkLine(FILE1, lineNumbers[8]),
         stepOver(),
-        checkMethod(class1, "main", mainSignature),
-        checkLine(file1, lineNumbers[9]),
+        checkMethod(CLASS1, "main", MAIN_SIGNATURE),
+        checkLine(FILE1, lineNumbers[9]),
         stepInto(),
-        checkMethod(class1, "callThisFromSameFile", "(II)V"),
-        checkLine(file1, lineNumbers[10]),
+        checkMethod(CLASS1, "callThisFromSameFile", "(II)V"),
+        checkLine(FILE1, lineNumbers[10]),
         stepOver(),
-        debug
-            ? checkMethod(class1, "callThisFromSameFile", "(II)V")
-            : checkMethod(class1, "main", mainSignature),
-        checkLine(file1, lineNumbers[11]),
+        checkMethod(CLASS1, "callThisFromSameFile", "(II)V"),
+        checkLine(FILE1, lineNumbers[11]),
+        run());
+  }
+
+  // If we compile in release mode the line numbers are slightly different from the debug mode.
+  // That's why we need a different set of checks for the release mode.
+  //
+  // In release mode void returns don't have line number information. On the other hand, because of
+  // the line number information is moved as late as possible stepping in the debugger is different:
+  // After a method call we step again on the invoke instructions's line number before moving onto
+  // the next instruction.
+  private void testRelease(DebugTestConfig config, int[] lineNumbers) throws Throwable {
+    runDebugTest(
+        config,
+        CLASS1,
+        breakpoint(CLASS1, "main", MAIN_SIGNATURE),
+        run(),
+        checkMethod(CLASS1, "main", MAIN_SIGNATURE),
+        checkLine(FILE1, lineNumbers[0]),
+        stepInto(),
+        checkMethod(CLASS1, "callThisFromSameFile", "()V"),
+        checkLine(FILE1, lineNumbers[1]),
+        stepOver(),
+        checkMethod(CLASS1, "callThisFromSameFile", "()V"),
+        checkLine(FILE1, lineNumbers[2]),
+        stepInto(INTELLIJ_FILTER),
+        checkMethod(CLASS2, "callThisFromAnotherFile", "()V"),
+        checkLine(FILE2, lineNumbers[3]),
+        stepOver(),
+        checkMethod(CLASS1, "callThisFromSameFile", "()V"),
+        checkLine(FILE1, lineNumbers[4]),
+        stepOver(),
+        checkMethod(CLASS1, "main", MAIN_SIGNATURE),
+        checkLine(FILE1, lineNumbers[5]),
+        stepOver(),
+        checkMethod(CLASS1, "main", MAIN_SIGNATURE),
+        checkLine(FILE1, lineNumbers[6]),
+        stepInto(),
+        checkMethod(CLASS1, "callThisFromSameFile", "(I)V"),
+        checkLine(FILE1, lineNumbers[7]),
+        stepOver(),
+        checkMethod(CLASS1, "main", MAIN_SIGNATURE),
+        checkLine(FILE1, lineNumbers[8]),
+        stepOver(),
+        checkMethod(CLASS1, "main", MAIN_SIGNATURE),
+        checkLine(FILE1, lineNumbers[9]),
+        stepInto(),
+        checkMethod(CLASS1, "callThisFromSameFile", "(II)V"),
+        checkLine(FILE1, lineNumbers[10]),
+        stepOver(),
+        checkMethod(CLASS1, "main", MAIN_SIGNATURE),
+        checkLine(FILE1, lineNumbers[11]),
         run());
   }
 }
