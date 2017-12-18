@@ -27,8 +27,7 @@ class InlineConstructor {
     }
   }
 
-  // TODO(b/65355452): This should be inlined.
-  // @CheckDiscarded
+  @CheckDiscarded
   InlineConstructor() {
     this(42, 9);
   }
