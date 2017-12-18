@@ -16,7 +16,7 @@ import com.android.tools.r8.code.DivLong2Addr;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.analysis.constant.Bottom;
 import com.android.tools.r8.ir.analysis.constant.LatticeElement;
-import java.util.Map;
+import java.util.function.Function;
 import org.objectweb.asm.Opcodes;
 
 public class Div extends ArithmeticBinop {
@@ -131,10 +131,10 @@ public class Div extends ArithmeticBinop {
   }
 
   @Override
-  public LatticeElement evaluate(IRCode code, Map<Value, LatticeElement> mapping) {
-    LatticeElement rightLattice = mapping.get(rightValue());
+  public LatticeElement evaluate(IRCode code, Function<Value, LatticeElement> getLatticeElement) {
+    LatticeElement rightLattice = getLatticeElement.apply(rightValue());
     if (rightLattice.isConst() && !rightLattice.asConst().getConstNumber().isZero()) {
-      return super.evaluate(code, mapping);
+      return super.evaluate(code, getLatticeElement);
     }
     return Bottom.getInstance();
   }

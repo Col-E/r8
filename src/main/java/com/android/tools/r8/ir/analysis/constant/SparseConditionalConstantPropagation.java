@@ -179,7 +179,7 @@ public class SparseConditionalConstantPropagation {
 
   private void visitInstruction(Instruction instruction) {
     if (instruction.outValue() != null && !instruction.isDebugLocalUninitialized()) {
-      LatticeElement element = instruction.evaluate(code, mapping);
+      LatticeElement element = instruction.evaluate(code, this::getLatticeElement);
       LatticeElement currentLattice = getLatticeElement(instruction.outValue());
       if (currentLattice.meet(element) != currentLattice) {
         setLatticeElement(instruction.outValue(), element);

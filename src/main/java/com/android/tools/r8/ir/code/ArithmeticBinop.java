@@ -9,7 +9,7 @@ import com.android.tools.r8.ir.analysis.constant.Bottom;
 import com.android.tools.r8.ir.analysis.constant.ConstLatticeElement;
 import com.android.tools.r8.ir.analysis.constant.LatticeElement;
 import com.android.tools.r8.ir.conversion.DexBuilder;
-import java.util.Map;
+import java.util.function.Function;
 
 public abstract class ArithmeticBinop extends Binop {
 
@@ -128,9 +128,9 @@ public abstract class ArithmeticBinop extends Binop {
   }
 
   @Override
-  public LatticeElement evaluate(IRCode code, Map<Value, LatticeElement> mapping) {
-    LatticeElement leftLattice = mapping.get(leftValue());
-    LatticeElement rightLattice = mapping.get(rightValue());
+  public LatticeElement evaluate(IRCode code, Function<Value, LatticeElement> getLatticeElement) {
+    LatticeElement leftLattice = getLatticeElement.apply(leftValue());
+    LatticeElement rightLattice = getLatticeElement.apply(rightValue());
     if (leftLattice.isConst() && rightLattice.isConst()) {
       ConstNumber leftConst = leftLattice.asConst().getConstNumber();
       ConstNumber rightConst = rightLattice.asConst().getConstNumber();

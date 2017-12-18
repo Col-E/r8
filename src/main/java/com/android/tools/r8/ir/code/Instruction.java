@@ -25,8 +25,8 @@ import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 public abstract class Instruction {
 
@@ -995,7 +995,7 @@ public abstract class Instruction {
         "Implement has-invariant verification type for: " + getInstructionName());
   }
 
-  public LatticeElement evaluate(IRCode code, Map<Value, LatticeElement> mapping) {
+  public LatticeElement evaluate(IRCode code, Function<Value, LatticeElement> getLatticeElement) {
     if (outValue.hasValueRange()) {
       return new ConstRangeLatticeElement(outValue);
     }

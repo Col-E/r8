@@ -17,7 +17,7 @@ import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.utils.LongInterval;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
-import java.util.Map;
+import java.util.function.Function;
 import org.objectweb.asm.Opcodes;
 
 public class Cmp extends Binop {
@@ -151,9 +151,9 @@ public class Cmp extends Binop {
   }
 
   @Override
-  public LatticeElement evaluate(IRCode code, Map<Value, LatticeElement> mapping) {
-    LatticeElement leftLattice = mapping.get(leftValue());
-    LatticeElement rightLattice = mapping.get(rightValue());
+  public LatticeElement evaluate(IRCode code, Function<Value, LatticeElement> getLatticeElement) {
+    LatticeElement leftLattice = getLatticeElement.apply(leftValue());
+    LatticeElement rightLattice = getLatticeElement.apply(rightValue());
     if (leftLattice.isConst() && rightLattice.isConst()) {
       ConstNumber leftConst = leftLattice.asConst().getConstNumber();
       ConstNumber rightConst = rightLattice.asConst().getConstNumber();

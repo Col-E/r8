@@ -14,7 +14,7 @@ import com.android.tools.r8.ir.analysis.constant.ConstLatticeElement;
 import com.android.tools.r8.ir.analysis.constant.LatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
-import java.util.Map;
+import java.util.function.Function;
 import org.objectweb.asm.Opcodes;
 
 public class Not extends Unop {
@@ -32,8 +32,8 @@ public class Not extends Unop {
   }
 
   @Override
-  public LatticeElement evaluate(IRCode code, Map<Value, LatticeElement> mapping) {
-    LatticeElement sourceLattice = mapping.get(source());
+  public LatticeElement evaluate(IRCode code, Function<Value, LatticeElement> getLatticeElement) {
+    LatticeElement sourceLattice = getLatticeElement.apply(source());
     if (sourceLattice.isConst()) {
       ConstNumber sourceConst = sourceLattice.asConst().getConstNumber();
       ValueType valueType = ValueType.fromNumericType(type);

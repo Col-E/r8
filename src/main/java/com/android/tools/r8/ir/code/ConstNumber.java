@@ -23,7 +23,7 @@ import com.android.tools.r8.ir.analysis.constant.LatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.utils.NumberUtils;
-import java.util.Map;
+import java.util.function.Function;
 
 public class ConstNumber extends ConstInstruction {
 
@@ -257,7 +257,7 @@ public class ConstNumber extends ConstInstruction {
   }
 
   @Override
-  public LatticeElement evaluate(IRCode code, Map<Value, LatticeElement> mapping) {
+  public LatticeElement evaluate(IRCode code, Function<Value, LatticeElement> getLatticeElement) {
     if (outValue.hasLocalInfo()) {
       return Bottom.getInstance();
     }
