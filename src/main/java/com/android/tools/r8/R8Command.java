@@ -585,7 +585,8 @@ public class R8Command extends BaseCompilerCommand {
     internal.minimalMainDex = internal.debug;
     internal.mainDexListConsumer = mainDexListConsumer;
     internal.lineNumberOptimization =
-        internal.debug ? LineNumberOptimization.OFF : LineNumberOptimization.ON;
+        internal.debug || (forceProguardCompatibility && !proguardConfiguration.isOptimizing())
+            ? LineNumberOptimization.OFF : LineNumberOptimization.ON;
 
     if (internal.debug) {
       // TODO(zerny): Should we support removeSwitchMaps in debug mode? b/62936642
