@@ -58,7 +58,7 @@ public class ReadMainDexList {
     final ClassNameMapper mapper =
         arguments.hasNext() ? ClassNameMapper.mapperFromFile(Paths.get(arguments.next())) : null;
 
-    FileUtils.readTextFile(mainDexList)
+    FileUtils.readAllLines(mainDexList)
         .stream()
         .map(this::stripDotClass)
         .map(name -> name.replace('/', '.'))

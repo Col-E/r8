@@ -9,7 +9,8 @@ import static com.android.tools.r8.graph.ClassKind.PROGRAM;
 
 import com.android.tools.r8.ClassFileResourceProvider;
 import com.android.tools.r8.ProgramResource;
-import com.android.tools.r8.Resource;
+import com.android.tools.r8.ResourceException;
+import com.android.tools.r8.StringResource;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.ClassKind;
 import com.android.tools.r8.graph.DexApplication;
@@ -109,12 +110,14 @@ public class ApplicationReader {
   private void readProguardMap(DexApplication.Builder<?> builder, ExecutorService executorService,
       List<Future<?>> futures) {
     // Read the Proguard mapping file in parallel with DexCode and DexProgramClass items.
-    if (inputApp.hasProguardMap()) {
+    StringResource map = inputApp.getProguardMap();
+    if (map != null) {
       futures.add(executorService.submit(() -> {
-        try (InputStream map = inputApp.getProguardMap()) {
-          builder.setProguardMap(ClassNameMapper.mapperFromInputStream(map));
-        } catch (IOException e) {
-          throw new RuntimeException(e);
+        try {
+          String content = map.getString();
+          builder.setProguardMap(ClassNameMapper.mapperFromString(content));
+        } catch (IOException | ResourceException e) {
+          throw new CompilationError("Failure to read proguard map file", e, map.getOrigin());
         }
       }));
     }
@@ -124,12 +127,8 @@ public class ApplicationReader {
       List<Future<?>> futures) {
     if (inputApp.hasMainDexList()) {
       futures.add(executorService.submit(() -> {
-        for (Resource resource : inputApp.getMainDexListResources()) {
-          try (InputStream input = resource.getStream()) {
-            builder.addToMainDexList(MainDexList.parse(input, itemFactory));
-          } catch (IOException e) {
-            throw new RuntimeException(e);
-          }
+        for (StringResource resource : inputApp.getMainDexListResources()) {
+          builder.addToMainDexList(MainDexList.parseList(resource, itemFactory));
         }
 
         builder.addToMainDexList(

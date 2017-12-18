@@ -49,9 +49,6 @@ public class R8CommandTest {
   private void verifyEmptyCommand(R8Command command) throws Throwable {
     assertEquals(0, ToolHelper.getApp(command).getDexProgramResources().size());
     assertEquals(0, ToolHelper.getApp(command).getClassProgramResources().size());
-    assertFalse(ToolHelper.getApp(command).hasMainDexListResources());
-    assertFalse(ToolHelper.getApp(command).hasProguardMap());
-    assertFalse(ToolHelper.getApp(command).hasProguardSeeds());
     assertFalse(command.useMinification());
     assertFalse(command.useTreeShaking());
     assertEquals(CompilationMode.RELEASE, command.getMode());

@@ -70,7 +70,7 @@ public class MainDexListOutputTest extends TestBase {
     // Main dex list with the single class.
     assertEquals(
         ImmutableList.of(HelloWorldMain.class.getTypeName().replace('.', '/') + ".class"),
-        FileUtils.readTextFile(mainDexListOutput)
+        FileUtils.readAllLines(mainDexListOutput)
             .stream()
             .filter(s -> !s.isEmpty())
             .collect(Collectors.toList()));
