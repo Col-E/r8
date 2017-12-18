@@ -146,9 +146,9 @@ public class Inliner {
   /**
    * Encodes the constraints for inlining a method's instructions into a different context.
    * <p>
-   * This only takes the instructions into account and not whether a method should be inlined
-   * or what reason for inlining it might have. Also, it does not take the visibility of the
-   * method itself into account.
+   * This only takes the instructions into account and not whether a method should be inlined or
+   * what reason for inlining it might have. Also, it does not take the visibility of the method
+   * itself into account.
    */
   public enum Constraint {
     // The ordinal values are important so please do not reorder.
@@ -203,8 +203,8 @@ public class Inliner {
   /**
    * Encodes the reason why a method should be inlined.
    * <p>
-   * This is independent of determining whether a method can be inlined, except for the FORCE
-   * state, that will inline a method irrespective of visibility and instruction checks.
+   * This is independent of determining whether a method can be inlined, except for the FORCE state,
+   * that will inline a method irrespective of visibility and instruction checks.
    */
   public enum Reason {
     FORCE,         // Inlinee is marked for forced inlining (bridge method or renamed constructor).
@@ -274,9 +274,11 @@ public class Inliner {
 
     // Allow inlining a constructor into a constructor of the same class, as the constructor code
     // is expected to adhere to the VM specification.
-    DexType methodHolder = method.method.holder;
-    boolean methodIsConstructor = method.isInstanceInitializer();
-    if (methodIsConstructor && methodHolder == invoke.asInvokeMethod().getInvokedMethod().holder) {
+    DexType callerMethodHolder = method.method.holder;
+    boolean callerMethodIsConstructor = method.isInstanceInitializer();
+    DexType calleeMethodHolder = invoke.asInvokeMethod().getInvokedMethod().holder;
+    // Calling a constructor on the same class from a constructor can always be inlined.
+    if (callerMethodIsConstructor && callerMethodHolder == calleeMethodHolder) {
       return true;
     }
 
@@ -303,14 +305,17 @@ public class Inliner {
         if (instruction.isInvokeDirect() && !seenSuperInvoke) {
           DexMethod target = instruction.asInvokeDirect().getInvokedMethod();
           seenSuperInvoke = appInfo.dexItemFactory.isConstructor(target);
+          boolean callOnConstructorThatCallsConstructorSameClass =
+              calleeMethodHolder == target.holder;
           boolean callOnSupertypeOfThisInConstructor =
-              methodHolder.isImmediateSubtypeOf(target.holder)
+              callerMethodHolder.isImmediateSubtypeOf(target.holder)
                   && instruction.asInvokeDirect().getReceiver() == unInitializedObject
                   && receiverOfInnerCallIsThisOfOuter
-                  && methodIsConstructor;
-          // TODO(65355452): Calls to init on same class should be OK, but it isn't on Dalvik.
+                  && callerMethodIsConstructor;
           if (seenSuperInvoke
-              // If we are inlining into a constructor, calls to superclass init are OK on the
+              // Calls to init on same class than the called constructor are OK.
+              && !callOnConstructorThatCallsConstructorSameClass
+              // If we are inlining into a constructor, calls to superclass init are only OK on the
               // |this| value in the outer context.
               && !callOnSupertypeOfThisInConstructor) {
             return false;
@@ -322,7 +327,7 @@ public class Inliner {
       }
       if (instruction.isInstancePut()) {
         // Fields may not be initialized outside of a constructor.
-        if (!methodIsConstructor) {
+        if (!callerMethodIsConstructor) {
           return false;
         }
         DexField field = instruction.asInstancePut().getField();
