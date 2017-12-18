@@ -76,9 +76,14 @@ abstract class BaseCompilerCommand extends BaseCommand {
     return minApiLevel;
   }
 
+  // Package private predicate for the API transition.
+  boolean usingDeprecatedAPI() {
+    return outputOptions != null;
+  }
+
   @Deprecated
   public Path getOutputPath() {
-    if (outputOptions == null) {
+    if (!usingDeprecatedAPI()) {
       throw new CompilationError("Use of deprecated API may not be used with new consumer API");
     }
     return outputOptions.path;
@@ -86,7 +91,7 @@ abstract class BaseCompilerCommand extends BaseCommand {
 
   @Deprecated
   public OutputMode getOutputMode() {
-    if (outputOptions == null) {
+    if (!usingDeprecatedAPI()) {
       throw new CompilationError("Use of deprecated API may not be used with new consumer API");
     }
     return outputOptions.mode;

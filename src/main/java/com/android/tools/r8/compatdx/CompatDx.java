@@ -15,8 +15,9 @@ import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8Command;
-import com.android.tools.r8.D8Output;
-import com.android.tools.r8.Resource;
+import com.android.tools.r8.DexIndexedConsumer;
+import com.android.tools.r8.DiagnosticsHandler;
+import com.android.tools.r8.ProgramConsumer;
 import com.android.tools.r8.Version;
 import com.android.tools.r8.compatdx.CompatDx.DxCompatOptions.DxUsageMessage;
 import com.android.tools.r8.compatdx.CompatDx.DxCompatOptions.PositionInfo;
@@ -25,10 +26,11 @@ import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.IOExceptionDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
+import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.ByteStreams;
-import com.google.common.io.Closer;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -36,10 +38,11 @@ import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -107,10 +110,6 @@ public class CompatDx {
     // Exception thrown on invalid dx compat usage.
     public static class DxUsageMessage extends Exception {
       public final String message;
-
-      public DxUsageMessage() {
-        this("");
-      }
 
       DxUsageMessage(String message) {
         this.message = message;
@@ -450,47 +449,143 @@ public class CompatDx {
       throw new DxUsageMessage("Invalid numThreads value of " + numberOfThreads);
     }
     ExecutorService executor = ThreadUtils.getExecutorService(numberOfThreads);
-    D8Output result;
+
     try {
-      D8Command.Builder builder = new CompatDxCommandBuilder();
-      builder
-          .addProgramFiles(inputs)
-          .setMode(mode)
-          .setMinApiLevel(dexArgs.minApiLevel);
+      D8Command.Builder builder =
+          new CompatDxCommandBuilder()
+              .addProgramFiles(inputs)
+              .setProgramConsumer(
+                  createConsumer(inputs, output, singleDexFile, dexArgs.keepClasses))
+              .setMode(mode)
+              .setMinApiLevel(dexArgs.minApiLevel);
       if (mainDexList != null) {
         builder.addMainDexListFiles(mainDexList);
       }
-      result = CompatDxHelper.run(builder.build());
+      CompatDxHelper.run(builder.build());
     } finally {
       executor.shutdown();
     }
+  }
 
+  private static ProgramConsumer createConsumer(
+      List<Path> inputs, Path output, boolean singleDexFile, boolean keepClasses)
+      throws DxUsageMessage {
     if (output == null) {
-      return;
+      return DexIndexedConsumer.emptyConsumer();
     }
-
     if (singleDexFile) {
-      if (result.getDexResources().size() > 1) {
-        throw new CompilationError(
-            "Compilation result could not fit into a single dex file. "
-                + "Reduce the input-program size or run with --multi-dex enabled");
-      }
-      if (isDexFile(output)) {
-        try (InputStream stream = result.getDexResources().get(0).getStream()) {
-          Files.copy(stream, output, StandardCopyOption.REPLACE_EXISTING);
-        }
-        return;
-      }
+      return new SingleDexFileConsumer(
+          isDexFile(output)
+              ? new NamedDexFileConsumer(output)
+              : createDexConsumer(output, inputs, keepClasses));
     }
+    return createDexConsumer(output, inputs, keepClasses);
+  }
 
-    if (dexArgs.keepClasses) {
+  private static DexIndexedConsumer createDexConsumer(
+      Path output, List<Path> inputs, boolean keepClasses) throws DxUsageMessage {
+    if (keepClasses) {
       if (!isArchive(output)) {
         throw new DxCompatOptions.DxUsageMessage(
             "Output must be an archive when --keep-classes is set.");
       }
-      writeZipWithClasses(inputs, result, output);
-    } else {
-      result.write(output);
+      return new DexKeepClassesConsumer(output, inputs);
+    }
+    return isArchive(output)
+        ? new DexIndexedConsumer.ArchiveConsumer(output)
+        : new DexIndexedConsumer.DirectoryConsumer(output);
+  }
+
+  private static class SingleDexFileConsumer extends DexIndexedConsumer.ForwardingConsumer {
+
+    private byte[] bytes = null;
+
+    public SingleDexFileConsumer(DexIndexedConsumer consumer) {
+      super(consumer);
+    }
+
+    @Override
+    public void accept(
+        int fileIndex, byte[] data, Set<String> descriptors, DiagnosticsHandler handler) {
+      if (fileIndex > 0) {
+        throw new CompilationError(
+            "Compilation result could not fit into a single dex file. "
+                + "Reduce the input-program size or run with --multi-dex enabled");
+      }
+      assert bytes == null;
+      bytes = data;
+    }
+
+    @Override
+    public void finished(DiagnosticsHandler handler) {
+      if (bytes != null) {
+        super.accept(0, bytes, null, handler);
+      }
+      super.finished(handler);
+    }
+  }
+
+  private static class NamedDexFileConsumer extends DexIndexedConsumer.ForwardingConsumer {
+    private final Path output;
+
+    public NamedDexFileConsumer(Path output) {
+      super(null);
+      this.output = output;
+    }
+
+    @Override
+    public void accept(
+        int fileIndex, byte[] data, Set<String> descriptors, DiagnosticsHandler handler) {
+      try {
+        Files.write(
+            output,
+            data,
+            StandardOpenOption.CREATE,
+            StandardOpenOption.TRUNCATE_EXISTING,
+            StandardOpenOption.WRITE);
+      } catch (IOException e) {
+        handler.error(new IOExceptionDiagnostic(e));
+      }
+    }
+  }
+
+  private static class DexKeepClassesConsumer extends DexIndexedConsumer.ArchiveConsumer {
+
+    private final List<Path> inputs;
+
+    public DexKeepClassesConsumer(Path archive, List<Path> inputs) {
+      super(archive);
+      this.inputs = inputs;
+    }
+
+    @Override
+    public void finished(DiagnosticsHandler handler) {
+      try {
+        writeZipWithClasses(getStream(handler));
+      } catch (IOException e) {
+        handler.error(new IOExceptionDiagnostic(e));
+      }
+      super.finished(handler);
+    }
+
+    private void writeZipWithClasses(ZipOutputStream out) throws IOException {
+      // For each input archive file, add all class files within.
+      for (Path input : inputs) {
+        if (isArchive(input)) {
+          try (ZipFile zipFile = new ZipFile(input.toFile())) {
+            final Enumeration<? extends ZipEntry> entries = zipFile.entries();
+            while (entries.hasMoreElements()) {
+              ZipEntry entry = entries.nextElement();
+              if (isClassFile(Paths.get(entry.getName()))) {
+                try (InputStream entryStream = zipFile.getInputStream(entry)) {
+                  ZipUtils.writeToZipStream(
+                      out, entry.getName(), ByteStreams.toByteArray(entryStream));
+                }
+              }
+            }
+          }
+        }
+      }
     }
   }
 
@@ -522,48 +617,5 @@ public class CompatDx {
     for (File file : directory.listFiles()) {
       processPath(file, files);
     }
-  }
-
-  private static void writeZipWithClasses(List<Path> inputs, D8Output output, Path path)
-      throws IOException {
-    try (Closer closer = Closer.create()) {
-      try (ZipOutputStream out = new ZipOutputStream(Files.newOutputStream(path))) {
-        // For each input archive file, add all class files within.
-        for (Path input : inputs) {
-          if (isArchive(input)) {
-            try (ZipFile zipFile = new ZipFile(input.toFile())) {
-              final Enumeration<? extends ZipEntry> entries = zipFile.entries();
-              while (entries.hasMoreElements()) {
-                ZipEntry entry = entries.nextElement();
-                if (isClassFile(Paths.get(entry.getName()))) {
-                  try (InputStream entryStream = zipFile.getInputStream(entry)) {
-                    addEntry(entry.getName(), entryStream, out);
-                  }
-                }
-              }
-            }
-          }
-        }
-        // Add dex files.
-        List<Resource> dexProgramSources = output.getDexResources();
-        for (int i = 0; i < dexProgramSources.size(); i++) {
-          addEntry(getDexFileName(i), closer.register(dexProgramSources.get(i).getStream()), out);
-        }
-      }
-    }
-  }
-
-  private static void addEntry(String name, InputStream in, ZipOutputStream out)
-      throws IOException {
-    ZipEntry zipEntry = new ZipEntry(name);
-    byte[] bytes = ByteStreams.toByteArray(in);
-    zipEntry.setSize(bytes.length);
-    out.putNextEntry(zipEntry);
-    out.write(bytes);
-    out.closeEntry();
-  }
-
-  private static String getDexFileName(int index) {
-    return index == 0 ? "classes.dex" : "classes" + (index + 1) + ".dex";
   }
 }
