@@ -150,6 +150,13 @@ public class InternalOptions {
   // Defines try-with-resources rewriter behavior.
   public OffOrAuto tryWithResourcesDesugaring = OffOrAuto.Auto;
 
+  // Whether or not to check for valid multi-dex builds.
+  //
+  // For min-api levels that did not support native multi-dex the user should provide a main dex
+  // list. However, DX, didn't check that this was the case. Therefore, for CompatDX we have a flag
+  // to disable the check that the build makes sense for multi-dexing.
+  public boolean enableMainDexListCheck = true;
+
   public boolean useTreeShaking = true;
   public boolean useDiscardedChecker = true;
 

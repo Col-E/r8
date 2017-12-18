@@ -10,9 +10,10 @@ import static com.android.tools.r8.utils.FileUtils.isDexFile;
 import static com.android.tools.r8.utils.FileUtils.isJarFile;
 import static com.android.tools.r8.utils.FileUtils.isZipFile;
 
+import com.android.tools.r8.CompatDxHelper;
 import com.android.tools.r8.CompilationException;
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.D8Output;
 import com.android.tools.r8.Resource;
@@ -23,7 +24,6 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.collect.ImmutableList;
@@ -460,7 +460,7 @@ public class CompatDx {
       if (mainDexList != null) {
         builder.addMainDexListFiles(mainDexList);
       }
-      result = D8.run(builder.build());
+      result = CompatDxHelper.run(builder.build());
     } finally {
       executor.shutdown();
     }
