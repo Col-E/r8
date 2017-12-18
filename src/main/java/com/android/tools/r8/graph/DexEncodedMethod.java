@@ -123,23 +123,34 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     return accessFlags.isConstructor() && accessFlags.isStatic();
   }
 
+  /**
+   * Returns true if this method can be invoked via invoke-virtual, invoke-super or
+   * invoke-interface.
+   */
   public boolean isVirtualMethod() {
     return !accessFlags.isStatic() && !accessFlags.isPrivate() && !accessFlags.isConstructor();
   }
 
+  /**
+   * Returns true if this method can be invoked via invoke-virtual, invoke-super or invoke-interface
+   * and is non-abstract.
+   */
   public boolean isNonAbstractVirtualMethod() {
-    return !accessFlags.isStatic()
-        && !accessFlags.isPrivate()
-        && !accessFlags.isConstructor()
-        && !accessFlags.isAbstract();
+    return isVirtualMethod() && !accessFlags.isAbstract();
   }
 
+  /**
+   * Returns true if this method can be invoked via invoke-direct.
+   */
   public boolean isDirectMethod() {
-    return accessFlags.isPrivate() && !accessFlags.isStatic();
+    return (accessFlags.isPrivate() || accessFlags.isConstructor()) && !accessFlags.isStatic();
   }
 
+  /**
+   * Returns true if this method can be invoked via invoke-static.
+   */
   public boolean isStaticMethod() {
-    return accessFlags.isStatic() || accessFlags.isConstructor();
+    return accessFlags.isStatic();
   }
 
 

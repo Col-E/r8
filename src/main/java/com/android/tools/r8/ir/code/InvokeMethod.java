@@ -107,7 +107,7 @@ public abstract class InvokeMethod extends Invoke {
         // We also have to take the constraint of the enclosing class into account.
         Constraint classConstraint = Constraint
             .deriveConstraint(holder, methodHolder, methodClass.accessFlags, info);
-        result = Constraint.min(methodConstraint, classConstraint);
+        result = Constraint.min(result, classConstraint);
       }
       if (result == Constraint.NEVER) {
         break;
