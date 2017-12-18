@@ -18,6 +18,7 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.IOExceptionDiagnostic;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.android.tools.r8.utils.OutputMode;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -579,6 +580,8 @@ public class R8Command extends BaseCompilerCommand {
     internal.mainDexKeepRules = mainDexKeepRules;
     internal.minimalMainDex = internal.debug;
     internal.mainDexListConsumer = mainDexListConsumer;
+    internal.lineNumberOptimization =
+        internal.debug ? LineNumberOptimization.OFF : LineNumberOptimization.ON;
 
     if (internal.debug) {
       // TODO(zerny): Should we support removeSwitchMaps in debug mode? b/62936642
