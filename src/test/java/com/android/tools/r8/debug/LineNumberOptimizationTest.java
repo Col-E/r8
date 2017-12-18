@@ -16,10 +16,16 @@ import org.junit.Test;
 public class LineNumberOptimizationTest extends DebugTestBase {
 
   private static final int[] ORIGINAL_LINE_NUMBERS = {20, 7, 8, 28, 8, 20, 21, 12, 21, 22, 16, 22};
+  private static final int[] ORIGINAL_LINE_NUMBERS_DEBUG = {
+    20, 7, 8, 28, 29, 9, 21, 12, 13, 22, 16, 17
+  };
   private static final int[] OPTIMIZED_LINE_NUMBERS = {1, 1, 2, 1, 2, 1, 2, 3, 2, 3, 4, 3};
 
   private static DebugTestConfig makeConfig(
-      LineNumberOptimization lineNumberOptimization, boolean writeProguardMap) throws Exception {
+      LineNumberOptimization lineNumberOptimization,
+      boolean writeProguardMap,
+      boolean dontOptimizeByEnablingDebug)
+      throws Exception {
     int minSdk = ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm());
     Path outdir = temp.newFolder().toPath();
     Path outjar = outdir.resolve("r8_compiled.jar");
@@ -29,12 +35,14 @@ public class LineNumberOptimizationTest extends DebugTestBase {
             .addProgramFiles(DEBUGGEE_JAR)
             .setMinApiLevel(minSdk)
             .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(minSdk)))
-            .setMode(CompilationMode.RELEASE)
+            .setMode(dontOptimizeByEnablingDebug ? CompilationMode.DEBUG : CompilationMode.RELEASE)
             .setOutput(outjar, OutputMode.DexIndexed)
             .setProguardMapOutput(proguardMapPath)
             .build(),
         options -> {
-          options.lineNumberOptimization = lineNumberOptimization;
+          if (!dontOptimizeByEnablingDebug) {
+            options.lineNumberOptimization = lineNumberOptimization;
+          }
           options.inlineAccessors = false;
         });
     DebugTestConfig config = new D8DebugTestConfig();
@@ -46,30 +54,45 @@ public class LineNumberOptimizationTest extends DebugTestBase {
   @Test
   public void testIdentityCompilation() throws Throwable {
     // Compilation will fail if the identity translation does.
-    makeConfig(LineNumberOptimization.IDENTITY_MAPPING, true);
+    makeConfig(LineNumberOptimization.IDENTITY_MAPPING, true, false);
   }
 
   @Test
   public void testNotOptimized() throws Throwable {
-    test(makeConfig(LineNumberOptimization.OFF, false), ORIGINAL_LINE_NUMBERS);
+    test(makeConfig(LineNumberOptimization.OFF, false, false), ORIGINAL_LINE_NUMBERS);
   }
 
   @Test
   public void testNotOptimizedWithMap() throws Throwable {
-    test(makeConfig(LineNumberOptimization.OFF, true), ORIGINAL_LINE_NUMBERS);
+    test(makeConfig(LineNumberOptimization.OFF, true, false), ORIGINAL_LINE_NUMBERS);
+  }
+
+  @Test
+  public void testNotOptimizedByEnablingDebug() throws Throwable {
+    // TODO(tamaskenez) Investigate b/70779388 about the difference between release and debug modes.
+    test(makeConfig(LineNumberOptimization.OFF, false, true), ORIGINAL_LINE_NUMBERS_DEBUG, true);
+  }
+
+  @Test
+  public void testNotOptimizedByEnablingDebugWithMap() throws Throwable {
+    test(makeConfig(LineNumberOptimization.OFF, true, true), ORIGINAL_LINE_NUMBERS_DEBUG, true);
   }
 
   @Test
   public void testOptimized() throws Throwable {
-    test(makeConfig(LineNumberOptimization.ON, false), OPTIMIZED_LINE_NUMBERS);
+    test(makeConfig(LineNumberOptimization.ON, false, false), OPTIMIZED_LINE_NUMBERS);
   }
 
   @Test
   public void testOptimizedWithMap() throws Throwable {
-    test(makeConfig(LineNumberOptimization.ON, true), ORIGINAL_LINE_NUMBERS);
+    test(makeConfig(LineNumberOptimization.ON, true, false), ORIGINAL_LINE_NUMBERS);
   }
 
   private void test(DebugTestConfig config, int[] lineNumbers) throws Throwable {
+    test(config, lineNumbers, false);
+  }
+
+  private void test(DebugTestConfig config, int[] lineNumbers, boolean debug) throws Throwable {
     final String class1 = "LineNumberOptimization1";
     final String class2 = "LineNumberOptimization2";
     final String file1 = class1 + ".java";
@@ -93,10 +116,14 @@ public class LineNumberOptimizationTest extends DebugTestBase {
         checkMethod(class2, "callThisFromAnotherFile", "()V"),
         checkLine(file2, lineNumbers[3]),
         stepOver(),
-        checkMethod(class1, "callThisFromSameFile", "()V"),
-        checkLine(file1, lineNumbers[4]),
+        debug
+            ? checkMethod(class2, "callThisFromAnotherFile", "()V")
+            : checkMethod(class1, "callThisFromSameFile", "()V"),
+        checkLine(debug ? file2 : file1, lineNumbers[4]),
         stepOver(),
-        checkMethod(class1, "main", mainSignature),
+        debug
+            ? checkMethod(class1, "callThisFromSameFile", "()V")
+            : checkMethod(class1, "main", mainSignature),
         checkLine(file1, lineNumbers[5]),
         stepOver(),
         checkMethod(class1, "main", mainSignature),
@@ -105,7 +132,9 @@ public class LineNumberOptimizationTest extends DebugTestBase {
         checkMethod(class1, "callThisFromSameFile", "(I)V"),
         checkLine(file1, lineNumbers[7]),
         stepOver(),
-        checkMethod(class1, "main", mainSignature),
+        debug
+            ? checkMethod(class1, "callThisFromSameFile", "(I)V")
+            : checkMethod(class1, "main", mainSignature),
         checkLine(file1, lineNumbers[8]),
         stepOver(),
         checkMethod(class1, "main", mainSignature),
@@ -114,7 +143,9 @@ public class LineNumberOptimizationTest extends DebugTestBase {
         checkMethod(class1, "callThisFromSameFile", "(II)V"),
         checkLine(file1, lineNumbers[10]),
         stepOver(),
-        checkMethod(class1, "main", mainSignature),
+        debug
+            ? checkMethod(class1, "callThisFromSameFile", "(II)V")
+            : checkMethod(class1, "main", mainSignature),
         checkLine(file1, lineNumbers[11]),
         run());
   }
