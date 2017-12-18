@@ -7,116 +7,6 @@ import inlining.pkg.OtherPublicClass;
 import inlining.pkg.PublicClass;
 import inlining.pkg.Subclass;
 
-class A {
-
-  int a;
-
-  A(int a) {
-    this.a = a;
-  }
-
-  int a() {
-    return a;
-  }
-
-  int cannotInline(int v) {
-    // Cannot inline due to recursion.
-    if (v > 0) {
-      return cannotInline(v - 1);
-    }
-    return 42;
-  }
-}
-
-class B extends A {
-
-  B(int a) {
-    super(a);
-  }
-
-  int cannotInline(int v) {
-    return -1;
-  }
-
-  int callMethodInSuper() {
-    return super.cannotInline(10);
-  }
-}
-
-class InlineConstructor {
-
-  int a;
-
-  @CheckDiscarded
-  InlineConstructor(int a) {
-    this.a = a;
-  }
-
-  InlineConstructor(long a) {
-    this((int) a);
-  }
-
-  InlineConstructor(int a, int loopy) {
-    this.a = a;
-    // Make this too big to inline.
-    if (loopy > 10) {
-      throw new RuntimeException("Too big!");
-    }
-    for (int i = 1; i < loopy; i++) {
-      this.a = this.a * i;
-    }
-  }
-
-  @CheckDiscarded
-  InlineConstructor() {
-    this(42, 9);
-  }
-
-  static InlineConstructor create() {
-    return new InlineConstructor(10L);
-  }
-
-  static InlineConstructor createMore() {
-    new InlineConstructor(0, 0);
-    new InlineConstructor(0, 0);
-    new InlineConstructor(0, 0);
-    new InlineConstructor(0, 0);
-    new InlineConstructor(0, 0);
-    new InlineConstructor(0, 0);
-    return new InlineConstructor();
-  }
-}
-
-class InlineConstructorOfInner {
-
-  class Inner {
-
-    int a;
-
-    @CheckDiscarded
-    Inner(int a) {
-      this.a = a;
-    }
-
-    // This is not inlined, even though it is only called once, as it is only called from a
-    // non-constructor, and will set a field (the outer object) before calling the other
-    // constructor.
-    Inner(long a) {
-      this((int) a);
-    }
-
-    public Inner create() {
-      return new Inner(10L);
-    }
-  }
-
-  Inner inner;
-
-  InlineConstructorOfInner() {
-    inner = new Inner(10L).create();
-  }
-}
-
 public class Inlining {
 
   private static void Assert(boolean value) {
@@ -201,6 +91,10 @@ public class Inlining {
     int aNumber = longMethodThatWeShouldNotInline("ha", "li", "lo");
     aNumber += longMethodThatWeShouldNotInline("zi", "za", "zo");
     aNumber += longMethodThatWeShouldNotInline("do", "de", "da");
+    System.out.println(aNumber);
+
+    // Call a method that contains a call to a protected method. Should not be inlined.
+    aNumber = new SubClassOfPublicClass().public_protectedMethod(0);
     System.out.println(aNumber);
   }
 

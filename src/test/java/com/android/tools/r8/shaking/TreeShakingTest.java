@@ -85,8 +85,7 @@ public class TreeShakingTest {
       "examplesAndroidN/shaking:keep-rules.txt:DEX:AGGRESSIVE"
   );
 
-  // TODO(65355452): Reenable or remove inlining tests.
-  private static Set<String> SKIPPED = ImmutableSet.of("examples/inlining");
+  private static Set<String> SKIPPED = Collections.emptySet();
 
   private final MinifyMode minify;
 
@@ -657,6 +656,7 @@ public class TreeShakingTest {
             "examples/annotationremoval",
             "examples/memberrebinding2",
             "examples/memberrebinding3",
+            "examples/inlining",
             "examples/simpleproto1",
             "examples/simpleproto2",
             "examples/simpleproto3",
