@@ -100,8 +100,13 @@ public class CompatDxTests {
   }
 
   @Test
-  public void keepClassesTest() throws IOException {
+  public void keepClassesSingleDexTest() throws IOException {
     runDexerWithOutput("out.zip", "--keep-classes", EXAMPLE_JAR_FILE1);
+  }
+
+  @Test
+  public void keepClassesMultiDexTest() throws IOException {
+    runDexerWithOutput("out.zip", "--keep-classes", "--multi-dex", EXAMPLE_JAR_FILE1);
   }
 
   @Test

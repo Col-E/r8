@@ -74,7 +74,7 @@ public class ApplyMappingTest {
     // Obviously, dumped map and resource inside the app should be *identical*.
     ClassNameMapper mapperFromFile = ClassNameMapper.mapperFromFile(proguardMap);
     ClassNameMapper mapperFromApp =
-        ClassNameMapper.mapperFromInputStream(obfuscatedApp.getProguardMap());
+        ClassNameMapper.mapperFromString(obfuscatedApp.getProguardMap().getString());
     assertEquals(mapperFromFile, mapperFromApp);
 
     Path instrOut = temp.newFolder("instr").toPath();

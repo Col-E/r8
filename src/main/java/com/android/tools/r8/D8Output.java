@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 
 /** Represents the output of a D8 compilation. */
+@Deprecated
 public class D8Output extends BaseOutput {
 
   D8Output(AndroidApp app, OutputMode outputMode) {

@@ -10,6 +10,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import com.android.sdklib.AndroidVersion;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.origin.EmbeddedOrigin;
 import com.android.tools.r8.utils.AndroidApp;
@@ -51,13 +52,12 @@ public class D8CommandTest {
   }
 
   private void verifyEmptyCommand(D8Command command) throws Throwable {
-    assertEquals(0, ToolHelper.getApp(command).getDexProgramResources().size());
-    assertEquals(0, ToolHelper.getApp(command).getClassProgramResources().size());
-    assertFalse(ToolHelper.getApp(command).hasMainDexListResources());
-    assertFalse(ToolHelper.getApp(command).hasProguardMap());
-    assertFalse(ToolHelper.getApp(command).hasProguardSeeds());
     assertEquals(CompilationMode.DEBUG, command.getMode());
+    assertEquals(AndroidVersion.DEFAULT.getApiLevel(), command.getMinApiLevel());
     assertTrue(command.getProgramConsumer() instanceof DexIndexedConsumer);
+    AndroidApp app = ToolHelper.getApp(command);
+    assertEquals(0, app.getDexProgramResources().size());
+    assertEquals(0, app.getClassProgramResources().size());
   }
 
   @Test

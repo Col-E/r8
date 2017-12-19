@@ -6,29 +6,18 @@ package com.android.tools.r8.utils;
 import static com.android.tools.r8.utils.DescriptorUtils.JAVA_PACKAGE_SEPARATOR;
 import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
 
+import com.android.tools.r8.ResourceException;
+import com.android.tools.r8.StringResource;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.position.TextPosition;
 import com.google.common.collect.Sets;
-import com.google.common.io.Closer;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Set;
 
 public class MainDexList {
 
-  public static Set<DexType> parse(Path path, DexItemFactory itemFactory) throws IOException {
-    try (Closer closer = Closer.create()) {
-      return parse(closer.register(Files.newInputStream(path)), itemFactory);
-    }
-  }
-
-  public static DexType parse(String clazz, DexItemFactory itemFactory) {
+  public static DexType parseEntry(String clazz, DexItemFactory itemFactory) {
     if (!clazz.endsWith(CLASS_EXTENSION)) {
       throw new CompilationError("Illegal main-dex-list entry '" + clazz + "'.");
     }
@@ -40,20 +29,29 @@ public class MainDexList {
     return itemFactory.createType(descriptor);
   }
 
-  public static Set<DexType> parse(InputStream input, DexItemFactory itemFactory) {
-    Set<DexType> result = Sets.newIdentityHashSet();
+  public static Set<DexType> parseList(StringResource resource, DexItemFactory itemFactory) {
+    String lines;
     try {
-      BufferedReader file =
-          new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8));
-      String line;
-      while ((line = file.readLine()) != null) {
-        line = line.trim();
-        if (line.length() > 0) {
-          result.add(parse(line, itemFactory));
+      lines = resource.getString();
+    } catch (ResourceException e) {
+      throw new CompilationError("Failed to parse main-dex resource", e, resource.getOrigin());
+    }
+    Set<DexType> result = Sets.newIdentityHashSet();
+    int lineNumber = 0;
+    for (int offset = 0; offset < lines.length(); ) {
+      ++lineNumber;
+      int newLineIndex = lines.indexOf('\n', offset);
+      int lineEnd = newLineIndex == -1 ? lines.length() : newLineIndex;
+      String line = lines.substring(offset, lineEnd).trim();
+      if (!line.isEmpty()) {
+        try {
+          result.add(parseEntry(line, itemFactory));
+        } catch (CompilationError e) {
+          throw new CompilationError(e.getMessage(), e, resource.getOrigin(),
+              new TextPosition(offset, lineNumber, TextPosition.UNKNOWN_COLUMN));
         }
       }
-    } catch (IOException e) {
-      throw new CompilationError("Cannot load main-dex-list.");
+      offset = lineEnd + 1;
     }
     return result;
   }
