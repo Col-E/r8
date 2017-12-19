@@ -6,8 +6,10 @@ package com.android.tools.r8.utils;
 import com.android.tools.r8.errors.Unreachable;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.function.Function;
 
 public class StringUtils {
@@ -43,6 +45,18 @@ public class StringUtils {
         default: throw new Unreachable("Invalid brace type: " + this);
       }
     }
+  }
+
+  public static String toASCIIString(String s) {
+    StringBuilder builder = new StringBuilder();
+    for (char ch : s.toCharArray()) {
+      if (0x1f < ch && ch < 0x7f) {  // 0 - 0x1f and 0x7f are control characters.
+        builder.append(ch);
+      } else {
+        builder.append("\\u").append(StringUtils.hexString(ch, 4, false));
+      }
+    }
+    return builder.toString();
   }
 
   public static void appendNonEmpty(StringBuilder builder, String pre, Object item, String post) {
@@ -134,6 +148,30 @@ public class StringUtils {
 
   public static String joinLines(String... lines) {
     return join(LINE_SEPARATOR, lines);
+  }
+
+  public static List<String> splitLines(String content) {
+    int length = content.length();
+    List<String> lines = new ArrayList<>();
+    int start = 0;
+    for (int i = 0; i < length; i++) {
+      char c = content.charAt(i);
+      int end = i;
+      if (c == '\r' && i + 1 < length && content.charAt(i + 1) == '\n') {
+        ++i;
+      } else if (c != '\n') {
+        continue;
+      }
+      lines.add(content.substring(start, end));
+      start = i + 1;
+    }
+    if (start < length) {
+      String line = content.substring(start);
+      if (!line.isEmpty()) {
+        lines.add(line);
+      }
+    }
+    return lines;
   }
 
   public static String zeroPrefix(int i, int width) {

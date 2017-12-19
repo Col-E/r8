@@ -21,7 +21,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
@@ -160,7 +159,7 @@ public class MainDexTracingTest {
               .build();
       ToolHelper.runR8WithFullResult(command, optionsConsumer);
       List<String> r8MainDexList =
-          Arrays.stream(r8MainDexListOutput.content.split(StringUtils.LINE_SEPARATOR))
+          StringUtils.splitLines(r8MainDexListOutput.content).stream()
               .map(this::mainDexStringToDescriptor)
               .sorted()
               .collect(Collectors.toList());

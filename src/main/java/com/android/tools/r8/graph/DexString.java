@@ -53,16 +53,7 @@ public class DexString extends IndexedDexItem implements PresortedComparable<Dex
 
   public String toASCIIString() {
     try {
-      String s = decode();
-      StringBuilder builder = new StringBuilder();
-      for (char ch : s.toCharArray()) {
-        if (0x1f < ch && ch < 0x7f) {  // 0 - 0x1f and 0x7f are control characters.
-          builder.append(ch);
-        } else {
-          builder.append("\\u").append(StringUtils.hexString(ch, 4, false));
-        }
-      }
-      return builder.toString();
+      return StringUtils.toASCIIString(decode());
     } catch (UTFDataFormatException e) {
       throw new RuntimeException("Bad format", e);
     }
