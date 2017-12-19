@@ -197,7 +197,12 @@ public class Phi extends Value {
       same = op;
     }
     assert isTrivialPhi();
-    assert same != null : "ill-defined phi";
+    if (same == null) {
+      // When doing if-simplification we remove blocks and we can end up with cyclic phis
+      // of the form v1 = phi(v1, v1) in dead blocks. If we encounter that case we just
+      // leave the phi in there and check at the end that there are no trivial phis.
+      return;
+    }
     // Removing this phi, so get rid of it as a phi user from all of the operands to avoid
     // recursively getting back here with the same phi. If the phi has itself as an operand
     // that also removes the self-reference.

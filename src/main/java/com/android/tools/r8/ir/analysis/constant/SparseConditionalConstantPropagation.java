@@ -143,6 +143,8 @@ public class SparseConditionalConstantPropagation {
         }
       }
     }
+
+    code.removeAllTrivialPhis();
   }
 
   private LatticeElement getLatticeElement(Value value) {

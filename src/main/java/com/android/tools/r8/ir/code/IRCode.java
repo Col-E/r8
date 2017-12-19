@@ -313,6 +313,7 @@ public class IRCode {
       int predecessorCount = block.getPredecessors().size();
       // Check that all phi uses are consistent.
       for (Phi phi : block.getPhis()) {
+        assert !phi.isTrivialPhi();
         assert phi.getOperands().size() == predecessorCount;
         values.add(phi);
         for (Value value : phi.getOperands()) {
@@ -587,5 +588,14 @@ public class IRCode {
       }
     }
     return true;
+  }
+
+  public void removeAllTrivialPhis() {
+    for (BasicBlock block : blocks) {
+      List<Phi> phis = new ArrayList<>(block.getPhis());
+      for (Phi phi : phis) {
+        phi.removeTrivialPhi();
+      }
+    }
   }
 }

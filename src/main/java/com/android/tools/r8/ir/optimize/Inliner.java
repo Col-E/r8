@@ -427,6 +427,7 @@ public class Inliner {
     }
     oracle.finish();
     code.removeBlocks(blocksToRemove);
+    code.removeAllTrivialPhis();
     assert code.isConsistentSSA();
   }
 
