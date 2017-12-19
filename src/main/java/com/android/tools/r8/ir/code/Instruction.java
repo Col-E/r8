@@ -307,7 +307,15 @@ public abstract class Instruction {
     if (needsValueInRegister(a) != bInstr.needsValueInRegister(b)) {
       return false;
     }
-    if (needsValueInRegister(a)) {
+    // If the value is needed in a register or one of the instructions is a two-addr instruction,
+    // the register for the value is used and it needs to be the same.
+    if (needsValueInRegister(a) || isTwoAddr(allocator) || bInstr.isTwoAddr(allocator)) {
+      // Only one of the instructions have a register assigned and one of them will use a register,
+      // so the instructions are not identical.
+      if (!a.needsRegister() || !b.needsRegister()) {
+        return false;
+      }
+      // Check if the allocated registers are identical.
       if (allocator.getRegisterForValue(a, aInstrNumber) !=
           allocator.getRegisterForValue(b, bInstrNumber)) {
         return false;
@@ -405,6 +413,10 @@ public abstract class Instruction {
    */
   public boolean needsValueInRegister(Value value) {
     return true;
+  }
+
+  public boolean isTwoAddr(RegisterAllocator allocator) {
+    return false;
   }
 
   /**

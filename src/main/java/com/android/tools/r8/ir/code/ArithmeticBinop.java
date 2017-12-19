@@ -62,7 +62,7 @@ public abstract class ArithmeticBinop extends Binop {
     int left = builder.allocatedRegister(leftValue(), getNumber());
     int dest = builder.allocatedRegister(outValue, getNumber());
     Instruction instruction = null;
-    if (isTwoAddr(builder)) {
+    if (isTwoAddr(builder.getRegisterAllocator())) {
       int right = builder.allocatedRegister(rightValue(), getNumber());
       if (left != dest) {
         assert isCommutative();
