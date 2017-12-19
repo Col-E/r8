@@ -1738,22 +1738,28 @@ public class CodeRewriter {
 
   /* Identify simple diamond shapes converting boolean true/false to 1/0. We consider the forms:
    *
+   * (1)
+   *
    *   ifeqz booleanValue       ifnez booleanValue
    *      /        \              /        \
+   *  [const 0]  [const 1]    [const 1]  [const 0]
+   *    goto      goto          goto      goto
    *      \        /              \        /
    *      phi(0, 1)                phi(1, 0)
    *
    * which can be replaced by a fallthrough and the phi value can be replaced
    * with the boolean value itself.
    *
-   * We also consider the forms:
+   * (2)
    *
    *    ifeqz booleanValue       ifnez booleanValue
    *      /        \              /        \
+   *  [const 1]  [const 0]   [const 0]  [const 1]
+   *    goto      goto          goto      goto
    *      \        /              \        /
    *      phi(1, 0)                phi(0, 1)
    *
-   *  which can be replaced by a fallthrough and the phi value can be replaced
+   * which can be replaced by a fallthrough and the phi value can be replaced
    * by an xor instruction which is smaller.
    */
   private boolean simplifyKnownBooleanCondition(IRCode code, DominatorTree dominator,
@@ -1763,8 +1769,8 @@ public class CodeRewriter {
     if (theIf.isZeroTest() && testValue.knownToBeBoolean()) {
       BasicBlock trueBlock = theIf.getTrueTarget();
       BasicBlock falseBlock = theIf.fallthroughBlock();
-      if (trueBlock.isTrivialGoto() &&
-          falseBlock.isTrivialGoto() &&
+      if (isBlockSupportedBySimplifyKnownBooleanCondition(trueBlock) &&
+          isBlockSupportedBySimplifyKnownBooleanCondition(falseBlock) &&
           trueBlock.getSuccessors().get(0) == falseBlock.getSuccessors().get(0)) {
         BasicBlock targetBlock = trueBlock.getSuccessors().get(0);
         if (targetBlock.getPredecessors().size() == 2) {
@@ -1794,13 +1800,24 @@ public class CodeRewriter {
                            trueNumber.isIntegerOne() &&
                            falseNumber.isIntegerZero())) {
                 Value newOutValue = code.createValue(phi.outType(), phi.getLocalInfo());
+                ConstNumber cstToUse = trueNumber.isIntegerOne() ? trueNumber : falseNumber;
+                BasicBlock phiBlock = phi.getBlock();
+                Position phiPosition = phiBlock.getPosition();
+                int insertIndex = 0;
+                if (cstToUse.getBlock() == trueBlock || cstToUse.getBlock() == falseBlock) {
+                  // The constant belongs to the block to remove, create a new one.
+                  cstToUse = ConstNumber.copyOf(code, cstToUse);
+                  cstToUse.setBlock(phiBlock);
+                  cstToUse.setPosition(phiPosition);
+                  phiBlock.getInstructions().add(insertIndex++, cstToUse);
+                }
                 phi.replaceUsers(newOutValue);
                 Instruction newInstruction = new Xor(NumericType.INT, newOutValue, testValue,
-                    trueNumber.isIntegerOne() ? trueValue : falseValue);
-                newInstruction.setBlock(phi.getBlock());
+                    cstToUse.outValue());
+                newInstruction.setBlock(phiBlock);
                 // The xor is replacing a phi so it does not have an actual position.
-                newInstruction.setPosition(phi.getBlock().getPosition());
-                phi.getBlock().getInstructions().add(0, newInstruction);
+                newInstruction.setPosition(phiPosition);
+                phiBlock.getInstructions().add(insertIndex, newInstruction);
                 deadPhis++;
               }
             }
@@ -1815,6 +1832,19 @@ public class CodeRewriter {
       }
     }
     return false;
+  }
+
+  private boolean isBlockSupportedBySimplifyKnownBooleanCondition(BasicBlock b) {
+    if (b.getInstructions().size() == 2 && b.exit().isGoto()) {
+      Instruction firstInstruction = b.getInstructions().getFirst();
+      if (firstInstruction.isConstNumber()) {
+        return firstInstruction.asConstNumber().isIntegerOne() ||
+            firstInstruction.asConstNumber().isIntegerZero();
+      }
+      return false;
+    }
+
+    return b.isTrivialGoto();
   }
 
   private void rewriteIfToGoto(DominatorTree dominator, BasicBlock block, If theIf,
