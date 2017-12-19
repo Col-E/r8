@@ -3,35 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
-import static com.android.tools.r8.TestCondition.R8_COMPILER;
-import static com.android.tools.r8.TestCondition.match;
-import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 import com.android.tools.r8.R8RunArtTestsTest.CompilerUnderTest;
-import com.android.tools.r8.R8RunArtTestsTest.DexTool;
-import com.android.tools.r8.ToolHelper.DexVm;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
-import com.android.tools.r8.errors.Unreachable;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
@@ -82,6 +60,11 @@ public class R8RunExamplesKotlinTest extends R8RunExamplesCommon {
 
   @Override
   protected Map<String, TestCondition> getOutputNotIdenticalToJVMOutput() {
+    return Collections.emptyMap();
+  }
+
+  @Override
+  protected Map<String, TestCondition> getSkip() {
     return Collections.emptyMap();
   }
 

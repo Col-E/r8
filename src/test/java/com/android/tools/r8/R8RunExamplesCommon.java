@@ -144,6 +144,12 @@ public abstract class R8RunExamplesCommon {
       return;
     }
 
+    DexVm vm = ToolHelper.getDexVm();
+
+    if (shouldSkipVm(vm.getVersion())) {
+      return;
+    }
+
     String original = getOriginalDexFile().toString();
     Path generated = getOutputFile();
 
@@ -154,7 +160,6 @@ public abstract class R8RunExamplesCommon {
       fail("JVM failed for: " + mainClass);
     }
 
-    DexVm vm = ToolHelper.getDexVm();
     TestCondition condition =
         output == Output.CF ? getFailingRunCf().get(mainClass) : getFailingRun().get(mainClass);
     if (condition != null && condition.test(getTool(), compiler, vm.getVersion(), mode)) {
@@ -194,6 +199,11 @@ public abstract class R8RunExamplesCommon {
     return condition == null || !condition.test(getTool(), compiler, version, mode);
   }
 
+  private boolean shouldSkipVm(DexVm.Version version) {
+    TestCondition condition = getSkip().get(mainClass);
+    return condition != null && condition.test(getTool(), compiler, version, mode);
+  }
+
   protected abstract String getExampleDir();
 
   protected abstract Map<String, TestCondition> getFailingRun();
@@ -205,4 +215,6 @@ public abstract class R8RunExamplesCommon {
   protected abstract Set<String> getFailingOutputCf();
 
   protected abstract Map<String, TestCondition> getOutputNotIdenticalToJVMOutput();
+
+  protected abstract Map<String, TestCondition> getSkip();
 }

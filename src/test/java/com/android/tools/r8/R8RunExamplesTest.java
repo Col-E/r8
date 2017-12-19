@@ -168,4 +168,16 @@ public class R8RunExamplesTest extends R8RunExamplesCommon {
                 TestCondition.runtimes(Version.V6_0_1, Version.V5_1_1, Version.V4_4_4)))
         .build();
   }
+
+
+  @Override
+  protected Map<String, TestCondition> getSkip() {
+    return new ImmutableMap.Builder<String, TestCondition>()
+        // Test uses runtime methods which are not available on older Art versions.
+        .put(
+            "regress_70703087.Test",
+            TestCondition.match(
+                TestCondition.runtimes(Version.V6_0_1, Version.V5_1_1, Version.V4_4_4)))
+        .build();
+  }
 }
