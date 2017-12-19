@@ -461,7 +461,7 @@ public class CompatDx {
       if (mainDexList != null) {
         builder.addMainDexListFiles(mainDexList);
       }
-      CompatDxHelper.run(builder.build());
+      CompatDxHelper.run(builder.build(), dexArgs.minimalMainDex);
     } finally {
       executor.shutdown();
     }

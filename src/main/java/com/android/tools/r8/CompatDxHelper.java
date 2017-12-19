@@ -9,7 +9,8 @@ import com.android.tools.r8.utils.InternalOptions;
 import java.io.IOException;
 
 public class CompatDxHelper {
-  public static void run(D8Command command) throws IOException, CompilationException {
+  public static void run(D8Command command, Boolean minimalMainDex)
+      throws IOException, CompilationException {
     AndroidApp app = command.getInputApp();
     InternalOptions options = command.getInternalOptions();
     // DX does not desugar.
@@ -18,6 +19,9 @@ public class CompatDxHelper {
     // That is broken, but for CompatDX we do the same to not break existing builds
     // that are trying to transition.
     options.enableMainDexListCheck = false;
+    // DX has a minimal main dex flag. In compat mode only do minimal main dex
+    // if the flag is actually set.
+    options.minimalMainDex = minimalMainDex;
     D8.runForTesting(app, options);
   }
 }
