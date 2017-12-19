@@ -161,6 +161,11 @@ public class R8RunExamplesTest extends R8RunExamplesCommon {
             "filledarray.FilledArray",
             TestCondition.match(
                 TestCondition.runtimes(Version.V6_0_1, Version.V5_1_1, Version.V4_4_4)))
+        // Early art versions incorrectly print doubles.
+        .put(
+            "regress_70736958.Test",
+            TestCondition.match(
+                TestCondition.runtimes(Version.V6_0_1, Version.V5_1_1, Version.V4_4_4)))
         .build();
   }
 }
