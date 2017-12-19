@@ -52,7 +52,7 @@ public abstract class LogicalBinop extends Binop {
     int left = builder.allocatedRegister(leftValue(), getNumber());
     int dest = builder.allocatedRegister(outValue, getNumber());
     Instruction instruction;
-    if (isTwoAddr(builder)) {
+    if (isTwoAddr(builder.getRegisterAllocator())) {
       int right = builder.allocatedRegister(rightValue(), getNumber());
       if (left != dest) {
         assert isCommutative();

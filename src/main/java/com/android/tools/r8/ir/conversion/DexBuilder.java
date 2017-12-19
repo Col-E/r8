@@ -715,6 +715,10 @@ public class DexBuilder {
     return options;
   }
 
+  public RegisterAllocator getRegisterAllocator() {
+    return registerAllocator;
+  }
+
   // Dex instruction wrapper with information to compute instruction sizes and offsets for jumps.
   private static abstract class Info {
 

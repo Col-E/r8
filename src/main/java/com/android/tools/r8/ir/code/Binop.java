@@ -12,8 +12,8 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
-import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
+import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 
 public abstract class Binop extends Instruction {
 
@@ -40,11 +40,12 @@ public abstract class Binop extends Instruction {
 
   public abstract boolean isCommutative();
 
-  public boolean isTwoAddr(DexBuilder builder) {
+  @Override
+  public boolean isTwoAddr(RegisterAllocator allocator) {
     if (rightValue().needsRegister() && leftValue().needsRegister()) {
-      int leftRegister = builder.allocatedRegister(leftValue(), getNumber());
-      int rightRegister = builder.allocatedRegister(rightValue(), getNumber());
-      int destRegister = builder.allocatedRegister(outValue, getNumber());
+      int leftRegister = allocator.getRegisterForValue(leftValue(), getNumber());
+      int rightRegister = allocator.getRegisterForValue(rightValue(), getNumber());
+      int destRegister = allocator.getRegisterForValue(outValue, getNumber());
       return ((leftRegister == destRegister) ||
           (isCommutative() && rightRegister == destRegister)) &&
           leftRegister <= U4BIT_MAX &&

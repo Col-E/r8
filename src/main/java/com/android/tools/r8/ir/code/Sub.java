@@ -162,7 +162,7 @@ public class Sub extends ArithmeticBinop {
   @Override
   public void buildDex(DexBuilder builder) {
     // Handle two address and non-int case through the generic arithmetic binop.
-    if (isTwoAddr(builder) || type != NumericType.INT) {
+    if (isTwoAddr(builder.getRegisterAllocator()) || type != NumericType.INT) {
       super.buildDex(builder);
       return;
     }
