@@ -59,6 +59,10 @@ public class Test {
 
   private float[][][][][][][][][][] mArray = new float[1][1][1][1][1][1][1][1][1][1];
 
+  private boolean logicalAnd(boolean a, boolean b) {
+    return a && b;
+  }
+
   private Test() {
     float a = 107750002.0f;
     for (int i0 = 0; i0 < 1; i0++) {
@@ -90,7 +94,7 @@ public class Test {
       float lF0 = (+ mF);
       for (int i0 = 0; i0 < 1; i0++) {
         try {
-          mZ &= (((((boolean) new Boolean(false)) & mZ) || (mZ)) ? false : (Boolean.logicalAnd(true, (! mZ))));
+          mZ &= (((((boolean) new Boolean(false)) & mZ) || (mZ)) ? false : (logicalAnd(true, (! mZ))));
           mD += (mD++);
           switch (i0) {
             case 0: {
@@ -164,7 +168,7 @@ public class Test {
           mI %= (~ 1326172655);
           switch (i0) {
             case 0: {
-              mZ |= (true | ((Boolean.logicalAnd(mZ, (this instanceof Test))) && mZ));
+              mZ |= (true | ((logicalAnd(mZ, (this instanceof Test))) && mZ));
               if ((((boolean) new Boolean(true)) || (((boolean) new Boolean((false | (! mZ)))) | (! true)))) {
                 mI /= ((int)(byte)(int) (((mI / mI) >> 265234301) | 188234363));
                 {
