@@ -127,8 +127,7 @@ public interface DexIndexedConsumer extends ProgramConsumer {
       }
     }
 
-    /** Get or open the zip output stream. */
-    protected synchronized ZipOutputStream getStream(DiagnosticsHandler handler) {
+    private ZipOutputStream getStream(DiagnosticsHandler handler) {
       assert !closed;
       if (stream == null) {
         try {

@@ -9,8 +9,7 @@ import static com.android.tools.r8.graph.ClassKind.PROGRAM;
 
 import com.android.tools.r8.ClassFileResourceProvider;
 import com.android.tools.r8.ProgramResource;
-import com.android.tools.r8.ResourceException;
-import com.android.tools.r8.StringResource;
+import com.android.tools.r8.Resource;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.ClassKind;
 import com.android.tools.r8.graph.DexApplication;
@@ -110,14 +109,12 @@ public class ApplicationReader {
   private void readProguardMap(DexApplication.Builder<?> builder, ExecutorService executorService,
       List<Future<?>> futures) {
     // Read the Proguard mapping file in parallel with DexCode and DexProgramClass items.
-    StringResource map = inputApp.getProguardMap();
-    if (map != null) {
+    if (inputApp.hasProguardMap()) {
       futures.add(executorService.submit(() -> {
-        try {
-          String content = map.getString();
-          builder.setProguardMap(ClassNameMapper.mapperFromString(content));
-        } catch (IOException | ResourceException e) {
-          throw new CompilationError("Failure to read proguard map file", e, map.getOrigin());
+        try (InputStream map = inputApp.getProguardMap()) {
+          builder.setProguardMap(ClassNameMapper.mapperFromInputStream(map));
+        } catch (IOException e) {
+          throw new RuntimeException(e);
         }
       }));
     }
@@ -127,8 +124,12 @@ public class ApplicationReader {
       List<Future<?>> futures) {
     if (inputApp.hasMainDexList()) {
       futures.add(executorService.submit(() -> {
-        for (StringResource resource : inputApp.getMainDexListResources()) {
-          builder.addToMainDexList(MainDexList.parseList(resource, itemFactory));
+        for (Resource resource : inputApp.getMainDexListResources()) {
+          try (InputStream input = resource.getStream()) {
+            builder.addToMainDexList(MainDexList.parse(input, itemFactory));
+          } catch (IOException e) {
+            throw new RuntimeException(e);
+          }
         }
 
         builder.addToMainDexList(

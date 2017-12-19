@@ -14,7 +14,6 @@ import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.Resource;
-import com.android.tools.r8.StringResource;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.origin.Origin;
@@ -27,6 +26,9 @@ import com.google.common.io.Closer;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
@@ -54,9 +56,12 @@ public class AndroidApp {
   private final ImmutableList<ClassFileResourceProvider> libraryResourceProviders;
 
   private final ImmutableList<ProgramFileArchiveReader> programFileArchiveReaders;
-  private final StringResource proguardMap;
-  private final List<StringResource> mainDexListResources;
+  private final Resource deadCode;
+  private final Resource proguardMap;
+  private final Resource proguardSeeds;
+  private final List<Resource> mainDexListResources;
   private final List<String> mainDexClasses;
+  private final Resource mainDexListOutput;
 
   // See factory methods and AndroidApp.Builder below.
   private AndroidApp(
@@ -65,17 +70,23 @@ public class AndroidApp {
       ImmutableList<ProgramFileArchiveReader> programFileArchiveReaders,
       ImmutableList<ClassFileResourceProvider> classpathResourceProviders,
       ImmutableList<ClassFileResourceProvider> libraryResourceProviders,
-      StringResource proguardMap,
-      List<StringResource> mainDexListResources,
-      List<String> mainDexClasses) {
+      Resource deadCode,
+      Resource proguardMap,
+      Resource proguardSeeds,
+      List<Resource> mainDexListResources,
+      List<String> mainDexClasses,
+      Resource mainDexListOutput) {
     this.programResources = programResources;
     this.programResourcesMainDescriptor = programResourcesMainDescriptor;
     this.programFileArchiveReaders = programFileArchiveReaders;
     this.classpathResourceProviders = classpathResourceProviders;
     this.libraryResourceProviders = libraryResourceProviders;
+    this.deadCode = deadCode;
     this.proguardMap = proguardMap;
+    this.proguardSeeds = proguardSeeds;
     this.mainDexListResources = mainDexListResources;
     this.mainDexClasses = mainDexClasses;
+    this.mainDexListOutput = mainDexListOutput;
   }
 
   /**
@@ -189,10 +200,45 @@ public class AndroidApp {
   }
 
   /**
+   * True if the dead-code resource exists.
+   */
+  public boolean hasDeadCode() {
+    return deadCode != null;
+  }
+
+  /**
+   * Get the input stream of the dead-code resource if exists.
+   */
+  public InputStream getDeadCode(Closer closer) throws IOException {
+    return deadCode == null ? null : closer.register(deadCode.getStream());
+  }
+
+  /**
+   * True if the proguard-map resource exists.
+   */
+  public boolean hasProguardMap() {
+    return proguardMap != null;
+  }
+
+  /**
    * Get the input stream of the proguard-map resource if it exists.
    */
-  public StringResource getProguardMap() {
-    return proguardMap;
+  public InputStream getProguardMap() throws IOException {
+    return proguardMap == null ? null : proguardMap.getStream();
+  }
+
+  /**
+   * True if the proguard-seeds resource exists.
+   */
+  public boolean hasProguardSeeds() {
+    return proguardSeeds != null;
+  }
+
+  /**
+   * Get the input stream of the proguard-seeds resource if it exists.
+   */
+  public InputStream getProguardSeeds(Closer closer) throws IOException {
+    return proguardSeeds == null ? null : closer.register(proguardSeeds.getStream());
   }
 
   /**
@@ -212,7 +258,7 @@ public class AndroidApp {
   /**
    * Get the main dex list resources if any.
    */
-  public List<StringResource> getMainDexListResources() {
+  public List<Resource> getMainDexListResources() {
     return mainDexListResources;
   }
 
@@ -221,6 +267,20 @@ public class AndroidApp {
    */
   public List<String> getMainDexClasses() {
     return mainDexClasses;
+  }
+
+  /**
+   * True if the main dex list resource exists.
+   */
+  public boolean hasMainDexListOutput() {
+    return mainDexListOutput != null;
+  }
+
+  /**
+   * Get the main dex list output resources if any.
+   */
+  public InputStream getMainDexListOutput(Closer closer) throws IOException {
+    return mainDexListOutput == null ? null : closer.register(mainDexListOutput.getStream());
   }
 
   /**
@@ -239,7 +299,7 @@ public class AndroidApp {
    */
   public void writeToDirectory(Path directory, OutputMode outputMode) throws IOException {
     List<ProgramResource> dexProgramSources = getDexProgramResources();
-    if (outputMode.isDexIndexed()) {
+    if (outputMode == OutputMode.Indexed) {
       DexIndexedConsumer.DirectoryConsumer.writeResources(directory, dexProgramSources);
     } else {
       DexFilePerClassFileConsumer.DirectoryConsumer.writeResources(
@@ -276,6 +336,31 @@ public class AndroidApp {
     }
   }
 
+  public void writeProguardMap(OutputStream out) throws IOException {
+    try (InputStream input = getProguardMap()) {
+      assert input != null;
+      out.write(ByteStreams.toByteArray(input));
+    }
+  }
+
+  public void writeProguardSeeds(Closer closer, OutputStream out) throws IOException {
+    InputStream input = getProguardSeeds(closer);
+    assert input != null;
+    out.write(ByteStreams.toByteArray(input));
+  }
+
+  public void writeMainDexList(Closer closer, OutputStream out) throws IOException {
+    InputStream input = getMainDexListOutput(closer);
+    assert input != null;
+    out.write(ByteStreams.toByteArray(input));
+  }
+
+  public void writeDeadCode(Closer closer, OutputStream out) throws IOException {
+    InputStream input = getDeadCode(closer);
+    assert input != null;
+    out.write(ByteStreams.toByteArray(input));
+  }
+
   // Public for testing.
   public String getPrimaryClassDescriptor(Resource resource) {
     assert resource instanceof ProgramResource;
@@ -292,9 +377,12 @@ public class AndroidApp {
     private final List<ProgramFileArchiveReader> programFileArchiveReaders = new ArrayList<>();
     private final List<ClassFileResourceProvider> classpathResourceProviders = new ArrayList<>();
     private final List<ClassFileResourceProvider> libraryResourceProviders = new ArrayList<>();
-    private StringResource proguardMap;
-    private List<StringResource> mainDexListResources = new ArrayList<>();
+    private Resource deadCode;
+    private Resource proguardMap;
+    private Resource proguardSeeds;
+    private List<Resource> mainDexListResources = new ArrayList<>();
     private List<String> mainDexListClasses = new ArrayList<>();
+    private Resource mainDexListOutput;
     private boolean ignoreDexInArchive = false;
 
     // See AndroidApp::builder().
@@ -307,9 +395,12 @@ public class AndroidApp {
       programFileArchiveReaders.addAll(app.programFileArchiveReaders);
       classpathResourceProviders.addAll(app.classpathResourceProviders);
       libraryResourceProviders.addAll(app.libraryResourceProviders);
+      deadCode = app.deadCode;
       proguardMap = app.proguardMap;
+      proguardSeeds = app.proguardSeeds;
       mainDexListResources = app.mainDexListResources;
       mainDexListClasses = app.mainDexClasses;
+      mainDexListOutput = app.mainDexListOutput;
     }
 
     /**
@@ -423,7 +514,7 @@ public class AndroidApp {
      */
     public Builder addDexProgramData(byte[] data, Set<String> classDescriptors) {
       addProgramResources(
-          ProgramResource.fromBytes(Origin.unknown(), Kind.DEX, data, classDescriptors));
+          ProgramResource.fromBytes(Kind.DEX, Origin.unknown(), data, classDescriptors));
       return this;
     }
 
@@ -434,8 +525,8 @@ public class AndroidApp {
         byte[] data,
         Set<String> classDescriptors,
         String primaryClassDescriptor) {
-      ProgramResource resource = ProgramResource.fromBytes(
-          Origin.unknown(), Kind.DEX, data, classDescriptors);
+      ProgramResource resource = new ProgramResource(
+          Kind.DEX, Resource.fromBytes(Origin.unknown(), data), classDescriptors);
       programResources.add(resource);
       programResourcesMainDescriptor.put(resource, primaryClassDescriptor);
       return this;
@@ -445,7 +536,7 @@ public class AndroidApp {
      * Add dex program-data.
      */
     public Builder addDexProgramData(byte[] data, Origin origin) {
-      addProgramResources(ProgramResource.fromBytes(origin, Kind.DEX, data, null));
+      addProgramResources(ProgramResource.fromBytes(Kind.DEX, origin, data, null));
       return this;
     }
 
@@ -454,7 +545,7 @@ public class AndroidApp {
      */
     public Builder addDexProgramData(Collection<byte[]> data) {
       for (byte[] datum : data) {
-        addProgramResources(ProgramResource.fromBytes(Origin.unknown(), Kind.DEX, datum, null));
+        addProgramResources(ProgramResource.fromBytes(Kind.DEX, Origin.unknown(), datum, null));
       }
       return this;
     }
@@ -477,7 +568,15 @@ public class AndroidApp {
     }
 
     public Builder addClassProgramData(byte[] data, Origin origin, Set<String> classDescriptors) {
-      addProgramResources(ProgramResource.fromBytes(origin, Kind.CF, data, classDescriptors));
+      addProgramResources(ProgramResource.fromBytes(Kind.CF, origin, data, classDescriptors));
+      return this;
+    }
+
+    /**
+     * Set dead-code data.
+     */
+    public Builder setDeadCode(byte[] content) {
+      deadCode = content == null ? null : Resource.fromBytes(Origin.unknown(), content);
       return this;
     }
 
@@ -485,7 +584,7 @@ public class AndroidApp {
      * Set proguard-map file.
      */
     public Builder setProguardMapFile(Path file) {
-      proguardMap = file == null ? null : StringResource.fromFile(file);
+      proguardMap = file == null ? null : Resource.fromFile(file);
       return this;
     }
 
@@ -493,7 +592,22 @@ public class AndroidApp {
      * Set proguard-map data.
      */
     public Builder setProguardMapData(String content) {
-      proguardMap = content == null ? null : StringResource.fromString(content, Origin.unknown());
+      return setProguardMapData(content == null ? null : content.getBytes(StandardCharsets.UTF_8));
+    }
+
+    /**
+     * Set proguard-map data.
+     */
+    public Builder setProguardMapData(byte[] content) {
+      proguardMap = content == null ? null : Resource.fromBytes(Origin.unknown(), content);
+      return this;
+    }
+
+    /**
+     * Set proguard-seeds data.
+     */
+    public Builder setProguardSeedsData(byte[] content) {
+      proguardSeeds = content == null ? null : Resource.fromBytes(Origin.unknown(), content);
       return this;
     }
 
@@ -511,7 +625,7 @@ public class AndroidApp {
         }
         // TODO(sgjesse): Should we just read the file here? This will sacrifice the parallelism
         // in ApplicationReader where all input resources are read in parallel.
-        mainDexListResources.add(StringResource.fromFile(file));
+        mainDexListResources.add(Resource.fromFile(file));
       }
       return this;
     }
@@ -536,6 +650,14 @@ public class AndroidApp {
     }
 
     /**
+     * Set the main-dex list output data.
+     */
+    public Builder setMainDexListOutputData(byte[] content) {
+      mainDexListOutput = content == null ? null : Resource.fromBytes(Origin.unknown(), content);
+      return this;
+    }
+
+    /**
      * Ignore dex resources in input archives.
      *
      * In some situations (e.g. AOSP framework build) the input archives include both class and
@@ -557,9 +679,12 @@ public class AndroidApp {
           ImmutableList.copyOf(programFileArchiveReaders),
           ImmutableList.copyOf(classpathResourceProviders),
           ImmutableList.copyOf(libraryResourceProviders),
+          deadCode,
           proguardMap,
+          proguardSeeds,
           mainDexListResources,
-          mainDexListClasses);
+          mainDexListClasses,
+          mainDexListOutput);
     }
 
     public void addProgramFile(FilteredClassPath filteredClassPath) throws NoSuchFileException {

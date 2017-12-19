@@ -4,13 +4,15 @@
 package com.android.tools.r8.utils;
 
 import com.google.common.io.Closer;
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -66,12 +68,15 @@ public class FileUtils {
         || name.endsWith(ZIP_EXTENSION);
   }
 
-  public static String readTextFile(Path file, Charset charset) throws IOException {
-    return new String(Files.readAllBytes(file), charset);
-  }
-
-  public static List<String> readAllLines(Path file) throws IOException {
-    return Files.readAllLines(file);
+  public static List<String> readTextFile(Path file) throws IOException {
+    try (BufferedReader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
+      List<String> result = new ArrayList<>();
+      String line;
+      while ((line = reader.readLine()) != null) {
+        result.add(line);
+      }
+      return result;
+    }
   }
 
   public static void writeTextFile(Path file, List<String> lines) throws IOException {

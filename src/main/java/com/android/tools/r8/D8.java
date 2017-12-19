@@ -65,13 +65,13 @@ public final class D8 {
    * Main API entry for the D8 dexer.
    *
    * @param command D8 command.
+   * @return the compilation result.
    */
   public static D8Output run(D8Command command) throws CompilationFailedException {
     AndroidApp app = command.getInputApp();
     InternalOptions options = command.getInternalOptions();
     ExecutorService executor = ThreadUtils.getExecutorService(options);
-    AndroidAppConsumers compatSink =
-        command.usingDeprecatedAPI() ? new AndroidAppConsumers(options) : null;
+    AndroidAppConsumers compatSink = new AndroidAppConsumers(options);
     ExceptionUtils.withD8CompilationHandler(
         command.getReporter(),
         () -> {
@@ -81,7 +81,7 @@ public final class D8 {
             executor.shutdown();
           }
         });
-    return compatSink == null ? null : new D8Output(compatSink.build(), command.getOutputMode());
+    return new D8Output(compatSink.build(), command.getOutputMode());
   }
 
   /**
@@ -92,19 +92,19 @@ public final class D8 {
    *
    * @param command D8 command.
    * @param executor executor service from which to get threads for multi-threaded processing.
+   * @return the compilation result
    */
   public static D8Output run(D8Command command, ExecutorService executor)
       throws CompilationFailedException {
     AndroidApp app = command.getInputApp();
     InternalOptions options = command.getInternalOptions();
-    AndroidAppConsumers compatSink =
-        command.usingDeprecatedAPI() ? new AndroidAppConsumers(options) : null;
+    AndroidAppConsumers compatSink = new AndroidAppConsumers(options);
     ExceptionUtils.withD8CompilationHandler(
         command.getReporter(),
         () -> {
           run(app, options, executor);
         });
-    return compatSink == null ? null : new D8Output(compatSink.build(), command.getOutputMode());
+    return new D8Output(compatSink.build(), command.getOutputMode());
   }
 
   private static void run(String[] args)

@@ -13,15 +13,17 @@ import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OutputMode;
-import com.android.tools.r8.utils.StringUtils;
+import com.google.common.io.Closer;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
@@ -142,10 +144,6 @@ public class MainDexTracingTest {
               .collect(Collectors.toList());
 
       // Build main-dex list using R8.
-      class Box {
-        String content;
-      }
-      final Box r8MainDexListOutput = new Box();
       R8Command.Builder r8CommandBuilder = R8Command.builder();
       R8Command command =
           r8CommandBuilder
@@ -156,14 +154,17 @@ public class MainDexTracingTest {
               .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(minSdk)))
               .setOutput(out, OutputMode.DexIndexed)
               .addMainDexRulesFiles(mainDexRules)
-              .setMainDexListConsumer((string, handler) -> r8MainDexListOutput.content = string)
+              .setMainDexListOutputPath(
+                  temp.getRoot().toPath().resolve(testName + "-main-dex-list.txt"))
               .build();
-      ToolHelper.runR8WithFullResult(command, optionsConsumer);
-      List<String> r8MainDexList =
-          Arrays.stream(r8MainDexListOutput.content.split(StringUtils.LINE_SEPARATOR))
-              .map(this::mainDexStringToDescriptor)
-              .sorted()
-              .collect(Collectors.toList());
+      AndroidApp result = ToolHelper.runR8WithFullResult(command, optionsConsumer);
+      List<String> r8MainDexList;
+      try (Closer closer = Closer.create()) {
+        BufferedReader istream = new BufferedReader(
+            new InputStreamReader(result.getMainDexListOutput(closer)));
+        r8MainDexList = istream.lines().map(this::mainDexStringToDescriptor).sorted()
+            .collect(Collectors.toList());
+      }
       // Check that both generated lists are the same as the reference list, except for lambda
       // classes which are only produced when running R8.
       String[] refList = new String(Files.readAllBytes(

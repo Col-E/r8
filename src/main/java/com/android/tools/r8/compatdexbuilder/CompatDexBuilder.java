@@ -4,15 +4,13 @@
 package com.android.tools.r8.compatdexbuilder;
 
 import com.android.tools.r8.CompilationException;
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8;
-import com.android.tools.r8.D8Command;
-import com.android.tools.r8.DexIndexedConsumer;
-import com.android.tools.r8.DiagnosticsHandler;
+import com.android.tools.r8.D8Output;
 import com.android.tools.r8.origin.ArchiveEntryOrigin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.io.ByteStreams;
 import java.io.IOException;
@@ -22,7 +20,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -32,27 +29,6 @@ import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
 public class CompatDexBuilder {
-
-  private static class DexConsumer extends DexIndexedConsumer.ForwardingConsumer {
-
-    byte[] bytes;
-
-    public DexConsumer() {
-      super(null);
-    }
-
-    @Override
-    public synchronized void accept(
-        int fileIndex, byte[] data, Set<String> descriptors, DiagnosticsHandler handler) {
-      super.accept(fileIndex, data, descriptors, handler);
-      assert bytes == null;
-      bytes = data;
-    }
-
-    byte[] getBytes() {
-      return bytes;
-    }
-  }
 
   private String input = null;
   private String output = null;
@@ -135,15 +111,18 @@ public class CompatDexBuilder {
           }
         }
 
-        List<Future<DexConsumer>> futures = new ArrayList<>(toDex.size());
+        List<Future<D8Output>> futures = new ArrayList<>(toDex.size());
         for (int i = 0; i < toDex.size(); i++) {
           ZipEntry classEntry = toDex.get(i);
           futures.add(executor.submit(() -> dexEntry(zipFile, classEntry, executor)));
         }
         for (int i = 0; i < futures.size(); i++) {
+          D8Output result = futures.get(i).get();
           ZipEntry entry = toDex.get(i);
-          DexConsumer consumer = futures.get(i).get();
-          addEntry(entry.getName() + ".dex", consumer.getBytes(), entry.getTime(), out);
+          assert result.getDexResources().size() == 1;
+          try (InputStream dexStream = result.getDexResources().get(0).getStream()) {
+            addEntry(entry.getName() + ".dex", dexStream, entry.getTime(), out);
+          }
         }
       }
     } finally {
@@ -151,32 +130,24 @@ public class CompatDexBuilder {
     }
   }
 
-  private DexConsumer dexEntry(ZipFile zipFile, ZipEntry classEntry, ExecutorService executor)
+  private D8Output dexEntry(ZipFile zipFile, ZipEntry classEntry, ExecutorService executor)
       throws IOException, CompilationException, CompilationFailedException {
-    DexConsumer consumer = new DexConsumer();
-    D8Command.Builder builder =
-        new CompatDexBuilderCommandBuilder()
-            .setProgramConsumer(consumer)
-            .setMode(noLocals ? CompilationMode.RELEASE : CompilationMode.DEBUG)
-            .setMinApiLevel(AndroidApiLevel.H_MR2.getLevel());
     try (InputStream stream = zipFile.getInputStream(classEntry)) {
-      builder.addClassProgramData(
-          ByteStreams.toByteArray(stream),
-          new ArchiveEntryOrigin(
-              classEntry.getName(), new PathOrigin(Paths.get(zipFile.getName()))));
+      CompatDexBuilderCommandBuilder builder = new CompatDexBuilderCommandBuilder();
+      builder
+          .addClassProgramData(ByteStreams.toByteArray(stream),
+              new ArchiveEntryOrigin(classEntry.getName(),
+                  new PathOrigin(Paths.get(zipFile.getName()))))
+          .setMode(noLocals ? CompilationMode.RELEASE : CompilationMode.DEBUG)
+          .setMinApiLevel(AndroidApiLevel.H_MR2.getLevel());
+      return D8.run(builder.build(), executor);
     }
-    D8.run(builder.build(), executor);
-    return consumer;
   }
 
-  private static void addEntry(String name, InputStream stream, long time, ZipOutputStream out)
-      throws IOException {
-    addEntry(name, ByteStreams.toByteArray(stream), time, out);
-  }
-
-  private static void addEntry(String name, byte[] bytes, long time, ZipOutputStream out)
+  private static void addEntry(String name, InputStream in, long time, ZipOutputStream out)
       throws IOException {
     ZipEntry zipEntry = new ZipEntry(name);
+    byte[] bytes = ByteStreams.toByteArray(in);
     CRC32 crc32 = new CRC32();
     crc32.update(bytes);
     zipEntry.setSize(bytes.length);

@@ -4,7 +4,8 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.ProgramResource;
-import com.android.tools.r8.ResourceException;
+import com.android.tools.r8.ProgramResource.Kind;
+import com.android.tools.r8.Resource;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.origin.Origin;
 import java.io.ByteArrayInputStream;
@@ -12,25 +13,20 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Set;
 
-class OneShotByteResource implements ProgramResource {
+class OneShotByteResource implements Resource {
 
   private final Origin origin;
-  private final Kind kind;
   private byte[] bytes;
-  private final Set<String> classDescriptors;
 
   static ProgramResource create(
       Kind kind, Origin origin, byte[] bytes, Set<String> classDescriptors) {
-    return new OneShotByteResource(origin, kind, bytes, classDescriptors);
+    return new ProgramResource(kind, new OneShotByteResource(origin, bytes), classDescriptors);
   }
 
-  private OneShotByteResource(
-      Origin origin, Kind kind, byte[] bytes, Set<String> classDescriptors) {
+  private OneShotByteResource(Origin origin, byte[] bytes) {
     assert bytes != null;
     this.origin = origin;
-    this.kind = kind;
     this.bytes = bytes;
-    this.classDescriptors = classDescriptors;
   }
 
   @Override
@@ -39,30 +35,16 @@ class OneShotByteResource implements ProgramResource {
   }
 
   @Override
-  public Kind getKind() {
-    return kind;
+  @Deprecated
+  public Set<String> getClassDescriptors() {
+    throw new Unreachable();
   }
 
   @Override
-  public InputStream getByteStream() throws ResourceException {
+  public InputStream getStream() throws IOException {
     assert bytes != null;
     InputStream result = new ByteArrayInputStream(bytes);
     bytes = null;
     return result;
-  }
-
-  @Override
-  public Set<String> getClassDescriptors() {
-    return classDescriptors;
-  }
-
-  @Override
-  @Deprecated
-  public InputStream getStream() throws IOException {
-    try {
-      return getByteStream();
-    } catch (ResourceException e) {
-      throw new Unreachable(e);
-    }
   }
 }

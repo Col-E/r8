@@ -163,7 +163,7 @@ public class ProguardConfigurationParserTest extends TestBase {
 
     // Parse from strings.
     parser = new ProguardConfigurationParser(new DexItemFactory(), reporter);
-    List<String> lines = FileUtils.readAllLines(Paths.get(PROGUARD_SPEC_FILE));
+    List<String> lines = FileUtils.readTextFile(Paths.get(PROGUARD_SPEC_FILE));
     parser.parse(createConfigurationForTesting(lines));
     rules = parser.getConfig().getRules();
     assertEquals(24, rules.size());
