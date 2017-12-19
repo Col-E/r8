@@ -1698,9 +1698,9 @@ public class CodeRewriter {
           if (theIf.isZeroTest()) {
             cond = inValues.get(0).getConstInstruction().asConstNumber().getIntValue();
           } else {
-            int left = inValues.get(0).getConstInstruction().asConstNumber().getIntValue();
-            int right = inValues.get(1).getConstInstruction().asConstNumber().getIntValue();
-            cond = left - right;
+            long left = (long) inValues.get(0).getConstInstruction().asConstNumber().getIntValue();
+            long right = (long) inValues.get(1).getConstInstruction().asConstNumber().getIntValue();
+            cond = Long.signum(left - right);
           }
         } else if (inValues.get(0).hasValueRange()
             && (theIf.isZeroTest() || inValues.get(1).hasValueRange())) {
