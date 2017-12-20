@@ -4,6 +4,7 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.AsmTestBase;
+import com.android.tools.r8.graph.invokesuper.Consumer;
 import com.android.tools.r8.graph.invokesuper.InvokerClassDump;
 import com.android.tools.r8.graph.invokesuper.InvokerClassFailingDump;
 import com.android.tools.r8.graph.invokesuper.MainClass;
@@ -21,6 +22,7 @@ public class InvokeSuperTest extends AsmTestBase {
   public void testInvokeSuperTargets() throws Exception {
     ensureSameOutput(MainClass.class.getCanonicalName(),
         asBytes(MainClass.class),
+        asBytes(Consumer.class),
         asBytes(Super.class),
         asBytes(SubLevel1.class),
         asBytes(SubLevel2.class),
@@ -33,6 +35,7 @@ public class InvokeSuperTest extends AsmTestBase {
   public void testInvokeSuperTargetsNonVerifying() throws Exception {
     ensureSameOutputD8R8(MainClassFailing.class.getCanonicalName(),
         asBytes(MainClassFailing.class),
+        asBytes(Consumer.class),
         asBytes(Super.class),
         asBytes(SubLevel1.class),
         asBytes(SubLevel2.class),

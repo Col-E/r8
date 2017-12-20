@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph.invokesuper;
 
-import java.util.function.Consumer;
-
 public class MainClass {
 
   private static void tryInvoke(Consumer<InvokerClass> function) {
