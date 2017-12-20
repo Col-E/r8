@@ -1581,12 +1581,13 @@ public class CodeRewriter {
         Value a1 = a.inValues().get(1);
         Value b0 = b.inValues().get(0);
         Value b1 = b.inValues().get(1);
-        return (a0.equals(b0) && a1.equals(b1)) || (a0.equals(b1) && a1.equals(b0));
+        return (identicalValue(a0, b0) && identicalValue(a1, b1))
+            || (identicalValue(a0, b1) && identicalValue(a1, b0));
       } else {
         // Compare all in-values.
         assert a.inValues().size() == b.inValues().size();
         for (int i = 0; i < a.inValues().size(); i++) {
-          if (!a.inValues().get(i).equals(b.inValues().get(i))) {
+          if (!identicalValue(a.inValues().get(i), b.inValues().get(i))) {
             return false;
           }
         }
@@ -1603,18 +1604,37 @@ public class CodeRewriter {
         Value in0 = instruction.inValues().get(0);
         Value in1 = instruction.inValues().get(1);
         if (binop.isCommutative()) {
-          hash += hash * prime + in0.hashCode() * in1.hashCode();
+          hash += hash * prime + getHashCode(in0) * getHashCode(in1);
         } else {
-          hash += hash * prime + in0.hashCode();
-          hash += hash * prime + in1.hashCode();
+          hash += hash * prime + getHashCode(in0);
+          hash += hash * prime + getHashCode(in1);
         }
         return hash;
       } else {
         for (Value value : instruction.inValues()) {
-          hash += hash * prime + value.hashCode();
+          hash += hash * prime + getHashCode(value);
         }
       }
       return hash;
+    }
+
+    private static boolean identicalValue(Value a, Value b) {
+      if (a.equals(b)) {
+        return true;
+      }
+      if (a.isConstNumber() && b.isConstNumber()) {
+        // Do not take assumption that constants are canonicalized.
+        return a.definition.identicalNonValueNonPositionParts(b.definition);
+      }
+      return false;
+    }
+
+    private static int getHashCode(Value a) {
+      if (a.isConstNumber()) {
+        // Do not take assumption that constants are canonicalized.
+        return Long.hashCode(a.definition.asConstNumber().getRawValue());
+      }
+      return a.hashCode();
     }
   }
 
