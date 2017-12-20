@@ -96,15 +96,21 @@ public class AppInfo {
    * Lookup super method following the super chain from the holder of {@code method}.
    * <p>
    * This method will resolve the method on the holder of {@code method} and only return a non-null
-   * value if the result of resolution was a non-static, non-private method.
+   * value if the result of resolution was an instance (i.e. non-static) method.
    *
    * @param method the method to lookup
+   * @param invocationContext the class the invoke is contained in, i.e., the holder of the caller.
    * @return The actual target for {@code method} or {@code null} if none found.
    */
-  public DexEncodedMethod lookupSuperTarget(DexMethod method) {
-    ResolutionResult resolutionResult = resolveMethod(method.holder, method);
+  public DexEncodedMethod lookupSuperTarget(DexMethod method,
+      DexType invocationContext) {
+    DexClass contextClass = definitionFor(invocationContext);
+    if (contextClass == null || contextClass.superType == null) {
+      return null;
+    }
+    ResolutionResult resolutionResult = resolveMethod(contextClass.superType, method);
     DexEncodedMethod target = resolutionResult.asSingleTarget();
-    return target == null || target.isVirtualMethod() ? target : null;
+    return target == null || !target.isStaticMethod() ? target : null;
   }
 
   /**

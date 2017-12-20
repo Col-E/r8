@@ -94,19 +94,21 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
   }
 
   @Override
-  public DexEncodedMethod lookupSingleTarget(AppInfoWithSubtyping appInfo) {
+  public DexEncodedMethod lookupSingleTarget(AppInfoWithSubtyping appInfo,
+      DexType invocationContext) {
     return appInfo.lookupDirectTarget(getInvokedMethod());
   }
 
   @Override
-  public Collection<DexEncodedMethod> lookupTargets(AppInfoWithSubtyping appInfo) {
+  public Collection<DexEncodedMethod> lookupTargets(AppInfoWithSubtyping appInfo,
+      DexType invocationContext) {
     DexEncodedMethod target = appInfo.lookupDirectTarget(getInvokedMethod());
     return target == null ? Collections.emptyList() : Collections.singletonList(target);
   }
 
   @Override
-  public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType holder) {
-    return inliningConstraintForSinlgeTargetInvoke(info, holder);
+  public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType invocationContext) {
+    return inliningConstraintForSinlgeTargetInvoke(info, invocationContext);
   }
 
   @Override

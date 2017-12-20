@@ -18,7 +18,6 @@ import org.junit.Test;
 public class InvokeSuperTest extends AsmTestBase {
 
   @Test
-  @Ignore("b/70707023")
   public void testInvokeSuperTargets() throws Exception {
     ensureSameOutput(MainClass.class.getCanonicalName(),
         asBytes(MainClass.class),

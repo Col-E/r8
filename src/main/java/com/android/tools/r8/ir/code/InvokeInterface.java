@@ -77,18 +77,20 @@ public class InvokeInterface extends InvokeMethodWithReceiver {
   }
 
   @Override
-  public DexEncodedMethod lookupSingleTarget(AppInfoWithSubtyping appInfo) {
+  public DexEncodedMethod lookupSingleTarget(AppInfoWithSubtyping appInfo,
+      DexType invocationContext) {
     DexMethod method = getInvokedMethod();
     return appInfo.lookupSingleInterfaceTarget(method);
   }
 
   @Override
-  public Collection<DexEncodedMethod> lookupTargets(AppInfoWithSubtyping appInfo) {
+  public Collection<DexEncodedMethod> lookupTargets(AppInfoWithSubtyping appInfo,
+      DexType invocationContext) {
     return appInfo.lookupInterfaceTargets(getInvokedMethod());
   }
 
   @Override
-  public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType holder) {
-    return inliningConstraintForVirtualInvoke(info, holder);
+  public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType invocationContext) {
+    return inliningConstraintForVirtualInvoke(info, invocationContext);
   }
 }

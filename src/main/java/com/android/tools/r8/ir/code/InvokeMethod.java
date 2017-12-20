@@ -59,28 +59,31 @@ public abstract class InvokeMethod extends Invoke {
     return this;
   }
 
-  public abstract DexEncodedMethod lookupSingleTarget(AppInfoWithSubtyping appInfo);
+  public abstract DexEncodedMethod lookupSingleTarget(AppInfoWithSubtyping appInfo,
+      DexType invocationContext);
 
-  public abstract Collection<DexEncodedMethod> lookupTargets(AppInfoWithSubtyping appInfo);
+  public abstract Collection<DexEncodedMethod> lookupTargets(AppInfoWithSubtyping appInfo,
+      DexType invocationContext);
 
   @Override
-  public abstract Constraint inliningConstraint(AppInfoWithSubtyping info, DexType holder);
+  public abstract Constraint inliningConstraint(AppInfoWithSubtyping info,
+      DexType invocationContext);
 
   protected Constraint inliningConstraintForSinlgeTargetInvoke(AppInfoWithSubtyping info,
-      DexType holder) {
+      DexType invocationContext) {
     if (method.holder.isArrayType()) {
       return Constraint.ALWAYS;
     }
-    DexEncodedMethod target = lookupSingleTarget(info);
+    DexEncodedMethod target = lookupSingleTarget(info, invocationContext);
     if (target != null) {
       DexType methodHolder = target.method.holder;
       DexClass methodClass = info.definitionFor(methodHolder);
       if ((methodClass != null)) {
         Constraint methodConstraint = Constraint
-            .deriveConstraint(holder, methodHolder, target.accessFlags, info);
+            .deriveConstraint(invocationContext, methodHolder, target.accessFlags, info);
         // We also have to take the constraint of the enclosing class into account.
         Constraint classConstraint = Constraint
-            .deriveConstraint(holder, methodHolder, methodClass.accessFlags, info);
+            .deriveConstraint(invocationContext, methodHolder, methodClass.accessFlags, info);
         return Constraint.min(methodConstraint, classConstraint);
       }
     }
@@ -88,11 +91,11 @@ public abstract class InvokeMethod extends Invoke {
   }
 
   protected Constraint inliningConstraintForVirtualInvoke(AppInfoWithSubtyping info,
-      DexType holder) {
+      DexType invocationContext) {
     if (method.holder.isArrayType()) {
       return Constraint.ALWAYS;
     }
-    Collection<DexEncodedMethod> targets = lookupTargets(info);
+    Collection<DexEncodedMethod> targets = lookupTargets(info, invocationContext);
     if (targets == null || targets.isEmpty()) {
       return Constraint.NEVER;
     }
@@ -102,11 +105,11 @@ public abstract class InvokeMethod extends Invoke {
       DexClass methodClass = info.definitionFor(methodHolder);
       if ((methodClass != null)) {
         Constraint methodConstraint = Constraint
-            .deriveConstraint(holder, methodHolder, target.accessFlags, info);
+            .deriveConstraint(invocationContext, methodHolder, target.accessFlags, info);
         result = Constraint.min(result, methodConstraint);
         // We also have to take the constraint of the enclosing class into account.
         Constraint classConstraint = Constraint
-            .deriveConstraint(holder, methodHolder, methodClass.accessFlags, info);
+            .deriveConstraint(invocationContext, methodHolder, methodClass.accessFlags, info);
         result = Constraint.min(result, classConstraint);
       }
       if (result == Constraint.NEVER) {

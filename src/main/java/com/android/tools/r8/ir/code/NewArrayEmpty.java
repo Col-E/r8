@@ -76,8 +76,8 @@ public class NewArrayEmpty extends Instruction {
   }
 
   @Override
-  public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType holder) {
-    return Constraint.classIsVisible(holder, type, info);
+  public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType invocationContext) {
+    return Constraint.classIsVisible(invocationContext, type, info);
   }
 
   @Override

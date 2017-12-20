@@ -49,16 +49,16 @@ abstract class FieldInstruction extends Instruction {
   abstract DexEncodedField lookupTarget(DexType type, AppInfo appInfo);
 
   @Override
-  public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType holder) {
+  public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType invocationContext) {
     // Resolve the field if possible and decide whether the instruction can inlined.
     DexType fieldHolder = field.getHolder();
     DexEncodedField target = lookupTarget(fieldHolder, info);
     DexClass fieldClass = info.definitionFor(fieldHolder);
     if ((target != null) && (fieldClass != null)) {
       Constraint fieldConstraint = Constraint
-          .deriveConstraint(holder, fieldHolder, target.accessFlags, info);
+          .deriveConstraint(invocationContext, fieldHolder, target.accessFlags, info);
       Constraint classConstraint = Constraint
-          .deriveConstraint(holder, fieldHolder, fieldClass.accessFlags, info);
+          .deriveConstraint(invocationContext, fieldHolder, fieldClass.accessFlags, info);
       return Constraint.min(fieldConstraint, classConstraint);
     }
     return Constraint.NEVER;

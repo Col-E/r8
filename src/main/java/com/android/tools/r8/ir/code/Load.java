@@ -50,7 +50,7 @@ public class Load extends Instruction {
   }
 
   @Override
-  public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType holder) {
+  public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType invocationContext) {
     throw new Unreachable();
   }
 

@@ -57,6 +57,10 @@ abstract class KeepReason {
     return null;
   }
 
+  public static KeepReason targetedBySuperFrom(DexEncodedMethod from) {
+    return new TargetedBySuper(from);
+  }
+
   private static class DueToKeepRule extends KeepReason {
 
     final ProguardKeepRule keepRule;
@@ -136,6 +140,18 @@ abstract class KeepReason {
     @Override
     String getKind() {
       return "invoked via super from";
+    }
+  }
+
+  private static class TargetedBySuper extends BasedOnOtherMethod {
+
+    private TargetedBySuper(DexEncodedMethod method) {
+      super(method);
+    }
+
+    @Override
+    String getKind() {
+      return "targeted by super from";
     }
   }
 

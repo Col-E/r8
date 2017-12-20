@@ -246,8 +246,8 @@ public class IRConverter {
     if (!inputMainDexList.isEmpty()) {
       Map<DexType, DexProgramClass> programClasses = builder.getProgramClasses().stream()
           .collect(Collectors.toMap(
-            programClass -> programClass.type,
-            Function.identity()));
+              programClass -> programClass.type,
+              Function.identity()));
       Collection<DexType> synthesized = new ArrayList<>();
       for (DexType dexType : inputMainDexList) {
         DexProgramClass programClass = programClasses.get(dexType);
@@ -281,9 +281,9 @@ public class IRConverter {
       DexProgramClass original = entry.getKey();
       Set<DexType> synthesized = new HashSet<>();
       entry.getValue()
-        .stream()
-        .map(dexProgramClass -> dexProgramClass.type)
-        .forEach(synthesized::add);
+          .stream()
+          .map(dexProgramClass -> dexProgramClass.type)
+          .forEach(synthesized::add);
       synthesized.addAll(
           DexAnnotation.readAnnotationSynthesizedClassMap(original, builder.dexItemFactory));
 
@@ -415,7 +415,7 @@ public class IRConverter {
 
   /**
    * This will replace the Dex code in the method with the Dex code generated from the provided IR.
-   *
+   * <p>
    * This method is *only* intended for testing, where tests manipulate the IR and need runnable Dex
    * code.
    *
@@ -479,7 +479,7 @@ public class IRConverter {
       Predicate<DexEncodedMethod> isProcessedConcurrently,
       CallSiteInformation callSiteInformation,
       BiConsumer<IRCode, DexEncodedMethod> outlineHandler)
-          throws ApiLevelException {
+      throws ApiLevelException {
     Code code = method.getCode();
     boolean matchesMethodFilter = options.methodMatchesFilter(method);
     if (code != null && matchesMethodFilter) {
@@ -537,7 +537,7 @@ public class IRConverter {
     }
 
     if (memberValuePropagation != null) {
-      memberValuePropagation.rewriteWithConstantValues(code);
+      memberValuePropagation.rewriteWithConstantValues(code, method.method.holder);
     }
     if (options.removeSwitchMaps && appInfo.hasLiveness()) {
       // TODO(zerny): Should we support removeSwitchMaps in debug mode? b/62936642

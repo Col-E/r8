@@ -119,7 +119,7 @@ public class MemberValuePropagation {
    * <p>
    * Also assigns value ranges to values where possible.
    */
-  public void rewriteWithConstantValues(IRCode code) {
+  public void rewriteWithConstantValues(IRCode code, DexType callingContext) {
     InstructionIterator iterator = code.instructionIterator();
     while (iterator.hasNext()) {
       Instruction current = iterator.next();
@@ -131,7 +131,8 @@ public class MemberValuePropagation {
           continue;
         }
         // TODO(70550443): Maybe check all methods here.
-        DexEncodedMethod definition = appInfo.lookup(invoke.getType(), invokedMethod);
+        DexEncodedMethod definition = appInfo
+            .lookup(invoke.getType(), invokedMethod, callingContext);
 
         // Process invokes marked as having no side effects.
         boolean invokeReplaced = false;

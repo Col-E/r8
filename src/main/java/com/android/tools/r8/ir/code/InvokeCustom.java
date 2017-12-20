@@ -99,7 +99,7 @@ public final class InvokeCustom extends Invoke {
   }
 
   @Override
-  public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType holder) {
+  public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType invocationContext) {
     return Constraint.NEVER;
   }
 }

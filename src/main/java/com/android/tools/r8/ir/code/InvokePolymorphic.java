@@ -96,19 +96,21 @@ public class InvokePolymorphic extends InvokeMethod {
   }
 
   @Override
-  public DexEncodedMethod lookupSingleTarget(AppInfoWithSubtyping appInfo) {
+  public DexEncodedMethod lookupSingleTarget(AppInfoWithSubtyping appInfo,
+      DexType invocationContext) {
     // TODO(herhut): Implement lookup target for invokePolymorphic.
     return null;
   }
 
   @Override
-  public Collection<DexEncodedMethod> lookupTargets(AppInfoWithSubtyping appInfo) {
+  public Collection<DexEncodedMethod> lookupTargets(AppInfoWithSubtyping appInfo,
+      DexType invocationContext) {
     // TODO(herhut): Implement lookup target for invokePolymorphic.
     return null;
   }
 
   @Override
-  public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType holder) {
+  public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType invocationContext) {
     return Constraint.NEVER;
   }
 

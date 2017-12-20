@@ -52,7 +52,7 @@ public class Store extends Instruction {
   }
 
   @Override
-  public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType holder) {
+  public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType invocationContext) {
     throw new Unreachable();
   }
 

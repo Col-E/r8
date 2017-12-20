@@ -146,9 +146,12 @@ public class TreePruner {
             && !method.accessFlags.isFinal()
             && !method.accessFlags.isNative()
             && !method.accessFlags.isStrict()
-            && !method.accessFlags.isSynchronized();
-        // By construction, private and static methods cannot be reachable but non-live.
-        assert !method.accessFlags.isPrivate() && !method.accessFlags.isStatic();
+            && !method.accessFlags.isSynchronized()
+            && !method.accessFlags.isPrivate();
+        // By construction, static methods cannot be reachable but non-live. For private methods
+        // this can only happen as the result of an invalid invoke. They will not actually be
+        // called at runtime but we have to keep them as non-abstract (see above) to produce the
+        // same failure mode.
         reachableMethods.add(allowAbstract
             ? method.toAbstractMethod()
             : method.toEmptyThrowingMethod());
