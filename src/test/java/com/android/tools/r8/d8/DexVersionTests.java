@@ -6,9 +6,9 @@ package com.android.tools.r8.d8;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
-import com.android.tools.r8.D8Output;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.OutputMode;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import org.junit.Before;
@@ -31,22 +31,40 @@ public class DexVersionTests {
   @Rule public TemporaryFolder androidNApiFolder1 = ToolHelper.getTemporaryFolderForTest();
   @Rule public TemporaryFolder androidNApiFolder2 = ToolHelper.getTemporaryFolderForTest();
 
+
   @Before
   public void compileVersions() throws Exception {
-    D8Command.Builder arithmeticBuilder = D8Command.builder().addProgramFiles(ARITHMETIC_JAR);
     D8Command.Builder arrayAccessBuilder = D8Command.builder().addProgramFiles(ARRAYACCESS_JAR);
-    D8Output output = D8.run(arrayAccessBuilder.build());
-    output.write(defaultApiFolder1.getRoot().toPath());
-    output = D8.run(arrayAccessBuilder.setMinApiLevel(AndroidApiLevel.O.getLevel()).build());
-    output.write(androidOApiFolder1.getRoot().toPath());
-    output = D8.run(arrayAccessBuilder.setMinApiLevel(AndroidApiLevel.N.getLevel()).build());
-    output.write(androidNApiFolder1.getRoot().toPath());
-    output = D8.run(arithmeticBuilder.build());
-    output.write(defaultApiFolder2.getRoot().toPath());
-    output = D8.run(arithmeticBuilder.setMinApiLevel(AndroidApiLevel.O.getLevel()).build());
-    output.write(androidOApiFolder2.getRoot().toPath());
-    output = D8.run(arithmeticBuilder.setMinApiLevel(AndroidApiLevel.N.getLevel()).build());
-    output.write(androidNApiFolder2.getRoot().toPath());
+    D8.run(
+        arrayAccessBuilder
+            .setOutput(defaultApiFolder1.getRoot().toPath(), OutputMode.DexIndexed)
+            .build());
+    D8.run(
+        arrayAccessBuilder
+            .setOutput(androidOApiFolder1.getRoot().toPath(), OutputMode.DexIndexed)
+            .setMinApiLevel(AndroidApiLevel.O.getLevel())
+            .build());
+    D8.run(
+        arrayAccessBuilder
+            .setOutput(androidNApiFolder1.getRoot().toPath(), OutputMode.DexIndexed)
+            .setMinApiLevel(AndroidApiLevel.N.getLevel())
+            .build());
+
+    D8Command.Builder arithmeticBuilder = D8Command.builder().addProgramFiles(ARITHMETIC_JAR);
+    D8.run(
+        arithmeticBuilder
+            .setOutput(defaultApiFolder2.getRoot().toPath(), OutputMode.DexIndexed)
+            .build());
+    D8.run(
+        arithmeticBuilder
+            .setOutput(androidOApiFolder2.getRoot().toPath(), OutputMode.DexIndexed)
+            .setMinApiLevel(AndroidApiLevel.O.getLevel())
+            .build());
+    D8.run(
+        arithmeticBuilder
+            .setOutput(androidNApiFolder2.getRoot().toPath(), OutputMode.DexIndexed)
+            .setMinApiLevel(AndroidApiLevel.N.getLevel())
+            .build());
   }
 
   private Path default1() {

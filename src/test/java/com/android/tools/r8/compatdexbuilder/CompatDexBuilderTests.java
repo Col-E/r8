@@ -10,9 +10,9 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
-import com.android.tools.r8.D8Output;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
+import com.android.tools.r8.utils.OutputMode;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -85,10 +85,11 @@ public class CompatDexBuilderTests {
 
     // Merge zip content into a single dex file.
     Path d8OutDir = temp.newFolder().toPath();
-    D8Command.Builder d8CommandBuilder = D8Command.builder().setOutputPath(d8OutDir);
-    d8CommandBuilder.addProgramFiles(outputZip);
-    D8Output d8Output = D8.run(d8CommandBuilder.build());
-    assertEquals(d8Output.getDexResources().size(), 1);
+    D8.run(
+        D8Command.builder()
+            .setOutput(d8OutDir, OutputMode.DexIndexed)
+            .addProgramFiles(outputZip)
+            .build());
 
     // Validate by running methods of Class1 and Class2
     for (String className : new String[] {"Class1", "Class2"}) {

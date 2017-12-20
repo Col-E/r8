@@ -3,11 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import static org.junit.Assert.assertEquals;
+
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
-import com.google.common.io.ByteStreams;
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 
@@ -17,14 +19,27 @@ public class ExtractMarkerTest {
   public void extractMarkerTest()
       throws CompilationFailedException, IOException, ExecutionException {
     String classFile = ToolHelper.EXAMPLES_BUILD_DIR + "classes/trivial/Trivial.class";
-    D8Command command = D8Command.builder()
+    D8.run(
+        D8Command.builder()
             .addProgramFiles(Paths.get(classFile))
-            .build();
-    D8Output output = D8.run(command);
-    byte[] data = ByteStreams.toByteArray(output.getDexResources().get(0).getStream());
-    Marker marker = ExtractMarker.extractMarkerFromDexProgramData(data);
-    assert marker != null;
-    assert marker.getTool() == Tool.D8;
-    assert marker.getVersion().equals(Version.LABEL);
+            .setProgramConsumer(
+                new DexIndexedConsumer.ForwardingConsumer(null) {
+                  @Override
+                  public void accept(
+                      int fileIndex,
+                      byte[] data,
+                      Set<String> descriptors,
+                      DiagnosticsHandler handler) {
+                    Marker marker;
+                    try {
+                      marker = ExtractMarker.extractMarkerFromDexProgramData(data);
+                    } catch (Exception e) {
+                      throw new RuntimeException(e);
+                    }
+                    assertEquals(Tool.D8, marker.getTool());
+                    assertEquals(Version.LABEL, marker.getVersion());
+                  }
+                })
+            .build());
   }
 }
