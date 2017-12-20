@@ -442,7 +442,7 @@ public class Outliner {
 
       // Lookup the encoded method.
       DexMethod invokedMethod = invoke.getInvokedMethod();
-      DexEncodedMethod target = invoke.lookupSingleTarget(appInfo);
+      DexEncodedMethod target = invoke.lookupSingleTarget(appInfo, method.method.holder);
       // If the encoded method is found check the access flags.
       if (target != null) {
         if (!target.accessFlags.isPublic()) {

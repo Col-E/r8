@@ -24,5 +24,6 @@ public class MainClass {
     tryInvoke(InvokerClass::invokeSubLevel1MethodOnSubLevel1);
     tryInvoke(InvokerClass::invokeSubLevel1MethodOnSubLevel2);
     tryInvoke(InvokerClass::invokeSubLevel2MethodOnSubLevel2);
+    tryInvoke(InvokerClass::callOtherSuperMethodIndirect);
   }
 }

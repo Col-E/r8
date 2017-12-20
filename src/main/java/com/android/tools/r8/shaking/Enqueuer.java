@@ -65,11 +65,11 @@ import java.util.stream.Collectors;
 
 /**
  * Approximates the runtime dependencies for the given set of roots.
- *
+ * <p>
  * <p>The implementation filters the static call-graph with liveness information on classes to
  * remove virtual methods that are reachable by their static type but are unreachable at runtime as
  * they are not visible from any instance.
- *
+ * <p>
  * <p>As result of the analysis, an instance of {@link AppInfoWithLiveness} is returned. See the
  * field descriptions for details.
  */
@@ -81,7 +81,7 @@ public class Enqueuer {
 
   private Map<DexType, Set<DexMethod>> virtualInvokes = Maps.newIdentityHashMap();
   private Map<DexType, Set<DexMethod>> interfaceInvokes = Maps.newIdentityHashMap();
-  private Map<DexType, Set<DexMethod>> superInvokes = Maps.newIdentityHashMap();
+  private Map<DexType, Set<TargetWithContext<DexMethod>>> superInvokes = Maps.newIdentityHashMap();
   private Map<DexType, Set<DexMethod>> directInvokes = Maps.newIdentityHashMap();
   private Map<DexType, Set<DexMethod>> staticInvokes = Maps.newIdentityHashMap();
   private Map<DexType, Set<DexField>> instanceFieldsWritten = Maps.newIdentityHashMap();
@@ -165,14 +165,14 @@ public class Enqueuer {
   private Set<DexItem> reportedMissing = Sets.newIdentityHashSet();
 
   /**
-   * A set of items that we are keeping due to keep rules. This may differ from the rootSet
-   * due to dependent keep rules.
+   * A set of items that we are keeping due to keep rules. This may differ from the rootSet due to
+   * dependent keep rules.
    */
   private Set<DexItem> pinnedItems = Sets.newIdentityHashSet();
 
   /**
-   * A map from classes to annotations that need to be processed should the classes ever
-   * become live.
+   * A map from classes to annotations that need to be processed should the classes ever become
+   * live.
    */
   private final Map<DexType, Set<DexAnnotation>> deferredAnnotations = new IdentityHashMap<>();
 
@@ -212,6 +212,20 @@ public class Enqueuer {
     }
     markTypeAsLive(holder);
     return seen.computeIfAbsent(item.getHolder(), (ignore) -> Sets.newIdentityHashSet()).add(item);
+  }
+
+  private <S extends DexItem, T extends Descriptor<S, T>> boolean registerItemWithTargetAndContext(
+      Map<DexType, Set<TargetWithContext<T>>> seen, T item, DexEncodedMethod context) {
+    DexType holder = item.getHolder();
+    if (holder.isArrayType()) {
+      holder = holder.toBaseType(appInfo.dexItemFactory);
+    }
+    if (!holder.isClassType()) {
+      return false;
+    }
+    markTypeAsLive(holder);
+    return seen.computeIfAbsent(item.getHolder(), (ignore) -> new HashSet<>())
+        .add(new TargetWithContext<>(item, context));
   }
 
   private class UseRegistry extends com.android.tools.r8.graph.UseRegistry {
@@ -276,11 +290,14 @@ public class Enqueuer {
 
     @Override
     public boolean registerInvokeSuper(DexMethod method) {
-      if (!registerItemWithTarget(superInvokes, method)) {
+      // We have to revisit super invokes based on the context they are found in. The same
+      // method descriptor will hit different targets, depending on the context it is used in.
+      DexMethod actualTarget = getInvokeSuperTarget(method, currentMethod);
+      if (!registerItemWithTargetAndContext(superInvokes, method, currentMethod)) {
         return false;
       }
       if (Log.ENABLED) {
-        Log.verbose(getClass(), "Register invokeSuper `%s`.", method);
+        Log.verbose(getClass(), "Register invokeSuper `%s`.", actualTarget);
       }
       workList.add(Action.markReachableSuper(method, currentMethod));
       return true;
@@ -351,6 +368,16 @@ public class Enqueuer {
       }
       return false;
     }
+  }
+
+  private DexMethod getInvokeSuperTarget(DexMethod method, DexEncodedMethod currentMethod) {
+    DexClass holderClass = appInfo.definitionFor(currentMethod.method.getHolder());
+    if (holderClass == null || holderClass.superType == null) {
+      // We do not know better.
+      return method;
+    }
+    // Return the invoked method on the supertype.
+    return appInfo.dexItemFactory.createMethod(holderClass.superType, method.proto, method.name);
   }
 
   //
@@ -504,11 +531,11 @@ public class Enqueuer {
 
   /**
    * Marks all methods live that can be reached by calls previously seen.
-   *
+   * <p>
    * <p>This should only be invoked if the given type newly becomes instantiated. In essence, this
-   * method replays all the invokes we have seen so far that could apply to this type and marks
-   * the corresponding methods live.
-   *
+   * method replays all the invokes we have seen so far that could apply to this type and marks the
+   * corresponding methods live.
+   * <p>
    * <p>Only methods that are visible in this type are considered. That is, only those methods that
    * are either defined directly on this type or that are defined on a supertype but are not
    * shadowed by another inherited method. Furthermore, default methods from implemented interfaces
@@ -585,8 +612,8 @@ public class Enqueuer {
   }
 
   /**
-   * Marks all fields live that can be reached by a read assuming that the given type or one of
-   * its subtypes is instantiated.
+   * Marks all fields live that can be reached by a read assuming that the given type or one of its
+   * subtypes is instantiated.
    */
   private void transitionFieldsForInstantiatedClass(DexType type) {
     do {
@@ -756,8 +783,8 @@ public class Enqueuer {
         ? appInfo.lookupInterfaceTargets(method)
         : appInfo.lookupVirtualTargets(method);
     for (DexEncodedMethod encodedMethod : targets) {
-        SetWithReason<DexEncodedMethod> reachable = reachableVirtualMethods
-            .computeIfAbsent(encodedMethod.method.holder, (ignore) -> new SetWithReason<>());
+      SetWithReason<DexEncodedMethod> reachable = reachableVirtualMethods
+          .computeIfAbsent(encodedMethod.method.holder, (ignore) -> new SetWithReason<>());
       if (reachable.add(encodedMethod, reason)) {
         // Abstract methods cannot be live.
         if (!encodedMethod.accessFlags.isAbstract()) {
@@ -807,8 +834,22 @@ public class Enqueuer {
   }
 
   private void markSuperMethodAsReachable(DexMethod method, DexEncodedMethod from) {
-    DexEncodedMethod target = appInfo.resolveMethod(method.holder, method).asResultOfResolve();
+    // We have to mark the immediate target of the descriptor as targeted, as otherwise
+    // the invoke super will fail in the resolution step with a NSM error.
+    // See <a
+    // href="https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.invokespecial">
+    // the JVM spec for invoke-special.
+    DexEncodedMethod resolutionTarget = appInfo.resolveMethod(method.holder, method)
+        .asResultOfResolve();
+    if (resolutionTarget == null) {
+      reportMissingMethod(method);
+      return;
+    }
+    markMethodAsTargeted(resolutionTarget, KeepReason.targetedBySuperFrom(from));
+    // Now we need to compute the actual target in the context.
+    DexEncodedMethod target = appInfo.lookupSuperTarget(method, from.method.holder);
     if (target == null) {
+      // The actual implementation in the super class is missing.
       reportMissingMethod(method);
       return;
     }
@@ -1109,7 +1150,7 @@ public class Enqueuer {
     // representing a known class as an implicit keep rule on that class.
     if (instruction.isInvokeStatic()
         && (instruction.asInvokeStatic().getInvokedMethod() ==
-            appInfo.dexItemFactory.classMethods.forName)
+        appInfo.dexItemFactory.classMethods.forName)
         && instruction.asInvokeStatic().arguments().get(0).isConstString()) {
       ConstString constString =
           instruction.asInvokeStatic().arguments().get(0).getConstInstruction().asConstString();
@@ -1325,7 +1366,7 @@ public class Enqueuer {
       this.pinnedItems = rewritePinnedItemsToDescriptors(enqueuer.pinnedItems);
       this.virtualInvokes = joinInvokedMethods(enqueuer.virtualInvokes);
       this.interfaceInvokes = joinInvokedMethods(enqueuer.interfaceInvokes);
-      this.superInvokes = joinInvokedMethods(enqueuer.superInvokes);
+      this.superInvokes = joinInvokedMethods(enqueuer.superInvokes, TargetWithContext::getTarget);
       this.directInvokes = joinInvokedMethods(enqueuer.directInvokes);
       this.staticInvokes = joinInvokedMethods(enqueuer.staticInvokes);
       this.noSideEffects = enqueuer.rootSet.noSideEffects;
@@ -1447,10 +1488,13 @@ public class Enqueuer {
     }
 
     private SortedSet<DexMethod> joinInvokedMethods(Map<DexType, Set<DexMethod>> invokes) {
-      ImmutableSortedSet.Builder<DexMethod> builder =
-          new ImmutableSortedSet.Builder<>(PresortedComparable::slowCompare);
-      invokes.values().forEach(builder::addAll);
-      return builder.build();
+      return joinInvokedMethods(invokes, Function.identity());
+    }
+
+    private <T> SortedSet<DexMethod> joinInvokedMethods(Map<DexType, Set<T>> invokes,
+        Function<T, DexMethod> getter) {
+      return invokes.values().stream().flatMap(Set::stream).map(getter)
+          .collect(ImmutableSortedSet.toImmutableSortedSet(PresortedComparable::slowCompare));
     }
 
     private <T extends PresortedComparable<T>> SortedSet<T> toSortedDescriptorSet(
@@ -1562,9 +1606,10 @@ public class Enqueuer {
     public Set<ProguardKeepRule> getProguardCompatibilityRules() {
       return proguardCompatibilityRules;
     }
+
     /**
-     * Returns a copy of this AppInfoWithLiveness where the set of classes is pruned using the
-     * given DexApplication object.
+     * Returns a copy of this AppInfoWithLiveness where the set of classes is pruned using the given
+     * DexApplication object.
      */
     public AppInfoWithLiveness prunedCopyFrom(DexApplication application,
         Collection<DexType> removedClasses) {
@@ -1609,6 +1654,35 @@ public class Enqueuer {
 
     Map<T, KeepReason> getReasons() {
       return ImmutableMap.copyOf(reasons);
+    }
+  }
+
+  private static final class TargetWithContext<T extends Descriptor<?, T>> {
+
+    private final T target;
+    private final DexEncodedMethod context;
+
+    private TargetWithContext(T target, DexEncodedMethod context) {
+      this.target = target;
+      this.context = context;
+    }
+
+    public T getTarget() {
+      return target;
+    }
+
+    @Override
+    public int hashCode() {
+      return target.hashCode() * 31 + context.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (!(obj instanceof TargetWithContext)) {
+        return false;
+      }
+      TargetWithContext other = (TargetWithContext) obj;
+      return (this.target == other.target) && (this.context == other.context);
     }
   }
 

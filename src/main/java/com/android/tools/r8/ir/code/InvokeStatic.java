@@ -83,20 +83,22 @@ public class InvokeStatic extends InvokeMethod {
   }
 
   @Override
-  public DexEncodedMethod lookupSingleTarget(AppInfoWithSubtyping appInfo) {
+  public DexEncodedMethod lookupSingleTarget(AppInfoWithSubtyping appInfo,
+      DexType invocationContext) {
     DexMethod method = getInvokedMethod();
     return appInfo.lookupStaticTarget(method);
   }
 
   @Override
-  public Collection<DexEncodedMethod> lookupTargets(AppInfoWithSubtyping appInfo) {
+  public Collection<DexEncodedMethod> lookupTargets(AppInfoWithSubtyping appInfo,
+      DexType invocationContext) {
     DexEncodedMethod target = appInfo.lookupStaticTarget(getInvokedMethod());
     return target == null ? Collections.emptyList() : Collections.singletonList(target);
   }
 
   @Override
-  public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType holder) {
-    return inliningConstraintForSinlgeTargetInvoke(info, holder);
+  public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType invocationContext) {
+    return inliningConstraintForSinlgeTargetInvoke(info, invocationContext);
   }
 
   @Override

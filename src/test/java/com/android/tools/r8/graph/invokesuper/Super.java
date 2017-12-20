@@ -8,4 +8,8 @@ public class Super {
   public void superMethod() {
     System.out.println("superMethod in Super");
   }
+
+  public void otherSuperMethod() {
+    System.out.println("otherSuperMethod in Super");
+  }
 }

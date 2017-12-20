@@ -71,7 +71,7 @@ public class MoveException extends Instruction {
   }
 
   @Override
-  public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType holder) {
+  public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType invocationContext) {
     // TODO(64432527): Revisit this constraint.
     return Constraint.NEVER;
   }

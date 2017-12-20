@@ -369,7 +369,7 @@ public class CallGraph extends CallSiteInformation {
     private void processInvoke(Type type, DexMethod method) {
       DexEncodedMethod source = caller.method;
       method = graphLense.lookupMethod(method, source);
-      DexEncodedMethod definition = appInfo.lookup(type, method);
+      DexEncodedMethod definition = appInfo.lookup(type, method, source.method.holder);
       if (definition != null) {
         assert !source.accessFlags.isBridge() || definition != caller.method;
         DexClass definitionHolder = appInfo.definitionFor(definition.method.getHolder());

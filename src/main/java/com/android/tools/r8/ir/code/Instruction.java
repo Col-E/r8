@@ -988,8 +988,13 @@ public abstract class Instruction {
     return false;
   }
 
-  // Returns the inlining constraint for this instruction.
-  public abstract Constraint inliningConstraint(AppInfoWithSubtyping info, DexType holder);
+  /**
+   * Returns the inlining constraint for this method when used in the context of the given type.
+   * <p>
+   * The type is used to judge visibility constraints and also for dispatch decisions.
+   */
+  public abstract Constraint inliningConstraint(AppInfoWithSubtyping info,
+      DexType invocationContext);
 
   public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
     throw new Unimplemented("Implement load/store insertion for: " + getInstructionName());

@@ -79,18 +79,20 @@ public class InvokeSuper extends InvokeMethodWithReceiver {
   }
 
   @Override
-  public DexEncodedMethod lookupSingleTarget(AppInfoWithSubtyping appInfo) {
-    return appInfo.lookupSuperTarget(getInvokedMethod());
+  public DexEncodedMethod lookupSingleTarget(AppInfoWithSubtyping appInfo,
+      DexType invocationContext) {
+    return appInfo.lookupSuperTarget(getInvokedMethod(), invocationContext);
   }
 
   @Override
-  public Collection<DexEncodedMethod> lookupTargets(AppInfoWithSubtyping appInfo) {
-    DexEncodedMethod target = appInfo.lookupSuperTarget(getInvokedMethod());
+  public Collection<DexEncodedMethod> lookupTargets(AppInfoWithSubtyping appInfo,
+      DexType invocationContext) {
+    DexEncodedMethod target = appInfo.lookupSuperTarget(getInvokedMethod(), invocationContext);
     return target == null ? Collections.emptyList() : Collections.singletonList(target);
   }
 
   @Override
-  public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType holder) {
+  public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType invocationContext) {
     // The semantics of invoke super depend on the context.
     return Constraint.SAMECLASS;
   }

@@ -13,4 +13,13 @@ public class SubLevel1 extends Super {
   public void subLevel1Method() {
     System.out.println("subLevel1Method in SubLevel1");
   }
+
+  public void otherSuperMethod() {
+    System.out.println("otherSuperMethod in SubLevel1");
+  }
+
+  public void callOtherSuperMethod() {
+    System.out.print("From SubLevel1: ");
+    super.otherSuperMethod();
+  }
 }

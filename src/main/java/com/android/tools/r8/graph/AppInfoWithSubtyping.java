@@ -112,7 +112,7 @@ public class AppInfoWithSubtyping extends AppInfo {
     assert DexType.validateLevelsAreCorrect(app::definitionFor, dexItemFactory);
   }
 
-  public DexEncodedMethod lookup(Type type, DexMethod target) {
+  public DexEncodedMethod lookup(Type type, DexMethod target, DexType invocationContext) {
     DexType holder = target.getHolder();
     if (!holder.isClassType()) {
       return null;
@@ -127,7 +127,7 @@ public class AppInfoWithSubtyping extends AppInfo {
       case STATIC:
         return lookupStaticTarget(target);
       case SUPER:
-        return lookupSuperTarget(target);
+        return lookupSuperTarget(target, invocationContext);
       default:
         return null;
     }
