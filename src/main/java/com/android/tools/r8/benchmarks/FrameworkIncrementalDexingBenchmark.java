@@ -12,13 +12,19 @@ import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.D8Command.Builder;
-import com.android.tools.r8.D8Output;
+import com.android.tools.r8.DexFilePerClassFileConsumer;
+import com.android.tools.r8.DexFilePerClassFileConsumer.ForwardingConsumer;
+import com.android.tools.r8.DexIndexedConsumer;
+import com.android.tools.r8.DiagnosticsHandler;
+import com.android.tools.r8.ProgramConsumer;
+import com.android.tools.r8.ProgramResource;
+import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.Resource;
+import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
-import com.android.tools.r8.utils.OutputMode;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.collect.ImmutableMap;
@@ -102,31 +108,42 @@ public class FrameworkIncrementalDexingBenchmark {
       Path input,
       InMemoryClassPathProvider provider,
       boolean desugar,
-      Map<String, Resource> outputs,
+      Map<String, ProgramResource> outputs,
       ExecutorService executor)
       throws IOException, CompilationException, CompilationFailedException {
+
+    ProgramConsumer consumer =
+        new DexFilePerClassFileConsumer.ForwardingConsumer(null) {
+          @Override
+          public synchronized void accept(
+              String primaryClassDescriptor,
+              byte[] data,
+              Set<String> descriptors,
+              DiagnosticsHandler handler) {
+            ProgramResource resource =
+                ProgramResource.fromBytes(Origin.unknown(), Kind.DEX, data, descriptors);
+            for (String descriptor : descriptors) {
+              assert !outputs.containsKey(descriptor);
+              if (provider.resources.containsKey(descriptor)) {
+                outputs.put(descriptor, resource);
+              }
+            }
+          }
+        };
+
     long start = System.nanoTime();
-    D8Output out =
-        D8.run(
-            D8Command.builder()
-                .setMinApiLevel(API)
-                .setIntermediate(true)
-                .setMode(CompilationMode.DEBUG)
-                .addProgramFiles(input)
-                .addLibraryFiles(LIB)
-                .setOutputMode(OutputMode.FilePerInputClass)
-                .setEnableDesugaring(desugar)
-                .build(),
-            executor);
+    D8.run(
+        D8Command.builder()
+            .setMinApiLevel(API)
+            .setIntermediate(true)
+            .setMode(CompilationMode.DEBUG)
+            .addProgramFiles(input)
+            .addLibraryFiles(LIB)
+            .setEnableDesugaring(desugar)
+            .setProgramConsumer(consumer)
+            .build(),
+        executor);
     printRuntimeNanoseconds(title("DexAll", desugar), System.nanoTime() - start);
-    for (Resource resource : out.getDexResources()) {
-      for (String descriptor : resource.getClassDescriptors()) {
-        assert !outputs.containsKey(descriptor);
-        if (provider.resources.containsKey(descriptor)) {
-          outputs.put(descriptor, resource);
-        }
-      }
-    }
   }
 
   private static void compileGroupsOf(
@@ -134,75 +151,80 @@ public class FrameworkIncrementalDexingBenchmark {
       List<String> descriptors,
       InMemoryClassPathProvider provider,
       boolean desugar,
-      Map<String, Resource> outputs,
+      Map<String, ProgramResource> outputs,
       ExecutorService executor)
       throws IOException, CompilationException, CompilationFailedException {
+    ProgramConsumer consumer =
+        new ForwardingConsumer(null) {
+          @Override
+          public synchronized void accept(
+              String primaryClassDescriptor,
+              byte[] data,
+              Set<String> descriptors,
+              DiagnosticsHandler handler) {
+            ProgramResource resource =
+                ProgramResource.fromBytes(Origin.unknown(), Kind.DEX, data, descriptors);
+            for (String descriptor : descriptors) {
+              if (provider.resources.containsKey(descriptor)) {
+                outputs.put(descriptor, resource);
+              }
+            }
+          }
+        };
+
     descriptors.sort(String::compareTo);
     int increment = descriptors.size() / ITERATIONS;
     long start = System.nanoTime();
     for (int iteration = 0; iteration < ITERATIONS; iteration++) {
       int index = iteration * increment;
-      Builder builder = D8Command.builder()
-          .setMinApiLevel(API)
-          .setIntermediate(true)
-          .setMode(CompilationMode.DEBUG)
-          .addClasspathResourceProvider(provider)
-          .addLibraryFiles(LIB)
-          .setOutputMode(OutputMode.FilePerInputClass)
-          .setEnableDesugaring(desugar);
+      Builder builder =
+          D8Command.builder()
+              .setMinApiLevel(API)
+              .setIntermediate(true)
+              .setMode(CompilationMode.DEBUG)
+              .addClasspathResourceProvider(provider)
+              .addLibraryFiles(LIB)
+              .setProgramConsumer(consumer)
+              .setEnableDesugaring(desugar);
       for (int j = 0; j < count; j++) {
         builder.addClassProgramData(provider.resources.get(descriptors.get(index + j)),
             Origin.unknown());
       }
-      D8Output out =
-          D8.run(
-              builder
-                  .build(),
-              executor);
-      for (Resource resource : out.getDexResources()) {
-        for (String descriptor : resource.getClassDescriptors()) {
-          if (provider.resources.containsKey(descriptor)) {
-            outputs.put(descriptor, resource);
-          }
-        }
-      }
+      D8.run(builder.build(), executor);
     }
     printRuntimeNanoseconds(title("DexGroupsOf" + count, desugar), System.nanoTime() - start);
   }
 
-  private static D8Output merge(
-      boolean desugar,
-      Map<String, Resource> outputs,
-      ExecutorService executor)
-      throws IOException, CompilationException, CompilationFailedException {
-    Builder builder = D8Command.builder()
-        .setMinApiLevel(API)
-        .setIntermediate(false)
-        .setMode(CompilationMode.DEBUG)
-        .setOutputMode(OutputMode.Indexed)
-        .setEnableDesugaring(false);
-    for (Resource input : outputs.values()) {
-      try (InputStream inputStream = input.getStream()) {
+  private static void merge(
+      boolean desugar, Map<String, ProgramResource> outputs, ExecutorService executor)
+      throws IOException, CompilationException, CompilationFailedException, ResourceException {
+    Builder builder =
+        D8Command.builder()
+            .setMinApiLevel(API)
+            .setIntermediate(false)
+            .setMode(CompilationMode.DEBUG)
+            .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+            .setEnableDesugaring(false);
+    for (ProgramResource input : outputs.values()) {
+      try (InputStream inputStream = input.getByteStream()) {
         builder.addDexProgramData(ByteStreams.toByteArray(inputStream), input.getOrigin());
       }
     }
     long start = System.nanoTime();
-    D8Output out =
-        D8.run(
-            builder // never need to desugar when merging dex.
-                .build(),
-            executor);
+    D8.run(
+        builder // never need to desugar when merging dex.
+            .build(),
+        executor);
     printRuntimeNanoseconds(title("DexMerge", desugar), System.nanoTime() - start);
-    return out;
   }
 
   public static void main(String[] args)
-      throws IOException, CompilationException, CompilationFailedException {
+      throws IOException, CompilationException, CompilationFailedException, ResourceException {
     boolean desugar = Arrays.asList(args).contains("--desugar");
     Path input = desugar ? JAR_NOT_DESUGARED : JAR_DESUGARED;
     InMemoryClassPathProvider provider = new InMemoryClassPathProvider(input);
     List<String> descriptors = new ArrayList<>(provider.getClassDescriptors());
-    Map<String, Resource> outputs = new HashMap<>(provider.getClassDescriptors().size());
+    Map<String, ProgramResource> outputs = new HashMap<>(provider.getClassDescriptors().size());
     int threads = Integer.min(Runtime.getRuntime().availableProcessors(), 16) / 2;
     ExecutorService executor = ThreadUtils.getExecutorService(threads);
     try {

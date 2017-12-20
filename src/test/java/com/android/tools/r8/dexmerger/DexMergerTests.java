@@ -43,12 +43,12 @@ public class DexMergerTests {
     Path outDir2 = temp.newFolder().toPath();
     D8.run(
         D8Command.builder()
-            .setOutputPath(outDir1)
+            .setOutput(outDir1, OutputMode.DexIndexed)
             .addProgramFiles(Paths.get(CLASS1_CLASS))
             .build());
     D8.run(
         D8Command.builder()
-            .setOutputPath(outDir2)
+            .setOutput(outDir2, OutputMode.DexIndexed)
             .addProgramFiles(Paths.get(CLASS2_CLASS))
             .build());
 
