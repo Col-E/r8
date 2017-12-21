@@ -5,28 +5,21 @@ package com.android.tools.r8.dex;
 
 import static com.android.tools.r8.dex.Constants.DEX_FILE_MAGIC_PREFIX;
 
+import com.android.tools.r8.ProgramResource;
+import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.DexVersion;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 public class DexFile extends BaseFile {
 
-  final String name;
   private final int version;
 
-  DexFile(String name) throws IOException {
-    super(name);
-    this.name = name;
-    version = parseMagic(buffer);
-  }
-
-  public DexFile(InputStream input) throws IOException {
-    super(input);
-    // TODO(zerny): Remove dependencies on file names.
-    name = "input-stream.dex";
+  public DexFile(ProgramResource resource) throws ResourceException, IOException {
+    super(resource);
     version = parseMagic(buffer);
   }
 
@@ -35,9 +28,8 @@ public class DexFile extends BaseFile {
    *
    * @param bytes contents of the file
    */
-  DexFile(byte[] bytes) {
-    super(bytes);
-    this.name = "mockfile.dex";
+  DexFile(Origin origin, byte[] bytes) {
+    super(origin, bytes);
     version = parseMagic(buffer);
   }
 
@@ -46,11 +38,11 @@ public class DexFile extends BaseFile {
     int index = 0;
     for (byte prefixByte : DEX_FILE_MAGIC_PREFIX) {
       if (buffer.get(index++) != prefixByte) {
-        throw new CompilationError("Dex file has invalid header: " + name);
+        throw new CompilationError("Dex file has invalid header", origin);
       }
     }
     if (buffer.get(index++) != '0' || buffer.get(index++) != '3') {
-      throw new CompilationError("Dex file has invalid version number: " + name);
+      throw new CompilationError("Dex file has invalid version number", origin);
     }
     byte versionByte = buffer.get(index++);
     int version;
@@ -68,10 +60,10 @@ public class DexFile extends BaseFile {
         version =  DexVersion.V35.getIntValue();
         break;
       default:
-        throw new CompilationError("Dex file has invalid version number: " + name);
+        throw new CompilationError("Dex file has invalid version number", origin);
     }
     if (buffer.get(index++) != '\0') {
-      throw new CompilationError("Dex file has invalid header: " + name);
+      throw new CompilationError("Dex file has invalid header", origin);
     }
     return version;
   }

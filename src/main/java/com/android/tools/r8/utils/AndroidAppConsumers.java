@@ -26,12 +26,14 @@ public class AndroidAppConsumers {
   private boolean closed = false;
 
   private ProgramConsumer programConsumer = null;
-  private StringConsumer mainDexListConsumer = null;
   private StringConsumer proguardMapConsumer = null;
 
+  public AndroidAppConsumers() {
+    // Nothing to do.
+  }
+
   public AndroidAppConsumers(R8Command.Builder builder) {
-    programConsumer = wrapProgramConsumer(builder.getProgramConsumer());
-    builder.setProgramConsumer(programConsumer);
+    builder.setProgramConsumer(wrapProgramConsumer(builder.getProgramConsumer()));
   }
 
   public AndroidAppConsumers(InternalOptions options) {
@@ -39,7 +41,7 @@ public class AndroidAppConsumers {
     options.proguardMapConsumer = wrapProguardMapConsumer(options.proguardMapConsumer);
   }
 
-  private ProgramConsumer wrapProgramConsumer(ProgramConsumer consumer) {
+  public ProgramConsumer wrapProgramConsumer(ProgramConsumer consumer) {
     assert programConsumer == null;
     if (consumer instanceof ClassFileConsumer) {
       programConsumer = wrapClassFileConsumer((ClassFileConsumer) consumer);

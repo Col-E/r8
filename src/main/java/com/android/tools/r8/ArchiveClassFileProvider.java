@@ -3,110 +3,22 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
-import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
-import static com.android.tools.r8.utils.FileUtils.isArchive;
-import static com.android.tools.r8.utils.FileUtils.isClassFile;
-
-import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.origin.ArchiveEntryOrigin;
-import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.shaking.FilteredClassPath;
-import com.android.tools.r8.utils.DescriptorUtils;
-import com.google.common.io.ByteStreams;
+import com.android.tools.r8.utils.FilteredArchiveClassFileProvider;
 import java.io.Closeable;
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
 
-/** Lazy Java class file resource provider loading class files form a zip archive. */
-public class ArchiveClassFileProvider implements ClassFileResourceProvider, Closeable {
+/**
+ * Lazy Java class file resource provider loading class files from a zip archive.
+ *
+ * <p>The descriptor index is built eagerly upon creating the provider and subsequent requests for
+ * resources in the descriptor set will then force the read of zip entry contents.
+ */
+public class ArchiveClassFileProvider extends FilteredArchiveClassFileProvider
+    implements ClassFileResourceProvider, Closeable {
 
-  private final Origin origin;
-  private final Set<String> descriptors = new HashSet<>();
-  private final ZipFile zipFile;
-
-  public static ClassFileResourceProvider fromArchive(FilteredClassPath archive)
-      throws IOException {
-    return new ArchiveClassFileProvider(archive);
-  }
-
-  protected ArchiveClassFileProvider(Path archive) throws IOException {
-    this(FilteredClassPath.unfiltered(archive));
-  }
-
-  private ArchiveClassFileProvider(FilteredClassPath archive) throws IOException {
-    assert isArchive(archive.getPath());
-    origin = new PathOrigin(archive.getPath());
-    try {
-      zipFile = new ZipFile(archive.getPath().toFile());
-    } catch (IOException e) {
-      if (!Files.exists(archive.getPath())) {
-        throw new NoSuchFileException(archive.getPath().toString());
-      } else {
-        throw e;
-      }
-    }
-    final Enumeration<? extends ZipEntry> entries = zipFile.entries();
-    while (entries.hasMoreElements()) {
-      ZipEntry entry = entries.nextElement();
-      String name = entry.getName();
-      Path entryPath = Paths.get(name);
-      if (isClassFile(entryPath) && archive.matchesFile(entryPath)) {
-        descriptors.add(DescriptorUtils.guessTypeDescriptor(name));
-      }
-    }
-  }
-
-  @Override
-  public Set<String> getClassDescriptors() {
-    return Collections.unmodifiableSet(descriptors);
-  }
-
-  @Override
-  public Resource getResource(String descriptor) {
-    if (!descriptors.contains(descriptor)) {
-      return null;
-    }
-
-    ZipEntry zipEntry = getZipEntryFromDescriptor(descriptor);
-    try (InputStream inputStream = zipFile.getInputStream(zipEntry)) {
-      return Resource.fromBytes(
-          new ArchiveEntryOrigin(zipEntry.getName(), origin),
-          ByteStreams.toByteArray(inputStream),
-          Collections.singleton(descriptor));
-    } catch (IOException e) {
-      throw new CompilationError(
-          "Failed to read '" + descriptor + "' from '" + zipFile.getName() + "'");
-    }
-  }
-
-  @Override
-  protected void finalize() throws Throwable {
-    close();
-    super.finalize();
-  }
-
-  @Override
-  public String toString() {
-    return descriptors.size() + " resources from '" + zipFile.getName() +"'";
-  }
-
-  @Override
-  public void close() throws IOException {
-    zipFile.close();
-  }
-
-  private ZipEntry getZipEntryFromDescriptor(String descriptor) {
-    return zipFile.getEntry(descriptor.substring(1, descriptor.length() - 1) + CLASS_EXTENSION);
+  public ArchiveClassFileProvider(Path archive) throws IOException {
+    super(FilteredClassPath.unfiltered(archive));
   }
 }

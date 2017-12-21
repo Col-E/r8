@@ -8,7 +8,6 @@ import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.D8Command.Builder;
-import com.android.tools.r8.shaking.FilteredClassPath;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DirectoryClassFileProvider;
@@ -50,8 +49,7 @@ public class D8LazyRunExamplesAndroidOTest
 
     @Override
     void addLibraryReference(Builder builder, Path location) throws IOException {
-      builder.addLibraryResourceProvider(
-          ArchiveClassFileProvider.fromArchive(FilteredClassPath.unfiltered(location)));
+      builder.addLibraryResourceProvider(new ArchiveClassFileProvider(location));
     }
 
     @Override

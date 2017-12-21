@@ -32,6 +32,7 @@ import com.android.tools.r8.utils.DexVersion;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.LibraryClassCollection;
 import com.android.tools.r8.utils.MainDexList;
+import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
@@ -88,6 +89,8 @@ public class ApplicationReader {
       classReader.readSources();
       ThreadUtils.awaitFutures(futures);
       classReader.initializeLazyClassCollection(builder);
+    } catch (ResourceException e) {
+      throw options.reporter.fatalError(new StringDiagnostic(e.getMessage(), e.getOrigin()));
     } finally {
       timing.end();
     }
@@ -159,16 +162,14 @@ public class ApplicationReader {
 
     private <T extends DexClass> void readDexSources(
         List<ProgramResource> dexSources, ClassKind classKind, Queue<T> classes)
-        throws IOException {
+        throws IOException, ResourceException {
       if (dexSources.size() > 0) {
         List<DexFileReader> fileReaders = new ArrayList<>(dexSources.size());
         int computedMinApiLevel = options.minApiLevel;
         for (ProgramResource input : dexSources) {
-          try (InputStream is = input.getStream()) {
-            DexFile file = new DexFile(is);
-            computedMinApiLevel = verifyOrComputeMinApiLevel(computedMinApiLevel, file);
-            fileReaders.add(new DexFileReader(input.getOrigin(), file, classKind, itemFactory));
-          }
+          DexFile file = new DexFile(input);
+          computedMinApiLevel = verifyOrComputeMinApiLevel(computedMinApiLevel, file);
+          fileReaders.add(new DexFileReader(file, classKind, itemFactory));
         }
         options.minApiLevel = computedMinApiLevel;
         for (DexFileReader reader : fileReaders) {
@@ -193,18 +194,21 @@ public class ApplicationReader {
           application, classKind.bridgeConsumer(classes::add));
       // Read classes in parallel.
       for (ProgramResource input : classSources) {
-        futures.add(executorService.submit(() -> {
-          try (InputStream is = input.getStream()) {
-            reader.read(input.getOrigin(), classKind, is);
-          }
-          // No other way to have a void callable, but we want the IOException from the previous
-          // line to be wrapped into an ExecutionException.
-          return null;
-        }));
+        futures.add(
+            executorService.submit(
+                () -> {
+                  try (InputStream is = input.getByteStream()) {
+                    reader.read(input.getOrigin(), classKind, is);
+                  }
+                  // No other way to have a void callable, but we want the IOException from the
+                  // previous
+                  // line to be wrapped into an ExecutionException.
+                  return null;
+                }));
       }
     }
 
-    void readSources() throws IOException {
+    void readSources() throws IOException, ResourceException {
       readDexSources(inputApp.getDexProgramResources(), PROGRAM, programClasses);
       readClassSources(inputApp.getClassProgramResources(), PROGRAM, programClasses);
     }

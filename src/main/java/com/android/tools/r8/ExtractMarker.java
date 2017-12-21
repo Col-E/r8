@@ -11,7 +11,6 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
-import com.android.tools.r8.shaking.FilteredClassPath;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.FileUtils;
@@ -20,6 +19,7 @@ import com.android.tools.r8.utils.Timing;
 import com.google.common.io.ByteStreams;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.ExecutionException;
 
@@ -39,18 +39,20 @@ public class ExtractMarker {
     }
   }
 
-  public static Marker extractMarkerFromDexFile(Path file) throws IOException, ExecutionException {
+  public static Marker extractMarkerFromDexFile(Path file)
+      throws IOException, ExecutionException, ResourceException {
     AndroidApp.Builder appBuilder = AndroidApp.builder();
     addDexResources(appBuilder, file);
     return extractMarker(appBuilder.build());
   }
 
-  public static int extractDexSize(Path file) throws IOException, ExecutionException {
+  public static int extractDexSize(Path file)
+      throws IOException, ExecutionException, ResourceException {
     AndroidApp.Builder appBuilder = AndroidApp.builder();
     addDexResources(appBuilder, file);
     int size = 0;
-    for (Resource resource : appBuilder.build().getDexProgramResources()) {
-      try (InputStream input = resource.getStream()) {
+    for (ProgramResource resource : appBuilder.build().getDexProgramResources()) {
+      try (InputStream input = resource.getByteStream()) {
         size += ByteStreams.toByteArray(input).length;
       }
     }
@@ -63,17 +65,19 @@ public class ExtractMarker {
     return extractMarker(app);
   }
 
-  private static void addDexResources(AndroidApp.Builder appBuilder, Path file) throws IOException {
+  private static void addDexResources(AndroidApp.Builder appBuilder, Path file)
+      throws IOException, ResourceException {
     if (FileUtils.isVDexFile(file)) {
       PathOrigin vdexOrigin = new PathOrigin(file);
-      VDexFileReader reader = new VDexFileReader(new VDexFile(Resource.fromFile(file)));
+      VDexFile vdexFile = new VDexFile(vdexOrigin, Files.newInputStream(file));
+      VDexFileReader reader = new VDexFileReader(vdexFile);
       int index = 0;
       for (byte[] bytes : reader.getDexFiles()) {
         appBuilder.addDexProgramData(bytes, new VdexOrigin(vdexOrigin, index));
         index++;
       }
     } else {
-      appBuilder.addProgramFiles(FilteredClassPath.unfiltered(file));
+      appBuilder.addProgramFiles(file);
     }
   }
 
@@ -87,7 +91,7 @@ public class ExtractMarker {
   }
 
   public static void main(String[] args)
-      throws IOException, CompilationException, ExecutionException {
+      throws IOException, CompilationException, ExecutionException, ResourceException {
     ExtractMarkerCommand.Builder builder = ExtractMarkerCommand.parse(args);
     ExtractMarkerCommand command = builder.build();
     if (command.isPrintHelp()) {

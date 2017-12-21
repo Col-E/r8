@@ -9,6 +9,8 @@ import static com.android.tools.r8.utils.FileUtils.isDexFile;
 
 import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.ProgramResource.Kind;
+import com.android.tools.r8.ProgramResourceProvider;
+import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.origin.ArchiveEntryOrigin;
 import com.android.tools.r8.origin.Origin;
@@ -28,24 +30,22 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
 
-public class ProgramFileArchiveReader {
+public class FilteredArchiveProgramResourceProvider implements ProgramResourceProvider {
 
   private final Origin origin;
   private final FilteredClassPath archive;
   private boolean ignoreDexInArchive;
-  private List<ProgramResource> dexResources = null;
-  private List<ProgramResource> classResources = null;
 
-  ProgramFileArchiveReader(FilteredClassPath archive, boolean ignoreDexInArchive) {
+  FilteredArchiveProgramResourceProvider(FilteredClassPath archive, boolean ignoreDexInArchive) {
     origin = new PathOrigin(archive.getPath());
     this.archive = archive;
     this.ignoreDexInArchive = ignoreDexInArchive;
   }
 
-  private void readArchive() throws IOException {
+  private List<ProgramResource> readArchive() throws IOException {
     assert isArchive(archive.getPath());
-    dexResources = new ArrayList<>();
-    classResources = new ArrayList<>();
+    List<ProgramResource> dexResources = new ArrayList<>();
+    List<ProgramResource> classResources = new ArrayList<>();
     try (ZipFile zipFile = new ZipFile(archive.getPath().toFile())) {
       final Enumeration<? extends ZipEntry> entries = zipFile.entries();
       while (entries.hasMoreElements()) {
@@ -83,23 +83,15 @@ public class ProgramFileArchiveReader {
           "Cannot create android app from an archive '" + archive
               + "' containing both DEX and Java-bytecode content");
     }
+    return !dexResources.isEmpty() ? dexResources : classResources;
   }
 
-  public Collection<ProgramResource> getDexProgramResources() throws IOException {
-    if (dexResources == null) {
-      readArchive();
+  @Override
+  public Collection<ProgramResource> getProgramResources() throws ResourceException {
+    try {
+      return readArchive();
+    } catch (IOException e) {
+      throw new ResourceException(origin, e);
     }
-    List<ProgramResource> result = dexResources;
-    dexResources = null;
-    return result;
-  }
-
-  public Collection<ProgramResource> getClassProgramResources() throws IOException {
-    if (classResources == null) {
-      readArchive();
-    }
-    List<ProgramResource> result = classResources;
-    classResources = null;
-    return result;
   }
 }

@@ -21,7 +21,6 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.origin.EmbeddedOrigin;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.shaking.FilteredClassPath;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
 import com.android.tools.r8.utils.AndroidApp;
@@ -57,7 +56,7 @@ public class SmaliTestBase extends TestBase {
     try {
       return AndroidApp.builder()
           .addDexProgramData(builder.compile(), EmbeddedOrigin.INSTANCE)
-          .addLibraryFiles(FilteredClassPath.unfiltered(ToolHelper.getDefaultAndroidJar()))
+          .addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()))
           .build();
     } catch (IOException | RecognitionException | ExecutionException | DexOverflowException e) {
       throw new RuntimeException(e);

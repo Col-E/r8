@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import static com.android.tools.r8.utils.FileUtils.isDexFile;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -12,7 +13,6 @@ import com.android.tools.r8.ToolHelper.DexVm.Kind;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.shaking.FilteredClassPath;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationParser;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
@@ -37,9 +37,12 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -74,6 +77,7 @@ public class ToolHelper {
   public static final String LINE_SEPARATOR = StringUtils.LINE_SEPARATOR;
   public final static String PATH_SEPARATOR = File.pathSeparator;
   public static final String DEFAULT_DEX_FILENAME = "classes.dex";
+  public static final String DEFAULT_PROGUARD_MAP_FILE = "proguard.map";
 
   private static final String ANDROID_JAR_PATTERN = "third_party/android_jar/lib-v%d/android.jar";
   private static final int DEFAULT_MIN_SDK = AndroidApiLevel.I.getLevel();
@@ -625,10 +629,11 @@ public class ToolHelper {
   public static DexApplication buildApplicationWithAndroidJar(
       List<String> fileNames, String androidJar)
       throws IOException, ExecutionException {
-    AndroidApp input = AndroidApp.builder()
-        .addProgramFiles(ListUtils.map(fileNames, FilteredClassPath::unfiltered))
-        .addLibraryFiles(FilteredClassPath.unfiltered(androidJar))
-        .build();
+    AndroidApp input =
+        AndroidApp.builder()
+            .addProgramFiles(ListUtils.map(fileNames, Paths::get))
+            .addLibraryFiles(Paths.get(androidJar))
+            .build();
     return new ApplicationReader(
         input, new InternalOptions(), new Timing("ToolHelper buildApplication"))
         .read().toDirect();
@@ -697,8 +702,7 @@ public class ToolHelper {
     if (app.getLibraryResourceProviders().isEmpty()) {
       app =
           AndroidApp.builder(app)
-              .addLibraryFiles(
-                  FilteredClassPath.unfiltered(getAndroidJar(command.getMinApiLevel())))
+              .addLibraryFiles(Paths.get(getAndroidJar(command.getMinApiLevel())))
               .build();
     }
     InternalOptions options = command.getInternalOptions();
@@ -744,7 +748,7 @@ public class ToolHelper {
     Collections.addAll(args, extraArgs);
     Collections.addAll(args, "--output=" + outDir + "/classes.dex", fileName);
     int result = runDX(args.toArray(new String[args.size()])).exitCode;
-    return result != 0 ? null : AndroidApp.fromProgramDirectory(Paths.get(outDir));
+    return result != 0 ? null : builderFromProgramDirectory(Paths.get(outDir)).build();
   }
 
   public static ProcessResult runDX(String[] args) throws IOException {
@@ -1092,5 +1096,26 @@ public class ToolHelper {
 
   public static AndroidApp getApp(BaseCommand command) {
     return command.getInputApp();
+  }
+
+  public static AndroidApp.Builder builderFromProgramDirectory(Path directory) throws IOException {
+    AndroidApp.Builder builder = AndroidApp.builder();
+    Files.walkFileTree(
+        directory,
+        new SimpleFileVisitor<Path>() {
+          @Override
+          public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
+              throws IOException {
+            if (isDexFile(file)) {
+              builder.addProgramFile(file);
+            }
+            return FileVisitResult.CONTINUE;
+          }
+        });
+    File mapFile = new File(directory.toFile(), DEFAULT_PROGUARD_MAP_FILE);
+    if (mapFile.exists()) {
+      builder.setProguardMapFile(mapFile.toPath());
+    }
+    return builder;
   }
 }

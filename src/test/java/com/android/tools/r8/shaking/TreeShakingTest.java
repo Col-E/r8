@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
-import static com.android.tools.r8.utils.AndroidApp.DEFAULT_PROGUARD_MAP_FILE;
+import static com.android.tools.r8.ToolHelper.DEFAULT_PROGUARD_MAP_FILE;
 
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase.MinifyMode;
@@ -11,7 +11,6 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
-import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
@@ -136,12 +135,13 @@ public class TreeShakingTest {
             .setOutput(out, OutputMode.DexIndexed)
             .addProgramFiles(Paths.get(programFile))
             .addProguardConfigurationFiles(ListUtils.map(keepRulesFiles, Paths::get))
-            .addProguardConfigurationConsumer(builder -> {
-              builder.setPrintMapping(true);
-              builder.setPrintMappingFile(out.resolve(AndroidApp.DEFAULT_PROGUARD_MAP_FILE));
-              builder.setOverloadAggressively(minify == MinifyMode.AGGRESSIVE);
-              builder.setObfuscating(minify.isMinify());
-            })
+            .addProguardConfigurationConsumer(
+                builder -> {
+                  builder.setPrintMapping(true);
+                  builder.setPrintMappingFile(out.resolve(ToolHelper.DEFAULT_PROGUARD_MAP_FILE));
+                  builder.setOverloadAggressively(minify == MinifyMode.AGGRESSIVE);
+                  builder.setObfuscating(minify.isMinify());
+                })
             .addLibraryFiles(JAR_LIBRARIES)
             .build();
     ToolHelper.runR8(command, options -> {

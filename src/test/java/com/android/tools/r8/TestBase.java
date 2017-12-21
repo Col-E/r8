@@ -11,7 +11,6 @@ import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.SmaliWriter;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.shaking.FilteredClassPath;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DexInspector;
@@ -61,8 +60,7 @@ public class TestBase {
   protected static AndroidApp readClasses(Class... classes) throws IOException {
     AndroidApp.Builder builder = AndroidApp.builder();
     for (Class clazz : classes) {
-      builder.addProgramFiles(
-          FilteredClassPath.unfiltered(ToolHelper.getClassFileForTestClass(clazz)));
+      builder.addProgramFiles(ToolHelper.getClassFileForTestClass(clazz));
     }
     return builder.build();
   }

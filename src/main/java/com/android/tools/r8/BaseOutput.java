@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.OutputMode;
 import com.google.common.collect.ImmutableList;
@@ -43,7 +44,11 @@ abstract class BaseOutput {
    * @return an immutable list of compiled DEX resources.
    */
   public List<Resource> getDexResources() {
-    return ImmutableList.copyOf(app.getDexProgramResourcesForOutput());
+    try {
+      return ImmutableList.copyOf(app.getDexProgramResources());
+    } catch (IOException e) {
+      throw new InternalCompilerError("Unexpected resource error", e);
+    }
   }
 
   /**
