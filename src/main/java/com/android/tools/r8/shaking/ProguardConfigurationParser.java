@@ -1029,7 +1029,7 @@ public class ProguardConfigurationParser {
     }
 
     private String acceptString() {
-      return acceptString(character -> character != '-' && character != '\n');
+      return acceptString(character -> character != ' ' && character != '\n');
     }
 
     private Integer acceptInteger() {

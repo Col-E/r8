@@ -65,6 +65,7 @@ public class CompatProguard {
       // These two flags are currently ignored.
       boolean minimalMainDex = false;
       boolean coreLibrary = false;
+      boolean noLocals = false;
 
       ImmutableList.Builder<String> builder = ImmutableList.builder();
       if (args.length > 0) {
@@ -88,6 +89,8 @@ public class CompatProguard {
               minimalMainDex = true;
             } else if (arg.equals("--core-library")) {
               coreLibrary = true;
+            } else if (arg.equals("--no-locals")) {
+              noLocals = true;
             } else if (arg.equals("-outjars")) {
               throw new CompilationException(
                   "Proguard argument -outjar is not supported. Use R8 compatible --output flag");
@@ -104,7 +107,9 @@ public class CompatProguard {
             currentLine.append(arg);
           }
         }
-        builder.add(currentLine.toString());
+        if (currentLine.length() > 0) {
+          builder.add(currentLine.toString());
+        }
       }
       return new CompatProguardOptions(
           builder.build(),

@@ -1053,6 +1053,34 @@ public class ProguardConfigurationParserTest extends TestBase {
     assertTrue(config.isKeepParameterNames());
   }
 
+  @Test
+  public void parseShortLine() throws IOException {
+    try {
+      ProguardConfigurationParser parser =
+          new ProguardConfigurationParser(new DexItemFactory(), reporter);
+      parser.parse(createConfigurationForTesting(Collections.singletonList("-")));
+    } catch (AbortException e) {
+      assertEquals(1, handler.errors.size());
+      assertTrue(handler.errors.get(0).getDiagnosticMessage().contains("-"));
+      return;
+    }
+    fail();
+  }
+
+  @Test
+  public void parseNoLocals() throws IOException {
+    try {
+      ProguardConfigurationParser parser =
+          new ProguardConfigurationParser(new DexItemFactory(), reporter);
+      parser.parse(createConfigurationForTesting(Collections.singletonList("--no-locals")));
+    } catch (AbortException e) {
+      assertEquals(1, handler.errors.size());
+      assertTrue(handler.errors.get(0).getDiagnosticMessage().contains("--no-locals"));
+      return;
+    }
+    fail();
+  }
+
   private Diagnostic checkDiagnostic(List<Diagnostic> diagnostics, Path path, int lineStart,
       int columnStart, String... messageParts) {
     assertEquals(1, diagnostics.size());
