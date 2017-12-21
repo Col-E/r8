@@ -128,6 +128,7 @@ public class CodeRewriter {
       BasicBlock blk = block;  // Additional local for lambda below.
       assert !block.isTrivialGoto()
           || block.exit().asGoto().getTarget() == block
+          || code.blocks.get(0) == block
           || block.getPredecessors().stream().anyMatch((b) -> b.exit().fallthroughBlock() == blk);
       // Trivial goto blocks never target the next block (in that case there should just be a
       // fallthrough).
@@ -138,7 +139,7 @@ public class CodeRewriter {
   }
 
   private static void collapsTrivialGoto(
-      BasicBlock block, BasicBlock nextBlock, List<BasicBlock> blocksToRemove) {
+      IRCode code, BasicBlock block, BasicBlock nextBlock, List<BasicBlock> blocksToRemove) {
 
     // This is the base case for GOTO loops.
     if (block.exit().asGoto().getTarget() == block) {
@@ -148,7 +149,15 @@ public class CodeRewriter {
     BasicBlock target = block.endOfGotoChain();
 
     boolean needed = false;
-    if (target != nextBlock) {
+    if (target == null) {
+      // This implies we are in a loop of GOTOs. In that case, we will iteratively remove each
+      // trivial GOTO one-by-one until the above base case (one block targeting itself) is left.
+      target = block.exit().asGoto().getTarget();
+    } else if (target != nextBlock) {
+      // Not targeting the fallthrough block, determine if we need this goto. We need it if
+      // a fallthrough can hit this block. That is the case if the block is the entry block
+      // or if one of the predecessors fall through to the block.
+      needed = code.blocks.get(0) == block;
       for (BasicBlock pred : block.getPredecessors()) {
         if (pred.exit().fallthroughBlock() == block) {
           needed = true;
@@ -157,11 +166,7 @@ public class CodeRewriter {
       }
     }
 
-    // This implies we are in a loop of GOTOs. In that case, we will iteratively remove each trival
-    // GOTO one-by-one until the above base case (one block targeting itself) is left.
-    if (target == null) {
-      target = block.exit().asGoto().getTarget();
-    }
+
 
     if (!needed) {
       blocksToRemove.add(block);
@@ -627,7 +632,7 @@ public class CodeRewriter {
     do {
       nextBlock = iterator.hasNext() ? iterator.next() : null;
       if (block.isTrivialGoto()) {
-        collapsTrivialGoto(block, nextBlock, blocksToRemove);
+        collapsTrivialGoto(code, block, nextBlock, blocksToRemove);
       }
       if (block.exit().isIf()) {
         collapsIfTrueTarget(block);
@@ -646,7 +651,7 @@ public class CodeRewriter {
       do {
         nextBlock = iterator.hasNext() ? iterator.next() : null;
         if (block.isTrivialGoto()) {
-          collapsTrivialGoto(block, nextBlock, blocksToRemove);
+          collapsTrivialGoto(code, block, nextBlock, blocksToRemove);
         }
         block = nextBlock;
       } while (block != null);
