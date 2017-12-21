@@ -351,10 +351,6 @@ public class BasicBlock {
     return phis;
   }
 
-  public void setPhis(List<Phi> phis) {
-    this.phis = phis;
-  }
-
   public boolean isFilled() {
     return filled;
   }
