@@ -14,7 +14,6 @@ import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.CommandLineOrigin;
-import com.android.tools.r8.utils.AbortException;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
 import com.android.tools.r8.utils.CfgPrinter;
@@ -27,8 +26,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.FileAlreadyExistsException;
-import java.nio.file.NoSuchFileException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
@@ -56,8 +53,6 @@ import java.util.concurrent.ExecutorService;
  * and then writes the result to the directory or zip archive specified by {@code outputPath}.
  */
 public final class D8 {
-
-  private static final int STATUS_ERROR = 1;
 
   private D8() {}
 
@@ -107,8 +102,7 @@ public final class D8 {
     return compatSink == null ? null : new D8Output(compatSink.build(), command.getOutputMode());
   }
 
-  private static void run(String[] args)
-      throws IOException, CompilationException, CompilationFailedException {
+  private static void run(String[] args) throws CompilationFailedException {
     D8Command command = D8Command.parse(args, CommandLineOrigin.INSTANCE).build();
     if (command.isPrintHelp()) {
       System.out.println(USAGE_MESSAGE);
@@ -118,39 +112,22 @@ public final class D8 {
       Version.printToolVersion("D8");
       return;
     }
-    runForTesting(command.getInputApp(), command.getInternalOptions());
+    InternalOptions options = command.getInternalOptions();
+    AndroidApp app = command.getInputApp();
+    ExceptionUtils.withD8CompilationHandler(options.reporter, () -> runForTesting(app, options));
   }
 
-  /** Command-line entry to D8. */
+  /**
+   * Command-line entry to D8.
+   *
+   * See {@link D8Command#USAGE_MESSAGE} or run {@code d8 --help} for usage information.
+   */
   public static void main(String[] args) {
     if (args.length == 0) {
       System.err.println(USAGE_MESSAGE);
-      System.exit(STATUS_ERROR);
+      System.exit(ExceptionUtils.STATUS_ERROR);
     }
-    try {
-      run(args);
-    } catch (NoSuchFileException e) {
-      System.err.println("File not found: " + e.getFile());
-      System.exit(STATUS_ERROR);
-    } catch (FileAlreadyExistsException e) {
-      System.err.println("File already exists: " + e.getFile());
-      System.exit(STATUS_ERROR);
-    } catch (IOException e) {
-      System.err.println("Failed to read or write application files: " + e.getMessage());
-      System.exit(STATUS_ERROR);
-    } catch (CompilationFailedException | AbortException e) {
-      // Detail of the errors were already reported
-      System.err.println("Compilation failed");
-      System.exit(STATUS_ERROR);
-    } catch (RuntimeException e) {
-      System.err.println("Compilation failed with an internal error.");
-      Throwable cause = e.getCause() == null ? e : e.getCause();
-      cause.printStackTrace();
-      System.exit(STATUS_ERROR);
-    } catch (CompilationException e) {
-      System.err.println("Compilation failed: " + e.getMessageForD8());
-      System.exit(STATUS_ERROR);
-    }
+    ExceptionUtils.withMainProgramHandler(() -> run(args));
   }
 
   static void runForTesting(AndroidApp inputApp, InternalOptions options)

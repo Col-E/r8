@@ -44,7 +44,6 @@ import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.shaking.SimpleClassMerger;
 import com.android.tools.r8.shaking.TreePruner;
 import com.android.tools.r8.shaking.protolite.ProtoLiteExtension;
-import com.android.tools.r8.utils.AbortException;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
@@ -67,8 +66,6 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.FileAlreadyExistsException;
-import java.nio.file.NoSuchFileException;
 import java.nio.file.StandardOpenOption;
 import java.util.HashSet;
 import java.util.Set;
@@ -496,8 +493,7 @@ public class R8 {
     return compatConsumers.build();
   }
 
-  private static void run(String[] args)
-      throws IOException, CompilationException, CompilationFailedException {
+  private static void run(String[] args) throws CompilationFailedException {
     R8Command command = R8Command.parse(args, CommandLineOrigin.INSTANCE).build();
     if (command.isPrintHelp()) {
       System.out.println(USAGE_MESSAGE);
@@ -510,39 +506,23 @@ public class R8 {
     InternalOptions options = command.getInternalOptions();
     ExecutorService executorService = ThreadUtils.getExecutorService(options);
     try {
-      run(command.getInputApp(), options, executorService);
+      ExceptionUtils.withR8CompilationHandler(options.reporter, () ->
+          run(command.getInputApp(), options, executorService));
     } finally {
       executorService.shutdown();
     }
   }
 
+  /**
+   * Command-line entry to R8.
+   *
+   * See {@link R8Command#USAGE_MESSAGE} or run {@code r8 --help} for usage information.
+   */
   public static void main(String[] args) {
     if (args.length == 0) {
       System.err.println(USAGE_MESSAGE);
-      System.exit(1);
+      System.exit(ExceptionUtils.STATUS_ERROR);
     }
-    try {
-      run(args);
-    } catch (NoSuchFileException e) {
-      System.err.println("File not found: " + e.getFile());
-      System.exit(1);
-    } catch (FileAlreadyExistsException e) {
-      System.err.println("File already exists: " + e.getFile());
-    } catch (IOException e) {
-      System.err.println("Failed to read or write Android app: " + e.getMessage());
-      System.exit(1);
-    } catch (CompilationFailedException | AbortException e) {
-      // Detail of the errors were already reported
-      System.err.println("Compilation failed");
-      System.exit(1);
-    } catch (RuntimeException e) {
-      System.err.println("Compilation failed with an internal error.");
-      Throwable cause = e.getCause() == null ? e : e.getCause();
-      cause.printStackTrace();
-      System.exit(1);
-    } catch (CompilationException e) {
-      System.err.println("Compilation failed: " + e.getMessageForR8());
-      System.exit(1);
-    }
+    ExceptionUtils.withMainProgramHandler(() -> run(args));
   }
 }

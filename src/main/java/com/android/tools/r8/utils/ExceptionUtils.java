@@ -13,6 +13,8 @@ import java.util.function.Consumer;
 
 public abstract class ExceptionUtils {
 
+  public static final int STATUS_ERROR = 1;
+
   public static void withConsumeResourceHandler(
       Reporter reporter, StringConsumer consumer, String data) {
     withConsumeResourceHandler(reporter, handler -> consumer.accept(data, handler));
@@ -67,5 +69,25 @@ public abstract class ExceptionUtils {
     } catch (AbortException e) {
       throw new CompilationFailedException(e);
     }
+  }
+
+  public interface MainAction {
+    void run() throws CompilationFailedException;
+  }
+
+  public static void withMainProgramHandler(MainAction action) {
+    try {
+      action.run();
+    } catch (CompilationFailedException | AbortException e) {
+      // Detail of the errors were already reported
+      System.err.println("Compilation failed");
+      System.exit(STATUS_ERROR);
+    } catch (RuntimeException e) {
+      System.err.println("Compilation failed with an internal error.");
+      Throwable cause = e.getCause() == null ? e : e.getCause();
+      cause.printStackTrace();
+      System.exit(STATUS_ERROR);
+    }
+
   }
 }
