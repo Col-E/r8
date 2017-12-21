@@ -84,7 +84,7 @@ public interface DexIndexedConsumer extends ProgramConsumer {
   /** Archive consumer to write program resources to a zip archive. */
   class ArchiveConsumer extends ForwardingConsumer implements InternalProgramOutputPathConsumer {
 
-    private static String getDexFileName(int fileIndex) {
+    private static String getDefaultDexFileName(int fileIndex) {
       return fileIndex == 0
           ? "classes.dex"
           : ("classes" + (fileIndex + 1) + FileUtils.DEX_EXTENSION);
@@ -103,6 +103,10 @@ public interface DexIndexedConsumer extends ProgramConsumer {
       super(consumer);
       this.archive = archive;
       origin = new PathOrigin(archive);
+    }
+
+    protected String getDexFileName(int fileIndex) {
+      return getDefaultDexFileName(fileIndex);
     }
 
     @Override
@@ -160,7 +164,7 @@ public interface DexIndexedConsumer extends ProgramConsumer {
         try (ZipOutputStream out = new ZipOutputStream(Files.newOutputStream(archive, options))) {
           for (int i = 0; i < resources.size(); i++) {
             ProgramResource resource = resources.get(i);
-            String entryName = getDexFileName(i);
+            String entryName = getDefaultDexFileName(i);
             byte[] bytes = ByteStreams.toByteArray(closer.register(resource.getStream()));
             ZipUtils.writeToZipStream(out, entryName, bytes);
           }
@@ -239,7 +243,7 @@ public interface DexIndexedConsumer extends ProgramConsumer {
     }
 
     private static Path getTargetDexFile(Path directory, int fileIndex) {
-      return directory.resolve(ArchiveConsumer.getDexFileName(fileIndex));
+      return directory.resolve(ArchiveConsumer.getDefaultDexFileName(fileIndex));
     }
 
     private static void writeFile(byte[] contents, Path target) throws IOException {

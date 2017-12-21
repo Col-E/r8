@@ -534,11 +534,11 @@ task CompatDx(type: Jar) {
     }
 }
 
-task DexMerger(type: Jar) {
+task DexFileMerger(type: Jar) {
     from sourceSets.main.output
-    baseName 'dexmerger'
+    baseName 'dexfilemerger'
     manifest {
-      attributes 'Main-Class': 'com.android.tools.r8.dexmerger.DexMerger'
+      attributes 'Main-Class': 'com.android.tools.r8.dexfilemerger.DexFileMerger'
     }
     // In order to build without dependencies, pass the exclude_deps property using:
     // gradle -Pexclude_deps CompatDx
