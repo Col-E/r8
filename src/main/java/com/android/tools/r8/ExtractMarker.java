@@ -61,7 +61,7 @@ public class ExtractMarker {
 
   public static Marker extractMarkerFromDexProgramData(byte[] data)
       throws IOException, ExecutionException {
-    AndroidApp app = AndroidApp.fromDexProgramData(data);
+    AndroidApp app = AndroidApp.builder().addDexProgramData(data, Origin.unknown()).build();
     return extractMarker(app);
   }
 

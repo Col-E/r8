@@ -10,6 +10,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DexInspector;
@@ -260,7 +261,10 @@ public abstract class RunExamplesAndroidPTest
     try (ZipFile zipFile = new ZipFile(zip.toFile())) {
       try (InputStream in =
           zipFile.getInputStream(zipFile.getEntry(ToolHelper.DEFAULT_DEX_FILENAME))) {
-        return new DexInspector(AndroidApp.fromDexProgramData(ByteStreams.toByteArray(in)));
+        return new DexInspector(
+            AndroidApp.builder()
+                .addDexProgramData(ByteStreams.toByteArray(in), Origin.unknown())
+                .build());
       }
     }
   }

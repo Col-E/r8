@@ -47,7 +47,7 @@ public class SmaliTestBase extends TestBase {
 
   protected AndroidApp buildApplication(SmaliBuilder builder) {
     try {
-      return AndroidApp.fromDexProgramData(builder.compile());
+      return AndroidApp.builder().addDexProgramData(builder.compile(), Origin.unknown()).build();
     } catch (IOException | RecognitionException | DexOverflowException | ExecutionException e) {
       throw new RuntimeException(e);
     }

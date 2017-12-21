@@ -106,8 +106,11 @@ public class SmaliDebugTest extends DebugTestBase {
     List<Path> outs = buildJumpAfterLineChange(methodName);
 
     // Verify that the PC associated with the line entry 4 is prior to the target of the condition.
-    DebugInfoInspector info = new DebugInfoInspector(AndroidApp.fromProgramFiles(outs), CLASS,
-        new MethodSignature(methodName, "int", new String[]{ "int" }));
+    DebugInfoInspector info =
+        new DebugInfoInspector(
+            AndroidApp.builder().addProgramFiles(outs).build(),
+            CLASS,
+            new MethodSignature(methodName, "int", new String[] {"int"}));
     IfEqz cond = null;
     for (Instruction instruction : info.getMethod().getCode().asDexCode().instructions) {
       if (instruction.getOpcode() == IfEqz.OPCODE) {

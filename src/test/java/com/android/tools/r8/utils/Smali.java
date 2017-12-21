@@ -10,6 +10,7 @@ import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.errors.DexOverflowException;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.origin.Origin;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.io.Reader;
@@ -101,7 +102,7 @@ public class Smali {
     // We process it via our reader and writer to trim it to the exact size and update its checksum.
     byte[] data = dataStore.getData();
     SingleFileConsumer consumer = new SingleFileConsumer();
-    AndroidApp app = AndroidApp.fromDexProgramData(data);
+    AndroidApp app = AndroidApp.builder().addDexProgramData(data, Origin.unknown()).build();
     InternalOptions options = new InternalOptions();
     options.programConsumer = consumer;
     ExecutorService executor = ThreadUtils.getExecutorService(1);

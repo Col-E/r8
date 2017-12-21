@@ -463,7 +463,7 @@ public class MainDexListTests extends TestBase {
         .forEach(
             p -> {
               try {
-                DexInspector i = new DexInspector(AndroidApp.fromProgramFiles(p));
+                DexInspector i = new DexInspector(AndroidApp.builder().addProgramFiles(p).build());
                 assertFalse("Found " + clazz + " in file " + p, i.clazz(clazz).isPresent());
               } catch (IOException | ExecutionException e) {
                 e.printStackTrace();
@@ -497,7 +497,7 @@ public class MainDexListTests extends TestBase {
       MultiDexTestMode testMode)
       throws IOException, CompilationException, ExecutionException, ProguardRuleParserException,
       CompilationFailedException {
-    AndroidApp originalApp = AndroidApp.fromProgramFiles(app);
+    AndroidApp originalApp = AndroidApp.builder().addProgramFiles(app).build();
     DexInspector originalInspector = new DexInspector(originalApp);
     for (String clazz : mainDex) {
       assertTrue("Class " + clazz + " does not exist in input",
@@ -563,7 +563,8 @@ public class MainDexListTests extends TestBase {
           1 < Files.list(outDir).filter(FileUtils::isDexFile).count());
     }
     DexInspector inspector =
-        new DexInspector(AndroidApp.fromProgramFiles(outDir.resolve("classes.dex")));
+        new DexInspector(
+            AndroidApp.builder().addProgramFiles(outDir.resolve("classes.dex")).build());
     for (String clazz : mainDex) {
       if (!inspector.clazz(clazz).isPresent()) {
         failedToFindClassInExpectedFile(outDir, clazz);

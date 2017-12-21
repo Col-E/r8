@@ -170,7 +170,7 @@ public class Bisect {
 
   private DexApplication readApp(File apk, ExecutorService executor)
       throws IOException, ExecutionException {
-    AndroidApp app = AndroidApp.fromProgramFiles(apk.toPath());
+    AndroidApp app = AndroidApp.builder().addProgramFiles(apk.toPath()).build();
     return new ApplicationReader(app, new InternalOptions(), timing).read(executor);
   }
 

@@ -10,6 +10,7 @@ import com.android.tools.r8.bisect.BisectOptions.Result;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
 import com.android.tools.r8.utils.AndroidApp;
@@ -48,7 +49,8 @@ public class BisectTest {
       builderGood.addStaticMethod(
           "void", VALID_METHOD, ImmutableList.of(), 0, "return-void");
     }
-    AndroidApp inputGood = AndroidApp.fromDexProgramData(builderGood.compile());
+    AndroidApp inputGood =
+        AndroidApp.builder().addDexProgramData(builderGood.compile(), Origin.unknown()).build();
     DexApplication appGood = new ApplicationReader(inputGood, options, timing).read();
 
     // Build "bad" application with a method "foo" in "F".
@@ -63,7 +65,8 @@ public class BisectTest {
             "void", VALID_METHOD, ImmutableList.of(), 0, "return-void");
       }
     }
-    AndroidApp inputBad = AndroidApp.fromDexProgramData(builderBad.compile());
+    AndroidApp inputBad =
+        AndroidApp.builder().addDexProgramData(builderBad.compile(), Origin.unknown()).build();
     DexApplication appBad = new ApplicationReader(inputBad, options, timing).read();
 
     ExecutorService executor = Executors.newWorkStealingPool();

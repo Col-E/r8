@@ -6,13 +6,13 @@ package com.android.tools.r8.debuginfo;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.CompilationException;
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.utils.OutputMode;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
@@ -40,7 +40,7 @@ public class DebugInfoTestBase {
   }
 
   static AndroidApp getDxCompiledSources() throws IOException {
-    return AndroidApp.fromProgramFiles(DX_PREBUILT);
+    return AndroidApp.builder().addProgramFiles(DX_PREBUILT).build();
   }
 
   public static DebugInfoInspector inspectMethod(

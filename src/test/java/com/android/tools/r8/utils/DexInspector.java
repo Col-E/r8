@@ -119,7 +119,7 @@ public class DexInspector {
     Timing timing = new Timing("DexInspector");
     InternalOptions options = new InternalOptions();
     dexItemFactory = options.itemFactory;
-    AndroidApp input = AndroidApp.fromProgramFiles(files);
+    AndroidApp input = AndroidApp.builder().addProgramFiles(files).build();
     application = new ApplicationReader(input, options, timing).read(executor);
     executor.shutdown();
   }

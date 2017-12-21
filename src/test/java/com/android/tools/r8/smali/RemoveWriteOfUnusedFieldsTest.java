@@ -7,6 +7,7 @@ package com.android.tools.r8.smali;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.graph.DexCode;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.MethodSubject;
@@ -54,10 +55,11 @@ public class RemoveWriteOfUnusedFieldsTest extends SmaliTestBase {
         "    invoke-static       { }, LTest;->test()V",
         "    return-void                             ");
 
-    AndroidApp app = compileWithR8(
-        AndroidApp.fromDexProgramData(builder.compile()),
-        keepMainProguardConfiguration("Test"),
-        options -> options.inlineAccessors = false);
+    AndroidApp app =
+        compileWithR8(
+            AndroidApp.builder().addDexProgramData(builder.compile(), Origin.unknown()).build(),
+            keepMainProguardConfiguration("Test"),
+            options -> options.inlineAccessors = false);
 
     DexInspector inspector = new DexInspector(app);
     MethodSubject method = inspector.clazz("Test").method("void", "test", ImmutableList.of());
@@ -105,10 +107,11 @@ public class RemoveWriteOfUnusedFieldsTest extends SmaliTestBase {
         "    invoke-virtual       { v0 }, LTest;->test()V",
         "    return-void                             ");
 
-    AndroidApp app = compileWithR8(
-        AndroidApp.fromDexProgramData(builder.compile()),
-        keepMainProguardConfiguration("Test"),
-        options -> options.inlineAccessors = false);
+    AndroidApp app =
+        compileWithR8(
+            AndroidApp.builder().addDexProgramData(builder.compile(), Origin.unknown()).build(),
+            keepMainProguardConfiguration("Test"),
+            options -> options.inlineAccessors = false);
 
     DexInspector inspector = new DexInspector(app);
     MethodSubject method = inspector.clazz("Test").method("void", "test", ImmutableList.of());

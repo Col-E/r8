@@ -30,7 +30,10 @@ public class R8UnreachableCodeTest {
   @Test
   public void UnreachableCode() throws IOException, ExecutionException, CompilationException {
     String name = "unreachable-code-1";
-    AndroidApp input = AndroidApp.fromProgramFiles(SMALI_DIR.resolve(name).resolve(name + ".dex"));
+    AndroidApp input =
+        AndroidApp.builder()
+            .addProgramFiles(SMALI_DIR.resolve(name).resolve(name + ".dex"))
+            .build();
     ExecutorService executorService = Executors.newSingleThreadExecutor();
     Timing timing = new Timing("R8UnreachableCodeTest");
     InternalOptions options = new InternalOptions();

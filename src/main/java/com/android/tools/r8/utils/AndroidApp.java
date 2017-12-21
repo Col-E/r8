@@ -85,48 +85,6 @@ public class AndroidApp {
     return new Builder(app);
   }
 
-  /**
-   * Create an app from program files @code{files}. See also Builder::addProgramFiles.
-   */
-  public static AndroidApp fromProgramFiles(Path... files) throws IOException {
-    return fromProgramFiles(Arrays.asList(files));
-  }
-
-  /**
-   * Create an app from program files @code{files}. See also Builder::addProgramFiles.
-   */
-  public static AndroidApp fromProgramFiles(List<Path> files) throws IOException {
-    return builder().addProgramFiles(files).build();
-  }
-
-  /**
-   * Create an app from dex program data. See also Builder::addDexProgramData.
-   */
-  public static AndroidApp fromDexProgramData(byte[]... data) {
-    return fromDexProgramData(Arrays.asList(data));
-  }
-
-  /**
-   * Create an app from dex program data. See also Builder::addDexProgramData.
-   */
-  public static AndroidApp fromDexProgramData(List<byte[]> data) {
-    return builder().addDexProgramData(data).build();
-  }
-
-  /**
-   * Create an app from Java-bytecode program data. See also Builder::addClassProgramData.
-   */
-  public static AndroidApp fromClassProgramData(byte[]... data) {
-    return fromClassProgramData(Arrays.asList(data));
-  }
-
-  /**
-   * Create an app from Java-bytecode program data. See also Builder::addClassProgramData.
-   */
-  public static AndroidApp fromClassProgramData(List<byte[]> data) {
-    return builder().addClassProgramData(data).build();
-  }
-
   /** Get input streams for all dex program resources. */
   public List<ProgramResource> getDexProgramResources() throws IOException {
     try {

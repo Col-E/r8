@@ -16,6 +16,7 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
 import com.android.tools.r8.smali.SmaliTestBase;
@@ -35,7 +36,9 @@ public class IrInjectionTestBase extends SmaliTestBase {
 
   protected DexApplication buildApplication(SmaliBuilder builder, InternalOptions options) {
     try {
-      return buildApplication(AndroidApp.fromDexProgramData(builder.compile()), options);
+      return buildApplication(
+          AndroidApp.builder().addDexProgramData(builder.compile(), Origin.unknown()).build(),
+          options);
     } catch (IOException | RecognitionException | ExecutionException | DexOverflowException e) {
       throw new RuntimeException(e);
     }
