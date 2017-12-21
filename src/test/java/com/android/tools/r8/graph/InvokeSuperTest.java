@@ -4,6 +4,9 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.AsmTestBase;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.VmTestRunner;
+import com.android.tools.r8.VmTestRunner.IgnoreForRangeOfVmVersions;
 import com.android.tools.r8.graph.invokesuper.Consumer;
 import com.android.tools.r8.graph.invokesuper.InvokerClassDump;
 import com.android.tools.r8.graph.invokesuper.InvokerClassFailingDump;
@@ -15,10 +18,13 @@ import com.android.tools.r8.graph.invokesuper.SubclassOfInvokerClass;
 import com.android.tools.r8.graph.invokesuper.Super;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
+@RunWith(VmTestRunner.class)
 public class InvokeSuperTest extends AsmTestBase {
 
   @Test
+  @IgnoreForRangeOfVmVersions(from = Version.V5_1_1, to = Version.V6_0_1)
   public void testInvokeSuperTargets() throws Exception {
     ensureSameOutput(MainClass.class.getCanonicalName(),
         asBytes(MainClass.class),
