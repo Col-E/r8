@@ -7,6 +7,8 @@ import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.isClassFile;
 
 import com.android.tools.r8.ClassFileResourceProvider;
+import com.android.tools.r8.ProgramResource;
+import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.Resource;
 import com.google.common.collect.Sets;
 import java.io.File;
@@ -21,6 +23,11 @@ import java.util.Set;
  */
 public final class DirectoryClassFileProvider implements ClassFileResourceProvider {
   private final Path root;
+
+  /** Create resource provider from directory path. */
+  public static ClassFileResourceProvider fromDirectory(Path dir) {
+    return new DirectoryClassFileProvider(dir.toAbsolutePath());
+  }
 
   private DirectoryClassFileProvider(Path root) {
     this.root = root;
@@ -53,19 +60,20 @@ public final class DirectoryClassFileProvider implements ClassFileResourceProvid
   }
 
   @Override
-  public Resource getResource(String descriptor) {
+  public ProgramResource getProgramResource(String descriptor) {
     assert DescriptorUtils.isClassDescriptor(descriptor);
-
     // Build expected file path based on type descriptor.
     String classBinaryName = DescriptorUtils.getClassBinaryNameFromDescriptor(descriptor);
     Path file = root.resolve(classBinaryName + CLASS_EXTENSION);
-
-    return (Files.exists(file) && !Files.isDirectory(file)) ? Resource.fromFile(file) : null;
+    return (Files.exists(file) && !Files.isDirectory(file))
+        ? ProgramResource.fromFile(Kind.CF, file)
+        : null;
   }
 
-  /** Create resource provider from directory path. */
-  public static ClassFileResourceProvider fromDirectory(Path dir) {
-    return new DirectoryClassFileProvider(dir.toAbsolutePath());
+  @Override
+  @Deprecated
+  public Resource getResource(String descriptor) {
+    return getProgramResource(descriptor);
   }
 
   public Path getRoot() {
