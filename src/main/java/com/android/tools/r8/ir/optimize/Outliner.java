@@ -13,7 +13,6 @@ import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexAnnotationSetRefList;
-import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -46,6 +45,7 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.SourceCode;
+import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.utils.InternalOptions;
@@ -440,20 +440,12 @@ public class Outliner {
       InvokeMethod invoke = instruction.asInvokeMethod();
       boolean constructor = dexItemFactory.isConstructor(invoke.getInvokedMethod());
 
-      // Lookup the encoded method.
-      DexMethod invokedMethod = invoke.getInvokedMethod();
-      DexEncodedMethod target = invoke.lookupSingleTarget(appInfo, method.method.holder);
-      // If the encoded method is found check the access flags.
-      if (target != null) {
-        if (!target.accessFlags.isPublic()) {
-          return false;
-        }
-        DexClass holder = appInfo.definitionFor(invokedMethod.getHolder());
-        if (!holder.accessFlags.isPublic()) {
-          return false;
-        }
+      // See whether we could move this invoke somewhere else. We reuse the logic from inlining
+      // here, as the constraints are the same.
+      Constraint constraint = invoke.inliningConstraint(appInfo, method.method.holder);
+      if (constraint != Constraint.ALWAYS) {
+        return false;
       }
-
       // Find the number of in-going arguments, if adding this instruction.
       int newArgumentRegisters = argumentRegisters;
       if (instruction.inValues().size() > 0) {

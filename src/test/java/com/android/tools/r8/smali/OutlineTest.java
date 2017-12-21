@@ -41,6 +41,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import org.junit.Assert;
 import org.junit.Test;
 
 public class OutlineTest extends SmaliTestBase {
@@ -991,6 +992,57 @@ public class OutlineTest extends SmaliTestBase {
     // Run the code and expect a parsable long.
     String result = runArt(processedApplication);
     Long.parseLong(result);
+  }
+
+  @Test
+  public void noOutlineSuperCalls() throws Exception {
+    SmaliBuilder superBuilder = new SmaliBuilder("Super");
+    superBuilder.addInstanceMethod("void", "set", ImmutableList.of("int", "int"), 0,
+        "return-void");
+
+    superBuilder.addInstanceMethod("java.lang.String", "toString", Collections.emptyList(), 1,
+        "const-string     v0, \"Hello\"",
+        "return-object    v0");
+
+    SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME, "Super");
+
+    builder.addStaticMethod(
+        "java.lang.String",
+        DEFAULT_METHOD_NAME,
+        ImmutableList.of("int"),
+        2,
+        "    new-instance        v0, LTest;",
+        "    invoke-direct       { v0 }, LTest;-><init>()V",
+        "    invoke-super        { v0, p0, p0 }, LTest;->set(II)V",
+        "    invoke-super        { v0, p0, p0 }, LTest;->set(II)V",
+        "    invoke-virtual      { v0 }, LTest;->toString()Ljava/lang/String;",
+        "    move-result-object  v0",
+        "    return-object       v0"
+    );
+
+    builder.addMainMethod(
+        3,
+        "    sget-object         v0, Ljava/lang/System;->out:Ljava/io/PrintStream;",
+        "    const/4             v1, 0",
+        "    invoke-static       { v1 }, LTest;->method(I)Ljava/lang/String;",
+        "    move-result-object  v1",
+        "    invoke-virtual      { v0, v1 }, Ljava/io/PrintStream;->print(Ljava/lang/String;)V",
+        "    return-void"
+    );
+
+    Consumer<InternalOptions> options = configureOptions(outline -> {
+      outline.threshold = 1;
+      outline.minSize = 5;
+      outline.maxSize = 5;
+    });
+
+    AndroidApp originalApplication = buildApplicationWithAndroidJar(superBuilder, builder);
+    AndroidApp processedApplication = processApplication(originalApplication, options);
+    assertEquals(2, getNumberOfProgramClasses(processedApplication));
+
+    String originalResult = runArt(originalApplication);
+    String processedResult = runArt(processedApplication);
+    Assert.assertEquals(originalResult, processedResult);
   }
 
   @Test
