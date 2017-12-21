@@ -12,10 +12,8 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.utils.InternalOptions;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Queue;
 
 public class DeadCodeRemover {
@@ -63,33 +61,18 @@ public class DeadCodeRemover {
     }
   }
 
-  private static void removeDeadPhis(
-      Queue<BasicBlock> worklist, BasicBlock block, InternalOptions options) {
-    List<Phi> toRemove = new ArrayList<>();
-    for (Phi phi : block.getPhis()) {
+  private static void removeDeadPhis(Queue<BasicBlock> worklist, BasicBlock block,
+      InternalOptions options) {
+    Iterator<Phi> phiIt = block.getPhis().iterator();
+    while (phiIt.hasNext()) {
+      Phi phi = phiIt.next();
       if (phi.isDead(options)) {
-        toRemove.add(phi);
+        phiIt.remove();
         for (Value operand : phi.getOperands()) {
           operand.removePhiUser(phi);
           updateWorklist(worklist, operand);
         }
       }
-    }
-    if (!toRemove.isEmpty()) {
-      List<Phi> newPhis = new ArrayList<>(block.getPhis().size() - toRemove.size());
-      int toRemoveIndex = 0;
-      List<Phi> phis = block.getPhis();
-      int i = 0;
-      for (; i < phis.size() && toRemoveIndex < toRemove.size(); i++) {
-        Phi phi = phis.get(i);
-        if (phi == toRemove.get(toRemoveIndex)) {
-          toRemoveIndex++;
-        } else {
-          newPhis.add(phi);
-        }
-      }
-      newPhis.addAll(phis.subList(i, phis.size()));
-      block.setPhis(newPhis);
     }
   }
 
