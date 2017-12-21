@@ -16,6 +16,13 @@ public class CompatProguardTest {
   }
 
   @Test
+  public void testShortLine() throws Exception {
+    CompatProguardOptions options;
+    options = parseArgs("-");
+    assertEquals(1, options.proguardConfig.size());
+  }
+
+  @Test
   public void testProguardOptions() throws Exception {
     CompatProguardOptions options;
 
@@ -54,5 +61,22 @@ public class CompatProguardTest {
     assertEquals(mainDexList, options.mainDexList);
     options = parseArgs("--minimal-main-dex", "--main-dex-list=" + mainDexList);
     assertEquals(mainDexList, options.mainDexList);
+  }
+
+  @Test
+  public void testInclude() throws Exception {
+    CompatProguardOptions options;
+
+    options = parseArgs("-include --my-include-file.txt");
+    assertEquals(1, options.proguardConfig.size());
+    assertEquals("-include --my-include-file.txt", options.proguardConfig.get(0));
+  }
+
+  @Test
+  public void testNoLocalsOption() throws Exception {
+    CompatProguardOptions options;
+
+    options = parseArgs("--no-locals");
+    assertEquals(0, options.proguardConfig.size());
   }
 }
