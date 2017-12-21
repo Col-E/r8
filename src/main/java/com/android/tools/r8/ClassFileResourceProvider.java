@@ -3,25 +3,81 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.origin.Origin;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Set;
 
 /**
- * Represents a provider for application resources of class file kind.
+ * Program resource provider for program resources of class-file kind.
  *
- * Note that the classes will only be created for resources provided by
- * resource providers on-demand when they are needed by the tool. If
- * never needed, the resource will never be loaded.
+ * <p>Note that the classes are generally lazily requested and the corresponding class structures
+ * only created on-demand when they are needed by the compiler. If never needed, the resource will
+ * never be loaded.
  */
 public interface ClassFileResourceProvider {
-  /** Returns all class descriptors. */
+
+  /**
+   * Get the set of all class descriptors that can be provided.
+   *
+   * <p>For user program classes (eg, not class-path or library resources), this set must be
+   * defined.
+   *
+   * @return Set of all class descriptors that can be provided or null if the set is unknown.
+   */
   Set<String> getClassDescriptors();
 
   /**
-   * Get the class resource associated with the descriptor, or null if
-   * this provider does not have one.
+   * Get the program resource associated with the descriptor, or null if this provider does not have
+   * a resource for the descriptor.
    *
-   * Method may be called several times for the same resource, and should
-   * support concurrent calls from different threads.
+   * <p>Method may be called several times for the same resource, and should support concurrent
+   * calls from different threads.
    */
+  default ProgramResource getProgramResource(String descriptor) {
+    Resource resource = getResource(descriptor);
+    return resource == null ? null : new ClassFileResource(resource);
+  }
+
+  @Deprecated
   Resource getResource(String descriptor);
+
+  @Deprecated
+  class ClassFileResource implements ProgramResource {
+    private final Resource resource;
+
+    public ClassFileResource(Resource resource) {
+      this.resource = resource;
+      assert resource.getClassDescriptors() == null || resource.getClassDescriptors().size() == 1;
+    }
+
+    @Override
+    public Kind getKind() {
+      return Kind.CF;
+    }
+
+    @Override
+    public InputStream getByteStream() throws ResourceException {
+      try {
+        return resource.getStream();
+      } catch (IOException e) {
+        throw new ResourceException(resource.getOrigin(), e);
+      }
+    }
+
+    @Override
+    public Set<String> getClassDescriptors() {
+      return resource.getClassDescriptors();
+    }
+
+    @Override
+    public Origin getOrigin() {
+      return resource.getOrigin();
+    }
+
+    @Override
+    public InputStream getStream() throws IOException {
+      return resource.getStream();
+    }
+  };
 }

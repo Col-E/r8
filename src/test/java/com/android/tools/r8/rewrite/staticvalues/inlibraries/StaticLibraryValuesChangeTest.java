@@ -11,11 +11,11 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.origin.EmbeddedOrigin;
-import com.android.tools.r8.shaking.FilteredClassPath;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.PreloadedClassFileProvider;
 import com.google.common.collect.ImmutableList;
+import java.nio.file.Paths;
 import org.junit.Assume;
 import org.junit.Test;
 
@@ -55,9 +55,8 @@ public class StaticLibraryValuesChangeTest extends TestBase {
 
     // Compile TestMain with R8 using the second version of LibraryClass as library.
     AndroidApp.Builder builder = AndroidApp.builder();
-    builder.addProgramFiles(
-        FilteredClassPath.unfiltered(ToolHelper.getClassFileForTestClass(TestMain.class)));
-    builder.addLibraryFiles(FilteredClassPath.unfiltered(ToolHelper.getDefaultAndroidJar()));
+    builder.addProgramFiles(ToolHelper.getClassFileForTestClass(TestMain.class));
+    builder.addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()));
     builder.addLibraryResourceProvider(PreloadedClassFileProvider.fromClassData(
         "Lcom/android/tools/r8/rewrite/staticvalues/inlibraries/LibraryClass;",
         compileTimeLibrary.buildClasses().get(0)));

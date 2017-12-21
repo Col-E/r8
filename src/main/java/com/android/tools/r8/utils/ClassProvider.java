@@ -4,7 +4,7 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.ClassFileResourceProvider;
-import com.android.tools.r8.Resource;
+import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.ClassKind;
 import com.android.tools.r8.graph.DexClass;
@@ -93,7 +93,7 @@ public abstract class ClassProvider<T extends DexClass> {
     @Override
     public void collectClass(DexType type, Consumer<T> classConsumer) {
       String descriptor = type.descriptor.toString();
-      Resource resource = provider.getResource(descriptor);
+      ProgramResource resource = provider.getProgramResource(descriptor);
       if (resource != null) {
         try (Closer closer = Closer.create()) {
           JarClassFileReader classReader =

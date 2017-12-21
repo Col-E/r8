@@ -6,7 +6,6 @@ package com.android.tools.r8;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
-import com.android.tools.r8.shaking.FilteredClassPath;
 import com.android.tools.r8.utils.AbortException;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
@@ -122,16 +121,18 @@ abstract class BaseCommand {
 
     /** Add program file resources. */
     public B addProgramFiles(Collection<Path> files) {
-      guard(() -> {
-        files.forEach(path -> {
-          try {
-            app.addProgramFile(FilteredClassPath.unfiltered(path));
-            programFiles.add(path);
-          } catch (IOException | CompilationError e) {
-            error("Error with input file: ", path, e);
-          }
-        });
-      });
+      guard(
+          () -> {
+            files.forEach(
+                path -> {
+                  try {
+                    app.addProgramFile(path);
+                    programFiles.add(path);
+                  } catch (IOException | CompilationError e) {
+                    error("Error with input file: ", path, e);
+                  }
+                });
+          });
       return self();
     }
 
@@ -149,15 +150,17 @@ abstract class BaseCommand {
 
     /** Add library file resources. */
     public B addLibraryFiles(Collection<Path> files) {
-      guard(() -> {
-        files.forEach(path -> {
-          try {
-            app.addLibraryFile(FilteredClassPath.unfiltered(path));
-          } catch (IOException | CompilationError e) {
-            error("Error with library file: ", path, e);
-          }
-        });
-      });
+      guard(
+          () -> {
+            files.forEach(
+                path -> {
+                  try {
+                    app.addLibraryFile(path);
+                  } catch (IOException | CompilationError e) {
+                    error("Error with library file: ", path, e);
+                  }
+                });
+          });
       return self();
     }
 

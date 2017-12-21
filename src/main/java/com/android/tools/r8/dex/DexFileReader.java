@@ -59,6 +59,7 @@ import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.Pair;
+import com.google.common.io.ByteStreams;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
@@ -66,6 +67,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ShortBuffer;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -84,15 +86,15 @@ public class DexFileReader {
   private final ClassKind classKind;
 
   public static Segment[] parseMapFrom(Path file) throws IOException {
-    return parseMapFrom(new DexFile(file.toString()), new PathOrigin(file));
+    return parseMapFrom(Files.newInputStream(file), new PathOrigin(file));
   }
 
   public static Segment[] parseMapFrom(InputStream stream, Origin origin) throws IOException {
-    return parseMapFrom(new DexFile(stream), origin);
+    return parseMapFrom(new DexFile(origin, ByteStreams.toByteArray(stream)));
   }
 
-  private static Segment[] parseMapFrom(DexFile dex, Origin origin) {
-    DexFileReader reader = new DexFileReader(origin, dex, ClassKind.PROGRAM, new DexItemFactory());
+  private static Segment[] parseMapFrom(DexFile dex) {
+    DexFileReader reader = new DexFileReader(dex, ClassKind.PROGRAM, new DexItemFactory());
     return reader.segments;
   }
 
@@ -117,10 +119,9 @@ public class DexFileReader {
   // Factory to canonicalize certain dexitems.
   private final DexItemFactory dexItemFactory;
 
-  public DexFileReader(
-      Origin origin, DexFile file, ClassKind classKind, DexItemFactory dexItemFactory) {
-    assert origin != null;
-    this.origin = origin;
+  public DexFileReader(DexFile file, ClassKind classKind, DexItemFactory dexItemFactory) {
+    assert file.getOrigin() != null;
+    this.origin = file.getOrigin();
     this.file = file;
     this.dexItemFactory = dexItemFactory;
     file.setByteOrder();

@@ -16,8 +16,7 @@ public class R8GMSCoreFixedPointTest extends GMSCoreCompilationTestBase {
   public void fixedPoint() throws Exception {
     // First compilation.
     AndroidApp app =
-        AndroidApp.builder()
-            .addProgramDirectory(Paths.get(GMSCORE_V7_DIR))
+        ToolHelper.builderFromProgramDirectory(Paths.get(GMSCORE_V7_DIR))
             .setProguardMapFile(null)
             .build();
 

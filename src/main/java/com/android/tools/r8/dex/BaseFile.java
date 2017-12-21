@@ -4,37 +4,30 @@
 
 package com.android.tools.r8.dex;
 
-import com.android.tools.r8.Resource;
+import com.android.tools.r8.ProgramResource;
+import com.android.tools.r8.ResourceException;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.LebUtils;
 import com.google.common.io.ByteStreams;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.ByteBuffer;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 
 public abstract class BaseFile {
+  protected final Origin origin;
   protected final ByteBuffer buffer;
 
-  protected BaseFile(Resource resource) throws IOException {
-    try (InputStream input = resource.getStream()) {
-      buffer = ByteBuffer.wrap(ByteStreams.toByteArray(input));
-    }
+  protected BaseFile(ProgramResource resource) throws ResourceException, IOException {
+    this(resource.getOrigin(), ByteStreams.toByteArray(resource.getByteStream()));
   }
 
-  protected BaseFile(String name) throws IOException {
-    Path path = Paths.get(name);
-    buffer = ByteBuffer.wrap(Files.readAllBytes(path));
-  }
-
-  protected  BaseFile(InputStream input) throws IOException {
-    // TODO(zerny): Remove dependencies on file names.
-    buffer = ByteBuffer.wrap(ByteStreams.toByteArray(input));
-  }
-
-  protected BaseFile(byte[] bytes) {
+  protected BaseFile(Origin origin, byte[] bytes) {
+    assert origin != null;
+    this.origin = origin;
     buffer = ByteBuffer.wrap(bytes);
+  }
+
+  public Origin getOrigin() {
+    return origin;
   }
 
   abstract void setByteOrder();

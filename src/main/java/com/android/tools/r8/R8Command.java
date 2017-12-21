@@ -276,8 +276,9 @@ public class R8Command extends BaseCompilerCommand {
         proguardConfigurationConsumer.accept(configurationBuilder);
       }
       ProguardConfiguration configuration = configurationBuilder.build();
-      getAppBuilder().addProgramFiles(configuration.getInjars());
-      getAppBuilder().addLibraryFiles(configuration.getLibraryjars());
+      getAppBuilder()
+          .addFilteredProgramArchives(configuration.getInjars())
+          .addFilteredLibraryArchives(configuration.getLibraryjars());
 
       boolean useTreeShaking = treeShaking.orElse(configuration.isShrinking());
       boolean useDiscardedChecker = discardedChecker.orElse(true);

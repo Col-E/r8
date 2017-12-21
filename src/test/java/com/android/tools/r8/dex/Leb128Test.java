@@ -5,8 +5,8 @@ package com.android.tools.r8.dex;
 
 import static com.android.tools.r8.dex.Constants.DEX_MAGIC_SIZE;
 
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.DexVersion;
 import com.android.tools.r8.utils.LebUtils;
 import java.util.Arrays;
 import java.util.Collection;
@@ -53,7 +53,7 @@ public class Leb128Test {
     buffer.putBytes(AndroidApiLevel.B.getDexVersion().getBytes());
     buffer.putByte(Constants.DEX_FILE_MAGIC_SUFFIX);
     buffer.putBytes(bytes);
-    DexFile dexFile = new DexFile(buffer.asArray());
+    DexFile dexFile = new DexFile(Origin.unknown(), buffer.asArray());
     dexFile.position(DEX_MAGIC_SIZE);
     return dexFile;
   }

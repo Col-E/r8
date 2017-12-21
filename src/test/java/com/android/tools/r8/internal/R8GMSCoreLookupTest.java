@@ -7,6 +7,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -35,7 +36,7 @@ public class R8GMSCoreLookupTest {
 
   @Before
   public void readGMSCore() throws IOException, ExecutionException {
-    app = AndroidApp.fromProgramDirectory(Paths.get(APP_DIR));
+    app = ToolHelper.builderFromProgramDirectory(Paths.get(APP_DIR)).build();
     ExecutorService executorService = Executors.newSingleThreadExecutor();
     Timing timing = new Timing("ReadGMSCore");
     program = new ApplicationReader(app, new InternalOptions(), timing)

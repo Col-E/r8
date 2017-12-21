@@ -5,12 +5,12 @@ package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.ClassFileResourceProvider;
 import com.android.tools.r8.ProgramResource;
-import com.android.tools.r8.Resource;
+import com.android.tools.r8.ProgramResourceProvider;
+import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidApp.Builder;
 import com.android.tools.r8.utils.ListUtils;
-import com.android.tools.r8.utils.ProgramFileArchiveReader;
 import com.android.tools.r8.utils.ThrowingBiFunction;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -18,6 +18,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -78,12 +80,15 @@ public class FilteredClassPathTest {
   }
 
   private void testApplicationFiltered(
-      ThrowingBiFunction<Builder, FilteredClassPath, Builder, IOException> setter,
+      ThrowingBiFunction<Builder, Collection<FilteredClassPath>, Builder, IOException> setter,
       Function<AndroidApp, List<String>> getter)
       throws IOException {
     Path androidJar = Paths.get(ToolHelper.getDefaultAndroidJar());
-    AndroidApp app = setter.apply(AndroidApp.builder(), makeFilteredClassPath(androidJar,
-        ImmutableList.of("!java/lang/**.class", "java/util/**.class"))).build();
+    AndroidApp app = setter.apply(
+        AndroidApp.builder(),
+        Collections.singletonList(makeFilteredClassPath(
+            androidJar, ImmutableList.of("!java/lang/**.class", "java/util/**.class"))))
+        .build();
     List<String> descriptors = getter.apply(app);
     Assert.assertTrue(descriptors.stream().noneMatch(s -> s.startsWith("Ljava/lang")));
     Assert.assertTrue(descriptors.stream().anyMatch(s -> s.startsWith("Ljava/util")));
@@ -92,30 +97,37 @@ public class FilteredClassPathTest {
 
   @Test
   public void testLibraryFiltered() throws IOException {
-    testApplicationFiltered(Builder::addLibraryFiles, app -> {
-      ClassFileResourceProvider provider = Iterables
-          .getOnlyElement(app.getLibraryResourceProviders());
-      List<Resource> resources = ListUtils
-          .map(provider.getClassDescriptors(), provider::getResource);
-      return resources.stream().flatMap(r -> r.getClassDescriptors().stream())
-          .collect(Collectors.toList());
-    });
+    testApplicationFiltered(
+        Builder::addFilteredLibraryArchives,
+        app -> {
+          ClassFileResourceProvider provider =
+              Iterables.getOnlyElement(app.getLibraryResourceProviders());
+          List<ProgramResource> resources =
+              ListUtils.map(provider.getClassDescriptors(), provider::getProgramResource);
+          return resources
+              .stream()
+              .flatMap(r -> r.getClassDescriptors().stream())
+              .collect(Collectors.toList());
+        });
   }
 
-  private static Stream<ProgramResource> getClassProgramResources(ProgramFileArchiveReader reader) {
+  private static Stream<ProgramResource> getClassProgramResources(ProgramResourceProvider reader) {
     try {
-      return reader.getClassProgramResources().stream();
-    } catch (IOException e) {
+      return reader.getProgramResources().stream();
+    } catch (ResourceException e) {
       return Stream.empty();
     }
   }
 
   @Test
   public void testProgramFiltered() throws IOException {
-    testApplicationFiltered(Builder::addProgramFiles,
-        app -> app.getProgramFileArchiveReaders().stream()
-            .flatMap(FilteredClassPathTest::getClassProgramResources)
-            .flatMap(r -> r.getClassDescriptors().stream()).collect(
-                Collectors.toList()));
+    testApplicationFiltered(
+        Builder::addFilteredProgramArchives,
+        app ->
+            app.getProgramResourceProviders()
+                .stream()
+                .flatMap(FilteredClassPathTest::getClassProgramResources)
+                .flatMap(r -> r.getClassDescriptors().stream())
+                .collect(Collectors.toList()));
   }
 }

@@ -8,17 +8,21 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.D8Command.Builder;
+import com.android.tools.r8.DexIndexedConsumer;
+import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.origin.EmbeddedOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.smali.SmaliTestBase;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.AndroidAppConsumers;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import java.util.Base64;
-import java.util.List;
+import java.util.Set;
 import org.junit.Test;
 
 public class Regress37740372 extends SmaliTestBase {
@@ -130,22 +134,37 @@ public class Regress37740372 extends SmaliTestBase {
     inspector.forAllClasses(this::assertIsJavaLangObjet);
   }
 
+  static class MemoryConsumer extends DexIndexedConsumer.ForwardingConsumer {
+    byte[] data;
+
+    public MemoryConsumer() {
+      super(null);
+    }
+
+    @Override
+    public void accept(
+        int fileIndex, byte[] data, Set<String> descriptors, DiagnosticsHandler handler) {
+      assertEquals(0, fileIndex);
+      this.data = data;
+    }
+  }
+
   @Test
   public void test() throws Throwable {
     // Build an application with the java.lang.Object stub from a class file.
-    AndroidApp output =
-        ToolHelper.runD8(
-            D8Command.builder()
-                .addClassProgramData(Base64.getDecoder().decode(javaLangObjectClassFile),
-                    EmbeddedOrigin.INSTANCE)
-                .build());
-    checkApplicationOnlyHasJavaLangObject(output);
+    MemoryConsumer consumer = new MemoryConsumer();
+    AndroidAppConsumers appConsumer = new AndroidAppConsumers();
+    D8.run(
+        D8Command.builder()
+            .setProgramConsumer(appConsumer.wrapProgramConsumer(consumer))
+            .addClassProgramData(
+                Base64.getDecoder().decode(javaLangObjectClassFile), EmbeddedOrigin.INSTANCE)
+            .build());
+    checkApplicationOnlyHasJavaLangObject(appConsumer.build());
 
     // Build an application with the java.lang.Object stub from a dex file.
-    List<byte[]> dex = output.writeToMemory();
-    assertEquals(1, dex.size());
     Builder builder = D8Command.builder();
-    dex.forEach(data -> builder.addDexProgramData(data, Origin.unknown()));
+    builder.addDexProgramData(consumer.data, Origin.unknown());
     checkApplicationOnlyHasJavaLangObject(ToolHelper.runD8(builder.build()));
   }
 }

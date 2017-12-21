@@ -14,7 +14,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
-import com.android.tools.r8.shaking.FilteredClassPath;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidApp.Builder;
 import com.android.tools.r8.utils.InternalOptions;
@@ -37,7 +36,7 @@ public class PrintClassList {
       builder.setProguardMapFile(Paths.get(args[0]));
       dexFiles = dexFiles.subList(1, dexFiles.size());
     }
-    builder.addProgramFiles(ListUtils.map(dexFiles, FilteredClassPath::unfiltered));
+    builder.addProgramFiles(ListUtils.map(dexFiles, Paths::get));
 
     ExecutorService executorService = Executors.newCachedThreadPool();
     DexApplication application =

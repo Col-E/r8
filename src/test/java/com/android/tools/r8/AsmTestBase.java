@@ -8,7 +8,6 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.shaking.FilteredClassPath;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -17,6 +16,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -68,8 +68,7 @@ public class AsmTestBase extends TestBase {
     for (byte[] clazz : classes) {
       builder.addClassProgramData(clazz, Origin.unknown());
     }
-    builder.addLibraryFiles(
-        FilteredClassPath.unfiltered(ToolHelper.getAndroidJar(AndroidApiLevel.N.getLevel())));
+    builder.addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(AndroidApiLevel.N.getLevel())));
     return builder.build();
   }
 

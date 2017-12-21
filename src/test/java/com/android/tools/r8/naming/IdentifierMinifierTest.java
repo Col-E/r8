@@ -17,7 +17,6 @@ import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexValue.DexValueString;
-import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.DexInspector.MethodSubject;
@@ -70,10 +69,11 @@ public class IdentifierMinifierTest {
             .setOutput(out, OutputMode.DexIndexed)
             .addProgramFiles(Paths.get(appFileName))
             .addProguardConfigurationFiles(ListUtils.map(keepRulesFiles, Paths::get))
-            .addProguardConfigurationConsumer(builder -> {
-              builder.setPrintMapping(true);
-              builder.setPrintMappingFile(out.resolve(AndroidApp.DEFAULT_PROGUARD_MAP_FILE));
-            })
+            .addProguardConfigurationConsumer(
+                builder -> {
+                  builder.setPrintMapping(true);
+                  builder.setPrintMappingFile(out.resolve(ToolHelper.DEFAULT_PROGUARD_MAP_FILE));
+                })
             .addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()))
             .build();
     ToolHelper.runR8(command);
@@ -85,7 +85,7 @@ public class IdentifierMinifierTest {
     DexInspector dexInspector =
         new DexInspector(
             out.resolve("classes.dex"),
-            out.resolve(AndroidApp.DEFAULT_PROGUARD_MAP_FILE).toString());
+            out.resolve(ToolHelper.DEFAULT_PROGUARD_MAP_FILE).toString());
     inspection.accept(dexInspector);
   }
 

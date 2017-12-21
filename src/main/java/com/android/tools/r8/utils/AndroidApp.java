@@ -13,19 +13,18 @@ import com.android.tools.r8.DexFilePerClassFileConsumer;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.ProgramResource.Kind;
+import com.android.tools.r8.ProgramResourceProvider;
 import com.android.tools.r8.Resource;
+import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.StringResource;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.shaking.FilteredClassPath;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.io.ByteStreams;
-import com.google.common.io.Closer;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
@@ -37,7 +36,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Collection of program files needed for processing.
@@ -46,31 +44,26 @@ import java.util.stream.Collectors;
  */
 public class AndroidApp {
 
-  public static final String DEFAULT_PROGUARD_MAP_FILE = "proguard.map";
-
-  private final ImmutableList<ProgramResource> programResources;
+  private final ImmutableList<ProgramResourceProvider> programResourceProviders;
   private final ImmutableMap<Resource, String> programResourcesMainDescriptor;
   private final ImmutableList<ClassFileResourceProvider> classpathResourceProviders;
   private final ImmutableList<ClassFileResourceProvider> libraryResourceProviders;
 
-  private final ImmutableList<ProgramFileArchiveReader> programFileArchiveReaders;
   private final StringResource proguardMap;
   private final List<StringResource> mainDexListResources;
   private final List<String> mainDexClasses;
 
   // See factory methods and AndroidApp.Builder below.
   private AndroidApp(
-      ImmutableList<ProgramResource> programResources,
+      ImmutableList<ProgramResourceProvider> programResourceProviders,
       ImmutableMap<Resource, String> programResourcesMainDescriptor,
-      ImmutableList<ProgramFileArchiveReader> programFileArchiveReaders,
       ImmutableList<ClassFileResourceProvider> classpathResourceProviders,
       ImmutableList<ClassFileResourceProvider> libraryResourceProviders,
       StringResource proguardMap,
       List<StringResource> mainDexListResources,
       List<String> mainDexClasses) {
-    this.programResources = programResources;
+    this.programResourceProviders = programResourceProviders;
     this.programResourcesMainDescriptor = programResourcesMainDescriptor;
-    this.programFileArchiveReaders = programFileArchiveReaders;
     this.classpathResourceProviders = classpathResourceProviders;
     this.libraryResourceProviders = libraryResourceProviders;
     this.proguardMap = proguardMap;
@@ -103,14 +96,7 @@ public class AndroidApp {
    * Create an app from program files @code{files}. See also Builder::addProgramFiles.
    */
   public static AndroidApp fromProgramFiles(List<Path> files) throws IOException {
-    return builder().addProgramFiles(ListUtils.map(files, FilteredClassPath::unfiltered)).build();
-  }
-
-  /**
-   * Create an app from files found in @code{directory}. See also Builder::addProgramDirectory.
-   */
-  public static AndroidApp fromProgramDirectory(Path directory) throws IOException {
-    return builder().addProgramDirectory(directory).build();
+    return builder().addProgramFiles(files).build();
   }
 
   /**
@@ -143,25 +129,33 @@ public class AndroidApp {
 
   /** Get input streams for all dex program resources. */
   public List<ProgramResource> getDexProgramResources() throws IOException {
-    List<ProgramResource> dexResources = filter(programResources, Kind.DEX);
-    for (ProgramFileArchiveReader reader : programFileArchiveReaders) {
-      dexResources.addAll(reader.getDexProgramResources());
+    try {
+      return filter(programResourceProviders, Kind.DEX);
+    } catch (ResourceException e) {
+      if (e.getCause() instanceof IOException) {
+        throw (IOException) e.getCause();
+      } else {
+        throw new InternalCompilerError("Unexpected resource error", e);
+      }
     }
-    return dexResources;
-  }
-
-  public List<ProgramResource> getDexProgramResourcesForOutput() {
-    assert programFileArchiveReaders.isEmpty();
-    return filter(programResources, Kind.DEX);
   }
 
   /** Get input streams for all Java-bytecode program resources. */
   public List<ProgramResource> getClassProgramResources() throws IOException {
-    List<ProgramResource> classResources = filter(programResources, Kind.CF);
-    for (ProgramFileArchiveReader reader : programFileArchiveReaders) {
-      classResources.addAll(reader.getClassProgramResources());
+    try {
+      return filter(programResourceProviders, Kind.CF);
+    } catch (ResourceException e) {
+      if (e.getCause() instanceof IOException) {
+        throw (IOException) e.getCause();
+      } else {
+        throw new InternalCompilerError("Unexpected resource error", e);
+      }
     }
-    return classResources;
+  }
+
+  /** Get program resource providers. */
+  public List<ProgramResourceProvider> getProgramResourceProviders() {
+    return programResourceProviders;
   }
 
   /** Get classpath resource providers. */
@@ -174,15 +168,14 @@ public class AndroidApp {
     return libraryResourceProviders;
   }
 
-  public List<ProgramFileArchiveReader> getProgramFileArchiveReaders() {
-    return programFileArchiveReaders;
-  }
-
-  private List<ProgramResource> filter(List<ProgramResource> resources, Kind kind) {
-    List<ProgramResource> out = new ArrayList<>(resources.size());
-    for (ProgramResource code : resources) {
-      if (code.getKind() == kind) {
-        out.add(code);
+  private List<ProgramResource> filter(List<ProgramResourceProvider> providers, Kind kind)
+      throws ResourceException {
+    List<ProgramResource> out = new ArrayList<>();
+    for (ProgramResourceProvider provider : providers) {
+      for (ProgramResource code : provider.getProgramResources()) {
+        if (code.getKind() == kind) {
+          out.add(code);
+        }
       }
     }
     return out;
@@ -247,20 +240,6 @@ public class AndroidApp {
     }
   }
 
-  public List<byte[]> writeToMemory() throws IOException {
-    List<byte[]> dex = new ArrayList<>();
-    try (Closer closer = Closer.create()) {
-      List<ProgramResource> dexProgramSources = getDexProgramResources();
-      for (int i = 0; i < dexProgramSources.size(); i++) {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        ByteStreams.copy(closer.register(dexProgramSources.get(i).getStream()), out);
-        dex.add(out.toByteArray());
-      }
-      // TODO(sgjesse): Add Proguard map and seeds.
-    }
-    return dex;
-  }
-
   /**
    * Write the dex program resources to @code{archive} and the proguard resource as its sibling.
    */
@@ -287,9 +266,9 @@ public class AndroidApp {
    */
   public static class Builder {
 
+    private final List<ProgramResourceProvider> programResourceProviders = new ArrayList<>();
     private final List<ProgramResource> programResources = new ArrayList<>();
     private final Map<ProgramResource, String> programResourcesMainDescriptor = new HashMap<>();
-    private final List<ProgramFileArchiveReader> programFileArchiveReaders = new ArrayList<>();
     private final List<ClassFileResourceProvider> classpathResourceProviders = new ArrayList<>();
     private final List<ClassFileResourceProvider> libraryResourceProviders = new ArrayList<>();
     private StringResource proguardMap;
@@ -303,8 +282,7 @@ public class AndroidApp {
 
     // See AndroidApp::builder(AndroidApp).
     private Builder(AndroidApp app) {
-      programResources.addAll(app.programResources);
-      programFileArchiveReaders.addAll(app.programFileArchiveReaders);
+      programResourceProviders.addAll(app.programResourceProviders);
       classpathResourceProviders.addAll(app.classpathResourceProviders);
       libraryResourceProviders.addAll(app.libraryResourceProviders);
       proguardMap = app.proguardMap;
@@ -312,43 +290,33 @@ public class AndroidApp {
       mainDexListClasses = app.mainDexClasses;
     }
 
-    /**
-     * Add dex program files and proguard-map file located in @code{directory}.
-     *
-     * <p>The program files included are the top-level files ending in .dex and the proguard-map
-     * file should it exist (see @code{DEFAULT_PROGUARD_MAP_FILE} for its assumed name).
-     *
-     * <p>This method is mostly a utility for reading in the file content produces by some external
-     * tool, eg, dx.
-     *
-     * @param directory Directory containing dex program files and optional proguard-map file.
-     */
-    public Builder addProgramDirectory(Path directory) throws IOException {
-      List<FilteredClassPath> resources =
-          Arrays.asList(directory.toFile().listFiles(file -> isDexFile(file.toPath()))).stream()
-              .map(file -> FilteredClassPath.unfiltered(file)).collect(Collectors.toList());
-      addProgramFiles(resources);
-      File mapFile = new File(directory.toFile(), DEFAULT_PROGUARD_MAP_FILE);
-      if (mapFile.exists()) {
-        setProguardMapFile(mapFile.toPath());
+    /** Add program file resources. */
+    public Builder addProgramFiles(Path... files) throws NoSuchFileException {
+      return addProgramFiles(Arrays.asList(files));
+    }
+
+    /** Add program file resources. */
+    public Builder addProgramFiles(Collection<Path> files) throws NoSuchFileException {
+      for (Path file : files) {
+        addProgramFile(file);
       }
       return this;
     }
 
-    /**
-     * Add program file resources.
-     */
-    public Builder addProgramFiles(FilteredClassPath... files) throws NoSuchFileException {
-      return addProgramFiles(Arrays.asList(files));
+    /** Add filtered archives of program resources. */
+    public Builder addFilteredProgramArchives(Collection<FilteredClassPath> filteredArchives)
+        throws NoSuchFileException {
+      for (FilteredClassPath archive : filteredArchives) {
+        assert isArchive(archive.getPath());
+        addProgramResourceProvider(
+            new FilteredArchiveProgramResourceProvider(archive, ignoreDexInArchive));
+      }
+      return this;
     }
 
-    /**
-     * Add program file resources.
-     */
-    public Builder addProgramFiles(Collection<FilteredClassPath> files) throws NoSuchFileException {
-      for (FilteredClassPath file : files) {
-        addProgramFile(file);
-      }
+    public Builder addProgramResourceProvider(ProgramResourceProvider provider) {
+      assert provider != null;
+      programResourceProviders.add(provider);
       return this;
     }
 
@@ -373,7 +341,7 @@ public class AndroidApp {
      * Add classpath file resources.
      */
     public Builder addClasspathFile(Path file) throws IOException {
-      addClassProvider(FilteredClassPath.unfiltered(file), classpathResourceProviders);
+      addClasspathOrLibraryProvider(file, classpathResourceProviders);
       return this;
     }
 
@@ -385,28 +353,32 @@ public class AndroidApp {
       return this;
     }
 
-    /**
-     * Add library file resources.
-     */
-    public Builder addLibraryFiles(FilteredClassPath... files) throws IOException {
+    /** Add library file resources. */
+    public Builder addLibraryFiles(Path... files) throws IOException {
       return addLibraryFiles(Arrays.asList(files));
     }
 
-    /**
-     * Add library file resources.
-     */
-    public Builder addLibraryFiles(Collection<FilteredClassPath> files) throws IOException {
-      for (FilteredClassPath file : files) {
-        addClassProvider(file, libraryResourceProviders);
+    /** Add library file resources. */
+    public Builder addLibraryFiles(Collection<Path> files) throws IOException {
+      for (Path file : files) {
+        addClasspathOrLibraryProvider(file, libraryResourceProviders);
       }
       return this;
     }
 
-    /**
-     * Add library file resource.
-     */
-    public Builder addLibraryFile(FilteredClassPath file) throws IOException {
-      addClassProvider(file, libraryResourceProviders);
+    /** Add library file resource. */
+    public Builder addLibraryFile(Path file) throws IOException {
+      addClasspathOrLibraryProvider(file, libraryResourceProviders);
+      return this;
+    }
+
+    /** Add library file resources. */
+    public Builder addFilteredLibraryArchives(Collection<FilteredClassPath> filteredArchives)
+        throws IOException {
+      for (FilteredClassPath archive : filteredArchives) {
+        assert isArchive(archive.getPath());
+        libraryResourceProviders.add(new FilteredArchiveClassFileProvider(archive));
+      }
       return this;
     }
 
@@ -551,10 +523,21 @@ public class AndroidApp {
      * Build final AndroidApp.
      */
     public AndroidApp build() {
+      if (!programResources.isEmpty()) {
+        // If there are individual program resources move them to a dedicated provider.
+        final List<ProgramResource> resources = ImmutableList.copyOf(programResources);
+        programResourceProviders.add(
+            new ProgramResourceProvider() {
+              @Override
+              public Collection<ProgramResource> getProgramResources() throws ResourceException {
+                return resources;
+              }
+            });
+        programResources.clear();
+      }
       return new AndroidApp(
-          ImmutableList.copyOf(programResources),
+          ImmutableList.copyOf(programResourceProviders),
           ImmutableMap.copyOf(programResourcesMainDescriptor),
-          ImmutableList.copyOf(programFileArchiveReaders),
           ImmutableList.copyOf(classpathResourceProviders),
           ImmutableList.copyOf(libraryResourceProviders),
           proguardMap,
@@ -562,8 +545,7 @@ public class AndroidApp {
           mainDexListClasses);
     }
 
-    public void addProgramFile(FilteredClassPath filteredClassPath) throws NoSuchFileException {
-      Path file = filteredClassPath.getPath();
+    public void addProgramFile(Path file) throws NoSuchFileException {
       if (!Files.exists(file)) {
         throw new NoSuchFileException(file.toString());
       }
@@ -572,8 +554,7 @@ public class AndroidApp {
       } else if (isClassFile(file)) {
         addProgramResources(ProgramResource.fromFile(Kind.CF, file));
       } else if (isArchive(file)) {
-        programFileArchiveReaders
-            .add(new ProgramFileArchiveReader(filteredClassPath, ignoreDexInArchive));
+        addProgramResourceProvider(new ArchiveProgramResourceProvider(file, ignoreDexInArchive));
       } else {
         throw new CompilationError("Unsupported source file type", new PathOrigin(file));
       }
@@ -587,18 +568,14 @@ public class AndroidApp {
       programResources.addAll(resources);
     }
 
-    private void addClassProvider(FilteredClassPath classPath,
-        List<ClassFileResourceProvider> providerList)
-        throws IOException {
-      Path file = classPath.getPath();
+    private void addClasspathOrLibraryProvider(
+        Path file, List<ClassFileResourceProvider> providerList) throws IOException {
       if (!Files.exists(file)) {
         throw new NoSuchFileException(file.toString());
       }
       if (isArchive(file)) {
-        providerList.add(ArchiveClassFileProvider.fromArchive(classPath));
+        providerList.add(new ArchiveClassFileProvider(file));
       } else if (Files.isDirectory(file) ) {
-        // This is only used for D8 incremental compilation.
-        assert classPath.isUnfiltered();
         providerList.add(DirectoryClassFileProvider.fromDirectory(file));
       } else {
         throw new CompilationError("Unsupported source file type", new PathOrigin(file));
