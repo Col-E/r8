@@ -996,15 +996,17 @@ public class OutlineTest extends SmaliTestBase {
 
   @Test
   public void noOutlineSuperCalls() throws Exception {
-    SmaliBuilder superBuilder = new SmaliBuilder("Super");
-    superBuilder.addInstanceMethod("void", "set", ImmutableList.of("int", "int"), 0,
+    SmaliBuilder builder = new SmaliBuilder("Super");
+    builder.addDefaultConstructor();
+    builder.addInstanceMethod("void", "set", ImmutableList.of("int", "int"), 0,
         "return-void");
 
-    superBuilder.addInstanceMethod("java.lang.String", "toString", Collections.emptyList(), 1,
+    builder.addInstanceMethod("java.lang.String", "toString", Collections.emptyList(), 1,
         "const-string     v0, \"Hello\"",
         "return-object    v0");
 
-    SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME, "Super");
+    builder.addClass(DEFAULT_CLASS_NAME, "Super");
+    builder.addDefaultConstructor();
 
     builder.addStaticMethod(
         "java.lang.String",
@@ -1036,7 +1038,7 @@ public class OutlineTest extends SmaliTestBase {
       outline.maxSize = 5;
     });
 
-    AndroidApp originalApplication = buildApplicationWithAndroidJar(superBuilder, builder);
+    AndroidApp originalApplication = buildApplicationWithAndroidJar(builder);
     AndroidApp processedApplication = processApplication(originalApplication, options);
     assertEquals(2, getNumberOfProgramClasses(processedApplication));
 
