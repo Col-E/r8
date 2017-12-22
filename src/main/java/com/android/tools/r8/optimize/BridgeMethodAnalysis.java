@@ -67,9 +67,10 @@ public class BridgeMethodAnalysis {
       Log.info(getClass(), "Adding bridge forwarding %s -> %s.", method.method,
           target.method);
     }
+    // If we manage to rewrite all invocations, the bridge will be the only invocation of the target
+    // of the bridge and the target will get inlined. This should happen in most cases. For the few
+    // other cases, we might have inserted some extra checkcast instructions for the return type.
     bridgeTargetToBridgeMap.put(target.method, method.method);
-    // Force the target to be inlined into the bridge.
-    target.markForceInline();
   }
 
 
