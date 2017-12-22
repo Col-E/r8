@@ -132,15 +132,23 @@ public class JarSourceCode implements SourceCode {
   private static final String REFLECT_ARRAY_NEW_INSTANCE_NAME = "newInstance";
   private static final String REFLECT_ARRAY_NEW_INSTANCE_DESC =
       "(Ljava/lang/Class;[I)Ljava/lang/Object;";
-  private static final String POLYMORPHIC_SIGNATURE_DESC =
+  private static final String POLYMORPHIC_DEFAULT_SIGNATURE_DESC =
       "([Ljava/lang/Object;)Ljava/lang/Object;";
+  private static final String POLYMORPHIC_VARHANDLE_SET_SIGNATURE_DESC =
+      "([Ljava/lang/Object;)V";
+  private static final String POLYMORPHIC_VARHANDLE_COMPARE_AND_SET_SIGNATURE_DESC =
+      "([Ljava/lang/Object;)Z";
+
+  // Various internal names.
+  static final String INTERNAL_NAME_METHOD_HANDLE = "java/lang/invoke/MethodHandle";
+  static final String INTERNAL_NAME_VAR_HANDLE = "java/lang/invoke/VarHandle";
 
   // Language types.
   static final Type CLASS_TYPE = Type.getObjectType("java/lang/Class");
   static final Type STRING_TYPE = Type.getObjectType("java/lang/String");
   static final Type INT_ARRAY_TYPE = Type.getObjectType(INT_ARRAY_DESC);
   static final Type THROWABLE_TYPE = Type.getObjectType("java/lang/Throwable");
-  static final Type METHOD_HANDLE_TYPE = Type.getObjectType("java/lang/invoke/MethodHandle");
+  static final Type METHOD_HANDLE_TYPE = Type.getObjectType(INTERNAL_NAME_METHOD_HANDLE);
   static final Type METHOD_TYPE_TYPE = Type.getObjectType("java/lang/invoke/MethodType");
 
   private static final int[] NO_TARGETS = {};
@@ -2509,7 +2517,58 @@ public class JarSourceCode implements SourceCode {
           DexProto callSiteProto = null;
           DexMethod targetMethod = method;
           if (invokeType == Invoke.Type.POLYMORPHIC) {
-            targetMethod = application.getMethod(insn.owner, insn.name, POLYMORPHIC_SIGNATURE_DESC);
+            if (insn.owner.equals(INTERNAL_NAME_METHOD_HANDLE)) {
+              targetMethod = application
+                  .getMethod(insn.owner, insn.name, POLYMORPHIC_DEFAULT_SIGNATURE_DESC);
+            } else if (insn.owner.equals(INTERNAL_NAME_VAR_HANDLE)) {
+              switch (insn.name) {
+                case "compareAndExchange":
+                case "compareAndExchangeAcquire":
+                case "compareAndExchangeRelease":
+                case "get":
+                case "getAcquire":
+                case "getAndAdd":
+                case "getAndAddAcquire":
+                case "getAndAddRelease":
+                case "getAndBitwiseAnd":
+                case "getAndBitwiseAndAcquire":
+                case "getAndBitwiseAndRelease":
+                case "getAndBitwiseOr":
+                case "getAndBitwiseOrAcquire":
+                case "getAndBitwiseOrRelease":
+                case "getAndBitwiseXor":
+                case "getAndBitwiseXorAcquire":
+                case "getAndBitwiseXorRelease":
+                case "getAndSet":
+                case "getAndSetAcquire":
+                case "getAndSetRelease":
+                case "getOpaque":
+                case "getVolatile": {
+                  targetMethod = application
+                      .getMethod(insn.owner, insn.name, POLYMORPHIC_DEFAULT_SIGNATURE_DESC);
+                  break;
+                }
+                case "set":
+                case "setOpaque":
+                case "setRelease":
+                case "setVolatile": {
+                  targetMethod = application
+                      .getMethod(insn.owner, insn.name, POLYMORPHIC_VARHANDLE_SET_SIGNATURE_DESC);
+                  break;
+                }
+                case "compareAndSet":
+                case "weakCompareAndSet":
+                case "weakCompareAndSetAcquire":
+                case "weakCompareAndSetPlain":
+                case "weakCompareAndSetRelease": {
+                  targetMethod = application.getMethod(insn.owner, insn.name,
+                      POLYMORPHIC_VARHANDLE_COMPARE_AND_SET_SIGNATURE_DESC);
+                  break;
+                }
+                default:
+                  throw new Unreachable();
+              }
+            }
             callSiteProto = application.getProto(insn.desc);
           }
           builder.addInvoke(invokeType, targetMethod, callSiteProto, types, registers);
