@@ -16,7 +16,6 @@ import com.android.tools.r8.graph.invokesuper.SubLevel1;
 import com.android.tools.r8.graph.invokesuper.SubLevel2;
 import com.android.tools.r8.graph.invokesuper.SubclassOfInvokerClass;
 import com.android.tools.r8.graph.invokesuper.Super;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -37,9 +36,8 @@ public class InvokeSuperTest extends AsmTestBase {
   }
 
   @Test
-  @Ignore("b/70707023")
   public void testInvokeSuperTargetsNonVerifying() throws Exception {
-    ensureSameOutputD8R8(MainClassFailing.class.getCanonicalName(),
+    ensureR8FailsWithCompilationError(MainClassFailing.class.getCanonicalName(),
         asBytes(MainClassFailing.class),
         asBytes(Consumer.class),
         asBytes(Super.class),

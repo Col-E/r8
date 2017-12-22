@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -199,7 +200,7 @@ public class AppInfoWithSubtyping extends AppInfo {
     return result;
   }
 
-  private boolean holderIsAbstract(Descriptor<?,?> desc) {
+  private boolean holderIsAbstract(Descriptor<?, ?> desc) {
     DexClass holder = definitionFor(desc.getHolder());
     return holder.accessFlags.isAbstract();
   }
@@ -207,6 +208,31 @@ public class AppInfoWithSubtyping extends AppInfo {
   private boolean holderIsInterface(Descriptor<?, ?> desc) {
     DexClass holder = definitionFor(desc.getHolder());
     return holder == null || holder.accessFlags.isInterface();
+  }
+
+  /**
+   * Lookup super method following the super chain from the holder of {@code method}.
+   * <p>
+   * This method will resolve the method on the holder of {@code method} and only return a non-null
+   * value if the result of resolution was an instance (i.e. non-static) method.
+   * <p>
+   * Additionally, this will also verify that the invoke super is valid, i.e., it is on the same
+   * type or a super type of the current context. See comment in {@link
+   * com.android.tools.r8.ir.conversion.JarSourceCode#invokeType}.
+   *
+   * @param method the method to lookup
+   * @param invocationContext the class the invoke is contained in, i.e., the holder of the caller.
+   * @return The actual target for {@code method} or {@code null} if none found.
+   */
+  @Override
+  public DexEncodedMethod lookupSuperTarget(DexMethod method, DexType invocationContext) {
+    if (!invocationContext.isSubtypeOf(method.holder, this)) {
+      DexClass contextClass = definitionFor(invocationContext);
+      throw new CompilationError(
+          "Illegal invoke-super to " + method.toSourceString() + " from class " + invocationContext,
+          contextClass.getOrigin());
+    }
+    return super.lookupSuperTarget(method, invocationContext);
   }
 
   // For mapping invoke interface instruction to target methods.

@@ -833,6 +833,9 @@ public abstract class R8RunArtTestsTest {
               TestCondition.tools(DexTool.DX),
               TestCondition.R8_NOT_AFTER_D8_COMPILER,
               LEGACY_RUNTIME))
+          // Contains an illegal invoke that R8 will fail to compile.
+          .put("594-invoke-super", TestCondition.match(
+              TestCondition.R8_COMPILER))
           .build();
 
   // Tests that are invalid dex files and on which R8/D8 fails and that is OK.

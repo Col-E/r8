@@ -7,6 +7,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
@@ -57,6 +58,28 @@ public class AsmTestBase extends TestBase {
     Assert.assertEquals(d8Result.stdout, r8Result.stdout);
     Assert.assertEquals(d8Result.stdout, r8ShakenResult.stdout);
   }
+
+  protected void ensureR8FailsWithCompilationError(String main, byte[]... classes)
+      throws Exception {
+    // TODO(zerny): Port this to use diagnostics handler.
+    AndroidApp app = buildAndroidApp(classes);
+    CompilationError r8Error = null;
+    CompilationError r8ShakenError = null;
+    try {
+      runOnArtRaw(compileWithR8(app), main);
+    } catch (CompilationError e) {
+      r8Error = e;
+    }
+    try {
+      runOnArtRaw(compileWithR8(app, keepMainProguardConfiguration(main) + "-dontobfuscate\n"),
+          main);
+    } catch (CompilationError e) {
+      r8ShakenError = e;
+    }
+    Assert.assertNotNull(r8Error);
+    Assert.assertNotNull(r8ShakenError);
+  }
+
 
   protected byte[] asBytes(Class clazz) throws IOException {
     return ByteStreams

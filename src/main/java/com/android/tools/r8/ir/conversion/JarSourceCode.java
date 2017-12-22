@@ -915,6 +915,16 @@ public class JarSourceCode implements SourceCode {
       case Opcodes.INVOKEINTERFACE:
         return Invoke.Type.INTERFACE;
       case Opcodes.INVOKESPECIAL: {
+        // This is actually incorrect unless the input was verified. The spec says that it has
+        // invoke super semantics, if the type is a supertype of the current class. If it is the
+        // same or a subtype, it has invoke direct semantics. The latter case is illegal, so we
+        // map it to a super call here. In R8, we abort at a later stage (see.
+        // See also <a href=
+        // "https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.invokespecial"
+        // </a> for invokespecial dispatch and <a href="https://docs.oracle.com/javase/specs/jvms/"
+        // "se7/html/jvms-4.html#jvms-4.10.1.9.invokespecial"</a> for verification requirements. In
+        // particular, the requirement
+        //   isAssignable(class(CurrentClassName, L), class(MethodClassName, L)).
         DexType owner = application.getTypeFromName(method.owner);
         if (owner == clazz || method.name.equals(Constants.INSTANCE_INITIALIZER_NAME)) {
           return Invoke.Type.DIRECT;
