@@ -6,6 +6,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.dex.ApplicationReader.ProgramClassConflictResolver;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.ClasspathClassCollection;
 import com.android.tools.r8.utils.LibraryClassCollection;
@@ -82,15 +83,18 @@ public class LazyLoadedDexApplication extends DexApplication {
 
     private ClasspathClassCollection classpathClasses;
     private LibraryClassCollection libraryClasses;
+    private final ProgramClassConflictResolver resolver;
 
-    Builder(DexItemFactory dexItemFactory, Timing timing) {
+    Builder(ProgramClassConflictResolver resolver, DexItemFactory dexItemFactory, Timing timing) {
       super(dexItemFactory, timing);
+      this.resolver = resolver;
       this.classpathClasses = null;
       this.libraryClasses = null;
     }
 
     private Builder(LazyLoadedDexApplication application) {
       super(application);
+      this.resolver = ProgramClassCollection::resolveClassConflictImpl;
       this.classpathClasses = application.classpathClasses;
       this.libraryClasses = application.libraryClasses;
     }
@@ -112,10 +116,16 @@ public class LazyLoadedDexApplication extends DexApplication {
 
     @Override
     public LazyLoadedDexApplication build() {
-      return new LazyLoadedDexApplication(proguardMap,
-          ProgramClassCollection.create(programClasses),
-          classpathClasses, libraryClasses, ImmutableSet.copyOf(mainDexList), deadCode,
-          dexItemFactory, highestSortingString, timing);
+      return new LazyLoadedDexApplication(
+          proguardMap,
+          ProgramClassCollection.create(programClasses, resolver),
+          classpathClasses,
+          libraryClasses,
+          ImmutableSet.copyOf(mainDexList),
+          deadCode,
+          dexItemFactory,
+          highestSortingString,
+          timing);
     }
   }
 

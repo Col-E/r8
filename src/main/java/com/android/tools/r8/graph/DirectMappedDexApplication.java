@@ -112,11 +112,16 @@ public class DirectMappedDexApplication extends DexApplication {
     @Override
     public DexApplication build() {
       // Rebuild the map. This will fail if keys are not unique.
-      return new DirectMappedDexApplication(proguardMap,
-          ProgramClassCollection.create(programClasses),
+      return new DirectMappedDexApplication(
+          proguardMap,
+          ProgramClassCollection.create(
+              programClasses, ProgramClassCollection::resolveClassConflictImpl),
           libraryClasses.stream().collect(ImmutableMap.toImmutableMap(c -> c.type, c -> c)),
-          ImmutableSet.copyOf(mainDexList), deadCode,
-          dexItemFactory, highestSortingString, timing);
+          ImmutableSet.copyOf(mainDexList),
+          deadCode,
+          dexItemFactory,
+          highestSortingString,
+          timing);
     }
   }
 }

@@ -20,19 +20,16 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipOutputStream;
 
 public class DexFileMerger {
-  /**
-   * Maximum addressable field or method index. The largest addressable member is 0xffff, in the
-   * "instruction formats" spec as field@CCCC or meth@CCCC.
-   */
-  private static final int MAX_MEMBER_IDX = 0xFFFF;
-
   /** File name prefix of a {@code .dex} file automatically loaded in an archive. */
   private static final String DEX_PREFIX = "classes";
 
@@ -281,7 +278,7 @@ public class DexFileMerger {
   }
 
   public static void run(String[] args)
-      throws CompilationFailedException, IOException, CompilationException {
+      throws CompilationFailedException, IOException, CompilationException, ExecutionException {
     Options options = parseArguments(args);
 
     if (options.inputArchives.isEmpty()) {
@@ -308,8 +305,11 @@ public class DexFileMerger {
 
     D8Command.Builder builder = D8Command.builder();
 
+    Map<String, Integer> inputOrdering = new HashMap<>(options.inputArchives.size());
+    int sequenceNumber = 0;
     for (String s : options.inputArchives) {
       builder.addProgramFiles(Paths.get(s));
+      inputOrdering.put(s, sequenceNumber++);
     }
 
     // Determine enabling multidexing and file indexing.
@@ -341,7 +341,7 @@ public class DexFileMerger {
             Paths.get(options.outputArchive), options.dexPrefix, singleFixedFileIndex);
     builder.setProgramConsumer(consumer);
 
-    DexFileMergerHelper.run(builder.build(), options.minimalMainDex);
+    DexFileMergerHelper.run(builder.build(), options.minimalMainDex, inputOrdering);
 
     // If input was empty we still need to write out an empty zip.
     if (!consumer.dataHasBeenWritten) {
@@ -357,7 +357,10 @@ public class DexFileMerger {
         printArgs(args);
       }
       run(args);
-    } catch (CompilationFailedException | IOException | CompilationException e) {
+    } catch (CompilationFailedException
+        | IOException
+        | CompilationException
+        | ExecutionException e) {
       System.err.println("Merge failed: " + e.getMessage());
       System.exit(1);
     }

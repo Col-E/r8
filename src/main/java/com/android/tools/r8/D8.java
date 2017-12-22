@@ -141,7 +141,7 @@ public final class D8 {
   }
 
   // Compute the marker to be placed in the main dex file.
-  private static Marker getMarker(InternalOptions options) {
+  static Marker getMarker(InternalOptions options) {
     if (options.hasMarker()) {
       return options.getMarker();
     }
@@ -184,9 +184,12 @@ public final class D8 {
     }
   }
 
-  private static DexApplication optimize(
-      DexApplication application, AppInfo appInfo, InternalOptions options,
-      Timing timing, ExecutorService executor)
+  static DexApplication optimize(
+      DexApplication application,
+      AppInfo appInfo,
+      InternalOptions options,
+      Timing timing,
+      ExecutorService executor)
       throws IOException, ExecutionException, ApiLevelException {
     final CfgPrinter printer = options.printCfg ? new CfgPrinter() : null;
 

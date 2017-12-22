@@ -6,6 +6,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.dex.ApplicationReader.ProgramClassConflictResolver;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.ProgramClassCollection;
@@ -21,7 +22,7 @@ import java.util.Set;
 public abstract class DexApplication {
 
   // Maps type into class, may be used concurrently.
-  ProgramClassCollection programClasses;
+  final ProgramClassCollection programClasses;
 
   public final ImmutableSet<DexType> mainDexList;
   public final String deadCode;
@@ -198,7 +199,12 @@ public abstract class DexApplication {
   }
 
   public static LazyLoadedDexApplication.Builder builder(DexItemFactory factory, Timing timing) {
-    return new LazyLoadedDexApplication.Builder(factory, timing);
+    return builder(factory, timing, ProgramClassCollection::resolveClassConflictImpl);
+  }
+
+  public static LazyLoadedDexApplication.Builder builder(
+      DexItemFactory factory, Timing timing, ProgramClassConflictResolver resolver) {
+    return new LazyLoadedDexApplication.Builder(resolver, factory, timing);
   }
 
   public DirectMappedDexApplication asDirect() {

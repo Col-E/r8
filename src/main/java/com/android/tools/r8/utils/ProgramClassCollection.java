@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
+import com.android.tools.r8.dex.ApplicationReader.ProgramClassConflictResolver;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.ClassKind;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -14,11 +15,14 @@ import java.util.function.Supplier;
 
 /** Represents a collection of library classes. */
 public class ProgramClassCollection extends ClassMap<DexProgramClass> {
-  public static ProgramClassCollection create(List<DexProgramClass> classes) {
+
+  public static ProgramClassCollection create(
+      List<DexProgramClass> classes, ProgramClassConflictResolver conflictResolver) {
     // We have all classes preloaded, but not necessarily without conflicts.
     IdentityHashMap<DexType, Supplier<DexProgramClass>> map = new IdentityHashMap<>();
     for (DexProgramClass clazz : classes) {
-      map.merge(clazz.type, clazz, (a, b) -> resolveClassConflictImpl(a.get(), b.get()));
+      map.merge(
+          clazz.type, clazz, (a, b) -> conflictResolver.resolveClassConflict(a.get(), b.get()));
     }
     return new ProgramClassCollection(map);
   }
@@ -47,7 +51,7 @@ public class ProgramClassCollection extends ClassMap<DexProgramClass> {
     return ClassKind.PROGRAM;
   }
 
-  private static DexProgramClass resolveClassConflictImpl(DexProgramClass a, DexProgramClass b) {
+  public static DexProgramClass resolveClassConflictImpl(DexProgramClass a, DexProgramClass b) {
     // Currently only allow collapsing synthetic lambda classes.
     if (a.originatesFromDexResource()
         && b.originatesFromDexResource()

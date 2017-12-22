@@ -32,6 +32,7 @@ import com.android.tools.r8.utils.DexVersion;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.LibraryClassCollection;
 import com.android.tools.r8.utils.MainDexList;
+import com.android.tools.r8.utils.ProgramClassCollection;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
@@ -53,6 +54,10 @@ public class ApplicationReader {
   final DexItemFactory itemFactory;
   final Timing timing;
   private final AndroidApp inputApp;
+
+  public interface ProgramClassConflictResolver {
+    DexProgramClass resolveClassConflict(DexProgramClass a, DexProgramClass b);
+  }
 
   public ApplicationReader(AndroidApp inputApp, InternalOptions options, Timing timing) {
     this.options = options;
@@ -76,13 +81,22 @@ public class ApplicationReader {
 
   public final DexApplication read(ExecutorService executorService)
       throws IOException, ExecutionException {
-    return read(null, executorService);
+    return read(null, executorService, ProgramClassCollection::resolveClassConflictImpl);
   }
 
   public final DexApplication read(StringResource proguardMap, ExecutorService executorService)
       throws IOException, ExecutionException {
+    return read(proguardMap, executorService, ProgramClassCollection::resolveClassConflictImpl);
+  }
+
+  public final DexApplication read(
+      StringResource proguardMap,
+      ExecutorService executorService,
+      ProgramClassConflictResolver resolver)
+      throws IOException, ExecutionException {
     timing.begin("DexApplication.read");
-    final LazyLoadedDexApplication.Builder builder = DexApplication.builder(itemFactory, timing);
+    final LazyLoadedDexApplication.Builder builder =
+        DexApplication.builder(itemFactory, timing, resolver);
     try {
       List<Future<?>> futures = new ArrayList<>();
       // Still preload some of the classes, primarily for two reasons:
