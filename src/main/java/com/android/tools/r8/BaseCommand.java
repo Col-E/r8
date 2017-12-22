@@ -136,6 +136,11 @@ abstract class BaseCommand {
       return self();
     }
 
+    public B addProgramResourceProvider(ProgramResourceProvider programProvider) {
+      app.addProgramResourceProvider(programProvider);
+      return self();
+    }
+
     /** Add library file resource provider. */
     public B addLibraryResourceProvider(ClassFileResourceProvider provider) {
       guard(() -> getAppBuilder().addLibraryResourceProvider(provider));
