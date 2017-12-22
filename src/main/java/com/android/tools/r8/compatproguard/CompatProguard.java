@@ -40,6 +40,7 @@ public class CompatProguard {
     public final boolean multiDex;
     public final String mainDexList;
     public final List<String> proguardConfig;
+    public boolean printHelpAndExit;
 
     CompatProguardOptions(
         List<String> proguardConfig,
@@ -47,13 +48,15 @@ public class CompatProguard {
         int minApi,
         boolean multiDex,
         boolean forceProguardCompatibility,
-        String mainDexList) {
+        String mainDexList,
+        boolean printHelpAndExit) {
       this.output = output;
       this.minApi = minApi;
       this.forceProguardCompatibility = forceProguardCompatibility;
       this.multiDex = multiDex;
       this.mainDexList = mainDexList;
       this.proguardConfig = proguardConfig;
+      this.printHelpAndExit = printHelpAndExit;
     }
 
     public static CompatProguardOptions parse(String[] args) throws CompilationException {
@@ -62,7 +65,8 @@ public class CompatProguard {
       boolean forceProguardCompatibility = false;
       boolean multiDex = false;
       String mainDexList = null;
-      // These two flags are currently ignored.
+      boolean printHelpAndExit = false;
+      // These flags are currently ignored.
       boolean minimalMainDex = false;
       boolean coreLibrary = false;
       boolean noLocals = false;
@@ -73,7 +77,9 @@ public class CompatProguard {
         for (int i = 0; i < args.length; i++) {
           String arg = args[i];
           if (arg.charAt(0) == '-') {
-            if (arg.equals("--min-api")) {
+            if (arg.equals("-h") || arg.equals("--help")) {
+              printHelpAndExit = true;
+            } else if (arg.equals("--min-api")) {
               minApi = Integer.valueOf(args[++i]);
             } else if (arg.equals("--force-proguard-compatibility")) {
               forceProguardCompatibility = true;
@@ -117,19 +123,44 @@ public class CompatProguard {
           minApi,
           multiDex,
           forceProguardCompatibility,
-          mainDexList);
+          mainDexList,
+          printHelpAndExit);
     }
+
+    public static void print() {
+      System.out.println("-h/--help            : print this help message");
+      System.out.println("--min-api n          : specify the targeted min android api level");
+      System.out.println("--main-dex-list list : specify main dex list for multi-dexing");
+      System.out.println("--minimal-main-dex   : ignored (provided for compatibility)");
+      System.out.println("--multi-dex          : ignored (provided for compatibility)");
+      System.out.println("--no-locals          : ignored (provided for compatibility)");
+      System.out.println("--core-library       : ignored (provided for compatibility)");
+    }
+  }
+
+  private static void printVersion() {
+    Version.printToolVersion("CompatProguard");
+  }
+
+  private static void printHelp() {
+    printVersion();
+    System.out.println("");
+    System.out.println("compatproguard [options] --output <dir> <proguard-config>*");
+    System.out.println("");
+    System.out.println("Where options are:");
+    CompatProguardOptions.print();
   }
 
   private static void run(String[] args)
       throws IOException, CompilationException, CompilationFailedException {
-    if (args.length == 0) {
-      Version.printToolVersion("CompatProguard");
-      return;
-    }
     System.out.println("CompatProguard " + String.join(" ", args));
     // Run R8 passing all the options from the command line as a Proguard configuration.
     CompatProguardOptions options = CompatProguardOptions.parse(args);
+    if (options.printHelpAndExit || options.output == null) {
+      System.out.println("");
+      printHelp();
+      return;
+    }
     R8Command.Builder builder =
         new CompatProguardCommandBuilder(options.forceProguardCompatibility);
     builder
