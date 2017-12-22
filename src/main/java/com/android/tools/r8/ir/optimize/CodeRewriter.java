@@ -166,8 +166,6 @@ public class CodeRewriter {
       }
     }
 
-
-
     if (!needed) {
       blocksToRemove.add(block);
       for (BasicBlock pred : block.getPredecessors()) {
