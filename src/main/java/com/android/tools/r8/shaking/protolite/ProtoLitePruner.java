@@ -575,8 +575,8 @@ public class ProtoLitePruner extends ProtoLiteBase {
     DominatorTree dom = new DominatorTree(code);
     for (BasicBlock current : dom.dominatedBlocks(caseBlock)) {
       InstructionIterator it = current.iterator();
-      Switch switchInstr;
-      if ((switchInstr = (Switch) it.nextUntil(Instruction::isSwitch)) != null) {
+      Switch switchInstr = (Switch) it.nextUntil(Instruction::isSwitch);
+      if (switchInstr != null) {
         int nextBlock = code.getHighestBlockNumber() + 1;
         IntList liveKeys = new IntArrayList(switchInstr.numberOfKeys());
         List<BasicBlock> liveBlocks = new ArrayList<>(switchInstr.numberOfKeys());

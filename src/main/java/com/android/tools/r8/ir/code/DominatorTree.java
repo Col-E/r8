@@ -104,7 +104,12 @@ public class DominatorTree {
 
           @Override
           public boolean hasNext() {
-            return dominatedBy(sorted[current], dominator);
+            boolean found = false;
+            while (current < sorted.length
+                && !(found = dominatedBy(sorted[current], dominator))) {
+              current++;
+            }
+            return found && current < sorted.length;
           }
 
           @Override
