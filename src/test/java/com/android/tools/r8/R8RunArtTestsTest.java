@@ -836,6 +836,8 @@ public abstract class R8RunArtTestsTest {
           // Contains an illegal invoke that R8 will fail to compile.
           .put("594-invoke-super", TestCondition.match(
               TestCondition.R8_COMPILER))
+          .put("974-verify-interface-super", TestCondition.match(
+              TestCondition.R8_COMPILER))
           .build();
 
   // Tests that are invalid dex files and on which R8/D8 fails and that is OK.
