@@ -13,12 +13,12 @@ import com.android.tools.r8.ir.code.JumpInstruction;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Switch;
 import com.android.tools.r8.ir.code.Value;
-import com.google.common.base.Equivalence;
-import com.google.common.base.Equivalence.Wrapper;
+import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -75,30 +75,9 @@ public class SparseConditionalConstantPropagation {
     assert code.isConsistentSSA();
   }
 
-  private static class PhiEquivalence extends Equivalence<Phi> {
-
-    @Override
-    protected boolean doEquivalent(Phi a, Phi b) {
-      assert a.getBlock() == b.getBlock();
-      for (int i = 0; i < a.getOperands().size(); i++) {
-        if (a.getOperand(i) != b.getOperand(i)) {
-          return false;
-        }
-      }
-      return true;
-    }
-
-    @Override
-    protected int doHash(Phi phi) {
-      int hash = 0;
-      for (Value value : phi.getOperands()) {
-        hash = hash * 13 + value.hashCode();
-      }
-      return hash;
-    }
-  }
-
   private void rewriteCode() {
+    List<BasicBlock> blockToAnalyze = new ArrayList<>();
+
     mapping.entrySet().stream()
         .filter((entry) -> entry.getValue().isConst())
         .forEach((entry) -> {
@@ -109,6 +88,7 @@ public class SparseConditionalConstantPropagation {
               // D8 relies on dead code removal to get rid of the dead phi itself.
               if (value.numberOfAllUsers() != 0) {
                 BasicBlock block = value.asPhi().getBlock();
+                blockToAnalyze.add(block);
                 // Create a new constant, because it can be an existing constant that flow directly
                 // into the phi.
                 ConstNumber newConst = ConstNumber.copyOf(code, evaluatedConst);
@@ -130,18 +110,8 @@ public class SparseConditionalConstantPropagation {
           }
         });
 
-    for (BasicBlock block : code.blocks) {
-      PhiEquivalence equivalence = new PhiEquivalence();
-      HashMap<Wrapper<Phi>, Phi> phis = new HashMap<>();
-      for (Phi phi : block.getPhis()) {
-        Wrapper<Phi> key = equivalence.wrap(phi);
-        Phi replacement = phis.get(key);
-        if (replacement != null) {
-          phi.replaceUsers(replacement);
-        } else {
-          phis.put(key, phi);
-        }
-      }
+    for (BasicBlock block : blockToAnalyze) {
+      block.deduplicatePhis();
     }
 
     code.removeAllTrivialPhis();

@@ -414,6 +414,12 @@ public class IRBuilder {
     clearCanonicalizationMaps();
     source = null;
 
+    for (BasicBlock block : blocks) {
+      block.deduplicatePhis();
+    }
+
+    ir.removeAllTrivialPhis();
+
     assert ir.isConsistentSSA();
     return ir;
   }

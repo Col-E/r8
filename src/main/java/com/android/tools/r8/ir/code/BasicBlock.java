@@ -14,6 +14,8 @@ import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
+import com.google.common.base.Equivalence;
+import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableList;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import java.util.ArrayDeque;
@@ -21,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
@@ -1397,5 +1400,47 @@ public class BasicBlock {
     }
 
     return false;
+  }
+
+  private static class PhiEquivalence extends Equivalence<Phi> {
+    @Override
+    protected boolean doEquivalent(Phi a, Phi b) {
+      assert a.getBlock() == b.getBlock();
+      for (int i = 0; i < a.getOperands().size(); i++) {
+        if (a.getOperand(i) != b.getOperand(i)) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    @Override
+    protected int doHash(Phi phi) {
+      int hash = 0;
+      for (Value value : phi.getOperands()) {
+        hash = hash * 13 + value.hashCode();
+      }
+      return hash;
+    }
+  }
+
+  public void deduplicatePhis() {
+    PhiEquivalence equivalence = new PhiEquivalence();
+    HashMap<Wrapper<Phi>, Phi> wrapper2phi = new HashMap<>();
+    Iterator<Phi> phiIt = phis.iterator();
+    while (phiIt.hasNext()) {
+      Phi phi = phiIt.next();
+      Wrapper<Phi> key = equivalence.wrap(phi);
+      Phi replacement = wrapper2phi.get(key);
+      if (replacement != null) {
+        phi.replaceUsers(replacement);
+        for (Value operand : phi.getOperands()) {
+          operand.removePhiUser(phi);
+        }
+        phiIt.remove();
+      } else {
+        wrapper2phi.put(key, phi);
+      }
+    }
   }
 }
