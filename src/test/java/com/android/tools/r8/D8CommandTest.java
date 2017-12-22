@@ -13,6 +13,7 @@ import static org.junit.Assert.assertTrue;
 import com.android.sdklib.AndroidVersion;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.origin.EmbeddedOrigin;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DirectoryClassFileProvider;
 import com.android.tools.r8.utils.OutputMode;
@@ -22,6 +23,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.zip.ZipFile;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -256,6 +258,40 @@ public class D8CommandTest {
   public void vdexFileUnsupported() throws Throwable {
     Path vdexFile = temp.newFile("test.vdex").toPath();
     D8Command.builder().addProgramFiles(vdexFile).build();
+  }
+
+  @Test
+  public void addProgramResources() throws ResourceException, CompilationFailedException {
+
+    // Stub out a custom origin to identify our resources.
+    class MyOrigin extends Origin {
+
+      public MyOrigin() {
+        super(Origin.root());
+      }
+
+      @Override
+      public String part() {
+        return "MyOrigin";
+      }
+    }
+
+    Path input = Paths.get(EXAMPLES_BUILD_DIR, "arithmetic.jar");
+    ProgramResourceProvider myProvider =
+        ArchiveProgramResourceProvider.fromSupplier(
+            new MyOrigin(), () -> new ZipFile(input.toFile()));
+    D8Command command = D8Command.builder().addProgramResourceProvider(myProvider).build();
+
+    // Check that each resource was provided by our provider.
+    ProgramResourceProvider inAppProvider =
+        command.getInputApp().getProgramResourceProviders().get(0);
+    for (ProgramResource resource : inAppProvider.getProgramResources()) {
+      Origin outermost = resource.getOrigin();
+      while (outermost.parent() != null && outermost.parent() != Origin.root()) {
+        outermost = outermost.parent();
+      }
+      assertTrue(outermost instanceof MyOrigin);
+    }
   }
 
   private D8Command parse(String... args) throws CompilationFailedException {
