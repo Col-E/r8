@@ -6,6 +6,7 @@ package com.android.tools.r8.utils;
 import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DiagnosticsHandler;
+import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.errors.CompilationError;
 import java.io.IOException;
@@ -31,7 +32,7 @@ public abstract class ExceptionUtils {
   }
 
   public interface CompileAction {
-    void run() throws IOException, CompilationException, CompilationError;
+    void run() throws IOException, CompilationException, CompilationError, ResourceException;
   }
 
   private enum Compiler {
@@ -64,6 +65,11 @@ public abstract class ExceptionUtils {
             e);
       } catch (CompilationError e) {
         throw reporter.fatalError(e);
+      } catch (ResourceException e) {
+        throw reporter.fatalError(
+            e.getCause() instanceof IOException
+                ? new IOExceptionDiagnostic((IOException) e.getCause(), e.getOrigin())
+                : new StringDiagnostic(e.getMessage(), e.getOrigin()));
       }
       reporter.failIfPendingErrors();
     } catch (AbortException e) {
