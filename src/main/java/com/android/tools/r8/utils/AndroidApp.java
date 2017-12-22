@@ -49,7 +49,7 @@ public class AndroidApp {
   private final ImmutableList<ClassFileResourceProvider> classpathResourceProviders;
   private final ImmutableList<ClassFileResourceProvider> libraryResourceProviders;
 
-  private final StringResource proguardMap;
+  private final StringResource proguardMapOutputData;
   private final List<StringResource> mainDexListResources;
   private final List<String> mainDexClasses;
 
@@ -59,14 +59,14 @@ public class AndroidApp {
       ImmutableMap<Resource, String> programResourcesMainDescriptor,
       ImmutableList<ClassFileResourceProvider> classpathResourceProviders,
       ImmutableList<ClassFileResourceProvider> libraryResourceProviders,
-      StringResource proguardMap,
+      StringResource proguardMapOutputData,
       List<StringResource> mainDexListResources,
       List<String> mainDexClasses) {
     this.programResourceProviders = programResourceProviders;
     this.programResourcesMainDescriptor = programResourcesMainDescriptor;
     this.classpathResourceProviders = classpathResourceProviders;
     this.libraryResourceProviders = libraryResourceProviders;
-    this.proguardMap = proguardMap;
+    this.proguardMapOutputData = proguardMapOutputData;
     this.mainDexListResources = mainDexListResources;
     this.mainDexClasses = mainDexClasses;
   }
@@ -140,10 +140,13 @@ public class AndroidApp {
   }
 
   /**
-   * Get the input stream of the proguard-map resource if it exists.
+   * Get the proguard-map associated with an output "app" if it exists.
+   *
+   * <p>Note: this should never be used as the input to a compilation. See proguards ApplyMapping
+   * for such use cases.
    */
-  public StringResource getProguardMap() {
-    return proguardMap;
+  public StringResource getProguardMapOutputData() {
+    return proguardMapOutputData;
   }
 
   /**
@@ -229,10 +232,12 @@ public class AndroidApp {
     private final Map<ProgramResource, String> programResourcesMainDescriptor = new HashMap<>();
     private final List<ClassFileResourceProvider> classpathResourceProviders = new ArrayList<>();
     private final List<ClassFileResourceProvider> libraryResourceProviders = new ArrayList<>();
-    private StringResource proguardMap;
     private List<StringResource> mainDexListResources = new ArrayList<>();
     private List<String> mainDexListClasses = new ArrayList<>();
     private boolean ignoreDexInArchive = false;
+
+    // Proguard map data is output only data. This should never be used as input to a compilation.
+    private StringResource proguardMapOutputData;
 
     // See AndroidApp::builder().
     private Builder() {
@@ -243,7 +248,6 @@ public class AndroidApp {
       programResourceProviders.addAll(app.programResourceProviders);
       classpathResourceProviders.addAll(app.classpathResourceProviders);
       libraryResourceProviders.addAll(app.libraryResourceProviders);
-      proguardMap = app.proguardMap;
       mainDexListResources = app.mainDexListResources;
       mainDexListClasses = app.mainDexClasses;
     }
@@ -412,18 +416,13 @@ public class AndroidApp {
     }
 
     /**
-     * Set proguard-map file.
+     * Set proguard-map output data.
+     *
+     * <p>Note: this should not be used as inputs to compilation!
      */
-    public Builder setProguardMapFile(Path file) {
-      proguardMap = file == null ? null : StringResource.fromFile(file);
-      return this;
-    }
-
-    /**
-     * Set proguard-map data.
-     */
-    public Builder setProguardMapData(String content) {
-      proguardMap = content == null ? null : StringResource.fromString(content, Origin.unknown());
+    public Builder setProguardMapOutputData(String content) {
+      proguardMapOutputData =
+          content == null ? null : StringResource.fromString(content, Origin.unknown());
       return this;
     }
 
@@ -498,7 +497,7 @@ public class AndroidApp {
           ImmutableMap.copyOf(programResourcesMainDescriptor),
           ImmutableList.copyOf(classpathResourceProviders),
           ImmutableList.copyOf(libraryResourceProviders),
-          proguardMap,
+          proguardMapOutputData,
           mainDexListResources,
           mainDexListClasses);
     }

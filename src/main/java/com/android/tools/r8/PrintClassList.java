@@ -20,6 +20,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
@@ -32,8 +33,9 @@ public class PrintClassList {
   public static void main(String[] args) throws IOException, ExecutionException {
     List<String> dexFiles = Arrays.asList(args);
     Builder builder = AndroidApp.builder();
+    Path proguardMapFile = null;
     if (args[0].endsWith("map")) {
-      builder.setProguardMapFile(Paths.get(args[0]));
+      proguardMapFile = Paths.get(args[0]);
       dexFiles = dexFiles.subList(1, dexFiles.size());
     }
     builder.addProgramFiles(ListUtils.map(dexFiles, Paths::get));
@@ -41,7 +43,10 @@ public class PrintClassList {
     ExecutorService executorService = Executors.newCachedThreadPool();
     DexApplication application =
         new ApplicationReader(builder.build(), new InternalOptions(), new Timing("PrintClassList"))
-            .read(executorService);
+            .read(
+                proguardMapFile == null ? null : StringResource.fromFile(proguardMapFile),
+                executorService
+            );
     ClassNameMapper map = application.getProguardMap();
     for (DexProgramClass clazz : application.classes()) {
       System.out.print(maybeDeobfuscateType(map, clazz.type));

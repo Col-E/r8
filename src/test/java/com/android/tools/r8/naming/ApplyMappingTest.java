@@ -10,7 +10,9 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import com.android.tools.r8.CompilationException;
+import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.R8Command;
+import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
@@ -64,17 +66,28 @@ public class ApplyMappingTest {
     Path flagForObfuscation =
         Paths.get(ToolHelper.EXAMPLES_DIR, "naming044", "keep-rules-005.txt");
     Path proguardMap = out.resolve(MAPPING);
-    AndroidApp obfuscatedApp = runR8(
+    class ProguardMapConsumer implements StringConsumer {
+      String map;
+
+      @Override
+      public void accept(String string, DiagnosticsHandler handler) {
+        map = string;
+      }
+    }
+    ProguardMapConsumer mapConsumer = new ProguardMapConsumer();
+    runR8(
         getCommandForApps(out, flagForObfuscation, NAMING044_JAR)
-            .addProguardConfigurationConsumer(c -> {
-              c.setPrintMapping(true);
-              c.setPrintMappingFile(proguardMap);
-            }).build());
+            .setProguardMapConsumer(mapConsumer)
+            .addProguardConfigurationConsumer(
+                c -> {
+                  c.setPrintMapping(true);
+                  c.setPrintMappingFile(proguardMap);
+                })
+            .build());
 
     // Obviously, dumped map and resource inside the app should be *identical*.
     ClassNameMapper mapperFromFile = ClassNameMapper.mapperFromFile(proguardMap);
-    ClassNameMapper mapperFromApp =
-        ClassNameMapper.mapperFromString(obfuscatedApp.getProguardMap().getString());
+    ClassNameMapper mapperFromApp = ClassNameMapper.mapperFromString(mapConsumer.map);
     assertEquals(mapperFromFile, mapperFromApp);
 
     Path instrOut = temp.newFolder("instr").toPath();

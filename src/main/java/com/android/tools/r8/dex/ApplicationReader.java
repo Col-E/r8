@@ -62,15 +62,24 @@ public class ApplicationReader {
   }
 
   public DexApplication read() throws IOException, ExecutionException {
+    return read((StringResource) null);
+  }
+
+  public DexApplication read(StringResource proguardMap) throws IOException, ExecutionException {
     ExecutorService executor = Executors.newSingleThreadExecutor();
     try {
-      return read(executor);
+      return read(proguardMap, executor);
     } finally {
       executor.shutdown();
     }
   }
 
   public final DexApplication read(ExecutorService executorService)
+      throws IOException, ExecutionException {
+    return read(null, executorService);
+  }
+
+  public final DexApplication read(StringResource proguardMap, ExecutorService executorService)
       throws IOException, ExecutionException {
     timing.begin("DexApplication.read");
     final LazyLoadedDexApplication.Builder builder = DexApplication.builder(itemFactory, timing);
@@ -83,7 +92,7 @@ public class ApplicationReader {
       // (b) some of the class file resources don't provide information
       //     about class descriptor.
       // TODO: try and preload less classes.
-      readProguardMap(builder, executorService, futures);
+      readProguardMap(proguardMap, builder, executorService, futures);
       readMainDexList(builder, executorService, futures);
       ClassReader classReader = new ClassReader(executorService, futures);
       classReader.readSources();
@@ -110,20 +119,25 @@ public class ApplicationReader {
     return computedMinApiLevel;
   }
 
-  private void readProguardMap(DexApplication.Builder<?> builder, ExecutorService executorService,
+  private void readProguardMap(
+      StringResource map,
+      DexApplication.Builder<?> builder,
+      ExecutorService executorService,
       List<Future<?>> futures) {
     // Read the Proguard mapping file in parallel with DexCode and DexProgramClass items.
-    StringResource map = inputApp.getProguardMap();
-    if (map != null) {
-      futures.add(executorService.submit(() -> {
-        try {
-          String content = map.getString();
-          builder.setProguardMap(ClassNameMapper.mapperFromString(content));
-        } catch (IOException | ResourceException e) {
-          throw new CompilationError("Failure to read proguard map file", e, map.getOrigin());
-        }
-      }));
+    if (map == null) {
+      return;
     }
+    futures.add(
+        executorService.submit(
+            () -> {
+              try {
+                String content = map.getString();
+                builder.setProguardMap(ClassNameMapper.mapperFromString(content));
+              } catch (IOException | ResourceException e) {
+                throw new CompilationError("Failure to read proguard map file", e, map.getOrigin());
+              }
+            }));
   }
 
   private void readMainDexList(DexApplication.Builder<?> builder, ExecutorService executorService,

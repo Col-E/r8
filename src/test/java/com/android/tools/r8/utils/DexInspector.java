@@ -75,8 +75,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -108,7 +106,6 @@ public class DexInspector {
 
   public DexInspector(List<Path> files, String mappingFile)
       throws IOException, ExecutionException {
-    ExecutorService executor = Executors.newSingleThreadExecutor();
     if (mappingFile != null) {
       this.mapping = ClassNameMapper.mapperFromFile(Paths.get(mappingFile));
       originalToObfuscatedMapping = this.mapping.getObfuscatedToOriginalMapping().inverse();
@@ -120,12 +117,13 @@ public class DexInspector {
     InternalOptions options = new InternalOptions();
     dexItemFactory = options.itemFactory;
     AndroidApp input = AndroidApp.builder().addProgramFiles(files).build();
-    application = new ApplicationReader(input, options, timing).read(executor);
-    executor.shutdown();
+    application = new ApplicationReader(input, options, timing).read();
   }
 
   public DexInspector(AndroidApp app) throws IOException, ExecutionException {
-    this(new ApplicationReader(app, new InternalOptions(), new Timing("DexInspector")).read());
+    this(
+        new ApplicationReader(app, new InternalOptions(), new Timing("DexInspector"))
+            .read(app.getProguardMapOutputData()));
   }
 
   public DexInspector(DexApplication application) {

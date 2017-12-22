@@ -1112,10 +1112,6 @@ public class ToolHelper {
             return FileVisitResult.CONTINUE;
           }
         });
-    File mapFile = new File(directory.toFile(), DEFAULT_PROGUARD_MAP_FILE);
-    if (mapFile.exists()) {
-      builder.setProguardMapFile(mapFile.toPath());
-    }
     return builder;
   }
 }

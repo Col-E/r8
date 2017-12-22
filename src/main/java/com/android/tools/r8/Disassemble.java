@@ -25,20 +25,21 @@ public class Disassemble {
   public static class DisassembleCommand extends BaseCommand {
 
     private final Path outputPath;
+    private final StringResource proguardMap;
 
-    public static class Builder
-        extends BaseCommand.Builder<DisassembleCommand, DisassembleCommand.Builder> {
+    public static class Builder extends BaseCommand.Builder<DisassembleCommand, Builder> {
 
       private Path outputPath = null;
+      private Path proguardMapFile = null;
       private boolean useSmali = false;
 
       @Override
-      DisassembleCommand.Builder self() {
+      Builder self() {
         return this;
       }
 
-      public DisassembleCommand.Builder setProguardMapFile(Path path) {
-        guard(() -> getAppBuilder().setProguardMapFile(path));
+      public Builder setProguardMapFile(Path path) {
+        proguardMapFile = path;
         return this;
       }
 
@@ -46,12 +47,12 @@ public class Disassemble {
         return outputPath;
       }
 
-      public DisassembleCommand.Builder setOutputPath(Path outputPath) {
+      public Builder setOutputPath(Path outputPath) {
         this.outputPath = outputPath;
         return this;
       }
 
-      public DisassembleCommand.Builder setUseSmali(boolean useSmali) {
+      public Builder setUseSmali(boolean useSmali) {
         this.useSmali = useSmali;
         return this;
       }
@@ -62,10 +63,11 @@ public class Disassemble {
         if (isPrintHelp() || isPrintVersion()) {
           return new DisassembleCommand(isPrintHelp(), isPrintVersion());
         }
-
-        DisassembleCommand command = new DisassembleCommand(getAppBuilder().build(),
-            getOutputPath(), useSmali);
-        return command;
+        return new DisassembleCommand(
+            getAppBuilder().build(),
+            getOutputPath(),
+            proguardMapFile == null ? null : StringResource.fromFile(proguardMapFile),
+            useSmali);
       }
     }
 
@@ -82,17 +84,17 @@ public class Disassemble {
 
     private final boolean useSmali;
 
-    public static DisassembleCommand.Builder builder() {
-      return new DisassembleCommand.Builder();
+    public static Builder builder() {
+      return new Builder();
     }
 
-    public static DisassembleCommand.Builder parse(String[] args) {
-      DisassembleCommand.Builder builder = builder();
+    public static Builder parse(String[] args) {
+      Builder builder = builder();
       parse(args, builder);
       return builder;
     }
 
-    private static void parse(String[] args, DisassembleCommand.Builder builder) {
+    private static void parse(String[] args, Builder builder) {
       for (int i = 0; i < args.length; i++) {
         String arg = args[i].trim();
         if (arg.length() == 0) {
@@ -118,16 +120,19 @@ public class Disassemble {
       }
     }
 
-    private DisassembleCommand(AndroidApp inputApp, Path outputPath, boolean useSmali) {
+    private DisassembleCommand(
+        AndroidApp inputApp, Path outputPath, StringResource proguardMap, boolean useSmali) {
       super(inputApp);
       this.outputPath = outputPath;
+      this.proguardMap = proguardMap;
       this.useSmali = useSmali;
     }
 
     private DisassembleCommand(boolean printHelp, boolean printVersion) {
       super(printHelp, printVersion);
-      this.outputPath = null;
-      this.useSmali = false;
+      outputPath = null;
+      proguardMap = null;
+      useSmali = false;
     }
 
     public Path getOutputPath() {
@@ -168,7 +173,8 @@ public class Disassemble {
     ExecutorService executor = ThreadUtils.getExecutorService(options);
     Timing timing = new Timing("disassemble");
     try {
-      DexApplication application = new ApplicationReader(app, options, timing).read(executor);
+      DexApplication application =
+          new ApplicationReader(app, options, timing).read(command.proguardMap, executor);
       DexByteCodeWriter writer = command.useSmali()
           ? new SmaliWriter(application, options)
           : new AssemblyWriter(application, options);

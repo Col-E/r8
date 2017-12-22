@@ -27,16 +27,18 @@ public class DebugInfoWhenInliningTest extends DebugTestBase {
     Path outdir = temp.newFolder().toPath();
     Path outjar = outdir.resolve("r8_compiled.jar");
     Path proguardMapPath = writeProguardMap ? outdir.resolve("proguard.map") : null;
-    ToolHelper.runR8(
+    R8Command.Builder builder =
         R8Command.builder()
             .addProgramFiles(DEBUGGEE_JAR)
             .setMinApiLevel(minSdk)
             .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(minSdk)))
             .setMode(CompilationMode.RELEASE)
-            .setOutput(outjar, OutputMode.DexIndexed)
-            .setProguardMapOutput(proguardMapPath)
-            .build(),
-        options -> options.lineNumberOptimization = lineNumberOptimization);
+            .setOutput(outjar, OutputMode.DexIndexed);
+    if (proguardMapPath != null) {
+      builder.setProguardMapOutput(proguardMapPath);
+    }
+    ToolHelper.runR8(
+        builder.build(), options -> options.lineNumberOptimization = lineNumberOptimization);
     DebugTestConfig config = new DexDebugTestConfig(outjar);
     config.setProguardMap(proguardMapPath);
     return config;

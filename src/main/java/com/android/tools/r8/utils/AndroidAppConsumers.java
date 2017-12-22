@@ -65,7 +65,7 @@ public class AndroidAppConsumers {
             @Override
             public void accept(String string, DiagnosticsHandler handler) {
               super.accept(string, handler);
-              builder.setProguardMapData(string);
+              builder.setProguardMapOutputData(string);
             }
           };
     }

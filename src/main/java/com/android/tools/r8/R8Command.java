@@ -42,7 +42,7 @@ public class R8Command extends BaseCompilerCommand {
     private Optional<Boolean> discardedChecker = Optional.empty();
     private Optional<Boolean> minification = Optional.empty();
     private boolean forceProguardCompatibility = false;
-    private Path proguardMapOutput = null;
+    private StringConsumer proguardMapConsumer = null;
     protected Path proguardCompatibilityRulesOutput = null;
 
     private StringConsumer mainDexListConsumer = null;
@@ -124,22 +124,37 @@ public class R8Command extends BaseCompilerCommand {
       return self();
     }
 
-    /**
-     * Add proguard configuration for automatic main dex list calculation.
-     */
+    /** Add proguard rules for automatic main-dex-list calculation. */
     public Builder addMainDexRules(List<String> lines, Origin origin) {
       guard(() -> mainDexRules.add(
           new ProguardConfigurationSourceStrings(lines, Paths.get("."), origin)));
       return self();
     }
 
+    /**
+     * Set an output destination to which main-dex-list content should be written.
+     *
+     * <p>This is a short-hand for setting a {@link StringConsumer.FileConsumer} using {@link
+     * #setMainDexListConsumer}. Note that any subsequent call to this method or {@link
+     * #setMainDexListConsumer} will override the previous setting.
+     *
+     * @param mainDexListOutputPath File-system path to write output at.
+     */
     public Builder setMainDexListOutputPath(Path mainDexListOutputPath) {
       mainDexListConsumer = new StringConsumer.FileConsumer(mainDexListOutputPath);
       return self();
     }
 
-    public Builder setMainDexListConsumer(StringConsumer consumer) {
-      mainDexListConsumer = consumer;
+    /**
+     * Set a consumer for receiving the main-dex-list content.
+     *
+     * <p>Note that any subsequent call to this method or {@link #setMainDexListOutputPath} will
+     * override the previous setting.
+     *
+     * @param mainDexListConsumer Consumer to receive the content once produced.
+     */
+    public Builder setMainDexListConsumer(StringConsumer mainDexListConsumer) {
+      this.mainDexListConsumer = mainDexListConsumer;
       return self();
     }
 
@@ -191,15 +206,30 @@ public class R8Command extends BaseCompilerCommand {
     }
 
     /**
-     * Set a proguard mapping file resource.
+     * Set an output destination to which proguard-map content should be written.
+     *
+     * <p>This is a short-hand for setting a {@link StringConsumer.FileConsumer} using {@link
+     * #setProguardMapConsumer}. Note that any subsequent call to this method or {@link
+     * #setProguardMapConsumer} will override the previous setting.
+     *
+     * @param proguardMapOutput File-system path to write output at.
      */
-    public Builder setProguardMapFile(Path path) {
-      guard(() -> getAppBuilder().setProguardMapFile(path));
+    public Builder setProguardMapOutput(Path proguardMapOutput) {
+      assert proguardMapOutput != null;
+      this.proguardMapConsumer = new StringConsumer.FileConsumer(proguardMapOutput);
       return self();
     }
 
-    public Builder setProguardMapOutput(Path path) {
-      this.proguardMapOutput = path;
+    /**
+     * Set a consumer for receiving the proguard-map content.
+     *
+     * <p>Note that any subsequent call to this method or {@link #setProguardMapOutput} will
+     * override the previous setting.
+     *
+     * @param proguardMapConsumer Consumer to receive the content once produced.
+     */
+    public Builder setProguardMapConsumer(StringConsumer proguardMapConsumer) {
+      this.proguardMapConsumer = proguardMapConsumer;
       return self();
     }
 
@@ -283,9 +313,6 @@ public class R8Command extends BaseCompilerCommand {
       boolean useTreeShaking = treeShaking.orElse(configuration.isShrinking());
       boolean useDiscardedChecker = discardedChecker.orElse(true);
       boolean useMinification = minification.orElse(configuration.isObfuscating());
-
-      StringConsumer proguardMapConsumer =
-          proguardMapOutput != null ? new StringConsumer.FileConsumer(proguardMapOutput) : null;
 
       assert getProgramConsumer() != null;
 

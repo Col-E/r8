@@ -7,6 +7,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.StringResource;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
@@ -19,6 +20,8 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -36,11 +39,19 @@ public class R8GMSCoreLookupTest {
 
   @Before
   public void readGMSCore() throws IOException, ExecutionException {
-    app = ToolHelper.builderFromProgramDirectory(Paths.get(APP_DIR)).build();
+    Path directory = Paths.get(APP_DIR);
+    app = ToolHelper.builderFromProgramDirectory(directory).build();
+    Path mapFile = directory.resolve(ToolHelper.DEFAULT_PROGUARD_MAP_FILE);
+    StringResource proguardMap = null;
+    if (Files.exists(mapFile)) {
+      proguardMap = StringResource.fromFile(mapFile);
+    }
     ExecutorService executorService = Executors.newSingleThreadExecutor();
     Timing timing = new Timing("ReadGMSCore");
-    program = new ApplicationReader(app, new InternalOptions(), timing)
-        .read(executorService).toDirect();
+    program =
+        new ApplicationReader(app, new InternalOptions(), timing)
+            .read(proguardMap, executorService)
+            .toDirect();
     appInfo = new AppInfoWithSubtyping(program);
   }
 
