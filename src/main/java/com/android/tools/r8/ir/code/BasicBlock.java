@@ -355,7 +355,7 @@ public class BasicBlock {
     return filled;
   }
 
-  void setFilledForTesting() {
+  public void setFilledForTesting() {
     filled = true;
   }
 
