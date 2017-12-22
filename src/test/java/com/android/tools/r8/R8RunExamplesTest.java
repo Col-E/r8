@@ -135,7 +135,6 @@ public class R8RunExamplesTest extends R8RunExamplesCommon {
   protected Set<String> getFailingCompileCf() {
     return new ImmutableSet.Builder<String>()
         .add("invoke.Invoke") // outline / CF->IR
-        .add("trycatch.TryCatch") // inline / CF->IR
         .build();
   }
 

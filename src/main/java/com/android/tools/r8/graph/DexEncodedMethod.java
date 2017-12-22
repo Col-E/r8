@@ -48,8 +48,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   /**
    * Encodes the processing state of a method.
    * <p>
-   * We also use this enum to encode whether and if under what constraints a method may be
-   * inlined.
+   * We also use this enum to encode under what constraints a method may be inlined.
    */
   public enum CompilationState {
     /**
@@ -61,8 +60,8 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
      */
     PROCESSED_NOT_INLINING_CANDIDATE,
     /**
-     * Code only contains instructions that access public entities and can this be inlined
-     * into any context.
+     * Code only contains instructions that access public entities and can this be inlined into any
+     * context.
      */
     PROCESSED_INLINING_CANDIDATE_ANY,
     /**
@@ -71,8 +70,8 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
      */
     PROCESSED_INLINING_CANDIDATE_SUBCLASS,
     /**
-     * Code contains instructions that reference package private entities or protected entities
-     * from the same package.
+     * Code contains instructions that reference package private entities or protected entities from
+     * the same package.
      */
     PROCESSED_INLINING_CANDIDATE_SAME_PACKAGE,
     /**
@@ -90,7 +89,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   public DexAnnotationSet annotations;
   public DexAnnotationSetRefList parameterAnnotations;
   private Code code;
-  private CompilationState compilationState = CompilationState.NOT_PROCESSED;
+  public CompilationState compilationState = CompilationState.NOT_PROCESSED;
   private OptimizationInfo optimizationInfo = DefaultOptimizationInfo.DEFAULT;
 
   public DexEncodedMethod(
@@ -166,6 +165,8 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       return false;
     }
     if (inliningReason == Reason.FORCE) {
+      // Make sure we would be able to inline this normally.
+      assert isInliningCandidate(container, Reason.SIMPLE, appInfo);
       return true;
     }
     switch (compilationState) {
@@ -328,9 +329,9 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   /**
    * Generates a {@link DexCode} object for the given instructions.
    * <p>
-   * As the code object is produced outside of the normal compilation cycle, it has to use
-   * {@link ConstStringJumbo} to reference string constants. Hence, code produced form these
-   * templates might incur a size overhead.
+   * As the code object is produced outside of the normal compilation cycle, it has to use {@link
+   * ConstStringJumbo} to reference string constants. Hence, code produced form these templates
+   * might incur a size overhead.
    */
   private DexCode generateCodeFromTemplate(
       int numberOfRegisters, int outRegisters, Instruction... instructions) {
@@ -462,8 +463,8 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
    * Rewrites the code in this method to have JumboString bytecode if required by mapping.
    * <p>
    * Synchronized such that it can be called concurrently for different mappings. As a side-effect,
-   * this will also update the highestSortingString to the index of the strings up to which the
-   * code was rewritten to avoid rewriting again unless needed.
+   * this will also update the highestSortingString to the index of the strings up to which the code
+   * was rewritten to avoid rewriting again unless needed.
    */
   public synchronized void rewriteCodeWithJumboStrings(ObjectToOffsetMapping mapping,
       DexApplication application) {
