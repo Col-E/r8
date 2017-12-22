@@ -48,7 +48,7 @@ public class TrivialGotoEliminationTest {
     throwing.setPosition(Position.none());
     block1.add(throwing);
     block1.setFilledForTesting();
-    LinkedList<BasicBlock> blocks = new LinkedList();
+    LinkedList<BasicBlock> blocks = new LinkedList<>();
     blocks.add(block0);
     blocks.add(block1);
     blocks.add(block2);
