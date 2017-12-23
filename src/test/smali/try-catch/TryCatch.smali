@@ -32,6 +32,23 @@
     return v0
 .end method
 
+.method public static test2_throw()I
+    .locals 1
+    const v0, 1
+    :try_start
+    invoke-static {}, Ltest/X;->f()V
+    const v0, 0
+    goto :return
+    :try_end
+    .catch Ljava/lang/Exception; {:try_start .. :try_end} :return
+    .catch Ljava/lang/Throwable; {:try_start .. :try_end} :error
+    :error
+    move-exception v0
+    throw v0
+    :return
+    return v0
+.end method
+
 # Dead catch block.
 .method public test3()I
     .locals 1

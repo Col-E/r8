@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.constant.Bottom;
 import com.android.tools.r8.ir.analysis.constant.ConstRangeLatticeElement;
 import com.android.tools.r8.ir.analysis.constant.LatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
@@ -1017,5 +1018,11 @@ public abstract class Instruction {
       return new ConstRangeLatticeElement(outValue);
     }
     return Bottom.getInstance();
+  }
+
+  public TypeLatticeElement evaluate(
+      AppInfoWithSubtyping appInfo, Function<Value, TypeLatticeElement> getLatticeElement) {
+    assert outValue == null;
+    throw new Unreachable("Instructions without outValue have no type.");
   }
 }

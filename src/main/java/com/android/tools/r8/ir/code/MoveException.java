@@ -8,6 +8,7 @@ import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
@@ -15,6 +16,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 
 public class MoveException extends Instruction {
 
@@ -104,5 +106,11 @@ public class MoveException extends Instruction {
       }
     }
     return helper.join(exceptionTypes);
+  }
+
+  @Override
+  public TypeLatticeElement evaluate(
+      AppInfoWithSubtyping appInfo, Function<Value, TypeLatticeElement> getLatticeElement) {
+    return TypeLatticeElement.fromDexType(appInfo, appInfo.dexItemFactory.throwableType, false);
   }
 }

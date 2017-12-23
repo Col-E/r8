@@ -8,10 +8,12 @@ import com.android.tools.r8.code.FillArrayDataPayload;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.Arrays;
+import java.util.function.Function;
 
 public class NewArrayFilledData extends Instruction {
 
@@ -101,5 +103,11 @@ public class NewArrayFilledData extends Instruction {
   @Override
   public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType invocationContext) {
     return Constraint.ALWAYS;
+  }
+
+  @Override
+  public TypeLatticeElement evaluate(
+      AppInfoWithSubtyping appInfo, Function<Value, TypeLatticeElement> getLatticeElement) {
+    return TypeLatticeElement.newPrimitiveArray(1, false);
   }
 }

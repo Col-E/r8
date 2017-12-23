@@ -7,8 +7,11 @@ package com.android.tools.r8.ir.code;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.PrimitiveTypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
+import java.util.function.Function;
 
 public class InstanceOf extends Instruction {
 
@@ -76,5 +79,11 @@ public class InstanceOf extends Instruction {
   @Override
   public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType invocationContext) {
     return Constraint.classIsVisible(invocationContext, type, info);
+  }
+
+  @Override
+  public TypeLatticeElement evaluate(
+      AppInfoWithSubtyping appInfo, Function<Value, TypeLatticeElement> getLatticeElement) {
+    return PrimitiveTypeLatticeElement.getInstance();
   }
 }

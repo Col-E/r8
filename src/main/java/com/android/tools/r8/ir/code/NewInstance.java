@@ -9,9 +9,11 @@ import com.android.tools.r8.cf.code.CfNew;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
+import java.util.function.Function;
 
 public class NewInstance extends Instruction {
 
@@ -94,5 +96,11 @@ public class NewInstance extends Instruction {
   @Override
   public DexType computeVerificationType(TypeVerificationHelper helper) {
     return clazz;
+  }
+
+  @Override
+  public TypeLatticeElement evaluate(
+      AppInfoWithSubtyping appInfo, Function<Value, TypeLatticeElement> getLatticeElement) {
+    return TypeLatticeElement.fromDexType(appInfo, clazz, false);
   }
 }

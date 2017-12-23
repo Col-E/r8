@@ -63,6 +63,7 @@ import com.android.tools.r8.naming.MemberNaming;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
+import com.android.tools.r8.smali.SmaliBuilder;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
@@ -284,6 +285,11 @@ public class DexInspector {
 
     public MethodSubject method(MethodSignature signature) {
       return method(signature.type, signature.name, ImmutableList.copyOf(signature.parameters));
+    }
+
+    public MethodSubject method(SmaliBuilder.MethodSignature signature) {
+      return method(
+          signature.returnType, signature.name, ImmutableList.copyOf(signature.parameterTypes));
     }
 
     public abstract void forAllFields(Consumer<FoundFieldSubject> inspection);

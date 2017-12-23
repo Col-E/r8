@@ -174,6 +174,7 @@ public class DexItemFactory {
   public final DexType enumType = createType(enumDescriptor);
   public final DexType annotationType = createType(annotationDescriptor);
   public final DexType throwableType = createType(throwableDescriptor);
+  public final DexType classType = createType(classDescriptor);
 
   public final DexType stringBuilderType = createType(stringBuilderDescriptor);
   public final DexType stringBufferType = createType(stringBufferDescriptor);

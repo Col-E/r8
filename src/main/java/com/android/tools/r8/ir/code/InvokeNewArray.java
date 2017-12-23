@@ -8,9 +8,11 @@ import com.android.tools.r8.code.FilledNewArrayRange;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import java.util.List;
+import java.util.function.Function;
 
 public class InvokeNewArray extends Invoke {
 
@@ -103,5 +105,11 @@ public class InvokeNewArray extends Invoke {
   @Override
   public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType invocationContext) {
     return Constraint.classIsVisible(invocationContext, type, info);
+  }
+
+  @Override
+  public TypeLatticeElement evaluate(
+      AppInfoWithSubtyping appInfo, Function<Value, TypeLatticeElement> getLatticeElement) {
+    return TypeLatticeElement.newArray(appInfo, type, false);
   }
 }

@@ -16,11 +16,13 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import java.util.Arrays;
+import java.util.function.Function;
 
 public class ArrayGet extends Instruction {
 
@@ -141,5 +143,11 @@ public class ArrayGet extends Instruction {
   @Override
   public void buildCf(CfBuilder builder) {
     builder.add(new CfArrayLoad(type));
+  }
+
+  @Override
+  public TypeLatticeElement evaluate(
+      AppInfoWithSubtyping appInfo, Function<Value, TypeLatticeElement> getLatticeElement) {
+    return getLatticeElement.apply(array()).arrayGet(appInfo);
   }
 }

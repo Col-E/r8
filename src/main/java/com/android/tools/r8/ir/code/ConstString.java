@@ -7,12 +7,15 @@ import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfConstString;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.utils.InternalOptions;
 import java.io.UTFDataFormatException;
+import java.util.function.Function;
 
 public class ConstString extends ConstInstruction {
 
@@ -119,5 +122,11 @@ public class ConstString extends ConstInstruction {
   @Override
   public DexType computeVerificationType(TypeVerificationHelper helper) {
     return helper.getFactory().stringType;
+  }
+
+  @Override
+  public TypeLatticeElement evaluate(
+      AppInfoWithSubtyping appInfo, Function<Value, TypeLatticeElement> getLatticeElement) {
+    return TypeLatticeElement.fromDexType(appInfo, appInfo.dexItemFactory.stringType, false);
   }
 }

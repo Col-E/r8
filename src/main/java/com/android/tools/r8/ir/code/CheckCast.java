@@ -9,8 +9,10 @@ import com.android.tools.r8.code.MoveObjectFrom16;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
+import java.util.function.Function;
 
 public class CheckCast extends Instruction {
 
@@ -100,5 +102,11 @@ public class CheckCast extends Instruction {
   @Override
   public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType invocationContext) {
     return Constraint.classIsVisible(invocationContext, type, info);
+  }
+
+  @Override
+  public TypeLatticeElement evaluate(
+      AppInfoWithSubtyping appInfo, Function<Value, TypeLatticeElement> getLatticeElement) {
+    return getLatticeElement.apply(object()).checkCast(appInfo, type);
   }
 }

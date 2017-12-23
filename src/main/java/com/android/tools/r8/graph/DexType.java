@@ -348,7 +348,7 @@ public class DexType extends IndexedDexItem implements PresortedComparable<DexTy
     }
   }
 
-  private int getNumberOfLeadingSquareBrackets() {
+  public int getNumberOfLeadingSquareBrackets() {
     int leadingSquareBrackets = 0;
     while (descriptor.content[leadingSquareBrackets] == '[') {
       leadingSquareBrackets++;
@@ -467,5 +467,52 @@ public class DexType extends IndexedDexItem implements PresortedComparable<DexTy
   public boolean isImmediateSubtypeOf(DexType type) {
     assert hierarchyLevel != UNKNOWN_LEVEL;
     return type.directSubtypes.contains(this);
+  }
+
+  public DexType computeLeastUpperBound(AppInfoWithSubtyping appInfo, DexType other) {
+    DexType objectType = appInfo.dexItemFactory.objectType;
+    // If either one is interface,
+    //   1) one of them is a super type of the other
+    //   2) otherwise, the object type is the least upper bound.
+    if (isInterface() || other.isInterface()) {
+      if (isSubtypeOf(other, appInfo)) {
+        return other;
+      }
+      if (other.isSubtypeOf(this, appInfo)) {
+        return this;
+      }
+      return objectType;
+    }
+    // To make the logic simple, change the role if the other is lower than this.
+    if (other.hierarchyLevel < this.hierarchyLevel) {
+      return other.computeLeastUpperBound(appInfo, this);
+    }
+    DexClass dexClass;
+    // Make both of other and this in the same level.
+    while (other.hierarchyLevel > this.hierarchyLevel) {
+      dexClass = appInfo.definitionFor(other);
+      if (dexClass == null) {
+        return objectType;
+      }
+      other = dexClass.superType;
+    }
+    // At this point, they are at the same level.
+    // lub starts from this, and will move up; other starts from itself, and will move up, too.
+    // They move up in their own hierarchy tree, and will repeat the process until they meet.
+    // (It will stop at anytime when either one's definition is not found.)
+    DexType lub = this;
+    while (other != lub) {
+      dexClass = appInfo.definitionFor(other);
+      if (dexClass == null) {
+        return objectType;
+      }
+      other = dexClass.superType;
+      dexClass = appInfo.definitionFor(lub);
+      if (dexClass == null) {
+        return objectType;
+      }
+      lub = dexClass.superType;
+    }
+    return lub;
   }
 }

@@ -14,10 +14,13 @@ import com.android.tools.r8.code.IgetWide;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import java.util.function.Function;
 
 public class InstanceGet extends FieldInstruction {
 
@@ -120,5 +123,11 @@ public class InstanceGet extends FieldInstruction {
   @Override
   public String toString() {
     return super.toString() + "; field: " + field.toSourceString();
+  }
+
+  @Override
+  public TypeLatticeElement evaluate(
+      AppInfoWithSubtyping appInfo, Function<Value, TypeLatticeElement> getLatticeElement) {
+    return TypeLatticeElement.fromDexType(appInfo, field.type, true);
   }
 }
