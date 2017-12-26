@@ -9,17 +9,23 @@ import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.VmTestRunner;
 import com.android.tools.r8.VmTestRunner.IgnoreForRangeOfVmVersions;
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassFileVersion;
 import com.android.tools.r8.utils.ThrowingBiFunction;
 import org.junit.Assert;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 
 @RunWith(VmTestRunner.class)
 public class MemberResolutionTest extends JasminTestBase {
 
   private static final String MAIN_CLASS = "Main";
+
+  @Rule
+  public ExpectedException thrown = ExpectedException.none();
 
   @Test
   public void lookupStaticFieldFromDiamondInterface() throws Exception {
@@ -210,7 +216,6 @@ public class MemberResolutionTest extends JasminTestBase {
   }
 
   @Test
-  @IgnoreForRangeOfVmVersions(from = Version.V5_1_1, to = Version.V7_0_0)
   public void lookupDirectMethodFromWrongContext() throws Exception {
     JasminBuilder builder = new JasminBuilder(ClassFileVersion.JSE_5);
 
@@ -243,7 +248,7 @@ public class MemberResolutionTest extends JasminTestBase {
         "  invokespecial SubClass/<init>()V",
         "  invokespecial SubClass/aMethod()V",
         "  return");
-    ensureIAE(builder);
+    ensureCompilationError(builder);
   }
 
   @Test
@@ -554,6 +559,11 @@ public class MemberResolutionTest extends JasminTestBase {
     ensureFails(app, MAIN_CLASS, (a, m) -> runOnArtR8Raw(a, m, null));
     ensureFails(app, MAIN_CLASS,
         (a, m) -> runOnArtR8Raw(a, m, keepMainProguardConfiguration(MAIN_CLASS), null));
+  }
+
+  private void ensureCompilationError(JasminBuilder app) throws Exception {
+    thrown.expect(CompilationError.class);
+    compileWithR8(app, null);
   }
 
   private void ensureICCE(JasminBuilder app) throws Exception {
