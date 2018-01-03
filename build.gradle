@@ -709,6 +709,12 @@ task buildApiUsageSample(type: Jar) {
     destinationDir file('tests')
 }
 
+task buildD8ApiUsageSample(type: Jar) {
+    from sourceSets.apiUsageSample.output
+    baseName 'd8_api_usage_sample'
+    destinationDir file('tests')
+}
+
 task buildDebugInfoExamplesDex {
     def examplesDir = file("src/test/java")
     def hostJar = "debuginfo_examples.jar"

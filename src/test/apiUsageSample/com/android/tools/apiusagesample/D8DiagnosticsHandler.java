@@ -49,7 +49,7 @@ class D8DiagnosticsHandler implements DiagnosticsHandler {
     Origin origin = diagnostic.getOrigin();
     Position positionInOrigin = diagnostic.getPosition();
     String position;
-    if (origin instanceof PathOrigin) {
+    if (origin.parent() instanceof PathOrigin) {
       if (positionInOrigin instanceof TextRange) {
         TextRange textRange = (TextRange) positionInOrigin;
         position = ((PathOrigin) origin.parent()).getPath().toFile() + ": "
