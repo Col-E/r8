@@ -322,7 +322,7 @@ public class DexFileMerger {
         if (options.inputArchives.size() != 1) {
           throw new RuntimeException("'--multidex=given_shard' requires exactly one --input.");
         }
-        singleFixedFileIndex = parseFileIndexFromShardFilename(options.inputArchives.get(0));
+        singleFixedFileIndex = parseFileIndexFromShardFilename(options.inputArchives.get(0)) - 1;
         break;
       case MINIMAL:
       case BEST_EFFORT:
