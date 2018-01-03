@@ -4,8 +4,11 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexMethodHandle;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import java.util.function.Function;
 
 public class ConstMethodHandle extends ConstInstruction {
 
@@ -75,5 +78,11 @@ public class ConstMethodHandle extends ConstInstruction {
   @Override
   public ConstMethodHandle asConstMethodHandle() {
     return this;
+  }
+
+  @Override
+  public TypeLatticeElement evaluate(
+      AppInfoWithSubtyping appInfo, Function<Value, TypeLatticeElement> getLatticeElement) {
+    return TypeLatticeElement.fromDexType(appInfo, appInfo.dexItemFactory.methodHandleType, false);
   }
 }

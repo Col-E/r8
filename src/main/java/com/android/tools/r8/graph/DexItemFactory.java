@@ -130,6 +130,7 @@ public class DexItemFactory {
   public final DexString stringBufferDescriptor = createString("Ljava/lang/StringBuffer;");
   public final DexString varHandleDescriptor = createString("Ljava/lang/invoke/VarHandle;");
   public final DexString methodHandleDescriptor = createString("Ljava/lang/invoke/MethodHandle;");
+  public final DexString methodTypeDescriptor = createString("Ljava/lang/invoke/MethodType;");
 
   public final DexString intFieldUpdaterDescriptor =
       createString("Ljava/util/concurrent/atomic/AtomicIntegerFieldUpdater;");
@@ -181,9 +182,12 @@ public class DexItemFactory {
 
   public final DexType varHandleType = createType(varHandleDescriptor);
   public final DexType methodHandleType = createType(methodHandleDescriptor);
+  public final DexType methodTypeType = createType(methodTypeDescriptor);
 
-  public final StringBuildingMethods stringBuilderMethods = new StringBuildingMethods(stringBuilderType);
-  public final StringBuildingMethods stringBufferMethods = new StringBuildingMethods(stringBufferType);
+  public final StringBuildingMethods stringBuilderMethods =
+      new StringBuildingMethods(stringBuilderType);
+  public final StringBuildingMethods stringBufferMethods =
+      new StringBuildingMethods(stringBufferType);
   public final ObjectsMethods objectsMethods = new ObjectsMethods();
   public final ObjectMethods objectMethods = new ObjectMethods();
   public final LongMethods longMethods = new LongMethods();
