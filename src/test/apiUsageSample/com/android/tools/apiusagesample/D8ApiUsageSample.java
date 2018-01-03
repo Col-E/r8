@@ -4,6 +4,7 @@
 package com.android.tools.apiusagesample;
 
 import com.android.tools.r8.ArchiveClassFileProvider;
+import com.android.tools.r8.ArchiveProgramResourceProvider;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8;
@@ -11,9 +12,14 @@ import com.android.tools.r8.D8Command;
 import com.android.tools.r8.DexFilePerClassFileConsumer;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.DiagnosticsHandler;
+import com.android.tools.r8.ProgramResource;
+import com.android.tools.r8.ProgramResource.Kind;
+import com.android.tools.r8.ProgramResourceProvider;
+import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.origin.ArchiveEntryOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
+import com.android.tools.r8.utils.StringDiagnostic;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -22,6 +28,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.zip.ZipEntry;
@@ -93,6 +100,7 @@ public class D8ApiUsageSample {
     useProgramFileBuilder(CompilationMode.DEBUG, minApiLevel, libraries, classpath, inputs);
     useProgramFileBuilder(CompilationMode.RELEASE, minApiLevel, libraries, classpath, inputs);
     useProgramDataBuilder(minApiLevel, libraries, classpath, inputs);
+    useProgramProvider(minApiLevel, libraries, classpath, inputs);
     useLibraryAndClasspathProvider(minApiLevel, libraries, classpath, inputs);
     useMainDexListFiles(minApiLevel, libraries, classpath, inputs, mainDexList);
     useMainDexClasses(minApiLevel, libraries, classpath, inputs, mainDexList);
@@ -111,7 +119,7 @@ public class D8ApiUsageSample {
           D8Command.builder(handler)
               .setMode(mode)
               .setMinApiLevel(minApiLevel)
-              .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+              .setProgramConsumer(new EnsureOutputConsumer())
               .addLibraryFiles(libraries)
               .addClasspathFiles(classpath)
               .addProgramFiles(inputs)
@@ -131,7 +139,7 @@ public class D8ApiUsageSample {
       D8Command.Builder builder =
           D8Command.builder(handler)
               .setMinApiLevel(minApiLevel)
-              .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+              .setProgramConsumer(new EnsureOutputConsumer())
               .addLibraryFiles(libraries)
               .addClasspathFiles(classpath);
       for (ClassFileContent classfile : readClassFiles(inputs)) {
@@ -145,6 +153,40 @@ public class D8ApiUsageSample {
     }
   }
 
+  // Check API support for compiling Java class-files from a program provider abstraction.
+  private static void useProgramProvider(
+      int minApiLevel,
+      Collection<Path> libraries,
+      Collection<Path> classpath,
+      Collection<Path> inputs) {
+    try {
+      D8Command.Builder builder =
+          D8Command.builder(handler)
+              .setMinApiLevel(minApiLevel)
+              .setProgramConsumer(new EnsureOutputConsumer())
+              .addLibraryFiles(libraries)
+              .addClasspathFiles(classpath);
+      for (Path input : inputs) {
+        if (isArchive(input)) {
+          builder.addProgramResourceProvider(
+              ArchiveProgramResourceProvider.fromArchive(
+                  input, ArchiveProgramResourceProvider::includeClassFileEntries));
+        } else {
+          builder.addProgramResourceProvider(
+              new ProgramResourceProvider() {
+                @Override
+                public Collection<ProgramResource> getProgramResources() throws ResourceException {
+                  return Collections.singleton(ProgramResource.fromFile(Kind.CF, input));
+                }
+              });
+        }
+      }
+      D8.run(builder.build());
+    } catch (CompilationFailedException e) {
+      throw new RuntimeException("Unexpected compilation exceptions", e);
+    }
+  }
+
   private static void useLibraryAndClasspathProvider(
       int minApiLevel,
       Collection<Path> libraries,
@@ -154,7 +196,7 @@ public class D8ApiUsageSample {
       D8Command.Builder builder =
           D8Command.builder(handler)
               .setMinApiLevel(minApiLevel)
-              .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+              .setProgramConsumer(new EnsureOutputConsumer())
               .addProgramFiles(inputs);
       for (Path library : libraries) {
         builder.addLibraryResourceProvider(new ArchiveClassFileProvider(library));
@@ -180,7 +222,7 @@ public class D8ApiUsageSample {
       D8.run(
           D8Command.builder(handler)
               .setMinApiLevel(minApiLevel)
-              .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+              .setProgramConsumer(new EnsureOutputConsumer())
               .addLibraryFiles(libraries)
               .addClasspathFiles(classpath)
               .addProgramFiles(inputs)
@@ -211,7 +253,7 @@ public class D8ApiUsageSample {
       D8.run(
           D8Command.builder(handler)
               .setMinApiLevel(minApiLevel)
-              .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+              .setProgramConsumer(new EnsureOutputConsumer())
               .addLibraryFiles(libraries)
               .addClasspathFiles(classpath)
               .addProgramFiles(inputs)
@@ -284,7 +326,7 @@ public class D8ApiUsageSample {
     D8Command.Builder builder =
         D8Command.builder(handler)
             .setMinApiLevel(minApiLevel)
-            .setProgramConsumer(DexIndexedConsumer.emptyConsumer());
+            .setProgramConsumer(new EnsureOutputConsumer());
     for (byte[] intermediate : intermediates) {
       builder.addDexProgramData(intermediate, Origin.unknown());
     }
@@ -386,5 +428,22 @@ public class D8ApiUsageSample {
 
     @Override
     public void finished(DiagnosticsHandler handler) {}
+  }
+
+  private static class EnsureOutputConsumer implements DexIndexedConsumer {
+    boolean hasOutput = false;
+
+    @Override
+    public synchronized void accept(
+        int fileIndex, byte[] data, Set<String> descriptors, DiagnosticsHandler handler) {
+      hasOutput = true;
+    }
+
+    @Override
+    public void finished(DiagnosticsHandler handler) {
+      if (!hasOutput) {
+        handler.error(new StringDiagnostic("Expected to produce output but had none"));
+      }
+    }
   }
 }

@@ -4,12 +4,17 @@
 package com.android.tools.apiusagesample;
 
 import com.android.tools.r8.ArchiveClassFileProvider;
+import com.android.tools.r8.ArchiveProgramResourceProvider;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.DiagnosticsHandler;
+import com.android.tools.r8.ProgramResource;
+import com.android.tools.r8.ProgramResource.Kind;
+import com.android.tools.r8.ProgramResourceProvider;
 import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
+import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.origin.ArchiveEntryOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
@@ -22,6 +27,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.zip.ZipEntry;
@@ -98,6 +104,7 @@ public class R8ApiUsageSample {
     useProgramFileBuilder(CompilationMode.DEBUG, minApiLevel, libraries, inputs);
     useProgramFileBuilder(CompilationMode.RELEASE, minApiLevel, libraries, inputs);
     useProgramDataBuilder(minApiLevel, libraries, inputs);
+    useProgramProvider(minApiLevel, libraries, inputs);
     useLibraryProvider(minApiLevel, libraries, inputs);
     useMainDexListFiles(minApiLevel, libraries, inputs, mainDexList);
     useMainDexClasses(minApiLevel, libraries, inputs, mainDexList);
@@ -115,7 +122,7 @@ public class R8ApiUsageSample {
           R8Command.builder(handler)
               .setMode(mode)
               .setMinApiLevel(minApiLevel)
-              .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+              .setProgramConsumer(new EnsureOutputConsumer())
               .addLibraryFiles(libraries)
               .addProgramFiles(inputs)
               .build());
@@ -131,7 +138,7 @@ public class R8ApiUsageSample {
       R8Command.Builder builder =
           R8Command.builder(handler)
               .setMinApiLevel(minApiLevel)
-              .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+              .setProgramConsumer(new EnsureOutputConsumer())
               .addLibraryFiles(libraries);
       for (ClassFileContent classfile : readClassFiles(inputs)) {
         builder.addClassProgramData(classfile.data, classfile.origin);
@@ -144,13 +151,43 @@ public class R8ApiUsageSample {
     }
   }
 
+  // Check API support for compiling Java class-files from a program provider abstraction.
+  private static void useProgramProvider(
+      int minApiLevel, Collection<Path> libraries, Collection<Path> inputs) {
+    try {
+      R8Command.Builder builder =
+          R8Command.builder(handler)
+              .setMinApiLevel(minApiLevel)
+              .setProgramConsumer(new EnsureOutputConsumer())
+              .addLibraryFiles(libraries);
+      for (Path input : inputs) {
+        if (isArchive(input)) {
+          builder.addProgramResourceProvider(
+              ArchiveProgramResourceProvider.fromArchive(
+                  input, ArchiveProgramResourceProvider::includeClassFileEntries));
+        } else {
+          builder.addProgramResourceProvider(
+              new ProgramResourceProvider() {
+                @Override
+                public Collection<ProgramResource> getProgramResources() throws ResourceException {
+                  return Collections.singleton(ProgramResource.fromFile(Kind.CF, input));
+                }
+              });
+        }
+      }
+      R8.run(builder.build());
+    } catch (CompilationFailedException e) {
+      throw new RuntimeException("Unexpected compilation exceptions", e);
+    }
+  }
+
   private static void useLibraryProvider(
       int minApiLevel, Collection<Path> libraries, Collection<Path> inputs) {
     try {
       R8Command.Builder builder =
           R8Command.builder(handler)
               .setMinApiLevel(minApiLevel)
-              .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+              .setProgramConsumer(new EnsureOutputConsumer())
               .addProgramFiles(inputs);
       for (Path library : libraries) {
         builder.addLibraryResourceProvider(new ArchiveClassFileProvider(library));
@@ -172,7 +209,7 @@ public class R8ApiUsageSample {
       R8.run(
           R8Command.builder(handler)
               .setMinApiLevel(minApiLevel)
-              .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+              .setProgramConsumer(new EnsureOutputConsumer())
               .addLibraryFiles(libraries)
               .addProgramFiles(inputs)
               .addMainDexListFiles(mainDexList)
@@ -201,7 +238,7 @@ public class R8ApiUsageSample {
       R8.run(
           R8Command.builder(handler)
               .setMinApiLevel(minApiLevel)
-              .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+              .setProgramConsumer(new EnsureOutputConsumer())
               .addLibraryFiles(libraries)
               .addProgramFiles(inputs)
               .addMainDexClasses(mainDexClasses)
@@ -222,7 +259,7 @@ public class R8ApiUsageSample {
       R8.run(
           R8Command.builder(handler)
               .setMinApiLevel(minApiLevel)
-              .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+              .setProgramConsumer(new EnsureOutputConsumer())
               .addLibraryFiles(libraries)
               .addProgramFiles(inputs)
               .addMainDexRulesFiles(mainDexRules)
@@ -241,7 +278,7 @@ public class R8ApiUsageSample {
       R8Command.Builder builder =
           R8Command.builder(handler)
               .setMinApiLevel(minApiLevel)
-              .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+              .setProgramConsumer(new EnsureOutputConsumer())
               .addLibraryFiles(libraries)
               .addProgramFiles(inputs);
       for (Path mainDexRulesFile : mainDexRulesFiles) {
