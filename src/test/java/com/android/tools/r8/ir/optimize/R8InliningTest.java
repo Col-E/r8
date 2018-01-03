@@ -1,16 +1,34 @@
 // Copyright (c) 2017, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-package com.android.tools.r8.utils;
+package com.android.tools.r8.ir.optimize;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.R8Command;
+import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.code.AddInt2Addr;
+import com.android.tools.r8.code.Const4;
+import com.android.tools.r8.code.Goto;
+import com.android.tools.r8.code.IfEqz;
+import com.android.tools.r8.code.Iget;
+import com.android.tools.r8.code.InvokeVirtual;
+import com.android.tools.r8.code.MoveResult;
+import com.android.tools.r8.code.MulInt2Addr;
+import com.android.tools.r8.code.PackedSwitch;
+import com.android.tools.r8.code.PackedSwitchPayload;
+import com.android.tools.r8.code.Return;
+import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.DexInspector.MethodSubject;
+import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.OutputMode;
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -22,15 +40,13 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class R8InliningTest {
+public class R8InliningTest extends TestBase {
 
-  private static final String JAR_EXTENSION = ".jar";
   private static final String DEFAULT_DEX_FILENAME = "classes.dex";
   private static final String DEFAULT_MAP_FILENAME = "proguard.map";
 
@@ -39,8 +55,6 @@ public class R8InliningTest {
     return Arrays.asList(new Object[][]{{"Inlining"}});
   }
 
-  @Rule
-  public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
   private final String name;
   private final String keepRulesFile;
 
@@ -50,7 +64,7 @@ public class R8InliningTest {
   }
 
   private Path getInputFile() {
-    return Paths.get(ToolHelper.EXAMPLES_BUILD_DIR, name + JAR_EXTENSION);
+    return Paths.get(ToolHelper.EXAMPLES_BUILD_DIR, name + FileUtils.JAR_EXTENSION);
   }
 
   private Path getOriginalDexFile() {
@@ -133,5 +147,73 @@ public class R8InliningTest {
       dump(getGeneratedDexFile(), "Generated");
     }
     assertTrue("Inlining failed to reduce size", original > generated);
+  }
+
+  @Test
+  public void invokeOnNullableReceiver() throws Exception {
+    DexInspector inspector =
+        new DexInspector(getGeneratedDexFile().toAbsolutePath(), getGeneratedProguardMap());
+    ClassSubject clazz = inspector.clazz("inlining.Nullability");
+    MethodSubject m1 = clazz.method("int", "inlinable", ImmutableList.of("inlining.A"));
+    assertTrue(m1.isPresent());
+    DexCode code = m1.getMethod().getCode().asDexCode();
+    assertEquals(5, code.instructions.length);
+    assertTrue(code.instructions[0] instanceof Iget);
+    // TODO(b/70572176): below two could be replaced with Iget via inlining
+    assertTrue(code.instructions[1] instanceof InvokeVirtual);
+    assertTrue(code.instructions[2] instanceof MoveResult);
+    assertTrue(code.instructions[3] instanceof AddInt2Addr);
+    assertTrue(code.instructions[4] instanceof Return);
+
+    MethodSubject m2 = clazz.method("int", "notInlinable", ImmutableList.of("inlining.A"));
+    assertTrue(m2.isPresent());
+    code = m2.getMethod().getCode().asDexCode();
+    assertEquals(5, code.instructions.length);
+    assertTrue(code.instructions[0] instanceof InvokeVirtual);
+    assertTrue(code.instructions[1] instanceof MoveResult);
+    assertTrue(code.instructions[2] instanceof Iget);
+    assertTrue(code.instructions[3] instanceof AddInt2Addr);
+    assertTrue(code.instructions[4] instanceof Return);
+  }
+
+  @Test
+  public void invokeOnNonNullReceiver() throws Exception {
+    DexInspector inspector =
+        new DexInspector(getGeneratedDexFile().toAbsolutePath(), getGeneratedProguardMap());
+    ClassSubject clazz = inspector.clazz("inlining.Nullability");
+    MethodSubject m1 = clazz.method("int", "conditionalOperator", ImmutableList.of("inlining.A"));
+    assertTrue(m1.isPresent());
+    DexCode code = m1.getMethod().getCode().asDexCode();
+    assertEquals(6, code.instructions.length);
+    assertTrue(code.instructions[0] instanceof IfEqz);
+    // TODO(b/70794661): below two could be replaced with Iget via inlining
+    assertTrue(code.instructions[1] instanceof InvokeVirtual);
+    assertTrue(code.instructions[2] instanceof MoveResult);
+    assertTrue(code.instructions[3] instanceof Goto);
+    assertTrue(code.instructions[4] instanceof Const4);
+    assertTrue(code.instructions[5] instanceof Return);
+
+    MethodSubject m2 = clazz.method("int", "moreControlFlows",
+        ImmutableList.of("inlining.A", "inlining.Nullability$Factor"));
+    assertTrue(m2.isPresent());
+    code = m2.getMethod().getCode().asDexCode();
+    assertEquals(19, code.instructions.length);
+    // Enum#ordinal
+    assertTrue(code.instructions[0] instanceof InvokeVirtual);
+    assertTrue(code.instructions[1] instanceof MoveResult);
+    assertTrue(code.instructions[2] instanceof PackedSwitch);
+    for (int i = 3; i < 11; ) {
+      assertTrue(code.instructions[i++] instanceof Const4);
+      assertTrue(code.instructions[i++] instanceof Goto);
+    }
+    assertTrue(code.instructions[11] instanceof Const4);
+    assertTrue(code.instructions[12] instanceof IfEqz);
+    assertTrue(code.instructions[13] instanceof IfEqz);
+    // TODO(b/70794661): below two could be replaced with Iget via inlining
+    assertTrue(code.instructions[14] instanceof InvokeVirtual);
+    assertTrue(code.instructions[15] instanceof MoveResult);
+    assertTrue(code.instructions[16] instanceof MulInt2Addr);
+    assertTrue(code.instructions[17] instanceof Return);
+    assertTrue(code.instructions[18] instanceof PackedSwitchPayload);
   }
 }
