@@ -61,12 +61,15 @@ public class D8ApiUsageSample {
     // (everything is put into providers) so manually parse them here.
     List<Path> libraries = new ArrayList<>(1);
     List<Path> classpath = new ArrayList<>(args.length);
+    List<Path> mainDexList = new ArrayList<>(1);
     List<Path> inputs = new ArrayList<>(args.length);
     for (int i = 0; i < args.length; i++) {
       if (args[i].equals("--lib")) {
         libraries.add(Paths.get(args[++i]));
       } else if (args[i].equals("--classpath")) {
         classpath.add(Paths.get(args[++i]));
+      } else if (args[i].equals("--main-dex-list")) {
+        mainDexList.add(Paths.get(args[++i]));
       } else if (isArchive(args[i]) || isClassFile(args[i])) {
         inputs.add(Paths.get(args[i]));
       }
@@ -83,11 +86,16 @@ public class D8ApiUsageSample {
     if (libraries.isEmpty()) {
       throw new RuntimeException("Must supply library inputs");
     }
+    if (mainDexList.isEmpty()) {
+      throw new RuntimeException("Must supply main-dex-list inputs");
+    }
 
     useProgramFileBuilder(CompilationMode.DEBUG, minApiLevel, libraries, classpath, inputs);
     useProgramFileBuilder(CompilationMode.RELEASE, minApiLevel, libraries, classpath, inputs);
     useProgramDataBuilder(minApiLevel, libraries, classpath, inputs);
     useLibraryAndClasspathProvider(minApiLevel, libraries, classpath, inputs);
+    useMainDexListFiles(minApiLevel, libraries, classpath, inputs, mainDexList);
+    useMainDexClasses(minApiLevel, libraries, classpath, inputs, mainDexList);
     incrementalCompileAndMerge(minApiLevel, libraries, classpath, inputs);
   }
 
@@ -155,6 +163,60 @@ public class D8ApiUsageSample {
         builder.addClasspathResourceProvider(new ArchiveClassFileProvider(path));
       }
       D8.run(builder.build());
+    } catch (CompilationFailedException e) {
+      throw new RuntimeException("Unexpected compilation exceptions", e);
+    } catch (IOException e) {
+      throw new RuntimeException("Unexpected IO exception", e);
+    }
+  }
+
+  private static void useMainDexListFiles(
+      int minApiLevel,
+      Collection<Path> libraries,
+      Collection<Path> classpath,
+      Collection<Path> inputs,
+      Collection<Path> mainDexList) {
+    try {
+      D8.run(
+          D8Command.builder(handler)
+              .setMinApiLevel(minApiLevel)
+              .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+              .addLibraryFiles(libraries)
+              .addClasspathFiles(classpath)
+              .addProgramFiles(inputs)
+              .addMainDexListFiles(mainDexList)
+              .build());
+    } catch (CompilationFailedException e) {
+      throw new RuntimeException("Unexpected compilation exceptions", e);
+    }
+  }
+
+  private static void useMainDexClasses(
+      int minApiLevel,
+      Collection<Path> libraries,
+      Collection<Path> classpath,
+      Collection<Path> inputs,
+      Collection<Path> mainDexList) {
+    try {
+      List<String> mainDexClasses = new ArrayList<>(1);
+      for (Path path : mainDexList) {
+        for (String line : Files.readAllLines(path)) {
+          String entry = line.trim();
+          if (entry.isEmpty() || entry.startsWith("#") || !entry.endsWith(".class")) {
+            continue;
+          }
+          mainDexClasses.add(entry.replace(".class", "").replace("/", "."));
+        }
+      }
+      D8.run(
+          D8Command.builder(handler)
+              .setMinApiLevel(minApiLevel)
+              .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+              .addLibraryFiles(libraries)
+              .addClasspathFiles(classpath)
+              .addProgramFiles(inputs)
+              .addMainDexClasses(mainDexClasses)
+              .build());
     } catch (CompilationFailedException e) {
       throw new RuntimeException("Unexpected compilation exceptions", e);
     } catch (IOException e) {

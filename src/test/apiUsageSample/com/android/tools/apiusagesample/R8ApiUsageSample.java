@@ -164,7 +164,10 @@ public class R8ApiUsageSample {
   }
 
   private static void useMainDexListFiles(
-      int minApiLevel, List<Path> libraries, List<Path> inputs, List<Path> mainDexList) {
+      int minApiLevel,
+      Collection<Path> libraries,
+      Collection<Path> inputs,
+      Collection<Path> mainDexList) {
     try {
       R8.run(
           R8Command.builder(handler)
@@ -180,7 +183,10 @@ public class R8ApiUsageSample {
   }
 
   private static void useMainDexClasses(
-      int minApiLevel, List<Path> libraries, List<Path> inputs, List<Path> mainDexList) {
+      int minApiLevel,
+      Collection<Path> libraries,
+      Collection<Path> inputs,
+      Collection<Path> mainDexList) {
     try {
       List<String> mainDexClasses = new ArrayList<>(1);
       for (Path path : mainDexList) {
@@ -208,7 +214,10 @@ public class R8ApiUsageSample {
   }
 
   private static void useMainDexRulesFiles(
-      int minApiLevel, List<Path> libraries, List<Path> inputs, List<Path> mainDexRules) {
+      int minApiLevel,
+      Collection<Path> libraries,
+      Collection<Path> inputs,
+      Collection<Path> mainDexRules) {
     try {
       R8.run(
           R8Command.builder(handler)
@@ -224,7 +233,10 @@ public class R8ApiUsageSample {
   }
 
   private static void useMainDexRules(
-      int minApiLevel, List<Path> libraries, List<Path> inputs, List<Path> mainDexRulesFiles) {
+      int minApiLevel,
+      Collection<Path> libraries,
+      Collection<Path> inputs,
+      Collection<Path> mainDexRulesFiles) {
     try {
       R8Command.Builder builder =
           R8Command.builder(handler)
@@ -246,9 +258,9 @@ public class R8ApiUsageSample {
 
   private static void useProguardConfigFiles(
       int minApiLevel,
-      List<Path> libraries,
-      List<Path> inputs,
-      List<Path> mainDexList,
+      Collection<Path> libraries,
+      Collection<Path> inputs,
+      Collection<Path> mainDexList,
       List<Path> pgConf) {
     try {
       R8.run(
@@ -267,9 +279,9 @@ public class R8ApiUsageSample {
 
   private static void useProguardConfigLines(
       int minApiLevel,
-      List<Path> libraries,
-      List<Path> inputs,
-      List<Path> mainDexList,
+      Collection<Path> libraries,
+      Collection<Path> inputs,
+      Collection<Path> mainDexList,
       List<Path> pgConf) {
     try {
       R8Command.Builder builder =

@@ -7,6 +7,7 @@ import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.FileUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.Files;
 import java.io.File;
@@ -83,9 +84,9 @@ public class D8ApiBinaryCompatibilityTests {
     List<Path> input =
         ImmutableList.of(
             inputDir.resolve("ImplementMethodsWithDefault.class"), inputDir.resolve("Main.class"));
-    File mainDexClasses = temp.newFile();
-    Files.asCharSink(mainDexClasses, StandardCharsets.UTF_8)
-        .write("desugaringwithmissingclasstest1/Main.class");
+
+    Path mainDexList = temp.getRoot().toPath().resolve("maindexlist.txt");
+    FileUtils.writeTextFile(mainDexList, "desugaringwithmissingclasstest1/Main.class");
 
     List<String> command =
         ImmutableList.<String>builder()
@@ -100,6 +101,8 @@ public class D8ApiBinaryCompatibilityTests {
                     temp.newFolder().getAbsolutePath(),
                     "--min-api",
                     Integer.toString(minApiLevel),
+                    "--main-dex-list",
+                    mainDexList.toString(),
                     "--lib",
                     ToolHelper.getAndroidJar(minApiLevel),
                     "--classpath",

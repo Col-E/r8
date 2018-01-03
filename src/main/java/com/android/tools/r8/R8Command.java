@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -112,10 +113,8 @@ public class R8Command extends BaseCompilerCommand {
       return self();
     }
 
-    /**
-     * Add proguard configuration file resources for automatic main dex list calculation.
-     */
-    public Builder addMainDexRulesFiles(List<Path> paths) {
+    /** Add proguard configuration file resources for automatic main dex list calculation. */
+    public Builder addMainDexRulesFiles(Collection<Path> paths) {
       guard(() -> {
         for (Path path : paths) {
           mainDexRules.add(new ProguardConfigurationSourceFile(path));
