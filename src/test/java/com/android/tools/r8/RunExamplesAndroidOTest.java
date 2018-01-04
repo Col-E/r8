@@ -180,63 +180,88 @@ public abstract class RunExamplesAndroidOTest
       ImmutableList.of(
           "invokepolymorphic-error-due-to-min-sdk", "invokecustom-error-due-to-min-sdk");
 
-  private static Map<DexVm.Version, List<String>> failsOn =
-      ImmutableMap.of(
-          DexVm.Version.V4_4_4, ImmutableList.of(
-              // API not supported
-              "paramnames",
-              "repeat_annotations_new_api",
-              // Dex version not supported
-              "invokepolymorphic",
-              "invokecustom",
-              "invokecustom2",
-              "DefaultMethodInAndroidJar25",
-              "StaticMethodInAndroidJar25",
-              "testMissingInterfaceDesugared2AndroidO",
-              "testCallToMissingSuperInterfaceDesugaredAndroidO",
-              "testMissingSuperDesugaredAndroidO"
-          ),
-          DexVm.Version.V5_1_1, ImmutableList.of(
-              // API not supported
-              "paramnames",
-              "repeat_annotations_new_api",
-              // Dex version not supported
-              "invokepolymorphic",
-              "invokecustom",
-              "invokecustom2",
-              "DefaultMethodInAndroidJar25",
-              "StaticMethodInAndroidJar25",
-              "testMissingInterfaceDesugared2AndroidO",
-              "testCallToMissingSuperInterfaceDesugaredAndroidO",
-              "testMissingSuperDesugaredAndroidO"
-          ),
-          DexVm.Version.V6_0_1, ImmutableList.of(
-              // API not supported
-              "paramnames",
-              "repeat_annotations_new_api",
-              // Dex version not supported
-              "invokepolymorphic",
-              "invokecustom",
-              "invokecustom2",
-              "DefaultMethodInAndroidJar25",
-              "StaticMethodInAndroidJar25",
-              "testMissingInterfaceDesugared2AndroidO",
-              "testCallToMissingSuperInterfaceDesugaredAndroidO",
-              "testMissingSuperDesugaredAndroidO"
-          ),
-          DexVm.Version.V7_0_0, ImmutableList.of(
-              // API not supported
-              "paramnames",
-              // Dex version not supported
-              "invokepolymorphic",
-              "invokecustom",
-              "invokecustom2",
-              "testMissingInterfaceDesugared2AndroidO",
-              "testCallToMissingSuperInterfaceDesugaredAndroidO",
-              "testMissingSuperDesugaredAndroidO"
-          ),
-          DexVm.Version.DEFAULT, ImmutableList.of()
-      );
+  private static Map<DexVm.Version, List<String>> failsOn;
+
+  static {
+    ImmutableMap.Builder<DexVm.Version, List<String>> builder = ImmutableMap.builder();
+    builder
+        .put(
+            DexVm.Version.V4_0_4, ImmutableList.of(
+                // API not supported
+                "paramnames",
+                "repeat_annotations_new_api",
+                // Dex version not supported
+                "invokepolymorphic",
+                "invokecustom",
+                "invokecustom2",
+                "DefaultMethodInAndroidJar25",
+                "StaticMethodInAndroidJar25",
+                "testMissingInterfaceDesugared2AndroidO",
+                "testCallToMissingSuperInterfaceDesugaredAndroidO",
+                "testMissingSuperDesugaredAndroidO"
+            ))
+        .put(
+            DexVm.Version.V4_4_4, ImmutableList.of(
+                // API not supported
+                "paramnames",
+                "repeat_annotations_new_api",
+                // Dex version not supported
+                "invokepolymorphic",
+                "invokecustom",
+                "invokecustom2",
+                "DefaultMethodInAndroidJar25",
+                "StaticMethodInAndroidJar25",
+                "testMissingInterfaceDesugared2AndroidO",
+                "testCallToMissingSuperInterfaceDesugaredAndroidO",
+                "testMissingSuperDesugaredAndroidO"
+            ))
+        .put(
+            DexVm.Version.V5_1_1, ImmutableList.of(
+                // API not supported
+                "paramnames",
+                "repeat_annotations_new_api",
+                // Dex version not supported
+                "invokepolymorphic",
+                "invokecustom",
+                "invokecustom2",
+                "DefaultMethodInAndroidJar25",
+                "StaticMethodInAndroidJar25",
+                "testMissingInterfaceDesugared2AndroidO",
+                "testCallToMissingSuperInterfaceDesugaredAndroidO",
+                "testMissingSuperDesugaredAndroidO"
+            ))
+        .put(
+            DexVm.Version.V6_0_1, ImmutableList.of(
+                // API not supported
+                "paramnames",
+                "repeat_annotations_new_api",
+                // Dex version not supported
+                "invokepolymorphic",
+                "invokecustom",
+                "invokecustom2",
+                "DefaultMethodInAndroidJar25",
+                "StaticMethodInAndroidJar25",
+                "testMissingInterfaceDesugared2AndroidO",
+                "testCallToMissingSuperInterfaceDesugaredAndroidO",
+                "testMissingSuperDesugaredAndroidO"
+            ))
+        .put(
+            DexVm.Version.V7_0_0, ImmutableList.of(
+                // API not supported
+                "paramnames",
+                // Dex version not supported
+                "invokepolymorphic",
+                "invokecustom",
+                "invokecustom2",
+                "testMissingInterfaceDesugared2AndroidO",
+                "testCallToMissingSuperInterfaceDesugaredAndroidO",
+                "testMissingSuperDesugaredAndroidO"
+            ))
+        .put(
+            DexVm.Version.DEFAULT, ImmutableList.of()
+        );
+    failsOn = builder.build();
+  }
 
   @Rule
   public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();

@@ -171,32 +171,37 @@ public abstract class RunExamplesJava9Test
   private static List<String> minSdkErrorExpected =
       ImmutableList.of("varhandle-error-due-to-min-sdk");
 
-  private static Map<DexVm.Version, List<String>> failsOn =
-      ImmutableMap.of(
-          DexVm.Version.V4_4_4, ImmutableList.of(
-              "native-private-interface-methods",
-              // Dex version not supported
-              "varhandle"
-          ),
-          DexVm.Version.V5_1_1, ImmutableList.of(
-              "native-private-interface-methods",
-              // Dex version not supported
-              "varhandle"
-          ),
-          DexVm.Version.V6_0_1, ImmutableList.of(
-              "native-private-interface-methods",
-              // Dex version not supported
-              "varhandle"
-          ),
-          DexVm.Version.V7_0_0, ImmutableList.of(
-              // Dex version not supported
-              "varhandle"
-          ),
-          DexVm.Version.DEFAULT, ImmutableList.of(
-              // TODO(mikaelpeltier): Update runtime when the support will be ready
-              "varhandle"
-          )
-      );
+  private static Map<DexVm.Version, List<String>> failsOn;
+
+  static {
+    ImmutableMap.Builder<DexVm.Version, List<String>> builder = ImmutableMap.builder();
+    builder
+        .put(DexVm.Version.V4_0_4, ImmutableList.of(
+            "native-private-interface-methods",// Dex version not supported
+            "varhandle"
+        ))
+        .put(DexVm.Version.V4_4_4, ImmutableList.of(
+            "native-private-interface-methods",// Dex version not supported
+            "varhandle"
+        ))
+        .put(DexVm.Version.V5_1_1, ImmutableList.of(
+            "native-private-interface-methods",// Dex version not supported
+            "varhandle"
+        ))
+        .put(DexVm.Version.V6_0_1, ImmutableList.of("native-private-interface-methods",
+            // Dex version not supported
+            "varhandle"
+        ))
+        .put(DexVm.Version.V7_0_0, ImmutableList.of(
+            // Dex version not supported
+            "varhandle"
+        ))
+        .put(DexVm.Version.DEFAULT, ImmutableList.of(
+            // TODO(mikaelpeltier): Update runtime when the support will be ready
+            "varhandle"
+        ));
+    failsOn = builder.build();
+  }
 
   // Defines methods failing on JVM, specifies the output to be used for comparison.
   private static Map<String, String> expectedJvmResult =

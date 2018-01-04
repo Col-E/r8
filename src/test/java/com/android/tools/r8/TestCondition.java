@@ -99,6 +99,10 @@ public class TestCondition {
     return new RuntimeSet(EnumSet.copyOf(Arrays.asList(runtimes)));
   }
 
+  public static RuntimeSet runtimesUpTo(DexVm.Version upto) {
+    return new RuntimeSet(EnumSet.range(DexVm.Version.first(), upto));
+  }
+
   public static TestCondition match(
       ToolSet tools,
       CompilerSet compilers,

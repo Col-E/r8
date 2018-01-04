@@ -173,25 +173,19 @@ public abstract class RunExamplesAndroidPTest
           "invokepolymorphic-error-due-to-min-sdk", "invokecustom-error-due-to-min-sdk");
 
   private static Map<DexVm.Version, List<String>> failsOn =
-      ImmutableMap.of(
-          DexVm.Version.V4_4_4, ImmutableList.of(
-              // Dex version not supported
-              "invokecustom"
-          ),
-          DexVm.Version.V5_1_1, ImmutableList.of(
-              // Dex version not supported
-              "invokecustom"
-          ),
-          DexVm.Version.V6_0_1, ImmutableList.of(
-              // Dex version not supported
-              "invokecustom"
-          ),
-          DexVm.Version.V7_0_0, ImmutableList.of(
-              // Dex version not supported
-              "invokecustom"
-          ),
-          DexVm.Version.DEFAULT, ImmutableList.of()
-      );
+      ImmutableMap.<DexVm.Version, List<String>>builder()
+          // Dex version not supported
+          .put(DexVm.Version.V4_0_4, ImmutableList.of("invokecustom"))
+          // Dex version not supported
+          .put(DexVm.Version.V4_4_4, ImmutableList.of("invokecustom"))
+          // Dex version not supported
+          .put(DexVm.Version.V5_1_1, ImmutableList.of("invokecustom"))
+          // Dex version not supported
+          .put(DexVm.Version.V6_0_1, ImmutableList.of("invokecustom"))
+          // Dex version not supported
+          .put(DexVm.Version.V7_0_0, ImmutableList.of("invokecustom"))
+          .put(DexVm.Version.DEFAULT, ImmutableList.of())
+          .build();
 
   @Rule
   public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
