@@ -480,9 +480,12 @@ public class ToolHelper {
       // TODO(mikaelpeltier) Android P does not yet have his android.jar use the O version
       minSdkVersion = AndroidApiLevel.O.getLevel();
     }
-    return String.format(
+    String jar = String.format(
         ANDROID_JAR_PATTERN,
         minSdkVersion == AndroidApiLevel.getDefault().getLevel() ? DEFAULT_MIN_SDK : minSdkVersion);
+    assert Files.exists(Paths.get(jar))
+        : "Expected android jar to exist for API level " + minSdkVersion;
+    return jar;
   }
 
   public static Path getJdwpTestsCfJarPath(int minSdk) {
