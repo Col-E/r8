@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir;
 
-import com.android.tools.r8.R8;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.errors.DexOverflowException;
 import com.android.tools.r8.graph.AppInfo;
@@ -15,7 +15,6 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.conversion.IRConverter;
-import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
@@ -29,7 +28,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
 import org.antlr.runtime.RecognitionException;
 
 public class IrInjectionTestBase extends SmaliTestBase {
@@ -123,14 +121,7 @@ public class IrInjectionTestBase extends SmaliTestBase {
     private AndroidApp writeDex(DexApplication application, InternalOptions options)
         throws DexOverflowException {
       try {
-        R8.writeApplication(
-            Executors.newSingleThreadExecutor(),
-            application,
-            null,
-            NamingLens.getIdentityLens(),
-            null,
-            options,
-            null);
+        ToolHelper.writeApplication(application, options);
         options.signalFinishedToProgramConsumer();
         return consumers.build();
       } catch (ExecutionException e) {
