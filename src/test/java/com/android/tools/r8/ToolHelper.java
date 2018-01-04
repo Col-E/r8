@@ -561,7 +561,7 @@ public class ToolHelper {
   public static DexVm getDexVm() {
     String artVersion = System.getProperty("dex_vm");
     if (artVersion == null) {
-      return DexVm.ART_4_0_4_HOST; //DexVm.ART_DEFAULT;
+      return DexVm.ART_DEFAULT;
     } else {
       DexVm artVersionEnum = DexVm.fromShortName(artVersion);
       if (artVersionEnum == null) {
