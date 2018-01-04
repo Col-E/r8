@@ -897,12 +897,8 @@ public abstract class R8RunArtTestsTest {
           .put("800-smali", TestCondition.match(TestCondition.R8_COMPILER))
           // Contains a loop in the class hierarchy.
           .put("804-class-extends-itself", TestCondition.any())
-          // It is not possible to compute target of method call due to ambiguous methods, thus fail
-          // to generate one dex from several dex inputs that represent an invalid program.
-          .put("004-JniTest", TestCondition.match(TestCondition.R8_COMPILER))
           // These tests have illegal class flag combinations, so we reject them.
           .put("161-final-abstract-class", TestCondition.any())
-          .put("004-JniTest", TestCondition.any())
           .build();
 
   // Tests that does not have dex input for some toolchains.
