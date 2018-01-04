@@ -97,13 +97,12 @@ public class SmaliTestBase extends TestBase {
     try {
       Path dexOutputDir = temp.newFolder().toPath();
       R8Command command =
-          R8Command.builder()
+          ToolHelper.addProguardConfigurationConsumer(R8Command.builder(), pgConsumer)
               .addDexProgramData(builder.compile(), EmbeddedOrigin.INSTANCE)
               .setOutput(dexOutputDir, OutputMode.DexIndexed)
               .setMode(CompilationMode.DEBUG)
               .addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()))
               .addProguardConfiguration(proguardConfigurations, Origin.unknown())
-              .addProguardConfigurationConsumer(pgConsumer)
               .build();
       ToolHelper.runR8WithFullResult(command, optionsConsumer);
       return dexOutputDir.resolve("classes.dex");

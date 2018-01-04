@@ -32,18 +32,19 @@ public class RenameSourceFileDebugTest extends DebugTestBase {
     Path outjar = outdir.resolve("r8_compiled.jar");
     Path proguardMapPath = outdir.resolve("proguard.map");
     ToolHelper.runR8(
-        R8Command.builder()
+        ToolHelper.addProguardConfigurationConsumer(
+                R8Command.builder(),
+                pgConfig -> {
+                  pgConfig.setRenameSourceFileAttribute(TEST_FILE);
+                  pgConfig.addKeepAttributePatterns(
+                      ImmutableList.of("SourceFile", "LineNumberTable"));
+                })
             .addProgramFiles(DEBUGGEE_JAR)
             .setMinApiLevel(minSdk)
             .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(minSdk)))
             .setMode(CompilationMode.DEBUG)
             .setOutput(outjar, OutputMode.DexIndexed)
             .setProguardMapOutput(proguardMapPath)
-            .addProguardConfigurationConsumer(
-                pg -> {
-                  pg.setRenameSourceFileAttribute(TEST_FILE);
-                  pg.addKeepAttributePatterns(ImmutableList.of("SourceFile", "LineNumberTable"));
-                })
             .build());
     config = new DexDebugTestConfig(outjar);
     config.setProguardMap(proguardMapPath);

@@ -93,10 +93,12 @@ public abstract class CompilationTestBase {
       builder.setMode(mode);
       builder.setProgramConsumer(DexIndexedConsumer.emptyConsumer());
       builder.setMinApiLevel(AndroidApiLevel.L.getLevel());
-      builder.addProguardConfigurationConsumer(b -> {
-        b.setPrintSeeds(false);
-        b.setIgnoreWarnings(true);
-      });
+      ToolHelper.addProguardConfigurationConsumer(
+          builder,
+          pgConfig -> {
+            pgConfig.setPrintSeeds(false);
+            pgConfig.setIgnoreWarnings(true);
+          });
       outputApp = ToolHelper.runR8(builder.build(), optionsConsumer);
     } else {
       assert compiler == CompilerUnderTest.D8;

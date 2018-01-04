@@ -76,12 +76,12 @@ public class ApplyMappingTest {
     }
     ProguardMapConsumer mapConsumer = new ProguardMapConsumer();
     runR8(
-        getCommandForApps(out, flagForObfuscation, NAMING044_JAR)
-            .setProguardMapConsumer(mapConsumer)
-            .addProguardConfigurationConsumer(
-                c -> {
-                  c.setPrintMapping(true);
-                  c.setPrintMappingFile(proguardMap);
+        ToolHelper.addProguardConfigurationConsumer(
+                getCommandForApps(out, flagForObfuscation, NAMING044_JAR)
+                    .setProguardMapConsumer(mapConsumer),
+                pgConfig -> {
+                  pgConfig.setPrintMapping(true);
+                  pgConfig.setPrintMappingFile(proguardMap);
                 })
             .build());
 
@@ -92,13 +92,13 @@ public class ApplyMappingTest {
 
     Path instrOut = temp.newFolder("instr").toPath();
     Path flag = Paths.get(ToolHelper.EXAMPLES_DIR, "applymapping044", "keep-rules.txt");
-    AndroidApp instrApp = runR8(
-        getCommandForInstrumentation(instrOut, flag, NAMING044_JAR, APPLYMAPPING044_JAR)
-            .addProguardConfigurationConsumer(c -> {
-              c.setApplyMappingFile(proguardMap);
-            })
-            .setMinification(false)
-            .build());
+    AndroidApp instrApp =
+        runR8(
+            ToolHelper.addProguardConfigurationConsumer(
+                    getCommandForInstrumentation(instrOut, flag, NAMING044_JAR, APPLYMAPPING044_JAR)
+                        .setMinification(false),
+                    pgConfig -> pgConfig.setApplyMappingFile(proguardMap))
+                .build());
 
     DexInspector inspector = new DexInspector(instrApp);
     MethodSubject main = inspector.clazz("applymapping044.Main").method(DexInspector.MAIN);
@@ -181,14 +181,15 @@ public class ApplyMappingTest {
     // keep rules to reserve D and E, along with a proguard map.
     Path flag = Paths.get(ToolHelper.EXAMPLES_DIR, "naming001", "keep-rules-105.txt");
     Path proguardMap = out.resolve(MAPPING);
-    AndroidApp outputApp = runR8(
-        getCommandForApps(out, flag, NAMING001_JAR)
-            .addProguardConfigurationConsumer(c -> {
-              c.setPrintMapping(true);
-              c.setPrintMappingFile(proguardMap);
-            })
-            .setMinification(false)
-            .build());
+    AndroidApp outputApp =
+        runR8(
+            ToolHelper.addProguardConfigurationConsumer(
+                    getCommandForApps(out, flag, NAMING001_JAR).setMinification(false),
+                    pgConfig -> {
+                      pgConfig.setPrintMapping(true);
+                      pgConfig.setPrintMappingFile(proguardMap);
+                    })
+                .build());
 
     // Make sure the given proguard map is indeed applied.
     DexInspector inspector = new DexInspector(outputApp);

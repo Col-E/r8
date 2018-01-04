@@ -131,17 +131,17 @@ public class TreeShakingTest {
     boolean inline = programFile.contains("inlining");
 
     R8Command command =
-        R8Command.builder()
+        ToolHelper.addProguardConfigurationConsumer(
+                R8Command.builder(),
+                pgConfig -> {
+                  pgConfig.setPrintMapping(true);
+                  pgConfig.setPrintMappingFile(out.resolve(ToolHelper.DEFAULT_PROGUARD_MAP_FILE));
+                  pgConfig.setOverloadAggressively(minify == MinifyMode.AGGRESSIVE);
+                  pgConfig.setObfuscating(minify.isMinify());
+                })
             .setOutput(out, OutputMode.DexIndexed)
             .addProgramFiles(Paths.get(programFile))
             .addProguardConfigurationFiles(ListUtils.map(keepRulesFiles, Paths::get))
-            .addProguardConfigurationConsumer(
-                builder -> {
-                  builder.setPrintMapping(true);
-                  builder.setPrintMappingFile(out.resolve(ToolHelper.DEFAULT_PROGUARD_MAP_FILE));
-                  builder.setOverloadAggressively(minify == MinifyMode.AGGRESSIVE);
-                  builder.setObfuscating(minify.isMinify());
-                })
             .addLibraryFiles(JAR_LIBRARIES)
             .build();
     ToolHelper.runR8(command, options -> {

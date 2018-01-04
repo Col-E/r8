@@ -191,20 +191,6 @@ public class R8Command extends BaseCompilerCommand {
     }
 
     /**
-     * Add and/or chain proguard configuration consumer(s) for testing.
-     */
-    public Builder addProguardConfigurationConsumer(Consumer<ProguardConfiguration.Builder> c) {
-      Consumer<ProguardConfiguration.Builder> oldConsumer = proguardConfigurationConsumer;
-      proguardConfigurationConsumer = builder -> {
-        if (oldConsumer != null) {
-          oldConsumer.accept(builder);
-        }
-        c.accept(builder);
-      };
-      return self();
-    }
-
-    /**
      * Set an output destination to which proguard-map content should be written.
      *
      * <p>This is a short-hand for setting a {@link StringConsumer.FileConsumer} using {@link
@@ -335,6 +321,18 @@ public class R8Command extends BaseCompilerCommand {
               proguardCompatibilityRulesOutput);
 
       return command;
+    }
+
+    // Internal for-testing method to add post-processors of the proguard configuration.
+    void addProguardConfigurationConsumerForTesting(Consumer<ProguardConfiguration.Builder> c) {
+      Consumer<ProguardConfiguration.Builder> oldConsumer = proguardConfigurationConsumer;
+      proguardConfigurationConsumer =
+          builder -> {
+            if (oldConsumer != null) {
+              oldConsumer.accept(builder);
+            }
+            c.accept(builder);
+          };
     }
   }
 
