@@ -38,7 +38,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Smali;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Maps;
+import com.google.common.collect.ImmutableMap;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -280,29 +280,18 @@ public class TypeAnalysisTest extends SmaliTestBase {
                 new MethodSignature("a", "void",
                     ImmutableList.of("Test", "Test", "Test", "Test")))
             .getMethod();
-
     DexType test = appInfo.dexItemFactory.createType("LTest;");
-    Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices = Maps.newHashMap();
-    expectedLattices.put(ArrayLength.class, PRIMITIVE);
-    expectedLattices.put(ConstNumber.class, PRIMITIVE);
-    expectedLattices.put(
-        ConstString.class, new ClassTypeLatticeElement(appInfo.dexItemFactory.stringType, false));
-    expectedLattices.put(CheckCast.class, new ClassTypeLatticeElement(test, true));
-    expectedLattices.put(NewInstance.class, new ClassTypeLatticeElement(test, false));
-
+    Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices = ImmutableMap.of(
+        ArrayLength.class, PRIMITIVE,
+        ConstNumber.class, PRIMITIVE,
+        ConstString.class, new ClassTypeLatticeElement(appInfo.dexItemFactory.stringType, false),
+        CheckCast.class, new ClassTypeLatticeElement(test, true),
+        NewInstance.class, new ClassTypeLatticeElement(test, false));
     try {
       IRCode irCode = method.buildIR(TEST_OPTIONS);
       TypeAnalysis analysis = new TypeAnalysis(appInfo, method, irCode);
       analysis.run();
-      analysis.forEach((v, l) -> {
-        if (v.definition == null) {
-          return;
-        }
-        TypeLatticeElement expected = expectedLattices.get(v.definition.getClass());
-        if (expected != null) {
-          assertEquals(expected, l);
-        }
-      });
+      analysis.forEach((v, l) -> verifyTypeEnvironment(expectedLattices, v, l));
     } catch (ApiLevelException e) {
       fail(e.getMessage());
     }
@@ -316,30 +305,32 @@ public class TypeAnalysisTest extends SmaliTestBase {
             .method(
                 new MethodSignature("onClick", "void", ImmutableList.of("Test")))
             .getMethod();
-
     DexType test = appInfo.dexItemFactory.createType("LTest;");
-    Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices = Maps.newHashMap();
-    expectedLattices.put(ConstNumber.class, PRIMITIVE);
-    expectedLattices.put(
-        ConstString.class, new ClassTypeLatticeElement(appInfo.dexItemFactory.stringType, false));
-    expectedLattices.put(InstanceOf.class, PRIMITIVE);
-    expectedLattices.put(StaticGet.class, new ClassTypeLatticeElement(test, true));
-
+    Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices = ImmutableMap.of(
+      ConstNumber.class, PRIMITIVE,
+      ConstString.class, new ClassTypeLatticeElement(appInfo.dexItemFactory.stringType, false),
+      InstanceOf.class, PRIMITIVE,
+      StaticGet.class, new ClassTypeLatticeElement(test, true));
     try {
       IRCode irCode = method.buildIR(TEST_OPTIONS);
       TypeAnalysis analysis = new TypeAnalysis(appInfo, method, irCode);
       analysis.run();
-      analysis.forEach((v, l) -> {
-        if (v.definition == null) {
-          return;
-        }
-        TypeLatticeElement expected = expectedLattices.get(v.definition.getClass());
-        if (expected != null) {
-          assertEquals(expected, l);
-        }
-      });
+      analysis.forEach((v, l) -> verifyTypeEnvironment(expectedLattices, v, l));
     } catch (ApiLevelException e) {
       fail(e.getMessage());
+    }
+  }
+
+  private static void verifyTypeEnvironment(
+      Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices,
+      Value v,
+      TypeLatticeElement l) {
+    if (v.definition == null) {
+      return;
+    }
+    TypeLatticeElement expected = expectedLattices.get(v.definition.getClass());
+    if (expected != null) {
+      assertEquals(expected, l);
     }
   }
 }
