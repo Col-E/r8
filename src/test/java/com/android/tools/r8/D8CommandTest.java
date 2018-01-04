@@ -23,6 +23,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Set;
 import java.util.zip.ZipFile;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -292,6 +293,31 @@ public class D8CommandTest {
       }
       assertTrue(outermost instanceof MyOrigin);
     }
+  }
+
+  @Test(expected = CompilationFailedException.class)
+  public void addMultiTypeProgramConsumer() throws CompilationFailedException {
+    class MultiTypeConsumer implements DexIndexedConsumer, DexFilePerClassFileConsumer {
+
+      @Override
+      public void accept(String primaryClassDescriptor, byte[] data, Set<String> descriptors,
+          DiagnosticsHandler handler) {
+
+      }
+
+      @Override
+      public void accept(int fileIndex, byte[] data, Set<String> descriptors,
+          DiagnosticsHandler handler) {
+
+      }
+
+      @Override
+      public void finished(DiagnosticsHandler handler) {
+
+      }
+    }
+
+    D8Command.builder().setProgramConsumer(new MultiTypeConsumer()).build();
   }
 
   private D8Command parse(String... args) throws CompilationFailedException {

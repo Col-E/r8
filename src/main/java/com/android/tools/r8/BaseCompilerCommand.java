@@ -12,6 +12,8 @@ import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.OutputMode;
 import com.android.tools.r8.utils.Reporter;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Base class for commands and command builders for compiler applications/tools which besides an
@@ -297,8 +299,31 @@ abstract class BaseCompilerCommand extends BaseCommand {
 
     @Override
     protected void validate() {
-      assert mode != null;
+      if (mode == null) {
+        reporter.error("Expected valid compilation mode, was null");
+      }
       FileUtils.validateOutputFile(outputPath, reporter);
+      List<Class> programConsumerClasses = new ArrayList<>(3);
+      if (programConsumer instanceof DexIndexedConsumer) {
+        programConsumerClasses.add(DexIndexedConsumer.class);
+      }
+      if (programConsumer instanceof DexFilePerClassFileConsumer) {
+        programConsumerClasses.add(DexFilePerClassFileConsumer.class);
+      }
+      if (programConsumer instanceof ClassFileConsumer) {
+        programConsumerClasses.add(ClassFileConsumer.class);
+      }
+      if (programConsumerClasses.size() > 1) {
+        StringBuilder builder = new StringBuilder()
+            .append("Invalid program consumer.")
+            .append(" A program consumer can implement at most one consumer type but ")
+            .append(programConsumer.getClass().getName())
+            .append(" implements types:");
+        for (Class clazz : programConsumerClasses) {
+          builder.append(" ").append(clazz.getName());
+        }
+        reporter.error(builder.toString());
+      }
       super.validate();
     }
   }
