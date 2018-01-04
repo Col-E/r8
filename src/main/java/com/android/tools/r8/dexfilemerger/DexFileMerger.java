@@ -16,6 +16,7 @@ import com.android.tools.r8.utils.StringDiagnostic;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -159,13 +160,37 @@ public class DexFileMerger {
     return null;
   }
 
-  private static Options parseArguments(String[] args) {
+  private static Options parseArguments(String[] args) throws IOException {
+    // We may have a single argument which is a parameter file path, prefixed with '@'.
+    if (args.length == 1 && args[0].startsWith("@")) {
+      // TODO(tamaskenez) Implement more sophisticated processing
+      // which is aligned with Blaze's
+      // com.google.devtools.common.options.ShellQuotedParamsFilePreProcessor
+      Path paramsFile = Paths.get(args[0].substring(1));
+      List<String> argsList = new ArrayList<>();
+      for (String s : Files.readAllLines(paramsFile)) {
+        s = s.trim();
+        if (s.isEmpty()) {
+          continue;
+        }
+        // Trim optional enclosing single quotes. Unescaping omitted for now.
+        if (s.length() >= 2 && s.startsWith("'") && s.endsWith("'")) {
+          s = s.substring(1, s.length() - 1);
+        }
+        argsList.add(s);
+      }
+      args = argsList.toArray(new String[argsList.size()]);
+    }
+
     Options options = new Options();
     ParseContext context = new ParseContext(args);
     List<String> strings;
     String string;
     Boolean b;
     while (context.head() != null) {
+      if (context.head().startsWith("@")) {
+        throw new RuntimeException("A params file must be the only argument: " + context.head());
+      }
       strings = tryParseMulti(context, "--input");
       if (strings != null) {
         options.inputArchives.addAll(strings);
