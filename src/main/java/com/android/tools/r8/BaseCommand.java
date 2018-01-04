@@ -23,9 +23,9 @@ import java.util.List;
 
 /**
  * Base class for commands and command builders for applications/tools which take an Android
- * application (and a main-dex list) as input.
+ * application sources (and optional main-dex list) as input.
  */
-abstract class BaseCommand {
+public abstract class BaseCommand {
 
   private final boolean printHelp;
   private final boolean printVersion;

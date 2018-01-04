@@ -6,6 +6,7 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.utils.VersionProperties;
 
+/** Version of the D8/R8 library. */
 public final class Version {
 
   // This field is accessed from release scripts using simple pattern matching.
@@ -20,6 +21,7 @@ public final class Version {
     System.out.println(VersionProperties.INSTANCE.getDescription());
   }
 
+  /** Is this a development version of the D8/R8 library. */
   public static boolean isDev() {
     return LABEL.endsWith("-dev") || VersionProperties.INSTANCE.isEngineering();
   }

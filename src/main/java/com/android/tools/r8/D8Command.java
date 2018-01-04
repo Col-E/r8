@@ -28,6 +28,7 @@ import java.util.Collection;
  *   D8Command command = D8Command.builder()
  *     .addProgramFiles(path1, path2)
  *     .setMode(CompilationMode.RELEASE)
+ *     .setOutput(Paths.get("output.zip", OutputMode.DexIndexed))
  *     .build();
  * </pre>
  */

@@ -17,12 +17,13 @@ import java.util.List;
 
 /**
  * Base class for commands and command builders for compiler applications/tools which besides an
- * Android application (and a main-dex list) also takes compilation output, compilation mode and
- * min API level as input.
+ * Android application (and optional main-dex list) also configure compilation output, compilation
+ * mode and min API level.
  */
-abstract class BaseCompilerCommand extends BaseCommand {
+public abstract class BaseCompilerCommand extends BaseCommand {
 
   // TODO(b/70656566): Remove this once the deprecated API is removed.
+  @Deprecated
   protected static class OutputOptions {
     final Path path;
     final OutputMode mode;

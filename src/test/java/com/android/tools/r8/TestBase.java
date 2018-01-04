@@ -277,16 +277,16 @@ public class TestBase {
   }
 
   /**
-   * Generate a Proguard configuration for keeping the "public static void main(String[])" method
-   * of the specified class.
+   * Generate a Proguard configuration for keeping the "public static void main(String[])" method of
+   * the specified class.
    */
   public static String keepMainProguardConfiguration(Class clazz) {
     return keepMainProguardConfiguration(clazz.getCanonicalName());
   }
 
   /**
-   * Generate a Proguard configuration for keeping the "public static void main(String[])" method
-   * of the specified class.
+   * Generate a Proguard configuration for keeping the "public static void main(String[])" method of
+   * the specified class.
    */
   public static String keepMainProguardConfiguration(String clazz) {
     return "-keep public class " + clazz + " {\n"
@@ -296,9 +296,9 @@ public class TestBase {
   }
 
   /**
-   * Generate a Proguard configuration for keeping the "public static void main(String[])" method
-   * of the specified class and specify if -allowaccessmodification and -dontobfuscate are added
-   * as well.
+   * Generate a Proguard configuration for keeping the "public static void main(String[])" method of
+   * the specified class and specify if -allowaccessmodification and -dontobfuscate are added as
+   * well.
    */
   public static String keepMainProguardConfiguration(
       Class clazz, boolean allowaccessmodification, boolean obfuscate) {

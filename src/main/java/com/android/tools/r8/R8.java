@@ -72,6 +72,35 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
+/**
+ * The R8 compiler.
+ *
+ * <p>R8 performs whole-program optimizing compilation of Java bytecode. It supports compilation of
+ * Java bytecode to Java bytecode or DEX bytecode. R8 supports tree-shaking the program to remove
+ * unneeded code and it supports minification of the program names to reduce the size of the
+ * resulting program.
+ *
+ * <p>The R8 API is intentionally limited and should "do the right thing" given a command. If this
+ * API does not suffice please contact the D8/R8 team.
+ *
+ * <p>R8 supports some configuration using configuration files mostly compatible with the format of
+ * the <a href="https://www.guardsquare.com/en/proguard">ProGuard</a> optimizer.
+ *
+ * <p>The compiler is invoked by calling {@link #run(R8Command) R8.run} with an appropriate {@link
+ * R8Command}. For example:
+ *
+ * <pre>
+ *   R8.run(R8Command.builder()
+ *       .addProgramFiles(inputPathA, inputPathB)
+ *       .addLibraryFiles(androidJar)
+ *       .setOutput(outputPath, OutputMode.DexIndexed)
+ *       .build());
+ * </pre>
+ *
+ * The above reads the input files denoted by {@code inputPathA} and {@code inputPathB}, compiles
+ * them to DEX bytecode, using {@code androidJar} as the reference of the system runtime library,
+ * and then writes the result to the directory or zip archive specified by {@code outputPath}.
+ */
 public class R8 {
 
   private final Timing timing = new Timing("R8");
@@ -80,6 +109,49 @@ public class R8 {
   private R8(InternalOptions options) {
     this.options = options;
     options.itemFactory.resetSortedIndices();
+  }
+
+  /**
+   * Main API entry for the R8 compiler.
+   *
+   * <p>The R8 API is intentionally limited and should "do the right thing" given a command. If this
+   * API does not suffice please contact the R8 team.
+   *
+   * @param command R8 command.
+   */
+  public static void run(R8Command command) throws CompilationFailedException {
+    AndroidApp app = command.getInputApp();
+    InternalOptions options = command.getInternalOptions();
+    ExecutorService executor = ThreadUtils.getExecutorService(options);
+    ExceptionUtils.withR8CompilationHandler(
+        command.getReporter(),
+        () -> {
+          try {
+            run(app, options, executor);
+          } finally {
+            executor.shutdown();
+          }
+        });
+  }
+
+  /**
+   * Main API entry for the R8 compiler.
+   *
+   * <p>The R8 API is intentionally limited and should "do the right thing" given a command. If this
+   * API does not suffice please contact the R8 team.
+   *
+   * @param command R8 command.
+   * @param executor executor service from which to get threads for multi-threaded processing.
+   */
+  public static void run(R8Command command, ExecutorService executor)
+      throws CompilationFailedException {
+    AndroidApp app = command.getInputApp();
+    InternalOptions options = command.getInternalOptions();
+    ExceptionUtils.withR8CompilationHandler(
+        command.getReporter(),
+        () -> {
+          run(app, options, executor);
+        });
   }
 
   // Compute the marker to be placed in the main dex file.
@@ -422,49 +494,6 @@ public class R8 {
     } else {
       throw new RuntimeException(executionException.getMessage(), cause);
     }
-  }
-
-  /**
-   * Main API entry for the R8 compiler.
-   *
-   * <p>The R8 API is intentionally limited and should "do the right thing" given a command. If this
-   * API does not suffice please contact the R8 team.
-   *
-   * @param command R8 command.
-   */
-  public static void run(R8Command command) throws CompilationFailedException {
-    AndroidApp app = command.getInputApp();
-    InternalOptions options = command.getInternalOptions();
-    ExecutorService executor = ThreadUtils.getExecutorService(options);
-    ExceptionUtils.withR8CompilationHandler(
-        command.getReporter(),
-        () -> {
-          try {
-            run(app, options, executor);
-          } finally {
-            executor.shutdown();
-          }
-        });
-  }
-
-  /**
-   * Main API entry for the R8 compiler.
-   *
-   * <p>The R8 API is intentionally limited and should "do the right thing" given a command. If this
-   * API does not suffice please contact the R8 team.
-   *
-   * @param command R8 command.
-   * @param executor executor service from which to get threads for multi-threaded processing.
-   */
-  public static void run(R8Command command, ExecutorService executor)
-      throws CompilationFailedException {
-    AndroidApp app = command.getInputApp();
-    InternalOptions options = command.getInternalOptions();
-    ExceptionUtils.withR8CompilationHandler(
-        command.getReporter(),
-        () -> {
-          run(app, options, executor);
-        });
   }
 
   /** TODO(sgjesse): Get rid of this. */

@@ -44,7 +44,7 @@ import java.util.concurrent.ExecutorService;
  * <pre>
  *   D8.run(D8Command.builder()
  *       .addProgramFiles(inputPathA, inputPathB)
- *       .setOutputPath(outputPath)
+ *       .setOutput(outputPath, OutputMode.DexIndexed)
  *       .build());
  * </pre>
  *
@@ -80,10 +80,7 @@ public final class D8 {
   }
 
   /**
-   * Main API entry for the D8 dexer.
-   *
-   * <p>The D8 dexer API is intentionally limited and should "do the right thing" given a set of
-   * inputs. If the API does not suffice please contact the R8 team.
+   * Main API entry for the D8 dexer with a externally supplied executor service.
    *
    * @param command D8 command.
    * @param executor executor service from which to get threads for multi-threaded processing.
