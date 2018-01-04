@@ -236,7 +236,7 @@ abstract public class DexDebugEvent extends DexItem {
           + registerNum * 7
           + name.hashCode() * 13
           + type.hashCode() * 17
-          + (signature == null ? 0 : signature.hashCode()) * 19;
+          + Objects.hashCode(signature) * 19;
     }
 
     @Override
@@ -254,7 +254,7 @@ abstract public class DexDebugEvent extends DexItem {
       if (!type.equals(o.type)) {
         return false;
       }
-      return (signature == o.signature || signature.equals(o.signature));
+      return Objects.equals(signature, o.signature);
     }
   }
 
