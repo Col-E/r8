@@ -20,6 +20,8 @@ tools/*/art-7.0.0
 tools/*/art-7.0.0.tar.gz
 tools/*/dalvik
 tools/*/dalvik.tar.gz
+tools/*/dalvik-4.0.4
+tools/*/dalvik-4.0.4.tar.gz
 tools/*/dx
 tools/*/dx.tar.gz
 third_party/android_jar/lib
