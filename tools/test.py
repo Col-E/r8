@@ -17,7 +17,7 @@ import uuid
 import notify
 
 
-ALL_ART_VMS = ["default", "7.0.0", "6.0.1", "5.1.1", "4.4.4"]
+ALL_ART_VMS = ["default", "7.0.0", "6.0.1", "5.1.1", "4.4.4", "4.0.4"]
 BUCKET = 'r8-test-results'
 
 def ParseOptions():

@@ -11,6 +11,7 @@ import static org.junit.Assert.fail;
 import com.android.tools.r8.DeviceRunner.DeviceRunnerConfigurationException;
 import com.android.tools.r8.ToolHelper.DexVm.Kind;
 import com.android.tools.r8.dex.ApplicationReader;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.shaking.ProguardConfiguration;
@@ -86,6 +87,8 @@ public class ToolHelper {
   private static final String PROGUARD = "third_party/proguard/proguard5.2.1/bin/proguard.sh";
 
   public enum DexVm {
+    ART_4_0_4_TARGET(Version.V4_0_4, Kind.TARGET),
+    ART_4_0_4_HOST(Version.V4_0_4, Kind.HOST),
     ART_4_4_4_TARGET(Version.V4_4_4, Kind.TARGET),
     ART_4_4_4_HOST(Version.V4_4_4, Kind.HOST),
     ART_5_1_1_TARGET(Version.V5_1_1, Kind.TARGET),
@@ -104,6 +107,7 @@ public class ToolHelper {
             .build();
 
     public enum Version {
+      V4_0_4("4.0.4"),
       V4_4_4("4.4.4"),
       V5_1_1("5.1.1"),
       V6_0_1("6.0.1"),
@@ -131,6 +135,15 @@ public class ToolHelper {
       }
 
       private String shortName;
+
+      public static Version first() {
+        return V4_0_4;
+      }
+
+      static {
+        // Ensure first is always first.
+        assert Arrays.stream(values()).allMatch(v -> v == first() || v.compareTo(first()) > 0);
+      }
     }
 
     public enum Kind {
@@ -371,14 +384,16 @@ public class ToolHelper {
           .put(DexVm.ART_7_0_0_HOST, "art-7.0.0")
           .put(DexVm.ART_6_0_1_HOST, "art-6.0.1")
           .put(DexVm.ART_5_1_1_HOST, "art-5.1.1")
-          .put(DexVm.ART_4_4_4_HOST, "dalvik").build();
+          .put(DexVm.ART_4_4_4_HOST, "dalvik")
+          .put(DexVm.ART_4_0_4_HOST, "dalvik-4.0.4").build();
   private static final Map<DexVm, String> ART_BINARY_VERSIONS =
       ImmutableMap.<DexVm, String>builder()
           .put(DexVm.ART_DEFAULT, "bin/art")
           .put(DexVm.ART_7_0_0_HOST, "bin/art")
           .put(DexVm.ART_6_0_1_HOST, "bin/art")
           .put(DexVm.ART_5_1_1_HOST, "bin/art")
-          .put(DexVm.ART_4_4_4_HOST, "bin/dalvik").build();
+          .put(DexVm.ART_4_4_4_HOST, "bin/dalvik")
+          .put(DexVm.ART_4_0_4_HOST, "bin/dalvik").build();
 
   private static final Map<DexVm, String> ART_BINARY_VERSIONS_X64 =
       ImmutableMap.of(
@@ -398,13 +413,19 @@ public class ToolHelper {
           "core-oj-hostdex.jar",
           "apache-xml-hostdex.jar");
 
-  private static final Map<DexVm, List<String>> BOOT_LIBS =
-      ImmutableMap.of(
-          DexVm.ART_DEFAULT, ART_BOOT_LIBS,
-          DexVm.ART_7_0_0_HOST, ART_BOOT_LIBS,
-          DexVm.ART_6_0_1_HOST, ART_BOOT_LIBS,
-          DexVm.ART_5_1_1_HOST, ART_BOOT_LIBS,
-          DexVm.ART_4_4_4_HOST, DALVIK_BOOT_LIBS);
+  private static final Map<DexVm, List<String>> BOOT_LIBS;
+
+  static {
+    ImmutableMap.Builder<DexVm, List<String>> builder = ImmutableMap.builder();
+    builder
+        .put(DexVm.ART_DEFAULT, ART_BOOT_LIBS)
+        .put(DexVm.ART_7_0_0_HOST, ART_BOOT_LIBS)
+        .put(DexVm.ART_6_0_1_HOST, ART_BOOT_LIBS)
+        .put(DexVm.ART_5_1_1_HOST, ART_BOOT_LIBS)
+        .put(DexVm.ART_4_4_4_HOST, DALVIK_BOOT_LIBS)
+        .put(DexVm.ART_4_0_4_HOST, DALVIK_BOOT_LIBS);
+    BOOT_LIBS = builder.build();
+  }
 
   private static final String LIB_PATH = TOOLS + "/linux/art/lib";
   private static final String DX = getDxExecutablePath();
@@ -540,7 +561,7 @@ public class ToolHelper {
   public static DexVm getDexVm() {
     String artVersion = System.getProperty("dex_vm");
     if (artVersion == null) {
-      return DexVm.ART_DEFAULT;
+      return DexVm.ART_4_0_4_HOST; //DexVm.ART_DEFAULT;
     } else {
       DexVm artVersionEnum = DexVm.fromShortName(artVersion);
       if (artVersionEnum == null) {
@@ -557,8 +578,16 @@ public class ToolHelper {
         return AndroidApiLevel.O.getLevel();
       case V7_0_0:
         return AndroidApiLevel.N.getLevel();
+      case V6_0_1:
+        return AndroidApiLevel.M.getLevel();
+      case V5_1_1:
+        return AndroidApiLevel.L_MR1.getLevel();
+      case V4_4_4:
+        return AndroidApiLevel.K.getLevel();
+      case V4_0_4:
+        return AndroidApiLevel.I_MR1.getLevel();
       default:
-        return AndroidApiLevel.getDefault().getLevel();
+        throw new Unreachable("Missing min api level for dex vm " + dexVm);
     }
   }
 

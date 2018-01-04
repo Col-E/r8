@@ -74,7 +74,7 @@ public class TargetLookupTest extends SmaliTestBase {
     assertNull(appInfo.lookupDirectTarget(method.method));
     assertNotNull(appInfo.lookupStaticTarget(method.method));
 
-    if (ToolHelper.getDexVm().getVersion() == DexVm.Version.V4_4_4) {
+    if (ToolHelper.getDexVm().getVersion().isOlderThanOrEqual(DexVm.Version.V4_4_4)) {
       // Dalvik rejects at verification time instead of producing the
       // expected IncompatibleClassChangeError.
       try {

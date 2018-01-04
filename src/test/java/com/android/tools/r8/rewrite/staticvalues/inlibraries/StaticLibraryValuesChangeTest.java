@@ -40,7 +40,8 @@ public class StaticLibraryValuesChangeTest extends TestBase {
      */
 
     // TODO(66944616): Can we make this work on Dalvik as well?
-    Assume.assumeTrue("Skipping on 4.4.4", ToolHelper.getDexVm().getVersion() != Version.V4_4_4);
+    Assume.assumeTrue("Skipping on VM versions < 4.4.4",
+        ToolHelper.getDexVm().getVersion().isNewerThan(Version.V4_4_4));
 
     // Build the second version of LibraryClass
     JasminBuilder compileTimeLibrary = new JasminBuilder();

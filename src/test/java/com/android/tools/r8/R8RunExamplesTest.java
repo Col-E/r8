@@ -156,15 +156,12 @@ public class R8RunExamplesTest extends R8RunExamplesCommon {
         // being true even when the converse is the case when running on the JVM.
         .put("enclosingmethod.Main", TestCondition.any())
         // Early art versions incorrectly print Float.MIN_VALUE.
-        .put(
-            "filledarray.FilledArray",
-            TestCondition.match(
-                TestCondition.runtimes(Version.V6_0_1, Version.V5_1_1, Version.V4_4_4)))
+        .put("filledarray.FilledArray",
+            TestCondition.match(TestCondition.runtimesUpTo(Version.V6_0_1)))
         // Early art versions incorrectly print doubles.
         .put(
             "regress_70736958.Test",
-            TestCondition.match(
-                TestCondition.runtimes(Version.V6_0_1, Version.V5_1_1, Version.V4_4_4)))
+            TestCondition.match(TestCondition.runtimesUpTo(Version.V6_0_1)))
         .build();
   }
 
@@ -173,10 +170,11 @@ public class R8RunExamplesTest extends R8RunExamplesCommon {
   protected Map<String, TestCondition> getSkip() {
     return new ImmutableMap.Builder<String, TestCondition>()
         // Test uses runtime methods which are not available on older Art versions.
-        .put(
-            "regress_70703087.Test",
-            TestCondition.match(
-                TestCondition.runtimes(Version.V6_0_1, Version.V5_1_1, Version.V4_4_4)))
+        .put("regress_70703087.Test",
+            TestCondition.match(TestCondition.runtimesUpTo(Version.V6_0_1)))
+        // Test uses runtime methods which are not available on older Art versions.
+        .put("loop.UdpServer",
+            TestCondition.match(TestCondition.runtimesUpTo(Version.V4_0_4)))
         .build();
   }
 }

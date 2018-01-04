@@ -44,6 +44,11 @@ public class R8RunSmaliTestsTest {
           // Smali code contains an empty switch payload.
           "sparse-switch",
           "regression/33846227"
+      ),
+      Version.V4_0_4, ImmutableList.of(
+          // Smali code contains an empty switch payload.
+          "sparse-switch",
+          "regression/33846227"
       )
   );
 
@@ -55,6 +60,12 @@ public class R8RunSmaliTestsTest {
               "type-confusion-regression2", "java.lang.NullPointerException\n",
               "type-confusion-regression3", "java.lang.NullPointerException\n",
               "merge-blocks-regression", "java.lang.NullPointerException\n"
+          ),
+          Version.V4_0_4, ImmutableMap.of(
+              "bad-codegen", "java.lang.NullPointerException\n",
+              "type-confusion-regression2", "java.lang.NullPointerException\n",
+              "type-confusion-regression3", "java.lang.NullPointerException\n",
+              "merge-blocks-regression", "java.lang.NullPointerException\n"
           )
       );
 
@@ -62,6 +73,11 @@ public class R8RunSmaliTestsTest {
   // expected runtime exception.
   private static Map<DexVm.Version, List<String>> dalvikVerificationError = ImmutableMap.of(
       Version.V4_4_4, ImmutableList.of(
+          // The invokes are in fact invalid, but the test expects the current Art behavior
+          // of throwing an IncompatibleClassChange exception. Dalvik fails to verify.
+          "illegal-invokes"
+      ),
+      Version.V4_0_4, ImmutableList.of(
           // The invokes are in fact invalid, but the test expects the current Art behavior
           // of throwing an IncompatibleClassChange exception. Dalvik fails to verify.
           "illegal-invokes"

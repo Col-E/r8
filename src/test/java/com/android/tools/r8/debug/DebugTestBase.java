@@ -799,7 +799,8 @@ public abstract class DebugTestBase {
             command.perform(this);
           } catch (TestErrorException e) {
             boolean ignoreException = false;
-            if (config.isDexRuntime() && ToolHelper.getDexVm().getVersion() == Version.V4_4_4) {
+            if (config.isDexRuntime()
+                && ToolHelper.getDexVm().getVersion().isOlderThanOrEqual(Version.V4_4_4)) {
               // Dalvik has flaky synchronization issue on shutdown. The workaround is to ignore
               // the exception if and only if we know that it's the final resume command.
               if (debuggeeState == null && commandsQueue.isEmpty()) {
