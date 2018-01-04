@@ -15,8 +15,8 @@ public class Constants {
   public static final int MIN_VDEX_VERSION = 10;
   public static final int MAX_VDEX_VERSION = 11;
 
-  // We apply Java 7 class file constraints on DEX files.
-  public static final int CORRESPONDING_CLASS_FILE_VERSION = 51;
+  // We apply Java 6 class file constraints on DEX files.
+  public static final int CORRESPONDING_CLASS_FILE_VERSION = 50;
 
   public static final int DEX_MAGIC_SIZE = 8;
 
