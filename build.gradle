@@ -271,6 +271,8 @@ def cloudDependencies = [
                 "android_jar/lib-v15",
                 "android_jar/lib-v19",
                 "android_jar/lib-v21",
+                "android_jar/lib-v22",
+                "android_jar/lib-v23",
                 "android_jar/lib-v24",
                 "android_jar/lib-v25",
                 "android_jar/lib-v26",
