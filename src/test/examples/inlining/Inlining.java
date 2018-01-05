@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package inlining;
 
+import inlining.Nullability.Factor;
 import inlining.pkg.OtherPublicClass;
 import inlining.pkg.PublicClass;
 import inlining.pkg.Subclass;
@@ -11,6 +12,12 @@ public class Inlining {
 
   private static void Assert(boolean value) {
     if (!value) {
+      System.out.println("FAILURE");
+    }
+  }
+
+  private static void Assert(int value) {
+    if (value <= 0) {
       System.out.println("FAILURE");
     }
   }
@@ -96,6 +103,35 @@ public class Inlining {
     // Call a method that contains a call to a protected method. Should not be inlined.
     aNumber = new SubClassOfPublicClass().public_protectedMethod(0);
     System.out.println(aNumber);
+
+    Nullability n = new Nullability(2018);
+    Assert(n.inlinable(a));
+    Assert(n.notInlinable(a));
+    Assert(n.conditionalOperator(a));
+    Assert(n.moreControlFlows(a, Factor.ONE));
+
+    n = null;
+    ThrowingA aa = new ThrowingA(a.a());
+    try {
+      n.inlinable(aa);
+    } catch (NullPointerException npe) {
+      // Expected!
+    }
+    try {
+      n.notInlinable(aa);
+    } catch (NullPointerException npe) {
+      // Expected!
+    }
+    try {
+      n.conditionalOperator(aa);
+    } catch (NullPointerException npe) {
+      // Expected!
+    }
+    try {
+      n.moreControlFlows(aa, Factor.TWO);
+    } catch (NullPointerException npe) {
+      // Expected!
+    }
   }
 
   private static boolean intCmpExpression(A a, A b) {
