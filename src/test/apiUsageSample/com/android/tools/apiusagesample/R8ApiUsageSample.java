@@ -101,21 +101,22 @@ public class R8ApiUsageSample {
       throw new RuntimeException("Must supply pg-conf inputs");
     }
 
-    useProgramFileBuilder(CompilationMode.DEBUG, minApiLevel, libraries, inputs);
-    useProgramFileBuilder(CompilationMode.RELEASE, minApiLevel, libraries, inputs);
-    useProgramDataBuilder(minApiLevel, libraries, inputs);
-    useProgramProvider(minApiLevel, libraries, inputs);
-    useLibraryProvider(minApiLevel, libraries, inputs);
+    useProgramFileList(CompilationMode.DEBUG, minApiLevel, libraries, inputs);
+    useProgramFileList(CompilationMode.RELEASE, minApiLevel, libraries, inputs);
+    useProgramData(minApiLevel, libraries, inputs);
+    useProgramResourceProvider(minApiLevel, libraries, inputs);
+    useLibraryResourceProvider(minApiLevel, libraries, inputs);
     useMainDexListFiles(minApiLevel, libraries, inputs, mainDexList);
     useMainDexClasses(minApiLevel, libraries, inputs, mainDexList);
     useMainDexRulesFiles(minApiLevel, libraries, inputs, mainDexRules);
     useMainDexRules(minApiLevel, libraries, inputs, mainDexRules);
     useProguardConfigFiles(minApiLevel, libraries, inputs, mainDexList, pgConf);
     useProguardConfigLines(minApiLevel, libraries, inputs, mainDexList, pgConf);
+    useVArgVariants(minApiLevel, libraries, inputs, mainDexList, mainDexRules, pgConf);
   }
 
   // Check API support for compiling Java class-files from the file system.
-  private static void useProgramFileBuilder(
+  private static void useProgramFileList(
       CompilationMode mode, int minApiLevel, Collection<Path> libraries, Collection<Path> inputs) {
     try {
       R8.run(
@@ -132,7 +133,7 @@ public class R8ApiUsageSample {
   }
 
   // Check API support for compiling Java class-files from byte content.
-  private static void useProgramDataBuilder(
+  private static void useProgramData(
       int minApiLevel, Collection<Path> libraries, Collection<Path> inputs) {
     try {
       R8Command.Builder builder =
@@ -152,7 +153,7 @@ public class R8ApiUsageSample {
   }
 
   // Check API support for compiling Java class-files from a program provider abstraction.
-  private static void useProgramProvider(
+  private static void useProgramResourceProvider(
       int minApiLevel, Collection<Path> libraries, Collection<Path> inputs) {
     try {
       R8Command.Builder builder =
@@ -181,7 +182,7 @@ public class R8ApiUsageSample {
     }
   }
 
-  private static void useLibraryProvider(
+  private static void useLibraryResourceProvider(
       int minApiLevel, Collection<Path> libraries, Collection<Path> inputs) {
     try {
       R8Command.Builder builder =
@@ -336,6 +337,35 @@ public class R8ApiUsageSample {
       throw new RuntimeException("Unexpected compilation exceptions", e);
     } catch (IOException e) {
       throw new RuntimeException("Unexpected IO exception", e);
+    }
+  }
+
+  // Check API support for all the varg variants.
+  private static void useVArgVariants(
+      int minApiLevel,
+      List<Path> libraries,
+      List<Path> inputs,
+      List<Path> mainDexList,
+      List<Path> mainDexRules,
+      List<Path> pgConf) {
+    try {
+      R8.run(
+          R8Command.builder(handler)
+              .setMinApiLevel(minApiLevel)
+              .setProgramConsumer(new EnsureOutputConsumer())
+              .addLibraryFiles(libraries.get(0))
+              .addLibraryFiles(libraries.stream().skip(1).toArray(Path[]::new))
+              .addProgramFiles(inputs.get(0))
+              .addProgramFiles(inputs.stream().skip(1).toArray(Path[]::new))
+              .addMainDexListFiles(mainDexList.get(0))
+              .addMainDexListFiles(mainDexList.stream().skip(1).toArray(Path[]::new))
+              .addMainDexRulesFiles(mainDexRules.get(0))
+              .addMainDexRulesFiles(mainDexRules.stream().skip(1).toArray(Path[]::new))
+              .addProguardConfigurationFiles(pgConf.get(0))
+              .addProguardConfigurationFiles(pgConf.stream().skip(1).toArray(Path[]::new))
+              .build());
+    } catch (CompilationFailedException e) {
+      throw new RuntimeException("Unexpected compilation exceptions", e);
     }
   }
 

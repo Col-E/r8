@@ -97,18 +97,19 @@ public class D8ApiUsageSample {
       throw new RuntimeException("Must supply main-dex-list inputs");
     }
 
-    useProgramFileBuilder(CompilationMode.DEBUG, minApiLevel, libraries, classpath, inputs);
-    useProgramFileBuilder(CompilationMode.RELEASE, minApiLevel, libraries, classpath, inputs);
-    useProgramDataBuilder(minApiLevel, libraries, classpath, inputs);
-    useProgramProvider(minApiLevel, libraries, classpath, inputs);
+    useProgramFileList(CompilationMode.DEBUG, minApiLevel, libraries, classpath, inputs);
+    useProgramFileList(CompilationMode.RELEASE, minApiLevel, libraries, classpath, inputs);
+    useProgramData(minApiLevel, libraries, classpath, inputs);
+    useProgramResourceProvider(minApiLevel, libraries, classpath, inputs);
     useLibraryAndClasspathProvider(minApiLevel, libraries, classpath, inputs);
     useMainDexListFiles(minApiLevel, libraries, classpath, inputs, mainDexList);
     useMainDexClasses(minApiLevel, libraries, classpath, inputs, mainDexList);
+    useVArgVariants(minApiLevel, libraries, classpath, inputs, mainDexList);
     incrementalCompileAndMerge(minApiLevel, libraries, classpath, inputs);
   }
 
   // Check API support for compiling Java class-files from the file system.
-  private static void useProgramFileBuilder(
+  private static void useProgramFileList(
       CompilationMode mode,
       int minApiLevel,
       Collection<Path> libraries,
@@ -130,7 +131,7 @@ public class D8ApiUsageSample {
   }
 
   // Check API support for compiling Java class-files from byte content.
-  private static void useProgramDataBuilder(
+  private static void useProgramData(
       int minApiLevel,
       Collection<Path> libraries,
       Collection<Path> classpath,
@@ -145,6 +146,11 @@ public class D8ApiUsageSample {
       for (ClassFileContent classfile : readClassFiles(inputs)) {
         builder.addClassProgramData(classfile.data, classfile.origin);
       }
+      for (Path input : inputs) {
+        if (isDexFile(input)) {
+          builder.addDexProgramData(Files.readAllBytes(input), new PathOrigin(input));
+        }
+      }
       D8.run(builder.build());
     } catch (CompilationFailedException e) {
       throw new RuntimeException("Unexpected compilation exceptions", e);
@@ -154,7 +160,7 @@ public class D8ApiUsageSample {
   }
 
   // Check API support for compiling Java class-files from a program provider abstraction.
-  private static void useProgramProvider(
+  private static void useProgramResourceProvider(
       int minApiLevel,
       Collection<Path> libraries,
       Collection<Path> classpath,
@@ -171,12 +177,20 @@ public class D8ApiUsageSample {
           builder.addProgramResourceProvider(
               ArchiveProgramResourceProvider.fromArchive(
                   input, ArchiveProgramResourceProvider::includeClassFileEntries));
-        } else {
+        } else if (isClassFile(input)) {
           builder.addProgramResourceProvider(
               new ProgramResourceProvider() {
                 @Override
                 public Collection<ProgramResource> getProgramResources() throws ResourceException {
                   return Collections.singleton(ProgramResource.fromFile(Kind.CF, input));
+                }
+              });
+        } else if (isDexFile(input)) {
+          builder.addProgramResourceProvider(
+              new ProgramResourceProvider() {
+                @Override
+                public Collection<ProgramResource> getProgramResources() throws ResourceException {
+                  return Collections.singleton(ProgramResource.fromFile(Kind.DEX, input));
                 }
               });
         }
@@ -263,6 +277,32 @@ public class D8ApiUsageSample {
       throw new RuntimeException("Unexpected compilation exceptions", e);
     } catch (IOException e) {
       throw new RuntimeException("Unexpected IO exception", e);
+    }
+  }
+
+  // Check API support for all the varg variants.
+  private static void useVArgVariants(
+      int minApiLevel,
+      List<Path> libraries,
+      List<Path> classpath,
+      List<Path> inputs,
+      List<Path> mainDexList) {
+    try {
+      D8.run(
+          D8Command.builder(handler)
+              .setMinApiLevel(minApiLevel)
+              .setProgramConsumer(new EnsureOutputConsumer())
+              .addLibraryFiles(libraries.get(0))
+              .addLibraryFiles(libraries.stream().skip(1).toArray(Path[]::new))
+              .addClasspathFiles(classpath.get(0))
+              .addClasspathFiles(classpath.stream().skip(1).toArray(Path[]::new))
+              .addProgramFiles(inputs.get(0))
+              .addProgramFiles(inputs.stream().skip(1).toArray(Path[]::new))
+              .addMainDexListFiles(mainDexList.get(0))
+              .addMainDexListFiles(mainDexList.stream().skip(1).toArray(Path[]::new))
+              .build());
+    } catch (CompilationFailedException e) {
+      throw new RuntimeException("Unexpected compilation exceptions", e);
     }
   }
 
@@ -378,6 +418,15 @@ public class D8ApiUsageSample {
   private static boolean isClassFile(String file) {
     file = file.toLowerCase();
     return file.endsWith(".class");
+  }
+
+  private static boolean isDexFile(Path file) {
+    return isDexFile(file.toString());
+  }
+
+  private static boolean isDexFile(String file) {
+    file = file.toLowerCase();
+    return file.endsWith(".dex");
   }
 
   private static boolean isArchive(Path file) {
