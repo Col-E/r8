@@ -9,8 +9,8 @@ import com.android.tools.r8.graph.ClassKind;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
-import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
 /** Represents a collection of library classes. */
@@ -19,7 +19,7 @@ public class ProgramClassCollection extends ClassMap<DexProgramClass> {
   public static ProgramClassCollection create(
       List<DexProgramClass> classes, ProgramClassConflictResolver conflictResolver) {
     // We have all classes preloaded, but not necessarily without conflicts.
-    IdentityHashMap<DexType, Supplier<DexProgramClass>> map = new IdentityHashMap<>();
+    ConcurrentHashMap<DexType, Supplier<DexProgramClass>> map = new ConcurrentHashMap<>();
     for (DexProgramClass clazz : classes) {
       map.merge(
           clazz.type, clazz, (a, b) -> conflictResolver.resolveClassConflict(a.get(), b.get()));
@@ -27,7 +27,7 @@ public class ProgramClassCollection extends ClassMap<DexProgramClass> {
     return new ProgramClassCollection(map);
   }
 
-  private ProgramClassCollection(IdentityHashMap<DexType, Supplier<DexProgramClass>> classes) {
+  private ProgramClassCollection(ConcurrentHashMap<DexType, Supplier<DexProgramClass>> classes) {
     super(classes, null);
   }
 

@@ -10,93 +10,126 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
-import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 /**
- * Represents a collection of classes. Collection can be fully loaded,
- * lazy loaded or have preloaded classes along with lazy loaded content.
+ * Represents a collection of classes. Collection can be fully loaded, lazy loaded or have preloaded
+ * classes along with lazy loaded content.
+ *
+ * The {@link #get(DexType)} operation for loading the type of a class is non-locking if a class was
+ * loaded before but may block if a class has not yet been loaded.
+ *
+ * {@link #forceLoad(Predicate)} can be used to load all classes available from the given class
+ * provider. Only after
  */
 public abstract class ClassMap<T extends DexClass> {
-  // For each type which has ever been queried stores one class loaded from
-  // resources provided by different resource providers.
-  //
-  // NOTE: all access must be synchronized on `classes`.
-  private final Map<DexType, Supplier<T>> classes;
 
-  // Class provider if available.
-  //
-  // If the class provider is `null` it indicates that all classes are already present
-  // in a map referenced by `classes` and thus the collection is fully loaded.
-  //
-  // NOTE: all access must be synchronized on `classes`.
-  private ClassProvider<T> classProvider;
+  /**
+   * For each type which has ever been queried stores one class loaded from resources provided by
+   * different resource providers.
+   * <p>
+   * <b>NOTE:</b> mutated concurrently but we require that the value assigned to a keys never
+   * changes its meaning, i.e., the supplier object might change but the contained value does not.
+   * We also allow the transition from Supplier of a null value to the actual value null and vice
+   * versa.
+   */
+  private final ConcurrentHashMap<DexType, Supplier<T>> classes;
 
-  ClassMap(Map<DexType, Supplier<T>> classes, ClassProvider<T> classProvider) {
-    this.classes = classes == null ? new IdentityHashMap<>() : classes;
-    this.classProvider = classProvider;
-    assert this.classProvider == null || this.classProvider.getClassKind() == getClassKind();
+  /**
+   * Class provider if available.
+   * <p>
+   * If the class provider is `null` it indicates that all classes are already present in a map
+   * referenced by `classes` and thus the collection is fully loaded.
+   * <p>
+   * <b>NOTE:</b> the field may only transition from a value to null while the this object is
+   * locked. Furthermore, it may never transition back from null.
+   */
+  private final AtomicReference<ClassProvider<T>> classProvider = new AtomicReference<>();
+
+  ClassMap(ConcurrentHashMap<DexType, Supplier<T>> classes, ClassProvider<T> classProvider) {
+    assert classProvider == null || classProvider.getClassKind() == getClassKind();
+    this.classes = classes == null ? new ConcurrentHashMap<>() : classes;
+    this.classProvider.set(classProvider);
   }
 
-  /** Resolves a class conflict by selecting a class, may generate compilation error. */
+  /**
+   * Resolves a class conflict by selecting a class, may generate compilation error.
+   */
   abstract T resolveClassConflict(T a, T b);
 
-  /** Return supplier for preloaded class. */
+  /**
+   * Return supplier for preloaded class.
+   */
   abstract Supplier<T> getTransparentSupplier(T clazz);
 
-  /** Kind of the classes supported by this collection. */
+  /**
+   * Kind of the classes supported by this collection.
+   */
   abstract ClassKind getClassKind();
 
   @Override
   public String toString() {
-    synchronized (classes) {
-      return classes.size() + " loaded, provider: " +
-          (classProvider == null ? "none" : classProvider.toString());
-    }
+    return classes.size() + " loaded, provider: " + Objects.toString(this.classProvider.get());
   }
 
-  /** Returns a definition for a class or `null` if there is no such class in the collection. */
+  /**
+   * Returns a definition for a class or `null` if there is no such class in the collection.
+   */
   public T get(DexType type) {
-    Supplier<T> supplier;
+    // If this collection is fully loaded, just return the found result.
+    if (classProvider.get() == null) {
+      Supplier<T> supplier = classes.get(type);
+      return supplier == null ? null : supplier.get();
+    }
 
-    synchronized (classes) {
-      supplier = classes.get(type);
+    Supplier<T> supplier = classes.get(type);
+    // If we find a result, we can just return it as it won't change.
+    if (supplier != null) {
+      return supplier.get();
+    }
 
-      // Get class supplier, create it if it does not
-      // exist and the collection is NOT fully loaded.
-      if (supplier == null) {
-        if (classProvider == null) {
-          // There is no supplier, but the collection is fully loaded.
+    // Otherwise, we have to do the full dance with locking to avoid creating two suppliers.
+    // Lock on this to ensure classProvider is not changed concurrently, so we do not create
+    // a concurrent class loader with a null classProvider.
+    synchronized (this) {
+      supplier = classes.computeIfAbsent(type, key -> {
+        // Get class supplier, create it if it does not
+        // exist and the collection is NOT fully loaded.
+        if (classProvider.get() == null) {
+          // There is no supplier, the collection is fully loaded.
           return null;
         }
 
-        supplier = new ConcurrentClassLoader<>(this, this.classProvider, type);
-        classes.put(type, supplier);
-      }
+        return new ConcurrentClassLoader<>(this, classProvider.get(), type);
+      });
     }
 
-    return supplier.get();
+    return supplier == null ? null : supplier.get();
   }
 
-  /** Returns all classes from the collection. The collection must be force-loaded. */
+  /**
+   * Returns all classes from the collection. The collection must be force-loaded.
+   */
   public List<T> getAllClasses() {
+    if (classProvider.get() != null) {
+      throw new Unreachable("Getting all classes from not fully loaded collection.");
+    }
     List<T> loadedClasses = new ArrayList<>();
-    synchronized (classes) {
-      if (classProvider != null) {
-        throw new Unreachable("Getting all classes from not fully loaded collection.");
-      }
-      for (Supplier<T> supplier : classes.values()) {
-        // Since the class map is fully loaded, all suppliers must be
-        // loaded and non-null.
-        T clazz = supplier.get();
-        assert clazz != null;
-        loadedClasses.add(clazz);
-      }
+    // This is fully loaded, so the class map will no longer change.
+    for (Supplier<T> supplier : classes.values()) {
+      // Since the class map is fully loaded, all suppliers must be
+      // loaded and non-null.
+      T clazz = supplier.get();
+      assert clazz != null;
+      loadedClasses.add(clazz);
     }
     return loadedClasses;
   }
@@ -107,28 +140,27 @@ public abstract class ClassMap<T extends DexClass> {
 
   /**
    * Forces loading of all the classes satisfying the criteria specified.
-   *
-   * NOTE: after this method finishes, the class map is considered to be fully-loaded
-   * and thus sealed. This has one side-effect: if we filter out some of the classes
-   * with `load` predicate, these classes will never be loaded.
+   * <p>
+   * NOTE: after this method finishes, the class map is considered to be fully-loaded and thus
+   * sealed. This has one side-effect: if we filter out some of the classes with `load` predicate,
+   * these classes will never be loaded.
    */
   public void forceLoad(Predicate<DexType> load) {
     Set<DexType> knownClasses;
     ClassProvider<T> classProvider;
 
-    synchronized (classes) {
-      classProvider = this.classProvider;
-      if (classProvider == null) {
-        return;
-      }
-
-      // Collects the types which might be represented in fully loaded class map.
-      knownClasses = Sets.newIdentityHashSet();
-      knownClasses.addAll(classes.keySet());
+    // Cache value of class provider, as it might change concurrently.
+    classProvider = this.classProvider.get();
+    if (classProvider == null) {
+      return;
     }
 
+    // Collects the types which might be represented in fully loaded class map.
+    knownClasses = Sets.newIdentityHashSet();
+    knownClasses.addAll(classes.keySet());
+
     // Add all types the class provider provides. Note that it may take time for class
-    // provider to collect these types, so ve do it outside synchronized context.
+    // provider to collect these types, so we do it outside synchronized context.
     knownClasses.addAll(classProvider.collectTypes());
 
     // Make sure all the types in `knownClasses` are loaded.
@@ -142,8 +174,10 @@ public abstract class ClassMap<T extends DexClass> {
       }
     }
 
-    synchronized (classes) {
-      if (this.classProvider == null) {
+    // Lock on this to prevent concurrent changes to classProvider state and to ensure that
+    // only one thread proceeds to rewriting the map.
+    synchronized (this) {
+      if (this.classProvider.get() == null) {
         return; // Has been force-loaded concurrently.
       }
 
@@ -170,8 +204,10 @@ public abstract class ClassMap<T extends DexClass> {
         iterator.remove();
       }
 
-      // Mark the class map as fully loaded.
-      this.classProvider = null;
+      // Mark the class map as fully loaded. This has to be the last operation, as this toggles
+      // the class map into fully loaded state and the get operation will no longer try to load
+      // classes by blocking on 'this' and hence wait for the loading operation to finish.
+      this.classProvider.set(null);
     }
   }
 
@@ -179,6 +215,7 @@ public abstract class ClassMap<T extends DexClass> {
   // class provider. Helps avoid synchronizing on the whole class map
   // when loading a class.
   private static class ConcurrentClassLoader<T extends DexClass> implements Supplier<T> {
+
     private ClassMap<T> classMap;
     private ClassProvider<T> provider;
     private DexType type;
@@ -186,7 +223,7 @@ public abstract class ClassMap<T extends DexClass> {
     private T clazz = null;
     private volatile boolean ready = false;
 
-    ConcurrentClassLoader(ClassMap<T> classMap, ClassProvider<T> provider, DexType type) {
+    private ConcurrentClassLoader(ClassMap<T> classMap, ClassProvider<T> provider, DexType type) {
       this.classMap = classMap;
       this.provider = provider;
       this.type = type;

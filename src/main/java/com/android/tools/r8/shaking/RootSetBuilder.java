@@ -273,7 +273,7 @@ public class RootSetBuilder {
     while (clazz != null) {
       Arrays.stream(clazz.virtualMethods()).forEach(method ->
           markMethod(method, memberKeepRules, rule, methodsMarked, onlyIfClassKept));
-      clazz = application.definitionFor(clazz.superType);
+      clazz = clazz.superType == null ? null : application.definitionFor(clazz.superType);
     }
   }
 
