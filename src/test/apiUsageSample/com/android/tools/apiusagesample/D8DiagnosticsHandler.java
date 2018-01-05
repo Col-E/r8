@@ -12,7 +12,6 @@ import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.position.TextPosition;
 import com.android.tools.r8.position.TextRange;
-import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -51,7 +50,7 @@ class D8DiagnosticsHandler implements DiagnosticsHandler {
     Position positionInOrigin = diagnostic.getPosition();
     String position;
     if (origin instanceof PathOrigin) {
-      File originFile = ((PathOrigin) origin).getPath().toFile();
+      Path originFile = ((PathOrigin) origin).getPath();
       if (positionInOrigin instanceof TextRange) {
         TextRange textRange = (TextRange) positionInOrigin;
         position = originFile + ": "
@@ -65,7 +64,7 @@ class D8DiagnosticsHandler implements DiagnosticsHandler {
         position = originFile.toString();
       }
     } else if (origin.parent() instanceof PathOrigin) {
-      File originFile = ((PathOrigin) origin.parent()).getPath().toFile();
+      Path originFile = ((PathOrigin) origin.parent()).getPath();
       position = originFile.toString();
     } else {
       position = "UNKNOWN";
