@@ -6,7 +6,6 @@ package com.android.tools.r8.jsr45;
 import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.D8Command;
-import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexAnnotationElement;
@@ -60,7 +59,7 @@ public class JSR45Tests {
 
   private AndroidApp compileWithR8(Path inputPath, Path outputPath, Path keepRulesPath)
       throws IOException, CompilationException, CompilationFailedException {
-    return R8.runInternal(
+    return ToolHelper.runR8(
         R8Command.builder()
             .addProgramFiles(inputPath)
             .addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()))

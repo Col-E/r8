@@ -46,7 +46,6 @@ import com.android.tools.r8.shaking.TreePruner;
 import com.android.tools.r8.shaking.protolite.ProtoLiteExtension;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.AndroidAppConsumers;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.FileUtils;
@@ -168,7 +167,7 @@ public class R8 {
     return marker;
   }
 
-  public static void writeApplication(
+  static void writeApplication(
       ExecutorService executorService,
       DexApplication application,
       String deadCode,
@@ -494,28 +493,6 @@ public class R8 {
     } else {
       throw new RuntimeException(executionException.getMessage(), cause);
     }
-  }
-
-  /** TODO(sgjesse): Get rid of this. */
-  public static AndroidApp runInternal(R8Command command) throws IOException, CompilationException {
-    InternalOptions options = command.getInternalOptions();
-    ExecutorService executorService = ThreadUtils.getExecutorService(options);
-    try {
-      return runInternal(command, executorService);
-    } finally {
-      executorService.shutdown();
-    }
-  }
-
-  /**
-   * TODO(sgjesse): Get rid of this.
-   */
-  public static AndroidApp runInternal(R8Command command, ExecutorService executor)
-      throws IOException, CompilationException {
-    InternalOptions options = command.getInternalOptions();
-    AndroidAppConsumers compatConsumers = new AndroidAppConsumers(options);
-    run(command.getInputApp(), options, executor);
-    return compatConsumers.build();
   }
 
   private static void run(String[] args) throws CompilationFailedException {

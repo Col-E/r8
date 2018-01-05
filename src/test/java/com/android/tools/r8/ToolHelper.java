@@ -11,9 +11,11 @@ import static org.junit.Assert.fail;
 import com.android.tools.r8.DeviceRunner.DeviceRunnerConfigurationException;
 import com.android.tools.r8.ToolHelper.DexVm.Kind;
 import com.android.tools.r8.dex.ApplicationReader;
+import com.android.tools.r8.errors.DexOverflowException;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationParser;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
@@ -53,6 +55,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import joptsimple.internal.Strings;
@@ -1152,5 +1155,17 @@ public class ToolHelper {
           }
         });
     return builder;
+  }
+
+  public static void writeApplication(DexApplication application, InternalOptions options)
+      throws ExecutionException, DexOverflowException {
+    R8.writeApplication(
+        Executors.newSingleThreadExecutor(),
+        application,
+        null,
+        NamingLens.getIdentityLens(),
+        null,
+        options,
+        null);
   }
 }

@@ -6,18 +6,20 @@ package com.android.tools.r8.compatproguard;
 
 import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.DexIndexedConsumer;
+import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.Version;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.utils.AbortException;
-import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.OutputMode;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Proguard + dx compatibility interface for r8.
@@ -170,10 +172,16 @@ public class CompatProguard {
     if (options.mainDexList != null) {
       builder.addMainDexListFiles(Paths.get(options.mainDexList));
     }
-    AndroidApp result = R8.runInternal(builder.build());
+
+    // Wrap the output consumer so we can count the number of output files.
+    CountOutputConsumer outputConsumer =
+        new CountOutputConsumer((DexIndexedConsumer) builder.getProgramConsumer());
+    builder.setProgramConsumer(outputConsumer);
+
+    R8.run(builder.build());
 
     if (!options.multiDex) {
-      if (result.getDexProgramResources().size() > 1) {
+      if (outputConsumer.count > 1) {
         throw new CompilationError(
             "Compilation result could not fit into a single dex file. "
                 + "Reduce the input-program size or run with --multi-dex enabled");
@@ -191,6 +199,22 @@ public class CompatProguard {
       // Detail of the errors were already reported
       System.err.println("Compilation failed");
       System.exit(1);
+    }
+  }
+
+  private static class CountOutputConsumer extends DexIndexedConsumer.ForwardingConsumer {
+
+    int count = 0;
+
+    public CountOutputConsumer(DexIndexedConsumer consumer) {
+      super(consumer);
+    }
+
+    @Override
+    public synchronized void accept(int fileIndex, byte[] data, Set<String> descriptors,
+        DiagnosticsHandler handler) {
+      super.accept(fileIndex, data, descriptors, handler);
+      count++;
     }
   }
 }
