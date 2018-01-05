@@ -66,14 +66,15 @@ public class PrintUsageTest {
   public void runR8andGetPrintUsage() throws Exception {
     Path out = temp.getRoot().toPath();
     R8Command command =
-        R8Command.builder()
+        ToolHelper.addProguardConfigurationConsumer(
+                R8Command.builder(),
+                pgConfig -> {
+                  pgConfig.setPrintUsage(true);
+                  pgConfig.setPrintUsageFile(out.resolve(test + PRINT_USAGE_FILE_SUFFIX));
+                })
             .setOutput(out, OutputMode.DexIndexed)
             .addProgramFiles(Paths.get(programFile))
             .addProguardConfigurationFiles(ListUtils.map(keepRulesFiles, Paths::get))
-            .addProguardConfigurationConsumer(builder -> {
-              builder.setPrintUsage(true);
-              builder.setPrintUsageFile(out.resolve(test + PRINT_USAGE_FILE_SUFFIX));
-            })
             .addLibraryFiles(Paths.get(ANDROID_JAR))
             .build();
     ToolHelper.runR8(command, options -> {

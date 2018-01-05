@@ -65,15 +65,15 @@ public class IdentifierMinifierTest {
   public void generateR8ProcessedApp() throws Exception {
     Path out = temp.getRoot().toPath();
     R8Command command =
-        R8Command.builder()
+        ToolHelper.addProguardConfigurationConsumer(
+                R8Command.builder(),
+                pgConfig -> {
+                  pgConfig.setPrintMapping(true);
+                  pgConfig.setPrintMappingFile(out.resolve(ToolHelper.DEFAULT_PROGUARD_MAP_FILE));
+                })
             .setOutput(out, OutputMode.DexIndexed)
             .addProgramFiles(Paths.get(appFileName))
             .addProguardConfigurationFiles(ListUtils.map(keepRulesFiles, Paths::get))
-            .addProguardConfigurationConsumer(
-                builder -> {
-                  builder.setPrintMapping(true);
-                  builder.setPrintMappingFile(out.resolve(ToolHelper.DEFAULT_PROGUARD_MAP_FILE));
-                })
             .addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()))
             .build();
     ToolHelper.runR8(command);

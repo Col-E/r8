@@ -1127,6 +1127,12 @@ public class ToolHelper {
     return new ProcessResult(p.exitValue(), stdoutReader.getResult(), stderrReader.getResult());
   }
 
+  public static R8Command.Builder addProguardConfigurationConsumer(
+      R8Command.Builder builder, Consumer<ProguardConfiguration.Builder> consumer) {
+    builder.addProguardConfigurationConsumerForTesting(consumer);
+    return builder;
+  }
+
   public static AndroidApp getApp(BaseCommand command) {
     return command.getInputApp();
   }
