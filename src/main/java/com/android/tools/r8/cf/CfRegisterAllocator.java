@@ -17,6 +17,7 @@ import com.android.tools.r8.ir.regalloc.LiveIntervals;
 import com.android.tools.r8.ir.regalloc.LiveRange;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.utils.InternalOptions;
+import com.google.common.collect.ImmutableList;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import java.util.ArrayList;
@@ -105,7 +106,7 @@ public class CfRegisterAllocator implements RegisterAllocator {
 
   public void allocateRegisters() {
     computeNeedsRegister();
-    BasicBlock[] blocks = computeLivenessInformation();
+    ImmutableList<BasicBlock> blocks = computeLivenessInformation();
     performLinearScan();
     if (options.debug) {
       LinearScanRegisterAllocator.computeDebugInfo(blocks, liveIntervals, this);
@@ -123,8 +124,8 @@ public class CfRegisterAllocator implements RegisterAllocator {
     }
   }
 
-  private BasicBlock[] computeLivenessInformation() {
-    BasicBlock[] blocks = code.numberInstructions();
+  private ImmutableList<BasicBlock> computeLivenessInformation() {
+    ImmutableList<BasicBlock> blocks = code.numberInstructions();
     liveAtEntrySets = code.computeLiveAtEntrySets();
     LinearScanRegisterAllocator.computeLiveRanges(options, code, liveAtEntrySets, liveIntervals);
     return blocks;

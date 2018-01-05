@@ -393,7 +393,7 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
       // TODO(sgjesse): Remove this restriction.
       assert !invokeBlock.hasCatchHandlers();
       blocksToRemove.addAll(
-          invokePredecessor.unlink(invokeBlock, new DominatorTree(code, blocksToRemove)));
+          invokePredecessor.unlink(invokeBlock, new DominatorTree(code)));
     } else {
       // Ensure and locate the single return instruction of the inlinee.
       InstructionListIterator inlineeIterator = ensureSingleReturnInstruction(inlinee, normalExits);

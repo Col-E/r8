@@ -33,6 +33,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.HashMultiset;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Multisets;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
@@ -172,7 +173,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     assert code.isConsistentSSA();
     computeNeedsRegister();
     insertArgumentMoves();
-    BasicBlock[] blocks = computeLivenessInformation();
+    ImmutableList<BasicBlock> blocks = computeLivenessInformation();
     // First attempt to allocate register allowing argument reuse. This will fail if spilling
     // is required or if we end up using more than 16 registers.
     boolean noSpilling =
@@ -222,12 +223,13 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     return null;
   }
 
-  private void computeDebugInfo(BasicBlock[] blocks) {
+  private void computeDebugInfo(ImmutableList<BasicBlock> blocks) {
     computeDebugInfo(blocks, liveIntervals, this);
   }
 
   public static void computeDebugInfo(
-      BasicBlock[] blocks, List<LiveIntervals> liveIntervals, RegisterAllocator allocator) {
+      ImmutableList<BasicBlock> blocks, List<LiveIntervals> liveIntervals,
+      RegisterAllocator allocator) {
     // Collect live-ranges for all SSA values with local information.
     List<LocalRange> ranges = new ArrayList<>();
     for (LiveIntervals interval : liveIntervals) {
@@ -545,8 +547,8 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     return getRegisterForValue(value, instructionNumber);
   }
 
-  private BasicBlock[] computeLivenessInformation() {
-    BasicBlock[] blocks = code.numberInstructions();
+  private ImmutableList<BasicBlock> computeLivenessInformation() {
+    ImmutableList<BasicBlock> blocks = code.numberInstructions();
     liveAtEntrySets = code.computeLiveAtEntrySets();
     computeLiveRanges();
     return blocks;
