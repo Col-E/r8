@@ -1140,6 +1140,10 @@ public class ToolHelper {
     return command.getInputApp();
   }
 
+  public static AndroidApp.Builder getAppBuilder(BaseCommand.Builder builder) {
+    return builder.getAppBuilder();
+  }
+
   public static AndroidApp.Builder builderFromProgramDirectory(Path directory) throws IOException {
     AndroidApp.Builder builder = AndroidApp.builder();
     Files.walkFileTree(

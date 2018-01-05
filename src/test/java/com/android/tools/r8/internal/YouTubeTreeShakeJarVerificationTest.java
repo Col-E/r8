@@ -30,7 +30,7 @@ public class YouTubeTreeShakeJarVerificationTest extends YouTubeCompilationBase 
         ImmutableList.of());
     int bytes = 0;
     try (Closer closer = Closer.create()) {
-      for (Resource dex : app.getDexProgramResources()) {
+      for (Resource dex : app.getDexProgramResourcesForTesting()) {
         bytes += ByteStreams.toByteArray(closer.register(dex.getStream())).length;
       }
     }

@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.origin.Origin;
@@ -229,6 +230,12 @@ public class R8Command extends BaseCompilerCommand {
     }
 
     @Override
+    public Builder addProgramResourceProvider(ProgramResourceProvider programProvider) {
+      return super.addProgramResourceProvider(
+          new EnsureNonDexProgramResourceProvider(programProvider));
+    }
+
+    @Override
     protected void validate() {
       // TODO(b/70656566): Move up super once the deprecated API is removed.
       if (getProgramConsumer() == null) {
@@ -243,6 +250,12 @@ public class R8Command extends BaseCompilerCommand {
           && !getAppBuilder().hasMainDexList()) {
         reporter.error(
             "Option --main-dex-list-output require --main-dex-rules and/or --main-dex-list");
+      }
+      for (Path file : programFiles) {
+        if (FileUtils.isDexFile(file)) {
+          reporter.error(new StringDiagnostic(
+              "R8 does not support compiling DEX inputs", new PathOrigin(file)));
+        }
       }
       super.validate();
     }
@@ -333,6 +346,28 @@ public class R8Command extends BaseCompilerCommand {
             }
             c.accept(builder);
           };
+    }
+  }
+
+  // Wrapper class to ensure that R8 does not allow DEX as program inputs.
+  private static class EnsureNonDexProgramResourceProvider implements ProgramResourceProvider {
+
+    final ProgramResourceProvider provider;
+
+    public EnsureNonDexProgramResourceProvider(ProgramResourceProvider provider) {
+      this.provider = provider;
+    }
+
+    @Override
+    public Collection<ProgramResource> getProgramResources() throws ResourceException {
+      Collection<ProgramResource> resources = provider.getProgramResources();
+      for (ProgramResource resource : resources) {
+        if (resource.getKind() == Kind.DEX) {
+          throw new ResourceException(resource.getOrigin(),
+              "R8 does not support compiling DEX inputs");
+        }
+      }
+      return resources;
     }
   }
 

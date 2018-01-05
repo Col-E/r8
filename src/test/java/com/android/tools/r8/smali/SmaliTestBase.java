@@ -96,15 +96,15 @@ public class SmaliTestBase extends TestBase {
       Consumer<InternalOptions> optionsConsumer) {
     try {
       Path dexOutputDir = temp.newFolder().toPath();
-      R8Command command =
+      R8Command.Builder command =
           ToolHelper.addProguardConfigurationConsumer(R8Command.builder(), pgConsumer)
-              .addDexProgramData(builder.compile(), EmbeddedOrigin.INSTANCE)
               .setOutput(dexOutputDir, OutputMode.DexIndexed)
               .setMode(CompilationMode.DEBUG)
               .addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()))
-              .addProguardConfiguration(proguardConfigurations, Origin.unknown())
-              .build();
-      ToolHelper.runR8WithFullResult(command, optionsConsumer);
+              .addProguardConfiguration(proguardConfigurations, Origin.unknown());
+      ToolHelper.getAppBuilder(command)
+          .addDexProgramData(builder.compile(), EmbeddedOrigin.INSTANCE);
+      ToolHelper.runR8WithFullResult(command.build(), optionsConsumer);
       return dexOutputDir.resolve("classes.dex");
     } catch (CompilationException | IOException | RecognitionException | ExecutionException
         | CompilationFailedException e) {
@@ -188,8 +188,8 @@ public class SmaliTestBase extends TestBase {
 
   protected int getNumberOfProgramClasses(AndroidApp application) {
     try {
-      return getNumberOfClassesForResources(application.getClassProgramResources())
-          + getNumberOfClassesForResources(application.getDexProgramResources());
+      return getNumberOfClassesForResources(application.getClassProgramResourcesForTesting())
+          + getNumberOfClassesForResources(application.getDexProgramResourcesForTesting());
     } catch (IOException e) {
       return -1;
     }

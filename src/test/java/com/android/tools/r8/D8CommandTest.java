@@ -59,8 +59,8 @@ public class D8CommandTest {
     assertEquals(AndroidVersion.DEFAULT.getApiLevel(), command.getMinApiLevel());
     assertTrue(command.getProgramConsumer() instanceof DexIndexedConsumer);
     AndroidApp app = ToolHelper.getApp(command);
-    assertEquals(0, app.getDexProgramResources().size());
-    assertEquals(0, app.getClassProgramResources().size());
+    assertEquals(0, app.getDexProgramResourcesForTesting().size());
+    assertEquals(0, app.getClassProgramResourcesForTesting().size());
   }
 
   @Test
@@ -258,7 +258,10 @@ public class D8CommandTest {
   @Test(expected = CompilationFailedException.class)
   public void vdexFileUnsupported() throws Throwable {
     Path vdexFile = temp.newFile("test.vdex").toPath();
-    D8Command.builder().addProgramFiles(vdexFile).build();
+    D8Command.builder()
+        .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+        .addProgramFiles(vdexFile)
+        .build();
   }
 
   @Test

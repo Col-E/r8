@@ -130,7 +130,7 @@ public class TreeShakingTest {
     Path out = temp.getRoot().toPath();
     boolean inline = programFile.contains("inlining");
 
-    R8Command command =
+    R8Command.Builder builder =
         ToolHelper.addProguardConfigurationConsumer(
                 R8Command.builder(),
                 pgConfig -> {
@@ -142,11 +142,9 @@ public class TreeShakingTest {
             .setOutput(out, OutputMode.DexIndexed)
             .addProgramFiles(Paths.get(programFile))
             .addProguardConfigurationFiles(ListUtils.map(keepRulesFiles, Paths::get))
-            .addLibraryFiles(JAR_LIBRARIES)
-            .build();
-    ToolHelper.runR8(command, options -> {
-      options.inlineAccessors = inline;
-    });
+            .addLibraryFiles(JAR_LIBRARIES);
+    ToolHelper.getAppBuilder(builder).addProgramFiles(Paths.get(programFile));
+    ToolHelper.runR8(builder.build(), options -> options.inlineAccessors = inline);
   }
 
   public static void shaking1HasNoClassUnused(DexInspector inspector) {

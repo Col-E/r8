@@ -42,7 +42,8 @@ public class DexRoundTrip {
     return consumer.build();
   }
 
-  public static void main(String[] args) throws CompilationFailedException, IOException {
+  public static void main(String[] args)
+      throws CompilationFailedException, IOException, ResourceException {
     List<ProgramResource> resources = new ArrayList<>(args.length);
     for (String arg : args) {
       Path file = Paths.get(arg);
@@ -53,6 +54,6 @@ public class DexRoundTrip {
       resources.add(ProgramResource.fromFile(Kind.DEX, file));
     }
     AndroidApp result = process(resources);
-    process(result.getDexProgramResources());
+    process(result.computeAllProgramResources());
   }
 }

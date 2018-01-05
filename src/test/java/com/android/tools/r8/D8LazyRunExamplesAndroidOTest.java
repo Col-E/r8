@@ -110,13 +110,13 @@ public class D8LazyRunExamplesAndroidOTest
                 options.interfaceMethodDesugaring = OffOrAuto.Auto;
                 options.setMarker(null);
               });
-      individalDexes.add(individualResult.getDexProgramResources().get(0));
+      individalDexes.add(individualResult.getDexProgramResourcesForTesting().get(0));
     }
     AndroidApp mergedResult = mergeDexResources(minAPILevel, individalDexes);
 
     assertTrue(Arrays.equals(
-        readResource(fullBuildResult.getDexProgramResources().get(0)),
-        readResource(mergedResult.getDexProgramResources().get(0))));
+        readResource(fullBuildResult.getDexProgramResourcesForTesting().get(0)),
+        readResource(mergedResult.getDexProgramResourcesForTesting().get(0))));
   }
 
   private AndroidApp mergeDexResources(int minAPILevel, List<Resource> individalDexes)

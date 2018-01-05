@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.dex.DexFileReader;
 import com.android.tools.r8.dex.Segment;
 import com.android.tools.r8.origin.CommandLineOrigin;
@@ -85,7 +86,7 @@ public class DexSegments {
   }
 
   public static void main(String[] args)
-      throws IOException, CompilationFailedException {
+      throws IOException, CompilationFailedException, ResourceException {
     Command.Builder builder = Command.parse(args);
     Command command = builder.build();
     if (command.isPrintHelp()) {
@@ -95,12 +96,14 @@ public class DexSegments {
     AndroidApp app = command.getInputApp();
     Map<String, Integer> result = new HashMap<>();
     try (Closer closer = Closer.create()) {
-      for (Resource resource : app.getDexProgramResources()) {
-        for (Segment segment :
-            DexFileReader.parseMapFrom(
-                closer.register(resource.getStream()), resource.getOrigin())) {
-          int value = result.computeIfAbsent(segment.typeName(), (key) -> 0);
-          result.put(segment.typeName(), value + segment.size());
+      for (ProgramResource resource : app.computeAllProgramResources()) {
+        if (resource.getKind() == Kind.DEX) {
+          for (Segment segment :
+              DexFileReader.parseMapFrom(
+                  closer.register(resource.getByteStream()), resource.getOrigin())) {
+            int value = result.computeIfAbsent(segment.typeName(), (key) -> 0);
+            result.put(segment.typeName(), value + segment.size());
+          }
         }
       }
     }

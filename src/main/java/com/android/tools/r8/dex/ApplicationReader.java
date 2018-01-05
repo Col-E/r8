@@ -9,6 +9,7 @@ import static com.android.tools.r8.graph.ClassKind.PROGRAM;
 
 import com.android.tools.r8.ClassFileResourceProvider;
 import com.android.tools.r8.ProgramResource;
+import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.StringResource;
 import com.android.tools.r8.errors.CompilationError;
@@ -39,6 +40,7 @@ import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -237,8 +239,19 @@ public class ApplicationReader {
     }
 
     void readSources() throws IOException, ResourceException {
-      readDexSources(inputApp.getDexProgramResources(), PROGRAM, programClasses);
-      readClassSources(inputApp.getClassProgramResources(), PROGRAM, programClasses);
+      Collection<ProgramResource> resources = inputApp.computeAllProgramResources();
+      List<ProgramResource> dexResources = new ArrayList<>(resources.size());
+      List<ProgramResource> cfResources = new ArrayList<>(resources.size());
+      for (ProgramResource resource : resources) {
+        if (resource.getKind() == Kind.DEX) {
+          dexResources.add(resource);
+        } else {
+          assert resource.getKind() == Kind.CF;
+          cfResources.add(resource);
+        }
+      }
+      readDexSources(dexResources, PROGRAM, programClasses);
+      readClassSources(cfResources, PROGRAM, programClasses);
     }
 
     private <T extends DexClass> ClassProvider<T> buildClassProvider(ClassKind classKind,

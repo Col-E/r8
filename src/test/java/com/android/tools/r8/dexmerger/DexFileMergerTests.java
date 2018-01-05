@@ -72,7 +72,7 @@ public class DexFileMergerTests {
             AndroidApiLevel.N.getLevel(),
             MAX_METHOD_COUNT / 2 + 1 + extraMethodCount);
     Path appDir = temp.newFolder().toPath().resolve("merger-input.zip");
-    assertEquals(programResourcesSize, generatedApp.getDexProgramResources().size());
+    assertEquals(programResourcesSize, generatedApp.getDexProgramResourcesForTesting().size());
     generatedApp.write(appDir, OutputMode.DexIndexed);
 
     Path outZip = temp.getRoot().toPath().resolve("out.zip");

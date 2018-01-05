@@ -45,8 +45,8 @@ public class GenerateMainDexListCommandTest {
   }
 
   private void verifyEmptyCommand(GenerateMainDexListCommand command) throws IOException {
-    assertEquals(0, ToolHelper.getApp(command).getDexProgramResources().size());
-    assertEquals(0, ToolHelper.getApp(command).getClassProgramResources().size());
+    assertEquals(0, ToolHelper.getApp(command).getDexProgramResourcesForTesting().size());
+    assertEquals(0, ToolHelper.getApp(command).getClassProgramResourcesForTesting().size());
     assertFalse(ToolHelper.getApp(command).hasMainDexListResources());
   }
 

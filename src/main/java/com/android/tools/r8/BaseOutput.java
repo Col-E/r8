@@ -45,7 +45,7 @@ abstract class BaseOutput {
    */
   public List<Resource> getDexResources() {
     try {
-      return ImmutableList.copyOf(app.getDexProgramResources());
+      return ImmutableList.copyOf(app.getDexProgramResourcesForTesting());
     } catch (IOException e) {
       throw new InternalCompilerError("Unexpected resource error", e);
     }

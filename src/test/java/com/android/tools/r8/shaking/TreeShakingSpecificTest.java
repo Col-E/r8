@@ -44,12 +44,11 @@ public class TreeShakingSpecificTest {
     Path originalDex = Paths.get(EXAMPLES_BUILD_DIR, test, "classes.dex");
     Path keepRules = Paths.get(EXAMPLES_DIR, test, "keep-rules.txt");
     Path ignoreWarnings = Paths.get(VALID_PROGUARD_DIR, "ignorewarnings.flags");
-    R8.run(
-        R8Command.builder()
-            .addProgramFiles(originalDex)
-            .setOutput(out, OutputMode.DexIndexed)
-            .addProguardConfigurationFiles(keepRules, ignoreWarnings)
-            .build());
+    R8Command.Builder builder = R8Command.builder()
+        .setOutput(out, OutputMode.DexIndexed)
+        .addProguardConfigurationFiles(keepRules, ignoreWarnings);
+    ToolHelper.getAppBuilder(builder).addProgramFiles(originalDex);
+    R8.run(builder.build());
   }
 
   @Test(expected = CompilationFailedException.class)
@@ -67,11 +66,11 @@ public class TreeShakingSpecificTest {
         }
       }
     };
-    R8.run(R8Command.builder(handler)
-        .addProgramFiles(originalDex)
+    R8Command.Builder builder = R8Command.builder(handler)
         .setOutput(out, OutputMode.DexIndexed)
-        .addProguardConfigurationFiles(keepRules)
-        .build());
+        .addProguardConfigurationFiles(keepRules);
+    ToolHelper.getAppBuilder(builder).addProgramFiles(originalDex);
+    R8.run(builder.build());
   }
 
   @Test
@@ -89,16 +88,13 @@ public class TreeShakingSpecificTest {
       mapping.println("-printmapping mapping.txt");
     }
 
-    ToolHelper.runR8(
-        R8Command.builder()
-            .addProgramFiles(originalDex)
-            .setOutput(out, OutputMode.DexIndexed)
-            .addProguardConfigurationFiles(keepRules, printMapping)
-            .build(),
-        options -> {
-          // Turn off inlining, as we want the mapping that is printed to be stable.
-          options.inlineAccessors = false;
-        });
+    R8Command.Builder builder = R8Command.builder()
+        .setOutput(out, OutputMode.DexIndexed)
+        .addProguardConfigurationFiles(keepRules, printMapping);
+    ToolHelper.getAppBuilder(builder).addProgramFiles(originalDex);
+    // Turn off inlining, as we want the mapping that is printed to be stable.
+    ToolHelper.runR8(builder.build(), options -> options.inlineAccessors = false);
+
     Path outputmapping = out.resolve("mapping.txt");
     String actualMapping;
     actualMapping = new String(Files.readAllBytes(outputmapping), StandardCharsets.UTF_8);

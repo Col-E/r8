@@ -1396,8 +1396,9 @@ public abstract class R8RunArtTestsTest {
           R8Command.Builder builder =
               R8Command.builder()
                   .setMode(mode)
-                  .setOutput(Paths.get(resultPath), OutputMode.DexIndexed)
-                  .addProgramFiles(ListUtils.map(fileNames, Paths::get));
+                  .setOutput(Paths.get(resultPath), OutputMode.DexIndexed);
+          // Add program files directly to the underlying app to avoid errors on DEX inputs.
+          ToolHelper.getAppBuilder(builder).addProgramFiles(ListUtils.map(fileNames, Paths::get));
           Integer minSdkVersion = needMinSdkVersion.get(name);
           if (minSdkVersion != null) {
             builder.setMinApiLevel(minSdkVersion);

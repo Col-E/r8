@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.VDexFile;
@@ -51,9 +52,11 @@ public class ExtractMarker {
     AndroidApp.Builder appBuilder = AndroidApp.builder();
     addDexResources(appBuilder, file);
     int size = 0;
-    for (ProgramResource resource : appBuilder.build().getDexProgramResources()) {
-      try (InputStream input = resource.getByteStream()) {
-        size += ByteStreams.toByteArray(input).length;
+    for (ProgramResource resource : appBuilder.build().computeAllProgramResources()) {
+      if (resource.getKind() == Kind.DEX) {
+        try (InputStream input = resource.getByteStream()) {
+          size += ByteStreams.toByteArray(input).length;
+        }
       }
     }
     return size;

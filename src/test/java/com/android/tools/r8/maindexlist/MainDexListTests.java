@@ -431,7 +431,7 @@ public class MainDexListTests extends TestBase {
         MANY_CLASSES, AndroidApiLevel.K.getLevel(), true, MANY_CLASSES_MULTI_DEX_METHODS_PER_CLASS);
     generated.write(getManyClassesForceMultiDexAppPath(), OutputMode.Indexed);
     // Make sure the generated app indeed has multiple dex files.
-    assertTrue(generated.getDexProgramResources().size() > 1);
+    assertTrue(generated.getDexProgramResourcesForTesting().size() > 1);
   }
 
   @Test

@@ -53,7 +53,13 @@ public class D8Command extends BaseCompilerCommand {
     private Builder(AndroidApp app) {
       super(app);
       setMode(CompilationMode.DEBUG);
-   }
+    }
+
+    /** Add dex program-data. */
+    public Builder addDexProgramData(byte[] data, Origin origin) {
+      guard(() -> getAppBuilder().addDexProgramData(data, origin));
+      return self();
+    }
 
     /** Add classpath file resources. */
     public Builder addClasspathFiles(Path... files) {

@@ -80,14 +80,12 @@ public class MemberRebindingTest {
     String out = temp.getRoot().getCanonicalPath();
     // NOTE: It is important to turn off inlining to ensure
     // dex inspection of invokes is predictable.
-    ToolHelper.runR8(
-        R8Command.builder()
-            .setOutput(Paths.get(out), OutputMode.DexIndexed)
-            .addProgramFiles(programFile)
-            .addLibraryFiles(JAR_LIBRARIES)
-            .setMinApiLevel(minApiLevel)
-            .build(),
-        options -> options.inlineAccessors = false);
+    R8Command.Builder builder = R8Command.builder()
+        .setOutput(Paths.get(out), OutputMode.DexIndexed)
+        .addLibraryFiles(JAR_LIBRARIES)
+        .setMinApiLevel(minApiLevel);
+    ToolHelper.getAppBuilder(builder).addProgramFiles(programFile);
+    ToolHelper.runR8(builder.build(), options -> options.inlineAccessors = false);
   }
 
   private static boolean coolInvokes(InstructionSubject instruction) {

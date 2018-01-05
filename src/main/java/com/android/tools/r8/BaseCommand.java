@@ -175,12 +175,6 @@ public abstract class BaseCommand {
       return self();
     }
 
-    /** Add dex program-data. */
-    public B addDexProgramData(byte[] data, Origin origin) {
-      guard(() -> app.addDexProgramData(data, origin));
-      return self();
-    }
-
     /**
      * Add main-dex list files.
      *

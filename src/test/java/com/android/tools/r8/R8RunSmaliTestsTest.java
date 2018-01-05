@@ -154,12 +154,11 @@ public class R8RunSmaliTestsTest {
   public void SmaliTest() throws Exception {
     Path originalDexFile = Paths.get(SMALI_DIR, directoryName, dexFileName);
     String outputPath = temp.getRoot().getCanonicalPath();
-    R8.run(
-        R8Command.builder()
-            .addProgramFiles(originalDexFile)
+    R8Command.Builder builder = R8Command.builder()
             .addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()))
-            .setOutput(Paths.get(outputPath), OutputMode.DexIndexed)
-            .build());
+            .setOutput(Paths.get(outputPath), OutputMode.DexIndexed);
+    ToolHelper.getAppBuilder(builder).addProgramFiles(originalDexFile);
+    R8.run(builder.build());
 
     if (!ToolHelper.artSupported()) {
       return;

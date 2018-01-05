@@ -152,7 +152,7 @@ public abstract class CompilationTestBase {
   public int applicationSize(AndroidApp app) throws IOException {
     int bytes = 0;
     try (Closer closer = Closer.create()) {
-      for (Resource dex : app.getDexProgramResources()) {
+      for (Resource dex : app.getDexProgramResourcesForTesting()) {
         bytes += ByteStreams.toByteArray(closer.register(dex.getStream())).length;
       }
     }
@@ -170,8 +170,8 @@ public abstract class CompilationTestBase {
         app1.writeToDirectory(temp.newFolder("app1").toPath(), OutputMode.Indexed);
         app2.writeToDirectory(temp.newFolder("app2").toPath(), OutputMode.Indexed);
       }
-      List<ProgramResource> files1 = app1.getDexProgramResources();
-      List<ProgramResource> files2 = app2.getDexProgramResources();
+      List<ProgramResource> files1 = app1.getDexProgramResourcesForTesting();
+      List<ProgramResource> files2 = app2.getDexProgramResourcesForTesting();
       assertEquals(files1.size(), files2.size());
       for (int index = 0; index < files1.size(); index++) {
         InputStream file1 = closer.register(files1.get(index).getStream());

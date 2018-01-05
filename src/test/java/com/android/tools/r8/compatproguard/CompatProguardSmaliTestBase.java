@@ -17,12 +17,11 @@ class CompatProguardSmaliTestBase extends SmaliTestBase {
   DexInspector runCompatProguard(SmaliBuilder builder, List<String> proguardConfigurations)
       throws Exception {
     Path dexOutputDir = temp.newFolder().toPath();
-    R8Command command =
+    R8Command.Builder commandBuilder =
         new CompatProguardCommandBuilder(true)
-            .addDexProgramData(builder.compile(), Origin.unknown())
             .setOutput(dexOutputDir, OutputMode.DexIndexed)
-            .addProguardConfiguration(proguardConfigurations, Origin.unknown())
-            .build();
-    return new DexInspector(ToolHelper.runR8(command));
+            .addProguardConfiguration(proguardConfigurations, Origin.unknown());
+    ToolHelper.getAppBuilder(commandBuilder).addDexProgramData(builder.compile(), Origin.unknown());
+    return new DexInspector(ToolHelper.runR8(commandBuilder.build()));
   }
 }

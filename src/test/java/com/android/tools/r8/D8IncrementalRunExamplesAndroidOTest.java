@@ -65,10 +65,10 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
       for (String classFile : classFiles) {
         AndroidApp app = compileClassFiles(
             testJarFile, Collections.singletonList(classFile), null, OutputMode.Indexed);
-        assert app.getDexProgramResources().size() == 1;
+        assert app.getDexProgramResourcesForTesting().size() == 1;
         fileToResource.put(
             makeRelative(testJarFile, Paths.get(classFile)).toString(),
-            app.getDexProgramResources().get(0));
+            app.getDexProgramResourcesForTesting().get(0));
       }
       return fileToResource;
     }
@@ -80,7 +80,7 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
       List<String> classFiles = collectClassFiles(testJarFile);
       AndroidApp app = compileClassFiles(
           testJarFile, classFiles, output, OutputMode.FilePerInputClass);
-      for (ProgramResource resource : app.getDexProgramResources()) {
+      for (ProgramResource resource : app.getDexProgramResourcesForTesting()) {
         Set<String> descriptors = resource.getClassDescriptors();
         String mainClassDescriptor = app.getPrimaryClassDescriptor(resource);
         Assert.assertNotNull(mainClassDescriptor);
@@ -197,8 +197,8 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
       D8Command command = builder.build();
       try {
         AndroidApp app = ToolHelper.runD8(command, this::combinedOptionConsumer);
-        assert app.getDexProgramResources().size() == 1;
-        return app.getDexProgramResources().get(0);
+        assert app.getDexProgramResourcesForTesting().size() == 1;
+        return app.getDexProgramResourcesForTesting().get(0);
       } catch (Unimplemented | CompilationError | InternalCompilerError re) {
         throw re;
       } catch (RuntimeException re) {

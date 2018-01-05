@@ -85,8 +85,17 @@ public class AndroidApp {
     return new Builder(app);
   }
 
-  /** Get input streams for all dex program resources. */
-  public List<ProgramResource> getDexProgramResources() throws IOException {
+  /** Get full collection of all program resources from all program providers. */
+  public Collection<ProgramResource> computeAllProgramResources() throws ResourceException {
+    List<ProgramResource> resources = new ArrayList<>();
+    for (ProgramResourceProvider provider : programResourceProviders) {
+      resources.addAll(provider.getProgramResources());
+    }
+    return resources;
+  }
+
+  // TODO(zerny): Remove this method.
+  public List<ProgramResource> getDexProgramResourcesForTesting() throws IOException {
     try {
       return filter(programResourceProviders, Kind.DEX);
     } catch (ResourceException e) {
@@ -98,8 +107,8 @@ public class AndroidApp {
     }
   }
 
-  /** Get input streams for all Java-bytecode program resources. */
-  public List<ProgramResource> getClassProgramResources() throws IOException {
+  // TODO(zerny): Remove this method.
+  public List<ProgramResource> getClassProgramResourcesForTesting() throws IOException {
     try {
       return filter(programResourceProviders, Kind.CF);
     } catch (ResourceException e) {
@@ -192,7 +201,7 @@ public class AndroidApp {
    * Write the dex program resources and proguard resource to @code{directory}.
    */
   public void writeToDirectory(Path directory, OutputMode outputMode) throws IOException {
-    List<ProgramResource> dexProgramSources = getDexProgramResources();
+    List<ProgramResource> dexProgramSources = getDexProgramResourcesForTesting();
     if (outputMode.isDexIndexed()) {
       DexIndexedConsumer.DirectoryConsumer.writeResources(directory, dexProgramSources);
     } else {
@@ -205,7 +214,7 @@ public class AndroidApp {
    * Write the dex program resources to @code{archive} and the proguard resource as its sibling.
    */
   public void writeToZip(Path archive, OutputMode outputMode) throws IOException {
-    List<ProgramResource> resources = getDexProgramResources();
+    List<ProgramResource> resources = getDexProgramResourcesForTesting();
     if (outputMode.isDexIndexed()) {
       DexIndexedConsumer.ArchiveConsumer.writeResources(archive, resources);
     } else if (outputMode.isDexFilePerClassFile()) {

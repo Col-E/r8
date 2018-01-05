@@ -6,22 +6,66 @@ package com.android.tools.r8;
 import static com.android.tools.r8.ToolHelper.EXAMPLES_BUILD_DIR;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.origin.EmbeddedOrigin;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.OutputMode;
 import com.google.common.collect.ImmutableList;
+import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 public class R8CommandTest {
+
+  // Helper to check that a particular error occurred.
+  static class DiagnosticsChecker implements DiagnosticsHandler {
+    public List<Diagnostic> errors = new ArrayList<>();
+    public List<Diagnostic> warnings = new ArrayList<>();
+    public List<Diagnostic> infos = new ArrayList<>();
+
+    @Override
+    public void error(Diagnostic error) {
+      errors.add(error);
+    }
+
+    @Override
+    public void warning(Diagnostic warning) {
+      warnings.add(warning);
+    }
+
+    @Override
+    public void info(Diagnostic info) {
+      infos.add(info);
+    }
+
+    public interface FailingRunner {
+      void run(DiagnosticsHandler handler) throws CompilationFailedException;
+    }
+
+    public static void checkErrorsContains(String snippet, FailingRunner runner)
+        throws CompilationFailedException {
+      DiagnosticsChecker handler = new DiagnosticsChecker();
+      try {
+        runner.run(handler);
+      } catch (CompilationFailedException e) {
+        assertTrue(handler.errors.stream()
+            .anyMatch(d -> d.getDiagnosticMessage().contains(snippet)));
+        throw e;
+      }
+    }
+  }
 
   @Rule
   public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
@@ -47,8 +91,8 @@ public class R8CommandTest {
   }
 
   private void verifyEmptyCommand(R8Command command) throws Throwable {
-    assertEquals(0, ToolHelper.getApp(command).getDexProgramResources().size());
-    assertEquals(0, ToolHelper.getApp(command).getClassProgramResources().size());
+    assertEquals(0, ToolHelper.getApp(command).getDexProgramResourcesForTesting().size());
+    assertEquals(0, ToolHelper.getApp(command).getClassProgramResourcesForTesting().size());
     assertFalse(command.useMinification());
     assertFalse(command.useTreeShaking());
     assertEquals(CompilationMode.RELEASE, command.getMode());
@@ -255,7 +299,7 @@ public class R8CommandTest {
 
   @Test
   public void argumentsInFile() throws Throwable {
-    Path inputFile = temp.newFile("foobar.dex").toPath();
+    Path inputFile = temp.newFile("foobar.class").toPath();
     Path pgConfFile = temp.newFile("pgconf.config").toPath();
     Path argsFile = temp.newFile("more-args.txt").toPath();
     FileUtils.writeTextFile(argsFile, ImmutableList.of(
@@ -267,7 +311,7 @@ public class R8CommandTest {
     assertEquals(CompilationMode.DEBUG, command.getMode());
     assertFalse(command.useMinification());
     assertFalse(command.useTreeShaking()); // We have no keep rules (proguard config file is empty).
-    assertEquals(1, ToolHelper.getApp(command).getDexProgramResources().size());
+    assertEquals(1, ToolHelper.getApp(command).getClassProgramResourcesForTesting().size());
   }
 
   @Test
@@ -277,9 +321,46 @@ public class R8CommandTest {
   }
 
   @Test(expected = CompilationFailedException.class)
+  public void dexFileUnsupported() throws Throwable {
+    Path dexFile = temp.newFile("test.dex").toPath();
+    DiagnosticsChecker.checkErrorsContains("DEX input", handler ->
+        R8Command
+            .builder(handler)
+            .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+            .addProgramFiles(dexFile)
+            .build());
+  }
+
+  @Test(expected = CompilationFailedException.class)
+  public void dexProviderUnsupported() throws Throwable {
+    Path dexFile = temp.newFile("test.dex").toPath();
+    DiagnosticsChecker.checkErrorsContains("DEX input", handler ->
+        R8.run(R8Command
+            .builder(handler)
+            .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+            .addProgramResourceProvider(new ProgramResourceProvider() {
+              @Override
+              public Collection<ProgramResource> getProgramResources() throws ResourceException {
+                return Collections.singleton(ProgramResource.fromFile(Kind.DEX, dexFile));
+              }
+            })
+            .build()));
+  }
+
+  @Test
+  public void dexDataUnsupported() throws Throwable {
+    for (Method method : R8Command.Builder.class.getMethods()) {
+      assertNotEquals("addDexProgramData", method.getName());
+    }
+  }
+
+  @Test(expected = CompilationFailedException.class)
   public void vdexFileUnsupported() throws Throwable {
     Path vdexFile = temp.newFile("test.vdex").toPath();
-    D8Command.builder().addProgramFiles(vdexFile).build();
+    R8Command.builder()
+        .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+        .addProgramFiles(vdexFile)
+        .build();
   }
 
   private R8Command parse(String... args) throws CompilationFailedException {

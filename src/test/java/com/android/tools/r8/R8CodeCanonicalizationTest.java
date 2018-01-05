@@ -17,7 +17,8 @@ import org.junit.rules.TemporaryFolder;
 
 public class R8CodeCanonicalizationTest {
 
-  private static final String SOURCE_DEX = "invokeempty/classes.dex";
+  private static final Path SOURCE_DEX = Paths.get(
+      ToolHelper.EXAMPLES_BUILD_DIR, "invokeempty", "classes.dex");
 
   private int readNumberOfCodes(Path file) throws IOException {
     Segment[] segments = DexFileReader.parseMapFrom(file);
@@ -34,13 +35,12 @@ public class R8CodeCanonicalizationTest {
 
   @Test
   public void testNumberOfCodeItemsUnchanged() throws Exception {
-    int numberOfCodes = readNumberOfCodes(Paths.get(ToolHelper.EXAMPLES_BUILD_DIR + SOURCE_DEX));
-    R8.run(
-        R8Command.builder()
-            .addProgramFiles(Paths.get(ToolHelper.EXAMPLES_BUILD_DIR + SOURCE_DEX))
-            .addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()))
-            .setOutput(temp.getRoot().toPath(), OutputMode.DexIndexed)
-            .build());
+    int numberOfCodes = readNumberOfCodes(SOURCE_DEX);
+    R8Command.Builder builder = R8Command.builder()
+        .addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()))
+        .setOutput(temp.getRoot().toPath(), OutputMode.DexIndexed);
+    ToolHelper.getAppBuilder(builder).addProgramFiles(SOURCE_DEX);
+    R8.run(builder.build());
 
     int newNumberOfCodes = readNumberOfCodes(
         Paths.get(temp.getRoot().getCanonicalPath(), "classes.dex"));

@@ -15,6 +15,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.android.tools.r8.utils.OutputMode;
 import java.io.IOException;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
@@ -92,6 +93,16 @@ public abstract class R8RunExamplesCommon {
     }
   }
 
+  private R8Command.Builder addInputFile(R8Command.Builder builder) throws NoSuchFileException {
+    if (input == Input.DX) {
+      // If input is DEX code, use the tool helper to add the DEX sources as R8 disallows them.
+      ToolHelper.getAppBuilder(builder).addProgramFiles(getInputFile());
+    } else {
+      builder.addProgramFiles(getInputFile());
+    }
+    return builder;
+  }
+
   public Path getOriginalJarFile(String postFix) {
     return Paths.get(getExampleDir(), pkg + postFix + JAR_EXTENSION);
   }
@@ -116,17 +127,17 @@ public abstract class R8RunExamplesCommon {
     switch (compiler) {
       case D8: {
         assertTrue(output == Output.DEX);
-        ToolHelper.runD8(D8Command.builder()
-            .addProgramFiles(getInputFile())
-            .setOutput(getOutputFile(), outputMode)
-            .setMode(mode)
-            .build());
+        ToolHelper.runD8(
+            D8Command.builder()
+                .addProgramFiles(getInputFile())
+                .setOutput(getOutputFile(), outputMode)
+                .setMode(mode)
+                .build());
         break;
       }
       case R8: {
         ToolHelper.runR8(
-            R8Command.builder()
-                .addProgramFiles(getInputFile())
+            addInputFile(R8Command.builder())
                 .setOutput(getOutputFile(), outputMode)
                 .setMode(mode)
                 .build(),
