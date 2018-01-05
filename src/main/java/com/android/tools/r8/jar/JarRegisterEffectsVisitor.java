@@ -150,6 +150,7 @@ public class JarRegisterEffectsVisitor extends MethodVisitor {
             Opcodes.INVOKESTATIC, handle.getOwner(), handle.getName(), handle.getDesc(), false);
         break;
       case Opcodes.H_NEWINVOKESPECIAL:
+        registry.registerNewInstance(application.getTypeFromName(handle.getOwner()));
         visitMethodInsn(
             Opcodes.INVOKESPECIAL, handle.getOwner(), handle.getName(), handle.getDesc(), false);
         break;
