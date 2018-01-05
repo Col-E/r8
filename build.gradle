@@ -724,6 +724,12 @@ task buildR8ApiUsageSample(type: Jar) {
     destinationDir file('tests')
 }
 
+task buildApiSampleJars {
+    dependsOn buildApiUsageSample
+    dependsOn buildD8ApiUsageSample
+    dependsOn buildR8ApiUsageSample
+}
+
 task buildDebugInfoExamplesDex {
     def examplesDir = file("src/test/java")
     def hostJar = "debuginfo_examples.jar"
