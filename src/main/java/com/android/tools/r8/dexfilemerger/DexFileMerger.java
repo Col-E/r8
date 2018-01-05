@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.concurrent.ExecutionException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -256,13 +257,18 @@ public class DexFileMerger {
   private static class ArchiveConsumer extends DexIndexedConsumer.ArchiveConsumer {
     private final Integer singleFixedFileIndex;
     private final String prefix;
-    private boolean dataHasBeenWritten = false;
+
+    private final Map<Integer, Runnable> writers = new TreeMap<>();
 
     /** If singleFixedFileIndex is not null then we expect only one output dex file */
     private ArchiveConsumer(Path path, String prefix, Integer singleFixedFileIndex) {
       super(path);
       this.prefix = prefix;
       this.singleFixedFileIndex = singleFixedFileIndex;
+    }
+
+    private boolean hasAnythingToWrite() {
+      return !writers.isEmpty();
     }
 
     @Override
@@ -274,14 +280,21 @@ public class DexFileMerger {
     }
 
     @Override
-    public void accept(
+    public synchronized void accept(
         int fileIndex, byte[] data, Set<String> descriptors, DiagnosticsHandler handler) {
       if (singleFixedFileIndex != null && fileIndex != 0) {
         handler.error(new StringDiagnostic("Result does not fit into a single dex file."));
         return;
       }
-      super.accept(fileIndex, data, descriptors, handler);
-      dataHasBeenWritten = true;
+      writers.put(fileIndex, () -> super.accept(fileIndex, data, descriptors, handler));
+    }
+
+    @Override
+    public void finished(DiagnosticsHandler handler) {
+      for (Runnable writer : writers.values()) {
+        writer.run();
+      }
+      super.finished(handler);
     }
   }
 
@@ -369,7 +382,7 @@ public class DexFileMerger {
     DexFileMergerHelper.run(builder.build(), options.minimalMainDex, inputOrdering);
 
     // If input was empty we still need to write out an empty zip.
-    if (!consumer.dataHasBeenWritten) {
+    if (!consumer.hasAnythingToWrite()) {
       File f = new File(options.outputArchive);
       ZipOutputStream out = new ZipOutputStream(new FileOutputStream(f));
       out.close();
