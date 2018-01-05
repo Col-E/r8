@@ -22,6 +22,7 @@ public class MoveException extends Instruction {
 
   public MoveException(Value dest) {
     super(dest);
+    dest.markNeverNull();
   }
 
   public Value dest() {
