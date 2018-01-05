@@ -11,6 +11,7 @@ import com.android.tools.r8.D8Command.Builder;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unimplemented;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import com.android.tools.r8.utils.AndroidApp;
@@ -36,6 +37,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.function.UnaryOperator;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Test;
 
 public abstract class D8IncrementalRunExamplesAndroidOTest
@@ -301,6 +303,20 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
 
   @Override
   abstract D8IncrementalTestRunner test(String testName, String packageName, String mainClass);
+
+  @Override
+  protected void testIntermediateWithMainDexList(String packageName, Path input,
+      int expectedMainDexListSize, String... mainDexClasses) throws Throwable {
+    // Skip those tests.
+    Assume.assumeTrue(false);
+  }
+
+  @Override
+  protected Path buildDexThroughIntermediate(String packageName, Path input, OutputMode outputMode,
+      int minApi, String... mainDexClasses) throws Throwable {
+    // tests using this should already been skipped.
+    throw new Unreachable();
+  }
 
   static byte[] readResource(Resource resource) throws IOException {
     try (InputStream input = resource.getStream()) {
