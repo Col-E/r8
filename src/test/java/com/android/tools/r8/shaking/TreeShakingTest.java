@@ -140,7 +140,6 @@ public class TreeShakingTest {
                   pgConfig.setObfuscating(minify.isMinify());
                 })
             .setOutput(out, OutputMode.DexIndexed)
-            .addProgramFiles(Paths.get(programFile))
             .addProguardConfigurationFiles(ListUtils.map(keepRulesFiles, Paths::get))
             .addLibraryFiles(JAR_LIBRARIES);
     ToolHelper.getAppBuilder(builder).addProgramFiles(Paths.get(programFile));
