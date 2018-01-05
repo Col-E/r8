@@ -20,6 +20,7 @@ public class InvokeNewArray extends Invoke {
 
   public InvokeNewArray(DexType type, Value result, List<Value> arguments) {
     super(result, arguments);
+    result.markNeverNull();
     this.type = type;
   }
 
