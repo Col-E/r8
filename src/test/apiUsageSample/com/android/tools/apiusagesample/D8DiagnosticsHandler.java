@@ -12,6 +12,7 @@ import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.position.TextPosition;
 import com.android.tools.r8.position.TextRange;
+import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -49,19 +50,23 @@ class D8DiagnosticsHandler implements DiagnosticsHandler {
     Origin origin = diagnostic.getOrigin();
     Position positionInOrigin = diagnostic.getPosition();
     String position;
-    if (origin.parent() instanceof PathOrigin) {
+    if (origin instanceof PathOrigin) {
+      File originFile = ((PathOrigin) origin).getPath().toFile();
       if (positionInOrigin instanceof TextRange) {
         TextRange textRange = (TextRange) positionInOrigin;
-        position = ((PathOrigin) origin.parent()).getPath().toFile() + ": "
+        position = originFile + ": "
             + textRange.getStart().getLine() + "," + textRange.getStart().getColumn()
             + " - " + textRange.getEnd().getLine() + "," + textRange.getEnd().getColumn();
       } else if (positionInOrigin instanceof TextPosition) {
         TextPosition textPosition = (TextPosition) positionInOrigin;
-        position = ((PathOrigin) origin.parent()).getPath().toFile() + ": "
+        position = originFile + ": "
             + textPosition.getLine() + "," + textPosition.getColumn();
       } else {
-        position = ((PathOrigin) origin.parent()).getPath().toFile().toString();
+        position = originFile.toString();
       }
+    } else if (origin.parent() instanceof PathOrigin) {
+      File originFile = ((PathOrigin) origin.parent()).getPath().toFile();
+      position = originFile.toString();
     } else {
       position = "UNKNOWN";
       if (origin != Origin.unknown()) {
