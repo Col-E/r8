@@ -67,6 +67,7 @@ public class TypeAnalysis {
       //   2) It does not have an out value, so we can skip the env updating.
       if (instruction instanceof Argument) {
         if (argumentsSeen < 0) {
+          // Receiver
           derived = TypeLatticeElement.fromDexType(appInfo, encodedMethod.method.holder, false);
         } else {
           DexType argType = encodedMethod.method.proto.parameters.values[argumentsSeen];
