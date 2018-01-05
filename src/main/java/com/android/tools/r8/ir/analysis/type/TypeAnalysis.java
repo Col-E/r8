@@ -15,9 +15,7 @@ import com.android.tools.r8.ir.code.Value;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-
 import java.util.ArrayDeque;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.Map;
@@ -41,11 +39,7 @@ public class TypeAnalysis {
   }
 
   public void run() {
-    BasicBlock[] basicBlocks = code.topologicallySortedBlocks();
-    if (basicBlocks.length <= 0) {
-      return;
-    }
-    worklist.addAll(Arrays.asList(basicBlocks));
+    worklist.addAll(code.topologicallySortedBlocks());
     while (!worklist.isEmpty()) {
       processBasicBlock(worklist.poll());
     }

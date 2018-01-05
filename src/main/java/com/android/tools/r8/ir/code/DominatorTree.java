@@ -4,10 +4,9 @@
 
 package com.android.tools.r8.ir.code;
 
+import com.google.common.collect.ImmutableList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
-import java.util.List;
 
 public class DominatorTree {
   private BasicBlock[] sorted;
@@ -15,21 +14,15 @@ public class DominatorTree {
   private BasicBlock normalExitBlock = new BasicBlock();
 
   public DominatorTree(IRCode code) {
-    this(code, Collections.emptyList());
-  }
-
-  // TODO(sgjesse) Get rid of this constructor and blocksToIgnore.
-  DominatorTree(IRCode code, List<BasicBlock> blocksToIgnore) {
-    BasicBlock[] blocks = code.topologicallySortedBlocks(blocksToIgnore);
+    ImmutableList<BasicBlock> blocks = code.topologicallySortedBlocks();
     // Add the internal exit block to the block list.
     for (BasicBlock block : blocks) {
       if (block.exit().isReturn()) {
         normalExitBlock.getPredecessors().add(block);
       }
     }
-    sorted = new BasicBlock[blocks.length + 1];
-    System.arraycopy(blocks, 0, sorted, 0, blocks.length);
-    sorted[blocks.length] = normalExitBlock;
+    sorted = blocks.toArray(new BasicBlock[blocks.size() + 1]);
+    sorted[blocks.size()] = normalExitBlock;
     numberBlocks();
     build();
   }

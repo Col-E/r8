@@ -11,7 +11,6 @@ import com.android.tools.r8.utils.CfgPrinter;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -64,10 +63,8 @@ public class IRCode {
     Queue<BasicBlock> worklist = new ArrayDeque<>();
     // Since this is a backwards data-flow analysis we process the blocks in reverse
     // topological order to reduce the number of iterations.
-    BasicBlock[] sorted = topologicallySortedBlocks();
-    for (int i = sorted.length - 1; i >= 0; i--) {
-      worklist.add(sorted[i]);
-    }
+    ImmutableList<BasicBlock> sorted = topologicallySortedBlocks();
+    worklist.addAll(sorted.reverse());
     while (!worklist.isEmpty()) {
       BasicBlock block = worklist.poll();
       Set<Value> live = new HashSet<>();
@@ -112,7 +109,7 @@ public class IRCode {
         }
       }
     }
-    assert liveAtEntrySets.get(sorted[0]).size() == 0;
+    assert liveAtEntrySets.get(sorted.get(0)).size() == 0;
     return liveAtEntrySets;
   }
 
@@ -158,7 +155,8 @@ public class IRCode {
    * goto to the actual fallthrough block.
    */
   public void traceBlocks() {
-    BasicBlock[] sorted = topologicallySortedBlocks();
+    // Get the blocks first, as calling topologicallySortedBlocks also sets marks.
+    ImmutableList<BasicBlock> sorted = topologicallySortedBlocks();
     clearMarks();
     int nextBlockNumber = blocks.size();
     LinkedList<BasicBlock> tracedBlocks = new LinkedList<>();
@@ -190,9 +188,9 @@ public class IRCode {
   private void ensureBlockNumbering() {
     if (!numbered) {
       numbered = true;
-      BasicBlock[] sorted = topologicallySortedBlocks();
-      for (int i = 0; i < sorted.length; i++) {
-        sorted[i].setNumber(i);
+      int blockNumber = 0;
+      for (BasicBlock block : topologicallySortedBlocks()) {
+        block.setNumber(blockNumber++);
       }
     }
   }
@@ -235,31 +233,23 @@ public class IRCode {
    * sort strongly connected components instead. However, this is much better than having
    * no sorting.
    */
-  public BasicBlock[] topologicallySortedBlocks() {
-    return topologicallySortedBlocks(Collections.emptyList());
-  }
-
-  public BasicBlock[] topologicallySortedBlocks(List<BasicBlock> blocksToIgnore) {
+  public ImmutableList<BasicBlock> topologicallySortedBlocks() {
     clearMarks();
-    int reachableBlocks = blocks.size() - blocksToIgnore.size();
-    BasicBlock[] sorted = new BasicBlock[reachableBlocks];
+    ImmutableList.Builder<BasicBlock> builder = ImmutableList.builder();
     BasicBlock entryBlock = blocks.getFirst();
-    int index = depthFirstSorting(entryBlock, sorted, reachableBlocks - 1);
-    assert index == -1;
-    return sorted;
+    depthFirstSorting(entryBlock, builder);
+    return builder.build().reverse();
   }
 
-  private int depthFirstSorting(BasicBlock block, BasicBlock[] sorted, int index) {
+  private void depthFirstSorting(BasicBlock block,
+      ImmutableList.Builder<BasicBlock> builder) {
     if (!block.isMarked()) {
       block.mark();
       for (BasicBlock succ : block.getSuccessors()) {
-        index = depthFirstSorting(succ, sorted, index);
+        depthFirstSorting(succ, builder);
       }
-      assert sorted[index] == null;
-      sorted[index] = block;
-      return index - 1;
+      builder.add(block);
     }
-    return index;
   }
 
   public void print(CfgPrinter printer) {
@@ -502,8 +492,8 @@ public class IRCode {
     return new BasicBlockIterator(this, index);
   }
 
-  public BasicBlock[] numberInstructions() {
-    BasicBlock[] blocks = topologicallySortedBlocks();
+  public ImmutableList<BasicBlock> numberInstructions() {
+    ImmutableList<BasicBlock> blocks = topologicallySortedBlocks();
     for (BasicBlock block : blocks) {
       for (Instruction instruction : block.getInstructions()) {
         instruction.setNumber(nextInstructionNumber);
