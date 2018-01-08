@@ -483,9 +483,9 @@ public abstract class RunExamplesAndroidOTest
 
     // Builds with intermediate in both output mode.
     Path dexesThroughIndexedIntermediate =
-        buildDexThroughIntermediate(packageName, input, OutputMode.Indexed, minApi, mainDexClasses);
+        buildDexThroughIntermediate(packageName, input, OutputMode.DexIndexed, minApi, mainDexClasses);
     Path dexesThroughFilePerInputClassIntermediate =
-        buildDexThroughIntermediate(packageName, input, OutputMode.FilePerInputClass, minApi,
+        buildDexThroughIntermediate(packageName, input, OutputMode.DexFilePerClassFile, minApi,
             mainDexClasses);
 
     // Collect main dex types.
@@ -520,13 +520,12 @@ public abstract class RunExamplesAndroidOTest
     Path intermediateDex =
         temp.getRoot().toPath().resolve(packageName + "intermediate" + ZIP_EXTENSION);
     // Build intermediate with D8.
-    D8Command command = D8Command.builder()
-        .setOutput(intermediateDex, outputMode.toNonDeprecated())
+    D8Command.Builder command = D8Command.builder()
+        .setOutput(intermediateDex, outputMode)
         .setMinApiLevel(minApi)
         .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(minApi)))
         .setIntermediate(true)
-        .addProgramFiles(input)
-        .build();
+        .addProgramFiles(input);
     ToolHelper.runD8(command, option -> {
       option.interfaceMethodDesugaring = OffOrAuto.Auto;
     });
