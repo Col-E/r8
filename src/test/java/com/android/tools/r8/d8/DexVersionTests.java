@@ -3,14 +3,19 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.d8;
 
+import static org.junit.Assert.assertTrue;
+
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
+import com.android.tools.r8.DexIndexedConsumer;
+import com.android.tools.r8.DiagnosticsHandler;
+import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.OutputMode;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Set;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -30,7 +35,6 @@ public class DexVersionTests {
   @Rule public TemporaryFolder androidOApiFolder2 = ToolHelper.getTemporaryFolderForTest();
   @Rule public TemporaryFolder androidNApiFolder1 = ToolHelper.getTemporaryFolderForTest();
   @Rule public TemporaryFolder androidNApiFolder2 = ToolHelper.getTemporaryFolderForTest();
-
 
   @Before
   public void compileVersions() throws Exception {
@@ -67,6 +71,22 @@ public class DexVersionTests {
             .build());
   }
 
+  private class EnsureOutputConsumer implements DexIndexedConsumer {
+
+    boolean hasOutput = false;
+
+    @Override
+    public void accept(
+        int fileIndex, byte[] data, Set<String> descriptors, DiagnosticsHandler handler) {
+      hasOutput = true;
+    }
+
+    @Override
+    public void finished(DiagnosticsHandler handler) {
+      assertTrue(hasOutput);
+    }
+  }
+
   private Path default1() {
     return defaultApiFolder1.getRoot().toPath().resolve("classes.dex");
   }
@@ -94,46 +114,82 @@ public class DexVersionTests {
   @Test
   public void mergeCompatibleVersions() throws Exception {
     // Verify that we can merge between all versions when no explicit min sdk version is set.
-    D8.run(D8Command.builder().addProgramFiles(default1()).addProgramFiles(default2()).build());
-    D8.run(D8Command.builder().addProgramFiles(default1()).addProgramFiles(androidO2()).build());
-    D8.run(D8Command.builder().addProgramFiles(default1()).addProgramFiles(androidN2()).build());
-    D8.run(D8Command.builder().addProgramFiles(androidO1()).addProgramFiles(androidN2()).build());
-    D8.run(D8Command.builder().addProgramFiles(androidO1()).addProgramFiles(androidO2()).build());
-    D8.run(D8Command.builder().addProgramFiles(androidN1()).addProgramFiles(androidN2()).build());
+    D8.run(
+        D8Command.builder()
+            .setProgramConsumer(new EnsureOutputConsumer())
+            .addProgramFiles(default1())
+            .addProgramFiles(default2())
+            .build());
+    D8.run(
+        D8Command.builder()
+            .setProgramConsumer(new EnsureOutputConsumer())
+            .addProgramFiles(default1())
+            .addProgramFiles(androidO2())
+            .build());
+    D8.run(
+        D8Command.builder()
+            .setProgramConsumer(new EnsureOutputConsumer())
+            .addProgramFiles(default1())
+            .addProgramFiles(androidN2())
+            .build());
+    D8.run(
+        D8Command.builder()
+            .setProgramConsumer(new EnsureOutputConsumer())
+            .addProgramFiles(androidO1())
+            .addProgramFiles(androidN2())
+            .build());
+    D8.run(
+        D8Command.builder()
+            .setProgramConsumer(new EnsureOutputConsumer())
+            .addProgramFiles(androidO1())
+            .addProgramFiles(androidO2())
+            .build());
+    D8.run(
+        D8Command.builder()
+            .setProgramConsumer(new EnsureOutputConsumer())
+            .addProgramFiles(androidN1())
+            .addProgramFiles(androidN2())
+            .build());
     // Verify that we can merge between all version when api version is explicitly
     // set to Android O.
     D8.run(
         D8Command.builder()
+            .setProgramConsumer(new EnsureOutputConsumer())
             .setMinApiLevel(AndroidApiLevel.O.getLevel())
             .addProgramFiles(default1())
             .addProgramFiles(default2())
             .build());
     D8.run(
         D8Command.builder()
+            .setProgramConsumer(new EnsureOutputConsumer())
             .setMinApiLevel(AndroidApiLevel.O.getLevel())
             .addProgramFiles(default1())
             .addProgramFiles(androidO2())
             .build());
     D8.run(
         D8Command.builder()
+            .setProgramConsumer(new EnsureOutputConsumer())
             .setMinApiLevel(AndroidApiLevel.O.getLevel())
             .addProgramFiles(default1())
             .addProgramFiles(androidN2())
             .build());
     D8.run(
         D8Command.builder()
+            .setProgramConsumer(new EnsureOutputConsumer())
             .setMinApiLevel(AndroidApiLevel.O.getLevel())
             .addProgramFiles(androidO1())
             .addProgramFiles(androidN2())
             .build());
     D8.run(
         D8Command.builder()
+            .setProgramConsumer(new EnsureOutputConsumer())
             .setMinApiLevel(AndroidApiLevel.O.getLevel())
             .addProgramFiles(androidO1())
             .addProgramFiles(androidO2())
             .build());
     D8.run(
         D8Command.builder()
+            .setProgramConsumer(new EnsureOutputConsumer())
             .setMinApiLevel(AndroidApiLevel.O.getLevel())
             .addProgramFiles(androidN1())
             .addProgramFiles(androidN2())
@@ -142,18 +198,21 @@ public class DexVersionTests {
     // Android N.
     D8.run(
         D8Command.builder()
+            .setProgramConsumer(new EnsureOutputConsumer())
             .setMinApiLevel(AndroidApiLevel.N.getLevel())
             .addProgramFiles(default1())
             .addProgramFiles(default2())
             .build());
     D8.run(
         D8Command.builder()
+            .setProgramConsumer(new EnsureOutputConsumer())
             .setMinApiLevel(AndroidApiLevel.N.getLevel())
             .addProgramFiles(default1())
             .addProgramFiles(androidN2())
             .build());
     D8.run(
         D8Command.builder()
+            .setProgramConsumer(new EnsureOutputConsumer())
             .setMinApiLevel(AndroidApiLevel.N.getLevel())
             .addProgramFiles(androidN1())
             .addProgramFiles(androidN2())
@@ -162,6 +221,7 @@ public class DexVersionTests {
     // Android K.
     D8.run(
         D8Command.builder()
+            .setProgramConsumer(new EnsureOutputConsumer())
             .setMinApiLevel(AndroidApiLevel.K.getLevel())
             .addProgramFiles(default1())
             .addProgramFiles(default2())
@@ -172,6 +232,7 @@ public class DexVersionTests {
   public void mergeErrorVersionNWithVersionOInput() throws Exception {
     D8.run(
         D8Command.builder()
+            .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
             .setMinApiLevel(AndroidApiLevel.N.getLevel())
             .addProgramFiles(default1())
             .addProgramFiles(androidO2())
@@ -182,6 +243,7 @@ public class DexVersionTests {
   public void mergeErrorVersionKWithVersionOInput() throws Exception {
     D8.run(
         D8Command.builder()
+            .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
             .setMinApiLevel(AndroidApiLevel.K.getLevel())
             .addProgramFiles(default1())
             .addProgramFiles(androidO2())
@@ -192,6 +254,7 @@ public class DexVersionTests {
   public void mergeErrorVersionKWithVersionNInput() throws Exception {
     D8.run(
         D8Command.builder()
+            .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
             .setMinApiLevel(AndroidApiLevel.K.getLevel())
             .addProgramFiles(default1())
             .addProgramFiles(androidN2())

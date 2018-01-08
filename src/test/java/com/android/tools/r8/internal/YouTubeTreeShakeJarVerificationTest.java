@@ -6,9 +6,9 @@ package com.android.tools.r8.internal;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.CompilationMode;
+import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.R8RunArtTestsTest.CompilerUnderTest;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.Resource;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.Closer;
@@ -30,8 +30,8 @@ public class YouTubeTreeShakeJarVerificationTest extends YouTubeCompilationBase 
         ImmutableList.of());
     int bytes = 0;
     try (Closer closer = Closer.create()) {
-      for (Resource dex : app.getDexProgramResourcesForTesting()) {
-        bytes += ByteStreams.toByteArray(closer.register(dex.getStream())).length;
+      for (ProgramResource dex : app.getDexProgramResourcesForTesting()) {
+        bytes += ByteStreams.toByteArray(closer.register(dex.getByteStream())).length;
       }
     }
     assertTrue("Expected max size of " + maxSize + ", got " + bytes, bytes < maxSize);

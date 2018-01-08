@@ -5,10 +5,8 @@ package com.android.tools.r8.utils;
 
 import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.ResourceException;
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.origin.Origin;
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.Set;
 
@@ -54,15 +52,5 @@ class OneShotByteResource implements ProgramResource {
   @Override
   public Set<String> getClassDescriptors() {
     return classDescriptors;
-  }
-
-  @Override
-  @Deprecated
-  public InputStream getStream() throws IOException {
-    try {
-      return getByteStream();
-    } catch (ResourceException e) {
-      throw new Unreachable(e);
-    }
   }
 }

@@ -11,6 +11,7 @@ import static org.junit.Assert.fail;
 
 import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.DiagnosticsHandler;
+import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.ToolHelper;
@@ -23,7 +24,6 @@ import com.android.tools.r8.utils.DexInspector.InstructionSubject;
 import com.android.tools.r8.utils.DexInspector.InvokeInstructionSubject;
 import com.android.tools.r8.utils.DexInspector.MethodSubject;
 import com.android.tools.r8.utils.FileUtils;
-import com.android.tools.r8.utils.OutputMode;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;

@@ -5,7 +5,6 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.OutputMode;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.function.UnaryOperator;

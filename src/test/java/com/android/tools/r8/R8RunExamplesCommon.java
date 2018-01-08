@@ -13,7 +13,6 @@ import com.android.tools.r8.R8RunArtTestsTest.DexTool;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
-import com.android.tools.r8.utils.OutputMode;
 import java.io.IOException;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
@@ -127,7 +126,7 @@ public abstract class R8RunExamplesCommon {
     switch (compiler) {
       case D8: {
         assertTrue(output == Output.DEX);
-        ToolHelper.runD8(
+        D8.run(
             D8Command.builder()
                 .addProgramFiles(getInputFile())
                 .setOutput(getOutputFile(), outputMode)

@@ -167,7 +167,7 @@ public interface DexFilePerClassFileConsumer extends ProgramConsumer {
         Path archive,
         List<ProgramResource> resources,
         Map<Resource, String> primaryClassDescriptors)
-        throws IOException {
+        throws IOException, ResourceException {
       OpenOption[] options =
           new OpenOption[] {StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING};
       try (Closer closer = Closer.create()) {
@@ -175,7 +175,7 @@ public interface DexFilePerClassFileConsumer extends ProgramConsumer {
           for (ProgramResource resource : resources) {
             String primaryClassDescriptor = primaryClassDescriptors.get(resource);
             String entryName = getDexFileName(primaryClassDescriptor);
-            byte[] bytes = ByteStreams.toByteArray(closer.register(resource.getStream()));
+            byte[] bytes = ByteStreams.toByteArray(closer.register(resource.getByteStream()));
             ZipUtils.writeToZipStream(out, entryName, bytes);
           }
         }
@@ -226,12 +226,12 @@ public interface DexFilePerClassFileConsumer extends ProgramConsumer {
         Path directory,
         List<ProgramResource> resources,
         Map<Resource, String> primaryClassDescriptors)
-        throws IOException {
+        throws IOException, ResourceException {
       try (Closer closer = Closer.create()) {
         for (ProgramResource resource : resources) {
           String primaryClassDescriptor = primaryClassDescriptors.get(resource);
           Path target = getTargetDexFile(directory, primaryClassDescriptor);
-          writeFile(ByteStreams.toByteArray(closer.register(resource.getStream())), target);
+          writeFile(ByteStreams.toByteArray(closer.register(resource.getByteStream())), target);
         }
       }
     }

@@ -7,11 +7,11 @@ import static com.android.tools.r8.shaking.TreeShakingTest.getTestOptionalParame
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.shaking.PrintUsageTest.PrintUsageInspector.ClassSubject;
 import com.android.tools.r8.utils.ListUtils;
-import com.android.tools.r8.utils.OutputMode;
 import com.google.common.collect.ImmutableList;
 import java.io.File;
 import java.io.IOException;

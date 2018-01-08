@@ -783,23 +783,21 @@ public class ToolHelper {
   public static AndroidApp runD8(AndroidApp app, Consumer<InternalOptions> optionsConsumer)
       throws CompilationException, IOException {
     try {
-      return runD8(D8Command.builder(app).build(), optionsConsumer);
+      return runD8(D8Command.builder(app), optionsConsumer);
     } catch (CompilationFailedException e) {
       throw new RuntimeException(e);
     }
   }
 
-  public static AndroidApp runD8(D8Command command) throws IOException, CompilationException {
-    return runD8(command, null);
-  }
-
-  public static AndroidApp runD8(D8Command command, Consumer<InternalOptions> optionsConsumer)
-      throws IOException, CompilationException {
+  public static AndroidApp runD8(
+      D8Command.Builder builder, Consumer<InternalOptions> optionsConsumer)
+      throws IOException, CompilationException, CompilationFailedException {
+    AndroidAppConsumers compatSink = new AndroidAppConsumers(builder);
+    D8Command command = builder.build();
     InternalOptions options = command.getInternalOptions();
     if (optionsConsumer != null) {
       optionsConsumer.accept(options);
     }
-    AndroidAppConsumers compatSink = new AndroidAppConsumers(options);
     D8.runForTesting(command.getInputApp(), options);
     return compatSink.build();
   }

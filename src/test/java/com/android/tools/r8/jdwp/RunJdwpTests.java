@@ -10,6 +10,7 @@ import static org.junit.Assert.assertNotEquals;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
+import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
@@ -240,7 +241,7 @@ public class RunJdwpTests {
     D8.run(
         D8Command.builder()
             .addProgramFiles(jdwpTestsJar)
-            .setOutputPath(d8Out.toPath())
+            .setOutput(d8Out.toPath(), OutputMode.DexIndexed)
             .setMinApiLevel(minApi)
             .setMode(CompilationMode.DEBUG)
             .build());

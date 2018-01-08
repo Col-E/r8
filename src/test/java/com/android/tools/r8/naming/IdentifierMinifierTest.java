@@ -9,6 +9,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.code.ConstString;
@@ -21,7 +22,6 @@ import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.DexInspector.MethodSubject;
 import com.android.tools.r8.utils.ListUtils;
-import com.android.tools.r8.utils.OutputMode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.nio.file.Path;

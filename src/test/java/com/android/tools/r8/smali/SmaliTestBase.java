@@ -9,6 +9,7 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
+import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
@@ -27,7 +28,6 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.OutputMode;
 import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -243,7 +243,7 @@ public class SmaliTestBase extends TestBase {
     try {
       Path out = temp.getRoot().toPath().resolve("run-art-input.zip");
       // TODO(sgjesse): Pass in a unique temp directory for each run.
-      application.writeToZip(out, OutputMode.Indexed);
+      application.writeToZip(out, OutputMode.DexIndexed);
       return ToolHelper.runArtNoVerificationErrors(out.toString(), mainClass);
     } catch (IOException e) {
       throw new RuntimeException(e);
@@ -263,7 +263,7 @@ public class SmaliTestBase extends TestBase {
     try {
       Path dexOut = temp.getRoot().toPath().resolve("run-dex2oat-input.zip");
       Path oatFile = temp.getRoot().toPath().resolve("oat-file");
-      application.writeToZip(dexOut, OutputMode.Indexed);
+      application.writeToZip(dexOut, OutputMode.DexIndexed);
       ToolHelper.runDex2Oat(dexOut, oatFile);
     } catch (IOException e) {
       throw new RuntimeException(e);

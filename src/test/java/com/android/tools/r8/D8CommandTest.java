@@ -15,8 +15,6 @@ import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.origin.EmbeddedOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.DirectoryClassFileProvider;
-import com.android.tools.r8.utils.OutputMode;
 import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Files;
@@ -284,7 +282,11 @@ public class D8CommandTest {
     ProgramResourceProvider myProvider =
         ArchiveProgramResourceProvider.fromSupplier(
             new MyOrigin(), () -> new ZipFile(input.toFile()));
-    D8Command command = D8Command.builder().addProgramResourceProvider(myProvider).build();
+    D8Command command =
+        D8Command.builder()
+            .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+            .addProgramResourceProvider(myProvider)
+            .build();
 
     // Check that each resource was provided by our provider.
     ProgramResourceProvider inAppProvider =

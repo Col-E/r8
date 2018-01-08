@@ -3,17 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.FileUtils;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.util.Set;
 
 public interface StringResource extends Resource {
 
@@ -59,23 +55,7 @@ public interface StringResource extends Resource {
    * @return The string content of the resource.
    * @throws ResourceException Exception thrown if the resource fails to produce its content.
    */
-  abstract String getString() throws ResourceException;
-
-  @Override
-  @Deprecated
-  default InputStream getStream() throws IOException {
-    try {
-      return new ByteArrayInputStream(getString().getBytes(StandardCharsets.UTF_8));
-    } catch (ResourceException e) {
-      throw (IOException) e.getCause();
-    }
-  }
-
-  @Override
-  @Deprecated
-  default Set<String> getClassDescriptors() {
-    throw new Unreachable();
-  }
+  String getString() throws ResourceException;
 
   class StringContentResource implements StringResource {
     private final Origin origin;

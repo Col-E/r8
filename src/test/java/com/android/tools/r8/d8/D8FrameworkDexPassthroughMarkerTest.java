@@ -5,11 +5,9 @@ package com.android.tools.r8.d8;
 
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.graph.DexApplication;
@@ -17,12 +15,10 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.concurrent.ExecutionException;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -60,10 +56,8 @@ public class D8FrameworkDexPassthroughMarkerTest {
 
   @Test
   public void compile() throws Exception {
-    D8Command command = D8Command.builder()
-        .setMinApiLevel(minApi)
-        .addProgramFiles(FRAMEWORK_JAR)
-        .build();
+    D8Command.Builder command =
+        D8Command.builder().setMinApiLevel(minApi).addProgramFiles(FRAMEWORK_JAR);
     Marker marker = new Marker(Tool.D8)
         .setVersion("1.0.0")
         .setMinApi(minApi);

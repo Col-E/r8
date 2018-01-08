@@ -4,12 +4,12 @@
 package com.android.tools.r8.naming;
 
 import com.android.tools.r8.CompilationMode;
+import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.debug.DebugTestBase;
 import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.debug.DexDebugTestConfig;
-import com.android.tools.r8.utils.OutputMode;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.nio.file.Paths;

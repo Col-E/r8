@@ -8,7 +8,6 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.function.UnaryOperator;
@@ -38,10 +37,12 @@ public class D8RunExamplesJava9Test extends RunExamplesJava9Test<D8Command.Build
         builder = transformation.apply(builder);
       }
       // TODO(mikaelpeltier) Add new android.jar build from aosp and use it
-      builder.addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(AndroidApiLevel.P.getLevel())));
-      D8Command command = builder.addProgramFiles(inputFile).setOutputPath(out).build();
+      builder
+          .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(AndroidApiLevel.P.getLevel())))
+          .addProgramFiles(inputFile)
+          .setOutput(out, OutputMode.DexIndexed);
       try {
-        ToolHelper.runD8(command, this::combinedOptionConsumer);
+        ToolHelper.runD8(builder, this::combinedOptionConsumer);
       } catch (Unimplemented | CompilationError | InternalCompilerError re) {
         throw re;
       } catch (RuntimeException re) {

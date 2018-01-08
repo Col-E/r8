@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.bisect;
 
+import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.bisect.BisectOptions.Result;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.ApplicationWriter;
@@ -13,7 +14,6 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.OutputMode;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.io.CharStreams;
 import java.io.File;
@@ -180,7 +180,7 @@ public class Bisect {
     AndroidAppConsumers compatSink = new AndroidAppConsumers(options);
     ApplicationWriter writer = new ApplicationWriter(app, options, null, null, null, null, null);
     writer.write(executor);
-    compatSink.build().writeToDirectory(output, OutputMode.Indexed);
+    compatSink.build().writeToDirectory(output, OutputMode.DexIndexed);
   }
 
   public static void main(String[] args) throws Exception {

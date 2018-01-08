@@ -706,12 +706,6 @@ compileTestJava {
     dependsOn createJctfTests
 }
 
-task buildApiUsageSample(type: Jar) {
-    from sourceSets.apiUsageSample.output
-    baseName 'api_usage_sample'
-    destinationDir file('tests')
-}
-
 task buildD8ApiUsageSample(type: Jar) {
     from sourceSets.apiUsageSample.output
     baseName 'd8_api_usage_sample'
@@ -725,7 +719,6 @@ task buildR8ApiUsageSample(type: Jar) {
 }
 
 task buildApiSampleJars {
-    dependsOn buildApiUsageSample
     dependsOn buildD8ApiUsageSample
     dependsOn buildR8ApiUsageSample
 }
@@ -1704,6 +1697,8 @@ task javadocD8(type: Javadoc) {
   include '**/com/android/tools/r8/DexFilePerClassFileConsumer.java'
   include '**/com/android/tools/r8/Diagnostic.java'
   include '**/com/android/tools/r8/DiagnosticsHandler.java'
+  include '**/com/android/tools/r8/DirectoryClassFileProvider.java'
+  include '**/com/android/tools/r8/OutputMode.java'
   include '**/com/android/tools/r8/ProgramConsumer.java'
   include '**/com/android/tools/r8/ProgramResource.java'
   include '**/com/android/tools/r8/ProgramResourceProvider.java'
@@ -1732,6 +1727,8 @@ task javadocR8(type: Javadoc) {
   include '**/com/android/tools/r8/DexIndexedConsumer.java'
   include '**/com/android/tools/r8/Diagnostic.java'
   include '**/com/android/tools/r8/DiagnosticsHandler.java'
+  include '**/com/android/tools/r8/DirectoryClassFileProvider.java'
+  include '**/com/android/tools/r8/OutputMode.java'
   include '**/com/android/tools/r8/ProgramConsumer.java'
   include '**/com/android/tools/r8/ProgramResource.java'
   include '**/com/android/tools/r8/ProgramResourceProvider.java'

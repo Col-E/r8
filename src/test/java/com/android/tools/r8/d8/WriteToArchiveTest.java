@@ -5,6 +5,7 @@ package com.android.tools.r8.d8;
 
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
+import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.ToolHelper;
 import java.nio.file.Paths;
 import org.junit.Rule;
@@ -24,7 +25,8 @@ public class WriteToArchiveTest {
     D8Command command =
         D8Command.builder()
             .addProgramFiles(Paths.get(input))
-            .setOutputPath(Paths.get(zipFolder.getRoot().toString() + "/output.zip"))
+            .setOutput(
+                Paths.get(zipFolder.getRoot().toString() + "/output.zip"), OutputMode.DexIndexed)
             .build();
     D8.run(command);
   }
@@ -34,7 +36,8 @@ public class WriteToArchiveTest {
     D8Command command =
         D8Command.builder()
             .addProgramFiles(Paths.get(input))
-            .setOutputPath(Paths.get(jarFolder.getRoot().toString() + "/output.jar"))
+            .setOutput(
+                Paths.get(jarFolder.getRoot().toString() + "/output.jar"), OutputMode.DexIndexed)
             .build();
     D8.run(command);
   }

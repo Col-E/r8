@@ -5,10 +5,10 @@ package com.android.tools.r8.debug;
 
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8Command;
+import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.OutputMode;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -22,13 +22,13 @@ public class D8DebugTestConfig extends DexDebugTestConfig {
   public static AndroidApp d8Compile(List<Path> paths, Consumer<InternalOptions> optionsConsumer) {
     try {
       int minSdk = ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm());
+      D8Command.Builder builder = D8Command.builder();
       return ToolHelper.runD8(
-          D8Command.builder()
+          builder
               .addProgramFiles(paths)
               .setMinApiLevel(minSdk)
               .setMode(CompilationMode.DEBUG)
-              .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(minSdk)))
-              .build(),
+              .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(minSdk))),
           optionsConsumer);
     } catch (Exception e) {
       throw new RuntimeException(e);
@@ -47,7 +47,7 @@ public class D8DebugTestConfig extends DexDebugTestConfig {
       TemporaryFolder temp, List<Path> paths, Consumer<InternalOptions> optionsConsumer) {
     try {
       Path out = temp.newFolder().toPath().resolve("d8_compiled.jar");
-      d8Compile(paths, optionsConsumer).write(out, OutputMode.Indexed);
+      d8Compile(paths, optionsConsumer).write(out, OutputMode.DexIndexed);
       addPaths(out);
       return this;
     } catch (Exception e) {

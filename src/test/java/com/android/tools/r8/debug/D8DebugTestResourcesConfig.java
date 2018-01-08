@@ -3,8 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.debug;
 
+import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.OutputMode;
 import java.nio.file.Path;
 import java.util.Collections;
 import org.junit.rules.TemporaryFolder;
@@ -24,7 +24,7 @@ public class D8DebugTestResourcesConfig extends D8DebugTestConfig {
   public D8DebugTestResourcesConfig(TemporaryFolder temp) {
     try {
       Path path = temp.newFolder().toPath().resolve("d8_debug_test_resources.jar");
-      getCompiledResources().write(path, OutputMode.Indexed);
+      getCompiledResources().write(path, OutputMode.DexIndexed);
       addPaths(path);
     } catch (Throwable e) {
       throw new RuntimeException(e);

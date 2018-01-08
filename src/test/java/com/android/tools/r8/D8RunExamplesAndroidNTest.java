@@ -29,10 +29,12 @@ public class D8RunExamplesAndroidNTest extends RunExamplesAndroidNTest<D8Command
       for (UnaryOperator<Builder> transformation : builderTransformations) {
         builder = transformation.apply(builder);
       }
-      builder.addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(builder.getMinApiLevel())));
-      D8Command command = builder.addProgramFiles(inputFile).setOutputPath(out).build();
+      builder
+          .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(builder.getMinApiLevel())))
+          .addProgramFiles(inputFile)
+          .setOutput(out, OutputMode.DexIndexed);
       try {
-        ToolHelper.runD8(command, this::combinedOptionConsumer);
+        ToolHelper.runD8(builder, this::combinedOptionConsumer);
       } catch (RuntimeException re) {
         throw re instanceof CompilationError ? re : re.getCause();
       }

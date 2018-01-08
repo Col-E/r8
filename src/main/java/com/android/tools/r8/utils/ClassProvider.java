@@ -5,6 +5,7 @@ package com.android.tools.r8.utils;
 
 import com.android.tools.r8.ClassFileResourceProvider;
 import com.android.tools.r8.ProgramResource;
+import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.ClassKind;
 import com.android.tools.r8.graph.DexClass;
@@ -98,8 +99,9 @@ public abstract class ClassProvider<T extends DexClass> {
         try (Closer closer = Closer.create()) {
           JarClassFileReader classReader =
               new JarClassFileReader(reader, classKind.bridgeConsumer(classConsumer));
-          classReader.read(resource.getOrigin(), classKind, closer.register(resource.getStream()));
-        } catch (IOException e) {
+          classReader.read(
+              resource.getOrigin(), classKind, closer.register(resource.getByteStream()));
+        } catch (ResourceException | IOException e) {
           throw new CompilationError("Failed to load class: " + descriptor, e);
         }
       }

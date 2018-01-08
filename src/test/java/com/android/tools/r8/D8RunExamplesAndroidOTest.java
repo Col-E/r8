@@ -9,7 +9,6 @@ import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.OffOrAuto;
-import com.android.tools.r8.utils.OutputMode;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.function.UnaryOperator;
@@ -39,7 +38,7 @@ public class D8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<D8Command
 
     @Override
     void build(Path inputFile, Path out, OutputMode mode) throws Throwable {
-      D8Command.Builder builder = D8Command.builder().setOutputMode(mode);
+      D8Command.Builder builder = D8Command.builder().setOutput(out, mode);
       for (UnaryOperator<D8Command.Builder> transformation : builderTransformations) {
         builder = transformation.apply(builder);
       }
@@ -47,9 +46,9 @@ public class D8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<D8Command
           Paths.get(
               ToolHelper.getAndroidJar(
                   androidJarVersion == null ? builder.getMinApiLevel() : androidJarVersion)));
-      D8Command command = builder.addProgramFiles(inputFile).setOutputPath(out).build();
+      builder.addProgramFiles(inputFile);
       try {
-        ToolHelper.runD8(command, this::combinedOptionConsumer);
+        ToolHelper.runD8(builder, this::combinedOptionConsumer);
       } catch (Unimplemented | CompilationError | InternalCompilerError re) {
         throw re;
       } catch (RuntimeException re) {

@@ -21,7 +21,6 @@ import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.android.tools.r8.utils.ListUtils;
-import com.android.tools.r8.utils.OutputMode;
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
@@ -890,7 +889,7 @@ public abstract class R8RunArtTestsTest {
           // When starting from the Jar frontend we see the A$B class both from the Java source
           // code and from the smali dex code. We reject that because there are then two definitions
           // of the same class in the application. When running from the final dex files there is
-          // only on A$B class because of a custom build script that merges them.
+          // only one A$B class because of a custom build script that merges them.
           .put("121-modifiers", TestCondition.match(TestCondition.tools(DexTool.NONE)))
           // This test uses register r1 in method that is declared to only use 1 register (r0).
           .put("142-classloader2", TestCondition.match(TestCondition.R8_COMPILER))
@@ -1392,7 +1391,7 @@ public abstract class R8RunArtTestsTest {
           builder.addLibraryFiles(Paths.get(
               ToolHelper.getAndroidJar(AndroidApiLevel.getDefault().getLevel())));
         }
-        ToolHelper.runD8(builder.build());
+        D8.run(builder.build());
         break;
       }
       case R8:
@@ -1786,7 +1785,7 @@ public abstract class R8RunArtTestsTest {
         executeCompilerUnderTest(
             compilerUnderTest, fileNames, resultDir.getCanonicalPath(), compilationMode,
             specification.disableInlining);
-      } catch (CompilationException e) {
+      } catch (CompilationException | CompilationFailedException e) {
         throw new CompilationError(e.getMessage(), e);
       } catch (ExecutionException e) {
         throw e.getCause();

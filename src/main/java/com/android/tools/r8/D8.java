@@ -15,7 +15,6 @@ import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.AndroidAppConsumers;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -61,12 +60,10 @@ public final class D8 {
    *
    * @param command D8 command.
    */
-  public static D8Output run(D8Command command) throws CompilationFailedException {
+  public static void run(D8Command command) throws CompilationFailedException {
     AndroidApp app = command.getInputApp();
     InternalOptions options = command.getInternalOptions();
     ExecutorService executor = ThreadUtils.getExecutorService(options);
-    AndroidAppConsumers compatSink =
-        command.usingDeprecatedAPI() ? new AndroidAppConsumers(options) : null;
     ExceptionUtils.withD8CompilationHandler(
         command.getReporter(),
         () -> {
@@ -76,7 +73,6 @@ public final class D8 {
             executor.shutdown();
           }
         });
-    return compatSink == null ? null : new D8Output(compatSink.build(), command.getOutputMode());
   }
 
   /**
@@ -85,18 +81,15 @@ public final class D8 {
    * @param command D8 command.
    * @param executor executor service from which to get threads for multi-threaded processing.
    */
-  public static D8Output run(D8Command command, ExecutorService executor)
+  public static void run(D8Command command, ExecutorService executor)
       throws CompilationFailedException {
     AndroidApp app = command.getInputApp();
     InternalOptions options = command.getInternalOptions();
-    AndroidAppConsumers compatSink =
-        command.usingDeprecatedAPI() ? new AndroidAppConsumers(options) : null;
     ExceptionUtils.withD8CompilationHandler(
         command.getReporter(),
         () -> {
           run(app, options, executor);
         });
-    return compatSink == null ? null : new D8Output(compatSink.build(), command.getOutputMode());
   }
 
   private static void run(String[] args) throws CompilationFailedException {
