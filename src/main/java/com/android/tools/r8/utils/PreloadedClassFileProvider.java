@@ -4,7 +4,8 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.ClassFileResourceProvider;
-import com.android.tools.r8.Resource;
+import com.android.tools.r8.ProgramResource;
+import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.origin.Origin;
 import com.google.common.collect.Sets;
 import java.util.Collections;
@@ -43,13 +44,13 @@ public final class PreloadedClassFileProvider implements ClassFileResourceProvid
   }
 
   @Override
-  public Resource getResource(String descriptor) {
+  public ProgramResource getProgramResource(String descriptor) {
     byte[] bytes = content.get(descriptor);
     if (bytes == null) {
       return null;
     }
-    return Resource.fromBytes(
-        new ClassDescriptorOrigin(descriptor), bytes, Collections.singleton(descriptor));
+    return ProgramResource.fromBytes(
+        new ClassDescriptorOrigin(descriptor), Kind.CF, bytes, Collections.singleton(descriptor));
   }
 
   public static ClassFileResourceProvider fromClassData(String descriptor, byte[] data) {

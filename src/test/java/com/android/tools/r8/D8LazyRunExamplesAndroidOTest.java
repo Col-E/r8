@@ -10,7 +10,6 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.D8Command.Builder;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.DirectoryClassFileProvider;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.OffOrAuto;
 import com.android.tools.r8.utils.ZipUtils;
@@ -77,11 +76,11 @@ public class D8LazyRunExamplesAndroidOTest
     // Build all at once.
     AndroidApp fullBuildResult;
     {
-      D8Command command = D8Command.builder()
-          .setMinApiLevel(minAPILevel)
-          .addLibraryFiles(androidJar)
-          .addProgramFiles(inputFile)
-          .build();
+      D8Command.Builder command =
+          D8Command.builder()
+              .setMinApiLevel(minAPILevel)
+              .addLibraryFiles(androidJar)
+              .addProgramFiles(inputFile);
 
       fullBuildResult = ToolHelper.runD8(
           command, options -> {
@@ -91,7 +90,7 @@ public class D8LazyRunExamplesAndroidOTest
     }
 
     // Build each class individually using tmpClassesDir as classpath for desugaring.
-    List<Resource> individalDexes = new ArrayList<>();
+    List<ProgramResource> individalDexes = new ArrayList<>();
     List<Path> individualClassFiles =
         Files.walk(tmpClassesDir)
         .filter(classFile -> FileUtils.isClassFile(classFile))
@@ -105,7 +104,7 @@ public class D8LazyRunExamplesAndroidOTest
               .addProgramFiles(classFile);
       AndroidApp individualResult =
           ToolHelper.runD8(
-              builder.build(),
+              builder,
               options -> {
                 options.interfaceMethodDesugaring = OffOrAuto.Auto;
                 options.setMarker(null);
@@ -119,15 +118,14 @@ public class D8LazyRunExamplesAndroidOTest
         readResource(mergedResult.getDexProgramResourcesForTesting().get(0))));
   }
 
-  private AndroidApp mergeDexResources(int minAPILevel, List<Resource> individalDexes)
-      throws IOException, CompilationException, CompilationFailedException {
+  private AndroidApp mergeDexResources(int minAPILevel, List<ProgramResource> individalDexes)
+      throws IOException, CompilationException, CompilationFailedException, ResourceException {
     D8Command.Builder builder = D8Command.builder()
         .setMinApiLevel(minAPILevel);
-    for (Resource resource : individalDexes) {
+    for (ProgramResource resource : individalDexes) {
       builder.addDexProgramData(readResource(resource), resource.getOrigin());
     }
-    AndroidApp mergedResult = ToolHelper.runD8(builder.build(),
-        options -> options.setMarker(null));
+    AndroidApp mergedResult = ToolHelper.runD8(builder, options -> options.setMarker(null));
     return mergedResult;
   }
 

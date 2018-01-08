@@ -4,7 +4,6 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.ProgramResource.Kind;
-import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
@@ -20,7 +19,6 @@ import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.IOExceptionDiagnostic;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
-import com.android.tools.r8.utils.OutputMode;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableList;
@@ -228,20 +226,6 @@ public class R8Command extends BaseCompilerCommand {
       return self();
     }
 
-    /** Unsupported API. Will throw on any usage. */
-    @Override
-    @Deprecated
-    public Builder setOutputMode(OutputMode outputMode) {
-      throw new CompilationError("Invalid API use for R8");
-    }
-
-    /** Unsupported API. Will throw on any usage. */
-    @Override
-    @Deprecated
-    public Builder setOutputPath(Path outputPath) {
-      throw new CompilationError("Invalid API use for R8");
-    }
-
     @Override
     public Builder addProgramResourceProvider(ProgramResourceProvider programProvider) {
       return super.addProgramResourceProvider(
@@ -251,11 +235,6 @@ public class R8Command extends BaseCompilerCommand {
     @Override
     void validate() {
       Reporter reporter = getReporter();
-      // TODO(b/70656566): Move up super once the deprecated API is removed.
-      if (getProgramConsumer() == null) {
-        // This is never the case for a command-line parse, so we report using API references.
-        reporter.error("A ProgramConsumer or Output is required for compilation");
-      }
       if (getProgramConsumer() instanceof DexFilePerClassFileConsumer) {
         reporter.error("R8 does not support compiling to a single DEX file per Java class file");
       }
@@ -332,7 +311,6 @@ public class R8Command extends BaseCompilerCommand {
           new R8Command(
               getAppBuilder().build(),
               getProgramConsumer(),
-              null,
               mainDexKeepRules,
               mainDexListConsumer,
               configuration,
@@ -569,7 +547,6 @@ public class R8Command extends BaseCompilerCommand {
   R8Command(
       AndroidApp inputApp,
       ProgramConsumer programConsumer,
-      OutputOptions outputOptions,
       ImmutableList<ProguardConfigurationRule> mainDexKeepRules,
       StringConsumer mainDexListConsumer,
       ProguardConfiguration proguardConfiguration,
@@ -582,7 +559,7 @@ public class R8Command extends BaseCompilerCommand {
       boolean forceProguardCompatibility,
       StringConsumer proguardMapConsumer,
       Path proguardCompatibilityRulesOutput) {
-    super(inputApp, mode, programConsumer, outputOptions, minApiLevel, reporter, enableDesugaring);
+    super(inputApp, mode, programConsumer, minApiLevel, reporter, enableDesugaring);
     assert proguardConfiguration != null;
     assert mainDexKeepRules != null;
     this.mainDexKeepRules = mainDexKeepRules;

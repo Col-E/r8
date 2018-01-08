@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.apiusagesample;
 
-import com.android.tools.r8.ArchiveClassFileProvider;
 import com.android.tools.r8.ArchiveProgramResourceProvider;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
@@ -213,10 +212,10 @@ public class D8ApiUsageSample {
               .setProgramConsumer(new EnsureOutputConsumer())
               .addProgramFiles(inputs);
       for (Path library : libraries) {
-        builder.addLibraryResourceProvider(new ArchiveClassFileProvider(library));
+        builder.addLibraryResourceProvider(CachingArchiveClassFileProvider.getProvider(library));
       }
       for (Path path : classpath) {
-        builder.addClasspathResourceProvider(new ArchiveClassFileProvider(path));
+        builder.addClasspathResourceProvider(CachingArchiveClassFileProvider.getProvider(path));
       }
       D8.run(builder.build());
     } catch (CompilationFailedException e) {

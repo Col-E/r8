@@ -8,12 +8,12 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.OutputMode;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;

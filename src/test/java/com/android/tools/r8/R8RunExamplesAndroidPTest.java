@@ -6,7 +6,6 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.OutputMode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.nio.file.Path;

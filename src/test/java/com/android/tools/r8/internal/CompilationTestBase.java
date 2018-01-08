@@ -11,18 +11,21 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
+import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.DexIndexedConsumer;
+import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.R8RunArtTestsTest.CompilerUnderTest;
-import com.android.tools.r8.Resource;
+import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.AndroidAppConsumers;
 import com.android.tools.r8.utils.ArtErrorParser;
 import com.android.tools.r8.utils.ArtErrorParser.ArtErrorInfo;
 import com.android.tools.r8.utils.ArtErrorParser.ArtErrorParserException;
@@ -32,7 +35,6 @@ import com.android.tools.r8.utils.DexInspector.FoundFieldSubject;
 import com.android.tools.r8.utils.DexInspector.FoundMethodSubject;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
-import com.android.tools.r8.utils.OutputMode;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.Closer;
 import java.io.File;
@@ -68,9 +70,13 @@ public abstract class CompilationTestBase {
         compiler, mode, referenceApk, pgConf, null, Collections.singletonList(input));
   }
 
-  public AndroidApp runAndCheckVerification(D8Command command, String referenceApk)
-      throws IOException, ExecutionException, CompilationException {
-    return checkVerification(ToolHelper.runD8(command), referenceApk);
+  public AndroidApp runAndCheckVerification(D8Command.Builder builder, String referenceApk)
+      throws IOException, ExecutionException, CompilationException, CompilationFailedException {
+    AndroidAppConsumers appSink = new AndroidAppConsumers(builder);
+    D8.run(builder.build());
+    AndroidApp result = appSink.build();
+    checkVerification(result, referenceApk);
+    return result;
   }
 
   public AndroidApp runAndCheckVerification(
@@ -83,7 +89,7 @@ public abstract class CompilationTestBase {
       throws ExecutionException, IOException, ProguardRuleParserException, CompilationException,
       CompilationFailedException {
     assertTrue(referenceApk == null || new File(referenceApk).exists());
-    AndroidApp outputApp;
+    AndroidAppConsumers outputApp;
     if (compiler == CompilerUnderTest.R8) {
       R8Command.Builder builder = R8Command.builder();
       builder.addProgramFiles(ListUtils.map(inputs, Paths::get));
@@ -99,25 +105,26 @@ public abstract class CompilationTestBase {
             pgConfig.setPrintSeeds(false);
             pgConfig.setIgnoreWarnings(true);
           });
-      outputApp = ToolHelper.runR8(builder.build(), optionsConsumer);
+      outputApp = new AndroidAppConsumers(builder);
+      ToolHelper.runR8(builder.build(), optionsConsumer);
     } else {
       assert compiler == CompilerUnderTest.D8;
-      outputApp =
-          ToolHelper.runD8(
-              D8Command.builder()
-                  .addProgramFiles(ListUtils.map(inputs, Paths::get))
-                  .setMode(mode)
-                  .setMinApiLevel(AndroidApiLevel.L.getLevel())
-                  .build());
+      D8Command.Builder builder =
+          D8Command.builder()
+              .addProgramFiles(ListUtils.map(inputs, Paths::get))
+              .setMode(mode)
+              .setMinApiLevel(AndroidApiLevel.L.getLevel());
+      outputApp = new AndroidAppConsumers(builder);
+      D8.run(builder.build());
     }
-    return checkVerification(outputApp, referenceApk);
+    return checkVerification(outputApp.build(), referenceApk);
   }
 
   public AndroidApp checkVerification(AndroidApp outputApp, String referenceApk)
       throws IOException, ExecutionException {
     Path out = temp.getRoot().toPath().resolve("all.zip");
     Path oatFile = temp.getRoot().toPath().resolve("all.oat");
-    outputApp.writeToZip(out, OutputMode.Indexed);
+    outputApp.writeToZip(out, OutputMode.DexIndexed);
     try {
       ToolHelper.runDex2Oat(out, oatFile);
       return outputApp;
@@ -149,33 +156,34 @@ public abstract class CompilationTestBase {
     }
   }
 
-  public int applicationSize(AndroidApp app) throws IOException {
+  public int applicationSize(AndroidApp app) throws IOException, ResourceException {
     int bytes = 0;
     try (Closer closer = Closer.create()) {
-      for (Resource dex : app.getDexProgramResourcesForTesting()) {
-        bytes += ByteStreams.toByteArray(closer.register(dex.getStream())).length;
+      for (ProgramResource dex : app.getDexProgramResourcesForTesting()) {
+        bytes += ByteStreams.toByteArray(closer.register(dex.getByteStream())).length;
       }
     }
     return bytes;
   }
 
-  public void assertIdenticalApplications(AndroidApp app1, AndroidApp app2) throws IOException {
+  public void assertIdenticalApplications(AndroidApp app1, AndroidApp app2)
+      throws IOException, ResourceException {
     assertIdenticalApplications(app1, app2, false);
   }
 
   public void assertIdenticalApplications(AndroidApp app1, AndroidApp app2, boolean write)
-      throws IOException {
+      throws IOException, ResourceException {
     try (Closer closer = Closer.create()) {
       if (write) {
-        app1.writeToDirectory(temp.newFolder("app1").toPath(), OutputMode.Indexed);
-        app2.writeToDirectory(temp.newFolder("app2").toPath(), OutputMode.Indexed);
+        app1.writeToDirectory(temp.newFolder("app1").toPath(), OutputMode.DexIndexed);
+        app2.writeToDirectory(temp.newFolder("app2").toPath(), OutputMode.DexIndexed);
       }
       List<ProgramResource> files1 = app1.getDexProgramResourcesForTesting();
       List<ProgramResource> files2 = app2.getDexProgramResourcesForTesting();
       assertEquals(files1.size(), files2.size());
       for (int index = 0; index < files1.size(); index++) {
-        InputStream file1 = closer.register(files1.get(index).getStream());
-        InputStream file2 = closer.register(files2.get(index).getStream());
+        InputStream file1 = closer.register(files1.get(index).getByteStream());
+        InputStream file2 = closer.register(files2.get(index).getByteStream());
         byte[] bytes1 = ByteStreams.toByteArray(file1);
         byte[] bytes2 = ByteStreams.toByteArray(file2);
         assertArrayEquals("File index " + index, bytes1, bytes2);

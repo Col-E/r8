@@ -83,12 +83,6 @@ public class ArchiveClassFileProvider implements ClassFileResourceProvider, Clos
   }
 
   @Override
-  @Deprecated
-  public Resource getResource(String descriptor) {
-    return getProgramResource(descriptor);
-  }
-
-  @Override
   public ProgramResource getProgramResource(String descriptor) {
     if (!descriptors.contains(descriptor)) {
       return null;

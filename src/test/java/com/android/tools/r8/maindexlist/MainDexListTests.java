@@ -13,7 +13,9 @@ import static org.junit.Assert.fail;
 import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
+import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
+import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestBase;
@@ -61,7 +63,6 @@ import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.MainDexList;
-import com.android.tools.r8.utils.OutputMode;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
@@ -115,18 +116,18 @@ public class MainDexListTests extends TestBase {
     AndroidApp generated = generateApplication(
         MANY_CLASSES, AndroidApiLevel.getDefault().getLevel(),
         MANY_CLASSES_SINGLE_DEX_METHODS_PER_CLASS);
-    generated.write(getManyClassesSingleDexAppPath(), OutputMode.Indexed);
+    generated.write(getManyClassesSingleDexAppPath(), OutputMode.DexIndexed);
 
     // Generates an application with many classes, every even in one package and every odd in
     // another. Add enough methods so the application cannot fit into one dex file.
     generated = generateApplication(
         MANY_CLASSES, AndroidApiLevel.L.getLevel(), MANY_CLASSES_MULTI_DEX_METHODS_PER_CLASS);
-    generated.write(getManyClassesMultiDexAppPath(), OutputMode.Indexed);
+    generated.write(getManyClassesMultiDexAppPath(), OutputMode.DexIndexed);
 
     // Generates an application with two classes, each with the maximum possible number of methods.
     generated = generateApplication(TWO_LARGE_CLASSES, AndroidApiLevel.N.getLevel(),
         MAX_METHOD_COUNT);
-    generated.write(getTwoLargeClassesAppPath(), OutputMode.Indexed);
+    generated.write(getTwoLargeClassesAppPath(), OutputMode.DexIndexed);
   }
 
   private static Path getTwoLargeClassesAppPath() {
@@ -293,10 +294,11 @@ public class MainDexListTests extends TestBase {
               .collect(Collectors.toList()));
     }
 
-    D8Command.Builder builder = D8Command.builder()
-        .addProgramFiles(input)
-        .setMode(mode)
-        .setOutputPath(testDir);
+    D8Command.Builder builder =
+        D8Command.builder()
+            .addProgramFiles(input)
+            .setMode(mode)
+            .setOutput(testDir, OutputMode.DexIndexed);
     if (mainDexClasses != null) {
       if (useFile) {
         builder.addMainDexListFiles(listFile);
@@ -304,7 +306,7 @@ public class MainDexListTests extends TestBase {
         builder.addMainDexClasses(mainDexClasses);
       }
     }
-    ToolHelper.runD8(builder.build());
+    D8.run(builder.build());
     return testDir;
   }
 
@@ -396,7 +398,7 @@ public class MainDexListTests extends TestBase {
       jasminBuilder.addClass(name);
     }
     Path input = temp.newFolder().toPath().resolve("input.zip");
-    ToolHelper.runR8(jasminBuilder.build()).writeToZip(input, OutputMode.Indexed);
+    ToolHelper.runR8(jasminBuilder.build()).writeToZip(input, OutputMode.DexIndexed);
 
     // Test with empty main dex list.
     runDeterministicTest(input, null, true);
@@ -429,7 +431,7 @@ public class MainDexListTests extends TestBase {
     // Notice that this one allows multidex while using lower API.
     AndroidApp generated = generateApplication(
         MANY_CLASSES, AndroidApiLevel.K.getLevel(), true, MANY_CLASSES_MULTI_DEX_METHODS_PER_CLASS);
-    generated.write(getManyClassesForceMultiDexAppPath(), OutputMode.Indexed);
+    generated.write(getManyClassesForceMultiDexAppPath(), OutputMode.DexIndexed);
     // Make sure the generated app indeed has multiple dex files.
     assertTrue(generated.getDexProgramResourcesForTesting().size() > 1);
   }

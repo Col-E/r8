@@ -13,7 +13,6 @@ import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.origin.EmbeddedOrigin;
 import com.android.tools.r8.utils.FileUtils;
-import com.android.tools.r8.utils.OutputMode;
 import com.google.common.collect.ImmutableList;
 import java.lang.reflect.Method;
 import java.nio.file.Files;

@@ -6,8 +6,8 @@ package com.android.tools.apiusagesample;
 
 import com.android.tools.r8.ArchiveClassFileProvider;
 import com.android.tools.r8.ClassFileResourceProvider;
-import com.android.tools.r8.Resource;
-import com.android.tools.r8.utils.DirectoryClassFileProvider;
+import com.android.tools.r8.DirectoryClassFileProvider;
+import com.android.tools.r8.ProgramResource;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -16,15 +16,15 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class CachingArchiveClassFileProvider extends ArchiveClassFileProvider {
 
-  private ConcurrentHashMap<String, Resource> resources = new ConcurrentHashMap<>();
+  private ConcurrentHashMap<String, ProgramResource> resources = new ConcurrentHashMap<>();
 
   private CachingArchiveClassFileProvider(Path archive) throws IOException {
     super(archive);
   }
 
   @Override
-  public Resource getResource(String descriptor) {
-    return resources.computeIfAbsent(descriptor, desc -> super.getResource(desc));
+  public ProgramResource getProgramResource(String descriptor) {
+    return resources.computeIfAbsent(descriptor, super::getProgramResource);
   }
 
   public static ClassFileResourceProvider getProvider(Path entry)

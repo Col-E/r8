@@ -37,10 +37,12 @@ public class D8RunExamplesAndroidPTest extends RunExamplesAndroidPTest<D8Command
         builder = transformation.apply(builder);
       }
       // TODO(mikaelpeltier) Add new android.jar build from aosp and use it
-      builder.addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(AndroidApiLevel.O.getLevel())));
-      D8Command command = builder.addProgramFiles(inputFile).setOutputPath(out).build();
+      builder
+          .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(AndroidApiLevel.O.getLevel())))
+          .addProgramFiles(inputFile)
+          .setOutput(out, OutputMode.DexIndexed);
       try {
-        ToolHelper.runD8(command, this::combinedOptionConsumer);
+        ToolHelper.runD8(builder, this::combinedOptionConsumer);
       } catch (Unimplemented | CompilationError | InternalCompilerError re) {
         throw re;
       } catch (RuntimeException re) {

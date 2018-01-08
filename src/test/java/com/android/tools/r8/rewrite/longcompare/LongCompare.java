@@ -4,11 +4,12 @@
 package com.android.tools.r8.rewrite.longcompare;
 
 import com.android.tools.r8.CompilationException;
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
+import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.DexInspector.InstructionSubject;
@@ -35,7 +36,11 @@ public class LongCompare {
 
   void compileWithD8(Path intputPath, Path outputPath)
       throws IOException, CompilationException, CompilationFailedException {
-    D8.run(D8Command.builder().addProgramFiles(intputPath).setOutputPath(outputPath).build());
+    D8.run(
+        D8Command.builder()
+            .addProgramFiles(intputPath)
+            .setOutput(outputPath, OutputMode.DexIndexed)
+            .build());
   }
 
   void runTest(Path dexFile) {

@@ -1,15 +1,13 @@
-// Copyright (c) 2017, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2018, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-package com.android.tools.r8.utils;
+package com.android.tools.r8;
 
 import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.isClassFile;
 
-import com.android.tools.r8.ClassFileResourceProvider;
-import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.ProgramResource.Kind;
-import com.android.tools.r8.Resource;
+import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.collect.Sets;
 import java.io.File;
 import java.nio.file.Files;
@@ -70,18 +68,7 @@ public final class DirectoryClassFileProvider implements ClassFileResourceProvid
         : null;
   }
 
-  @Override
-  @Deprecated
-  public Resource getResource(String descriptor) {
-    return getProgramResource(descriptor);
-  }
-
   public Path getRoot() {
     return root;
-  }
-
-  @Override
-  public String toString() {
-    return "directory(" + root + ")";
   }
 }

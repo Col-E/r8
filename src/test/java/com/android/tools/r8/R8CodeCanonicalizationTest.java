@@ -6,7 +6,6 @@ package com.android.tools.r8;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.DexFileReader;
 import com.android.tools.r8.dex.Segment;
-import com.android.tools.r8.utils.OutputMode;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;

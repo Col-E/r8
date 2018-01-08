@@ -3,9 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
-import com.android.tools.r8.origin.Origin;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.Set;
 
 /**
@@ -34,50 +31,5 @@ public interface ClassFileResourceProvider {
    * <p>Method may be called several times for the same resource, and should support concurrent
    * calls from different threads.
    */
-  default ProgramResource getProgramResource(String descriptor) {
-    Resource resource = getResource(descriptor);
-    return resource == null ? null : new ClassFileResource(resource);
-  }
-
-  @Deprecated
-  Resource getResource(String descriptor);
-
-  @Deprecated
-  class ClassFileResource implements ProgramResource {
-    private final Resource resource;
-
-    public ClassFileResource(Resource resource) {
-      this.resource = resource;
-      assert resource.getClassDescriptors() == null || resource.getClassDescriptors().size() == 1;
-    }
-
-    @Override
-    public Kind getKind() {
-      return Kind.CF;
-    }
-
-    @Override
-    public InputStream getByteStream() throws ResourceException {
-      try {
-        return resource.getStream();
-      } catch (IOException e) {
-        throw new ResourceException(resource.getOrigin(), e);
-      }
-    }
-
-    @Override
-    public Set<String> getClassDescriptors() {
-      return resource.getClassDescriptors();
-    }
-
-    @Override
-    public Origin getOrigin() {
-      return resource.getOrigin();
-    }
-
-    @Override
-    public InputStream getStream() throws IOException {
-      return resource.getStream();
-    }
-  };
+  ProgramResource getProgramResource(String descriptor);
 }

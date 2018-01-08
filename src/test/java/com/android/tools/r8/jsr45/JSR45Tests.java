@@ -5,17 +5,19 @@ package com.android.tools.r8.jsr45;
 
 import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
+import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexAnnotationElement;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.AndroidAppConsumers;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.AnnotationSubject;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
-import com.android.tools.r8.utils.OutputMode;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -49,12 +51,14 @@ public class JSR45Tests {
 
   private AndroidApp compileWithD8(Path intputPath, Path outputPath)
       throws IOException, CompilationException, CompilationFailedException {
-    return ToolHelper.runD8(
+    D8Command.Builder builder =
         D8Command.builder()
             .setMinApiLevel(AndroidApiLevel.O.getLevel())
             .addProgramFiles(intputPath)
-            .setOutputPath(outputPath)
-            .build());
+            .setOutput(outputPath, OutputMode.DexIndexed);
+    AndroidAppConsumers appSink = new AndroidAppConsumers(builder);
+    D8.run(builder.build());
+    return appSink.build();
   }
 
   private AndroidApp compileWithR8(Path inputPath, Path outputPath, Path keepRulesPath)

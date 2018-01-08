@@ -4,7 +4,6 @@
 
 package com.android.tools.r8;
 
-import com.android.tools.r8.utils.OutputMode;
 import java.nio.file.Path;
 import java.util.function.UnaryOperator;
 

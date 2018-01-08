@@ -9,13 +9,13 @@ import static com.android.tools.r8.utils.FileUtils.ZIP_EXTENSION;
 
 import com.android.tools.r8.GenerateMainDexList;
 import com.android.tools.r8.GenerateMainDexListCommand;
+import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.OutputMode;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;

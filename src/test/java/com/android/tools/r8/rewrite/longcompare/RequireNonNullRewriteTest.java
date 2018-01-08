@@ -8,6 +8,7 @@ import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
+import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.ProcessResult;
@@ -38,7 +39,7 @@ public class RequireNonNullRewriteTest {
         D8Command.builder()
             .setMode(mode)
             .addProgramFiles(intputPath)
-            .setOutputPath(outputPath)
+            .setOutput(outputPath, OutputMode.DexIndexed)
             .build());
   }
 

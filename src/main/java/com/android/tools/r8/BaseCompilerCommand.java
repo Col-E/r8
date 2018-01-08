@@ -3,13 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
-import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.FileUtils;
-import com.android.tools.r8.utils.OutputMode;
 import com.android.tools.r8.utils.Reporter;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -25,20 +23,6 @@ import java.util.List;
  */
 public abstract class BaseCompilerCommand extends BaseCommand {
 
-  // TODO(b/70656566): Remove this once the deprecated API is removed.
-  @Deprecated
-  static class OutputOptions {
-    final Path path;
-    final OutputMode mode;
-
-    public OutputOptions(Path path, OutputMode mode) {
-      this.path = path;
-      this.mode = mode;
-    }
-  }
-
-  private final OutputOptions outputOptions;
-
   private final CompilationMode mode;
   private final ProgramConsumer programConsumer;
   private final int minApiLevel;
@@ -52,14 +36,12 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     minApiLevel = 0;
     reporter = new Reporter(new DefaultDiagnosticsHandler());
     enableDesugaring = true;
-    outputOptions = null;
   }
 
   BaseCompilerCommand(
       AndroidApp app,
       CompilationMode mode,
       ProgramConsumer programConsumer,
-      OutputOptions outputOptions,
       int minApiLevel,
       Reporter reporter,
       boolean enableDesugaring) {
@@ -71,7 +53,6 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     this.minApiLevel = minApiLevel;
     this.reporter = reporter;
     this.enableDesugaring = enableDesugaring;
-    this.outputOptions = outputOptions;
   }
 
   /**
@@ -85,27 +66,6 @@ public abstract class BaseCompilerCommand extends BaseCommand {
   /** Get the minimum API level to compile against. */
   public int getMinApiLevel() {
     return minApiLevel;
-  }
-
-  // Package private predicate for the API transition.
-  boolean usingDeprecatedAPI() {
-    return outputOptions != null;
-  }
-
-  @Deprecated
-  public Path getOutputPath() {
-    if (!usingDeprecatedAPI()) {
-      throw new CompilationError("Use of deprecated API may not be used with new consumer API");
-    }
-    return outputOptions.path;
-  }
-
-  @Deprecated
-  public OutputMode getOutputMode() {
-    if (!usingDeprecatedAPI()) {
-      throw new CompilationError("Use of deprecated API may not be used with new consumer API");
-    }
-    return outputOptions.mode;
   }
 
   /**
@@ -138,7 +98,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     private ProgramConsumer programConsumer = null;
     private Path outputPath = null;
     // TODO(b/70656566): Remove default output mode when deprecated API is removed.
-    private OutputMode outputMode = OutputMode.Indexed;
+    private OutputMode outputMode = OutputMode.DexIndexed;
 
     private CompilationMode mode;
     private int minApiLevel = AndroidApiLevel.getDefault().getLevel();
@@ -237,55 +197,26 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     public B setOutput(Path outputPath, OutputMode outputMode) {
       assert outputPath != null;
       assert outputMode != null;
-      assert !outputMode.isDeprecated();
       this.outputPath = outputPath;
       this.outputMode = outputMode;
       programConsumer = createProgramOutputConsumer(outputPath, outputMode);
       return self();
     }
 
-    /**
-     * Set an output path. Must be an existing directory or a zip file.
-     *
-     * @see #setOutput
-     */
-    @Deprecated
-    public B setOutputPath(Path outputPath) {
-      // Ensure this is not mixed with uses of the new consumer API.
-      assert programConsumer == null;
-      this.outputPath = outputPath;
-      return self();
-    }
-
-    /**
-     * Set an output mode.
-     *
-     * @see #setOutput
-     */
-    @Deprecated
-    public B setOutputMode(OutputMode outputMode) {
-      // Ensure this is not mixed with uses of the new consumer API.
-      assert programConsumer == null;
-      assert outputMode == null || outputMode.isDeprecated();
-      assert this.outputMode == null || this.outputMode.isDeprecated();
-      this.outputMode = outputMode;
-      return self();
-    }
-
     private InternalProgramOutputPathConsumer createProgramOutputConsumer(
         Path path,
         OutputMode mode) {
-      if (mode.isDexIndexed()) {
+      if (mode == OutputMode.DexIndexed) {
         return FileUtils.isArchive(path)
             ? new DexIndexedConsumer.ArchiveConsumer(path)
             : new DexIndexedConsumer.DirectoryConsumer(path);
       }
-      if (mode.isDexFilePerClassFile()) {
+      if (mode == OutputMode.DexFilePerClassFile) {
         return FileUtils.isArchive(path)
             ? new DexFilePerClassFileConsumer.ArchiveConsumer(path)
             : new DexFilePerClassFileConsumer.DirectoryConsumer(path);
       }
-      if (mode.isClassFile()) {
+      if (mode == OutputMode.ClassFile) {
         return FileUtils.isArchive(path)
             ? new ClassFileConsumer.ArchiveConsumer(path)
             : new ClassFileConsumer.DirectoryConsumer(path);
@@ -331,6 +262,10 @@ public abstract class BaseCompilerCommand extends BaseCommand {
         reporter.error("Expected valid compilation mode, was null");
       }
       FileUtils.validateOutputFile(outputPath, reporter);
+      if (getProgramConsumer() == null) {
+        // This is never the case for a command-line parse, so we report using API references.
+        reporter.error("A ProgramConsumer or Output is required for compilation");
+      }
       List<Class> programConsumerClasses = new ArrayList<>(3);
       if (programConsumer instanceof DexIndexedConsumer) {
         programConsumerClasses.add(DexIndexedConsumer.class);

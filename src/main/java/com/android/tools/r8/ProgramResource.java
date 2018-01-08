@@ -63,7 +63,6 @@ public interface ProgramResource extends Resource {
    *
    * @return Set of class descriptors defined by the resource or null if unknown.
    */
-  @Override // Need to keep this to not trip up error prone until the base method is gone.
   Set<String> getClassDescriptors();
 
   /** File-based program resource. */
@@ -103,12 +102,6 @@ public interface ProgramResource extends Resource {
     public Set<String> getClassDescriptors() {
       return classDescriptors;
     }
-
-    @Override
-    @Deprecated
-    public InputStream getStream() throws IOException {
-      return Files.newInputStream(file);
-    }
   }
 
   /** Byte-content based program resource. */
@@ -144,12 +137,6 @@ public interface ProgramResource extends Resource {
     @Override
     public Set<String> getClassDescriptors() {
       return classDescriptors;
-    }
-
-    @Override
-    @Deprecated
-    public InputStream getStream() throws IOException {
-      return new ByteArrayInputStream(bytes);
     }
   }
 }

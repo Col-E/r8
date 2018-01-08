@@ -4,13 +4,13 @@
 package com.android.tools.r8.compatproguard;
 
 import com.android.tools.r8.CompatProguardCommandBuilder;
+import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.smali.SmaliTestBase;
 import com.android.tools.r8.utils.DexInspector;
-import com.android.tools.r8.utils.OutputMode;
 import java.nio.file.Path;
 import java.util.List;
 

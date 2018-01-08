@@ -18,8 +18,7 @@ public class D8Framework14082017DesugaredVerificationTest extends CompilationTes
         D8Command.builder()
             .addProgramFiles(Paths.get(JAR))
             .setMode(CompilationMode.DEBUG)
-            .setMinApiLevel(MIN_SDK)
-            .build(),
+            .setMinApiLevel(MIN_SDK),
         JAR);
   }
 
@@ -29,8 +28,7 @@ public class D8Framework14082017DesugaredVerificationTest extends CompilationTes
         D8Command.builder()
             .addProgramFiles(Paths.get(JAR))
             .setMode(CompilationMode.RELEASE)
-            .setMinApiLevel(MIN_SDK)
-            .build(),
+            .setMinApiLevel(MIN_SDK),
         JAR);
   }
 }

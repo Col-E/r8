@@ -5,13 +5,6 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.origin.PathOrigin;
-import java.io.ByteArrayInputStream;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Path;
-import java.util.Set;
 
 /**
  * Base interface for application resources.
@@ -36,95 +29,4 @@ public interface Resource {
    */
   Origin getOrigin();
 
-  // Deprecated API: See StringResource and ProgramResource.
-
-  @Deprecated
-  static Resource fromFile(Path file) {
-    return new FileResource(file);
-  }
-
-  @Deprecated
-  static Resource fromBytes(Origin origin, byte[] bytes) {
-    return new ByteResource(origin, bytes);
-  }
-
-  @Deprecated
-  static Resource fromBytes(Origin origin, byte[] bytes, Set<String> typeDescriptors) {
-    return new ByteResource(origin, bytes, typeDescriptors);
-  }
-
-  @Deprecated
-  InputStream getStream() throws IOException;
-
-  @Deprecated
-  Set<String> getClassDescriptors();
-
-  @Deprecated
-  class FileResource implements Resource {
-    final Origin origin;
-    final Path file;
-
-    private FileResource(Path file) {
-      assert file != null;
-      origin = new PathOrigin(file);
-      this.file = file;
-    }
-
-    @Override
-    public Origin getOrigin() {
-      return origin;
-    }
-
-    @Override
-    @Deprecated
-    public InputStream getStream() throws IOException {
-      return new FileInputStream(file.toFile());
-    }
-
-    @Override
-    @Deprecated
-    public Set<String> getClassDescriptors() {
-      return null;
-    }
-  }
-
-  @Deprecated
-  class ByteResource implements Resource {
-    final Origin origin;
-    final byte[] bytes;
-    final Set<String> classDescriptors;
-
-    private ByteResource(Origin origin, byte[] bytes) {
-      assert bytes != null;
-      this.origin = origin;
-      this.bytes = bytes;
-      classDescriptors = null;
-    }
-
-    /** Deprecated: Moved class descriptors to ProgramResource. */
-    @Deprecated
-    ByteResource(Origin origin, byte[] bytes, Set<String> classDescriptors) {
-      assert bytes != null;
-      this.origin = origin;
-      this.bytes = bytes;
-      this.classDescriptors = classDescriptors;
-    }
-
-    @Override
-    @Deprecated
-    public InputStream getStream() throws IOException {
-      return new ByteArrayInputStream(bytes);
-    }
-
-    @Override
-    public Origin getOrigin() {
-      return origin;
-    }
-
-    @Override
-    @Deprecated
-    public Set<String> getClassDescriptors() {
-      return classDescriptors;
-    }
-  }
 }

@@ -3,13 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
+import com.android.tools.r8.BaseCompilerCommand;
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.DexFilePerClassFileConsumer;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.DexIndexedConsumer.ForwardingConsumer;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.ProgramConsumer;
-import com.android.tools.r8.R8Command;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.origin.Origin;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
@@ -32,7 +32,7 @@ public class AndroidAppConsumers {
     // Nothing to do.
   }
 
-  public AndroidAppConsumers(R8Command.Builder builder) {
+  public AndroidAppConsumers(BaseCompilerCommand.Builder builder) {
     builder.setProgramConsumer(wrapProgramConsumer(builder.getProgramConsumer()));
   }
 

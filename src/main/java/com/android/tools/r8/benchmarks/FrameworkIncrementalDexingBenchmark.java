@@ -19,7 +19,6 @@ import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.ProgramConsumer;
 import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.ProgramResource.Kind;
-import com.android.tools.r8.Resource;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
@@ -77,12 +76,15 @@ public class FrameworkIncrementalDexingBenchmark {
     }
 
     @Override
-    public Resource getResource(String descriptor) {
+    public ProgramResource getProgramResource(String descriptor) {
       byte[] bytes = resources.get(descriptor);
       return bytes == null
           ? null
-          : Resource.fromBytes(
-              new EntryOrigin(descriptor, origin), bytes, Collections.singleton(descriptor));
+          : ProgramResource.fromBytes(
+              new EntryOrigin(descriptor, origin),
+              Kind.CF,
+              bytes,
+              Collections.singleton(descriptor));
     }
   }
 

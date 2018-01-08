@@ -13,12 +13,12 @@ import com.android.tools.r8.graph.SmaliWriter;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.AndroidAppConsumers;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.DexInspector.MethodSubject;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.OutputMode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.io.ByteStreams;
@@ -153,8 +153,10 @@ public class TestBase {
    */
   protected AndroidApp compileWithD8(AndroidApp app)
       throws CompilationException, ExecutionException, IOException, CompilationFailedException {
-    D8Command command = ToolHelper.prepareD8CommandBuilder(app).build();
-    return ToolHelper.runD8(command);
+    D8Command.Builder builder = ToolHelper.prepareD8CommandBuilder(app);
+    AndroidAppConsumers appSink = new AndroidAppConsumers(builder);
+    D8.run(builder.build());
+    return appSink.build();
   }
 
   /**
@@ -162,8 +164,7 @@ public class TestBase {
    */
   protected AndroidApp compileWithD8(AndroidApp app, Consumer<InternalOptions> optionsConsumer)
       throws CompilationException, ExecutionException, IOException, CompilationFailedException {
-    D8Command command = ToolHelper.prepareD8CommandBuilder(app).build();
-    return ToolHelper.runD8(command, optionsConsumer);
+    return ToolHelper.runD8(app, optionsConsumer);
   }
 
   /**
@@ -172,8 +173,7 @@ public class TestBase {
   protected AndroidApp compileWithR8(Class... classes)
       throws CompilationException, ProguardRuleParserException, ExecutionException, IOException,
       CompilationFailedException {
-    R8Command command = ToolHelper.prepareR8CommandBuilder(readClasses(classes)).build();
-    return ToolHelper.runR8(command);
+    return ToolHelper.runR8(readClasses(classes));
   }
 
   /**
@@ -330,7 +330,7 @@ public class TestBase {
    */
   protected ProcessResult runOnArtRaw(AndroidApp app, String mainClass) throws IOException {
     Path out = File.createTempFile("junit", ".zip", temp.getRoot()).toPath();
-    app.writeToZip(out, OutputMode.Indexed);
+    app.writeToZip(out, OutputMode.DexIndexed);
     return ToolHelper.runArtRaw(ImmutableList.of(out.toString()), mainClass, null);
   }
 
@@ -367,7 +367,7 @@ public class TestBase {
    */
   protected String runOnArt(AndroidApp app, Class mainClass, List<String> args) throws IOException {
     Path out = File.createTempFile("junit", ".zip", temp.getRoot()).toPath();
-    app.writeToZip(out, OutputMode.Indexed);
+    app.writeToZip(out, OutputMode.DexIndexed);
     return ToolHelper.runArtNoVerificationErrors(
         ImmutableList.of(out.toString()), mainClass.getCanonicalName(),
         builder -> {

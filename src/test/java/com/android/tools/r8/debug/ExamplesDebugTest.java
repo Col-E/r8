@@ -4,12 +4,12 @@
 package com.android.tools.r8.debug;
 
 import com.android.tools.r8.CompilationMode;
+import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.DebuggeeState;
 import com.android.tools.r8.utils.FileUtils;
-import com.android.tools.r8.utils.OutputMode;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.stream.Stream;

@@ -13,7 +13,6 @@ import com.android.tools.r8.D8Command;
 import com.android.tools.r8.D8Command.Builder;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.DiagnosticsHandler;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.origin.EmbeddedOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.smali.SmaliTestBase;
@@ -165,6 +164,8 @@ public class Regress37740372 extends SmaliTestBase {
     // Build an application with the java.lang.Object stub from a dex file.
     Builder builder = D8Command.builder();
     builder.addDexProgramData(consumer.data, Origin.unknown());
-    checkApplicationOnlyHasJavaLangObject(ToolHelper.runD8(builder.build()));
+    appConsumer = new AndroidAppConsumers(builder);
+    D8.run(builder.build());
+    checkApplicationOnlyHasJavaLangObject(appConsumer.build());
   }
 }

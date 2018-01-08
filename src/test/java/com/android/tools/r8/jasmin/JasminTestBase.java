@@ -5,6 +5,7 @@ package com.android.tools.r8.jasmin;
 
 import static org.junit.Assert.fail;
 
+import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
@@ -14,7 +15,6 @@ import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.OutputMode;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.io.File;
@@ -217,23 +217,23 @@ public class JasminTestBase extends TestBase {
 
   protected ProcessResult runOnArtRaw(AndroidApp app, String main) throws IOException {
     Path out = temp.getRoot().toPath().resolve("out.zip");
-    app.writeToZip(out, OutputMode.Indexed);
+    app.writeToZip(out, OutputMode.DexIndexed);
     return ToolHelper.runArtRaw(out.toString(), main);
   }
 
   protected ProcessResult runOnArtRaw(AndroidApp program, AndroidApp library, String main)
       throws IOException {
     Path out = temp.getRoot().toPath().resolve("out.zip");
-    program.writeToZip(out, OutputMode.Indexed);
+    program.writeToZip(out, OutputMode.DexIndexed);
     Path libraryOut = temp.getRoot().toPath().resolve("libraryOut.zip");
-    library.writeToZip(libraryOut, OutputMode.Indexed);
+    library.writeToZip(libraryOut, OutputMode.DexIndexed);
     return ToolHelper.runArtRaw(ImmutableList.of(out.toString(), libraryOut.toString()), main,
         null);
   }
 
   protected String runOnArt(AndroidApp app, String main) throws IOException {
     Path out = temp.getRoot().toPath().resolve("out.zip");
-    app.writeToZip(out, OutputMode.Indexed);
+    app.writeToZip(out, OutputMode.DexIndexed);
     return ToolHelper.runArtNoVerificationErrors(out.toString(), main);
   }
 

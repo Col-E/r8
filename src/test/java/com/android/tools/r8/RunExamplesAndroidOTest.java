@@ -21,7 +21,6 @@ import com.android.tools.r8.utils.DexInspector.InstructionSubject;
 import com.android.tools.r8.utils.DexInspector.InvokeInstructionSubject;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OffOrAuto;
-import com.android.tools.r8.utils.OutputMode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.ByteStreams;
@@ -172,7 +171,7 @@ public abstract class RunExamplesAndroidOTest
     }
 
     void build(Path inputFile, Path out) throws Throwable {
-      build(inputFile, out, OutputMode.Indexed);
+      build(inputFile, out, OutputMode.DexIndexed);
     }
 
     abstract void build(Path inputFile, Path out, OutputMode mode) throws Throwable;

@@ -6,6 +6,7 @@ package com.android.tools.r8.memberrebinding;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
@@ -16,7 +17,6 @@ import com.android.tools.r8.utils.DexInspector.InstructionSubject;
 import com.android.tools.r8.utils.DexInspector.InvokeInstructionSubject;
 import com.android.tools.r8.utils.DexInspector.MethodSubject;
 import com.android.tools.r8.utils.ListUtils;
-import com.android.tools.r8.utils.OutputMode;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;

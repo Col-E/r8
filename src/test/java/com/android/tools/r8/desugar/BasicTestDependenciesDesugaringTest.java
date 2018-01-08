@@ -82,11 +82,11 @@ public class BasicTestDependenciesDesugaringTest {
       thrown.expect(CompilationError.class);
     }
     ToolHelper.runD8(
-        D8Command.builder().addClasspathFiles(classpath)
-        .addProgramFiles(toCompile)
-        .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(AndroidApiLevel.K.getLevel())))
-        .setMinApiLevel(AndroidApiLevel.K.getLevel())
-        .build(),
+        D8Command.builder()
+            .addClasspathFiles(classpath)
+            .addProgramFiles(toCompile)
+            .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(AndroidApiLevel.K.getLevel())))
+            .setMinApiLevel(AndroidApiLevel.K.getLevel()),
         options -> options.interfaceMethodDesugaring = OffOrAuto.Auto);
   }
 
@@ -96,11 +96,11 @@ public class BasicTestDependenciesDesugaringTest {
       thrown.expect(CompilationError.class);
     }
     ToolHelper.runD8(
-        D8Command.builder().addClasspathFiles(classpath)
-        .addProgramFiles(toCompile)
-        .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(AndroidApiLevel.K.getLevel())))
-        .setMinApiLevel(AndroidApiLevel.K.getLevel())
-        .build(),
+        D8Command.builder()
+            .addClasspathFiles(classpath)
+            .addProgramFiles(toCompile)
+            .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(AndroidApiLevel.K.getLevel())))
+            .setMinApiLevel(AndroidApiLevel.K.getLevel()),
         options -> options.interfaceMethodDesugaring = OffOrAuto.Off);
   }
 }

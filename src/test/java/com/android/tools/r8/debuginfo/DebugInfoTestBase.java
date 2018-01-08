@@ -8,12 +8,14 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
+import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
+import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.OutputMode;
+import com.android.tools.r8.utils.AndroidAppConsumers;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -36,7 +38,9 @@ public class DebugInfoTestBase {
     for (Class clazz : classes) {
       builder.addProgramFiles(ToolHelper.getClassFileForTestClass(clazz));
     }
-    return ToolHelper.runD8(builder.setMode(CompilationMode.DEBUG).build());
+    AndroidAppConsumers appSink = new AndroidAppConsumers(builder);
+    D8.run(builder.setMode(CompilationMode.DEBUG).build());
+    return appSink.build();
   }
 
   static AndroidApp getDxCompiledSources() throws IOException {
@@ -52,7 +56,7 @@ public class DebugInfoTestBase {
 
   protected String runOnArt(AndroidApp app, String main) throws IOException {
     Path out = temp.getRoot().toPath().resolve("out.zip");
-    app.writeToZip(out, OutputMode.Indexed);
+    app.writeToZip(out, OutputMode.DexIndexed);
     return ToolHelper.runArtNoVerificationErrors(ImmutableList.of(out.toString()), main, null);
   }
 

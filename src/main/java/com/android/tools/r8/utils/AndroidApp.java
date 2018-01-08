@@ -11,6 +11,8 @@ import com.android.tools.r8.ArchiveClassFileProvider;
 import com.android.tools.r8.ClassFileResourceProvider;
 import com.android.tools.r8.DexFilePerClassFileConsumer;
 import com.android.tools.r8.DexIndexedConsumer;
+import com.android.tools.r8.DirectoryClassFileProvider;
+import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.ProgramResourceProvider;
@@ -202,11 +204,15 @@ public class AndroidApp {
    */
   public void writeToDirectory(Path directory, OutputMode outputMode) throws IOException {
     List<ProgramResource> dexProgramSources = getDexProgramResourcesForTesting();
-    if (outputMode.isDexIndexed()) {
-      DexIndexedConsumer.DirectoryConsumer.writeResources(directory, dexProgramSources);
-    } else {
-      DexFilePerClassFileConsumer.DirectoryConsumer.writeResources(
-          directory, dexProgramSources, programResourcesMainDescriptor);
+    try {
+      if (outputMode == OutputMode.DexIndexed) {
+        DexIndexedConsumer.DirectoryConsumer.writeResources(directory, dexProgramSources);
+      } else {
+        DexFilePerClassFileConsumer.DirectoryConsumer.writeResources(
+            directory, dexProgramSources, programResourcesMainDescriptor);
+      }
+    } catch (ResourceException e) {
+      throw new IOException("Resource Error", e);
     }
   }
 
@@ -215,13 +221,17 @@ public class AndroidApp {
    */
   public void writeToZip(Path archive, OutputMode outputMode) throws IOException {
     List<ProgramResource> resources = getDexProgramResourcesForTesting();
-    if (outputMode.isDexIndexed()) {
-      DexIndexedConsumer.ArchiveConsumer.writeResources(archive, resources);
-    } else if (outputMode.isDexFilePerClassFile()) {
-      DexFilePerClassFileConsumer.ArchiveConsumer.writeResources(
-          archive, resources, programResourcesMainDescriptor);
-    } else {
-      throw new Unreachable("Unsupported output-mode for writing: " + outputMode);
+    try {
+      if (outputMode == OutputMode.DexIndexed) {
+        DexIndexedConsumer.ArchiveConsumer.writeResources(archive, resources);
+      } else if (outputMode == OutputMode.DexFilePerClassFile) {
+        DexFilePerClassFileConsumer.ArchiveConsumer.writeResources(
+            archive, resources, programResourcesMainDescriptor);
+      } else {
+        throw new Unreachable("Unsupported output-mode for writing: " + outputMode);
+      }
+    } catch (ResourceException e) {
+      throw new IOException("Resource Error", e);
     }
   }
 

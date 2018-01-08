@@ -5,6 +5,7 @@ package com.android.tools.r8.shaking;
 
 import static com.android.tools.r8.ToolHelper.DEFAULT_PROGUARD_MAP_FILE;
 
+import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase.MinifyMode;
 import com.android.tools.r8.ToolHelper;
@@ -21,7 +22,6 @@ import com.android.tools.r8.utils.DexInspector.FoundMethodSubject;
 import com.android.tools.r8.utils.DexInspector.InstructionSubject;
 import com.android.tools.r8.utils.DexInspector.MethodSubject;
 import com.android.tools.r8.utils.ListUtils;
-import com.android.tools.r8.utils.OutputMode;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;

@@ -9,7 +9,6 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.OutputMode;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableList;
@@ -112,11 +111,6 @@ public class D8Command extends BaseCompilerCommand {
       if (getProgramConsumer() instanceof ClassFileConsumer) {
         reporter.error("D8 does not support compiling to Java class files");
       }
-      // TODO(b/70656566): Move up super once the deprecated API is removed.
-      if (getProgramConsumer() == null && getOutputPath() == null && getOutputMode() == null) {
-        // This is never the case for a command-line parse, so we report using API references.
-        reporter.error("A ProgramConsumer or Output is required for compilation");
-      }
       if (getAppBuilder().hasMainDexList()) {
         if (intermediate) {
           reporter.error("Option --main-dex-list cannot be used with --intermediate");
@@ -134,25 +128,12 @@ public class D8Command extends BaseCompilerCommand {
         return new D8Command(isPrintHelp(), isPrintVersion());
       }
 
-      // Usage of the deprecated API will not have set a consumer. In this case we setup the output
-      // options, indicating usage of the deprecated API, and construct a suitable program consumer.
-      OutputOptions outputOptions = null;
-      ProgramConsumer consumer = getProgramConsumer();
-      if (consumer == null) {
-        outputOptions = new OutputOptions(getOutputPath(), getOutputMode());
-        consumer =
-            getOutputMode().isDexIndexed()
-                ? createIndexedConsumer(getOutputPath())
-                : createPerClassFileConsumer(getOutputPath());
-      }
-
-      intermediate |= consumer instanceof DexFilePerClassFileConsumer;
+      intermediate |= getProgramConsumer() instanceof DexFilePerClassFileConsumer;
 
       return new D8Command(
           getAppBuilder().build(),
           getMode(),
-          consumer,
-          outputOptions,
+          getProgramConsumer(),
           getMinApiLevel(),
           getReporter(),
           getEnableDesugaring(),
@@ -299,7 +280,6 @@ public class D8Command extends BaseCompilerCommand {
       AndroidApp inputApp,
       CompilationMode mode,
       ProgramConsumer programConsumer,
-      OutputOptions outputOptions,
       int minApiLevel,
       Reporter diagnosticsHandler,
       boolean enableDesugaring,
@@ -308,7 +288,6 @@ public class D8Command extends BaseCompilerCommand {
         inputApp,
         mode,
         programConsumer,
-        outputOptions,
         minApiLevel,
         diagnosticsHandler,
         enableDesugaring);
