@@ -1763,8 +1763,10 @@ public class CodeRewriter {
    *
    * (1)
    *
+   *      [dbg pos x]             [dbg pos x]
    *   ifeqz booleanValue       ifnez booleanValue
    *      /        \              /        \
+   * [dbg pos x][dbg pos x]  [dbg pos x][dbg pos x]
    *  [const 0]  [const 1]    [const 1]  [const 0]
    *    goto      goto          goto      goto
    *      \        /              \        /
@@ -1775,8 +1777,10 @@ public class CodeRewriter {
    *
    * (2)
    *
+   *      [dbg pos x]              [dbg pos x]
    *    ifeqz booleanValue       ifnez booleanValue
    *      /        \              /        \
+   * [dbg pos x][dbg pos x]  [dbg pos x][dbg pos x]
    *  [const 1]  [const 0]   [const 0]  [const 1]
    *    goto      goto          goto      goto
    *      \        /              \        /
@@ -1858,16 +1862,36 @@ public class CodeRewriter {
   }
 
   private boolean isBlockSupportedBySimplifyKnownBooleanCondition(BasicBlock b) {
-    if (b.getInstructions().size() == 2 && b.exit().isGoto()) {
-      Instruction firstInstruction = b.getInstructions().getFirst();
-      if (firstInstruction.isConstNumber()) {
-        return firstInstruction.asConstNumber().isIntegerOne() ||
-            firstInstruction.asConstNumber().isIntegerZero();
-      }
-      return false;
+    if (b.isTrivialGoto()) {
+      return true;
     }
 
-    return b.isTrivialGoto();
+    int instructionSize = b.getInstructions().size();
+    if (b.exit().isGoto() && (instructionSize == 2 || instructionSize == 3)) {
+      Instruction constInstruction = b.getInstructions().get(instructionSize - 2);
+      if (constInstruction.isConstNumber()) {
+        if (!constInstruction.asConstNumber().isIntegerOne() &&
+            !constInstruction.asConstNumber().isIntegerZero()) {
+          return false;
+        }
+        if (instructionSize == 2) {
+          return true;
+        }
+        Instruction firstInstruction = b.getInstructions().getFirst();
+        if (firstInstruction.isDebugPosition()) {
+          assert b.getPredecessors().size() == 1;
+          BasicBlock predecessorBlock = b.getPredecessors().get(0);
+          InstructionListIterator it = predecessorBlock.listIterator(predecessorBlock.exit());
+          Instruction previousPosition = null;
+          while (it.hasPrevious() && !(previousPosition = it.previous()).isDebugPosition());
+          if (previousPosition != null) {
+            return previousPosition.getPosition() == firstInstruction.getPosition();
+          }
+        }
+      }
+    }
+
+    return false;
   }
 
   private void rewriteIfToGoto(DominatorTree dominator, BasicBlock block, If theIf,
