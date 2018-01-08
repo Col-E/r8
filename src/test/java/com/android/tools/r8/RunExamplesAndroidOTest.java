@@ -31,6 +31,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -411,7 +413,139 @@ public abstract class RunExamplesAndroidOTest
         .run();
   }
 
-  abstract RunExamplesAndroidOTest<B>.TestRunner<?> test(String testName, String packageName, String mainClass);
+
+  @Test
+  public void testLambdaDesugaringWithMainDexList1() throws Throwable {
+    // Minimal case: there are synthesized classes but not form the main dex class.
+    testIntermediateWithMainDexList(
+        "lambdadesugaring",
+        1,
+        "lambdadesugaring.LambdaDesugaring$I");
+  }
+
+  @Test
+  public void testLambdaDesugaringWithMainDexList2() throws Throwable {
+    // Main dex class has many lambdas.
+    testIntermediateWithMainDexList("lambdadesugaring",
+        33,
+        "lambdadesugaring.LambdaDesugaring$Refs$B");
+  }
+
+  @Test
+  public void testInterfaceDesugaringWithMainDexList1() throws Throwable {
+    // Main dex interface has one static method.
+    testIntermediateWithMainDexList(
+        "interfacemethods",
+        Paths.get(ToolHelper.EXAMPLES_ANDROID_N_BUILD_DIR, "interfacemethods" + JAR_EXTENSION),
+        2,
+        "interfacemethods.I1");
+  }
+
+
+  @Test
+  public void testInterfaceDesugaringWithMainDexList2() throws Throwable {
+    // Main dex interface has one default method.
+    testIntermediateWithMainDexList(
+        "interfacemethods",
+        Paths.get(ToolHelper.EXAMPLES_ANDROID_N_BUILD_DIR, "interfacemethods" + JAR_EXTENSION),
+        2,
+        "interfacemethods.I2");
+  }
+
+  private void testIntermediateWithMainDexList(
+      String packageName,
+      int expectedMainDexListSize,
+      String... mainDexClasses)
+      throws Throwable {
+    testIntermediateWithMainDexList(
+        packageName,
+        Paths.get(EXAMPLE_DIR, packageName + JAR_EXTENSION),
+        expectedMainDexListSize,
+        mainDexClasses);
+  }
+
+  protected void testIntermediateWithMainDexList(
+      String packageName,
+      Path input,
+      int expectedMainDexListSize,
+      String... mainDexClasses)
+      throws Throwable {
+    int minApi = AndroidApiLevel.K.getLevel();
+
+    // Full build, will be used as reference.
+    TestRunner<?> full =
+        test(packageName + "full", packageName, "N/A")
+            .withInterfaceMethodDesugaring(OffOrAuto.Auto)
+            .withMinApiLevel(minApi)
+            .withOptionConsumer(option -> option.minimalMainDex = true)
+            .withMainDexClass(mainDexClasses);
+    Path fullDexes = temp.getRoot().toPath().resolve(packageName + "full" + ZIP_EXTENSION);
+    full.build(input, fullDexes);
+
+    // Builds with intermediate in both output mode.
+    Path dexesThroughIndexedIntermediate =
+        buildDexThroughIntermediate(packageName, input, OutputMode.Indexed, minApi, mainDexClasses);
+    Path dexesThroughFilePerInputClassIntermediate =
+        buildDexThroughIntermediate(packageName, input, OutputMode.FilePerInputClass, minApi,
+            mainDexClasses);
+
+    // Collect main dex types.
+    DexInspector fullInspector =  getMainDexInspector(fullDexes);
+    DexInspector indexedIntermediateInspector =
+        getMainDexInspector(dexesThroughIndexedIntermediate);
+    DexInspector filePerInputClassIntermediateInspector =
+        getMainDexInspector(dexesThroughFilePerInputClassIntermediate);
+    Collection<String> fullMainClasses = new HashSet<>();
+    fullInspector.forAllClasses(
+        clazz -> fullMainClasses.add(clazz.getFinalDescriptor()));
+    Collection<String> indexedIntermediateMainClasses = new HashSet<>();
+    indexedIntermediateInspector.forAllClasses(
+        clazz -> indexedIntermediateMainClasses.add(clazz.getFinalDescriptor()));
+    Collection<String> filePerInputClassIntermediateMainClasses = new HashSet<>();
+    filePerInputClassIntermediateInspector.forAllClasses(
+        clazz -> filePerInputClassIntermediateMainClasses.add(clazz.getFinalDescriptor()));
+
+    // Check.
+    Assert.assertEquals(expectedMainDexListSize, fullMainClasses.size());
+    Assert.assertEquals(fullMainClasses, indexedIntermediateMainClasses);
+    Assert.assertEquals(fullMainClasses, filePerInputClassIntermediateMainClasses);
+  }
+
+  protected Path buildDexThroughIntermediate(
+      String packageName,
+      Path input,
+      OutputMode outputMode,
+      int minApi,
+      String... mainDexClasses)
+      throws Throwable {
+    Path intermediateDex =
+        temp.getRoot().toPath().resolve(packageName + "intermediate" + ZIP_EXTENSION);
+    // Build intermediate with D8.
+    D8Command command = D8Command.builder()
+        .setOutput(intermediateDex, outputMode.toNonDeprecated())
+        .setMinApiLevel(minApi)
+        .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(minApi)))
+        .setIntermediate(true)
+        .addProgramFiles(input)
+        .build();
+    ToolHelper.runD8(command, option -> {
+      option.interfaceMethodDesugaring = OffOrAuto.Auto;
+    });
+
+    TestRunner<?> end =
+        test(packageName + "dex", packageName, "N/A")
+            .withOptionConsumer(option -> option.minimalMainDex = true)
+            .withMainDexClass(mainDexClasses)
+            .withMinApiLevel(minApi);
+
+    Path dexesThroughIntermediate =
+        temp.getRoot().toPath().resolve(packageName + "dex" + ZIP_EXTENSION);
+    end.build(intermediateDex, dexesThroughIntermediate);
+    return dexesThroughIntermediate;
+  }
+
+  abstract RunExamplesAndroidOTest<B>.TestRunner<?> test(String testName, String packageName,
+      String mainClass);
 
   void execute(
       String testName,

@@ -140,6 +140,7 @@ public class InternalOptions {
   public List<String> methodsFilter = ImmutableList.of();
   public int minApiLevel = AndroidApiLevel.getDefault().getLevel();
   // Skipping min_api check and compiling an intermediate result intended for later merging.
+  // Intermediate builds also emits or update synthesized classes mapping.
   public boolean intermediate = false;
   public List<String> logArgumentsFilter = ImmutableList.of();
 

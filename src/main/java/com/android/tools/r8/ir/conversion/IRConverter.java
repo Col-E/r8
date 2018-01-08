@@ -228,6 +228,12 @@ public class IRConverter {
     synthesizeLambdaClasses(builder);
     desugarInterfaceMethods(builder, ExcludeDexResources);
 
+    handleSynthesizedClassMapping(builder);
+
+    return builder.build();
+  }
+
+  private void handleSynthesizedClassMapping(Builder<?> builder) {
     if (options.intermediate) {
       updateSynthesizedClassMapping(builder);
     }
@@ -237,8 +243,6 @@ public class IRConverter {
     if (!options.intermediate) {
       clearSynthesizedClassMapping(builder);
     }
-
-    return builder.build();
   }
 
   private void updateMainDexListWithSynthesizedClassMap(Builder<?> builder) {
@@ -369,6 +373,8 @@ public class IRConverter {
 
     synthesizeLambdaClasses(builder);
     desugarInterfaceMethods(builder, IncludeAllResources);
+
+    handleSynthesizedClassMapping(builder);
 
     if (outliner != null) {
       timing.begin("IR conversion phase 2");
