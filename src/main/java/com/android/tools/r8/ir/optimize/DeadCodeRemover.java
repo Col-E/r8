@@ -12,16 +12,19 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.utils.InternalOptions;
+import com.google.common.base.Suppliers;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Queue;
+import java.util.function.Supplier;
 
 public class DeadCodeRemover {
 
   public static void removeDeadCode(
       IRCode code, CodeRewriter codeRewriter, InternalOptions options) {
     Queue<BasicBlock> worklist = new LinkedList<>();
-    DominatorTree dominator = new DominatorTree(code);
+    Supplier<DominatorTree> dominatorTreeMemoization = Suppliers
+        .memoize(() -> new DominatorTree(code));
     code.clearMarks();
     worklist.addAll(code.blocks);
     for (BasicBlock block = worklist.poll(); block != null; block = worklist.poll()) {
@@ -31,7 +34,7 @@ public class DeadCodeRemover {
       }
       removeDeadInstructions(worklist, code, block, options);
       removeDeadPhis(worklist, block, options);
-      removeUnneededCatchHandlers(worklist, block, dominator);
+      removeUnneededCatchHandlers(worklist, block, dominatorTreeMemoization);
     }
     code.removeMarkedBlocks();
     assert code.isConsistentSSA();
@@ -106,12 +109,12 @@ public class DeadCodeRemover {
     }
   }
 
-  private static void removeUnneededCatchHandlers(
-      Queue<BasicBlock> worklist, BasicBlock block, DominatorTree dominator) {
+  private static void removeUnneededCatchHandlers(Queue<BasicBlock> worklist, BasicBlock block,
+      Supplier<DominatorTree> dominatorTreeMemoization) {
     if (block.hasCatchHandlers() && !block.canThrow()) {
       CatchHandlers<BasicBlock> handlers = block.getCatchHandlers();
       for (BasicBlock target : handlers.getUniqueTargets()) {
-        for (BasicBlock unlinked : block.unlink(target, dominator)) {
+        for (BasicBlock unlinked : block.unlink(target, dominatorTreeMemoization.get())) {
           if (!unlinked.isMarked()) {
             Iterator<Instruction> iterator = unlinked.iterator();
             while (iterator.hasNext()) {
