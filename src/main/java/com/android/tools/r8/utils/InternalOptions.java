@@ -159,7 +159,6 @@ public class InternalOptions {
   public boolean enableMainDexListCheck = true;
 
   public boolean useTreeShaking = true;
-  public boolean useDiscardedChecker = true;
 
   public boolean printCfg = false;
   public String printCfgFile;

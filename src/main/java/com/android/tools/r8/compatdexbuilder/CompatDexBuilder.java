@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.compatdexbuilder;
 
+import com.android.tools.r8.CompatDxHelper;
 import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
@@ -154,11 +155,13 @@ public class CompatDexBuilder {
   private DexConsumer dexEntry(ZipFile zipFile, ZipEntry classEntry, ExecutorService executor)
       throws IOException, CompilationException, CompilationFailedException {
     DexConsumer consumer = new DexConsumer();
-    D8Command.Builder builder =
-        new CompatDexBuilderCommandBuilder()
-            .setProgramConsumer(consumer)
-            .setMode(noLocals ? CompilationMode.RELEASE : CompilationMode.DEBUG)
-            .setMinApiLevel(AndroidApiLevel.H_MR2.getLevel());
+    D8Command.Builder builder = D8Command.builder();
+    CompatDxHelper.ignoreDexInArchive(builder);
+    builder
+        .setProgramConsumer(consumer)
+        .setMode(noLocals ? CompilationMode.RELEASE : CompilationMode.DEBUG)
+        .setMinApiLevel(AndroidApiLevel.H_MR2.getLevel())
+        .setEnableDesugaring(false);
     try (InputStream stream = zipFile.getInputStream(classEntry)) {
       builder.addClassProgramData(
           ByteStreams.toByteArray(stream),

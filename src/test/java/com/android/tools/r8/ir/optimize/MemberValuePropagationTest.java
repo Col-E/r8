@@ -106,7 +106,7 @@ public class MemberValuePropagationTest {
             .addProgramFiles(EXAMPLE_JAR)
             .addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()))
             .addProguardConfigurationFiles(proguardConfig)
-            .setMinification(false)
+            .setDisableMinification(true)
             .build(),
         null);
     return dexOutputDir.resolve("classes.dex");

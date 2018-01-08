@@ -8,11 +8,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.CompatProguardCommandBuilder;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.compatproguard.CompatProguardCommandBuilder;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
@@ -242,7 +242,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
     Path proguardCompatibilityRules = temp.newFile().toPath();
     builder.setProguardCompatibilityRulesOutput(proguardCompatibilityRules);
     if (allowObfuscation) {
-      builder.setProguardMapOutput(temp.newFile().toPath());
+      builder.setProguardMapOutputPath(temp.newFile().toPath());
     }
 
     builder.setProgramConsumer(DexIndexedConsumer.emptyConsumer());

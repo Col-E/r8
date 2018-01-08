@@ -96,7 +96,7 @@ public class ApplyMappingTest {
         runR8(
             ToolHelper.addProguardConfigurationConsumer(
                     getCommandForInstrumentation(instrOut, flag, NAMING044_JAR, APPLYMAPPING044_JAR)
-                        .setMinification(false),
+                        .setDisableMinification(true),
                     pgConfig -> pgConfig.setApplyMappingFile(proguardMap))
                 .build());
 
@@ -137,10 +137,11 @@ public class ApplyMappingTest {
   public void test044_apply() throws Exception {
     Path flag =
         Paths.get(ToolHelper.EXAMPLES_DIR, "applymapping044", "keep-rules-apply-mapping.txt");
-    AndroidApp outputApp = runR8(
-        getCommandForInstrumentation(out, flag, NAMING044_JAR, APPLYMAPPING044_JAR)
-            .setMinification(false)
-            .build());
+    AndroidApp outputApp =
+        runR8(
+            getCommandForInstrumentation(out, flag, NAMING044_JAR, APPLYMAPPING044_JAR)
+                .setDisableMinification(true)
+                .build());
 
     // Make sure the given proguard map is indeed applied.
     DexInspector inspector = new DexInspector(outputApp);
@@ -184,7 +185,7 @@ public class ApplyMappingTest {
     AndroidApp outputApp =
         runR8(
             ToolHelper.addProguardConfigurationConsumer(
-                    getCommandForApps(out, flag, NAMING001_JAR).setMinification(false),
+                    getCommandForApps(out, flag, NAMING001_JAR).setDisableMinification(true),
                     pgConfig -> {
                       pgConfig.setPrintMapping(true);
                       pgConfig.setPrintMappingFile(proguardMap);

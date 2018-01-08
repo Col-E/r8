@@ -24,6 +24,9 @@ import java.util.List;
 /**
  * Base class for commands and command builders for applications/tools which take an Android
  * application sources (and optional main-dex list) as input.
+ *
+ * <p>For concrete builders, see for example {@link D8Command.Builder} and {@link
+ * R8Command.Builder}.
  */
 public abstract class BaseCommand {
 
@@ -63,34 +66,48 @@ public abstract class BaseCommand {
   // Internal access to the internal options.
   abstract InternalOptions getInternalOptions();
 
-  abstract public static class Builder<C extends BaseCommand, B extends Builder<C, B>> {
+  /**
+   * Base builder for commands.
+   *
+   * @param <C> Command the builder is building, e.g., {@link R8Command} or {@link D8Command}.
+   * @param <B> Concrete builder extending this base, e.g., {@link R8Command.Builder} or {@link
+   *     D8Command.Builder}.
+   */
+  public abstract static class Builder<C extends BaseCommand, B extends Builder<C, B>> {
 
-    protected final Reporter reporter;
+    private final Reporter reporter;
     private boolean printHelp = false;
     private boolean printVersion = false;
     private final AndroidApp.Builder app;
 
-    protected List<Path> programFiles = new ArrayList<>();
+    List<Path> programFiles = new ArrayList<>();
 
-    protected Builder() {
+    Builder() {
       this(AndroidApp.builder(), new DefaultDiagnosticsHandler());
     }
 
-    protected Builder(DiagnosticsHandler handler) {
+    Builder(DiagnosticsHandler handler) {
       this(AndroidApp.builder(), handler);
     }
 
-    protected Builder(AndroidApp.Builder builder) {
+    Builder(AndroidApp.Builder builder) {
       this(builder, new DefaultDiagnosticsHandler());
     }
 
-    protected Builder(AndroidApp.Builder builder, DiagnosticsHandler handler) {
+    Builder(AndroidApp.Builder builder, DiagnosticsHandler handler) {
       this.app = builder;
       this.reporter = new Reporter(handler);
     }
 
     abstract B self();
 
+    /**
+     * Build the final command.
+     *
+     * <p>Building the command will complete the validation of builders state and build the final
+     * command. If any errors occur during validation or building the errors are reported to the
+     * associated diagnostics handler and a {@link CompilationFailedException} exception is thrown.
+     */
     public final C build() throws CompilationFailedException {
       try {
         validate();
@@ -102,7 +119,8 @@ public abstract class BaseCommand {
       }
     }
 
-    protected abstract C makeCommand();
+    // Helper to construct the actual command. Called as part of {@link build()}.
+    abstract C makeCommand();
 
     // Internal accessor for the application resources.
     AndroidApp.Builder getAppBuilder() {
@@ -136,6 +154,7 @@ public abstract class BaseCommand {
       return self();
     }
 
+    /** Add a resource provider for program resources. */
     public B addProgramResourceProvider(ProgramResourceProvider programProvider) {
       app.addProgramResourceProvider(programProvider);
       return self();
@@ -261,21 +280,22 @@ public abstract class BaseCommand {
       return self();
     }
 
-    protected B setIgnoreDexInArchive(boolean value) {
+    // Internal helper for compat tools to make them ignore DEX code in input archives.
+    void setIgnoreDexInArchive(boolean value) {
       guard(() -> app.setIgnoreDexInArchive(value));
-      return self();
     }
 
-    protected void validate() {
-    }
+    // Helper that validates the command content. Called as part of {@link build()}.
+    void validate() {}
 
-    protected void error(String baseMessage, Path path, Throwable throwable) {
+    // Helper to signify an error.
+    void error(String baseMessage, Path path, Throwable throwable) {
       reporter.error(new StringDiagnostic(
           baseMessage + throwable.getMessage(), new PathOrigin(path)), throwable);
     }
 
-
-    protected void guard(Runnable action) {
+    // Helper to guard and handle exceptions.
+    void guard(Runnable action) {
       try {
         action.run();
       } catch (CompilationError e) {

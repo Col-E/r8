@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.compatproguard;
 
+import com.android.tools.r8.CompatProguardCommandBuilder;
 import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DexIndexedConsumer;

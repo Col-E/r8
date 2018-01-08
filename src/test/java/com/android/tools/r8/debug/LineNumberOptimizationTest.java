@@ -43,7 +43,7 @@ public class LineNumberOptimizationTest extends DebugTestBase {
             .setMode(dontOptimizeByEnablingDebug ? CompilationMode.DEBUG : CompilationMode.RELEASE)
             .setOutput(outjar, OutputMode.DexIndexed);
     if (proguardMapPath != null) {
-      builder.setProguardMapOutput(proguardMapPath);
+      builder.setProguardMapOutputPath(proguardMapPath);
     }
     ToolHelper.runR8(
         builder.build(),

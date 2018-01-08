@@ -1429,7 +1429,7 @@ public abstract class R8RunArtTestsTest {
   }
 
   private static R8Command.Builder setDefaultArgs(R8Command.Builder builder) {
-    return builder.setMinification(false);
+    return builder.setDisableMinification(true);
   }
 
   private static boolean isAuxClassFile(String fileName, String auxClassFileBase) {

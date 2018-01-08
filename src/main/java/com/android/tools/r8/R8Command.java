@@ -30,22 +30,40 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Consumer;
 
+/**
+ * Immutable command structure for an invocation of the {@link D8} compiler.
+ *
+ * <p>To build a R8 command use the {@link R8Command.Builder} class. For example:
+ *
+ * <pre>
+ *   R8Command command = R8Command.builder()
+ *     .addProgramFiles(path1, path2)
+ *     .setMode(CompilationMode.RELEASE)
+ *     .setOutput(Paths.get("output.zip", OutputMode.DexIndexed))
+ *     .build();
+ * </pre>
+ */
 public class R8Command extends BaseCompilerCommand {
 
+  /**
+   * Builder for constructing a R8Command.
+   *
+   * <p>A builder is obtained by calling {@link R8Command#builder}.
+   */
   public static class Builder extends BaseCompilerCommand.Builder<R8Command, Builder> {
 
     private final List<ProguardConfigurationSource> mainDexRules = new ArrayList<>();
     private Consumer<ProguardConfiguration.Builder> proguardConfigurationConsumer = null;
     private final List<ProguardConfigurationSource> proguardConfigs = new ArrayList<>();
-    private Optional<Boolean> treeShaking = Optional.empty();
-    private Optional<Boolean> discardedChecker = Optional.empty();
-    private Optional<Boolean> minification = Optional.empty();
+    private boolean disableTreeShaking = false;
+    private boolean disableMinification = false;
     private boolean forceProguardCompatibility = false;
     private StringConsumer proguardMapConsumer = null;
-    protected Path proguardCompatibilityRulesOutput = null;
+
+    // Internal compatibility mode for use from CompatProguard tool.
+    Path proguardCompatibilityRulesOutput = null;
 
     private StringConsumer mainDexListConsumer = null;
 
@@ -53,12 +71,13 @@ public class R8Command extends BaseCompilerCommand {
       setMode(CompilationMode.RELEASE);
     }
 
-    protected Builder(boolean forceProguardCompatibility) {
+    // Internal compatibility mode for use from CompatProguard tool.
+    Builder(boolean forceProguardCompatibility) {
       setMode(CompilationMode.RELEASE);
       this.forceProguardCompatibility = forceProguardCompatibility;
     }
 
-    protected Builder(DiagnosticsHandler diagnosticsHandler) {
+    private Builder(DiagnosticsHandler diagnosticsHandler) {
       super(diagnosticsHandler);
       setMode(CompilationMode.DEBUG);
     }
@@ -79,32 +98,28 @@ public class R8Command extends BaseCompilerCommand {
     }
 
     /**
-     * Enable/disable tree shaking. This overrides any settings in proguard configuration files.
+     * Disable tree shaking.
+     *
+     * <p>If true, tree shaking is completely disabled, otherwise tree shaking is configured by
+     * ProGuard configuration settings.
      */
-    public Builder setTreeShaking(boolean useTreeShaking) {
-      treeShaking = Optional.of(useTreeShaking);
+    public Builder setDisableTreeShaking(boolean disableTreeShaking) {
+      this.disableTreeShaking = disableTreeShaking;
       return self();
     }
 
     /**
-     * Enable/disable discarded checker.
+     * Disable minification of names.
+     *
+     * <p>If true, minification of names is completely disabled, otherwise minification of names is
+     * configured by ProGuard configuration settings.
      */
-    public Builder setDiscardedChecker(boolean useDiscardedChecker) {
-      discardedChecker = Optional.of(useDiscardedChecker);
+    public Builder setDisableMinification(boolean disableMinification) {
+      this.disableMinification = disableMinification;
       return self();
     }
 
-    /**
-     * Enable/disable minification. This overrides any settings in proguard configuration files.
-     */
-    public Builder setMinification(boolean useMinification) {
-      minification = Optional.of(useMinification);
-      return self();
-    }
-
-    /**
-     * Add proguard configuration file resources for automatic main dex list calculation.
-     */
+    /** Add proguard configuration files with rules for automatic main-dex-list calculation. */
     public Builder addMainDexRulesFiles(Path... paths) {
       guard(() -> {
         for (Path path : paths) {
@@ -114,7 +129,7 @@ public class R8Command extends BaseCompilerCommand {
       return self();
     }
 
-    /** Add proguard configuration file resources for automatic main dex list calculation. */
+    /** Add proguard configuration files with rules for automatic main-dex-list calculation. */
     public Builder addMainDexRulesFiles(Collection<Path> paths) {
       guard(() -> {
         for (Path path : paths) {
@@ -158,9 +173,7 @@ public class R8Command extends BaseCompilerCommand {
       return self();
     }
 
-    /**
-     * Add proguard configuration file resources.
-     */
+    /** Add proguard configuration-file resources. */
     public Builder addProguardConfigurationFiles(Path... paths) {
       guard(() -> {
         for (Path path : paths) {
@@ -170,9 +183,7 @@ public class R8Command extends BaseCompilerCommand {
       return self();
     }
 
-    /**
-     * Add proguard configuration file resources.
-     */
+    /** Add proguard configuration-file resources. */
     public Builder addProguardConfigurationFiles(List<Path> paths) {
       guard(() -> {
         for (Path path : paths) {
@@ -182,9 +193,7 @@ public class R8Command extends BaseCompilerCommand {
       return self();
     }
 
-    /**
-     * Add proguard configuration.
-     */
+    /** Add proguard configuration. */
     public Builder addProguardConfiguration(List<String> lines, Origin origin) {
       guard(() -> proguardConfigs.add(
           new ProguardConfigurationSourceStrings(lines, Paths.get("."), origin)));
@@ -200,7 +209,7 @@ public class R8Command extends BaseCompilerCommand {
      *
      * @param proguardMapOutput File-system path to write output at.
      */
-    public Builder setProguardMapOutput(Path proguardMapOutput) {
+    public Builder setProguardMapOutputPath(Path proguardMapOutput) {
       assert proguardMapOutput != null;
       this.proguardMapConsumer = new StringConsumer.FileConsumer(proguardMapOutput);
       return self();
@@ -209,7 +218,7 @@ public class R8Command extends BaseCompilerCommand {
     /**
      * Set a consumer for receiving the proguard-map content.
      *
-     * <p>Note that any subsequent call to this method or {@link #setProguardMapOutput} will
+     * <p>Note that any subsequent call to this method or {@link #setProguardMapOutputPath} will
      * override the previous setting.
      *
      * @param proguardMapConsumer Consumer to receive the content once produced.
@@ -219,12 +228,16 @@ public class R8Command extends BaseCompilerCommand {
       return self();
     }
 
+    /** Unsupported API. Will throw on any usage. */
     @Override
+    @Deprecated
     public Builder setOutputMode(OutputMode outputMode) {
       throw new CompilationError("Invalid API use for R8");
     }
 
+    /** Unsupported API. Will throw on any usage. */
     @Override
+    @Deprecated
     public Builder setOutputPath(Path outputPath) {
       throw new CompilationError("Invalid API use for R8");
     }
@@ -236,7 +249,8 @@ public class R8Command extends BaseCompilerCommand {
     }
 
     @Override
-    protected void validate() {
+    void validate() {
+      Reporter reporter = getReporter();
       // TODO(b/70656566): Move up super once the deprecated API is removed.
       if (getProgramConsumer() == null) {
         // This is never the case for a command-line parse, so we report using API references.
@@ -261,7 +275,7 @@ public class R8Command extends BaseCompilerCommand {
     }
 
     @Override
-    protected R8Command makeCommand() {
+    R8Command makeCommand() {
       try {
         // If printing versions ignore everything else.
         if (isPrintHelp() || isPrintVersion()) {
@@ -270,14 +284,15 @@ public class R8Command extends BaseCompilerCommand {
 
         return makeR8Command();
       } catch (IOException e) {
-        throw reporter.fatalError(new IOExceptionDiagnostic(e), e);
+        throw getReporter().fatalError(new IOExceptionDiagnostic(e), e);
       } catch (CompilationException e) {
-        throw reporter.fatalError(new StringDiagnostic(e.getMessage()), e);
+        throw getReporter().fatalError(new StringDiagnostic(e.getMessage()), e);
       }
     }
 
     private R8Command makeR8Command()
         throws IOException, CompilationException {
+      Reporter reporter = getReporter();
       DexItemFactory factory = new DexItemFactory();
       ImmutableList<ProguardConfigurationRule> mainDexKeepRules;
       if (this.mainDexRules.isEmpty()) {
@@ -308,9 +323,8 @@ public class R8Command extends BaseCompilerCommand {
           .addFilteredProgramArchives(configuration.getInjars())
           .addFilteredLibraryArchives(configuration.getLibraryjars());
 
-      boolean useTreeShaking = treeShaking.orElse(configuration.isShrinking());
-      boolean useDiscardedChecker = discardedChecker.orElse(true);
-      boolean useMinification = minification.orElse(configuration.isObfuscating());
+      boolean useTreeShaking = !disableTreeShaking && configuration.isShrinking();
+      boolean useMinification = !disableMinification && configuration.isObfuscating();
 
       assert getProgramConsumer() != null;
 
@@ -327,7 +341,6 @@ public class R8Command extends BaseCompilerCommand {
               reporter,
               getEnableDesugaring(),
               useTreeShaking,
-              useDiscardedChecker,
               useMinification,
               forceProguardCompatibility,
               proguardMapConsumer,
@@ -390,11 +403,9 @@ public class R8Command extends BaseCompilerCommand {
       "                           # <file> must be an existing directory or a zip file.",
       "  --lib <file>             # Add <file> as a library resource.",
       "  --min-api                # Minimum Android API level compatibility.",
-      "  --pg-conf <file>         # Proguard configuration <file> (implies tree",
-      "                           # shaking/minification).",
+      "  --pg-conf <file>         # Proguard configuration <file>.",
       "  --pg-map-output <file>   # Output the resulting name and line mapping to <file>.",
       "  --no-tree-shaking        # Force disable tree shaking of unreachable classes.",
-      "  --no-discarded-checker   # Force disable the discarded checker (when tree shaking).",
       "  --no-minification        # Force disable minification of names.",
       "  --main-dex-rules <file>  # Proguard keep rules for classes to place in the",
       "                           # primary dex file.",
@@ -406,17 +417,18 @@ public class R8Command extends BaseCompilerCommand {
   private final ImmutableList<ProguardConfigurationRule> mainDexKeepRules;
   private final StringConsumer mainDexListConsumer;
   private final ProguardConfiguration proguardConfiguration;
-  private final boolean useTreeShaking;
-  private final boolean useDiscardedChecker;
-  private final boolean useMinification;
+  private final boolean enableTreeShaking;
+  private final boolean enableMinification;
   private final boolean forceProguardCompatibility;
   private final StringConsumer proguardMapConsumer;
   private final Path proguardCompatibilityRulesOutput;
 
+  /** Get a new {@link R8Command.Builder}. */
   public static Builder builder() {
     return new Builder();
   }
 
+  /** Get a new {@link R8Command.Builder} using a custom defined diagnostics handler. */
   public static Builder builder(DiagnosticsHandler diagnosticsHandler) {
     return new Builder(diagnosticsHandler);
   }
@@ -507,11 +519,9 @@ public class R8Command extends BaseCompilerCommand {
       } else if (arg.equals("--min-api")) {
         builder.setMinApiLevel(Integer.valueOf(args[++i]));
       } else if (arg.equals("--no-tree-shaking")) {
-        builder.setTreeShaking(false);
-      } else if (arg.equals("--no-discarded-checker")) {
-        builder.setDiscardedChecker(false);
+        builder.setDisableTreeShaking(true);
       } else if (arg.equals("--no-minification")) {
-        builder.setMinification(false);
+        builder.setDisableMinification(true);
       } else if (arg.equals("--main-dex-rules")) {
         builder.addMainDexRulesFiles(Paths.get(args[++i]));
       } else if (arg.equals("--main-dex-list")) {
@@ -521,7 +531,7 @@ public class R8Command extends BaseCompilerCommand {
       } else if (arg.equals("--pg-conf")) {
         builder.addProguardConfigurationFiles(Paths.get(args[++i]));
       } else if (arg.equals("--pg-map-output")) {
-        builder.setProguardMapOutput(Paths.get(args[++i]));
+        builder.setProguardMapOutputPath(Paths.get(args[++i]));
       } else if (arg.startsWith("@")) {
         // TODO(zerny): Replace this with pipe reading.
         Path argsFile = Paths.get(arg.substring(1));
@@ -555,7 +565,8 @@ public class R8Command extends BaseCompilerCommand {
     return state;
   }
 
-  private R8Command(
+  private
+  R8Command(
       AndroidApp inputApp,
       ProgramConsumer programConsumer,
       OutputOptions outputOptions,
@@ -566,9 +577,8 @@ public class R8Command extends BaseCompilerCommand {
       int minApiLevel,
       Reporter reporter,
       boolean enableDesugaring,
-      boolean useTreeShaking,
-      boolean useDiscardedChecker,
-      boolean useMinification,
+      boolean enableTreeShaking,
+      boolean enableMinification,
       boolean forceProguardCompatibility,
       StringConsumer proguardMapConsumer,
       Path proguardCompatibilityRulesOutput) {
@@ -578,9 +588,8 @@ public class R8Command extends BaseCompilerCommand {
     this.mainDexKeepRules = mainDexKeepRules;
     this.mainDexListConsumer = mainDexListConsumer;
     this.proguardConfiguration = proguardConfiguration;
-    this.useTreeShaking = useTreeShaking;
-    this.useDiscardedChecker = useDiscardedChecker;
-    this.useMinification = useMinification;
+    this.enableTreeShaking = enableTreeShaking;
+    this.enableMinification = enableMinification;
     this.forceProguardCompatibility = forceProguardCompatibility;
     this.proguardMapConsumer = proguardMapConsumer;
     this.proguardCompatibilityRulesOutput = proguardCompatibilityRulesOutput;
@@ -591,24 +600,21 @@ public class R8Command extends BaseCompilerCommand {
     mainDexKeepRules = ImmutableList.of();
     mainDexListConsumer = null;
     proguardConfiguration = null;
-    useTreeShaking = false;
-    useDiscardedChecker = false;
-    useMinification = false;
+    enableTreeShaking = false;
+    enableMinification = false;
     forceProguardCompatibility = false;
     proguardMapConsumer = null;
     proguardCompatibilityRulesOutput = null;
   }
 
-  public boolean useTreeShaking() {
-    return useTreeShaking;
+  /** Get the enable-tree-shaking state. */
+  public boolean getEnableTreeShaking() {
+    return enableTreeShaking;
   }
 
-  public boolean useDiscardedChecker() {
-    return useDiscardedChecker;
-  }
-
-  public boolean useMinification() {
-    return useMinification;
+  /** Get the enable-minification state. */
+  public boolean getEnableMinification() {
+    return enableMinification;
   }
 
   @Override
@@ -627,11 +633,9 @@ public class R8Command extends BaseCompilerCommand {
       internal.propagateMemberValue = false;
     }
     assert !internal.skipMinification;
-    internal.skipMinification = !useMinification() || !proguardConfiguration.isObfuscating();
+    internal.skipMinification = !getEnableMinification();
     assert internal.useTreeShaking;
-    internal.useTreeShaking = useTreeShaking();
-    assert internal.useDiscardedChecker;
-    internal.useDiscardedChecker = useDiscardedChecker();
+    internal.useTreeShaking = getEnableTreeShaking();
     assert !internal.ignoreMissingClasses;
     internal.ignoreMissingClasses = proguardConfiguration.isIgnoreWarnings()
         // TODO(70706667): We probably only want this in Proguard compatibility mode.
