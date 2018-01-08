@@ -19,12 +19,15 @@ import java.util.List;
  * Base class for commands and command builders for compiler applications/tools which besides an
  * Android application (and optional main-dex list) also configure compilation output, compilation
  * mode and min API level.
+ *
+ * <p>For concrete builders, see for example {@link D8Command.Builder} and {@link
+ * R8Command.Builder}.
  */
 public abstract class BaseCompilerCommand extends BaseCommand {
 
   // TODO(b/70656566): Remove this once the deprecated API is removed.
   @Deprecated
-  protected static class OutputOptions {
+  static class OutputOptions {
     final Path path;
     final OutputMode mode;
 
@@ -71,10 +74,15 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     this.outputOptions = outputOptions;
   }
 
+  /**
+   * Get the compilation mode, e.g., {@link CompilationMode#DEBUG} or {@link
+   * CompilationMode#RELEASE}.
+   */
   public CompilationMode getMode() {
     return mode;
   }
 
+  /** Get the minimum API level to compile against. */
   public int getMinApiLevel() {
     return minApiLevel;
   }
@@ -100,19 +108,31 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     return outputOptions.mode;
   }
 
+  /**
+   * Get the program consumer that will receive the compilation output.
+   *
+   * <p>Note that the concrete consumer reference is final, the consumer itself is likely stateful.
+   */
   public ProgramConsumer getProgramConsumer() {
     return programConsumer;
   }
 
-  public Reporter getReporter() {
-    return reporter;
-  }
-
+  /** Get the use-desugaring state. True if enabled, false otherwise. */
   public boolean getEnableDesugaring() {
     return enableDesugaring;
   }
 
-  abstract public static class Builder<C extends BaseCompilerCommand, B extends Builder<C, B>>
+  Reporter getReporter() {
+    return reporter;
+  }
+  /**
+   * Base builder for compilation commands.
+   *
+   * @param <C> Command the builder is building, e.g., {@link R8Command} or {@link D8Command}.
+   * @param <B> Concrete builder extending this base, e.g., {@link R8Command.Builder} or {@link
+   *     D8Command.Builder}.
+   */
+  public abstract static class Builder<C extends BaseCompilerCommand, B extends Builder<C, B>>
       extends BaseCommand.Builder<C, B> {
 
     private ProgramConsumer programConsumer = null;
@@ -124,7 +144,10 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     private int minApiLevel = AndroidApiLevel.getDefault().getLevel();
     private boolean enableDesugaring = true;
 
-    protected Builder() {
+    Builder() {}
+
+    Builder(DiagnosticsHandler diagnosticsHandler) {
+      super(diagnosticsHandler);
     }
 
     // Internal constructor for testing.
@@ -132,12 +155,9 @@ public abstract class BaseCompilerCommand extends BaseCommand {
       super(AndroidApp.builder(app));
     }
 
+    // Internal constructor for testing.
     Builder(AndroidApp app, DiagnosticsHandler diagnosticsHandler) {
       super(AndroidApp.builder(app), diagnosticsHandler);
-    }
-
-    protected Builder(DiagnosticsHandler diagnosticsHandler) {
-      super(diagnosticsHandler);
     }
 
     /**
@@ -273,33 +293,40 @@ public abstract class BaseCompilerCommand extends BaseCommand {
       throw new Unreachable("Unexpected output mode: " + mode);
     }
 
-    /**
-     * Get the minimum API level (aka SDK version).
-     */
+    /** Get the minimum API level (aka SDK version). */
     public int getMinApiLevel() {
       return minApiLevel;
     }
 
-    /**
-     * Set the minimum required API level (aka SDK version).
-     */
+    /** Set the minimum required API level (aka SDK version). */
     public B setMinApiLevel(int minApiLevel) {
       assert minApiLevel > 0;
       this.minApiLevel = minApiLevel;
       return self();
     }
 
+    /**
+     * Force enable or disable desugaring.
+     *
+     * <p>There are a few use cases where it makes sense to force disable desugaring, such as:
+     * <li>if all inputs are known to be at most Java 7; or
+     * <li>if a separate desugar tool has been used prior to compiling with D8.
+     *
+     * <p>Note that even for API 27, desugaring is still required for closures support on ART.
+     */
     public B setEnableDesugaring(boolean enableDesugaring) {
       this.enableDesugaring = enableDesugaring;
       return self();
     }
 
+    /** Get the enable/disable state of desugaring. */
     public boolean getEnableDesugaring() {
       return enableDesugaring;
     }
 
     @Override
-    protected void validate() {
+    void validate() {
+      Reporter reporter = getReporter();
       if (mode == null) {
         reporter.error("Expected valid compilation mode, was null");
       }

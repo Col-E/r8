@@ -24,4 +24,8 @@ public class CompatDxHelper {
     options.minimalMainDex = minimalMainDex;
     D8.runForTesting(app, options);
   }
+
+  public static void ignoreDexInArchive(BaseCommand.Builder builder) {
+    builder.setIgnoreDexInArchive(true);
+  }
 }

@@ -49,7 +49,7 @@ public class ClassMergingTest {
             .setOutput(Paths.get(temp.getRoot().getCanonicalPath()), OutputMode.DexIndexed)
             .addProgramFiles(EXAMPLE_JAR)
             .addProguardConfigurationFiles(proguardConfig)
-            .setMinification(false)
+            .setDisableMinification(true)
             .build(),
         optionsConsumer);
     inspector = new DexInspector(

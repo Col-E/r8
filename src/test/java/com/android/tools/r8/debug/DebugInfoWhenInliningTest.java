@@ -35,7 +35,7 @@ public class DebugInfoWhenInliningTest extends DebugTestBase {
             .setMode(CompilationMode.RELEASE)
             .setOutput(outjar, OutputMode.DexIndexed);
     if (proguardMapPath != null) {
-      builder.setProguardMapOutput(proguardMapPath);
+      builder.setProguardMapOutputPath(proguardMapPath);
     }
     ToolHelper.runR8(
         builder.build(), options -> options.lineNumberOptimization = lineNumberOptimization);

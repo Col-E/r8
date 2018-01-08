@@ -93,8 +93,8 @@ public class R8CommandTest {
   private void verifyEmptyCommand(R8Command command) throws Throwable {
     assertEquals(0, ToolHelper.getApp(command).getDexProgramResourcesForTesting().size());
     assertEquals(0, ToolHelper.getApp(command).getClassProgramResourcesForTesting().size());
-    assertFalse(command.useMinification());
-    assertFalse(command.useTreeShaking());
+    assertFalse(command.getEnableMinification());
+    assertFalse(command.getEnableTreeShaking());
     assertEquals(CompilationMode.RELEASE, command.getMode());
     assertTrue(command.getProgramConsumer() instanceof DexIndexedConsumer);
   }
@@ -309,8 +309,9 @@ public class R8CommandTest {
     ));
     R8Command command = parse("@" + argsFile.toString());
     assertEquals(CompilationMode.DEBUG, command.getMode());
-    assertFalse(command.useMinification());
-    assertFalse(command.useTreeShaking()); // We have no keep rules (proguard config file is empty).
+    assertFalse(command.getEnableMinification());
+    assertFalse(
+        command.getEnableTreeShaking()); // We have no keep rules (proguard config file is empty).
     assertEquals(1, ToolHelper.getApp(command).getClassProgramResourcesForTesting().size());
   }
 

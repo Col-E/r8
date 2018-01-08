@@ -512,8 +512,8 @@ public class MainDexListTests extends TestBase {
                     ? CompilationMode.DEBUG
                     : CompilationMode.RELEASE)
             .setOutput(outDir, OutputMode.DexIndexed)
-            .setTreeShaking(false)
-            .setMinification(false);
+            .setDisableTreeShaking(true)
+            .setDisableMinification(true);
 
     switch (testMode) {
       case SINGLE_FILE:

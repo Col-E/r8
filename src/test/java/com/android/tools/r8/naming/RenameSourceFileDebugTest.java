@@ -44,7 +44,7 @@ public class RenameSourceFileDebugTest extends DebugTestBase {
             .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(minSdk)))
             .setMode(CompilationMode.DEBUG)
             .setOutput(outjar, OutputMode.DexIndexed)
-            .setProguardMapOutput(proguardMapPath)
+            .setProguardMapOutputPath(proguardMapPath)
             .build());
     config = new DexDebugTestConfig(outjar);
     config.setProguardMap(proguardMapPath);

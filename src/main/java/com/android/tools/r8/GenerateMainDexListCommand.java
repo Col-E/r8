@@ -110,7 +110,7 @@ public class GenerateMainDexListCommand extends BaseCommand {
         mainDexKeepRules = ImmutableList.of();
       } else {
         ProguardConfigurationParser parser =
-            new ProguardConfigurationParser(factory, reporter);
+            new ProguardConfigurationParser(factory, getReporter());
         parser.parse(mainDexRules);
         mainDexKeepRules = parser.getConfig().getRules();
       }

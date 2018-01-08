@@ -79,7 +79,7 @@ public class MinificationTest extends DebugTestBase {
             .setMode(CompilationMode.DEBUG)
             .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(minSdk)));
     if (proguardMap != null) {
-      builder.setProguardMapOutput(proguardMap);
+      builder.setProguardMapOutputPath(proguardMap);
     }
     if (!proguardConfigurations.isEmpty()) {
       builder.addProguardConfiguration(proguardConfigurations, Origin.unknown());

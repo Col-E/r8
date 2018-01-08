@@ -20,9 +20,9 @@ import java.util.Arrays;
 import java.util.Collection;
 
 /**
- * Immutable command structure for an invocation of the {@code D8} compiler.
+ * Immutable command structure for an invocation of the {@link D8} compiler.
  *
- * <p>To build a D8 command use the {@code D8Command.Builder} class. For example:
+ * <p>To build a D8 command use the {@link D8Command.Builder} class. For example:
  *
  * <pre>
  *   D8Command command = D8Command.builder()
@@ -36,16 +36,18 @@ public class D8Command extends BaseCompilerCommand {
 
   /**
    * Builder for constructing a D8Command.
+   *
+   * <p>A builder is obtained by calling {@link D8Command#builder}.
    */
   public static class Builder extends BaseCompilerCommand.Builder<D8Command, Builder> {
 
     private boolean intermediate = false;
 
-    protected Builder() {
+    Builder() {
       setMode(CompilationMode.DEBUG);
     }
 
-    protected Builder(DiagnosticsHandler diagnosticsHandler) {
+    Builder(DiagnosticsHandler diagnosticsHandler) {
       super(diagnosticsHandler);
       setMode(CompilationMode.DEBUG);
     }
@@ -83,11 +85,17 @@ public class D8Command extends BaseCompilerCommand {
       });
     }
 
+    /** Add classfile resources provider for class-path resources. */
     public Builder addClasspathResourceProvider(ClassFileResourceProvider provider) {
       guard(() -> getAppBuilder().addClasspathResourceProvider(provider));
       return self();
     }
 
+    /**
+     * Indicate if compilation is to intermediate results, i.e., intended for later merging.
+     *
+     * <p>Intermediate mode is implied if compiling results to a "file-per-class-file".
+     */
     public Builder setIntermediate(boolean value) {
       this.intermediate = value;
       return self();
@@ -99,7 +107,8 @@ public class D8Command extends BaseCompilerCommand {
     }
 
     @Override
-    protected void validate() {
+    void validate() {
+      Reporter reporter = getReporter();
       if (getProgramConsumer() instanceof ClassFileConsumer) {
         reporter.error("D8 does not support compiling to Java class files");
       }
@@ -119,11 +128,8 @@ public class D8Command extends BaseCompilerCommand {
       super.validate();
     }
 
-    /**
-     * Build the final D8Command.
-     */
     @Override
-    protected D8Command makeCommand() {
+    D8Command makeCommand() {
       if (isPrintHelp() || isPrintVersion()) {
         return new D8Command(isPrintHelp(), isPrintVersion());
       }
@@ -148,7 +154,7 @@ public class D8Command extends BaseCompilerCommand {
           consumer,
           outputOptions,
           getMinApiLevel(),
-          reporter,
+          getReporter(),
           getEnableDesugaring(),
           intermediate);
     }

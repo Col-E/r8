@@ -451,13 +451,13 @@ public class CompatDx {
     ExecutorService executor = ThreadUtils.getExecutorService(numberOfThreads);
 
     try {
-      D8Command.Builder builder =
-          new CompatDxCommandBuilder()
-              .addProgramFiles(inputs)
-              .setProgramConsumer(
-                  createConsumer(inputs, output, singleDexFile, dexArgs.keepClasses))
-              .setMode(mode)
-              .setMinApiLevel(dexArgs.minApiLevel);
+      D8Command.Builder builder = D8Command.builder();
+      CompatDxHelper.ignoreDexInArchive(builder);
+      builder
+          .addProgramFiles(inputs)
+          .setProgramConsumer(createConsumer(inputs, output, singleDexFile, dexArgs.keepClasses))
+          .setMode(mode)
+          .setMinApiLevel(dexArgs.minApiLevel);
       if (mainDexList != null) {
         builder.addMainDexListFiles(mainDexList);
       }
