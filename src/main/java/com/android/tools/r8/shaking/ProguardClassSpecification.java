@@ -248,9 +248,7 @@ public abstract class ProguardClassSpecification {
     return result;
   }
 
-  @Override
-  public String toString() {
-    StringBuilder builder = new StringBuilder();
+  protected StringBuilder append(StringBuilder builder) {
     StringUtils.appendNonEmpty(builder, "@", classAnnotation, null);
     StringUtils.appendNonEmpty(builder, "", classAccessFlags, null);
     StringUtils.appendNonEmpty(builder, "!", negatedClassAccessFlags.toString().replace(" ", " !"),
@@ -274,6 +272,11 @@ public abstract class ProguardClassSpecification {
       builder.append(";\n");
     });
     builder.append("}");
-    return builder.toString();
+    return builder;
+  }
+
+  @Override
+  public String toString() {
+    return append(new StringBuilder()).toString();
   }
 }

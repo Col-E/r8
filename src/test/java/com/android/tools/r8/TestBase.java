@@ -91,6 +91,24 @@ public class TestBase {
   }
 
   /**
+   * Create a temporary JAR file containing all test classes in a package.
+   */
+  protected Path jarTestClassesInPackage(Package pkg) throws IOException {
+    Path jar = File.createTempFile("junit", ".jar", temp.getRoot()).toPath();
+    String zipEntryPrefix = ToolHelper.getJarEntryForTestPackage(pkg) + "/";
+    try (JarOutputStream out = new JarOutputStream(new FileOutputStream(jar.toFile()))) {
+      for (Path file : ToolHelper.getClassFilesForTestPackage(pkg)) {
+        try (FileInputStream in = new FileInputStream(file.toFile())) {
+          out.putNextEntry(new ZipEntry(zipEntryPrefix + file.getFileName()));
+          ByteStreams.copy(in, out);
+          out.closeEntry();
+        }
+      }
+    }
+    return jar;
+  }
+
+  /**
    * Create a temporary JAR file containing the specified test classes.
    */
   protected Path jarTestClasses(List<Class> classes) throws IOException {

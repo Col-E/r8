@@ -10,9 +10,11 @@ import com.android.tools.r8.position.Position;
 import com.android.tools.r8.utils.InternalOptions.PackageObfuscationMode;
 import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 public class ProguardConfiguration {
 
@@ -37,7 +39,7 @@ public class ProguardConfiguration {
     private String renameSourceFileAttribute;
     private final List<String> keepAttributePatterns = new ArrayList<>();
     private ProguardClassFilter.Builder dontWarnPatterns = ProguardClassFilter.builder();
-    protected final List<ProguardConfigurationRule> rules = new ArrayList<>();
+    protected final Set<ProguardConfigurationRule> rules = Sets.newLinkedHashSet();
     private final DexItemFactory dexItemFactory;
     private boolean printSeeds;
     private Path seedFile;
@@ -204,7 +206,7 @@ public class ProguardConfiguration {
       this.overloadAggressively = overloadAggressively;
     }
 
-    ProguardConfiguration buildRaw() {
+    public ProguardConfiguration buildRaw() {
 
       ProguardConfiguration configuration = new ProguardConfiguration(
           dexItemFactory,
@@ -308,7 +310,7 @@ public class ProguardConfiguration {
       String renameSourceFileAttribute,
       ProguardKeepAttributes keepAttributes,
       ProguardClassFilter dontWarnPatterns,
-      List<ProguardConfigurationRule> rules,
+      Set<ProguardConfigurationRule> rules,
       boolean printSeeds,
       Path seedFile,
       boolean overloadAggressively,
@@ -480,5 +482,19 @@ public class ProguardConfiguration {
 
   public Path getSeedFile() {
     return seedFile;
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder builder = new StringBuilder();
+    if (!keepAttributes.isEmpty()) {
+      keepAttributes.append(builder);
+      builder.append('\n');
+    }
+    for (ProguardConfigurationRule rule : rules) {
+      rule.append(builder);
+      builder.append('\n');
+    }
+    return builder.toString();
   }
 }

@@ -33,12 +33,31 @@ public abstract class ProguardConfigurationRule extends ProguardClassSpecificati
   }
 
   @Override
-  public String toString() {
-    StringBuilder builder = new StringBuilder("-");
+  public boolean equals(Object o) {
+    if (!(o instanceof ProguardConfigurationRule)) {
+      return false;
+    }
+    ProguardKeepRule that = (ProguardKeepRule) o;
+    return super.equals(that);
+  }
+
+  @Override
+  public int hashCode() {
+    return super.hashCode();
+  }
+
+  @Override
+  protected StringBuilder append(StringBuilder builder) {
+    builder.append("-");
     builder.append(typeString());
     StringUtils.appendNonEmpty(builder, ",", modifierString(), null);
     builder.append(' ');
-    builder.append(super.toString());
-    return builder.toString();
+    super.append(builder);
+    return builder;
+  }
+
+  @Override
+  public String toString() {
+    return append(new StringBuilder()).toString();
   }
 }

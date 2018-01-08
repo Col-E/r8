@@ -5,6 +5,7 @@ package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.errors.CompilationError;
 import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
 import java.util.List;
 
 public class ProguardKeepAttributes {
@@ -124,7 +125,17 @@ public class ProguardKeepAttributes {
     annotationDefault = update(annotationDefault, ANNOTATION_DEFAULT, patterns);
   }
 
-  public void ensureValid() {
+  public void ensureValid(
+      boolean forceProguardCompatibility, ProguardConfiguration.Builder compatibility) {
+    if (forceProguardCompatibility && innerClasses != enclosingMethod) {
+      // If only one is true set both to true in Proguard compatibility mode.
+      enclosingMethod = true;
+      innerClasses = true;
+      compatibility.addKeepAttributePatterns(
+          ImmutableList.of(
+              ProguardKeepAttributes.INNER_CLASSES,
+              ProguardKeepAttributes.ENCLOSING_METHOD));
+    }
     if (innerClasses && !enclosingMethod) {
       throw new CompilationError("Attribute InnerClasses requires EnclosingMethod attribute. "
           + "Check -keepattributes directive.");
@@ -178,5 +189,80 @@ public class ProguardKeepAttributes {
         + (this.runtimeVisibleTypeAnnotations ? 1 << 11 : 0)
         + (this.runtimeInvisibleTypeAnnotations ? 1 << 12 : 0)
         + (this.annotationDefault ? 1 << 13 : 0);
+  }
+
+  public boolean isEmpty() {
+    return !sourceFile
+        && !sourceDir
+        && !innerClasses
+        && !enclosingMethod
+        && !signature
+        && !exceptions
+        && !sourceDebugExtension
+        && !runtimeVisibleAnnotations
+        && !runtimeInvisibleAnnotations
+        && !runtimeVisibleParameterAnnotations
+        && !runtimeInvisibleParameterAnnotations
+        && !runtimeVisibleTypeAnnotations
+        && !runtimeInvisibleTypeAnnotations
+        && !annotationDefault;
+  }
+
+  public StringBuilder append(StringBuilder builder) {
+    List<String> attributes = new ArrayList<>();
+    if (sourceFile) {
+      attributes.add(SOURCE_FILE);
+    }
+    if (sourceDir) {
+      attributes.add(SOURCE_DIR);
+    }
+    if (innerClasses) {
+      attributes.add(INNER_CLASSES);
+    }
+    if (enclosingMethod) {
+      attributes.add(ENCLOSING_METHOD);
+    }
+    if (signature) {
+      attributes.add(SIGNATURE);
+    }
+    if (exceptions) {
+      attributes.add(EXCEPTIONS);
+    }
+    if (sourceDebugExtension) {
+      attributes.add(SOURCE_DEBUG_EXTENSION);
+    }
+    if (runtimeVisibleAnnotations) {
+      attributes.add(RUNTIME_INVISIBLE_ANNOTATIONS);
+    }
+    if (runtimeInvisibleAnnotations) {
+      attributes.add(RUNTIME_INVISIBLE_ANNOTATIONS);
+    }
+    if (runtimeVisibleParameterAnnotations) {
+      attributes.add(RUNTIME_VISIBLE_PARAMETER_ANNOTATIONS);
+    }
+    if (runtimeInvisibleParameterAnnotations) {
+      attributes.add(RUNTIME_INVISIBLE_PARAMETER_ANNOTATIONS);
+    }
+    if (runtimeVisibleTypeAnnotations) {
+      attributes.add(RUNTIME_VISIBLE_TYPE_ANNOTATIONS);
+    }
+    if (runtimeInvisibleTypeAnnotations) {
+      attributes.add(RUNTIME_INVISIBLE_TYPE_ANNOTATIONS);
+    }
+    if (annotationDefault) {
+      attributes.add(ANNOTATION_DEFAULT);
+    }
+
+    if (attributes.size() > 0) {
+      builder.append("-keepattributes ");
+      builder.append(String.join(",", attributes));
+    }
+
+    return builder;
+  }
+
+  @Override
+  public String toString() {
+    return append(new StringBuilder()).toString();
   }
 }

@@ -179,10 +179,18 @@ public class Enqueuer {
   /**
    * Set of keep rules generated for Proguard compatibility in Proguard compatibility mode.
    */
-  private final Set<ProguardKeepRule> proguardCompatibilityRules = Sets.newHashSet();
+  private final ProguardConfiguration.Builder compatibility;
 
   public Enqueuer(AppInfoWithSubtyping appInfo, InternalOptions options) {
     this.appInfo = appInfo;
+    this.compatibility = null;
+    this.options = options;
+  }
+
+  public Enqueuer(AppInfoWithSubtyping appInfo, InternalOptions options,
+      ProguardConfiguration.Builder compatibility) {
+    this.appInfo = appInfo;
+    this.compatibility = compatibility;
     this.options = options;
   }
 
@@ -1065,8 +1073,8 @@ public class Enqueuer {
   }
 
   private void collectProguardCompatibilityRule(KeepReason reason) {
-    if (reason.isDueToProguardCompatibility()) {
-      proguardCompatibilityRules.add(reason.getProguardKeepRule());
+    if (reason.isDueToProguardCompatibility() && compatibility != null) {
+      compatibility.addRule(reason.getProguardKeepRule());
     }
   }
 
@@ -1343,11 +1351,6 @@ public class Enqueuer {
      */
     final Set<DexType> prunedTypes;
 
-    /**
-     * Set of keep rules generated for Proguard compatibility in Proguard compatibility mode.
-     */
-    final Set<ProguardKeepRule> proguardCompatibilityRules;
-
     private AppInfoWithLiveness(AppInfoWithSubtyping appInfo, Enqueuer enqueuer) {
       super(appInfo);
       this.liveTypes = ImmutableSortedSet.copyOf(
@@ -1375,7 +1378,6 @@ public class Enqueuer {
       this.identifierNameStrings = enqueuer.rootSet.identifierNameStrings;
       this.extensions = enqueuer.extensionsState;
       this.prunedTypes = Collections.emptySet();
-      this.proguardCompatibilityRules = ImmutableSet.copyOf(enqueuer.proguardCompatibilityRules);
       assert Sets.intersection(instanceFieldReads, staticFieldReads).size() == 0;
       assert Sets.intersection(instanceFieldWrites, staticFieldWrites).size() == 0;
     }
@@ -1408,7 +1410,6 @@ public class Enqueuer {
       this.alwaysInline = previous.alwaysInline;
       this.identifierNameStrings = previous.identifierNameStrings;
       this.prunedTypes = mergeSets(previous.prunedTypes, removedClasses);
-      this.proguardCompatibilityRules = previous.proguardCompatibilityRules;
       assert Sets.intersection(instanceFieldReads, staticFieldReads).size() == 0;
       assert Sets.intersection(instanceFieldWrites, staticFieldWrites).size() == 0;
     }
@@ -1435,7 +1436,6 @@ public class Enqueuer {
       this.directInvokes = rewriteItems(previous.directInvokes, lense::lookupMethod);
       this.staticInvokes = rewriteItems(previous.staticInvokes, lense::lookupMethod);
       this.prunedTypes = rewriteItems(previous.prunedTypes, lense::lookupType);
-      this.proguardCompatibilityRules = previous.proguardCompatibilityRules;
       // TODO(herhut): Migrate these to Descriptors, as well.
       assert assertNotModifiedByLense(previous.noSideEffects.keySet(), lense);
       this.noSideEffects = previous.noSideEffects;
@@ -1601,10 +1601,6 @@ public class Enqueuer {
 
     public Iterable<DexItem> getPinnedItems() {
       return pinnedItems;
-    }
-
-    public Set<ProguardKeepRule> getProguardCompatibilityRules() {
-      return proguardCompatibilityRules;
     }
 
     /**

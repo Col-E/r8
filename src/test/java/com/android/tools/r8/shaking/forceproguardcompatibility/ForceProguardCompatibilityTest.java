@@ -5,6 +5,7 @@
 package com.android.tools.r8.shaking.forceproguardcompatibility;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.DexIndexedConsumer;
@@ -12,6 +13,7 @@ import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.compatproguard.CompatProguardCommandBuilder;
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
@@ -19,8 +21,11 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.ProguardClassNameList;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationParser;
+import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.shaking.ProguardMemberRule;
 import com.android.tools.r8.shaking.ProguardMemberType;
+import com.android.tools.r8.shaking.forceproguardcompatibility.keepattributes.TestKeepAttributes;
+import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
@@ -30,6 +35,7 @@ import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.ImmutableList;
 import java.io.File;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import org.junit.Test;
@@ -296,5 +302,75 @@ public class ForceProguardCompatibilityTest extends TestBase {
     testClassForName(false, false);
     testClassForName(true, true);
     testClassForName(false, true);
+  }
+
+  public void testKeepAttributes(boolean forceProguardCompatibility,
+      boolean innerClasses, boolean enclosingMethod) throws Exception {
+    CompatProguardCommandBuilder builder =
+        new CompatProguardCommandBuilder(forceProguardCompatibility);
+    Class mainClass = TestKeepAttributes.class;
+    builder.addProgramFiles(ToolHelper.getClassFilesForTestPackage(mainClass.getPackage()));
+    ImmutableList.Builder<String> proguardConfigurationBuilder = ImmutableList.builder();
+    String keepAttributes = "";
+    if (innerClasses || enclosingMethod) {
+      List<String> attributes = new ArrayList<>();
+      if (innerClasses) {
+        attributes.add(ProguardKeepAttributes.INNER_CLASSES);
+      }
+      if (enclosingMethod) {
+        attributes.add(ProguardKeepAttributes.ENCLOSING_METHOD);
+      }
+      keepAttributes = "-keepattributes " + String.join(",", attributes);
+    }
+    proguardConfigurationBuilder.add(
+        "-keep class " + mainClass.getCanonicalName() + " {",
+        "  <init>();",  // Add <init>() so it does not become a compatibility rule below.
+        "  public static void main(java.lang.String[]);",
+        "}",
+        keepAttributes);
+    List<String> proguardConfig = proguardConfigurationBuilder.build();
+    builder.addProguardConfiguration(proguardConfig, Origin.unknown());
+    Path proguardCompatibilityRules = temp.newFile().toPath();
+    builder.setProguardCompatibilityRulesOutput(proguardCompatibilityRules);
+
+    AndroidApp app;
+    builder.setProgramConsumer(DexIndexedConsumer.emptyConsumer());
+    try {
+      app = ToolHelper.runR8(builder.build());
+    } catch (CompilationError e) {
+      assertTrue(!forceProguardCompatibility && (!innerClasses || !enclosingMethod));
+      return;
+    }
+    DexInspector inspector = new DexInspector(app);
+    assertTrue(inspector.clazz(getJavacGeneratedClassName(mainClass)).isPresent());
+    assertEquals(innerClasses || enclosingMethod ? "1" : "0", runOnArt(app, mainClass));
+
+    // Check the Proguard compatibility configuration generated.
+    ProguardConfigurationParser parser =
+        new ProguardConfigurationParser(new DexItemFactory(),
+            new Reporter(new DefaultDiagnosticsHandler()));
+    parser.parse(proguardCompatibilityRules);
+    System.out.println(proguardCompatibilityRules);
+    ProguardConfiguration configuration = parser.getConfigRawForTesting();
+    assertEquals(0, configuration.getRules().size());
+    if (innerClasses ^ enclosingMethod) {
+      assertTrue(configuration.getKeepAttributes().innerClasses);
+      assertTrue(configuration.getKeepAttributes().enclosingMethod);
+    } else {
+      assertFalse(configuration.getKeepAttributes().innerClasses);
+      assertFalse(configuration.getKeepAttributes().enclosingMethod);
+    }
+  }
+
+  @Test
+  public void keepAttributesTest() throws Exception {
+    testKeepAttributes(true, false, false);
+    testKeepAttributes(true, true, false);
+    testKeepAttributes(true, false, true);
+    testKeepAttributes(true, true, true);
+    testKeepAttributes(false, false, false);
+    testKeepAttributes(false, true, false);
+    testKeepAttributes(false, false, true);
+    testKeepAttributes(false, true, true);
   }
 }
