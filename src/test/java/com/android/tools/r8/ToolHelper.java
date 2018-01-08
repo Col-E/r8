@@ -599,6 +599,21 @@ public class ToolHelper {
     return Paths.get(BUILD_DIR, "classes", "test");
   }
 
+  private static List<String> getNamePartsForTestPackage(Package pkg) {
+    return Lists.newArrayList(pkg.getName().split("\\."));
+  }
+
+  public static Path getPackageDirectoryForTestPackage(Package pkg) {
+    List<String> parts = getNamePartsForTestPackage(pkg);
+    return getClassPathForTests().resolve(
+        Paths.get("", parts.toArray(new String[parts.size() - 1])));
+  }
+
+  public static String getJarEntryForTestPackage(Package pkg) {
+    List<String> parts = getNamePartsForTestPackage(pkg);
+    return String.join("/", parts);
+  }
+
   private static List<String> getNamePartsForTestClass(Class clazz) {
     List<String> parts = Lists.newArrayList(clazz.getCanonicalName().split("\\."));
     Class enclosing = clazz;
@@ -609,6 +624,17 @@ public class ToolHelper {
     }
     parts.set(parts.size() - 1, parts.get(parts.size() - 1) + ".class");
     return parts;
+  }
+
+  public static Path getPackageDirectoryForTestClass(Class clazz) {
+    return getPackageDirectoryForTestPackage(clazz.getPackage());
+  }
+
+  public static List<Path> getClassFilesForTestPackage(Package pkg) throws IOException {
+    Path dir = ToolHelper.getPackageDirectoryForTestPackage(pkg);
+    return Files.walk(dir)
+        .filter(path -> path.toString().endsWith(".class"))
+        .collect(Collectors.toList());
   }
 
   public static Path getClassFileForTestClass(Class clazz) {

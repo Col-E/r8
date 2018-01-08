@@ -120,6 +120,7 @@ public class ProguardKeepRule extends ProguardConfigurationRule {
 
   public static ProguardKeepRule defaultKeepAllRule() {
     ProguardKeepRule.Builder builder = ProguardKeepRule.builder();
+    builder.setClassType(ProguardClassType.CLASS);
     builder.matchAllSpecification();
     builder.setType(ProguardKeepRuleType.KEEP);
     return builder.build();

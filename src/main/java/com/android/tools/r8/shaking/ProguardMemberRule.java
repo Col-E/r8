@@ -335,7 +335,7 @@ public class ProguardMemberRule {
         break;
       }
       case ALL: {
-        result.append("<all>");
+        result.append("*");
         break;
       }
       default:

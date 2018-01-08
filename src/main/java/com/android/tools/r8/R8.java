@@ -37,7 +37,7 @@ import com.android.tools.r8.shaking.DiscardedChecker;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.MainDexListBuilder;
 import com.android.tools.r8.shaking.ProguardClassFilter;
-import com.android.tools.r8.shaking.ProguardKeepRule;
+import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ReasonPrinter;
 import com.android.tools.r8.shaking.RootSetBuilder;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
@@ -186,11 +186,15 @@ public class R8 {
                 "Compilation can't be completed because some library classes are missing.");
           }
         }
+
+        final ProguardConfiguration.Builder compatibility =
+            ProguardConfiguration.builder(application.dexItemFactory, options.reporter);
+
         rootSet =
             new RootSetBuilder(
                     application, appInfo, options.proguardConfiguration.getRules(), options)
                 .run(executorService);
-        Enqueuer enqueuer = new Enqueuer(appInfo, options);
+        Enqueuer enqueuer = new Enqueuer(appInfo, options, compatibility);
         enqueuer.addExtension(new ProtoLiteExtension(appInfo));
         appInfo = enqueuer.traceApplication(rootSet, timing);
         if (options.proguardConfiguration.isPrintSeeds()) {
@@ -206,7 +210,7 @@ public class R8 {
           // Recompute the subtyping information.
           appInfo = appInfo.withLiveness().prunedCopyFrom(application, pruner.getRemovedClasses());
           new AbstractMethodRemover(appInfo).run();
-          new AnnotationRemover(appInfo.withLiveness(), options).run();
+          new AnnotationRemover(appInfo.withLiveness(), compatibility, options).run();
         }
 
         // TODO(69445518): This is still work in progress, and this file writing is currently used
@@ -222,9 +226,7 @@ public class R8 {
                     StandardOpenOption.TRUNCATE_EXISTING,
                     StandardOpenOption.WRITE);
             PrintStream ps = new PrintStream(outputStream);
-            for (ProguardKeepRule rule : appInfo.withLiveness().getProguardCompatibilityRules()) {
-              ps.println(rule);
-            }
+            ps.println(compatibility.buildRaw().toString());
           }
         }
       } finally {
