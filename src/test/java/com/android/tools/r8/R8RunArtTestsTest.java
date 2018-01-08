@@ -680,6 +680,10 @@ public abstract class R8RunArtTestsTest {
           .put("301-abstract-protected",
               TestCondition.match(
                   TestCondition.runtimes(DexVm.Version.V4_0_4)))
+          // Illegal class flags in Dalvik 4.0.4.
+          .put("121-modifiers",
+              TestCondition.match(
+                  TestCondition.runtimes(DexVm.Version.V4_0_4)))
           .build();
 
   // Tests where the output of R8/D8 runs in Art but produces different output than the expected.txt
