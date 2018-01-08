@@ -1642,7 +1642,7 @@ public abstract class R8RunArtTestsTest {
     }
 
     ArtCommandBuilder builder = buildArtCommand(processedFile, specification, dexVm);
-    if (ToolHelper.getDexVm() != DexVm.ART_4_4_4_HOST) {
+    if (ToolHelper.getDexVm().isNewerThan(DexVm.ART_4_4_4_HOST)) {
       builder.appendArtOption("-Ximage:/system/non/existent/image.art");
     }
     for (String s : ToolHelper.getBootLibs()) {
