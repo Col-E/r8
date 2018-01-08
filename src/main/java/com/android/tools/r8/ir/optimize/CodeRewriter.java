@@ -69,6 +69,8 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.LongInterval;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -1180,7 +1182,8 @@ public class CodeRewriter {
     // TODO(ager): Generalize this to shorten live ranges for more instructions? Currently
     // doing so seems to make things worse.
     Map<BasicBlock, List<Instruction>> addConstantInBlock = new HashMap<>();
-    DominatorTree dominatorTree = new DominatorTree(code);
+    Supplier<DominatorTree> dominatorTreeMemoization = Suppliers
+        .memoize(() -> new DominatorTree(code));
     BasicBlock block = code.blocks.get(0);
     InstructionListIterator it = block.listIterator();
     List<Instruction> toInsertInThisBlock = new ArrayList<>();
@@ -1198,6 +1201,7 @@ public class CodeRewriter {
           userBlocks.add(phi.getBlock());
         }
         // Locate the closest dominator block for all user blocks.
+        DominatorTree dominatorTree = dominatorTreeMemoization.get();
         BasicBlock dominator = dominatorTree.closestDominator(userBlocks);
         // If the closest dominator block is a block that uses the constant for a phi the constant
         // needs to go in the immediate dominator block so that it is available for phi moves.
@@ -1695,7 +1699,8 @@ public class CodeRewriter {
   }
 
   public void simplifyIf(IRCode code) {
-    DominatorTree dominator = new DominatorTree(code);
+    Supplier<DominatorTree> dominatorTreeMemoization = Suppliers
+        .memoize(() -> new DominatorTree(code));
     code.clearMarks();
     for (BasicBlock block : code.blocks) {
       if (block.isMarked()) {
@@ -1705,7 +1710,7 @@ public class CodeRewriter {
         // First rewrite zero comparison.
         rewriteIfWithConstZero(block);
 
-        if (simplifyKnownBooleanCondition(code, dominator, block)) {
+        if (simplifyKnownBooleanCondition(code, dominatorTreeMemoization, block)) {
           continue;
         }
 
@@ -1751,7 +1756,7 @@ public class CodeRewriter {
         BasicBlock target = theIf.targetFromCondition(cond);
         BasicBlock deadTarget =
             target == theIf.getTrueTarget() ? theIf.fallthroughBlock() : theIf.getTrueTarget();
-        rewriteIfToGoto(dominator, block, theIf, target, deadTarget);
+        rewriteIfToGoto(dominatorTreeMemoization, block, theIf, target, deadTarget);
       }
     }
     code.removeMarkedBlocks();
@@ -1789,8 +1794,8 @@ public class CodeRewriter {
    * which can be replaced by a fallthrough and the phi value can be replaced
    * by an xor instruction which is smaller.
    */
-  private boolean simplifyKnownBooleanCondition(IRCode code, DominatorTree dominator,
-      BasicBlock block) {
+  private boolean simplifyKnownBooleanCondition(IRCode code,
+      Supplier<DominatorTree> dominatorTreeMemoization, BasicBlock block) {
     If theIf = block.exit().asIf();
     Value testValue = theIf.inValues().get(0);
     if (theIf.isZeroTest() && testValue.knownToBeBoolean()) {
@@ -1852,7 +1857,7 @@ public class CodeRewriter {
           // If all phis were removed, there is no need for the diamond shape anymore
           // and it can be rewritten to a goto to one of the branches.
           if (deadPhis == targetBlock.getPhis().size()) {
-            rewriteIfToGoto(dominator, block, theIf, trueBlock, falseBlock);
+            rewriteIfToGoto(dominatorTreeMemoization, block, theIf, trueBlock, falseBlock);
             return true;
           }
         }
@@ -1894,9 +1899,9 @@ public class CodeRewriter {
     return false;
   }
 
-  private void rewriteIfToGoto(DominatorTree dominator, BasicBlock block, If theIf,
-      BasicBlock target, BasicBlock deadTarget) {
-    List<BasicBlock> removedBlocks = block.unlink(deadTarget, dominator);
+  private void rewriteIfToGoto(Supplier<DominatorTree> dominatorTreeMemoization, BasicBlock block,
+      If theIf, BasicBlock target, BasicBlock deadTarget) {
+    List<BasicBlock> removedBlocks = block.unlink(deadTarget, dominatorTreeMemoization.get());
     for (BasicBlock removedBlock : removedBlocks) {
       if (!removedBlock.isMarked()) {
         removedBlock.mark();

@@ -234,19 +234,19 @@ public class IRCode {
    * no sorting.
    */
   public ImmutableList<BasicBlock> topologicallySortedBlocks() {
-    clearMarks();
+    Set<BasicBlock> visitedBlock = new HashSet<>();
     ImmutableList.Builder<BasicBlock> builder = ImmutableList.builder();
     BasicBlock entryBlock = blocks.getFirst();
-    depthFirstSorting(entryBlock, builder);
+    depthFirstSorting(visitedBlock, entryBlock, builder);
     return builder.build().reverse();
   }
 
-  private void depthFirstSorting(BasicBlock block,
+  private void depthFirstSorting(Set<BasicBlock> visitedBlock, BasicBlock block,
       ImmutableList.Builder<BasicBlock> builder) {
-    if (!block.isMarked()) {
-      block.mark();
+    if (!visitedBlock.contains(block)) {
+      visitedBlock.add(block);
       for (BasicBlock succ : block.getSuccessors()) {
-        depthFirstSorting(succ, builder);
+        depthFirstSorting(visitedBlock, succ, builder);
       }
       builder.add(block);
     }
