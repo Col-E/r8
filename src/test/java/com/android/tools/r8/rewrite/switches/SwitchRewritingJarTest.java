@@ -136,7 +136,11 @@ public class SwitchRewritingJarTest extends JasminTestBase {
       assertTrue(code.instructions[0] instanceof PackedSwitch);
     } else {
       if (key1 == 0) {
-        assertTrue(code.instructions[0] instanceof IfEqz);
+        if (key2 == 3) {
+          assertTrue(code.instructions[1] instanceof IfEqz);
+        } else {
+          assertTrue(code.instructions[0] instanceof IfEqz);
+        }
       } else {
         // Const instruction before if.
         assertTrue(code.instructions[1] instanceof IfEq);
