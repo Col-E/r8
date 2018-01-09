@@ -14,7 +14,9 @@ public class Main {
     A a = new A();
     B b = new B();
     b.f(a);
-    AsubB subB = new AsubB();
+    AsubB aSubB = new AsubB(3);
+    aSubB.f(a);
+    SubB subB = new SubB(3);
     subB.f(a);
   }
 }

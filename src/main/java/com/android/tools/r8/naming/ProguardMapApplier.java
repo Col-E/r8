@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexClass;
@@ -10,6 +11,7 @@ import com.android.tools.r8.graph.DexEncodedAnnotation;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
@@ -21,8 +23,8 @@ import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.Timing;
+import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
-import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -131,12 +133,15 @@ public class ProguardMapApplier {
       DexClass clazz = appInfo.definitionFor(from);
       if (clazz == null) return;
 
-      Set<MemberNaming> appliedMemberNaming = new HashSet<>();
+      final Set<DexItem> membersNotMapped = Sets.newIdentityHashSet();
+      final Set<MemberNaming> appliedMemberNaming = Sets.newIdentityHashSet();
       clazz.forEachField(encodedField -> {
         MemberNaming memberNaming = classNaming.lookupByOriginalItem(encodedField.field);
         if (memberNaming != null) {
           appliedMemberNaming.add(memberNaming);
           applyFieldMapping(encodedField.field, memberNaming);
+        } else if (clazz.isLibraryClass()) {
+          membersNotMapped.add(encodedField.field);
         }
       });
 
@@ -145,8 +150,25 @@ public class ProguardMapApplier {
         if (memberNaming != null) {
           appliedMemberNaming.add(memberNaming);
           applyMethodMapping(encodedMethod.method, memberNaming);
+        } else if (clazz.isLibraryClass()) {
+          // <clinit> mapping could be omitted.
+          if (encodedMethod.isClassInitializer()) {
+            return;
+          }
+          membersNotMapped.add(encodedMethod.method);
         }
       });
+
+      // The presence of members that are not mapped indicates incomplete mappings for libraries.
+      if (!membersNotMapped.isEmpty()) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("Incomplete mappings:");
+        for (DexItem member : membersNotMapped) {
+          builder.append(System.lineSeparator()).append("  ").append(member);
+        }
+        builder.append(System.lineSeparator());
+        throw new CompilationError(builder.toString(), clazz.origin);
+      }
 
       // We need to handle a lib class that extends another lib class where some members are not
       // overridden, resulting in absence of definitions. References to those members need to be
@@ -309,11 +331,12 @@ public class ProguardMapApplier {
       for (int i = 0; i < methods.length; i++) {
         DexEncodedMethod encodedMethod = methods[i];
         DexMethod appliedMethod = appliedLense.lookupMethod(encodedMethod.method, encodedMethod);
+        DexType newHolderType = substituteType(appliedMethod.holder, encodedMethod);
         DexProto newProto = substituteTypesIn(appliedMethod.proto, encodedMethod);
         DexMethod newMethod;
-        if (newProto != appliedMethod.proto) {
+        if (newHolderType != appliedMethod.holder || newProto != appliedMethod.proto) {
           newMethod = appInfo.dexItemFactory.createMethod(
-              substituteType(appliedMethod.holder, encodedMethod), newProto, appliedMethod.name);
+              substituteType(newHolderType, encodedMethod), newProto, appliedMethod.name);
           lenseBuilder.map(encodedMethod.method, newMethod);
         } else {
           newMethod = appliedMethod;
@@ -331,11 +354,12 @@ public class ProguardMapApplier {
       for (int i = 0; i < fields.length; i++) {
         DexEncodedField encodedField = fields[i];
         DexField appliedField = appliedLense.lookupField(encodedField.field, null);
-        DexType newType = substituteType(appliedField.type, null);
+        DexType newHolderType = substituteType(appliedField.clazz, null);
+        DexType newFieldType = substituteType(appliedField.type, null);
         DexField newField;
-        if (newType != appliedField.type) {
+        if (newHolderType != appliedField.clazz || newFieldType != appliedField.type) {
           newField = appInfo.dexItemFactory.createField(
-              substituteType(appliedField.clazz, null), newType, appliedField.name);
+              substituteType(newHolderType, null), newFieldType, appliedField.name);
           lenseBuilder.map(encodedField.field, newField);
         } else {
           newField = appliedField;
