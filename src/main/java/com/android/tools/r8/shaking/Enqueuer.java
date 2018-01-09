@@ -705,6 +705,22 @@ public class Enqueuer {
     if (!liveMethods.contains(encodedMethod)) {
       markTypeAsLive(encodedMethod.method.holder);
       markMethodAsTargeted(encodedMethod, reason);
+      // For granting inner/outer classes access to their private constructors, javac generates
+      // additional synthetic constructors. These constructors take a synthetic class
+      // as argument. As it is not possible to express a keep rule for these synthetic classes
+      // always keep synthetic arguments to synthetic constructors. See b/69825683.
+      if (encodedMethod.isInstanceInitializer() && encodedMethod.isSyntheticMethod()) {
+        for (DexType type : encodedMethod.method.proto.parameters.values) {
+          type = type.isArrayType() ? type.toBaseType(appInfo.dexItemFactory) : type;
+          if (type.isPrimitiveType()) {
+            continue;
+          }
+          DexClass clazz = appInfo.definitionFor(type);
+          if (clazz != null && clazz.accessFlags.isSynthetic()) {
+            markTypeAsLive(type);
+          }
+        }
+      }
       if (Log.ENABLED) {
         Log.verbose(getClass(), "Method `%s` has become live due to direct invoke",
             encodedMethod.method);

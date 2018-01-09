@@ -158,6 +158,14 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   }
 
 
+  /**
+   * Returns true if this method is synthetic.
+   */
+  public boolean isSyntheticMethod() {
+    return accessFlags.isSynthetic();
+  }
+
+
   public boolean isInliningCandidate(DexEncodedMethod container, Reason inliningReason,
       AppInfoWithSubtyping appInfo) {
     if (isClassInitializer()) {

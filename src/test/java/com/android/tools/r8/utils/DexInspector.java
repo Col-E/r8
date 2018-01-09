@@ -189,16 +189,17 @@ public class DexInspector {
   }
 
   public void forAllClasses(Consumer<FoundClassSubject> inspection) {
-    forAll(application.classes(), clazz -> {
-      ClassNamingForNameMapper naming = null;
-      if (mapping != null) {
-        String obfuscated = originalToObfuscatedMapping.get(clazz.type.toSourceString());
-        if (obfuscated != null) {
-          naming = mapping.getClassNaming(obfuscated);
-        }
-      }
-      return new FoundClassSubject(clazz, naming);
+    forAll(application.classes(), cls -> {
+      ClassSubject found = clazz(cls.type.toSourceString());
+      assert found.isPresent();
+      return (FoundClassSubject) found;
     }, inspection);
+  }
+
+  public List<FoundClassSubject> allClasses() {
+    ImmutableList.Builder<FoundClassSubject> builder = ImmutableList.builder();
+    forAllClasses(builder::add);
+    return builder.build();
   }
 
   public MethodSubject method(Method method) {
@@ -310,6 +311,8 @@ public class DexInspector {
 
     public abstract AnnotationSubject annotation(String name);
 
+    public abstract String getOriginalName();
+
     public abstract String getOriginalDescriptor();
 
     public abstract String getFinalDescriptor();
@@ -361,6 +364,11 @@ public class DexInspector {
     @Override
     public AnnotationSubject annotation(String name) {
       return new AbsentAnnotationSubject();
+    }
+
+    @Override
+    public String getOriginalName() {
+      return null;
     }
 
     @Override
@@ -515,6 +523,15 @@ public class DexInspector {
         }
       }
       return null;
+    }
+
+    @Override
+    public String getOriginalName() {
+      if (naming != null) {
+        return naming.originalName;
+      } else {
+        return DescriptorUtils.descriptorToJavaType(getFinalDescriptor());
+      }
     }
 
     @Override
