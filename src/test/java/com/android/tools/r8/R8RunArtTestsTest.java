@@ -683,6 +683,11 @@ public abstract class R8RunArtTestsTest {
           .put("121-modifiers",
               TestCondition.match(
                   TestCondition.runtimes(DexVm.Version.V4_0_4)))
+          // Switch regression still present in Dalvik 4.0.4.
+          .put("095-switch-MAX_INT",
+              TestCondition.match(
+                  TestCondition.D8_COMPILER,
+                  TestCondition.runtimes(DexVm.Version.V4_0_4)))
           .build();
 
   // Tests where the output of R8/D8 runs in Art but produces different output than the expected.txt
@@ -715,9 +720,10 @@ public abstract class R8RunArtTestsTest {
                   TestCondition.tools(DexTool.NONE, DexTool.JACK),
                   TestCondition.D8_COMPILER,
                   TestCondition.runtimes(DexVm.Version.V6_0_1)))
-          // Produces wrong output
+          // Produces wrong output when optimized with r8.
           .put("015-switch",
               TestCondition.match(
+                  TestCondition.R8_COMPILER,
                   TestCondition.runtimes(DexVm.Version.V4_0_4)))
           .build();
 
