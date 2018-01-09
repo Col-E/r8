@@ -103,7 +103,8 @@ public abstract class DexValue extends DexItem {
   /**
    * Whether creating this value as a default value for a field might trigger an allocation.
    * <p>
-   * This is conservative.
+   * This is conservative. It also considers allocations due to class loading when referencing a
+   * field or method.
    */
   public boolean mayTriggerAllocation() {
     return true;
