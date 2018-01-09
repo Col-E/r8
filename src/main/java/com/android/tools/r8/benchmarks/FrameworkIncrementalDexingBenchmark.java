@@ -141,7 +141,7 @@ public class FrameworkIncrementalDexingBenchmark {
             .setMode(CompilationMode.DEBUG)
             .addProgramFiles(input)
             .addLibraryFiles(LIB)
-            .setEnableDesugaring(desugar)
+            .setDisableDesugaring(!desugar)
             .setProgramConsumer(consumer)
             .build(),
         executor);
@@ -187,7 +187,7 @@ public class FrameworkIncrementalDexingBenchmark {
               .addClasspathResourceProvider(provider)
               .addLibraryFiles(LIB)
               .setProgramConsumer(consumer)
-              .setEnableDesugaring(desugar);
+              .setDisableDesugaring(!desugar);
       for (int j = 0; j < count; j++) {
         builder.addClassProgramData(provider.resources.get(descriptors.get(index + j)),
             Origin.unknown());
@@ -206,7 +206,7 @@ public class FrameworkIncrementalDexingBenchmark {
             .setIntermediate(false)
             .setMode(CompilationMode.DEBUG)
             .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
-            .setEnableDesugaring(false);
+            .setDisableDesugaring(true);
     for (ProgramResource input : outputs.values()) {
       try (InputStream inputStream = input.getByteStream()) {
         builder.addDexProgramData(ByteStreams.toByteArray(inputStream), input.getOrigin());

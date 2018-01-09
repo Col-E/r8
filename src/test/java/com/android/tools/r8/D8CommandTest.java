@@ -23,7 +23,6 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Set;
 import java.util.zip.ZipFile;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -33,7 +32,6 @@ public class D8CommandTest {
   @Rule
   public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
-  @Ignore("Enable when deprecated API is removed")
   @Test(expected = CompilationFailedException.class)
   public void emptyBuilder() throws Throwable {
     verifyEmptyCommand(D8Command.builder().build());
@@ -325,7 +323,41 @@ public class D8CommandTest {
     D8Command.builder().setProgramConsumer(new MultiTypeConsumer()).build();
   }
 
+  @Test(expected = CompilationFailedException.class)
+  public void duplicateApiLevel() throws CompilationFailedException {
+    DiagnosticsChecker.checkErrorsContains(
+        "multiple --min-api", handler -> parse(handler, "--min-api", "19", "--min-api", "21"));
+  }
+
+  @Test(expected = CompilationFailedException.class)
+  public void invalidApiLevel() throws CompilationFailedException {
+    DiagnosticsChecker.checkErrorsContains(
+        "Invalid argument to --min-api", handler -> parse(handler, "--min-api", "foobar"));
+  }
+
+  @Test(expected = CompilationFailedException.class)
+  public void negativeApiLevel() throws CompilationFailedException {
+    DiagnosticsChecker.checkErrorsContains(
+        "Invalid argument to --min-api", handler -> parse(handler, "--min-api", "-21"));
+  }
+
+  @Test(expected = CompilationFailedException.class)
+  public void zeroApiLevel() throws CompilationFailedException {
+    DiagnosticsChecker.checkErrorsContains(
+        "Invalid argument to --min-api", handler -> parse(handler, "--min-api", "0"));
+  }
+
+  @Test
+  public void disableDesugaring() throws CompilationFailedException {
+    assertFalse(parse("--no-desugaring").getEnableDesugaring());
+  }
+
   private D8Command parse(String... args) throws CompilationFailedException {
     return D8Command.parse(args, EmbeddedOrigin.INSTANCE).build();
+  }
+
+  private D8Command parse(DiagnosticsHandler handler, String... args)
+      throws CompilationFailedException {
+    return D8Command.parse(args, EmbeddedOrigin.INSTANCE, handler).build();
   }
 }

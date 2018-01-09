@@ -161,7 +161,7 @@ public class CompatDexBuilder {
         .setProgramConsumer(consumer)
         .setMode(noLocals ? CompilationMode.RELEASE : CompilationMode.DEBUG)
         .setMinApiLevel(AndroidApiLevel.H_MR2.getLevel())
-        .setEnableDesugaring(false);
+        .setDisableDesugaring(true);
     try (InputStream stream = zipFile.getInputStream(classEntry)) {
       builder.addClassProgramData(
           ByteStreams.toByteArray(stream),

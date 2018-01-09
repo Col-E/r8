@@ -317,7 +317,7 @@ public class R8Command extends BaseCompilerCommand {
               getMode(),
               getMinApiLevel(),
               reporter,
-              getEnableDesugaring(),
+              !getDisableDesugaring(),
               useTreeShaking,
               useMinification,
               forceProguardCompatibility,
@@ -367,6 +367,7 @@ public class R8Command extends BaseCompilerCommand {
     CompilationMode mode = null;
     OutputMode outputMode = null;
     Path outputPath = null;
+    boolean hasDefinedApiLevel = false;
   }
 
   static final String USAGE_MESSAGE = String.join("\n", ImmutableList.of(
@@ -385,6 +386,7 @@ public class R8Command extends BaseCompilerCommand {
       "  --pg-map-output <file>   # Output the resulting name and line mapping to <file>.",
       "  --no-tree-shaking        # Force disable tree shaking of unreachable classes.",
       "  --no-minification        # Force disable minification of names.",
+      "  --no-desugaring          # Force disable desugaring.",
       "  --main-dex-rules <file>  # Proguard keep rules for classes to place in the",
       "                           # primary dex file.",
       "  --main-dex-list <file>   # List of classes to place in the primary dex file.",
@@ -431,7 +433,24 @@ public class R8Command extends BaseCompilerCommand {
    * @return R8 command builder with state set up according to parsed command line.
    */
   public static Builder parse(String[] args, Origin origin) {
-    Builder builder = builder();
+    return parse(builder(), args, origin);
+  }
+
+  /**
+   * Parse the R8 command-line.
+   *
+   * Parsing will set the supplied options or their default value if they have any.
+   *
+   * @param args Command-line arguments array.
+   * @param origin Origin description of the command-line arguments.
+   * @param handler Custom defined diagnostics handler.
+   * @return R8 command builder with state set up according to parsed command line.
+   */
+  public static Builder parse(String[] args, Origin origin, DiagnosticsHandler handler) {
+    return parse(builder(handler), args, origin);
+  }
+
+  private static Builder parse(Builder builder, String[] args, Origin origin) {
     ParseState state = new ParseState();
     parse(args, origin, builder, state);
     if (state.mode != null) {
@@ -495,11 +514,14 @@ public class R8Command extends BaseCompilerCommand {
       } else if (arg.equals("--lib")) {
         builder.addLibraryFiles(Paths.get(args[++i]));
       } else if (arg.equals("--min-api")) {
-        builder.setMinApiLevel(Integer.valueOf(args[++i]));
+        state.hasDefinedApiLevel =
+            parseMinApi(builder, args[++i], state.hasDefinedApiLevel, argsOrigin);
       } else if (arg.equals("--no-tree-shaking")) {
         builder.setDisableTreeShaking(true);
       } else if (arg.equals("--no-minification")) {
         builder.setDisableMinification(true);
+      } else if (arg.equals("--no-desugaring")) {
+        builder.setDisableDesugaring(true);
       } else if (arg.equals("--main-dex-rules")) {
         builder.addMainDexRulesFiles(Paths.get(args[++i]));
       } else if (arg.equals("--main-dex-list")) {
@@ -543,8 +565,7 @@ public class R8Command extends BaseCompilerCommand {
     return state;
   }
 
-  private
-  R8Command(
+  private R8Command(
       AndroidApp inputApp,
       ProgramConsumer programConsumer,
       ImmutableList<ProguardConfigurationRule> mainDexKeepRules,

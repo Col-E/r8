@@ -333,7 +333,7 @@ public class D8ApiUsageSample {
               .addClasspathFiles(classpath)
               .addLibraryFiles(libraries)
               .addProgramFiles(inputs)
-              .setEnableDesugaring(true)
+              .setDisableDesugaring(false)
               .build());
     } catch (CompilationFailedException e) {
       throw new RuntimeException("Unexpected compilation exceptions", e);
@@ -367,7 +367,7 @@ public class D8ApiUsageSample {
         D8Command.builder(handler)
             .setMinApiLevel(minApiLevel)
             .setProgramConsumer(new EnsureOutputConsumer())
-            .setEnableDesugaring(false);
+            .setDisableDesugaring(true);
     for (byte[] intermediate : intermediates) {
       builder.addDexProgramData(intermediate, Origin.unknown());
     }

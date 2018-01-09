@@ -4,11 +4,13 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.Reporter;
+import com.android.tools.r8.utils.StringDiagnostic;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -102,7 +104,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
 
     private CompilationMode mode;
     private int minApiLevel = AndroidApiLevel.getDefault().getLevel();
-    private boolean enableDesugaring = true;
+    private boolean disableDesugaring = false;
 
     Builder() {}
 
@@ -236,23 +238,31 @@ public abstract class BaseCompilerCommand extends BaseCommand {
       return self();
     }
 
-    /**
-     * Force enable or disable desugaring.
-     *
-     * <p>There are a few use cases where it makes sense to force disable desugaring, such as:
-     * <li>if all inputs are known to be at most Java 7; or
-     * <li>if a separate desugar tool has been used prior to compiling with D8.
-     *
-     * <p>Note that even for API 27, desugaring is still required for closures support on ART.
-     */
+    @Deprecated
     public B setEnableDesugaring(boolean enableDesugaring) {
-      this.enableDesugaring = enableDesugaring;
+      this.disableDesugaring = !enableDesugaring;
       return self();
     }
 
-    /** Get the enable/disable state of desugaring. */
-    public boolean getEnableDesugaring() {
-      return enableDesugaring;
+    /**
+     * Force disable desugaring.
+     *
+     * <p>There are a few use cases where it makes sense to force disable desugaring, such as:
+     * <ul>
+     * <li>if all inputs are known to be at most Java 7; or
+     * <li>if a separate desugar tool has been used prior to compiling with D8.
+     * </ul>
+     *
+     * <p>Note that even for API 27, desugaring is still required for closures support on ART.
+     */
+    public B setDisableDesugaring(boolean disableDesugaring) {
+      this.disableDesugaring = disableDesugaring;
+      return self();
+    }
+
+    /** Is desugaring forcefully disabled. */
+    public boolean getDisableDesugaring() {
+      return disableDesugaring;
     }
 
     @Override
@@ -289,5 +299,33 @@ public abstract class BaseCompilerCommand extends BaseCommand {
       }
       super.validate();
     }
+  }
+
+  static <C extends BaseCompilerCommand, B extends BaseCompilerCommand.Builder<C, B>>
+  boolean parseMinApi(
+      BaseCompilerCommand.Builder<C, B> builder,
+      String minApiString,
+      boolean hasDefinedApiLevel,
+      Origin origin) {
+    if (hasDefinedApiLevel) {
+      builder.getReporter().error(new StringDiagnostic(
+          "Cannot set multiple --min-api options", origin));
+      return false;
+    }
+    int minApi;
+    try {
+      minApi = Integer.valueOf(minApiString);
+    } catch (NumberFormatException e) {
+      builder.getReporter().error(new StringDiagnostic(
+          "Invalid argument to --min-api: " + minApiString, origin));
+      return false;
+    }
+    if (minApi < 1) {
+      builder.getReporter().error(new StringDiagnostic(
+          "Invalid argument to --min-api: " + minApiString, origin));
+      return false;
+    }
+    builder.setMinApiLevel(minApi);
+    return true;
   }
 }

@@ -18,7 +18,6 @@ import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -27,44 +26,6 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 public class R8CommandTest {
-
-  // Helper to check that a particular error occurred.
-  static class DiagnosticsChecker implements DiagnosticsHandler {
-    public List<Diagnostic> errors = new ArrayList<>();
-    public List<Diagnostic> warnings = new ArrayList<>();
-    public List<Diagnostic> infos = new ArrayList<>();
-
-    @Override
-    public void error(Diagnostic error) {
-      errors.add(error);
-    }
-
-    @Override
-    public void warning(Diagnostic warning) {
-      warnings.add(warning);
-    }
-
-    @Override
-    public void info(Diagnostic info) {
-      infos.add(info);
-    }
-
-    public interface FailingRunner {
-      void run(DiagnosticsHandler handler) throws CompilationFailedException;
-    }
-
-    public static void checkErrorsContains(String snippet, FailingRunner runner)
-        throws CompilationFailedException {
-      DiagnosticsChecker handler = new DiagnosticsChecker();
-      try {
-        runner.run(handler);
-      } catch (CompilationFailedException e) {
-        assertTrue(handler.errors.stream()
-            .anyMatch(d -> d.getDiagnosticMessage().contains(snippet)));
-        throw e;
-      }
-    }
-  }
 
   @Rule
   public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
@@ -363,7 +324,41 @@ public class R8CommandTest {
         .build();
   }
 
+  @Test(expected = CompilationFailedException.class)
+  public void duplicateApiLevel() throws CompilationFailedException {
+    DiagnosticsChecker.checkErrorsContains(
+        "multiple --min-api", handler -> parse(handler, "--min-api", "19", "--min-api", "21"));
+  }
+
+  @Test(expected = CompilationFailedException.class)
+  public void invalidApiLevel() throws CompilationFailedException {
+    DiagnosticsChecker.checkErrorsContains(
+        "Invalid argument to --min-api", handler -> parse(handler, "--min-api", "foobar"));
+  }
+
+  @Test(expected = CompilationFailedException.class)
+  public void negativeApiLevel() throws CompilationFailedException {
+    DiagnosticsChecker.checkErrorsContains(
+        "Invalid argument to --min-api", handler -> parse(handler, "--min-api", "-21"));
+  }
+
+  @Test(expected = CompilationFailedException.class)
+  public void zeroApiLevel() throws CompilationFailedException {
+    DiagnosticsChecker.checkErrorsContains(
+        "Invalid argument to --min-api", handler -> parse(handler, "--min-api", "0"));
+  }
+
+  @Test
+  public void disableDesugaring() throws CompilationFailedException {
+    assertFalse(parse("--no-desugaring").getEnableDesugaring());
+  }
+
   private R8Command parse(String... args) throws CompilationFailedException {
     return R8Command.parse(args, EmbeddedOrigin.INSTANCE).build();
+  }
+
+  private R8Command parse(DiagnosticsHandler handler, String... args)
+      throws CompilationFailedException {
+    return R8Command.parse(args, EmbeddedOrigin.INSTANCE, handler).build();
   }
 }

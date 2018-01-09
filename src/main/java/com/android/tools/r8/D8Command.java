@@ -136,7 +136,7 @@ public class D8Command extends BaseCompilerCommand {
           getProgramConsumer(),
           getMinApiLevel(),
           getReporter(),
-          getEnableDesugaring(),
+          !getDisableDesugaring(),
           intermediate);
     }
 
@@ -173,6 +173,7 @@ public class D8Command extends BaseCompilerCommand {
       "  --intermediate          # Compile an intermediate result intended for later",
       "                          # merging.",
       "  --file-per-class        # Produce a separate dex file per input class",
+      "  --no-desugaring         # Force disable desugaring.",
       "  --main-dex-list <file>  # List of classes to place in the primary dex file.",
       "  --version               # Print the version of d8.",
       "  --help                  # Print this message."));
@@ -202,10 +203,28 @@ public class D8Command extends BaseCompilerCommand {
    * @return D8 command builder with state set up according to parsed command line.
    */
   public static Builder parse(String[] args, Origin origin) {
+    return parse(builder(), args, origin);
+  }
+
+  /**
+   * Parse the D8 command-line.
+   *
+   * <p>Parsing will set the supplied options or their default value if they have any.
+   *
+   * @param args Command-line arguments array.
+   * @param origin Origin description of the command-line arguments.
+   * @param handler Custom defined diagnostics handler.
+   * @return D8 command builder with state set up according to parsed command line.
+   */
+  public static Builder parse(String[] args, Origin origin, DiagnosticsHandler handler) {
+    return parse(builder(handler), args, origin);
+  }
+
+  private static Builder parse(Builder builder, String[] args, Origin origin) {
     CompilationMode compilationMode = null;
     Path outputPath = null;
     OutputMode outputMode = null;
-    Builder builder = builder();
+    boolean hasDefinedApiLevel = false;
     try {
       for (int i = 0; i < args.length; i++) {
         String arg = args[i].trim();
@@ -249,9 +268,11 @@ public class D8Command extends BaseCompilerCommand {
         } else if (arg.equals("--main-dex-list")) {
           builder.addMainDexListFiles(Paths.get(args[++i]));
         } else if (arg.equals("--min-api")) {
-          builder.setMinApiLevel(Integer.valueOf(args[++i]));
+          hasDefinedApiLevel = parseMinApi(builder, args[++i], hasDefinedApiLevel, origin);
         } else if (arg.equals("--intermediate")) {
           builder.setIntermediate(true);
+        } else if (arg.equals("--no-desugaring")) {
+          builder.setDisableDesugaring(true);
         } else {
           if (arg.startsWith("--")) {
             builder.getReporter().error(new StringDiagnostic("Unknown option: " + arg,
@@ -291,7 +312,6 @@ public class D8Command extends BaseCompilerCommand {
         minApiLevel,
         diagnosticsHandler,
         enableDesugaring);
-    assert programConsumer != null;
     this.intermediate = intermediate;
   }
 
