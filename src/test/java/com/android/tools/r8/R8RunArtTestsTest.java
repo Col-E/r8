@@ -720,11 +720,6 @@ public abstract class R8RunArtTestsTest {
                   TestCondition.tools(DexTool.NONE, DexTool.JACK),
                   TestCondition.D8_COMPILER,
                   TestCondition.runtimes(DexVm.Version.V6_0_1)))
-          // Produces wrong output when optimized with r8.
-          .put("015-switch",
-              TestCondition.match(
-                  TestCondition.R8_COMPILER,
-                  TestCondition.runtimes(DexVm.Version.V4_0_4)))
           .build();
 
   private static final TestCondition beforeAndroidN =
@@ -1004,6 +999,9 @@ public abstract class R8RunArtTestsTest {
               TestCondition.match(
                   TestCondition.tools(DexTool.DX, DexTool.JACK, DexTool.NONE),
                   TestCondition.R8_COMPILER))
+          // Produces wrong output when compiled in release mode, which we cannot express.
+          .put("015-switch",
+              TestCondition.match(TestCondition.runtimes(DexVm.Version.V4_0_4)))
           .build();
 
   public static List<String> requireInliningToBeDisabled = ImmutableList.of(
