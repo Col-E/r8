@@ -17,7 +17,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
 import org.junit.Assume;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -47,7 +46,6 @@ public class R8StaticInlining extends TestBase {
   }
 
   @Test
-  @Ignore("b/71524812")
   public void testInliningOfStatic() throws Exception {
     Assume.assumeTrue(ToolHelper.artSupported());
 

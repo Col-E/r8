@@ -30,6 +30,7 @@ import java.nio.file.Paths;
 import java.util.Iterator;
 import java.util.concurrent.ExecutionException;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -61,6 +62,7 @@ public class ApplyMappingTest {
   }
 
   @Test
+  @Ignore("b/71621001")
   public void test044_obfuscate_and_apply() throws Exception {
     // keep rules that allow obfuscations while keeping everything.
     Path flagForObfuscation =
