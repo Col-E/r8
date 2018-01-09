@@ -103,6 +103,10 @@ public class TestCondition {
     return new RuntimeSet(EnumSet.range(DexVm.Version.first(), upto));
   }
 
+  public static RuntimeSet runtimesFrom(DexVm.Version start) {
+    return new RuntimeSet(EnumSet.range(start, DexVm.Version.last()));
+  }
+
   public static TestCondition match(
       ToolSet tools,
       CompilerSet compilers,

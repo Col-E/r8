@@ -1497,7 +1497,6 @@ public abstract class R8RunArtTestsTest {
       String fullClassName)
       throws IOException, ProguardRuleParserException, ExecutionException, CompilationException,
       CompilationFailedException {
-
     DexVm dexVm = ToolHelper.getDexVm();
 
     CompilerUnderTest firstCompilerUnderTest =

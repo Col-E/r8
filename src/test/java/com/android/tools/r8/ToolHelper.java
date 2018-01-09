@@ -57,6 +57,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import joptsimple.internal.Strings;
 import org.junit.Assume;
@@ -103,11 +104,9 @@ public class ToolHelper {
     ART_DEFAULT(Version.DEFAULT, Kind.HOST);
 
     private static final ImmutableMap<String, DexVm> SHORT_NAME_MAP =
-        new ImmutableMap.Builder<String, DexVm>()
-            .putAll(
-                Arrays.stream(DexVm.values()).collect(
-                    Collectors.toMap(a -> a.toString(), a -> a)))
-            .build();
+        Arrays.stream(DexVm.values()).collect(ImmutableMap.toImmutableMap(
+            DexVm::toString, Function.identity()));
+
 
     public enum Version {
       V4_0_4("4.0.4"),
@@ -143,9 +142,14 @@ public class ToolHelper {
         return V4_0_4;
       }
 
+      public static Version last() {
+        return DEFAULT;
+      }
+
       static {
-        // Ensure first is always first.
+        // Ensure first is always first and last is always last.
         assert Arrays.stream(values()).allMatch(v -> v == first() || v.compareTo(first()) > 0);
+        assert Arrays.stream(values()).allMatch(v -> v == last() || v.compareTo(last()) < 0);
       }
     }
 
