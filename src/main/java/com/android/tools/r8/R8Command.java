@@ -433,7 +433,7 @@ public class R8Command extends BaseCompilerCommand {
    * @return R8 command builder with state set up according to parsed command line.
    */
   public static Builder parse(String[] args, Origin origin) {
-    return parse(builder(), args, origin);
+    return parse(args, origin, builder());
   }
 
   /**
@@ -447,10 +447,10 @@ public class R8Command extends BaseCompilerCommand {
    * @return R8 command builder with state set up according to parsed command line.
    */
   public static Builder parse(String[] args, Origin origin, DiagnosticsHandler handler) {
-    return parse(builder(handler), args, origin);
+    return parse(args, origin, builder(handler));
   }
 
-  private static Builder parse(Builder builder, String[] args, Origin origin) {
+  private static Builder parse(String[] args, Origin origin, Builder builder) {
     ParseState state = new ParseState();
     parse(args, origin, builder, state);
     if (state.mode != null) {

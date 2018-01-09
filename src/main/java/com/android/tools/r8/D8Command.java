@@ -203,7 +203,7 @@ public class D8Command extends BaseCompilerCommand {
    * @return D8 command builder with state set up according to parsed command line.
    */
   public static Builder parse(String[] args, Origin origin) {
-    return parse(builder(), args, origin);
+    return parse(args, origin, builder());
   }
 
   /**
@@ -217,10 +217,10 @@ public class D8Command extends BaseCompilerCommand {
    * @return D8 command builder with state set up according to parsed command line.
    */
   public static Builder parse(String[] args, Origin origin, DiagnosticsHandler handler) {
-    return parse(builder(handler), args, origin);
+    return parse(args, origin, builder(handler));
   }
 
-  private static Builder parse(Builder builder, String[] args, Origin origin) {
+  private static Builder parse(String[] args, Origin origin, Builder builder) {
     CompilationMode compilationMode = null;
     Path outputPath = null;
     OutputMode outputMode = null;
