@@ -5,6 +5,7 @@ package com.android.tools.r8.jasmin;
 
 import static java.util.Collections.emptyList;
 
+import com.android.tools.r8.R8RunArtTestsTest.CompilerUnderTest;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.VmTestRunner;
@@ -13,19 +14,17 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassFileVersion;
 import com.android.tools.r8.utils.ThrowingBiFunction;
+import com.android.tools.r8.utils.ThrowingSupplier;
+import java.util.function.BiConsumer;
+import java.util.function.Predicate;
 import org.junit.Assert;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 
 @RunWith(VmTestRunner.class)
 public class MemberResolutionTest extends JasminTestBase {
 
   private static final String MAIN_CLASS = "Main";
-
-  @Rule
-  public ExpectedException thrown = ExpectedException.none();
 
   @Test
   public void lookupStaticFieldFromDiamondInterface() throws Exception {
@@ -248,7 +247,8 @@ public class MemberResolutionTest extends JasminTestBase {
         "  invokespecial SubClass/<init>()V",
         "  invokespecial SubClass/aMethod()V",
         "  return");
-    ensureCompilationError(builder);
+    ensureExceptionOrCompilerError(builder, IllegalAccessError.class,
+        compiler -> compiler.equals(CompilerUnderTest.R8));
   }
 
   @Test
@@ -561,9 +561,28 @@ public class MemberResolutionTest extends JasminTestBase {
         (a, m) -> runOnArtR8Raw(a, m, keepMainProguardConfiguration(MAIN_CLASS), null));
   }
 
-  private void ensureCompilationError(JasminBuilder app) throws Exception {
-    thrown.expect(CompilationError.class);
-    compileWithR8(app, null);
+  private void ensureExceptionOrCompilerError(JasminBuilder app,
+      Class<? extends Throwable> exception,
+      Predicate<CompilerUnderTest> predicate) throws Exception {
+    String name = exception.getSimpleName();
+    BiConsumer<ThrowingSupplier<ProcessResult, Exception>, CompilerUnderTest> runtest =
+        (process, compiler) -> {
+          try {
+            ProcessResult result = process.get();
+            Assert.assertFalse(compiler != null && predicate.test(compiler));
+            Assert.assertTrue(result.stderr.contains(name));
+          } catch (CompilationError e) {
+            Assert.assertTrue(compiler == null || predicate.test(compiler));
+          } catch (Exception e) {
+            Assert.fail();
+          }
+        };
+    runtest.accept(() -> runOnJavaNoVerifyRaw(app, MAIN_CLASS), null);
+    runtest.accept(() -> runOnArtDxRaw(app, MAIN_CLASS), null);
+    runtest.accept(() -> runOnArtD8Raw(app, MAIN_CLASS), CompilerUnderTest.D8);
+    runtest.accept(() -> runOnArtR8Raw(app, MAIN_CLASS, null), CompilerUnderTest.R8);
+    runtest.accept(() -> runOnArtR8Raw(app, MAIN_CLASS, keepMainProguardConfiguration(MAIN_CLASS),
+        null), CompilerUnderTest.R8);
   }
 
   private void ensureICCE(JasminBuilder app) throws Exception {
