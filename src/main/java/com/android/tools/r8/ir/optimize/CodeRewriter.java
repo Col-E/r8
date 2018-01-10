@@ -247,7 +247,7 @@ public class CodeRewriter {
 
   public static class SwitchBuilder extends InstructionBuilder<SwitchBuilder> {
     private Value value;
-    private Int2ObjectSortedMap<BasicBlock> keyToTarget = new Int2ObjectAVLTreeMap<>();
+    private final Int2ObjectSortedMap<BasicBlock> keyToTarget = new Int2ObjectAVLTreeMap<>();
     private BasicBlock fallthrough;
 
     public SwitchBuilder(Position position) {

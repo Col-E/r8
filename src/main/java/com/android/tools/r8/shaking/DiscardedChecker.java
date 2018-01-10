@@ -17,7 +17,7 @@ public class DiscardedChecker {
   private final Set<DexItem> checkDiscarded;
   private final DexApplication application;
   private boolean fail = false;
-  private InternalOptions options;
+  private final InternalOptions options;
 
   public DiscardedChecker(RootSet rootSet, DexApplication application, InternalOptions options) {
     this.checkDiscarded = rootSet.checkDiscarded;

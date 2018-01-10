@@ -18,8 +18,8 @@ import java.util.Map;
 
 public class LazyLoadedDexApplication extends DexApplication {
 
-  private ClasspathClassCollection classpathClasses;
-  private LibraryClassCollection libraryClasses;
+  private final ClasspathClassCollection classpathClasses;
+  private final LibraryClassCollection libraryClasses;
 
   /**
    * Constructor should only be invoked by the DexApplication.Builder.

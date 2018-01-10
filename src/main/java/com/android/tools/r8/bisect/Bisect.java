@@ -40,7 +40,7 @@ public class Bisect {
 
   private static class StreamReader implements Runnable {
 
-    private InputStream stream;
+    private final InputStream stream;
     private String result;
 
     public StreamReader(InputStream stream) {

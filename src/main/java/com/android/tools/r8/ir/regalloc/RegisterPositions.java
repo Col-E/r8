@@ -19,10 +19,10 @@ public class RegisterPositions {
   enum Type { MONITOR, CONST_NUMBER, OTHER, ANY }
 
   private static final int INITIAL_SIZE = 16;
-  private int limit;
+  private final int limit;
   private int[] backing;
-  private BitSet registerHoldsConstant;
-  private BitSet registerHoldsMonitor;
+  private final BitSet registerHoldsConstant;
+  private final BitSet registerHoldsMonitor;
 
   public RegisterPositions(int limit) {
     this.limit = limit;

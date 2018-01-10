@@ -6,7 +6,7 @@ package com.android.tools.r8.ir.analysis.constant;
 import com.android.tools.r8.ir.code.Value;
 
 public class ConstRangeLatticeElement extends LatticeElement {
-  private Value value;
+  private final Value value;
 
   public ConstRangeLatticeElement(Value value) {
     assert value.hasValueRange();

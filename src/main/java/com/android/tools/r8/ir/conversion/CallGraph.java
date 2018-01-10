@@ -133,8 +133,8 @@ public class CallGraph extends CallSiteInformation {
   private final Map<DexEncodedMethod, Node> nodes = new LinkedHashMap<>();
   private final Function<Set<DexEncodedMethod>, Set<DexEncodedMethod>> shuffle;
 
-  private Set<DexEncodedMethod> singleCallSite = Sets.newIdentityHashSet();
-  private Set<DexEncodedMethod> doubleCallSite = Sets.newIdentityHashSet();
+  private final Set<DexEncodedMethod> singleCallSite = Sets.newIdentityHashSet();
+  private final Set<DexEncodedMethod> doubleCallSite = Sets.newIdentityHashSet();
 
   public static CallGraph build(DexApplication application, AppInfoWithSubtyping appInfo,
       GraphLense graphLense, InternalOptions options) {

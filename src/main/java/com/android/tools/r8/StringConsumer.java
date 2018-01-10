@@ -38,7 +38,7 @@ public interface StringConsumer {
   /** Empty consumer to request the production of the resource but ignore its value. */
   class EmptyConsumer implements StringConsumer {
 
-    private static EmptyConsumer EMPTY_CONSUMER = new EmptyConsumer();
+    private static final EmptyConsumer EMPTY_CONSUMER = new EmptyConsumer();
 
     @Override
     public void accept(String string, DiagnosticsHandler handler) {

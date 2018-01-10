@@ -66,12 +66,13 @@ public class CfBuilder {
 
   private Position currentPosition = Position.none();
 
-  private Int2ReferenceMap<DebugLocalInfo> emittedLocals = new Int2ReferenceOpenHashMap<>();
+  private final Int2ReferenceMap<DebugLocalInfo> emittedLocals = new Int2ReferenceOpenHashMap<>();
   private Int2ReferenceMap<DebugLocalInfo> pendingLocals = null;
   private boolean pendingLocalChanges = false;
 
-  private List<LocalVariableInfo> localVariablesTable = new ArrayList<>();
-  private Int2ReferenceMap<LocalVariableInfo> openLocalVariables = new Int2ReferenceOpenHashMap<>();
+  private final List<LocalVariableInfo> localVariablesTable = new ArrayList<>();
+  private final Int2ReferenceMap<LocalVariableInfo> openLocalVariables =
+      new Int2ReferenceOpenHashMap<>();
 
   // Internal abstraction of the stack values and height.
   private static class Stack {

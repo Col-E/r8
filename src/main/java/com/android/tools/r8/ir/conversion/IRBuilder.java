@@ -142,7 +142,7 @@ public class IRBuilder {
    */
   private static class ValueList {
 
-    private List<Value> values = new ArrayList<>();
+    private final List<Value> values = new ArrayList<>();
 
     /**
      * Creates a ValueList of all the operands at the given index in the list of phis.
@@ -257,15 +257,15 @@ public class IRBuilder {
   private final Queue<WorklistItem> ssaWorklist = new LinkedList<>();
 
   // Basic blocks. Added after processing from the worklist.
-  private LinkedList<BasicBlock> blocks = new LinkedList<>();
+  private final LinkedList<BasicBlock> blocks = new LinkedList<>();
 
   private BasicBlock currentBlock = null;
 
-  private List<BasicBlock.Pair> needGotoToCatchBlocks = new ArrayList<>();
+  private final List<BasicBlock.Pair> needGotoToCatchBlocks = new ArrayList<>();
 
   final private ValueNumberGenerator valueNumberGenerator;
 
-  private DexEncodedMethod method;
+  private final DexEncodedMethod method;
 
   // Source code to build IR from. Null if already built.
   private SourceCode source;
@@ -276,7 +276,7 @@ public class IRBuilder {
 
   // Pending local reads.
   private Value previousLocalValue = null;
-  private List<Value> debugLocalReads = new ArrayList<>();
+  private final List<Value> debugLocalReads = new ArrayList<>();
 
   private int nextBlockNumber = 0;
 

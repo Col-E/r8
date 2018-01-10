@@ -184,7 +184,7 @@ public class JarSourceCode implements SourceCode {
   private Position currentPosition;
 
   // Canonicalized positions to lower memory usage.
-  private Int2ReferenceMap<Position> canonicalPositions = new Int2ReferenceOpenHashMap<>();
+  private final Int2ReferenceMap<Position> canonicalPositions = new Int2ReferenceOpenHashMap<>();
 
   // Cooked position to indicate positions in synthesized code (ie, for synchronization).
   private Position syntheticPosition = null;

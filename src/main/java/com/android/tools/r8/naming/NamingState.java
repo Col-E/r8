@@ -116,7 +116,7 @@ class NamingState<ProtoType extends CachedHashValueDexItem, KeyType> {
 
   private static class InternalState {
 
-    private static int INITIAL_NAME_COUNT = 1;
+    private static final int INITIAL_NAME_COUNT = 1;
     private final static char[] EMPTY_CHAR_ARRARY = new char[0];
 
     protected final DexItemFactory itemFactory;

@@ -78,7 +78,7 @@ public final class InterfaceMethodRewriter {
   /**
    * A set of dexitems we have reported missing to dedupe warnings.
    */
-  private Set<DexItem> reportedMissing = Sets.newIdentityHashSet();
+  private final Set<DexItem> reportedMissing = Sets.newIdentityHashSet();
 
   /**
    * Defines a minor variation in desugaring.

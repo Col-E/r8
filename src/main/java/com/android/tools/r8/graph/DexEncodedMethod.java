@@ -649,9 +649,9 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   private static class Builder {
 
     private DexMethod method;
-    private MethodAccessFlags accessFlags;
-    private DexAnnotationSet annotations;
-    private DexAnnotationSetRefList parameterAnnotations;
+    private final MethodAccessFlags accessFlags;
+    private final DexAnnotationSet annotations;
+    private final DexAnnotationSetRefList parameterAnnotations;
     private Code code;
     private CompilationState compilationState = CompilationState.NOT_PROCESSED;
     private OptimizationInfo optimizationInfo = DefaultOptimizationInfo.DEFAULT;

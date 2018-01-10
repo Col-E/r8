@@ -74,7 +74,8 @@ public class DexSourceCode implements SourceCode {
   private final List<ValueType> argumentTypes;
 
   private List<DexDebugEntry> debugEntries = null;
-  private Position callerPosition; // In case of inlining the position of the invoke in the caller.
+  // In case of inlining the position of the invoke in the caller.
+  private final Position callerPosition;
   private final DexMethod method;
   private final boolean preserveCaller;
 

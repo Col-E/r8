@@ -20,7 +20,8 @@ import java.util.function.Supplier;
 
 public class DexProgramClass extends DexClass implements Supplier<DexProgramClass> {
 
-  private static DexEncodedArray SENTINEL_NOT_YET_COMPUTED = new DexEncodedArray(new DexValue[0]);
+  private static final DexEncodedArray SENTINEL_NOT_YET_COMPUTED =
+      new DexEncodedArray(new DexValue[0]);
 
   private final ProgramResource.Kind originKind;
   private DexEncodedArray staticValues = SENTINEL_NOT_YET_COMPUTED;

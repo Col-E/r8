@@ -21,7 +21,7 @@ import java.util.function.Function;
 
 public abstract class InvokeMethod extends Invoke {
 
-  private DexMethod method;
+  private final DexMethod method;
 
   public InvokeMethod(DexMethod target, Value result, List<Value> arguments) {
     super(result, arguments);

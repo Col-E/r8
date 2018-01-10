@@ -12,7 +12,7 @@ import java.util.Set;
 
 class ScopedDexMethodSet {
 
-  private static Equivalence<DexMethod> METHOD_EQUIVALENCE = MethodSignatureEquivalence.get();
+  private static final Equivalence<DexMethod> METHOD_EQUIVALENCE = MethodSignatureEquivalence.get();
 
   private final ScopedDexMethodSet parent;
   private final Set<Wrapper<DexMethod>> items = new HashSet<>();

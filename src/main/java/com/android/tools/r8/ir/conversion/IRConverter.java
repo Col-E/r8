@@ -83,7 +83,7 @@ public class IRConverter {
   private final ProtoLitePruner protoLiteRewriter;
   private final IdentifierNameStringMarker identifierNameStringMarker;
 
-  private OptimizationFeedback ignoreOptimizationFeedback = new OptimizationFeedbackIgnore();
+  private final OptimizationFeedback ignoreOptimizationFeedback = new OptimizationFeedbackIgnore();
   private DexString highestSortingString;
 
   private IRConverter(

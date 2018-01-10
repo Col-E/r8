@@ -18,7 +18,7 @@ import java.util.function.Function;
 public class AppInfoWithSubtyping extends AppInfo {
 
   // Set of missing classes, discovered during subtypeMap computation.
-  private Set<DexType> missingClasses = Sets.newIdentityHashSet();
+  private final Set<DexType> missingClasses = Sets.newIdentityHashSet();
   // Map from types to their subtypes.
   private final Map<DexType, ImmutableSet<DexType>> subtypeMap = new IdentityHashMap<>();
 

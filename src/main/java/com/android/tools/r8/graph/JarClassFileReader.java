@@ -51,7 +51,7 @@ import org.objectweb.asm.TypePath;
 public class JarClassFileReader {
 
   // Hidden ASM "synthetic attribute" bit we need to clear.
-  private static int ACC_SYNTHETIC_ATTRIBUTE = 0x40000;
+  private static final int ACC_SYNTHETIC_ATTRIBUTE = 0x40000;
 
   private final JarApplicationReader application;
   private final Consumer<DexClass> classConsumer;
@@ -117,7 +117,7 @@ public class JarClassFileReader {
     private DexTypeList interfaces;
     private DexString sourceFile;
     private EnclosingMethodAttribute enclosingMember = null;
-    private List<InnerClassAttribute> innerClasses = new ArrayList<>();
+    private final List<InnerClassAttribute> innerClasses = new ArrayList<>();
     private List<DexAnnotation> annotations = null;
     private List<DexAnnotationElement> defaultAnnotations = null;
     private final List<DexEncodedField> staticFields = new ArrayList<>();

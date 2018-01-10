@@ -9,7 +9,7 @@ import java.util.NoSuchElementException;
 
 public class IRCodeInstructionsIterator implements InstructionIterator {
 
-  private ListIterator<BasicBlock> blockIterator;
+  private final ListIterator<BasicBlock> blockIterator;
   private InstructionListIterator instructionIterator;
 
   public IRCodeInstructionsIterator(IRCode code) {

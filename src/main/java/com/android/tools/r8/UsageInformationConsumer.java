@@ -39,7 +39,7 @@ public interface UsageInformationConsumer {
   /** Empty consumer to request usage information but ignore the result. */
   class EmptyConsumer implements UsageInformationConsumer {
 
-    private static EmptyConsumer EMPTY_CONSUMER = new EmptyConsumer();
+    private static final EmptyConsumer EMPTY_CONSUMER = new EmptyConsumer();
 
     private EmptyConsumer() {}
 
