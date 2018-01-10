@@ -12,13 +12,13 @@ public class InnerClassAttribute {
   private final int access;
 
   // Type of the inner class.
-  private DexType inner;
+  private final DexType inner;
 
   // Type of the enclosing class, null if the inner class is top-level, local or anonymous.
-  private DexType outer;
+  private final DexType outer;
 
   // Short name of the inner class, null if the inner class is anonymous.
-  private DexString innerName;
+  private final DexString innerName;
 
   // Create a named inner-class attribute, but with some arbitrary/unknown name.
   // This is needed to partially map back to the Java attribute structures when reading DEX inputs.

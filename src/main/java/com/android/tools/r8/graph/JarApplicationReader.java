@@ -20,12 +20,9 @@ import org.objectweb.asm.Type;
 public class JarApplicationReader {
 
   public final InternalOptions options;
-
-  private ConcurrentHashMap<String, Type> asmObjectTypeCache = new ConcurrentHashMap<>();
-
-  private ConcurrentHashMap<String, Type> asmTypeCache = new ConcurrentHashMap<>();
-
-  ConcurrentHashMap<String, DexString> stringCache = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<String, Type> asmObjectTypeCache = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<String, Type> asmTypeCache = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<String, DexString> stringCache = new ConcurrentHashMap<>();
 
   public JarApplicationReader(InternalOptions options) {
     this.options = options;

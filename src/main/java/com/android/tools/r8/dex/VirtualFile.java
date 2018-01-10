@@ -632,7 +632,7 @@ public class VirtualFile {
    */
   private static class VirtualFileCycler {
 
-    private List<VirtualFile> files;
+    private final List<VirtualFile> files;
     private final NamingLens namingLens;
 
     private int nextFileId;

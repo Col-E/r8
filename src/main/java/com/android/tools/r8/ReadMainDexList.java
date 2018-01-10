@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
  */
 public class ReadMainDexList {
 
-  private String DOT_CLASS = ".class";
+  private static final String DOT_CLASS = ".class";
 
   private String stripDotClass(String name) {
     return name.endsWith(DOT_CLASS) ? name.substring(0, name.length() - DOT_CLASS.length()) : name;

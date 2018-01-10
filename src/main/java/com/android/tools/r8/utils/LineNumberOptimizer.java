@@ -51,7 +51,7 @@ public class LineNumberOptimizer {
       void receivePositionEvent(DexDebugPositionState positionState);
     }
 
-    private DexDebugPositionState positionState;
+    private final DexDebugPositionState positionState;
 
     private EventFilter(
         int startLine,
@@ -153,10 +153,10 @@ public class LineNumberOptimizer {
   private static class PositionEventEmitter {
     private final DexItemFactory dexItemFactory;
     private int startLine = -1;
-    private DexMethod method;
+    private final DexMethod method;
     private int previousPc = DexDebugEventBuilder.NO_PC_INFO;
     private Position previousPosition = null;
-    private List<DexDebugEvent> processedEvents;
+    private final List<DexDebugEvent> processedEvents;
 
     private PositionEventEmitter(
         DexItemFactory dexItemFactory, DexMethod method, List<DexDebugEvent> processedEvents) {

@@ -34,7 +34,7 @@ public class FilteredArchiveProgramResourceProvider implements ProgramResourcePr
 
   private final Origin origin;
   private final FilteredClassPath archive;
-  private boolean ignoreDexInArchive;
+  private final boolean ignoreDexInArchive;
 
   FilteredArchiveProgramResourceProvider(FilteredClassPath archive, boolean ignoreDexInArchive) {
     origin = new PathOrigin(archive.getPath());

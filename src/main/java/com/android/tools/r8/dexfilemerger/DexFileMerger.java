@@ -80,7 +80,7 @@ public class DexFileMerger {
   }
 
   private static class ParseContext {
-    private String[] args;
+    private final String[] args;
     private int nextIndex = 0;
 
     ParseContext(String[] args) {

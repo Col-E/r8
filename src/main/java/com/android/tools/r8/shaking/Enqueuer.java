@@ -79,15 +79,16 @@ public class Enqueuer {
   private final InternalOptions options;
   private RootSet rootSet;
 
-  private Map<DexType, Set<DexMethod>> virtualInvokes = Maps.newIdentityHashMap();
-  private Map<DexType, Set<DexMethod>> interfaceInvokes = Maps.newIdentityHashMap();
-  private Map<DexType, Set<TargetWithContext<DexMethod>>> superInvokes = Maps.newIdentityHashMap();
-  private Map<DexType, Set<DexMethod>> directInvokes = Maps.newIdentityHashMap();
-  private Map<DexType, Set<DexMethod>> staticInvokes = Maps.newIdentityHashMap();
-  private Map<DexType, Set<DexField>> instanceFieldsWritten = Maps.newIdentityHashMap();
-  private Map<DexType, Set<DexField>> instanceFieldsRead = Maps.newIdentityHashMap();
-  private Map<DexType, Set<DexField>> staticFieldsRead = Maps.newIdentityHashMap();
-  private Map<DexType, Set<DexField>> staticFieldsWritten = Maps.newIdentityHashMap();
+  private final Map<DexType, Set<DexMethod>> virtualInvokes = Maps.newIdentityHashMap();
+  private final Map<DexType, Set<DexMethod>> interfaceInvokes = Maps.newIdentityHashMap();
+  private final Map<DexType, Set<TargetWithContext<DexMethod>>> superInvokes =
+      Maps.newIdentityHashMap();
+  private final Map<DexType, Set<DexMethod>> directInvokes = Maps.newIdentityHashMap();
+  private final Map<DexType, Set<DexMethod>> staticInvokes = Maps.newIdentityHashMap();
+  private final Map<DexType, Set<DexField>> instanceFieldsWritten = Maps.newIdentityHashMap();
+  private final Map<DexType, Set<DexField>> instanceFieldsRead = Maps.newIdentityHashMap();
+  private final Map<DexType, Set<DexField>> staticFieldsRead = Maps.newIdentityHashMap();
+  private final Map<DexType, Set<DexField>> staticFieldsWritten = Maps.newIdentityHashMap();
 
   private final List<SemanticsProvider> extensions = new ArrayList<>();
   private final Map<Class<?>, Object> extensionsState = new HashMap<>();
@@ -97,56 +98,56 @@ public class Enqueuer {
    * is reachable even if no live subtypes exist, so this is not sufficient for inclusion in the
    * live set.
    */
-  private Map<DexType, SetWithReason<DexEncodedMethod>> reachableVirtualMethods = Maps
+  private final Map<DexType, SetWithReason<DexEncodedMethod>> reachableVirtualMethods = Maps
       .newIdentityHashMap();
   /**
    * Tracks the dependency between a method and the super-method it calls, if any. Used to make
    * super methods become live when they become reachable from a live sub-method.
    */
-  private Map<DexEncodedMethod, Set<DexEncodedMethod>> superInvokeDependencies = Maps
+  private final Map<DexEncodedMethod, Set<DexEncodedMethod>> superInvokeDependencies = Maps
       .newIdentityHashMap();
   /**
    * Set of instance fields that can be reached by read/write operations.
    */
-  private Map<DexType, SetWithReason<DexEncodedField>> reachableInstanceFields = Maps
+  private final Map<DexType, SetWithReason<DexEncodedField>> reachableInstanceFields = Maps
       .newIdentityHashMap();
 
   /**
    * Set of types that are mentioned in the program. We at least need an empty abstract classitem
    * for these.
    */
-  private Set<DexType> liveTypes = Sets.newIdentityHashSet();
+  private final Set<DexType> liveTypes = Sets.newIdentityHashSet();
   /**
    * Set of types that are actually instantiated. These cannot be abstract.
    */
-  private SetWithReason<DexType> instantiatedTypes = new SetWithReason<>();
+  private final SetWithReason<DexType> instantiatedTypes = new SetWithReason<>();
   /**
    * Set of methods that are the immediate target of an invoke. They might not actually be live but
    * are required so that invokes can find the method. If a method is only a target but not live,
    * its implementation may be removed and it may be marked abstract.
    */
-  private SetWithReason<DexEncodedMethod> targetedMethods = new SetWithReason<>();
+  private final SetWithReason<DexEncodedMethod> targetedMethods = new SetWithReason<>();
   /**
    * Set of methods that belong to live classes and can be reached by invokes. These need to be
    * kept.
    */
-  private SetWithReason<DexEncodedMethod> liveMethods = new SetWithReason<>();
+  private final SetWithReason<DexEncodedMethod> liveMethods = new SetWithReason<>();
 
   /**
    * Set of fields that belong to live classes and can be reached by invokes. These need to be
    * kept.
    */
-  private SetWithReason<DexEncodedField> liveFields = new SetWithReason<>();
+  private final SetWithReason<DexEncodedField> liveFields = new SetWithReason<>();
 
   /**
    * A queue of items that need processing. Different items trigger different actions:
    */
-  private Queue<Action> workList = Queues.newArrayDeque();
+  private final Queue<Action> workList = Queues.newArrayDeque();
 
   /**
    * A queue of items that have been added to try to keep Proguard compatibility.
    */
-  private Queue<Action> proguardCompatibilityWorkList = Queues.newArrayDeque();
+  private final Queue<Action> proguardCompatibilityWorkList = Queues.newArrayDeque();
 
   /**
    * A set of methods that need code inspection for Proguard compatibility rules.
@@ -157,18 +158,18 @@ public class Enqueuer {
   /**
    * A cache for DexMethod that have been marked reachable.
    */
-  private Set<DexMethod> virtualTargetsMarkedAsReachable = Sets.newIdentityHashSet();
+  private final Set<DexMethod> virtualTargetsMarkedAsReachable = Sets.newIdentityHashSet();
 
   /**
    * A set of dexitems we have reported missing to dedupe warnings.
    */
-  private Set<DexItem> reportedMissing = Sets.newIdentityHashSet();
+  private final Set<DexItem> reportedMissing = Sets.newIdentityHashSet();
 
   /**
    * A set of items that we are keeping due to keep rules. This may differ from the rootSet due to
    * dependent keep rules.
    */
-  private Set<DexItem> pinnedItems = Sets.newIdentityHashSet();
+  private final Set<DexItem> pinnedItems = Sets.newIdentityHashSet();
 
   /**
    * A map from classes to annotations that need to be processed should the classes ever become

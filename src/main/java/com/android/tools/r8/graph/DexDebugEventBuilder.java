@@ -59,7 +59,7 @@ public class DexDebugEventBuilder {
   private int startLine = NO_LINE_INFO;
 
   // True if running in debug-mode with input code that contains line information, otherwise false.
-  private boolean hasDebugPositions;
+  private final boolean hasDebugPositions;
 
   public DexDebugEventBuilder(IRCode code, InternalOptions options) {
     this.method = code.method;

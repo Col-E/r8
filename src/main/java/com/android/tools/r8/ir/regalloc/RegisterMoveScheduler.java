@@ -24,10 +24,10 @@ import java.util.TreeSet;
 
 public class RegisterMoveScheduler {
   // The set of moves to schedule.
-  private Set<RegisterMove> moveSet = new TreeSet<>();
+  private final Set<RegisterMove> moveSet = new TreeSet<>();
   // Mapping to keep track of which values currently corresponds to each other.
   // This is initially an identity map but changes as we insert moves.
-  private Map<Integer, Integer> valueMap = new HashMap<>();
+  private final Map<Integer, Integer> valueMap = new HashMap<>();
   // Number of temp registers used to schedule the moves.
   private int usedTempRegisters = 0;
   // Location at which to insert the scheduled moves.

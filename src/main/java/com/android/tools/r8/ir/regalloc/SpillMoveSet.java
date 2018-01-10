@@ -30,7 +30,7 @@ class SpillMoveSet {
   // The code into which to insert the moves.
   private final IRCode code;
   // The register allocator generating moves.
-  private LinearScanRegisterAllocator allocator;
+  private final LinearScanRegisterAllocator allocator;
   // All registers below this number are arguments.
   private final int argumentRegisterLimit;
   // Mapping from instruction numbers to the block that start with that instruction if any.

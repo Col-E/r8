@@ -114,7 +114,7 @@ public class BasicBlock {
   // in predecessor blocks.
   private boolean filled = false;
   private boolean sealed = false;
-  private Map<Integer, Phi> incompletePhis = new HashMap<>();
+  private final Map<Integer, Phi> incompletePhis = new HashMap<>();
   private int estimatedPredecessorsCount = 0;
   private int unfilledPredecessorsCount = 0;
 

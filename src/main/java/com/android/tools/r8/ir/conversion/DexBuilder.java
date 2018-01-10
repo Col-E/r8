@@ -94,7 +94,7 @@ public class DexBuilder {
 
   // Set of if instructions that have offsets that are so large that they cannot be encoded in
   // the if instruction format.
-  private Set<BasicBlock> ifsNeedingRewrite = Sets.newIdentityHashSet();
+  private final Set<BasicBlock> ifsNeedingRewrite = Sets.newIdentityHashSet();
 
   // Running bounds on offsets.
   private int maxOffset = 0;
@@ -787,7 +787,7 @@ public class DexBuilder {
 
   private static class FixedSizeInfo extends Info {
 
-    private Instruction instruction;
+    private final Instruction instruction;
 
     public FixedSizeInfo(com.android.tools.r8.ir.code.Instruction ir, Instruction instruction) {
       super(ir);
@@ -823,7 +823,7 @@ public class DexBuilder {
 
   private static class MultiFixedSizeInfo extends Info {
 
-    private Instruction[] instructions;
+    private final Instruction[] instructions;
     private final int size;
 
     public MultiFixedSizeInfo(com.android.tools.r8.ir.code.Instruction ir,

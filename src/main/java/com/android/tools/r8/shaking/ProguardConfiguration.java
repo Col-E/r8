@@ -38,7 +38,7 @@ public class ProguardConfiguration {
     private boolean verbose;
     private String renameSourceFileAttribute;
     private final List<String> keepAttributePatterns = new ArrayList<>();
-    private ProguardClassFilter.Builder dontWarnPatterns = ProguardClassFilter.builder();
+    private final ProguardClassFilter.Builder dontWarnPatterns = ProguardClassFilter.builder();
     protected final Set<ProguardConfigurationRule> rules = Sets.newLinkedHashSet();
     private final DexItemFactory dexItemFactory;
     private boolean printSeeds;
@@ -50,7 +50,7 @@ public class ProguardConfiguration {
     private boolean keepParameterNames;
     private Origin keepParameterNamesOptionOrigin;
     private Position keepParameterNamesOptionPosition;
-    private ProguardClassFilter.Builder adaptClassStrings = ProguardClassFilter.builder();
+    private final ProguardClassFilter.Builder adaptClassStrings = ProguardClassFilter.builder();
     private boolean forceProguardCompatibility = false;
     private boolean overloadAggressively;
 
@@ -286,8 +286,8 @@ public class ProguardConfiguration {
   private final ImmutableList<String> obfuscationDictionary;
   private final ImmutableList<String> classObfuscationDictionary;
   private final ImmutableList<String> packageObfuscationDictionary;
-  private boolean useUniqueClassMemberNames;
-  private boolean keepParameterNames;
+  private final boolean useUniqueClassMemberNames;
+  private final boolean keepParameterNames;
   private final ProguardClassFilter adaptClassStrings;
 
   private ProguardConfiguration(

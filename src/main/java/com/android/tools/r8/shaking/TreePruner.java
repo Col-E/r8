@@ -24,7 +24,7 @@ import java.util.Set;
 
 public class TreePruner {
 
-  private DexApplication application;
+  private final DexApplication application;
   private final AppInfoWithLiveness appInfo;
   private final InternalOptions options;
   private final UsagePrinter usagePrinter;

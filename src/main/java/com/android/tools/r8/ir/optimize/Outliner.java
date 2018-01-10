@@ -973,7 +973,7 @@ public class Outliner {
 
   public class OutlineCode extends Code {
 
-    private Outline outline;
+    private final Outline outline;
 
     OutlineCode(Outline outline) {
       this.outline = outline;

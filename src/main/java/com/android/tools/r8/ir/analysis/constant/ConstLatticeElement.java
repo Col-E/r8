@@ -6,7 +6,7 @@ package com.android.tools.r8.ir.analysis.constant;
 import com.android.tools.r8.ir.code.ConstNumber;
 
 public class ConstLatticeElement extends LatticeElement {
-  private ConstNumber value;
+  private final ConstNumber value;
 
   public ConstLatticeElement(ConstNumber value) {
     this.value = value;

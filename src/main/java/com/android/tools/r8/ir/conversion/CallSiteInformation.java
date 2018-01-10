@@ -23,7 +23,7 @@ public abstract class CallSiteInformation {
 
   private static class EmptyCallSiteInformation extends CallSiteInformation {
 
-    private static EmptyCallSiteInformation EMPTY_INFO = new EmptyCallSiteInformation();
+    private static final EmptyCallSiteInformation EMPTY_INFO = new EmptyCallSiteInformation();
 
     @Override
     public boolean hasSingleCallSite(DexEncodedMethod method) {

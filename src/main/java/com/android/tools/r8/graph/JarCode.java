@@ -41,7 +41,7 @@ public class JarCode extends Code {
     // GC'd.
     public byte[] classCache;
     public DexProgramClass owner;
-    private List<JarCode> codeList = new ArrayList<>();
+    private final List<JarCode> codeList = new ArrayList<>();
   }
 
   private final DexMethod method;

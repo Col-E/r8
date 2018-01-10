@@ -56,9 +56,9 @@ class ClassNameMinifier {
 
   private final Namespace topLevelState;
 
-  private GenericSignatureRewriter genericSignatureRewriter = new GenericSignatureRewriter();
+  private final GenericSignatureRewriter genericSignatureRewriter = new GenericSignatureRewriter();
 
-  private GenericSignatureParser<DexType> genericSignatureParser =
+  private final GenericSignatureParser<DexType> genericSignatureParser =
       new GenericSignatureParser<>(genericSignatureRewriter);
 
   ClassNameMinifier(
@@ -355,8 +355,8 @@ class ClassNameMinifier {
     private final char[] packagePrefix;
     private int typeCounter = 1;
     private int packageCounter = 1;
-    private Iterator<String> packageDictionaryIterator;
-    private Iterator<String> classDictionaryIterator;
+    private final Iterator<String> packageDictionaryIterator;
+    private final Iterator<String> classDictionaryIterator;
 
     Namespace(String packageName) {
       this(packageName, "/");

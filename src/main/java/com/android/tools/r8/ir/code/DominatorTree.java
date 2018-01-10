@@ -9,9 +9,9 @@ import java.util.Collection;
 import java.util.Iterator;
 
 public class DominatorTree {
-  private BasicBlock[] sorted;
+  private final BasicBlock[] sorted;
   private BasicBlock[] doms;
-  private BasicBlock normalExitBlock = new BasicBlock();
+  private final BasicBlock normalExitBlock = new BasicBlock();
 
   public DominatorTree(IRCode code) {
     ImmutableList<BasicBlock> blocks = code.topologicallySortedBlocks();

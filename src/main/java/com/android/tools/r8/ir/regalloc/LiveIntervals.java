@@ -22,10 +22,10 @@ public class LiveIntervals implements Comparable<LiveIntervals> {
   private final Value value;
   private LiveIntervals nextConsecutive;
   private LiveIntervals previousConsecutive;
-  private LiveIntervals splitParent;
-  private List<LiveIntervals> splitChildren = new ArrayList<>();
+  private final LiveIntervals splitParent;
+  private final List<LiveIntervals> splitChildren = new ArrayList<>();
   private List<LiveRange> ranges = new ArrayList<>();
-  private TreeSet<LiveIntervalsUse> uses = new TreeSet<>();
+  private final TreeSet<LiveIntervalsUse> uses = new TreeSet<>();
   private int numberOfConsecutiveRegisters = -1;
   private int register = NO_REGISTER;
   private LiveIntervals hint;

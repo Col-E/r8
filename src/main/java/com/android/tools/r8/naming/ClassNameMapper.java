@@ -78,7 +78,7 @@ public class ClassNameMapper implements ProguardMap {
   private final ImmutableMap<String, ClassNamingForNameMapper> classNameMappings;
   private ImmutableBiMap<String, String> nameMapping;
 
-  private Map<Signature, Signature> signatureMap = new HashMap<>();
+  private final Map<Signature, Signature> signatureMap = new HashMap<>();
 
   private ClassNameMapper(Map<String, ClassNamingForNameMapper.Builder> classNameMappings) {
     ImmutableMap.Builder<String, ClassNamingForNameMapper> builder = ImmutableMap.builder();

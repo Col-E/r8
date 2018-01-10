@@ -16,7 +16,7 @@ import java.util.function.Function;
 
 public class InvokeNewArray extends Invoke {
 
-  private DexType type;
+  private final DexType type;
 
   public InvokeNewArray(DexType type, Value result, List<Value> arguments) {
     super(result, arguments);

@@ -28,10 +28,10 @@ import java.util.Map;
  */
 public class SparseConditionalConstantPropagation {
 
-  private IRCode code;
-  private Map<Value, LatticeElement> mapping = new HashMap<>();
-  private Deque<Value> ssaEdges = new LinkedList<>();
-  private Deque<BasicBlock> flowEdges = new LinkedList<>();
+  private final IRCode code;
+  private final Map<Value, LatticeElement> mapping = new HashMap<>();
+  private final Deque<Value> ssaEdges = new LinkedList<>();
+  private final Deque<BasicBlock> flowEdges = new LinkedList<>();
   private final int nextBlockNumber;
   private final BitSet[] executableFlowEdges;
   private final BitSet visitedBlocks;

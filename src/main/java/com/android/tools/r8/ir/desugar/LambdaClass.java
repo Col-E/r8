@@ -64,7 +64,7 @@ final class LambdaClass {
   final DexField instanceField;
   final Target target;
   final AtomicBoolean addToMainDexList = new AtomicBoolean(false);
-  private Collection<DexProgramClass> synthesizedFrom = new ArrayList<DexProgramClass>(1);
+  private final Collection<DexProgramClass> synthesizedFrom = new ArrayList<DexProgramClass>(1);
 
   LambdaClass(LambdaRewriter rewriter, DexType accessedFrom,
       DexType lambdaClassType, LambdaDescriptor descriptor) {

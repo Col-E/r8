@@ -18,7 +18,7 @@ class ExtractMarkerCommand {
     private boolean verbose;
     private boolean summary;
     private boolean csv;
-    private List<Path> programFiles = new ArrayList<>();
+    private final List<Path> programFiles = new ArrayList<>();
 
     public Builder setPrintHelp(boolean printHelp) {
       this.printHelp = printHelp;

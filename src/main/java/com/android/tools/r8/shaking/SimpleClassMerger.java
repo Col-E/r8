@@ -545,7 +545,7 @@ public class SimpleClassMerger {
 
   private static class CollisionDetector {
 
-    private static int NOT_FOUND = 1 << (Integer.SIZE - 1);
+    private static final int NOT_FOUND = 1 << (Integer.SIZE - 1);
 
     // TODO(herhut): Maybe cache seenPositions for target classes.
     private final Map<DexString, Int2IntMap> seenPositions = new IdentityHashMap<>();

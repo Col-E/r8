@@ -47,7 +47,7 @@ import java.util.stream.Collectors;
 
 public class RootSetBuilder {
 
-  private DirectMappedDexApplication application;
+  private final DirectMappedDexApplication application;
   private final AppInfo appInfo;
   private final List<ProguardConfigurationRule> rules;
   private final Map<DexItem, ProguardKeepRule> noShrinking = new IdentityHashMap<>();

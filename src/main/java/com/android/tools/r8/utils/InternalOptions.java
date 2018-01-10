@@ -202,12 +202,12 @@ public class InternalOptions {
     }
   }
 
-  private Map<Origin, List<TypeVersionPair>> missingEnclosingMembers = new HashMap<>();
+  private final Map<Origin, List<TypeVersionPair>> missingEnclosingMembers = new HashMap<>();
 
-  private Map<Origin, List<InvalidParameterAnnotationInfo>> warningInvalidParameterAnnotations
+  private final Map<Origin, List<InvalidParameterAnnotationInfo>> warningInvalidParameterAnnotations
       = new HashMap<>();
 
-  private Map<Origin, List<DexEncodedMethod>> warningInvalidDebugInfo = new HashMap<>();
+  private final Map<Origin, List<DexEncodedMethod>> warningInvalidDebugInfo = new HashMap<>();
 
   // Don't read code from dex files. Used to extract non-code information from vdex files where
   // the code contains unsupported byte codes.

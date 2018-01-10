@@ -36,7 +36,7 @@ public abstract class ProguardClassNameList {
     /**
      * Map used to store pairs of patterns and whether they are negated.
      */
-    private Object2BooleanMap<ProguardTypeMatcher> matchers = new Object2BooleanArrayMap<>();
+    private final Object2BooleanMap<ProguardTypeMatcher> matchers = new Object2BooleanArrayMap<>();
 
     private Builder() {
     }

@@ -5,7 +5,7 @@ package com.android.tools.r8.origin;
 
 public class StandardOutOrigin extends Origin {
 
-  private static StandardOutOrigin INSTANCE = new StandardOutOrigin();
+  private static final StandardOutOrigin INSTANCE = new StandardOutOrigin();
 
   public static StandardOutOrigin instance() {
     return INSTANCE;

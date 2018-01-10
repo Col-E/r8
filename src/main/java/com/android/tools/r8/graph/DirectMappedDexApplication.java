@@ -90,7 +90,7 @@ public class DirectMappedDexApplication extends DexApplication {
 
   public static class Builder extends DexApplication.Builder<Builder> {
 
-    private List<DexLibraryClass> libraryClasses = new ArrayList<>();
+    private final List<DexLibraryClass> libraryClasses = new ArrayList<>();
 
     Builder(LazyLoadedDexApplication application) {
       super(application);

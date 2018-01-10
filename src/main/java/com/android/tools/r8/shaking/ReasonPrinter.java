@@ -130,8 +130,8 @@ public class ReasonPrinter {
 
   class ReasonFormatter {
 
-    private Set<DexItem> seen = Sets.newIdentityHashSet();
-    private Deque<String> prefixes = new ArrayDeque<>();
+    private final Set<DexItem> seen = Sets.newIdentityHashSet();
+    private final Deque<String> prefixes = new ArrayDeque<>();
 
     private int indentation = -1;
 

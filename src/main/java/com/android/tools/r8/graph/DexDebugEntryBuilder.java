@@ -54,7 +54,7 @@ public class DexDebugEntryBuilder implements DexDebugEventVisitor {
 
   // Resulting debug entries.
   private List<DexDebugEntry> entries = new ArrayList<>();
-  private DexDebugPositionState positionState;
+  private final DexDebugPositionState positionState;
 
   public DexDebugEntryBuilder(int startLine, DexMethod method) {
     assert method != null;

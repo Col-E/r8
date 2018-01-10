@@ -58,7 +58,7 @@ public class JumboStringRewriter {
   private static class TryTargets {
     private Instruction start;
     private Instruction end;
-    private boolean endsAfterLastInstruction;
+    private final boolean endsAfterLastInstruction;
 
     TryTargets(Instruction start, Instruction end, boolean endsAfterLastInstruction) {
       assert start != null;

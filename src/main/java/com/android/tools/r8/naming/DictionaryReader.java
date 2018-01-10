@@ -15,7 +15,7 @@ import java.nio.file.Path;
 
 public class DictionaryReader implements AutoCloseable {
 
-  private BufferedReader reader;
+  private final BufferedReader reader;
 
   public DictionaryReader(Path path) throws IOException {
     this.reader = Files.newBufferedReader(path);
