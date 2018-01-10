@@ -12,41 +12,31 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.FileUtils;
-import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collection;
 import org.junit.Assume;
+import org.junit.Ignore;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
 
 /**
  * This test verifies that semantic of class initialization is preserved when a static method
  * invocation is inlined.
  */
-@RunWith(Parameterized.class)
-public class R8StaticInlining extends TestBase {
+// TODO(shertz) add CF output
+public class R8InliningRegressionTests extends TestBase {
 
-  // TODO(shertz) add CF output
-  @Parameters(name = "{0}_{1}")
-  public static Collection<String[]> data() {
-    return ImmutableList.of(
-        new String[]{"staticinlining", "staticinlining.Main"}
-    );
-  }
-
-  private final String folder;
-  private final String mainClass;
-
-  public R8StaticInlining(String folder, String mainClass) {
-    this.folder = folder;
-    this.mainClass = mainClass;
+  @Test
+  public void testStaticInlining_b71524812() throws Exception {
+    buildAndTest("staticinlining", "staticinlining.Main");
   }
 
   @Test
-  public void testInliningOfStatic() throws Exception {
+  @Ignore("b/71629503")
+  public void testInterfaceInlining_b71629503() throws Exception {
+    buildAndTest("inlining_with_proxy", "inlining_with_proxy.Main");
+  }
+
+  private void buildAndTest(String folder, String mainClass) throws Exception {
     Assume.assumeTrue(ToolHelper.artSupported());
 
     Path proguardRules = Paths.get(ToolHelper.EXAMPLES_DIR, folder, "keep-rules.txt");
