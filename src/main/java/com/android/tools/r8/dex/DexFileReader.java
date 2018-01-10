@@ -1124,22 +1124,25 @@ public class DexFileReader {
         if (enclosingMethod != null) {
           enclosingMethodAttribute = new EnclosingMethodAttribute(enclosingMethod);
         } else {
-          assert innerClasses != null;
           InnerClassAttribute namedEnclosing = null;
-          for (InnerClassAttribute innerClass : innerClasses) {
-            if (type == innerClass.getInner()) {
-              // If inner-class is anonymous then we create an enclosing-method attribute.
-              // Unfortunately we can't distinguish member classes from local classes, and thus
-              // can't at this point conform to the spec which requires a enclosing-method attribute
-              // iff the inner-class is anonymous or local. A local inner class will thus be
-              // represented as an ordinary member class and given an inner-classes entry below.
-              namedEnclosing = innerClass.isNamed() ? innerClass : null;
-              break;
+          if (innerClasses != null) {
+            for (InnerClassAttribute innerClass : innerClasses) {
+              if (type == innerClass.getInner()) {
+                // If inner-class is anonymous then we create an enclosing-method attribute.
+                // Unfortunately we can't distinguish member classes from local classes, and thus
+                // can't at this point conform to the spec which requires a enclosing-method
+                // attribute iff the inner-class is anonymous or local. A local inner class will
+                // thus be represented as an ordinary member class and given an inner-classes
+                // entry below.
+                namedEnclosing = innerClass.isNamed() ? innerClass : null;
+                break;
+              }
             }
           }
           if (namedEnclosing == null) {
             enclosingMethodAttribute = new EnclosingMethodAttribute(enclosingClass);
           } else {
+            assert innerClasses != null;
             innerClasses.remove(namedEnclosing);
             innerClasses.add(
                 new InnerClassAttribute(
