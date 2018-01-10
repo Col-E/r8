@@ -3,12 +3,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -19,6 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.concurrent.ExecutionException;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import org.junit.Assert;
@@ -38,8 +41,14 @@ public class AsmTestBase extends TestBase {
   }
 
   protected void ensureSameOutput(String main, byte[]... classes) throws Exception {
-    ProcessResult javaResult = runOnJava(main, classes);
     AndroidApp app = buildAndroidApp(classes);
+    ensureSameOutput(main, app, classes);
+  }
+
+  private void ensureSameOutput(String main, AndroidApp app, byte[]... classes)
+      throws IOException, CompilationException, ExecutionException, CompilationFailedException,
+      ProguardRuleParserException {
+    ProcessResult javaResult = runOnJava(main, classes);
     ProcessResult d8Result = runOnArtRaw(compileWithD8(app), main);
     ProcessResult r8Result = runOnArtRaw(compileWithR8(app), main);
     ProcessResult r8ShakenResult = runOnArtRaw(
@@ -80,6 +89,16 @@ public class AsmTestBase extends TestBase {
     Assert.assertNotNull(r8ShakenError);
   }
 
+  protected void ensureSameOutputAfterMerging(String main, byte[]... classes)
+      throws IOException, CompilationException, ExecutionException,
+      CompilationFailedException, ProguardRuleParserException {
+    AndroidApp app = buildAndroidApp(classes);
+    // Compile to dex files with D8.
+    AndroidApp dexApp = compileWithD8(app);
+    // Perform dex merging with D8 to read the dex files.
+    AndroidApp mergedApp = compileWithD8(dexApp);
+    ensureSameOutput(main, mergedApp, classes);
+  }
 
   protected byte[] asBytes(Class clazz) throws IOException {
     return ByteStreams
@@ -126,7 +145,7 @@ public class AsmTestBase extends TestBase {
 
     public String getName(byte[] clazz) {
       Class loaded = defineClass(clazz, 0, clazz.length);
-      return loaded.getCanonicalName();
+      return loaded.getTypeName();
     }
   }
 }
