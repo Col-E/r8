@@ -30,7 +30,6 @@ import java.nio.file.Paths;
 import java.util.Iterator;
 import java.util.concurrent.ExecutionException;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -62,7 +61,6 @@ public class ApplyMappingTest {
   }
 
   @Test
-  @Ignore("b/71621001")
   public void test044_obfuscate_and_apply() throws Exception {
     // keep rules that allow obfuscations while keeping everything.
     Path flagForObfuscation =
@@ -121,7 +119,7 @@ public class ApplyMappingTest {
     DexType a1 = f.invokedMethod().proto.parameters.values[0];
     assertNotEquals("naming044.A", a1.toString());
     assertEquals("naming044.A", mapperFromApp.deobfuscateClassName(a1.toString()));
-    assertNotEquals("f", f.invokedMethod().name.toSourceString());
+    assertNotEquals("f", f.invokedMethod().name.toString());
     // Skip AsubB#<init>
     iterator.next();
     // AsubB#f(A)
@@ -130,9 +128,20 @@ public class ApplyMappingTest {
     DexType a2 = aSubB_f.proto.parameters.values[0];
     assertNotEquals("naming044.A", a2.toString());
     assertEquals("naming044.A", mapperFromApp.deobfuscateClassName(a2.toString()));
-    assertNotEquals("f", overloaded_f.invokedMethod().name.toSourceString());
+    assertNotEquals("f", aSubB_f.name.toString());
     // B#f == AsubB#f
     assertEquals(f.invokedMethod().name.toString(), aSubB_f.name.toString());
+    // sub.SubB#<init>(int)
+    InvokeInstructionSubject subBinit = iterator.next();
+    assertNotEquals("naming044.sub.SubB", subBinit.holder().toString());
+    assertEquals("naming044.sub.SubB",
+        mapperFromApp.deobfuscateClassName(subBinit.holder().toString()));
+    // sub.SubB#f(A)
+    InvokeInstructionSubject original_f = iterator.next();
+    DexMethod subB_f = original_f.invokedMethod();
+    DexType a3 = subB_f.proto.parameters.values[0];
+    assertEquals(a2, a3);
+    assertNotEquals("f", original_f.invokedMethod().name.toString());
   }
 
   @Test
@@ -153,11 +162,11 @@ public class ApplyMappingTest {
     // B#m() -> y#n()
     InvokeInstructionSubject m = iterator.next();
     assertEquals("naming044.y", m.holder().toString());
-    assertEquals("n", m.invokedMethod().name.toSourceString());
+    assertEquals("n", m.invokedMethod().name.toString());
     // sub.SubB#n() -> z.y#m()
     InvokeInstructionSubject n = iterator.next();
     assertEquals("naming044.z.y", n.holder().toString());
-    assertEquals("m", n.invokedMethod().name.toSourceString());
+    assertEquals("m", n.invokedMethod().name.toString());
     // Skip A#<init>
     iterator.next();
     // Skip B#<init>
@@ -166,7 +175,7 @@ public class ApplyMappingTest {
     InvokeInstructionSubject f = iterator.next();
     DexType a1 = f.invokedMethod().proto.parameters.values[0];
     assertEquals("naming044.x", a1.toString());
-    assertEquals("p", f.invokedMethod().name.toSourceString());
+    assertEquals("p", f.invokedMethod().name.toString());
     // Skip AsubB#<init>
     iterator.next();
     // AsubB#f(A) -> AsubB#p(x)
@@ -174,9 +183,18 @@ public class ApplyMappingTest {
     DexMethod aSubB_f = overloaded_f.invokedMethod();
     DexType a2 = aSubB_f.proto.parameters.values[0];
     assertEquals("naming044.x", a2.toString());
-    assertEquals("p", aSubB_f.name.toSourceString());
+    assertEquals("p", aSubB_f.name.toString());
     // B#f == AsubB#f
     assertEquals(f.invokedMethod().name.toString(), aSubB_f.name.toString());
+    // sub.SubB#<init>(int) -> z.y<init>(int)
+    InvokeInstructionSubject subBinit = iterator.next();
+    assertEquals("naming044.z.y", subBinit.holder().toString());
+    // sub.SubB#f(A) -> SubB#p(x)
+    InvokeInstructionSubject original_f = iterator.next();
+    DexMethod subB_f = original_f.invokedMethod();
+    DexType a3 = subB_f.proto.parameters.values[0];
+    assertEquals(a2, a3);
+    assertEquals("p", original_f.invokedMethod().name.toString());
   }
 
   @Test

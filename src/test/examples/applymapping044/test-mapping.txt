@@ -1,9 +1,15 @@
 naming044.A -> naming044.x:
+    void <init>() -> <init>
     int f -> o
 naming044.B -> naming044.y:
+    void <init>() -> <init>
     int m() -> n
     int f(naming044.A) -> p
 naming044.sub.SubA -> naming044.z.x:
+    void <init>() -> <init>
     int f -> q
 naming044.sub.SubB -> naming044.z.y:
+    void <init>() -> <init>
+    void <init>(int) -> <init>
     int n() -> m
+    int f -> r

@@ -6,6 +6,12 @@ package naming044.sub;
 import naming044.B;
 
 public class SubB extends B {
+  protected int f;
+
+  public SubB(int f) {
+    this.f = f;
+  }
+
   public static int n() {
     return SubA.f;
   }

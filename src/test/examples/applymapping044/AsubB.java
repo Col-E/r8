@@ -7,7 +7,11 @@ import naming044.A;
 import naming044.sub.SubB;
 
 public class AsubB extends SubB {
+  public AsubB(int f) {
+    super(f);
+  }
+
   public int boo(A a) {
-    return f(a) * 3;
+    return f(a) * f;
   }
 }
