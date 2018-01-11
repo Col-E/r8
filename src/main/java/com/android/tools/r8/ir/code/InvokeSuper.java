@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
+import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -31,7 +32,7 @@ public class InvokeSuper extends InvokeMethodWithReceiver {
   }
 
   @Override
-  public DexEncodedMethod computeSingleTarget(AppInfoWithSubtyping appInfo) {
+  public DexEncodedMethod computeSingleTarget(AppInfoWithLiveness appInfo) {
     // TODO(b/70707023) Use lookupSuperTarget here once fixed.
     return null;
   }
@@ -79,7 +80,7 @@ public class InvokeSuper extends InvokeMethodWithReceiver {
   }
 
   @Override
-  public DexEncodedMethod lookupSingleTarget(AppInfoWithSubtyping appInfo,
+  public DexEncodedMethod lookupSingleTarget(AppInfoWithLiveness appInfo,
       DexType invocationContext) {
     return appInfo.lookupSuperTarget(getInvokedMethod(), invocationContext);
   }
@@ -92,7 +93,7 @@ public class InvokeSuper extends InvokeMethodWithReceiver {
   }
 
   @Override
-  public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType invocationContext) {
+  public Constraint inliningConstraint(AppInfoWithLiveness info, DexType invocationContext) {
     // The semantics of invoke super depend on the context.
     return Constraint.SAMECLASS;
   }

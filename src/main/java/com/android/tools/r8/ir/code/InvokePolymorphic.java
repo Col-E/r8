@@ -13,6 +13,7 @@ import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.InliningOracle;
+import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import java.util.Collection;
 import java.util.List;
 
@@ -45,7 +46,7 @@ public class InvokePolymorphic extends InvokeMethod {
   }
 
   @Override
-  public DexEncodedMethod computeSingleTarget(AppInfoWithSubtyping appInfo) {
+  public DexEncodedMethod computeSingleTarget(AppInfoWithLiveness appInfo) {
     // Target method can not be known at compile time.
     return null;
   }
@@ -96,7 +97,7 @@ public class InvokePolymorphic extends InvokeMethod {
   }
 
   @Override
-  public DexEncodedMethod lookupSingleTarget(AppInfoWithSubtyping appInfo,
+  public DexEncodedMethod lookupSingleTarget(AppInfoWithLiveness appInfo,
       DexType invocationContext) {
     // TODO(herhut): Implement lookup target for invokePolymorphic.
     return null;
@@ -110,7 +111,7 @@ public class InvokePolymorphic extends InvokeMethod {
   }
 
   @Override
-  public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType invocationContext) {
+  public Constraint inliningConstraint(AppInfoWithLiveness info, DexType invocationContext) {
     return Constraint.NEVER;
   }
 

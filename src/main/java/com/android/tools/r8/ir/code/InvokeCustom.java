@@ -4,12 +4,12 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.code.InvokeCustomRange;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
+import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import java.util.List;
 
 public final class InvokeCustom extends Invoke {
@@ -47,7 +47,7 @@ public final class InvokeCustom extends Invoke {
   }
 
   @Override
-  public DexEncodedMethod computeSingleTarget(AppInfoWithSubtyping appInfo) {
+  public DexEncodedMethod computeSingleTarget(AppInfoWithLiveness appInfo) {
     // Target method can not be known at compile time.
     return null;
   }
@@ -99,7 +99,7 @@ public final class InvokeCustom extends Invoke {
   }
 
   @Override
-  public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType invocationContext) {
+  public Constraint inliningConstraint(AppInfoWithLiveness info, DexType invocationContext) {
     return Constraint.NEVER;
   }
 }

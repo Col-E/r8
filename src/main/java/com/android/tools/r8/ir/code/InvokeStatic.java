@@ -14,6 +14,7 @@ import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.InliningOracle;
+import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -36,7 +37,7 @@ public class InvokeStatic extends InvokeMethod {
   }
 
   @Override
-  public DexEncodedMethod computeSingleTarget(AppInfoWithSubtyping appInfo) {
+  public DexEncodedMethod computeSingleTarget(AppInfoWithLiveness appInfo) {
     return appInfo.lookupStaticTarget(getInvokedMethod());
   }
 
@@ -83,7 +84,7 @@ public class InvokeStatic extends InvokeMethod {
   }
 
   @Override
-  public DexEncodedMethod lookupSingleTarget(AppInfoWithSubtyping appInfo,
+  public DexEncodedMethod lookupSingleTarget(AppInfoWithLiveness appInfo,
       DexType invocationContext) {
     DexMethod method = getInvokedMethod();
     return appInfo.lookupStaticTarget(method);
@@ -97,7 +98,7 @@ public class InvokeStatic extends InvokeMethod {
   }
 
   @Override
-  public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType invocationContext) {
+  public Constraint inliningConstraint(AppInfoWithLiveness info, DexType invocationContext) {
     return inliningConstraintForSinlgeTargetInvoke(info, invocationContext);
   }
 

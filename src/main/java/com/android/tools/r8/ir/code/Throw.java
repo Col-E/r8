@@ -4,10 +4,10 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.dex.Constants;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
+import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 
 public class Throw extends JumpInstruction {
 
@@ -63,7 +63,7 @@ public class Throw extends JumpInstruction {
   }
 
   @Override
-  public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType invocationContext) {
+  public Constraint inliningConstraint(AppInfoWithLiveness info, DexType invocationContext) {
     return Constraint.ALWAYS;
   }
 }

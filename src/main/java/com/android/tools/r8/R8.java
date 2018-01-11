@@ -340,9 +340,9 @@ public class R8 {
         // Collect switch maps and ordinals maps.
         new SwitchMapCollector(appInfo.withLiveness(), options).run();
         new EnumOrdinalMapCollector(appInfo.withLiveness(), options).run();
-      }
 
-      graphLense = new BridgeMethodAnalysis(graphLense, appInfo.withSubtyping()).run();
+        graphLense = new BridgeMethodAnalysis(graphLense, appInfo.withLiveness()).run();
+      }
 
       timing.begin("Create IR");
       CfgPrinter printer = options.printCfg ? new CfgPrinter() : null;

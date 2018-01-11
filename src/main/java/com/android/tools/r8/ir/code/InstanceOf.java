@@ -11,6 +11,7 @@ import com.android.tools.r8.ir.analysis.type.PrimitiveTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
+import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import java.util.function.Function;
 
 public class InstanceOf extends Instruction {
@@ -77,7 +78,7 @@ public class InstanceOf extends Instruction {
   }
 
   @Override
-  public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType invocationContext) {
+  public Constraint inliningConstraint(AppInfoWithLiveness info, DexType invocationContext) {
     return Constraint.classIsVisible(invocationContext, type, info);
   }
 

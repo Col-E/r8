@@ -9,13 +9,13 @@ import com.android.tools.r8.code.MoveResultWide;
 import com.android.tools.r8.code.MoveType;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import java.util.List;
 
 public abstract class Invoke extends Instruction {
@@ -226,7 +226,7 @@ public abstract class Invoke extends Instruction {
 
   // This method is used for inlining.
   // It returns the target method iff this invoke has only one target.
-  abstract public DexEncodedMethod computeSingleTarget(AppInfoWithSubtyping appInfo);
+  abstract public DexEncodedMethod computeSingleTarget(AppInfoWithLiveness appInfo);
 
   @Override
   public boolean isInvoke() {

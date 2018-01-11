@@ -9,10 +9,10 @@ import static com.android.tools.r8.dex.Constants.U8BIT_MAX;
 import com.android.tools.r8.code.MonitorEnter;
 import com.android.tools.r8.code.MonitorExit;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
+import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 
 public class Monitor extends Instruction {
 
@@ -86,7 +86,7 @@ public class Monitor extends Instruction {
   }
 
   @Override
-  public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType invocationContext) {
+  public Constraint inliningConstraint(AppInfoWithLiveness info, DexType invocationContext) {
     // Conservative choice.
     return Constraint.NEVER;
   }

@@ -4,12 +4,12 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.graph.AppInfo;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
+import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import java.util.List;
 
 abstract class FieldInstruction extends Instruction {
@@ -49,7 +49,7 @@ abstract class FieldInstruction extends Instruction {
   abstract DexEncodedField lookupTarget(DexType type, AppInfo appInfo);
 
   @Override
-  public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType invocationContext) {
+  public Constraint inliningConstraint(AppInfoWithLiveness info, DexType invocationContext) {
     // Resolve the field if possible and decide whether the instruction can inlined.
     DexType fieldHolder = field.getHolder();
     DexEncodedField target = lookupTarget(fieldHolder, info);

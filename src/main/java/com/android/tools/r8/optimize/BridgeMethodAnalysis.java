@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.optimize;
 
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -12,16 +11,17 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.optimize.InvokeSingleTargetExtractor.InvokeKind;
+import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import java.util.IdentityHashMap;
 import java.util.Map;
 
 public class BridgeMethodAnalysis {
 
   private final GraphLense lense;
-  private final AppInfoWithSubtyping appInfo;
+  private final AppInfoWithLiveness appInfo;
   private final Map<DexMethod, DexMethod> bridgeTargetToBridgeMap = new IdentityHashMap<>();
 
-  public BridgeMethodAnalysis(GraphLense lense, AppInfoWithSubtyping appInfo) {
+  public BridgeMethodAnalysis(GraphLense lense, AppInfoWithLiveness appInfo) {
     this.lense = lense;
     this.appInfo = appInfo;
   }

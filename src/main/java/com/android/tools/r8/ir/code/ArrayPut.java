@@ -14,12 +14,12 @@ import com.android.tools.r8.code.AputShort;
 import com.android.tools.r8.code.AputWide;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
+import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.Arrays;
 
@@ -154,7 +154,7 @@ public class ArrayPut extends Instruction {
   }
 
   @Override
-  public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType invocationContext) {
+  public Constraint inliningConstraint(AppInfoWithLiveness info, DexType invocationContext) {
     return Constraint.ALWAYS;
   }
 

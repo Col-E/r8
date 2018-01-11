@@ -16,6 +16,7 @@ import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
+import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import java.util.function.Function;
 
 public abstract class Binop extends Instruction {
@@ -119,7 +120,7 @@ public abstract class Binop extends Instruction {
   }
 
   @Override
-  public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType invocationContext) {
+  public Constraint inliningConstraint(AppInfoWithLiveness info, DexType invocationContext) {
     return Constraint.ALWAYS;
   }
 
