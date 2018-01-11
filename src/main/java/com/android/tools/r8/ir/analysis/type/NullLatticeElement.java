@@ -15,7 +15,7 @@ public class NullLatticeElement extends TypeLatticeElement {
     return this;
   }
 
-  static NullLatticeElement getInstance() {
+  public static NullLatticeElement getInstance() {
     return INSTANCE;
   }
 

@@ -7,16 +7,16 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.ir.code.Argument;
-import com.android.tools.r8.ir.code.ArrayGet;
-import com.android.tools.r8.ir.code.InstanceGet;
-import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.code.Argument;
+import com.android.tools.r8.ir.code.ArrayGet;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.InstanceGet;
+import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Value;
@@ -148,7 +148,9 @@ public class NullabilityTest extends SmaliTestBase {
       typeAnalysis.forEach((v, l) -> {
         if (l instanceof ArrayTypeLatticeElement) {
           ArrayTypeLatticeElement lattice = (ArrayTypeLatticeElement) l;
-          assertEquals(appInfo.dexItemFactory.stringType, lattice.elementType);
+          assertEquals(
+              appInfo.dexItemFactory.stringType,
+              lattice.getArrayElementType(appInfo.dexItemFactory));
           // TODO(b/70795205): Can be refined by using control-flow info.
           assertTrue(l.isNullable());
         } else if (l instanceof ClassTypeLatticeElement) {
@@ -186,7 +188,9 @@ public class NullabilityTest extends SmaliTestBase {
       typeAnalysis.forEach((v, l) -> {
         if (l instanceof ArrayTypeLatticeElement) {
           ArrayTypeLatticeElement lattice = (ArrayTypeLatticeElement) l;
-          assertEquals(appInfo.dexItemFactory.stringType, lattice.elementType);
+          assertEquals(
+              appInfo.dexItemFactory.stringType,
+              lattice.getArrayElementType(appInfo.dexItemFactory));
           assertTrue(l.isNullable());
         } else if (l instanceof ClassTypeLatticeElement) {
           verifyClassTypeLattice(expectedLattices, example, v, l);

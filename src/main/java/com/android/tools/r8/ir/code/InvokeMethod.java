@@ -155,6 +155,6 @@ public abstract class InvokeMethod extends Invoke {
     if (returnType.isVoidType()) {
       throw new Unreachable("void methods have no type.");
     }
-    return TypeLatticeElement.fromDexType(appInfo, returnType, true);
+    return TypeLatticeElement.fromDexType(returnType, true);
   }
 }

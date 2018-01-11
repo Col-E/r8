@@ -21,7 +21,7 @@ import java.util.Deque;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
+import java.util.function.BinaryOperator;
 
 public class TypeAnalysis {
   private final AppInfoWithSubtyping appInfo;
@@ -62,10 +62,10 @@ public class TypeAnalysis {
       if (instruction instanceof Argument) {
         if (argumentsSeen < 0) {
           // Receiver
-          derived = TypeLatticeElement.fromDexType(appInfo, encodedMethod.method.holder, false);
+          derived = TypeLatticeElement.fromDexType(encodedMethod.method.holder, false);
         } else {
           DexType argType = encodedMethod.method.proto.parameters.values[argumentsSeen];
-          derived = TypeLatticeElement.fromDexType(appInfo, argType, true);
+          derived = TypeLatticeElement.fromDexType(argType, true);
         }
         argumentsSeen++;
       } else {
@@ -110,8 +110,7 @@ public class TypeAnalysis {
 
   private TypeLatticeElement computePhiType(Phi phi) {
     // Type of phi(v1, v2, ..., vn) is the least upper bound of all those n operands.
-    BiFunction<TypeLatticeElement, TypeLatticeElement, TypeLatticeElement> joiner =
-        TypeLatticeElement.joiner(appInfo);
+    BinaryOperator<TypeLatticeElement> joiner = TypeLatticeElement.joiner(appInfo);
     return phi.getOperands().stream().reduce(
         Bottom.getInstance(),
         (acc, value) -> joiner.apply(acc, getLatticeElement(value)),

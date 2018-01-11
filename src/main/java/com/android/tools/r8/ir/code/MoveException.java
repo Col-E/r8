@@ -112,6 +112,6 @@ public class MoveException extends Instruction {
   @Override
   public TypeLatticeElement evaluate(
       AppInfoWithSubtyping appInfo, Function<Value, TypeLatticeElement> getLatticeElement) {
-    return TypeLatticeElement.fromDexType(appInfo, appInfo.dexItemFactory.throwableType, false);
+    return TypeLatticeElement.fromDexType(appInfo.dexItemFactory.throwableType, false);
   }
 }

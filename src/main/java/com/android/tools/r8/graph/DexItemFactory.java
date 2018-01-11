@@ -17,6 +17,7 @@ import com.android.tools.r8.graph.DexDebugEvent.SetPrologueEnd;
 import com.android.tools.r8.graph.DexMethodHandle.MethodHandleType;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.naming.NamingLens;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
@@ -396,6 +397,11 @@ public class DexItemFactory {
 
   public DexType createType(String descriptor) {
     return createType(createString(descriptor));
+  }
+
+  public DexType createArrayType(int nesting, DexType baseType) {
+    assert nesting > 0;
+    return createType(Strings.repeat("[", nesting) + baseType.toDescriptorString());
   }
 
   public DexField createField(DexType clazz, DexType type, DexString name) {

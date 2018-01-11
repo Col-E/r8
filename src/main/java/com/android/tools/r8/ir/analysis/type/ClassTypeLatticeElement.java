@@ -9,7 +9,7 @@ import com.android.tools.r8.graph.DexType;
 public class ClassTypeLatticeElement extends TypeLatticeElement {
   final DexType classType;
 
-  ClassTypeLatticeElement(DexType classType, boolean isNullable) {
+  public ClassTypeLatticeElement(DexType classType, boolean isNullable) {
     super(isNullable);
     assert classType.isClassType();
     this.classType = classType;
@@ -30,7 +30,7 @@ public class ClassTypeLatticeElement extends TypeLatticeElement {
     if (classType.isSubtypeOf(castType, appInfo)) {
       return this;
     }
-    return fromDexType(appInfo, castType, isNullable());
+    return fromDexType(castType, isNullable());
   }
 
   @Override

@@ -20,7 +20,7 @@ public class Top extends TypeLatticeElement {
   }
 
   @Override
-  boolean isTop() {
+  public boolean isTop() {
     return true;
   }
 

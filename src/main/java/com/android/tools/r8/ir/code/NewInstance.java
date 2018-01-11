@@ -101,6 +101,6 @@ public class NewInstance extends Instruction {
   @Override
   public TypeLatticeElement evaluate(
       AppInfoWithSubtyping appInfo, Function<Value, TypeLatticeElement> getLatticeElement) {
-    return TypeLatticeElement.fromDexType(appInfo, clazz, false);
+    return TypeLatticeElement.fromDexType(clazz, false);
   }
 }

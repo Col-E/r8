@@ -8,7 +8,7 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.Value;
-import java.util.function.BiFunction;
+import java.util.function.BinaryOperator;
 
 /**
  * The base abstraction of lattice elements for local type analysis.
@@ -43,7 +43,7 @@ abstract public class TypeLatticeElement {
    * @param l2 {@link TypeLatticeElement} to join.
    * @return {@link TypeLatticeElement}, a least upper bound of {@param l1} and {@param l2}.
    */
-  static TypeLatticeElement join(
+  public static TypeLatticeElement join(
       AppInfoWithSubtyping appInfo, TypeLatticeElement l1, TypeLatticeElement l2) {
     if (l1.isBottom()) {
       return l2;
@@ -64,46 +64,50 @@ abstract public class TypeLatticeElement {
       return l2 instanceof PrimitiveTypeLatticeElement ? l1 : Top.getInstance();
     }
     if (l2 instanceof PrimitiveTypeLatticeElement) {
-      // !(l1 instanceof PrimitiveTypeLatticeElement)
+      // By the above case !(l1 instanceof PrimitiveTypeLatticeElement)
       return Top.getInstance();
     }
-    // From now on, l1 and l2 are either PrimitiveArrayType, ArrayType, or ClassType.
+    // From now on, l1 and l2 are reference types, i.e., either ArrayType or ClassType.
     boolean isNullable = l1.isNullable() || l2.isNullable();
     if (l1.getClass() != l2.getClass()) {
       return objectType(appInfo, isNullable);
     }
     // From now on, l1.getClass() == l2.getClass()
-    if (l1 instanceof PrimitiveArrayTypeLatticeElement) {
-      PrimitiveArrayTypeLatticeElement a1 = (PrimitiveArrayTypeLatticeElement) l1;
-      PrimitiveArrayTypeLatticeElement a2 = (PrimitiveArrayTypeLatticeElement) l2;
-      if (a1.nesting != a2.nesting) {
-        int min = Math.min(a1.nesting, a2.nesting);
-        if (min > 1) {
-          return objectArrayType(appInfo, min - 1, isNullable);
-        } else {
-          return objectType(appInfo, isNullable);
-        }
-      } else {
-        return l1;
-      }
-    }
     if (l1 instanceof ArrayTypeLatticeElement) {
       ArrayTypeLatticeElement a1 = (ArrayTypeLatticeElement) l1;
       ArrayTypeLatticeElement a2 = (ArrayTypeLatticeElement) l2;
-      if (a1.nesting != a2.nesting) {
-        int min = Math.min(a1.nesting, a2.nesting);
-        return objectArrayType(appInfo, min, isNullable);
-      } else {
-        // Same nesting, same base type.
-        if (a1.elementType == a2.elementType) {
-          return a1.isNullable() ? a1 : a2;
-        } else if (a1.elementType.isClassType() && a2.elementType.isClassType()) {
-          // For different class element types, compute the least upper bound of element types.
-          DexType lub = a1.elementType.computeLeastUpperBound(appInfo, a2.elementType);
-          return new ArrayTypeLatticeElement(lub, a1.nesting, isNullable);
-        }
-        // Otherwise, fall through to the end, where TOP will be returned.
+      // Identical types are the same elements
+      if (a1.getArrayType() == a2.getArrayType()) {
+        return a1.isNullable() ? a1 : a2;
       }
+      // If non-equal, find the inner-most reference types for each.
+      DexType a1BaseReferenceType = a1.getArrayBaseType(appInfo.dexItemFactory);
+      int a1Nesting = a1.getNesting();
+      if (a1BaseReferenceType.isPrimitiveType()) {
+        a1Nesting--;
+        a1BaseReferenceType = appInfo.dexItemFactory.objectType;
+      }
+      DexType a2BaseReferenceType = a2.getArrayBaseType(appInfo.dexItemFactory);
+      int a2Nesting = a2.getNesting();
+      if (a2BaseReferenceType.isPrimitiveType()) {
+        a2Nesting--;
+        a2BaseReferenceType = appInfo.dexItemFactory.objectType;
+      }
+      assert a1BaseReferenceType.isClassType() && a2BaseReferenceType.isClassType();
+      // If any nestings hit zero object is the join.
+      if (a1Nesting == 0 || a2Nesting == 0) {
+        return objectType(appInfo, isNullable);
+      }
+      // If the nestings differ the join is the smallest nesting level.
+      if (a1Nesting != a2Nesting) {
+        int min = Math.min(a1Nesting, a2Nesting);
+        return objectArrayType(appInfo, min, isNullable);
+      }
+      // For different class element types, compute the least upper bound of element types.
+      DexType lub = a1BaseReferenceType.computeLeastUpperBound(appInfo, a2BaseReferenceType);
+      // Create the full array type.
+      DexType arrayTypeLub = appInfo.dexItemFactory.createArrayType(a1Nesting, lub);
+      return new ArrayTypeLatticeElement(arrayTypeLub, isNullable);
     }
     if (l1 instanceof ClassTypeLatticeElement) {
       ClassTypeLatticeElement c1 = (ClassTypeLatticeElement) l1;
@@ -118,8 +122,7 @@ abstract public class TypeLatticeElement {
     throw new Unreachable("unless a new type lattice is introduced.");
   }
 
-  static BiFunction<TypeLatticeElement, TypeLatticeElement, TypeLatticeElement> joiner(
-      AppInfoWithSubtyping appInfo) {
+  static BinaryOperator<TypeLatticeElement> joiner(AppInfoWithSubtyping appInfo) {
     return (l1, l2) -> join(appInfo, l1, l2);
   }
 
@@ -128,7 +131,7 @@ abstract public class TypeLatticeElement {
    *
    * @return true if the corresponding {@link Value} could be any kinds.
    */
-  boolean isTop() {
+  public boolean isTop() {
     return false;
   }
 
@@ -146,42 +149,24 @@ abstract public class TypeLatticeElement {
   }
 
   static ArrayTypeLatticeElement objectArrayType(AppInfo appInfo, int nesting, boolean isNullable) {
-    return new ArrayTypeLatticeElement(appInfo.dexItemFactory.objectType, nesting, isNullable);
+    return new ArrayTypeLatticeElement(
+        appInfo.dexItemFactory.createArrayType(nesting, appInfo.dexItemFactory.objectType),
+        isNullable);
   }
 
-  public static TypeLatticeElement fromDexType(
-      AppInfoWithSubtyping appInfo, DexType type, boolean isNullable) {
+  public static TypeLatticeElement fromDexType(DexType type, boolean isNullable) {
     if (type.isPrimitiveType()) {
       return PrimitiveTypeLatticeElement.getInstance();
-    }
-    if (type.isPrimitiveArrayType()) {
-      return new PrimitiveArrayTypeLatticeElement(
-          type.getNumberOfLeadingSquareBrackets(), isNullable);
     }
     if (type.isClassType()) {
       return new ClassTypeLatticeElement(type, isNullable);
     }
     assert type.isArrayType();
-    return new ArrayTypeLatticeElement(
-        type.toBaseType(appInfo.dexItemFactory),
-        type.getNumberOfLeadingSquareBrackets(),
-        isNullable);
+    return new ArrayTypeLatticeElement(type, isNullable);
   }
 
-  public static TypeLatticeElement newArray(
-      AppInfoWithSubtyping appInfo, DexType arrayType, boolean isNullable) {
-    DexType baseType = arrayType.toBaseType(appInfo.dexItemFactory);
-    assert baseType != arrayType;
-    int nesting = arrayType.getNumberOfLeadingSquareBrackets();
-    if (baseType.isClassType()) {
-      return new ArrayTypeLatticeElement(baseType, nesting, isNullable);
-    } else {
-      return newPrimitiveArray(nesting, isNullable);
-    }
-  }
-
-  public static TypeLatticeElement newPrimitiveArray(int nesting, boolean isNullable) {
-    return new PrimitiveArrayTypeLatticeElement(nesting, isNullable);
+  public static TypeLatticeElement newArray(DexType arrayType, boolean isNullable) {
+    return new ArrayTypeLatticeElement(arrayType, isNullable);
   }
 
   public TypeLatticeElement arrayGet(AppInfoWithSubtyping appInfo) {
@@ -189,7 +174,7 @@ abstract public class TypeLatticeElement {
   }
 
   public TypeLatticeElement checkCast(AppInfoWithSubtyping appInfo, DexType castType) {
-    return fromDexType(appInfo, castType, isNullable());
+    return fromDexType(castType, isNullable());
   }
 
   @Override

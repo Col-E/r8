@@ -39,10 +39,6 @@ import com.android.tools.r8.utils.Smali;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -54,6 +50,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class TypeAnalysisTest extends SmaliTestBase {
@@ -178,10 +178,11 @@ public class TypeAnalysisTest extends SmaliTestBase {
       final Value finalArray = array;
       analysis.forEach((v, l) -> {
         if (v == finalArray) {
-          assertTrue(l instanceof PrimitiveArrayTypeLatticeElement);
-          PrimitiveArrayTypeLatticeElement lattice = (PrimitiveArrayTypeLatticeElement) l;
-          assertEquals(1, lattice.nesting);
-          assertFalse(l.isNullable());
+          assertTrue(l instanceof ArrayTypeLatticeElement);
+          ArrayTypeLatticeElement lattice = (ArrayTypeLatticeElement) l;
+          assertTrue(lattice.getArrayType().isPrimitiveArrayType());
+          assertEquals(1, lattice.getNesting());
+          assertFalse(lattice.isNullable());
         }
       });
     } catch (ApiLevelException e) {
@@ -213,10 +214,11 @@ public class TypeAnalysisTest extends SmaliTestBase {
       final Value finalArray = array;
       analysis.forEach((v, l) -> {
         if (v == finalArray) {
-          assertTrue(l instanceof PrimitiveArrayTypeLatticeElement);
-          PrimitiveArrayTypeLatticeElement lattice = (PrimitiveArrayTypeLatticeElement) l;
-          assertEquals(1, lattice.nesting);
-          assertFalse(l.isNullable());
+          assertTrue(l instanceof ArrayTypeLatticeElement);
+          ArrayTypeLatticeElement lattice = (ArrayTypeLatticeElement) l;
+          assertTrue(lattice.getArrayType().isPrimitiveArrayType());
+          assertEquals(1, lattice.getNesting());
+          assertFalse(lattice.isNullable());
         }
       });
     } catch (ApiLevelException e) {

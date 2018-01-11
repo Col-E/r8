@@ -4,37 +4,48 @@
 package com.android.tools.r8.ir.analysis.type;
 
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
-import com.google.common.base.Strings;
 
 public class ArrayTypeLatticeElement extends TypeLatticeElement {
-  final DexType elementType;
-  final int nesting;
+  private final DexType arrayType;
 
-  ArrayTypeLatticeElement(DexType elementType, int nesting, boolean isNullable) {
+  ArrayTypeLatticeElement(DexType arrayType, boolean isNullable) {
     super(isNullable);
-    this.elementType = elementType;
-    this.nesting = nesting;
+    this.arrayType = arrayType;
+  }
+
+  public DexType getArrayType() {
+    return arrayType;
+  }
+
+  public int getNesting() {
+    return arrayType.getNumberOfLeadingSquareBrackets();
+  }
+
+  public DexType getArrayElementType(DexItemFactory factory) {
+    return arrayType.toArrayElementType(factory);
+  }
+
+  public DexType getArrayBaseType(DexItemFactory factory) {
+    return arrayType.toBaseType(factory);
   }
 
   @Override
   TypeLatticeElement asNullable() {
-    return isNullable() ? this : new ArrayTypeLatticeElement(elementType, nesting, true);
+    return isNullable() ? this : new ArrayTypeLatticeElement(arrayType, true);
   }
 
   @Override
   public TypeLatticeElement arrayGet(AppInfoWithSubtyping appInfo) {
-    if (nesting == 1) {
-      return fromDexType(appInfo, elementType, true);
-    }
-    return new ArrayTypeLatticeElement(elementType, nesting - 1, true);
+    return fromDexType(getArrayElementType(appInfo.dexItemFactory), true);
   }
 
   @Override
   public TypeLatticeElement checkCast(AppInfoWithSubtyping appInfo, DexType castType) {
-    if (castType.getNumberOfLeadingSquareBrackets() == nesting) {
+    if (castType.getNumberOfLeadingSquareBrackets() == getNesting()) {
       DexType base = castType.toBaseType(appInfo.dexItemFactory);
-      if (elementType.isSubtypeOf(base, appInfo)) {
+      if (getArrayBaseType(appInfo.dexItemFactory).isSubtypeOf(base, appInfo)) {
         return this;
       }
     }
@@ -43,7 +54,7 @@ public class ArrayTypeLatticeElement extends TypeLatticeElement {
 
   @Override
   public String toString() {
-    return isNullableString() + elementType.toString() + Strings.repeat("[]", nesting);
+    return isNullableString() + arrayType.toString();
   }
 
   @Override
@@ -52,14 +63,13 @@ public class ArrayTypeLatticeElement extends TypeLatticeElement {
       return false;
     }
     ArrayTypeLatticeElement other = (ArrayTypeLatticeElement) o;
-    return nesting == other.nesting && elementType == other.elementType;
+    return arrayType == other.arrayType;
   }
 
   @Override
   public int hashCode() {
     int result = super.hashCode();
-    result = 31 * result + elementType.hashCode();
-    result = 31 * result + nesting;
+    result = 31 * result + arrayType.hashCode();
     return result;
   }
 }
