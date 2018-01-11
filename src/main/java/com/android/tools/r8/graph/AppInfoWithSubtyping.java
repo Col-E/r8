@@ -149,10 +149,11 @@ public class AppInfoWithSubtyping extends AppInfo {
       return null;
     }
     topTargets.forEachTarget(result::add);
-    // Add all matching targets from the subclass hierarchy.
+    // Add all matching targets from the subclass hierarchy. Ignore abstract classes as they cannot
+    // be a target at runtime.
     Set<DexType> set = subtypes(method.holder);
     if (set != null) {
-      for (DexType type : set) {
+      for (DexType type : Iterables.filter(set, t -> !definitionFor(t).accessFlags.isAbstract())) {
         DexClass clazz = definitionFor(type);
         if (!clazz.isInterface()) {
           ResolutionResult methods = resolveMethodOnClass(type, method);
@@ -183,10 +184,11 @@ public class AppInfoWithSubtyping extends AppInfo {
       return null;
     }
     DexEncodedMethod result = topMethod.asSingleTarget();
-    // Search for matching target in subtype hierarchy.
+    // Search for matching target in subtype hierarchy. Ignore abstract classes as they cannot be a
+    // target at runtime.
     Set<DexType> set = subtypes(method.holder);
     if (set != null) {
-      for (DexType type : set) {
+      for (DexType type : Iterables.filter(set, t -> !definitionFor(t).accessFlags.isAbstract())) {
         DexClass clazz = definitionFor(type);
         if (!clazz.isInterface()) {
           if (clazz.lookupMethod(method) != null) {
@@ -275,7 +277,8 @@ public class AppInfoWithSubtyping extends AppInfo {
     DexEncodedMethod result = null;
     Set<DexType> set = subtypes(method.holder);
     if (set != null) {
-      for (DexType type : set) {
+      // Ignore abstract classes as they cannot be a target at runtime.
+      for (DexType type : Iterables.filter(set, t -> !definitionFor(t).accessFlags.isAbstract())) {
         DexClass clazz = definitionFor(type);
         // Default methods are looked up when looking at a specific subtype that does not
         // override them, so we ignore interfaces here. Otherwise, we would look up default methods
