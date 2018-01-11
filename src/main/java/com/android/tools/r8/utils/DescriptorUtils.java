@@ -31,8 +31,12 @@ public class DescriptorUtils {
           .put("double", "D")
           .build();
 
-  private static String internalToDescriptor(String typeName, boolean shorty) {
-    String descriptor = typeNameToLetterMap.get(typeName);
+  private static String internalToDescriptor(
+      String typeName, boolean shorty, boolean ignorePrimitives) {
+    String descriptor = null;
+    if (!ignorePrimitives) {
+      descriptor = typeNameToLetterMap.get(typeName);
+    }
     if (descriptor != null) {
       return descriptor;
     }
@@ -41,7 +45,8 @@ public class DescriptorUtils {
       return "L";
     }
     if (typeName.endsWith("[]")) {
-      return "[" + internalToDescriptor(typeName.substring(0, typeName.length() - 2), shorty);
+      return "[" + internalToDescriptor(
+          typeName.substring(0, typeName.length() - 2), shorty, ignorePrimitives);
     }
     // Must be an object type.
     return "L" + typeName.replace(JAVA_PACKAGE_SEPARATOR, DESCRIPTOR_PACKAGE_SEPARATOR) + ";";
@@ -55,7 +60,22 @@ public class DescriptorUtils {
    */
   public static String javaTypeToDescriptor(String typeName) {
     assert typeName.indexOf(DESCRIPTOR_PACKAGE_SEPARATOR) == -1;
-    return internalToDescriptor(typeName, false);
+    return internalToDescriptor(typeName, false, false);
+  }
+
+  /**
+   * Convert a Java type name to a descriptor string ignoring primitive types.
+   *
+   * Ignoring primitives mean that type named like int and long are considered class names, will
+   * return Lint; and Llong; respectively instead of I and J. These are not legal Java class names,
+   * but valid on the JVM and minification/obfuscation can generate them.
+   *
+   * @param typeName the java type name
+   * @return the descriptor string
+   */
+  public static String javaTypeToDescriptorIgnorePrimitives(String typeName) {
+    assert typeName.indexOf(DESCRIPTOR_PACKAGE_SEPARATOR) == -1;
+    return internalToDescriptor(typeName, false, true);
   }
 
   /**
@@ -91,7 +111,7 @@ public class DescriptorUtils {
    * @return the shorty descriptor string
    */
   public static String javaTypeToShorty(String typeName) {
-    return internalToDescriptor(typeName, true);
+    return internalToDescriptor(typeName, true, false);
   }
 
   /**

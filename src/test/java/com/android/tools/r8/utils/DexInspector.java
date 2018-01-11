@@ -143,6 +143,10 @@ public class DexInspector {
     return dexItemFactory.createType(DescriptorUtils.javaTypeToDescriptor(string));
   }
 
+  private DexType toDexTypeIgnorePrimitives(String string) {
+    return dexItemFactory.createType(DescriptorUtils.javaTypeToDescriptorIgnorePrimitives(string));
+  }
+
   private static <S, T extends Subject> void forAll(S[] items,
       BiFunction<S, FoundClassSubject, ? extends T> constructor,
       FoundClassSubject clazz,
@@ -181,7 +185,7 @@ public class DexInspector {
         }
       }
     }
-    DexClass clazz = application.definitionFor(toDexType(name));
+    DexClass clazz = application.definitionFor(toDexTypeIgnorePrimitives(name));
     if (clazz == null) {
       return new AbsentClassSubject();
     }
@@ -190,9 +194,9 @@ public class DexInspector {
 
   public void forAllClasses(Consumer<FoundClassSubject> inspection) {
     forAll(application.classes(), cls -> {
-      ClassSubject found = clazz(cls.type.toSourceString());
-      assert found.isPresent();
-      return (FoundClassSubject) found;
+      ClassSubject subject = clazz(cls.type.toSourceString());
+      assert subject.isPresent();
+      return (FoundClassSubject) subject;
     }, inspection);
   }
 
