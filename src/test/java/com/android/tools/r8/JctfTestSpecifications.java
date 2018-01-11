@@ -7,6 +7,7 @@ package com.android.tools.r8;
 import static com.android.tools.r8.TestCondition.D8_COMPILER;
 import static com.android.tools.r8.TestCondition.R8_COMPILER;
 import static com.android.tools.r8.TestCondition.R8_NOT_AFTER_D8_COMPILER;
+import static com.android.tools.r8.TestCondition.and;
 import static com.android.tools.r8.TestCondition.any;
 import static com.android.tools.r8.TestCondition.match;
 import static com.android.tools.r8.TestCondition.runtimes;
@@ -2819,7 +2820,7 @@ public class JctfTestSpecifications {
           // Caused by: java.lang.NullPointerException: Attempt to invoke virtual method 'java.lang.String java.net.URL.getProtocol()' on a null object reference
 
           .put("lang.Package.isAnnotationPresentLjava_lang_Class.Package_isAnnotationPresent_A02",
-              match(runtimesFrom(Version.V7_0_0)))
+              match(and(runtimes(Version.V4_0_4), runtimesFrom(Version.V7_0_0))))
           // 1) testIsAnnotationPresent_Null2
           // java.lang.Exception: Unexpected exception, expected<java.lang.NullPointerException> but was<java.lang.ClassNotFoundException>
           // Caused by: java.lang.ClassNotFoundException: com.google.jctf.simpleClass
@@ -2848,7 +2849,7 @@ public class JctfTestSpecifications {
           // Caused by: java.lang.NullPointerException: Attempt to invoke virtual method 'java.lang.String java.net.URL.getProtocol()' on a null object reference
 
           .put("lang.Package.getAnnotationLjava_lang_Class.Package_getAnnotation_A02",
-              match(runtimesFrom(Version.V7_0_0)))
+              match(and(runtimesFrom(Version.V7_0_0), runtimes(Version.V4_0_4))))
           // 1) testGetAnnotation_Null2
           // java.lang.Exception: Unexpected exception, expected<java.lang.NullPointerException> but was<java.lang.ClassNotFoundException>
           // Caused by: java.lang.ClassNotFoundException: com.google.jctf.simpleClass
@@ -4072,7 +4073,7 @@ public class JctfTestSpecifications {
           // java.lang.AssertionError: Exception is not thrown: field: doublePublicField, object: com.google.jctf.test.lib.java.lang.reflect.Field.TestStaticFinalPrimitiveField@4dd95e2
 
           .put("lang.reflect.Field.setShortLjava_lang_ObjectS.Field_setShort_A02",
-              match(runtimes(Version.V4_4_4)))
+              match(runtimesUpTo(Version.V4_4_4)))
           // 1) t01
           // java.lang.AssertionError: Illegal exception is thrown: java.lang.IllegalAccessException: field is marked 'final', field: shortPublicField, class: class com.google.jctf.test.lib.java.lang.reflect.Field.TestFinalPrimitiveField
 
@@ -4098,7 +4099,7 @@ public class JctfTestSpecifications {
           // java.lang.NullPointerException: Attempt to invoke virtual method 'int java.io.InputStream.available()' on a null object reference
 
           .put("lang.reflect.Field.setLjava_lang_ObjectLjava_lang_Object.Field_set_A02",
-              match(runtimes(Version.V4_4_4)))
+              match(runtimesUpTo(Version.V4_4_4)))
           // 1) t01
           // java.lang.AssertionError: Illegal exception is thrown: java.lang.IllegalAccessException: field is marked 'final', field: bytePublicField, class: class com.google.jctf.test.lib.java.lang.reflect.Field.TestFinalPrimitiveField
 
@@ -4317,9 +4318,19 @@ public class JctfTestSpecifications {
           // 1) t01(com.google.jctf.test.lib.java.lang.Character.isSpaceCharC.Character_isSpaceChar_A01)
           // java.lang.AssertionError
 
+          .put("lang.Character.isSpaceCharI.Character_isSpaceChar_A01",
+              match(runtimes(Version.V4_0_4)))
+          // 1) t01(com.google.jctf.test.lib.java.lang.Character.isSpaceCharI.Character_isSpaceChar_A01)
+          // java.lang.AssertionError
+
           .put("lang.Character.isWhitespaceC.Character_isWhitespace_A01",
               match(runtimes(Version.V4_0_4)))
           // 1) t01(com.google.jctf.test.lib.java.lang.Character.isSpaceCharC.Character_isSpaceChar_A01)
+          // java.lang.AssertionError
+
+          .put("lang.Character.isWhitespaceI.Character_isWhitespace_A01",
+              match(runtimes(Version.V4_0_4)))
+          // 1) t01(com.google.jctf.test.lib.java.lang.Character.isSpaceCharI.Character_isSpaceChar_A01)
           // java.lang.AssertionError
 
           .put("lang.Character.getDirectionalityI.Character_getDirectionality_A01", any())
@@ -4476,7 +4487,7 @@ public class JctfTestSpecifications {
 
           .put(
               "util.concurrent.ScheduledThreadPoolExecutor.getTaskCount.ScheduledThreadPoolExecutor_getTaskCount_A01",
-              any())
+              match(runtimesFrom(Version.V4_4_4)))
           // 1) t01
           // java.lang.AssertionError: expected:<1> but was:<2>
 
@@ -4786,10 +4797,133 @@ public class JctfTestSpecifications {
           // 1) t01(com.google.jctf.test.lib.java.math.BigInteger.probablePrimeIjava_util_Random.BigInteger_probablePrime_A01)
           // java.lang.AssertionError: expected:<2> but was:<16>
 
-          .put("lang.AssertionError.Constructor.AssertionError_Constructor_A01X",
+          .put("lang.AssertionError.Constructor.AssertionError_Constructor_A01",
               match(runtimes(Version.V4_0_4)))
           // 1) t04(com.google.jctf.test.lib.java.lang.AssertionError.ConstructorLjava_lang_Object.AssertionError_Constructor_A01)
           // java.lang.IllegalStateException: Cause already initialized
+
+          .put("java.lang.Math.sqrtD.Math_sqrt_A01",
+              match(runtimes(Version.V4_0_4)))
+          // 1) t03(com.google.jctf.test.lib.java.lang.Math.sqrtD.Math_sqrt_A01)
+          // java.lang.AssertionError: expected:<1.3407807929942596E154> but was:<1.3407807929942597E154>
+
+          .put("java.lang.StrictMath.cbrtD.StrictMath_cbrt_A01",
+              match(runtimes(Version.V4_0_4)))
+          // 1) t03(com.google.jctf.test.lib.java.lang.StrictMath.cbrtD.StrictMath_cbrt_A01)
+          // java.lang.AssertionError: Bad value returned for argument: 4.459999999999949 expected:<1.6460573143158361> but was:<1.6460573143158364>
+
+          .put("java.lang.StrictMath.log10D.StrictMath_log10_A01",
+              match(runtimes(Version.V4_0_4)))
+          // 1) t04(com.google.jctf.test.lib.java.lang.StrictMath.log10D.StrictMath_log10_A01)
+          // java.lang.AssertionError: Bad value returned for argument: 3.5799999999999677 expected:<0.5538830266438705> but was:<0.5538830266438703>
+
+          .put("java.lang.StrictMath.powDD.StrictMath_pow_A01",
+              match(runtimes(Version.V4_0_4)))
+          // t01(com.google.jctf.test.lib.java.lang.StrictMath.powDD.StrictMath_pow_A01)
+          // java.lang.AssertionError: Bad value returned for arguments: 2.225073858507201E-308 -0.5 expected:<6.7039039649713E153> but was:<6.703903964971299E153>
+
+          .put("java.lang.String.indexOfII.String_indexOf_A01",
+              match(runtimes(Version.V4_0_4)))
+          // 1) t03(com.google.jctf.test.lib.java.lang.String.indexOfII.String_indexOf_A01)
+          // java.lang.AssertionError: expected:<-1> but was:<0>
+
+          .put("lang.String.indexOfLjava_lang_StringI.String_indexOf_A01",
+              match(runtimes(Version.V4_0_4)))
+          // 1) t03(com.google.jctf.test.lib.lang.String.indexOfLjava_lang_StringI.String_indexOf_A01)
+          // java.lang.AssertionError: expected:<-1> but was:<0>
+
+          .put("java.lang.reflect.Array.getByteLjava_lang_ObjectI.Array_getByte_A03",
+              match(runtimes(Version.V4_0_4)))
+          // 1) t02(com.google.jctf.test.lib.java.lang.reflect.Array.getByteLjava_lang_ObjectI.Array_getByte_A03)
+          // java.lang.AssertionError: Exception is not thrown: [Z@f5e586b8, 0
+
+          .put("lang.reflect.Array.getDoubleLjava_lang_ObjectI.Array_getDouble_A01",
+              match(runtimes(Version.V4_0_4)))
+          // 1) t02(com.google.jctf.test.lib.java.lang.reflect.Array.getDoubleLjava_lang_ObjectI.Array_getDouble_A01)
+          // java.lang.IllegalArgumentException: Wrong array type
+
+          .put("java.lang.reflect.Array.getDoubleLjava_lang_ObjectI.Array_getDouble_A03",
+              match(runtimes(Version.V4_0_4)))
+          // 1) t02(com.google.jctf.test.lib.java.lang.reflect.Array.getDoubleLjava_lang_ObjectI.Array_getDouble_A03)
+          // java.lang.AssertionError: Exception is not thrown: [Z@f5e31930, 0
+
+          .put("java.lang.reflect.Array.getFloatLjava_lang_ObjectI.Array_getFloat_A01",
+              match(runtimes(Version.V4_0_4)))
+          // 1) t02(com.google.jctf.test.lib.java.lang.reflect.Array.getFloatLjava_lang_ObjectI.Array_getFloat_A01)
+          // java.lang.IllegalArgumentException: Wrong array type
+
+          .put("java.lang.reflect.Array.getFloatLjava_lang_ObjectI.Array_getFloat_A03",
+              match(runtimes(Version.V4_0_4)))
+          // 1) t02(com.google.jctf.test.lib.java.lang.reflect.Array.getFloatLjava_lang_ObjectI.Array_getFloat_A03)
+          // java.lang.AssertionError: Exception is not thrown: [Z@f5db78f0, 0
+
+          .put("java.lava.lang.reflect.Array.getIntLjava_lang_ObjectI.Array_getInt_A01",
+              match(runtimes(Version.V4_0_4)))
+          // 1) t02(com.google.jctf.test.lib.java.lang.reflect.Array.getIntLjava_lang_ObjectI.Array_getInt_A01)
+          // java.lang.IllegalArgumentException: Wrong array type
+
+          .put("java.lava.lang.reflect.Array.getIntLjava_lang_ObjectI.Array_getInt_A03",
+              match(runtimes(Version.V4_0_4)))
+          // 1) t02(com.google.jctf.test.lib.java.lang.reflect.Array.getIntLjava_lang_ObjectI.Array_getInt_A03)
+          // java.lang.AssertionError: Exception is not thrown: [Z@f5dbb628, 0
+
+          .put("java.lang.reflect.Array.getLongLjava_lang_ObjectI.Array_getLong_A01",
+              match(runtimes(Version.V4_0_4)))
+          // 1) t02(com.google.jctf.test.lib.java.lang.reflect.Array.getLongLjava_lang_ObjectI.Array_getLong_A01)
+          // java.lang.IllegalArgumentException: Wrong array type
+
+          .put("java.lang.reflect.Array.getLongLjava_lang_ObjectI.Array_getLong_A03",
+              match(runtimes(Version.V4_0_4)))
+          // 1) t02(com.google.jctf.test.lib.java.lang.reflect.Array.getLongLjava_lang_ObjectI.Array_getLong_A03)
+          // java.lang.AssertionError: Exception is not thrown: [Z@f5dc0720, 0
+
+          .put("java.lang.reflect.Array.getShortLjava_lang_ObjectI.Array_getShort_A03",
+              match(runtimes(Version.V4_0_4)))
+          // 1) t02(com.google.jctf.test.lib.java.lang.reflect.Array.getShortLjava_lang_ObjectI.Array_getShort_A03)
+          // java.lang.AssertionError: Exception is not thrown: [Z@f5e827d8, 0
+
+          .put("java.lang.reflect.Array.setBooleanLjava_lang_ObjectIZ.Array_setBoolean_A03",
+              match(runtimes(Version.V4_0_4)))
+          // 1) t02(com.google.jctf.test.lib.java.lang.reflect.Array.setBooleanLjava_lang_ObjectIZ.Array_setBoolean_A03)
+          // java.lang.AssertionError: Exception is not thrown: [B@f5e8d9c8, 0, true
+
+          .put("java.lang.reflect.Array.setCharLjava_lang_ObjectIC.Array_setChar_A01",
+              match(runtimes(Version.V4_0_4)))
+          // 1) t02(com.google.jctf.test.lib.java.lang.reflect.Array.setCharLjava_lang_ObjectIC.Array_setChar_A01)
+          // java.lang.IllegalArgumentException: Wrong array type
+
+          .put("java.lang.reflect.Array.setLjava_lang_ObjectILjava_lang_Object.Array_set_A01",
+              match(runtimes(Version.V4_0_4)))
+          // 1) t26(com.google.jctf.test.lib.java.lang.reflect.Array.setLjava_lang_ObjectILjava_lang_Object.Array_set_A01)
+          // java.lang.IllegalArgumentException: Wrong array type
+
+          .put("java.lang.reflect.Array.setLjava_lang_ObjectILjava_lang_Object.Array_set_A03",
+              match(runtimes(Version.V4_0_4)))
+          // 1) t21(com.google.jctf.test.lib.java.lang.reflect.Array.setLjava_lang_ObjectILjava_lang_Object.Array_set_A03)
+          // java.lang.AssertionError: Exception is not thrown: [B@f5e73db8, 0, false
+
+          .put("java.lang.reflect.Constructor.toString.Constructor_toString_A01",
+              match(runtimes(Version.V4_0_4)))
+          // 1) t05(com.google.jctf.test.lib.java.lang.reflect.Constructor.toString.Constructor_toString_A01)
+          // org.junit.ComparisonFailure: expected:<...le,java.lang.String,[int[][][][][][][][][][][][][]])> but was:<...le,java.lang.String,[[[[[[[[[[[[[[I])>
+
+          .put(
+              "java.math.BigInteger.modPowLjava_math_BigIntegerLjava_math_Integer.BigInteger_modPow_A01",
+              match(runtimes(Version.V4_0_4)))
+          // ) t01(com.google.jctf.test.lib.java.math.BigInteger.modPowLjava_math_BigIntegerLjava_math_Integer.BigInteger_modPow_A01)
+          // java.lang.AssertionError: Improper exception message
+
+          .put(
+              "java.util.concurrent.LinkedBlockingDeque.drainToLjava_util_CollectionI.LinkedBlockingDeque_drainTo_A01",
+              match(runtimes(Version.V4_0_4)))
+          // 1) t03(com.google.jctf.test.lib.java.util.concurrent.LinkedBlockingDeque.drainToLjava_util_CollectionI.LinkedBlockingDeque_drainTo_A01)
+          //  java.lang.AssertionError: expected:<0> but was:<-1>
+
+          .put(
+              "java.util.concurrent.LinkedBlockingQueue.drainToLjava_util_CollectionI.LinkedBlockingQueue_drainTo_A01",
+              match(runtimes(Version.V4_0_4)))
+          //1) t03(com.google.jctf.test.lib.java.util.concurrent.LinkedBlockingQueue.drainToLjava_util_CollectionI.LinkedBlockingQueue_drainTo_A01)
+          // java.lang.AssertionError: expected:<0> but was:<-1>
 
           .build(); // end of failuresToTriage
 
@@ -4832,23 +4966,23 @@ public class JctfTestSpecifications {
           // java.lang.AssertionError: java.lang.AssertionError: expected:<7> but was:<6>
 
           .put("lang.ref.PhantomReference.clear.PhantomReference_clear_A01",
-              match(runtimes(Version.V4_4_4)))
+              match(runtimesUpTo(Version.V4_4_4)))
           .put("lang.ref.SoftReference.clear.SoftReference_clear_A01",
-              match(runtimes(Version.V4_4_4)))
+              match(runtimesUpTo(Version.V4_4_4)))
           .put("lang.ref.WeakReference.clear.WeakReference_clear_A01",
-              match(runtimes(Version.V4_4_4)))
+              match(runtimesUpTo(Version.V4_4_4)))
           // Passes or fails randomly. Have seen out of memory and assertion errors.
 
           .put("lang.ref.PhantomReference.isEnqueued.PhantomReference_isEnqueued_A01",
-              match(runtimes(Version.V4_4_4)))
+              match(runtimesUpTo(Version.V4_4_4)))
           .put("lang.ref.WeakReference.isEnqueued.WeakReference_isEnqueued_A01",
-              match(runtimes(Version.V4_4_4)))
+              match(runtimesUpTo(Version.V4_4_4)))
           .put("lang.ref.SoftReference.isEnqueued.SoftReference_isEnqueued_A01",
-              match(runtimes(Version.V4_4_4)))
+              match(runtimesUpTo(Version.V4_4_4)))
           // Passes or fails randomly. Check that something is enqueued after 2 seconds.
 
           .put("lang.ref.ReferenceQueue.poll.ReferenceQueue_poll_A01",
-              match(runtimes(Version.V4_4_4)))
+              match(runtimesUpTo(Version.V4_4_4)))
           // Passes or fails randomly.
 
           .build(); // end of flakyWithArt

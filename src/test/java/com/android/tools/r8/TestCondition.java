@@ -8,6 +8,8 @@ import com.android.tools.r8.R8RunArtTestsTest.DexTool;
 import com.android.tools.r8.ToolHelper.DexVm;
 import java.util.Arrays;
 import java.util.EnumSet;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class TestCondition {
 
@@ -35,6 +37,10 @@ public class TestCondition {
 
     public RuntimeSet(EnumSet<DexVm.Version> set) {
       this.set = set;
+    }
+
+    public RuntimeSet(Set<DexVm.Version> set) {
+      this.set = EnumSet.copyOf(set);
     }
   }
 
@@ -105,6 +111,11 @@ public class TestCondition {
 
   public static RuntimeSet runtimesFrom(DexVm.Version start) {
     return new RuntimeSet(EnumSet.range(start, DexVm.Version.last()));
+  }
+
+  public static RuntimeSet and(RuntimeSet... sets) {
+    return new RuntimeSet(Arrays.stream(sets).flatMap(runtimeSet -> runtimeSet.set.stream())
+        .collect(Collectors.toSet()));
   }
 
   public static TestCondition match(
