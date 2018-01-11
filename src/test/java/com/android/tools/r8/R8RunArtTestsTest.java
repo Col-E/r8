@@ -217,11 +217,7 @@ public abstract class R8RunArtTestsTest {
       // This test uses a user defined class loader to validate correct execution order
       // between loadclass event and the execution of a static method.
       // This does not work when performing inlining across classes.
-      "496-checker-inlining-class-loader",
-      // Disabled, as we cannot handle conflicting default methods currently.
-      // TODO(b/69148437): Enable once default methods are handled correctly.
-      "961-default-iface-resolution-gen",
-      "968-default-partial-compile-gen"
+      "496-checker-inlining-class-loader"
   );
 
   // Tests that may produce different output on consecutive runs or when processed or not.
