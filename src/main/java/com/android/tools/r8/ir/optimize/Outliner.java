@@ -7,7 +7,6 @@ package com.android.tools.r8.ir.optimize;
 import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DebugLocalInfo;
@@ -48,6 +47,7 @@ import com.android.tools.r8.ir.conversion.SourceCode;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.SynthesizedOrigin;
+import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.OutlineOptions;
 import com.android.tools.r8.utils.StringUtils;
@@ -72,7 +72,7 @@ public class Outliner {
 
   static final int MAX_IN_SIZE = 5;  // Avoid using ranged calls for outlined code.
 
-  final private AppInfoWithSubtyping appInfo;
+  final private AppInfoWithLiveness appInfo;
   final private DexItemFactory dexItemFactory;
 
   // Representation of an outline.
@@ -748,7 +748,7 @@ public class Outliner {
     }
   }
 
-  public Outliner(AppInfoWithSubtyping appInfo, InternalOptions options) {
+  public Outliner(AppInfoWithLiveness appInfo, InternalOptions options) {
     this.appInfo = appInfo;
     this.dexItemFactory = appInfo.dexItemFactory;
     this.options = options;

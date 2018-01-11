@@ -21,12 +21,14 @@ import java.nio.file.Paths;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class R8UnreachableCodeTest {
 
   private static final Path SMALI_DIR = Paths.get(ToolHelper.SMALI_BUILD_DIR);
 
+  @Ignore
   @Test
   public void UnreachableCode() throws IOException, ExecutionException, CompilationException {
     String name = "unreachable-code-1";

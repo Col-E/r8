@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.conversion;
 
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -136,7 +135,7 @@ public class CallGraph extends CallSiteInformation {
   private final Set<DexEncodedMethod> singleCallSite = Sets.newIdentityHashSet();
   private final Set<DexEncodedMethod> doubleCallSite = Sets.newIdentityHashSet();
 
-  public static CallGraph build(DexApplication application, AppInfoWithSubtyping appInfo,
+  public static CallGraph build(DexApplication application, AppInfoWithLiveness appInfo,
       GraphLense graphLense, InternalOptions options) {
     CallGraph graph = new CallGraph(options);
     DexClass[] classes = application.classes().toArray(new DexClass[application.classes().size()]);
@@ -171,15 +170,11 @@ public class CallGraph extends CallSiteInformation {
     return doubleCallSite.contains(method);
   }
 
-  private void fillCallSiteSets(AppInfoWithSubtyping appInfo) {
+  private void fillCallSiteSets(AppInfoWithLiveness appInfo) {
     assert singleCallSite.isEmpty();
-    AppInfoWithLiveness liveAppInfo = appInfo.withLiveness();
-    if (liveAppInfo == null) {
-      return;
-    }
     for (Node value : nodes.values()) {
       // For non-pinned methods we know the exact number of call sites.
-      if (!appInfo.withLiveness().isPinned(value.method.method)) {
+      if (!appInfo.isPinned(value.method.method)) {
         if (value.invokeCount == 1) {
           singleCallSite.add(value.method);
         } else if (value.invokeCount == 2) {
@@ -313,12 +308,12 @@ public class CallGraph extends CallSiteInformation {
 
   private static class InvokeExtractor extends UseRegistry {
 
-    AppInfoWithSubtyping appInfo;
+    AppInfoWithLiveness appInfo;
     GraphLense graphLense;
     Node caller;
     CallGraph graph;
 
-    InvokeExtractor(AppInfoWithSubtyping appInfo, GraphLense graphLense, Node caller,
+    InvokeExtractor(AppInfoWithLiveness appInfo, GraphLense graphLense, Node caller,
         CallGraph graph) {
       this.appInfo = appInfo;
       this.graphLense = graphLense;

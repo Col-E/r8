@@ -15,6 +15,7 @@ import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.InliningOracle;
+import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.Function;
@@ -62,17 +63,17 @@ public abstract class InvokeMethod extends Invoke {
     return this;
   }
 
-  public abstract DexEncodedMethod lookupSingleTarget(AppInfoWithSubtyping appInfo,
+  public abstract DexEncodedMethod lookupSingleTarget(AppInfoWithLiveness appInfo,
       DexType invocationContext);
 
   public abstract Collection<DexEncodedMethod> lookupTargets(AppInfoWithSubtyping appInfo,
       DexType invocationContext);
 
   @Override
-  public abstract Constraint inliningConstraint(AppInfoWithSubtyping info,
+  public abstract Constraint inliningConstraint(AppInfoWithLiveness info,
       DexType invocationContext);
 
-  protected Constraint inliningConstraintForSinlgeTargetInvoke(AppInfoWithSubtyping info,
+  protected Constraint inliningConstraintForSinlgeTargetInvoke(AppInfoWithLiveness info,
       DexType invocationContext) {
     if (method.holder.isArrayType()) {
       return Constraint.ALWAYS;

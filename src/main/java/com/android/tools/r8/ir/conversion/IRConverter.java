@@ -108,11 +108,11 @@ public class IRConverter {
         (options.enableDesugaring && enableInterfaceMethodDesugaring())
             ? new InterfaceMethodRewriter(this, options) : null;
     if (enableWholeProgramOptimizations) {
-      assert appInfo.hasSubtyping();
-      this.inliner = new Inliner(appInfo.withSubtyping(), graphLense, options);
-      this.outliner = new Outliner(appInfo.withSubtyping(), options);
+      assert appInfo.hasLiveness();
+      this.inliner = new Inliner(appInfo.withLiveness(), graphLense, options);
+      this.outliner = new Outliner(appInfo.withLiveness(), options);
       this.memberValuePropagation =
-          options.propagateMemberValue ? new MemberValuePropagation(appInfo.withSubtyping()) : null;
+          options.propagateMemberValue ? new MemberValuePropagation(appInfo.withLiveness()) : null;
       this.lensCodeRewriter = new LensCodeRewriter(graphLense, appInfo.withSubtyping());
       if (appInfo.hasLiveness()) {
         this.protoLiteRewriter = new ProtoLitePruner(appInfo.withLiveness());
@@ -353,7 +353,7 @@ public class IRConverter {
     {
       timing.begin("Build call graph");
       CallGraph callGraph = CallGraph
-          .build(application, appInfo.withSubtyping(), graphLense, options);
+          .build(application, appInfo.withLiveness(), graphLense, options);
       timing.end();
       timing.begin("IR conversion phase 1");
       callGraph.forEachMethod((method, isProcessedConcurrently) -> {
@@ -386,7 +386,7 @@ public class IRConverter {
         // We need a new call graph to ensure deterministic order and also processing inside out
         // to get maximal inlining. Use a identity lense, as the code has been rewritten.
         CallGraph callGraph = CallGraph
-            .build(application, appInfo.withSubtyping(), GraphLense.getIdentityLense(), options);
+            .build(application, appInfo.withLiveness(), GraphLense.getIdentityLense(), options);
         Set<DexEncodedMethod> outlineMethods = outliner.getMethodsSelectedForOutlining();
         callGraph.forEachMethod((method, isProcessedConcurrently) -> {
           if (!outlineMethods.contains(method)) {

@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
+import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import java.util.Collection;
 import java.util.List;
 import org.objectweb.asm.Opcodes;
@@ -33,7 +34,7 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
   }
 
   @Override
-  public DexEncodedMethod computeSingleTarget(AppInfoWithSubtyping appInfo) {
+  public DexEncodedMethod computeSingleTarget(AppInfoWithLiveness appInfo) {
     return appInfo.lookupSingleVirtualTarget(getInvokedMethod());
   }
 
@@ -80,7 +81,7 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
   }
 
   @Override
-  public DexEncodedMethod lookupSingleTarget(AppInfoWithSubtyping appInfo,
+  public DexEncodedMethod lookupSingleTarget(AppInfoWithLiveness appInfo,
       DexType invocationContext) {
     DexMethod method = getInvokedMethod();
     return appInfo.lookupSingleVirtualTarget(method);
@@ -93,7 +94,7 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
   }
 
   @Override
-  public Constraint inliningConstraint(AppInfoWithSubtyping info, DexType invocationContext) {
+  public Constraint inliningConstraint(AppInfoWithLiveness info, DexType invocationContext) {
     return inliningConstraintForVirtualInvoke(info, invocationContext);
   }
 

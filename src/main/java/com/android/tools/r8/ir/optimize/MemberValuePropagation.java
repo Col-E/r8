@@ -4,7 +4,6 @@
 package com.android.tools.r8.ir.optimize;
 
 import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -27,8 +26,7 @@ import com.android.tools.r8.shaking.ProguardMemberRule;
 
 public class MemberValuePropagation {
 
-  private final AppInfoWithSubtyping appInfo;
-  private final AppInfoWithLiveness liveSet;
+  private final AppInfoWithLiveness appInfo;
 
   private enum RuleType {
     NONE,
@@ -47,20 +45,16 @@ public class MemberValuePropagation {
     }
   }
 
-  public MemberValuePropagation(AppInfoWithSubtyping appInfo) {
+  public MemberValuePropagation(AppInfoWithLiveness appInfo) {
     this.appInfo = appInfo;
-    this.liveSet = appInfo.withLiveness();
   }
 
   private ProguardMemberRuleLookup lookupMemberRule(DexItem item) {
-    if (liveSet == null) {
-      return null;
-    }
-    ProguardMemberRule rule = liveSet.noSideEffects.get(item);
+    ProguardMemberRule rule = appInfo.noSideEffects.get(item);
     if (rule != null) {
       return new ProguardMemberRuleLookup(RuleType.ASSUME_NO_SIDE_EFFECTS, rule);
     }
-    rule = liveSet.assumedValues.get(item);
+    rule = appInfo.assumedValues.get(item);
     if (rule != null) {
       return new ProguardMemberRuleLookup(RuleType.ASSUME_VALUES, rule);
     }
@@ -158,8 +152,8 @@ public class MemberValuePropagation {
 
         // If no Proguard rule could replace the instruction check for knowledge about the
         // return value.
-        if (!invokeReplaced && liveSet != null && invoke.outValue() != null) {
-          DexEncodedMethod target = invoke.computeSingleTarget(liveSet);
+        if (!invokeReplaced && invoke.outValue() != null) {
+          DexEncodedMethod target = invoke.computeSingleTarget(appInfo);
           if (target != null) {
             if (target.getOptimizationInfo().neverReturnsNull()) {
               invoke.outValue().markNeverNull();
@@ -231,10 +225,8 @@ public class MemberValuePropagation {
   }
 
   private boolean isFieldRead(DexEncodedField field, boolean isStatic) {
-    // Without live set information we cannot tell and assume true.
-    if (liveSet == null
-        || liveSet.fieldsRead.contains(field.field)
-        || liveSet.isPinned(field.field)) {
+    if (appInfo.fieldsRead.contains(field.field)
+        || appInfo.isPinned(field.field)) {
       return true;
     }
     // For library classes we don't know whether a field is read.

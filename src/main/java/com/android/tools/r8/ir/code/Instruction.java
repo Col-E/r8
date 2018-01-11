@@ -18,6 +18,7 @@ import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
+import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
@@ -994,7 +995,7 @@ public abstract class Instruction {
    * <p>
    * The type is used to judge visibility constraints and also for dispatch decisions.
    */
-  public abstract Constraint inliningConstraint(AppInfoWithSubtyping info,
+  public abstract Constraint inliningConstraint(AppInfoWithLiveness info,
       DexType invocationContext);
 
   public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {

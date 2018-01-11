@@ -29,6 +29,7 @@ import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.LensCodeRewriter;
 import com.android.tools.r8.ir.conversion.OptimizationFeedback;
 import com.android.tools.r8.logging.Log;
+import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -42,7 +43,7 @@ import java.util.stream.Collectors;
 
 public class Inliner {
 
-  protected final AppInfoWithSubtyping appInfo;
+  protected final AppInfoWithLiveness appInfo;
   private final GraphLense graphLense;
   private final InternalOptions options;
 
@@ -52,7 +53,7 @@ public class Inliner {
   private final Set<DexEncodedMethod> doubleInlineSelectedTargets = Sets.newIdentityHashSet();
   private final Map<DexEncodedMethod, DexEncodedMethod> doubleInlineeCandidates = new HashMap<>();
 
-  public Inliner(AppInfoWithSubtyping appInfo, GraphLense graphLense, InternalOptions options) {
+  public Inliner(AppInfoWithLiveness appInfo, GraphLense graphLense, InternalOptions options) {
     this.appInfo = appInfo;
     this.graphLense = graphLense;
     this.options = options;

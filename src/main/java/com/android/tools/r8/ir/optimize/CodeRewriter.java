@@ -8,7 +8,6 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -65,6 +64,7 @@ import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.code.Xor;
 import com.android.tools.r8.ir.conversion.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.SwitchUtils.EnumSwitchInfo;
+import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.LongInterval;
 import com.google.common.base.Equivalence;
@@ -717,7 +717,7 @@ public class CodeRewriter {
     if (options.isGeneratingClassFiles()) {
       return;
     }
-    AppInfoWithSubtyping appInfoWithSubtyping = appInfo.withSubtyping();
+    AppInfoWithLiveness appInfoWithLiveness = appInfo.withLiveness();
     InstructionIterator iterator = code.instructionIterator();
     while (iterator.hasNext()) {
       Instruction current = iterator.next();
@@ -731,8 +731,8 @@ public class CodeRewriter {
               invoke.outValue().replaceUsers(invoke.arguments().get(0));
               invoke.setOutValue(null);
             }
-          } else if (appInfoWithSubtyping != null) {
-            DexEncodedMethod target = invoke.computeSingleTarget(appInfoWithSubtyping);
+          } else if (appInfoWithLiveness != null) {
+            DexEncodedMethod target = invoke.computeSingleTarget(appInfoWithLiveness);
             if (target != null) {
               DexMethod invokedMethod = target.method;
               // Check if the invoked method is known to return one of its arguments.
