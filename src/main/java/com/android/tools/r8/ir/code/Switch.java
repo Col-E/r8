@@ -4,17 +4,22 @@
 
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.LoadStoreHelper;
+import com.android.tools.r8.cf.code.CfLabel;
+import com.android.tools.r8.cf.code.CfSwitch;
 import com.android.tools.r8.code.Nop;
 import com.android.tools.r8.code.PackedSwitch;
 import com.android.tools.r8.code.PackedSwitchPayload;
 import com.android.tools.r8.code.SparseSwitch;
 import com.android.tools.r8.code.SparseSwitchPayload;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.google.common.primitives.Ints;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
+import java.util.ArrayList;
 import java.util.List;
 
 public class Switch extends JumpInstruction {
@@ -276,5 +281,20 @@ public class Switch extends JumpInstruction {
       BasicBlock target = getBlock().getSuccessors().get(index);
       printer.append(" B").append(target.getNumber());
     }
+  }
+
+  @Override
+  public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
+    helper.loadInValues(this, it);
+  }
+
+  @Override
+  public void buildCf(CfBuilder builder) {
+    List<CfLabel> labels = new ArrayList<>(numberOfKeys());
+    List<BasicBlock> successors = getBlock().getSuccessors();
+    for (int index : targetBlockIndices) {
+      labels.add(builder.getLabel(successors.get(index)));
+    }
+    builder.add(new CfSwitch(builder.getLabel(fallthroughBlock()), keys, labels));
   }
 }

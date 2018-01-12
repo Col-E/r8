@@ -219,7 +219,7 @@ public class CfBuilder {
       JumpInstruction exit = block.exit();
       boolean fallthrough =
           (exit.isGoto() && exit.asGoto().getTarget() == nextBlock)
-              || (nextBlock != null && exit.fallthroughBlock() == nextBlock);
+              || (exit.isIf() && exit.fallthroughBlock() == nextBlock);
       Int2ReferenceMap<DebugLocalInfo> locals = block.getLocalsAtEntry();
       if (locals == null) {
         assert pendingLocals == null;

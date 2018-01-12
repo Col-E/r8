@@ -27,6 +27,8 @@ import com.android.tools.r8.cf.code.CfReturn;
 import com.android.tools.r8.cf.code.CfReturnVoid;
 import com.android.tools.r8.cf.code.CfStaticGet;
 import com.android.tools.r8.cf.code.CfStore;
+import com.android.tools.r8.cf.code.CfSwitch;
+import com.android.tools.r8.cf.code.CfSwitch.Kind;
 import com.android.tools.r8.cf.code.CfThrow;
 import com.android.tools.r8.cf.code.CfUnop;
 import com.android.tools.r8.errors.Unreachable;
@@ -42,7 +44,9 @@ import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.utils.DescriptorUtils;
+import it.unimi.dsi.fastutil.ints.IntList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.util.Printer;
@@ -266,6 +270,25 @@ public class CfPrinter {
         .append(ifPostfix(conditional.getKind()))
         .append(' ')
         .append(getLabel(conditional.getTarget()));
+  }
+
+  public void print(CfSwitch cfSwitch) {
+    indent();
+    builder.append(cfSwitch.getKind() == Kind.LOOKUP ? "lookup" : "table").append("switch");
+    IntList keys = cfSwitch.getKeys();
+    List<CfLabel> targets = cfSwitch.getTargets();
+    for (int i = 0; i < keys.size(); i++) {
+      indent();
+      builder
+          .append("  ")
+          .append(keys.getInt(i))
+          .append(": ")
+          .append(getLabel(targets.get(i)));
+    }
+    indent();
+    builder
+        .append("  default: ")
+        .append(getLabel(cfSwitch.getDefaultTarget()));
   }
 
   public void print(CfLoad load) {
