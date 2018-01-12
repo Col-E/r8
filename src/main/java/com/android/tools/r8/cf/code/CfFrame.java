@@ -54,6 +54,9 @@ public class CfFrame extends CfInstruction {
   }
 
   private int computeLocalsCount() {
+    if (locals.isEmpty()) {
+      return 0;
+    }
     // Compute the size of locals. Absent indexes are denoted by a single-width element (ie, TOP).
     int maxRegister = locals.lastIntKey();
     int localsCount = 0;
