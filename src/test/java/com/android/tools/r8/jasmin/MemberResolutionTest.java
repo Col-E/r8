@@ -6,6 +6,7 @@ package com.android.tools.r8.jasmin;
 import static java.util.Collections.emptyList;
 
 import com.android.tools.r8.R8RunArtTestsTest.CompilerUnderTest;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.VmTestRunner;
@@ -579,11 +580,13 @@ public class MemberResolutionTest extends JasminTestBase {
           }
         };
     runtest.accept(() -> runOnJavaNoVerifyRaw(app, MAIN_CLASS), null);
-    runtest.accept(() -> runOnArtDxRaw(app, MAIN_CLASS), null);
-    runtest.accept(() -> runOnArtD8Raw(app, MAIN_CLASS), CompilerUnderTest.D8);
-    runtest.accept(() -> runOnArtR8Raw(app, MAIN_CLASS, null), CompilerUnderTest.R8);
-    runtest.accept(() -> runOnArtR8Raw(app, MAIN_CLASS, keepMainProguardConfiguration(MAIN_CLASS),
-        null), CompilerUnderTest.R8);
+    if (ToolHelper.artSupported()) {
+      runtest.accept(() -> runOnArtDxRaw(app, MAIN_CLASS), null);
+      runtest.accept(() -> runOnArtD8Raw(app, MAIN_CLASS), CompilerUnderTest.D8);
+      runtest.accept(() -> runOnArtR8Raw(app, MAIN_CLASS, null), CompilerUnderTest.R8);
+      runtest.accept(() -> runOnArtR8Raw(app, MAIN_CLASS, keepMainProguardConfiguration(MAIN_CLASS),
+          null), CompilerUnderTest.R8);
+    }
   }
 
   private void ensureICCE(JasminBuilder app) throws Exception {
