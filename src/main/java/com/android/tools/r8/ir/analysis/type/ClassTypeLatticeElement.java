@@ -15,6 +15,10 @@ public class ClassTypeLatticeElement extends TypeLatticeElement {
     this.classType = classType;
   }
 
+  public DexType getClassType() {
+    return classType;
+  }
+
   @Override
   TypeLatticeElement asNullable() {
     return isNullable() ? this : new ClassTypeLatticeElement(classType, true);

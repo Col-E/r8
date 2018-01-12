@@ -144,7 +144,7 @@ public class CfApplicationWriter {
     }
   }
 
-  private String printCf(byte[] result) {
+  public static String printCf(byte[] result) {
     ClassReader reader = new ClassReader(result);
     ClassNode node = new ClassNode(ASM6);
     reader.accept(node, ASM6);

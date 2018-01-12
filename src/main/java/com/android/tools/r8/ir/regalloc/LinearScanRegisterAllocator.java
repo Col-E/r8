@@ -302,14 +302,14 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       // might be live upon entering the first instruction (if they are used by it). Since we
       // skipped move-exception this closes locals at the move exception which should close as part
       // of the exceptional transfer.
-      openRanges.removeIf(openRange -> !isLocalLiveAtInstruction(openRange, firstInstruction));
+      openRanges.removeIf(openRange -> !isLocalLiveAtInstruction(firstInstruction, openRange));
 
       // Open ranges up-to but excluding the first instruction. Starts are inclusive but entry is
       // prior to the first instruction.
       while (nextStartingRange != null && nextStartingRange.start < firstIndex) {
         // If the range is live at this index open it. Again the end is inclusive here because the
         // instruction is live at block entry if it is live at entry to the first instruction.
-        if (isLocalLiveAtInstruction(nextStartingRange, firstInstruction)) {
+        if (isLocalLiveAtInstruction(firstInstruction, nextStartingRange)) {
           openRanges.add(nextStartingRange);
         }
         nextStartingRange = rangeIterator.hasNext() ? rangeIterator.next() : null;
@@ -374,10 +374,20 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     }
   }
 
-  private static boolean isLocalLiveAtInstruction(LocalRange range, Instruction instruction) {
+  private static boolean isLocalLiveAtInstruction(Instruction instruction, LocalRange range) {
+    return isLocalLiveAtInstruction(instruction, range.start, range.end, range.value);
+  }
+
+  public static boolean isLocalLiveAtInstruction(
+      Instruction instruction, LiveRange range, Value value) {
+    return isLocalLiveAtInstruction(instruction, range.start, range.end, value);
+  }
+
+  private static boolean isLocalLiveAtInstruction(
+      Instruction instruction, int start, int end, Value value) {
     int number = instruction.getNumber();
-    assert range.start < number;
-    return number < range.end || (number == range.end && usesValues(range.value, instruction));
+    assert start < number;
+    return number < end || (number == end && usesValues(value, instruction));
   }
 
   private static boolean usesValues(Value usedValue, Instruction instruction) {

@@ -3,16 +3,19 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.code.InvokeInterfaceRange;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import java.util.Collection;
 import java.util.List;
+import org.objectweb.asm.Opcodes;
 
 public class InvokeInterface extends InvokeMethodWithReceiver {
 
@@ -93,5 +96,10 @@ public class InvokeInterface extends InvokeMethodWithReceiver {
   @Override
   public Constraint inliningConstraint(AppInfoWithLiveness info, DexType invocationContext) {
     return inliningConstraintForVirtualInvoke(info, invocationContext);
+  }
+
+  @Override
+  public void buildCf(CfBuilder builder) {
+    builder.add(new CfInvoke(Opcodes.INVOKEINTERFACE, getInvokedMethod()));
   }
 }

@@ -12,6 +12,7 @@ import com.android.tools.r8.R8RunArtTestsTest.CompilerUnderTest;
 import com.android.tools.r8.R8RunArtTestsTest.DexTool;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import java.io.IOException;
 import java.nio.file.NoSuchFileException;
@@ -135,12 +136,14 @@ public abstract class R8RunExamplesCommon {
         break;
       }
       case R8: {
-        ToolHelper.runR8(
-            addInputFile(R8Command.builder())
-                .setOutput(getOutputFile(), outputMode)
-                .setMode(mode)
-                .build(),
-            options -> options.lineNumberOptimization = LineNumberOptimization.OFF);
+        R8Command command = addInputFile(R8Command.builder())
+            .setOutput(getOutputFile(), outputMode)
+            .setMode(mode)
+            .build();
+        ExceptionUtils.withR8CompilationHandler(command.getReporter(), () ->
+            ToolHelper.runR8(
+                command,
+                options -> options.lineNumberOptimization = LineNumberOptimization.OFF));
         break;
       }
       default:

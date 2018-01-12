@@ -3,17 +3,23 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.cf;
 
-import com.android.tools.r8.errors.Unimplemented;
+import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.ArrayTypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.Value;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 // Compute the types of all reference values.
 // The actual types are needed to emit stack-map frames for Java 1.6 and above.
@@ -21,12 +27,14 @@ public class TypeVerificationHelper {
 
   private final IRCode code;
   private final DexItemFactory factory;
+  private final AppInfoWithSubtyping appInfo;
 
   private Map<Value, DexType> types;
 
-  public TypeVerificationHelper(IRCode code, DexItemFactory factory) {
+  public TypeVerificationHelper(IRCode code, DexItemFactory factory, AppInfoWithSubtyping appInfo) {
     this.code = code;
     this.factory = factory;
+    this.appInfo = appInfo;
   }
 
   public DexItemFactory getFactory() {
@@ -40,13 +48,29 @@ public class TypeVerificationHelper {
 
   // Helper to compute the join of a set of reference types.
   public DexType join(Set<DexType> types) {
-    if (types.isEmpty()) {
-      return null; // Bottom element. Unknown type.
+    // We should not be joining empty sets of types.
+    assert !types.isEmpty();
+    if (types.size() == 1) {
+      return types.iterator().next();
     }
-    if (types.size() != 1) {
-      throw new Unimplemented("compute the join of the types");
+    Iterator<DexType> iterator = types.iterator();
+    TypeLatticeElement join = getLatticeElement(iterator.next());
+    while (iterator.hasNext()) {
+      join = TypeLatticeElement.join(appInfo, join, getLatticeElement(iterator.next()));
     }
-    return types.iterator().next();
+    // All types are reference types so the join is either a class or an array.
+    if (join instanceof ClassTypeLatticeElement) {
+      return ((ClassTypeLatticeElement) join).getClassType();
+    } else if (join instanceof ArrayTypeLatticeElement) {
+      return ((ArrayTypeLatticeElement) join).getArrayType();
+    }
+    throw new CompilationError("Unexpected join " + join + " of types: " +
+        String.join(", ",
+            types.stream().map(DexType::toSourceString).collect(Collectors.toList())));
+  }
+
+  private TypeLatticeElement getLatticeElement(DexType type) {
+    return TypeLatticeElement.fromDexType(type, true);
   }
 
   public Map<Value, DexType> computeVerificationTypes() {

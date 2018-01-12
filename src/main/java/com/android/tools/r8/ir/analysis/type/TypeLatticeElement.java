@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.analysis.type;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.Value;
 import java.util.function.BinaryOperator;
@@ -155,6 +156,9 @@ abstract public class TypeLatticeElement {
   }
 
   public static TypeLatticeElement fromDexType(DexType type, boolean isNullable) {
+    if (type == DexItemFactory.nullValueType) {
+      return NullLatticeElement.getInstance();
+    }
     if (type.isPrimitiveType()) {
       return PrimitiveTypeLatticeElement.getInstance();
     }

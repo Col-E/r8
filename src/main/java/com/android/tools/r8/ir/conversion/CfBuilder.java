@@ -14,6 +14,7 @@ import com.android.tools.r8.cf.code.CfPosition;
 import com.android.tools.r8.cf.code.CfTryCatch;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.CfCode.LocalVariableInfo;
 import com.android.tools.r8.graph.Code;
@@ -28,6 +29,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
+import com.android.tools.r8.ir.code.JumpInstruction;
 import com.android.tools.r8.ir.code.Load;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.StackValue;
@@ -101,9 +103,9 @@ public class CfBuilder {
     this.factory = factory;
   }
 
-  public Code build(CodeRewriter rewriter, InternalOptions options) {
+  public Code build(CodeRewriter rewriter, InternalOptions options, AppInfoWithSubtyping appInfo) {
     try {
-      types = new TypeVerificationHelper(code, factory).computeVerificationTypes();
+      types = new TypeVerificationHelper(code, factory, appInfo).computeVerificationTypes();
       splitExceptionalBlocks();
       LoadStoreHelper loadStoreHelper = new LoadStoreHelper(code, types);
       loadStoreHelper.insertLoadsAndStores();
@@ -214,7 +216,10 @@ public class CfBuilder {
         tryCatchHandlers = handlers;
       }
       BasicBlock nextBlock = blockIterator.hasNext() ? blockIterator.next() : null;
-      boolean fallthrough = block.exit().isGoto() && block.exit().asGoto().getTarget() == nextBlock;
+      JumpInstruction exit = block.exit();
+      boolean fallthrough =
+          (exit.isGoto() && exit.asGoto().getTarget() == nextBlock)
+              || (nextBlock != null && exit.fallthroughBlock() == nextBlock);
       Int2ReferenceMap<DebugLocalInfo> locals = block.getLocalsAtEntry();
       if (locals == null) {
         assert pendingLocals == null;
@@ -226,9 +231,7 @@ public class CfBuilder {
       if (nextBlock != null && (!fallthrough || nextBlock.getPredecessors().size() > 1)) {
         assert stack.isEmpty();
         emitLabel(getLabel(nextBlock));
-        if (nextBlock.getPredecessors().size() > 1) {
-          addFrame(nextBlock, Collections.emptyList());
-        }
+        addFrame(nextBlock, Collections.emptyList());
       }
       block = nextBlock;
     } while (block != null);
@@ -337,7 +340,16 @@ public class CfBuilder {
   private void addFrame(BasicBlock block, Collection<StackValue> stack) {
     // TODO(zerny): Support having values on the stack on control-edges.
     assert stack.isEmpty();
-    Collection<Value> locals = registerAllocator.getLocalsAtPosition(block.entry().getNumber());
+
+    List<DexType> stackTypes;
+    if (block.entry().isMoveException()) {
+      StackValue exception = (StackValue) block.entry().outValue();
+      stackTypes = Collections.singletonList(exception.getObjectType());
+    } else {
+      stackTypes = Collections.emptyList();
+    }
+
+    Collection<Value> locals = registerAllocator.getLocalsAtBlockEntry(block);
     Int2ReferenceSortedMap<DexType> mapping = new Int2ReferenceAVLTreeMap<>();
 
     for (Value local : locals) {
@@ -364,7 +376,7 @@ public class CfBuilder {
       }
       mapping.put(getLocalRegister(local), type);
     }
-    instructions.add(new CfFrame(mapping));
+    instructions.add(new CfFrame(mapping, stackTypes));
   }
 
   private void emitLabel(CfLabel label) {

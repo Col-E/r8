@@ -27,6 +27,7 @@ import com.android.tools.r8.cf.code.CfReturn;
 import com.android.tools.r8.cf.code.CfReturnVoid;
 import com.android.tools.r8.cf.code.CfStaticGet;
 import com.android.tools.r8.cf.code.CfStore;
+import com.android.tools.r8.cf.code.CfThrow;
 import com.android.tools.r8.cf.code.CfUnop;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.CfCode;
@@ -113,6 +114,10 @@ public class CfPrinter {
 
   public void print(CfNop nop) {
     print("nop");
+  }
+
+  public void print(CfThrow insn) {
+    print("athrow");
   }
 
   public void print(CfConstNull constNull) {

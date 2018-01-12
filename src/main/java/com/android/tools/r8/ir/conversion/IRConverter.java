@@ -632,7 +632,7 @@ public class IRConverter {
     assert !method.getCode().isDexCode();
     CfBuilder builder = new CfBuilder(method, code, options.itemFactory);
     // TODO(zerny): Change the return type of CfBuilder::build CfCode once complete.
-    Code result = builder.build(codeRewriter, options);
+    Code result = builder.build(codeRewriter, options, appInfo.withSubtyping());
     assert result.isCfCode() || result.isJarCode();
     method.setCode(result);
   }

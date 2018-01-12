@@ -10,27 +10,50 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
+import java.util.List;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 public class CfFrame extends CfInstruction {
 
   private final Int2ReferenceSortedMap<DexType> locals;
+  private final List<DexType> stack;
 
-  public CfFrame(Int2ReferenceSortedMap<DexType> locals) {
+  public CfFrame(Int2ReferenceSortedMap<DexType> locals, List<DexType> stack) {
     this.locals = locals;
+    this.stack = stack;
+  }
+
+  @Override
+  public void write(MethodVisitor visitor) {
+    int stackCount = computeStackCount();
+    Object[] stackTypes = computeStackTypes(stackCount);
+    int localsCount = computeLocalsCount();
+    Object[] localsTypes = computeLocalsTypes(localsCount);
+    visitor.visitFrame(F_NEW, localsCount, localsTypes, stackCount, stackTypes);
   }
 
   private boolean isWide(DexType type) {
     return type.isPrimitiveType() && (type.toShorty() == 'J' || type.toShorty() == 'D');
   }
 
-  @Override
-  public void write(MethodVisitor visitor) {
-    if (locals.isEmpty()) {
-      visitor.visitFrame(F_NEW, 0, null, 0, null);
-      return;
+  private int computeStackCount() {
+    return stack.size();
+  }
+
+  private Object[] computeStackTypes(int stackCount) {
+    assert stackCount == stack.size();
+    if (stackCount == 0) {
+      return null;
     }
+    Object[] stackTypes = new Object[stackCount];
+    for (int i = 0; i < stackCount; i++) {
+      stackTypes[i] = getType(stack.get(i));
+    }
+    return stackTypes;
+  }
+
+  private int computeLocalsCount() {
     // Compute the size of locals. Absent indexes are denoted by a single-width element (ie, TOP).
     int maxRegister = locals.lastIntKey();
     int localsCount = 0;
@@ -41,19 +64,25 @@ public class CfFrame extends CfInstruction {
         i++;
       }
     }
-    // Construct the locals type descriptions.
-    Object[] localsCopy = new Object[localsCount];
+    return localsCount;
+  }
+
+  private Object[] computeLocalsTypes(int localsCount) {
+    if (localsCount == 0) {
+      return null;
+    }
+    int maxRegister = locals.lastIntKey();
+    Object[] localsTypes = new Object[localsCount];
     int localIndex = 0;
     for (int i = 0; i <= maxRegister; i++) {
       DexType type = locals.get(i);
       Object typeOpcode = getType(type);
-      localsCopy[localIndex++] = typeOpcode;
+      localsTypes[localIndex++] = typeOpcode;
       if (type != null && isWide(type)) {
         i++;
       }
     }
-    // TODO(zerny): Compute the stack types too.
-    visitor.visitFrame(F_NEW, localsCount, localsCopy, 0, null);
+    return localsTypes;
   }
 
   private Object getType(DexType type) {

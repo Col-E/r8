@@ -238,22 +238,30 @@ public class CfRegisterAllocator implements RegisterAllocator {
     intervals.setRegister(register);
   }
 
-  public Collection<Value> getLocalsAtPosition(int blockEntryInstruction) {
+  public Collection<Value> getLocalsAtBlockEntry(BasicBlock block) {
     List<Value> values = new ArrayList<>(registersUsed());
+    InstructionIterator instructions = block.iterator();
+    Instruction entryInstruction = instructions.next();
+    // Skip past all phi-inserted loads and stores to obtain the actual first instruction.
+    while (entryInstruction.getNumber() == -1) {
+      assert entryInstruction.isLoad() || entryInstruction.isStore();
+      entryInstruction = instructions.next();
+    }
     for (LiveIntervals intervals : liveIntervals) {
-      addLiveValueFromIntervals(blockEntryInstruction, intervals, values);
+      addLiveAtEntryValueFromIntervals(entryInstruction, intervals, values);
     }
     return values;
   }
 
-  private static void addLiveValueFromIntervals(
-      int position, LiveIntervals intervals, List<Value> values) {
-    if (intervals.overlapsPosition(position)) {
-      for (LiveRange range : intervals.getRanges()) {
-        if (range.start <= position && position < range.end) {
-          values.add(intervals.getValue());
-          return;
-        }
+  private static void addLiveAtEntryValueFromIntervals(
+      Instruction instruction, LiveIntervals intervals, List<Value> values) {
+    int position = instruction.getNumber();
+    for (LiveRange range : intervals.getRanges()) {
+      if (range.start < position
+          && LinearScanRegisterAllocator.isLocalLiveAtInstruction(
+              instruction, range, intervals.getValue())) {
+        values.add(intervals.getValue());
+        return;
       }
     }
   }
