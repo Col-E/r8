@@ -23,24 +23,11 @@ import utils.Utils;
  */
 public class Kotlinc extends DefaultTask {
 
-  enum KotlinTargetVersion {
-    JAVA_6("1.6"),
-    JAVA_8("1.8");
-
-    private final String optionName;
-
-    KotlinTargetVersion(String optionName) {
-      this.optionName = optionName;
-    }
-  }
-
   @InputFiles
   private FileTree source;
 
   @OutputFile
   private File destination;
-
-  private KotlinTargetVersion targetVersion;
 
   public FileTree getSource() {
     return source;
@@ -58,14 +45,6 @@ public class Kotlinc extends DefaultTask {
     this.destination = destination;
   }
 
-  public KotlinTargetVersion getTargetVersion() {
-    return targetVersion;
-  }
-
-  public void setTargetVersion(KotlinTargetVersion targetVersion) {
-    this.targetVersion = targetVersion;
-  }
-
   @TaskAction
   public void compile() {
     getProject().exec(new Action<ExecSpec>() {
@@ -78,7 +57,6 @@ public class Kotlinc extends DefaultTask {
           execSpec.setExecutable(kotlincExecPath.toFile());
           execSpec.args("-include-runtime");
           execSpec.args("-nowarn");
-          execSpec.args("-jvm-target", targetVersion.optionName);
           execSpec.args("-d", destination.getCanonicalPath());
           execSpec.args(source.getFiles());
         } catch (IOException e) {
