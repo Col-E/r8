@@ -33,7 +33,6 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.google.common.collect.Streams;
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -96,11 +95,8 @@ public class IdentifierNameStringMarker {
             Value in = instancePut.value();
             Value newIn = decoupleIdentifierIfNecessary(code, iterator, instancePut, in);
             if (newIn != in) {
-              List<Value> values = new ArrayList<>(2);
-              values.add(newIn);
-              values.add(instancePut.object());
               iterator.replaceCurrentInstruction(
-                  new InstancePut(instancePut.getType(), values, field));
+                  new InstancePut(instancePut.getType(), field, instancePut.object(), newIn));
               encodedMethod.markUseIdentifierNameString();
             }
           }

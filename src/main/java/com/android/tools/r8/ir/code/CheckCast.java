@@ -4,12 +4,16 @@
 
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.LoadStoreHelper;
+import com.android.tools.r8.cf.TypeVerificationHelper;
+import com.android.tools.r8.cf.code.CfCheckCast;
 import com.android.tools.r8.code.MoveObject;
 import com.android.tools.r8.code.MoveObjectFrom16;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
@@ -109,5 +113,26 @@ public class CheckCast extends Instruction {
   public TypeLatticeElement evaluate(
       AppInfoWithSubtyping appInfo, Function<Value, TypeLatticeElement> getLatticeElement) {
     return getLatticeElement.apply(object()).checkCast(appInfo, type);
+  }
+
+  @Override
+  public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
+    helper.loadInValues(this, it);
+    helper.storeOutValue(this, it);
+  }
+
+  @Override
+  public boolean hasInvariantVerificationType() {
+    return true;
+  }
+
+  @Override
+  public DexType computeVerificationType(TypeVerificationHelper helper) {
+    return type;
+  }
+
+  @Override
+  public void buildCf(CfBuilder builder) {
+    builder.add(new CfCheckCast(type));
   }
 }

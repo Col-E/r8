@@ -49,9 +49,7 @@ public enum ValueType {
   }
 
   public boolean compatible(ValueType other) {
-    return this == other
-        || (isSingle() && other.isSingle())
-        || (isWide() && other.isWide());
+    return isWide() == other.isWide();
   }
 
   public int requiredRegisters() {

@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.LoadStoreHelper;
+import com.android.tools.r8.cf.code.CfPutField;
 import com.android.tools.r8.code.Iput;
 import com.android.tools.r8.code.IputBoolean;
 import com.android.tools.r8.code.IputByte;
@@ -17,20 +19,23 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
-import java.util.List;
+import java.util.Arrays;
 
 public class InstancePut extends FieldInstruction {
 
-  public InstancePut(MemberType type, List<Value> values, DexField field) {
-    super(type, field, null, values);
-  }
-
-  public Value value() {
-    return inValues.get(0);
+  public InstancePut(MemberType type, DexField field, Value object, Value value) {
+    super(type, field, null, Arrays.asList(object, value));
+    assert object().type.isObjectOrNull();
+    assert value().type.compatible(ValueType.fromDexType(field.type));
   }
 
   public Value object() {
+    return inValues.get(0);
+  }
+
+  public Value value() {
     return inValues.get(1);
   }
 
@@ -121,5 +126,15 @@ public class InstancePut extends FieldInstruction {
   @Override
   public String toString() {
     return super.toString() + "; field: " + field.toSourceString();
+  }
+
+  @Override
+  public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
+    helper.loadInValues(this, it);
+  }
+
+  @Override
+  public void buildCf(CfBuilder builder) {
+    builder.add(new CfPutField(field));
   }
 }

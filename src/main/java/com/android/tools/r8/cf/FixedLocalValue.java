@@ -26,6 +26,10 @@ public class FixedLocalValue extends Value {
     return allocator.getRegisterForValue(phi, -1);
   }
 
+  public Phi getPhi() {
+    return phi;
+  }
+
   @Override
   public boolean isConstant() {
     return false;

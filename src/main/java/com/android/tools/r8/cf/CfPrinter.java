@@ -7,13 +7,16 @@ import com.android.tools.r8.cf.code.CfArrayLength;
 import com.android.tools.r8.cf.code.CfArrayLoad;
 import com.android.tools.r8.cf.code.CfArrayStore;
 import com.android.tools.r8.cf.code.CfBinop;
+import com.android.tools.r8.cf.code.CfCheckCast;
 import com.android.tools.r8.cf.code.CfConstNull;
 import com.android.tools.r8.cf.code.CfConstNumber;
 import com.android.tools.r8.cf.code.CfConstString;
 import com.android.tools.r8.cf.code.CfFrame;
+import com.android.tools.r8.cf.code.CfGetField;
 import com.android.tools.r8.cf.code.CfGoto;
 import com.android.tools.r8.cf.code.CfIf;
 import com.android.tools.r8.cf.code.CfIfCmp;
+import com.android.tools.r8.cf.code.CfInstanceOf;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.cf.code.CfLabel;
@@ -23,6 +26,7 @@ import com.android.tools.r8.cf.code.CfNewArray;
 import com.android.tools.r8.cf.code.CfNop;
 import com.android.tools.r8.cf.code.CfPop;
 import com.android.tools.r8.cf.code.CfPosition;
+import com.android.tools.r8.cf.code.CfPutField;
 import com.android.tools.r8.cf.code.CfReturn;
 import com.android.tools.r8.cf.code.CfReturnVoid;
 import com.android.tools.r8.cf.code.CfStaticGet;
@@ -194,11 +198,40 @@ public class CfPrinter {
     comment("frame");
   }
 
+  public void print(CfInstanceOf insn) {
+    indent();
+    builder.append("instanceof ");
+    appendClass(insn.getType());
+  }
+
+  public void print(CfCheckCast insn) {
+    indent();
+    builder.append("checkcast ");
+    appendClass(insn.getType());
+  }
+
   public void print(CfStaticGet staticGet) {
     indent();
     builder.append("getstatic ");
     appendField(staticGet.getField());
+    builder.append(' ');
     appendDescriptor(staticGet.getField().type);
+  }
+
+  public void print(CfGetField getField) {
+    indent();
+    builder.append("getfield ");
+    appendField(getField.getField());
+    builder.append(' ');
+    appendDescriptor(getField.getField().type);
+  }
+
+  public void print(CfPutField putField) {
+    indent();
+    builder.append("putfield ");
+    appendField(putField.getField());
+    builder.append(' ');
+    appendDescriptor(putField.getField().type);
   }
 
   public void print(CfNew newInstance) {

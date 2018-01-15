@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.regalloc;
 import static com.android.tools.r8.ir.code.IRCode.INSTRUCTION_NUMBER_DELTA;
 import static com.android.tools.r8.ir.regalloc.LiveIntervals.NO_REGISTER;
 
+import com.android.tools.r8.cf.FixedLocalValue;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.ir.code.Add;
@@ -43,6 +44,7 @@ import it.unimi.dsi.fastutil.ints.IntArraySet;
 import it.unimi.dsi.fastutil.ints.IntIterator;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -284,7 +286,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     }
     ranges.sort(LocalRange::compareTo);
 
-    // For each debug position compute the set of live locals.
+    // At each instruction compute the changes to live locals.
     boolean localsChanged = false;
     LinkedList<LocalRange> openRanges = new LinkedList<>();
     Iterator<LocalRange> rangeIterator = ranges.iterator();
@@ -387,12 +389,26 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       Instruction instruction, int start, int end, Value value) {
     int number = instruction.getNumber();
     assert start < number;
-    return number < end || (number == end && usesValues(value, instruction));
+    return number < end || (number == end && usesValue(value, instruction));
   }
 
-  private static boolean usesValues(Value usedValue, Instruction instruction) {
-    return instruction.inValues().contains(usedValue)
-        || instruction.getDebugValues().contains(usedValue);
+  private static boolean usesValue(Value usedValue, Instruction instruction) {
+    return valuesContain(usedValue, instruction.inValues())
+        || valuesContain(usedValue, instruction.getDebugValues());
+  }
+
+  private static boolean valuesContain(Value value, Collection<Value> values) {
+    for (Value other : values) {
+      if (value == other) {
+        return true;
+      }
+      if (value.isPhi()
+          && other instanceof FixedLocalValue
+          && ((FixedLocalValue) other).getPhi() == value) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private static void setLocalsAtEntry(
