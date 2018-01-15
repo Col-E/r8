@@ -135,7 +135,8 @@ public class LensCodeRewriter {
           DexField actualField = graphLense.lookupField(field, method);
           if (actualField != field) {
             InstancePut newInstancePut =
-                new InstancePut(instancePut.getType(), instancePut.inValues(), actualField);
+                new InstancePut(
+                    instancePut.getType(), actualField, instancePut.object(), instancePut.value());
             iterator.replaceCurrentInstruction(newInstancePut);
           }
         } else if (current.isStaticGet()) {

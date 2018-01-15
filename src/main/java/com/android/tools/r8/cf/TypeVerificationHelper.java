@@ -97,7 +97,7 @@ public class TypeVerificationHelper {
         }
         ++argumentIndex;
       }
-      // Compute the out-value type of each normal instruction with an out-value but no in values.
+      // Compute the out-value type of each normal instruction with an invariant out-value type.
       while (instruction != null) {
         assert !instruction.isArgument();
         if (instruction.outValue() != null && instruction.outType().isObject()) {

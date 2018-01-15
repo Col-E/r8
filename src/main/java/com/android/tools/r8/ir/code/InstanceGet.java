@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.LoadStoreHelper;
+import com.android.tools.r8.cf.code.CfGetField;
 import com.android.tools.r8.code.Iget;
 import com.android.tools.r8.code.IgetBoolean;
 import com.android.tools.r8.code.IgetByte;
@@ -19,6 +21,7 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import java.util.function.Function;
 
@@ -129,5 +132,16 @@ public class InstanceGet extends FieldInstruction {
   public TypeLatticeElement evaluate(
       AppInfoWithSubtyping appInfo, Function<Value, TypeLatticeElement> getLatticeElement) {
     return TypeLatticeElement.fromDexType(field.type, true);
+  }
+
+  @Override
+  public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
+    helper.loadInValues(this, it);
+    helper.storeOutValue(this, it);
+  }
+
+  @Override
+  public void buildCf(CfBuilder builder) {
+    builder.add(new CfGetField(field));
   }
 }

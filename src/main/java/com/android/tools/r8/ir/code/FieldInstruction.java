@@ -17,16 +17,16 @@ abstract class FieldInstruction extends Instruction {
   protected final MemberType type;
   protected final DexField field;
 
-  protected FieldInstruction(MemberType type, DexField field, Value dest, Value object) {
-    super(dest, object);
+  protected FieldInstruction(MemberType type, DexField field, Value dest, Value value) {
+    super(dest, value);
     assert type != null;
     assert field != null;
     this.type = type;
     this.field = field;
   }
 
-  protected FieldInstruction(MemberType type, DexField field, Value dest, List<Value> values) {
-    super(dest, values);
+  protected FieldInstruction(MemberType type, DexField field, Value dest, List<Value> inValues) {
+    super(dest, inValues);
     assert type != null;
     assert field != null;
     this.type = type;

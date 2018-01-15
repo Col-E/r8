@@ -995,10 +995,9 @@ public class IRBuilder {
 
   public void addInstancePut(int value, int object, DexField field) {
     MemberType type = MemberType.fromDexType(field.type);
-    List<Value> values = new ArrayList<>(2);
-    values.add(readRegister(value, ValueType.fromMemberType(type)));
-    values.add(readRegister(object, ValueType.OBJECT));
-    InstancePut instruction = new InstancePut(type, values, field);
+    Value objectValue = readRegister(object, ValueType.OBJECT);
+    Value valueValue = readRegister(value, ValueType.fromMemberType(type));
+    InstancePut instruction = new InstancePut(type, field, objectValue, valueValue);
     add(instruction);
   }
 
