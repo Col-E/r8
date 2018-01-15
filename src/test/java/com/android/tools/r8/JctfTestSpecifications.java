@@ -4486,12 +4486,6 @@ public class JctfTestSpecifications {
           // java.util.ConcurrentModificationException
 
           .put(
-              "util.concurrent.ScheduledThreadPoolExecutor.getTaskCount.ScheduledThreadPoolExecutor_getTaskCount_A01",
-              match(runtimesFrom(Version.V4_4_4)))
-          // 1) t01
-          // java.lang.AssertionError: expected:<1> but was:<2>
-
-          .put(
               "util.concurrent.ConcurrentHashMap.serialization.ConcurrentHashMap_serialization_A01",
               match(runtimesFrom(Version.V5_1_1)))
           // 1) t01
@@ -4797,32 +4791,27 @@ public class JctfTestSpecifications {
           // 1) t01(com.google.jctf.test.lib.java.math.BigInteger.probablePrimeIjava_util_Random.BigInteger_probablePrime_A01)
           // java.lang.AssertionError: expected:<2> but was:<16>
 
-          .put("lang.AssertionError.Constructor.AssertionError_Constructor_A01",
-              match(runtimes(Version.V4_0_4)))
-          // 1) t04(com.google.jctf.test.lib.java.lang.AssertionError.ConstructorLjava_lang_Object.AssertionError_Constructor_A01)
-          // java.lang.IllegalStateException: Cause already initialized
-
-          .put("java.lang.Math.sqrtD.Math_sqrt_A01",
+          .put("lang.Math.sqrtD.Math_sqrt_A01",
               match(runtimes(Version.V4_0_4)))
           // 1) t03(com.google.jctf.test.lib.java.lang.Math.sqrtD.Math_sqrt_A01)
           // java.lang.AssertionError: expected:<1.3407807929942596E154> but was:<1.3407807929942597E154>
 
-          .put("java.lang.StrictMath.cbrtD.StrictMath_cbrt_A01",
+          .put("lang.StrictMath.cbrtD.StrictMath_cbrt_A01",
               match(runtimes(Version.V4_0_4)))
           // 1) t03(com.google.jctf.test.lib.java.lang.StrictMath.cbrtD.StrictMath_cbrt_A01)
           // java.lang.AssertionError: Bad value returned for argument: 4.459999999999949 expected:<1.6460573143158361> but was:<1.6460573143158364>
 
-          .put("java.lang.StrictMath.log10D.StrictMath_log10_A01",
+          .put("lang.StrictMath.log10D.StrictMath_log10_A01",
               match(runtimes(Version.V4_0_4)))
           // 1) t04(com.google.jctf.test.lib.java.lang.StrictMath.log10D.StrictMath_log10_A01)
           // java.lang.AssertionError: Bad value returned for argument: 3.5799999999999677 expected:<0.5538830266438705> but was:<0.5538830266438703>
 
-          .put("java.lang.StrictMath.powDD.StrictMath_pow_A01",
+          .put("lang.StrictMath.powDD.StrictMath_pow_A01",
               match(runtimes(Version.V4_0_4)))
           // t01(com.google.jctf.test.lib.java.lang.StrictMath.powDD.StrictMath_pow_A01)
           // java.lang.AssertionError: Bad value returned for arguments: 2.225073858507201E-308 -0.5 expected:<6.7039039649713E153> but was:<6.703903964971299E153>
 
-          .put("java.lang.String.indexOfII.String_indexOf_A01",
+          .put("lang.String.indexOfII.String_indexOf_A01",
               match(runtimes(Version.V4_0_4)))
           // 1) t03(com.google.jctf.test.lib.java.lang.String.indexOfII.String_indexOf_A01)
           // java.lang.AssertionError: expected:<-1> but was:<0>
@@ -4832,7 +4821,7 @@ public class JctfTestSpecifications {
           // 1) t03(com.google.jctf.test.lib.lang.String.indexOfLjava_lang_StringI.String_indexOf_A01)
           // java.lang.AssertionError: expected:<-1> but was:<0>
 
-          .put("java.lang.reflect.Array.getByteLjava_lang_ObjectI.Array_getByte_A03",
+          .put("lang.reflect.Array.getByteLjava_lang_ObjectI.Array_getByte_A03",
               match(runtimes(Version.V4_0_4)))
           // 1) t02(com.google.jctf.test.lib.java.lang.reflect.Array.getByteLjava_lang_ObjectI.Array_getByte_A03)
           // java.lang.AssertionError: Exception is not thrown: [Z@f5e586b8, 0
@@ -4842,85 +4831,85 @@ public class JctfTestSpecifications {
           // 1) t02(com.google.jctf.test.lib.java.lang.reflect.Array.getDoubleLjava_lang_ObjectI.Array_getDouble_A01)
           // java.lang.IllegalArgumentException: Wrong array type
 
-          .put("java.lang.reflect.Array.getDoubleLjava_lang_ObjectI.Array_getDouble_A03",
+          .put("lang.reflect.Array.getDoubleLjava_lang_ObjectI.Array_getDouble_A03",
               match(runtimes(Version.V4_0_4)))
           // 1) t02(com.google.jctf.test.lib.java.lang.reflect.Array.getDoubleLjava_lang_ObjectI.Array_getDouble_A03)
           // java.lang.AssertionError: Exception is not thrown: [Z@f5e31930, 0
 
-          .put("java.lang.reflect.Array.getFloatLjava_lang_ObjectI.Array_getFloat_A01",
+          .put("lang.reflect.Array.getFloatLjava_lang_ObjectI.Array_getFloat_A01",
               match(runtimes(Version.V4_0_4)))
           // 1) t02(com.google.jctf.test.lib.java.lang.reflect.Array.getFloatLjava_lang_ObjectI.Array_getFloat_A01)
           // java.lang.IllegalArgumentException: Wrong array type
 
-          .put("java.lang.reflect.Array.getFloatLjava_lang_ObjectI.Array_getFloat_A03",
+          .put("lang.reflect.Array.getFloatLjava_lang_ObjectI.Array_getFloat_A03",
               match(runtimes(Version.V4_0_4)))
           // 1) t02(com.google.jctf.test.lib.java.lang.reflect.Array.getFloatLjava_lang_ObjectI.Array_getFloat_A03)
           // java.lang.AssertionError: Exception is not thrown: [Z@f5db78f0, 0
 
-          .put("java.lava.lang.reflect.Array.getIntLjava_lang_ObjectI.Array_getInt_A01",
+          .put("lang.reflect.Array.getIntLjava_lang_ObjectI.Array_getInt_A01",
               match(runtimes(Version.V4_0_4)))
           // 1) t02(com.google.jctf.test.lib.java.lang.reflect.Array.getIntLjava_lang_ObjectI.Array_getInt_A01)
           // java.lang.IllegalArgumentException: Wrong array type
 
-          .put("java.lava.lang.reflect.Array.getIntLjava_lang_ObjectI.Array_getInt_A03",
+          .put("lang.reflect.Array.getIntLjava_lang_ObjectI.Array_getInt_A03",
               match(runtimes(Version.V4_0_4)))
           // 1) t02(com.google.jctf.test.lib.java.lang.reflect.Array.getIntLjava_lang_ObjectI.Array_getInt_A03)
           // java.lang.AssertionError: Exception is not thrown: [Z@f5dbb628, 0
 
-          .put("java.lang.reflect.Array.getLongLjava_lang_ObjectI.Array_getLong_A01",
+          .put("lang.reflect.Array.getLongLjava_lang_ObjectI.Array_getLong_A01",
               match(runtimes(Version.V4_0_4)))
           // 1) t02(com.google.jctf.test.lib.java.lang.reflect.Array.getLongLjava_lang_ObjectI.Array_getLong_A01)
           // java.lang.IllegalArgumentException: Wrong array type
 
-          .put("java.lang.reflect.Array.getLongLjava_lang_ObjectI.Array_getLong_A03",
+          .put("lang.reflect.Array.getLongLjava_lang_ObjectI.Array_getLong_A03",
               match(runtimes(Version.V4_0_4)))
           // 1) t02(com.google.jctf.test.lib.java.lang.reflect.Array.getLongLjava_lang_ObjectI.Array_getLong_A03)
           // java.lang.AssertionError: Exception is not thrown: [Z@f5dc0720, 0
 
-          .put("java.lang.reflect.Array.getShortLjava_lang_ObjectI.Array_getShort_A03",
+          .put("lang.reflect.Array.getShortLjava_lang_ObjectI.Array_getShort_A03",
               match(runtimes(Version.V4_0_4)))
           // 1) t02(com.google.jctf.test.lib.java.lang.reflect.Array.getShortLjava_lang_ObjectI.Array_getShort_A03)
           // java.lang.AssertionError: Exception is not thrown: [Z@f5e827d8, 0
 
-          .put("java.lang.reflect.Array.setBooleanLjava_lang_ObjectIZ.Array_setBoolean_A03",
+          .put("lang.reflect.Array.setBooleanLjava_lang_ObjectIZ.Array_setBoolean_A03",
               match(runtimes(Version.V4_0_4)))
           // 1) t02(com.google.jctf.test.lib.java.lang.reflect.Array.setBooleanLjava_lang_ObjectIZ.Array_setBoolean_A03)
           // java.lang.AssertionError: Exception is not thrown: [B@f5e8d9c8, 0, true
 
-          .put("java.lang.reflect.Array.setCharLjava_lang_ObjectIC.Array_setChar_A01",
+          .put("lang.reflect.Array.setCharLjava_lang_ObjectIC.Array_setChar_A01",
               match(runtimes(Version.V4_0_4)))
           // 1) t02(com.google.jctf.test.lib.java.lang.reflect.Array.setCharLjava_lang_ObjectIC.Array_setChar_A01)
           // java.lang.IllegalArgumentException: Wrong array type
 
-          .put("java.lang.reflect.Array.setLjava_lang_ObjectILjava_lang_Object.Array_set_A01",
+          .put("lang.reflect.Array.setLjava_lang_ObjectILjava_lang_Object.Array_set_A01",
               match(runtimes(Version.V4_0_4)))
           // 1) t26(com.google.jctf.test.lib.java.lang.reflect.Array.setLjava_lang_ObjectILjava_lang_Object.Array_set_A01)
           // java.lang.IllegalArgumentException: Wrong array type
 
-          .put("java.lang.reflect.Array.setLjava_lang_ObjectILjava_lang_Object.Array_set_A03",
+          .put("lang.reflect.Array.setLjava_lang_ObjectILjava_lang_Object.Array_set_A03",
               match(runtimes(Version.V4_0_4)))
           // 1) t21(com.google.jctf.test.lib.java.lang.reflect.Array.setLjava_lang_ObjectILjava_lang_Object.Array_set_A03)
           // java.lang.AssertionError: Exception is not thrown: [B@f5e73db8, 0, false
 
-          .put("java.lang.reflect.Constructor.toString.Constructor_toString_A01",
+          .put("lang.reflect.Constructor.toString.Constructor_toString_A01",
               match(runtimes(Version.V4_0_4)))
           // 1) t05(com.google.jctf.test.lib.java.lang.reflect.Constructor.toString.Constructor_toString_A01)
           // org.junit.ComparisonFailure: expected:<...le,java.lang.String,[int[][][][][][][][][][][][][]])> but was:<...le,java.lang.String,[[[[[[[[[[[[[[I])>
 
           .put(
-              "java.math.BigInteger.modPowLjava_math_BigIntegerLjava_math_Integer.BigInteger_modPow_A01",
+              "math.BigInteger.modPowLjava_math_BigIntegerLjava_math_Integer.BigInteger_modPow_A01",
               match(runtimes(Version.V4_0_4)))
           // ) t01(com.google.jctf.test.lib.java.math.BigInteger.modPowLjava_math_BigIntegerLjava_math_Integer.BigInteger_modPow_A01)
           // java.lang.AssertionError: Improper exception message
 
           .put(
-              "java.util.concurrent.LinkedBlockingDeque.drainToLjava_util_CollectionI.LinkedBlockingDeque_drainTo_A01",
+              "util.concurrent.LinkedBlockingDeque.drainToLjava_util_CollectionI.LinkedBlockingDeque_drainTo_A01",
               match(runtimes(Version.V4_0_4)))
           // 1) t03(com.google.jctf.test.lib.java.util.concurrent.LinkedBlockingDeque.drainToLjava_util_CollectionI.LinkedBlockingDeque_drainTo_A01)
           //  java.lang.AssertionError: expected:<0> but was:<-1>
 
           .put(
-              "java.util.concurrent.LinkedBlockingQueue.drainToLjava_util_CollectionI.LinkedBlockingQueue_drainTo_A01",
+              "util.concurrent.LinkedBlockingQueue.drainToLjava_util_CollectionI.LinkedBlockingQueue_drainTo_A01",
               match(runtimes(Version.V4_0_4)))
           //1) t03(com.google.jctf.test.lib.java.util.concurrent.LinkedBlockingQueue.drainToLjava_util_CollectionI.LinkedBlockingQueue_drainTo_A01)
           // java.lang.AssertionError: expected:<0> but was:<-1>
@@ -4964,6 +4953,12 @@ public class JctfTestSpecifications {
           // Failed on bot only (R8):
           // 1) t02
           // java.lang.AssertionError: java.lang.AssertionError: expected:<7> but was:<6>
+
+          .put(
+              "util.concurrent.ScheduledThreadPoolExecutor.getTaskCount.ScheduledThreadPoolExecutor_getTaskCount_A01",
+              any())
+          // 1) t01
+          // java.lang.AssertionError: expected:<1> but was:<2>
 
           .put("lang.ref.PhantomReference.clear.PhantomReference_clear_A01",
               match(runtimesUpTo(Version.V4_4_4)))
