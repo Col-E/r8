@@ -70,6 +70,7 @@ public class ToolHelper {
   public static final String EXAMPLES_DIR = TESTS_DIR + "examples/";
   public static final String EXAMPLES_ANDROID_O_DIR = TESTS_DIR + "examplesAndroidO/";
   public static final String EXAMPLES_ANDROID_P_DIR = TESTS_DIR + "examplesAndroidP/";
+  public static final String EXAMPLES_KOTLIN_DIR = TESTS_DIR + "examplesKotlin/";
   public static final String TESTS_BUILD_DIR = BUILD_DIR + "test/";
   public static final String EXAMPLES_BUILD_DIR = TESTS_BUILD_DIR + "examples/";
   public static final String EXAMPLES_KOTLIN_BUILD_DIR = TESTS_BUILD_DIR + "examplesKotlin/";
