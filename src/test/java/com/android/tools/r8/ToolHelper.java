@@ -793,6 +793,11 @@ public class ToolHelper {
     }
   }
 
+  public static AndroidApp runD8(D8Command.Builder builder)
+      throws IOException, CompilationException, CompilationFailedException {
+    return runD8(builder, null);
+  }
+
   public static AndroidApp runD8(
       D8Command.Builder builder, Consumer<InternalOptions> optionsConsumer)
       throws IOException, CompilationException, CompilationFailedException {

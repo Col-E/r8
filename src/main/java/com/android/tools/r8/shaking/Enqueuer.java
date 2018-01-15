@@ -417,7 +417,7 @@ public class Enqueuer {
       }
       // We also need to add the corresponding <clinit> to the set of live methods, as otherwise
       // static field initialization (and other class-load-time sideeffects) will not happen.
-      if (holder.hasNonTrivialClassInitializer()) {
+      if (!holder.isLibraryClass() && holder.hasNonTrivialClassInitializer()) {
         DexEncodedMethod clinit = holder.getClassInitializer();
         if (clinit != null) {
           assert clinit.method.holder == holder.type;
@@ -1013,13 +1013,17 @@ public class Enqueuer {
     if (holder == null) {
       return;
     }
-    if (!target.accessFlags.isStatic()
-        && !target.accessFlags.isConstructor()
-        && !target.accessFlags.isPrivate()) {
+    if (target.isVirtualMethod()) {
       // A virtual method. Mark it as reachable so that subclasses, if instantiated, keep
       // their overrides. However, we don't mark it live, as a keep rule might not imply that
       // the corresponding class is live.
       markVirtualMethodAsReachable(target.method, holder.accessFlags.isInterface(), reason);
+      // Reachability for default methods is based on live subtypes in general. For keep rules,
+      // we need special handling as we essentially might have live subtypes that are outside of
+      // our reach. Do this here, as we still know that this is due to a keep rule.
+      if (holder.isInterface() && target.isNonAbstractVirtualMethod()) {
+        markVirtualMethodAsLive(target, reason);
+      }
     } else {
       markDirectStaticOrConstructorMethodAsLive(target, reason);
     }
