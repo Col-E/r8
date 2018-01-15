@@ -4,6 +4,7 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.R8RunArtTestsTest.CompilerUnderTest;
+import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -17,25 +18,42 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class R8RunExamplesKotlinTest extends R8RunExamplesCommon {
 
-  @Parameters(name = "{0}_{1}_{2}_{3}_{5}")
-  public static Collection<String[]> data() {
+  @Parameters(name = "{0}_{1}_{2}_{3}_{5}_{6}")
+  public static Collection<Object[]> data() {
     String[] tests = {
         "loops.LoopKt"
     };
 
-    List<String[]> fullTestList = new ArrayList<>(tests.length * 2);
+    final int arrayListSize = tests.length *
+        CompilationMode.values().length *
+        KotlinTargetVersion.values().length *
+        2 /* JAVAC+D8 and DX+R8 */;
+    List<Object[]> fullTestList = new ArrayList<>(arrayListSize);
     for (String test : tests) {
-      fullTestList.add(makeTest(Input.JAVAC, CompilerUnderTest.D8, CompilationMode.DEBUG, test));
-      fullTestList.add(makeTest(Input.JAVAC, CompilerUnderTest.D8, CompilationMode.RELEASE, test));
-      fullTestList.add(makeTest(Input.DX, CompilerUnderTest.R8, CompilationMode.DEBUG, test));
-      fullTestList.add(makeTest(Input.DX, CompilerUnderTest.R8, CompilationMode.RELEASE, test));
+      for (CompilationMode compilationMode : CompilationMode.values()) {
+        for (KotlinTargetVersion targetVersion : KotlinTargetVersion.values()) {
+          fullTestList.add(
+              makeTest(Input.JAVAC, CompilerUnderTest.D8, compilationMode, targetVersion, test));
+          fullTestList
+              .add(makeTest(Input.DX, CompilerUnderTest.R8, compilationMode, targetVersion, test));
+        }
+      }
     }
     return fullTestList;
   }
 
+  private static Object[] makeTest(Input input, CompilerUnderTest compiler, CompilationMode mode,
+      KotlinTargetVersion targetVersion, String clazz) {
+    String[] testParams = makeTest(input, compiler, mode, clazz);
+    Object[] kotlinTestParams = new Object[testParams.length + 1];
+    System.arraycopy(testParams, 0, kotlinTestParams, 0, testParams.length);
+    kotlinTestParams[testParams.length] = targetVersion;
+    return kotlinTestParams;
+  }
+
   @Override
   protected String getExampleDir() {
-    return ToolHelper.EXAMPLES_KOTLIN_BUILD_DIR;
+    return ToolHelper.getKotlinExamplesBuildDir(targetVersion);
   }
 
   @Override
@@ -68,13 +86,18 @@ public class R8RunExamplesKotlinTest extends R8RunExamplesCommon {
     return Collections.emptyMap();
   }
 
+  private final KotlinTargetVersion targetVersion;
+
   public R8RunExamplesKotlinTest(
       String pkg,
       String input,
       String compiler,
       String mode,
       String mainClass,
-      String output) {
+      String output,
+      KotlinTargetVersion targetVersion
+      ) {
     super(pkg, input, compiler, mode, mainClass, output);
+    this.targetVersion = targetVersion;
   }
 }

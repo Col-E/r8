@@ -793,25 +793,33 @@ task buildDebugTestResourcesJars {
         include "**/*.class"
     }
     def kotlinResourcesDir = file("src/test/debugTestResourcesKotlin")
-    def kotlinHostJar = "debug_test_resources_kotlin.jar"
-    task "jar_debugTestResourcesKotlin"(type: kotlin.Kotlinc) {
-        source = fileTree(dir: kotlinResourcesDir, include: '**/*.kt')
-        destination = file("build/test/${kotlinHostJar}")
+    kotlin.Kotlinc.KotlinTargetVersion.values().each { kotlinTargetVersion ->
+        def kotlinHostJar = "debug_test_resources_kotlin_${kotlinTargetVersion}.jar"
+        def taskName = "jar_debugTestResourcesKotlin_${kotlinTargetVersion}"
+        task "$taskName"(type: kotlin.Kotlinc) {
+            source = fileTree(dir: kotlinResourcesDir, include: '**/*.kt')
+            destination = file("build/test/${kotlinHostJar}")
+            targetVersion = kotlinTargetVersion;
+        }
+        dependsOn taskName
     }
     dependsOn downloadDeps
     dependsOn jar_debugTestResources
     dependsOn jar_debugTestResourcesJava8
-    dependsOn jar_debugTestResourcesKotlin
 }
 
 task buildExampleKotlinJars {
     def kotlinSrcDir = file("src/test/examplesKotlin")
     kotlinSrcDir.eachDir { dir ->
-        def name = dir.getName();
-        dependsOn "compile_example_kotlin_${name}"
-        task "compile_example_kotlin_${name}"(type: kotlin.Kotlinc) {
-            source = fileTree(dir: file("src/test/examplesKotlin/${name}"), include: '**/*.kt')
-            destination = file("build/test/examplesKotlin/${name}.jar")
+        kotlin.Kotlinc.KotlinTargetVersion.values().each { kotlinTargetVersion ->
+            def name = dir.getName();
+            def taskName = "compile_example_kotlin_${name}_${kotlinTargetVersion}"
+            dependsOn taskName
+            task "${taskName}"(type: kotlin.Kotlinc) {
+                source = fileTree(dir: file("src/test/examplesKotlin/${name}"), include: '**/*.kt')
+                destination = file("build/test/examplesKotlin/${kotlinTargetVersion}/${name}.jar")
+                targetVersion = kotlinTargetVersion;
+            }
         }
     }
 }
@@ -1115,20 +1123,23 @@ task buildExamplesKotlin {
     }
     def examplesDir = file("src/test/examplesKotlin")
     examplesDir.eachDir { dir ->
-        def name = dir.getName();
-        dependsOn "dex_example_kotlin_${name}"
-        def exampleOutputDir = file("build/test/examplesKotlin/" + name);
-        def dexPath = file("${exampleOutputDir}")
-        task "dex_example_kotlin_${name}"(type: dx.Dx,
-                dependsOn: "compile_example_kotlin_${name}") {
-            doFirst {
-                if (!dexPath.exists()) {
-                    dexPath.mkdirs()
+        kotlin.Kotlinc.KotlinTargetVersion.values().each { kotlinTargetVersion ->
+            def name = dir.getName();
+            def compileTaskName = "compile_example_kotlin_${name}_${kotlinTargetVersion}"
+            def dexTaskName = "dex_example_kotlin_${name}_${kotlinTargetVersion}"
+            dependsOn dexTaskName
+            def exampleOutputDir = file("build/test/examplesKotlin/${kotlinTargetVersion}/" + name);
+            def dexPath = file("${exampleOutputDir}")
+            task "${dexTaskName}"(type: dx.Dx, dependsOn: "${compileTaskName}") {
+                doFirst {
+                    if (!dexPath.exists()) {
+                        dexPath.mkdirs()
+                    }
                 }
+                source = files(tasks.getByPath("${compileTaskName}")).asFileTree
+                destination = dexPath
+                debug = false
             }
-            source = files(tasks.getByPath("compile_example_kotlin_${name}")).asFileTree
-            destination = dexPath
-            debug = false
         }
     }
 }
