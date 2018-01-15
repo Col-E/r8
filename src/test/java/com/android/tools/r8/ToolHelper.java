@@ -73,7 +73,6 @@ public class ToolHelper {
   public static final String EXAMPLES_KOTLIN_DIR = TESTS_DIR + "examplesKotlin/";
   public static final String TESTS_BUILD_DIR = BUILD_DIR + "test/";
   public static final String EXAMPLES_BUILD_DIR = TESTS_BUILD_DIR + "examples/";
-  public static final String EXAMPLES_KOTLIN_BUILD_DIR = TESTS_BUILD_DIR + "examplesKotlin/";
   public static final String EXAMPLES_ANDROID_N_BUILD_DIR = TESTS_BUILD_DIR + "examplesAndroidN/";
   public static final String EXAMPLES_ANDROID_O_BUILD_DIR = TESTS_BUILD_DIR + "examplesAndroidO/";
   public static final String EXAMPLES_ANDROID_P_BUILD_DIR = TESTS_BUILD_DIR + "examplesAndroidP/";
@@ -1205,5 +1204,20 @@ public class ToolHelper {
         null,
         options,
         null);
+  }
+
+  public enum KotlinTargetVersion {
+    JAVA_6("JAVA_6"),
+    JAVA_8("JAVA_8");
+
+    private final String folderName;
+
+    KotlinTargetVersion(String folderName) {
+      this.folderName = folderName;
+    }
+  }
+
+  public static String getKotlinExamplesBuildDir(KotlinTargetVersion version) {
+    return TESTS_BUILD_DIR + "examplesKotlin/" + version.folderName;
   }
 }
