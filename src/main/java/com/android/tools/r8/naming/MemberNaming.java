@@ -281,6 +281,11 @@ public class MemberNaming {
     }
 
     @Override
+    public String toString() {
+        return type + ' ' + name + '(' + String.join(",", parameters) + ')';
+    }
+
+    @Override
     void write(Writer writer) throws IOException {
       writer.append(type)
           .append(' ')
