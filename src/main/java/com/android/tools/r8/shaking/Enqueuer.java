@@ -5,6 +5,7 @@ package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.dex.IndexedItemCollection;
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo.ResolutionResult;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
@@ -411,6 +412,13 @@ public class Enqueuer {
       }
       if (holder.superType != null) {
         markTypeAsLive(holder.superType);
+        if (holder.isLibraryClass()) {
+          // Library classes may only extend other implement library classes.
+          ensureFromLibraryOrThrow(holder.superType, type);
+          for (DexType iface : holder.interfaces.values) {
+            ensureFromLibraryOrThrow(iface, type);
+          }
+        }
       }
       if (!holder.annotations.isEmpty()) {
         processAnnotations(holder.annotations.annotations);
@@ -491,6 +499,15 @@ public class Enqueuer {
     DexEncodedMethod target = appInfo.dispatchDirectInvoke(resolutionResult);
     if (target != null) {
       markDirectStaticOrConstructorMethodAsLive(target, reason);
+    }
+  }
+
+  private void ensureFromLibraryOrThrow(DexType type, DexType context) {
+    DexClass holder = appInfo.definitionFor(type);
+    if (holder != null && !holder.isLibraryClass()) {
+      throw new CompilationError("Library class " + context.toSourceString()
+          + (holder.isInterface() ? " implements " : " extends ")
+          + "program class " + type.toSourceString());
     }
   }
 
