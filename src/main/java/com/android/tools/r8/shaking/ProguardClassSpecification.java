@@ -17,7 +17,7 @@ public abstract class ProguardClassSpecification {
     protected ProguardAccessFlags classAccessFlags = new ProguardAccessFlags();
     protected ProguardAccessFlags negatedClassAccessFlags = new ProguardAccessFlags();
     protected boolean classTypeNegated = false;
-    protected ProguardClassType classType;
+    protected ProguardClassType classType = ProguardClassType.UNSPECIFIED;
     protected ProguardClassNameList classNames;
     protected ProguardTypeMatcher inheritanceAnnotation;
     protected ProguardTypeMatcher inheritanceClassName;
@@ -144,6 +144,7 @@ public abstract class ProguardClassSpecification {
     this.negatedClassAccessFlags = negatedClassAccessFlags;
     this.classTypeNegated = classTypeNegated;
     this.classType = classType;
+    assert classType != null;
     this.classNames = classNames;
     this.inheritanceAnnotation = inheritanceAnnotation;
     this.inheritanceClassName = inheritanceClassName;
@@ -255,6 +256,9 @@ public abstract class ProguardClassSpecification {
         null);
     if (builder.length() > 0) {
       builder.append(' ');
+    }
+    if (classTypeNegated) {
+      builder.append('!');
     }
     builder.append(classType);
     builder.append(' ');
