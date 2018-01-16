@@ -57,15 +57,10 @@ public class CfApplicationWriter {
     }
   }
 
-  // TODO(zerny): Implement stack-map computation to support Java 1.6 and above.
-  private int downgrade(int version) {
-    return version > 49 ? 49 : version;
-  }
-
   private void writeClass(DexProgramClass clazz, ClassFileConsumer consumer) throws IOException {
     ClassWriter writer = new ClassWriter(0);
     writer.visitSource(clazz.sourceFile != null ? clazz.sourceFile.toString() : null, null);
-    int version = downgrade(clazz.getClassFileVersion());
+    int version = clazz.getClassFileVersion();
     int access = clazz.accessFlags.getAsCfAccessFlags();
     String desc = clazz.type.toDescriptorString();
     String name = clazz.type.getInternalName();

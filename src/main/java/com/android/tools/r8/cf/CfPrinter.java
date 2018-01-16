@@ -22,6 +22,7 @@ import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.cf.code.CfLabel;
 import com.android.tools.r8.cf.code.CfLoad;
+import com.android.tools.r8.cf.code.CfMonitor;
 import com.android.tools.r8.cf.code.CfMultiANewArray;
 import com.android.tools.r8.cf.code.CfNew;
 import com.android.tools.r8.cf.code.CfNewArray;
@@ -44,6 +45,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.MemberType;
+import com.android.tools.r8.ir.code.Monitor;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueType;
@@ -166,6 +168,10 @@ public class CfPrinter {
 
   public void print(CfReturn ret) {
     print(typePrefix(ret.getType()) + "return");
+  }
+
+  public void print(CfMonitor monitor) {
+    print(monitor.getType() == Monitor.Type.ENTER ? "monitorenter" : "monitorexit");
   }
 
   public void print(CfBinop binop) {
