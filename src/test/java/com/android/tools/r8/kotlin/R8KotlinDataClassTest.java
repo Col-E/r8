@@ -51,7 +51,7 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
   @Test
   public void test_dataclass_gettersOnly() throws Exception {
     final String mainClassName = "dataclass.MainGettersOnly";
-    buildAndInspect("dataclass", mainClassName, (app) -> {
+    runTest("dataclass", mainClassName, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject dataClass = checkClassExists(dexInspector, TEST_DATA_CLASS.getClassName());
 
@@ -85,7 +85,7 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
   @Test
   public void test_dataclass_componentOnly() throws Exception {
     final String mainClassName = "dataclass.MainComponentOnly";
-    buildAndInspect("dataclass", mainClassName, (app) -> {
+    runTest("dataclass", mainClassName, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject dataClass = checkClassExists(dexInspector, TEST_DATA_CLASS.getClassName());
 
@@ -119,7 +119,7 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
   @Test
   public void test_dataclass_componentPartial() throws Exception {
     final String mainClassName = "dataclass.MainComponentPartial";
-    buildAndInspect("dataclass", mainClassName, (app) -> {
+    runTest("dataclass", mainClassName, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject dataClass = checkClassExists(dexInspector, TEST_DATA_CLASS.getClassName());
 
@@ -151,7 +151,7 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
   @Test
   public void test_dataclass_copy() throws Exception {
     final String mainClassName = "dataclass.MainCopy";
-    buildAndInspect("dataclass", mainClassName, (app) -> {
+    runTest("dataclass", mainClassName, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject dataClass = checkClassExists(dexInspector, TEST_DATA_CLASS.getClassName());
 
@@ -169,7 +169,7 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
   @Test
   public void test_dataclass_copyDefault() throws Exception {
     final String mainClassName = "dataclass.MainCopyWithDefault";
-    buildAndInspect("dataclass", mainClassName, (app) -> {
+    runTest("dataclass", mainClassName, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject dataClass = checkClassExists(dexInspector, TEST_DATA_CLASS.getClassName());
 

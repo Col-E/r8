@@ -179,6 +179,12 @@ sourceSets {
             ]
         }
     }
+    kotlinR8TestResources {
+        java {
+            srcDirs = ['src/test/kotlinR8TestResources']
+        }
+        output.resourcesDir = 'build/classes/kotlinR8TestResources'
+    }
 }
 
 configurations {
@@ -226,6 +232,7 @@ dependencies {
     apiUsageSampleCompile sourceSets.main.output
     debugTestResourcesKotlinCompileOnly 'org.jetbrains.kotlin:kotlin-stdlib:1.2.0'
     examplesKotlinCompileOnly 'org.jetbrains.kotlin:kotlin-stdlib:1.2.0'
+    kotlinR8TestResourcesCompileOnly 'org.jetbrains.kotlin:kotlin-stdlib:1.2.0'
     apt 'com.google.auto.value:auto-value:1.5'
 }
 
@@ -1133,6 +1140,19 @@ task buildExamplesKotlin {
     }
 }
 
+task buildKotlinR8TestResources {
+    def examplesDir = file("src/test/kotlinR8TestResources")
+    examplesDir.eachDir { dir ->
+        def name = dir.getName()
+        def taskName = "jar_kotlinR8TestResources_${name}"
+        task "${taskName}"(type: kotlin.Kotlinc) {
+            source = fileTree(dir: file("${examplesDir}/${name}"), include: '**/*.kt')
+            destination = file("build/test/kotlinR8TestResources/${name}.jar")
+        }
+        dependsOn taskName
+    }
+}
+
 task buildExamples {
     if (OperatingSystem.current().isMacOsX() || OperatingSystem.current().isWindows()) {
         logger.lifecycle("WARNING: Testing (including building examples) is only partially supported on your " +
@@ -1359,6 +1379,7 @@ test {
         dependsOn downloadDeps
         dependsOn buildExamples
         dependsOn buildExamplesKotlin
+        dependsOn buildKotlinR8TestResources
         dependsOn buildSmali
         dependsOn jctfCommonJar
         dependsOn jctfTestsClasses

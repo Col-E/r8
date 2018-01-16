@@ -31,6 +31,9 @@ import org.junit.Assume;
 // TODO(shertz) also run with backend 1.8
 public abstract class AbstractR8KotlinTestBase extends TestBase {
 
+  public static final String KOTLIN_R8_TEST_RESOURCES_BUILD_DIR =
+      ToolHelper.TESTS_BUILD_DIR + "/kotlinR8TestResources";
+
   protected final boolean allowAccessModification;
 
   protected AbstractR8KotlinTestBase(boolean allowAccessModification) {
@@ -122,11 +125,6 @@ public abstract class AbstractR8KotlinTestBase extends TestBase {
     return getDexCode(methodSubject);
   }
 
-  private static String getNonOptimizedDexFile(String pkg) {
-    return Paths
-        .get(ToolHelper.EXAMPLES_KOTLIN_BUILD_DIR, pkg, ToolHelper.DEFAULT_DEX_FILENAME).toString();
-  }
-
   protected static MethodSubject checkMethodIsPresent(ClassSubject classSubject, String methodName,
       String methodReturnType,
       List<String> methodParameterTypes) {
@@ -150,23 +148,12 @@ public abstract class AbstractR8KotlinTestBase extends TestBase {
         "}";
   }
 
-  protected void buildAndInspect(String folder, String mainClass, AndroidAppInspector inspector)
-      throws Exception {
-    buildRunAndInspect(folder, mainClass, inspector, true);
-  }
-
-  protected void buildRunAndInspect(String folder, String mainClass, AndroidAppInspector inspector)
-      throws Exception {
-    buildRunAndInspect(folder, mainClass, inspector, false);
-  }
-
-  public void buildRunAndInspect(String folder, String mainClass, AndroidAppInspector inspector,
-      boolean skipExecution)
+  protected void runTest(String folder, String mainClass, AndroidAppInspector inspector)
       throws Exception {
     Assume.assumeTrue(ToolHelper.artSupported());
 
     Path jarFile =
-        Paths.get(ToolHelper.EXAMPLES_KOTLIN_BUILD_DIR, folder + FileUtils.JAR_EXTENSION);
+        Paths.get(KOTLIN_R8_TEST_RESOURCES_BUILD_DIR, folder + FileUtils.JAR_EXTENSION);
 
     String proguardRules = buildProguardRules(mainClass);
 
@@ -175,29 +162,22 @@ public abstract class AbstractR8KotlinTestBase extends TestBase {
     builder.addProgramFiles(jarFile);
     AndroidApp app = compileWithR8(builder.build(), proguardRules.toString());
 
-    // Compare original and generated DEX files.
-    String originalDexFile = getNonOptimizedDexFile(folder);
-
     // Materialize file for execution.
     Path generatedDexFile = temp.getRoot().toPath().resolve("classes.jar");
     app.writeToZip(generatedDexFile, OutputMode.DexIndexed);
 
-    if (!skipExecution) {
+    // Run with ART.
+    String artOutput =
+        ToolHelper.runArtNoVerificationErrors(generatedDexFile.toString(), mainClass);
 
-      // Run with ART.
-      String artOutput = ToolHelper
-          .checkArtOutputIdentical(originalDexFile, generatedDexFile.toString(), mainClass,
-              ToolHelper.getDexVm());
-
-      // Compare with Java.
-      ToolHelper.ProcessResult javaResult = ToolHelper.runJava(jarFile, mainClass);
-      if (javaResult.exitCode != 0) {
-        System.out.println(javaResult.stdout);
-        System.err.println(javaResult.stderr);
-        fail("JVM failed for: " + mainClass);
-      }
-      assertEquals("JVM and ART output differ", javaResult.stdout, artOutput);
+    // Compare with Java.
+    ToolHelper.ProcessResult javaResult = ToolHelper.runJava(jarFile, mainClass);
+    if (javaResult.exitCode != 0) {
+      System.out.println(javaResult.stdout);
+      System.err.println(javaResult.stderr);
+      fail("JVM failed for: " + mainClass);
     }
+    assertEquals("JVM and ART output differ", javaResult.stdout, artOutput);
 
     inspector.inspectApp(app);
   }
