@@ -3,12 +3,16 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.LoadStoreHelper;
+import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.code.FilledNewArray;
 import com.android.tools.r8.code.FilledNewArrayRange;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
@@ -112,5 +116,29 @@ public class InvokeNewArray extends Invoke {
   public TypeLatticeElement evaluate(
       AppInfoWithSubtyping appInfo, Function<Value, TypeLatticeElement> getLatticeElement) {
     return TypeLatticeElement.newArray(type, false);
+  }
+
+  @Override
+  public boolean hasInvariantVerificationType() {
+    throw cfUnsupported();
+  }
+
+  @Override
+  public DexType computeVerificationType(TypeVerificationHelper helper) {
+    throw cfUnsupported();
+  }
+
+  @Override
+  public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
+    throw cfUnsupported();
+  }
+
+  @Override
+  public void buildCf(CfBuilder builder) {
+    throw cfUnsupported();
+  }
+
+  private static Unreachable cfUnsupported() {
+    throw new Unreachable("InvokeNewArray (non-empty) not supported when compiling to classfiles.");
   }
 }

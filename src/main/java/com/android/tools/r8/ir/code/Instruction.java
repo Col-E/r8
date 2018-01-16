@@ -898,6 +898,14 @@ public abstract class Instruction {
     return null;
   }
 
+  public boolean isInvokeMultiNewArray() {
+    return false;
+  }
+
+  public InvokeMultiNewArray asInvokeMultiNewArray() {
+    return null;
+  }
+
   public boolean isInvokeCustom() {
     return false;
   }

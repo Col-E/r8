@@ -4,6 +4,7 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.LoadStoreHelper;
+import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfArrayLoad;
 import com.android.tools.r8.code.Aget;
 import com.android.tools.r8.code.AgetBoolean;
@@ -133,6 +134,16 @@ public class ArrayGet extends Instruction {
   @Override
   public Constraint inliningConstraint(AppInfoWithLiveness info, DexType invocationContext) {
     return Constraint.ALWAYS;
+  }
+
+  @Override
+  public boolean hasInvariantVerificationType() {
+    return false;
+  }
+
+  @Override
+  public DexType computeVerificationType(TypeVerificationHelper helper) {
+    return helper.getType(array()).toArrayElementType(helper.getFactory());
   }
 
   @Override

@@ -2850,15 +2850,21 @@ public class JarSourceCode implements SourceCode {
     // Type of the full array.
     Type arrayType = application.getAsmObjectType(insn.desc);
     DexType dexArrayType = application.getType(arrayType);
-    // Type of the members. Can itself be of array type, eg, 'int[]' for 'new int[x][y][]'
-    DexType memberType = application.getTypeFromDescriptor(insn.desc.substring(insn.dims));
-    // Push an array containing the dimensions of the desired multi-dimensional array.
-    DexType dimArrayType = application.getTypeFromDescriptor(INT_ARRAY_DESC);
     Slot[] slots = state.popReverse(insn.dims, Type.INT_TYPE);
     int[] dimensions = new int[insn.dims];
     for (int i = 0; i < insn.dims; i++) {
       dimensions[i] = slots[i].register;
     }
+    if (builder.isGeneratingClassFiles()) {
+      int result = state.push(arrayType);
+      builder.addMultiNewArray(dexArrayType, result, dimensions);
+      return;
+    }
+    // Type of the members. Can itself be of array type, eg, 'int[]' for 'new int[x][y][]'
+    // Note that this is not the same as 'arrayType.toBaseType' as is the case in the above 'int[]'.
+    DexType memberType = application.getTypeFromDescriptor(insn.desc.substring(insn.dims));
+    // Push an array containing the dimensions of the desired multi-dimensional array.
+    DexType dimArrayType = application.getTypeFromDescriptor(INT_ARRAY_DESC);
     builder.addInvokeNewArray(dimArrayType, insn.dims, dimensions);
     int dimensionsDestTemp = state.push(INT_ARRAY_TYPE);
     builder.addMoveResult(dimensionsDestTemp);

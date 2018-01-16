@@ -5,7 +5,7 @@ package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
-import com.android.tools.r8.cf.code.CfStaticGet;
+import com.android.tools.r8.cf.code.CfFieldInstruction;
 import com.android.tools.r8.code.Sget;
 import com.android.tools.r8.code.SgetBoolean;
 import com.android.tools.r8.code.SgetByte;
@@ -24,6 +24,7 @@ import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import java.util.function.Function;
+import org.objectweb.asm.Opcodes;
 
 public class StaticGet extends FieldInstruction {
 
@@ -131,7 +132,7 @@ public class StaticGet extends FieldInstruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfStaticGet(field));
+    builder.add(new CfFieldInstruction(Opcodes.GETSTATIC, field));
   }
 
   @Override

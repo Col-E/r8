@@ -5,7 +5,7 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.LoadStoreHelper;
-import com.android.tools.r8.cf.code.CfPutField;
+import com.android.tools.r8.cf.code.CfFieldInstruction;
 import com.android.tools.r8.code.Iput;
 import com.android.tools.r8.code.IputBoolean;
 import com.android.tools.r8.code.IputByte;
@@ -22,6 +22,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import java.util.Arrays;
+import org.objectweb.asm.Opcodes;
 
 public class InstancePut extends FieldInstruction {
 
@@ -135,6 +136,6 @@ public class InstancePut extends FieldInstruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfPutField(field));
+    builder.add(new CfFieldInstruction(Opcodes.PUTFIELD, field));
   }
 }

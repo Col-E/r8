@@ -8,11 +8,12 @@ import com.android.tools.r8.cf.code.CfArrayLoad;
 import com.android.tools.r8.cf.code.CfArrayStore;
 import com.android.tools.r8.cf.code.CfBinop;
 import com.android.tools.r8.cf.code.CfCheckCast;
+import com.android.tools.r8.cf.code.CfConstClass;
 import com.android.tools.r8.cf.code.CfConstNull;
 import com.android.tools.r8.cf.code.CfConstNumber;
 import com.android.tools.r8.cf.code.CfConstString;
+import com.android.tools.r8.cf.code.CfFieldInstruction;
 import com.android.tools.r8.cf.code.CfFrame;
-import com.android.tools.r8.cf.code.CfGetField;
 import com.android.tools.r8.cf.code.CfGoto;
 import com.android.tools.r8.cf.code.CfIf;
 import com.android.tools.r8.cf.code.CfIfCmp;
@@ -21,15 +22,14 @@ import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.cf.code.CfLabel;
 import com.android.tools.r8.cf.code.CfLoad;
+import com.android.tools.r8.cf.code.CfMultiANewArray;
 import com.android.tools.r8.cf.code.CfNew;
 import com.android.tools.r8.cf.code.CfNewArray;
 import com.android.tools.r8.cf.code.CfNop;
 import com.android.tools.r8.cf.code.CfPop;
 import com.android.tools.r8.cf.code.CfPosition;
-import com.android.tools.r8.cf.code.CfPutField;
 import com.android.tools.r8.cf.code.CfReturn;
 import com.android.tools.r8.cf.code.CfReturnVoid;
-import com.android.tools.r8.cf.code.CfStaticGet;
 import com.android.tools.r8.cf.code.CfStore;
 import com.android.tools.r8.cf.code.CfSwitch;
 import com.android.tools.r8.cf.code.CfSwitch.Kind;
@@ -52,6 +52,7 @@ import it.unimi.dsi.fastutil.ints.IntList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.util.Printer;
 
@@ -153,6 +154,12 @@ public class CfPrinter {
     }
   }
 
+  public void print(CfConstClass constClass) {
+    indent();
+    builder.append("ldc ");
+    appendClass(constClass.getType());
+  }
+
   public void print(CfReturnVoid ret) {
     print("return");
   }
@@ -210,28 +217,27 @@ public class CfPrinter {
     appendClass(insn.getType());
   }
 
-  public void print(CfStaticGet staticGet) {
+  public void print(CfFieldInstruction insn) {
     indent();
-    builder.append("getstatic ");
-    appendField(staticGet.getField());
+    switch (insn.getOpcode()) {
+      case Opcodes.GETFIELD:
+        builder.append("getfield ");
+        break;
+      case Opcodes.PUTFIELD:
+        builder.append("putfield ");
+        break;
+      case Opcodes.GETSTATIC:
+        builder.append("getstatic ");
+        break;
+      case Opcodes.PUTSTATIC:
+        builder.append("putstatic ");
+        break;
+      default:
+        throw new Unreachable("Unexpected field-instruction opcode " + insn.getOpcode());
+    }
+    appendField(insn.getField());
     builder.append(' ');
-    appendDescriptor(staticGet.getField().type);
-  }
-
-  public void print(CfGetField getField) {
-    indent();
-    builder.append("getfield ");
-    appendField(getField.getField());
-    builder.append(' ');
-    appendDescriptor(getField.getField().type);
-  }
-
-  public void print(CfPutField putField) {
-    indent();
-    builder.append("putfield ");
-    appendField(putField.getField());
-    builder.append(' ');
-    appendDescriptor(putField.getField().type);
+    appendDescriptor(insn.getField().type);
   }
 
   public void print(CfNew newInstance) {
@@ -257,6 +263,13 @@ public class CfPrinter {
         builder.append(Type.getType(elementDescriptor).getInternalName());
       }
     }
+  }
+
+  public void print(CfMultiANewArray multiANewArray) {
+    indent();
+    builder.append("multianewarray ");
+    appendClass(multiANewArray.getType());
+    builder.append(' ').append(multiANewArray.getDimensions());
   }
 
   public void print(CfArrayLength arrayLength) {

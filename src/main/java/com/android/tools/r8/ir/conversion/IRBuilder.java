@@ -295,6 +295,10 @@ public class IRBuilder {
     this.options = options;
   }
 
+  public boolean isGeneratingClassFiles() {
+    return options.isGeneratingClassFiles();
+  }
+
   public Int2ReferenceSortedMap<BlockInfo> getCFG() {
     return targets;
   }
@@ -1141,6 +1145,16 @@ public class IRBuilder {
     }
     checkInvokeArgumentRegisters(registerIndex, argumentCount);
     addInvoke(Invoke.Type.NEW_ARRAY, type, null, arguments);
+  }
+
+  public void addMultiNewArray(DexType type, int dest, int[] dimensions) throws ApiLevelException {
+    assert isGeneratingClassFiles();
+    List<Value> arguments = new ArrayList<>(dimensions.length);
+    for (int dimension : dimensions) {
+      arguments.add(readRegister(dimension, ValueType.INT));
+    }
+    addInvoke(Invoke.Type.MULTI_NEW_ARRAY, type, null, arguments);
+    addMoveResult(dest);
   }
 
   public void addInvokeRange(

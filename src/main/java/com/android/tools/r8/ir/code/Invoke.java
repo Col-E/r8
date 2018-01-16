@@ -27,6 +27,7 @@ public abstract class Invoke extends Instruction {
     SUPER,
     VIRTUAL,
     NEW_ARRAY,
+    MULTI_NEW_ARRAY,
     CUSTOM,
     POLYMORPHIC
   }
@@ -50,6 +51,8 @@ public abstract class Invoke extends Instruction {
         return new InvokeVirtual((DexMethod) target, result, arguments);
       case NEW_ARRAY:
         return new InvokeNewArray((DexType) target, result, arguments);
+      case MULTI_NEW_ARRAY:
+        return new InvokeMultiNewArray((DexType) target, result, arguments);
       case CUSTOM:
         throw new Unreachable("Use InvokeCustom constructor instead");
       case POLYMORPHIC:
