@@ -882,10 +882,6 @@ public abstract class R8RunArtTestsTest {
               TestCondition.R8_COMPILER))
           .put("974-verify-interface-super", TestCondition.match(
               TestCondition.R8_COMPILER))
-          // These tests contain parts of JUnit also found in the android jar and hence cannot be
-          // compiled with R8.
-          .put("021-string2", TestCondition.match(TestCondition.R8_COMPILER))
-          .put("082-inline-execute", TestCondition.match(TestCondition.R8_COMPILER))
           .build();
 
   // Tests that are invalid dex files and on which R8/D8 fails and that is OK.

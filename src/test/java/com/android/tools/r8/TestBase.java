@@ -14,13 +14,11 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
-import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.DexInspector.MethodSubject;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.PreloadedClassFileProvider;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.io.ByteStreams;
@@ -28,10 +26,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
@@ -62,35 +58,18 @@ public class TestBase {
    * Build an AndroidApp with the specified test classes.
    */
   protected static AndroidApp readClasses(Class... classes) throws IOException {
-    return readClasses(Arrays.asList(classes));
+    AndroidApp.Builder builder = AndroidApp.builder();
+    for (Class clazz : classes) {
+      builder.addProgramFiles(ToolHelper.getClassFileForTestClass(clazz));
+    }
+    return builder.build();
   }
 
   /**
    * Build an AndroidApp with the specified test classes.
    */
   protected static AndroidApp readClasses(List<Class> classes) throws IOException {
-    return readClasses(classes, Collections.emptyList());
-  }
-
-  /**
-   * Build an AndroidApp with the specified test classes.
-   */
-  protected static AndroidApp readClasses(List<Class> programClasses, List<Class> libraryClasses)
-      throws IOException {
-    AndroidApp.Builder builder = AndroidApp.builder();
-    for (Class clazz : programClasses) {
-      builder.addProgramFiles(ToolHelper.getClassFileForTestClass(clazz));
-    }
-    if (!libraryClasses.isEmpty()) {
-      PreloadedClassFileProvider.Builder libraryBuilder = PreloadedClassFileProvider.builder();
-      for (Class clazz : libraryClasses) {
-        Path file = ToolHelper.getClassFileForTestClass(clazz);
-        libraryBuilder.addResource(DescriptorUtils.javaTypeToDescriptor(clazz.getCanonicalName()),
-            Files.readAllBytes(file));
-      }
-      builder.addLibraryResourceProvider(libraryBuilder.build());
-    }
-    return builder.build();
+    return readClasses(classes.toArray(new Class[classes.size()]));
   }
 
   /**
