@@ -6,27 +6,36 @@ package com.android.tools.r8.debug;
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.Command;
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.FrameInspector;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.harmony.jpda.tests.framework.jdwp.JDWPConstants.Tag;
 import org.apache.harmony.jpda.tests.framework.jdwp.Value;
 import org.junit.Assert;
-import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
-/**
- * Tests local variable information.
- */
+/** Tests local variable information. */
+@RunWith(Parameterized.class)
 public class LocalsTest extends DebugTestBase {
 
   public static final String SOURCE_FILE = "Locals.java";
 
-  private static DebugTestConfig config;
+  @Parameters(name = "{0}")
+  public static Collection<Object[]> configs() {
+    DelayedDebugTestConfig d8 = D8DebugTestResourcesConfig::new;
+    DelayedDebugTestConfig r8Cf = R8CfDebugTestResourcesConfig::new;
+    return Arrays.asList(new Object[] {"D8", d8}, new Object[] {"R8/CF", r8Cf});
+  }
 
-  @BeforeClass
-  public static void setup() {
-    config = new D8DebugTestResourcesConfig(temp);
+  private final DebugTestConfig config;
+
+  public LocalsTest(String name, DelayedDebugTestConfig config) {
+    this.config = config.getConfig(temp);
   }
 
   @Test

@@ -11,10 +11,14 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.IOExceptionDiagnostic;
 import com.android.tools.r8.utils.ZipUtils;
+import com.google.common.io.ByteStreams;
+import com.google.common.io.Closer;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.List;
 import java.util.zip.ZipOutputStream;
 
 /**
@@ -142,6 +146,23 @@ public interface ClassFileConsumer extends ProgramConsumer {
     private static String getClassFileName(String classDescriptor) {
       assert classDescriptor != null && DescriptorUtils.isClassDescriptor(classDescriptor);
       return DescriptorUtils.getClassBinaryNameFromDescriptor(classDescriptor) + CLASS_EXTENSION;
+    }
+
+    public static void writeResources(Path archive, List<ProgramResource> resources)
+        throws IOException, ResourceException {
+      OpenOption[] options =
+          new OpenOption[] {StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING};
+      try (Closer closer = Closer.create()) {
+        try (ZipOutputStream out = new ZipOutputStream(Files.newOutputStream(archive, options))) {
+          for (ProgramResource resource : resources) {
+            assert resource.getClassDescriptors().size() == 1;
+            String className = resource.getClassDescriptors().iterator().next();
+            String entryName = getClassFileName(className);
+            byte[] bytes = ByteStreams.toByteArray(closer.register(resource.getByteStream()));
+            ZipUtils.writeToZipStream(out, entryName, bytes);
+          }
+        }
+      }
     }
   }
 

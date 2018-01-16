@@ -115,7 +115,6 @@ public class CfBuilder {
       registerAllocator.allocateRegisters();
       loadStoreHelper.insertPhiMoves(registerAllocator);
       CodeRewriter.collapsTrivialGotos(method, code);
-      // TODO(zerny): Compute debug info.
       CfCode code = buildCfCode();
       return code;
     } catch (Unimplemented e) {

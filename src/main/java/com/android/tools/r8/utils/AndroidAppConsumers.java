@@ -44,20 +44,21 @@ public class AndroidAppConsumers {
   public ProgramConsumer wrapProgramConsumer(ProgramConsumer consumer) {
     assert programConsumer == null;
     if (consumer instanceof ClassFileConsumer) {
-      programConsumer = wrapClassFileConsumer((ClassFileConsumer) consumer);
+      wrapClassFileConsumer((ClassFileConsumer) consumer);
     } else if (consumer instanceof DexIndexedConsumer) {
-      programConsumer = wrapDexIndexedConsumer((DexIndexedConsumer) consumer);
+      wrapDexIndexedConsumer((DexIndexedConsumer) consumer);
     } else if (consumer instanceof DexFilePerClassFileConsumer) {
-      programConsumer = wrapDexFilePerClassFileConsumer((DexFilePerClassFileConsumer) consumer);
+      wrapDexFilePerClassFileConsumer((DexFilePerClassFileConsumer) consumer);
     } else {
       // TODO(zerny): Refine API to disallow running without a program consumer.
       assert consumer == null;
-      programConsumer = wrapDexIndexedConsumer(null);
+      wrapDexIndexedConsumer(null);
     }
+    assert programConsumer != null;
     return programConsumer;
   }
 
-  private StringConsumer wrapProguardMapConsumer(StringConsumer consumer) {
+  public StringConsumer wrapProguardMapConsumer(StringConsumer consumer) {
     assert proguardMapConsumer == null;
     if (consumer != null) {
       proguardMapConsumer =
@@ -72,90 +73,102 @@ public class AndroidAppConsumers {
     return proguardMapConsumer;
   }
 
-  private DexIndexedConsumer wrapDexIndexedConsumer(DexIndexedConsumer consumer) {
-    return new ForwardingConsumer(consumer) {
+  public DexIndexedConsumer wrapDexIndexedConsumer(DexIndexedConsumer consumer) {
+    assert programConsumer == null;
+    DexIndexedConsumer wrapped =
+        new ForwardingConsumer(consumer) {
 
-      // Sort the files by id so that their order is deterministic. Some tests depend on this.
-      private Int2ReferenceSortedMap<DescriptorsWithContents> files =
-          new Int2ReferenceAVLTreeMap<>();
+          // Sort the files by id so that their order is deterministic. Some tests depend on this.
+          private Int2ReferenceSortedMap<DescriptorsWithContents> files =
+              new Int2ReferenceAVLTreeMap<>();
 
-      @Override
-      public void accept(
-          int fileIndex, byte[] data, Set<String> descriptors, DiagnosticsHandler handler) {
-        super.accept(fileIndex, data, descriptors, handler);
-        addDexFile(fileIndex, data, descriptors);
-      }
+          @Override
+          public void accept(
+              int fileIndex, byte[] data, Set<String> descriptors, DiagnosticsHandler handler) {
+            super.accept(fileIndex, data, descriptors, handler);
+            addDexFile(fileIndex, data, descriptors);
+          }
 
-      @Override
-      public void finished(DiagnosticsHandler handler) {
-        super.finished(handler);
-        closed = true;
-        files.forEach((v, d) -> builder.addDexProgramData(d.contents, d.descriptors));
-        files = null;
-      }
+          @Override
+          public void finished(DiagnosticsHandler handler) {
+            super.finished(handler);
+            closed = true;
+            files.forEach((v, d) -> builder.addDexProgramData(d.contents, d.descriptors));
+            files = null;
+          }
 
-      synchronized void addDexFile(int fileIndex, byte[] data, Set<String> descriptors) {
-        files.put(fileIndex, new DescriptorsWithContents(descriptors, data));
-      }
-    };
+          synchronized void addDexFile(int fileIndex, byte[] data, Set<String> descriptors) {
+            files.put(fileIndex, new DescriptorsWithContents(descriptors, data));
+          }
+        };
+    programConsumer = wrapped;
+    return wrapped;
   }
 
-  private DexFilePerClassFileConsumer wrapDexFilePerClassFileConsumer(
+  public DexFilePerClassFileConsumer wrapDexFilePerClassFileConsumer(
       DexFilePerClassFileConsumer consumer) {
-    return new DexFilePerClassFileConsumer.ForwardingConsumer(consumer) {
+    assert programConsumer == null;
+    DexFilePerClassFileConsumer wrapped =
+        new DexFilePerClassFileConsumer.ForwardingConsumer(consumer) {
 
-      // Sort the files by their name for good measure.
-      private TreeMap<String, DescriptorsWithContents> files = new TreeMap<>();
+          // Sort the files by their name for good measure.
+          private TreeMap<String, DescriptorsWithContents> files = new TreeMap<>();
 
-      @Override
-      public void accept(
-          String primaryClassDescriptor,
-          byte[] data,
-          Set<String> descriptors,
-          DiagnosticsHandler handler) {
-        super.accept(primaryClassDescriptor, data, descriptors, handler);
-        addDexFile(primaryClassDescriptor, data, descriptors);
-      }
+          @Override
+          public void accept(
+              String primaryClassDescriptor,
+              byte[] data,
+              Set<String> descriptors,
+              DiagnosticsHandler handler) {
+            super.accept(primaryClassDescriptor, data, descriptors, handler);
+            addDexFile(primaryClassDescriptor, data, descriptors);
+          }
 
-      synchronized void addDexFile(
-          String primaryClassDescriptor, byte[] data, Set<String> descriptors) {
-        files.put(primaryClassDescriptor, new DescriptorsWithContents(descriptors, data));
-      }
+          synchronized void addDexFile(
+              String primaryClassDescriptor, byte[] data, Set<String> descriptors) {
+            files.put(primaryClassDescriptor, new DescriptorsWithContents(descriptors, data));
+          }
 
-      @Override
-      public void finished(DiagnosticsHandler handler) {
-        super.finished(handler);
-        closed = true;
-        files.forEach((v, d) -> builder.addDexProgramData(d.contents, d.descriptors, v));
-        files = null;
-      }
-    };
+          @Override
+          public void finished(DiagnosticsHandler handler) {
+            super.finished(handler);
+            closed = true;
+            files.forEach((v, d) -> builder.addDexProgramData(d.contents, d.descriptors, v));
+            files = null;
+          }
+        };
+    programConsumer = wrapped;
+    return wrapped;
   }
 
-  private ClassFileConsumer wrapClassFileConsumer(ClassFileConsumer consumer) {
-    return new ClassFileConsumer.ForwardingConsumer(consumer) {
+  public ClassFileConsumer wrapClassFileConsumer(ClassFileConsumer consumer) {
+    assert programConsumer == null;
+    ClassFileConsumer wrapped =
+        new ClassFileConsumer.ForwardingConsumer(consumer) {
 
-      private List<DescriptorsWithContents> files = new ArrayList<>();
+          private List<DescriptorsWithContents> files = new ArrayList<>();
 
-      @Override
-      public void accept(byte[] data, String descriptor, DiagnosticsHandler handler) {
-        super.accept(data, descriptor, handler);
-        addClassFile(data, descriptor);
-      }
+          @Override
+          public void accept(byte[] data, String descriptor, DiagnosticsHandler handler) {
+            super.accept(data, descriptor, handler);
+            addClassFile(data, descriptor);
+          }
 
-      synchronized void addClassFile(byte[] data, String descriptor) {
-        files.add(new DescriptorsWithContents(Collections.singleton(descriptor), data));
-      }
+          synchronized void addClassFile(byte[] data, String descriptor) {
+            files.add(new DescriptorsWithContents(Collections.singleton(descriptor), data));
+          }
 
-      @Override
-      public void finished(DiagnosticsHandler handler) {
-        super.finished(handler);
-        closed = true;
-        files.forEach(
-            d -> builder.addClassProgramData(d.contents, Origin.unknown(), d.descriptors));
-        files = null;
-      }
-    };
+          @Override
+          public void finished(DiagnosticsHandler handler) {
+            super.finished(handler);
+            closed = true;
+            files.forEach(
+                d -> builder.addClassProgramData(d.contents, Origin.unknown(), d.descriptors));
+            files = null;
+          }
+        };
+    programConsumer = wrapped;
+    return wrapped;
   }
 
   public AndroidApp build() {

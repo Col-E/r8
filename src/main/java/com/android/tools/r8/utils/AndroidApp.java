@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.FileUtils.isClassFile;
 import static com.android.tools.r8.utils.FileUtils.isDexFile;
 
 import com.android.tools.r8.ArchiveClassFileProvider;
+import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.ClassFileResourceProvider;
 import com.android.tools.r8.DexFilePerClassFileConsumer;
 import com.android.tools.r8.DexIndexedConsumer;
@@ -220,13 +221,17 @@ public class AndroidApp {
    * Write the dex program resources to @code{archive} and the proguard resource as its sibling.
    */
   public void writeToZip(Path archive, OutputMode outputMode) throws IOException {
-    List<ProgramResource> resources = getDexProgramResourcesForTesting();
     try {
       if (outputMode == OutputMode.DexIndexed) {
+        List<ProgramResource> resources = getDexProgramResourcesForTesting();
         DexIndexedConsumer.ArchiveConsumer.writeResources(archive, resources);
       } else if (outputMode == OutputMode.DexFilePerClassFile) {
+        List<ProgramResource> resources = getDexProgramResourcesForTesting();
         DexFilePerClassFileConsumer.ArchiveConsumer.writeResources(
             archive, resources, programResourcesMainDescriptor);
+      } else if (outputMode == OutputMode.ClassFile) {
+        List<ProgramResource> resources = getClassProgramResourcesForTesting();
+        ClassFileConsumer.ArchiveConsumer.writeResources(archive, resources);
       } else {
         throw new Unreachable("Unsupported output-mode for writing: " + outputMode);
       }
