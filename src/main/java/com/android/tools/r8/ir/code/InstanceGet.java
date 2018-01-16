@@ -5,7 +5,8 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.LoadStoreHelper;
-import com.android.tools.r8.cf.code.CfGetField;
+import com.android.tools.r8.cf.TypeVerificationHelper;
+import com.android.tools.r8.cf.code.CfFieldInstruction;
 import com.android.tools.r8.code.Iget;
 import com.android.tools.r8.code.IgetBoolean;
 import com.android.tools.r8.code.IgetByte;
@@ -24,6 +25,7 @@ import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import java.util.function.Function;
+import org.objectweb.asm.Opcodes;
 
 public class InstanceGet extends FieldInstruction {
 
@@ -135,6 +137,16 @@ public class InstanceGet extends FieldInstruction {
   }
 
   @Override
+  public boolean hasInvariantVerificationType() {
+    return true;
+  }
+
+  @Override
+  public DexType computeVerificationType(TypeVerificationHelper helper) {
+    return field.type;
+  }
+
+  @Override
   public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
     helper.loadInValues(this, it);
     helper.storeOutValue(this, it);
@@ -142,6 +154,6 @@ public class InstanceGet extends FieldInstruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfGetField(field));
+    builder.add(new CfFieldInstruction(Opcodes.GETFIELD, field));
   }
 }

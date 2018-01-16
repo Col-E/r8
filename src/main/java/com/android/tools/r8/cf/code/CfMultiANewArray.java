@@ -4,28 +4,30 @@
 package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
-import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexType;
 import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
 
-public class CfGetField extends CfInstruction {
+public class CfMultiANewArray extends CfInstruction {
 
-  private final DexField field;
+  private final DexType type;
+  private final int dimensions;
 
-  public CfGetField(DexField field) {
-    this.field = field;
+  public CfMultiANewArray(DexType type, int dimensions) {
+    this.type = type;
+    this.dimensions = dimensions;
   }
 
-  public DexField getField() {
-    return field;
+  public DexType getType() {
+    return type;
+  }
+
+  public int getDimensions() {
+    return dimensions;
   }
 
   @Override
   public void write(MethodVisitor visitor) {
-    String owner = field.getHolder().getInternalName();
-    String name = field.name.toString();
-    String desc = field.type.toDescriptorString();
-    visitor.visitFieldInsn(Opcodes.GETFIELD, owner, name, desc);
+    visitor.visitMultiANewArrayInsn(type.getInternalName(), dimensions);
   }
 
   @Override
