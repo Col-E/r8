@@ -50,8 +50,11 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void test_dataclass_gettersOnly() throws Exception {
-    final String mainClassName = "dataclass.MainGettersOnly";
-    runTest("dataclass", mainClassName, (app) -> {
+    final String mainClassName = "dataclass.MainGettersOnlyKt";
+    final MethodSignature testMethodSignature =
+        new MethodSignature("testDataClassGetters", "void", Collections.emptyList());
+    final String extraRules = keepClassMethod(mainClassName, testMethodSignature);
+    runTest("dataclass", mainClassName, extraRules, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject dataClass = checkClassExists(dexInspector, TEST_DATA_CLASS.getClassName());
 
@@ -70,8 +73,7 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
       checkMethodsPresence(dataClass, presenceMap);
 
       ClassSubject classSubject = checkClassExists(dexInspector, mainClassName);
-      MethodSubject testMethod = checkMethodIsPresent(classSubject, "testMethod", "void",
-          Collections.emptyList());
+      MethodSubject testMethod = checkMethodIsPresent(classSubject, testMethodSignature);
       DexCode dexCode = getDexCode(testMethod);
       if (allowAccessModification) {
         // Both getters should be inlined
@@ -84,8 +86,11 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void test_dataclass_componentOnly() throws Exception {
-    final String mainClassName = "dataclass.MainComponentOnly";
-    runTest("dataclass", mainClassName, (app) -> {
+    final String mainClassName = "dataclass.MainComponentOnlyKt";
+    final MethodSignature testMethodSignature =
+        new MethodSignature("testAllDataClassComponentFunctions", "void", Collections.emptyList());
+    final String extraRules = keepClassMethod(mainClassName, testMethodSignature);
+    runTest("dataclass", mainClassName, extraRules, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject dataClass = checkClassExists(dexInspector, TEST_DATA_CLASS.getClassName());
 
@@ -105,8 +110,7 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
       checkMethodsPresence(dataClass, presenceMap);
 
       ClassSubject classSubject = checkClassExists(dexInspector, mainClassName);
-      MethodSubject testMethod = checkMethodIsPresent(classSubject, "testMethod", "void",
-          Collections.emptyList());
+      MethodSubject testMethod = checkMethodIsPresent(classSubject, testMethodSignature);
       DexCode dexCode = getDexCode(testMethod);
       if (allowAccessModification) {
         checkMethodIsNeverInvoked(dexCode, COMPONENT1_METHOD, COMPONENT2_METHOD);
@@ -118,8 +122,11 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void test_dataclass_componentPartial() throws Exception {
-    final String mainClassName = "dataclass.MainComponentPartial";
-    runTest("dataclass", mainClassName, (app) -> {
+    final String mainClassName = "dataclass.MainComponentPartialKt";
+    final MethodSignature testMethodSignature =
+        new MethodSignature("testSomeDataClassComponentFunctions", "void", Collections.emptyList());
+    final String extraRules = keepClassMethod(mainClassName, testMethodSignature);
+    runTest("dataclass", mainClassName, extraRules, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject dataClass = checkClassExists(dexInspector, TEST_DATA_CLASS.getClassName());
 
@@ -137,8 +144,7 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
       checkMethodsPresence(dataClass, presenceMap);
 
       ClassSubject classSubject = checkClassExists(dexInspector, mainClassName);
-      MethodSubject testMethod = checkMethodIsPresent(classSubject, "testMethod", "void",
-          Collections.emptyList());
+      MethodSubject testMethod = checkMethodIsPresent(classSubject, testMethodSignature);
       DexCode dexCode = getDexCode(testMethod);
       if (allowAccessModification) {
         checkMethodIsNeverInvoked(dexCode, COMPONENT2_METHOD);
@@ -150,7 +156,7 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void test_dataclass_copy() throws Exception {
-    final String mainClassName = "dataclass.MainCopy";
+    final String mainClassName = "dataclass.MainCopyKt";
     runTest("dataclass", mainClassName, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject dataClass = checkClassExists(dexInspector, TEST_DATA_CLASS.getClassName());
@@ -168,8 +174,11 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void test_dataclass_copyDefault() throws Exception {
-    final String mainClassName = "dataclass.MainCopyWithDefault";
-    runTest("dataclass", mainClassName, (app) -> {
+    final String mainClassName = "dataclass.MainCopyWithDefaultKt";
+    final MethodSignature testMethodSignature =
+        new MethodSignature("testDataClassCopyWithDefault", "void", Collections.emptyList());
+    final String extraRules = keepClassMethod(mainClassName, testMethodSignature);
+    runTest("dataclass", mainClassName, extraRules, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject dataClass = checkClassExists(dexInspector, TEST_DATA_CLASS.getClassName());
 
@@ -188,8 +197,7 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
 
       if (copyDefaultMethodIsPresent) {
         ClassSubject classSubject = checkClassExists(dexInspector, mainClassName);
-        MethodSubject testMethod = checkMethodIsPresent(classSubject, "testMethod", "void",
-            Collections.emptyList());
+        MethodSubject testMethod = checkMethodIsPresent(classSubject, testMethodSignature);
         DexCode dexCode = getDexCode(testMethod);
         checkMethodIsInvokedAtLeastOnce(dexCode, COPY_DEFAULT_METHOD);
       }

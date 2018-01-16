@@ -11,18 +11,15 @@ package dataclass
  *
  * See https://kotlinlang.org/docs/reference/data-classes.html#copying.
  */
-object MainCopyWithDefault {
-    @JvmStatic
-    fun main(args: Array<String>) {
-        testMethod()
-    }
+fun main(args: Array<String>) {
+    testDataClassCopyWithDefault()
+}
 
-    fun testMethod() {
-        val albert = Person("Albert", 28)
-        // We don't pass a 'name', thus we copy the property value of the receiver. This will result
-        // in calling the copy$default method instead of the copy method.
-        val olderAlbert = albert.copy(age = albert.age + 10)
-        println("Name: ${olderAlbert.name}")
-        println("Age: ${olderAlbert.age}")
-    }
+fun testDataClassCopyWithDefault() {
+    val albert = Person("Albert", 28)
+    // We don't pass a 'name', thus we copy the property value of the receiver. This will result
+    // in calling the copy$default method instead of the copy method.
+    val olderAlbert = albert.copy(age = albert.age + 10)
+    println("Name: ${olderAlbert.name}")
+    println("Age: ${olderAlbert.age}")
 }

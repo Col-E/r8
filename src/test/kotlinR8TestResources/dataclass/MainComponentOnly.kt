@@ -10,15 +10,12 @@ package dataclass
  *
  * See https://kotlinlang.org/docs/reference/multi-declarations.html.
  */
-object MainComponentOnly {
-    @JvmStatic
-    fun main(args: Array<String>) {
-        testMethod()
-    }
+fun main(args: Array<String>) {
+    testAllDataClassComponentFunctions()
+}
 
-    fun testMethod() {
-        val (name, age) = Person("Albert", 28)
-        println("Name: $name")
-        println("Age: $age")
-    }
+fun testAllDataClassComponentFunctions() {
+    val (name, age) = Person("Albert", 28)
+    println("Name: $name")
+    println("Age: $age")
 }

@@ -96,6 +96,11 @@ public abstract class AbstractR8KotlinTestBase extends TestBase {
         new MethodSignature(methodName, methodReturnType, methodParameterTypes), isPresent);
   }
 
+  protected static MethodSubject checkMethodIsPresent(ClassSubject classSubject,
+      MethodSignature methodSignature) {
+    return checkMethod(classSubject, methodSignature, true);
+  }
+
   protected static MethodSubject checkMethod(ClassSubject classSubject,
       MethodSignature methodSignature, boolean isPresent) {
     MethodSubject methodSubject = classSubject.method(methodSignature);
@@ -134,7 +139,6 @@ public abstract class AbstractR8KotlinTestBase extends TestBase {
   private String buildProguardRules(String mainClass) {
     ProguardRulesBuilder proguardRules = new ProguardRulesBuilder();
     proguardRules.appendWithLineSeparator(keepMainProguardConfiguration(mainClass));
-    proguardRules.appendWithLineSeparator(keepTestMethodProguardConfiguration(mainClass));
     proguardRules.dontObfuscate();
     if (allowAccessModification) {
       proguardRules.allowAccessModification();
@@ -142,20 +146,27 @@ public abstract class AbstractR8KotlinTestBase extends TestBase {
     return proguardRules.toString();
   }
 
-  private String keepTestMethodProguardConfiguration(String clazz) {
-    return "-keep class " + clazz + " {" + System.lineSeparator() +
-        "public void testMethod();" +
-        "}";
+  protected String keepClassMethod(String className, MethodSignature methodSignature) {
+    return "-keep class " + className + " {" + System.lineSeparator() +
+        methodSignature.toString() + ";" + System.lineSeparator() + "}";
   }
 
   protected void runTest(String folder, String mainClass, AndroidAppInspector inspector)
       throws Exception {
+    runTest(folder, mainClass, null, inspector);
+  }
+
+  protected void runTest(String folder, String mainClass, String extraProguardRules,
+      AndroidAppInspector inspector) throws Exception {
     Assume.assumeTrue(ToolHelper.artSupported());
 
     Path jarFile =
         Paths.get(KOTLIN_R8_TEST_RESOURCES_BUILD_DIR, folder + FileUtils.JAR_EXTENSION);
 
     String proguardRules = buildProguardRules(mainClass);
+    if (extraProguardRules != null) {
+      proguardRules += extraProguardRules;
+    }
 
     // Build with R8
     AndroidApp.Builder builder = AndroidApp.builder();
