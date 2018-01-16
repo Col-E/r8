@@ -7,6 +7,7 @@ import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.TypeEnvironment;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.InvokePolymorphic;
@@ -27,6 +28,7 @@ public class InliningOracle {
 
   private final Inliner inliner;
   private final DexEncodedMethod method;
+  private final TypeEnvironment typeEnvironment;
   private final CallSiteInformation callSiteInformation;
   private final Predicate<DexEncodedMethod> isProcessedConcurrently;
   private final InliningInfo info;
@@ -34,10 +36,12 @@ public class InliningOracle {
   InliningOracle(
       Inliner inliner,
       DexEncodedMethod method,
+      TypeEnvironment typeEnvironment,
       CallSiteInformation callSiteInformation,
       Predicate<DexEncodedMethod> isProcessedConcurrently) {
     this.inliner = inliner;
     this.method = method;
+    this.typeEnvironment = typeEnvironment;
     this.callSiteInformation = callSiteInformation;
     this.isProcessedConcurrently = isProcessedConcurrently;
     info = Log.ENABLED ? new InliningInfo(method) : null;
@@ -199,7 +203,10 @@ public class InliningOracle {
   }
 
   public InlineAction computeForInvokeWithReceiver(InvokeMethodWithReceiver invoke) {
-    boolean receiverIsNeverNull = invoke.receiverIsNeverNull();
+    boolean receiverIsNeverNull =
+        // TODO(b/70795205): Use DominatedByCallWithSameReceiver until the type analysis is refined.
+        invoke.isDominatedByCallWithSameReceiver()
+            || !typeEnvironment.getLatticeElement(invoke.getReceiver()).isNullable();
     if (!receiverIsNeverNull) {
       if (info != null) {
         info.exclude(invoke, "receiver for candidate can be null");

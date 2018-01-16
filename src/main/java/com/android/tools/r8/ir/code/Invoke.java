@@ -9,14 +9,17 @@ import com.android.tools.r8.code.MoveResultWide;
 import com.android.tools.r8.code.MoveType;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import java.util.List;
+import java.util.function.Function;
 
 public abstract class Invoke extends Instruction {
 
@@ -227,7 +230,7 @@ public abstract class Invoke extends Instruction {
     return "Invoke-" + getTypeString();
   }
 
-  // This method is used for inlining.
+  // This method is used for inlining and/or other optimizations, such as value propagation.
   // It returns the target method iff this invoke has only one target.
   abstract public DexEncodedMethod computeSingleTarget(AppInfoWithLiveness appInfo);
 
@@ -239,5 +242,15 @@ public abstract class Invoke extends Instruction {
   @Override
   public Invoke asInvoke() {
     return this;
+  }
+
+  @Override
+  public TypeLatticeElement evaluate(
+      AppInfo appInfo, Function<Value, TypeLatticeElement> getLatticeElement) {
+    DexType returnType = getReturnType();
+    if (returnType.isVoidType()) {
+      throw new Unreachable("void methods have no type.");
+    }
+    return TypeLatticeElement.fromDexType(returnType, true);
   }
 }

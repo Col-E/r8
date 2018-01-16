@@ -8,7 +8,7 @@ import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfConstClass;
 import com.android.tools.r8.dex.Constants;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
@@ -105,7 +105,7 @@ public class ConstClass extends ConstInstruction {
 
   @Override
   public TypeLatticeElement evaluate(
-      AppInfoWithSubtyping appInfo, Function<Value, TypeLatticeElement> getLatticeElement) {
+      AppInfo appInfo, Function<Value, TypeLatticeElement> getLatticeElement) {
     return TypeLatticeElement.fromDexType(appInfo.dexItemFactory.classType, false);
   }
 

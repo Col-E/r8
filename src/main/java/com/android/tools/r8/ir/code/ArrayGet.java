@@ -15,7 +15,7 @@ import com.android.tools.r8.code.AgetShort;
 import com.android.tools.r8.code.AgetWide;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
@@ -159,7 +159,7 @@ public class ArrayGet extends Instruction {
 
   @Override
   public TypeLatticeElement evaluate(
-      AppInfoWithSubtyping appInfo, Function<Value, TypeLatticeElement> getLatticeElement) {
+      AppInfo appInfo, Function<Value, TypeLatticeElement> getLatticeElement) {
     return getLatticeElement.apply(array()).arrayGet(appInfo);
   }
 }
