@@ -11,13 +11,16 @@ import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.code.InvokeInterface;
+import com.android.tools.r8.code.InvokeVirtual;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.invokesuper.Consumer;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.proxy.testclasses.BaseInterface;
 import com.android.tools.r8.shaking.proxy.testclasses.Main;
+import com.android.tools.r8.shaking.proxy.testclasses.SubClass;
 import com.android.tools.r8.shaking.proxy.testclasses.SubInterface;
+import com.android.tools.r8.shaking.proxy.testclasses.TestClass;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DexInspector;
 import com.google.common.collect.ImmutableList;
@@ -35,9 +38,11 @@ public class ProxiesTest extends TestBase {
     builder.addProgramFiles(ToolHelper.getClassFilesForTestPackage(mainClass.getPackage()));
     builder.addProguardConfiguration(ImmutableList.of(
         "-keep class " + mainClass.getCanonicalName() + " {",
-        // Keep x and y to avoid them being inlined into main.
-        "  public static void x(com.android.tools.r8.shaking.proxy.testclasses.BaseInterface);",
-        "  public static void y(com.android.tools.r8.shaking.proxy.testclasses.SubInterface);",
+        // Keep x, y and z to avoid them being inlined into main.
+        "  private void x(com.android.tools.r8.shaking.proxy.testclasses.BaseInterface);",
+        "  private void y(com.android.tools.r8.shaking.proxy.testclasses.SubInterface);",
+        "  private void z(com.android.tools.r8.shaking.proxy.testclasses.TestClass);",
+        "  private void z(com.android.tools.r8.shaking.proxy.testclasses.SubClass);",
         "  public static void main(java.lang.String[]);",
         "}",
         "-dontobfuscate"),
@@ -65,27 +70,54 @@ public class ProxiesTest extends TestBase {
     DexCode y = inspector.clazz(Main.class).method(signatureForY).getMethod().getCode().asDexCode();
     return (int) Arrays.stream(y.instructions)
         .filter(instruction -> instruction instanceof InvokeInterface)
+        .map(instruction -> (InvokeInterface) instruction)
+        .filter(instruction -> instruction.getMethod().qualifiedName().endsWith("method"))
+        .count();
+  }
+
+  private int countInvokeVirtualInZ(DexInspector inspector) {
+    MethodSignature signatureForZ =
+        new MethodSignature("z", "void", ImmutableList.of(TestClass.class.getCanonicalName()));
+    DexCode z = inspector.clazz(Main.class).method(signatureForZ).getMethod().getCode().asDexCode();
+    return (int) Arrays.stream(z.instructions)
+        .filter(instruction -> instruction instanceof InvokeVirtual)
+        .map(instruction -> (InvokeVirtual) instruction)
+        .filter(instruction -> instruction.getMethod().qualifiedName().endsWith("method"))
+        .count();
+  }
+
+  private int countInvokeVirtualInZSubClass(DexInspector inspector) {
+    MethodSignature signatureForZ =
+        new MethodSignature("z", "void", ImmutableList.of(SubClass.class.getCanonicalName()));
+    DexCode z = inspector.clazz(Main.class).method(signatureForZ).getMethod().getCode().asDexCode();
+    return (int) Arrays.stream(z.instructions)
+        .filter(instruction -> instruction instanceof InvokeVirtual)
+        .map(instruction -> (InvokeVirtual) instruction)
+        .filter(instruction -> instruction.getMethod().qualifiedName().endsWith("method"))
         .count();
   }
 
   private void noInterfaceKept(DexInspector inspector) {
-    // Indirectly assert that method is inlined into x and y.
+    // Indirectly assert that method is inlined into x, y and z.
     assertEquals(1, countInvokeInterfaceInX(inspector));
     assertEquals(1, countInvokeInterfaceInY(inspector));
+    assertEquals(1, countInvokeVirtualInZ(inspector));
   }
 
   @Test
   public void testNoInterfaceKept() throws Exception {
     runTest(ImmutableList.of(),
         this::noInterfaceKept,
-        "TestClass\nTestClass\nTestClass\nProxy\nEXCEPTION\n");
+        "TestClass 1\nTestClass 1\nTestClass 1\nProxy\nEXCEPTION\n");
   }
 
   private void baseInterfaceKept(DexInspector inspector) {
     // Indirectly assert that method is not inlined into x.
     assertEquals(3, countInvokeInterfaceInX(inspector));
-    // Indirectly assert that method is inlined into y.
+    // Indirectly assert that method is inlined into y and z.
     assertEquals(1, countInvokeInterfaceInY(inspector));
+    assertEquals(1, countInvokeVirtualInZ(inspector));
+    assertEquals(1, countInvokeVirtualInZSubClass(inspector));
   }
 
   @Test
@@ -95,14 +127,17 @@ public class ProxiesTest extends TestBase {
         "  <methods>;",
         "}"),
         this::baseInterfaceKept,
-        "TestClass\nTestClass\nTestClass\nProxy\nProxy\nProxy\n" +
-        "TestClass\nTestClass\nTestClass\nProxy\nEXCEPTION\n");
+        "TestClass 1\nTestClass 1\nTestClass 1\nProxy\nProxy\nProxy\n" +
+        "TestClass 2\nTestClass 2\nTestClass 2\nProxy\nEXCEPTION\n");
   }
 
   private void subInterfaceKept(DexInspector inspector) {
     // Indirectly assert that method is not inlined into x or y.
     assertEquals(3, countInvokeInterfaceInX(inspector));
     assertEquals(3, countInvokeInterfaceInY(inspector));
+    // Indirectly assert that method is inlined into z.
+    assertEquals(1, countInvokeVirtualInZ(inspector));
+    assertEquals(1, countInvokeVirtualInZSubClass(inspector));
   }
 
   @Test
@@ -112,7 +147,43 @@ public class ProxiesTest extends TestBase {
         "  <methods>;",
         "}"),
         this::subInterfaceKept,
-        "TestClass\nTestClass\nTestClass\nProxy\nProxy\nProxy\n" +
-        "TestClass\nTestClass\nTestClass\nProxy\nProxy\nProxy\nSUCCESS\n");
+        "TestClass 1\nTestClass 1\nTestClass 1\nProxy\nProxy\nProxy\n" +
+        "TestClass 2\nTestClass 2\nTestClass 2\nProxy\nProxy\nProxy\n" +
+        "TestClass 3\nTestClass 3\nTestClass 3\n" +
+        "TestClass 4\nTestClass 4\nTestClass 4\nSUCCESS\n");
+  }
+
+  private void classKept(DexInspector inspector) {
+    // Indirectly assert that method is not inlined into x, y or z.
+    assertEquals(3, countInvokeInterfaceInX(inspector));
+    assertEquals(3, countInvokeInterfaceInY(inspector));
+    assertEquals(3, countInvokeVirtualInZ(inspector));
+    assertEquals(3, countInvokeVirtualInZSubClass(inspector));
+  }
+
+  @Test
+  public void testClassKept() throws Exception {
+    runTest(ImmutableList.of(
+        "-keep class " + TestClass.class.getCanonicalName() + " {",
+        "  <methods>;",
+        "}"),
+        this::classKept,
+        "TestClass 1\nTestClass 1\nTestClass 1\nProxy\nProxy\nProxy\n" +
+        "TestClass 2\nTestClass 2\nTestClass 2\nProxy\nProxy\nProxy\n" +
+        "TestClass 3\nTestClass 3\nTestClass 3\n" +
+        "TestClass 4\nTestClass 4\nTestClass 4\nSUCCESS\n");
+  }
+
+  @Test
+  public void testSubClassKept() throws Exception {
+    runTest(ImmutableList.of(
+        "-keep class " + SubClass.class.getCanonicalName() + " {",
+        "  <methods>;",
+        "}"),
+        this::classKept,
+        "TestClass 1\nTestClass 1\nTestClass 1\nProxy\nProxy\nProxy\n" +
+        "TestClass 2\nTestClass 2\nTestClass 2\nProxy\nProxy\nProxy\n" +
+        "TestClass 3\nTestClass 3\nTestClass 3\n" +
+        "TestClass 4\nTestClass 4\nTestClass 4\nSUCCESS\n");
   }
 }

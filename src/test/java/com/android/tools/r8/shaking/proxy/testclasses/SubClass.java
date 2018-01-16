@@ -4,14 +4,9 @@
 
 package com.android.tools.r8.shaking.proxy.testclasses;
 
-public class TestClass extends BaseClass implements SubInterface, Interface2 {
-  public final String name;  // Must be public to allow inlining.
 
-  TestClass(String name) {
-    this.name = name;
-  }
-
-  public void method() {
-    System.out.println(name);
+public class SubClass extends TestClass {
+  SubClass(String name) {
+    super(name);
   }
 }

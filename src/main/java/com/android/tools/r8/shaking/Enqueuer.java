@@ -41,7 +41,6 @@ import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
@@ -1693,13 +1692,21 @@ public class Enqueuer {
         return null;
       }
       DexEncodedMethod result = topMethod.asSingleTarget();
-      // Search for matching target in subtype hierarchy. Ignore abstract classes as they cannot be
-      // a target at runtime.
+      // For kept types we cannot ensure a single target.
+      if (pinnedItems.contains(method.holder)) {
+        return null;
+      }
+      // Search for matching target in subtype hierarchy.
       Set<DexType> set = subtypes(method.holder);
       if (set != null) {
-        for (DexType type : Iterables.filter(set, t -> !definitionFor(t).accessFlags.isAbstract())) {
+        for (DexType type : set) {
+          if (pinnedItems.contains(type)) {
+            // For kept types we cannot ensure a single target.
+            return null;
+          }
           DexClass clazz = definitionFor(type);
-          if (!clazz.isInterface()) {
+          // Ignore abstract classes as they cannot be a target at runtime.
+          if (!clazz.isInterface() && !clazz.accessFlags.isAbstract()) {
             if (clazz.lookupMethod(method) != null) {
               method.setSingleVirtualMethodCache(null);
               return null;  // We have more than one target method.
@@ -1722,7 +1729,7 @@ public class Enqueuer {
       if (topTarget.asResultOfResolve() == null) {
         return null;
       }
-      // For kept interfaces we cannot ensure a single target.
+      // For kept types we cannot ensure a single target.
       if (pinnedItems.contains(method.holder)) {
         return null;
       }
@@ -1732,10 +1739,14 @@ public class Enqueuer {
         // The loop will ignore abstract classes that are not kept as they should not be a target
         // at runtime.
         for (DexType type : set) {
+          if (pinnedItems.contains(type)) {
+            // For kept classes we cannot ensure a single target.
+            return null;
+          }
           DexClass clazz = definitionFor(type);
           if (clazz.isInterface()) {
             if (pinnedItems.contains(type)) {
-              // For kept interfaces we cannot ensure a single target.
+              // For kept types we cannot ensure a single target.
               return null;
             }
             // Default methods are looked up when looking at a specific subtype that does not

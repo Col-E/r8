@@ -27,11 +27,33 @@ public class Main {
     }
   }
 
+  private void z(TestClass clazz) {
+    clazz.method();
+    if (clazz != null) {
+      // The next two invokes are inline candidates, as the receiver is known to be non-null.
+      clazz.method();
+      clazz.method();
+    }
+  }
+
+  private void z(SubClass clazz) {
+    clazz.method();
+    if (clazz != null) {
+      // The next two invokes are inline candidates, as the receiver is known to be non-null.
+      clazz.method();
+      clazz.method();
+    }
+  }
+
   private void run(String[] args) {
-    x(new TestClass());
+    x(new TestClass("TestClass 1"));
     x(createProxyOfInterface(BaseInterface.class));
-    y(new TestClass());
+    y(new TestClass("TestClass 2"));
     y(createProxyOfInterface(SubInterface.class));
+    z(new TestClass("TestClass 3"));
+    // TODO(sgjesse): Add mocking of TestClass using Mockito.
+    z(new SubClass("TestClass 4"));
+    // TODO(sgjesse): Add mocking of SubClass using Mockito.
   }
 
   public static void main(String[] args) {
