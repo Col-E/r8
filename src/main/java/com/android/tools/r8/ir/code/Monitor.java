@@ -6,10 +6,13 @@ package com.android.tools.r8.ir.code;
 
 import static com.android.tools.r8.dex.Constants.U8BIT_MAX;
 
+import com.android.tools.r8.cf.LoadStoreHelper;
+import com.android.tools.r8.cf.code.CfMonitor;
 import com.android.tools.r8.code.MonitorEnter;
 import com.android.tools.r8.code.MonitorExit;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
@@ -101,5 +104,15 @@ public class Monitor extends Instruction {
       default:
         throw new Unreachable("Unknown monitor type:" + type);
     }
+  }
+
+  @Override
+  public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
+    helper.loadInValues(this, it);
+  }
+
+  @Override
+  public void buildCf(CfBuilder builder) {
+    builder.add(new CfMonitor(type));
   }
 }
