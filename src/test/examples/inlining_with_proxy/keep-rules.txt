@@ -4,8 +4,11 @@
 
 # Keep the application entry point. Get rid of everything that is not
 # reachable from there.
--keep public class * {
+-keep public class inlining_with_proxy.Main {
   public static void main(...);
+}
+
+-keep interface inlining_with_proxy.Main$Foo {
 }
 
 -dontobfuscate

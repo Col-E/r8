@@ -15,7 +15,6 @@ import com.android.tools.r8.utils.FileUtils;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import org.junit.Assume;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -31,7 +30,6 @@ public class R8InliningRegressionTests extends TestBase {
   }
 
   @Test
-  @Ignore("b/71629503")
   public void testInterfaceInlining_b71629503() throws Exception {
     buildAndTest("inlining_with_proxy", "inlining_with_proxy.Main");
   }

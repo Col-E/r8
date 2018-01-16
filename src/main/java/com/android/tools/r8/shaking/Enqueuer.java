@@ -1739,17 +1739,26 @@ public class Enqueuer {
       if (topTarget.asResultOfResolve() == null) {
         return null;
       }
+      // For kept interfaces we cannot ensure a single target.
+      if (pinnedItems.contains(method.holder)) {
+        return null;
+      }
       DexEncodedMethod result = null;
       Set<DexType> set = subtypes(method.holder);
       if (set != null) {
-        // Ignore abstract classes as they cannot be a target at runtime.
-        for (DexType type : Iterables
-            .filter(set, t -> !definitionFor(t).accessFlags.isAbstract())) {
+        // The loop will ignore abstract classes that are not kept as they should not be a target
+        // at runtime.
+        for (DexType type : set) {
           DexClass clazz = definitionFor(type);
-          // Default methods are looked up when looking at a specific subtype that does not
-          // override them, so we ignore interfaces here. Otherwise, we would look up default
-          // methods that are factually never used.
-          if (!clazz.isInterface()) {
+          if (clazz.isInterface()) {
+            if (pinnedItems.contains(type)) {
+              // For kept interfaces we cannot ensure a single target.
+              return null;
+            }
+            // Default methods are looked up when looking at a specific subtype that does not
+            // override them, so we ignore interface methods here. Otherwise, we would look up
+            // default methods that are factually never used.
+          } else if (!clazz.accessFlags.isAbstract()) {
             ResolutionResult resolutionResult = resolveMethodOnClass(type, method);
             if (resolutionResult.hasSingleTarget()) {
               if ((result != null) && (result != resolutionResult.asSingleTarget())) {
