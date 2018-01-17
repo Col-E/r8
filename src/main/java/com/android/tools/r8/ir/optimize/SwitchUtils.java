@@ -81,20 +81,18 @@ public class SwitchUtils {
       return null;
     }
     StaticGet staticGet = array.asStaticGet();
-    Int2ReferenceMap<DexField> indexMap
-        = SwitchMapCollector.getSwitchMapFor(staticGet.getField(), appInfo);
+    Int2ReferenceMap<DexField> indexMap = appInfo.getSwitchMapFor(staticGet.getField());
     if (indexMap == null || indexMap.isEmpty()) {
       return null;
     }
     // Due to member rebinding, only the fields are certain to provide the actual enums
     // class.
-    DexType enumTyoe = indexMap.values().iterator().next().getHolder();
-    Reference2IntMap<DexField> ordinalsMap
-        = EnumOrdinalMapCollector.getOrdinalsMapFor(enumTyoe, appInfo);
+    DexType enumType = indexMap.values().iterator().next().getHolder();
+    Reference2IntMap<DexField> ordinalsMap = appInfo.getOrdinalsMapFor(enumType);
     if (ordinalsMap == null) {
       return null;
     }
-    return new EnumSwitchInfo(enumTyoe, ordinalInvoke, arrayGet, staticGet, indexMap,
+    return new EnumSwitchInfo(enumType, ordinalInvoke, arrayGet, staticGet, indexMap,
         ordinalsMap);
   }
 

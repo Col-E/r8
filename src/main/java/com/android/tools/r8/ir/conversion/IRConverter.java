@@ -549,8 +549,6 @@ public class IRConverter {
       memberValuePropagation.rewriteWithConstantValues(code, method.method.holder);
     }
     if (options.removeSwitchMaps && appInfo.hasLiveness()) {
-      // TODO(zerny): Should we support removeSwitchMaps in debug mode? b/62936642
-      assert !options.debug;
       codeRewriter.removeSwitchMaps(code);
     }
     if (options.disableAssertions) {

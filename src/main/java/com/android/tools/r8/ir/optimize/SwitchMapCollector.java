@@ -19,7 +19,6 @@ import com.android.tools.r8.utils.InternalOptions;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -76,20 +75,14 @@ public class SwitchMapCollector {
     intArrayType = appInfo.dexItemFactory.createType("[I");
   }
 
-  public void run() throws ApiLevelException {
+  public AppInfoWithLiveness run() throws ApiLevelException {
     for (DexProgramClass clazz : appInfo.classes()) {
       processClasses(clazz);
     }
     if (!switchMaps.isEmpty()) {
-      appInfo.setExtension(SwitchMapCollector.class, switchMaps);
+      return appInfo.addSwitchMaps(switchMaps);
     }
-  }
-
-  public static Int2ReferenceMap<DexField> getSwitchMapFor(DexField field,
-      AppInfoWithLiveness appInfo) {
-    Map<DexField, Int2ReferenceMap<DexField>> switchMaps = appInfo
-        .getExtension(SwitchMapCollector.class, Collections.emptyMap());
-    return switchMaps.get(field);
+    return appInfo;
   }
 
   private void processClasses(DexProgramClass clazz) throws ApiLevelException {
