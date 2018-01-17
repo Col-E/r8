@@ -1762,6 +1762,7 @@ public class Enqueuer {
       DexEncodedMethod result = topMethod.asSingleTarget();
       // For kept types we cannot ensure a single target.
       if (pinnedItems.contains(method.holder)) {
+        method.setSingleVirtualMethodCache(null);
         return null;
       }
       // Search for matching target in subtype hierarchy.
@@ -1770,6 +1771,7 @@ public class Enqueuer {
         for (DexType type : set) {
           if (pinnedItems.contains(type)) {
             // For kept types we cannot ensure a single target.
+            method.setSingleVirtualMethodCache(null);
             return null;
           }
           DexClass clazz = definitionFor(type);
@@ -1813,10 +1815,6 @@ public class Enqueuer {
           }
           DexClass clazz = definitionFor(type);
           if (clazz.isInterface()) {
-            if (pinnedItems.contains(type)) {
-              // For kept types we cannot ensure a single target.
-              return null;
-            }
             // Default methods are looked up when looking at a specific subtype that does not
             // override them, so we ignore interface methods here. Otherwise, we would look up
             // default methods that are factually never used.
