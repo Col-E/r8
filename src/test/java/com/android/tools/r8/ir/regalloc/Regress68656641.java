@@ -49,7 +49,7 @@ public class Regress68656641 extends SmaliTestBase {
     // Build the code, and split the code into three blocks.
     ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
     DexEncodedMethod method = getMethod(application, signature);
-    IRCode code = method.buildIR(new InternalOptions(), valueNumberGenerator);
+    IRCode code = method.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator);
     return code;
   }
 

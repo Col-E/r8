@@ -170,7 +170,8 @@ public class DexCode extends Code {
     return builder.build();
   }
 
-  public IRCode buildIR(
+  @Override
+  public IRCode buildInliningIR(
       DexEncodedMethod encodedMethod,
       InternalOptions options,
       ValueNumberGenerator valueNumberGenerator,

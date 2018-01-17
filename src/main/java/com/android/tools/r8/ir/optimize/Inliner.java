@@ -231,7 +231,7 @@ public class Inliner {
       return reason != Reason.SIMPLE;
     }
 
-    public IRCode buildIR(
+    public IRCode buildInliningIR(
         ValueNumberGenerator generator,
         AppInfoWithSubtyping appInfo,
         GraphLense graphLense,
@@ -239,16 +239,10 @@ public class Inliner {
         Position callerPosition)
         throws ApiLevelException {
       if (target.isProcessed()) {
-        assert target.getCode().isDexCode();
-        return target.buildIR(options, generator, callerPosition);
+        return target.buildInliningIR(options, generator, callerPosition);
       } else {
         // Build the IR for a yet not processed method, and perform minimal IR processing.
-        IRCode code;
-        if (target.getCode().isJarCode()) {
-          code = target.getCode().asJarCode().buildIR(target, options, generator, callerPosition);
-        } else {
-          code = target.getCode().asDexCode().buildIR(target, options, generator, callerPosition);
-        }
+        IRCode code = target.buildInliningIR(options, generator, callerPosition);
         new LensCodeRewriter(graphLense, appInfo).rewrite(code, target);
         return code;
       }
@@ -378,7 +372,7 @@ public class Inliner {
                 || invokePosition.getOutermostCaller().method == method.method;
 
             IRCode inlinee =
-                result.buildIR(
+                result.buildInliningIR(
                     code.valueNumberGenerator, appInfo, graphLense, options, invokePosition);
             if (inlinee != null) {
               // TODO(64432527): Get rid of this additional check by improved inlining.

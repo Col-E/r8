@@ -633,6 +633,7 @@ public class IRConverter {
     Code result = builder.build(codeRewriter, options, appInfo.withSubtyping());
     assert result.isCfCode() || result.isJarCode();
     method.setCode(result);
+    markProcessed(method, code, feedback);
   }
 
   private void finalizeToDex(DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
@@ -645,7 +646,10 @@ public class IRConverter {
           method.toSourceString(), logCode(options, method));
     }
     printMethod(code, "Final IR (non-SSA)");
+    markProcessed(method, code, feedback);
+  }
 
+  private void markProcessed(DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
     // After all the optimizations have take place, we compute whether method should be inlinedex.
     Constraint state;
     if (!options.inlineAccessors || inliner == null) {

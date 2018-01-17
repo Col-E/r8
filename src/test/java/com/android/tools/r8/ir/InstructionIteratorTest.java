@@ -53,7 +53,7 @@ public class InstructionIteratorTest extends SmaliTestBase {
     // Build the code, and split the code into three blocks.
     ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
     DexEncodedMethod method = getMethod(application, signature);
-    IRCode code = method.buildIR(new InternalOptions(), valueNumberGenerator);
+    IRCode code = method.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator);
     ListIterator<BasicBlock> blocks = code.listIterator();
     InstructionListIterator iter = blocks.next().listIterator();
     iter.nextUntil(i -> !i.isArgument());

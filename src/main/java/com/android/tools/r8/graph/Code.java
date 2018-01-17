@@ -8,6 +8,8 @@ import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.optimize.Outliner.OutlineCode;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.InternalOptions;
@@ -16,6 +18,16 @@ public abstract class Code extends CachedHashValueDexItem {
 
   public abstract IRCode buildIR(DexEncodedMethod encodedMethod, InternalOptions options)
       throws ApiLevelException;
+
+  public IRCode buildInliningIR(
+      DexEncodedMethod encodedMethod,
+      InternalOptions options,
+      ValueNumberGenerator valueNumberGenerator,
+      Position callerPosition)
+      throws ApiLevelException {
+    throw new Unreachable("Unexpected attempt to build IR graph for inlining from: "
+        + getClass().getCanonicalName());
+  }
 
   public abstract void registerReachableDefinitions(UseRegistry registry);
 

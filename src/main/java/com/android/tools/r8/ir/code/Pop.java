@@ -49,7 +49,7 @@ public class Pop extends Instruction {
 
   @Override
   public Constraint inliningConstraint(AppInfoWithLiveness info, DexType invocationContext) {
-    throw new Unreachable();
+    return Constraint.ALWAYS;
   }
 
   @Override

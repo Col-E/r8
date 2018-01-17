@@ -100,7 +100,8 @@ public class JarCode extends Code {
         : internalBuild(encodedMethod, options, null, null);
   }
 
-  public IRCode buildIR(
+  @Override
+  public IRCode buildInliningIR(
       DexEncodedMethod encodedMethod,
       InternalOptions options,
       ValueNumberGenerator generator,

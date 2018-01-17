@@ -64,7 +64,7 @@ public class SplitBlockTest extends IrInjectionTestBase {
     // Return the processed method for inspection.
     ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
     DexEncodedMethod method = getMethod(application, signature);
-    IRCode code = method.buildIR(new InternalOptions(), valueNumberGenerator);
+    IRCode code = method.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator);
 
     return new TestApplication(application, method, code, valueNumberGenerator, options);
   }
@@ -182,7 +182,7 @@ public class SplitBlockTest extends IrInjectionTestBase {
     // Return the processed method for inspection.
     ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
     DexEncodedMethod method = getMethod(application, signature);
-    IRCode code = method.buildIR(new InternalOptions(), valueNumberGenerator);
+    IRCode code = method.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator);
     return new TestApplication(application, method, code, valueNumberGenerator, options);
   }
 
@@ -307,7 +307,7 @@ public class SplitBlockTest extends IrInjectionTestBase {
     // Return the processed method for inspection.
     ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
     DexEncodedMethod method = getMethod(application, signature);
-    IRCode code = method.buildIR(new InternalOptions(), valueNumberGenerator);
+    IRCode code = method.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator);
 
     return new TestApplication(application, method, code, valueNumberGenerator, options);
   }
@@ -431,7 +431,7 @@ public class SplitBlockTest extends IrInjectionTestBase {
     // Return the processed method for inspection.
     ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
     DexEncodedMethod method = getMethod(application, signature);
-    IRCode code = method.buildIR(new InternalOptions(), valueNumberGenerator);
+    IRCode code = method.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator);
 
     return new TestApplication(application, method, code, valueNumberGenerator, options);
   }

@@ -89,7 +89,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   public DexAnnotationSet annotations;
   public DexAnnotationSetRefList parameterAnnotations;
   private Code code;
-  public CompilationState compilationState = CompilationState.NOT_PROCESSED;
+  private CompilationState compilationState = CompilationState.NOT_PROCESSED;
   private OptimizationInfo optimizationInfo = DefaultOptimizationInfo.DEFAULT;
 
   public DexEncodedMethod(
@@ -221,19 +221,16 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     return code == null ? null : code.buildIR(this, options);
   }
 
-  public IRCode buildIR(InternalOptions options, ValueNumberGenerator valueNumberGenerator)
+  public IRCode buildInliningIRForTesting(
+      InternalOptions options, ValueNumberGenerator valueNumberGenerator)
       throws ApiLevelException {
-    return code == null
-        ? null
-        : code.asDexCode().buildIR(this, options, valueNumberGenerator, null);
+    return buildInliningIR(options, valueNumberGenerator, null);
   }
 
-  public IRCode buildIR(
+  public IRCode buildInliningIR(
       InternalOptions options, ValueNumberGenerator valueNumberGenerator, Position callerPosition)
       throws ApiLevelException {
-    return code == null
-        ? null
-        : code.asDexCode().buildIR(this, options, valueNumberGenerator, callerPosition);
+    return code.buildInliningIR(this, options, valueNumberGenerator, callerPosition);
   }
 
   public void setCode(Code code) {
