@@ -13,11 +13,9 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.UseRegistry;
-import com.android.tools.r8.shaking.Enqueuer.SemanticsProvider;
 import com.android.tools.r8.utils.MethodJavaSignatureEquivalence;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
-import com.google.common.collect.Sets;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -52,7 +50,7 @@ import java.util.Set;
  * need to ensure that the fields they write are actually kept and marked as live. We achieve
  * this by also marking them read.
  */
-public class ProtoLiteExtension extends ProtoLiteBase implements SemanticsProvider {
+public class ProtoLiteExtension extends ProtoLiteBase {
 
   private final Equivalence<DexMethod> equivalence = MethodJavaSignatureEquivalence.get();
   /**
@@ -110,17 +108,9 @@ public class ProtoLiteExtension extends ProtoLiteBase implements SemanticsProvid
         && !name.endsWith(caseFieldSuffix);
   }
 
-  @Override
-  @SuppressWarnings("unchecked")
-  public Object processMethod(DexEncodedMethod method, UseRegistry registry, Object state) {
-    return processMethod(method, registry, (Set<DexField>) state);
-  }
-
-  private Set<DexField> processMethod(DexEncodedMethod method, UseRegistry registry,
-      Set<DexField> state) {
-    if (state == null) {
-      state = Sets.newIdentityHashSet();
-    }
+  public void processMethod(DexEncodedMethod method, UseRegistry registry,
+      Set<DexField> protoLiteFields) {
+    assert protoLiteFields != null;
     if (isSetterThatNeedsProcessing(method)) {
       // If a field is accessed by a live setter, the field is live as it has to be written to the
       // serialized stream for this proto. As we mask all reads in the writing code and normally
@@ -133,9 +123,8 @@ public class ProtoLiteExtension extends ProtoLiteBase implements SemanticsProvid
       // live just due to being referenced in a special method. The pruning phase will remove
       // all references to dead fields in the code later.
       method.registerReachableDefinitions(new FilteringUseRegistry(registry, method.method.holder,
-          state));
+          protoLiteFields));
     }
-    return state;
   }
 
   private class FieldWriteImpliesReadUseRegistry extends DelegatingUseRegistry {
