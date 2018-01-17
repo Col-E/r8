@@ -40,10 +40,8 @@ import com.google.common.collect.Multisets;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap.Entry;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntArraySet;
 import it.unimi.dsi.fastutil.ints.IntIterator;
-import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -774,12 +772,8 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
             unhandled.remove(intervals);
             moveExceptionIntervals.add(intervals);
             if (moveExceptionRegister == NO_REGISTER) {
-              IntList list = new IntArrayList(RESERVED_MOVE_EXCEPTION_REGISTER);
-              for (int i = 0; i < RESERVED_MOVE_EXCEPTION_REGISTER; i++) {
-                list.add(getFreeConsecutiveRegisters(1));
-              }
+              assert RESERVED_MOVE_EXCEPTION_REGISTER == 0;
               moveExceptionRegister = getFreeConsecutiveRegisters(1);
-              freeRegisters.addAll(list);
               assert moveExceptionRegister == getMoveExceptionRegister();
               assert !freeRegisters.contains(moveExceptionRegister);
             }
