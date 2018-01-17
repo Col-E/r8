@@ -75,8 +75,6 @@ public class R8GMSCoreLookupTest {
   }
 
   private void testLookup(DexProgramClass clazz) {
-    assert appInfo.subtypes(clazz.type)
-        != null : "Application class must have non null subtypes.";
     if (clazz.isInterface()) {
       for (DexEncodedMethod method : clazz.virtualMethods()) {
         testInterfaceLookup(clazz, method);

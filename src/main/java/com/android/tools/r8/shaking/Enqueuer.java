@@ -1766,21 +1766,18 @@ public class Enqueuer {
         return null;
       }
       // Search for matching target in subtype hierarchy.
-      Set<DexType> set = subtypes(method.holder);
-      if (set != null) {
-        for (DexType type : set) {
-          if (pinnedItems.contains(type)) {
-            // For kept types we cannot ensure a single target.
+      for (DexType type : subtypes(method.holder)) {
+        if (pinnedItems.contains(type)) {
+          // For kept types we cannot ensure a single target.
+          method.setSingleVirtualMethodCache(null);
+          return null;
+        }
+        DexClass clazz = definitionFor(type);
+        // Ignore abstract classes as they cannot be a target at runtime.
+        if (!clazz.isInterface() && !clazz.accessFlags.isAbstract()) {
+          if (clazz.lookupMethod(method) != null) {
             method.setSingleVirtualMethodCache(null);
-            return null;
-          }
-          DexClass clazz = definitionFor(type);
-          // Ignore abstract classes as they cannot be a target at runtime.
-          if (!clazz.isInterface() && !clazz.accessFlags.isAbstract()) {
-            if (clazz.lookupMethod(method) != null) {
-              method.setSingleVirtualMethodCache(null);
-              return null;  // We have more than one target method.
-            }
+            return null;  // We have more than one target method.
           }
         }
       }
@@ -1804,28 +1801,25 @@ public class Enqueuer {
         return null;
       }
       DexEncodedMethod result = null;
-      Set<DexType> set = subtypes(method.holder);
-      if (set != null) {
-        // The loop will ignore abstract classes that are not kept as they should not be a target
-        // at runtime.
-        for (DexType type : set) {
-          if (pinnedItems.contains(type)) {
-            // For kept classes we cannot ensure a single target.
-            return null;
-          }
-          DexClass clazz = definitionFor(type);
-          if (clazz.isInterface()) {
-            // Default methods are looked up when looking at a specific subtype that does not
-            // override them, so we ignore interface methods here. Otherwise, we would look up
-            // default methods that are factually never used.
-          } else if (!clazz.accessFlags.isAbstract()) {
-            ResolutionResult resolutionResult = resolveMethodOnClass(type, method);
-            if (resolutionResult.hasSingleTarget()) {
-              if ((result != null) && (result != resolutionResult.asSingleTarget())) {
-                return null;
-              } else {
-                result = resolutionResult.asSingleTarget();
-              }
+      // The loop will ignore abstract classes that are not kept as they should not be a target
+      // at runtime.
+      for (DexType type : subtypes(method.holder)) {
+        if (pinnedItems.contains(type)) {
+          // For kept classes we cannot ensure a single target.
+          return null;
+        }
+        DexClass clazz = definitionFor(type);
+        if (clazz.isInterface()) {
+          // Default methods are looked up when looking at a specific subtype that does not
+          // override them, so we ignore interface methods here. Otherwise, we would look up
+          // default methods that are factually never used.
+        } else if (!clazz.accessFlags.isAbstract()) {
+          ResolutionResult resolutionResult = resolveMethodOnClass(type, method);
+          if (resolutionResult.hasSingleTarget()) {
+            if ((result != null) && (result != resolutionResult.asSingleTarget())) {
+              return null;
+            } else {
+              result = resolutionResult.asSingleTarget();
             }
           }
         }

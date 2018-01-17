@@ -50,6 +50,11 @@ public class GenerateMainDexListCommandTest {
     assertFalse(ToolHelper.getApp(command).hasMainDexListResources());
   }
 
+  private void addAndroidJarsToCommandLine(List<String> args) {
+    args.add(Paths.get(ToolHelper.getAndroidJar(AndroidApiLevel.K.getLevel()))
+        .toAbsolutePath().toString());
+  }
+
   // Add the jars used in the com.android.tools.r8.maindexlist.MainDexTracingTest test.
   private void addInputJarsToCommandLine(List<String> args) {
     args.add(Paths.get(ToolHelper.EXAMPLES_BUILD_DIR, "multidex001" + JAR_EXTENSION)
@@ -72,6 +77,7 @@ public class GenerateMainDexListCommandTest {
     Path output = working.resolve(mainDexListOutput);
     assertFalse(Files.exists(output));
     List<String> args = new ArrayList<>();
+    addAndroidJarsToCommandLine(args);
     addInputJarsToCommandLine(args);
     addMainDexRuleToCommandLine(args);
     assertEquals(0, ToolHelper.forkGenerateMainDexList(

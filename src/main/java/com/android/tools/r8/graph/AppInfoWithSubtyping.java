@@ -128,14 +128,11 @@ public class AppInfoWithSubtyping extends AppInfo {
     }
     topTargets.forEachTarget(result::add);
     // Add all matching targets from the subclass hierarchy.
-    Set<DexType> set = subtypes(method.holder);
-    if (set != null) {
-      for (DexType type : set) {
-        DexClass clazz = definitionFor(type);
-        if (!clazz.isInterface()) {
-          ResolutionResult methods = resolveMethodOnClass(type, method);
-          methods.forEachTarget(result::add);
-        }
+    for (DexType type : subtypes(method.holder)) {
+      DexClass clazz = definitionFor(type);
+      if (!clazz.isInterface()) {
+        ResolutionResult methods = resolveMethodOnClass(type, method);
+        methods.forEachTarget(result::add);
       }
     }
     return result;
@@ -185,7 +182,7 @@ public class AppInfoWithSubtyping extends AppInfo {
       return null;
     }
     Set<DexType> set = subtypes(method.holder);
-    if (set == null) {
+    if (set.isEmpty()) {
       return Collections.emptySet();
     }
     Set<DexEncodedMethod> result = new HashSet<>();
