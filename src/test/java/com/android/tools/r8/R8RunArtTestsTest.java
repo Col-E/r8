@@ -654,11 +654,6 @@ public abstract class R8RunArtTestsTest {
                   TestCondition.D8_COMPILER,
                   TestCondition.runtimes(DexVm.Version.V7_0_0, DexVm.Version.V6_0_1,
                       DexVm.Version.V5_1_1)))
-          // Dalvik does some half baked call target verification, which only triggers after we did
-          // some inlining. The generated code is correct and hence runs on newer versions.
-          .put("077-method-override",
-              TestCondition.match(TestCondition.compilers(CompilerUnderTest.R8),
-                  TestCondition.runtimesUpTo(DexVm.Version.V4_4_4)))
           // Dalvik 4.0.4 is missing ReflectiveOperationException class.
           .put("140-field-packing",
               TestCondition.match(
