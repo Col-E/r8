@@ -161,7 +161,7 @@ public class JctfTestSpecifications {
           // 1) t01
           // java.lang.AssertionError
 
-          .put("lang.Thread.destroy.Thread_destroy_A01", any())
+          .put("lang.Thread.destroy.Thread_destroy_A01", match(runtimesFrom(Version.V4_4_4)))
           // 1) t01
           // java.lang.Exception: Unexpected exception, expected<java.lang.NoSuchMethodError> but was<java.lang.UnsupportedOperationException>
           // Caused by: java.lang.UnsupportedOperationException
@@ -4913,7 +4913,6 @@ public class JctfTestSpecifications {
               match(runtimes(Version.V4_0_4)))
           //1) t03(com.google.jctf.test.lib.java.util.concurrent.LinkedBlockingQueue.drainToLjava_util_CollectionI.LinkedBlockingQueue_drainTo_A01)
           // java.lang.AssertionError: expected:<0> but was:<-1>
-
           .build(); // end of failuresToTriage
 
   public static final Multimap<String, TestCondition> flakyWithArt =
@@ -4979,6 +4978,12 @@ public class JctfTestSpecifications {
           .put("lang.ref.ReferenceQueue.poll.ReferenceQueue_poll_A01",
               match(runtimesUpTo(Version.V4_4_4)))
           // Passes or fails randomly.
+
+          .put("lang.AssertionError.ConstructorLjava_lang_Object.AssertionError_Constructor_A01",
+              match(runtimes(Version.V4_0_4)))
+          // Sometimes fails with
+          // 1) t04(com.google.jctf.test.lib.java.lang.AssertionError.ConstructorLjava_lang_Object.AssertionError_Constructor_A01)
+          // java.lang.IllegalStateException: Cause already initialized
 
           .build(); // end of flakyWithArt
 
