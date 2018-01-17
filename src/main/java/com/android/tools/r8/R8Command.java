@@ -651,8 +651,6 @@ public class R8Command extends BaseCompilerCommand {
             ? LineNumberOptimization.OFF : LineNumberOptimization.ON;
 
     if (internal.debug) {
-      // TODO(zerny): Should we support removeSwitchMaps in debug mode? b/62936642
-      internal.removeSwitchMaps = false;
       // TODO(zerny): Should we support inlining in debug mode? b/62937285
       internal.inlineAccessors = false;
       // TODO(zerny): Should we support outlining in debug mode? b/62937285

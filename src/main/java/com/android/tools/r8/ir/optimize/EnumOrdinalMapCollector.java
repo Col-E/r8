@@ -17,7 +17,6 @@ import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import it.unimi.dsi.fastutil.objects.Reference2IntArrayMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
-import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Map;
 
@@ -41,20 +40,14 @@ public class EnumOrdinalMapCollector {
     this.options = options;
   }
 
-  public static Reference2IntMap<DexField> getOrdinalsMapFor(DexType enumClass,
-      AppInfoWithLiveness appInfo) {
-    Map<DexType, Reference2IntMap<DexField>> ordinalsMaps = appInfo
-        .getExtension(EnumOrdinalMapCollector.class, Collections.emptyMap());
-    return ordinalsMaps.get(enumClass);
-  }
-
-  public void run() throws ApiLevelException {
+  public AppInfoWithLiveness run() throws ApiLevelException {
     for (DexProgramClass clazz : appInfo.classes()) {
       processClasses(clazz);
     }
     if (!ordinalsMaps.isEmpty()) {
-      appInfo.setExtension(EnumOrdinalMapCollector.class, ordinalsMaps);
+      return appInfo.addEnumOrdinalMaps(ordinalsMaps);
     }
+    return appInfo;
   }
 
   private void processClasses(DexProgramClass clazz) throws ApiLevelException {

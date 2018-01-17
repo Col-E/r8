@@ -46,6 +46,8 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
+import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -1376,6 +1378,14 @@ public class Enqueuer {
      * A set of types that have been removed by the {@link TreePruner}.
      */
     final Set<DexType> prunedTypes;
+    /**
+     * A map from switchmap class types to their corresponding switchmaps.
+     */
+    final Map<DexField, Int2ReferenceMap<DexField>> switchMaps;
+    /**
+     * A map from enum types to their ordinal values.
+     */
+    final Map<DexType, Reference2IntMap<DexField>> ordinalsMaps;
 
     private AppInfoWithLiveness(AppInfoWithSubtyping appInfo, Enqueuer enqueuer) {
       super(appInfo);
@@ -1404,6 +1414,8 @@ public class Enqueuer {
       this.identifierNameStrings = enqueuer.rootSet.identifierNameStrings;
       this.extensions = enqueuer.extensionsState;
       this.prunedTypes = Collections.emptySet();
+      this.switchMaps = Collections.emptyMap();
+      this.ordinalsMaps = Collections.emptyMap();
       assert Sets.intersection(instanceFieldReads, staticFieldReads).size() == 0;
       assert Sets.intersection(instanceFieldWrites, staticFieldWrites).size() == 0;
     }
@@ -1436,6 +1448,8 @@ public class Enqueuer {
       this.alwaysInline = previous.alwaysInline;
       this.identifierNameStrings = previous.identifierNameStrings;
       this.prunedTypes = mergeSets(previous.prunedTypes, removedClasses);
+      this.switchMaps = previous.switchMaps;
+      this.ordinalsMaps = previous.ordinalsMaps;
       assert Sets.intersection(instanceFieldReads, staticFieldReads).size() == 0;
       assert Sets.intersection(instanceFieldWrites, staticFieldWrites).size() == 0;
     }
@@ -1470,10 +1484,55 @@ public class Enqueuer {
       assert assertNotModifiedByLense(previous.alwaysInline, lense);
       this.alwaysInline = previous.alwaysInline;
       this.identifierNameStrings = rewriteMixedItems(previous.identifierNameStrings, lense);
+      // Switchmap classes should never be affected by renaming.
+      assert assertNotModifiedByLense(
+          previous.switchMaps.keySet().stream().map(this::definitionFor).filter(Objects::nonNull)
+              .collect(Collectors.toList()), lense);
+      this.switchMaps = previous.switchMaps;
+      this.ordinalsMaps = rewriteKeys(previous.ordinalsMaps, lense::lookupType);
       this.extensions = previous.extensions;
       // Sanity check sets after rewriting.
       assert Sets.intersection(instanceFieldReads, staticFieldReads).isEmpty();
       assert Sets.intersection(instanceFieldWrites, staticFieldWrites).isEmpty();
+    }
+
+    public AppInfoWithLiveness(AppInfoWithLiveness previous,
+        Map<DexField, Int2ReferenceMap<DexField>> switchMaps,
+        Map<DexType, Reference2IntMap<DexField>> ordinalsMaps) {
+      super(previous);
+      this.liveTypes = previous.liveTypes;
+      this.instantiatedTypes = previous.instantiatedTypes;
+      this.targetedMethods = previous.targetedMethods;
+      this.liveMethods = previous.liveMethods;
+      this.liveFields = previous.liveFields;
+      this.instanceFieldReads = previous.instanceFieldReads;
+      this.instanceFieldWrites = previous.instanceFieldWrites;
+      this.staticFieldReads = previous.staticFieldReads;
+      this.staticFieldWrites = previous.staticFieldWrites;
+      this.fieldsRead = previous.fieldsRead;
+      this.fieldsWritten = previous.fieldsWritten;
+      this.pinnedItems = previous.pinnedItems;
+      this.noSideEffects = previous.noSideEffects;
+      this.assumedValues = previous.assumedValues;
+      this.virtualInvokes = previous.virtualInvokes;
+      this.interfaceInvokes = previous.interfaceInvokes;
+      this.superInvokes = previous.superInvokes;
+      this.directInvokes = previous.directInvokes;
+      this.staticInvokes = previous.staticInvokes;
+      this.extensions = previous.extensions;
+      this.alwaysInline = previous.alwaysInline;
+      this.identifierNameStrings = previous.identifierNameStrings;
+      this.prunedTypes = previous.prunedTypes;
+      this.switchMaps = switchMaps;
+      this.ordinalsMaps = ordinalsMaps;
+    }
+
+    public Reference2IntMap<DexField> getOrdinalsMapFor(DexType enumClass) {
+      return ordinalsMaps.get(enumClass);
+    }
+
+    public Int2ReferenceMap<DexField> getSwitchMapFor(DexField field) {
+      return switchMaps.get(field);
     }
 
     private boolean assertNoItemRemoved(Collection<DexItem> items, Collection<DexType> types) {
@@ -1556,6 +1615,15 @@ public class Enqueuer {
           new ImmutableSortedSet.Builder<>(PresortedComparable::slowCompare);
       for (T item : original) {
         builder.add(rewrite.apply(item, null));
+      }
+      return builder.build();
+    }
+
+    private static <T extends PresortedComparable<T>, S> ImmutableMap<T, S> rewriteKeys(
+        Map<T, S> original, BiFunction<T, DexEncodedMethod, T> rewrite) {
+      ImmutableMap.Builder<T, S> builder = new ImmutableMap.Builder<>();
+      for (T item : original.keySet()) {
+        builder.put(rewrite.apply(item, null), original.get(item));
       }
       return builder.build();
     }
@@ -1754,6 +1822,17 @@ public class Enqueuer {
         }
       }
       return result == null || !result.isVirtualMethod() ? null : result;
+    }
+
+    public AppInfoWithLiveness addSwitchMaps(Map<DexField, Int2ReferenceMap<DexField>> switchMaps) {
+      assert this.switchMaps.isEmpty();
+      return new AppInfoWithLiveness(this, switchMaps, ordinalsMaps);
+    }
+
+    public AppInfoWithLiveness addEnumOrdinalMaps(
+        Map<DexType, Reference2IntMap<DexField>> ordinalsMaps) {
+      assert this.ordinalsMaps.isEmpty();
+      return new AppInfoWithLiveness(this, switchMaps, ordinalsMaps);
     }
   }
 

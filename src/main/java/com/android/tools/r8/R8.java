@@ -340,8 +340,8 @@ public class R8 {
         application = application.asDirect().rewrittenWithLense(graphLense);
         appInfo = appInfo.withLiveness().rewrittenWithLense(application.asDirect(), graphLense);
         // Collect switch maps and ordinals maps.
-        new SwitchMapCollector(appInfo.withLiveness(), options).run();
-        new EnumOrdinalMapCollector(appInfo.withLiveness(), options).run();
+        appInfo = new SwitchMapCollector(appInfo.withLiveness(), options).run();
+        appInfo = new EnumOrdinalMapCollector(appInfo.withLiveness(), options).run();
 
         graphLense = new BridgeMethodAnalysis(graphLense, appInfo.withLiveness()).run();
       }
