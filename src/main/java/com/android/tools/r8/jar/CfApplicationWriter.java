@@ -6,6 +6,7 @@ package com.android.tools.r8.jar;
 import static org.objectweb.asm.Opcodes.ASM6;
 
 import com.android.tools.r8.ClassFileConsumer;
+import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexApplication;
@@ -13,6 +14,8 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.InnerClassAttribute;
+import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.naming.ProguardMapSupplier;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import java.io.IOException;
@@ -30,11 +33,26 @@ import org.objectweb.asm.util.TraceMethodVisitor;
 
 public class CfApplicationWriter {
   private final DexApplication application;
+  private final NamingLens namingLens;
   private final InternalOptions options;
 
-  public CfApplicationWriter(DexApplication application, InternalOptions options) {
+  public final ProguardMapSupplier proguardMapSupplier;
+  public final String deadCode;
+  public final String proguardSeedsData;
+
+  public CfApplicationWriter(
+      DexApplication application,
+      InternalOptions options,
+      String deadCode,
+      NamingLens namingLens,
+      String proguardSeedsData,
+      ProguardMapSupplier proguardMapSupplier) {
     this.application = application;
+    this.namingLens = namingLens;
     this.options = options;
+    this.proguardMapSupplier = proguardMapSupplier;
+    this.deadCode = deadCode;
+    this.proguardSeedsData = proguardSeedsData;
   }
 
   public void write(ClassFileConsumer consumer, ExecutorService executor) throws IOException {
@@ -55,6 +73,8 @@ public class CfApplicationWriter {
         throw new Unimplemented("No support for synthetics in the Java bytecode backend.");
       }
     }
+    ApplicationWriter.supplyAdditionalConsumers(
+        application, namingLens, options, deadCode, proguardMapSupplier, proguardSeedsData);
   }
 
   private void writeClass(DexProgramClass clazz, ClassFileConsumer consumer) throws IOException {

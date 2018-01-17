@@ -216,27 +216,38 @@ public class ApplicationWriter {
       ThreadUtils.awaitFutures(dexDataFutures);
       // Fail if there are pending errors, e.g., the program consumers may have reported errors.
       options.reporter.failIfPendingErrors();
-
-      if (options.usageInformationConsumer != null && deadCode != null) {
-        ExceptionUtils.withConsumeResourceHandler(
-            options.reporter, options.usageInformationConsumer, deadCode);
-      }
-      // Write the proguard map file after writing the dex files, as the map writer traverses
-      // the DexProgramClass structures, which are destructively updated during dex file writing.
-      if (proguardMapSupplier != null && options.proguardMapConsumer != null) {
-        ExceptionUtils.withConsumeResourceHandler(
-            options.reporter, options.proguardMapConsumer, proguardMapSupplier.get());
-      }
-      if (options.proguardSeedsConsumer != null && proguardSeedsData != null) {
-        ExceptionUtils.withConsumeResourceHandler(
-            options.reporter, options.proguardSeedsConsumer, proguardSeedsData);
-      }
-      if (options.mainDexListConsumer != null) {
-        ExceptionUtils.withConsumeResourceHandler(
-            options.reporter, options.mainDexListConsumer, writeMainDexList());
-      }
+      // Supply info to all additional resource consumers.
+      supplyAdditionalConsumers(
+          application, namingLens, options, deadCode, proguardMapSupplier, proguardSeedsData);
     } finally {
       application.timing.end();
+    }
+  }
+
+  public static void supplyAdditionalConsumers(
+      DexApplication application,
+      NamingLens namingLens,
+      InternalOptions options,
+      String deadCode,
+      ProguardMapSupplier proguardMapSupplier,
+      String proguardSeedsData) {
+    if (options.usageInformationConsumer != null && deadCode != null) {
+      ExceptionUtils.withConsumeResourceHandler(
+          options.reporter, options.usageInformationConsumer, deadCode);
+    }
+    // Write the proguard map file after writing the dex files, as the map writer traverses
+    // the DexProgramClass structures, which are destructively updated during dex file writing.
+    if (proguardMapSupplier != null && options.proguardMapConsumer != null) {
+      ExceptionUtils.withConsumeResourceHandler(
+          options.reporter, options.proguardMapConsumer, proguardMapSupplier.get());
+    }
+    if (options.proguardSeedsConsumer != null && proguardSeedsData != null) {
+      ExceptionUtils.withConsumeResourceHandler(
+          options.reporter, options.proguardSeedsConsumer, proguardSeedsData);
+    }
+    if (options.mainDexListConsumer != null) {
+      ExceptionUtils.withConsumeResourceHandler(
+          options.reporter, options.mainDexListConsumer, writeMainDexList(application, namingLens));
     }
   }
 
@@ -345,14 +356,15 @@ public class ApplicationWriter {
     return fileWriter.generate();
   }
 
-  private String mapMainDexListName(DexType type) {
+  private static String mapMainDexListName(DexType type, NamingLens namingLens) {
     return DescriptorUtils.descriptorToJavaType(namingLens.lookupDescriptor(type).toString())
         .replace('.', '/') + ".class";
   }
 
-  private String writeMainDexList() {
+  private static String writeMainDexList(DexApplication application, NamingLens namingLens) {
     StringBuilder builder = new StringBuilder();
-    application.mainDexList.forEach(type -> builder.append(mapMainDexListName(type)).append('\n'));
+    application.mainDexList.forEach(
+        type -> builder.append(mapMainDexListName(type, namingLens)).append('\n'));
     return builder.toString();
   }
 }

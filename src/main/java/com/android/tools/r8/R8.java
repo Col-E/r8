@@ -179,7 +179,13 @@ public class R8 {
     try {
       Marker marker = getMarker(options);
       if (options.isGeneratingClassFiles()) {
-        new CfApplicationWriter(application, options)
+        new CfApplicationWriter(
+                application,
+                options,
+                deadCode,
+                namingLens,
+                proguardSeedsData,
+                proguardMapSupplier)
             .write(options.getClassFileConsumer(), executorService);
       } else {
         new ApplicationWriter(
