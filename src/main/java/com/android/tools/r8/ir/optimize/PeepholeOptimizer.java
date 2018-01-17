@@ -292,10 +292,12 @@ public class PeepholeOptimizer {
               iterator.remove();
             } else {
               // Insert the current constant in the mapping. Make sure to clobber the second
-              // register if wide.
+              // register if wide and register-1 if that defines a wide value.
               registerToNumber.put(outRegister, current.asConstNumber());
               if (current.outType().isWide()) {
                 registerToNumber.remove(outRegister + 1);
+              } else {
+                removeWideConstantCovering(registerToNumber, outRegister);
               }
             }
           } else {
@@ -305,9 +307,20 @@ public class PeepholeOptimizer {
             for (int i = 0; i < outValue.requiredRegisters(); i++) {
               registerToNumber.remove(outRegister + i);
             }
+            // Check if the first register written is the second part of a wide value. If so
+            // the wide value is no longer active.
+            removeWideConstantCovering(registerToNumber, outRegister);
           }
         }
       }
+    }
+  }
+
+  private static void removeWideConstantCovering(
+      Map<Integer, ConstNumber> registerToNumber, int register) {
+    ConstNumber number = registerToNumber.get(register - 1);
+    if (number != null && number.outType().isWide()) {
+      registerToNumber.remove(register - 1);
     }
   }
 
