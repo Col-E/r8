@@ -479,11 +479,11 @@ public class ToolHelper {
     return getArtDir(version) + "/" + binary;
   }
 
-  public static String getDefaultAndroidJar() {
+  public static Path getDefaultAndroidJar() {
     return getAndroidJar(AndroidApiLevel.getDefault().getLevel());
   }
 
-  public static String getAndroidJar(int minSdkVersion) {
+  public static Path getAndroidJar(int minSdkVersion) {
     if (minSdkVersion == AndroidApiLevel.P.getLevel()) {
       // TODO(mikaelpeltier) Android P does not yet have his android.jar use the O version
       minSdkVersion = AndroidApiLevel.O.getLevel();
@@ -493,7 +493,7 @@ public class ToolHelper {
         minSdkVersion == AndroidApiLevel.getDefault().getLevel() ? DEFAULT_MIN_SDK : minSdkVersion);
     assert Files.exists(Paths.get(jar))
         : "Expected android jar to exist for API level " + minSdkVersion;
-    return jar;
+    return Paths.get(jar);
   }
 
   public static Path getJdwpTestsCfJarPath(int minSdk) {
@@ -694,12 +694,12 @@ public class ToolHelper {
   }
 
   public static DexApplication buildApplicationWithAndroidJar(
-      List<String> fileNames, String androidJar)
+      List<String> fileNames, Path androidJar)
       throws IOException, ExecutionException {
     AndroidApp input =
         AndroidApp.builder()
             .addProgramFiles(ListUtils.map(fileNames, Paths::get))
-            .addLibraryFiles(Paths.get(androidJar))
+            .addLibraryFiles(androidJar)
             .build();
     return new ApplicationReader(
         input, new InternalOptions(), new Timing("ToolHelper buildApplication"))
@@ -769,7 +769,7 @@ public class ToolHelper {
     if (app.getLibraryResourceProviders().isEmpty()) {
       app =
           AndroidApp.builder(app)
-              .addLibraryFiles(Paths.get(getAndroidJar(command.getMinApiLevel())))
+              .addLibraryFiles(ToolHelper.getAndroidJar(command.getMinApiLevel()))
               .build();
     }
     InternalOptions options = command.getInternalOptions();
@@ -1081,7 +1081,7 @@ public class ToolHelper {
     command.add("-injars");
     command.add(inJar.toString());
     command.add("-libraryjars");
-    command.add(ToolHelper.getDefaultAndroidJar());
+    command.add(ToolHelper.getDefaultAndroidJar().toString());
     command.add("@" + config);
     command.add("-outjar");
     command.add(outJar.toString());

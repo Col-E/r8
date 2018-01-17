@@ -77,7 +77,7 @@ public class MinificationTest extends DebugTestBase {
             .setOutput(dexOutputDir, OutputMode.DexIndexed)
             .setMinApiLevel(minSdk)
             .setMode(CompilationMode.DEBUG)
-            .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(minSdk)));
+            .addLibraryFiles(ToolHelper.getAndroidJar(minSdk));
     if (proguardMap != null) {
       builder.setProguardMapOutputPath(proguardMap);
     }

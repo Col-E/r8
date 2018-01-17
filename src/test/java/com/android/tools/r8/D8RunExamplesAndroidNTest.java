@@ -7,7 +7,6 @@ package com.android.tools.r8;
 import com.android.tools.r8.D8Command.Builder;
 import com.android.tools.r8.errors.CompilationError;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.function.UnaryOperator;
 
 public class D8RunExamplesAndroidNTest extends RunExamplesAndroidNTest<D8Command.Builder> {
@@ -30,7 +29,7 @@ public class D8RunExamplesAndroidNTest extends RunExamplesAndroidNTest<D8Command
         builder = transformation.apply(builder);
       }
       builder
-          .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(builder.getMinApiLevel())))
+          .addLibraryFiles(ToolHelper.getAndroidJar(builder.getMinApiLevel()))
           .addProgramFiles(inputFile)
           .setOutput(out, OutputMode.DexIndexed);
       try {

@@ -152,7 +152,7 @@ public class MainDexTracingTest {
               .addProgramFiles(inputJar)
               .addProgramFiles(
                   Paths.get(EXAMPLE_BUILD_DIR, "multidexfakeframeworks" + JAR_EXTENSION))
-              .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(minSdk)))
+              .addLibraryFiles(ToolHelper.getAndroidJar(minSdk))
               .setOutput(out, OutputMode.DexIndexed)
               .addMainDexRulesFiles(mainDexRules)
               .setMainDexListConsumer((string, handler) -> r8MainDexListOutput.content = string)

@@ -72,8 +72,8 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
       for (UnaryOperator<R8Command.Builder> transformation : builderTransformations) {
         builder = transformation.apply(builder);
       }
-      builder.addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(
-          androidJarVersion == null ? builder.getMinApiLevel() : androidJarVersion)));
+      builder.addLibraryFiles(ToolHelper
+          .getAndroidJar(androidJarVersion == null ? builder.getMinApiLevel() : androidJarVersion));
       R8Command command = builder.addProgramFiles(inputFile).build();
       ToolHelper.runR8(command, this::combinedOptionConsumer);
     }

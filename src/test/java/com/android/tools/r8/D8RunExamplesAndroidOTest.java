@@ -10,7 +10,6 @@ import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.OffOrAuto;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.function.UnaryOperator;
 import org.hamcrest.core.CombinableMatcher;
 import org.hamcrest.core.IsInstanceOf;
@@ -43,9 +42,8 @@ public class D8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<D8Command
         builder = transformation.apply(builder);
       }
       builder.addLibraryFiles(
-          Paths.get(
-              ToolHelper.getAndroidJar(
-                  androidJarVersion == null ? builder.getMinApiLevel() : androidJarVersion)));
+          ToolHelper.getAndroidJar(
+              androidJarVersion == null ? builder.getMinApiLevel() : androidJarVersion));
       builder.addProgramFiles(inputFile);
       try {
         ToolHelper.runD8(builder, this::combinedOptionConsumer);

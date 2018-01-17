@@ -36,7 +36,7 @@ public class R8CodeCanonicalizationTest {
   public void testNumberOfCodeItemsUnchanged() throws Exception {
     int numberOfCodes = readNumberOfCodes(SOURCE_DEX);
     R8Command.Builder builder = R8Command.builder()
-        .addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()))
+        .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
         .setOutput(temp.getRoot().toPath(), OutputMode.DexIndexed);
     ToolHelper.getAppBuilder(builder).addProgramFiles(SOURCE_DEX);
     R8.run(builder.build());

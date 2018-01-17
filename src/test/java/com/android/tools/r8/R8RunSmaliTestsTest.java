@@ -154,7 +154,7 @@ public class R8RunSmaliTestsTest {
     Path originalDexFile = Paths.get(SMALI_DIR, directoryName, dexFileName);
     String outputPath = temp.getRoot().getCanonicalPath();
     R8Command.Builder builder = R8Command.builder()
-            .addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()))
+        .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
             .setOutput(Paths.get(outputPath), OutputMode.DexIndexed);
     ToolHelper.getAppBuilder(builder).addProgramFiles(originalDexFile);
     R8.run(builder.build());

@@ -12,7 +12,6 @@ import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.debug.DexDebugTestConfig;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -41,7 +40,7 @@ public class RenameSourceFileDebugTest extends DebugTestBase {
                 })
             .addProgramFiles(DEBUGGEE_JAR)
             .setMinApiLevel(minSdk)
-            .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(minSdk)))
+            .addLibraryFiles(ToolHelper.getAndroidJar(minSdk))
             .setMode(CompilationMode.DEBUG)
             .setOutput(outjar, OutputMode.DexIndexed)
             .setProguardMapOutputPath(proguardMapPath)

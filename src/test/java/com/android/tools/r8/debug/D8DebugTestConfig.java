@@ -28,7 +28,7 @@ public class D8DebugTestConfig extends DexDebugTestConfig {
               .addProgramFiles(paths)
               .setMinApiLevel(minSdk)
               .setMode(CompilationMode.DEBUG)
-              .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(minSdk))),
+              .addLibraryFiles(ToolHelper.getAndroidJar(minSdk)),
           optionsConsumer);
     } catch (Exception e) {
       throw new RuntimeException(e);

@@ -62,7 +62,7 @@ public class R8ApiBinaryCompatibilityTests {
                     "--main-dex-list",
                     mainDexList.toString(),
                     "--lib",
-                    ToolHelper.getAndroidJar(MIN_API)))
+                    ToolHelper.getAndroidJar(MIN_API).toString()))
             .addAll(inputs.stream().map(Path::toString).collect(Collectors.toList()))
             .build();
 

@@ -6,7 +6,6 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.utils.AndroidApiLevel;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.function.UnaryOperator;
 
 public class R8RunExamplesJava9Test extends RunExamplesJava9Test<R8Command.Builder> {
@@ -29,7 +28,7 @@ public class R8RunExamplesJava9Test extends RunExamplesJava9Test<R8Command.Build
         builder = transformation.apply(builder);
       }
       // TODO(mikaelpeltier) Add new android.jar build from aosp and use it
-      builder.addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(AndroidApiLevel.P.getLevel())));
+      builder.addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P.getLevel()));
       R8Command command =
           builder.addProgramFiles(inputFile).setOutput(out, OutputMode.DexIndexed).build();
       ToolHelper.runR8(command, this::combinedOptionConsumer);

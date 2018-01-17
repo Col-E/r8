@@ -20,7 +20,6 @@ import com.google.common.collect.ImmutableList;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -103,7 +102,7 @@ public class JasminTestBase extends TestBase {
       throws Exception {
     R8Command command =
         ToolHelper.prepareR8CommandBuilder(builder.build())
-            .addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()))
+            .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
             .addProguardConfiguration(ImmutableList.of(proguardConfig), Origin.unknown())
             .build();
     return ToolHelper.runR8(command, optionsConsumer);
@@ -114,7 +113,7 @@ public class JasminTestBase extends TestBase {
       throws Exception {
     R8Command command =
         ToolHelper.prepareR8CommandBuilder(program.build())
-            .addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()))
+            .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
             .addLibraryFiles(library)
             .build();
     return ToolHelper.runR8(command, optionsConsumer);
@@ -126,7 +125,7 @@ public class JasminTestBase extends TestBase {
     R8Command command =
         ToolHelper.prepareR8CommandBuilder(program.build())
             .addProguardConfiguration(ImmutableList.of(proguardConfig), Origin.unknown())
-            .addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()))
+            .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
             .addLibraryFiles(library)
             .build();
     return ToolHelper.runR8(command, optionsConsumer);

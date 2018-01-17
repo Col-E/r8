@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -19,7 +18,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.concurrent.ExecutionException;
 import java.util.zip.ZipEntry;
@@ -110,7 +108,7 @@ public class AsmTestBase extends TestBase {
     for (byte[] clazz : classes) {
       builder.addClassProgramData(clazz, Origin.unknown());
     }
-    builder.addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(AndroidApiLevel.N.getLevel())));
+    builder.addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.N.getLevel()));
     return builder.build();
   }
 

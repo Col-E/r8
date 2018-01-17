@@ -9,7 +9,6 @@ import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.function.UnaryOperator;
 
 public class D8RunExamplesAndroidPTest extends RunExamplesAndroidPTest<D8Command.Builder> {
@@ -38,7 +37,7 @@ public class D8RunExamplesAndroidPTest extends RunExamplesAndroidPTest<D8Command
       }
       // TODO(mikaelpeltier) Add new android.jar build from aosp and use it
       builder
-          .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(AndroidApiLevel.O.getLevel())))
+          .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.O.getLevel()))
           .addProgramFiles(inputFile)
           .setOutput(out, OutputMode.DexIndexed);
       try {

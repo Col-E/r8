@@ -244,7 +244,7 @@ public class ApplyMappingTest {
       Path out, Path flag, Path mainApp, Path instrApp)
       throws CompilationException, IOException {
     return R8Command.builder()
-        .addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()), mainApp)
+        .addLibraryFiles(ToolHelper.getDefaultAndroidJar(), mainApp)
         .addProgramFiles(instrApp)
         .setOutput(out, OutputMode.DexIndexed)
         .addProguardConfigurationFiles(flag);
@@ -254,7 +254,7 @@ public class ApplyMappingTest {
       Path out, Path flag, Path... jars)
       throws CompilationException, IOException {
     return R8Command.builder()
-        .addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()))
+        .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
         .addProgramFiles(jars)
         .setOutput(out, OutputMode.DexIndexed)
         .addProguardConfigurationFiles(flag);

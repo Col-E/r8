@@ -175,8 +175,8 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
       } else {
         throw new Unreachable("Unexpected output mode " + outputMode);
       }
-      addLibraryReference(builder, Paths.get(ToolHelper.getAndroidJar(
-          androidJarVersion == null ? builder.getMinApiLevel() : androidJarVersion)));
+      addLibraryReference(builder, ToolHelper
+          .getAndroidJar(androidJarVersion == null ? builder.getMinApiLevel() : androidJarVersion));
       try {
         return ToolHelper.runD8(builder, this::combinedOptionConsumer);
       } catch (Unimplemented | CompilationError | InternalCompilerError re) {

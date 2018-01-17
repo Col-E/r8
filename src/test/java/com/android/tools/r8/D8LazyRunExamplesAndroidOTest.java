@@ -71,7 +71,7 @@ public class D8LazyRunExamplesAndroidOTest
         Paths.get(ToolHelper.EXAMPLES_ANDROID_N_BUILD_DIR, "interfacemethods" + JAR_EXTENSION);
     Path tmpClassesDir = temp.newFolder().toPath();
     ZipUtils.unzip(inputFile.toString(), tmpClassesDir.toFile());
-    Path androidJar = Paths.get(ToolHelper.getAndroidJar(minAPILevel));
+    Path androidJar = ToolHelper.getAndroidJar(minAPILevel);
 
     // Build all at once.
     AndroidApp fullBuildResult;

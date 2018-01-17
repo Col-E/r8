@@ -42,7 +42,7 @@ public class DebugInfoWhenInliningTest extends DebugTestBase {
         R8Command.builder()
             .addProgramFiles(DEBUGGEE_JAR)
             .setMinApiLevel(minSdk)
-            .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(minSdk)))
+            .addLibraryFiles(ToolHelper.getAndroidJar(minSdk))
             .setMode(CompilationMode.RELEASE)
             .setOutput(outjar, outputMode);
     if (proguardMapPath != null) {

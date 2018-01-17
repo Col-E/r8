@@ -15,7 +15,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -31,7 +30,7 @@ public class TypeLatticeTest {
     DexApplication application =
         new ApplicationReader(
                 AndroidApp.builder()
-                    .addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()))
+                    .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
                     .build(),
                 options,
                 new Timing(TypeLatticeTest.class.getName()))

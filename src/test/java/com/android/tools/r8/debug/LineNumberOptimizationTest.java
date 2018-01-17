@@ -39,7 +39,7 @@ public class LineNumberOptimizationTest extends DebugTestBase {
         R8Command.builder()
             .addProgramFiles(DEBUGGEE_JAR)
             .setMinApiLevel(minSdk)
-            .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(minSdk)))
+            .addLibraryFiles(ToolHelper.getAndroidJar(minSdk))
             .setMode(dontOptimizeByEnablingDebug ? CompilationMode.DEBUG : CompilationMode.RELEASE)
             .setOutput(outjar, OutputMode.DexIndexed);
     if (proguardMapPath != null) {

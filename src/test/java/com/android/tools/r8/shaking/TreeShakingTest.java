@@ -56,9 +56,9 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class TreeShakingTest {
 
-  private static final String ANDROID_JAR = ToolHelper.getDefaultAndroidJar();
-  private static final List<Path> JAR_LIBRARIES = ListUtils.map(ImmutableList
-      .of(ANDROID_JAR, ToolHelper.EXAMPLES_BUILD_DIR + "shakinglib.jar"), Paths::get);
+  private static final Path ANDROID_JAR = ToolHelper.getDefaultAndroidJar();
+  private static final List<Path> JAR_LIBRARIES = ImmutableList
+      .of(ANDROID_JAR, Paths.get(ToolHelper.EXAMPLES_BUILD_DIR + "shakinglib.jar"));
   private static final String EMPTY_FLAGS = "src/test/proguard/valid/empty.flags";
   private static final Set<String> IGNORED_FLAGS = ImmutableSet.of(
       "examples/minification:conflict-mapping.txt",
