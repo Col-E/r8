@@ -37,7 +37,6 @@ import it.unimi.dsi.fastutil.ints.IntList;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import java.util.function.BiPredicate;
 
 /**
@@ -70,7 +69,6 @@ public class ProtoLitePruner extends ProtoLiteBase {
 
   private final DexString makeImmutableMethodName;
   private final DexString sizeMethodName;
-  private final Set<DexField> seenFields;
   private final DexMethod sizeMethod;
 
   public ProtoLitePruner(AppInfoWithLiveness appInfo) {
@@ -93,9 +91,6 @@ public class ProtoLitePruner extends ProtoLiteBase {
     this.makeImmutableMethodName = factory.createString("makeImmutable");
     this.sizeMethod = factory.createMethod(listType,
         factory.createProto(factory.intType), sizeMethodName);
-
-    seenFields = appInfo.withLiveness()
-        .getExtension(ProtoLiteExtension.class, Collections.emptySet());
   }
 
   private boolean isPresenceField(DexField field, DexType instanceType) {
@@ -131,7 +126,7 @@ public class ProtoLitePruner extends ProtoLiteBase {
       return false;
     }
     DexField correspondingField = getterToField(method, postFixLength);
-    return seenFields.contains(correspondingField);
+    return isProtoField(correspondingField);
   }
 
   private boolean isDefinedAsNull(Value value) {
@@ -149,7 +144,7 @@ public class ProtoLitePruner extends ProtoLiteBase {
   }
 
   private boolean isProtoField(DexField field) {
-    return seenFields.contains(field);
+    return appInfo.withLiveness().isProtoLiteField(field);
   }
 
   public void rewriteProtoLiteSpecialMethod(IRCode code, DexEncodedMethod method) {

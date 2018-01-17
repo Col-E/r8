@@ -35,6 +35,7 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
+import com.android.tools.r8.shaking.protolite.ProtoLiteExtension;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
@@ -48,14 +49,12 @@ import com.google.common.collect.Sets.SetView;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -93,8 +92,8 @@ public class Enqueuer {
   private final Map<DexType, Set<DexField>> staticFieldsRead = Maps.newIdentityHashMap();
   private final Map<DexType, Set<DexField>> staticFieldsWritten = Maps.newIdentityHashMap();
 
-  private final List<SemanticsProvider> extensions = new ArrayList<>();
-  private final Map<Class<?>, Object> extensionsState = new HashMap<>();
+  private final ProtoLiteExtension protoLiteExtension;
+  private final Set<DexField> protoLiteFields = Sets.newIdentityHashSet();
 
   /**
    * This map keeps a view of all virtual methods that are reachable from virtual invokes. A method
@@ -186,20 +185,15 @@ public class Enqueuer {
   private final ProguardConfiguration.Builder compatibility;
 
   public Enqueuer(AppInfoWithSubtyping appInfo, InternalOptions options) {
-    this.appInfo = appInfo;
-    this.compatibility = null;
-    this.options = options;
+    this(appInfo, options, null, null);
   }
 
   public Enqueuer(AppInfoWithSubtyping appInfo, InternalOptions options,
-      ProguardConfiguration.Builder compatibility) {
+      ProguardConfiguration.Builder compatibility, ProtoLiteExtension protoLiteExtension) {
     this.appInfo = appInfo;
     this.compatibility = compatibility;
     this.options = options;
-  }
-
-  public void addExtension(SemanticsProvider extension) {
-    extensions.add(extension);
+    this.protoLiteExtension = protoLiteExtension;
   }
 
   private void enqueueRootItems(Map<DexItem, ProguardKeepRule> items) {
@@ -1079,19 +1073,9 @@ public class Enqueuer {
       for (DexAnnotationSet parameterAnnotation : method.parameterAnnotations.values) {
         processAnnotations(parameterAnnotation.annotations);
       }
-      boolean processed = false;
-      if (!extensions.isEmpty()) {
-        for (SemanticsProvider extension : extensions) {
-          if (extension.appliesTo(method)) {
-            assert extensions.stream().filter(e -> e.appliesTo(method)).count() == 1;
-            extensionsState.put(extension.getClass(),
-                extension.processMethod(method, new UseRegistry(method),
-                    extensionsState.get(extension.getClass())));
-            processed = true;
-          }
-        }
-      }
-      if (!processed) {
+      if (protoLiteExtension != null && protoLiteExtension.appliesTo(method)) {
+        protoLiteExtension.processMethod(method, new UseRegistry(method), protoLiteFields);
+      } else {
         method.registerReachableDefinitions(new UseRegistry(method));
       }
       // Add all dependent members to the workqueue.
@@ -1370,9 +1354,10 @@ public class Enqueuer {
      */
     public final Set<DexItem> identifierNameStrings;
     /**
-     * Map from the class of an extension to the state it produced.
+     * Set of fields that have been identified as proto-lite fields by the
+     * {@link ProtoLiteExtension}.
      */
-    final Map<Class<?>, Object> extensions;
+    final Set<DexField> protoLiteFields;
     /**
      * A set of types that have been removed by the {@link TreePruner}.
      */
@@ -1411,7 +1396,7 @@ public class Enqueuer {
       this.assumedValues = enqueuer.rootSet.assumedValues;
       this.alwaysInline = enqueuer.rootSet.alwaysInline;
       this.identifierNameStrings = enqueuer.rootSet.identifierNameStrings;
-      this.extensions = enqueuer.extensionsState;
+      this.protoLiteFields = enqueuer.protoLiteFields;
       this.prunedTypes = Collections.emptySet();
       this.switchMaps = Collections.emptyMap();
       this.ordinalsMaps = Collections.emptyMap();
@@ -1443,7 +1428,7 @@ public class Enqueuer {
       this.superInvokes = previous.superInvokes;
       this.directInvokes = previous.directInvokes;
       this.staticInvokes = previous.staticInvokes;
-      this.extensions = previous.extensions;
+      this.protoLiteFields = previous.protoLiteFields;
       this.alwaysInline = previous.alwaysInline;
       this.identifierNameStrings = previous.identifierNameStrings;
       this.prunedTypes = mergeSets(previous.prunedTypes, removedClasses);
@@ -1489,7 +1474,7 @@ public class Enqueuer {
               .collect(Collectors.toList()), lense);
       this.switchMaps = previous.switchMaps;
       this.ordinalsMaps = rewriteKeys(previous.ordinalsMaps, lense::lookupType);
-      this.extensions = previous.extensions;
+      this.protoLiteFields = previous.protoLiteFields;
       // Sanity check sets after rewriting.
       assert Sets.intersection(instanceFieldReads, staticFieldReads).isEmpty();
       assert Sets.intersection(instanceFieldWrites, staticFieldWrites).isEmpty();
@@ -1518,7 +1503,7 @@ public class Enqueuer {
       this.superInvokes = previous.superInvokes;
       this.directInvokes = previous.directInvokes;
       this.staticInvokes = previous.staticInvokes;
-      this.extensions = previous.extensions;
+      this.protoLiteFields = previous.protoLiteFields;
       this.alwaysInline = previous.alwaysInline;
       this.identifierNameStrings = previous.identifierNameStrings;
       this.prunedTypes = previous.prunedTypes;
@@ -1652,20 +1637,6 @@ public class Enqueuer {
       return builder.build();
     }
 
-    @SuppressWarnings("unchecked")
-    public <T> T getExtension(Class<?> extension, T defaultValue) {
-      if (extensions.containsKey(extension)) {
-        return (T) extensions.get(extension);
-      } else {
-        return defaultValue;
-      }
-    }
-
-    public <T> void setExtension(Class<?> extension, T value) {
-      assert !extensions.containsKey(extension);
-      extensions.put(extension, value);
-    }
-
     @Override
     public boolean hasLiveness() {
       return true;
@@ -1691,6 +1662,9 @@ public class Enqueuer {
       return pinnedItems.contains(item);
     }
 
+    public boolean isProtoLiteField(DexField field) {
+      return protoLiteFields.contains(field);
+    }
 
     public Iterable<DexItem> getPinnedItems() {
       return pinnedItems;
@@ -1989,13 +1963,5 @@ public class Enqueuer {
       }
       return false;
     }
-  }
-
-  public interface SemanticsProvider {
-
-    boolean appliesTo(DexEncodedMethod method);
-
-    Object processMethod(DexEncodedMethod method,
-        com.android.tools.r8.graph.UseRegistry useRegistry, Object state);
   }
 }

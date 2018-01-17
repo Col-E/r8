@@ -267,15 +267,13 @@ public class R8 {
         final ProguardConfiguration.Builder compatibility =
             ProguardConfiguration.builder(application.dexItemFactory, options.reporter);
 
-        rootSet =
-            new RootSetBuilder(
+        rootSet = new RootSetBuilder(
                     application, appInfo, options.proguardConfiguration.getRules(), options)
                 .run(executorService);
-        Enqueuer enqueuer = new Enqueuer(appInfo, options, compatibility);
-        if (!options.forceProguardCompatibility) {
-          enqueuer.addExtension(new ProtoLiteExtension(appInfo));
-        }
-        appInfo = enqueuer.traceApplication(rootSet, timing);
+        ProtoLiteExtension protoLiteExtension =
+            options.forceProguardCompatibility ? null : new ProtoLiteExtension(appInfo);
+        appInfo = new Enqueuer(appInfo, options, compatibility, protoLiteExtension)
+            .traceApplication(rootSet, timing);
         if (options.proguardConfiguration.isPrintSeeds()) {
           ByteArrayOutputStream bytes = new ByteArrayOutputStream();
           PrintStream out = new PrintStream(bytes);
