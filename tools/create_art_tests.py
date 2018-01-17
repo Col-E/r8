@@ -42,7 +42,7 @@ public class $testClassName extends R8RunArtTestsTest {
     @Test
     public void run$testClassName() throws Throwable {
       // For testing with other Art VMs than the default pass the VM version as a argument to
-      // runArtTest, e.g. runArtTest(ToolHelper.ART_4_4_4).
+      // runArtTest, e.g. runArtTest(DexVm.ART_4_4_4_HOST, CompilerUnderTest.$compilerUnderTestEnum).
       runArtTest(CompilerUnderTest.$compilerUnderTestEnum);
     }
 }
