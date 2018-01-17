@@ -4,12 +4,39 @@
 package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.DexClass;
 
 public enum ProguardClassType {
-  ANNOTATION_INTERFACE,
-  CLASS,
-  ENUM,
-  INTERFACE;
+  ANNOTATION_INTERFACE {
+    @Override
+    public boolean matches(DexClass clazz) {
+      return clazz.accessFlags.isInterface() && clazz.accessFlags.isAnnotation();
+    }
+  },
+  CLASS {
+    @Override
+    public boolean matches(DexClass clazz) {
+      return true;
+    }
+  },
+  ENUM {
+    @Override
+    public boolean matches(DexClass clazz) {
+      return clazz.accessFlags.isEnum();
+    }
+  },
+  INTERFACE {
+    @Override
+    public boolean matches(DexClass clazz) {
+      return clazz.accessFlags.isInterface() && !clazz.accessFlags.isAnnotation();
+    }
+  },
+  UNSPECIFIED {
+    @Override
+    public boolean matches(DexClass clazz) {
+      return true;
+    }
+  };
 
   @Override
   public String toString() {
@@ -18,8 +45,12 @@ public enum ProguardClassType {
       case CLASS: return "class";
       case ENUM: return "enum";
       case INTERFACE: return "interface";
+      case UNSPECIFIED:
+        return "";
       default:
         throw new Unreachable("Invalid proguard class type '" + this + "'");
     }
   }
+
+  public abstract boolean matches(DexClass clazz);
 }

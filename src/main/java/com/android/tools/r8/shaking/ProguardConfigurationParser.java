@@ -513,7 +513,7 @@ public class ProguardConfigurationParser {
         ProguardConfigurationRule.Builder builder, boolean allowValueSpecification)
         throws ProguardRuleParserException {
       parseClassFlagsAndAnnotations(builder);
-      builder.setClassType(parseClassType());
+      parseClassType(builder);
       builder.setClassNames(parseClassNames());
       parseInheritance(builder);
       parseMemberRules(builder, allowValueSpecification);
@@ -602,6 +602,7 @@ public class ProguardConfigurationParser {
           assert builder.getClassAnnotation() == null;
           builder.setClassAnnotation(annotation);
         } else {
+          int start = position;
           ProguardAccessFlags flags =
               parseNegation()
                   ? builder.getNegatedClassAccessFlags()
@@ -614,25 +615,32 @@ public class ProguardConfigurationParser {
           } else if (acceptString("abstract")) {
             flags.setAbstract();
           } else {
+            // Undo reading the ! in case there is no modifier following.
+            position = start;
             break;
           }
         }
       }
     }
 
-    private ProguardClassType parseClassType() throws ProguardRuleParserException {
+    private void parseClassType(
+        ProguardClassSpecification.Builder builder) throws ProguardRuleParserException {
       skipWhitespace();
       TextPosition start = getPosition();
+      if (acceptChar('!')) {
+        builder.setClassTypeNegated(true);
+      }
       if (acceptString("interface")) {
-        return ProguardClassType.INTERFACE;
+        builder.setClassType(ProguardClassType.INTERFACE);
       } else if (acceptString("@interface")) {
-        return ProguardClassType.ANNOTATION_INTERFACE;
+        builder.setClassType(ProguardClassType.ANNOTATION_INTERFACE);
       } else if (acceptString("class")) {
-        return ProguardClassType.CLASS;
+        builder.setClassType(ProguardClassType.CLASS);
       } else if (acceptString("enum")) {
-        return ProguardClassType.ENUM;
+        builder.setClassType(ProguardClassType.ENUM);
       } else {
-        throw reporter.fatalError(new StringDiagnostic("Expected interface|class|enum",
+        throw reporter
+            .fatalError(new StringDiagnostic("Expected [!]interface|@interface|class|enum",
             origin, getPostion(start)));
       }
     }

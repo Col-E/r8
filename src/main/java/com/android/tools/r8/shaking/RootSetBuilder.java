@@ -120,6 +120,9 @@ public class RootSetBuilder {
 
   // Process a class with the keep rule.
   private void process(DexClass clazz, ProguardConfigurationRule rule) {
+    if (rule.getClassType().matches(clazz) == rule.getClassTypeNegated()) {
+      return;
+    }
     if (!rule.getClassAccessFlags().containsAll(clazz.accessFlags)) {
       return;
     }
@@ -129,7 +132,6 @@ public class RootSetBuilder {
     if (!containsAnnotation(rule.getClassAnnotation(), clazz.annotations)) {
       return;
     }
-
     // In principle it should make a difference whether the user specified in a class
     // spec that a class either extends or implements another type. However, proguard
     // seems not to care, so users have started to use this inconsistently. We are thus
