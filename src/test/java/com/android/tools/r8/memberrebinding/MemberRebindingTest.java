@@ -16,7 +16,6 @@ import com.android.tools.r8.utils.DexInspector.FieldAccessInstructionSubject;
 import com.android.tools.r8.utils.DexInspector.InstructionSubject;
 import com.android.tools.r8.utils.DexInspector.InvokeInstructionSubject;
 import com.android.tools.r8.utils.DexInspector.MethodSubject;
-import com.android.tools.r8.utils.ListUtils;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -38,9 +37,9 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class MemberRebindingTest {
 
-  private static final String ANDROID_JAR = ToolHelper.getDefaultAndroidJar();
-  private static final List<Path> JAR_LIBRARIES = ListUtils.map(ImmutableList
-      .of(ANDROID_JAR, ToolHelper.EXAMPLES_BUILD_DIR + "memberrebindinglib.jar"), Paths::get);
+  private static final List<Path> JAR_LIBRARIES = ImmutableList.of(
+      ToolHelper.getDefaultAndroidJar(),
+      Paths.get(ToolHelper.EXAMPLES_BUILD_DIR + "memberrebindinglib.jar"));
 
   private enum Frontend {
     DEX, JAR;

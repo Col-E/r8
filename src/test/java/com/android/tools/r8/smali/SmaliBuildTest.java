@@ -12,7 +12,6 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import java.io.IOException;
-import java.nio.file.Paths;
 import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 
@@ -63,7 +62,7 @@ public class SmaliBuildTest extends SmaliTestBase {
     AndroidApp originalApp =
         AndroidApp.builder()
             .addDexProgramData(builder.compile(), EmbeddedOrigin.INSTANCE)
-            .addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()))
+            .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
             .build();
 
     // Java standard library added - java.lang.String is present.

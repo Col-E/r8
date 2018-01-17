@@ -29,7 +29,7 @@ public class R8CfDebugTestResourcesConfig extends CfDebugTestConfig {
               .setMode(CompilationMode.DEBUG)
               .addProgramFiles(DebugTestBase.DEBUGGEE_JAR)
               .setProgramConsumer(sink.wrapClassFileConsumer(null))
-              .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(minApi)))
+              .addLibraryFiles(ToolHelper.getAndroidJar(minApi))
               .build());
       compiledResources = sink.build();
     }

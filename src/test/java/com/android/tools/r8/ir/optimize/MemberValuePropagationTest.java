@@ -104,7 +104,7 @@ public class MemberValuePropagationTest {
         R8Command.builder()
             .setOutput(dexOutputDir, OutputMode.DexIndexed)
             .addProgramFiles(EXAMPLE_JAR)
-            .addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()))
+            .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
             .addProguardConfigurationFiles(proguardConfig)
             .setDisableMinification(true)
             .build(),

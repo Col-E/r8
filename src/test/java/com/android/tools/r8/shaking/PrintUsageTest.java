@@ -41,7 +41,7 @@ import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class PrintUsageTest {
-  private static final String ANDROID_JAR = ToolHelper.getDefaultAndroidJar();
+
   private static final String PRINT_USAGE_FILE_SUFFIX = "-print-usage.txt";
 
   private final String test;
@@ -75,7 +75,7 @@ public class PrintUsageTest {
             .setOutput(out, OutputMode.DexIndexed)
             .addProgramFiles(Paths.get(programFile))
             .addProguardConfigurationFiles(ListUtils.map(keepRulesFiles, Paths::get))
-            .addLibraryFiles(Paths.get(ANDROID_JAR))
+            .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
             .build();
     ToolHelper.runR8(command, options -> {
       // Disable inlining to make this test not depend on inlining decisions.

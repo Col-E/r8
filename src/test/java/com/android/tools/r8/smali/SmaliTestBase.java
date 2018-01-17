@@ -31,7 +31,6 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -56,7 +55,7 @@ public class SmaliTestBase extends TestBase {
     try {
       return AndroidApp.builder()
           .addDexProgramData(builder.compile(), EmbeddedOrigin.INSTANCE)
-          .addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()))
+          .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
           .build();
     } catch (IOException | RecognitionException | ExecutionException | DexOverflowException e) {
       throw new RuntimeException(e);
@@ -100,7 +99,7 @@ public class SmaliTestBase extends TestBase {
           ToolHelper.addProguardConfigurationConsumer(R8Command.builder(), pgConsumer)
               .setOutput(dexOutputDir, OutputMode.DexIndexed)
               .setMode(CompilationMode.DEBUG)
-              .addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()))
+              .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
               .addProguardConfiguration(proguardConfigurations, Origin.unknown());
       ToolHelper.getAppBuilder(command)
           .addDexProgramData(builder.compile(), EmbeddedOrigin.INSTANCE);

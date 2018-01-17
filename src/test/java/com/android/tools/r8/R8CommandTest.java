@@ -78,7 +78,7 @@ public class R8CommandTest {
   public void defaultOutIsCwd() throws Throwable {
     Path working = temp.getRoot().toPath();
     Path input = Paths.get(EXAMPLES_BUILD_DIR, "arithmetic.jar").toAbsolutePath();
-    Path library = Paths.get(ToolHelper.getDefaultAndroidJar());
+    Path library = ToolHelper.getDefaultAndroidJar();
     Path output = working.resolve("classes.dex");
     assertFalse(Files.exists(output));
     ProcessResult result =
@@ -209,7 +209,7 @@ public class R8CommandTest {
             "--output",
             existingDir.toString(),
             "--lib",
-            ToolHelper.getDefaultAndroidJar());
+            ToolHelper.getDefaultAndroidJar().toString());
     assertEquals(0, result.exitCode);
     assertTrue(Files.exists(classesFiles.get(0)));
     for (int i = 1; i < classesFiles.size(); i++) {

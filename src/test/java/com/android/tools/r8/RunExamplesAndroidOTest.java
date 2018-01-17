@@ -523,7 +523,7 @@ public abstract class RunExamplesAndroidOTest
     D8Command.Builder command = D8Command.builder()
         .setOutput(intermediateDex, outputMode)
         .setMinApiLevel(minApi)
-        .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(minApi)))
+        .addLibraryFiles(ToolHelper.getAndroidJar(minApi))
         .setIntermediate(true)
         .addProgramFiles(input);
     ToolHelper.runD8(command, option -> {

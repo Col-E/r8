@@ -4,6 +4,7 @@
 package com.android.tools.r8.rewrite.switchmaps;
 
 import com.android.tools.r8.CompilationMode;
+import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
@@ -35,14 +36,13 @@ public class RewriteSwitchMapsTest extends TestBase {
     run(CompilationMode.DEBUG);
   }
 
-
   private void run(CompilationMode compilationMode) throws Exception {
-    AndroidApp.Builder builder = AndroidApp.builder();
-    builder.addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()));
-    builder.addProgramFiles(Paths.get(ToolHelper.EXAMPLES_BUILD_DIR).resolve(JAR_FILE));
-    R8Command command = ToolHelper.prepareR8CommandBuilder(builder.build())
+    R8Command command = R8Command.builder()
+        .addProgramFiles(Paths.get(ToolHelper.EXAMPLES_BUILD_DIR).resolve(JAR_FILE))
+        .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
         .addProguardConfiguration(PG_CONFIG, Origin.unknown())
         .setMode(compilationMode)
+        .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
         .build();
     AndroidApp result = ToolHelper.runR8(command);
     DexInspector inspector = new DexInspector(result);

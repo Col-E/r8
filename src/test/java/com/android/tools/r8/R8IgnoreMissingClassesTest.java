@@ -13,7 +13,7 @@ public class R8IgnoreMissingClassesTest {
 
   private static final int MIN_API = 26;
   private static final Path EXAMPLE = Paths.get(ToolHelper.EXAMPLES_BUILD_DIR, "usestdlib.jar");
-  private static final Path LIBRARY = Paths.get(ToolHelper.getAndroidJar(MIN_API));
+  private static final Path LIBRARY = ToolHelper.getAndroidJar(MIN_API);
 
   private R8Command.Builder config() {
     return R8Command.builder()

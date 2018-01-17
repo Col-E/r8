@@ -66,7 +66,7 @@ public class JSR45Tests {
     return ToolHelper.runR8(
         R8Command.builder()
             .addProgramFiles(inputPath)
-            .addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()))
+            .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
             .setOutput(outputPath, OutputMode.DexIndexed)
             .addProguardConfigurationFiles(keepRulesPath)
             .build());

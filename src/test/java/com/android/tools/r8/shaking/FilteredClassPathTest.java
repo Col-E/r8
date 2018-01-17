@@ -83,7 +83,7 @@ public class FilteredClassPathTest {
       ThrowingBiFunction<Builder, Collection<FilteredClassPath>, Builder, IOException> setter,
       Function<AndroidApp, List<String>> getter)
       throws IOException {
-    Path androidJar = Paths.get(ToolHelper.getDefaultAndroidJar());
+    Path androidJar = ToolHelper.getDefaultAndroidJar();
     AndroidApp app = setter.apply(
         AndroidApp.builder(),
         Collections.singletonList(makeFilteredClassPath(

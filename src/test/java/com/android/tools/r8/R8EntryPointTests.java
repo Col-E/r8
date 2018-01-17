@@ -86,7 +86,7 @@ public class R8EntryPointTests extends TestBase {
   public void testMainDir() throws IOException, InterruptedException {
     Path out = temp.newFolder("outdex").toPath();
     ProcessResult r8 = ToolHelper.forkR8(Paths.get("."),
-        "--lib", ToolHelper.getDefaultAndroidJar(),
+        "--lib", ToolHelper.getDefaultAndroidJar().toString(),
         "--output", out.toString(),
         "--pg-conf", PROGUARD_FLAGS.toString(),
         "--pg-conf", testFlags.toString(),
@@ -103,7 +103,7 @@ public class R8EntryPointTests extends TestBase {
     Path out = Paths.get("outdex");
     Path workingDir = temp.getRoot().toPath();
     ProcessResult r8 = ToolHelper.forkR8(workingDir,
-        "--lib", Paths.get(ToolHelper.getDefaultAndroidJar()).toAbsolutePath().toString(),
+        "--lib", ToolHelper.getDefaultAndroidJar().toAbsolutePath().toString(),
         "--output", out.toString(),
         "--pg-conf", PROGUARD_FLAGS.toAbsolutePath().toString(),
         "--pg-conf", testFlags.toAbsolutePath().toString(),
@@ -120,7 +120,7 @@ public class R8EntryPointTests extends TestBase {
   public void testMainZip() throws IOException, InterruptedException {
     Path out = temp.newFolder("outdex").toPath().resolve("dex.zip");
     ProcessResult r8 = ToolHelper.forkR8(Paths.get("."),
-        "--lib", ToolHelper.getDefaultAndroidJar(),
+        "--lib", ToolHelper.getDefaultAndroidJar().toString(),
         "--output", out.toString(),
         "--pg-conf", PROGUARD_FLAGS.toString(),
         "--pg-conf", testFlags.toString(),
@@ -134,7 +134,7 @@ public class R8EntryPointTests extends TestBase {
   private R8Command getCommand(Path out)
       throws CompilationException, IOException, CompilationFailedException {
     return R8Command.builder()
-        .addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()))
+        .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
         .addProgramFiles(INPUT_JAR)
         .setOutput(out, OutputMode.DexIndexed)
         .addProguardConfigurationFiles(PROGUARD_FLAGS, testFlags)

@@ -65,7 +65,7 @@ public class D8ApiBinaryCompatibilityTests {
                     "--main-dex-list",
                     mainDexList.toString(),
                     "--lib",
-                    ToolHelper.getAndroidJar(minApiLevel),
+                    ToolHelper.getAndroidJar(minApiLevel).toString(),
                     "--classpath",
                     lib1.toString(),
                     "--classpath",

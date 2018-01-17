@@ -73,7 +73,7 @@ public class IdentifierMinifierTest {
                 })
             .setOutput(out, OutputMode.DexIndexed)
             .addProguardConfigurationFiles(ListUtils.map(keepRulesFiles, Paths::get))
-            .addLibraryFiles(Paths.get(ToolHelper.getDefaultAndroidJar()));
+            .addLibraryFiles(ToolHelper.getDefaultAndroidJar());
     ToolHelper.getAppBuilder(builder).addProgramFiles(Paths.get(appFileName));
     ToolHelper.runR8(builder.build());
   }
