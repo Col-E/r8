@@ -90,6 +90,8 @@ import it.unimi.dsi.fastutil.ints.IntArraySet;
 import it.unimi.dsi.fastutil.ints.IntIterator;
 import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.ints.IntSet;
+import it.unimi.dsi.fastutil.longs.Long2ObjectArrayMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -261,7 +263,14 @@ public class IRBuilder {
 
   private BasicBlock currentBlock = null;
 
-  private final List<BasicBlock.Pair> needGotoToCatchBlocks = new ArrayList<>();
+  // Mappings for canonicalizing constants of a given type at IR construction time.
+  private Long2ObjectMap<ConstNumber> intConstants = new Long2ObjectArrayMap<>();
+  private Long2ObjectMap<ConstNumber> longConstants = new Long2ObjectArrayMap<>();
+  private Long2ObjectMap<ConstNumber> floatConstants = new Long2ObjectArrayMap<>();
+  private Long2ObjectMap<ConstNumber> doubleConstants = new Long2ObjectArrayMap<>();
+  private Long2ObjectMap<ConstNumber> nullConstants = new Long2ObjectArrayMap<>();
+
+  private List<BasicBlock.Pair> needGotoToCatchBlocks = new ArrayList<>();
 
   final private ValueNumberGenerator valueNumberGenerator;
 
@@ -406,6 +415,7 @@ public class IRBuilder {
 
     // Clear the code so we don't build multiple times.
     source.clear();
+    clearCanonicalizationMaps();
     source = null;
 
     for (BasicBlock block : blocks) {
@@ -451,6 +461,14 @@ public class IRBuilder {
       }
     }
     return hasDebugPositions;
+  }
+
+  private void clearCanonicalizationMaps() {
+    intConstants = null;
+    longConstants = null;
+    floatConstants = null;
+    doubleConstants = null;
+    nullConstants = null;
   }
 
   private boolean verifyFilledPredecessors() {
@@ -774,24 +792,40 @@ public class IRBuilder {
     add(instruction);
   }
 
+  // TODO(ager): Does art support changing the value of locals  during debugging? If so, we need
+  // to disable constant canonicalization in debug builds to make sure we have separate values
+  // for separate locals.
+  private void canonicalizeAndAddConst(
+      ValueType type, int dest, long value, Long2ObjectMap<ConstNumber> table) {
+    ConstNumber existing = table.get(value);
+    if (existing != null) {
+      currentBlock.writeCurrentDefinition(dest, existing.outValue(), ThrowingInfo.NO_THROW);
+    } else {
+      Value out = writeRegister(dest, type, ThrowingInfo.NO_THROW);
+      ConstNumber instruction = new ConstNumber(out, value);
+      insertCanonicalizedConstant(instruction);
+      table.put(value, instruction);
+    }
+  }
+
   public void addLongConst(int dest, long value) {
-    add(new ConstNumber(writeRegister(dest, ValueType.LONG, ThrowingInfo.NO_THROW), value));
+    canonicalizeAndAddConst(ValueType.LONG, dest, value, longConstants);
   }
 
   public void addDoubleConst(int dest, long value) {
-    add(new ConstNumber(writeRegister(dest, ValueType.DOUBLE, ThrowingInfo.NO_THROW), value));
+    canonicalizeAndAddConst(ValueType.DOUBLE, dest, value, doubleConstants);
   }
 
   public void addIntConst(int dest, long value) {
-    add(new ConstNumber(writeRegister(dest, ValueType.INT, ThrowingInfo.NO_THROW), value));
+    canonicalizeAndAddConst(ValueType.INT, dest, value, intConstants);
   }
 
   public void addFloatConst(int dest, long value) {
-    add(new ConstNumber(writeRegister(dest, ValueType.FLOAT, ThrowingInfo.NO_THROW), value));
+    canonicalizeAndAddConst(ValueType.FLOAT, dest, value, floatConstants);
   }
 
   public void addNullConst(int dest) {
-    add(new ConstNumber(writeRegister(dest, ValueType.OBJECT, ThrowingInfo.NO_THROW), 0L));
+    canonicalizeAndAddConst(ValueType.OBJECT, dest, 0L, nullConstants);
   }
 
   public void addConstClass(int dest, DexType type) {
@@ -1616,10 +1650,12 @@ public class IRBuilder {
   }
 
   public Value readIntLiteral(long constant) {
-    Value value = new Value(valueNumberGenerator.next(), ValueType.INT, null);
-    ConstNumber number = new ConstNumber(value, constant);
-    add(number);
-    return number.outValue();
+    return intConstants.computeIfAbsent(constant, (c) -> {
+      Value value = new Value(valueNumberGenerator.next(), ValueType.INT, null);
+      ConstNumber number = new ConstNumber(value, constant);
+      insertCanonicalizedConstant(number);
+      return number;
+    }).outValue();
   }
 
   // This special write register is needed when changing the scoping of a local variable.
@@ -2000,6 +2036,26 @@ public class IRBuilder {
       builder.append("\n");
     }
     return builder.toString();
+  }
+
+  private void insertCanonicalizedConstant(ConstNumber number) {
+    BasicBlock entryBlock = blocks.get(0);
+    if (currentBlock != entryBlock) {
+      // Insert the constant instruction at the start of the block right after the argument
+      // instructions. It is important that the const instruction is put before any instruction
+      // that can throw exceptions (since the value could be used on the exceptional edge).
+      InstructionListIterator it = entryBlock.listIterator();
+      while (it.hasNext()) {
+        if (!it.next().isArgument()) {
+          it.previous();
+          break;
+        }
+      }
+      it.add(number);
+      number.setPosition(Position.none());
+    } else {
+      add(number);
+    }
   }
 }
 

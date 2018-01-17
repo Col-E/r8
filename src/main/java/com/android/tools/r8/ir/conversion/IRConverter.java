@@ -27,7 +27,6 @@ import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import com.android.tools.r8.ir.desugar.StringConcatRewriter;
 import com.android.tools.r8.ir.optimize.CodeRewriter;
-import com.android.tools.r8.ir.optimize.ConstantCanonicalizer;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
@@ -602,7 +601,6 @@ public class IRConverter {
       assert code.isConsistentSSA();
     }
 
-    ConstantCanonicalizer.canonicalize(code);
     codeRewriter.useDedicatedConstantForLitInstruction(code);
     codeRewriter.shortenLiveRanges(code);
     codeRewriter.identifyReturnsArgument(method, code, feedback);
