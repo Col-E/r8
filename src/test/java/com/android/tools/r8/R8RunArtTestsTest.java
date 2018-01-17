@@ -184,9 +184,6 @@ public abstract class R8RunArtTestsTest {
           // printWeakReference on lines Main.java:78-79. An expected flaky
           // result contains: "but was:<wimp: [null]".
           .put("036-finalizer", TestCondition.any())
-          // Can lead to art-master crash: concurrent_copying.cc:2135] Check failed:
-          // to_ref != nullptr Fall-back non-moving space allocation failed
-          .put("080-oom-fragmentation", TestCondition.any())
           // Failed on buildbot with: terminate called after throwing an instance
           // of '__gnu_cxx::recursive_init_error'
           .put("096-array-copy-concurrent-gc",
@@ -217,7 +214,12 @@ public abstract class R8RunArtTestsTest {
       // This test uses a user defined class loader to validate correct execution order
       // between loadclass event and the execution of a static method.
       // This does not work when performing inlining across classes.
-      "496-checker-inlining-class-loader"
+      "496-checker-inlining-class-loader",
+      // These all test OOM behavior and segfault doing GC on some machines. We just ignore them.
+      "080-oom-throw",
+      "080-oom-fragmentation",
+      "163-app-image-methods",
+      "061-out-of-memory"
   );
 
   // Tests that may produce different output on consecutive runs or when processed or not.
@@ -460,16 +462,13 @@ public abstract class R8RunArtTestsTest {
           // Generally fails on non-R8/D8 running.
           "412-new-array",
           "610-arraycopy",
-          "625-checker-licm-regressions",
-          // Crashes the VM, cause is unclear.
-          "080-oom-throw"
+          "625-checker-licm-regressions"
       ),
       DexVm.Version.V6_0_1, ImmutableList.of(
           // Generally fails on non-R8/D8 running.
           "004-checker-UnsafeTest18",
           "005-annotations",
           "008-exceptions",
-          "061-out-of-memory",
           "082-inline-execute",
           "099-vmdebug",
           "412-new-array",
@@ -478,9 +477,7 @@ public abstract class R8RunArtTestsTest {
           "580-checker-round",
           "594-invoke-super",
           "625-checker-licm-regressions",
-          "626-const-class-linking",
-          // Crashes the VM, cause is unclear.
-          "080-oom-throw"
+          "626-const-class-linking"
       ),
       DexVm.Version.V5_1_1, ImmutableList.of(
           // Generally fails on non R8/D8 running.
@@ -1001,9 +998,6 @@ public abstract class R8RunArtTestsTest {
           .build();
 
   public static List<String> requireInliningToBeDisabled = ImmutableList.of(
-      // Test require that a call is not inlined to trigger an OOM.
-      "163-app-image-methods",
-
       // Test for a specific stack trace that gets destroyed by inlining.
       "492-checker-inline-invoke-interface",
       "493-checker-inline-invoke-interface",
