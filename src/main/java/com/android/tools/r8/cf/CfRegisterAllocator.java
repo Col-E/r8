@@ -10,11 +10,11 @@ import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
+import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.StackValue;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
 import com.android.tools.r8.ir.regalloc.LiveIntervals;
-import com.android.tools.r8.ir.regalloc.LiveRange;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
@@ -238,31 +238,11 @@ public class CfRegisterAllocator implements RegisterAllocator {
     intervals.setRegister(register);
   }
 
-  public Collection<Value> getLocalsAtBlockEntry(BasicBlock block) {
-    List<Value> values = new ArrayList<>(registersUsed());
-    InstructionIterator instructions = block.iterator();
-    Instruction entryInstruction = instructions.next();
-    // Skip past all phi-inserted loads and stores to obtain the actual first instruction.
-    while (entryInstruction.getNumber() == -1) {
-      assert entryInstruction.isLoad() || entryInstruction.isStore();
-      entryInstruction = instructions.next();
-    }
-    for (LiveIntervals intervals : liveIntervals) {
-      addLiveAtEntryValueFromIntervals(entryInstruction, intervals, values);
-    }
-    return values;
+  public void addToLiveAtEntrySet(BasicBlock block, Collection<Phi> phis) {
+    liveAtEntrySets.get(block).addAll(phis);
   }
 
-  private static void addLiveAtEntryValueFromIntervals(
-      Instruction instruction, LiveIntervals intervals, List<Value> values) {
-    int position = instruction.getNumber();
-    for (LiveRange range : intervals.getRanges()) {
-      if (range.start < position
-          && LinearScanRegisterAllocator.isLocalLiveAtInstruction(
-              instruction, range, intervals.getValue())) {
-        values.add(intervals.getValue());
-        return;
-      }
-    }
+  public Collection<Value> getLocalsAtBlockEntry(BasicBlock block) {
+    return liveAtEntrySets.get(block);
   }
 }

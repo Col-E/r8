@@ -24,6 +24,14 @@ public class CfFrame extends CfInstruction {
     this.stack = stack;
   }
 
+  public Int2ReferenceSortedMap<DexType> getLocals() {
+    return locals;
+  }
+
+  public List<DexType> getStack() {
+    return stack;
+  }
+
   @Override
   public void write(MethodVisitor visitor) {
     int stackCount = computeStackCount();

@@ -50,6 +50,8 @@ public class LoadStoreHelper {
     // Insert phi stores in all predecessors.
     for (BasicBlock block : code.blocks) {
       if (!block.getPhis().isEmpty()) {
+        // TODO(zerny): Phi's at an exception block must be dealt with at block entry.
+        assert !block.entry().isMoveException();
         for (int predIndex = 0; predIndex < block.getPredecessors().size(); predIndex++) {
           BasicBlock pred = block.getPredecessors().get(predIndex);
           List<Phi> phis = block.getPhis();
@@ -64,6 +66,7 @@ public class LoadStoreHelper {
           it.previous();
           movePhis(moves, it);
         }
+        allocator.addToLiveAtEntrySet(block, block.getPhis());
       }
     }
     code.blocks.forEach(BasicBlock::clearUserInfo);
