@@ -1022,7 +1022,9 @@ public abstract class R8RunArtTestsTest {
       "529-checker-unresolved",
       "803-no-super",
       "127-checker-secondarydex",
-      "952-invoke-custom-kinds"
+      "952-invoke-custom-kinds",
+      // Depends on java.lang.invoke.Transformers, which is hidden.
+      "958-methodhandle-stackframe"
   );
 
   private static List<String> failuresToTriage = ImmutableList.of(
