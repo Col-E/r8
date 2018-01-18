@@ -218,6 +218,7 @@ public abstract class R8RunArtTestsTest {
       // These all test OOM behavior and segfault doing GC on some machines. We just ignore them.
       "080-oom-throw",
       "080-oom-fragmentation",
+      "159-app-image-fields",
       "163-app-image-methods",
       "061-out-of-memory"
   );
