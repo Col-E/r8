@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.analysis.type;
 
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.Argument;
@@ -18,28 +18,29 @@ import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
 
-public class TypeAnalysis {
-  private final AppInfoWithSubtyping appInfo;
+public class TypeAnalysis implements TypeEnvironment {
+  private final AppInfo appInfo;
   private final DexEncodedMethod encodedMethod;
-  private final IRCode code;
 
   private final Deque<BasicBlock> worklist = new ArrayDeque<>();
   private final Map<Value, TypeLatticeElement> typeMap = Maps.newHashMap();
   private final Map<Value, Set<BasicBlock>> users = Maps.newHashMap();
 
-  public TypeAnalysis(AppInfoWithSubtyping appInfo, DexEncodedMethod encodedMethod, IRCode code) {
+  public TypeAnalysis(AppInfo appInfo, DexEncodedMethod encodedMethod, IRCode code) {
     this.appInfo = appInfo;
     this.encodedMethod = encodedMethod;
-    this.code = code;
+    updateBlocks(code.topologicallySortedBlocks());
   }
 
-  public void run() {
-    worklist.addAll(code.topologicallySortedBlocks());
+  public void updateBlocks(List<BasicBlock> blocks) {
+    assert worklist.isEmpty();
+    worklist.addAll(blocks);
     while (!worklist.isEmpty()) {
       processBasicBlock(worklist.poll());
     }
@@ -121,7 +122,8 @@ public class TypeAnalysis {
     typeMap.put(value, type);
   }
 
-  TypeLatticeElement getLatticeElement(Value value) {
+  @Override
+  public TypeLatticeElement getLatticeElement(Value value) {
     return typeMap.getOrDefault(value, Bottom.getInstance());
   }
 
