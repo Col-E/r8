@@ -11,15 +11,12 @@ package dataclass
  *
  * See https://kotlinlang.org/docs/reference/properties.html.
  */
-object MainGettersOnly {
-    @JvmStatic
-    fun main(args: Array<String>) {
-        testMethod();
-    }
+fun main(args: Array<String>) {
+    testDataClassGetters();
+}
 
-    fun testMethod() {
-        val person = Person("Albert", 28)
-        println("Name: ${person.name}")
-        println("Age: ${person.age}")
-    }
+fun testDataClassGetters() {
+    val person = Person("Albert", 28)
+    println("Name: ${person.name}")
+    println("Age: ${person.age}")
 }

@@ -31,6 +31,9 @@ import org.junit.Assume;
 // TODO(shertz) also run with backend 1.8
 public abstract class AbstractR8KotlinTestBase extends TestBase {
 
+  public static final String KOTLIN_R8_TEST_RESOURCES_BUILD_DIR =
+      ToolHelper.TESTS_BUILD_DIR + "/kotlinR8TestResources";
+
   protected final boolean allowAccessModification;
 
   protected AbstractR8KotlinTestBase(boolean allowAccessModification) {
@@ -93,6 +96,11 @@ public abstract class AbstractR8KotlinTestBase extends TestBase {
         new MethodSignature(methodName, methodReturnType, methodParameterTypes), isPresent);
   }
 
+  protected static MethodSubject checkMethodIsPresent(ClassSubject classSubject,
+      MethodSignature methodSignature) {
+    return checkMethod(classSubject, methodSignature, true);
+  }
+
   protected static MethodSubject checkMethod(ClassSubject classSubject,
       MethodSignature methodSignature, boolean isPresent) {
     MethodSubject methodSubject = classSubject.method(methodSignature);
@@ -122,11 +130,6 @@ public abstract class AbstractR8KotlinTestBase extends TestBase {
     return getDexCode(methodSubject);
   }
 
-  private static String getNonOptimizedDexFile(String pkg) {
-    return Paths
-        .get(ToolHelper.EXAMPLES_KOTLIN_BUILD_DIR, pkg, ToolHelper.DEFAULT_DEX_FILENAME).toString();
-  }
-
   protected static MethodSubject checkMethodIsPresent(ClassSubject classSubject, String methodName,
       String methodReturnType,
       List<String> methodParameterTypes) {
@@ -136,7 +139,6 @@ public abstract class AbstractR8KotlinTestBase extends TestBase {
   private String buildProguardRules(String mainClass) {
     ProguardRulesBuilder proguardRules = new ProguardRulesBuilder();
     proguardRules.appendWithLineSeparator(keepMainProguardConfiguration(mainClass));
-    proguardRules.appendWithLineSeparator(keepTestMethodProguardConfiguration(mainClass));
     proguardRules.dontObfuscate();
     if (allowAccessModification) {
       proguardRules.allowAccessModification();
@@ -144,60 +146,49 @@ public abstract class AbstractR8KotlinTestBase extends TestBase {
     return proguardRules.toString();
   }
 
-  private String keepTestMethodProguardConfiguration(String clazz) {
-    return "-keep class " + clazz + " {" + System.lineSeparator() +
-        "public void testMethod();" +
-        "}";
+  protected String keepClassMethod(String className, MethodSignature methodSignature) {
+    return "-keep class " + className + " {" + System.lineSeparator() +
+        methodSignature.toString() + ";" + System.lineSeparator() + "}";
   }
 
-  protected void buildAndInspect(String folder, String mainClass, AndroidAppInspector inspector)
+  protected void runTest(String folder, String mainClass, AndroidAppInspector inspector)
       throws Exception {
-    buildRunAndInspect(folder, mainClass, inspector, true);
+    runTest(folder, mainClass, null, inspector);
   }
 
-  protected void buildRunAndInspect(String folder, String mainClass, AndroidAppInspector inspector)
-      throws Exception {
-    buildRunAndInspect(folder, mainClass, inspector, false);
-  }
-
-  public void buildRunAndInspect(String folder, String mainClass, AndroidAppInspector inspector,
-      boolean skipExecution)
-      throws Exception {
+  protected void runTest(String folder, String mainClass, String extraProguardRules,
+      AndroidAppInspector inspector) throws Exception {
     Assume.assumeTrue(ToolHelper.artSupported());
 
     Path jarFile =
-        Paths.get(ToolHelper.EXAMPLES_KOTLIN_BUILD_DIR, folder + FileUtils.JAR_EXTENSION);
+        Paths.get(KOTLIN_R8_TEST_RESOURCES_BUILD_DIR, folder + FileUtils.JAR_EXTENSION);
 
     String proguardRules = buildProguardRules(mainClass);
+    if (extraProguardRules != null) {
+      proguardRules += extraProguardRules;
+    }
 
     // Build with R8
     AndroidApp.Builder builder = AndroidApp.builder();
     builder.addProgramFiles(jarFile);
     AndroidApp app = compileWithR8(builder.build(), proguardRules.toString());
 
-    // Compare original and generated DEX files.
-    String originalDexFile = getNonOptimizedDexFile(folder);
-
     // Materialize file for execution.
     Path generatedDexFile = temp.getRoot().toPath().resolve("classes.jar");
     app.writeToZip(generatedDexFile, OutputMode.DexIndexed);
 
-    if (!skipExecution) {
+    // Run with ART.
+    String artOutput =
+        ToolHelper.runArtNoVerificationErrors(generatedDexFile.toString(), mainClass);
 
-      // Run with ART.
-      String artOutput = ToolHelper
-          .checkArtOutputIdentical(originalDexFile, generatedDexFile.toString(), mainClass,
-              ToolHelper.getDexVm());
-
-      // Compare with Java.
-      ToolHelper.ProcessResult javaResult = ToolHelper.runJava(jarFile, mainClass);
-      if (javaResult.exitCode != 0) {
-        System.out.println(javaResult.stdout);
-        System.err.println(javaResult.stderr);
-        fail("JVM failed for: " + mainClass);
-      }
-      assertEquals("JVM and ART output differ", javaResult.stdout, artOutput);
+    // Compare with Java.
+    ToolHelper.ProcessResult javaResult = ToolHelper.runJava(jarFile, mainClass);
+    if (javaResult.exitCode != 0) {
+      System.out.println(javaResult.stdout);
+      System.err.println(javaResult.stderr);
+      fail("JVM failed for: " + mainClass);
     }
+    assertEquals("JVM and ART output differ", javaResult.stdout, artOutput);
 
     inspector.inspectApp(app);
   }

@@ -10,16 +10,13 @@ package dataclass
  *
  * See https://kotlinlang.org/docs/reference/data-classes.html#copying.
  */
-object MainCopy {
-    @JvmStatic
-    fun main(args: Array<String>) {
-        testMethod()
-    }
+fun main(args: Array<String>) {
+    testDataClassCopy()
+}
 
-    fun testMethod() {
-        val albert = Person("Albert", 28)
-        val olderJonas = albert.copy("Jonas", albert.age + 10)
-        println("Name: ${olderJonas.name}")
-        println("Age: ${olderJonas.age}")
-    }
+fun testDataClassCopy() {
+    val albert = Person("Albert", 28)
+    val olderJonas = albert.copy("Jonas", albert.age + 10)
+    println("Name: ${olderJonas.name}")
+    println("Age: ${olderJonas.age}")
 }
