@@ -536,6 +536,15 @@ public class Enqueuer {
       Log.verbose(getClass(), "Method `%s` is targeted.", encodedMethod.method);
     }
     targetedMethods.add(encodedMethod, reason);
+    if (options.forceProguardCompatibility) {
+      // Keep targeted default methods in compatibility mode. The tree pruner will otherwise make
+      // these methods abstract, whereas Proguard does not (seem to) touch their code.
+      DexClass clazz = appInfo.definitionFor(encodedMethod.method.holder);
+      if (!encodedMethod.accessFlags.isAbstract()
+          && clazz.isInterface() && !clazz.isLibraryClass()) {
+        markMethodAsKeptWithCompatRule(encodedMethod);
+      }
+    }
   }
 
   /**
@@ -1177,6 +1186,14 @@ public class Enqueuer {
           Action.markMethodLive(
               clazz.getDefaultInitializer(), KeepReason.dueToProguardCompatibilityKeepRule(rule)));
     }
+  }
+
+  private void markMethodAsKeptWithCompatRule(DexEncodedMethod method) {
+    ProguardKeepRule rule =
+        ProguardConfigurationUtils.buildDefaultMethodKeepRule(
+            appInfo.definitionFor(method.method.holder), method);
+    proguardCompatibilityWorkList.add(
+        Action.markMethodLive(method, KeepReason.dueToProguardCompatibilityKeepRule(rule)));
   }
 
   private void handleProguardReflectiveBehavior(DexEncodedMethod method) {

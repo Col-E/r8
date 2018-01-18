@@ -33,6 +33,10 @@ public class CompatProguardCommandBuilder extends R8Command.Builder {
       "}"
   );
 
+  public CompatProguardCommandBuilder() {
+    this(true);
+  }
+
   public CompatProguardCommandBuilder(boolean forceProguardCompatibility) {
     super(forceProguardCompatibility);
     setIgnoreDexInArchive(true);
