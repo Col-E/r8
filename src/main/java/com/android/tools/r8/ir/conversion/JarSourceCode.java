@@ -278,20 +278,28 @@ public class JarSourceCode implements SourceCode {
           localValueType = ValueType.OBJECT;
           break;
         }
-        case Type.LONG:
-        case Type.DOUBLE: {
+        case Type.LONG: {
           localType = Type.LONG_TYPE;
-          localValueType = ValueType.LONG_OR_DOUBLE;
+          localValueType = ValueType.LONG;
+          break;
+        }
+        case Type.DOUBLE: {
+          localType = Type.DOUBLE_TYPE;
+          localValueType = ValueType.DOUBLE;
           break;
         }
         case Type.BOOLEAN:
         case Type.CHAR:
         case Type.BYTE:
         case Type.SHORT:
-        case Type.INT:
-        case Type.FLOAT: {
+        case Type.INT: {
           localType = Type.INT_TYPE;
-          localValueType = ValueType.INT_OR_FLOAT;
+          localValueType = ValueType.INT;
+          break;
+        }
+        case Type.FLOAT: {
+          localType = Type.FLOAT_TYPE;
+          localValueType = ValueType.FLOAT;
           break;
         }
         case Type.VOID:
