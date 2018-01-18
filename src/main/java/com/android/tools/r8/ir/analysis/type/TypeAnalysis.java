@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.analysis.type;
 
-import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.Argument;
@@ -18,29 +18,28 @@ import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.Deque;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
 
-public class TypeAnalysis implements TypeEnvironment {
-  private final AppInfo appInfo;
+public class TypeAnalysis {
+  private final AppInfoWithSubtyping appInfo;
   private final DexEncodedMethod encodedMethod;
+  private final IRCode code;
 
   private final Deque<BasicBlock> worklist = new ArrayDeque<>();
   private final Map<Value, TypeLatticeElement> typeMap = Maps.newHashMap();
   private final Map<Value, Set<BasicBlock>> users = Maps.newHashMap();
 
-  public TypeAnalysis(AppInfo appInfo, DexEncodedMethod encodedMethod, IRCode code) {
+  public TypeAnalysis(AppInfoWithSubtyping appInfo, DexEncodedMethod encodedMethod, IRCode code) {
     this.appInfo = appInfo;
     this.encodedMethod = encodedMethod;
-    updateBlocks(code.topologicallySortedBlocks());
+    this.code = code;
   }
 
-  public void updateBlocks(List<BasicBlock> blocks) {
-    assert worklist.isEmpty();
-    worklist.addAll(blocks);
+  public void run() {
+    worklist.addAll(code.topologicallySortedBlocks());
     while (!worklist.isEmpty()) {
       processBasicBlock(worklist.poll());
     }
@@ -122,8 +121,7 @@ public class TypeAnalysis implements TypeEnvironment {
     typeMap.put(value, type);
   }
 
-  @Override
-  public TypeLatticeElement getLatticeElement(Value value) {
+  TypeLatticeElement getLatticeElement(Value value) {
     return typeMap.getOrDefault(value, Bottom.getInstance());
   }
 

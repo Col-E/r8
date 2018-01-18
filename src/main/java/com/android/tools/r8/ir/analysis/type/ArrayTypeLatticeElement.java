@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.analysis.type;
 
-import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 
@@ -37,22 +37,12 @@ public class ArrayTypeLatticeElement extends TypeLatticeElement {
   }
 
   @Override
-  public boolean isArrayTypeLatticeElement() {
-    return true;
-  }
-
-  @Override
-  public ArrayTypeLatticeElement asArrayTypeLatticeElement() {
-    return this;
-  }
-
-  @Override
-  public TypeLatticeElement arrayGet(AppInfo appInfo) {
+  public TypeLatticeElement arrayGet(AppInfoWithSubtyping appInfo) {
     return fromDexType(getArrayElementType(appInfo.dexItemFactory), true);
   }
 
   @Override
-  public TypeLatticeElement checkCast(AppInfo appInfo, DexType castType) {
+  public TypeLatticeElement checkCast(AppInfoWithSubtyping appInfo, DexType castType) {
     if (castType.getNumberOfLeadingSquareBrackets() == getNesting()) {
       DexType base = castType.toBaseType(appInfo.dexItemFactory);
       if (getArrayBaseType(appInfo.dexItemFactory).isSubtypeOf(base, appInfo)) {

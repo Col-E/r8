@@ -7,7 +7,7 @@ package com.android.tools.r8.ir.code;
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.code.CfInstanceOf;
 import com.android.tools.r8.dex.Constants;
-import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.PrimitiveTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
@@ -87,7 +87,7 @@ public class InstanceOf extends Instruction {
 
   @Override
   public TypeLatticeElement evaluate(
-      AppInfo appInfo, Function<Value, TypeLatticeElement> getLatticeElement) {
+      AppInfoWithSubtyping appInfo, Function<Value, TypeLatticeElement> getLatticeElement) {
     return PrimitiveTypeLatticeElement.getInstance();
   }
 
