@@ -50,6 +50,8 @@ import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.StringUtils.BraceType;
 import it.unimi.dsi.fastutil.ints.IntList;
 import java.util.HashMap;
 import java.util.List;
@@ -208,7 +210,11 @@ public class CfPrinter {
   }
 
   public void print(CfFrame frame) {
-    comment("frame");
+    StringBuilder builder = new StringBuilder("frame: ");
+    StringUtils.append(builder, frame.getLocals().values(), ", ", BraceType.SQUARE);
+    builder.append(' ');
+    StringUtils.append(builder, frame.getStack(), ", ", BraceType.SQUARE);
+    comment(builder.toString());
   }
 
   public void print(CfInstanceOf insn) {

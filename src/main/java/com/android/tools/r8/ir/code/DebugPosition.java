@@ -4,6 +4,7 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.LoadStoreHelper;
+import com.android.tools.r8.cf.code.CfNop;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
@@ -72,6 +73,7 @@ public class DebugPosition extends Instruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    // Nothing so far...
+    // All redundant debug positions are removed. Remaining ones must force a pc advance.
+    builder.add(new CfNop());
   }
 }

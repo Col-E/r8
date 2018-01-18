@@ -14,7 +14,6 @@ import java.util.Map;
 import org.apache.harmony.jpda.tests.framework.jdwp.JDWPConstants.Tag;
 import org.apache.harmony.jpda.tests.framework.jdwp.Value;
 import org.junit.Assert;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -475,7 +474,6 @@ public class LocalsTest extends DebugTestBase {
 
   @Test
   public void tempInCase() throws Throwable {
-    Assume.assumeTrue("Test fails with incorrect local i in CF backend.", config.isDexRuntime());
     runDebugTest(
         config,
         "Locals",

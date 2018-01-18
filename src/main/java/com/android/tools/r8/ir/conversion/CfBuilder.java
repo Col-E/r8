@@ -9,7 +9,6 @@ import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfFrame;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfLabel;
-import com.android.tools.r8.cf.code.CfNop;
 import com.android.tools.r8.cf.code.CfPosition;
 import com.android.tools.r8.cf.code.CfTryCatch;
 import com.android.tools.r8.errors.Unimplemented;
@@ -115,6 +114,9 @@ public class CfBuilder {
       registerAllocator.allocateRegisters();
       loadStoreHelper.insertPhiMoves(registerAllocator);
       CodeRewriter.collapsTrivialGotos(method, code);
+      int instructionTableCount =
+          DexBuilder.instructionNumberToIndex(code.numberRemainingInstructions());
+      DexBuilder.removeRedundantDebugPositions(code, instructionTableCount);
       CfCode code = buildCfCode();
       return code;
     } catch (Unimplemented e) {
@@ -273,44 +275,49 @@ public class CfBuilder {
           pendingLocalChanges = true;
         }
       } else {
-        if (localsChanged()) {
-          Int2ReferenceSortedMap<DebugLocalInfo> ending =
-              DebugLocalInfo.endingLocals(emittedLocals, pendingLocals);
-          Int2ReferenceSortedMap<DebugLocalInfo> starting =
-              DebugLocalInfo.startingLocals(emittedLocals, pendingLocals);
-          assert !ending.isEmpty() || !starting.isEmpty();
-          CfLabel label = ensureLabel();
-          for (Entry<DebugLocalInfo> entry : ending.int2ReferenceEntrySet()) {
-            int localIndex = entry.getIntKey();
-            LocalVariableInfo info = openLocalVariables.remove(localIndex);
-            info.setEnd(label);
-            localVariablesTable.add(info);
-            DebugLocalInfo removed = emittedLocals.remove(localIndex);
-            assert removed == entry.getValue();
-          }
-          for (Entry<DebugLocalInfo> entry : starting.int2ReferenceEntrySet()) {
-            int localIndex = entry.getIntKey();
-            assert !emittedLocals.containsKey(localIndex);
-            assert !openLocalVariables.containsKey(localIndex);
-            openLocalVariables.put(
-                localIndex, new LocalVariableInfo(localIndex, entry.getValue(), label));
-            emittedLocals.put(localIndex, entry.getValue());
-          }
-          pendingLocalChanges = false;
-        }
-        Position position = instruction.getPosition();
-        if (position.isSome() && position != currentPosition) {
-          CfInstruction previous = getLastInstruction();
-          if (instruction.isDebugPosition() && previous instanceof CfPosition) {
-            // Insert a nop instruction if position changes without any intermediate instruction.
-            add(new CfNop());
-          }
-          CfLabel label = ensureLabel();
-          add(new CfPosition(label, position));
-          currentPosition = position;
-        }
+        updatePositionAndLocals(instruction);
         instruction.buildCf(this);
       }
+    }
+  }
+
+  private void updatePositionAndLocals(Instruction instruction) {
+    Position position = instruction.getPosition();
+    boolean didLocalsChange = localsChanged();
+    boolean didPositionChange = position.isSome() && position != currentPosition;
+    if (!didLocalsChange && !didPositionChange) {
+      return;
+    }
+    CfLabel label = ensureLabel();
+    if (didLocalsChange) {
+      Int2ReferenceSortedMap<DebugLocalInfo> ending =
+          DebugLocalInfo.endingLocals(emittedLocals, pendingLocals);
+      Int2ReferenceSortedMap<DebugLocalInfo> starting =
+          DebugLocalInfo.startingLocals(emittedLocals, pendingLocals);
+      assert !ending.isEmpty() || !starting.isEmpty();
+      for (Entry<DebugLocalInfo> entry : ending.int2ReferenceEntrySet()) {
+        int localIndex = entry.getIntKey();
+        LocalVariableInfo info = openLocalVariables.remove(localIndex);
+        info.setEnd(label);
+        localVariablesTable.add(info);
+        DebugLocalInfo removed = emittedLocals.remove(localIndex);
+        assert removed == entry.getValue();
+      }
+      if (!starting.isEmpty()) {
+        for (Entry<DebugLocalInfo> entry : starting.int2ReferenceEntrySet()) {
+          int localIndex = entry.getIntKey();
+          assert !emittedLocals.containsKey(localIndex);
+          assert !openLocalVariables.containsKey(localIndex);
+          openLocalVariables.put(
+              localIndex, new LocalVariableInfo(localIndex, entry.getValue(), label));
+          emittedLocals.put(localIndex, entry.getValue());
+        }
+      }
+      pendingLocalChanges = false;
+    }
+    if (didPositionChange) {
+      add(new CfPosition(label, position));
+      currentPosition = position;
     }
   }
 

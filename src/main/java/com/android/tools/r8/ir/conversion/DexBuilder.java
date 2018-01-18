@@ -55,6 +55,7 @@ import com.android.tools.r8.ir.code.Move;
 import com.android.tools.r8.ir.code.NewArrayFilledData;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Return;
+import com.android.tools.r8.ir.code.StackValue;
 import com.android.tools.r8.ir.code.Switch;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
@@ -157,7 +158,7 @@ public class DexBuilder {
 
       // Remove redundant debug position instructions. They would otherwise materialize as
       // unnecessary nops.
-      removeRedundantDebugPositions();
+      removeRedundantDebugPositions(ir, instructionToInfo.length);
 
       // Populate the builder info objects.
       numberOfInstructions = 0;
@@ -270,23 +271,23 @@ public class DexBuilder {
 
   // Eliminates unneeded debug positions.
   //
-  // After this pass all instructions that don't materialize to an actual DEX instruction will have
-  // Position.none(). If any other instruction has a non-none position then all other instructions
-  // that do materialize to a DEX instruction (eg, non-fallthrough gotos) will have a non-none
-  // position.
+  // After this pass all instructions that don't materialize to an actual DEX/CF instruction will
+  // have Position.none(). If any other instruction has a non-none position then all other
+  // instructions that do materialize to a DEX/CF instruction (eg, non-fallthrough gotos) will have
+  // a non-none position.
   //
   // Remaining debug positions indicate two successive lines without intermediate instructions.
   // For these we must emit a nop instruction to ensure they don't share the same pc.
-  private void removeRedundantDebugPositions() {
-    if (!ir.hasDebugPositions) {
+  public static void removeRedundantDebugPositions(IRCode code, int instructionTableSize) {
+    if (!code.hasDebugPositions) {
       return;
     }
-    Int2ReferenceMap[] localsMap = new Int2ReferenceMap[instructionToInfo.length];
+    Int2ReferenceMap[] localsMap = new Int2ReferenceMap[instructionTableSize];
     // Scan forwards removing debug positions equal to the previous instruction position.
     {
       Int2ReferenceMap<DebugLocalInfo> locals = Int2ReferenceMaps.emptyMap();
       Position previous = Position.none();
-      ListIterator<BasicBlock> blockIterator = ir.listIterator();
+      ListIterator<BasicBlock> blockIterator = code.listIterator();
       BasicBlock previousBlock = null;
       while (blockIterator.hasNext()) {
         BasicBlock block = blockIterator.next();
@@ -305,7 +306,7 @@ public class DexBuilder {
           com.android.tools.r8.ir.code.Instruction instruction = instructionIterator.next();
           if (instruction.isDebugPosition() && previous.equals(instruction.getPosition())) {
             instructionIterator.remove();
-          } else if (instruction.isConstNumber() && !instruction.outValue().needsRegister()) {
+          } else if (isNonMaterializingConstNumber(instruction)) {
             instruction.forceSetPosition(Position.none());
           } else if (instruction.getPosition().isSome()) {
             assert verifyNopHasNoPosition(instruction, blockIterator);
@@ -327,7 +328,7 @@ public class DexBuilder {
     }
     // Scan backwards removing debug positions equal to the following instruction position.
     {
-      ListIterator<BasicBlock> blocks = ir.blocks.listIterator(ir.blocks.size());
+      ListIterator<BasicBlock> blocks = code.blocks.listIterator(code.blocks.size());
       BasicBlock block = null;
       BasicBlock nextBlock;
       com.android.tools.r8.ir.code.Instruction next = null;
@@ -449,8 +450,15 @@ public class DexBuilder {
       com.android.tools.r8.ir.code.Instruction instruction, BasicBlock nextBlock) {
     return instruction.isArgument()
         || instruction.isDebugLocalsChange()
-        || (instruction.isConstNumber() && !instruction.outValue().needsRegister())
+        || isNonMaterializingConstNumber(instruction)
         || (instruction.isGoto() && instruction.asGoto().getTarget() == nextBlock);
+  }
+
+  private static boolean isNonMaterializingConstNumber(
+      com.android.tools.r8.ir.code.Instruction instruction) {
+    return instruction.isConstNumber()
+        && !(instruction.outValue() instanceof StackValue)
+        && !(instruction.outValue().needsRegister());
   }
 
   public void addDebugPosition(DebugPosition position) {
@@ -506,7 +514,7 @@ public class DexBuilder {
     setInfo(ir, info);
   }
 
-  private static int instructionNumberToIndex(int instructionNumber) {
+  public static int instructionNumberToIndex(int instructionNumber) {
     return instructionNumber / IRCode.INSTRUCTION_NUMBER_DELTA;
   }
 
