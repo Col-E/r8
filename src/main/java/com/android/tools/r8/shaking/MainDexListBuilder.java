@@ -42,8 +42,6 @@ public class MainDexListBuilder {
       new DirectReferencesCollector();
   private final AnnotationDirectReferenceCollector annotationDirectReferenceCollector =
       new AnnotationDirectReferenceCollector();
-  private final Set<DexType> enumTypes;
-  private final Set<DexType> annotationTypes;
   private final Map<DexType, Boolean> annotationTypeContainEnum;
   private final DexApplication dexApplication;
 
@@ -56,17 +54,19 @@ public class MainDexListBuilder {
     this.appInfo = new AppInfoWithSubtyping(dexApplication);
     this.baseClasses =
         baseClasses.stream().filter(this::isProgramClass).collect(Collectors.toSet());
-    enumTypes = appInfo.subtypes(appInfo.dexItemFactory.enumType);
-    if (enumTypes == null) {
+    DexClass enumType = appInfo.definitionFor(appInfo.dexItemFactory.enumType);
+    if (enumType == null) {
       throw new CompilationError("Tracing for legacy multi dex is not possible without all"
           + " classpath libraries (java.lang.Enum is missing)");
     }
-    annotationTypes = appInfo.subtypes(appInfo.dexItemFactory.annotationType);
-    if (annotationTypes == null) {
+    DexClass annotationType = appInfo.definitionFor(appInfo.dexItemFactory.annotationType);
+    if (annotationType == null) {
       throw new CompilationError("Tracing for legacy multi dex is not possible without all"
           + " classpath libraries (java.lang.annotation.Annotation is missing)");
     }
-    annotationTypeContainEnum = Maps.newHashMapWithExpectedSize(annotationTypes.size());
+    annotationTypeContainEnum =
+        Maps.newHashMapWithExpectedSize(
+            appInfo.subtypes(appInfo.dexItemFactory.annotationType).size());
   }
 
   public Set<DexType> run() {
