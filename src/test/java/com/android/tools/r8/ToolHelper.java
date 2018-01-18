@@ -16,6 +16,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.shaking.FilteredClassPath;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationParser;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
@@ -767,9 +768,12 @@ public class ToolHelper {
     // TODO(zerny): Should we really be adding the android library in ToolHelper?
     AndroidApp app = command.getInputApp();
     if (app.getLibraryResourceProviders().isEmpty()) {
-      app =
-          AndroidApp.builder(app)
-              .addLibraryFiles(ToolHelper.getAndroidJar(command.getMinApiLevel()))
+      // Add the android library matching the minsdk. We filter out junit and testing classes
+      // from the android jar to avoid duplicate classes in art and jctf tests.
+      app = AndroidApp.builder(app)
+          .addFilteredLibraryArchives(Collections.singletonList(
+              new FilteredClassPath(getAndroidJar(command.getMinApiLevel()),
+                  ImmutableList.of("!junit/**", "!android/test/**"))))
               .build();
     }
     InternalOptions options = command.getInternalOptions();

@@ -4,6 +4,7 @@
 package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.ApiLevelException;
+import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo.ResolutionResult;
@@ -38,6 +39,7 @@ import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.shaking.protolite.ProtoLiteExtension;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -406,6 +408,13 @@ public class Enqueuer {
       }
       if (holder.superType != null) {
         markTypeAsLive(holder.superType);
+        if (holder.isLibraryClass()) {
+          // Library classes may only extend other implement library classes.
+          ensureFromLibraryOrThrow(holder.superType, type);
+          for (DexType iface : holder.interfaces.values) {
+            ensureFromLibraryOrThrow(iface, type);
+          }
+        }
       }
       if (!holder.annotations.isEmpty()) {
         processAnnotations(holder.annotations.annotations);
@@ -486,6 +495,20 @@ public class Enqueuer {
     DexEncodedMethod target = appInfo.dispatchDirectInvoke(resolutionResult);
     if (target != null) {
       markDirectStaticOrConstructorMethodAsLive(target, reason);
+    }
+  }
+
+  private void ensureFromLibraryOrThrow(DexType type, DexType context) {
+    DexClass holder = appInfo.definitionFor(type);
+    if (holder != null && !holder.isLibraryClass()) {
+      Diagnostic message = new StringDiagnostic("Library class " + context.toSourceString()
+          + (holder.isInterface() ? " implements " : " extends ")
+          + "program class " + type.toSourceString());
+      if (options.forceProguardCompatibility) {
+        options.reporter.warning(message);
+      } else {
+        options.reporter.error(message);
+      }
     }
   }
 
@@ -915,7 +938,7 @@ public class Enqueuer {
     // Translate the result of root-set computation into enqueuer actions.
     enqueueRootItems(rootSet.noShrinking);
     AppInfoWithLiveness appInfo = trace(timing);
-
+    options.reporter.failIfPendingErrors();
     // LiveTypes is the result, just make a copy because further work will modify its content.
     return new HashSet<>(appInfo.liveTypes);
   }
@@ -925,7 +948,9 @@ public class Enqueuer {
     // Translate the result of root-set computation into enqueuer actions.
     enqueueRootItems(rootSet.noShrinking);
     appInfo.libraryClasses().forEach(this::markAllLibraryVirtualMethodsReachable);
-    return trace(timing);
+    AppInfoWithLiveness result = trace(timing);
+    options.reporter.failIfPendingErrors();
+    return result;
   }
 
   private AppInfoWithLiveness trace(Timing timing) {

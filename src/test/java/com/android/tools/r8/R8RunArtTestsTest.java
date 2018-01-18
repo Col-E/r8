@@ -1014,6 +1014,16 @@ public abstract class R8RunArtTestsTest {
       "625-checker-licm-regressions"
   );
 
+  private static List<String> hasMissingClasses = ImmutableList.of(
+      "091-override-package-private-method",
+      "003-omnibus-opcodes",
+      "608-checker-unresolved-lse",
+      "529-checker-unresolved",
+      "803-no-super",
+      "127-checker-secondarydex",
+      "952-invoke-custom-kinds"
+  );
+
   private static List<String> failuresToTriage = ImmutableList.of(
       // Dex file input into a jar file, not yet supported by the test framework.
       "663-odd-dex-size",
@@ -1092,12 +1102,14 @@ public abstract class R8RunArtTestsTest {
     private final boolean outputMayDiffer;
     // Whether to disable inlining
     private final boolean disableInlining;
+    // Has missing classes.
+    private final boolean hasMissingClasses;
 
     TestSpecification(String name, DexTool dexTool,
         File directory, boolean skipArt, boolean skipTest, boolean failsWithX8,
         boolean failsWithArt, boolean failsWithArtOutput, boolean failsWithArtOriginalOnly,
         String nativeLibrary, boolean expectedToFailWithX8, boolean outputMayDiffer,
-        boolean disableInlining) {
+        boolean disableInlining, boolean hasMissingClasses) {
       this.name = name;
       this.dexTool = dexTool;
       this.nativeLibrary = nativeLibrary;
@@ -1112,12 +1124,13 @@ public abstract class R8RunArtTestsTest {
       this.expectedToFailWithX8 = expectedToFailWithX8;
       this.outputMayDiffer = outputMayDiffer;
       this.disableInlining = disableInlining;
+      this.hasMissingClasses = hasMissingClasses;
     }
 
     TestSpecification(String name, DexTool dexTool, File directory, boolean skipArt,
         boolean failsWithArt, boolean disableInlining) {
       this(name, dexTool, directory, skipArt,
-          false, false, failsWithArt, false, false, null, false, false, disableInlining);
+          false, false, failsWithArt, false, false, null, false, false, disableInlining, false);
     }
 
     public File resolveFile(String name) {
@@ -1279,7 +1292,8 @@ public abstract class R8RunArtTestsTest {
                 useNativeLibrary.contains(name) ? "arttest" : null,
                 expectedToFailWithCompilerSet.contains(name),
                 outputMayDiffer.contains(name),
-                requireInliningToBeDisabled.contains(name)));
+                requireInliningToBeDisabled.contains(name),
+                hasMissingClasses.contains(name)));
       }
     }
     return data;
@@ -1347,11 +1361,12 @@ public abstract class R8RunArtTestsTest {
       Collection<String> fileNames,
       String resultPath,
       CompilationMode compilationMode,
-      boolean disableInlining)
+      boolean disableInlining,
+      boolean hasMissingClasses)
       throws IOException, ProguardRuleParserException, ExecutionException, CompilationException,
       CompilationFailedException {
     executeCompilerUnderTest(compilerUnderTest, fileNames, resultPath, compilationMode, null,
-        disableInlining);
+        disableInlining, hasMissingClasses);
   }
 
   private void executeCompilerUnderTest(
@@ -1360,7 +1375,7 @@ public abstract class R8RunArtTestsTest {
       String resultPath,
       CompilationMode mode,
       String keepRulesFile,
-      boolean disableInlining)
+      boolean disableInlining, boolean hasMissingClasses)
       throws IOException, ProguardRuleParserException, ExecutionException, CompilationException,
         CompilationFailedException {
     assert mode != null;
@@ -1406,8 +1421,8 @@ public abstract class R8RunArtTestsTest {
                   options.inlineAccessors = false;
                 }
                 options.lineNumberOptimization = LineNumberOptimization.OFF;
-                // TODO(zerny): Consider passing the correct library instead of suppressing errors.
-                options.ignoreMissingClasses = true;
+                // Some tests actually rely on missing classes for what they test.
+                options.ignoreMissingClasses = hasMissingClasses;
               });
           break;
         }
@@ -1603,7 +1618,7 @@ public abstract class R8RunArtTestsTest {
       throws IOException, ProguardRuleParserException, ExecutionException, CompilationException,
       CompilationFailedException {
     executeCompilerUnderTest(compilerUnderTest, fileNames, resultDir.getAbsolutePath(), mode,
-        specification.disableInlining);
+        specification.disableInlining, specification.hasMissingClasses);
 
     if (!ToolHelper.artSupported()) {
       return;
@@ -1772,7 +1787,7 @@ public abstract class R8RunArtTestsTest {
       try {
         executeCompilerUnderTest(
             compilerUnderTest, fileNames, resultDir.getCanonicalPath(), compilationMode,
-            specification.disableInlining);
+            specification.disableInlining, specification.hasMissingClasses);
       } catch (CompilationException | CompilationFailedException e) {
         throw new CompilationError(e.getMessage(), e);
       } catch (ExecutionException e) {
@@ -1784,13 +1799,13 @@ public abstract class R8RunArtTestsTest {
       thrown.expect(Throwable.class);
       executeCompilerUnderTest(
           compilerUnderTest, fileNames, resultDir.getCanonicalPath(), compilationMode,
-          specification.disableInlining);
+          specification.disableInlining, specification.hasMissingClasses);
       System.err.println("Should have failed R8/D8 compilation with an exception.");
       return;
     } else {
       executeCompilerUnderTest(
           compilerUnderTest, fileNames, resultDir.getCanonicalPath(), compilationMode,
-          specification.disableInlining);
+          specification.disableInlining, specification.hasMissingClasses);
     }
 
     if (!specification.skipArt && ToolHelper.artSupported()) {

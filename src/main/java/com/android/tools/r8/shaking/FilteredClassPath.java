@@ -21,7 +21,7 @@ public class FilteredClassPath {
   private final Path path;
   private final ImmutableList<String> pattern;
 
-  FilteredClassPath(Path path, ImmutableList<String> pattern) {
+  public FilteredClassPath(Path path, ImmutableList<String> pattern) {
     this.path = path;
     this.pattern = pattern;
   }
