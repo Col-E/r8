@@ -4,13 +4,8 @@
 
 package com.android.tools.r8.shaking.defaultmethods;
 
-public class TestClass {
-
-  public void useInterfaceMethod() {
-    InterfaceWithDefaultMethods iface = new ClassImplementingInterface();
-    System.out.println(iface.method());
-  }
-
-  public static void main(String[] args) {
+public class ClassImplementingInterface implements InterfaceWithDefaultMethods {
+  public int method() {
+    return 41;
   }
 }

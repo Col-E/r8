@@ -16,15 +16,21 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.invokesuper.Consumer;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.ProguardClassNameList;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationParser;
+import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.shaking.ProguardMemberRule;
 import com.android.tools.r8.shaking.ProguardMemberType;
+import com.android.tools.r8.shaking.forceproguardcompatibility.defaultmethods.ClassImplementingInterface;
+import com.android.tools.r8.shaking.forceproguardcompatibility.defaultmethods.InterfaceWithDefaultMethods;
+import com.android.tools.r8.shaking.forceproguardcompatibility.defaultmethods.TestClass;
 import com.android.tools.r8.shaking.forceproguardcompatibility.keepattributes.TestKeepAttributes;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.DexInspector;
@@ -372,5 +378,116 @@ public class ForceProguardCompatibilityTest extends TestBase {
     testKeepAttributes(false, true, false);
     testKeepAttributes(false, false, true);
     testKeepAttributes(false, true, true);
+  }
+
+  private void runKeepDefaultMethodsTest(
+      List<String> additionalKeepRules,
+      Consumer<DexInspector> inspection,
+      Consumer<ProguardConfiguration> compatInspection) throws Exception {
+    Class mainClass = TestClass.class;
+    CompatProguardCommandBuilder builder = new CompatProguardCommandBuilder();
+    builder.addProgramFiles(ToolHelper.getClassFilesForTestPackage(mainClass.getPackage()));
+    builder.addProguardConfiguration(ImmutableList.of(
+        "-keep class " + mainClass.getCanonicalName() + "{",
+        "  public <init>();",
+        "  public static void main(java.lang.String[]);",
+        "}",
+        "-dontobfuscate"),
+        Origin.unknown());
+    builder.addProguardConfiguration(additionalKeepRules, Origin.unknown());
+    builder.setProgramConsumer(DexIndexedConsumer.emptyConsumer());
+    builder.setMinApiLevel(AndroidApiLevel.O.getLevel());
+    Path proguardCompatibilityRules = temp.newFile().toPath();
+    builder.setProguardCompatibilityRulesOutput(proguardCompatibilityRules);
+    AndroidApp app = ToolHelper.runR8(builder.build());
+    inspection.accept(new DexInspector(app));
+    // Check the Proguard compatibility configuration generated.
+    ProguardConfigurationParser parser =
+        new ProguardConfigurationParser(new DexItemFactory(),
+            new Reporter(new DefaultDiagnosticsHandler()));
+    parser.parse(proguardCompatibilityRules);
+    ProguardConfiguration configuration = parser.getConfigRawForTesting();
+    compatInspection.accept(configuration);
+  }
+
+  private void noCompatibilityRules(ProguardConfiguration configuration) {
+    assertEquals(0, configuration.getRules().size());
+  }
+
+  private void defaultMethodKept(DexInspector inspector) {
+    ClassSubject clazz = inspector.clazz(InterfaceWithDefaultMethods.class);
+    assertTrue(clazz.isPresent());
+    MethodSubject method = clazz.method("int", "method", ImmutableList.of());
+    assertTrue(method.isPresent());
+    assertFalse(method.isAbstract());
+  }
+
+  private void defaultMethodCompatibilityRules(ProguardConfiguration configuration) {
+    assertEquals(1, configuration.getRules().size());
+    ProguardConfigurationRule rule = configuration.getRules().get(0);
+    Set<ProguardMemberRule> memberRules = rule.getMemberRules();
+    ProguardClassNameList classNames = rule.getClassNames();
+    assertEquals(1, classNames.size());
+    DexType type = classNames.asSpecificDexTypes().get(0);
+    assertEquals(type.toSourceString(), InterfaceWithDefaultMethods.class.getCanonicalName());
+    assertEquals(1, memberRules.size());
+    ProguardMemberRule memberRule = memberRules.iterator().next();
+    assertEquals(ProguardMemberType.METHOD, memberRule.getRuleType());
+    assertTrue(memberRule.getName().matches("method"));
+    assertTrue(memberRule.getType().matches(configuration.getDexItemFactory().intType));
+    assertEquals(0, memberRule.getArguments().size());
+  }
+
+  private void defaultMethod2Kept(DexInspector inspector) {
+    ClassSubject clazz = inspector.clazz(InterfaceWithDefaultMethods.class);
+    assertTrue(clazz.isPresent());
+    MethodSubject method =
+        clazz.method("void", "method2", ImmutableList.of("java.lang.String", "int"));
+    assertTrue(method.isPresent());
+    assertFalse(method.isAbstract());
+  }
+
+  private void defaultMethod2CompatibilityRules(ProguardConfiguration configuration) {
+    assertEquals(1, configuration.getRules().size());
+    ProguardConfigurationRule rule = configuration.getRules().get(0);
+    Set<ProguardMemberRule> memberRules = rule.getMemberRules();
+    ProguardClassNameList classNames = rule.getClassNames();
+    assertEquals(1, classNames.size());
+    DexType type = classNames.asSpecificDexTypes().get(0);
+    assertEquals(type.toSourceString(), InterfaceWithDefaultMethods.class.getCanonicalName());
+    assertEquals(1, memberRules.size());
+    ProguardMemberRule memberRule = memberRules.iterator().next();
+    assertEquals(ProguardMemberType.METHOD, memberRule.getRuleType());
+    assertTrue(memberRule.getName().matches("method2"));
+    assertTrue(memberRule.getType().matches(configuration.getDexItemFactory().voidType));
+    assertEquals(2, memberRule.getArguments().size());
+    assertTrue(
+        memberRule.getArguments().get(0).matches(configuration.getDexItemFactory().stringType));
+    assertTrue(memberRule.getArguments().get(1).matches(configuration.getDexItemFactory().intType));
+  }
+
+  @Test
+  public void keepDefaultMethodsTest() throws Exception {
+    runKeepDefaultMethodsTest(ImmutableList.of(
+        "-keep interface " + InterfaceWithDefaultMethods.class.getCanonicalName() + "{",
+        "  public int method();",
+        "}"
+    ), this::defaultMethodKept, this::noCompatibilityRules);
+    runKeepDefaultMethodsTest(ImmutableList.of(
+        "-keep class " + ClassImplementingInterface.class.getCanonicalName() + "{",
+        "  <methods>;",
+        "}",
+        "-keep class " + TestClass.class.getCanonicalName() + "{",
+        "  public void useInterfaceMethod();",
+        "}"
+    ), this::defaultMethodKept, this::defaultMethodCompatibilityRules);
+    runKeepDefaultMethodsTest(ImmutableList.of(
+        "-keep class " + ClassImplementingInterface.class.getCanonicalName() + "{",
+        "  <methods>;",
+        "}",
+        "-keep class " + TestClass.class.getCanonicalName() + "{",
+        "  public void useInterfaceMethod2();",
+        "}"
+    ), this::defaultMethod2Kept, this::defaultMethod2CompatibilityRules);
   }
 }
