@@ -130,7 +130,7 @@ public class MainDexTracingTest {
       // Build main-dex list using GenerateMainDexList.
       GenerateMainDexListCommand.Builder mdlCommandBuilder = GenerateMainDexListCommand.builder();
       GenerateMainDexListCommand command2 = mdlCommandBuilder
-          .addLibraryFiles(Paths.get(ToolHelper.getAndroidJar(AndroidApiLevel.K.getLevel())))
+          .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.K.getLevel()))
           .addProgramFiles(inputJar)
           .addProgramFiles(Paths.get(EXAMPLE_BUILD_DIR, "multidexfakeframeworks" + JAR_EXTENSION))
           .addMainDexRulesFiles(mainDexRules)
