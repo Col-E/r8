@@ -20,8 +20,8 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
     isDominatedByCallWithSameReceiver = true;
   }
 
-  public boolean isDominatedByCallWithSameReceiver() {
-    return isDominatedByCallWithSameReceiver;
+  public boolean receiverIsNeverNull() {
+    return isDominatedByCallWithSameReceiver || arguments().get(0).isNeverNull();
   }
 
   @Override

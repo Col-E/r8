@@ -5,6 +5,7 @@ package com.android.tools.r8.ir.analysis.type;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.Value;
@@ -20,7 +21,7 @@ abstract public class TypeLatticeElement {
     this.isNullable = isNullable;
   }
 
-  public boolean isNullable() {
+  boolean isNullable() {
     return isNullable;
   }
 
@@ -38,13 +39,13 @@ abstract public class TypeLatticeElement {
   /**
    * Computes the least upper bound of the current and the other elements.
    *
-   * @param appInfo {@link AppInfo}.
+   * @param appInfo {@link AppInfoWithSubtyping} that contains subtype info.
    * @param l1 {@link TypeLatticeElement} to join.
    * @param l2 {@link TypeLatticeElement} to join.
    * @return {@link TypeLatticeElement}, a least upper bound of {@param l1} and {@param l2}.
    */
   public static TypeLatticeElement join(
-      AppInfo appInfo, TypeLatticeElement l1, TypeLatticeElement l2) {
+      AppInfoWithSubtyping appInfo, TypeLatticeElement l1, TypeLatticeElement l2) {
     if (l1.isBottom()) {
       return l2;
     }
@@ -73,9 +74,9 @@ abstract public class TypeLatticeElement {
       return objectType(appInfo, isNullable);
     }
     // From now on, l1.getClass() == l2.getClass()
-    if (l1.isArrayTypeLatticeElement()) {
-      ArrayTypeLatticeElement a1 = l1.asArrayTypeLatticeElement();
-      ArrayTypeLatticeElement a2 = l2.asArrayTypeLatticeElement();
+    if (l1 instanceof ArrayTypeLatticeElement) {
+      ArrayTypeLatticeElement a1 = (ArrayTypeLatticeElement) l1;
+      ArrayTypeLatticeElement a2 = (ArrayTypeLatticeElement) l2;
       // Identical types are the same elements
       if (a1.getArrayType() == a2.getArrayType()) {
         return a1.isNullable() ? a1 : a2;
@@ -109,20 +110,20 @@ abstract public class TypeLatticeElement {
       DexType arrayTypeLub = appInfo.dexItemFactory.createArrayType(a1Nesting, lub);
       return new ArrayTypeLatticeElement(arrayTypeLub, isNullable);
     }
-    if (l1.isClassTypeLatticeElement()) {
-      ClassTypeLatticeElement c1 = l1.asClassTypeLatticeElement();
-      ClassTypeLatticeElement c2 = l2.asClassTypeLatticeElement();
-      if (c1.getClassType() == c2.getClassType()) {
+    if (l1 instanceof ClassTypeLatticeElement) {
+      ClassTypeLatticeElement c1 = (ClassTypeLatticeElement) l1;
+      ClassTypeLatticeElement c2 = (ClassTypeLatticeElement) l2;
+      if (c1.classType == c2.classType) {
         return c1.isNullable() ? c1 : c2;
       } else {
-        DexType lub = c1.getClassType().computeLeastUpperBound(appInfo, c2.getClassType());
+        DexType lub = c1.classType.computeLeastUpperBound(appInfo, c2.classType);
         return new ClassTypeLatticeElement(lub, isNullable);
       }
     }
     throw new Unreachable("unless a new type lattice is introduced.");
   }
 
-  static BinaryOperator<TypeLatticeElement> joiner(AppInfo appInfo) {
+  static BinaryOperator<TypeLatticeElement> joiner(AppInfoWithSubtyping appInfo) {
     return (l1, l2) -> join(appInfo, l1, l2);
   }
 
@@ -142,22 +143,6 @@ abstract public class TypeLatticeElement {
    */
   boolean isBottom() {
     return false;
-  }
-
-  public boolean isArrayTypeLatticeElement() {
-    return false;
-  }
-
-  public ArrayTypeLatticeElement asArrayTypeLatticeElement() {
-    return null;
-  }
-
-  public boolean isClassTypeLatticeElement() {
-    return false;
-  }
-
-  public ClassTypeLatticeElement asClassTypeLatticeElement() {
-    return null;
   }
 
   static ClassTypeLatticeElement objectType(AppInfo appInfo, boolean isNullable) {
@@ -188,11 +173,11 @@ abstract public class TypeLatticeElement {
     return new ArrayTypeLatticeElement(arrayType, isNullable);
   }
 
-  public TypeLatticeElement arrayGet(AppInfo appInfo) {
+  public TypeLatticeElement arrayGet(AppInfoWithSubtyping appInfo) {
     return Top.getInstance();
   }
 
-  public TypeLatticeElement checkCast(AppInfo appInfo, DexType castType) {
+  public TypeLatticeElement checkCast(AppInfoWithSubtyping appInfo, DexType castType) {
     return fromDexType(castType, isNullable());
   }
 

@@ -469,12 +469,8 @@ public class DexType extends IndexedDexItem implements PresortedComparable<DexTy
     return type.directSubtypes.contains(this);
   }
 
-  public DexType computeLeastUpperBound(AppInfo appInfo, DexType other) {
+  public DexType computeLeastUpperBound(AppInfoWithSubtyping appInfo, DexType other) {
     DexType objectType = appInfo.dexItemFactory.objectType;
-    // If we have no definition for either class, stop proceeding.
-    if (hierarchyLevel == UNKNOWN_LEVEL || other.hierarchyLevel == UNKNOWN_LEVEL) {
-      return objectType;
-    }
     // If either one is interface,
     //   1) one of them is a super type of the other
     //   2) otherwise, the object type is the least upper bound.

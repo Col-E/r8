@@ -13,7 +13,6 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
-import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.DominatorTree;
 import com.android.tools.r8.ir.code.IRCode;
@@ -342,10 +341,7 @@ public class Inliner {
     return true;
   }
 
-  public void performInlining(
-      DexEncodedMethod method,
-      IRCode code,
-      TypeAnalysis typeAnalysis,
+  public void performInlining(DexEncodedMethod method, IRCode code,
       Predicate<DexEncodedMethod> isProcessedConcurrently,
       CallSiteInformation callSiteInformation)
       throws ApiLevelException {
@@ -354,10 +350,9 @@ public class Inliner {
     if (instruction_allowance < 0) {
       return;
     }
-    // TODO(b/70795205): will be deprecated once the type analysis becomes more flow-sensitive.
     computeReceiverMustBeNonNull(code);
-    InliningOracle oracle = new InliningOracle(
-        this, method, typeAnalysis, callSiteInformation, isProcessedConcurrently);
+    InliningOracle oracle = new InliningOracle(this, method, callSiteInformation,
+        isProcessedConcurrently);
 
     List<BasicBlock> blocksToRemove = new ArrayList<>();
     ListIterator<BasicBlock> blockIterator = code.listIterator();
@@ -397,8 +392,8 @@ public class Inliner {
                 if (Log.ENABLED) {
                   Log.verbose(getClass(), "Forcing extra inline on " + target.toSourceString());
                 }
-                performInlining(
-                    target, inlinee, typeAnalysis, isProcessedConcurrently, callSiteInformation);
+                performInlining(target, inlinee, isProcessedConcurrently,
+                    callSiteInformation);
               }
               // Make sure constructor inlining is legal.
               assert !target.isClassInitializer();
@@ -420,9 +415,6 @@ public class Inliner {
               instruction_allowance -= numberOfInstructions(inlinee);
               if (instruction_allowance >= 0 || result.ignoreInstructionBudget()) {
                 iterator.inlineInvoke(code, inlinee, blockIterator, blocksToRemove, downcast);
-                // Update type env for inlined blocks.
-                typeAnalysis.updateBlocks(inlinee.topologicallySortedBlocks());
-                // TODO(b/69964136): need a test where refined env in inlinee affects the caller.
               }
               // If we inlined the invoke from a bridge method, it is no longer a bridge method.
               if (method.accessFlags.isBridge()) {

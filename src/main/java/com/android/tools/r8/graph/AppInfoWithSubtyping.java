@@ -4,7 +4,6 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.origin.Origin;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -172,7 +171,7 @@ public class AppInfoWithSubtyping extends AppInfo {
       DexClass contextClass = definitionFor(invocationContext);
       throw new CompilationError(
           "Illegal invoke-super to " + method.toSourceString() + " from class " + invocationContext,
-          contextClass != null ? contextClass.getOrigin() : Origin.unknown());
+          contextClass.getOrigin());
     }
     return super.lookupSuperTarget(method, invocationContext);
   }
