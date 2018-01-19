@@ -80,7 +80,8 @@ class ClassNameMinifier {
   }
 
   Map<DexType, DexString> computeRenaming(Timing timing) {
-    Iterable<DexProgramClass> classes = appInfo.classes();
+    // Use deterministic class order to make sure renaming is deterministic.
+    Iterable<DexProgramClass> classes = appInfo.classesWithDeterministicOrder();
     // Collect names we have to keep.
     timing.begin("reserve");
     for (DexClass clazz : classes) {

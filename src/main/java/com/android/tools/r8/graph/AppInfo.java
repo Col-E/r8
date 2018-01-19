@@ -54,6 +54,10 @@ public class AppInfo {
     return app.classes();
   }
 
+  public Iterable<DexProgramClass> classesWithDeterministicOrder() {
+    return app.classesWithDeterministicOrder();
+  }
+
   public DexClass definitionFor(DexType type) {
     return app.definitionFor(type);
   }

@@ -14,6 +14,7 @@ import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Deque;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -30,6 +31,10 @@ public class DexType extends IndexedDexItem implements PresortedComparable<DexTy
   public final DexString descriptor;
   private String toStringCache = null;
   private int hierarchyLevel = UNKNOWN_LEVEL;
+  /**
+   * Set of direct subtypes. This set has to remain sorted to ensure determinism. The actual sorting
+   * is not important but {@link #slowCompareTo(DexType)} works well.
+   */
   private Set<DexType> directSubtypes = NO_DIRECT_SUBTYPE;
 
   DexType(DexString descriptor) {
@@ -52,7 +57,7 @@ public class DexType extends IndexedDexItem implements PresortedComparable<DexTy
 
   private void ensureDirectSubTypeSet() {
     if (directSubtypes == NO_DIRECT_SUBTYPE) {
-      directSubtypes = Sets.newIdentityHashSet();
+      directSubtypes = new TreeSet<>(DexType::slowCompareTo);
     }
   }
 
