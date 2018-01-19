@@ -414,29 +414,22 @@ public class BasicBlock {
     }
   }
 
-  public void mark() {
-    assert color == 0;
-    color = 1;
+  public void mark(int color) {
+    assert color != 0;
+    assert !isMarked(color);
+    this.color |= color;
+    assert isMarked(color);
   }
 
-  public void clearMark() {
-    color = 0;
+  public void clearMark(int color) {
+    assert color != 0;
+    this.color &= ~color;
+    assert !isMarked(color);
   }
 
-  public boolean isMarked() {
-    return color == 1;
-  }
-
-  public void setColor(int color) {
-    this.color = color;
-  }
-
-  public int getColor() {
-    return color;
-  }
-
-  public boolean hasColor(int color) {
-    return this.color == color;
+  public boolean isMarked(int color) {
+    assert color != 0;
+    return (this.color & color) != 0;
   }
 
   public void incrementUnfilledPredecessorCount() {

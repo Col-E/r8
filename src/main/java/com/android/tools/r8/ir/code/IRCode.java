@@ -33,6 +33,7 @@ public class IRCode {
 
   public LinkedList<BasicBlock> blocks;
   public final ValueNumberGenerator valueNumberGenerator;
+  private int usedMarkingColors = 0;
 
   private boolean numbered = false;
   private int nextInstructionNumber = 0;
@@ -157,17 +158,17 @@ public class IRCode {
   public void traceBlocks() {
     // Get the blocks first, as calling topologicallySortedBlocks also sets marks.
     ImmutableList<BasicBlock> sorted = topologicallySortedBlocks();
-    clearMarks();
+    int color = reserveMarkingColor();
     int nextBlockNumber = blocks.size();
     LinkedList<BasicBlock> tracedBlocks = new LinkedList<>();
     for (BasicBlock block : sorted) {
-      if (!block.isMarked()) {
-        block.mark();
+      if (!block.isMarked(color)) {
+        block.mark(color);
         tracedBlocks.add(block);
         BasicBlock current = block;
         BasicBlock fallthrough = block.exit().fallthroughBlock();
-        while (fallthrough != null && !fallthrough.isMarked()) {
-          fallthrough.mark();
+        while (fallthrough != null && !fallthrough.isMarked(color)) {
+          fallthrough.mark(color);
           tracedBlocks.add(fallthrough);
           current = fallthrough;
           fallthrough = fallthrough.exit().fallthroughBlock();
@@ -177,12 +178,14 @@ public class IRCode {
           current.exit().setFallthroughBlock(newFallthrough);
           newFallthrough.getPredecessors().add(current);
           fallthrough.replacePredecessor(current, newFallthrough);
-          newFallthrough.mark();
+          newFallthrough.mark(color);
           tracedBlocks.add(newFallthrough);
         }
       }
     }
     blocks = tracedBlocks;
+    returnMarkingColor(color);
+    assert verifyNoColorsInUse();
   }
 
   private void ensureBlockNumbering() {
@@ -206,21 +209,31 @@ public class IRCode {
     return builder.toString();
   }
 
-  public void clearMarks() {
+  public void clearMarks(int color) {
     for (BasicBlock block : blocks) {
-      block.clearMark();
+      block.clearMark(color);
     }
   }
 
-  public void removeMarkedBlocks() {
+  public void removeMarkedBlocks(int color) {
     ListIterator<BasicBlock> blockIterator = listIterator();
     while (blockIterator.hasNext()) {
       BasicBlock block = blockIterator.next();
-      if (block.isMarked()) {
+      if (block.isMarked(color)) {
         blockIterator.remove();
       }
     }
   }
+
+  private boolean verifyNoBlocksMarked(int color) {
+    for (BasicBlock block : blocks) {
+      if (block.isMarked(color)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
 
   public void removeBlocks(List<BasicBlock> blocksToRemove) {
     blocks.removeAll(blocksToRemove);
@@ -268,6 +281,7 @@ public class IRCode {
   }
 
   public boolean isConsistentGraph() {
+    assert verifyNoColorsInUse();
     assert consistentBlockNumbering();
     assert consistentPredecessorSuccessors();
     assert consistentCatchHandlers();
@@ -587,5 +601,28 @@ public class IRCode {
         phi.removeTrivialPhi();
       }
     }
+  }
+
+  public int reserveMarkingColor() {
+    int color = 1;
+    while ((usedMarkingColors & color) == color) {
+      assert color <= 0x40000000;
+      color <<= 1;
+    }
+    // TODO(sgjesse): Remove this assert if more colors will be required.
+    assert color == 1;
+    assert verifyNoBlocksMarked(color);
+    usedMarkingColors |= color;
+    return color;
+  }
+
+  public void returnMarkingColor(int color) {
+    assert (usedMarkingColors | color) == color;
+    clearMarks(color);
+    usedMarkingColors &= ~color;
+  }
+
+  public boolean verifyNoColorsInUse() {
+    return usedMarkingColors == 0;
   }
 }

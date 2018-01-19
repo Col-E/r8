@@ -25,47 +25,49 @@ public class DeadCodeRemover {
     Queue<BasicBlock> worklist = new LinkedList<>();
     Supplier<DominatorTree> dominatorTreeMemoization = Suppliers
         .memoize(() -> new DominatorTree(code));
-    code.clearMarks();
+    int color = code.reserveMarkingColor();
     worklist.addAll(code.blocks);
     for (BasicBlock block = worklist.poll(); block != null; block = worklist.poll()) {
-      if (block.isMarked()) {
+      if (block.isMarked(color)) {
         // Ignore marked blocks, as they are scheduled for removal.
         continue;
       }
-      removeDeadInstructions(worklist, code, block, options);
-      removeDeadPhis(worklist, block, options);
-      removeUnneededCatchHandlers(worklist, block, dominatorTreeMemoization);
+      removeDeadInstructions(worklist, code, block, options, color);
+      removeDeadPhis(worklist, block, options, color);
+      removeUnneededCatchHandlers(worklist, block, dominatorTreeMemoization, color);
     }
-    code.removeMarkedBlocks();
+    code.removeMarkedBlocks(color);
+    code.returnMarkingColor(color);
     assert code.isConsistentSSA();
     codeRewriter.rewriteMoveResult(code);
   }
 
   // Add the block from where the value originates to the worklist.
-  private static void updateWorklist(Queue<BasicBlock> worklist, Value value) {
+  private static void updateWorklist(Queue<BasicBlock> worklist, Value value, int color) {
     BasicBlock block;
     if (value.isPhi()) {
       block = value.asPhi().getBlock();
     } else {
       block = value.definition.getBlock();
     }
-    if (!block.isMarked()) {
+    if (!block.isMarked(color)) {
       worklist.add(block);
     }
   }
 
   // Add all blocks from where the in/debug-values to the instruction originates.
-  private static void updateWorklist(Queue<BasicBlock> worklist, Instruction instruction) {
+  private static void updateWorklist(
+      Queue<BasicBlock> worklist, Instruction instruction, int color) {
     for (Value inValue : instruction.inValues()) {
-      updateWorklist(worklist, inValue);
+      updateWorklist(worklist, inValue, color);
     }
     for (Value debugValue : instruction.getDebugValues()) {
-      updateWorklist(worklist, debugValue);
+      updateWorklist(worklist, debugValue, color);
     }
   }
 
   private static void removeDeadPhis(Queue<BasicBlock> worklist, BasicBlock block,
-      InternalOptions options) {
+      InternalOptions options, int color) {
     Iterator<Phi> phiIt = block.getPhis().iterator();
     while (phiIt.hasNext()) {
       Phi phi = phiIt.next();
@@ -73,14 +75,15 @@ public class DeadCodeRemover {
         phiIt.remove();
         for (Value operand : phi.getOperands()) {
           operand.removePhiUser(phi);
-          updateWorklist(worklist, operand);
+          updateWorklist(worklist, operand, color);
         }
       }
     }
   }
 
   private static void removeDeadInstructions(
-      Queue<BasicBlock> worklist, IRCode code, BasicBlock block, InternalOptions options) {
+      Queue<BasicBlock> worklist, IRCode code, BasicBlock block, InternalOptions options,
+      int color) {
     InstructionListIterator iterator = block.listIterator(block.getInstructions().size());
     while (iterator.hasPrevious()) {
       Instruction current = iterator.previous();
@@ -101,7 +104,7 @@ public class DeadCodeRemover {
         continue;
 
       }
-      updateWorklist(worklist, current);
+      updateWorklist(worklist, current, color);
       // All users will be removed for this instruction. Eagerly clear them so further inspection
       // of this instruction during dead code elimination will terminate here.
       outValue.clearUsers();
@@ -110,17 +113,17 @@ public class DeadCodeRemover {
   }
 
   private static void removeUnneededCatchHandlers(Queue<BasicBlock> worklist, BasicBlock block,
-      Supplier<DominatorTree> dominatorTreeMemoization) {
+      Supplier<DominatorTree> dominatorTreeMemoization, int color) {
     if (block.hasCatchHandlers() && !block.canThrow()) {
       CatchHandlers<BasicBlock> handlers = block.getCatchHandlers();
       for (BasicBlock target : handlers.getUniqueTargets()) {
         for (BasicBlock unlinked : block.unlink(target, dominatorTreeMemoization.get())) {
-          if (!unlinked.isMarked()) {
+          if (!unlinked.isMarked(color)) {
             Iterator<Instruction> iterator = unlinked.iterator();
             while (iterator.hasNext()) {
-              updateWorklist(worklist, iterator.next());
+              updateWorklist(worklist, iterator.next(), color);
             }
-            unlinked.mark();
+            unlinked.mark(color);
           }
         }
       }
