@@ -5,14 +5,13 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
-import com.google.common.collect.Sets;
+import it.unimi.dsi.fastutil.objects.Reference2IntArrayMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -91,14 +90,59 @@ public class ObjectToOffsetMapping {
     return map;
   }
 
+  /**
+   * Here, 'depth' of a program class is an integer one bigger then the maximum depth of its
+   * superclass and implemented interfaces. The depth of classes without any or without known
+   * superclasses and interfaces is 1.
+   */
+  private static class ProgramClassDepthsMemoized {
+    private final DexApplication application;
+    private final Reference2IntMap<DexProgramClass> depthOfClasses = new Reference2IntArrayMap<>();
+
+    ProgramClassDepthsMemoized(DexApplication application) {
+      this.application = application;
+    }
+
+    int getDepth(DexProgramClass programClass) {
+      return depthOfClasses.computeIfAbsent(
+          programClass,
+          programClassToCompute -> {
+            // Emulating the algorithm of com.android.dx.merge.SortableType.tryAssignDepth().
+            DexType superType = programClassToCompute.superType;
+            int maxDepth;
+            if (superType == null) {
+              maxDepth = 0;
+            } else {
+              maxDepth = 1;
+              DexProgramClass superClass = application.programDefinitionFor(superType);
+              if (superClass != null) {
+                maxDepth = getDepth(superClass);
+              }
+            }
+            for (DexType inf : programClassToCompute.interfaces.values) {
+              DexProgramClass infClass = application.programDefinitionFor(inf);
+              maxDepth = Math.max(maxDepth, infClass == null ? 1 : getDepth(infClass));
+            }
+            return maxDepth + 1;
+          });
+    }
+  }
+
   private static DexProgramClass[] sortClasses(DexApplication application,
       Collection<DexProgramClass> classes) {
-    SortingProgramClassVisitor classVisitor = new SortingProgramClassVisitor(application, classes);
     // Collect classes in subtyping order, based on a sorted list of classes to start with.
-    classVisitor.run(
-        classes.stream().sorted(Comparator.comparing(DexClass::getType))
-            .collect(Collectors.toList()));
-    return classVisitor.getSortedClasses();
+    ProgramClassDepthsMemoized classDepths = new ProgramClassDepthsMemoized(application);
+    List<DexProgramClass> sortedClasses =
+        classes
+            .stream()
+            .sorted(
+                (x, y) -> {
+                  int dx = classDepths.getDepth(x);
+                  int dy = classDepths.getDepth(y);
+                  return dx != dy ? dx - dy : x.type.compareTo(y.type);
+                })
+            .collect(Collectors.toList());
+    return sortedClasses.toArray(new DexProgramClass[sortedClasses.size()]);
   }
 
   private static <T> Collection<T> keysOrEmpty(Map<T, ?> map) {
@@ -178,35 +222,5 @@ public class ObjectToOffsetMapping {
 
   public int getOffsetFor(DexMethodHandle methodHandle) {
     return getOffsetFor(methodHandle, methodHandles);
-  }
-
-  private static class SortingProgramClassVisitor extends ProgramClassVisitor {
-    private final Set<DexClass> classSet = Sets.newIdentityHashSet();
-    private final DexProgramClass[] sortedClasses;
-
-    private int index = 0;
-
-    SortingProgramClassVisitor(DexApplication application,
-        Collection<DexProgramClass> classes) {
-      super(application);
-      this.sortedClasses = new DexProgramClass[classes.size()];
-      classSet.addAll(classes);
-    }
-
-    @Override
-    public void visit(DexType type) {}
-
-    @Override
-    public void visit(DexClass clazz) {
-      if (classSet.contains(clazz)) {
-        assert index < sortedClasses.length;
-        sortedClasses[index++] = (DexProgramClass) clazz;
-      }
-    }
-
-    DexProgramClass[] getSortedClasses() {
-      assert index == sortedClasses.length;
-      return sortedClasses;
-    }
   }
 }
