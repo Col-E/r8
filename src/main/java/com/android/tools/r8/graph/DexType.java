@@ -76,7 +76,7 @@ public class DexType extends IndexedDexItem implements PresortedComparable<DexTy
     }
   }
 
-  void addDirectSubtype(DexType type) {
+  synchronized void addDirectSubtype(DexType type) {
     assert hierarchyLevel != UNKNOWN_LEVEL;
     ensureDirectSubTypeSet();
     directSubtypes.add(type);
@@ -96,7 +96,7 @@ public class DexType extends IndexedDexItem implements PresortedComparable<DexTy
     return hierarchyLevel == INTERFACE_LEVEL;
   }
 
-  void addInterfaceSubtype(DexType type) {
+  synchronized void addInterfaceSubtype(DexType type) {
     // Interfaces all inherit from java.lang.Object. However, we assign a special level to
     // identify them later on.
     setLevel(INTERFACE_LEVEL);
