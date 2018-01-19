@@ -3,13 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.analysis.type;
 
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexType;
 
 public class ClassTypeLatticeElement extends TypeLatticeElement {
-  final DexType classType;
+  private final DexType classType;
 
-  public ClassTypeLatticeElement(DexType classType, boolean isNullable) {
+  ClassTypeLatticeElement(DexType classType, boolean isNullable) {
     super(isNullable);
     assert classType.isClassType();
     this.classType = classType;
@@ -25,12 +25,22 @@ public class ClassTypeLatticeElement extends TypeLatticeElement {
   }
 
   @Override
-  public TypeLatticeElement arrayGet(AppInfoWithSubtyping appInfo) {
+  public boolean isClassTypeLatticeElement() {
+    return true;
+  }
+
+  @Override
+  public ClassTypeLatticeElement asClassTypeLatticeElement() {
+    return this;
+  }
+
+  @Override
+  public TypeLatticeElement arrayGet(AppInfo appInfo) {
     return objectType(appInfo, true);
   }
 
   @Override
-  public TypeLatticeElement checkCast(AppInfoWithSubtyping appInfo, DexType castType) {
+  public TypeLatticeElement checkCast(AppInfo appInfo, DexType castType) {
     if (classType.isSubtypeOf(castType, appInfo)) {
       return this;
     }

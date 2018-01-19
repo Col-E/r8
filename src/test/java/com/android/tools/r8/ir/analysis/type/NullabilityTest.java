@@ -8,7 +8,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
@@ -40,18 +40,17 @@ public class NullabilityTest extends SmaliTestBase {
   private void buildAndTest(
       SmaliBuilder builder,
       MethodSignature signature,
-      BiConsumer<AppInfoWithSubtyping, TypeAnalysis> inspector)
+      BiConsumer<AppInfo, TypeAnalysis> inspector)
       throws Exception {
     AndroidApp app = builder.build();
     DexApplication dexApplication =
         new ApplicationReader(app, TEST_OPTIONS, new Timing("NullabilityTest.appReader"))
             .read().toDirect();
-    AppInfoWithSubtyping appInfo = new AppInfoWithSubtyping(dexApplication);
+    AppInfo appInfo = new AppInfo(dexApplication);
     DexInspector dexInspector = new DexInspector(appInfo.app);
     DexEncodedMethod foo = dexInspector.clazz(CLASS_NAME).method(signature).getMethod();
     IRCode irCode = foo.buildIR(TEST_OPTIONS);
     TypeAnalysis analysis = new TypeAnalysis(appInfo, foo, irCode);
-    analysis.run();
     inspector.accept(appInfo, analysis);
   }
 
@@ -60,10 +59,10 @@ public class NullabilityTest extends SmaliTestBase {
       DexType receiverType,
       Value v,
       TypeLatticeElement l) {
-    assertTrue(l instanceof ClassTypeLatticeElement);
-    ClassTypeLatticeElement lattice = (ClassTypeLatticeElement) l;
+    assertTrue(l.isClassTypeLatticeElement());
+    ClassTypeLatticeElement lattice = l.asClassTypeLatticeElement();
     // Receiver
-    if (lattice.classType.equals(receiverType)) {
+    if (lattice.getClassType().equals(receiverType)) {
       assertFalse(l.isNullable());
     } else {
       TypeLatticeElement expected = expectedLattices.get(v.definition.getClass());
@@ -146,14 +145,14 @@ public class NullabilityTest extends SmaliTestBase {
           ArrayGet.class, new ClassTypeLatticeElement(appInfo.dexItemFactory.stringType, true),
           NewInstance.class, new ClassTypeLatticeElement(assertionErrorType, false));
       typeAnalysis.forEach((v, l) -> {
-        if (l instanceof ArrayTypeLatticeElement) {
-          ArrayTypeLatticeElement lattice = (ArrayTypeLatticeElement) l;
+        if (l.isArrayTypeLatticeElement()) {
+          ArrayTypeLatticeElement lattice = l.asArrayTypeLatticeElement();
           assertEquals(
               appInfo.dexItemFactory.stringType,
               lattice.getArrayElementType(appInfo.dexItemFactory));
           // TODO(b/70795205): Can be refined by using control-flow info.
           assertTrue(l.isNullable());
-        } else if (l instanceof ClassTypeLatticeElement) {
+        } else if (l.isClassTypeLatticeElement()) {
           verifyClassTypeLattice(expectedLattices, example, v, l);
         }
       });
@@ -186,13 +185,13 @@ public class NullabilityTest extends SmaliTestBase {
           ArrayGet.class, new ClassTypeLatticeElement(appInfo.dexItemFactory.stringType, true),
           NewInstance.class, new ClassTypeLatticeElement(assertionErrorType, false));
       typeAnalysis.forEach((v, l) -> {
-        if (l instanceof ArrayTypeLatticeElement) {
-          ArrayTypeLatticeElement lattice = (ArrayTypeLatticeElement) l;
+        if (l.isArrayTypeLatticeElement()) {
+          ArrayTypeLatticeElement lattice = l.asArrayTypeLatticeElement();
           assertEquals(
               appInfo.dexItemFactory.stringType,
               lattice.getArrayElementType(appInfo.dexItemFactory));
           assertTrue(l.isNullable());
-        } else if (l instanceof ClassTypeLatticeElement) {
+        } else if (l.isClassTypeLatticeElement()) {
           verifyClassTypeLattice(expectedLattices, example, v, l);
         }
       });

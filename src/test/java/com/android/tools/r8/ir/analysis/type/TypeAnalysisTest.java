@@ -12,13 +12,12 @@ import static org.junit.Assert.fail;
 import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.ArrayLength;
 import com.android.tools.r8.ir.code.CheckCast;
-import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstanceOf;
@@ -58,13 +57,15 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class TypeAnalysisTest extends SmaliTestBase {
   private static final InternalOptions TEST_OPTIONS = new InternalOptions();
+  private static final TypeLatticeElement NULL = NullLatticeElement.getInstance();
   private static final TypeLatticeElement PRIMITIVE = PrimitiveTypeLatticeElement.getInstance();
+  private static final TypeLatticeElement TOP = Top.getInstance();
 
   private final String dirName;
   private final String smaliFileName;
-  private final Consumer<AppInfoWithSubtyping> inspection;
+  private final Consumer<AppInfo> inspection;
 
-  public TypeAnalysisTest(String test, Consumer<AppInfoWithSubtyping> inspection) {
+  public TypeAnalysisTest(String test, Consumer<AppInfo> inspection) {
     dirName = test.substring(0, test.lastIndexOf('/'));
     smaliFileName = test.substring(test.lastIndexOf('/') + 1) + ".smali";
     this.inspection = inspection;
@@ -83,7 +84,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
         "type-confusion-regression5/TestObject"
     );
 
-    Map<String, Consumer<AppInfoWithSubtyping>> inspections = new HashMap<>();
+    Map<String, Consumer<AppInfo>> inspections = new HashMap<>();
     inspections.put("arithmetic/Arithmetic", TypeAnalysisTest::arithmetic);
     inspections.put("fibonacci/Fibonacci", TypeAnalysisTest::fibonacci);
     inspections.put("fill-array-data/FillArrayData", TypeAnalysisTest::fillArrayData);
@@ -95,7 +96,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
 
     List<Object[]> testCases = new ArrayList<>();
     for (String test : tests) {
-      Consumer<AppInfoWithSubtyping> inspection = inspections.get(test);
+      Consumer<AppInfo> inspection = inspections.get(test);
       testCases.add(new Object[]{test, inspection});
     }
     return testCases;
@@ -112,11 +113,11 @@ public class TypeAnalysisTest extends SmaliTestBase {
     DexApplication dexApplication =
         new ApplicationReader(app, TEST_OPTIONS, new Timing("TypeAnalysisTest.appReader"))
             .read().toDirect();
-    inspection.accept(new AppInfoWithSubtyping(dexApplication));
+    inspection.accept(new AppInfo(dexApplication));
   }
 
   // Simple one path with a lot of arithmetic operations.
-  private static void arithmetic(AppInfoWithSubtyping appInfo) {
+  private static void arithmetic(AppInfo appInfo) {
     DexInspector inspector = new DexInspector(appInfo.app);
     DexEncodedMethod subtract =
         inspector.clazz("Test")
@@ -126,9 +127,8 @@ public class TypeAnalysisTest extends SmaliTestBase {
     try {
       IRCode irCode = subtract.buildIR(TEST_OPTIONS);
       TypeAnalysis analysis = new TypeAnalysis(appInfo, subtract, irCode);
-      analysis.run();
       analysis.forEach((v, l) -> {
-        assertEquals(l, PRIMITIVE);
+        assertEither(l, PRIMITIVE, NULL, TOP);
       });
     } catch (ApiLevelException e) {
       fail(e.getMessage());
@@ -136,7 +136,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
   }
 
   // A couple branches, along with some recursive calls.
-  private static void fibonacci(AppInfoWithSubtyping appInfo) {
+  private static void fibonacci(AppInfo appInfo) {
     DexInspector inspector = new DexInspector(appInfo.app);
     DexEncodedMethod fib =
         inspector.clazz("Test")
@@ -145,9 +145,8 @@ public class TypeAnalysisTest extends SmaliTestBase {
     try {
       IRCode irCode = fib.buildIR(TEST_OPTIONS);
       TypeAnalysis analysis = new TypeAnalysis(appInfo, fib, irCode);
-      analysis.run();
       analysis.forEach((v, l) -> {
-        assertEquals(l, PRIMITIVE);
+        assertEither(l, PRIMITIVE, NULL);
       });
     } catch (ApiLevelException e) {
       fail(e.getMessage());
@@ -155,7 +154,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
   }
 
   // fill-array-data
-  private static void fillArrayData(AppInfoWithSubtyping appInfo) {
+  private static void fillArrayData(AppInfo appInfo) {
     DexInspector inspector = new DexInspector(appInfo.app);
     DexEncodedMethod test1 =
         inspector.clazz("Test")
@@ -164,7 +163,6 @@ public class TypeAnalysisTest extends SmaliTestBase {
     try {
       IRCode irCode = test1.buildIR(TEST_OPTIONS);
       TypeAnalysis analysis = new TypeAnalysis(appInfo, test1, irCode);
-      analysis.run();
       Value array = null;
       InstructionIterator iterator = irCode.instructionIterator();
       while (iterator.hasNext()) {
@@ -178,8 +176,8 @@ public class TypeAnalysisTest extends SmaliTestBase {
       final Value finalArray = array;
       analysis.forEach((v, l) -> {
         if (v == finalArray) {
-          assertTrue(l instanceof ArrayTypeLatticeElement);
-          ArrayTypeLatticeElement lattice = (ArrayTypeLatticeElement) l;
+          assertTrue(l.isArrayTypeLatticeElement());
+          ArrayTypeLatticeElement lattice = l.asArrayTypeLatticeElement();
           assertTrue(lattice.getArrayType().isPrimitiveArrayType());
           assertEquals(1, lattice.getNesting());
           assertFalse(lattice.isNullable());
@@ -191,7 +189,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
   }
 
   // filled-new-array
-  private static void filledNewArray(AppInfoWithSubtyping appInfo) {
+  private static void filledNewArray(AppInfo appInfo) {
     DexInspector inspector = new DexInspector(appInfo.app);
     DexEncodedMethod test4 =
         inspector.clazz("Test")
@@ -200,7 +198,6 @@ public class TypeAnalysisTest extends SmaliTestBase {
     try {
       IRCode irCode = test4.buildIR(TEST_OPTIONS);
       TypeAnalysis analysis = new TypeAnalysis(appInfo, test4, irCode);
-      analysis.run();
       Value array = null;
       InstructionIterator iterator = irCode.instructionIterator();
       while (iterator.hasNext()) {
@@ -214,8 +211,8 @@ public class TypeAnalysisTest extends SmaliTestBase {
       final Value finalArray = array;
       analysis.forEach((v, l) -> {
         if (v == finalArray) {
-          assertTrue(l instanceof ArrayTypeLatticeElement);
-          ArrayTypeLatticeElement lattice = (ArrayTypeLatticeElement) l;
+          assertTrue(l.isArrayTypeLatticeElement());
+          ArrayTypeLatticeElement lattice = l.asArrayTypeLatticeElement();
           assertTrue(lattice.getArrayType().isPrimitiveArrayType());
           assertEquals(1, lattice.getNesting());
           assertFalse(lattice.isNullable());
@@ -227,7 +224,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
   }
 
   // Make sure the analysis does not hang.
-  private static void infiniteLoop(AppInfoWithSubtyping appInfo) {
+  private static void infiniteLoop(AppInfo appInfo) {
     DexInspector inspector = new DexInspector(appInfo.app);
     DexEncodedMethod loop2 =
         inspector.clazz("Test")
@@ -236,11 +233,10 @@ public class TypeAnalysisTest extends SmaliTestBase {
     try {
       IRCode irCode = loop2.buildIR(TEST_OPTIONS);
       TypeAnalysis analysis = new TypeAnalysis(appInfo, loop2, irCode);
-      analysis.run();
       analysis.forEach((v, l) -> {
-        if (l instanceof ClassTypeLatticeElement) {
-          ClassTypeLatticeElement lattice = (ClassTypeLatticeElement) l;
-          assertEquals("Ljava/io/PrintStream;", lattice.classType.toDescriptorString());
+        if (l.isClassTypeLatticeElement()) {
+          ClassTypeLatticeElement lattice = l.asClassTypeLatticeElement();
+          assertEquals("Ljava/io/PrintStream;", lattice.getClassType().toDescriptorString());
           // TODO(b/70795205): Can be refined by using control-flow info.
           assertTrue(l.isNullable());
         }
@@ -251,7 +247,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
   }
 
   // move-exception
-  private static void tryCatch(AppInfoWithSubtyping appInfo) {
+  private static void tryCatch(AppInfo appInfo) {
     DexInspector inspector = new DexInspector(appInfo.app);
     DexEncodedMethod test2 =
         inspector.clazz("Test")
@@ -260,11 +256,10 @@ public class TypeAnalysisTest extends SmaliTestBase {
     try {
       IRCode irCode = test2.buildIR(TEST_OPTIONS);
       TypeAnalysis analysis = new TypeAnalysis(appInfo, test2, irCode);
-      analysis.run();
       analysis.forEach((v, l) -> {
-        if (l instanceof ClassTypeLatticeElement) {
-          ClassTypeLatticeElement lattice = (ClassTypeLatticeElement) l;
-          assertEquals("Ljava/lang/Throwable;", lattice.classType.toDescriptorString());
+        if (l.isClassTypeLatticeElement()) {
+          ClassTypeLatticeElement lattice = l.asClassTypeLatticeElement();
+          assertEquals("Ljava/lang/Throwable;", lattice.getClassType().toDescriptorString());
           assertFalse(l.isNullable());
         }
       });
@@ -274,7 +269,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
   }
 
   // One very complicated example.
-  private static void typeConfusion(AppInfoWithSubtyping appInfo) {
+  private static void typeConfusion(AppInfo appInfo) {
     DexInspector inspector = new DexInspector(appInfo.app);
     DexEncodedMethod method =
         inspector.clazz("TestObject")
@@ -285,14 +280,12 @@ public class TypeAnalysisTest extends SmaliTestBase {
     DexType test = appInfo.dexItemFactory.createType("LTest;");
     Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices = ImmutableMap.of(
         ArrayLength.class, PRIMITIVE,
-        ConstNumber.class, PRIMITIVE,
         ConstString.class, new ClassTypeLatticeElement(appInfo.dexItemFactory.stringType, false),
         CheckCast.class, new ClassTypeLatticeElement(test, true),
         NewInstance.class, new ClassTypeLatticeElement(test, false));
     try {
       IRCode irCode = method.buildIR(TEST_OPTIONS);
       TypeAnalysis analysis = new TypeAnalysis(appInfo, method, irCode);
-      analysis.run();
       analysis.forEach((v, l) -> verifyTypeEnvironment(expectedLattices, v, l));
     } catch (ApiLevelException e) {
       fail(e.getMessage());
@@ -300,7 +293,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
   }
 
   // One more complicated example.
-  private static void typeConfusion5(AppInfoWithSubtyping appInfo) {
+  private static void typeConfusion5(AppInfo appInfo) {
     DexInspector inspector = new DexInspector(appInfo.app);
     DexEncodedMethod method =
         inspector.clazz("TestObject")
@@ -309,18 +302,20 @@ public class TypeAnalysisTest extends SmaliTestBase {
             .getMethod();
     DexType test = appInfo.dexItemFactory.createType("LTest;");
     Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices = ImmutableMap.of(
-      ConstNumber.class, PRIMITIVE,
       ConstString.class, new ClassTypeLatticeElement(appInfo.dexItemFactory.stringType, false),
       InstanceOf.class, PRIMITIVE,
       StaticGet.class, new ClassTypeLatticeElement(test, true));
     try {
       IRCode irCode = method.buildIR(TEST_OPTIONS);
       TypeAnalysis analysis = new TypeAnalysis(appInfo, method, irCode);
-      analysis.run();
       analysis.forEach((v, l) -> verifyTypeEnvironment(expectedLattices, v, l));
     } catch (ApiLevelException e) {
       fail(e.getMessage());
     }
+  }
+
+  private static void assertEither(TypeLatticeElement actual, TypeLatticeElement... expected) {
+    assertTrue(Arrays.stream(expected).anyMatch(e -> e == actual));
   }
 
   private static void verifyTypeEnvironment(
