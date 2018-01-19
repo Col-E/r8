@@ -325,19 +325,6 @@ public class LiveIntervals implements Comparable<LiveIntervals> {
     return nextOverlap(other) != -1;
   }
 
-  public boolean anySplitOverlaps(LiveIntervals other) {
-    LiveIntervals parent = getSplitParent();
-    if (parent.overlaps(other)) {
-      return true;
-    }
-    for (LiveIntervals child : parent.getSplitChildren()) {
-      if (child.overlaps(other)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   public int nextOverlap(LiveIntervals other) {
     Iterator<LiveRange> it = other.ranges.iterator();
     LiveRange otherRange = it.next();
