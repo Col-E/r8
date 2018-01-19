@@ -77,6 +77,14 @@ public abstract class DexApplication {
     return classes;
   }
 
+  public Iterable<DexProgramClass> classesWithDeterministicOrder() {
+    programClasses.forceLoad(type -> true);
+    List<DexProgramClass> classes = programClasses.getAllClasses();
+    // To keep the order deterministic, we sort the classes by their type, which is a unique key.
+    classes.sort((a, b) -> a.type.slowCompareTo(b.type));
+    return classes;
+  }
+
   public abstract DexClass definitionFor(DexType type);
 
   public DexProgramClass programDefinitionFor(DexType type) {
