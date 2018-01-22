@@ -628,7 +628,6 @@ public class CodeRewriter {
     BasicBlock nextBlock;
 
     // The marks will be used for cycle detection.
-    int color = code.reserveMarkingColor();
     do {
       nextBlock = iterator.hasNext() ? iterator.next() : null;
       if (block.isTrivialGoto()) {
@@ -657,7 +656,6 @@ public class CodeRewriter {
       } while (block != null);
       code.removeBlocks(blocksToRemove);
     }
-    code.returnMarkingColor(color);
     assert removedTrivialGotos(code);
     assert code.isConsistentGraph();
   }
