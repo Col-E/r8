@@ -251,8 +251,6 @@ public class ToolHelper {
         result.add("tools/docker/run.sh");
       } else if (isLinux()) {
         result.add("/bin/bash");
-      } else {
-        assert isWindows();
       }
       result.add(getExecutable());
       for (String option : options) {
