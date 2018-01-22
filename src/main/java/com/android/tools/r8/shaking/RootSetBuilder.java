@@ -40,6 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -396,15 +397,10 @@ public class RootSetBuilder {
     return false;
   }
 
-  private final IdentityHashMap<DexString, String> stringCache = new IdentityHashMap<>();
-  private final IdentityHashMap<DexType, String> typeCache = new IdentityHashMap<>();
+  private final ConcurrentHashMap<DexString, String> stringCache = new ConcurrentHashMap<>();
 
   public String lookupString(DexString name) {
     return stringCache.computeIfAbsent(name, DexString::toString);
-  }
-
-  public String lookupType(DexType type) {
-    return typeCache.computeIfAbsent(type, DexType::toSourceString);
   }
 
   private void markMethod(DexEncodedMethod method, Collection<ProguardMemberRule> rules,
