@@ -182,22 +182,24 @@ public class BasicBlock {
     }
   }
 
-  private void swapSuccessors(int x, int y) {
-    assert x != y;
+  public void swapSuccessorsByIndex(int index1, int index2) {
+    assert index1 != index2;
     if (hasCatchHandlers()) {
       List<Integer> targets = new ArrayList<>(catchHandlers.getAllTargets());
+      assert targets.contains(index1) == targets.contains(index2)
+          : "Swapping normal successor and catch handler";
       for (int i = 0; i < targets.size(); i++) {
-        if (targets.get(i) == x) {
-          targets.set(i, y);
-        } else if (targets.get(i) == y) {
-          targets.set(i, x);
+        if (targets.get(i) == index1) {
+          targets.set(i, index2);
+        } else if (targets.get(i) == index2) {
+          targets.set(i, index1);
         }
       }
       catchHandlers = new CatchHandlers<>(catchHandlers.getGuards(), targets);
     }
-    BasicBlock tmp = successors.get(x);
-    successors.set(x, successors.get(y));
-    successors.set(y, tmp);
+    BasicBlock tmp = successors.get(index1);
+    successors.set(index1, successors.get(index2));
+    successors.set(index2, tmp);
   }
 
   public void replaceSuccessor(BasicBlock block, BasicBlock newBlock) {
@@ -226,7 +228,7 @@ public class BasicBlock {
         if (indexOfOldBlock == successors.size() - 1 && indexOfNewBlock != successors.size() - 2) {
           // Replacing the goto target and the new block will not become the goto target.
           // We perform a swap to get the new block into the goto target position.
-          swapSuccessors(indexOfOldBlock - 1, indexOfNewBlock);
+          swapSuccessorsByIndex(indexOfOldBlock - 1, indexOfNewBlock);
         }
       } else if (exit().isIf()) {
         if (indexOfNewBlock >= successors.size() - 2 && indexOfOldBlock >= successors.size() - 2) {
@@ -243,7 +245,7 @@ public class BasicBlock {
         } else if (indexOfOldBlock >= successors.size() - 2) {
           // Old is either true or fallthrough and we need to swap the new block into the right
           // position to become that target.
-          swapSuccessors(indexOfOldBlock - 1, indexOfNewBlock);
+          swapSuccessorsByIndex(indexOfOldBlock - 1, indexOfNewBlock);
         }
       } else if (exit().isSwitch()) {
         // Rewrite fallthrough and case target indices.
@@ -290,16 +292,11 @@ public class BasicBlock {
     assert false : "replaceSuccessor did not find the predecessor to replace";
   }
 
-  public void swapSuccessorsByIndex(int index1, int index2) {
-    BasicBlock t = successors.get(index1);
-    successors.set(index1, successors.get(index2));
-    successors.set(index2, t);
-  }
-
   public void removeSuccessorsByIndex(List<Integer> successorsToRemove) {
     if (successorsToRemove.isEmpty()) {
       return;
     }
+    assert ListUtils.verifyListIsOrdered(successorsToRemove);
     List<BasicBlock> copy = new ArrayList<>(successors);
     successors.clear();
     int current = 0;
@@ -310,21 +307,36 @@ public class BasicBlock {
     successors.addAll(copy.subList(current, copy.size()));
 
     if (hasCatchHandlers()) {
+      List<Integer> currentTargets = catchHandlers.getAllTargets();
+      List<DexType> currentGuards = catchHandlers.getGuards();
       int size = catchHandlers.size();
-      List<DexType> guards = new ArrayList<>(size);
-      List<Integer> targets = new ArrayList<>(size);
-      current = 0;
-      for (int i = 0; i < catchHandlers.getAllTargets().size(); i++) {
-        if (successorsToRemove.contains(catchHandlers.getAllTargets().get(i))) {
-          guards.addAll(catchHandlers.getGuards().subList(current, i));
-          targets.addAll(catchHandlers.getAllTargets().subList(current, i));
-          current = i + 1;
+      List<DexType> newGuards = new ArrayList<>(size);
+      List<Integer> newTargets = new ArrayList<>(size);
+
+      // Since targets represent indices in the list of successors, we
+      // need to remove targets/indices included in successorsToRemove,
+      // and decrease the rest of targets/indices to reflect removed successors.
+      outer:
+      for (int i = 0; i < currentTargets.size(); i++) {
+        int index = currentTargets.get(i);
+        int decreaseBy = 0;
+        for (int removedIndex : successorsToRemove) {
+          if (index == removedIndex) {
+            continue outer; // target was removed
+          }
+          if (index < removedIndex) {
+            break;
+          }
+          decreaseBy++;
         }
+        newTargets.add(index - decreaseBy);
+        newGuards.add(currentGuards.get(i));
       }
-      if (guards.isEmpty()) {
+
+      if (newTargets.isEmpty()) {
         catchHandlers = CatchHandlers.EMPTY_INDICES;
       } else {
-        catchHandlers = new CatchHandlers<>(guards, targets);
+        catchHandlers = new CatchHandlers<>(newGuards, newTargets);
       }
     }
   }
@@ -1372,7 +1384,7 @@ public class BasicBlock {
     ArrayDeque<BasicBlock> blocks = new ArrayDeque<>();
     blocks.push(this);
 
-    while(!blocks.isEmpty()) {
+    while (!blocks.isEmpty()) {
       BasicBlock block = blocks.pop();
       if (block == target) {
         return true;

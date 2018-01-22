@@ -18,4 +18,13 @@ public class ListUtils {
     }
     return result;
   }
+
+  public static <T extends Comparable<T>> boolean verifyListIsOrdered(List<T> list) {
+    for (int i = list.size() - 1; i > 0; i--) {
+      if (list.get(i).compareTo(list.get(i - 1)) < 0) {
+        return false;
+      }
+    }
+    return true;
+  }
 }
