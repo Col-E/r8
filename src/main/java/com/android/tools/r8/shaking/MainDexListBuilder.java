@@ -163,11 +163,37 @@ public class MainDexListBuilder {
   private void traceMethodDirectDependencies(DexMethod method) {
     DexProto proto = method.proto;
     addMainDexType(proto.returnType);
-    Collections.addAll(mainDexTypes, proto.parameters.values);
+    for (DexType parameterType : proto.parameters.values) {
+      addMainDexType(parameterType);
+    }
   }
 
   private void addMainDexType(DexType type) {
-    mainDexTypes.add(type);
+    // Consider only component type of arrays
+    type = type.toBaseType(appInfo.dexItemFactory);
+
+    if (!type.isClassType()) {
+      return;
+    }
+
+    DexClass clazz = appInfo.definitionFor(type);
+    if (clazz == null) {
+      // Happens for library classes.
+      return;
+    }
+    addMainDexType(clazz);
+  }
+
+  private void addMainDexType(DexClass dexClass) {
+    DexType type = dexClass.type;
+    if (mainDexTypes.add(type)) {
+      if (dexClass.superType != null) {
+        addMainDexType(dexClass.superType);
+      }
+      for (DexType interfaze : dexClass.interfaces.values) {
+        addMainDexType(interfaze);
+      }
+    }
   }
 
   private class DirectReferencesCollector extends UseRegistry {
