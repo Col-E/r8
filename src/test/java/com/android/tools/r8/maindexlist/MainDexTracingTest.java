@@ -94,6 +94,46 @@ public class MainDexTracingTest {
         AndroidApiLevel.I.getLevel());
   }
 
+  @Test
+  public void traceMainDexList005_1() throws Throwable {
+    doTest5(1);
+  }
+
+  @Test
+  public void traceMainDexList005_2() throws Throwable {
+    doTest5(2);
+  }
+
+  @Test
+  public void traceMainDexList005_3() throws Throwable {
+    doTest5(3);
+  }
+
+  @Test
+  public void traceMainDexList005_4() throws Throwable {
+    doTest5(4);
+  }
+
+  @Test
+  public void traceMainDexList005_5() throws Throwable {
+    doTest5(5);
+  }
+
+  @Test
+  public void traceMainDexList005_6() throws Throwable {
+    doTest5(6);
+  }
+
+  private void doTest5(int variant) throws Throwable {
+    doTest(
+        "traceMainDexList003",
+        "multidex005",
+        EXAMPLE_BUILD_DIR,
+        Paths.get(EXAMPLE_SRC_DIR, "multidex005", "main-dex-rules-" + variant + ".txt"),
+        Paths.get(EXAMPLE_SRC_DIR, "multidex005", "ref-list-" + variant + ".txt"),
+        AndroidApiLevel.I.getLevel());
+  }
+
   private void doTest(
       String testName,
       String packageName,
