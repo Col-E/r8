@@ -7,8 +7,6 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.analysis.type.ArrayTypeLatticeElement;
-import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -59,10 +57,10 @@ public class TypeVerificationHelper {
       join = TypeLatticeElement.join(appInfo, join, getLatticeElement(iterator.next()));
     }
     // All types are reference types so the join is either a class or an array.
-    if (join instanceof ClassTypeLatticeElement) {
-      return ((ClassTypeLatticeElement) join).getClassType();
-    } else if (join instanceof ArrayTypeLatticeElement) {
-      return ((ArrayTypeLatticeElement) join).getArrayType();
+    if (join.isClassTypeLatticeElement()) {
+      return join.asClassTypeLatticeElement().getClassType();
+    } else if (join.isArrayTypeLatticeElement()) {
+      return join.asArrayTypeLatticeElement().getArrayType();
     }
     throw new CompilationError("Unexpected join " + join + " of types: " +
         String.join(", ",

@@ -16,7 +16,6 @@ import com.android.tools.r8.code.SgetWide;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
@@ -142,7 +141,7 @@ public class StaticGet extends FieldInstruction {
 
   @Override
   public TypeLatticeElement evaluate(
-      AppInfoWithSubtyping appInfo, Function<Value, TypeLatticeElement> getLatticeElement) {
+      AppInfo appInfo, Function<Value, TypeLatticeElement> getLatticeElement) {
     return TypeLatticeElement.fromDexType(field.type, true);
   }
 }

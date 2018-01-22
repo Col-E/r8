@@ -22,6 +22,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.analysis.constant.SparseConditionalConstantPropagation;
+import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
@@ -554,11 +555,15 @@ public class IRConverter {
     if (options.disableAssertions) {
       codeRewriter.disableAssertions(code);
     }
+    TypeAnalysis typeAnalysis = new TypeAnalysis(appInfo, method, code);
     if (options.inlineAccessors && inliner != null) {
       // TODO(zerny): Should we support inlining in debug mode? b/62937285
       assert !options.debug;
-      inliner.performInlining(method, code, isProcessedConcurrently, callSiteInformation);
+      inliner.performInlining(
+          method, code, typeAnalysis, isProcessedConcurrently, callSiteInformation);
     }
+    // TODO(b/69962188): MethodDevirtualizer can perform optimizations using type analysis.
+    // TODO(b/71794895): CodeRewriter can remove unnecessary cast using type analysis.
     codeRewriter.removeCastChains(code);
     codeRewriter.rewriteLongCompareAndRequireNonNull(code, options);
     codeRewriter.commonSubexpressionElimination(code);
