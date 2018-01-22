@@ -30,7 +30,6 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -553,34 +552,28 @@ public class BasicBlock {
     assert successors.contains(successor);
     assert successor.predecessors.contains(this);
     List<BasicBlock> removedBlocks = new ArrayList<>();
-    TreeSet<Pair> worklist = new TreeSet<>();
-    worklist.add(new Pair(this, successor));
-    while (!worklist.isEmpty()) {
-      Pair pair = worklist.pollFirst();
-      BasicBlock pred = pair.first;
-      BasicBlock succ = pair.second;
-      assert pred.successors.contains(succ);
-      assert succ.predecessors.contains(pred);
-      int size = pred.successors.size();
-      pred.removeSuccessor(succ);
-      assert size == pred.successors.size() + 1;
-      size = succ.predecessors.size();
-      succ.removePredecessor(pred);
-      assert size == succ.predecessors.size() + 1;
-      // A predecessor has been removed. If all remaining predecessors are dominated by this block
-      // schedule it for removal, as it is no longer reachable.
-      if (allPredecessorsDominated(succ, dominator)) {
-        removedBlocks.add(succ);
-        for (BasicBlock block : succ.successors) {
-          worklist.add(new Pair(succ, block));
+    for (BasicBlock dominated : dominator.dominatedBlocks(successor)) {
+      removedBlocks.add(dominated);
+      for (BasicBlock block : dominated.successors) {
+        block.removePredecessor(dominated);
+      }
+      dominated.successors.clear();
+      for (BasicBlock block : dominated.predecessors) {
+        block.removeSuccessor(dominated);
+      }
+      dominated.predecessors.clear();
+      for (Phi phi : dominated.getPhis()) {
+        for (Value operand : phi.getOperands()) {
+          operand.removePhiUser(phi);
         }
-        for (Instruction instruction : succ.getInstructions()) {
-          for (Value value : instruction.inValues) {
-            value.removeUser(instruction);
-          }
-          for (Value value : instruction.getDebugValues()) {
-            value.removeDebugUser(instruction);
-          }
+      }
+      dominated.getPhis().clear();
+      for (Instruction instruction : dominated.getInstructions()) {
+        for (Value value : instruction.inValues) {
+          value.removeUser(instruction);
+        }
+        for (Value value : instruction.getDebugValues()) {
+          value.removeDebugUser(instruction);
         }
       }
     }
