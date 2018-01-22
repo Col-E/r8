@@ -156,7 +156,6 @@ public class CompatProguard {
 
   private static void run(String[] args)
       throws IOException, CompilationException, CompilationFailedException {
-    System.out.println("CompatProguard " + String.join(" ", args));
     // Run R8 passing all the options from the command line as a Proguard configuration.
     CompatProguardOptions options = CompatProguardOptions.parse(args);
     if (options.printHelpAndExit || options.output == null) {
