@@ -108,7 +108,7 @@ public class GenerateMainDexList {
       return;
     }
     List<String> result = run(command);
-    if (command.getMainDexListOutputPath() == null) {
+    if (command.getMainDexListConsumer() == null) {
       result.forEach(System.out::println);
     }
   }

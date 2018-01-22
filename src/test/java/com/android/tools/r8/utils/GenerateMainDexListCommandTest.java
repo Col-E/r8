@@ -9,6 +9,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.GenerateMainDexListCommand;
+import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.ToolHelper;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -32,6 +33,14 @@ public class GenerateMainDexListCommandTest {
   @Rule
   public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
+  private Path getOutputPath(GenerateMainDexListCommand command) {
+    StringConsumer consumer = command.getMainDexListConsumer();
+    if (consumer instanceof StringConsumer.FileConsumer) {
+      return ((StringConsumer.FileConsumer) consumer).getOutputPath();
+    }
+    return null;
+  }
+
   @Test
   public void emptyCommand() throws Throwable {
     verifyEmptyCommand(GenerateMainDexListCommand.builder().build());
@@ -51,6 +60,7 @@ public class GenerateMainDexListCommandTest {
   }
 
   private void addAndroidJarsToCommandLine(List<String> args) {
+    args.add("--lib");
     args.add(ToolHelper.getAndroidJar(AndroidApiLevel.K.getLevel()).toAbsolutePath().toString());
   }
 
@@ -97,18 +107,19 @@ public class GenerateMainDexListCommandTest {
     Path nonExistingFile = temp.getRoot().toPath().resolve("non_existing_output");
     assertEquals(
         existingFile,
-        GenerateMainDexListCommand.builder().setMainDexListOutputPath(existingFile).build()
-            .getMainDexListOutputPath());
+        getOutputPath(
+            GenerateMainDexListCommand.builder().setMainDexListOutputPath(existingFile).build()));
     assertEquals(
         nonExistingFile,
-        GenerateMainDexListCommand.builder().setMainDexListOutputPath(nonExistingFile).build()
-            .getMainDexListOutputPath());
+        getOutputPath(
+            GenerateMainDexListCommand.builder()
+                .setMainDexListOutputPath(nonExistingFile).build()));
     assertEquals(
         existingFile,
-        parse("--main-dex-list-output", existingFile.toString()).getMainDexListOutputPath());
+        getOutputPath(parse("--main-dex-list-output", existingFile.toString())));
     assertEquals(
         nonExistingFile,
-        parse("--main-dex-list-output", nonExistingFile.toString()).getMainDexListOutputPath());
+        getOutputPath(parse("--main-dex-list-output", nonExistingFile.toString())));
   }
 
   @Test
@@ -117,13 +128,13 @@ public class GenerateMainDexListCommandTest {
         temp.getRoot().toPath().resolve("a/path/that/does/not/exist");
     assertEquals(
         nonExistingFileInNonExistingDir,
-        GenerateMainDexListCommand.builder()
-            .setMainDexListOutputPath(nonExistingFileInNonExistingDir).build()
-            .getMainDexListOutputPath());
+        getOutputPath(
+            GenerateMainDexListCommand.builder()
+                .setMainDexListOutputPath(nonExistingFileInNonExistingDir).build()));
     assertEquals(
         nonExistingFileInNonExistingDir,
-        parse("--main-dex-list-output",
-            nonExistingFileInNonExistingDir.toString()).getMainDexListOutputPath());
+        getOutputPath(
+            parse("--main-dex-list-output", nonExistingFileInNonExistingDir.toString())));
   }
 
   @Test
