@@ -1709,8 +1709,7 @@ public class CodeRewriter {
         // First rewrite zero comparison.
         rewriteIfWithConstZero(block);
 
-        DominatorTree dominatorTree = new DominatorTree(code);
-        if (simplifyKnownBooleanCondition(code, dominatorTree, block, color)) {
+        if (simplifyKnownBooleanCondition(code, block, color)) {
           continue;
         }
 
@@ -1756,7 +1755,7 @@ public class CodeRewriter {
         BasicBlock target = theIf.targetFromCondition(cond);
         BasicBlock deadTarget =
             target == theIf.getTrueTarget() ? theIf.fallthroughBlock() : theIf.getTrueTarget();
-        rewriteIfToGoto(dominatorTree, block, theIf, target, deadTarget, color);
+        rewriteIfToGoto(code, block, theIf, target, deadTarget, color);
       }
     }
     code.removeMarkedBlocks(color);
@@ -1795,8 +1794,7 @@ public class CodeRewriter {
    * which can be replaced by a fallthrough and the phi value can be replaced
    * by an xor instruction which is smaller.
    */
-  private boolean simplifyKnownBooleanCondition(IRCode code,
-      DominatorTree dominatorTree, BasicBlock block, int color) {
+  private boolean simplifyKnownBooleanCondition(IRCode code, BasicBlock block, int color) {
     If theIf = block.exit().asIf();
     Value testValue = theIf.inValues().get(0);
     if (theIf.isZeroTest() && testValue.knownToBeBoolean()) {
@@ -1858,7 +1856,7 @@ public class CodeRewriter {
           // If all phis were removed, there is no need for the diamond shape anymore
           // and it can be rewritten to a goto to one of the branches.
           if (deadPhis == targetBlock.getPhis().size()) {
-            rewriteIfToGoto(dominatorTree, block, theIf, trueBlock, falseBlock, color);
+            rewriteIfToGoto(code, block, theIf, trueBlock, falseBlock, color);
             return true;
           }
         }
@@ -1900,8 +1898,9 @@ public class CodeRewriter {
     return false;
   }
 
-  private void rewriteIfToGoto(DominatorTree dominatorTree, BasicBlock block,
+  private void rewriteIfToGoto(IRCode code, BasicBlock block,
       If theIf, BasicBlock target, BasicBlock deadTarget, int color) {
+    DominatorTree dominatorTree = new DominatorTree(code);
     List<BasicBlock> removedBlocks = block.unlink(deadTarget, dominatorTree);
     for (BasicBlock removedBlock : removedBlocks) {
       if (!removedBlock.isMarked(color)) {
