@@ -504,7 +504,8 @@ public class Enqueuer {
       Diagnostic message = new StringDiagnostic("Library class " + context.toSourceString()
           + (holder.isInterface() ? " implements " : " extends ")
           + "program class " + type.toSourceString());
-      if (options.forceProguardCompatibility) {
+      if (options.forceProguardCompatibility
+          || options.allowLibraryClassesToExtendProgramClasses) {
         options.reporter.warning(message);
       } else {
         options.reporter.error(message);

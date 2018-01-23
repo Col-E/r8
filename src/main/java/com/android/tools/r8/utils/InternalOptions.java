@@ -169,6 +169,10 @@ public class InternalOptions {
   public boolean disableAssertions = true;
   public boolean debugKeepRules = false;
 
+  // TODO(72312389): android.jar contains parts of JUnit and most developers include JUnit in
+  // their programs, which can lead to library classes extending program classes.
+  public boolean allowLibraryClassesToExtendProgramClasses = false;
+
   public boolean debug = false;
   public final TestingOptions testing = new TestingOptions();
 

@@ -197,6 +197,7 @@ public class GenerateMainDexListCommand extends BaseCommand {
     internal.minimalMainDex = internal.debug;
     internal.removeSwitchMaps = false;
     internal.inlineAccessors = false;
+    internal.allowLibraryClassesToExtendProgramClasses = true;
     return internal;
   }
 }
