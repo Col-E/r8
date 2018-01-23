@@ -28,19 +28,11 @@ public class GenerateMainDexListCommand extends BaseCommand {
   private final StringConsumer mainDexListConsumer;
   private final DexItemFactory factory;
 
-  /** Get the output path for the main-dex list. Null if not set. */
-  @Deprecated
-  public Path getMainDexListOutputPath() {
-    return mainDexListConsumer instanceof StringConsumer.FileConsumer
-        ? ((StringConsumer.FileConsumer) mainDexListConsumer).getOutputPath()
-        : null;
-  }
-
   public static class Builder extends BaseCommand.Builder<GenerateMainDexListCommand, Builder> {
 
     private final DexItemFactory factory = new DexItemFactory();
     private final List<ProguardConfigurationSource> mainDexRules = new ArrayList<>();
-    private Path mainDexListOutput = null;
+    private StringConsumer mainDexListConsumer = null;
 
     @Override
     GenerateMainDexListCommand.Builder self() {
@@ -81,22 +73,20 @@ public class GenerateMainDexListCommand extends BaseCommand {
     }
 
     /**
-     * Get the output path for the main-dex list. Null if not set.
-     */
-    public Path getMainDexListOutputPath() {
-      return mainDexListOutput;
-    }
-
-    /**
      * Set the output file for the main-dex list.
      *
      * If the file exists it will be overwritten.
      */
     public GenerateMainDexListCommand.Builder setMainDexListOutputPath(Path mainDexListOutputPath) {
-      mainDexListOutput = mainDexListOutputPath;
+      mainDexListConsumer = new StringConsumer.FileConsumer(mainDexListOutputPath);
       return self();
     }
 
+    public GenerateMainDexListCommand.Builder setMainDexListConsumer(
+        StringConsumer mainDexListConsumer) {
+      this.mainDexListConsumer = mainDexListConsumer;
+      return self();
+    }
 
     @Override
     protected GenerateMainDexListCommand makeCommand() {
@@ -115,9 +105,6 @@ public class GenerateMainDexListCommand extends BaseCommand {
         mainDexKeepRules = parser.getConfig().getRules();
       }
 
-      StringConsumer mainDexListConsumer =
-          mainDexListOutput != null ? new StringConsumer.FileConsumer(mainDexListOutput) : null;
-
       return new GenerateMainDexListCommand(
           factory, getAppBuilder().build(), mainDexKeepRules, mainDexListConsumer);
     }
@@ -127,6 +114,7 @@ public class GenerateMainDexListCommand extends BaseCommand {
       "Usage: maindex [options] <input-files>",
       " where <input-files> are JAR files",
       " and options are:",
+      "  --lib <file>             # Add <file> as a library resource.",
       "  --main-dex-rules <file>  # Proguard keep rules for classes to place in the",
       "                           # primary dex file.",
       "  --main-dex-list <file>   # List of classes to place in the primary dex file.",
@@ -145,6 +133,10 @@ public class GenerateMainDexListCommand extends BaseCommand {
     return builder;
   }
 
+  public StringConsumer getMainDexListConsumer() {
+    return mainDexListConsumer;
+  }
+
   private static void parse(String[] args, GenerateMainDexListCommand.Builder builder) {
     for (int i = 0; i < args.length; i++) {
       String arg = args[i].trim();
@@ -154,6 +146,8 @@ public class GenerateMainDexListCommand extends BaseCommand {
         builder.setPrintHelp(true);
       } else if (arg.equals("--version")) {
         builder.setPrintVersion(true);
+      } else if (arg.equals("--lib")) {
+        builder.addLibraryFiles(Paths.get(args[++i]));
       } else if (arg.equals("--main-dex-rules")) {
         builder.addMainDexRulesFiles(Paths.get(args[++i]));
       } else if (arg.equals("--main-dex-list")) {

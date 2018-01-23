@@ -167,24 +167,42 @@ public class MainDexTracingTest {
 
     Path inputJar = Paths.get(buildDir, packageName + JAR_EXTENSION);
     try {
-      // Build main-dex list using GenerateMainDexList.
+      // Build main-dex list using GenerateMainDexList and test the output from run.
       GenerateMainDexListCommand.Builder mdlCommandBuilder = GenerateMainDexListCommand.builder();
-      GenerateMainDexListCommand command2 = mdlCommandBuilder
+      GenerateMainDexListCommand mdlCommand = mdlCommandBuilder
           .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.K.getLevel()))
           .addProgramFiles(inputJar)
           .addProgramFiles(Paths.get(EXAMPLE_BUILD_DIR, "multidexfakeframeworks" + JAR_EXTENSION))
           .addMainDexRulesFiles(mainDexRules)
           .build();
       List<String> mainDexGeneratorMainDexList =
-          GenerateMainDexList.run(command2).stream()
+          GenerateMainDexList.run(mdlCommand).stream()
+              .map(this::mainDexStringToDescriptor)
+              .sorted()
+              .collect(Collectors.toList());
+
+      class Box {
+        String content;
+      }
+
+      // Build main-dex list using GenerateMainDexList and test the output from a consumer.
+      final Box mainDexListOutput = new Box();
+      mdlCommandBuilder = GenerateMainDexListCommand.builder();
+      mdlCommand = mdlCommandBuilder
+          .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.K.getLevel()))
+          .addProgramFiles(inputJar)
+          .addProgramFiles(Paths.get(EXAMPLE_BUILD_DIR, "multidexfakeframeworks" + JAR_EXTENSION))
+          .addMainDexRulesFiles(mainDexRules)
+          .setMainDexListConsumer((string, handler) -> mainDexListOutput.content = string)
+          .build();
+      GenerateMainDexList.run(mdlCommand);
+      List<String> mainDexGeneratorMainDexListFromConsumer =
+          StringUtils.splitLines(mainDexListOutput.content).stream()
               .map(this::mainDexStringToDescriptor)
               .sorted()
               .collect(Collectors.toList());
 
       // Build main-dex list using R8.
-      class Box {
-        String content;
-      }
       final Box r8MainDexListOutput = new Box();
       R8Command.Builder r8CommandBuilder = R8Command.builder();
       R8Command command =
@@ -215,6 +233,8 @@ public class MainDexTracingTest {
         // The main dex list generator does not do any lambda desugaring.
         if (!isLambda(reference)) {
           checkSameMainDexEntry(reference, mainDexGeneratorMainDexList.get(i - nonLambdaOffset));
+          checkSameMainDexEntry(
+              reference, mainDexGeneratorMainDexListFromConsumer.get(i - nonLambdaOffset));
         } else {
           nonLambdaOffset++;
         }
