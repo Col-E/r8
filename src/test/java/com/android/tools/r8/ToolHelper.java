@@ -355,7 +355,7 @@ public class ToolHelper {
 
     @Override
     protected String getExecutable() {
-      return DX;
+      return DX.toAbsolutePath().toString();
     }
   }
 
@@ -435,7 +435,7 @@ public class ToolHelper {
   }
 
   private static final String LIB_PATH = TOOLS + "/linux/art/lib";
-  private static final String DX = getDxExecutablePath();
+  private static final Path DX = getDxExecutablePath();
   private static final String DEX2OAT = TOOLS + "/linux/art/bin/dex2oat";
   private static final String ANGLER_DIR = TOOLS + "/linux/art/product/angler";
   private static final String ANGLER_BOOT_IMAGE = ANGLER_DIR + "/system/framework/boot.art";
@@ -464,10 +464,10 @@ public class ToolHelper {
     }
   }
 
-  private static String getDxExecutablePath() {
+  private static Path getDxExecutablePath() {
     String toolsDir = toolsDir();
     String executableName = toolsDir.equals("windows") ? "dx.bat" : "dx";
-    return TOOLS + "/" + toolsDir() + "/dx/bin/" + executableName;
+    return Paths.get(TOOLS, toolsDir(), "dx", "bin", executableName);
   }
 
   public static String getArtBinary(DexVm version) {
@@ -823,13 +823,21 @@ public class ToolHelper {
     return result != 0 ? null : builderFromProgramDirectory(Paths.get(outDir)).build();
   }
 
-  public static ProcessResult runDX(String[] args) throws IOException {
+  public static ProcessResult runDX(String... args) throws IOException {
+    return runDX(null, args);
+  }
+
+  public static ProcessResult runDX(Path workingDirectory, String... args) throws IOException {
     Assume.assumeTrue(ToolHelper.artSupported());
     DXCommandBuilder builder = new DXCommandBuilder();
     for (String arg : args) {
       builder.appendProgramArgument(arg);
     }
-    return runProcess(builder.asProcessBuilder());
+    ProcessBuilder pb = builder.asProcessBuilder();
+    if (workingDirectory != null) {
+      pb.directory(workingDirectory.toFile());
+    }
+    return runProcess(pb);
   }
 
   public static ProcessResult runJava(Class clazz) throws Exception {

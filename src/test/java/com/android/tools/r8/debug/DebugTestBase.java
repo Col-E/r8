@@ -149,12 +149,12 @@ public abstract class DebugTestBase {
   }
 
   /**
-   *  Lazily debug-step an execution starting from main(String[]) in {@code debuggeeClass}.
+   * Lazily debug-step an execution starting from main(String[]) in {@code debuggeeClass}.
    *
-   *  @return A stream of successive debuggee states.
-   *  */
+   * @return A stream of successive debuggee states.
+   */
   public Stream<JUnit3Wrapper.DebuggeeState> streamDebugTest(
-      DebugTestConfig config, String debuggeeClass, StepFilter filter) throws Throwable {
+      DebugTestConfig config, String debuggeeClass, StepFilter filter) throws Exception {
     return streamDebugTest(
         config,
         debuggeeClass,
@@ -172,7 +172,7 @@ public abstract class DebugTestBase {
       String debuggeeClass,
       JUnit3Wrapper.Command breakpoint,
       StepFilter filter)
-      throws Throwable {
+      throws Exception {
     assert breakpoint instanceof JUnit3Wrapper.Command.BreakpointCommand;
 
     // Continuous single-step command.
