@@ -220,7 +220,8 @@ public abstract class R8RunArtTestsTest {
       "080-oom-fragmentation",
       "159-app-image-fields",
       "163-app-image-methods",
-      "061-out-of-memory"
+      "061-out-of-memory",
+      "617-clinit-oome"
   );
 
   // Tests that may produce different output on consecutive runs or when processed or not.
@@ -454,8 +455,7 @@ public abstract class R8RunArtTestsTest {
       "201-built-in-except-detail-messages",
 
       // Fails on non-R8/D8 run
-      "031-class-attributes",
-      "617-clinit-oome"
+      "031-class-attributes"
   );
 
   private static Map<DexVm.Version, List<String>> expectedToFailRunWithArtVersion = ImmutableMap.of(
