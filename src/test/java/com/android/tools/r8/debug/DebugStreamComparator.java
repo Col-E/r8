@@ -8,30 +8,65 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.DebuggeeState;
+import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.FrameInspector;
+import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.Pair;
+import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.StringUtils.BraceType;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.harmony.jpda.tests.framework.jdwp.Frame.Variable;
 
 public class DebugStreamComparator {
+
+  public static class PrintOptions {
+    boolean printStates = false;
+    boolean printClass = false;
+    boolean printMethod = false;
+    boolean printVariables = false;
+    boolean printStack = false;
+
+    public static PrintOptions printAll() {
+      PrintOptions options = new PrintOptions();
+      options.printStates = true;
+      options.printClass = true;
+      options.printMethod = true;
+      options.printVariables = true;
+      options.printStack = true;
+      return options;
+    }
+  }
+
   private boolean verifyLines = true;
   private boolean verifyFiles = true;
   private boolean verifyMethods = true;
   private boolean verifyClasses = true;
   private boolean verifyVariables = true;
+  private boolean verifyStack = false;
+
+  private Predicate<DebuggeeState> filter = s -> true;
 
   private final List<String> names = new ArrayList<>();
   private final List<Stream<DebuggeeState>> streams = new ArrayList<>();
 
+  private final PrintOptions printOptions = new PrintOptions();
+  private final PrintOptions errorPrintOptions = PrintOptions.printAll();
+
   public DebugStreamComparator add(String name, Stream<DebuggeeState> stream) {
     names.add(name);
     streams.add(stream);
+    return this;
+  }
+
+  public DebugStreamComparator setFilter(Predicate<DebuggeeState> filter) {
+    this.filter = filter;
     return this;
   }
 
@@ -60,7 +95,51 @@ public class DebugStreamComparator {
     return this;
   }
 
+  public DebugStreamComparator setVerifyStack(boolean verifyStack) {
+    this.verifyStack = verifyStack;
+    return this;
+  }
+
+  public DebugStreamComparator setPrintStates(boolean printStates) {
+    printOptions.printStates = printStates;
+    return this;
+  }
+
+  public DebugStreamComparator setPrintClass(boolean printClass) {
+    printOptions.printClass = printClass;
+    return this;
+  }
+
+  public DebugStreamComparator setPrintMethod(boolean printMethod) {
+    printOptions.printMethod = printMethod;
+    return this;
+  }
+
+  public DebugStreamComparator setPrintStack(boolean printStack) {
+    printOptions.printStack = printStack;
+    return this;
+  }
+
+  public DebugStreamComparator setPrintVariables(boolean printVariables) {
+    printOptions.printVariables = printVariables;
+    return this;
+  }
+
+  public void run() {
+    if (streams.size() != 1) {
+      throw new RuntimeException("Expected single stream to run");
+    }
+    internal();
+  }
+
   public void compare() {
+    if (streams.size() < 2) {
+      throw new RuntimeException("Expected multiple streams to compare");
+    }
+    internal();
+  }
+
+  private void internal() {
     List<Iterator<DebuggeeState>> iterators =
         streams.stream().map(Stream::iterator).collect(Collectors.toList());
     while (true) {
@@ -80,27 +159,66 @@ public class DebugStreamComparator {
               states.stream().allMatch(Objects::isNull));
           return;
         } else {
-          verifyStatesEqual(states);
+          if (filter.test(states.get(0))) {
+            verifyStatesEqual(states);
+            if (printOptions.printStates) {
+              System.out.println(prettyPrintState(states.get(0), printOptions));
+            }
+          }
         }
       } catch (AssertionError e) {
         for (int i = 0; i < names.size(); i++) {
-          System.err.println(names.get(i) + ": " + prettyPrintState(states.get(i)));
+          System.err.println(
+              names.get(i) + ":\n" + prettyPrintState(states.get(i), errorPrintOptions));
         }
         throw e;
       }
     }
   }
 
-  public static String prettyPrintState(DebuggeeState state) {
-    StringBuilder builder = new StringBuilder()
-        .append(state.getSourceFile())
-        .append(':')
-        .append(state.getLineNumber())
-        .append(' ')
-        .append(state.getClassName())
-        .append('.')
-        .append(state.getMethodName())
-        .append(state.getMethodSignature());
+  public static String prettyPrintState(DebuggeeState state, PrintOptions options) {
+    StringBuilder builder = new StringBuilder();
+    if (!options.printStack) {
+      builder.append(prettyPrintFrame(state, options));
+    } else {
+      for (int i = 0; i < state.getFrameDepth(); i++) {
+        builder.append("f").append(i).append(": ");
+        builder.append(prettyPrintFrame(state.getFrame(i), options));
+        builder.append('\n');
+      }
+    }
+    return builder.toString();
+  }
+
+  public static String prettyPrintFrame(FrameInspector frame, PrintOptions options) {
+    StringBuilder builder =
+        new StringBuilder()
+            .append(frame.getSourceFile())
+            .append(':')
+            .append(frame.getLineNumber())
+            .append(' ');
+    if (options.printClass) {
+      builder.append("\n    class:  ").append(frame.getClassName());
+    }
+    if (options.printMethod) {
+      builder
+          .append("\n    method: ")
+          .append(frame.getMethodName())
+          .append(frame.getMethodSignature());
+    }
+    if (options.printVariables) {
+      builder.append(prettyPrintVariables(frame.getVisibleVariables(), options));
+    }
+    return builder.toString();
+  }
+
+  public static String prettyPrintVariables(List<Variable> variables, PrintOptions options) {
+    StringBuilder builder = new StringBuilder("\n    locals: ");
+    StringUtils.append(
+        builder,
+        ListUtils.map(variables, v -> v.getName() + ':' + v.getSignature()),
+        ", ",
+        BraceType.NONE);
     return builder.toString();
   }
 
@@ -112,6 +230,7 @@ public class DebugStreamComparator {
     String method = reference.getMethodName();
     String sig = reference.getMethodSignature();
     List<Variable> variables = reference.getVisibleVariables();
+    int frameDepth = reference.getFrameDepth();
     for (int i = 1; i < states.size(); i++) {
       DebuggeeState state = states.get(i);
       if (verifyFiles) {
@@ -130,6 +249,15 @@ public class DebugStreamComparator {
       if (verifyVariables) {
         verifyVariablesEqual(variables, state.getVisibleVariables());
       }
+      if (verifyStack) {
+        assertEquals(frameDepth, state.getFrameDepth());
+        for (int j = 0; j < frameDepth; j++) {
+          FrameInspector referenceInspector = reference.getFrame(j);
+          FrameInspector stateInspector = state.getFrame(j);
+          verifyVariablesEqual(
+              referenceInspector.getVisibleVariables(), stateInspector.getVisibleVariables());
+        }
+      }
     }
   }
 
@@ -138,24 +266,30 @@ public class DebugStreamComparator {
     for (Variable x : xs) {
       map.put(x.getName(), x);
     }
-    List<Variable> missing = new ArrayList<>(ys.size());
+    List<Variable> unexpected = new ArrayList<>(ys.size());
     List<Pair<Variable, Variable>> different = new ArrayList<>(Math.min(xs.size(), ys.size()));
     for (Variable y : ys) {
       Variable x = map.remove(y.getName());
       if (x == null) {
-        missing.add(y);
+        unexpected.add(y);
       } else if (!isVariableEqual(x, y)) {
         different.add(new Pair<>(x, y));
       }
     }
     StringBuilder builder = null;
-    if (!map.isEmpty() || !missing.isEmpty()) {
-      builder = new StringBuilder("Missing variables: ");
-      for (Variable variable : map.values()) {
-        builder.append(variable.getName()).append(", ");
+    if (!map.isEmpty() || !unexpected.isEmpty()) {
+      builder = new StringBuilder();
+      if (!map.isEmpty()) {
+        builder.append("Missing variables: ");
+        for (Variable variable : map.values()) {
+          builder.append(variable.getName()).append(", ");
+        }
       }
-      for (Variable variable : missing) {
-        builder.append(variable.getName()).append(", ");
+      if (!unexpected.isEmpty()) {
+        builder.append("Unexpected variables: ");
+        for (Variable variable : unexpected) {
+          builder.append(variable.getName()).append(", ");
+        }
       }
     }
     if (!different.isEmpty()) {
