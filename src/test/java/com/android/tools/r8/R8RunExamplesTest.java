@@ -70,6 +70,7 @@ public class R8RunExamplesTest extends R8RunExamplesCommon {
         "regress_70703087.Test",
         "regress_70736958.Test",
         "regress_70737019.Test",
+        "regress_72361252.Test",
         "memberrebinding2.Memberrebinding",
         "memberrebinding3.Memberrebinding",
         "minification.Minification",
