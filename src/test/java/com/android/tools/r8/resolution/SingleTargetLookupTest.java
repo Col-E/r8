@@ -15,12 +15,14 @@ import com.android.tools.r8.resolution.singletarget.Main;
 import com.android.tools.r8.resolution.singletarget.one.AbstractSubClass;
 import com.android.tools.r8.resolution.singletarget.one.AbstractTopClass;
 import com.android.tools.r8.resolution.singletarget.one.InterfaceWithDefault;
+import com.android.tools.r8.resolution.singletarget.one.IrrelevantInterfaceWithDefault;
 import com.android.tools.r8.resolution.singletarget.one.IrrelevantInterfaceWithDefaultDump;
 import com.android.tools.r8.resolution.singletarget.one.SubSubClassOne;
 import com.android.tools.r8.resolution.singletarget.one.SubSubClassThree;
 import com.android.tools.r8.resolution.singletarget.one.SubSubClassTwo;
 import com.android.tools.r8.resolution.singletarget.three.ThirdAbstractTopClass;
 import com.android.tools.r8.resolution.singletarget.three.ThirdSubClassOne;
+import com.android.tools.r8.resolution.singletarget.three.ThirdSubClassTwo;
 import com.android.tools.r8.resolution.singletarget.three.ThirdSubClassTwoDump;
 import com.android.tools.r8.resolution.singletarget.two.OtherAbstractSubClassOne;
 import com.android.tools.r8.resolution.singletarget.two.OtherAbstractSubClassTwo;
@@ -44,7 +46,9 @@ import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -83,10 +87,11 @@ public class SingleTargetLookupTest extends AsmTestBase {
   );
 
   public SingleTargetLookupTest(String methodName, Class invokeReceiver,
-      Class targetHolderOrNull) {
+      Class singleTargetHolderOrNull, List<Class> allTargetHolders) {
     this.methodName = methodName;
     this.invokeReceiver = invokeReceiver;
-    this.targetHolderOrNull = targetHolderOrNull;
+    this.singleTargetHolderOrNull = singleTargetHolderOrNull;
+    this.allTargetHolders = allTargetHolders;
   }
 
   @BeforeClass
@@ -116,30 +121,72 @@ public class SingleTargetLookupTest extends AsmTestBase {
     return Collections.singletonList(keepRuleBuilder.build());
   }
 
+  private static Object[] singleTarget(String name, Class<?> receiverAndTarget) {
+    return new Object[]{name, receiverAndTarget, receiverAndTarget,
+        Collections.singletonList(receiverAndTarget)};
+  }
+
+  private static Object[] singleTarget(String name, Class<?> receiver, Class<?> target) {
+    return new Object[]{name, receiver, target, Collections.singletonList(target)};
+  }
+
+  private static Object[] singleTargetWithAbstracts(String name, Class<?> receiver,
+      Class<?> target, Class<?>... extras) {
+    return new Object[]{name, receiver, target,
+        ImmutableList.builder().add(target).add((Object[]) extras).build()};
+  }
+
+  private static Object[] manyTargets(String name, Class<?> receiver, Class<?>... targets) {
+    return new Object[]{name, receiver, null, ImmutableList.copyOf(targets)};
+  }
+
+  private static Object[] onlyUnreachableTargets(String name, Class<?> receiver,
+      Class<?>... targets) {
+    return new Object[]{name, receiver, null, ImmutableList.copyOf(targets)};
+  }
+
   @Parameters(name = "{1}.{0} -> {2}")
   public static List<Object[]> getData() {
     return ImmutableList.copyOf(new Object[][]{
-        {"singleTargetAtTop", AbstractTopClass.class, AbstractTopClass.class},
-        {"singleShadowingOverride", AbstractTopClass.class, AbstractSubClass.class},
-        {"abstractTargetAtTop", AbstractTopClass.class, null},
-        {"overridenInAbstractClassOnly", AbstractTopClass.class, AbstractTopClass.class},
-        {"overridenInAbstractClassOnly", SubSubClassThree.class, null},
-        {"overriddenInTwoSubTypes", AbstractTopClass.class, null},
-        {"definedInTwoSubTypes", AbstractTopClass.class, null},
-        {"staticMethod", AbstractTopClass.class, null},
-        {"overriddenInTwoSubTypes", OtherAbstractTopClass.class, null},
-        {"abstractOverriddenInTwoSubTypes", OtherAbstractTopClass.class, null},
-        {"overridesOnDifferentLevels", OtherAbstractTopClass.class, null},
-        {"defaultMethod", AbstractTopClass.class, InterfaceWithDefault.class},
-        {"overriddenDefault", AbstractTopClass.class, null},
-        {"overriddenDefault", SubSubClassTwo.class, SubSubClassTwo.class},
-        {"overriddenByIrrelevantInterface", AbstractTopClass.class, AbstractTopClass.class},
-        {"overriddenByIrrelevantInterface", SubSubClassOne.class, AbstractTopClass.class},
-        {"overriddenInOtherInterface", AbstractTopClass.class, null},
-        {"overriddenInOtherInterface", SubSubClassOne.class, null},
-        {"abstractMethod", ThirdAbstractTopClass.class, null},
-        {"instanceMethod", ThirdAbstractTopClass.class, null},
-        {"otherInstanceMethod", ThirdAbstractTopClass.class, null}
+        singleTarget("singleTargetAtTop", AbstractTopClass.class),
+        singleTargetWithAbstracts("singleShadowingOverride", AbstractTopClass.class,
+            AbstractSubClass.class, AbstractTopClass.class),
+        manyTargets("abstractTargetAtTop", AbstractTopClass.class, AbstractTopClass.class,
+            SubSubClassOne.class, SubSubClassTwo.class),
+        singleTargetWithAbstracts("overridenInAbstractClassOnly", AbstractTopClass.class,
+            AbstractTopClass.class, SubSubClassThree.class),
+        onlyUnreachableTargets("overridenInAbstractClassOnly", SubSubClassThree.class,
+            SubSubClassThree.class),
+        manyTargets("overriddenInTwoSubTypes", AbstractTopClass.class, AbstractTopClass.class,
+            SubSubClassOne.class, SubSubClassTwo.class),
+        manyTargets("definedInTwoSubTypes", AbstractTopClass.class, AbstractTopClass.class,
+            SubSubClassOne.class, SubSubClassTwo.class),
+        onlyUnreachableTargets("staticMethod", AbstractTopClass.class, AbstractTopClass.class),
+        manyTargets("overriddenInTwoSubTypes", OtherAbstractTopClass.class,
+            OtherAbstractTopClass.class, OtherSubSubClassOne.class, OtherSubSubClassTwo.class),
+        manyTargets("abstractOverriddenInTwoSubTypes", OtherAbstractTopClass.class,
+            OtherAbstractTopClass.class, OtherSubSubClassOne.class, OtherSubSubClassTwo.class),
+        manyTargets("overridesOnDifferentLevels", OtherAbstractTopClass.class,
+            OtherAbstractTopClass.class, OtherSubSubClassOne.class, OtherAbstractSubClassTwo.class),
+        singleTarget("defaultMethod", AbstractTopClass.class, InterfaceWithDefault.class),
+        manyTargets("overriddenDefault", AbstractTopClass.class, InterfaceWithDefault.class,
+            SubSubClassTwo.class),
+        singleTarget("overriddenDefault", SubSubClassTwo.class),
+        singleTarget("overriddenByIrrelevantInterface", AbstractTopClass.class),
+        singleTarget("overriddenByIrrelevantInterface", SubSubClassOne.class,
+            AbstractTopClass.class),
+        manyTargets("overriddenInOtherInterface", AbstractTopClass.class,
+            InterfaceWithDefault.class,
+            IrrelevantInterfaceWithDefault.class),
+        manyTargets("overriddenInOtherInterface", SubSubClassOne.class,
+            InterfaceWithDefault.class,
+            IrrelevantInterfaceWithDefault.class),
+        manyTargets("abstractMethod", ThirdAbstractTopClass.class, ThirdAbstractTopClass.class,
+            ThirdSubClassOne.class),
+        manyTargets("instanceMethod", ThirdAbstractTopClass.class, ThirdAbstractTopClass.class,
+            ThirdSubClassTwo.class),
+        manyTargets("otherInstanceMethod", ThirdAbstractTopClass.class, ThirdAbstractTopClass.class,
+            ThirdSubClassTwo.class),
     });
   }
 
@@ -151,25 +198,38 @@ public class SingleTargetLookupTest extends AsmTestBase {
     );
   }
 
-  protected static DexType toType(Class clazz) {
+  private static DexType toType(Class clazz) {
     return appInfo.dexItemFactory
         .createType(DescriptorUtils.javaTypeToDescriptor(clazz.getCanonicalName()));
   }
 
-  public final String methodName;
-  public final Class invokeReceiver;
-  public final Class targetHolderOrNull;
+  private final String methodName;
+  private final Class invokeReceiver;
+  private final Class singleTargetHolderOrNull;
+  private final List<Class> allTargetHolders;
 
   @Test
   public void lookupSingleTarget() {
     DexMethod method = buildMethod(invokeReceiver, methodName);
     Assert.assertNotNull(appInfo.resolveMethod(toType(invokeReceiver), method).asResultOfResolve());
     DexEncodedMethod singleVirtualTarget = appInfo.lookupSingleVirtualTarget(method);
-    if (targetHolderOrNull == null) {
+    if (singleTargetHolderOrNull == null) {
       Assert.assertNull(singleVirtualTarget);
     } else {
       Assert.assertNotNull(singleVirtualTarget);
-      Assert.assertEquals(toType(targetHolderOrNull), singleVirtualTarget.method.holder);
+      Assert.assertEquals(toType(singleTargetHolderOrNull), singleVirtualTarget.method.holder);
     }
+  }
+
+  @Test
+  public void lookupVirtualTargets() {
+    DexMethod method = buildMethod(invokeReceiver, methodName);
+    Assert.assertNotNull(appInfo.resolveMethod(toType(invokeReceiver), method).asResultOfResolve());
+    Set<DexEncodedMethod> targets = appInfo.lookupVirtualTargets(method);
+    Set<DexType> targetHolders = targets.stream().map(m -> m.method.holder)
+        .collect(Collectors.toSet());
+    Assert.assertEquals(allTargetHolders.size(), targetHolders.size());
+    Assert.assertTrue(allTargetHolders.stream().map(SingleTargetLookupTest::toType)
+        .allMatch(targetHolders::contains));
   }
 }

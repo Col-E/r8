@@ -139,16 +139,6 @@ public class AppInfoWithSubtyping extends AppInfo {
     return result;
   }
 
-  private boolean holderIsAbstract(Descriptor<?, ?> desc) {
-    DexClass holder = definitionFor(desc.getHolder());
-    return holder.accessFlags.isAbstract();
-  }
-
-  private boolean holderIsInterface(Descriptor<?, ?> desc) {
-    DexClass holder = definitionFor(desc.getHolder());
-    return holder == null || holder.accessFlags.isInterface();
-  }
-
   /**
    * Lookup super method following the super chain from the holder of {@code method}.
    * <p>
