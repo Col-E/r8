@@ -51,9 +51,9 @@ public class FilteredClassPathTest {
   }
 
   private static FilteredClassPath makeFilteredClassPath(Path path, List<String> filters) {
-    // TODO(herhut): Move to stream API once updated to guava 23.
     return new FilteredClassPath(path,
-        ImmutableList.copyOf(ListUtils.map(filters, FilteredClassPathTest::adaptFileSeparator)));
+        filters.stream().map(FilteredClassPathTest::adaptFileSeparator)
+            .collect(ImmutableList.toImmutableList()));
   }
 
   @Test
