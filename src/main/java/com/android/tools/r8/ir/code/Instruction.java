@@ -231,6 +231,13 @@ public abstract class Instruction {
     block = null;
   }
 
+  /**
+   * Returns true if the instruction is in the IR and therefore has a block.
+   */
+  public boolean hasBlock() {
+    return block != null;
+  }
+
   public String getInstructionName() {
     return getClass().getSimpleName();
   }

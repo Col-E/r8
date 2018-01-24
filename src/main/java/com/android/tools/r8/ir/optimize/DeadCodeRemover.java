@@ -40,13 +40,13 @@ public class DeadCodeRemover {
 
   // Add the block from where the value originates to the worklist.
   private static void updateWorklist(Queue<BasicBlock> worklist, Value value, int color) {
-    BasicBlock block;
+    BasicBlock block = null;
     if (value.isPhi()) {
       block = value.asPhi().getBlock();
-    } else {
+    } else if (value.definition.hasBlock()) {
       block = value.definition.getBlock();
     }
-    if (!block.isMarked(color)) {
+    if (block != null && !block.isMarked(color)) {
       worklist.add(block);
     }
   }
@@ -98,7 +98,6 @@ public class DeadCodeRemover {
       assert outValue != null;
       if (!outValue.isDead(options)) {
         continue;
-
       }
       updateWorklist(worklist, current, color);
       // All users will be removed for this instruction. Eagerly clear them so further inspection
