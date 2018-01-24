@@ -166,24 +166,18 @@ public class DexType extends IndexedDexItem implements PresortedComparable<DexTy
    * it is consistent with the source language.
    */
   public void forAllExtendsSubtypes(Consumer<DexType> f) {
+    allExtendsSubtypes().forEach(f);
+  }
+
+  public Iterable<DexType> allExtendsSubtypes() {
     assert hierarchyLevel != UNKNOWN_LEVEL;
     if (hierarchyLevel == INTERFACE_LEVEL) {
-      for (DexType subtype : directSubtypes) {
-        // Other interfaces that extend this interface.
-        if (subtype.hierarchyLevel == INTERFACE_LEVEL) {
-          f.accept(subtype);
-        }
-      }
+      return Iterables.filter(directSubtypes, DexType::isInterface);
     } else if (hierarchyLevel == ROOT_LEVEL) {
       // This is the object type. Filter out interfaces
-      for (DexType subtype : directSubtypes) {
-        // Other interfaces that extend this interface.
-        if (subtype.hierarchyLevel != INTERFACE_LEVEL) {
-          f.accept(subtype);
-        }
-      }
+      return Iterables.filter(directSubtypes, t -> !t.isInterface());
     } else {
-      directSubtypes.forEach(f);
+      return directSubtypes;
     }
   }
 
