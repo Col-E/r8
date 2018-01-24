@@ -14,7 +14,7 @@ import sys
 import tarfile
 import utils
 
-GMSCORE_DEPS = '/google/data/ro/teams/gmscore-size/deps'
+GMSCORE_DEPS = '/google/data/ro/teams/r8/deps'
 
 def parse_options():
   return optparse.OptionParser().parse_args()
