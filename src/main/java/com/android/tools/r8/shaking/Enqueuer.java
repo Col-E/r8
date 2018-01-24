@@ -26,6 +26,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.KeyedDexItem;
@@ -1761,6 +1762,8 @@ public class Enqueuer {
      * For mapping invoke virtual instruction to single target method.
      */
     public DexEncodedMethod lookupSingleVirtualTarget(DexMethod method) {
+      // This implements the logic from
+      // https://docs.oracle.com/javase/specs/jvms/se9/html/jvms-6.html#jvms-6.5.invokevirtual
       assert method != null;
       DexClass holder = definitionFor(method.holder);
       if ((holder == null) || holder.isLibraryClass() || holder.isInterface()) {
@@ -1769,37 +1772,117 @@ public class Enqueuer {
       if (method.isSingleVirtualMethodCached()) {
         return method.getSingleVirtualMethodCache();
       }
-      // First add the target for receiver type method.type.
+      // For kept types we cannot ensure a single target.
+      if (pinnedItems.contains(method.holder)) {
+        method.setSingleVirtualMethodCache(null);
+        return null;
+      }
+      // First get the target for receiver type method.type.
       ResolutionResult topMethod = resolveMethod(method.holder, method);
       // We might hit none or multiple targets. Both make this fail at runtime.
       if (!topMethod.hasSingleTarget() || !topMethod.asSingleTarget().isVirtualMethod()) {
         method.setSingleVirtualMethodCache(null);
         return null;
       }
-      DexEncodedMethod result = topMethod.asSingleTarget();
-      // For kept types we cannot ensure a single target.
-      if (pinnedItems.contains(method.holder)) {
-        method.setSingleVirtualMethodCache(null);
-        return null;
-      }
-      // Search for matching target in subtype hierarchy.
-      for (DexType type : subtypes(method.holder)) {
-        if (pinnedItems.contains(type)) {
-          // For kept types we cannot ensure a single target.
-          method.setSingleVirtualMethodCache(null);
-          return null;
-        }
-        DexClass clazz = definitionFor(type);
-        // Ignore abstract classes as they cannot be a target at runtime.
-        if (!clazz.isInterface() && !clazz.accessFlags.isAbstract()) {
-          if (clazz.lookupMethod(method) != null) {
-            method.setSingleVirtualMethodCache(null);
-            return null;  // We have more than one target method.
-          }
-        }
-      }
+      DexEncodedMethod topSingleTarget = topMethod.asSingleTarget();
+      DexClass topHolder = definitionFor(topSingleTarget.method.holder);
+      // We need to know whether the top method is from an interface, as that would allow it to be
+      // shadowed by a default method from an interface further down.
+      boolean topIsFromInterface = topHolder.isInterface();
+      // Now look at all subtypes and search for overrides.
+      DexEncodedMethod result = findSingleTargetFromSubtypes(method.holder, method,
+          topSingleTarget, !holder.accessFlags.isAbstract(), topIsFromInterface);
+      // Map the failure case of SENTINEL to null.
+      result = result == DexEncodedMethod.SENTINEL ? null : result;
       method.setSingleVirtualMethodCache(result);
       return result;
+    }
+
+    /**
+     * Computes which methods overriding <code>method</code> are visible for the subtypes of type.
+     * <p>
+     * <code>candidate</code> is the definition further up the hierarchy that is visible from the
+     * subtypes. If <code>candidateIsReachable</code> is true, the provided candidate is already a
+     * target for a type further up the chain, so anything found in subtypes is a conflict. If it is
+     * false, the target exists but is not reachable from a live type.
+     * <p>
+     * Returns <code>null</code> if the given type has no subtypes or all subtypes are abstract.
+     * Returns {@link DexEncodedMethod#SENTINEL} if multiple live overrides were found. Returns the
+     * single virtual target otherwise.
+     */
+    private DexEncodedMethod findSingleTargetFromSubtypes(DexType type, DexMethod method,
+        DexEncodedMethod candidate,
+        boolean candidateIsReachable, boolean checkForInterfaceConflicts) {
+      // If the candidate is reachable, we already have a previous result.
+      DexEncodedMethod result = candidateIsReachable ? candidate : null;
+      if (pinnedItems.contains(type)) {
+        // For kept types we do not know all subtypes, so abort.
+        return DexEncodedMethod.SENTINEL;
+      }
+      for (DexType subtype : type.allExtendsSubtypes()) {
+        DexClass clazz = definitionFor(subtype);
+        DexEncodedMethod target = clazz.lookupMethod(method);
+        if (target != null) {
+          // We found a method on this class. If this class is not abstract it is a runtime
+          // reachable override and hence a conflict.
+          if (!clazz.accessFlags.isAbstract()) {
+            if (result != null && result != target) {
+              // We found a new target on this subtype that does not match the previous one. Fail.
+              return DexEncodedMethod.SENTINEL;
+            }
+            // Add the first or matching target.
+            result = target;
+          }
+        }
+        if (checkForInterfaceConflicts) {
+          // We have to check whether there are any default methods in implemented interfaces.
+          if (interfacesMayHaveDefaultFor(clazz.interfaces, method)) {
+            return DexEncodedMethod.SENTINEL;
+          }
+        }
+        DexEncodedMethod newCandidate = target == null ? candidate : target;
+        // If we have a new target and did not fail, it is not an override of a reachable method.
+        // Whether the target is actually reachable depends on whether this class is abstract.
+        // If we did not find a new target, the candidate is reachable if it was before, or if this
+        // class is not abstract.
+        boolean newCandidateIsReachable =
+            !clazz.accessFlags.isAbstract() || ((target == null) && candidateIsReachable);
+        DexEncodedMethod subtypeTarget = findSingleTargetFromSubtypes(subtype, method,
+            newCandidate,
+            newCandidateIsReachable, checkForInterfaceConflicts);
+        if (subtypeTarget != null) {
+          // We found a target in the subclasses. If we already have a different result, fail.
+          if (result != null && result != subtypeTarget) {
+            return DexEncodedMethod.SENTINEL;
+          }
+          // Remember this new result.
+          result = subtypeTarget;
+        }
+      }
+      return result;
+    }
+
+    /**
+     * Checks whether any interface in the given list or their super interfaces implement a default
+     * method.
+     * <p>
+     * This method is conservative for unknown interfaces and interfaces from the library.
+     */
+    private boolean interfacesMayHaveDefaultFor(DexTypeList ifaces, DexMethod method) {
+      for (DexType iface : ifaces.values) {
+        DexClass clazz = definitionFor(iface);
+        if (clazz == null || clazz.isLibraryClass()) {
+          return true;
+        }
+        DexEncodedMethod candidate = clazz.lookupMethod(method);
+        if (candidate != null && !candidate.accessFlags.isAbstract()) {
+          return true;
+        }
+        if (interfacesMayHaveDefaultFor(clazz.interfaces, method)) {
+          return true;
+        }
+      }
+      return false;
     }
 
     public DexEncodedMethod lookupSingleInterfaceTarget(DexMethod method) {
@@ -1838,6 +1921,9 @@ public class Enqueuer {
             } else {
               result = resolutionResult.asSingleTarget();
             }
+          } else {
+            // This will fail at runtime.
+            return null;
           }
         }
       }
