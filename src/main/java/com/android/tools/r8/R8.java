@@ -311,7 +311,7 @@ public class R8 {
       }
 
       if (options.proguardConfiguration.isAccessModificationAllowed()) {
-        ClassAndMemberPublicizer.run(application);
+        ClassAndMemberPublicizer.run(application, appInfo.dexItemFactory);
         // We can now remove visibility bridges. Note that we do not need to update the
         // invoke-targets here, as the existing invokes will simply dispatch to the now
         // visible super-method. MemberRebinding, if run, will then dispatch it correctly.

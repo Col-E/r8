@@ -139,13 +139,6 @@ public abstract class AccessFlags {
     unset(Constants.ACC_SYNTHETIC);
   }
 
-  public void promoteNonPrivateToPublic() {
-    if (!isPrivate()) {
-      unsetProtected();
-      setPublic();
-    }
-  }
-
   public void promoteToPublic() {
     unsetProtected();
     unsetPrivate();

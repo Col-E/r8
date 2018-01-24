@@ -71,7 +71,7 @@ abstract class NamingTestBase {
         new Reporter(new DefaultDiagnosticsHandler()));
 
     if (options.proguardConfiguration.isAccessModificationAllowed()) {
-      ClassAndMemberPublicizer.run(program);
+      ClassAndMemberPublicizer.run(program, dexItemFactory);
     }
 
     RootSet rootSet = new RootSetBuilder(program, appInfo, configuration.getRules(), options)
