@@ -317,10 +317,11 @@ public class IRConverter {
   }
 
   void convertMethodToDex(DexEncodedMethod method) throws ApiLevelException {
+    assert options.isGeneratingDex();
     if (method.getCode() != null) {
       boolean matchesMethodFilter = options.methodMatchesFilter(method);
       if (matchesMethodFilter) {
-        if (method.getCode().isJarCode()) {
+        if (!(options.passthroughDexCode && method.getCode().isDexCode())) {
           // We do not process in call graph order, so anything could be a leaf.
           rewriteCode(method, ignoreOptimizationFeedback, x -> true, CallSiteInformation.empty(),
               Outliner::noProcessing);
