@@ -104,7 +104,7 @@ public class CompatDx {
     private static final String METHOD_ARG = "method";
 
     public enum PositionInfo {
-      NONE, IMPORTANT, LINES
+      NONE, IMPORTANT, LINES, THROWING
     }
 
     // Exception thrown on invalid dx compat usage.
@@ -255,6 +255,9 @@ public class CompatDx {
             break;
           case "lines":
             positions = PositionInfo.LINES;
+            break;
+          case "throwing":
+            positions = PositionInfo.THROWING;
             break;
           default:
             positions = PositionInfo.IMPORTANT;
