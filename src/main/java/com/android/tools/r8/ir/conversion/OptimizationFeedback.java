@@ -11,5 +11,6 @@ public interface OptimizationFeedback {
   void methodReturnsArgument(DexEncodedMethod method, int argument);
   void methodReturnsConstant(DexEncodedMethod method, long value);
   void methodNeverReturnsNull(DexEncodedMethod method);
+  void methodNeverReturnsNormally(DexEncodedMethod method);
   void markProcessed(DexEncodedMethod method, Constraint state);
 }

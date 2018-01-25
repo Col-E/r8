@@ -3,6 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
+import com.android.tools.r8.code.Const4;
+import com.android.tools.r8.code.ConstString;
+import com.android.tools.r8.code.Goto;
 import com.android.tools.r8.code.Iget;
 import com.android.tools.r8.code.IgetBoolean;
 import com.android.tools.r8.code.IgetByte;
@@ -28,6 +31,8 @@ import com.android.tools.r8.code.IputChar;
 import com.android.tools.r8.code.IputObject;
 import com.android.tools.r8.code.IputShort;
 import com.android.tools.r8.code.IputWide;
+import com.android.tools.r8.code.Nop;
+import com.android.tools.r8.code.ReturnVoid;
 import com.android.tools.r8.code.Sget;
 import com.android.tools.r8.code.SgetBoolean;
 import com.android.tools.r8.code.SgetByte;
@@ -42,6 +47,7 @@ import com.android.tools.r8.code.SputChar;
 import com.android.tools.r8.code.SputObject;
 import com.android.tools.r8.code.SputShort;
 import com.android.tools.r8.code.SputWide;
+import com.android.tools.r8.code.Throw;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexApplication;
@@ -959,6 +965,30 @@ public class DexInspector {
       return instruction instanceof InvokeStatic || instruction instanceof InvokeStaticRange;
     }
 
+    boolean isNop(Instruction instruction) {
+      return instruction instanceof Nop;
+    }
+
+    boolean isGoto(Instruction instruction) {
+      return instruction instanceof Goto;
+    }
+
+    boolean isReturnVoid(Instruction instruction) {
+      return instruction instanceof ReturnVoid;
+    }
+
+    boolean isConst4(Instruction instruction) {
+      return instruction instanceof Const4;
+    }
+
+    boolean isThrow(Instruction instruction) {
+      return instruction instanceof Throw;
+    }
+
+    boolean isConstString(Instruction instruction) {
+      return instruction instanceof ConstString;
+    }
+
     boolean isFieldAccess(Instruction instruction) {
       return isInstanceGet(instruction)
           || isInstancePut(instruction)
@@ -1047,6 +1077,30 @@ public class DexInspector {
 
     boolean isFieldAccess(Instruction instruction) {
       return factory.isFieldAccess(instruction);
+    }
+
+    public boolean isNop() {
+      return factory.isNop(instruction);
+    }
+
+    public boolean isConstString() {
+      return factory.isConstString(instruction);
+    }
+
+    public boolean isGoto() {
+      return factory.isGoto(instruction);
+    }
+
+    public boolean isReturnVoid() {
+      return factory.isReturnVoid(instruction);
+    }
+
+    public boolean isConst4() {
+      return factory.isConst4(instruction);
+    }
+
+    public boolean isThrow() {
+      return factory.isThrow(instruction);
     }
   }
 

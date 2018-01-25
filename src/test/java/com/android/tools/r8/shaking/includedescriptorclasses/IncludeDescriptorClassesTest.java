@@ -41,7 +41,8 @@ public class IncludeDescriptorClassesTest extends TestBase {
       }
     }
 
-    void assertRemoved(Class clazz) {
+    // NOTE: 'synchronized' is supposed to disable inlining of this method.
+    synchronized void assertRemoved(Class clazz) {
       assertFalse(inspector.clazz(clazz.getCanonicalName()).isPresent());
       // TODO(sgjesse): Also check that it was not just renamed...
       if (classesAfterProguard != null) {

@@ -53,13 +53,12 @@ public class CheckCast extends Instruction {
     if (inRegister == outRegister) {
       builder.add(this, new com.android.tools.r8.code.CheckCast(outRegister, type));
     } else {
-      com.android.tools.r8.code.CheckCast cast = new com.android.tools.r8.code.CheckCast(outRegister, type);
+      com.android.tools.r8.code.CheckCast cast =
+          new com.android.tools.r8.code.CheckCast(outRegister, type);
       if (outRegister <= Constants.U4BIT_MAX && inRegister <= Constants.U4BIT_MAX) {
-        builder.add(this, new com.android.tools.r8.code.Instruction[]{
-            new MoveObject(outRegister, inRegister), cast});
+        builder.add(this, new MoveObject(outRegister, inRegister), cast);
       } else {
-        builder.add(this, new com.android.tools.r8.code.Instruction[]{
-            new MoveObjectFrom16(outRegister, inRegister), cast});
+        builder.add(this, new MoveObjectFrom16(outRegister, inRegister), cast);
       }
     }
   }

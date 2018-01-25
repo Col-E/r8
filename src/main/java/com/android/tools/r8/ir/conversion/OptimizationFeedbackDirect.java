@@ -25,6 +25,11 @@ public class OptimizationFeedbackDirect implements OptimizationFeedback {
   }
 
   @Override
+  public void methodNeverReturnsNormally(DexEncodedMethod method) {
+    method.markNeverReturnsNormally();
+  }
+
+  @Override
   public void markProcessed(DexEncodedMethod method, Constraint state) {
     method.markProcessed(state);
   }

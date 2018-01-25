@@ -518,6 +518,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
 
     private int returnedArgument = -1;
     private boolean neverReturnsNull = false;
+    private boolean neverReturnsNormally = false;
     private boolean returnsConstant = false;
     private long returnedConstant = 0;
     private boolean forceInline = false;
@@ -549,6 +550,10 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       return neverReturnsNull;
     }
 
+    public boolean neverReturnsNormally() {
+      return neverReturnsNormally;
+    }
+
     public boolean returnsConstant() {
       return returnsConstant;
     }
@@ -574,6 +579,10 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
 
     private void markNeverReturnsNull() {
       neverReturnsNull = true;
+    }
+
+    private void markNeverReturnsNormally() {
+      neverReturnsNormally = true;
     }
 
     private void markReturnsConstant(long value) {
@@ -621,6 +630,10 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
 
   synchronized public void markNeverReturnsNull() {
     ensureMutableOI().markNeverReturnsNull();
+  }
+
+  synchronized public void markNeverReturnsNormally() {
+    ensureMutableOI().markNeverReturnsNormally();
   }
 
   synchronized public void markReturnsConstant(long value) {

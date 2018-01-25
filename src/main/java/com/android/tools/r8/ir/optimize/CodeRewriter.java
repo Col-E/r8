@@ -59,6 +59,7 @@ import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Switch;
+import com.android.tools.r8.ir.code.Throw;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.code.Xor;
@@ -664,6 +665,7 @@ public class CodeRewriter {
       DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
     List<BasicBlock> normalExits = code.computeNormalExitBlocks();
     if (normalExits.isEmpty()) {
+      feedback.methodNeverReturnsNormally(method);
       return;
     }
     Return firstExit = normalExits.get(0).exit().asReturn();
@@ -1761,6 +1763,82 @@ public class CodeRewriter {
     assert code.isConsistentSSA();
   }
 
+  // Find all method invocations that never returns normally, split the block
+  // after each such invoke instruction and follow it with a block throwing a
+  // null value (which should result in NPE). Note that this throw is not
+  // expected to be ever reached, but is intended to satisfy verifier.
+  public void processMethodsNeverReturningNormally(IRCode code) {
+    AppInfoWithLiveness appInfoWithLiveness = appInfo.withLiveness();
+    if (appInfoWithLiveness == null) {
+      return;
+    }
+
+    int color = code.reserveMarkingColor();
+    ListIterator<BasicBlock> blockIterator = code.listIterator();
+    while (blockIterator.hasNext()) {
+      BasicBlock block = blockIterator.next();
+      if (block.isMarked(color)) {
+        continue;
+      }
+      InstructionListIterator insnIterator = block.listIterator();
+      while (insnIterator.hasNext()) {
+        Instruction insn = insnIterator.next();
+        if (!insn.isInvoke()) {
+          continue;
+        }
+
+        DexEncodedMethod singleTarget =
+            insn.asInvoke().computeSingleTarget(appInfoWithLiveness);
+        if (singleTarget == null || !singleTarget.getOptimizationInfo().neverReturnsNormally()) {
+          continue;
+        }
+
+        // Split the block.
+        BasicBlock newBlock = insnIterator.split(code, blockIterator);
+        assert !insnIterator.hasNext(); // must be pointing *after* inserted GoTo.
+        // Move block iterator back so current block is 'newBlock'.
+        blockIterator.previous();
+
+        // Unlink the next block representing all the instructions of the original
+        // block after the invocation which never returns normally. Mark all the
+        // removed blocks for deletion.
+        List<BasicBlock> removedBlocks = block.unlink(newBlock, new DominatorTree(code));
+        for (BasicBlock removedBlock : removedBlocks) {
+          if (!removedBlock.isMarked(color)) {
+            removedBlock.mark(color);
+          }
+        }
+
+        // We want to follow the invoke instruction with 'throw null', which should
+        // be unreachable but is needed to satisfy the verifier. Note that we have
+        // to put 'throw null' into a separate block to make sure we don't get two
+        // throwing instructions in the block having catch handler. This new block
+        // does not need catch handlers.
+        Instruction gotoInsn = insnIterator.previous();
+        assert gotoInsn.isGoto();
+        assert insnIterator.hasNext();
+        BasicBlock throwNullBlock = insnIterator.split(code, blockIterator);
+        InstructionListIterator throwNullInsnIterator = throwNullBlock.listIterator();
+
+        // Insert 'null' constant.
+        Value nullValue = code.createValue(ValueType.OBJECT, gotoInsn.getLocalInfo());
+        ConstNumber nullConstant = new ConstNumber(nullValue, 0);
+        nullConstant.setPosition(insn.getPosition());
+        throwNullInsnIterator.add(nullConstant);
+
+        // Replace Goto with Throw.
+        Throw notReachableThrow = new Throw(nullValue);
+        Instruction insnGoto = throwNullInsnIterator.next();
+        assert insnGoto.isGoto();
+        throwNullInsnIterator.replaceCurrentInstruction(notReachableThrow);
+        // Use position from original invoke to guarantee it has a real position.
+        notReachableThrow.forceSetPosition(insn.getPosition());
+      }
+    }
+    code.removeMarkedBlocks(color);
+    code.returnMarkingColor(color);
+    assert code.isConsistentSSA();
+  }
 
   /* Identify simple diamond shapes converting boolean true/false to 1/0. We consider the forms:
    *
