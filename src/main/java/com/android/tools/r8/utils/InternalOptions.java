@@ -74,6 +74,7 @@ public class InternalOptions {
 
   // Optimization-related flags. These should conform to -dontoptimize.
   public boolean skipClassMerging = true;
+  public boolean addNonNull = true;
   public boolean inlineAccessors = true;
   public boolean removeSwitchMaps = true;
   public final OutlineOptions outline = new OutlineOptions();

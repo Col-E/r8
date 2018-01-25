@@ -625,6 +625,7 @@ public class R8Command extends BaseCompilerCommand {
     // -dontoptimize disables optimizations by flipping related flags.
     if (!proguardConfiguration.isOptimizing()) {
       internal.skipClassMerging = true;
+      internal.addNonNull = false;
       internal.inlineAccessors = false;
       internal.removeSwitchMaps = false;
       internal.outline.enabled = false;

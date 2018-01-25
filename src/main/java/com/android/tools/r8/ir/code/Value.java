@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -300,6 +301,11 @@ public class Value {
     uniqueUsers = null;
   }
 
+  private void fullyRemoveUser(Instruction user) {
+    users.removeIf(u -> u == user);
+    uniqueUsers = null;
+  }
+
   public void clearUsers() {
     users.clear();
     uniqueUsers = null;
@@ -318,6 +324,11 @@ public class Value {
 
   public void removePhiUser(Phi user) {
     phiUsers.remove(user);
+    uniquePhiUsers = null;
+  }
+
+  private void fullyRemovePhiUser(Phi user) {
+    phiUsers.removeIf(u -> u == user);
     uniquePhiUsers = null;
   }
 
@@ -389,6 +400,46 @@ public class Value {
       }
     }
     clearUsers();
+  }
+
+  public void replaceSelectiveUsers(
+      Value newValue, Set<Instruction> selectedInstructions, Set<Phi> selectedPhis) {
+    if (this == newValue) {
+      return;
+    }
+    // Unlike {@link #replaceUsers} above, which clears all users at the end, this routine will
+    // manually remove updated users. Remove such updated users from the user pool before replacing
+    // value, otherwise we lost the identity.
+    for (Instruction user : uniqueUsers()) {
+      if (selectedInstructions.contains(user)) {
+        fullyRemoveUser(user);
+        user.replaceValue(this, newValue);
+      }
+    }
+    for (Phi user : uniquePhiUsers()) {
+      if (selectedPhis.contains(user)) {
+        fullyRemovePhiUser(user);
+        user.replaceOperand(this, newValue);
+      }
+    }
+    if (debugData != null) {
+      Iterator<Instruction> it = debugData.users.keySet().iterator();
+      while (it.hasNext()) {
+        Instruction user = it.next();
+        if (selectedInstructions.contains(user)) {
+          it.remove();
+          user.replaceDebugValue(this, newValue);
+        }
+      }
+      Iterator<Phi> phis = debugData.phiUsers.iterator();
+      while (phis.hasNext()) {
+        Phi user = phis.next();
+        if (selectedPhis.contains(user)) {
+          phis.remove();
+          user.replaceDebugValue(this, newValue);
+        }
+      }
+    }
   }
 
   public void replaceDebugUser(Instruction oldUser, Instruction newUser) {

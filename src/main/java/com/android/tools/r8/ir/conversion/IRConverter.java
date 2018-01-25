@@ -33,6 +33,7 @@ import com.android.tools.r8.ir.optimize.DeadCodeRemover;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.ir.optimize.MemberValuePropagation;
+import com.android.tools.r8.ir.optimize.NonNullMarker;
 import com.android.tools.r8.ir.optimize.Outliner;
 import com.android.tools.r8.ir.optimize.PeepholeOptimizer;
 import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
@@ -80,6 +81,7 @@ public class IRConverter {
   private final CodeRewriter codeRewriter;
   private final MemberValuePropagation memberValuePropagation;
   private final LensCodeRewriter lensCodeRewriter;
+  private final NonNullMarker nonNullMarker;
   private final Inliner inliner;
   private final ProtoLitePruner protoLiteRewriter;
   private final IdentifierNameStringMarker identifierNameStringMarker;
@@ -110,6 +112,7 @@ public class IRConverter {
             ? new InterfaceMethodRewriter(this, options) : null;
     if (enableWholeProgramOptimizations) {
       assert appInfo.hasLiveness();
+      this.nonNullMarker = new NonNullMarker();
       this.inliner = new Inliner(appInfo.withLiveness(), graphLense, options);
       this.outliner = new Outliner(appInfo.withLiveness(), options);
       this.memberValuePropagation =
@@ -129,6 +132,7 @@ public class IRConverter {
         this.identifierNameStringMarker = null;
       }
     } else {
+      this.nonNullMarker = null;
       this.inliner = null;
       this.outliner = null;
       this.memberValuePropagation = null;
@@ -556,6 +560,10 @@ public class IRConverter {
     if (options.disableAssertions) {
       codeRewriter.disableAssertions(code);
     }
+    if (options.addNonNull && nonNullMarker != null) {
+      nonNullMarker.addNonNull(code);
+      assert code.isConsistentSSA();
+    }
     TypeAnalysis typeAnalysis = new TypeAnalysis(appInfo, method, code);
     if (options.inlineAccessors && inliner != null) {
       // TODO(zerny): Should we support inlining in debug mode? b/62937285
@@ -575,6 +583,10 @@ public class IRConverter {
     codeRewriter.rewriteSwitch(code);
     codeRewriter.processMethodsNeverReturningNormally(code);
     codeRewriter.simplifyIf(code);
+    if (options.addNonNull && nonNullMarker != null) {
+      nonNullMarker.cleanupNonNull(code);
+      assert code.isConsistentSSA();
+    }
     if (!options.debug) {
       codeRewriter.collectClassInitializerDefaults(method, code);
     }

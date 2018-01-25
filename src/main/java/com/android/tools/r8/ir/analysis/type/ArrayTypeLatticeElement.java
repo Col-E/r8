@@ -37,6 +37,11 @@ public class ArrayTypeLatticeElement extends TypeLatticeElement {
   }
 
   @Override
+  public TypeLatticeElement asNonNullable() {
+    return isNullable() ? new ArrayTypeLatticeElement(arrayType, false) : this;
+  }
+
+  @Override
   public boolean isArrayTypeLatticeElement() {
     return true;
   }
