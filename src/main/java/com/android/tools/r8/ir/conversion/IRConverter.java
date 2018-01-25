@@ -572,6 +572,7 @@ public class IRConverter {
     codeRewriter.splitRangeInvokeConstants(code);
     new SparseConditionalConstantPropagation(code).run();
     codeRewriter.rewriteSwitch(code);
+    codeRewriter.processMethodsNeverReturningNormally(code);
     codeRewriter.simplifyIf(code);
     if (!options.debug) {
       codeRewriter.collectClassInitializerDefaults(method, code);

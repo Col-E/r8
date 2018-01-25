@@ -163,7 +163,7 @@ public abstract class Invoke extends Instruction {
         default:
           throw new Unreachable("Unexpected result type " + outType());
       }
-      builder.add(this, new com.android.tools.r8.code.Instruction[]{instruction, moveResult});
+      builder.add(this, instruction, moveResult);
     } else {
       builder.add(this, instruction);
     }

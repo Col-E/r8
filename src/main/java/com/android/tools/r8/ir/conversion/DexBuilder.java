@@ -472,7 +472,7 @@ public class DexBuilder {
     add(ir, new FixedSizeInfo(ir, dex));
   }
 
-  public void add(com.android.tools.r8.ir.code.Instruction ir, Instruction[] dex) {
+  public void add(com.android.tools.r8.ir.code.Instruction ir, Instruction... dex) {
     assert !ir.isGoto();
     add(ir, new MultiFixedSizeInfo(ir, dex));
   }
