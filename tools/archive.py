@@ -51,9 +51,12 @@ def IsMaster(version):
 
 def GetStorageDestination(storage_prefix, version, file_name, is_master):
   # We archive master commits under raw/master instead of directly under raw
+  version_dir = GetVersionDestination(storage_prefix, version, is_master)
+  return '%s/%s' % (version_dir, file_name)
+
+def GetVersionDestination(storage_prefix, version, is_master):
   archive_dir = 'raw/master' if is_master else 'raw'
-  return '%s%s/%s/%s/%s' % (storage_prefix, ARCHIVE_BUCKET, archive_dir,
-                            version, file_name)
+  return '%s%s/%s/%s' % (storage_prefix, ARCHIVE_BUCKET, archive_dir, version)
 
 def GetUploadDestination(version, file_name, is_master):
   return GetStorageDestination('gs://', version, file_name, is_master)
@@ -81,6 +84,9 @@ def Main():
     print 'On master, using git hash for archiving'
     version = GetGitHash()
 
+  destination = GetVersionDestination('gs://', version, is_master)
+  if utils.cloud_storage_exists(destination):
+    raise Exception('Target archive directory %s already exists' % destination)
   with utils.TempDir() as temp:
     version_file = os.path.join(temp, 'r8-version.properties')
     with open(version_file,'w') as version_writer:
