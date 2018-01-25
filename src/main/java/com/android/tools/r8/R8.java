@@ -437,9 +437,11 @@ public class R8 {
                 namingLens,
                 options.lineNumberOptimization == LineNumberOptimization.IDENTITY_MAPPING);
         timing.end();
-        proguardMapSupplier = ProguardMapSupplier.fromClassNameMapper(classNameMapper);
+        proguardMapSupplier =
+            ProguardMapSupplier.fromClassNameMapper(classNameMapper, options.minApiLevel);
       } else {
-        proguardMapSupplier = ProguardMapSupplier.fromNamingLens(namingLens, application);
+        proguardMapSupplier =
+            ProguardMapSupplier.fromNamingLens(namingLens, application, options.minApiLevel);
       }
 
       // If a method filter is present don't produce output since the application is likely partial.

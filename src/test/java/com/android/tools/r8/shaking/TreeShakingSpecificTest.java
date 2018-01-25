@@ -21,6 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
@@ -96,8 +97,11 @@ public class TreeShakingSpecificTest {
     ToolHelper.runR8(builder.build(), options -> options.inlineAccessors = false);
 
     Path outputmapping = out.resolve("mapping.txt");
-    String actualMapping;
-    actualMapping = new String(Files.readAllBytes(outputmapping), StandardCharsets.UTF_8);
+    // Remove comments.
+    String actualMapping =
+        Stream.of(new String(Files.readAllBytes(outputmapping), StandardCharsets.UTF_8).split("\n"))
+            .filter(line -> !line.startsWith("#"))
+            .collect(Collectors.joining("\n"));
     String refMapping = new String(Files.readAllBytes(
         Paths.get(EXAMPLES_DIR, "shaking1", "print-mapping.ref")), StandardCharsets.UTF_8);
     Assert.assertEquals(sorted(refMapping), sorted(actualMapping));
