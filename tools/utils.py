@@ -85,6 +85,15 @@ def upload_file_to_cloud_storage(source, destination):
   PrintCmd(cmd)
   subprocess.check_call(cmd)
 
+# Note that gcs is eventually consistent with regards to list operations.
+# This is not a problem in our case, but don't ever use this method
+# for synchronization.
+def cloud_storage_exists(destination):
+  cmd = ['gsutil.py', 'ls', destination]
+  PrintCmd(cmd)
+  exit_code = subprocess.call(cmd)
+  return exit_code == 0
+
 class TempDir(object):
  def __init__(self, prefix=''):
    self._temp_dir = None
