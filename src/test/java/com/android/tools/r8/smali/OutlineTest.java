@@ -46,13 +46,6 @@ import org.junit.Test;
 
 public class OutlineTest extends SmaliTestBase {
 
-  private InternalOptions createInternalOptions() {
-    InternalOptions result = new InternalOptions();
-    // Disable inlining to make sure that code looks as expected.
-    result.inlineAccessors = false;
-    return result;
-  }
-
   private Consumer<InternalOptions> configureOptions(Consumer<OutlineOptions> optionsConsumer) {
     return options -> {
       // Disable inlining to make sure that code looks as expected.

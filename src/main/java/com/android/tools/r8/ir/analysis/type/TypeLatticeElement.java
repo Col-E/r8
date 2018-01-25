@@ -25,11 +25,20 @@ abstract public class TypeLatticeElement {
   }
 
   /**
-   * Defines how to join with null.
+   * Defines how to join with null or switch to nullable lattice element.
    *
    * @return {@link TypeLatticeElement} a result of joining with null.
    */
   abstract TypeLatticeElement asNullable();
+
+  /**
+   * Defines how to switch to non-nullable lattice element.
+   *
+   * @return {@link TypeLatticeElement} a similar lattice element with nullable flag flipped.
+   */
+  public TypeLatticeElement asNonNullable() {
+    throw new Unreachable("Flipping nullable is not allowed in general.");
+  }
 
   String isNullableString() {
     return isNullable() ? "" : "@NonNull ";

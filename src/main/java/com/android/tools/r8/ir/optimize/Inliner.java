@@ -239,14 +239,15 @@ public class Inliner {
         InternalOptions options,
         Position callerPosition)
         throws ApiLevelException {
-      if (target.isProcessed()) {
-        return target.buildInliningIR(options, generator, callerPosition);
-      } else {
-        // Build the IR for a yet not processed method, and perform minimal IR processing.
-        IRCode code = target.buildInliningIR(options, generator, callerPosition);
+      // Build the IR for a yet not processed method, and perform minimal IR processing.
+      IRCode code = target.buildInliningIR(options, generator, callerPosition);
+      if (!target.isProcessed()) {
         new LensCodeRewriter(graphLense, appInfo).rewrite(code, target);
-        return code;
       }
+      if (options.addNonNull) {
+        new NonNullMarker().addNonNull(code);
+      }
+      return code;
     }
   }
 

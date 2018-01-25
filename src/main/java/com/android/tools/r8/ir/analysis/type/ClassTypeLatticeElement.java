@@ -25,6 +25,11 @@ public class ClassTypeLatticeElement extends TypeLatticeElement {
   }
 
   @Override
+  public TypeLatticeElement asNonNullable() {
+    return isNullable() ? new ClassTypeLatticeElement(classType, false) : this;
+  }
+
+  @Override
   public boolean isClassTypeLatticeElement() {
     return true;
   }

@@ -30,7 +30,7 @@ public class Monitor extends Instruction {
     this.type = type;
   }
 
-  private Value object() {
+  public Value object() {
     return inValues.get(0);
   }
 

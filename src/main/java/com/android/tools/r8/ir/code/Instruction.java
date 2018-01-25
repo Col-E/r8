@@ -683,6 +683,14 @@ public abstract class Instruction {
     return null;
   }
 
+  public boolean isNonNull() {
+    return false;
+  }
+
+  public NonNull asNonNull() {
+    return null;
+  }
+
   public boolean isNot() {
     return false;
   }

@@ -17,9 +17,13 @@ import com.android.tools.r8.ir.code.ArrayGet;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstanceGet;
 import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.NewInstance;
+import com.android.tools.r8.ir.code.NonNull;
+import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.optimize.NonNullMarker;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
 import com.android.tools.r8.smali.SmaliTestBase;
@@ -40,6 +44,7 @@ public class NullabilityTest extends SmaliTestBase {
   private void buildAndTest(
       SmaliBuilder builder,
       MethodSignature signature,
+      boolean npeCaught,
       BiConsumer<AppInfo, TypeAnalysis> inspector)
       throws Exception {
     AndroidApp app = builder.build();
@@ -50,8 +55,11 @@ public class NullabilityTest extends SmaliTestBase {
     DexInspector dexInspector = new DexInspector(appInfo.app);
     DexEncodedMethod foo = dexInspector.clazz(CLASS_NAME).method(signature).getMethod();
     IRCode irCode = foo.buildIR(TEST_OPTIONS);
+    NonNullMarker nonNullMarker = new NonNullMarker();
+    nonNullMarker.addNonNull(irCode);
     TypeAnalysis analysis = new TypeAnalysis(appInfo, foo, irCode);
     inspector.accept(appInfo, analysis);
+    verifyLastInvoke(irCode, analysis, npeCaught);
   }
 
   private static void verifyClassTypeLattice(
@@ -72,6 +80,23 @@ public class NullabilityTest extends SmaliTestBase {
     }
   }
 
+  private void verifyLastInvoke(IRCode code, TypeAnalysis analysis, boolean npeCaught) {
+    InstructionIterator it = code.instructionIterator();
+    boolean metInvokeVirtual = false;
+    while (it.hasNext()) {
+      Instruction instruction = it.next();
+      if (instruction instanceof InvokeVirtual) {
+        InvokeVirtual invokeVirtual = instruction.asInvokeVirtual();
+        if (invokeVirtual.getInvokedMethod().name.toString().contains("hash")) {
+          metInvokeVirtual = true;
+          TypeLatticeElement l = analysis.getLatticeElement(invokeVirtual.getReceiver());
+          assertEquals(npeCaught, l.isNullable());
+        }
+      }
+    }
+    assertTrue(metInvokeVirtual);
+  }
+
   @Test
   public void nonNullAfterSafeInvokes() throws Exception {
     SmaliBuilder builder = new SmaliBuilder(CLASS_NAME);
@@ -83,14 +108,16 @@ public class NullabilityTest extends SmaliTestBase {
             "new-instance v0, Ljava/lang/AssertionError;",
             "throw v0",
             ":not_null",
+            // And thus the call below uses the same, non-null value.
+            "invoke-virtual {p1}, Ljava/lang/String;->hashCode()I",
             "return-void"
         );
-    buildAndTest(builder, signature, (appInfo, typeAnalysis) -> {
+    buildAndTest(builder, signature, false, (appInfo, typeAnalysis) -> {
       DexType assertionErrorType = appInfo.dexItemFactory.createType("Ljava/lang/AssertionError;");
       DexType example = appInfo.dexItemFactory.createType("LExample;");
       Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices = ImmutableMap.of(
-          // TODO(b/70795205): Can be refined by using control-flow info.
           InvokeVirtual.class, new ClassTypeLatticeElement(appInfo.dexItemFactory.stringType, true),
+          NonNull.class, new ClassTypeLatticeElement(appInfo.dexItemFactory.stringType, false),
           NewInstance.class, new ClassTypeLatticeElement(assertionErrorType, false));
       typeAnalysis.forEach((v, l) -> verifyClassTypeLattice(expectedLattices, example, v, l));
     });
@@ -113,11 +140,12 @@ public class NullabilityTest extends SmaliTestBase {
             "invoke-virtual {p1}, Ljava/lang/String;->hashCode()I",
             "return-void"
         );
-    buildAndTest(builder, signature, (appInfo, typeAnalysis) -> {
+    buildAndTest(builder, signature, true, (appInfo, typeAnalysis) -> {
       DexType assertionErrorType = appInfo.dexItemFactory.createType("Ljava/lang/AssertionError;");
       DexType example = appInfo.dexItemFactory.createType("LExample;");
       Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices = ImmutableMap.of(
           InvokeVirtual.class, new ClassTypeLatticeElement(appInfo.dexItemFactory.stringType, true),
+          NonNull.class, new ClassTypeLatticeElement(appInfo.dexItemFactory.stringType, false),
           NewInstance.class, new ClassTypeLatticeElement(assertionErrorType, false));
       typeAnalysis.forEach((v, l) -> verifyClassTypeLattice(expectedLattices, example, v, l));
     });
@@ -135,9 +163,11 @@ public class NullabilityTest extends SmaliTestBase {
             "new-instance v0, Ljava/lang/AssertionError;",
             "throw v0",
             ":not_null",
+            // And thus the call below uses the same, non-null value.
+            "invoke-virtual {p1}, [Ljava/lang/String;->hashCode()I",
             "return-void"
         );
-    buildAndTest(builder, signature, (appInfo, typeAnalysis) -> {
+    buildAndTest(builder, signature, false, (appInfo, typeAnalysis) -> {
       DexType assertionErrorType = appInfo.dexItemFactory.createType("Ljava/lang/AssertionError;");
       DexType example = appInfo.dexItemFactory.createType("LExample;");
       Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices = ImmutableMap.of(
@@ -150,8 +180,7 @@ public class NullabilityTest extends SmaliTestBase {
           assertEquals(
               appInfo.dexItemFactory.stringType,
               lattice.getArrayElementType(appInfo.dexItemFactory));
-          // TODO(b/70795205): Can be refined by using control-flow info.
-          assertTrue(l.isNullable());
+          assertEquals(v.definition.isArgument(), l.isNullable());
         } else if (l.isClassTypeLatticeElement()) {
           verifyClassTypeLattice(expectedLattices, example, v, l);
         }
@@ -177,7 +206,7 @@ public class NullabilityTest extends SmaliTestBase {
             "invoke-virtual {p1}, [Ljava/lang/String;->hashCode()I",
             "return-void"
         );
-    buildAndTest(builder, signature, (appInfo, typeAnalysis) -> {
+    buildAndTest(builder, signature, true, (appInfo, typeAnalysis) -> {
       DexType assertionErrorType = appInfo.dexItemFactory.createType("Ljava/lang/AssertionError;");
       DexType example = appInfo.dexItemFactory.createType("LExample;");
       Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices = ImmutableMap.of(
@@ -190,7 +219,7 @@ public class NullabilityTest extends SmaliTestBase {
           assertEquals(
               appInfo.dexItemFactory.stringType,
               lattice.getArrayElementType(appInfo.dexItemFactory));
-          assertTrue(l.isNullable());
+          assertEquals(v.definition.isArgument(), l.isNullable());
         } else if (l.isClassTypeLatticeElement()) {
           verifyClassTypeLattice(expectedLattices, example, v, l);
         }
@@ -209,17 +238,19 @@ public class NullabilityTest extends SmaliTestBase {
             "new-instance v0, Ljava/lang/AssertionError;",
             "throw v0",
             ":not_null",
+            // And thus the call below uses the same, non-null value.
+            "invoke-virtual {p0}, LTest;->hashCode()I",
             "return-void"
         );
     builder.addClass("Test");
     builder.addInstanceField("bar", "Ljava/lang/String;");
-    buildAndTest(builder, signature, (appInfo, typeAnalysis) -> {
+    buildAndTest(builder, signature, false, (appInfo, typeAnalysis) -> {
       DexType assertionErrorType = appInfo.dexItemFactory.createType("Ljava/lang/AssertionError;");
       DexType example = appInfo.dexItemFactory.createType("LExample;");
       DexType testType = appInfo.dexItemFactory.createType("LTest;");
       Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices = ImmutableMap.of(
-          // TODO(b/70795205): Can be refined by using control-flow info.
           Argument.class, new ClassTypeLatticeElement(testType, true),
+          NonNull.class, new ClassTypeLatticeElement(testType, false),
           // instance may not be initialized.
           InstanceGet.class, new ClassTypeLatticeElement(appInfo.dexItemFactory.stringType, true),
           NewInstance.class, new ClassTypeLatticeElement(assertionErrorType, false));
@@ -246,12 +277,13 @@ public class NullabilityTest extends SmaliTestBase {
         );
     builder.addClass("Test");
     builder.addInstanceField("bar", "Ljava/lang/String;");
-    buildAndTest(builder, signature, (appInfo, typeAnalysis) -> {
+    buildAndTest(builder, signature, true, (appInfo, typeAnalysis) -> {
       DexType assertionErrorType = appInfo.dexItemFactory.createType("Ljava/lang/AssertionError;");
       DexType example = appInfo.dexItemFactory.createType("LExample;");
       DexType testType = appInfo.dexItemFactory.createType("LTest;");
       Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices = ImmutableMap.of(
           Argument.class, new ClassTypeLatticeElement(testType, true),
+          NonNull.class, new ClassTypeLatticeElement(testType, false),
           // instance may not be initialized.
           InstanceGet.class, new ClassTypeLatticeElement(appInfo.dexItemFactory.stringType, true),
           NewInstance.class, new ClassTypeLatticeElement(assertionErrorType, false));
