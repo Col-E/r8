@@ -69,6 +69,9 @@ public class InternalOptions {
 
   public boolean printTimes = false;
 
+  // Flag to toggle if DEX code objects should pass-through without IR processing.
+  public boolean passthroughDexCode = false;
+
   // Optimization-related flags. These should conform to -dontoptimize.
   public boolean skipClassMerging = true;
   public boolean inlineAccessors = true;

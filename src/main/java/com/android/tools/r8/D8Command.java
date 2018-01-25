@@ -333,6 +333,8 @@ public class D8Command extends BaseCompilerCommand {
     internal.skipMinification = true;
     assert internal.useTreeShaking;
     internal.useTreeShaking = false;
+    assert !internal.passthroughDexCode;
+    internal.passthroughDexCode = true;
 
     // Disable some of R8 optimizations.
     assert internal.inlineAccessors;
