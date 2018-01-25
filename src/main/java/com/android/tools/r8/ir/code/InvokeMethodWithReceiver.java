@@ -10,18 +10,8 @@ import java.util.List;
 
 public abstract class InvokeMethodWithReceiver extends InvokeMethod {
 
-  private boolean isDominatedByCallWithSameReceiver = false;
-
   InvokeMethodWithReceiver(DexMethod target, Value result, List<Value> arguments) {
     super(target, result, arguments);
-  }
-
-  public void setIsDominatedByCallWithSameReceiver() {
-    isDominatedByCallWithSameReceiver = true;
-  }
-
-  public boolean isDominatedByCallWithSameReceiver() {
-    return isDominatedByCallWithSameReceiver;
   }
 
   @Override
