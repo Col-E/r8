@@ -32,25 +32,13 @@ public enum DexVersion {
   }
 
   public boolean matchesApiLevel(AndroidApiLevel androidApiLevel) {
-    switch (this) {
-      case V35:
-        return true;
-      case V37:
-        return androidApiLevel.getLevel() >= AndroidApiLevel.N.getLevel();
-      case V38:
-        return androidApiLevel.getLevel() >= AndroidApiLevel.O.getLevel();
-      case V39:
-        return androidApiLevel.getLevel() >= AndroidApiLevel.P.getLevel();
-      default:
-        throw new Unreachable();
-    }
+    return getDexVersion(androidApiLevel).dexVersion >= dexVersion;
   }
 
   public static DexVersion getDexVersion(AndroidApiLevel androidApiLevel) {
     switch (androidApiLevel) {
       case P:
         return DexVersion.V39;
-      case LATEST:
       case O_MR1:
       case O:
         return DexVersion.V38;
