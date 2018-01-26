@@ -204,9 +204,7 @@ public class InliningOracle {
 
   public InlineAction computeForInvokeWithReceiver(InvokeMethodWithReceiver invoke) {
     boolean receiverIsNeverNull =
-        // TODO(b/70795205): Use DominatedByCallWithSameReceiver until the type analysis is refined.
-        invoke.isDominatedByCallWithSameReceiver()
-            || !typeEnvironment.getLatticeElement(invoke.getReceiver()).isNullable();
+        !typeEnvironment.getLatticeElement(invoke.getReceiver()).isNullable();
     if (!receiverIsNeverNull) {
       if (info != null) {
         info.exclude(invoke, "receiver for candidate can be null");

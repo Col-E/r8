@@ -15,7 +15,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.code.BasicBlock;
-import com.android.tools.r8.ir.code.DominatorTree;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
@@ -349,8 +348,6 @@ public class Inliner {
     if (instruction_allowance < 0) {
       return;
     }
-    // TODO(b/70795205): will be deprecated once the type analysis becomes more flow-sensitive.
-    computeReceiverMustBeNonNull(code);
     InliningOracle oracle = new InliningOracle(
         this, method, typeAnalysis, callSiteInformation, isProcessedConcurrently);
 
@@ -433,39 +430,5 @@ public class Inliner {
     code.removeBlocks(blocksToRemove);
     code.removeAllTrivialPhis();
     assert code.isConsistentSSA();
-  }
-
-  // Determine whether the receiver of an invocation is guaranteed to be non-null based on
-  // the dominator tree. If a method call is dominated by another method call with the same
-  // receiver, the receiver most be non-null when we reach the dominated call.
-  //
-  // We bail out for exception handling. If an invoke is covered by a try block we cannot use
-  // dominance to determine that the receiver is non-null at a dominated call:
-  //
-  // Object o;
-  // try {
-  //   o.m();
-  // } catch (NullPointerException e) {
-  //   o.f();  // Dominated by other call with receiver o, but o is null.
-  // }
-  //
-  private void computeReceiverMustBeNonNull(IRCode code) {
-    DominatorTree dominatorTree = new DominatorTree(code);
-    InstructionIterator it = code.instructionIterator();
-    while (it.hasNext()) {
-      Instruction instruction = it.next();
-      if (instruction.isInvokeMethodWithReceiver()) {
-        Value receiverValue = instruction.inValues().get(0);
-        for (Instruction user : receiverValue.uniqueUsers()) {
-          if (user.isInvokeMethodWithReceiver() &&
-              user.inValues().get(0) == receiverValue &&
-              !user.getBlock().hasCatchHandlers() &&
-              dominatorTree.strictlyDominatedBy(instruction.getBlock(), user.getBlock())) {
-            instruction.asInvokeMethodWithReceiver().setIsDominatedByCallWithSameReceiver();
-            break;
-          }
-        }
-      }
-    }
   }
 }
