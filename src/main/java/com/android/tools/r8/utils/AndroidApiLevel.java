@@ -9,7 +9,6 @@ import com.android.tools.r8.errors.Unreachable;
  * Android API level description
  */
 public enum AndroidApiLevel {
-  LATEST(-1),
   P(28),
   O_MR1(27),
   O(26),
@@ -38,6 +37,8 @@ public enum AndroidApiLevel {
   C(3),
   B_1_1(2),
   B(1);
+
+  public static AndroidApiLevel LATEST = P;
 
   private final int level;
 
