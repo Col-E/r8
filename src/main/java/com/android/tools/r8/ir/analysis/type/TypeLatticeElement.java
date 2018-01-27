@@ -169,6 +169,10 @@ abstract public class TypeLatticeElement {
     return null;
   }
 
+  public boolean isPrimitive() {
+    return false;
+  }
+
   static ClassTypeLatticeElement objectType(AppInfo appInfo, boolean isNullable) {
     return new ClassTypeLatticeElement(appInfo.dexItemFactory.objectType, isNullable);
   }

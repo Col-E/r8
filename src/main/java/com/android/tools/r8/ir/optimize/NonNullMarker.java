@@ -48,7 +48,7 @@ public class NonNullMarker {
     } else if (instruction.isMonitor()) {
       return instruction.asMonitor().object();
     }
-    throw new Unreachable("Should conform to canBeNonNull.");
+    throw new Unreachable("Should conform to throwsOnNullInput.");
   }
 
   public void addNonNull(IRCode code) {
@@ -64,7 +64,7 @@ public class NonNullMarker {
         Value knownToBeNonNullValue = getNonNullInput(current);
         // Avoid adding redundant non-null instruction.
         if (knownToBeNonNullValue.isNeverNull()
-            || knownToBeNonNullValue.definition instanceof NonNull) {
+            || knownToBeNonNullValue.definition.isNonNull()) {
           // Otherwise, we will have something like:
           // non_null_rcv <- non-null(rcv)
           // ...
