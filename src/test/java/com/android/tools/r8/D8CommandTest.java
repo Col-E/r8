@@ -348,8 +348,16 @@ public class D8CommandTest {
   }
 
   @Test
-  public void disableDesugaring() throws CompilationFailedException {
-    assertFalse(parse("--no-desugaring").getEnableDesugaring());
+  public void disableDesugaringCli() throws CompilationFailedException {
+    BaseCompilerCommandTest.assertDesugaringDisabled(parse("--no-desugaring"));
+  }
+
+  @Test
+  public void disableDesugaringApi() throws CompilationFailedException {
+    BaseCompilerCommandTest.assertDesugaringDisabled(D8Command.builder()
+        .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+        .setDisableDesugaring(true)
+        .build());
   }
 
   private D8Command parse(String... args) throws CompilationFailedException {

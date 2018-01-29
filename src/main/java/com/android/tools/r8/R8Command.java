@@ -622,6 +622,7 @@ public class R8Command extends BaseCompilerCommand {
     internal.debug = getMode() == CompilationMode.DEBUG;
     internal.programConsumer = getProgramConsumer();
     internal.minApiLevel = getMinApiLevel();
+    internal.enableDesugaring = getEnableDesugaring();
     // -dontoptimize disables optimizations by flipping related flags.
     if (!proguardConfiguration.isOptimizing()) {
       internal.skipClassMerging = true;
