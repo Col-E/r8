@@ -376,8 +376,9 @@ public class R8Command extends BaseCompilerCommand {
       " and options are:",
       "  --release                # Compile without debugging information (default).",
       "  --debug                  # Compile with debugging information.",
-      "  --dex                    # Compile program to DEX file format (default).",
-      "  --classfile              # Compile program to Java classfile format.",
+      // TODO(b/65390962): Add help for output-mode flags once the CF backend is complete.
+      //"  --dex                    # Compile program to DEX file format (default).",
+      //"  --classfile              # Compile program to Java classfile format.",
       "  --output <file>          # Output result in <file>.",
       "                           # <file> must be an existing directory or a zip file.",
       "  --lib <file>             # Add <file> as a library resource.",
