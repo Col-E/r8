@@ -64,7 +64,8 @@ public class NonNullMarker {
         Value knownToBeNonNullValue = getNonNullInput(current);
         // Avoid adding redundant non-null instruction.
         if (knownToBeNonNullValue.isNeverNull()
-            || knownToBeNonNullValue.definition.isNonNull()) {
+            || (knownToBeNonNullValue.definition != null
+                && knownToBeNonNullValue.definition.isNonNull())) {
           // Otherwise, we will have something like:
           // non_null_rcv <- non-null(rcv)
           // ...
