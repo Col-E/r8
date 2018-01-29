@@ -110,7 +110,7 @@ public class AsmTestBase extends TestBase {
         .toByteArray(clazz.getResourceAsStream(clazz.getSimpleName() + ".class"));
   }
 
-  private AndroidApp buildAndroidApp(byte[]... classes) throws IOException {
+  public AndroidApp buildAndroidApp(byte[]... classes) throws IOException {
     AndroidApp.Builder builder = AndroidApp.builder();
     for (byte[] clazz : classes) {
       builder.addClassProgramData(clazz, Origin.unknown());
