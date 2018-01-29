@@ -349,8 +349,16 @@ public class R8CommandTest {
   }
 
   @Test
-  public void disableDesugaring() throws CompilationFailedException {
-    assertFalse(parse("--no-desugaring").getEnableDesugaring());
+  public void disableDesugaringCli() throws CompilationFailedException {
+    BaseCompilerCommandTest.assertDesugaringDisabled(parse("--no-desugaring"));
+  }
+
+  @Test
+  public void disableDesugaringApi() throws CompilationFailedException {
+    BaseCompilerCommandTest.assertDesugaringDisabled(R8Command.builder()
+        .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+        .setDisableDesugaring(true)
+        .build());
   }
 
   private R8Command parse(String... args) throws CompilationFailedException {
