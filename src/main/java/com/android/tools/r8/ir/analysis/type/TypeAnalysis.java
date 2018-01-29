@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
-import java.util.function.BinaryOperator;
 
 public class TypeAnalysis implements TypeEnvironment {
   private final AppInfo appInfo;
@@ -111,11 +110,8 @@ public class TypeAnalysis implements TypeEnvironment {
 
   private TypeLatticeElement computePhiType(Phi phi) {
     // Type of phi(v1, v2, ..., vn) is the least upper bound of all those n operands.
-    BinaryOperator<TypeLatticeElement> joiner = TypeLatticeElement.joiner(appInfo);
-    return phi.getOperands().stream().reduce(
-        Bottom.getInstance(),
-        (acc, value) -> joiner.apply(acc, getLatticeElement(value)),
-        joiner::apply);
+    return TypeLatticeElement.join(
+        appInfo, phi.getOperands().stream().map(this::getLatticeElement));
   }
 
   private void setLatticeElement(Value value, TypeLatticeElement type) {

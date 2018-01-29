@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.Value;
 import java.util.function.BinaryOperator;
+import java.util.stream.Stream;
 
 /**
  * The base abstraction of lattice elements for local type analysis.
@@ -133,6 +134,11 @@ abstract public class TypeLatticeElement {
 
   static BinaryOperator<TypeLatticeElement> joiner(AppInfo appInfo) {
     return (l1, l2) -> join(appInfo, l1, l2);
+  }
+
+  public static TypeLatticeElement join(AppInfo appInfo, Stream<TypeLatticeElement> types) {
+    BinaryOperator<TypeLatticeElement> joiner = joiner(appInfo);
+    return types.reduce(Bottom.getInstance(), joiner::apply, joiner::apply);
   }
 
   /**

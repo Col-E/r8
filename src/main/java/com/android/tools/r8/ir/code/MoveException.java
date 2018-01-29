@@ -7,6 +7,7 @@ import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
@@ -90,8 +91,7 @@ public class MoveException extends Instruction {
     // Nothing to do. The exception is implicitly pushed on the stack.
   }
 
-  @Override
-  public DexType computeVerificationType(TypeVerificationHelper helper) {
+  private Set<DexType> collectExceptionTypes(DexItemFactory dexItemFactory) {
     Set<DexType> exceptionTypes = new HashSet<>(getBlock().getPredecessors().size());
     for (BasicBlock block : getBlock().getPredecessors()) {
       int size = block.getCatchHandlers().size();
@@ -101,18 +101,26 @@ public class MoveException extends Instruction {
         if (targets.get(i) == getBlock()) {
           DexType guard = guards.get(i);
           exceptionTypes.add(
-              guard == helper.getFactory().catchAllType
-                  ? helper.getFactory().throwableType
+              guard == dexItemFactory.catchAllType
+                  ? dexItemFactory.throwableType
                   : guard);
         }
       }
     }
-    return helper.join(exceptionTypes);
+    return exceptionTypes;
+  }
+
+  @Override
+  public DexType computeVerificationType(TypeVerificationHelper helper) {
+    return helper.join(collectExceptionTypes(helper.getFactory()));
   }
 
   @Override
   public TypeLatticeElement evaluate(
       AppInfo appInfo, Function<Value, TypeLatticeElement> getLatticeElement) {
-    return TypeLatticeElement.fromDexType(appInfo.dexItemFactory.throwableType, false);
+    Set<DexType> exceptionTypes = collectExceptionTypes(appInfo.dexItemFactory);
+    return TypeLatticeElement.join(
+        appInfo,
+        exceptionTypes.stream().map(t -> TypeLatticeElement.fromDexType(t, false)));
   }
 }
