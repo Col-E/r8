@@ -40,7 +40,6 @@ public class CompatProguardCommandBuilder extends R8Command.Builder {
   public CompatProguardCommandBuilder(boolean forceProguardCompatibility) {
     super(forceProguardCompatibility);
     setIgnoreDexInArchive(true);
-    setDisableDesugaring(true);
     addProguardConfiguration(REFLECTIONS, EmbeddedOrigin.INSTANCE);
   }
 
