@@ -573,10 +573,10 @@ public class Value {
   }
 
   /**
-   * Returns whether this value is know to never be <code>null</code>.
+   * Returns whether this value is known to never be <code>null</code>.
    */
   public boolean isNeverNull() {
-    return neverNull;
+    return neverNull || (definition != null && definition.isNonNull());
   }
 
   public boolean canBeNull() {
