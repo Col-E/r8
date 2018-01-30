@@ -386,17 +386,31 @@ public class TestBase {
   /**
    * Run application on Art with the specified main class and provided arguments.
    */
-  protected String runOnArt(AndroidApp app, Class mainClass, List<String> args) throws IOException {
+  protected String runOnArt(AndroidApp app, String mainClass, List<String> args) throws IOException {
     Path out = File.createTempFile("junit", ".zip", temp.getRoot()).toPath();
     app.writeToZip(out, OutputMode.DexIndexed);
     return ToolHelper.runArtNoVerificationErrors(
-        ImmutableList.of(out.toString()), mainClass.getCanonicalName(),
+        ImmutableList.of(out.toString()), mainClass,
         builder -> {
           builder.appendArtOption("-ea");
           for (String arg : args) {
             builder.appendProgramArgument(arg);
           }
         });
+  }
+
+  /**
+   * Run application on Art with the specified main class and provided arguments.
+   */
+  protected String runOnArt(AndroidApp app, Class mainClass, List<String> args) throws IOException {
+    return runOnArt(app, mainClass.getCanonicalName(), args);
+  }
+
+  /**
+   * Run application on Art with the specified main class and provided arguments.
+   */
+  protected String runOnArt(AndroidApp app, String mainClass, String... args) throws IOException {
+    return runOnArt(app, mainClass, Arrays.asList(args));
   }
 
   /**

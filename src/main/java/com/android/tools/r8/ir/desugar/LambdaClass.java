@@ -125,7 +125,10 @@ final class LambdaClass {
         type,
         null,
         new SynthesizedOrigin("lambda desugaring", getClass()),
-        ClassAccessFlags.fromDexAccessFlags(Constants.ACC_FINAL | Constants.ACC_SYNTHETIC),
+        // Make the synthesized class public, as it might end up being accessed from a different
+        // classloader (package private access is not allowed across classloaders, b/72538146).
+        ClassAccessFlags.fromDexAccessFlags(
+            Constants.ACC_FINAL | Constants.ACC_SYNTHETIC | Constants.ACC_PUBLIC),
         rewriter.factory.objectType,
         buildInterfaces(),
         rewriter.factory.createString("lambda"),

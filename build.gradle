@@ -811,6 +811,15 @@ task buildDebugTestResourcesJars {
     dependsOn jar_debugTestResourcesKotlin
 }
 
+// Examples used by tests, where Android specific APIs are used.
+task buildExampleAndroidApi(type: JavaCompile) {
+    source = fileTree(dir: file("src/test/examplesAndroidApi"), include: "**/*.java")
+    destinationDir = file("build/test/examplesAndroidApi/classes")
+    classpath = files("third_party/android_jar/lib-v26/android.jar")
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
 task buildExampleKotlinJars {
     def kotlinSrcDir = file("src/test/examplesKotlin")
     kotlinSrcDir.eachDir { dir ->
@@ -1168,6 +1177,7 @@ task buildExamples {
     dependsOn buildExampleAndroidOJars
     dependsOn buildExampleAndroidPJars
     dependsOn buildExampleJava9Jars
+    dependsOn buildExampleAndroidApi
     def examplesDir = file("src/test/examples")
     def noDexTests = [
         "multidex",
