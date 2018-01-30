@@ -167,7 +167,7 @@ def main():
     if len(args) == 0:
       args.append(DEFAULT_TEST)
     elif len(args) == 1:
-      args = [TEST_RUNNER, '%s.%s' % (TEST_PACKAGE, args[0])]
+      args = [TEST_RUNNER, args[0]]
     return runDebugger(version, classpath, args)
 
 if __name__ == '__main__':

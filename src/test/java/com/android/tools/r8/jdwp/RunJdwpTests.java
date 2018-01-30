@@ -20,6 +20,8 @@ import com.google.common.collect.ImmutableSet;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -77,6 +79,15 @@ public class RunJdwpTests {
     return dexVm == DexVm.ART_DEFAULT;
   }
 
+  static boolean isJava(DexVm dexVm, Tool tool) {
+    return tool == Tool.JAVAC;
+  }
+
+  static final Map<String, TestPredicate> EXTRA_TESTS =
+      ImmutableMap.<String, TestPredicate>builder()
+          .put("LineTableDuplicatesTest", RunJdwpTests::isJava)
+          .build();
+
   static final Map<String, TestPredicate> FLAKY_TESTS =
       ImmutableMap.<String, TestPredicate>builder()
           // Build bot is failing with ART segmentation faults on the following tests. b/63317743
@@ -89,6 +100,9 @@ public class RunJdwpTests {
 
   static final Map<String, TestPredicate> FAILING_TESTS =
       ImmutableMap.<String, TestPredicate>builder()
+          // ART line-table currently returns too many line entries.
+          .put("LineTableDuplicatesTest", RunJdwpTests::isJava)
+          // Other failures on various older runtimes.
           .put("ArrayReference.GetValuesTest", RunJdwpTests::isAndroidLOrAbove)
           .put("ArrayReference.LengthTest", RunJdwpTests::isAndroidLOrAbove)
           .put("ArrayReference.SetValues003Test", RunJdwpTests::isAndroidNOrAbove)
@@ -223,7 +237,12 @@ public class RunJdwpTests {
       "StackFrame.GetValuesTest",
       "StackFrame.SetValues002Test",
       "StackFrame.SetValuesTest",
-      "VirtualMachine.InstanceCountsTest"
+      "VirtualMachine.InstanceCountsTest",
+      // D8 causes/exposes line-table information issues with ART.
+      // The current line-table test in ART passes.
+      "Method.LineTableTest",
+      // Our extended line-table test fails on ART (for now it is suppressed for ART).
+      "LineTableDuplicatesTest"
   );
 
   private static File d8Out = null;
@@ -236,11 +255,18 @@ public class RunJdwpTests {
     // Selects appropriate jar according to min api level for the selected runtime.
     int minApi = ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm());
     Path jdwpTestsJar = ToolHelper.getJdwpTestsCfJarPath(minApi);
-
+    Path classPath = ToolHelper.getClassPathForTests();
+    Path testPath = classPath.resolve(Paths.get("com","android", "tools", "r8", "jdwp"));
+    List<Path> extraTestResources = new ArrayList<>(2 * EXTRA_TESTS.size());
+    for (String test : EXTRA_TESTS.keySet()) {
+      extraTestResources.add(testPath.resolve(test + ".class"));
+      extraTestResources.add(testPath.resolve(test.replace("Test", "Debuggee") + ".class"));
+    }
     d8Out = temp.newFolder("d8-out");
     D8.run(
         D8Command.builder()
             .addProgramFiles(jdwpTestsJar)
+            .addProgramFiles(extraTestResources)
             .setOutput(d8Out.toPath(), OutputMode.DexIndexed)
             .setMinApiLevel(minApi)
             .setMode(CompilationMode.DEBUG)
@@ -249,7 +275,7 @@ public class RunJdwpTests {
 
   String getTestLib(Tool tool) {
     if (tool == Tool.JAVAC) {
-      return JAR_LIB;
+      return ToolHelper.BUILD_DIR + "classes/test:" + JAR_LIB;
     }
     if (tool == Tool.DX) {
       return DEX_LIB;
@@ -280,15 +306,18 @@ public class RunJdwpTests {
     skipIfNeeded(test, tool);
     System.out.println("Running test " + test + " for tool " + tool);
     String lib = getTestLib(tool);
+    String pkg = EXTRA_TESTS.containsKey(test)
+        ? "com.android.tools.r8.jdwp"
+        : "org.apache.harmony.jpda.tests.jdwp";
+    String testClass = pkg + "." + test;
 
     List<String> command;
     if (tool == Tool.JAVAC) {
       String run = "org.junit.runner.JUnitCore";
-      String pkg = "org.apache.harmony.jpda.tests.jdwp";
       command = Arrays.asList(
           ToolHelper.getJavaExecutable(),
           "-cp", System.getProperty("java.class.path") + File.pathSeparator + lib,
-          run, pkg + "." + test);
+          run, testClass);
     } else {
       // TODO(jmhenaff): fix issue with python scripts
       Assume
@@ -296,7 +325,7 @@ public class RunJdwpTests {
               !ToolHelper.isWindows());
       command = Arrays.asList(
           RUN_SCRIPT, "--classpath=" + lib, "--version=" + ToolHelper.getDexVm().getVersion(),
-          test);
+          testClass);
     }
     ProcessBuilder builder = new ProcessBuilder(command);
     ProcessResult result = ToolHelper.runProcess(builder);
@@ -622,8 +651,23 @@ public class RunJdwpTests {
   }
 
   @Test
+  public void testMethod_LineTableTest_Java() throws IOException {
+    runTest("Method.LineTableTest", Tool.JAVAC);
+  }
+
+  @Test
+  public void testExtra_LineTableDuplicatesTest_D8() throws IOException {
+    runTest("LineTableDuplicatesTest", Tool.D8);
+  }
+
+  @Test
+  public void testExtra_LineTableDuplicatesTest_Java() throws IOException {
+    runTest("LineTableDuplicatesTest", Tool.JAVAC);
+  }
+
+  @Test
   public void testMethod_VariableTableTest_D8() throws IOException {
-    runTest("Method.VariableTableTest", Tool.JAVAC);
+    runTest("Method.VariableTableTest", Tool.D8);
   }
 
   @Test
