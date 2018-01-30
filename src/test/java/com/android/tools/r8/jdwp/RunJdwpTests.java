@@ -146,6 +146,7 @@ public class RunJdwpTests {
           .put("InterfaceType.InvokeMethodTest", RunJdwpTests::isAndroidNOrAbove)
           .put("Method.BytecodesTest", RunJdwpTests::isAndroidLOrAbove)
           .put("Method.IsObsoleteTest", RunJdwpTests::isAndroidNOrAbove)
+          .put("Method.VariableTableTest", RunJdwpTests::isAndroidOOrAbove)
           .put("Method.VariableTableWithGenericTest", RunJdwpTests::isAndroidOOrAbove)
           .put("MultiSession.AttachConnectorTest", RunJdwpTests::isAndroidLOrAbove)
           .put("MultiSession.BreakpointTest", RunJdwpTests::isAndroidLOrAbove)
