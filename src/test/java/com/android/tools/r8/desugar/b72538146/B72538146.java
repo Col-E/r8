@@ -7,14 +7,20 @@ package com.android.tools.r8.desugar.b72538146;
 import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.VmTestRunner;
+import com.android.tools.r8.VmTestRunner.IgnoreIfVmOlderOrEqualThan;
 import com.android.tools.r8.utils.AndroidApp;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
+@RunWith(VmTestRunner.class)
 public class B72538146 extends TestBase {
 
   @Test
+  @IgnoreIfVmOlderOrEqualThan(Version.V6_0_1)
   public void test() throws Exception {
     // Build the main app from source compiled separately using the Android API for classloading.
     AndroidApp.Builder builder = AndroidApp.builder();
