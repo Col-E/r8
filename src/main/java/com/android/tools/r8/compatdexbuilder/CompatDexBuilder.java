@@ -83,6 +83,7 @@ public class CompatDexBuilder {
       }
       if (flag.startsWith("--num-threads=")) {
         numberOfThreads = Integer.parseInt(flag.substring("--num-threads=".length()));
+        continue;
       }
       switch (flag) {
         case "--input_jar":
