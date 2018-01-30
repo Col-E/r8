@@ -26,14 +26,17 @@ public class NonNullAfterFieldAccess {
     return arg.hashCode();
   }
 
-  public static int foo2(FieldAccessTest arg) {
+  private FieldAccessTest instance;
+
+  public int foo2(FieldAccessTest arg) {
+    this.instance = arg;
     arg.toString();
     if (arg == null) {
       throw new AssertionError("arg is not null.");
     }
     arg.fld = "test field access";
     if (arg == null) {
-      throw new AssertionError("this is not null.");
+      throw new AssertionError("arg is not null.");
     }
     return arg.hashCode();
   }

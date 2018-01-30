@@ -113,14 +113,19 @@ public class NonNullMarker {
         Set<Phi> dominatedPhiUsers = Sets.newIdentityHashSet();
         DominatorTree dominatorTree = new DominatorTree(code);
         for (BasicBlock dominatee : dominatorTree.dominatedBlocks(nonNullSuccessor)) {
+          boolean passNonNullOrDontCare = dominatee != nonNullSuccessor;
           InstructionListIterator dominateeIterator = dominatee.listIterator();
           while (dominateeIterator.hasNext()) {
             Instruction potentialUser = dominateeIterator.next();
+            // Avoid replacing values in instructions that happen *before* the current non-null.
+            if (!passNonNullOrDontCare) {
+              passNonNullOrDontCare = potentialUser == nonNull;
+            }
             // Avoid replacing values in instructions we are referring.
             if (potentialUser == current || potentialUser == nonNull) {
               continue;
             }
-            if (users.contains(potentialUser)) {
+            if (passNonNullOrDontCare && users.contains(potentialUser)) {
               dominatedUsers.add(potentialUser);
             }
           }

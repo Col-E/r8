@@ -4,6 +4,7 @@
 package com.android.tools.r8.ir.optimize;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.AsmTestBase;
@@ -12,6 +13,7 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.NonNull;
@@ -23,6 +25,7 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
+import java.util.function.Consumer;
 import org.junit.Test;
 
 public class NonNullMarkerTest extends AsmTestBase {
@@ -31,7 +34,8 @@ public class NonNullMarkerTest extends AsmTestBase {
   private void buildAndTest(
       Class<?> testClass,
       MethodSignature signature,
-      int expectedNumberOfNonNull)
+      int expectedNumberOfNonNull,
+      Consumer<IRCode> testAugmentedIRCode)
       throws Exception {
     AndroidApp app = buildAndroidApp(asBytes(testClass));
     DexApplication dexApplication =
@@ -49,6 +53,10 @@ public class NonNullMarkerTest extends AsmTestBase {
     assertTrue(irCode.isConsistentSSA());
     checkCountOfNonNull(irCode, expectedNumberOfNonNull);
 
+    if (testAugmentedIRCode != null) {
+      testAugmentedIRCode.accept(irCode);
+    }
+
     nonNullMarker.cleanupNonNull(irCode);
     assertTrue(irCode.isConsistentSSA());
     checkCountOfNonNull(irCode, 0);
@@ -61,7 +69,7 @@ public class NonNullMarkerTest extends AsmTestBase {
     while (it.hasNext()) {
       prev = curr != null && !curr.isGoto() ? curr : prev;
       curr = it.next();
-      if (curr instanceof NonNull) {
+      if (curr.isNonNull()) {
         // Make sure non-null is added to the right place.
         assertTrue(prev == null || NonNullMarker.throwsOnNullInput(prev));
         count++;
@@ -74,28 +82,49 @@ public class NonNullMarkerTest extends AsmTestBase {
   public void nonNullAfterSafeInvokes() throws Exception {
     MethodSignature signature =
         new MethodSignature("foo", "int", new String[]{"java.lang.String"});
-    buildAndTest(NonNullAfterInvoke.class, signature, 1);
+    buildAndTest(NonNullAfterInvoke.class, signature, 1, null);
   }
 
   @Test
   public void nonNullAfterSafeArrayAccess() throws Exception {
     MethodSignature signature =
         new MethodSignature("foo", "int", new String[]{"java.lang.String[]"});
-    buildAndTest(NonNullAfterArrayAccess.class, signature, 1);
+    buildAndTest(NonNullAfterArrayAccess.class, signature, 1, null);
   }
 
   @Test
   public void nonNullAfterSafeFieldAccess() throws Exception {
     MethodSignature signature = new MethodSignature("foo", "int",
         new String[]{"com.android.tools.r8.ir.nonnull.FieldAccessTest"});
-    buildAndTest(NonNullAfterFieldAccess.class, signature, 1);
+    buildAndTest(NonNullAfterFieldAccess.class, signature, 1, null);
   }
 
   @Test
   public void avoidRedundantNonNull() throws Exception {
     MethodSignature signature = new MethodSignature("foo2", "int",
         new String[]{"com.android.tools.r8.ir.nonnull.FieldAccessTest"});
-    buildAndTest(NonNullAfterFieldAccess.class, signature, 1);
+    buildAndTest(NonNullAfterFieldAccess.class, signature, 1, ircode -> {
+      // There are two InstancePut instructions of interest.
+      int count = 0;
+      InstructionIterator it = ircode.instructionIterator();
+      while (it.hasNext()) {
+        Instruction instruction = it.nextUntil(Instruction::isInstancePut);
+        if (instruction == null) {
+          break;
+        }
+        InstancePut iput = instruction.asInstancePut();
+        if (count == 0) {
+          // First one in the very first line: its value should not be replaced by NonNullMarker
+          // because this instruction will happen _before_ non-null.
+          assertFalse(iput.value().definition.isNonNull());
+        } else if (count == 1) {
+          // Second one after a safe invocation, which should use the value added by NonNullMarker.
+          assertTrue(iput.object().definition.isNonNull());
+        }
+        count++;
+      }
+      assertEquals(2, count);
+    });
   }
 
 }
