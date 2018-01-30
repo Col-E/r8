@@ -79,4 +79,9 @@ public class Throw extends JumpInstruction {
   public void buildCf(CfBuilder builder) {
     builder.add(new CfThrow());
   }
+
+  @Override
+  public boolean throwsNpeIfValueIsNull(Value value) {
+    return exception() == value;
+  }
 }

@@ -5,14 +5,36 @@ package inlining;
 
 class Nullability {
   private final int f;
+  public final int publicField;
 
   Nullability(int f) {
     this.f = f;
+    this.publicField = f;
   }
 
   int inlinable(A a) {
     // NPE is preserved when the receiver is null.
     return this.f + a.a();
+  }
+
+  int inlinableWithPublicField(A a) {
+    // NPE is preserved when the receiver is null.
+    return this.publicField + a.a();
+  }
+
+  int inlinableWithControlFlow(A a) {
+    // NPE is always preserved when the receiver is null.
+    return a != null ? this.f : this.publicField;
+  }
+
+  int notInlinableDueToMissingNpe(A a) {
+    // NPE is not preserved when the receiver is null and 'a' is null.
+    return a != null ? this.f : -1;
+  }
+
+  int notInlinableDueToSideEffect(A a) {
+    // NPE is not preserved when the receiver is null and a is not null.
+    return a != null ? a.a() : this.f;
   }
 
   int notInlinable(A a) {
@@ -24,6 +46,29 @@ class Nullability {
     // a is not null when a.a() is invoked.
     return a != null ? a.a() : -1;
   }
+
+  int notInlinableOnThrow(Throwable t) throws Throwable {
+    // NPE is not preserved if t is not a NullPointerException.
+    throw t;
+  }
+
+  int notInlinableBecauseHidesNpe() {
+    try {
+      return publicField;
+    } catch (NullPointerException e) {
+      return -1;
+    }
+  }
+
+  public int notInlinableDueToMissingNpeBeforeThrow(Throwable t) throws Throwable {
+    try {
+      throw t;
+    } catch (UnusedException e) {
+      return this.publicField;
+    }
+  }
+
+  static class UnusedException extends Throwable {}
 
   enum Factor {
     ONE, TWO, THREE, SIX

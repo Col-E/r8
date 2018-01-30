@@ -33,4 +33,9 @@ public class OptimizationFeedbackDirect implements OptimizationFeedback {
   public void markProcessed(DexEncodedMethod method, Constraint state) {
     method.markProcessed(state);
   }
+
+  @Override
+  public void markCheckNullReceiverBeforeAnySideEffect(DexEncodedMethod method) {
+    method.markCheckNullReceiverBeforeAnySideEffect();
+  }
 }

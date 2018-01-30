@@ -203,16 +203,23 @@ public class InliningOracle {
   }
 
   public InlineAction computeForInvokeWithReceiver(InvokeMethodWithReceiver invoke) {
+    DexEncodedMethod candidate = validateCandidate(invoke);
+    if (candidate == null) {
+      return null;
+    }
+
+    // We can only inline an instance method call if we preserve the null check semantic (which
+    // would throw NullPointerException if the receiver is null). Therefore we can inline only if
+    // one of the following conditions is true:
+    // * the candidate inlinee checks null receiver before any side effect
+    // * the receiver is known to be non-null
     boolean receiverIsNeverNull =
         !typeEnvironment.getLatticeElement(invoke.getReceiver()).isNullable();
-    if (!receiverIsNeverNull) {
+    if (!receiverIsNeverNull
+        && !candidate.getOptimizationInfo().checksNullReceiverBeforeAnySideEffect()) {
       if (info != null) {
         info.exclude(invoke, "receiver for candidate can be null");
       }
-      return null;
-    }
-    DexEncodedMethod candidate = validateCandidate(invoke);
-    if (candidate == null) {
       return null;
     }
 

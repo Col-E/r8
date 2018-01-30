@@ -167,4 +167,9 @@ public class ArrayPut extends Instruction {
   public void buildCf(CfBuilder builder) {
     builder.add(new CfArrayStore(type));
   }
+
+  @Override
+  public boolean throwsNpeIfValueIsNull(Value value) {
+    return array() == value;
+  }
 }

@@ -111,4 +111,9 @@ public class ArrayLength extends Instruction {
       AppInfo appInfo, Function<Value, TypeLatticeElement> getLatticeElement) {
     return PrimitiveTypeLatticeElement.getInstance();
   }
+
+  @Override
+  public boolean throwsNpeIfValueIsNull(Value value) {
+    return array() == value;
+  }
 }

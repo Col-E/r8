@@ -1049,4 +1049,8 @@ public abstract class Instruction {
     assert outValue == null;
     throw new Unreachable("Instructions without outValue have no type.");
   }
+
+  public boolean throwsNpeIfValueIsNull(Value value) {
+    return false;
+  }
 }

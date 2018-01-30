@@ -32,4 +32,9 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
   public final InlineAction computeInlining(InliningOracle decider) {
     return decider.computeForInvokeWithReceiver(this);
   }
+
+  @Override
+  public boolean throwsNpeIfValueIsNull(Value value) {
+    return getReceiver() == value;
+  }
 }

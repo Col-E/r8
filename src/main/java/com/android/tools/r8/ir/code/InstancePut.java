@@ -138,4 +138,9 @@ public class InstancePut extends FieldInstruction {
   public void buildCf(CfBuilder builder) {
     builder.add(new CfFieldInstruction(Opcodes.PUTFIELD, field));
   }
+
+  @Override
+  public boolean throwsNpeIfValueIsNull(Value value) {
+    return object() == value;
+  }
 }
