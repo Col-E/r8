@@ -155,4 +155,9 @@ public class InstanceGet extends FieldInstruction {
   public void buildCf(CfBuilder builder) {
     builder.add(new CfFieldInstruction(Opcodes.GETFIELD, field));
   }
+
+  @Override
+  public boolean throwsNpeIfValueIsNull(Value value) {
+    return object() == value;
+  }
 }

@@ -89,6 +89,7 @@ import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.ints.IntLists;
 import it.unimi.dsi.fastutil.objects.Object2IntLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -697,6 +698,90 @@ public class CodeRewriter {
     if (isNeverNull) {
       feedback.methodNeverReturnsNull(method);
     }
+  }
+
+  public void identifyReceiverNullabilityChecks(
+      DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
+    if (!method.isStaticMethod()) {
+      final Value receiver = code.getThis();
+      if (receiver.isUsed() && allPathsCheckNullReceiverBeforeSideEffect(code, receiver)) {
+        feedback.markCheckNullReceiverBeforeAnySideEffect(method);
+      }
+    }
+  }
+
+  /**
+   * Returns true if the given code unconditionally throws if receiver is null before any other
+   * side effect instruction.
+   *
+   * Note: we do not track phis so we may return false negative. This is a conservative approach.
+   */
+  private static boolean allPathsCheckNullReceiverBeforeSideEffect(IRCode code, Value receiver) {
+    final int color = code.reserveMarkingColor();
+    try {
+      ArrayDeque<BasicBlock> worklist = new ArrayDeque<>();
+      final BasicBlock entry = code.blocks.getFirst();
+      worklist.add(entry);
+      entry.mark(color);
+
+      while (!worklist.isEmpty()) {
+        BasicBlock currentBlock = worklist.poll();
+        assert currentBlock.isMarked(color);
+
+        boolean foundNullCheckBeforeSideEffect = false;
+        for (Instruction instr : currentBlock.getInstructions()) {
+          if (instr.throwsNpeIfValueIsNull(receiver)) {
+            // In order to preserve NPE semantic, the exception must not be caught by any handler.
+            // Therefore, we must ignore this instruction if it is covered by a catch handler.
+            // Note: this is a conservative approach where we consider that any catch handler could
+            // catch the exception, even if it cannot catch a NullPointerException.
+            if (!currentBlock.hasCatchHandlers()) {
+              // We found a NPE check on receiver
+              foundNullCheckBeforeSideEffect = true;
+              break;
+            }
+          } else if (instructionHasSideEffects(instr)) {
+            // We found a side effect before a NPE check.
+            return false;
+          }
+        }
+
+        if (foundNullCheckBeforeSideEffect) {
+          // The current path checks NPE. No need to go deeper in this path, go to the next block
+          // in the work list.
+          continue;
+        } else {
+          // The block neither checked NPE nor had side effect.
+          if (currentBlock.getNormalSuccessors().isEmpty()) {
+            // This is the end of the current non-exceptional path and we did not find any null
+            // check of the receiver. It means there is at least one path where the receiver is not
+            // checked for null.
+            Instruction lastInstruction = currentBlock.getInstructions().getLast();
+            assert lastInstruction.isReturn() || lastInstruction.isThrow();
+            return false;
+          } else {
+            // Look into successors
+            for (BasicBlock successor : currentBlock.getSuccessors()) {
+              if (!successor.isMarked(color)) {
+                worklist.add(successor);
+                successor.mark(color);
+              }
+            }
+          }
+        }
+      }
+
+      // If we reach this point, we checked the null receiver in every possible path.
+      return true;
+    } finally {
+      code.returnMarkingColor(color);
+    }
+  }
+
+  private static boolean instructionHasSideEffects(Instruction instruction) {
+    // We consider that an instruction has side effects if it can throw an exception. This is a
+    // conservative approach which can be revised in the future.
+    return instruction.instructionTypeCanThrow();
   }
 
   private boolean checkArgumentType(InvokeMethod invoke, DexMethod target, int argumentIndex) {

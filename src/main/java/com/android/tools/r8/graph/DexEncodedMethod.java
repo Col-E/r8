@@ -523,6 +523,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     private long returnedConstant = 0;
     private boolean forceInline = false;
     private boolean useIdentifierNameString = false;
+    private boolean checksNullReceiverBeforeAnySideEffect = false;
 
     private OptimizationInfo() {
       // Intentionally left empty.
@@ -535,6 +536,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       returnedConstant = template.returnedConstant;
       forceInline = template.forceInline;
       useIdentifierNameString = template.useIdentifierNameString;
+      checksNullReceiverBeforeAnySideEffect = template.checksNullReceiverBeforeAnySideEffect;
     }
 
     public boolean returnsArgument() {
@@ -571,6 +573,10 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       return useIdentifierNameString;
     }
 
+    public boolean checksNullReceiverBeforeAnySideEffect() {
+      return checksNullReceiverBeforeAnySideEffect;
+    }
+
     private void markReturnsArgument(int argument) {
       assert argument >= 0;
       assert returnedArgument == -1 || returnedArgument == argument;
@@ -601,6 +607,11 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
 
     public OptimizationInfo copy() {
       return new OptimizationInfo(this);
+    }
+
+    private void markCheckNullReceiverBeforeAnySideEffect() {
+      assert !checksNullReceiverBeforeAnySideEffect;
+      checksNullReceiverBeforeAnySideEffect = true;
     }
   }
 
@@ -646,6 +657,10 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
 
   synchronized public void markUseIdentifierNameString() {
     ensureMutableOI().markUseIdentifierNameString();
+  }
+
+  synchronized public void markCheckNullReceiverBeforeAnySideEffect() {
+    ensureMutableOI().markCheckNullReceiverBeforeAnySideEffect();
   }
 
   public OptimizationInfo getOptimizationInfo() {

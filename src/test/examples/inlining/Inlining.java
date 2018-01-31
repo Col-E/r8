@@ -22,6 +22,11 @@ public class Inlining {
     }
   }
 
+  private static void fail(String msg) {
+    System.out.println(msg);
+    System.exit(1);
+  }
+
   public static void main(String[] args) {
     // Ensure the simple methods are called at least three times, to not be inlined due to being
     // called only once or twice.
@@ -109,6 +114,29 @@ public class Inlining {
     Assert(n.notInlinable(a));
     Assert(n.conditionalOperator(a));
     Assert(n.moreControlFlows(a, Factor.ONE));
+    Assert(n.inlinableWithPublicField(a));
+    Assert(n.inlinableWithControlFlow(a));
+    Assert(n.notInlinableDueToMissingNpe(a));
+    Assert(n.notInlinableDueToSideEffect(a));
+    Assert(n.notInlinableBecauseHidesNpe());
+    try {
+      Assert(n.notInlinableDueToMissingNpeBeforeThrow(new IllegalArgumentException()));
+    } catch (IllegalArgumentException expected) {
+      // Expected exception
+    } catch (NullPointerException unexpected) {
+      System.out.println("Unexpected NullPointerException for notInlinableOnThrow");
+    } catch (Throwable unexpected) {
+      System.out.println("Unexpected exception for notInlinableOnThrow");
+    }
+    try {
+      Assert(n.notInlinableOnThrow(new IllegalArgumentException()));
+    } catch (IllegalArgumentException expected) {
+      // Expected exception
+    } catch (NullPointerException unexpected) {
+      System.out.println("Unexpected NullPointerException for notInlinableOnThrow");
+    } catch (Throwable unexpected) {
+      System.out.println("Unexpected exception for notInlinableOnThrow");
+    }
 
     n = null;
     ThrowingA aa = new ThrowingA(a.a());
@@ -131,6 +159,57 @@ public class Inlining {
       n.moreControlFlows(aa, Factor.TWO);
     } catch (NullPointerException npe) {
       // Expected!
+    }
+    try {
+      n.inlinableWithPublicField(aa);
+    } catch (NullPointerException npe) {
+      // Expected!
+    }
+    try {
+      n.inlinableWithControlFlow(aa);
+    } catch (NullPointerException npe) {
+      // Expected!
+    }
+    try {
+      n.notInlinableDueToMissingNpe(aa);
+    } catch (NullPointerException npe) {
+      // Expected!
+    }
+    try {
+      n.notInlinableDueToSideEffect(aa);
+    } catch (NullPointerException npe) {
+      // Expected!
+    }
+    try {
+      Assert(n.notInlinableBecauseHidesNpe());
+      fail("Should have thrown NullPointerException");
+    } catch (NullPointerException expected) {
+      // Expected exception
+    }
+    try {
+      n.notInlinableDueToMissingNpeBeforeThrow(new IllegalArgumentException());
+    } catch (NullPointerException npe) {
+      // Expected!
+    } catch (Throwable t) {
+      System.out.println("Unexpected exception");
+    }
+    try {
+      Assert(n.notInlinableDueToMissingNpeBeforeThrow(new IllegalArgumentException()));
+    } catch (NullPointerException expected) {
+      // Expected exception
+    } catch (IllegalArgumentException unexpected) {
+      System.out.println("Unexpected IllegalArgumentException for notInlinableOnThrow");
+    } catch (Throwable unexpected) {
+      System.out.println("Unexpected exception for notInlinableOnThrow");
+    }
+    try {
+      Assert(n.notInlinableOnThrow(new IllegalArgumentException()));
+    } catch (NullPointerException expected) {
+      // Expected exception
+    } catch (IllegalArgumentException unexpected) {
+      System.out.println("Unexpected IllegalArgumentException for notInlinableOnThrow");
+    } catch (Throwable unexpected) {
+      System.out.println("Unexpected exception for notInlinableOnThrow");
     }
   }
 

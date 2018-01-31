@@ -115,4 +115,9 @@ public class Monitor extends Instruction {
   public void buildCf(CfBuilder builder) {
     builder.add(new CfMonitor(type));
   }
+
+  @Override
+  public boolean throwsNpeIfValueIsNull(Value value) {
+    return object() == value;
+  }
 }

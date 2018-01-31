@@ -11,17 +11,20 @@ import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.code.AddInt2Addr;
 import com.android.tools.r8.code.Const4;
 import com.android.tools.r8.code.Goto;
 import com.android.tools.r8.code.IfEqz;
 import com.android.tools.r8.code.Iget;
+import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.InvokeVirtual;
 import com.android.tools.r8.code.MoveResult;
 import com.android.tools.r8.code.MulInt2Addr;
 import com.android.tools.r8.code.PackedSwitch;
 import com.android.tools.r8.code.PackedSwitchPayload;
 import com.android.tools.r8.code.Return;
+import com.android.tools.r8.code.Throw;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.utils.DexInspector;
@@ -36,6 +39,7 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -99,7 +103,13 @@ public class R8InliningTest extends TestBase {
     ToolHelper.runR8(command, o -> {
       o.skipMinification = true;
     });
-    ToolHelper.runArtNoVerificationErrors(out + "/classes.dex", "inlining.Inlining");
+    String artOutput = ToolHelper.runArtNoVerificationErrors(out + "/classes.dex",
+        "inlining.Inlining");
+
+    // Compare result with Java to make sure we have the same behavior.
+    ProcessResult javaResult = ToolHelper.runJava(getInputFile(), "inlining.Inlining");
+    assertEquals(0, javaResult.exitCode);
+    assertEquals(javaResult.stdout, artOutput);
   }
 
   private void checkAbsent(ClassSubject clazz, String name) {
@@ -135,6 +145,10 @@ public class R8InliningTest extends TestBase {
     checkAbsent(clazz, "intArgumentExpression");
     checkAbsent(clazz, "doubleArgumentExpression");
     checkAbsent(clazz, "floatArgumentExpression");
+
+    clazz = inspector.clazz("inlining.Nullability");
+    checkAbsent(clazz, "inlinableWithPublicField");
+    checkAbsent(clazz, "inlinableWithControlFlow");
   }
 
   @Test
@@ -154,26 +168,61 @@ public class R8InliningTest extends TestBase {
     DexInspector inspector =
         new DexInspector(getGeneratedDexFile().toAbsolutePath(), getGeneratedProguardMap());
     ClassSubject clazz = inspector.clazz("inlining.Nullability");
-    MethodSubject m1 = clazz.method("int", "inlinable", ImmutableList.of("inlining.A"));
-    assertTrue(m1.isPresent());
-    DexCode code = m1.getMethod().getCode().asDexCode();
-    assertEquals(5, code.instructions.length);
-    assertTrue(code.instructions[0] instanceof Iget);
-    // TODO(b/70572176): below two could be replaced with Iget via inlining
-    assertTrue(code.instructions[1] instanceof InvokeVirtual);
-    assertTrue(code.instructions[2] instanceof MoveResult);
-    assertTrue(code.instructions[3] instanceof AddInt2Addr);
-    assertTrue(code.instructions[4] instanceof Return);
+    MethodSubject m = clazz.method("int", "inlinable", ImmutableList.of("inlining.A"));
+    assertTrue(m.isPresent());
+    DexCode code = m.getMethod().getCode().asDexCode();
+    checkInsructions(code, ImmutableList.of(
+        Iget.class,
+        // TODO(b/70572176): below two could be replaced with Iget via inlining
+        InvokeVirtual.class,
+        MoveResult.class,
+        AddInt2Addr.class,
+        Return.class));
 
-    MethodSubject m2 = clazz.method("int", "notInlinable", ImmutableList.of("inlining.A"));
-    assertTrue(m2.isPresent());
-    code = m2.getMethod().getCode().asDexCode();
-    assertEquals(5, code.instructions.length);
-    assertTrue(code.instructions[0] instanceof InvokeVirtual);
-    assertTrue(code.instructions[1] instanceof MoveResult);
-    assertTrue(code.instructions[2] instanceof Iget);
-    assertTrue(code.instructions[3] instanceof AddInt2Addr);
-    assertTrue(code.instructions[4] instanceof Return);
+    m = clazz.method("int", "notInlinable", ImmutableList.of("inlining.A"));
+    assertTrue(m.isPresent());
+    code = m.getMethod().getCode().asDexCode();
+    checkInsructions(code, ImmutableList.of(
+        InvokeVirtual.class,
+        MoveResult.class,
+        Iget.class,
+        AddInt2Addr.class,
+        Return.class));
+
+    m = clazz.method("int", "notInlinableDueToMissingNpe", ImmutableList.of("inlining.A"));
+    assertTrue(m.isPresent());
+    code = m.getMethod().getCode().asDexCode();
+    checkInsructions(code, ImmutableList.of(
+        IfEqz.class,
+        Iget.class,
+        Goto.class,
+        Const4.class,
+        Return.class));
+
+    m = clazz.method("int", "notInlinableDueToSideEffect", ImmutableList.of("inlining.A"));
+    assertTrue(m.isPresent());
+    code = m.getMethod().getCode().asDexCode();
+    checkInsructions(code, ImmutableList.of(
+        IfEqz.class,
+        InvokeVirtual.class,
+        MoveResult.class,
+        Goto.class,
+        Iget.class,
+        Return.class));
+
+    m = clazz.method("int", "notInlinableOnThrow", ImmutableList.of("java.lang.Throwable"));
+    assertTrue(m.isPresent());
+    code = m.getMethod().getCode().asDexCode();
+    checkInsructions(code, ImmutableList.of(Throw.class));
+
+    m = clazz.method("int", "notInlinableDueToMissingNpeBeforeThrow",
+        ImmutableList.of("java.lang.Throwable"));
+    assertTrue(m.isPresent());
+    code = m.getMethod().getCode().asDexCode();
+    checkInsructions(code, ImmutableList.of(
+        Throw.class,
+        Iget.class,
+        Return.class));
   }
 
   @Test
@@ -181,39 +230,50 @@ public class R8InliningTest extends TestBase {
     DexInspector inspector =
         new DexInspector(getGeneratedDexFile().toAbsolutePath(), getGeneratedProguardMap());
     ClassSubject clazz = inspector.clazz("inlining.Nullability");
-    MethodSubject m1 = clazz.method("int", "conditionalOperator", ImmutableList.of("inlining.A"));
-    assertTrue(m1.isPresent());
-    DexCode code = m1.getMethod().getCode().asDexCode();
-    assertEquals(6, code.instructions.length);
-    assertTrue(code.instructions[0] instanceof IfEqz);
-    // TODO(b/70794661): below two could be replaced with Iget via inlining
-    assertTrue(code.instructions[1] instanceof InvokeVirtual);
-    assertTrue(code.instructions[2] instanceof MoveResult);
-    assertTrue(code.instructions[3] instanceof Goto);
-    assertTrue(code.instructions[4] instanceof Const4);
-    assertTrue(code.instructions[5] instanceof Return);
+    MethodSubject m = clazz.method("int", "conditionalOperator", ImmutableList.of("inlining.A"));
+    assertTrue(m.isPresent());
+    DexCode code = m.getMethod().getCode().asDexCode();
+    checkInsructions(code, ImmutableList.of(
+        IfEqz.class,
+        // TODO(b/70794661): below two could be replaced with Iget via inlining if access
+        // modification is allowed.
+        InvokeVirtual.class,
+        MoveResult.class,
+        Goto.class,
+        Const4.class,
+        Return.class));
 
-    MethodSubject m2 = clazz.method("int", "moreControlFlows",
+    m = clazz.method("int", "moreControlFlows",
         ImmutableList.of("inlining.A", "inlining.Nullability$Factor"));
-    assertTrue(m2.isPresent());
-    code = m2.getMethod().getCode().asDexCode();
-    assertEquals(19, code.instructions.length);
+    assertTrue(m.isPresent());
+    code = m.getMethod().getCode().asDexCode();
+    ImmutableList.Builder<Class<? extends Instruction>> builder = ImmutableList.builder();
     // Enum#ordinal
-    assertTrue(code.instructions[0] instanceof InvokeVirtual);
-    assertTrue(code.instructions[1] instanceof MoveResult);
-    assertTrue(code.instructions[2] instanceof PackedSwitch);
-    for (int i = 3; i < 11; ) {
-      assertTrue(code.instructions[i++] instanceof Const4);
-      assertTrue(code.instructions[i++] instanceof Goto);
+    builder.add(InvokeVirtual.class);
+    builder.add(MoveResult.class);
+    builder.add(PackedSwitch.class);
+    for (int i = 0; i < 4; ++i) {
+      builder.add(Const4.class);
+      builder.add(Goto.class);
     }
-    assertTrue(code.instructions[11] instanceof Const4);
-    assertTrue(code.instructions[12] instanceof IfEqz);
-    assertTrue(code.instructions[13] instanceof IfEqz);
+    builder.add(Const4.class);
+    builder.add(IfEqz.class);
+    builder.add(IfEqz.class);
     // TODO(b/70794661): below two could be replaced with Iget via inlining
-    assertTrue(code.instructions[14] instanceof InvokeVirtual);
-    assertTrue(code.instructions[15] instanceof MoveResult);
-    assertTrue(code.instructions[16] instanceof MulInt2Addr);
-    assertTrue(code.instructions[17] instanceof Return);
-    assertTrue(code.instructions[18] instanceof PackedSwitchPayload);
+    builder.add(InvokeVirtual.class);
+    builder.add(MoveResult.class);
+    builder.add(MulInt2Addr.class);
+    builder.add(Return.class);
+    builder.add(PackedSwitchPayload.class);
+    checkInsructions(code, builder.build());
+  }
+
+  private static void checkInsructions(DexCode code,
+      List<Class<? extends Instruction>> instructions) {
+    assertEquals(instructions.size(), code.instructions.length);
+    for (int i = 0; i < instructions.size(); ++i) {
+      assertEquals("Unexpected instruction at index " + i,
+          instructions.get(i), code.instructions[i].getClass());
+    }
   }
 }

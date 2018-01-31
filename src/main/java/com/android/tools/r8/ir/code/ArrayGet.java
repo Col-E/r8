@@ -162,4 +162,9 @@ public class ArrayGet extends Instruction {
       AppInfo appInfo, Function<Value, TypeLatticeElement> getLatticeElement) {
     return getLatticeElement.apply(array()).arrayGet(appInfo);
   }
+
+  @Override
+  public boolean throwsNpeIfValueIsNull(Value value) {
+    return array() == value;
+  }
 }

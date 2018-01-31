@@ -23,4 +23,7 @@ public class OptimizationFeedbackIgnore implements OptimizationFeedback {
 
   @Override
   public void markProcessed(DexEncodedMethod method, Constraint state) {}
+
+  @Override
+  public void markCheckNullReceiverBeforeAnySideEffect(DexEncodedMethod method) {}
 }

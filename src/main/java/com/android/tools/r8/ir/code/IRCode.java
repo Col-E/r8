@@ -547,6 +547,17 @@ public class IRCode {
     return arguments;
   }
 
+  public Value getThis() {
+    if (method.accessFlags.isStatic()) {
+      return null;
+    }
+    Instruction firstArg = blocks.getFirst().listIterator().nextUntil(Instruction::isArgument);
+    assert firstArg != null;
+    Value thisValue = firstArg.asArgument().outValue();
+    assert thisValue.isThis();
+    return thisValue;
+  }
+
   public Value createValue(ValueType valueType, DebugLocalInfo local) {
     return new Value(valueNumberGenerator.next(), valueType, local);
   }
