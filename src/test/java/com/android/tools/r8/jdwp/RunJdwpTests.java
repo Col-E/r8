@@ -55,6 +55,10 @@ public class RunJdwpTests {
     boolean test(DexVm dexVm, Tool tool);
   }
 
+  static boolean isAndroidKOrAbove(DexVm dexVm, Tool tool) {
+    return dexVm.getVersion().isAtLeast(Version.V4_4_4);
+  }
+
   static boolean isAndroidLOrAbove(DexVm dexVm, Tool tool) {
     return dexVm.getVersion().isNewerThan(Version.V4_4_4);
   }
@@ -146,6 +150,7 @@ public class RunJdwpTests {
           .put("InterfaceType.InvokeMethodTest", RunJdwpTests::isAndroidNOrAbove)
           .put("Method.BytecodesTest", RunJdwpTests::isAndroidLOrAbove)
           .put("Method.IsObsoleteTest", RunJdwpTests::isAndroidNOrAbove)
+          .put("Method.LineTableTest", RunJdwpTests::isAndroidKOrAbove)
           .put("Method.VariableTableTest", RunJdwpTests::isAndroidOOrAbove)
           .put("Method.VariableTableWithGenericTest", RunJdwpTests::isAndroidOOrAbove)
           .put("MultiSession.AttachConnectorTest", RunJdwpTests::isAndroidLOrAbove)
@@ -240,7 +245,7 @@ public class RunJdwpTests {
       "StackFrame.SetValuesTest",
       "VirtualMachine.InstanceCountsTest",
       // D8 causes/exposes line-table information issues with ART.
-      // The current line-table test in ART passes.
+      // The current line-table test in ART passes on runtimes >= K.
       "Method.LineTableTest",
       // Our extended line-table test fails on ART (for now it is suppressed for ART).
       "LineTableDuplicatesTest"
