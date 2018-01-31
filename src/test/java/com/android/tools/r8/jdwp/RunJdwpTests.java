@@ -55,6 +55,17 @@ public class RunJdwpTests {
     boolean test(DexVm dexVm, Tool tool);
   }
 
+  static TestPredicate or(TestPredicate... predicates) {
+    return (vm, tool) -> {
+      for (TestPredicate predicate : predicates) {
+        if (predicate.test(vm, tool)) {
+          return true;
+        }
+      }
+      return false;
+    };
+  }
+
   static boolean isAndroidKOrAbove(DexVm dexVm, Tool tool) {
     return dexVm.getVersion().isAtLeast(Version.V4_4_4);
   }
@@ -150,7 +161,7 @@ public class RunJdwpTests {
           .put("InterfaceType.InvokeMethodTest", RunJdwpTests::isAndroidNOrAbove)
           .put("Method.BytecodesTest", RunJdwpTests::isAndroidLOrAbove)
           .put("Method.IsObsoleteTest", RunJdwpTests::isAndroidNOrAbove)
-          .put("Method.LineTableTest", RunJdwpTests::isAndroidKOrAbove)
+          .put("Method.LineTableTest", or(RunJdwpTests::isAndroidKOrAbove, RunJdwpTests::isJava))
           .put("Method.VariableTableTest", RunJdwpTests::isAndroidOOrAbove)
           .put("Method.VariableTableWithGenericTest", RunJdwpTests::isAndroidOOrAbove)
           .put("MultiSession.AttachConnectorTest", RunJdwpTests::isAndroidLOrAbove)
