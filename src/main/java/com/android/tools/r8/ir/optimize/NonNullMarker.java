@@ -82,9 +82,9 @@ public class NonNullMarker {
         // invoke(rcv, ...)
         // goto A
         //
-        // A: ...y // nonNullSuccessor
+        // A: ...y // blockWithNonNullInstruction
         //
-        BasicBlock nonNullSuccessor =
+        BasicBlock blockWithNonNullInstruction =
             block.hasCatchHandlers() ? iterator.split(code, blocks) : block;
         // Next, add non-null fake IR, e.g.,
         // ...x
@@ -97,11 +97,11 @@ public class NonNullMarker {
             code.createValue(ValueType.OBJECT, knownToBeNonNullValue.getLocalInfo());
         NonNull nonNull = new NonNull(nonNullValue, knownToBeNonNullValue);
         nonNull.setPosition(current.getPosition());
-        if (block.hasCatchHandlers()) {
+        if (blockWithNonNullInstruction !=  block) {
           // If we split, add non-null IR on top of the new split block.
-          nonNullSuccessor.listIterator().add(nonNull);
+          blockWithNonNullInstruction.listIterator().add(nonNull);
         } else {
-          // Otherwise, just add it to the current position of the iterator.
+          // Otherwise, just add it to the current block at the position of the iterator.
           iterator.add(nonNull);
         }
         // Then, replace all users of the original value that are dominated by either the current
@@ -112,20 +112,17 @@ public class NonNullMarker {
         Set<Instruction> dominatedUsers = Sets.newIdentityHashSet();
         Set<Phi> dominatedPhiUsers = Sets.newIdentityHashSet();
         DominatorTree dominatorTree = new DominatorTree(code);
-        for (BasicBlock dominatee : dominatorTree.dominatedBlocks(nonNullSuccessor)) {
-          boolean passNonNullOrDontCare = dominatee != nonNullSuccessor;
+        for (BasicBlock dominatee : dominatorTree.dominatedBlocks(blockWithNonNullInstruction)) {
           InstructionListIterator dominateeIterator = dominatee.listIterator();
+          if (dominatee == blockWithNonNullInstruction) {
+            // In the block with the inserted non null instruction, skip instructions up to and
+            // including the newly inserted instruction.
+            dominateeIterator.nextUntil(instruction -> instruction == nonNull);
+          }
           while (dominateeIterator.hasNext()) {
             Instruction potentialUser = dominateeIterator.next();
-            // Avoid replacing values in instructions that happen *before* the current non-null.
-            if (!passNonNullOrDontCare) {
-              passNonNullOrDontCare = potentialUser == nonNull;
-            }
-            // Avoid replacing values in instructions we are referring.
-            if (potentialUser == current || potentialUser == nonNull) {
-              continue;
-            }
-            if (passNonNullOrDontCare && users.contains(potentialUser)) {
+            assert potentialUser != nonNull;
+            if (users.contains(potentialUser)) {
               dominatedUsers.add(potentialUser);
             }
           }
