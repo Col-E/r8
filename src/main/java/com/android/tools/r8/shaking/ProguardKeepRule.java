@@ -4,6 +4,7 @@
 package com.android.tools.r8.shaking;
 
 import java.util.Set;
+import java.util.function.Consumer;
 
 public class ProguardKeepRule extends ProguardConfigurationRule {
 
@@ -118,11 +119,13 @@ public class ProguardKeepRule extends ProguardConfigurationRule {
     return modifiers.toString();
   }
 
-  public static ProguardKeepRule defaultKeepAllRule() {
+  public static ProguardKeepRule defaultKeepAllRule(
+      Consumer<ProguardKeepRuleModifiers.Builder> modifiers) {
     ProguardKeepRule.Builder builder = ProguardKeepRule.builder();
     builder.setClassType(ProguardClassType.CLASS);
     builder.matchAllSpecification();
     builder.setType(ProguardKeepRuleType.KEEP);
+    modifiers.accept(builder.getModifiersBuilder());
     return builder.build();
   }
 }

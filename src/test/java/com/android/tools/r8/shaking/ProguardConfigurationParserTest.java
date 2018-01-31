@@ -971,7 +971,7 @@ public class ProguardConfigurationParserTest extends TestBase {
     parser.parse(createConfigurationForTesting(ImmutableList.of(config)));
     assertEquals(
         ProguardKeepAttributes.fromPatterns(expected),
-        parser.getConfig().getKeepAttributes());
+        parser.getConfigRawForTesting().getKeepAttributes());
   }
 
   @Test

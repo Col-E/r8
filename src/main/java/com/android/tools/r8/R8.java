@@ -287,8 +287,8 @@ public class R8 {
           // Recompute the subtyping information.
           appInfo = appInfo.withLiveness().prunedCopyFrom(application, pruner.getRemovedClasses());
           new AbstractMethodRemover(appInfo).run();
-          new AnnotationRemover(appInfo.withLiveness(), compatibility, options).run();
         }
+        new AnnotationRemover(appInfo.withLiveness(), compatibility, options).run();
 
         // TODO(69445518): This is still work in progress, and this file writing is currently used
         // for testing.

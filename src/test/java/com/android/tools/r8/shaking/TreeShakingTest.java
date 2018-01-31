@@ -137,7 +137,9 @@ public class TreeShakingTest {
                   pgConfig.setPrintMapping(true);
                   pgConfig.setPrintMappingFile(out.resolve(ToolHelper.DEFAULT_PROGUARD_MAP_FILE));
                   pgConfig.setOverloadAggressively(minify == MinifyMode.AGGRESSIVE);
-                  pgConfig.setObfuscating(minify.isMinify());
+                  if (!minify.isMinify()) {
+                    pgConfig.disableObfuscation();
+                  }
                 })
             .setOutput(out, OutputMode.DexIndexed)
             .addProguardConfigurationFiles(ListUtils.map(keepRulesFiles, Paths::get))

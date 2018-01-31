@@ -89,20 +89,28 @@ public class ProguardConfiguration {
       this.ignoreWarnings = ignoreWarnings;
     }
 
-    public void setOptimizing(boolean optimizing) {
-      this.optimizing = optimizing;
+    public void disableOptimization() {
+      this.optimizing = false;
     }
 
-    public void setObfuscating(boolean obfuscate) {
-      this.obfuscating = obfuscate;
+    public void disableObfuscation() {
+      this.obfuscating = false;
     }
 
     boolean isObfuscating() {
       return obfuscating;
     }
 
-    public void setShrinking(boolean shrinking) {
-      this.shrinking = shrinking;
+    public boolean isOptimizing() {
+      return optimizing;
+    }
+
+    public boolean isShrinking() {
+      return shrinking;
+    }
+
+    public void disableShrinking() {
+      shrinking = false;
     }
 
     public void setPrintUsage(boolean printUsage) {
@@ -247,13 +255,24 @@ public class ProguardConfiguration {
     public ProguardConfiguration build() {
       boolean rulesWasEmpty = rules.isEmpty();
       if (rules.isEmpty()) {
-        setObfuscating(false);
-        setShrinking(false);
-        addRule(ProguardKeepRule.defaultKeepAllRule());
+        disableObfuscation();
+        disableShrinking();
+        // TODO(sgjesse): Honor disable-optimization flag when no config provided.
+        // disableOptimization();
       }
-      if (keepAttributePatterns.isEmpty()
-            && (rulesWasEmpty || (forceProguardCompatibility && !isObfuscating()))) {
+
+      if ((keepAttributePatterns.isEmpty()
+          && (rulesWasEmpty || (forceProguardCompatibility && !isObfuscating())))
+          || !isShrinking()) {
         keepAttributePatterns.addAll(ProguardKeepAttributes.KEEP_ALL);
+      }
+
+      if (!isShrinking() || !isObfuscating() || !isOptimizing()) {
+        addRule(ProguardKeepRule.defaultKeepAllRule(modifiers -> {
+          modifiers.setAllowsShrinking(isShrinking());
+          modifiers.setAllowsOptimization(isOptimizing());
+          modifiers.setAllowsObfuscation(isObfuscating());
+        }));
       }
 
       return buildRaw();

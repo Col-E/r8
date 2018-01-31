@@ -15,8 +15,8 @@ public class ProguardConfigurationUtils {
   public static ProguardKeepRule buildDefaultInitializerKeepRule(DexClass clazz) {
     ProguardKeepRule.Builder builder = ProguardKeepRule.builder();
     builder.setType(ProguardKeepRuleType.KEEP);
-    builder.getModifiersBuilder().allowsObfuscation = true;
-    builder.getModifiersBuilder().allowsOptimization = true;
+    builder.getModifiersBuilder().setAllowsObfuscation(true);
+    builder.getModifiersBuilder().setAllowsOptimization(true);
     builder.getClassAccessFlags().setPublic();
     builder.setClassType(ProguardClassType.CLASS);
     ProguardClassNameList.Builder classNameListBuilder = ProguardClassNameList.builder();
@@ -37,8 +37,8 @@ public class ProguardConfigurationUtils {
     assert clazz.type == method.method.holder;
     ProguardKeepRule.Builder builder = ProguardKeepRule.builder();
     builder.setType(ProguardKeepRuleType.KEEP);
-    builder.getModifiersBuilder().allowsObfuscation = true;
-    builder.getModifiersBuilder().allowsOptimization = true;
+    builder.getModifiersBuilder().setAllowsObfuscation(true);
+    builder.getModifiersBuilder().setAllowsOptimization(true);
     builder.getClassAccessFlags().setPublic();
     builder.setClassType(ProguardClassType.INTERFACE);
     builder.setClassNames(

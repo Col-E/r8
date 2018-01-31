@@ -768,11 +768,9 @@ public class ToolHelper {
     if (app.getLibraryResourceProviders().isEmpty()) {
       // Add the android library matching the minsdk. We filter out junit and testing classes
       // from the android jar to avoid duplicate classes in art and jctf tests.
-      app = AndroidApp.builder(app)
-          .addFilteredLibraryArchives(Collections.singletonList(
-              new FilteredClassPath(getAndroidJar(command.getMinApiLevel()),
-                  ImmutableList.of("!junit/**", "!android/test/**"))))
-              .build();
+      AndroidApp.Builder builder = AndroidApp.builder(app);
+      addFilteredAndroidJar(builder, command.getMinApiLevel());
+      app = builder.build();
     }
     InternalOptions options = command.getInternalOptions();
     if (optionsConsumer != null) {
@@ -781,6 +779,18 @@ public class ToolHelper {
     AndroidAppConsumers compatSink = new AndroidAppConsumers(options);
     R8.runForTesting(app, options);
     return compatSink.build();
+  }
+
+  public static void addFilteredAndroidJar(BaseCommand.Builder builder, int minSdkVersion)
+      throws IOException {
+    addFilteredAndroidJar(getAppBuilder(builder), minSdkVersion);
+  }
+
+  public static void addFilteredAndroidJar(AndroidApp.Builder builder, int minSdkVersion)
+      throws IOException {
+    builder.addFilteredLibraryArchives(Collections.singletonList(
+        new FilteredClassPath(getAndroidJar(minSdkVersion),
+            ImmutableList.of("!junit/**", "!android/test/**"))));
   }
 
   public static AndroidApp runD8(AndroidApp app) throws CompilationException, IOException {
