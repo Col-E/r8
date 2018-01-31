@@ -97,6 +97,19 @@ public class JasminTestBase extends TestBase {
     return ToolHelper.runR8(builder.build(), optionsConsumer);
   }
 
+  protected AndroidApp compileWithR8(
+      JasminBuilder builder,
+      List<String> proguardConfigs,
+      Consumer<InternalOptions> optionsConsumer)
+      throws Exception {
+    R8Command command =
+        ToolHelper.prepareR8CommandBuilder(builder.build())
+            .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
+            .addProguardConfiguration(proguardConfigs, Origin.unknown())
+            .build();
+    return ToolHelper.runR8(command, optionsConsumer);
+  }
+
   protected AndroidApp compileWithR8(JasminBuilder builder, String proguardConfig,
       Consumer<InternalOptions> optionsConsumer)
       throws Exception {

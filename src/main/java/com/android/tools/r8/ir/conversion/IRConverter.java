@@ -572,8 +572,7 @@ public class IRConverter {
           method, code, typeAnalysis, isProcessedConcurrently, callSiteInformation);
     }
     // TODO(b/69962188): MethodDevirtualizer can perform optimizations using type analysis.
-    // TODO(b/71794895): CodeRewriter can remove unnecessary cast using type analysis.
-    codeRewriter.removeCastChains(code);
+    codeRewriter.removeCasts(code, typeAnalysis);
     codeRewriter.rewriteLongCompareAndRequireNonNull(code, options);
     codeRewriter.commonSubexpressionElimination(code);
     codeRewriter.simplifyArrayConstruction(code);

@@ -39,7 +39,6 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -171,7 +170,7 @@ public class R8InliningTest extends TestBase {
     MethodSubject m = clazz.method("int", "inlinable", ImmutableList.of("inlining.A"));
     assertTrue(m.isPresent());
     DexCode code = m.getMethod().getCode().asDexCode();
-    checkInsructions(code, ImmutableList.of(
+    checkInstructions(code, ImmutableList.of(
         Iget.class,
         // TODO(b/70572176): below two could be replaced with Iget via inlining
         InvokeVirtual.class,
@@ -182,7 +181,7 @@ public class R8InliningTest extends TestBase {
     m = clazz.method("int", "notInlinable", ImmutableList.of("inlining.A"));
     assertTrue(m.isPresent());
     code = m.getMethod().getCode().asDexCode();
-    checkInsructions(code, ImmutableList.of(
+    checkInstructions(code, ImmutableList.of(
         InvokeVirtual.class,
         MoveResult.class,
         Iget.class,
@@ -192,7 +191,7 @@ public class R8InliningTest extends TestBase {
     m = clazz.method("int", "notInlinableDueToMissingNpe", ImmutableList.of("inlining.A"));
     assertTrue(m.isPresent());
     code = m.getMethod().getCode().asDexCode();
-    checkInsructions(code, ImmutableList.of(
+    checkInstructions(code, ImmutableList.of(
         IfEqz.class,
         Iget.class,
         Goto.class,
@@ -202,7 +201,7 @@ public class R8InliningTest extends TestBase {
     m = clazz.method("int", "notInlinableDueToSideEffect", ImmutableList.of("inlining.A"));
     assertTrue(m.isPresent());
     code = m.getMethod().getCode().asDexCode();
-    checkInsructions(code, ImmutableList.of(
+    checkInstructions(code, ImmutableList.of(
         IfEqz.class,
         InvokeVirtual.class,
         MoveResult.class,
@@ -213,13 +212,13 @@ public class R8InliningTest extends TestBase {
     m = clazz.method("int", "notInlinableOnThrow", ImmutableList.of("java.lang.Throwable"));
     assertTrue(m.isPresent());
     code = m.getMethod().getCode().asDexCode();
-    checkInsructions(code, ImmutableList.of(Throw.class));
+    checkInstructions(code, ImmutableList.of(Throw.class));
 
     m = clazz.method("int", "notInlinableDueToMissingNpeBeforeThrow",
         ImmutableList.of("java.lang.Throwable"));
     assertTrue(m.isPresent());
     code = m.getMethod().getCode().asDexCode();
-    checkInsructions(code, ImmutableList.of(
+    checkInstructions(code, ImmutableList.of(
         Throw.class,
         Iget.class,
         Return.class));
@@ -233,7 +232,7 @@ public class R8InliningTest extends TestBase {
     MethodSubject m = clazz.method("int", "conditionalOperator", ImmutableList.of("inlining.A"));
     assertTrue(m.isPresent());
     DexCode code = m.getMethod().getCode().asDexCode();
-    checkInsructions(code, ImmutableList.of(
+    checkInstructions(code, ImmutableList.of(
         IfEqz.class,
         // TODO(b/70794661): below two could be replaced with Iget via inlining if access
         // modification is allowed.
@@ -265,15 +264,7 @@ public class R8InliningTest extends TestBase {
     builder.add(MulInt2Addr.class);
     builder.add(Return.class);
     builder.add(PackedSwitchPayload.class);
-    checkInsructions(code, builder.build());
+    checkInstructions(code, builder.build());
   }
 
-  private static void checkInsructions(DexCode code,
-      List<Class<? extends Instruction>> instructions) {
-    assertEquals(instructions.size(), code.instructions.length);
-    for (int i = 0; i < instructions.size(); ++i) {
-      assertEquals("Unexpected instruction at index " + i,
-          instructions.get(i), code.instructions[i].getClass());
-    }
-  }
 }

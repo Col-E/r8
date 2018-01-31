@@ -26,6 +26,7 @@ import com.android.tools.r8.graph.DexValue.DexValueLong;
 import com.android.tools.r8.graph.DexValue.DexValueNull;
 import com.android.tools.r8.graph.DexValue.DexValueShort;
 import com.android.tools.r8.graph.DexValue.DexValueString;
+import com.android.tools.r8.ir.analysis.type.TypeEnvironment;
 import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.Binop;
@@ -1090,27 +1091,65 @@ public class CodeRewriter {
     }
   }
 
-  /**
-   * Due to inlining, we might see chains of casts on subtypes. It suffices to cast to the lowest
-   * subtype, as that will fail if a cast on a supertype would have failed.
-   */
-  public void removeCastChains(IRCode code) {
+  public void removeCasts(IRCode code, TypeEnvironment typeEnvironment) {
     InstructionIterator it = code.instructionIterator();
+    boolean needToRemoveTrivialPhis = false;
     while (it.hasNext()) {
       Instruction current = it.next();
-      if (current.isCheckCast()
-          && current.getLocalInfo() == null
-          && current.outValue() != null && current.outValue().isUsed()
-          && current.outValue().numberOfPhiUsers() == 0) {
-        CheckCast checkCast = current.asCheckCast();
-        if (checkCast.outValue().uniqueUsers().stream().allMatch(
-            user -> user.isCheckCast()
-                && user.asCheckCast().getType().isSubtypeOf(checkCast.getType(), appInfo))) {
-          checkCast.outValue().replaceUsers(checkCast.inValues().get(0));
-          it.removeOrReplaceByDebugLocalRead();
-        }
+      if (!current.isCheckCast()) {
+        continue;
+      }
+      CheckCast checkCast = current.asCheckCast();
+      Value inValue = checkCast.object();
+      Value outValue = checkCast.outValue();
+      DexType castType = checkCast.getType();
+
+      // We might see chains of casts on subtypes. It suffices to cast to the lowest subtype,
+      // as that will fail if a cast on a supertype would have failed.
+      Predicate<Instruction> isCheckcastToSubtype =
+          user -> user.isCheckCast() && user.asCheckCast().getType().isSubtypeOf(castType, appInfo);
+      if (!checkCast.getBlock().hasCatchHandlers()
+          && outValue.isUsed()
+          && outValue.numberOfPhiUsers() == 0
+          && outValue.uniqueUsers().stream().allMatch(isCheckcastToSubtype)) {
+        outValue.replaceUsers(inValue);
+        it.removeOrReplaceByDebugLocalRead();
+        continue;
+      }
+
+      DexType inType = typeEnvironment.getObjectType(inValue);
+      DexType outType = typeEnvironment.getObjectType(outValue);
+      // Be careful about a down-cast verification error:
+      // A < B < C
+      // c = ...        // Even though we know c is of type A,
+      // a' = (B) c;    // (this could be removed, since chained below.)
+      // a'' = (A) a';  // this should remain for runtime verification.
+      if (outType.isStrictSubtypeOf(inType, appInfo)) {
+        continue;
+      }
+      // 1) Trivial cast.
+      //   A a = ...
+      //   A a' = (A) a;
+      // 2) Up-cast: we already have finer type info.
+      //   A < B
+      //   A a = ...
+      //   B b = (B) a;
+      if (inType.isSubtypeOf(castType, appInfo)) {
+        needToRemoveTrivialPhis = needToRemoveTrivialPhis || outValue.numberOfPhiUsers() != 0;
+        outValue.replaceUsers(inValue);
+        it.removeOrReplaceByDebugLocalRead();
       }
     }
+    // ... v1
+    // ...
+    // v2 <- check-cast v1, T
+    // v3 <- phi(v1, v2)
+    // Removing check-cast may result in a trivial phi:
+    // v3 <- phi(v1, v1)
+    if (needToRemoveTrivialPhis) {
+      code.removeAllTrivialPhis();
+    }
+    assert code.isConsistentSSA();
   }
 
   private boolean canBeFolded(Instruction instruction) {

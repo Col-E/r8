@@ -123,6 +123,18 @@ public class TypeAnalysis implements TypeEnvironment {
     return typeMap.getOrDefault(value, Bottom.getInstance());
   }
 
+  @Override
+  public DexType getObjectType(Value value) {
+    DexType type = appInfo.dexItemFactory.objectType;
+    TypeLatticeElement l = getLatticeElement(value);
+    if (l.isClassTypeLatticeElement()) {
+      type = l.asClassTypeLatticeElement().getClassType();
+    } else if (l.isArrayTypeLatticeElement()) {
+      type = l.asArrayTypeLatticeElement().getArrayType();
+    }
+    return type;
+  }
+
   @VisibleForTesting
   void forEach(BiConsumer<Value, TypeLatticeElement> consumer) {
     typeMap.forEach(consumer);

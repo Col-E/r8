@@ -3,9 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.analysis.type;
 
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.Value;
 
-@FunctionalInterface
 public interface TypeEnvironment {
   TypeLatticeElement getLatticeElement(Value value);
+  DexType getObjectType(Value value);
 }

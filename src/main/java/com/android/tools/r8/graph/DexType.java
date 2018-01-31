@@ -110,8 +110,12 @@ public class DexType extends IndexedDexItem implements PresortedComparable<DexTy
   }
 
   public boolean isSubtypeOf(DexType other, AppInfo appInfo) {
+    return this == other || isStrictSubtypeOf(other, appInfo);
+  }
+
+  public boolean isStrictSubtypeOf(DexType other, AppInfo appInfo) {
     if (this == other) {
-      return true;
+      return false;
     }
     // Treat the object class special as it is always the supertype, even in the case of broken
     // subtype chains.
