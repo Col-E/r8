@@ -5,12 +5,29 @@ package com.android.tools.r8.shaking;
 
 public class ProguardKeepRuleModifiers {
   public static class Builder {
-    public boolean allowsShrinking = false;
-    public boolean allowsOptimization = false;
-    public boolean allowsObfuscation = false;
-    public boolean includeDescriptorClasses = false;
+
+    private boolean allowsShrinking = false;
+    private boolean allowsOptimization = false;
+    private boolean allowsObfuscation = false;
+    private boolean includeDescriptorClasses = false;
 
     private Builder() {}
+
+    public void setAllowsShrinking(boolean allowsShrinking) {
+      this.allowsShrinking = allowsShrinking;
+    }
+
+    public void setAllowsOptimization(boolean allowsOptimization) {
+      this.allowsOptimization = allowsOptimization;
+    }
+
+    public void setAllowsObfuscation(boolean allowsObfuscation) {
+      this.allowsObfuscation = allowsObfuscation;
+    }
+
+    public void setIncludeDescriptorClasses(boolean includeDescriptorClasses) {
+      this.includeDescriptorClasses = includeDescriptorClasses;
+    }
 
     ProguardKeepRuleModifiers build() {
       return new ProguardKeepRuleModifiers(allowsShrinking, allowsOptimization, allowsObfuscation,

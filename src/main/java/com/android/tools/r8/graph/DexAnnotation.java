@@ -230,12 +230,23 @@ public class DexAnnotation extends DexItem {
   public static boolean isSignatureAnnotation(DexAnnotation annotation,
       DexItemFactory factory) {
     return annotation.annotation.type == factory.annotationSignature;
+
+  }
+
+  public static boolean isAnnotationDefaultAnnotation(DexAnnotation annotation,
+      DexItemFactory factory) {
+    return annotation.annotation.type == factory.annotationDefault;
   }
 
 
   public static boolean isSourceDebugExtension(DexAnnotation annotation,
       DexItemFactory factory) {
     return annotation.annotation.type == factory.annotationSourceDebugExtension;
+  }
+
+  public static boolean isParameterNameAnnotation(DexAnnotation annotation,
+      DexItemFactory factory) {
+    return annotation.annotation.type == factory.annotationMethodParameters;
   }
 
   /**
@@ -332,8 +343,8 @@ public class DexAnnotation extends DexItem {
       Set<DexType> synthesized,
       DexItemFactory dexItemFactory) {
     DexValueType[] values = synthesized.stream()
-        .map(type -> new DexValueType(type))
-        .toArray(length -> new DexValueType[length]);
+        .map(DexValueType::new)
+        .toArray(DexValueType[]::new);
     DexValueArray array = new DexValueArray(values);
     DexAnnotationElement pair =
         new DexAnnotationElement(dexItemFactory.createString("value"), array);
@@ -341,5 +352,10 @@ public class DexAnnotation extends DexItem {
         VISIBILITY_BUILD,
         new DexEncodedAnnotation(
             dexItemFactory.annotationSynthesizedClassMap, new DexAnnotationElement[]{pair}));
+  }
+
+  public static boolean isSynthesizedClassMapAnnotation(DexAnnotation annotation,
+      DexItemFactory factory) {
+    return annotation.annotation.type == factory.annotationSynthesizedClassMap;
   }
 }

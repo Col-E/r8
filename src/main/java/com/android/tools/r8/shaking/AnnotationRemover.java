@@ -7,10 +7,12 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexAnnotationSetRefList;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.ArrayList;
@@ -54,6 +56,15 @@ public class AnnotationRemover {
             && DexAnnotation.isSourceDebugExtension(annotation, factory)) {
           return true;
         }
+        if (options.canUseParameterNameAnnotations()
+            && DexAnnotation.isParameterNameAnnotation(annotation, factory)) {
+          return true;
+        }
+        if (DexAnnotation.isAnnotationDefaultAnnotation(annotation, factory)) {
+          // These have to be kept if the corresponding annotation class is kept to retain default
+          // values.
+          return true;
+        }
         return false;
       case DexAnnotation.VISIBILITY_RUNTIME:
         if (!keep.runtimeVisibleAnnotations) {
@@ -61,14 +72,28 @@ public class AnnotationRemover {
         }
         break;
       case DexAnnotation.VISIBILITY_BUILD:
+        if (DexAnnotation.isSynthesizedClassMapAnnotation(annotation, appInfo.dexItemFactory)) {
+          // TODO(sgjesse) When should these be removed?
+          return true;
+        }
         if (!keep.runtimeInvisibleAnnotations) {
           return false;
         }
         break;
       default:
-        throw new Unreachable("Unexpected annotation visiility.");
+        throw new Unreachable("Unexpected annotation visibility.");
     }
-    return appInfo.liveTypes.contains(annotation.annotation.type);
+    return isAnnotationTypeLive(annotation);
+  }
+
+  private boolean isAnnotationTypeLive(DexAnnotation annotation) {
+    DexType annotationType = annotation.annotation.type;
+    if (annotationType.isArrayType()) {
+      annotationType = annotationType.toBaseType(appInfo.dexItemFactory);
+    }
+    DexClass definition = appInfo.definitionFor(annotationType);
+    return definition == null || definition.isLibraryClass()
+        || appInfo.liveTypes.contains(annotationType);
   }
 
   /**
@@ -91,7 +116,7 @@ public class AnnotationRemover {
       default:
         throw new Unreachable("Unexpected annotation visibility.");
     }
-    return appInfo.liveTypes.contains(annotation.annotation.type);
+    return isAnnotationTypeLive(annotation);
   }
 
   public void run() {

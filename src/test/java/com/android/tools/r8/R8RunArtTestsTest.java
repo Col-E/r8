@@ -1412,6 +1412,9 @@ public abstract class R8RunArtTestsTest {
           Integer minSdkVersion = needMinSdkVersion.get(name);
           if (minSdkVersion != null) {
             builder.setMinApiLevel(minSdkVersion);
+            ToolHelper.addFilteredAndroidJar(builder, minSdkVersion);
+          } else {
+            ToolHelper.addFilteredAndroidJar(builder, AndroidApiLevel.getDefault().getLevel());
           }
           if (keepRulesFile != null) {
             builder.addProguardConfigurationFiles(Paths.get(keepRulesFile));

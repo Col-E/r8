@@ -297,13 +297,19 @@ public class R8Command extends BaseCompilerCommand {
       if (proguardConfigurationConsumer != null) {
         proguardConfigurationConsumer.accept(configurationBuilder);
       }
+
+      if (disableTreeShaking) {
+        configurationBuilder.disableShrinking();
+      }
+
+      if (disableMinification) {
+        configurationBuilder.disableObfuscation();
+      }
+
       ProguardConfiguration configuration = configurationBuilder.build();
       getAppBuilder()
           .addFilteredProgramArchives(configuration.getInjars())
           .addFilteredLibraryArchives(configuration.getLibraryjars());
-
-      boolean useTreeShaking = !disableTreeShaking && configuration.isShrinking();
-      boolean useMinification = !disableMinification && configuration.isObfuscating();
 
       assert getProgramConsumer() != null;
 
@@ -318,8 +324,8 @@ public class R8Command extends BaseCompilerCommand {
               getMinApiLevel(),
               reporter,
               !getDisableDesugaring(),
-              useTreeShaking,
-              useMinification,
+              configuration.isShrinking(),
+              configuration.isObfuscating(),
               forceProguardCompatibility,
               proguardMapConsumer,
               proguardCompatibilityRulesOutput);

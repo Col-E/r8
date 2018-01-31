@@ -214,7 +214,7 @@ public class ProguardConfigurationParser {
         ProguardWhyAreYouKeepingRule rule = parseWhyAreYouKeepingRule();
         configurationBuilder.addRule(rule);
       } else if (acceptString("dontoptimize")) {
-        configurationBuilder.setOptimizing(false);
+        configurationBuilder.disableOptimization();
       } else if (acceptString("optimizationpasses")) {
         skipWhitespace();
         Integer expectedOptimizationPasses = acceptInteger();
@@ -226,9 +226,9 @@ public class ProguardConfigurationParser {
         }
         warnIgnoringOptions("optimizationpasses", optionStart);
       } else if (acceptString("dontobfuscate")) {
-        configurationBuilder.setObfuscating(false);
+        configurationBuilder.disableObfuscation();
       } else if (acceptString("dontshrink")) {
-        configurationBuilder.setShrinking(false);
+        configurationBuilder.disableShrinking();
       } else if (acceptString("printusage")) {
         configurationBuilder.setPrintUsage(true);
         skipWhitespace();
@@ -523,7 +523,7 @@ public class ProguardConfigurationParser {
         throws ProguardRuleParserException {
       if (acceptString("names")) {
         builder.setType(ProguardKeepRuleType.KEEP);
-        builder.getModifiersBuilder().allowsShrinking = true;
+        builder.getModifiersBuilder().setAllowsShrinking(true);
       } else if (acceptString("class")) {
         if (acceptString("members")) {
           builder.setType(ProguardKeepRuleType.KEEP_CLASS_MEMBERS);
@@ -531,10 +531,10 @@ public class ProguardConfigurationParser {
           builder.setType(ProguardKeepRuleType.KEEP_CLASSES_WITH_MEMBERS);
         } else if (acceptString("membernames")) {
           builder.setType(ProguardKeepRuleType.KEEP_CLASS_MEMBERS);
-          builder.getModifiersBuilder().allowsShrinking = true;
+          builder.getModifiersBuilder().setAllowsShrinking(true);
         } else if (acceptString("eswithmembernames")) {
           builder.setType(ProguardKeepRuleType.KEEP_CLASSES_WITH_MEMBERS);
-          builder.getModifiersBuilder().allowsShrinking = true;
+          builder.getModifiersBuilder().setAllowsShrinking(true);
         } else {
           // The only path to here is through "-keep" followed by "class".
           unacceptString("-keepclass");
@@ -556,14 +556,14 @@ public class ProguardConfigurationParser {
       while (acceptChar(',')) {
         if (acceptString("allow")) {
           if (acceptString("shrinking")) {
-            builder.getModifiersBuilder().allowsShrinking = true;
+            builder.getModifiersBuilder().setAllowsShrinking(true);
           } else if (acceptString("optimization")) {
-            builder.getModifiersBuilder().allowsOptimization = true;
+            builder.getModifiersBuilder().setAllowsOptimization(true);
           } else if (acceptString("obfuscation")) {
-            builder.getModifiersBuilder().allowsObfuscation = true;
+            builder.getModifiersBuilder().setAllowsObfuscation(true);
           }
         } else if (acceptString("includedescriptorclasses")) {
-          builder.getModifiersBuilder().includeDescriptorClasses = true;
+          builder.getModifiersBuilder().setIncludeDescriptorClasses(true);
         }
       }
     }

@@ -382,7 +382,8 @@ public abstract class RunExamplesAndroidOTest
     // No need to specify minSdk as repeat annotations are handled by javac and we do not have
     // to do anything to support them. The library methods to access them just have to be in
     // the system.
-    test("repeat_annotations_new_api", "repeat_annotations", "RepeatAnnotationsNewApi").run();
+    test("repeat_annotations_new_api", "repeat_annotations", "RepeatAnnotationsNewApi")
+        .withMinApiLevel(AndroidApiLevel.O.getLevel()).run();
   }
 
   @Test
