@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.dexmerger;
+package com.android.tools.r8.dexfilemerger;
 
 import static org.junit.Assert.assertEquals;
 
@@ -14,7 +14,6 @@ import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.dex.Constants;
-import com.android.tools.r8.dexfilemerger.DexFileMerger;
 import com.android.tools.r8.maindexlist.MainDexListTests;
 import com.android.tools.r8.utils.AbortException;
 import com.android.tools.r8.utils.AndroidApiLevel;
