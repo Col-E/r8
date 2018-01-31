@@ -1034,6 +1034,7 @@ public class BasicBlock {
 
   // Find the final target from this goto block. Returns null if the goto chain is cyclic.
   public BasicBlock endOfGotoChain() {
+    // See Floyd's cycle-finding algorithm for reference.
     BasicBlock hare = this;
     BasicBlock tortuous = this;
     boolean advance = false;
@@ -1046,6 +1047,29 @@ public class BasicBlock {
       }
     }
     return hare;
+  }
+
+  public boolean isSimpleAlwaysThrowingPath() {
+    // See Floyd's cycle-finding algorithm for reference.
+    BasicBlock hare = this;
+    BasicBlock tortuous = this;
+    boolean advance = false;
+    while (true) {
+      List<BasicBlock> normalSuccessors = hare.getNormalSuccessors();
+      if (normalSuccessors.size() == 0) {
+        return hare.exit().isThrow();
+      }
+      if (normalSuccessors.size() > 1) {
+        return false;
+      }
+
+      hare = normalSuccessors.get(0);
+      tortuous = advance ? tortuous.getNormalSuccessors().get(0) : tortuous;
+      advance = !advance;
+      if (hare == tortuous) {
+        return false;
+      }
+    }
   }
 
   public Position getPosition() {

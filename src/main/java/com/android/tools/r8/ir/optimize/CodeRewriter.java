@@ -100,6 +100,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 
 public class CodeRewriter {
 
@@ -1264,75 +1265,48 @@ public class CodeRewriter {
   }
 
   public void shortenLiveRanges(IRCode code) {
-    // Currently, we are only shortening the live range of constants in the entry block.
+    // Currently, we are only shortening the live range of ConstNumbers in the entry block
+    // and ConstStrings with one user.
     // TODO(ager): Generalize this to shorten live ranges for more instructions? Currently
     // doing so seems to make things worse.
+    Supplier<DominatorTree> dominatorTreeMemoization =
+        Suppliers.memoize(() -> new DominatorTree(code));
     Map<BasicBlock, List<Instruction>> addConstantInBlock = new HashMap<>();
-    Supplier<DominatorTree> dominatorTreeMemoization = Suppliers
-        .memoize(() -> new DominatorTree(code));
-    BasicBlock block = code.blocks.get(0);
-    InstructionListIterator it = block.listIterator();
-    List<Instruction> toInsertInThisBlock = new ArrayList<>();
-    while (it.hasNext()) {
-      Instruction instruction = it.next();
-      if (instruction.isConstNumber() &&
-          instruction.outValue().numberOfAllUsers() != 0 &&
-          !instruction.outValue().hasLocalInfo()) {
-        // Collect the blocks for all users of the constant.
-        List<BasicBlock> userBlocks = new LinkedList<>();
-        for (Instruction user : instruction.outValue().uniqueUsers()) {
-          userBlocks.add(user.getBlock());
-        }
-        for (Phi phi : instruction.outValue().uniquePhiUsers()) {
-          userBlocks.add(phi.getBlock());
-        }
-        // Locate the closest dominator block for all user blocks.
-        DominatorTree dominatorTree = dominatorTreeMemoization.get();
-        BasicBlock dominator = dominatorTree.closestDominator(userBlocks);
-        // If the closest dominator block is a block that uses the constant for a phi the constant
-        // needs to go in the immediate dominator block so that it is available for phi moves.
-        for (Phi phi : instruction.outValue().uniquePhiUsers()) {
-          if (phi.getBlock() == dominator) {
-            if (instruction.outValue().numberOfAllUsers() == 1 &&
-                  phi.usesValueOneTime(instruction.outValue())) {
-              // Out value is used only one time, move the constant directly to the corresponding
-              // branch rather than into the dominator to avoid to generate a const on paths which
-              // does not required it.
-              int predIndex = phi.getOperands().indexOf(instruction.outValue());
-              dominator = dominator.getPredecessors().get(predIndex);
-            } else {
-              dominator = dominatorTree.immediateDominator(dominator);
-            }
-            break;
-          }
-        }
-        // Move the const instruction as close to its uses as possible.
-        it.detach();
-        if (dominator != block) {
-          // Post-pone constant insertion in order to use a global heuristics.
-          List<Instruction> csts = addConstantInBlock.get(dominator);
-          if (csts == null) {
-            csts = new ArrayList<>();
-            addConstantInBlock.put(dominator, csts);
-          }
-          csts.add(instruction);
-        } else {
-          toInsertInThisBlock.add(instruction);
-        }
+    LinkedList<BasicBlock> blocks = code.blocks;
+    for (int i = 0; i < blocks.size(); i++) {
+      BasicBlock block = blocks.get(i);
+      if (i == 0) {
+        // For the first block process all ConstNumber instructions
+        // as well as ConstString instructions having just one use.
+        shortenLiveRangesInsideBlock(block, dominatorTreeMemoization, addConstantInBlock,
+            insn -> (insn.isConstNumber() && insn.outValue().numberOfAllUsers() != 0)
+                || (insn.isConstString() && insn.outValue().numberOfAllUsers() == 1));
+      } else {
+        // For all following blocks only process ConstString with just one use.
+        shortenLiveRangesInsideBlock(block, dominatorTreeMemoization, addConstantInBlock,
+            insn -> insn.isConstString() && insn.outValue().numberOfAllUsers() == 1);
       }
     }
 
-    // Heuristic to decide if constant instructions are shared in dominator block of usages or move
-    // to the usages.
-    for (Map.Entry<BasicBlock, List<Instruction>> entry : addConstantInBlock.entrySet()) {
-      if (entry.getValue().size() > STOP_SHARED_CONSTANT_THRESHOLD) {
-        // Too much constants in the same block, do not longer shared them except if they are used
-        // by phi instructions.
-        for (Instruction instruction : entry.getValue()) {
-          if (instruction.outValue().numberOfPhiUsers() != 0) {
+    // Heuristic to decide if constant instructions are shared in dominator block
+    // of usages or move to the usages.
+
+    // Process all blocks in stable order to avoid non-determinism of hash map iterator.
+    for (BasicBlock block : blocks) {
+      List<Instruction> instructions = addConstantInBlock.get(block);
+      if (instructions == null) {
+        continue;
+      }
+
+      if (block != blocks.get(0) && instructions.size() > STOP_SHARED_CONSTANT_THRESHOLD) {
+        // Too much constants in the same block, do not longer share them except if they are used
+        // by phi instructions or they are a sting constants.
+        for (Instruction instruction : instructions) {
+          if (instruction.outValue().numberOfPhiUsers() != 0 || instruction.isConstString()) {
             // Add constant into the dominator block of usages.
-            insertConstantInBlock(instruction, entry.getKey());
+            insertConstantInBlock(instruction, block);
           } else {
+            assert instruction.isConstNumber();
             ConstNumber constNumber = instruction.asConstNumber();
             Value constantValue = instruction.outValue();
             assert constantValue.numberOfUsers() != 0;
@@ -1350,16 +1324,75 @@ public class CodeRewriter {
         }
       } else {
         // Add constant into the dominator block of usages.
-        for (Instruction inst : entry.getValue()) {
-          insertConstantInBlock(inst, entry.getKey());
+        for (Instruction instruction : instructions) {
+          insertConstantInBlock(instruction, block);
         }
       }
     }
 
-    for (Instruction toInsert : toInsertInThisBlock) {
-      insertConstantInBlock(toInsert, block);
-    }
     assert code.isConsistentSSA();
+  }
+
+  private void shortenLiveRangesInsideBlock(BasicBlock block,
+      Supplier<DominatorTree> dominatorTreeMemoization,
+      Map<BasicBlock, List<Instruction>> addConstantInBlock,
+      Predicate<Instruction> selector) {
+
+    InstructionListIterator it = block.listIterator();
+    while (it.hasNext()) {
+      Instruction instruction = it.next();
+      if (!selector.test(instruction) || instruction.outValue().hasLocalInfo()) {
+        continue;
+      }
+      // Collect the blocks for all users of the constant.
+      List<BasicBlock> userBlocks = new LinkedList<>();
+      for (Instruction user : instruction.outValue().uniqueUsers()) {
+        userBlocks.add(user.getBlock());
+      }
+      for (Phi phi : instruction.outValue().uniquePhiUsers()) {
+        userBlocks.add(phi.getBlock());
+      }
+      // Locate the closest dominator block for all user blocks.
+      DominatorTree dominatorTree = dominatorTreeMemoization.get();
+      BasicBlock dominator = dominatorTree.closestDominator(userBlocks);
+      // If the closest dominator block is a block that uses the constant for a phi the constant
+      // needs to go in the immediate dominator block so that it is available for phi moves.
+      for (Phi phi : instruction.outValue().uniquePhiUsers()) {
+        if (phi.getBlock() == dominator) {
+          if (instruction.outValue().numberOfAllUsers() == 1 &&
+              phi.usesValueOneTime(instruction.outValue())) {
+            // Out value is used only one time, move the constant directly to the corresponding
+            // branch rather than into the dominator to avoid to generate a const on paths which
+            // does not required it.
+            int predIndex = phi.getOperands().indexOf(instruction.outValue());
+            dominator = dominator.getPredecessors().get(predIndex);
+          } else {
+            dominator = dominatorTree.immediateDominator(dominator);
+          }
+          break;
+        }
+      }
+
+      if (instruction.instructionTypeCanThrow()) {
+        if (block.hasCatchHandlers() || dominator.hasCatchHandlers()) {
+          // Do not move the constant if the constant instruction can throw
+          // and the dominator or the original block has catch handlers.
+          continue;
+        }
+        if (!dominator.isSimpleAlwaysThrowingPath()) {
+          // Only move string constants into blocks being part of simple
+          // always throwing path.
+          continue;
+        }
+      }
+
+      // Move the const instruction as close to its uses as possible.
+      it.detach();
+
+      List<Instruction> csts =
+          addConstantInBlock.computeIfAbsent(dominator, k -> new ArrayList<>());
+      csts.add(instruction);
+    }
   }
 
   private void insertConstantInBlock(Instruction instruction, BasicBlock block) {

@@ -6,6 +6,7 @@ package com.android.tools.r8.utils;
 import com.android.tools.r8.code.Const4;
 import com.android.tools.r8.code.ConstString;
 import com.android.tools.r8.code.Goto;
+import com.android.tools.r8.code.IfNez;
 import com.android.tools.r8.code.Iget;
 import com.android.tools.r8.code.IgetBoolean;
 import com.android.tools.r8.code.IgetByte;
@@ -989,6 +990,15 @@ public class DexInspector {
       return instruction instanceof ConstString;
     }
 
+    boolean isConstString(Instruction instruction, String value) {
+      return instruction instanceof ConstString
+          && ((ConstString) instruction).BBBB.toSourceString().equals(value);
+    }
+
+    boolean isIfNez(Instruction instruction) {
+      return instruction instanceof IfNez;
+    }
+
     boolean isFieldAccess(Instruction instruction) {
       return isInstanceGet(instruction)
           || isInstancePut(instruction)
@@ -1087,8 +1097,16 @@ public class DexInspector {
       return factory.isConstString(instruction);
     }
 
+    public boolean isConstString(String value) {
+      return factory.isConstString(instruction, value);
+    }
+
     public boolean isGoto() {
       return factory.isGoto(instruction);
+    }
+
+    public boolean isIfNez() {
+      return factory.isIfNez(instruction);
     }
 
     public boolean isReturnVoid() {
