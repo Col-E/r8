@@ -26,4 +26,10 @@ public class NonNullAfterArrayAccess {
     return arg.hashCode();
   }
 
+  public static void main(String[] args) {
+    String[] nonNullArgs = new String[1];
+    nonNullArgs[0] = "non-null";
+    foo(nonNullArgs);
+    bar(nonNullArgs);
+  }
 }

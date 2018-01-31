@@ -41,4 +41,12 @@ public class NonNullAfterFieldAccess {
     return arg.hashCode();
   }
 
+  public static void main(String[] args) {
+    FieldAccessTest testInstance = new FieldAccessTest();
+    testInstance.fld = "non-null";
+    foo(testInstance);
+    bar(testInstance);
+    NonNullAfterFieldAccess mainInstance = new NonNullAfterFieldAccess();
+    mainInstance.foo2(testInstance);
+  }
 }

@@ -27,6 +27,7 @@ import com.android.tools.r8.graph.DexValue.DexValueNull;
 import com.android.tools.r8.graph.DexValue.DexValueShort;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.ir.analysis.type.TypeEnvironment;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.Binop;
@@ -1856,7 +1857,7 @@ public class CodeRewriter {
     assert code.isConsistentSSA();
   }
 
-  public void simplifyIf(IRCode code) {
+  public void simplifyIf(IRCode code, TypeEnvironment typeEnvironment) {
     int color = code.reserveMarkingColor();
     for (BasicBlock block : code.blocks) {
       if (block.isMarked(color)) {
@@ -1905,6 +1906,16 @@ public class CodeRewriter {
             }
             // There is no overlap.
             cond = Long.signum(leftRange.getMin() - rightRange.getMin());
+          }
+        } else if (theIf.isZeroTest() && !inValues.get(0).isConstNumber()) {
+          // TODO(b/72693244): annotate type lattice to value
+          TypeLatticeElement l = typeEnvironment.getLatticeElement(inValues.get(0));
+          if (!l.isPrimitive() && !l.isNullable()) {
+            // Any non-zero value should work.
+            cond = 1;
+          } else {
+            // We are still not sure.
+            continue;
           }
         } else {
           continue;

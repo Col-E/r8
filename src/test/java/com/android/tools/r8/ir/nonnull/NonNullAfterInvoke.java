@@ -26,4 +26,8 @@ public class NonNullAfterInvoke {
     return arg.hashCode();
   }
 
+  public static void main(String[] args) {
+    foo("non-null");
+    bar("non-null");
+  }
 }

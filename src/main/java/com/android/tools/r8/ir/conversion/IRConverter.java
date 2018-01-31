@@ -581,7 +581,7 @@ public class IRConverter {
     new SparseConditionalConstantPropagation(code).run();
     codeRewriter.rewriteSwitch(code);
     codeRewriter.processMethodsNeverReturningNormally(code);
-    codeRewriter.simplifyIf(code);
+    codeRewriter.simplifyIf(code, typeAnalysis);
     if (options.addNonNull && nonNullMarker != null) {
       nonNullMarker.cleanupNonNull(code);
       assert code.isConsistentSSA();
