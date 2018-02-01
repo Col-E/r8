@@ -57,14 +57,16 @@ public class MoveStringConstantsTest extends TestBase {
     validateSequence(methodThrowToBeInlined.iterateInstructions(),
         InstructionSubject::isIfNez,
         insn -> insn.isConstString("StringConstants::foo#1"),
-        InstructionSubject::isIfNez,
-        insn -> insn.isConstString("StringConstants::foo#2"),
+        // Below two are removed by optimization: non-null argument "".
+        // InstructionSubject::isIfNez,
+        // insn -> insn.isConstString("StringConstants::foo#2"),
         // InstructionSubject::isIfNez, 'removed by optimization'
-        insn -> insn.isConstString("StringConstants::foo#3"),
-        insn -> insn.isConstString("StringConstants::foo#4"),
-        InstructionSubject::isIfNez,
-        insn -> insn.isConstString("StringConstants::foo#5"),
-        InstructionSubject::isIfNez
+        insn -> insn.isConstString("StringConstants::foo#3")
+        // Below four are removed, since a safe call of arg.length() indicates arg is not null.
+        // insn -> insn.isConstString("StringConstants::foo#4"),
+        // InstructionSubject::isIfNez,
+        // insn -> insn.isConstString("StringConstants::foo#5"),
+        // InstructionSubject::isIfNez
     );
   }
 
