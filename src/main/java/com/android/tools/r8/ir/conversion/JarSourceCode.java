@@ -2372,7 +2372,7 @@ public class JarSourceCode implements SourceCode {
     builder.addMove(valueType(value1.type), stack0, stack2);
     builder.addMove(valueType(value2.type), stack1, stack3);
     builder.addMove(valueType(value3.type), stack2, stack4);
-    builder.addMove(valueType(value3.type), stack3, stack5);
+    builder.addMove(valueType(value4.type), stack3, stack5);
     builder.addMove(valueType(value1.type), stack4, stack0);
     builder.addMove(valueType(value2.type), stack5, stack1);
   }
