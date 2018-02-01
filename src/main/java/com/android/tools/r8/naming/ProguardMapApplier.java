@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
-import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexClass;
@@ -11,7 +10,6 @@ import com.android.tools.r8.graph.DexEncodedAnnotation;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
-import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
@@ -133,15 +131,12 @@ public class ProguardMapApplier {
       DexClass clazz = appInfo.definitionFor(from);
       if (clazz == null) return;
 
-      final Set<DexItem> membersNotMapped = Sets.newIdentityHashSet();
       final Set<MemberNaming> appliedMemberNaming = Sets.newIdentityHashSet();
       clazz.forEachField(encodedField -> {
         MemberNaming memberNaming = classNaming.lookupByOriginalItem(encodedField.field);
         if (memberNaming != null) {
           appliedMemberNaming.add(memberNaming);
           applyFieldMapping(encodedField.field, memberNaming);
-        } else if (clazz.isLibraryClass()) {
-          membersNotMapped.add(encodedField.field);
         }
       });
 
@@ -150,25 +145,8 @@ public class ProguardMapApplier {
         if (memberNaming != null) {
           appliedMemberNaming.add(memberNaming);
           applyMethodMapping(encodedMethod.method, memberNaming);
-        } else if (clazz.isLibraryClass()) {
-          // <clinit> mapping could be omitted.
-          if (encodedMethod.isClassInitializer()) {
-            return;
-          }
-          membersNotMapped.add(encodedMethod.method);
         }
       });
-
-      // The presence of members that are not mapped indicates incomplete mappings for libraries.
-      if (!membersNotMapped.isEmpty()) {
-        StringBuilder builder = new StringBuilder();
-        builder.append("Incomplete mappings:");
-        for (DexItem member : membersNotMapped) {
-          builder.append(System.lineSeparator()).append("  ").append(member);
-        }
-        builder.append(System.lineSeparator());
-        throw new CompilationError(builder.toString(), clazz.origin);
-      }
 
       // We need to handle a lib class that extends another lib class where some members are not
       // overridden, resulting in absence of definitions. References to those members need to be
