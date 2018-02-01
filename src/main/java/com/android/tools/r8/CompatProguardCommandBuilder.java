@@ -37,6 +37,13 @@ public class CompatProguardCommandBuilder extends R8Command.Builder {
     this(true);
   }
 
+  public CompatProguardCommandBuilder(
+      boolean forceProguardCompatibility, DiagnosticsHandler diagnosticsHandler) {
+    super(forceProguardCompatibility, diagnosticsHandler);
+    setIgnoreDexInArchive(true);
+    addProguardConfiguration(REFLECTIONS, EmbeddedOrigin.INSTANCE);
+  }
+
   public CompatProguardCommandBuilder(boolean forceProguardCompatibility) {
     super(forceProguardCompatibility);
     setIgnoreDexInArchive(true);

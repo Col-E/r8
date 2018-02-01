@@ -27,12 +27,21 @@ public class GenerateMainDexListCommand extends BaseCommand {
   private final ImmutableList<ProguardConfigurationRule> mainDexKeepRules;
   private final StringConsumer mainDexListConsumer;
   private final DexItemFactory factory;
+  private final Reporter reporter;
 
   public static class Builder extends BaseCommand.Builder<GenerateMainDexListCommand, Builder> {
 
     private final DexItemFactory factory = new DexItemFactory();
     private final List<ProguardConfigurationSource> mainDexRules = new ArrayList<>();
     private StringConsumer mainDexListConsumer = null;
+
+    private Builder() {
+    }
+
+    private Builder(DiagnosticsHandler diagnosticsHandler) {
+      super(diagnosticsHandler);
+    }
+
 
     @Override
     GenerateMainDexListCommand.Builder self() {
@@ -106,7 +115,7 @@ public class GenerateMainDexListCommand extends BaseCommand {
       }
 
       return new GenerateMainDexListCommand(
-          factory, getAppBuilder().build(), mainDexKeepRules, mainDexListConsumer);
+          factory, getAppBuilder().build(), mainDexKeepRules, mainDexListConsumer, getReporter());
     }
   }
 
@@ -125,6 +134,10 @@ public class GenerateMainDexListCommand extends BaseCommand {
 
   public static GenerateMainDexListCommand.Builder builder() {
     return new GenerateMainDexListCommand.Builder();
+  }
+
+  public static GenerateMainDexListCommand.Builder builder(DiagnosticsHandler diagnosticsHandler) {
+    return new GenerateMainDexListCommand.Builder(diagnosticsHandler);
   }
 
   public static GenerateMainDexListCommand.Builder parse(String[] args) {
@@ -168,11 +181,13 @@ public class GenerateMainDexListCommand extends BaseCommand {
       DexItemFactory factory,
       AndroidApp inputApp,
       ImmutableList<ProguardConfigurationRule> mainDexKeepRules,
-      StringConsumer mainDexListConsumer) {
+      StringConsumer mainDexListConsumer,
+      Reporter reporter) {
     super(inputApp);
     this.factory = factory;
     this.mainDexKeepRules = mainDexKeepRules;
     this.mainDexListConsumer = mainDexListConsumer;
+    this.reporter = reporter;
   }
 
   private GenerateMainDexListCommand(boolean printHelp, boolean printVersion) {
@@ -180,18 +195,17 @@ public class GenerateMainDexListCommand extends BaseCommand {
     this.factory = new DexItemFactory();
     this.mainDexKeepRules = ImmutableList.of();
     this.mainDexListConsumer = null;
+    this.reporter = new Reporter(new DefaultDiagnosticsHandler());
   }
 
   @Override
   InternalOptions getInternalOptions() {
-    InternalOptions internal =
-        new InternalOptions(factory, new Reporter(new DefaultDiagnosticsHandler()));
+    InternalOptions internal = new InternalOptions(factory, reporter);
     internal.mainDexKeepRules = mainDexKeepRules;
     internal.mainDexListConsumer = mainDexListConsumer;
     internal.minimalMainDex = internal.debug;
     internal.removeSwitchMaps = false;
     internal.inlineAccessors = false;
-    internal.allowLibraryClassesToExtendProgramClasses = true;
     return internal;
   }
 }
