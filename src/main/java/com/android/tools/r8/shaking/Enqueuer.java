@@ -79,6 +79,7 @@ import java.util.stream.Collectors;
  * field descriptions for details.
  */
 public class Enqueuer {
+  private boolean tracingMainDex = false;
 
   private final AppInfoWithSubtyping appInfo;
   private final InternalOptions options;
@@ -500,13 +501,19 @@ public class Enqueuer {
   }
 
   private void ensureFromLibraryOrThrow(DexType type, DexType context) {
+    if (tracingMainDex) {
+      // b/72312389: android.jar contains parts of JUnit and most developers include JUnit in
+      // their programs. This leads to library classes extending program classes. When tracing
+      // main dex lists we allow this.
+      return;
+    }
+
     DexClass holder = appInfo.definitionFor(type);
     if (holder != null && !holder.isLibraryClass()) {
       Diagnostic message = new StringDiagnostic("Library class " + context.toSourceString()
           + (holder.isInterface() ? " implements " : " extends ")
           + "program class " + type.toSourceString());
-      if (options.forceProguardCompatibility
-          || options.allowLibraryClassesToExtendProgramClasses) {
+      if (options.forceProguardCompatibility) {
         options.reporter.warning(message);
       } else {
         options.reporter.error(message);
@@ -945,6 +952,7 @@ public class Enqueuer {
   }
 
   public Set<DexType> traceMainDex(RootSet rootSet, Timing timing) {
+    this.tracingMainDex = true;
     this.rootSet = rootSet;
     // Translate the result of root-set computation into enqueuer actions.
     enqueueRootItems(rootSet.noShrinking);

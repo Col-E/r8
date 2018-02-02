@@ -75,6 +75,12 @@ public class R8Command extends BaseCompilerCommand {
       this.forceProguardCompatibility = forceProguardCompatibility;
     }
 
+    Builder(boolean forceProguardCompatibility, DiagnosticsHandler diagnosticsHandler) {
+      super(diagnosticsHandler);
+      setMode(CompilationMode.RELEASE);
+      this.forceProguardCompatibility = forceProguardCompatibility;
+    }
+
     private Builder(DiagnosticsHandler diagnosticsHandler) {
       super(diagnosticsHandler);
       setMode(CompilationMode.DEBUG);

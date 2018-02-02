@@ -511,6 +511,13 @@ public class ToolHelper {
     }
   }
 
+  /**
+   * Get the junit jar bundled with the framework.
+   */
+  public static Path getFrameworkJunitJarPath(DexVm version) {
+    return Paths.get(getArtDir(version), "framework", "junit.jar");
+  }
+
   static class RetainedTemporaryFolder extends TemporaryFolder {
 
     RetainedTemporaryFolder(java.io.File parentFolder) {
