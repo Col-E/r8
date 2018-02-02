@@ -20,6 +20,7 @@ import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.VmTestRunner;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DexInspector;
@@ -28,7 +29,9 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
+@RunWith(VmTestRunner.class)
 public class B72312389 extends TestBase {
   // Build a app with a class extending InstrumentationTestCase and including both the junit
   // and the Android library.
