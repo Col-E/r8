@@ -3,9 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
+import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstNumber;
+import com.android.tools.r8.ir.code.Goto;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.If;
+import com.android.tools.r8.ir.code.If.Type;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Return;
@@ -61,5 +65,72 @@ public class TrivialGotoEliminationTest {
     assert blocks.contains(block0);
     assert blocks.contains(block1);
     assert blocks.contains(block2);
+  }
+
+  @Test
+  public void trivialGotoLoopAsFallthrough() {
+    // Setup block structure:
+    // block0:
+    //   v0 <- argument
+    //   if ne v0 block2
+    //
+    // block1:
+    //   goto block3
+    //
+    // block2:
+    //   return
+    //
+    // block3:
+    //   goto block3
+    BasicBlock block2 = new BasicBlock();
+    block2.setNumber(2);
+    Instruction ret = new Return();
+    ret.setPosition(Position.none());
+    block2.add(ret);
+    block2.setFilledForTesting();
+
+    BasicBlock block3 = new BasicBlock();
+    block3.setNumber(3);
+    Instruction instruction = new Goto();
+    instruction.setPosition(Position.none());
+    block3.add(instruction);
+    block3.setFilledForTesting();
+    block3.getSuccessors().add(block3);
+
+    BasicBlock block1 = BasicBlock.createGotoBlock(1);
+    block1.getSuccessors().add(block3);
+    block1.setFilledForTesting();
+
+    BasicBlock block0 = new BasicBlock();
+    block0.setNumber(0);
+    Value value = new Value(0, ValueType.OBJECT, null);
+    instruction = new Argument(value);
+    instruction.setPosition(Position.none());
+    block0.add(instruction);
+    instruction = new If(Type.EQ, value);
+    instruction.setPosition(Position.none());
+    block0.add(instruction);
+    block0.getSuccessors().add(block2);
+    block0.getSuccessors().add(block1);
+    block0.setFilledForTesting();
+
+    block1.getPredecessors().add(block0);
+    block2.getPredecessors().add(block0);
+    block3.getPredecessors().add(block1);
+    block3.getPredecessors().add(block3);
+
+    LinkedList<BasicBlock> blocks = new LinkedList<>();
+    blocks.add(block0);
+    blocks.add(block1);
+    blocks.add(block2);
+    blocks.add(block3);
+    // Check that the goto in block0 remains. There was a bug in the trivial goto elimination
+    // that ended up removing that goto changing the code to start with the unreachable
+    // throw.
+    IRCode code = new IRCode(null, blocks, new ValueNumberGenerator(), false);
+    CodeRewriter.collapsTrivialGotos(null, code);
+    assert block0.getInstructions().get(1).isIf();
+    assert block0.getInstructions().get(1).asIf().fallthroughBlock() == block1;
+    assert blocks.containsAll(ImmutableList.of(block0, block1, block2, block3));
   }
 }
