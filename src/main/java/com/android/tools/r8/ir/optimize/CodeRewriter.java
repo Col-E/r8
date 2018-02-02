@@ -145,6 +145,15 @@ public class CodeRewriter {
     return true;
   }
 
+  private static boolean isFallthroughBlock(BasicBlock block) {
+    for (BasicBlock pred : block.getPredecessors()) {
+      if (pred.exit().fallthroughBlock() == block) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   private static void collapsTrivialGoto(
       IRCode code, BasicBlock block, BasicBlock nextBlock, List<BasicBlock> blocksToRemove) {
 
@@ -156,21 +165,18 @@ public class CodeRewriter {
     BasicBlock target = block.endOfGotoChain();
 
     boolean needed = false;
+
     if (target == null) {
       // This implies we are in a loop of GOTOs. In that case, we will iteratively remove each
       // trivial GOTO one-by-one until the above base case (one block targeting itself) is left.
       target = block.exit().asGoto().getTarget();
-    } else if (target != nextBlock) {
+    }
+
+    if (target != nextBlock) {
       // Not targeting the fallthrough block, determine if we need this goto. We need it if
       // a fallthrough can hit this block. That is the case if the block is the entry block
       // or if one of the predecessors fall through to the block.
-      needed = code.blocks.get(0) == block;
-      for (BasicBlock pred : block.getPredecessors()) {
-        if (pred.exit().fallthroughBlock() == block) {
-          needed = true;
-          break;
-        }
-      }
+      needed = code.blocks.get(0) == block || isFallthroughBlock(block);
     }
 
     if (!needed) {
