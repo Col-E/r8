@@ -363,7 +363,7 @@ public class Inliner {
         Instruction current = iterator.next();
         if (current.isInvokeMethod()) {
           InvokeMethod invoke = current.asInvokeMethod();
-          InlineAction result = invoke.computeInlining(oracle);
+          InlineAction result = invoke.computeInlining(oracle, method.method.holder);
           if (result != null) {
             DexEncodedMethod target = result.target;
             Position invokePosition = invoke.getPosition();

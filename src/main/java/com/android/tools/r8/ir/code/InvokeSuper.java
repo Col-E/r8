@@ -4,10 +4,12 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.code.InvokeSuperRange;
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.TypeEnvironment;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
@@ -32,9 +34,17 @@ public class InvokeSuper extends InvokeMethodWithReceiver {
   }
 
   @Override
-  public DexEncodedMethod computeSingleTarget(AppInfoWithLiveness appInfo) {
-    // TODO(b/70707023) Use lookupSuperTarget here once fixed.
-    return null;
+  public DexEncodedMethod computeSingleTarget(
+      AppInfoWithLiveness appInfo, TypeEnvironment typeEnvironment, DexType invocationContext) {
+    if (invocationContext == null) {
+      return null;
+    }
+    try {
+      return appInfo.lookupSuperTarget(getInvokedMethod(), invocationContext);
+    } catch (CompilationError ce) {
+      // In case of illegal invoke-super, ignore inlining/optimizing it by returning null here.
+      return null;
+    }
   }
 
   @Override

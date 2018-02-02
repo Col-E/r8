@@ -4,9 +4,11 @@
 package com.android.tools.r8.ir.analysis.type;
 
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.Value;
 
 public interface TypeEnvironment {
   TypeLatticeElement getLatticeElement(Value value);
   DexType getObjectType(Value value);
+  DexType getRefinedReceiverType(InvokeMethodWithReceiver invoke);
 }

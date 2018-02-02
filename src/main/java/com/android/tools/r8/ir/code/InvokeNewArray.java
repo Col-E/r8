@@ -9,7 +9,6 @@ import com.android.tools.r8.code.FilledNewArray;
 import com.android.tools.r8.code.FilledNewArrayRange;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
@@ -50,11 +49,6 @@ public class InvokeNewArray extends Invoke {
   @Override
   public String toString() {
     return super.toString() + "; type: " + type.toSourceString();
-  }
-
-  @Override
-  public DexEncodedMethod computeSingleTarget(AppInfoWithLiveness appInfo) {
-    return null;
   }
 
   @Override

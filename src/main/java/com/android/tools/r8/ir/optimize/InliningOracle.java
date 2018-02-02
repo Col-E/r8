@@ -53,8 +53,9 @@ public class InliningOracle {
     }
   }
 
-  private DexEncodedMethod validateCandidate(InvokeMethod invoke) {
-    DexEncodedMethod candidate = invoke.computeSingleTarget(inliner.appInfo);
+  private DexEncodedMethod validateCandidate(InvokeMethod invoke, DexType invocationContext) {
+    DexEncodedMethod candidate =
+        invoke.computeSingleTarget(inliner.appInfo, typeEnvironment, invocationContext);
     if ((candidate == null)
         || (candidate.getCode() == null)
         || inliner.appInfo.definitionFor(candidate.method.getHolder()).isLibraryClass()) {
@@ -202,8 +203,9 @@ public class InliningOracle {
     return true;
   }
 
-  public InlineAction computeForInvokeWithReceiver(InvokeMethodWithReceiver invoke) {
-    DexEncodedMethod candidate = validateCandidate(invoke);
+  public InlineAction computeForInvokeWithReceiver(
+      InvokeMethodWithReceiver invoke, DexType invocationContext) {
+    DexEncodedMethod candidate = validateCandidate(invoke, invocationContext);
     if (candidate == null) {
       return null;
     }
@@ -242,8 +244,8 @@ public class InliningOracle {
     return new InlineAction(candidate, invoke, reason);
   }
 
-  public InlineAction computeForInvokeStatic(InvokeStatic invoke) {
-    DexEncodedMethod candidate = validateCandidate(invoke);
+  public InlineAction computeForInvokeStatic(InvokeStatic invoke, DexType invocationContext) {
+    DexEncodedMethod candidate = validateCandidate(invoke, invocationContext);
     if (candidate == null) {
       return null;
     }
@@ -276,7 +278,8 @@ public class InliningOracle {
     return new InlineAction(candidate, invoke, reason);
   }
 
-  public InlineAction computeForInvokePolymorpic(InvokePolymorphic invoke) {
+  public InlineAction computeForInvokePolymorpic(
+      InvokePolymorphic invoke, DexType invocationContext) {
     // TODO: No inlining of invoke polymorphic for now.
     if (info != null) {
       info.exclude(invoke, "inlining through invoke signature polymorpic is not supported");

@@ -1957,12 +1957,12 @@ public class CodeRewriter {
       InstructionListIterator insnIterator = block.listIterator();
       while (insnIterator.hasNext()) {
         Instruction insn = insnIterator.next();
-        if (!insn.isInvoke()) {
+        if (!insn.isInvokeMethod()) {
           continue;
         }
 
         DexEncodedMethod singleTarget =
-            insn.asInvoke().computeSingleTarget(appInfoWithLiveness);
+            insn.asInvokeMethod().computeSingleTarget(appInfoWithLiveness);
         if (singleTarget == null || !singleTarget.getOptimizationInfo().neverReturnsNormally()) {
           continue;
         }

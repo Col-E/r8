@@ -5,11 +5,17 @@
 package com.android.tools.r8.bridgeremoval.bridgestokeep;
 
 import com.android.tools.r8.bridgeremoval.bridgestokeep.ObservableList.Observer;
+import java.util.List;
 
 public class SimpleObservableList<O extends Observer>
     implements ObservableList<O> {
 
+  private List<O> observers;
+
   @Override
   public void registerObserver(O observer) {
+    if (observer != null && observers != null && !observers.contains(observer)) {
+      observers.add(observer);
+    }
   }
 }

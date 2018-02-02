@@ -42,9 +42,11 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.Timing;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
@@ -1770,27 +1772,42 @@ public class Enqueuer {
      * For mapping invoke virtual instruction to single target method.
      */
     public DexEncodedMethod lookupSingleVirtualTarget(DexMethod method) {
+      return lookupSingleVirtualTarget(method, method.holder);
+    }
+
+    public DexEncodedMethod lookupSingleVirtualTarget(
+        DexMethod method, DexType refinedReceiverType) {
       // This implements the logic from
       // https://docs.oracle.com/javase/specs/jvms/se9/html/jvms-6.html#jvms-6.5.invokevirtual
       assert method != null;
+      assert refinedReceiverType.isSubtypeOf(method.holder, this);
       DexClass holder = definitionFor(method.holder);
-      if ((holder == null) || holder.isLibraryClass() || holder.isInterface()) {
+      if (holder == null || holder.isLibraryClass() || holder.isInterface()) {
         return null;
       }
-      if (method.isSingleVirtualMethodCached()) {
-        return method.getSingleVirtualMethodCache();
+      boolean refinedReceiverIsStrictSubType = refinedReceiverType != method.holder;
+      DexClass refinedHolder =
+          refinedReceiverIsStrictSubType ? definitionFor(refinedReceiverType) : holder;
+      assert refinedHolder != null;
+      assert !refinedHolder.isLibraryClass();
+      if (method.isSingleVirtualMethodCached(refinedReceiverType)) {
+        return method.getSingleVirtualMethodCache(refinedReceiverType);
       }
       // For kept types we cannot ensure a single target.
       if (pinnedItems.contains(method.holder)) {
-        method.setSingleVirtualMethodCache(null);
+        method.setSingleVirtualMethodCache(refinedReceiverType, null);
         return null;
       }
-      // First get the target for receiver type method.type.
+      // First get the target for the holder type.
       ResolutionResult topMethod = resolveMethod(method.holder, method);
       // We might hit none or multiple targets. Both make this fail at runtime.
       if (!topMethod.hasSingleTarget() || !topMethod.asSingleTarget().isVirtualMethod()) {
-        method.setSingleVirtualMethodCache(null);
+        method.setSingleVirtualMethodCache(refinedReceiverType, null);
         return null;
+      }
+      // Now, resolve the target with the refined receiver type.
+      if (refinedReceiverIsStrictSubType) {
+        topMethod = resolveMethod(refinedReceiverType, method);
       }
       DexEncodedMethod topSingleTarget = topMethod.asSingleTarget();
       DexClass topHolder = definitionFor(topSingleTarget.method.holder);
@@ -1798,11 +1815,11 @@ public class Enqueuer {
       // shadowed by a default method from an interface further down.
       boolean topIsFromInterface = topHolder.isInterface();
       // Now look at all subtypes and search for overrides.
-      DexEncodedMethod result = findSingleTargetFromSubtypes(method.holder, method,
-          topSingleTarget, !holder.accessFlags.isAbstract(), topIsFromInterface);
+      DexEncodedMethod result = findSingleTargetFromSubtypes(refinedReceiverType, method,
+          topSingleTarget, !refinedHolder.accessFlags.isAbstract(), topIsFromInterface);
       // Map the failure case of SENTINEL to null.
       result = result == DexEncodedMethod.SENTINEL ? null : result;
-      method.setSingleVirtualMethodCache(result);
+      method.setSingleVirtualMethodCache(refinedReceiverType, result);
       return result;
     }
 
@@ -1894,6 +1911,11 @@ public class Enqueuer {
     }
 
     public DexEncodedMethod lookupSingleInterfaceTarget(DexMethod method) {
+      return lookupSingleInterfaceTarget(method, method.holder);
+    }
+
+    public DexEncodedMethod lookupSingleInterfaceTarget(
+        DexMethod method, DexType refinedReceiverType) {
       DexClass holder = definitionFor(method.holder);
       if ((holder == null) || holder.isLibraryClass() || !holder.accessFlags.isInterface()) {
         return null;
@@ -1911,7 +1933,12 @@ public class Enqueuer {
       DexEncodedMethod result = null;
       // The loop will ignore abstract classes that are not kept as they should not be a target
       // at runtime.
-      for (DexType type : subtypes(method.holder)) {
+      Iterable<DexType> subTypesToExplore =
+          refinedReceiverType == method.holder
+              ? subtypes(method.holder)
+              : Iterables.concat(
+                  ImmutableList.of(refinedReceiverType), subtypes(refinedReceiverType));
+      for (DexType type : subTypesToExplore) {
         if (pinnedItems.contains(type)) {
           // For kept classes we cannot ensure a single target.
           return null;

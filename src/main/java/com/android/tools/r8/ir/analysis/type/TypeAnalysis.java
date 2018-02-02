@@ -10,6 +10,7 @@ import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
 import com.google.common.annotations.VisibleForTesting;
@@ -133,6 +134,41 @@ public class TypeAnalysis implements TypeEnvironment {
       type = l.asArrayTypeLatticeElement().getArrayType();
     }
     return type;
+  }
+
+  @Override
+  public DexType getRefinedReceiverType(InvokeMethodWithReceiver invoke) {
+    DexType receiverType = invoke.getInvokedMethod().getHolder();
+    TypeLatticeElement lattice = getLatticeElement(invoke.getReceiver());
+    if (lattice.isClassTypeLatticeElement()) {
+      DexType refinedType = lattice.asClassTypeLatticeElement().getClassType();
+      if (refinedType.isSubtypeOf(receiverType, appInfo)) {
+        return refinedType;
+      }
+    }
+    return receiverType;
+  }
+
+  private static final TypeEnvironment DEFAULT_ENVIRONMENT = new TypeEnvironment() {
+    @Override
+    public TypeLatticeElement getLatticeElement(Value value) {
+      return Top.getInstance();
+    }
+
+    @Override
+    public DexType getObjectType(Value value) {
+      return null;
+    }
+
+    @Override
+    public DexType getRefinedReceiverType(InvokeMethodWithReceiver invoke) {
+      return invoke.getInvokedMethod().holder;
+    }
+  };
+
+  // TODO(b/72693244): By annotating type lattice to value, remove the default type env at all.
+  public static TypeEnvironment getDefaultTypeEnvironment() {
+    return DEFAULT_ENVIRONMENT;
   }
 
   @VisibleForTesting

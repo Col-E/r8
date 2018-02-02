@@ -108,11 +108,17 @@ public class AppInfo {
    */
   public DexEncodedMethod lookupSuperTarget(DexMethod method,
       DexType invocationContext) {
+    // Make sure we are not chasing NotFoundError.
+    ResolutionResult resolutionResult = resolveMethod(method.holder, method);
+    if (resolutionResult.asListOfTargets().isEmpty()) {
+      return null;
+    }
+    // Then, resume on the search, but this time, starting from the holder of the caller.
     DexClass contextClass = definitionFor(invocationContext);
     if (contextClass == null || contextClass.superType == null) {
       return null;
     }
-    ResolutionResult resolutionResult = resolveMethod(contextClass.superType, method);
+    resolutionResult = resolveMethod(contextClass.superType, method);
     DexEncodedMethod target = resolutionResult.asSingleTarget();
     return target == null || !target.isStaticMethod() ? target : null;
   }

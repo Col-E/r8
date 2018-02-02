@@ -10,14 +10,12 @@ import com.android.tools.r8.code.MoveType;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.DexBuilder;
-import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import java.util.List;
 import java.util.function.Function;
 
@@ -229,10 +227,6 @@ public abstract class Invoke extends Instruction {
   public String getInstructionName() {
     return "Invoke-" + getTypeString();
   }
-
-  // This method is used for inlining and/or other optimizations, such as value propagation.
-  // It returns the target method iff this invoke has only one target.
-  abstract public DexEncodedMethod computeSingleTarget(AppInfoWithLiveness appInfo);
 
   @Override
   public boolean isInvoke() {

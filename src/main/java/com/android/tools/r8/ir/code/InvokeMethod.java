@@ -10,6 +10,8 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
+import com.android.tools.r8.ir.analysis.type.TypeEnvironment;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.InliningOracle;
@@ -60,11 +62,27 @@ public abstract class InvokeMethod extends Invoke {
     return this;
   }
 
+  // TODO(jsjeon): merge lookupSingleTarget and computeSingleTarget.
   public abstract DexEncodedMethod lookupSingleTarget(AppInfoWithLiveness appInfo,
       DexType invocationContext);
 
   public abstract Collection<DexEncodedMethod> lookupTargets(AppInfoWithSubtyping appInfo,
       DexType invocationContext);
+
+  // This method is used for inlining and/or other optimizations, such as value propagation.
+  // It returns the target method iff this invoke has only one target.
+  public DexEncodedMethod computeSingleTarget(AppInfoWithLiveness appInfo) {
+    // TODO(jsjeon): revisit all usage of this method and pass proper invocation context.
+    return computeSingleTarget(appInfo, TypeAnalysis.getDefaultTypeEnvironment(), null);
+  }
+
+  // TODO(b/72693244): By annotating type lattice to value, avoid passing type env.
+  public DexEncodedMethod computeSingleTarget(
+      AppInfoWithLiveness appInfo, TypeEnvironment typeEnvironment, DexType invocationContext) {
+    // In subclasses, e.g., invoke-virtual or invoke-super, use a narrower receiver type by using
+    // receiver type and type environment or invocation context---where the current invoke is.
+    return lookupSingleTarget(appInfo, appInfo.dexItemFactory.objectType);
+  }
 
   @Override
   public abstract Constraint inliningConstraint(AppInfoWithLiveness info,
@@ -120,7 +138,7 @@ public abstract class InvokeMethod extends Invoke {
     return result;
   }
 
-  public abstract InlineAction computeInlining(InliningOracle decider);
+  public abstract InlineAction computeInlining(InliningOracle decider, DexType invocationContext);
 
   @Override
   public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {

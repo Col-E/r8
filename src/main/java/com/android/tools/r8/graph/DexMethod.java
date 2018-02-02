@@ -6,6 +6,8 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.naming.NamingLens;
+import com.google.common.collect.Maps;
+import java.util.Map;
 
 public class DexMethod extends Descriptor<DexEncodedMethod, DexMethod>
     implements PresortedComparable<DexMethod> {
@@ -15,7 +17,7 @@ public class DexMethod extends Descriptor<DexEncodedMethod, DexMethod>
   public final DexString name;
 
   // Caches used during processing.
-  private DexEncodedMethod singleTargetCache;
+  private Map<DexType, DexEncodedMethod> singleTargetCache;
 
   DexMethod(DexType holder, DexProto proto, DexString name) {
     this.holder = holder;
@@ -151,16 +153,20 @@ public class DexMethod extends Descriptor<DexEncodedMethod, DexMethod>
     return builder.toString();
   }
 
-  synchronized public void setSingleVirtualMethodCache(DexEncodedMethod method) {
-    singleTargetCache = method == null ? DexEncodedMethod.SENTINEL : method;
+  synchronized public void setSingleVirtualMethodCache(
+      DexType receiverType, DexEncodedMethod method) {
+    if (singleTargetCache == null) {
+      singleTargetCache = Maps.newIdentityHashMap();
+    }
+    singleTargetCache.put(receiverType, method);
   }
 
-  synchronized public boolean isSingleVirtualMethodCached() {
-    return singleTargetCache != null;
+  synchronized public boolean isSingleVirtualMethodCached(DexType receiverType) {
+    return singleTargetCache != null && singleTargetCache.containsKey(receiverType);
   }
 
-  synchronized public DexEncodedMethod getSingleVirtualMethodCache() {
-    assert isSingleVirtualMethodCached();
-    return singleTargetCache == DexEncodedMethod.SENTINEL ? null : singleTargetCache;
+  synchronized public DexEncodedMethod getSingleVirtualMethodCache(DexType receiverType) {
+    assert isSingleVirtualMethodCached(receiverType);
+    return singleTargetCache.get(receiverType);
   }
 }

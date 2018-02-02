@@ -116,7 +116,7 @@ public class InvokePolymorphic extends InvokeMethod {
   }
 
   @Override
-  public InlineAction computeInlining(InliningOracle decider) {
-    return decider.computeForInvokePolymorpic(this);
+  public InlineAction computeInlining(InliningOracle decider, DexType invocationContext) {
+    return decider.computeForInvokePolymorpic(this, invocationContext);
   }
 }

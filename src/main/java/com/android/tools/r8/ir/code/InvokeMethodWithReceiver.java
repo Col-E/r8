@@ -4,6 +4,7 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.InliningOracle;
 import java.util.List;
@@ -29,8 +30,8 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
   }
 
   @Override
-  public final InlineAction computeInlining(InliningOracle decider) {
-    return decider.computeForInvokeWithReceiver(this);
+  public final InlineAction computeInlining(InliningOracle decider, DexType invocationContext) {
+    return decider.computeForInvokeWithReceiver(this, invocationContext);
   }
 
   @Override
