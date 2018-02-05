@@ -31,6 +31,7 @@ public class NonNullMarker {
         || instruction.isInstancePut()
         || instruction.isArrayGet()
         || instruction.isArrayPut()
+        || instruction.isArrayLength()
         || instruction.isMonitor();
   }
 
@@ -45,6 +46,8 @@ public class NonNullMarker {
       return instruction.asArrayGet().array();
     } else if (instruction.isArrayPut()) {
       return instruction.asArrayPut().array();
+    } else if (instruction.isArrayLength()) {
+      return instruction.asArrayLength().array();
     } else if (instruction.isMonitor()) {
       return instruction.asMonitor().object();
     }
