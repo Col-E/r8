@@ -4,6 +4,7 @@
 package com.android.tools.r8.dex;
 
 import com.android.tools.r8.ApiLevelException;
+import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.errors.DexOverflowException;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationDirectory;
@@ -46,6 +47,7 @@ public class ApplicationWriter {
   public final String proguardSeedsData;
   public final InternalOptions options;
   public DexString markerString;
+  public DexIndexedConsumer programConsumer;
   public final ProguardMapSupplier proguardMapSupplier;
 
   private static class SortAnnotations extends MixedSectionCollection {
@@ -113,6 +115,26 @@ public class ApplicationWriter {
       NamingLens namingLens,
       String proguardSeedsData,
       ProguardMapSupplier proguardMapSupplier) {
+    this(
+        application,
+        options,
+        marker,
+        deadCode,
+        namingLens,
+        proguardSeedsData,
+        proguardMapSupplier,
+        null);
+  }
+
+  public ApplicationWriter(
+      DexApplication application,
+      InternalOptions options,
+      Marker marker,
+      String deadCode,
+      NamingLens namingLens,
+      String proguardSeedsData,
+      ProguardMapSupplier proguardMapSupplier,
+      DexIndexedConsumer consumer) {
     assert application != null;
     this.application = application;
     assert options != null;
@@ -124,6 +146,7 @@ public class ApplicationWriter {
     this.namingLens = namingLens;
     this.proguardSeedsData = proguardSeedsData;
     this.proguardMapSupplier = proguardMapSupplier;
+    this.programConsumer = consumer;
   }
 
   private Iterable<VirtualFile> distribute()
@@ -186,7 +209,13 @@ public class ApplicationWriter {
               executorService.submit(
                   () -> {
                     byte[] result = writeDexFile(mapping);
-                    if (virtualFile.getPrimaryClassDescriptor() != null) {
+                    if (programConsumer != null) {
+                      programConsumer.accept(
+                          virtualFile.getId(),
+                          result,
+                          virtualFile.getClassDescriptors(),
+                          options.reporter);
+                    } else if (virtualFile.getPrimaryClassDescriptor() != null) {
                       options
                           .getDexFilePerClassFileConsumer()
                           .accept(

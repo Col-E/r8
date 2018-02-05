@@ -12,6 +12,8 @@ import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.OptionsParsing;
+import com.android.tools.r8.utils.OptionsParsing.ParseContext;
 import com.android.tools.r8.utils.StringDiagnostic;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -20,7 +22,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -79,87 +80,6 @@ public class DexFileMerger {
     String dexPrefix = DEX_PREFIX;
   }
 
-  private static class ParseContext {
-    private final String[] args;
-    private int nextIndex = 0;
-
-    ParseContext(String[] args) {
-      this.args = args;
-    }
-
-    String head() {
-      return nextIndex < args.length ? args[nextIndex] : null;
-    }
-
-    String next() {
-      if (nextIndex < args.length) {
-        ++nextIndex;
-        return head();
-      } else {
-        throw new RuntimeException("Iterating over the end of argument list.");
-      }
-    }
-  }
-
-  /**
-   * Try parsing the switch {@code name} and zero or more non-switch args after it. Also supports
-   * the <name>=arg syntax.
-   */
-  private static List<String> tryParseMulti(ParseContext context, String name) {
-    List<String> result = null;
-    String head = context.head();
-    if (head.equals(name)) {
-      context.next();
-      result = new ArrayList<>();
-      while (context.head() != null && !context.head().startsWith("-")) {
-        result.add(context.head());
-        context.next();
-      }
-    } else if (head.startsWith(name) && head.charAt(name.length()) == '=') {
-      result = Collections.singletonList(head.substring(name.length() + 1));
-      context.next();
-    }
-    return result;
-  }
-
-  /**
-   * Try parsing the switch {@code name} and one arg after it. Also supports the <name>=arg syntax.
-   */
-  private static String tryParseSingle(ParseContext context, String name, String shortName) {
-    String head = context.head();
-    if (head.equals(name) || head.equals(shortName)) {
-      String next = context.next();
-      if (next == null) {
-        throw new RuntimeException(String.format("Missing argument for '%s'.", head));
-      }
-      context.next();
-      return next;
-    }
-
-    if (head.startsWith(name) && head.charAt(name.length()) == '=') {
-      context.next();
-      return head.substring(name.length() + 1);
-    }
-
-    return null;
-  }
-
-  /**
-   * Try parsing the switch {@code name} as a boolean switch or its negation, with a 'no' between
-   * the dashes and the word.
-   */
-  private static Boolean tryParseBoolean(ParseContext context, String name) {
-    if (context.head().equals(name)) {
-      context.next();
-      return true;
-    }
-    assert name.startsWith("--");
-    if (context.head().equals("--no" + name.substring(2))) {
-      context.next();
-      return false;
-    }
-    return null;
-  }
 
   private static Options parseArguments(String[] args) throws IOException {
     // We may have a single argument which is a parameter file path, prefixed with '@'.
@@ -192,54 +112,54 @@ public class DexFileMerger {
       if (context.head().startsWith("@")) {
         throw new RuntimeException("A params file must be the only argument: " + context.head());
       }
-      strings = tryParseMulti(context, "--input");
+      strings = OptionsParsing.tryParseMulti(context, "--input");
       if (strings != null) {
         options.inputArchives.addAll(strings);
         continue;
       }
-      string = tryParseSingle(context, "--output", "-o");
+      string = OptionsParsing.tryParseSingle(context, "--output", "-o");
       if (string != null) {
         options.outputArchive = string;
         continue;
       }
-      string = tryParseSingle(context, "--multidex", null);
+      string = OptionsParsing.tryParseSingle(context, "--multidex", null);
       if (string != null) {
         options.multidexMode = MultidexStrategy.valueOf(string.toUpperCase());
         continue;
       }
-      string = tryParseSingle(context, "--main-dex-list", null);
+      string = OptionsParsing.tryParseSingle(context, "--main-dex-list", null);
       if (string != null) {
         options.mainDexListFile = string;
         continue;
       }
-      b = tryParseBoolean(context, "--minimal-main-dex");
+      b = OptionsParsing.tryParseBoolean(context, "--minimal-main-dex");
       if (b != null) {
         options.minimalMainDex = b;
         continue;
       }
-      b = tryParseBoolean(context, "--verbose");
+      b = OptionsParsing.tryParseBoolean(context, "--verbose");
       if (b != null) {
         options.verbose = b;
         continue;
       }
-      string = tryParseSingle(context, "--max-bytes-wasted-per-file", null);
+      string = OptionsParsing.tryParseSingle(context, "--max-bytes-wasted-per-file", null);
       if (string != null) {
         System.err.println("Warning: '--max-bytes-wasted-per-file' is ignored.");
         continue;
       }
-      string = tryParseSingle(context, "--set-max-idx-number", null);
+      string = OptionsParsing.tryParseSingle(context, "--set-max-idx-number", null);
       if (string != null) {
         System.err.println("Warning: The '--set-max-idx-number' option is ignored.");
         continue;
       }
-      b = tryParseBoolean(context, "--forceJumbo");
+      b = OptionsParsing.tryParseBoolean(context, "--forceJumbo");
       if (b != null) {
         System.err.println(
             "Warning: '--forceJumbo' can be safely omitted. Strings will only use "
                 + "jumbo-string indexing if necessary.");
         continue;
       }
-      string = tryParseSingle(context, "--dex_prefix", null);
+      string = OptionsParsing.tryParseSingle(context, "--dex_prefix", null);
       if (string != null) {
         options.dexPrefix = string;
         continue;
