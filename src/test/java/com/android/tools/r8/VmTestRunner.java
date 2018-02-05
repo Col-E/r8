@@ -19,6 +19,16 @@ import org.junit.runners.model.InitializationError;
 public class VmTestRunner extends BlockJUnit4ClassRunner {
 
   /**
+   * Ignores the test for all VM versions up to {@link #value()}.
+   */
+  @Retention(RetentionPolicy.RUNTIME)
+  @Target({ElementType.METHOD, ElementType.TYPE})
+  public @interface IgnoreIfVmOlderThan {
+
+    DexVm.Version value();
+  }
+
+  /**
    * Ignores the test for all VM versions up to and includion {@link #value()}.
    */
   @Retention(RetentionPolicy.RUNTIME)
@@ -65,6 +75,12 @@ public class VmTestRunner extends BlockJUnit4ClassRunner {
       return true;
     }
     DexVm.Version currentVersion = ToolHelper.getDexVm().getVersion();
+    IgnoreIfVmOlderThan ignoreIfVmOlderThan =
+        child.getAnnotation(IgnoreIfVmOlderThan.class);
+    if (ignoreIfVmOlderThan != null
+        && !currentVersion.isAtLeast(ignoreIfVmOlderThan.value())) {
+      return true;
+    }
     IgnoreIfVmOlderOrEqualThan ignoreIfVmOlderOrEqualThan =
         child.getAnnotation(IgnoreIfVmOlderOrEqualThan.class);
     if (ignoreIfVmOlderOrEqualThan != null

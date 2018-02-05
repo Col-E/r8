@@ -96,7 +96,14 @@ public class TestBase {
     return builder.build();
   }
 
-  protected static AndroidApp readClasses(
+  protected static AndroidApp readClassesAndAndriodJar(List<Class> programClasses)
+      throws IOException {
+    return readClassesAndAndriodJar(programClasses,
+        AndroidApiLevel.getAndroidApiLevel(
+            ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm())));
+  }
+
+  protected static AndroidApp readClassesAndAndriodJar(
       List<Class> programClasses, AndroidApiLevel androidLibrary)
       throws IOException {
     AndroidApp.Builder builder = AndroidApp.builder();

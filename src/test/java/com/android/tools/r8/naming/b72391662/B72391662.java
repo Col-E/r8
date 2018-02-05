@@ -7,15 +7,19 @@ package com.android.tools.r8.naming.b72391662;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.VmTestRunner;
+import com.android.tools.r8.VmTestRunner.IgnoreIfVmOlderThan;
 import com.android.tools.r8.naming.b72391662.subpackage.OtherPackageSuper;
 import com.android.tools.r8.naming.b72391662.subpackage.OtherPackageTestClass;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import joptsimple.internal.Strings;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
+@RunWith(VmTestRunner.class)
 public class B72391662 extends TestBase {
 
   private void doTest(boolean allowAccessModification, boolean minify) throws Exception {
@@ -34,15 +38,15 @@ public class B72391662 extends TestBase {
         "}"
     );
 
-    AndroidApp app = readClasses(ImmutableList.of(
+    AndroidApp app = readClassesAndAndriodJar(ImmutableList.of(
         mainClass, Interface.class, Super.class, TestClass.class,
-        OtherPackageSuper.class, OtherPackageTestClass.class
-    ), AndroidApiLevel.O);
+        OtherPackageSuper.class, OtherPackageTestClass.class));
     app = compileWithR8(app, Strings.join(config, System.lineSeparator()));
     assertEquals("123451234567\nABC\n", runOnArt(app, mainClass.getCanonicalName()));
   }
 
   @Test
+  @IgnoreIfVmOlderThan(Version.V7_0_0)
   public void test() throws Exception {
     doTest(true, true);
     doTest(true, false);
