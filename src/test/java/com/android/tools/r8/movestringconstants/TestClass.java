@@ -5,19 +5,19 @@
 package com.android.tools.r8.movestringconstants;
 
 public class TestClass {
-  static void foo(String arg) {
-    Utils.check(arg, "StringConstants::foo#1");
+  static void foo(String arg1, String arg2, String arg3, String arg4) {
+    Utils.check(arg1, "StringConstants::foo#1");
     Utils.check("", "StringConstants::foo#2");
-    if (arg.length() == 12345) {
+    if (arg2.length() == 12345) {
       Utils.check(null, "StringConstants::foo#3");
     }
     try {
-      Utils.check(arg, "StringConstants::foo#4");
+      Utils.check(arg3, "StringConstants::foo#4");
     } catch (Exception e) {
       System.out.println(e.getMessage());
     }
     try {
-      Utils.check(arg, "StringConstants::foo#5");
+      Utils.check(arg4, "StringConstants::foo#5");
     } finally {
       System.out.println("finally");
     }

@@ -60,12 +60,15 @@ public class DexDebugEventBuilder {
 
   // True if running in debug-mode with input code that contains line information, otherwise false.
   private final boolean hasDebugPositions;
+  // True if all throwing instructions had positions in the input code.
+  private final boolean allThrowingInstructionsHavePositions;
 
   public DexDebugEventBuilder(IRCode code, InternalOptions options) {
     this.method = code.method;
     this.factory = options.itemFactory;
     this.options = options;
     hasDebugPositions = code.hasDebugPositions;
+    allThrowingInstructionsHavePositions = code.doAllThrowingInstructionsHavePositions();
   }
 
   /** Add events at pc for instruction. */
@@ -87,6 +90,7 @@ public class DexDebugEventBuilder {
 
     // In debug mode check that all non-nop instructions have positions.
     assert startLine == NO_LINE_INFO || !hasDebugPositions || !pcAdvancing || position.isSome()
+        || (instruction.instructionTypeCanThrow() && !allThrowingInstructionsHavePositions)
         : "PC-advancing instruction " + instruction + " expected to have an associated position.";
 
     // In any mode check that nop instructions have no position info.
