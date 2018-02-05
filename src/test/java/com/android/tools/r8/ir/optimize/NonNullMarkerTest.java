@@ -16,7 +16,6 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
-import com.android.tools.r8.ir.code.NonNull;
 import com.android.tools.r8.ir.nonnull.NonNullAfterArrayAccess;
 import com.android.tools.r8.ir.nonnull.NonNullAfterFieldAccess;
 import com.android.tools.r8.ir.nonnull.NonNullAfterInvoke;
@@ -89,6 +88,13 @@ public class NonNullMarkerTest extends AsmTestBase {
   public void nonNullAfterSafeArrayAccess() throws Exception {
     MethodSignature signature =
         new MethodSignature("foo", "int", new String[]{"java.lang.String[]"});
+    buildAndTest(NonNullAfterArrayAccess.class, signature, 1, null);
+  }
+
+  @Test
+  public void nonNullAfterSafeArrayLength() throws Exception {
+    MethodSignature signature =
+        new MethodSignature("arrayLength", "int", new String[]{"java.lang.String[]"});
     buildAndTest(NonNullAfterArrayAccess.class, signature, 1, null);
   }
 

@@ -26,10 +26,19 @@ public class NonNullAfterArrayAccess {
     return arg.hashCode();
   }
 
+  public static int arrayLength(String[] arg) {
+    int length = arg.length;
+    if (arg == null) {
+      throw new AssertionError("arg is not null.");
+    }
+    return arg.hashCode() + length;
+  }
+
   public static void main(String[] args) {
     String[] nonNullArgs = new String[1];
     nonNullArgs[0] = "non-null";
     foo(nonNullArgs);
     bar(nonNullArgs);
+    arrayLength(nonNullArgs);
   }
 }
