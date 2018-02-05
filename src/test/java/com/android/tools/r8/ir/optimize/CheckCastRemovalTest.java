@@ -6,8 +6,11 @@ package com.android.tools.r8.ir.optimize;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+import com.android.tools.r8.code.AgetObject;
 import com.android.tools.r8.code.CheckCast;
+import com.android.tools.r8.code.Const;
 import com.android.tools.r8.code.InvokeDirect;
+import com.android.tools.r8.code.InvokeVirtual;
 import com.android.tools.r8.code.NewInstance;
 import com.android.tools.r8.code.ReturnVoid;
 import com.android.tools.r8.graph.DexCode;
@@ -19,6 +22,7 @@ import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.AndroidApp;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class CheckCastRemovalTest extends JasminTestBase {
@@ -126,5 +130,54 @@ public class CheckCastRemovalTest extends JasminTestBase {
         ReturnVoid.class));
     CheckCast cast = (CheckCast) code.instructions[2];
     assertEquals("C", cast.getType().toString());
+  }
+
+  @Test
+  @Ignore("b/72930905")
+  public void arrayCasts() throws Exception {
+    JasminBuilder builder = new JasminBuilder();
+    ClassBuilder classBuilder = builder.addClass(CLASS_NAME);
+    MethodSignature main = classBuilder.addMainMethod(
+        ".limit stack 4",
+        ".limit locals 1",
+        "iconst_1",
+        "anewarray java/lang/String", // args parameter
+        "dup",
+        "iconst_0",
+        "ldc \"a string\"",
+        "aastore",
+        "checkcast [Ljava/lang/Object;",
+        "iconst_0",
+        "aaload",
+        "checkcast java/lang/String", // the cast must remain for ART
+        "invokevirtual java/lang/String/length()I",
+        "return");
+
+    List<String> pgConfigs = ImmutableList.of(
+        "-keep class " + CLASS_NAME + " { *; }",
+        "-dontoptimize",
+        "-dontshrink");
+    AndroidApp app = compileWithR8(builder, pgConfigs, null);
+
+    checkRuntime(builder, app, CLASS_NAME);
+
+    DexEncodedMethod method = getMethod(app, CLASS_NAME, main);
+    assertNotNull(method);
+
+    DexCode code = method.getCode().asDexCode();
+    checkInstructions(code, ImmutableList.of(
+        CheckCast.class,
+        Const.class,
+        AgetObject.class,
+        CheckCast.class,
+        InvokeVirtual.class,
+        ReturnVoid.class));
+  }
+
+  private void checkRuntime(JasminBuilder builder, AndroidApp app, String className)
+      throws Exception {
+    String normalOutput = runOnJava(builder, className);
+    String dexOptimizedOutput = runOnArt(app, className);
+    assertEquals(normalOutput, dexOptimizedOutput);
   }
 }
