@@ -53,7 +53,9 @@ def download_version(root, version, target):
 def download_target(root, url, target):
   download_path = os.path.join(root, target)
   print 'Downloading: ' + url + ' -> ' + download_path
-  urllib.urlretrieve(url, download_path)
+  result = urllib.urlretrieve(url, download_path)
+  if 'X-GUploader-Request-Result: success' not in str(result[1]):
+    raise IOError('Failed to download ' + url)
 
 def Main():
   args = parse_arguments()
