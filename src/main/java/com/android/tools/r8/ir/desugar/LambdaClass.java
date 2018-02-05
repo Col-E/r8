@@ -302,7 +302,9 @@ final class LambdaClass {
     assert implMethod.holder == accessedFrom;
     assert descriptor.targetFoundInClass(accessedFrom);
     assert descriptor.getAccessibility() != null;
-    assert descriptor.getAccessibility().isPrivate();
+    // When coming from javac these are also private, but we don't assert that, as the
+    // accessibility could have been modified (e.g. due to -allowaccessmodification).
+
     assert descriptor.getAccessibility().isSynthetic();
 
     if (implHandle.type.isInvokeStatic()) {
@@ -493,9 +495,9 @@ final class LambdaClass {
           // TODO(ager): Should we give the new first parameter an actual name? Maybe 'this'?
           encodedMethod.accessFlags.setStatic();
           encodedMethod.accessFlags.unsetPrivate();
-          if (implMethodHolder.isInterface()) {
-            encodedMethod.accessFlags.setPublic();
-          }
+          // Always make the method public to provide access when r8 minification is allowed to move
+          // the lambda class accessing this method to another package (-allowaccessmodification).
+          encodedMethod.accessFlags.setPublic();
           DexCode dexCode = newMethod.getCode().asDexCode();
           dexCode.setDebugInfo(dexCode.debugInfoWithAdditionalFirstParameter(null));
           assert (dexCode.getDebugInfo() == null)
@@ -522,11 +524,11 @@ final class LambdaClass {
       DexProgramClass accessorClass = programDefinitionFor(callTarget.holder);
       assert accessorClass != null;
 
+      // Always make the method public to provide access when r8 minification is allowed to move
+      // the lambda class accessing this method to another package (-allowaccessmodification).
       MethodAccessFlags accessorFlags =
           MethodAccessFlags.fromSharedAccessFlags(
-              Constants.ACC_SYNTHETIC
-                  | Constants.ACC_STATIC
-                  | (accessorClass.isInterface() ? Constants.ACC_PUBLIC : 0),
+              Constants.ACC_SYNTHETIC | Constants.ACC_STATIC | Constants.ACC_PUBLIC,
               false);
       DexEncodedMethod accessorEncodedMethod = new DexEncodedMethod(
           callTarget, accessorFlags, DexAnnotationSet.empty(), DexAnnotationSetRefList.empty(),

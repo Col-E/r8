@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.SmaliWriter;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -92,6 +93,17 @@ public class TestBase {
       }
       builder.addLibraryResourceProvider(libraryBuilder.build());
     }
+    return builder.build();
+  }
+
+  protected static AndroidApp readClasses(
+      List<Class> programClasses, AndroidApiLevel androidLibrary)
+      throws IOException {
+    AndroidApp.Builder builder = AndroidApp.builder();
+    for (Class clazz : programClasses) {
+      builder.addProgramFiles(ToolHelper.getClassFileForTestClass(clazz));
+    }
+    builder.addLibraryFiles(ToolHelper.getAndroidJar(androidLibrary.getLevel()));
     return builder.build();
   }
 
