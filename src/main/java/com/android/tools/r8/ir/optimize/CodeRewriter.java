@@ -1126,25 +1126,27 @@ public class CodeRewriter {
 
       DexType inType = typeEnvironment.getObjectType(inValue);
       DexType outType = typeEnvironment.getObjectType(outValue);
-      // Be careful about a down-cast verification error:
-      // A < B < C
-      // c = ...        // Even though we know c is of type A,
-      // a' = (B) c;    // (this could be removed, since chained below.)
-      // a'' = (A) a';  // this should remain for runtime verification.
-      if (outType.isStrictSubtypeOf(inType, appInfo)) {
-        continue;
-      }
-      // 1) Trivial cast.
-      //   A a = ...
-      //   A a' = (A) a;
-      // 2) Up-cast: we already have finer type info.
-      //   A < B
-      //   A a = ...
-      //   B b = (B) a;
-      if (inType.isSubtypeOf(castType, appInfo)) {
-        needToRemoveTrivialPhis = needToRemoveTrivialPhis || outValue.numberOfPhiUsers() != 0;
-        outValue.replaceUsers(inValue);
-        it.removeOrReplaceByDebugLocalRead();
+      if (inType != null && outType != null) {
+        // Be careful about a down-cast verification error:
+        // A < B < C
+        // c = ...        // Even though we know c is of type A,
+        // a' = (B) c;    // (this could be removed, since chained below.)
+        // a'' = (A) a';  // this should remain for runtime verification.
+        if (outType.isStrictSubtypeOf(inType, appInfo)) {
+          continue;
+        }
+        // 1) Trivial cast.
+        //   A a = ...
+        //   A a' = (A) a;
+        // 2) Up-cast: we already have finer type info.
+        //   A < B
+        //   A a = ...
+        //   B b = (B) a;
+        if (inType.isSubtypeOf(castType, appInfo)) {
+          needToRemoveTrivialPhis = needToRemoveTrivialPhis || outValue.numberOfPhiUsers() != 0;
+          outValue.replaceUsers(inValue);
+          it.removeOrReplaceByDebugLocalRead();
+        }
       }
     }
     // ... v1
@@ -1886,55 +1888,46 @@ public class CodeRewriter {
         If theIf = block.exit().asIf();
         List<Value> inValues = theIf.inValues();
 
-        int cond;
-
         if (inValues.get(0).isConstNumber()
             && (theIf.isZeroTest() || inValues.get(1).isConstNumber())) {
           // Zero test with a constant of comparison between between two constants.
           if (theIf.isZeroTest()) {
-            cond = inValues.get(0).getConstInstruction().asConstNumber().getIntValue();
+            int cond = inValues.get(0).getConstInstruction().asConstNumber().getIntValue();
+            simplifyIfWithKnownCondition(code, block, theIf, cond, color);
           } else {
             long left = (long) inValues.get(0).getConstInstruction().asConstNumber().getIntValue();
             long right = (long) inValues.get(1).getConstInstruction().asConstNumber().getIntValue();
-            cond = Long.signum(left - right);
+            simplifyIfWithKnownCondition(code, block, theIf, Long.signum(left - right), color);
           }
         } else if (inValues.get(0).hasValueRange()
             && (theIf.isZeroTest() || inValues.get(1).hasValueRange())) {
           // Zero test with a value range, or comparison between between two values,
           // each with a value ranges.
           if (theIf.isZeroTest()) {
-            if (inValues.get(0).isValueInRange(0)) {
-              // Zero in in the range - can't determine the comparison.
-              continue;
+            if (!inValues.get(0).isValueInRange(0)) {
+              int cond = Long.signum(inValues.get(0).getValueRange().getMin());
+              simplifyIfWithKnownCondition(code, block, theIf, cond, color);
             }
-            cond = Long.signum(inValues.get(0).getValueRange().getMin());
           } else {
             LongInterval leftRange = inValues.get(0).getValueRange();
             LongInterval rightRange = inValues.get(1).getValueRange();
-            if (leftRange.overlapsWith(rightRange)) {
-              // Ranges overlap - can't determine the comparison.
-              continue;
+            if (!leftRange.overlapsWith(rightRange)) {
+              int cond = Long.signum(leftRange.getMin() - rightRange.getMin());
+              simplifyIfWithKnownCondition(code, block, theIf, cond, color);
             }
-            // There is no overlap.
-            cond = Long.signum(leftRange.getMin() - rightRange.getMin());
           }
         } else if (theIf.isZeroTest() && !inValues.get(0).isConstNumber()) {
-          // TODO(b/72693244): annotate type lattice to value
-          TypeLatticeElement l = typeEnvironment.getLatticeElement(inValues.get(0));
-          if (!l.isPrimitive() && !l.isNullable()) {
-            // Any non-zero value should work.
-            cond = 1;
+          if (inValues.get(0).isNeverNull()) {
+            simplifyIfWithKnownCondition(code, block, theIf, 1, color);
           } else {
-            // We are still not sure.
-            continue;
+            // TODO(b/72693244): annotate type lattice to value
+            TypeLatticeElement l = typeEnvironment.getLatticeElement(inValues.get(0));
+            if (!l.isPrimitive() && !l.isNullable()) {
+              // Any non-zero value should work.
+              simplifyIfWithKnownCondition(code, block, theIf, 1, color);
+            }
           }
-        } else {
-          continue;
         }
-        BasicBlock target = theIf.targetFromCondition(cond);
-        BasicBlock deadTarget =
-            target == theIf.getTrueTarget() ? theIf.fallthroughBlock() : theIf.getTrueTarget();
-        rewriteIfToGoto(code, block, theIf, target, deadTarget, color);
       }
     }
     code.removeMarkedBlocks(color);
@@ -1943,6 +1936,14 @@ public class CodeRewriter {
       code.traceBlocks();
     }
     assert code.isConsistentSSA();
+  }
+
+  private void simplifyIfWithKnownCondition(
+      IRCode code, BasicBlock block, If theIf, int cond, int markingColor) {
+    BasicBlock target = theIf.targetFromCondition(cond);
+    BasicBlock deadTarget =
+        target == theIf.getTrueTarget() ? theIf.fallthroughBlock() : theIf.getTrueTarget();
+    rewriteIfToGoto(code, block, theIf, target, deadTarget, markingColor);
   }
 
   // Find all method invocations that never returns normally, split the block

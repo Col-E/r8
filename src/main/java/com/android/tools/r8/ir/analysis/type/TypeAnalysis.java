@@ -35,10 +35,11 @@ public class TypeAnalysis implements TypeEnvironment {
   public TypeAnalysis(AppInfo appInfo, DexEncodedMethod encodedMethod, IRCode code) {
     this.appInfo = appInfo;
     this.encodedMethod = encodedMethod;
-    updateBlocks(code.topologicallySortedBlocks());
+    analyzeBlocks(code.topologicallySortedBlocks());
   }
 
-  public void updateBlocks(List<BasicBlock> blocks) {
+  @Override
+  public void analyzeBlocks(List<BasicBlock> blocks) {
     assert worklist.isEmpty();
     worklist.addAll(blocks);
     while (!worklist.isEmpty()) {
@@ -163,6 +164,10 @@ public class TypeAnalysis implements TypeEnvironment {
     @Override
     public DexType getRefinedReceiverType(InvokeMethodWithReceiver invoke) {
       return invoke.getInvokedMethod().holder;
+    }
+
+    @Override
+    public void analyzeBlocks(List<BasicBlock> blocks) {
     }
   };
 

@@ -23,6 +23,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.analysis.constant.SparseConditionalConstantPropagation;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
+import com.android.tools.r8.ir.analysis.type.TypeEnvironment;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
@@ -564,15 +565,16 @@ public class IRConverter {
       nonNullMarker.addNonNull(code);
       assert code.isConsistentSSA();
     }
-    TypeAnalysis typeAnalysis = new TypeAnalysis(appInfo, method, code);
+    TypeEnvironment typeEnvironment = TypeAnalysis.getDefaultTypeEnvironment();
     if (options.inlineAccessors && inliner != null) {
+      typeEnvironment = new TypeAnalysis(appInfo, method, code);
       // TODO(zerny): Should we support inlining in debug mode? b/62937285
       assert !options.debug;
       inliner.performInlining(
-          method, code, typeAnalysis, isProcessedConcurrently, callSiteInformation);
+          method, code, typeEnvironment, isProcessedConcurrently, callSiteInformation);
     }
     // TODO(b/69962188): MethodDevirtualizer can perform optimizations using type analysis.
-    codeRewriter.removeCasts(code, typeAnalysis);
+    codeRewriter.removeCasts(code, typeEnvironment);
     codeRewriter.rewriteLongCompareAndRequireNonNull(code, options);
     codeRewriter.commonSubexpressionElimination(code);
     codeRewriter.simplifyArrayConstruction(code);
@@ -581,7 +583,7 @@ public class IRConverter {
     new SparseConditionalConstantPropagation(code).run();
     codeRewriter.rewriteSwitch(code);
     codeRewriter.processMethodsNeverReturningNormally(code);
-    codeRewriter.simplifyIf(code, typeAnalysis);
+    codeRewriter.simplifyIf(code, typeEnvironment);
     if (options.addNonNull && nonNullMarker != null) {
       nonNullMarker.cleanupNonNull(code);
       assert code.isConsistentSSA();

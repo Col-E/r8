@@ -4,11 +4,14 @@
 package com.android.tools.r8.ir.analysis.type;
 
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.Value;
+import java.util.List;
 
 public interface TypeEnvironment {
   TypeLatticeElement getLatticeElement(Value value);
   DexType getObjectType(Value value);
   DexType getRefinedReceiverType(InvokeMethodWithReceiver invoke);
+  void analyzeBlocks(List<BasicBlock> blocks);
 }

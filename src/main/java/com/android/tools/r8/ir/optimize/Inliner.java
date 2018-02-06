@@ -13,7 +13,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
-import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
+import com.android.tools.r8.ir.analysis.type.TypeEnvironment;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -339,7 +339,7 @@ public class Inliner {
   public void performInlining(
       DexEncodedMethod method,
       IRCode code,
-      TypeAnalysis typeAnalysis,
+      TypeEnvironment typeEnvironment,
       Predicate<DexEncodedMethod> isProcessedConcurrently,
       CallSiteInformation callSiteInformation)
       throws ApiLevelException {
@@ -349,7 +349,7 @@ public class Inliner {
       return;
     }
     InliningOracle oracle = new InliningOracle(
-        this, method, typeAnalysis, callSiteInformation, isProcessedConcurrently);
+        this, method, typeEnvironment, callSiteInformation, isProcessedConcurrently);
 
     List<BasicBlock> blocksToRemove = new ArrayList<>();
     ListIterator<BasicBlock> blockIterator = code.listIterator();
@@ -390,7 +390,7 @@ public class Inliner {
                   Log.verbose(getClass(), "Forcing extra inline on " + target.toSourceString());
                 }
                 performInlining(
-                    target, inlinee, typeAnalysis, isProcessedConcurrently, callSiteInformation);
+                    target, inlinee, typeEnvironment, isProcessedConcurrently, callSiteInformation);
               }
               // Make sure constructor inlining is legal.
               assert !target.isClassInitializer();
@@ -413,7 +413,7 @@ public class Inliner {
               if (instruction_allowance >= 0 || result.ignoreInstructionBudget()) {
                 iterator.inlineInvoke(code, inlinee, blockIterator, blocksToRemove, downcast);
                 // Update type env for inlined blocks.
-                typeAnalysis.updateBlocks(inlinee.topologicallySortedBlocks());
+                typeEnvironment.analyzeBlocks(inlinee.topologicallySortedBlocks());
                 // TODO(b/69964136): need a test where refined env in inlinee affects the caller.
               }
               // If we inlined the invoke from a bridge method, it is no longer a bridge method.

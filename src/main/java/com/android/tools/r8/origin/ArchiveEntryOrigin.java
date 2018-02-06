@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.origin;
 
-import com.android.tools.r8.origin.Origin;
-
 /**
  * Origin representing an entry in an archive.
  */
