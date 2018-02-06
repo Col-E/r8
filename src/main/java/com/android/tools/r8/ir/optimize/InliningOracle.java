@@ -206,7 +206,7 @@ public class InliningOracle {
   public InlineAction computeForInvokeWithReceiver(
       InvokeMethodWithReceiver invoke, DexType invocationContext) {
     DexEncodedMethod candidate = validateCandidate(invoke, invocationContext);
-    if (candidate == null) {
+    if (candidate == null || inliner.isBlackListed(candidate.method)) {
       return null;
     }
 
@@ -246,7 +246,7 @@ public class InliningOracle {
 
   public InlineAction computeForInvokeStatic(InvokeStatic invoke, DexType invocationContext) {
     DexEncodedMethod candidate = validateCandidate(invoke, invocationContext);
-    if (candidate == null) {
+    if (candidate == null || inliner.isBlackListed(candidate.method)) {
       return null;
     }
 

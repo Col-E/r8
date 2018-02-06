@@ -53,10 +53,21 @@ public class Inliner {
   private final Set<DexEncodedMethod> doubleInlineSelectedTargets = Sets.newIdentityHashSet();
   private final Map<DexEncodedMethod, DexEncodedMethod> doubleInlineeCandidates = new HashMap<>();
 
+  private final Set<DexMethod> blackList = Sets.newIdentityHashSet();
+
   public Inliner(AppInfoWithLiveness appInfo, GraphLense graphLense, InternalOptions options) {
     this.appInfo = appInfo;
     this.graphLense = graphLense;
     this.options = options;
+    fillInBlackList(appInfo);
+  }
+
+  private void fillInBlackList(AppInfoWithLiveness appInfo) {
+    blackList.add(appInfo.dexItemFactory.kotlin.intrinsics.throwParameterIsNullException);
+  }
+
+  public boolean isBlackListed(DexMethod method) {
+    return blackList.contains(method);
   }
 
   private Constraint instructionAllowedForInlining(
@@ -191,6 +202,14 @@ public class Inliner {
 
     public static Constraint classIsVisible(DexType context, DexType clazz,
         AppInfoWithSubtyping appInfo) {
+      if (clazz.isArrayType()) {
+        return classIsVisible(context, clazz.toArrayElementType(appInfo.dexItemFactory), appInfo);
+      }
+
+      if (clazz.isPrimitiveType()) {
+        return ALWAYS;
+      }
+
       DexClass definition = appInfo.definitionFor(clazz);
       return definition == null ? NEVER
           : deriveConstraint(context, clazz, definition.accessFlags, appInfo);

@@ -194,6 +194,7 @@ public class DexItemFactory {
   public final LongMethods longMethods = new LongMethods();
   public final ThrowableMethods throwableMethods = new ThrowableMethods();
   public final ClassMethods classMethods = new ClassMethods();
+  public final Kotlin kotlin = new Kotlin();
 
   // Dex system annotations.
   // See https://source.android.com/devices/tech/dalvik/dex-format.html#system-annotation
@@ -331,6 +332,23 @@ public class DexItemFactory {
       consumer.accept(appendString);
       consumer.accept(appendStringBuffer);
       consumer.accept(appendBoolean);
+    }
+  }
+
+  public class Kotlin {
+    private Kotlin() {
+    }
+
+    public final Intrinsics intrinsics = new Intrinsics();
+
+    // kotlin.jvm.internal.Intrinsics class
+    public class Intrinsics {
+      private Intrinsics() {
+      }
+
+      public final DexType type = createType(createString("Lkotlin/jvm/internal/Intrinsics;"));
+      public final DexMethod throwParameterIsNullException =
+          createMethod(type, createProto(voidType, stringType), "throwParameterIsNullException");
     }
   }
 

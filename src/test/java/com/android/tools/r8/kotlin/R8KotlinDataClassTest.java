@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -173,6 +174,7 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
   }
 
   @Test
+  @Ignore("See b/72871423")
   public void test_dataclass_copyDefault() throws Exception {
     final String mainClassName = "dataclass.MainCopyWithDefaultKt";
     final MethodSignature testMethodSignature =
