@@ -43,7 +43,6 @@ public class CheckCastRemovalTest extends JasminTestBase {
 
     List<String> pgConfigs = ImmutableList.of(
         "-keep class " + CLASS_NAME + " { *; }",
-        "-dontoptimize",
         "-dontshrink");
     AndroidApp app = compileWithR8(builder, pgConfigs, null);
 
@@ -79,7 +78,6 @@ public class CheckCastRemovalTest extends JasminTestBase {
         "-keep class A { *; }",
         "-keep class B { *; }",
         "-keep class C { *; }",
-        "-dontoptimize",
         "-dontshrink");
     AndroidApp app = compileWithR8(builder, pgConfigs, null);
 
