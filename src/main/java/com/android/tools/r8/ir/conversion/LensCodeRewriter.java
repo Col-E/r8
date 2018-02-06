@@ -30,6 +30,7 @@ import com.android.tools.r8.ir.code.InvokeCustom;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
+import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
@@ -196,7 +197,15 @@ public class LensCodeRewriter {
                 newArrayEmpty.size(), newType);
             iterator.replaceCurrentInstruction(newNewArray);
           }
-        }
+        } else if (current.isNewInstance()) {
+            NewInstance newInstance= current.asNewInstance();
+            DexType newClazz = graphLense.lookupType(newInstance.clazz, method);
+            if (newClazz != newInstance.clazz) {
+              NewInstance newNewInstance =
+                  new NewInstance(newClazz, makeOutValue(newInstance, code));
+              iterator.replaceCurrentInstruction(newNewInstance);
+            }
+          }
       }
     }
     assert code.isConsistentSSA();

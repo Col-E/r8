@@ -15,6 +15,8 @@ import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.code.Instruction;
+import com.android.tools.r8.code.NewInstance;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
@@ -219,13 +221,40 @@ public class ApplyMappingTest {
         main.iterateInstructions(InstructionSubject::isInvoke);
     // mapping-105 simply includes: naming001.D#keep -> peek
     // naming001.E extends D, hence its keep() should be renamed to peek as well.
-    // Skip E#<init>
-    iterator.next();
+    // Check E#<init> is not renamed.
+    InvokeInstructionSubject init = iterator.next();
+    assertEquals("Lnaming001/E;-><init>()V", init.invokedMethod().toSmaliString());
     // E#keep() should be replaced with peek by applying the map.
     InvokeInstructionSubject m = iterator.next();
     assertEquals("peek", m.invokedMethod().name.toSourceString());
-    // E could be renamed randomly, though.
-    assertNotEquals("naming001.E", m.holder().toString());
+    // D must not be renamed
+    assertEquals("naming001.D", m.holder().toString());
+  }
+
+  @Test
+  public void test_naming001_rule106() throws Exception {
+    // keep rules just to rename E
+    Path flag = Paths.get(ToolHelper.EXAMPLES_DIR, "naming001", "keep-rules-106.txt");
+    Path proguardMap = out.resolve(MAPPING);
+    AndroidApp outputApp =
+        runR8(
+            ToolHelper.addProguardConfigurationConsumer(
+                getCommandForApps(out, flag, NAMING001_JAR).setDisableMinification(true),
+                pgConfig -> {
+                  pgConfig.setPrintMapping(true);
+                  pgConfig.setPrintMappingFile(proguardMap);
+                })
+                .build());
+
+    // Make sure the given proguard map is indeed applied.
+    DexInspector inspector = new DexInspector(outputApp);
+    MethodSubject main = inspector.clazz("naming001.D").method(DexInspector.MAIN);
+
+    // naming001.E is renamed to a.a, so first instruction must be: new-instance La/a;
+    Instruction[] instructions = main.getMethod().getCode().asDexCode().instructions;
+    assertTrue(instructions[0] instanceof NewInstance);
+    NewInstance newInstance = (NewInstance) instructions[0];
+    assertEquals( "La/a;", newInstance.getType().toSmaliString());
   }
 
   @Test
