@@ -16,9 +16,12 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
-import com.android.tools.r8.ir.nonnull.NonNullAfterArrayAccess;
-import com.android.tools.r8.ir.nonnull.NonNullAfterFieldAccess;
-import com.android.tools.r8.ir.nonnull.NonNullAfterInvoke;
+import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
+import com.android.tools.r8.ir.optimize.nonnull.FieldAccessTest;
+import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterArrayAccess;
+import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterFieldAccess;
+import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterInvoke;
+import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterNullCheck;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DexInspector;
@@ -70,25 +73,63 @@ public class NonNullMarkerTest extends AsmTestBase {
       curr = it.next();
       if (curr.isNonNull()) {
         // Make sure non-null is added to the right place.
-        assertTrue(prev == null || NonNullMarker.throwsOnNullInput(prev));
+        assertTrue(prev == null
+            || NonNullMarker.throwsOnNullInput(prev)
+            || (prev.isIf() && prev.asIf().isZeroTest())
+            || !curr.getBlock().getPredecessors().contains(prev.getBlock()));
         count++;
       }
     }
-    assertEquals(count, expectedOccurrences);
+    assertEquals(expectedOccurrences, count);
+  }
+
+  private void checkInvokeGetsNonNullReceiver(IRCode irCode) {
+    checkInvokeReceiver(irCode, true);
+  }
+
+  private void checkInvokeGetsNullReceiver(IRCode irCode) {
+    checkInvokeReceiver(irCode, false);
+  }
+
+  private void checkInvokeReceiver(IRCode irCode, boolean isNotNull) {
+    InstructionIterator it = irCode.instructionIterator();
+    boolean metInvokeWithReceiver = false;
+    while (it.hasNext()) {
+      Instruction instruction = it.nextUntil(Instruction::isInvokeMethodWithReceiver);
+      if (instruction == null) {
+        break;
+      }
+      InvokeMethodWithReceiver invoke = instruction.asInvokeMethodWithReceiver();
+      if (invoke.isInvokeDirect()
+          || !invoke.getInvokedMethod().name.toString().contains("hashCode")) {
+        continue;
+      }
+      metInvokeWithReceiver = true;
+      if (isNotNull) {
+        assertTrue(invoke.getReceiver().isNeverNull()
+            || invoke.getReceiver().definition.isArgument());
+      } else {
+        assertFalse(invoke.getReceiver().isNeverNull());
+      }
+    }
+    assertTrue(metInvokeWithReceiver);
   }
 
   @Test
   public void nonNullAfterSafeInvokes() throws Exception {
-    MethodSignature signature =
+    MethodSignature foo =
         new MethodSignature("foo", "int", new String[]{"java.lang.String"});
-    buildAndTest(NonNullAfterInvoke.class, signature, 1, null);
+    buildAndTest(NonNullAfterInvoke.class, foo, 1, this::checkInvokeGetsNonNullReceiver);
+    MethodSignature bar =
+        new MethodSignature("bar", "int", new String[]{"java.lang.String"});
+    buildAndTest(NonNullAfterInvoke.class, bar, 2, this::checkInvokeGetsNullReceiver);
   }
 
   @Test
   public void nonNullAfterSafeArrayAccess() throws Exception {
-    MethodSignature signature =
+    MethodSignature foo =
         new MethodSignature("foo", "int", new String[]{"java.lang.String[]"});
-    buildAndTest(NonNullAfterArrayAccess.class, signature, 1, null);
+    buildAndTest(NonNullAfterArrayAccess.class, foo, 1, null);
   }
 
   @Test
@@ -100,15 +141,15 @@ public class NonNullMarkerTest extends AsmTestBase {
 
   @Test
   public void nonNullAfterSafeFieldAccess() throws Exception {
-    MethodSignature signature = new MethodSignature("foo", "int",
-        new String[]{"com.android.tools.r8.ir.nonnull.FieldAccessTest"});
-    buildAndTest(NonNullAfterFieldAccess.class, signature, 1, null);
+    MethodSignature foo = new MethodSignature("foo", "int",
+        new String[]{FieldAccessTest.class.getCanonicalName()});
+    buildAndTest(NonNullAfterFieldAccess.class, foo, 1, null);
   }
 
   @Test
   public void avoidRedundantNonNull() throws Exception {
     MethodSignature signature = new MethodSignature("foo2", "int",
-        new String[]{"com.android.tools.r8.ir.nonnull.FieldAccessTest"});
+        new String[]{FieldAccessTest.class.getCanonicalName()});
     buildAndTest(NonNullAfterFieldAccess.class, signature, 1, ircode -> {
       // There are two InstancePut instructions of interest.
       int count = 0;
@@ -133,4 +174,16 @@ public class NonNullMarkerTest extends AsmTestBase {
     });
   }
 
+  @Test
+  public void nonNullAfterNullCheck() throws Exception {
+    MethodSignature foo =
+        new MethodSignature("foo", "int", new String[]{"java.lang.String"});
+    buildAndTest(NonNullAfterNullCheck.class, foo, 1, this::checkInvokeGetsNonNullReceiver);
+    MethodSignature bar =
+        new MethodSignature("bar", "int", new String[]{"java.lang.String"});
+    buildAndTest(NonNullAfterNullCheck.class, bar, 1, this::checkInvokeGetsNonNullReceiver);
+    MethodSignature baz =
+        new MethodSignature("baz", "int", new String[]{"java.lang.String"});
+    buildAndTest(NonNullAfterNullCheck.class, baz, 1, this::checkInvokeGetsNullReceiver);
+  }
 }

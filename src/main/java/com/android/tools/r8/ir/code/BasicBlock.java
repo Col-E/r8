@@ -400,6 +400,10 @@ public class BasicBlock {
     return instructions;
   }
 
+  public boolean isEmpty() {
+    return instructions.isEmpty();
+  }
+
   public Instruction entry() {
     return instructions.get(0);
   }

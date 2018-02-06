@@ -24,12 +24,14 @@ import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.NonNull;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.nonnull.NonNullAfterArrayAccess;
-import com.android.tools.r8.ir.nonnull.NonNullAfterFieldAccess;
-import com.android.tools.r8.ir.nonnull.NonNullAfterInvoke;
+import com.android.tools.r8.ir.optimize.nonnull.FieldAccessTest;
+import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterArrayAccess;
+import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterFieldAccess;
+import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterInvoke;
 import com.android.tools.r8.ir.optimize.NonNullMarker;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
@@ -112,7 +114,7 @@ public class NullabilityTest extends AsmTestBase {
     buildAndTest(NonNullAfterInvoke.class, signature, false, (appInfo, typeAnalysis) -> {
       DexType assertionErrorType = appInfo.dexItemFactory.createType("Ljava/lang/AssertionError;");
       DexType mainClass = appInfo.dexItemFactory.createType(
-          "Lcom/android/tools/r8/ir/nonnull/NonNullAfterInvoke;");
+          DescriptorUtils.javaTypeToDescriptor(NonNullAfterInvoke.class.getCanonicalName()));
       Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices = ImmutableMap.of(
           InvokeVirtual.class, new ClassTypeLatticeElement(appInfo.dexItemFactory.stringType, true),
           NonNull.class, new ClassTypeLatticeElement(appInfo.dexItemFactory.stringType, false),
@@ -128,7 +130,7 @@ public class NullabilityTest extends AsmTestBase {
     buildAndTest(NonNullAfterInvoke.class, signature, true, (appInfo, typeAnalysis) -> {
       DexType assertionErrorType = appInfo.dexItemFactory.createType("Ljava/lang/AssertionError;");
       DexType mainClass = appInfo.dexItemFactory.createType(
-          "Lcom/android/tools/r8/ir/nonnull/NonNullAfterInvoke;");
+          DescriptorUtils.javaTypeToDescriptor(NonNullAfterInvoke.class.getCanonicalName()));
       Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices = ImmutableMap.of(
           InvokeVirtual.class, new ClassTypeLatticeElement(appInfo.dexItemFactory.stringType, true),
           NonNull.class, new ClassTypeLatticeElement(appInfo.dexItemFactory.stringType, false),
@@ -144,7 +146,7 @@ public class NullabilityTest extends AsmTestBase {
     buildAndTest(NonNullAfterArrayAccess.class, signature, false, (appInfo, typeAnalysis) -> {
       DexType assertionErrorType = appInfo.dexItemFactory.createType("Ljava/lang/AssertionError;");
       DexType mainClass = appInfo.dexItemFactory.createType(
-          "Lcom/android/tools/r8/ir/nonnull/NonNullAfterArrayAccess;");
+          DescriptorUtils.javaTypeToDescriptor(NonNullAfterArrayAccess.class.getCanonicalName()));
       Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices = ImmutableMap.of(
           // An element inside a non-null array could be null.
           ArrayGet.class, new ClassTypeLatticeElement(appInfo.dexItemFactory.stringType, true),
@@ -170,7 +172,7 @@ public class NullabilityTest extends AsmTestBase {
     buildAndTest(NonNullAfterArrayAccess.class, signature, true, (appInfo, typeAnalysis) -> {
       DexType assertionErrorType = appInfo.dexItemFactory.createType("Ljava/lang/AssertionError;");
       DexType mainClass = appInfo.dexItemFactory.createType(
-          "Lcom/android/tools/r8/ir/nonnull/NonNullAfterArrayAccess;");
+          DescriptorUtils.javaTypeToDescriptor(NonNullAfterArrayAccess.class.getCanonicalName()));
       Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices = ImmutableMap.of(
           // An element inside a non-null array could be null.
           ArrayGet.class, new ClassTypeLatticeElement(appInfo.dexItemFactory.stringType, true),
@@ -192,13 +194,13 @@ public class NullabilityTest extends AsmTestBase {
   @Test
   public void nonNullAfterSafeFieldAccess() throws Exception {
     MethodSignature signature = new MethodSignature("foo", "int",
-        new String[]{"com.android.tools.r8.ir.nonnull.FieldAccessTest"});
+        new String[]{FieldAccessTest.class.getCanonicalName()});
     buildAndTest(NonNullAfterFieldAccess.class, signature, false, (appInfo, typeAnalysis) -> {
       DexType assertionErrorType = appInfo.dexItemFactory.createType("Ljava/lang/AssertionError;");
       DexType mainClass = appInfo.dexItemFactory.createType(
-          "Lcom/android/tools/r8/ir/nonnull/NonNullAfterFieldAccess;");
+          DescriptorUtils.javaTypeToDescriptor(NonNullAfterFieldAccess.class.getCanonicalName()));
       DexType testClass = appInfo.dexItemFactory.createType(
-          "Lcom/android/tools/r8/ir/nonnull/FieldAccessTest;");
+          DescriptorUtils.javaTypeToDescriptor(FieldAccessTest.class.getCanonicalName()));
       Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices = ImmutableMap.of(
           Argument.class, new ClassTypeLatticeElement(testClass, true),
           NonNull.class, new ClassTypeLatticeElement(testClass, false),
@@ -212,13 +214,13 @@ public class NullabilityTest extends AsmTestBase {
   @Test
   public void stillNullAfterExceptionCatch_iget() throws Exception {
     MethodSignature signature = new MethodSignature("bar", "int",
-        new String[]{"com.android.tools.r8.ir.nonnull.FieldAccessTest"});
+        new String[]{FieldAccessTest.class.getCanonicalName()});
     buildAndTest(NonNullAfterFieldAccess.class, signature, true, (appInfo, typeAnalysis) -> {
       DexType assertionErrorType = appInfo.dexItemFactory.createType("Ljava/lang/AssertionError;");
       DexType mainClass = appInfo.dexItemFactory.createType(
-          "Lcom/android/tools/r8/ir/nonnull/NonNullAfterFieldAccess;");
+          DescriptorUtils.javaTypeToDescriptor(NonNullAfterFieldAccess.class.getCanonicalName()));
       DexType testClass = appInfo.dexItemFactory.createType(
-          "Lcom/android/tools/r8/ir/nonnull/FieldAccessTest;");
+          DescriptorUtils.javaTypeToDescriptor(FieldAccessTest.class.getCanonicalName()));
       Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices = ImmutableMap.of(
           Argument.class, new ClassTypeLatticeElement(testClass, true),
           NonNull.class, new ClassTypeLatticeElement(testClass, false),

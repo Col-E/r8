@@ -10,9 +10,10 @@ import com.android.tools.r8.code.Format21t;
 import com.android.tools.r8.code.Format22t;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.ir.nonnull.NonNullAfterArrayAccess;
-import com.android.tools.r8.ir.nonnull.NonNullAfterFieldAccess;
-import com.android.tools.r8.ir.nonnull.NonNullAfterInvoke;
+import com.android.tools.r8.ir.optimize.nonnull.FieldAccessTest;
+import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterArrayAccess;
+import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterFieldAccess;
+import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterInvoke;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DexInspector;
@@ -61,11 +62,11 @@ public class SimplifyIfNotNullTest extends AsmTestBase {
   @Test
   public void nonNullAfterSafeFieldAccess() throws Exception {
     MethodSignature foo = new MethodSignature("foo", "int",
-        new String[]{"com.android.tools.r8.ir.nonnull.FieldAccessTest"});
+        new String[]{FieldAccessTest.class.getCanonicalName()});
     MethodSignature bar = new MethodSignature("bar", "int",
-        new String[]{"com.android.tools.r8.ir.nonnull.FieldAccessTest"});
+        new String[]{FieldAccessTest.class.getCanonicalName()});
     MethodSignature foo2 = new MethodSignature("foo2", "int",
-        new String[]{"com.android.tools.r8.ir.nonnull.FieldAccessTest"});
+        new String[]{FieldAccessTest.class.getCanonicalName()});
     buildAndTest(NonNullAfterFieldAccess.class, ImmutableList.of(foo, bar, foo2));
   }
 }

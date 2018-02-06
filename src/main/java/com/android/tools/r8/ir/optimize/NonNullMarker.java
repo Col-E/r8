@@ -7,6 +7,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.DominatorTree;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
@@ -58,6 +59,7 @@ public class NonNullMarker {
     ListIterator<BasicBlock> blocks = code.blocks.listIterator();
     while (blocks.hasNext()) {
       BasicBlock block = blocks.next();
+      // Add non-null after instructions that implicitly indicate receiver/array is not null.
       InstructionListIterator iterator = block.listIterator();
       while (iterator.hasNext()) {
         Instruction current = iterator.next();
@@ -111,11 +113,12 @@ public class NonNullMarker {
         // block or the new split-off block. Since NPE can be explicitly caught, nullness should be
         // propagated through dominance.
         Set<Instruction> users = knownToBeNonNullValue.uniqueUsers();
-        Set<Phi> phiUsers = knownToBeNonNullValue.uniquePhiUsers();
         Set<Instruction> dominatedUsers = Sets.newIdentityHashSet();
         Set<Phi> dominatedPhiUsers = Sets.newIdentityHashSet();
         DominatorTree dominatorTree = new DominatorTree(code);
+        Set<BasicBlock> dominatedBlocks = Sets.newIdentityHashSet();
         for (BasicBlock dominatee : dominatorTree.dominatedBlocks(blockWithNonNullInstruction)) {
+          dominatedBlocks.add(dominatee);
           InstructionListIterator dominateeIterator = dominatee.listIterator();
           if (dominatee == blockWithNonNullInstruction) {
             // In the block with the inserted non null instruction, skip instructions up to and
@@ -129,14 +132,79 @@ public class NonNullMarker {
               dominatedUsers.add(potentialUser);
             }
           }
-          for (Phi phi : dominatee.getPhis()) {
-            if (phiUsers.contains(phi)) {
-              dominatedPhiUsers.add(phi);
-            }
+        }
+        for (Phi user : knownToBeNonNullValue.uniquePhiUsers()) {
+          if (dominatedBlocks.contains(user.getBlock())) {
+            dominatedPhiUsers.add(user);
           }
         }
         knownToBeNonNullValue.replaceSelectiveUsers(
             nonNullValue, dominatedUsers, dominatedPhiUsers);
+      }
+
+      // Add non-null on top of the successor block if the current block ends with a null check.
+      if (block.exit().isIf() && block.exit().asIf().isZeroTest()) {
+        // if v EQ blockX
+        // ... (fallthrough)
+        // blockX: ...
+        //
+        //   ~>
+        //
+        // if v EQ blockX
+        // non_null_value <- non-null(v)
+        // ...
+        // blockX: ...
+        //
+        // or
+        //
+        // if v NE blockY
+        // ...
+        // blockY: ...
+        //
+        //   ~>
+        //
+        // blockY: non_null_value <- non-null(v)
+        // ...
+        If theIf = block.exit().asIf();
+        Value knownToBeNonNullValue = theIf.inValues().get(0);
+        // Avoid adding redundant non-null instruction.
+        if (!knownToBeNonNullValue.isNeverNull()) {
+          BasicBlock target = theIf.targetFromCondition(1L);
+          // Ignore uncommon empty blocks.
+          if (!target.isEmpty()) {
+            DominatorTree dominatorTree = new DominatorTree(code);
+            // Make sure there are no paths to the target block without passing the current block.
+            if (dominatorTree.dominatedBy(target, block)) {
+              // Collect users of the original value that are dominated by the target block.
+              Set<Instruction> dominatedUsers = Sets.newIdentityHashSet();
+              Set<Phi> dominatedPhiUsers = Sets.newIdentityHashSet();
+              Set<BasicBlock> dominatedBlocks =
+                  Sets.newHashSet(dominatorTree.dominatedBlocks(target));
+              for (Instruction user : knownToBeNonNullValue.uniqueUsers()) {
+                if (dominatedBlocks.contains(user.getBlock())) {
+                  dominatedUsers.add(user);
+                }
+              }
+              for (Phi user : knownToBeNonNullValue.uniquePhiUsers()) {
+                if (dominatedBlocks.contains(user.getBlock())) {
+                  dominatedPhiUsers.add(user);
+                }
+              }
+              // Avoid adding a non-null for the value without meaningful users.
+              if (!dominatedUsers.isEmpty() && !dominatedPhiUsers.isEmpty()) {
+                Value nonNullValue = code.createValue(
+                    knownToBeNonNullValue.outType(), knownToBeNonNullValue.getLocalInfo());
+                NonNull nonNull = new NonNull(nonNullValue, knownToBeNonNullValue);
+                InstructionListIterator targetIterator = target.listIterator();
+                nonNull.setPosition(targetIterator.next().getPosition());
+                targetIterator.previous();
+                targetIterator.add(nonNull);
+                knownToBeNonNullValue.replaceSelectiveUsers(
+                    nonNullValue, dominatedUsers, dominatedPhiUsers);
+              }
+            }
+          }
+        }
       }
     }
   }
