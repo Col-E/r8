@@ -7,10 +7,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import com.android.tools.r8.code.AgetObject;
+import com.android.tools.r8.code.AputObject;
 import com.android.tools.r8.code.CheckCast;
-import com.android.tools.r8.code.Const;
+import com.android.tools.r8.code.Const4;
+import com.android.tools.r8.code.ConstString;
 import com.android.tools.r8.code.InvokeDirect;
 import com.android.tools.r8.code.InvokeVirtual;
+import com.android.tools.r8.code.NewArray;
 import com.android.tools.r8.code.NewInstance;
 import com.android.tools.r8.code.ReturnVoid;
 import com.android.tools.r8.graph.DexCode;
@@ -29,6 +32,7 @@ public class CheckCastRemovalTest extends JasminTestBase {
   private final String CLASS_NAME = "Example";
 
   @Test
+  @Ignore("b/72930905")
   public void exactMatch() throws Exception {
     JasminBuilder builder = new JasminBuilder();
     ClassBuilder classBuilder = builder.addClass(CLASS_NAME);
@@ -56,6 +60,7 @@ public class CheckCastRemovalTest extends JasminTestBase {
   }
 
   @Test
+  @Ignore("b/72930905")
   public void upCasts() throws Exception {
     JasminBuilder builder = new JasminBuilder();
     // A < B < C
@@ -91,6 +96,7 @@ public class CheckCastRemovalTest extends JasminTestBase {
   }
 
   @Test
+  @Ignore("b/72930905")
   public void downCasts() throws Exception {
     JasminBuilder builder = new JasminBuilder();
     // C < B < A
@@ -131,8 +137,7 @@ public class CheckCastRemovalTest extends JasminTestBase {
   }
 
   @Test
-  @Ignore("b/72930905")
-  public void arrayCasts() throws Exception {
+  public void b72930905() throws Exception {
     JasminBuilder builder = new JasminBuilder();
     ClassBuilder classBuilder = builder.addClass(CLASS_NAME);
     MethodSignature main = classBuilder.addMainMethod(
@@ -153,7 +158,6 @@ public class CheckCastRemovalTest extends JasminTestBase {
 
     List<String> pgConfigs = ImmutableList.of(
         "-keep class " + CLASS_NAME + " { *; }",
-        "-dontoptimize",
         "-dontshrink");
     AndroidApp app = compileWithR8(builder, pgConfigs, null);
 
@@ -164,8 +168,12 @@ public class CheckCastRemovalTest extends JasminTestBase {
 
     DexCode code = method.getCode().asDexCode();
     checkInstructions(code, ImmutableList.of(
+        Const4.class,
+        NewArray.class,
+        ConstString.class,
+        Const4.class,
+        AputObject.class,
         CheckCast.class,
-        Const.class,
         AgetObject.class,
         CheckCast.class,
         InvokeVirtual.class,
