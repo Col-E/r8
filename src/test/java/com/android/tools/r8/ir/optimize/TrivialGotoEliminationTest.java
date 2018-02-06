@@ -3,6 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstNumber;
@@ -61,10 +64,10 @@ public class TrivialGotoEliminationTest {
     // throw.
     IRCode code = new IRCode(null, blocks, new ValueNumberGenerator(), false);
     CodeRewriter.collapsTrivialGotos(null, code);
-    assert code.blocks.get(0).isTrivialGoto();
-    assert blocks.contains(block0);
-    assert blocks.contains(block1);
-    assert blocks.contains(block2);
+    assertTrue(code.blocks.get(0).isTrivialGoto());
+    assertTrue(blocks.contains(block0));
+    assertTrue(blocks.contains(block1));
+    assertTrue(blocks.contains(block2));
   }
 
   @Test
@@ -129,8 +132,8 @@ public class TrivialGotoEliminationTest {
     // throw.
     IRCode code = new IRCode(null, blocks, new ValueNumberGenerator(), false);
     CodeRewriter.collapsTrivialGotos(null, code);
-    assert block0.getInstructions().get(1).isIf();
-    assert block0.getInstructions().get(1).asIf().fallthroughBlock() == block1;
-    assert blocks.containsAll(ImmutableList.of(block0, block1, block2, block3));
+    assertTrue(block0.getInstructions().get(1).isIf());
+    assertEquals(block1, block0.getInstructions().get(1).asIf().fallthroughBlock());
+    assertTrue(blocks.containsAll(ImmutableList.of(block0, block1, block2, block3)));
   }
 }
