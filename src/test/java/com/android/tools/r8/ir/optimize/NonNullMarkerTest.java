@@ -8,6 +8,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.AsmTestBase;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexApplication;
@@ -36,7 +37,7 @@ public class NonNullMarkerTest extends AsmTestBase {
       int expectedNumberOfNonNull,
       Consumer<IRCode> testAugmentedIRCode)
       throws Exception {
-    AndroidApp app = buildAndroidApp(asBytes(testClass));
+    AndroidApp app = buildAndroidApp(ToolHelper.getClassAsBytes(testClass));
     DexApplication dexApplication =
         new ApplicationReader(app, TEST_OPTIONS, new Timing("NonNullMarkerTest.appReader"))
             .read().toDirect();

@@ -14,7 +14,6 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
-import com.google.common.io.ByteStreams;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -105,11 +104,6 @@ public class AsmTestBase extends TestBase {
     ensureSameOutput(main, mergedApp, classes);
   }
 
-  protected byte[] asBytes(Class clazz) throws IOException {
-    return ByteStreams
-        .toByteArray(clazz.getResourceAsStream(clazz.getSimpleName() + ".class"));
-  }
-
   protected AndroidApp buildAndroidApp(byte[]... classes) throws IOException {
     AndroidApp.Builder builder = AndroidApp.builder();
     for (byte[] clazz : classes) {
@@ -182,10 +176,6 @@ public class AsmTestBase extends TestBase {
     } catch (Exception e) {
       throw new ClassFormatError(e.toString());
     }
-  }
-
-  protected static byte[] getBytesFromJavaClass(Class clazz) throws IOException {
-    return Files.readAllBytes(ToolHelper.getClassFileForTestClass(clazz));
   }
 
   private static class DumpLoader extends ClassLoader {

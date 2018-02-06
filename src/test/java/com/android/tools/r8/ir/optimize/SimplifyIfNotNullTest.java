@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.optimize;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.AsmTestBase;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.code.Format21t;
 import com.android.tools.r8.code.Format22t;
 import com.android.tools.r8.code.Instruction;
@@ -27,7 +28,7 @@ public class SimplifyIfNotNullTest extends AsmTestBase {
   }
 
   private void buildAndTest(Class<?> testClass, List<MethodSignature> signatures) throws Exception {
-    AndroidApp app = buildAndroidApp(asBytes(testClass));
+    AndroidApp app = buildAndroidApp(ToolHelper.getClassAsBytes(testClass));
     AndroidApp r8Result = compileWithR8(
         app, keepMainProguardConfiguration(testClass), o -> o.inlineAccessors = false);
     DexInspector dexInspector = new DexInspector(r8Result);

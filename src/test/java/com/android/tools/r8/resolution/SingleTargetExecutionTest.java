@@ -46,7 +46,7 @@ public class SingleTargetExecutionTest extends AsmTestBase {
     List<byte[]> allBytes = new ArrayList<>();
     allBytes.addAll(ASM_CLASSES);
     for (Class clazz : CLASSES) {
-      allBytes.add(getBytesFromJavaClass(clazz));
+      allBytes.add(ToolHelper.getClassAsBytes(clazz));
     }
     ensureSameOutput(Main.class.getCanonicalName(),
         ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm()),

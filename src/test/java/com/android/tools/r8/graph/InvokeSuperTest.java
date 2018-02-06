@@ -4,6 +4,7 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.AsmTestBase;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.VmTestRunner;
 import com.android.tools.r8.VmTestRunner.IgnoreForRangeOfVmVersions;
@@ -26,24 +27,24 @@ public class InvokeSuperTest extends AsmTestBase {
   @IgnoreForRangeOfVmVersions(from = Version.V5_1_1, to = Version.V6_0_1)
   public void testInvokeSuperTargets() throws Exception {
     ensureSameOutput(MainClass.class.getCanonicalName(),
-        asBytes(MainClass.class),
-        asBytes(Consumer.class),
-        asBytes(Super.class),
-        asBytes(SubLevel1.class),
-        asBytes(SubLevel2.class),
+        ToolHelper.getClassAsBytes(MainClass.class),
+        ToolHelper.getClassAsBytes(Consumer.class),
+        ToolHelper.getClassAsBytes(Super.class),
+        ToolHelper.getClassAsBytes(SubLevel1.class),
+        ToolHelper.getClassAsBytes(SubLevel2.class),
         InvokerClassDump.dump(),
-        asBytes(SubclassOfInvokerClass.class));
+        ToolHelper.getClassAsBytes(SubclassOfInvokerClass.class));
   }
 
   @Test
   public void testInvokeSuperTargetsNonVerifying() throws Exception {
     ensureR8FailsWithCompilationError(MainClassFailing.class.getCanonicalName(),
-        asBytes(MainClassFailing.class),
-        asBytes(Consumer.class),
-        asBytes(Super.class),
-        asBytes(SubLevel1.class),
-        asBytes(SubLevel2.class),
+        ToolHelper.getClassAsBytes(MainClassFailing.class),
+        ToolHelper.getClassAsBytes(Consumer.class),
+        ToolHelper.getClassAsBytes(Super.class),
+        ToolHelper.getClassAsBytes(SubLevel1.class),
+        ToolHelper.getClassAsBytes(SubLevel2.class),
         InvokerClassFailingDump.dump(),
-        asBytes(SubclassOfInvokerClass.class));
+        ToolHelper.getClassAsBytes(SubclassOfInvokerClass.class));
   }
 }
