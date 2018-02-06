@@ -349,6 +349,7 @@ public class DexItemFactory {
       public final DexType type = createType(createString("Lkotlin/jvm/internal/Intrinsics;"));
       public final DexMethod throwParameterIsNullException =
           createMethod(type, createProto(voidType, stringType), "throwParameterIsNullException");
+      public final DexMethod throwNpe = createMethod(type, createProto(voidType), "throwNpe");
     }
   }
 
