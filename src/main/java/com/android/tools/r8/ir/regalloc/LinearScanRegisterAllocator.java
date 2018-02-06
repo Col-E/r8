@@ -73,6 +73,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
 
   public static final int REGISTER_CANDIDATE_NOT_FOUND = -1;
   public static final int MIN_CONSTANT_FREE_FOR_POSITIONS = 5;
+  private static final int RESERVED_MOVE_EXCEPTION_REGISTER = 0;
 
   private enum ArgumentReuseMode {
     ALLOW_ARGUMENT_REUSE,
@@ -141,6 +142,9 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   // List of intervals that no register has been allocated to sorted by first live range.
   protected PriorityQueue<LiveIntervals> unhandled = new PriorityQueue<>();
 
+  // List of intervals for the result of move-exception instructions.
+  private List<LiveIntervals> moveExceptionIntervals = new ArrayList<>();
+
   // The first register used for parallel moves. After register allocation the parallel move
   // temporary registers are [firstParallelMoveTemporary, maxRegisterNumber].
   private int firstParallelMoveTemporary = NO_REGISTER;
@@ -152,6 +156,11 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   // Whether or not the code has a move exception instruction. Used to pin the move exception
   // register.
   private boolean hasDedicatedMoveExceptionRegister = false;
+
+  private int getMoveExceptionRegister() {
+    return numberOfArgumentRegisters + NUMBER_OF_SENTINEL_REGISTERS +
+        RESERVED_MOVE_EXCEPTION_REGISTER;
+  }
 
   public LinearScanRegisterAllocator(IRCode code, InternalOptions options) {
     this.code = code;
@@ -663,6 +672,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     active.clear();
     inactive.clear();
     unhandled.clear();
+    moveExceptionIntervals.clear();
     for (LiveIntervals intervals : liveIntervals) {
       intervals.clearRegisterAssignment();
     }
@@ -752,7 +762,6 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       // Force all move exception ranges to start out with the exception in a fixed register. Split
       // their live ranges which will force another register if used.
       int moveExceptionRegister = NO_REGISTER;
-      List<LiveIntervals> moveExceptionIntervals = new ArrayList<>();
       boolean overlappingMoveExceptionIntervals = false;
       for (BasicBlock block : code.blocks) {
         for (Instruction instruction : block.getInstructions()) {
@@ -761,8 +770,12 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
             Value exceptionValue = instruction.outValue();
             LiveIntervals intervals = exceptionValue.getLiveIntervals();
             unhandled.remove(intervals);
+            moveExceptionIntervals.add(intervals);
             if (moveExceptionRegister == NO_REGISTER) {
+              assert RESERVED_MOVE_EXCEPTION_REGISTER == 0;
               moveExceptionRegister = getFreeConsecutiveRegisters(1);
+              assert moveExceptionRegister == getMoveExceptionRegister();
+              assert !freeRegisters.contains(moveExceptionRegister);
             }
             intervals.setRegister(moveExceptionRegister);
             if (!overlappingMoveExceptionIntervals) {
@@ -770,7 +783,6 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
                 overlappingMoveExceptionIntervals |= other.overlaps(intervals);
               }
             }
-            moveExceptionIntervals.add(intervals);
           }
         }
       }
@@ -966,8 +978,14 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       }
       current = current.getNextConsecutive();
     }
-    // Select registers.
     current = unhandledInterval.getStartOfConsecutive();
+    // Exclude move exception register if the first interval overlaps a move exception interval.
+    if (overlapsMoveExceptionInterval(current) &&
+        freeRegisters.remove(getMoveExceptionRegister())) {
+      assert RESERVED_MOVE_EXCEPTION_REGISTER == 0;
+      excludedRegisters.add(getMoveExceptionRegister());
+    }
+    // Select registers.
     int numberOfRegister = current.numberOfConsecutiveRegisters();
     int firstRegister = getFreeConsecutiveRegisters(numberOfRegister);
     for (int i = 0; i < numberOfRegister; i++) {
@@ -1124,6 +1142,54 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     return false;
   }
 
+  // Intervals overlap a move exception interval if one of the splits of the intervals does.
+  // Since spill and restore moves are always put after the move exception we cannot give
+  // a non-move exception interval the same register as a move exception instruction.
+  //
+  // For example:
+  //
+  // B0:
+  //   const v0, 0
+  //   invoke throwing_method v0 (catch handler B2)
+  //   goto B1
+  // B1:
+  //   ...
+  // B2:
+  //   move-exception v1
+  //   invoke method v0
+  //   return
+  //
+  // During register allocation we could split the const number intervals into multiple
+  // parts. We have to avoid assigning the same register to v1 and and v0 in B0 even
+  // if v0 has a different register in B2. That is because the spill/restore move when
+  // transitioning from B0 to B2 has to be after the move-exception instruction.
+  //
+  // Assuming that v0 has register 0 in B0 and register 4 in B2 and v1 has register 0 in B2
+  // we would generate the following incorrect code:
+  //
+  // B0:
+  //   const r0, 0
+  //   invoke throwing_method r0 (catch handler B2)
+  //   goto B1
+  // B1:
+  //   ...
+  // B2:
+  //   move-exception r0
+  //   move r4, r0  // Whoops.
+  //   invoke method r4
+  //   return
+  private boolean overlapsMoveExceptionInterval(LiveIntervals intervals) {
+    if (!hasDedicatedMoveExceptionRegister) {
+      return false;
+    }
+    for (LiveIntervals moveExceptionInterval : moveExceptionIntervals) {
+      if (intervals.anySplitOverlaps(moveExceptionInterval)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   private boolean allocateSingleInterval(LiveIntervals unhandledInterval, ArgumentReuseMode mode) {
     int registerConstraint = unhandledInterval.getRegisterLimit();
     assert registerConstraint <= Constants.U16BIT_MAX;
@@ -1182,8 +1248,8 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     // register. If we cannot find a free valid register for the move exception value we have no
     // place to put a spill move (because the move exception instruction has to be the
     // first instruction in the handler block).
-    if (hasDedicatedMoveExceptionRegister) {
-      int moveExceptionRegister = numberOfArgumentRegisters + NUMBER_OF_SENTINEL_REGISTERS;
+    if (overlapsMoveExceptionInterval(unhandledInterval)) {
+      int moveExceptionRegister = getMoveExceptionRegister();
       if (moveExceptionRegister <= registerConstraint) {
         freePositions.set(moveExceptionRegister, 0);
       }
@@ -1530,8 +1596,8 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     }
 
     // Disallow reuse of the move exception register if we have reserved one.
-    if (hasDedicatedMoveExceptionRegister) {
-      usePositions.set(numberOfArgumentRegisters + NUMBER_OF_SENTINEL_REGISTERS, 0);
+    if (overlapsMoveExceptionInterval(unhandledInterval)) {
+      usePositions.set(getMoveExceptionRegister(), 0);
     }
 
     // Treat active linked argument intervals as pinned. They cannot be given another register
