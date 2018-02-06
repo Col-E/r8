@@ -4,8 +4,10 @@
 package com.android.tools.r8.debug;
 
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -34,6 +36,7 @@ public class BreakInTwoLinesFinallyTestRunner extends DebugTestBase {
 
   @Test
   public void testHitBreakpointOnNormalAndExceptionalFlow() throws Throwable {
+    Assume.assumeTrue(ToolHelper.getDexVm().isNewerThan(DexVm.ART_6_0_1_HOST));
     runDebugTest(
         config,
         NAME,
