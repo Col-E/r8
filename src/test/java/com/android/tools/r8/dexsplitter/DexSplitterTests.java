@@ -6,17 +6,27 @@ package com.android.tools.r8.dexsplitter;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.OutputMode;
+import com.android.tools.r8.R8;
+import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
+import com.android.tools.r8.utils.DexInspector;
+import com.android.tools.r8.utils.DexInspector.ClassSubject;
+import com.google.common.collect.ImmutableList;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -39,7 +49,7 @@ public class DexSplitterTests {
    * therefore can't run without the base being loaded.
    */
   @Test
-  public void splitFiles() throws CompilationFailedException, IOException {
+  public void splitFilesNoObfuscation() throws CompilationFailedException, IOException {
     // Initial normal compile to create dex files.
     Path inputDex = temp.newFolder().toPath().resolve("input.zip");
     D8.run(
@@ -52,13 +62,7 @@ public class DexSplitterTests {
             .build());
 
     Path outputDex = temp.getRoot().toPath().resolve("output");
-    Path splitSpec = temp.getRoot().toPath().resolve("split_spec");
-    try (PrintWriter out = new PrintWriter(splitSpec.toFile(), "UTF-8")) {
-      out.write(
-          "dexsplitsample.Class1:base\n"
-              + "dexsplitsample.Class2:feature1\n"
-              + "dexsplitsample.Class3:feature1");
-    }
+    Path splitSpec = createSplitSpec();
 
     DexSplitter.main(
         new String[] {
@@ -103,5 +107,84 @@ public class DexSplitterTests {
     } catch (AssertionError assertionError) {
       // We expect this to throw since base is not in the path and Class3 depends on Class1
     }
+  }
+
+  private Path createSplitSpec() throws FileNotFoundException, UnsupportedEncodingException {
+    Path splitSpec = temp.getRoot().toPath().resolve("split_spec");
+    try (PrintWriter out = new PrintWriter(splitSpec.toFile(), "UTF-8")) {
+      out.write(
+          "dexsplitsample.Class1:base\n"
+              + "dexsplitsample.Class2:feature1\n"
+              + "dexsplitsample.Class3:feature1");
+    }
+    return splitSpec;
+  }
+
+  private List<String> getProguardConf() {
+    return ImmutableList.of(
+        "-keep class dexsplitsample.Class3 {",
+        "  public static void main(java.lang.String[]);",
+        "}");
+  }
+
+  @Test
+  public void splitFilesObfuscation()
+      throws CompilationFailedException, IOException, ExecutionException {
+    // Initial normal compile to create dex files.
+    Path inputDex = temp.newFolder().toPath().resolve("input.zip");
+    Path proguardMap = temp.getRoot().toPath().resolve("proguard.map");
+
+    R8.run(
+        R8Command.builder()
+            .setOutput(inputDex, OutputMode.DexIndexed)
+            .addProgramFiles(Paths.get(CLASS1_CLASS))
+            .addProgramFiles(Paths.get(CLASS2_CLASS))
+            .addProgramFiles(Paths.get(CLASS3_CLASS))
+            .addProgramFiles(Paths.get(CLASS3_INNER_CLASS))
+            .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
+            .setProguardMapOutputPath(proguardMap)
+            .addProguardConfiguration(getProguardConf(), null)
+            .build());
+
+    Path outputDex = temp.getRoot().toPath().resolve("output");
+    Path splitSpec = createSplitSpec();
+
+    DexSplitter.main(
+        new String[] {
+          "--input", inputDex.toString(),
+          "--output", outputDex.toString(),
+          "--feature-splits", splitSpec.toString(),
+          "--proguard-map", proguardMap.toString()
+        });
+
+    Path base = outputDex.getParent().resolve("output.base.zip");
+    Path feature = outputDex.getParent().resolve("output.feature1.zip");
+    String class3 = "dexsplitsample.Class3";
+    // We should still be able to run the Class3 which we kept, it has a call to the obfuscated
+    // class1 which is in base.
+    ArtCommandBuilder builder = new ArtCommandBuilder();
+    builder.appendClasspath(base.toString());
+    builder.appendClasspath(feature.toString());
+    builder.setMainClass(class3);
+    String out = ToolHelper.runArt(builder);
+    assertEquals(out, "Class3\n");
+
+    // Class1 should not be in the feature, it should still be in base.
+    builder = new ArtCommandBuilder();
+    builder.appendClasspath(feature.toString());
+    builder.setMainClass(class3);
+    try {
+      ToolHelper.runArt(builder);
+      assertFalse(true);
+    } catch (AssertionError assertionError) {
+      // We expect this to throw since base is not in the path and Class3 depends on Class1.
+    }
+
+    // Ensure that the Class1 is actually in the correct split. Note that Class2 would have been
+    // shaken away.
+    DexInspector inspector = new DexInspector(base, proguardMap.toString());
+    ClassSubject subject = inspector.clazz("dexsplitsample.Class1");
+    assertTrue(subject.isPresent());
+    assertTrue(subject.isRenamed());
   }
 }

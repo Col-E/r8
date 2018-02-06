@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexApplication.Builder;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.FeatureClassMapping;
 import com.android.tools.r8.utils.FeatureClassMapping.FeatureMappingException;
@@ -27,7 +28,8 @@ import java.util.concurrent.ExecutorService;
 
 public class DexSplitterHelper {
 
-  public static void run(D8Command command, String featureSplitMapping, String outputArchive)
+  public static void run(
+      D8Command command, String featureSplitMapping, String outputArchive, String proguardMap)
       throws IOException, CompilationException, ExecutionException {
     InternalOptions options = command.getInternalOptions();
     options.enableDesugaring = false;
@@ -45,7 +47,12 @@ public class DexSplitterHelper {
             new ApplicationReader(command.getInputApp(), options, timing).read(null, executor);
         FeatureClassMapping featureClassMapping =
             new FeatureClassMapping(Paths.get(featureSplitMapping));
-        Map<String, Builder> applications = getDistribution(app, featureClassMapping);
+
+        ClassNameMapper mapper = null;
+        if (proguardMap != null) {
+          mapper = ClassNameMapper.mapperFromFile(Paths.get(proguardMap));
+        }
+        Map<String, Builder> applications = getDistribution(app, featureClassMapping, mapper);
         for (Entry<String, Builder> entry : applications.entrySet()) {
           DexApplication featureApp = entry.getValue().build();
           // We use the same factory, reset sorting.
@@ -88,10 +95,13 @@ public class DexSplitterHelper {
   }
 
   private static Map<String, Builder> getDistribution(
-      DexApplication app, FeatureClassMapping featureClassMapping) throws FeatureMappingException {
+      DexApplication app, FeatureClassMapping featureClassMapping, ClassNameMapper mapper)
+      throws FeatureMappingException {
     Map<String, Builder> applications = new HashMap<>();
     for (DexProgramClass clazz : app.classes()) {
-      String feature = featureClassMapping.featureForClass(clazz.toString());
+      String clazzName =
+          mapper != null ? mapper.deobfuscateClassName(clazz.toString()) : clazz.toString();
+      String feature = featureClassMapping.featureForClass(clazzName);
       Builder featureApplication = applications.get(feature);
       if (featureApplication == null) {
         featureApplication = DexApplication.builder(app.dexItemFactory, app.timing);

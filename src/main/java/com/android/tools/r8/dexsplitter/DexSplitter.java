@@ -27,6 +27,7 @@ public class DexSplitter {
     List<String> inputArchives = new ArrayList<>();
     String splitBaseName = DEFAULT_OUTPUT_ARCHIVE_FILENAME;
     String featureSplitMapping;
+    String proguardMap;
   }
 
   private static Options parseArguments(String[] args) throws IOException {
@@ -41,6 +42,11 @@ public class DexSplitter {
       String output = OptionsParsing.tryParseSingle(context, "--output", "-o");
       if (output != null) {
         options.splitBaseName = output;
+        continue;
+      }
+      String proguardMap = OptionsParsing.tryParseSingle(context, "--proguard-map", null);
+      if (proguardMap != null) {
+        options.proguardMap = proguardMap;
         continue;
       }
       String featureSplit = OptionsParsing.tryParseSingle(context, "--feature-splits", null);
@@ -70,7 +76,8 @@ public class DexSplitter {
     // We set the actual consumer on the ApplicationWriter when we have calculated the distribution
     // since we don't yet know the distribution.
     builder.setProgramConsumer(DexIndexedConsumer.emptyConsumer());
-    DexSplitterHelper.run(builder.build(), options.featureSplitMapping, options.splitBaseName);
+    DexSplitterHelper.run(
+        builder.build(), options.featureSplitMapping, options.splitBaseName, options.proguardMap);
   }
 
   public static void main(String[] args) {
