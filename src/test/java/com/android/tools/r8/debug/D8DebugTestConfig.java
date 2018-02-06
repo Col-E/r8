@@ -9,8 +9,8 @@ import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.ListUtils;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
@@ -33,6 +33,14 @@ public class D8DebugTestConfig extends DexDebugTestConfig {
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
+  }
+
+  public D8DebugTestConfig compileAndAddClasses(TemporaryFolder temp, Class... classes) {
+    return compileAndAddClasses(temp, Arrays.asList(classes));
+  }
+
+  public D8DebugTestConfig compileAndAddClasses(TemporaryFolder temp, List<Class> classes) {
+    return compileAndAdd(temp, ListUtils.map(classes, ToolHelper::getClassFileForTestClass), null);
   }
 
   public D8DebugTestConfig compileAndAdd(TemporaryFolder temp, Path... paths) {

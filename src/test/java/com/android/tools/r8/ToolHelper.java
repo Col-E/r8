@@ -440,6 +440,10 @@ public class ToolHelper {
   private static final String ANGLER_DIR = TOOLS + "/linux/art/product/angler";
   private static final String ANGLER_BOOT_IMAGE = ANGLER_DIR + "/system/framework/boot.art";
 
+  public static byte[] getClassAsBytes(Class clazz) throws IOException {
+    return ByteStreams.toByteArray(clazz.getResourceAsStream(clazz.getSimpleName() + ".class"));
+  }
+
   public static String getArtDir(DexVm version) {
     String dir = ART_DIRS.get(version);
     if (dir == null) {

@@ -8,6 +8,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.AsmTestBase;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexApplication;
@@ -47,7 +48,7 @@ public class NullabilityTest extends AsmTestBase {
       boolean npeCaught,
       BiConsumer<AppInfo, TypeAnalysis> inspector)
       throws Exception {
-    AndroidApp app = buildAndroidApp(asBytes(mainClass));
+    AndroidApp app = buildAndroidApp(ToolHelper.getClassAsBytes(mainClass));
     DexApplication dexApplication =
         new ApplicationReader(app, TEST_OPTIONS, new Timing("NullabilityTest.appReader"))
             .read().toDirect();

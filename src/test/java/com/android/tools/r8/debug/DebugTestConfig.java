@@ -37,12 +37,14 @@ public abstract class DebugTestConfig {
     return paths;
   }
 
-  public void addPaths(Path... paths) {
+  public DebugTestConfig addPaths(Path... paths) {
     addPaths(Arrays.asList(paths));
+    return this;
   }
 
-  public void addPaths(List<Path> paths) {
+  public DebugTestConfig addPaths(List<Path> paths) {
     this.paths.addAll(paths);
+    return this;
   }
 
   /** Proguard map that the debuggee has been translated according to, null if not present. */
@@ -50,8 +52,9 @@ public abstract class DebugTestConfig {
     return proguardMap;
   }
 
-  public void setProguardMap(Path proguardMap) {
+  public DebugTestConfig setProguardMap(Path proguardMap) {
     this.proguardMap = proguardMap;
+    return this;
   }
 
   @Override
