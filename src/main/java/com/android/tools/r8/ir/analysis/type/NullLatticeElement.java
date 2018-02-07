@@ -11,6 +11,11 @@ public class NullLatticeElement extends TypeLatticeElement {
   }
 
   @Override
+  public boolean mustBeNull() {
+    return true;
+  }
+
+  @Override
   TypeLatticeElement asNullable() {
     return this;
   }

@@ -1123,15 +1123,15 @@ public class CodeRewriter {
         continue;
       }
 
-      DexType inType = typeEnvironment.getObjectType(inValue);
-      DexType outType = typeEnvironment.getObjectType(outValue);
-      if (inType != null && outType != null) {
-        // Be careful about a down-cast verification error:
-        // A < B < C
-        // c = ...        // Even though we know c is of type A,
-        // a' = (B) c;    // (this could be removed, since chained below.)
-        // a'' = (A) a';  // this should remain for runtime verification.
-        if (outType.isStrictSubtypeOf(inType, appInfo)) {
+      TypeLatticeElement inTypeLattice = typeEnvironment.getLatticeElement(inValue);
+      if (!inTypeLattice.isTop()) {
+        TypeLatticeElement outTypeLattice = typeEnvironment.getLatticeElement(outValue);
+        TypeLatticeElement castTypeLattice =
+            TypeLatticeElement.fromDexType(castType, inTypeLattice.isNullable());
+        // Special case: null cast, e.g., getMethod(..., (Class[]) null);
+        // This cast should be kept no matter what.
+        if (inTypeLattice.mustBeNull()) {
+          assert outTypeLattice.equals(castTypeLattice);
           continue;
         }
         // 1) Trivial cast.
@@ -1141,11 +1141,19 @@ public class CodeRewriter {
         //   A < B
         //   A a = ...
         //   B b = (B) a;
-        if (inType.isSubtypeOf(castType, appInfo)) {
+        if (TypeLatticeElement.lessThanOrEqual(appInfo, inTypeLattice, castTypeLattice)) {
+          assert outTypeLattice.equals(inTypeLattice);
           needToRemoveTrivialPhis = needToRemoveTrivialPhis || outValue.numberOfPhiUsers() != 0;
           outValue.replaceUsers(inValue);
           it.removeOrReplaceByDebugLocalRead();
+          continue;
         }
+        // Otherwise, keep the checkcast to preserve verification errors. E.g., down-cast:
+        // A < B < C
+        // c = ...        // Even though we know c is of type A,
+        // a' = (B) c;    // (this could be removed, since chained below.)
+        // a'' = (A) a';  // this should remain for runtime verification.
+        assert outTypeLattice.equals(castTypeLattice);
       }
     }
     // ... v1

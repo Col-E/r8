@@ -57,17 +57,6 @@ public class ArrayTypeLatticeElement extends TypeLatticeElement {
   }
 
   @Override
-  public TypeLatticeElement checkCast(AppInfo appInfo, DexType castType) {
-    if (castType.getNumberOfLeadingSquareBrackets() == getNesting()) {
-      DexType base = castType.toBaseType(appInfo.dexItemFactory);
-      if (getArrayBaseType(appInfo.dexItemFactory).isSubtypeOf(base, appInfo)) {
-        return this;
-      }
-    }
-    return super.checkCast(appInfo, castType);
-  }
-
-  @Override
   public String toString() {
     return isNullableString() + arrayType.toString();
   }

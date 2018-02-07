@@ -45,14 +45,6 @@ public class ClassTypeLatticeElement extends TypeLatticeElement {
   }
 
   @Override
-  public TypeLatticeElement checkCast(AppInfo appInfo, DexType castType) {
-    if (classType.isSubtypeOf(castType, appInfo)) {
-      return this;
-    }
-    return fromDexType(castType, isNullable());
-  }
-
-  @Override
   public String toString() {
     return isNullableString() + classType.toString();
   }

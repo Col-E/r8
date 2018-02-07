@@ -27,6 +27,11 @@ public class NewArrayEmpty extends Instruction {
     this.type = type;
   }
 
+  @Override
+  public String toString() {
+    return super.toString() + " " + type.toString();
+  }
+
   public Value dest() {
     return outValue;
   }

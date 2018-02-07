@@ -4,6 +4,7 @@
 package com.android.tools.r8.ir.analysis.type;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ToolHelper;
@@ -20,6 +21,9 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TypeLatticeTest {
+  private static final String IO_EXCEPTION = "Ljava/io/IOException;";
+  private static final String NOT_FOUND = "Ljava/io/FileNotFoundException;";
+  private static final String INTERRUPT = "Ljava/io/InterruptedIOException;";
 
   private static DexItemFactory factory;
   private static AppInfoWithSubtyping appInfo;
@@ -58,7 +62,15 @@ public class TypeLatticeTest {
 
   private TypeLatticeElement join(TypeLatticeElement... elements) {
     assertTrue(elements.length > 1);
-    return Arrays.stream(elements).reduce(TypeLatticeElement.joiner(appInfo)).get();
+    return TypeLatticeElement.join(appInfo, Arrays.stream(elements));
+  }
+
+  private boolean strictlyLessThan(TypeLatticeElement l1, TypeLatticeElement l2) {
+    return TypeLatticeElement.strictlyLessThan(appInfo, l1, l2);
+  }
+
+  private boolean lessThanOrEqual(TypeLatticeElement l1, TypeLatticeElement l2) {
+    return TypeLatticeElement.lessThanOrEqual(appInfo, l1, l2);
   }
 
   @Test
@@ -97,10 +109,10 @@ public class TypeLatticeTest {
   @Test
   public void joinToNonJavaLangObject() {
     assertEquals(
-        element(factory.createType("Ljava/io/IOException;")),
+        element(factory.createType(IO_EXCEPTION)),
         join(
-            element(factory.createType("Ljava/io/FileNotFoundException;")),
-            element(factory.createType("Ljava/io/InterruptedIOException;"))));
+            element(factory.createType(NOT_FOUND)),
+            element(factory.createType(INTERRUPT))));
   }
 
   @Test
@@ -191,5 +203,52 @@ public class TypeLatticeTest {
         join(
             array(3, factory.stringType),
             array(4, factory.stringType)));
+  }
+
+  @Test
+  public void testPartialOrders() {
+    assertTrue(lessThanOrEqual(
+        element(factory.objectType),
+        element(factory.objectType)));
+    assertFalse(strictlyLessThan(
+        element(factory.objectType),
+        element(factory.objectType)));
+
+    assertTrue(strictlyLessThan(
+        element(factory.createType(NOT_FOUND)),
+        element(factory.createType(IO_EXCEPTION))));
+    assertTrue(strictlyLessThan(
+        element(factory.createType(INTERRUPT)),
+        element(factory.createType(IO_EXCEPTION))));
+    assertFalse(lessThanOrEqual(
+        element(factory.createType(NOT_FOUND)),
+        element(factory.createType(INTERRUPT))));
+    assertFalse(lessThanOrEqual(
+        element(factory.createType(INTERRUPT)),
+        element(factory.createType(NOT_FOUND))));
+
+    assertTrue(strictlyLessThan(
+        array(1, factory.stringType),
+        array(1, factory.objectType)));
+    assertFalse(lessThanOrEqual(
+        array(1, factory.stringType),
+        array(2, factory.objectType)));
+    assertTrue(strictlyLessThan(
+        array(2, factory.stringType),
+        array(1, factory.objectType)));
+
+    assertFalse(lessThanOrEqual(
+        array(3, factory.stringType),
+        array(4, factory.stringType)));
+    assertFalse(lessThanOrEqual(
+        array(4, factory.stringType),
+        array(3, factory.stringType)));
+
+    assertTrue(strictlyLessThan(
+        array(2, factory.objectType),
+        array(1, factory.objectType)));
+    assertTrue(strictlyLessThan(
+        NullLatticeElement.getInstance(),
+        array(1, factory.classType)));
   }
 }

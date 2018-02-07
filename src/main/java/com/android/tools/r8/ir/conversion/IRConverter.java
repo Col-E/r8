@@ -576,8 +576,7 @@ public class IRConverter {
           method, code, typeEnvironment, isProcessedConcurrently, callSiteInformation);
     }
     // TODO(b/69962188): MethodDevirtualizer can perform optimizations using type analysis.
-    // TODO(72930905): Disable check cast removal until this bug is fixed.
-    //codeRewriter.removeCasts(code, typeEnvironment);
+    codeRewriter.removeCasts(code, typeEnvironment);
     codeRewriter.rewriteLongCompareAndRequireNonNull(code, options);
     codeRewriter.commonSubexpressionElimination(code);
     codeRewriter.simplifyArrayConstruction(code);

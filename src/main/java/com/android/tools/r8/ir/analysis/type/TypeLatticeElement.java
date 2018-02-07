@@ -25,6 +25,10 @@ abstract public class TypeLatticeElement {
     return isNullable;
   }
 
+  public boolean mustBeNull() {
+    return false;
+  }
+
   /**
    * Defines how to join with null or switch to nullable lattice element.
    *
@@ -138,13 +142,43 @@ abstract public class TypeLatticeElement {
 
   public static TypeLatticeElement join(AppInfo appInfo, Stream<TypeLatticeElement> types) {
     BinaryOperator<TypeLatticeElement> joiner = joiner(appInfo);
-    return types.reduce(Bottom.getInstance(), joiner::apply, joiner::apply);
+    return types.reduce(Bottom.getInstance(), joiner, joiner);
+  }
+
+  /**
+   * Determines the strict partial order of the given {@link TypeLatticeElement}s.
+   *
+   * @param appInfo {@link AppInfo} to compute the least upper bound of {@link TypeLatticeElement}
+   * @param l1 subject {@link TypeLatticeElement}
+   * @param l2 expected to be *strict* bigger than {@param l1}
+   * @return {@code true} if {@param l1} is strictly less than {@param l2}.
+   */
+  public static boolean strictlyLessThan(
+      AppInfo appInfo, TypeLatticeElement l1, TypeLatticeElement l2) {
+    if (l1.equals(l2)) {
+      return false;
+    }
+    TypeLatticeElement lub = join(appInfo, Stream.of(l1, l2));
+    return !l1.equals(lub) && l2.equals(lub);
+  }
+
+  /**
+   * Determines the partial order of the given {@link TypeLatticeElement}s.
+   *
+   * @param appInfo {@link AppInfo} to compute the least upper bound of {@link TypeLatticeElement}
+   * @param l1 subject {@link TypeLatticeElement}
+   * @param l2 expected to be bigger than or equal to {@param l1}
+   * @return {@code true} if {@param l1} is less than or equal to {@param l2}.
+   */
+  public static boolean lessThanOrEqual(
+      AppInfo appInfo, TypeLatticeElement l1, TypeLatticeElement l2) {
+    return l1.equals(l2) || strictlyLessThan(appInfo, l1, l2);
   }
 
   /**
    * Represents a type that can be everything.
    *
-   * @return true if the corresponding {@link Value} could be any kinds.
+   * @return {@code true} if the corresponding {@link Value} could be any kinds.
    */
   public boolean isTop() {
     return false;
@@ -153,7 +187,7 @@ abstract public class TypeLatticeElement {
   /**
    * Represents an empty type.
    *
-   * @return true if the type of corresponding {@link Value} is not determined yet.
+   * @return {@code true} if the type of corresponding {@link Value} is not determined yet.
    */
   boolean isBottom() {
     return false;
@@ -212,7 +246,15 @@ abstract public class TypeLatticeElement {
   }
 
   public TypeLatticeElement checkCast(AppInfo appInfo, DexType castType) {
-    return fromDexType(castType, isNullable());
+    TypeLatticeElement castTypeLattice = fromDexType(castType, isNullable());
+    // Special case: casting null.
+    if (mustBeNull()) {
+      return castTypeLattice;
+    }
+    if (lessThanOrEqual(appInfo, this, castTypeLattice)) {
+      return this;
+    }
+    return castTypeLattice;
   }
 
   @Override

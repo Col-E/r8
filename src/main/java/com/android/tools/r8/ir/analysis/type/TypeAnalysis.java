@@ -85,6 +85,12 @@ public class TypeAnalysis implements TypeEnvironment {
         }
       }
     }
+    for (Phi phi : block.getPhis()) {
+      TypeLatticeElement phiType = computePhiType(phi);
+      if (!getLatticeElement(phi).equals(phiType)) {
+        updateTypeOfValue(phi, phiType);
+      }
+    }
   }
 
   private void registerAsUserOfValue(Value value, BasicBlock block, Set<Value> seenPhis) {
@@ -126,18 +132,6 @@ public class TypeAnalysis implements TypeEnvironment {
   }
 
   @Override
-  public DexType getObjectType(Value value) {
-    DexType type = appInfo.dexItemFactory.objectType;
-    TypeLatticeElement l = getLatticeElement(value);
-    if (l.isClassTypeLatticeElement()) {
-      type = l.asClassTypeLatticeElement().getClassType();
-    } else if (l.isArrayTypeLatticeElement()) {
-      type = l.asArrayTypeLatticeElement().getArrayType();
-    }
-    return type;
-  }
-
-  @Override
   public DexType getRefinedReceiverType(InvokeMethodWithReceiver invoke) {
     DexType receiverType = invoke.getInvokedMethod().getHolder();
     TypeLatticeElement lattice = getLatticeElement(invoke.getReceiver());
@@ -154,11 +148,6 @@ public class TypeAnalysis implements TypeEnvironment {
     @Override
     public TypeLatticeElement getLatticeElement(Value value) {
       return Top.getInstance();
-    }
-
-    @Override
-    public DexType getObjectType(Value value) {
-      return null;
     }
 
     @Override
