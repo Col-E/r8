@@ -64,6 +64,7 @@ public class Inliner {
 
   private void fillInBlackList(AppInfoWithLiveness appInfo) {
     blackList.add(appInfo.dexItemFactory.kotlin.intrinsics.throwParameterIsNullException);
+    blackList.add(appInfo.dexItemFactory.kotlin.intrinsics.throwNpe);
   }
 
   public boolean isBlackListed(DexMethod method) {
