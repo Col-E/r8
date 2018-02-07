@@ -130,7 +130,7 @@ public class InliningOracle {
 
   private synchronized boolean isDoubleInliningTarget(DexEncodedMethod candidate) {
     // 10 is found from measuring.
-    return callSiteInformation.hasDoubleCallSite(candidate)
+    return inliner.isDoubleInliningTarget(callSiteInformation, candidate)
         && candidate.getCode().isDexCode()
         && (candidate.getCode().asDexCode().instructions.length <= 10);
   }

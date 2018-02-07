@@ -378,7 +378,9 @@ public class IRConverter {
 
     // Second inlining pass for dealing with double inline callers.
     if (inliner != null) {
-      inliner.processDoubleInlineCallers(this, ignoreOptimizationFeedback);
+      // Use direct feedback still, since methods after inlining may
+      // change their status or other properties.
+      inliner.processDoubleInlineCallers(this, directFeedback);
     }
 
     synthesizeLambdaClasses(builder);

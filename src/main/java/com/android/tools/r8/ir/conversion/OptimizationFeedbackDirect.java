@@ -35,7 +35,7 @@ public class OptimizationFeedbackDirect implements OptimizationFeedback {
   }
 
   @Override
-  public void markCheckNullReceiverBeforeAnySideEffect(DexEncodedMethod method) {
-    method.markCheckNullReceiverBeforeAnySideEffect();
+  public void markCheckNullReceiverBeforeAnySideEffect(DexEncodedMethod method, boolean mark) {
+    method.markCheckNullReceiverBeforeAnySideEffect(mark);
   }
 }

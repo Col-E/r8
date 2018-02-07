@@ -13,5 +13,5 @@ public interface OptimizationFeedback {
   void methodNeverReturnsNull(DexEncodedMethod method);
   void methodNeverReturnsNormally(DexEncodedMethod method);
   void markProcessed(DexEncodedMethod method, Constraint state);
-  void markCheckNullReceiverBeforeAnySideEffect(DexEncodedMethod method);
+  void markCheckNullReceiverBeforeAnySideEffect(DexEncodedMethod method, boolean mark);
 }

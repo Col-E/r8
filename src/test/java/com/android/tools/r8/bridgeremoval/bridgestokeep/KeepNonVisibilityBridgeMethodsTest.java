@@ -39,7 +39,9 @@ public class KeepNonVisibilityBridgeMethodsTest extends TestBase {
         SimpleDataAdapter.class.getMethod("registerObserver", DataAdapter.Observer.class);
     MethodSubject subject = inspector.method(registerObserver);
     assertTrue(subject.isPresent());
-    assertTrue(subject.isBridge());
+    // The method is there, but it might be unmarked as a bridge if
+    // another method is inlined into it.
+    // assertTrue(subject.isBridge());
   }
 
   @Test

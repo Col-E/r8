@@ -609,9 +609,8 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       return new OptimizationInfo(this);
     }
 
-    private void markCheckNullReceiverBeforeAnySideEffect() {
-      assert !checksNullReceiverBeforeAnySideEffect;
-      checksNullReceiverBeforeAnySideEffect = true;
+    private void markCheckNullReceiverBeforeAnySideEffect(boolean mark) {
+      checksNullReceiverBeforeAnySideEffect = mark;
     }
   }
 
@@ -659,8 +658,8 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     ensureMutableOI().markUseIdentifierNameString();
   }
 
-  synchronized public void markCheckNullReceiverBeforeAnySideEffect() {
-    ensureMutableOI().markCheckNullReceiverBeforeAnySideEffect();
+  synchronized public void markCheckNullReceiverBeforeAnySideEffect(boolean mark) {
+    ensureMutableOI().markCheckNullReceiverBeforeAnySideEffect(mark);
   }
 
   public OptimizationInfo getOptimizationInfo() {

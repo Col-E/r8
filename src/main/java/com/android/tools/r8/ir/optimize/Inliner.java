@@ -117,6 +117,12 @@ public class Inliner {
     return target.isSamePackage(context);
   }
 
+  synchronized boolean isDoubleInliningTarget(
+      CallSiteInformation callSiteInformation, DexEncodedMethod candidate) {
+    return callSiteInformation.hasDoubleCallSite(candidate)
+        || doubleInlineSelectedTargets.contains(candidate);
+  }
+
   synchronized DexEncodedMethod doubleInlining(DexEncodedMethod method,
       DexEncodedMethod target) {
     if (!applyDoubleInlining) {

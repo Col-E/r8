@@ -713,9 +713,8 @@ public class CodeRewriter {
       DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
     if (!method.isStaticMethod()) {
       final Value receiver = code.getThis();
-      if (receiver.isUsed() && allPathsCheckNullReceiverBeforeSideEffect(code, receiver)) {
-        feedback.markCheckNullReceiverBeforeAnySideEffect(method);
-      }
+      feedback.markCheckNullReceiverBeforeAnySideEffect(method,
+          receiver.isUsed() && allPathsCheckNullReceiverBeforeSideEffect(code, receiver));
     }
   }
 
