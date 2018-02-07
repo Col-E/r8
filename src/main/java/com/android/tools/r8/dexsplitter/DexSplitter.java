@@ -9,6 +9,9 @@ import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.DexSplitterHelper;
+import com.android.tools.r8.ResourceException;
+import com.android.tools.r8.utils.FeatureClassMapping;
+import com.android.tools.r8.utils.FeatureClassMapping.FeatureMappingException;
 import com.android.tools.r8.utils.OptionsParsing;
 import com.android.tools.r8.utils.OptionsParsing.ParseContext;
 import java.io.IOException;
@@ -25,6 +28,7 @@ public class DexSplitter {
 
   private static class Options {
     List<String> inputArchives = new ArrayList<>();
+    List<String> featureJars = new ArrayList<>();
     String splitBaseName = DEFAULT_OUTPUT_ARCHIVE_FILENAME;
     String featureSplitMapping;
     String proguardMap;
@@ -37,6 +41,11 @@ public class DexSplitter {
       List<String> input = OptionsParsing.tryParseMulti(context, "--input");
       if (input != null) {
         options.inputArchives.addAll(input);
+        continue;
+      }
+      List<String> featureJars = OptionsParsing.tryParseMulti(context, "--feature-jar");
+      if (featureJars != null) {
+        options.featureJars.addAll(featureJars);
         continue;
       }
       String output = OptionsParsing.tryParseSingle(context, "--output", "-o");
@@ -59,14 +68,27 @@ public class DexSplitter {
     return options;
   }
 
+  private static FeatureClassMapping createFeatureClassMapping(Options options)
+      throws IOException, FeatureMappingException, ResourceException {
+    if (options.featureSplitMapping != null) {
+      return FeatureClassMapping.fromSpecification(Paths.get(options.featureSplitMapping));
+    }
+    assert !options.featureJars.isEmpty();
+    return FeatureClassMapping.fromJarFiles(options.featureJars);
+  }
+
   public static void run(String[] args)
-      throws CompilationFailedException, IOException, CompilationException, ExecutionException {
+      throws CompilationFailedException, IOException, CompilationException, ExecutionException,
+          ResourceException, FeatureMappingException {
     Options options = parseArguments(args);
     if (options.inputArchives.isEmpty()) {
       throw new RuntimeException("Need at least one --input");
     }
-    if (options.featureSplitMapping == null) {
-      throw new RuntimeException("You must supply a feature split mapping");
+    if (options.featureSplitMapping == null && options.featureJars.isEmpty()) {
+      throw new RuntimeException("You must supply a feature split mapping or feature jars");
+    }
+    if (options.featureSplitMapping != null && !options.featureJars.isEmpty()) {
+      throw new RuntimeException("You can't supply both a feature split mapping and feature jars");
     }
 
     D8Command.Builder builder = D8Command.builder();
@@ -76,8 +98,11 @@ public class DexSplitter {
     // We set the actual consumer on the ApplicationWriter when we have calculated the distribution
     // since we don't yet know the distribution.
     builder.setProgramConsumer(DexIndexedConsumer.emptyConsumer());
+
+    FeatureClassMapping featureClassMapping = createFeatureClassMapping(options);
+
     DexSplitterHelper.run(
-        builder.build(), options.featureSplitMapping, options.splitBaseName, options.proguardMap);
+        builder.build(), featureClassMapping, options.splitBaseName, options.proguardMap);
   }
 
   public static void main(String[] args) {
@@ -89,7 +114,9 @@ public class DexSplitter {
     } catch (CompilationFailedException
         | IOException
         | CompilationException
-        | ExecutionException e) {
+        | ExecutionException
+        | ResourceException
+        | FeatureMappingException e) {
       System.err.println("Splitting failed: " + e.getMessage());
       System.exit(1);
     }

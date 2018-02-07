@@ -70,9 +70,6 @@ public class FeatureClassMappingTest {
     ensureThrowsMappingException("com.google.base");
     // Two colons.
     ensureThrowsMappingException(ImmutableList.of("a:b:c"));
-    // Invalid identifiers.
-    ensureThrowsMappingException("12com.google.base:feature1");
-    ensureThrowsMappingException("$com.google.base:feature1");
 
     // Empty identifier.
     ensureThrowsMappingException("com..google:feature1");

@@ -3,8 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
+import com.android.tools.r8.ArchiveClassFileProvider;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -35,9 +37,40 @@ public class FeatureClassMapping {
   static final String COMMENT = "#";
   static final String SEPARATOR = ":";
 
-  public FeatureClassMapping(Path file) throws IOException, FeatureMappingException {
-    this(FileUtils.readAllLines(file));
-    this.mappingFile = file;
+  public static FeatureClassMapping fromSpecification(Path file)
+      throws FeatureMappingException, IOException {
+    FeatureClassMapping mapping = new FeatureClassMapping();
+    List<String> lines = FileUtils.readAllLines(file);
+    for (int i = 0; i < lines.size(); i++) {
+      String line = lines.get(i);
+      mapping.parseAndAdd(line, i);
+    }
+    return mapping;
+  }
+
+  public static FeatureClassMapping fromJarFiles(List<String> jarFiles)
+      throws FeatureMappingException, IOException {
+    FeatureClassMapping mapping = new FeatureClassMapping();
+    for (String jar : jarFiles) {
+      Path jarPath = Paths.get(jar);
+      String featureName = jarPath.getFileName().toString();
+      if (featureName.endsWith(".jar") || featureName.endsWith(".zip")) {
+        featureName = featureName.substring(0, featureName.length() - 4);
+      }
+
+      ArchiveClassFileProvider provider = new ArchiveClassFileProvider(jarPath);
+      for (String javaDescriptor : provider.getClassDescriptors()) {
+          String javaType = DescriptorUtils.descriptorToJavaType(javaDescriptor);
+          mapping.addMapping(javaType, featureName);
+      }
+    }
+    return mapping;
+  }
+
+  private FeatureClassMapping() {}
+
+  public void addMapping(String clazz, String feature) throws FeatureMappingException {
+    addRule(clazz, feature, 0);
   }
 
   FeatureClassMapping(List<String> lines) throws FeatureMappingException {
@@ -79,14 +112,21 @@ public class FeatureClassMapping {
       error("Mapping lines can only contain one " + SEPARATOR, lineNumber);
     }
 
-    if (parsedRules.containsKey(values[0])) {
-      if (!parsedRules.get(values[0]).equals(values[1])) {
-        error("Redefinition of predicate not allowed", lineNumber);
+    String predicate = values[0];
+    String feature = values[1];
+    addRule(predicate, feature, lineNumber);
+  }
+
+  private void addRule(String predicate, String feature, int lineNumber)
+      throws FeatureMappingException {
+    if (parsedRules.containsKey(predicate)) {
+      if (!parsedRules.get(predicate).equals(feature)) {
+        error("Redefinition of predicate " + predicate + "not allowed", lineNumber);
       }
       return; // Already have this rule.
     }
-    parsedRules.put(values[0], values[1]);
-    FeaturePredicate featurePredicate = new FeaturePredicate(values[0], values[1]);
+    parsedRules.put(predicate, feature);
+    FeaturePredicate featurePredicate = new FeaturePredicate(predicate, feature);
     mappings.add(featurePredicate);
   }
 
@@ -103,7 +143,7 @@ public class FeatureClassMapping {
 
   /** A feature predicate can either be a wildcard or class predicate. */
   private static class FeaturePredicate {
-
+    private static Pattern identifier = Pattern.compile("[A-Za-z_\\-][A-Za-z0-9_$\\-]*");
     final String predicate;
     final String feature;
     // False implies class predicate.
@@ -116,18 +156,10 @@ public class FeatureClassMapping {
       } else {
         this.predicate = predicate;
       }
-      validateIdentifiers(this.predicate.split("\\."));
-      this.feature = feature;
-    }
-
-    private void validateIdentifiers(String[] names) throws FeatureMappingException {
-      // TODO(ricow): knap saa mange regexp.
-      Pattern p = Pattern.compile("[A-Za-z_][A-Za-z0-9_$]*");
-      for (String name : names) {
-        if (!p.matcher(name).matches()) {
-          throw new FeatureMappingException(name + " is not a valid identifier");
-        }
+      if (!DescriptorUtils.isValidJavaType(this.predicate)) {
+        throw new FeatureMappingException(this.predicate + " is not a valid identifier");
       }
+      this.feature = feature;
     }
 
     boolean match(String className) {

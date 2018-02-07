@@ -29,7 +29,10 @@ import java.util.concurrent.ExecutorService;
 public class DexSplitterHelper {
 
   public static void run(
-      D8Command command, String featureSplitMapping, String outputArchive, String proguardMap)
+      D8Command command,
+      FeatureClassMapping featureClassMapping,
+      String outputArchive,
+      String proguardMap)
       throws IOException, CompilationException, ExecutionException {
     InternalOptions options = command.getInternalOptions();
     options.enableDesugaring = false;
@@ -45,8 +48,7 @@ public class DexSplitterHelper {
         Timing timing = new Timing("DexSplitter");
         DexApplication app =
             new ApplicationReader(command.getInputApp(), options, timing).read(null, executor);
-        FeatureClassMapping featureClassMapping =
-            new FeatureClassMapping(Paths.get(featureSplitMapping));
+
 
         ClassNameMapper mapper = null;
         if (proguardMap != null) {

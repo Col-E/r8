@@ -92,16 +92,29 @@ public class DescriptorUtils {
   }
 
   /**
-   * Determine the given {@param typeName} is valid java type name or not.
+   * Determine the given {@param typeName} is a valid jvms binary name or not (jvms 4.2.1).
    *
-   * @param typeName the java type name
-   * @return true if and only if the given type name is valid java type
+   * @param typeName the jvms binary name
+   * @return true if and only if the given type name is valid jvms binary name
    */
   public static boolean isValidJavaType(String typeName) {
-    return typeName.length() > 0
-        && Character.isJavaIdentifierStart(typeName.charAt(0))
-        && typeName.substring(1).chars().allMatch(
-            ch -> Character.isJavaIdentifierPart(ch) || ch == JAVA_PACKAGE_SEPARATOR);
+    if (typeName.length() == 0) {
+      return false;
+    }
+    char last = 0;
+    for (int i = 0; i < typeName.length(); i++) {
+      char c = typeName.charAt(i);
+      if (c == ';' ||
+          c == '[' ||
+          c == '/') {
+        return false;
+      }
+      if (c == '.' && (i == 0 || last == '.')) {
+        return false;
+      }
+      last = c;
+    }
+    return true;
   }
 
   /**
