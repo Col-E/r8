@@ -182,14 +182,6 @@ public class BasicBlock {
     }
   }
 
-  public void swapSuccessors(BasicBlock a, BasicBlock b) {
-    assert a != b;
-    int aIndex = successors.indexOf(a);
-    int bIndex = successors.indexOf(b);
-    assert aIndex >= 0 && bIndex >= 0;
-    swapSuccessorsByIndex(aIndex, bIndex);
-  }
-
   public void swapSuccessorsByIndex(int index1, int index2) {
     assert index1 != index2;
     if (hasCatchHandlers()) {

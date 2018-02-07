@@ -6,7 +6,6 @@ package com.android.tools.r8.utils;
 import com.android.tools.r8.code.Const4;
 import com.android.tools.r8.code.ConstString;
 import com.android.tools.r8.code.Goto;
-import com.android.tools.r8.code.IfEqz;
 import com.android.tools.r8.code.IfNez;
 import com.android.tools.r8.code.Iget;
 import com.android.tools.r8.code.IgetBoolean;
@@ -1000,10 +999,6 @@ public class DexInspector {
       return instruction instanceof IfNez;
     }
 
-    boolean isIfEqz(Instruction instruction) {
-      return instruction instanceof IfEqz;
-    }
-
     boolean isFieldAccess(Instruction instruction) {
       return isInstanceGet(instruction)
           || isInstancePut(instruction)
@@ -1112,10 +1107,6 @@ public class DexInspector {
 
     public boolean isIfNez() {
       return factory.isIfNez(instruction);
-    }
-
-    public boolean isIfEqz() {
-      return factory.isIfEqz(instruction);
     }
 
     public boolean isReturnVoid() {

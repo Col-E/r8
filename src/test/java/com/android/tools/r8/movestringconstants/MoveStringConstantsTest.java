@@ -52,39 +52,21 @@ public class MoveStringConstantsTest extends TestBase {
 
     // Check the instruction used for testInlinedIntoVoidMethod
     MethodSubject methodThrowToBeInlined =
-        clazz.method("void", "foo", ImmutableList.of(
-            "java.lang.String", "java.lang.String", "java.lang.String", "java.lang.String"));
+        clazz.method("void", "foo", ImmutableList.of("java.lang.String"));
     assertTrue(methodThrowToBeInlined.isPresent());
     validateSequence(methodThrowToBeInlined.iterateInstructions(),
-        // 'if' with "foo#1" is flipped.
-        InstructionSubject::isIfEqz,
-
-        // 'if' with "foo#2" is removed along with the constant.
-
-        // 'if' with "foo#3" is removed so now we have unconditional call.
-        insn -> insn.isConstString("StringConstants::foo#3"),
-        InstructionSubject::isInvokeStatic,
-        InstructionSubject::isThrow,
-
-        // 'if's with "foo#4" and "foo#5" are flipped, but their throwing branches
-        // are not moved to the end of the code (area for improvement?).
-        insn -> insn.isConstString("StringConstants::foo#4"),
-        InstructionSubject::isIfEqz, // Flipped if
-        InstructionSubject::isGoto, // Jump around throwing branch.
-        InstructionSubject::isInvokeStatic, // Throwing branch.
-        InstructionSubject::isThrow,
-
-        insn -> insn.isConstString("StringConstants::foo#5"),
-        InstructionSubject::isIfEqz, // Flipped if
-        InstructionSubject::isReturnVoid, // Final return statement.
-        InstructionSubject::isInvokeStatic, // Throwing branch.
-        InstructionSubject::isThrow,
-
-        // After 'if' with "foo#1" flipped, always throwing branch
-        // moved here along with the constant.
+        InstructionSubject::isIfNez,
         insn -> insn.isConstString("StringConstants::foo#1"),
-        InstructionSubject::isInvokeStatic,
-        InstructionSubject::isThrow
+        // Below two are removed by optimization: non-null argument "".
+        // InstructionSubject::isIfNez,
+        // insn -> insn.isConstString("StringConstants::foo#2"),
+        // InstructionSubject::isIfNez, 'removed by optimization'
+        insn -> insn.isConstString("StringConstants::foo#3")
+        // Below four are removed, since a safe call of arg.length() indicates arg is not null.
+        // insn -> insn.isConstString("StringConstants::foo#4"),
+        // InstructionSubject::isIfNez,
+        // insn -> insn.isConstString("StringConstants::foo#5"),
+        // InstructionSubject::isIfNez
     );
   }
 
