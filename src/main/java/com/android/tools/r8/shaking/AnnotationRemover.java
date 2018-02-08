@@ -92,6 +92,10 @@ public class AnnotationRemover {
       annotationType = annotationType.toBaseType(appInfo.dexItemFactory);
     }
     DexClass definition = appInfo.definitionFor(annotationType);
+    // TODO(73102187): How to handle annotations without definition.
+    if (options.useTreeShaking && definition == null) {
+      return false;
+    }
     return definition == null || definition.isLibraryClass()
         || appInfo.liveTypes.contains(annotationType);
   }
