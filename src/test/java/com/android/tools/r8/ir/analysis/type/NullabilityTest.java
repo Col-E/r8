@@ -7,7 +7,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.AsmTestBase;
+import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfo;
@@ -41,7 +41,7 @@ import java.util.Map;
 import java.util.function.BiConsumer;
 import org.junit.Test;
 
-public class NullabilityTest extends AsmTestBase {
+public class NullabilityTest extends TestBase {
   private static final InternalOptions TEST_OPTIONS = new InternalOptions();
 
   private void buildAndTest(

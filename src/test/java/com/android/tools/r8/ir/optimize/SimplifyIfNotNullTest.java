@@ -5,7 +5,7 @@ package com.android.tools.r8.ir.optimize;
 
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.AsmTestBase;
+import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.code.Format21t;
 import com.android.tools.r8.code.Format22t;
@@ -23,7 +23,7 @@ import java.util.Arrays;
 import java.util.List;
 import org.junit.Test;
 
-public class SimplifyIfNotNullTest extends AsmTestBase {
+public class SimplifyIfNotNullTest extends TestBase {
   private static boolean isIf(Instruction instruction) {
     return instruction instanceof Format21t || instruction instanceof Format22t;
   }

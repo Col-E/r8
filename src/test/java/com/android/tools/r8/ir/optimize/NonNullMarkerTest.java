@@ -7,7 +7,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.AsmTestBase;
+import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfo;
@@ -31,7 +31,7 @@ import com.android.tools.r8.utils.Timing;
 import java.util.function.Consumer;
 import org.junit.Test;
 
-public class NonNullMarkerTest extends AsmTestBase {
+public class NonNullMarkerTest extends TestBase {
   private static final InternalOptions TEST_OPTIONS = new InternalOptions();
 
   private void buildAndTest(

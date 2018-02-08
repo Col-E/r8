@@ -5,12 +5,14 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.origin.EmbeddedOrigin;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.List;
 
 public class CompatProguardCommandBuilder extends R8Command.Builder {
-  private static final List<String> REFLECTIONS = ImmutableList.of(
+  @VisibleForTesting
+  public static final List<String> REFLECTIONS = ImmutableList.of(
       "-identifiernamestring public class java.lang.Class {",
       "  public static java.lang.Class forName(java.lang.String);",
       "  public java.lang.reflect.Field getField(java.lang.String);",

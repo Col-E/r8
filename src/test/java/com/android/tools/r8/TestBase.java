@@ -7,6 +7,7 @@ package com.android.tools.r8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.graph.DexCode;
@@ -33,6 +34,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -44,6 +46,7 @@ import java.util.function.Consumer;
 import java.util.jar.JarOutputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+import java.util.zip.ZipOutputStream;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 
@@ -59,6 +62,18 @@ public class TestBase {
     Path file = temp.newFile().toPath();
     FileUtils.writeTextFile(file, lines);
     return file;
+  }
+
+  /**
+   * Build an AndroidApp with the specified test classes as byte array.
+   */
+  protected AndroidApp buildAndroidApp(byte[]... classes) throws IOException {
+    AndroidApp.Builder builder = AndroidApp.builder();
+    for (byte[] clazz : classes) {
+      builder.addClassProgramData(clazz, Origin.unknown());
+    }
+    builder.addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.N.getLevel()));
+    return builder.build();
   }
 
   /**
@@ -367,12 +382,20 @@ public class TestBase {
   }
 
   /**
+   * Run application on the specified version of Art with the specified main class.
+   */
+  protected ProcessResult runOnArtRaw(AndroidApp app, String mainClass, DexVm version)
+      throws IOException {
+    Path out = File.createTempFile("junit", ".zip", temp.getRoot()).toPath();
+    app.writeToZip(out, OutputMode.DexIndexed);
+    return ToolHelper.runArtRaw(ImmutableList.of(out.toString()), mainClass, null, version);
+  }
+
+  /**
    * Run application on Art with the specified main class.
    */
   protected ProcessResult runOnArtRaw(AndroidApp app, String mainClass) throws IOException {
-    Path out = File.createTempFile("junit", ".zip", temp.getRoot()).toPath();
-    app.writeToZip(out, OutputMode.DexIndexed);
-    return ToolHelper.runArtRaw(ImmutableList.of(out.toString()), mainClass, null);
+    return runOnArtRaw(app, mainClass, null);
   }
 
   /**
@@ -406,7 +429,17 @@ public class TestBase {
   /**
    * Run application on Art with the specified main class and provided arguments.
    */
-  protected String runOnArt(AndroidApp app, String mainClass, List<String> args) throws IOException {
+  protected String runOnArt(AndroidApp app, String mainClass, List<String> args)
+      throws IOException {
+    return runOnArt(app, mainClass, args, null);
+  }
+
+  /**
+   * Run application on Art with the specified main class, provided arguments, and specified VM
+   * version.
+   */
+  protected String runOnArt(AndroidApp app, String mainClass, List<String> args, DexVm dexVm)
+      throws IOException {
     Path out = File.createTempFile("junit", ".zip", temp.getRoot()).toPath();
     app.writeToZip(out, OutputMode.DexIndexed);
     return ToolHelper.runArtNoVerificationErrors(
@@ -416,7 +449,8 @@ public class TestBase {
           for (String arg : args) {
             builder.appendProgramArgument(arg);
           }
-        });
+        },
+        dexVm);
   }
 
   /**
@@ -448,6 +482,38 @@ public class TestBase {
     return result.stdout;
   }
 
+  protected ProcessResult runOnJava(String main, byte[]... classes) throws IOException {
+    Path file = writeToZip(classes);
+    return ToolHelper.runJavaNoVerify(file, main);
+  }
+
+  private Path writeToZip(byte[]... classes) throws IOException {
+    File result = temp.newFile();
+    try (ZipOutputStream out = new ZipOutputStream(Files.newOutputStream(result.toPath(),
+        StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING))) {
+      for (byte[] clazz : classes) {
+        String name = loadClassFromDump(clazz).getTypeName();
+        ZipEntry zipEntry = new ZipEntry(DescriptorUtils.getPathFromJavaType(name));
+        zipEntry.setSize(clazz.length);
+        out.putNextEntry(zipEntry);
+        out.write(clazz);
+        out.closeEntry();
+      }
+    }
+    return result.toPath();
+  }
+
+  protected static Class loadClassFromDump(byte[] dump) {
+    return new DumpLoader().loadClass(dump);
+  }
+
+  private static class DumpLoader extends ClassLoader {
+
+    @SuppressWarnings("deprecation")
+    public Class loadClass(byte[] clazz) {
+      return defineClass(clazz, 0, clazz.length);
+    }
+  }
 
   /**
    * Disassemble the content of an application. Only works for an application with only dex code.
