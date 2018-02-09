@@ -755,9 +755,10 @@ public class DexInspector {
     @Override
     public MethodSignature getOriginalSignature() {
       MethodSignature signature = getFinalSignature();
-      return clazz.naming != null ?
-          (MethodSignature) clazz.naming.lookup(signature).getOriginalSignature() :
-          signature;
+      MemberNaming memberNaming = clazz.naming != null ? clazz.naming.lookup(signature) : null;
+      return memberNaming != null
+          ? (MethodSignature) memberNaming.getOriginalSignature()
+          : signature;
     }
 
     @Override
@@ -878,9 +879,10 @@ public class DexInspector {
     @Override
     public FieldSignature getOriginalSignature() {
       FieldSignature signature = getFinalSignature();
-      return clazz.naming != null ?
-          (FieldSignature) clazz.naming.lookup(signature).getOriginalSignature() :
-          signature;
+      MemberNaming memberNaming = clazz.naming != null ? clazz.naming.lookup(signature) : null;
+      return memberNaming != null
+          ? (FieldSignature) memberNaming.getOriginalSignature()
+          : signature;
     }
 
     @Override
