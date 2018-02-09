@@ -7,7 +7,7 @@ import java.util.Random;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
-public class Main {
+public class FieldUpdater {
   @SuppressWarnings("unchecked")
   public static void main(String[] args) throws Exception {
     A a = new A();
