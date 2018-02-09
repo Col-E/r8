@@ -9,10 +9,10 @@ import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase.MinifyMode;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -68,14 +68,14 @@ public class MinificationTest extends DebugTestBase {
       proguardConfigurations = builder.build();
     }
 
-    int minSdk = ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm());
+    AndroidApiLevel minSdk = ToolHelper.getMinApiLevelForDexVm();
     Path dexOutputDir = temp.newFolder().toPath();
     Path proguardMap = writeProguardMap ? dexOutputDir.resolve("proguard.map") : null;
     R8Command.Builder builder =
         R8Command.builder()
             .addProgramFiles(DEBUGGEE_JAR)
             .setOutput(dexOutputDir, OutputMode.DexIndexed)
-            .setMinApiLevel(minSdk)
+            .setMinApiLevel(minSdk.getLevel())
             .setMode(CompilationMode.DEBUG)
             .addLibraryFiles(ToolHelper.getAndroidJar(minSdk));
     if (proguardMap != null) {

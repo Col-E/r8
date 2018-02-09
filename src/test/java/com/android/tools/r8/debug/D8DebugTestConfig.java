@@ -7,6 +7,7 @@ import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
@@ -21,12 +22,12 @@ public class D8DebugTestConfig extends DexDebugTestConfig {
 
   public static AndroidApp d8Compile(List<Path> paths, Consumer<InternalOptions> optionsConsumer) {
     try {
-      int minSdk = ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm());
+      AndroidApiLevel minSdk = ToolHelper.getMinApiLevelForDexVm();
       D8Command.Builder builder = D8Command.builder();
       return ToolHelper.runD8(
           builder
               .addProgramFiles(paths)
-              .setMinApiLevel(minSdk)
+              .setMinApiLevel(minSdk.getLevel())
               .setMode(CompilationMode.DEBUG)
               .addLibraryFiles(ToolHelper.getAndroidJar(minSdk)),
           optionsConsumer);

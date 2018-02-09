@@ -8,10 +8,10 @@ import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import org.junit.rules.TemporaryFolder;
 
 // Shared test configuration for R8/CF compiled resources from the "debugTestResources" target.
@@ -21,11 +21,11 @@ public class R8CfDebugTestResourcesConfig extends CfDebugTestConfig {
 
   private static synchronized AndroidApp getCompiledResources() throws Throwable {
     if (compiledResources == null) {
-      int minApi = ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm());
+      AndroidApiLevel minApi = ToolHelper.getMinApiLevelForDexVm();
       AndroidAppConsumers sink = new AndroidAppConsumers();
       R8.run(
           R8Command.builder()
-              .setMinApiLevel(minApi)
+              .setMinApiLevel(minApi.getLevel())
               .setMode(CompilationMode.DEBUG)
               .addProgramFiles(DebugTestBase.DEBUGGEE_JAR)
               .setProgramConsumer(sink.wrapClassFileConsumer(null))

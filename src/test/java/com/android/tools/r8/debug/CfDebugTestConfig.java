@@ -13,8 +13,7 @@ import java.util.List;
 /** Base test configuration with CF version of JDWP. */
 public class CfDebugTestConfig extends DebugTestConfig {
 
-  public static final Path JDWP_JAR =
-      ToolHelper.getJdwpTestsCfJarPath(AndroidApiLevel.N.getLevel());
+  public static final Path JDWP_JAR = ToolHelper.getJdwpTestsCfJarPath(AndroidApiLevel.N);
 
   public CfDebugTestConfig() {
     this(Collections.emptyList());

@@ -57,7 +57,7 @@ public abstract class RunExamplesAndroidOTest
     final String packageName;
     final String mainClass;
 
-    Integer androidJarVersion = null;
+    AndroidApiLevel androidJarVersion = null;
 
     final List<Consumer<InternalOptions>> optionConsumers = new ArrayList<>();
     final List<Consumer<DexInspector>> dexInspectorChecks = new ArrayList<>();
@@ -162,9 +162,9 @@ public abstract class RunExamplesAndroidOTest
       execute(testName, qualifiedMainClass, new Path[]{inputFile}, new Path[]{out});
     }
 
-    abstract C withMinApiLevel(int minApiLevel);
+    abstract C withMinApiLevel(AndroidApiLevel minApiLevel);
 
-    C withAndroidJar(int androidJarVersion) {
+    C withAndroidJar(AndroidApiLevel androidJarVersion) {
       assert this.androidJarVersion == null;
       this.androidJarVersion = androidJarVersion;
       return self();
@@ -291,56 +291,56 @@ public abstract class RunExamplesAndroidOTest
   @Test
   public void stringConcat() throws Throwable {
     test("stringconcat", "stringconcat", "StringConcat")
-        .withMinApiLevel(AndroidApiLevel.K.getLevel())
+        .withMinApiLevel(AndroidApiLevel.K)
         .run();
   }
 
   @Test
   public void invokeCustom() throws Throwable {
     test("invokecustom", "invokecustom", "InvokeCustom")
-        .withMinApiLevel(AndroidApiLevel.O.getLevel())
+        .withMinApiLevel(AndroidApiLevel.O)
         .run();
   }
 
   @Test
   public void invokeCustom2() throws Throwable {
     test("invokecustom2", "invokecustom2", "InvokeCustom")
-        .withMinApiLevel(AndroidApiLevel.O.getLevel())
+        .withMinApiLevel(AndroidApiLevel.O)
         .run();
   }
 
   @Test
   public void invokeCustomErrorDueToMinSdk() throws Throwable {
     test("invokecustom-error-due-to-min-sdk", "invokecustom", "InvokeCustom")
-        .withMinApiLevel(25)
+        .withMinApiLevel(AndroidApiLevel.N_MR1)
         .run();
   }
 
   @Test
   public void invokePolymorphic() throws Throwable {
     test("invokepolymorphic", "invokepolymorphic", "InvokePolymorphic")
-        .withMinApiLevel(AndroidApiLevel.O.getLevel())
+        .withMinApiLevel(AndroidApiLevel.O)
         .run();
   }
 
   @Test
   public void invokePolymorphicErrorDueToMinSdk() throws Throwable {
     test("invokepolymorphic-error-due-to-min-sdk", "invokepolymorphic", "InvokePolymorphic")
-        .withMinApiLevel(25)
+        .withMinApiLevel(AndroidApiLevel.N_MR1)
         .run();
   }
 
   @Test
   public void lambdaDesugaring() throws Throwable {
     test("lambdadesugaring", "lambdadesugaring", "LambdaDesugaring")
-        .withMinApiLevel(AndroidApiLevel.K.getLevel())
+        .withMinApiLevel(AndroidApiLevel.K)
         .run();
   }
 
   @Test
   public void lambdaDesugaringNPlus() throws Throwable {
     test("lambdadesugaringnplus", "lambdadesugaringnplus", "LambdasWithStaticAndDefaultMethods")
-        .withMinApiLevel(AndroidApiLevel.K.getLevel())
+        .withMinApiLevel(AndroidApiLevel.K)
         .withInterfaceMethodDesugaring(OffOrAuto.Auto)
         .run();
   }
@@ -348,8 +348,8 @@ public abstract class RunExamplesAndroidOTest
   @Test
   public void desugarDefaultMethodInAndroidJar25() throws Throwable {
     test("DefaultMethodInAndroidJar25", "desugaringwithandroidjar25", "DefaultMethodInAndroidJar25")
-        .withMinApiLevel(AndroidApiLevel.K.getLevel())
-        .withAndroidJar(AndroidApiLevel.O.getLevel())
+        .withMinApiLevel(AndroidApiLevel.K)
+        .withAndroidJar(AndroidApiLevel.O)
         .withInterfaceMethodDesugaring(OffOrAuto.Auto)
         .run();
   }
@@ -357,8 +357,8 @@ public abstract class RunExamplesAndroidOTest
   @Test
   public void desugarStaticMethodInAndroidJar25() throws Throwable {
     test("StaticMethodInAndroidJar25", "desugaringwithandroidjar25", "StaticMethodInAndroidJar25")
-        .withMinApiLevel(AndroidApiLevel.K.getLevel())
-        .withAndroidJar(AndroidApiLevel.O.getLevel())
+        .withMinApiLevel(AndroidApiLevel.K)
+        .withAndroidJar(AndroidApiLevel.O)
         .withInterfaceMethodDesugaring(OffOrAuto.Auto)
         .run();
   }
@@ -366,14 +366,14 @@ public abstract class RunExamplesAndroidOTest
   @Test
   public void lambdaDesugaringValueAdjustments() throws Throwable {
     test("lambdadesugaring-value-adjustments", "lambdadesugaring", "ValueAdjustments")
-        .withMinApiLevel(AndroidApiLevel.K.getLevel())
+        .withMinApiLevel(AndroidApiLevel.K)
         .run();
   }
 
   @Test
   public void paramNames() throws Throwable {
     test("paramnames", "paramnames", "ParameterNames")
-        .withMinApiLevel(AndroidApiLevel.O.getLevel())
+        .withMinApiLevel(AndroidApiLevel.O)
         .run();
   }
 
@@ -469,7 +469,7 @@ public abstract class RunExamplesAndroidOTest
       int expectedMainDexListSize,
       String... mainDexClasses)
       throws Throwable {
-    int minApi = AndroidApiLevel.K.getLevel();
+    AndroidApiLevel minApi = AndroidApiLevel.K;
 
     // Full build, will be used as reference.
     TestRunner<?> full =
@@ -514,7 +514,7 @@ public abstract class RunExamplesAndroidOTest
       String packageName,
       Path input,
       OutputMode outputMode,
-      int minApi,
+      AndroidApiLevel minApi,
       String... mainDexClasses)
       throws Throwable {
     Path intermediateDex =
@@ -522,7 +522,7 @@ public abstract class RunExamplesAndroidOTest
     // Build intermediate with D8.
     D8Command.Builder command = D8Command.builder()
         .setOutput(intermediateDex, outputMode)
-        .setMinApiLevel(minApi)
+        .setMinApiLevel(minApi.getLevel())
         .addLibraryFiles(ToolHelper.getAndroidJar(minApi))
         .setIntermediate(true)
         .addProgramFiles(input);

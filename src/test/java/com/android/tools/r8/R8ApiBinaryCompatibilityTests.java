@@ -22,7 +22,7 @@ public class R8ApiBinaryCompatibilityTests {
 
   static final Path JAR = Paths.get("tests", "r8_api_usage_sample.jar");
   static final String MAIN = "com.android.tools.apiusagesample.R8ApiUsageSample";
-  static final int MIN_API = AndroidApiLevel.K.getLevel();
+  static final AndroidApiLevel MIN_API = AndroidApiLevel.K;
 
   @Rule public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
@@ -54,7 +54,7 @@ public class R8ApiBinaryCompatibilityTests {
                     "--output",
                     temp.newFolder().toString(),
                     "--min-api",
-                    Integer.toString(MIN_API),
+                    Integer.toString(MIN_API.getLevel()),
                     "--pg-conf",
                     pgConf.toString(),
                     "--main-dex-rules",

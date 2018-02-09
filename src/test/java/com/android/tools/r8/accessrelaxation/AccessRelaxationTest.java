@@ -25,7 +25,7 @@ public class AccessRelaxationTest extends TestBase {
     R8Command.Builder builder = R8Command.builder();
     builder.addProgramFiles(ToolHelper.getClassFilesForTestPackage(A.class.getPackage()));
     builder.setProgramConsumer(DexIndexedConsumer.emptyConsumer());
-    builder.setMinApiLevel(ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm()));
+    builder.setMinApiLevel(ToolHelper.getMinApiLevelForDexVm().getLevel());
 
     // Note: we use '-checkdiscard' to indirectly check that the access relaxation is
     // done which leads to inlining of all pB*** methods so they are removed. Without

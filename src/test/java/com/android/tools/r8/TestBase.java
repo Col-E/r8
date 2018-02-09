@@ -113,9 +113,7 @@ public class TestBase {
 
   protected static AndroidApp readClassesAndAndriodJar(List<Class> programClasses)
       throws IOException {
-    return readClassesAndAndriodJar(programClasses,
-        AndroidApiLevel.getAndroidApiLevel(
-            ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm())));
+    return readClassesAndAndriodJar(programClasses, ToolHelper.getMinApiLevelForDexVm());
   }
 
   protected static AndroidApp readClassesAndAndriodJar(
@@ -125,7 +123,7 @@ public class TestBase {
     for (Class clazz : programClasses) {
       builder.addProgramFiles(ToolHelper.getClassFileForTestClass(clazz));
     }
-    builder.addLibraryFiles(ToolHelper.getAndroidJar(androidLibrary.getLevel()));
+    builder.addLibraryFiles(ToolHelper.getAndroidJar(androidLibrary));
     return builder.build();
   }
 

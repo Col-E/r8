@@ -115,7 +115,7 @@ public abstract class DebugTestBase {
 
   protected static final boolean supportsDefaultMethod(DebugTestConfig config) {
     return config.isCfRuntime()
-        || ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm()) >= AndroidApiLevel.N.getLevel();
+        || ToolHelper.getMinApiLevelForDexVm().getLevel() >= AndroidApiLevel.N.getLevel();
   }
 
   protected final void runDebugTest(

@@ -27,8 +27,8 @@ public class D8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<D8Command
     }
 
     @Override
-    D8TestRunner withMinApiLevel(int minApiLevel) {
-      return withBuilderTransformation(builder -> builder.setMinApiLevel(minApiLevel));
+    D8TestRunner withMinApiLevel(AndroidApiLevel minApiLevel) {
+      return withBuilderTransformation(builder -> builder.setMinApiLevel(minApiLevel.getLevel()));
     }
 
     D8TestRunner withClasspath(Path... classpath) {
@@ -43,7 +43,7 @@ public class D8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<D8Command
       }
       builder.addLibraryFiles(
           ToolHelper.getAndroidJar(
-              androidJarVersion == null ? builder.getMinApiLevel() : androidJarVersion));
+              androidJarVersion == null ? builder.getMinApiLevel() : androidJarVersion.getLevel()));
       builder.addProgramFiles(inputFile);
       try {
         ToolHelper.runD8(builder, this::combinedOptionConsumer);
@@ -70,7 +70,7 @@ public class D8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<D8Command
     D8TestRunner lib1 =
         test("testDefaultInInterfaceWithoutDesugaring", "desugaringwithmissingclasslib1", "N/A")
             .withInterfaceMethodDesugaring(OffOrAuto.Off)
-            .withMinApiLevel(AndroidApiLevel.K.getLevel());
+            .withMinApiLevel(AndroidApiLevel.K);
     try  {
       lib1.build();
 
@@ -87,7 +87,7 @@ public class D8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<D8Command
     D8TestRunner lib1 =
         test("desugaringwithmissingclasslib1", "desugaringwithmissingclasslib1", "N/A")
             .withInterfaceMethodDesugaring(OffOrAuto.Auto)
-            .withMinApiLevel(AndroidApiLevel.K.getLevel());
+            .withMinApiLevel(AndroidApiLevel.K);
     lib1.build();
 
     // lib2: interface B extends A { default String foo() { return "B"; } }
@@ -96,7 +96,7 @@ public class D8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<D8Command
         test("desugaringwithmissingclasslib2", "desugaringwithmissingclasslib2", "N/A")
             .withInterfaceMethodDesugaring(OffOrAuto.Auto)
             .withClasspath(lib1.getInputJar())
-            .withMinApiLevel(AndroidApiLevel.K.getLevel());
+            .withMinApiLevel(AndroidApiLevel.K);
     lib2.build();
 
     // test: class ImplementMethodsWithDefault implements A, B {} should get its foo implementation
@@ -107,7 +107,7 @@ public class D8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<D8Command
         test("desugaringwithmissingclasstest1", "desugaringwithmissingclasstest1", "N/A")
             .withInterfaceMethodDesugaring(OffOrAuto.Auto)
             .withClasspath(lib1.getInputJar())
-            .withMinApiLevel(AndroidApiLevel.K.getLevel());
+            .withMinApiLevel(AndroidApiLevel.K);
     test.build();
 
     // TODO check compilation warnings are correctly reported
@@ -116,7 +116,7 @@ public class D8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<D8Command
 
   @Test
   public void testMissingInterfaceDesugared2AndroidK() throws Throwable {
-    int minApi = AndroidApiLevel.K.getLevel();
+    AndroidApiLevel minApi = AndroidApiLevel.K;
 
     // lib1: interface A { default String foo() { return "A"; } }
     D8TestRunner lib1 =
@@ -170,7 +170,7 @@ public class D8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<D8Command
 
   @Test
   public void testMissingInterfaceDesugared2AndroidO() throws Throwable {
-    int minApi = AndroidApiLevel.O.getLevel();
+    AndroidApiLevel minApi = AndroidApiLevel.O;
     // lib1: interface A { default String foo() { return "A"; } }
     D8TestRunner lib1 =
         test("desugaringwithmissingclasslib1", "desugaringwithmissingclasslib1", "N/A")
@@ -218,7 +218,7 @@ public class D8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<D8Command
   @Test
   public void testCallToMissingSuperInterfaceDesugaredAndroidK() throws Throwable {
 
-    int minApi = AndroidApiLevel.K.getLevel();
+    AndroidApiLevel minApi = AndroidApiLevel.K;
     // lib1: interface A { default String foo() { return "A"; } }
     D8TestRunner lib1 =
         test("desugaringwithmissingclasslib1", "desugaringwithmissingclasslib1", "N/A")
@@ -271,7 +271,7 @@ public class D8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<D8Command
 
   @Test
   public void testCallToMissingSuperInterfaceDesugaredAndroidO() throws Throwable {
-    int minApi = AndroidApiLevel.O.getLevel();
+    AndroidApiLevel minApi = AndroidApiLevel.O;
     // lib1: interface A { default String foo() { return "A"; } }
     D8TestRunner lib1 =
         test("desugaringwithmissingclasslib1", "desugaringwithmissingclasslib1", "N/A")
@@ -318,7 +318,7 @@ public class D8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<D8Command
 
   @Test
   public void testMissingSuperDesugaredAndroidK() throws Throwable {
-    int minApi = AndroidApiLevel.K.getLevel();
+    AndroidApiLevel minApi = AndroidApiLevel.K;
 
     // lib1: interface A { default String foo() { return "A"; } }
     D8TestRunner lib1 =
@@ -366,7 +366,7 @@ public class D8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<D8Command
 
   @Test
   public void testMissingSuperDesugaredAndroidO() throws Throwable {
-    int minApi = AndroidApiLevel.O.getLevel();
+    AndroidApiLevel minApi = AndroidApiLevel.O;
 
     // lib1: interface A { default String foo() { return "A"; } }
     D8TestRunner lib1 =
@@ -416,7 +416,7 @@ public class D8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<D8Command
 
   @Test
   public void testMissingSuperDesugaredWithProgramCrossImplementationAndroidK() throws Throwable {
-    int minApi = AndroidApiLevel.K.getLevel();
+    AndroidApiLevel minApi = AndroidApiLevel.K;
 
     // lib1: interface A { default String foo() { return "A"; } }
     //       interface A2 { default String foo2() { return "A2"; } }
@@ -461,7 +461,7 @@ public class D8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<D8Command
 
   @Test
   public void testMissingSuperDesugaredWithClasspathCrossImplementationAndroidK() throws Throwable {
-    int minApi = AndroidApiLevel.K.getLevel();
+    AndroidApiLevel minApi = AndroidApiLevel.K;
 
     // lib1: interface A { default String foo() { return "A"; } }
     //       interface A2 { default String foo2() { return "A2"; } }

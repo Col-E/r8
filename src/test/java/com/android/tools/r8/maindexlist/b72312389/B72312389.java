@@ -37,7 +37,7 @@ public class B72312389 extends TestBase {
   // and the Android library.
   private void buildInstrumentationTestCaseApplication(BaseCommand.Builder builder) {
     builder
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.O.getLevel()))
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.O))
         .addProgramFiles(
             Paths.get("build", "test", "examplesAndroidApi",
                 "classes", "instrumentationtest", "InstrumentationTest.class"))

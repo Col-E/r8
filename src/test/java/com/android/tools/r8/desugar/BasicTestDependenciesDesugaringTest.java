@@ -85,7 +85,7 @@ public class BasicTestDependenciesDesugaringTest {
         D8Command.builder()
             .addClasspathFiles(classpath)
             .addProgramFiles(toCompile)
-            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.K.getLevel()))
+            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.K))
             .setMinApiLevel(AndroidApiLevel.K.getLevel()),
         options -> options.interfaceMethodDesugaring = OffOrAuto.Auto);
   }
@@ -99,7 +99,7 @@ public class BasicTestDependenciesDesugaringTest {
         D8Command.builder()
             .addClasspathFiles(classpath)
             .addProgramFiles(toCompile)
-            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.K.getLevel()))
+            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.K))
             .setMinApiLevel(AndroidApiLevel.K.getLevel()),
         options -> options.interfaceMethodDesugaring = OffOrAuto.Off);
   }

@@ -48,7 +48,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
   @Test
   public void invokeCustomWithShrinking() throws Throwable {
     test("invokecustom-with-shrinking", "invokecustom", "InvokeCustom")
-        .withMinApiLevel(AndroidApiLevel.O.getLevel())
+        .withMinApiLevel(AndroidApiLevel.O)
         .withBuilderTransformation(builder ->
             builder.addProguardConfigurationFiles(
                 Paths.get(ToolHelper.EXAMPLES_ANDROID_O_DIR, "invokecustom/keep-rules.txt")))
@@ -62,8 +62,8 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
     }
 
     @Override
-    R8TestRunner withMinApiLevel(int minApiLevel) {
-      return withBuilderTransformation(builder -> builder.setMinApiLevel(minApiLevel));
+    R8TestRunner withMinApiLevel(AndroidApiLevel minApiLevel) {
+      return withBuilderTransformation(builder -> builder.setMinApiLevel(minApiLevel.getLevel()));
     }
 
     @Override
@@ -72,8 +72,8 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
       for (UnaryOperator<R8Command.Builder> transformation : builderTransformations) {
         builder = transformation.apply(builder);
       }
-      builder.addLibraryFiles(ToolHelper
-          .getAndroidJar(androidJarVersion == null ? builder.getMinApiLevel() : androidJarVersion));
+      builder.addLibraryFiles(ToolHelper.getAndroidJar(
+          androidJarVersion == null ? builder.getMinApiLevel() : androidJarVersion.getLevel()));
       R8Command command = builder.addProgramFiles(inputFile).build();
       ToolHelper.runR8(command, this::combinedOptionConsumer);
     }

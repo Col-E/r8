@@ -66,7 +66,7 @@ public class D8LazyRunExamplesAndroidOTest
 
   @Test
   public void dexPerClassFileWithDesugaringAndFolderClasspath() throws Throwable {
-    int minAPILevel = AndroidApiLevel.K.getLevel();
+    AndroidApiLevel minAPILevel = AndroidApiLevel.K;
     Path inputFile =
         Paths.get(ToolHelper.EXAMPLES_ANDROID_N_BUILD_DIR, "interfacemethods" + JAR_EXTENSION);
     Path tmpClassesDir = temp.newFolder().toPath();
@@ -78,7 +78,7 @@ public class D8LazyRunExamplesAndroidOTest
     {
       D8Command.Builder command =
           D8Command.builder()
-              .setMinApiLevel(minAPILevel)
+              .setMinApiLevel(minAPILevel.getLevel())
               .addLibraryFiles(androidJar)
               .addProgramFiles(inputFile);
 
@@ -98,7 +98,7 @@ public class D8LazyRunExamplesAndroidOTest
     for (Path classFile : individualClassFiles) {
       D8Command.Builder builder =
           D8Command.builder()
-              .setMinApiLevel(minAPILevel)
+              .setMinApiLevel(minAPILevel.getLevel())
               .addLibraryFiles(androidJar)
               .addClasspathFiles(tmpClassesDir)
               .addProgramFiles(classFile);
@@ -111,7 +111,7 @@ public class D8LazyRunExamplesAndroidOTest
               });
       individalDexes.add(individualResult.getDexProgramResourcesForTesting().get(0));
     }
-    AndroidApp mergedResult = mergeDexResources(minAPILevel, individalDexes);
+    AndroidApp mergedResult = mergeDexResources(minAPILevel.getLevel(), individalDexes);
 
     assertTrue(Arrays.equals(
         readResource(fullBuildResult.getDexProgramResourcesForTesting().get(0)),

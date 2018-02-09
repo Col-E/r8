@@ -49,7 +49,7 @@ public class SingleTargetExecutionTest extends AsmTestBase {
       allBytes.add(ToolHelper.getClassAsBytes(clazz));
     }
     ensureSameOutput(Main.class.getCanonicalName(),
-        ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm()),
+        ToolHelper.getMinApiLevelForDexVm(),
         allBytes.toArray(new byte[allBytes.size()][]));
   }
 }

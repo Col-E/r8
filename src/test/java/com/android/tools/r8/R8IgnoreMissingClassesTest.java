@@ -4,6 +4,7 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.origin.EmbeddedOrigin;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
@@ -11,14 +12,14 @@ import org.junit.Test;
 
 public class R8IgnoreMissingClassesTest {
 
-  private static final int MIN_API = 26;
+  private static final AndroidApiLevel MIN_API = AndroidApiLevel.O;
   private static final Path EXAMPLE = Paths.get(ToolHelper.EXAMPLES_BUILD_DIR, "usestdlib.jar");
   private static final Path LIBRARY = ToolHelper.getAndroidJar(MIN_API);
 
   private R8Command.Builder config() {
     return R8Command.builder()
         .addProgramFiles(EXAMPLE)
-        .setMinApiLevel(MIN_API)
+        .setMinApiLevel(MIN_API.getLevel())
         .setProgramConsumer(DexIndexedConsumer.emptyConsumer());
   }
 

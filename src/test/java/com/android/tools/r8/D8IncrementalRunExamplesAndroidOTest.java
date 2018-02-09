@@ -14,6 +14,7 @@ import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.OffOrAuto;
@@ -49,8 +50,8 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
     }
 
     @Override
-    D8IncrementalTestRunner withMinApiLevel(int minApiLevel) {
-      return withBuilderTransformation(builder -> builder.setMinApiLevel(minApiLevel));
+    D8IncrementalTestRunner withMinApiLevel(AndroidApiLevel minApiLevel) {
+      return withBuilderTransformation(builder -> builder.setMinApiLevel(minApiLevel.getLevel()));
     }
 
     @Override
@@ -175,8 +176,8 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
       } else {
         throw new Unreachable("Unexpected output mode " + outputMode);
       }
-      addLibraryReference(builder, ToolHelper
-          .getAndroidJar(androidJarVersion == null ? builder.getMinApiLevel() : androidJarVersion));
+      addLibraryReference(builder, ToolHelper.getAndroidJar(
+          androidJarVersion == null ? builder.getMinApiLevel() : androidJarVersion.getLevel()));
       try {
         return ToolHelper.runD8(builder, this::combinedOptionConsumer);
       } catch (Unimplemented | CompilationError | InternalCompilerError re) {
@@ -324,7 +325,7 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
 
   @Override
   protected Path buildDexThroughIntermediate(String packageName, Path input, OutputMode outputMode,
-      int minApi, String... mainDexClasses) throws Throwable {
+      AndroidApiLevel minApi, String... mainDexClasses) throws Throwable {
     // tests using this should already been skipped.
     throw new Unreachable();
   }

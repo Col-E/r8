@@ -37,7 +37,7 @@ public class D8RunExamplesAndroidPTest extends RunExamplesAndroidPTest<D8Command
       }
       // TODO(mikaelpeltier) Add new android.jar build from aosp and use it
       builder
-          .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.O.getLevel()))
+          .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.O))
           .addProgramFiles(inputFile)
           .setOutput(out, OutputMode.DexIndexed);
       try {

@@ -8,6 +8,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.naming.ProguardMapSupplier;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.VersionProperties;
 import java.nio.file.Paths;
 import java.util.HashSet;
@@ -17,15 +18,15 @@ import org.junit.Test;
 public class ProguardMapMarkerTest {
   @Test
   public void proguardMapMarkerTest24() throws CompilationFailedException {
-    proguardMapMarkerTest(24);
+    proguardMapMarkerTest(AndroidApiLevel.N);
   }
 
   @Test
   public void proguardMapMarkerTest26() throws CompilationFailedException {
-    proguardMapMarkerTest(26);
+    proguardMapMarkerTest(AndroidApiLevel.O);
   }
 
-  private void proguardMapMarkerTest(int minApiLevel) throws CompilationFailedException {
+  private void proguardMapMarkerTest(AndroidApiLevel minApiLevel) throws CompilationFailedException {
     String classFile = ToolHelper.EXAMPLES_BUILD_DIR + "classes/trivial/Trivial.class";
     R8.run(
         R8Command.builder()
@@ -43,10 +44,10 @@ public class ProguardMapMarkerTest {
                   public void finished(DiagnosticsHandler handler) {}
                 })
             .addLibraryFiles(ToolHelper.getAndroidJar(minApiLevel))
-            .setMinApiLevel(minApiLevel)
+            .setMinApiLevel(minApiLevel.getLevel())
             .setProguardMapConsumer(
                 (proguardMap, handler) -> {
-                  verifyMarkers(proguardMap, minApiLevel);
+                  verifyMarkers(proguardMap, minApiLevel.getLevel());
                 })
             .build());
   }

@@ -15,6 +15,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.io.File;
@@ -270,7 +271,7 @@ public class RunJdwpTests {
   @BeforeClass
   public static void compileLibraries() throws Exception {
     // Selects appropriate jar according to min api level for the selected runtime.
-    int minApi = ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm());
+    AndroidApiLevel minApi = ToolHelper.getMinApiLevelForDexVm();
     Path jdwpTestsJar = ToolHelper.getJdwpTestsCfJarPath(minApi);
     Path classPath = ToolHelper.getClassPathForTests();
     Path testPath = classPath.resolve(Paths.get("com","android", "tools", "r8", "jdwp"));
@@ -285,7 +286,7 @@ public class RunJdwpTests {
             .addProgramFiles(jdwpTestsJar)
             .addProgramFiles(extraTestResources)
             .setOutput(d8Out.toPath(), OutputMode.DexIndexed)
-            .setMinApiLevel(minApi)
+            .setMinApiLevel(minApi.getLevel())
             .setMode(CompilationMode.DEBUG)
             .build());
   }

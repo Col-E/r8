@@ -22,8 +22,8 @@ public class D8NonLazyRunExamplesAndroidOTest
 
     @Override
     void addLibraryReference(D8Command.Builder builder, Path location) throws IOException {
-      builder.addLibraryFiles(ToolHelper
-          .getAndroidJar(androidJarVersion == null ? builder.getMinApiLevel() : androidJarVersion));
+      builder.addLibraryFiles(ToolHelper.getAndroidJar(
+          androidJarVersion == null ? builder.getMinApiLevel() : androidJarVersion.getLevel()));
     }
 
     @Override

@@ -88,7 +88,7 @@ public class ToolHelper {
   public static final String DEFAULT_PROGUARD_MAP_FILE = "proguard.map";
 
   private static final String ANDROID_JAR_PATTERN = "third_party/android_jar/lib-v%d/android.jar";
-  private static final int DEFAULT_MIN_SDK = AndroidApiLevel.I.getLevel();
+  private static final AndroidApiLevel DEFAULT_MIN_SDK = AndroidApiLevel.I;
 
   private static final String PROGUARD = "third_party/proguard/proguard5.2.1/bin/proguard.sh";
 
@@ -483,32 +483,36 @@ public class ToolHelper {
   }
 
   public static Path getDefaultAndroidJar() {
-    return getAndroidJar(AndroidApiLevel.getDefault().getLevel());
+    return getAndroidJar(AndroidApiLevel.getDefault());
   }
 
-  public static Path getAndroidJar(int minSdkVersion) {
-    if (minSdkVersion == AndroidApiLevel.P.getLevel()) {
+  public static Path getAndroidJar(int apiLevel) {
+    return getAndroidJar(AndroidApiLevel.getAndroidApiLevel(apiLevel));
+  }
+
+  public static Path getAndroidJar(AndroidApiLevel apiLevel) {
+    if (apiLevel == AndroidApiLevel.P) {
       // TODO(mikaelpeltier) Android P does not yet have his android.jar use the O version
-      minSdkVersion = AndroidApiLevel.O.getLevel();
+      apiLevel = AndroidApiLevel.O;
     }
     String jar = String.format(
         ANDROID_JAR_PATTERN,
-        minSdkVersion == AndroidApiLevel.getDefault().getLevel() ? DEFAULT_MIN_SDK : minSdkVersion);
+        (apiLevel == AndroidApiLevel.getDefault() ? DEFAULT_MIN_SDK : apiLevel).getLevel());
     assert Files.exists(Paths.get(jar))
-        : "Expected android jar to exist for API level " + minSdkVersion;
+        : "Expected android jar to exist for API level " + apiLevel;
     return Paths.get(jar);
   }
 
-  public static Path getJdwpTestsCfJarPath(int minSdk) {
-    if (minSdk >= AndroidApiLevel.N.getLevel()) {
+  public static Path getJdwpTestsCfJarPath(AndroidApiLevel minSdk) {
+    if (minSdk.getLevel() >= AndroidApiLevel.N.getLevel()) {
       return Paths.get("third_party", "jdwp-tests", "apache-harmony-jdwp-tests-host.jar");
     } else {
       return Paths.get(ToolHelper.BUILD_DIR, "libs", "jdwp-tests-preN.jar");
     }
   }
 
-  public static Path getJdwpTestsDexJarPath(int minSdk) {
-    if (minSdk >= AndroidApiLevel.N.getLevel()) {
+  public static Path getJdwpTestsDexJarPath(AndroidApiLevel minSdk) {
+    if (minSdk.getLevel() >= AndroidApiLevel.N.getLevel()) {
       return Paths.get("third_party", "jdwp-tests", "apache-harmony-jdwp-tests-hostdex.jar");
     } else {
       return Paths.get(ToolHelper.BUILD_DIR, "libs", "jdwp-tests-preN-dex.jar");
@@ -593,20 +597,24 @@ public class ToolHelper {
     }
   }
 
-  public static int getMinApiLevelForDexVm(DexVm dexVm) {
+  public static AndroidApiLevel getMinApiLevelForDexVm() {
+    return getMinApiLevelForDexVm(ToolHelper.getDexVm());
+  }
+
+  public static AndroidApiLevel getMinApiLevelForDexVm(DexVm dexVm) {
     switch (dexVm.version) {
       case DEFAULT:
-        return AndroidApiLevel.O.getLevel();
+        return AndroidApiLevel.O;
       case V7_0_0:
-        return AndroidApiLevel.N.getLevel();
+        return AndroidApiLevel.N;
       case V6_0_1:
-        return AndroidApiLevel.M.getLevel();
+        return AndroidApiLevel.M;
       case V5_1_1:
-        return AndroidApiLevel.L_MR1.getLevel();
+        return AndroidApiLevel.L_MR1;
       case V4_4_4:
-        return AndroidApiLevel.K.getLevel();
+        return AndroidApiLevel.K;
       case V4_0_4:
-        return AndroidApiLevel.I_MR1.getLevel();
+        return AndroidApiLevel.I_MR1;
       default:
         throw new Unreachable("Missing min api level for dex vm " + dexVm);
     }
@@ -780,7 +788,7 @@ public class ToolHelper {
       // Add the android library matching the minsdk. We filter out junit and testing classes
       // from the android jar to avoid duplicate classes in art and jctf tests.
       AndroidApp.Builder builder = AndroidApp.builder(app);
-      addFilteredAndroidJar(builder, command.getMinApiLevel());
+      addFilteredAndroidJar(builder, AndroidApiLevel.getAndroidApiLevel(command.getMinApiLevel()));
       app = builder.build();
     }
     InternalOptions options = command.getInternalOptions();
@@ -792,15 +800,15 @@ public class ToolHelper {
     return compatSink.build();
   }
 
-  public static void addFilteredAndroidJar(BaseCommand.Builder builder, int minSdkVersion)
+  public static void addFilteredAndroidJar(BaseCommand.Builder builder, AndroidApiLevel apiLevel)
       throws IOException {
-    addFilteredAndroidJar(getAppBuilder(builder), minSdkVersion);
+    addFilteredAndroidJar(getAppBuilder(builder), apiLevel);
   }
 
-  public static void addFilteredAndroidJar(AndroidApp.Builder builder, int minSdkVersion)
+  public static void addFilteredAndroidJar(AndroidApp.Builder builder, AndroidApiLevel apiLevel)
       throws IOException {
     builder.addFilteredLibraryArchives(Collections.singletonList(
-        new FilteredClassPath(getAndroidJar(minSdkVersion),
+        new FilteredClassPath(getAndroidJar(apiLevel),
             ImmutableList.of("!junit/**", "!android/test/**"))));
   }
 

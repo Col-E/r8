@@ -47,7 +47,7 @@ public class MainDexTracingTest {
         EXAMPLE_BUILD_DIR,
         Paths.get(EXAMPLE_SRC_DIR, "multidex", "main-dex-rules.txt"),
         Paths.get(EXAMPLE_SRC_DIR, "multidex001", "ref-list-1.txt"),
-        AndroidApiLevel.I.getLevel());
+        AndroidApiLevel.I);
   }
 
   @Test
@@ -58,7 +58,7 @@ public class MainDexTracingTest {
         EXAMPLE_BUILD_DIR,
         Paths.get(EXAMPLE_SRC_DIR, "multidex001", "main-dex-rules-2.txt"),
         Paths.get(EXAMPLE_SRC_DIR, "multidex001", "ref-list-2.txt"),
-        AndroidApiLevel.I.getLevel());
+        AndroidApiLevel.I);
   }
 
   @Test
@@ -69,7 +69,7 @@ public class MainDexTracingTest {
         EXAMPLE_BUILD_DIR,
         Paths.get(EXAMPLE_SRC_DIR, "multidex", "main-dex-rules.txt"),
         Paths.get(EXAMPLE_SRC_DIR, "multidex002", "ref-list-1.txt"),
-        AndroidApiLevel.I.getLevel());
+        AndroidApiLevel.I);
   }
 
   @Test
@@ -80,7 +80,7 @@ public class MainDexTracingTest {
         EXAMPLE_BUILD_DIR,
         Paths.get(EXAMPLE_SRC_DIR, "multidex", "main-dex-rules.txt"),
         Paths.get(EXAMPLE_SRC_DIR, "multidex003", "ref-list-1.txt"),
-        AndroidApiLevel.I.getLevel());
+        AndroidApiLevel.I);
   }
 
   @Test
@@ -91,7 +91,7 @@ public class MainDexTracingTest {
         EXAMPLE_O_BUILD_DIR,
         Paths.get(EXAMPLE_SRC_DIR, "multidex", "main-dex-rules.txt"),
         Paths.get(EXAMPLE_O_SRC_DIR, "multidex004", "ref-list-1.txt"),
-        AndroidApiLevel.I.getLevel());
+        AndroidApiLevel.I);
   }
 
   @Test
@@ -131,7 +131,7 @@ public class MainDexTracingTest {
         EXAMPLE_BUILD_DIR,
         Paths.get(EXAMPLE_SRC_DIR, "multidex005", "main-dex-rules-" + variant + ".txt"),
         Paths.get(EXAMPLE_SRC_DIR, "multidex005", "ref-list-" + variant + ".txt"),
-        AndroidApiLevel.I.getLevel());
+        AndroidApiLevel.I);
   }
 
   private void doTest(
@@ -140,7 +140,7 @@ public class MainDexTracingTest {
       String buildDir,
       Path mainDexRules,
       Path expectedMainDexList,
-      int minSdk)
+      AndroidApiLevel minSdk)
       throws Throwable {
     doTest(
         testName,
@@ -160,7 +160,7 @@ public class MainDexTracingTest {
       String buildDir,
       Path mainDexRules,
       Path expectedMainDexList,
-      int minSdk,
+      AndroidApiLevel minSdk,
       Consumer<InternalOptions> optionsConsumer)
       throws Throwable {
     Path out = temp.getRoot().toPath().resolve(testName + ZIP_EXTENSION);
@@ -170,7 +170,7 @@ public class MainDexTracingTest {
       // Build main-dex list using GenerateMainDexList and test the output from run.
       GenerateMainDexListCommand.Builder mdlCommandBuilder = GenerateMainDexListCommand.builder();
       GenerateMainDexListCommand mdlCommand = mdlCommandBuilder
-          .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.K.getLevel()))
+          .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.K))
           .addProgramFiles(inputJar)
           .addProgramFiles(Paths.get(EXAMPLE_BUILD_DIR, "multidexfakeframeworks" + JAR_EXTENSION))
           .addMainDexRulesFiles(mainDexRules)
@@ -189,7 +189,7 @@ public class MainDexTracingTest {
       final Box mainDexListOutput = new Box();
       mdlCommandBuilder = GenerateMainDexListCommand.builder();
       mdlCommand = mdlCommandBuilder
-          .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.K.getLevel()))
+          .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.K))
           .addProgramFiles(inputJar)
           .addProgramFiles(Paths.get(EXAMPLE_BUILD_DIR, "multidexfakeframeworks" + JAR_EXTENSION))
           .addMainDexRulesFiles(mainDexRules)
@@ -207,7 +207,7 @@ public class MainDexTracingTest {
       R8Command.Builder r8CommandBuilder = R8Command.builder();
       R8Command command =
           r8CommandBuilder
-              .setMinApiLevel(minSdk)
+              .setMinApiLevel(minSdk.getLevel())
               .addProgramFiles(inputJar)
               .addProgramFiles(
                   Paths.get(EXAMPLE_BUILD_DIR, "multidexfakeframeworks" + JAR_EXTENSION))

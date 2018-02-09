@@ -10,6 +10,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.debug.DebugTestBase;
 import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.debug.DexDebugTestConfig;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import org.junit.BeforeClass;
@@ -26,7 +27,7 @@ public class RenameSourceFileDebugTest extends DebugTestBase {
 
   @BeforeClass
   public static void initDebuggeePath() throws Exception {
-    int minSdk = ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm());
+    AndroidApiLevel minSdk = ToolHelper.getMinApiLevelForDexVm();
     Path outdir = temp.newFolder().toPath();
     Path outjar = outdir.resolve("r8_compiled.jar");
     Path proguardMapPath = outdir.resolve("proguard.map");
@@ -39,7 +40,7 @@ public class RenameSourceFileDebugTest extends DebugTestBase {
                       ImmutableList.of("SourceFile", "LineNumberTable"));
                 })
             .addProgramFiles(DEBUGGEE_JAR)
-            .setMinApiLevel(minSdk)
+            .setMinApiLevel(minSdk.getLevel())
             .addLibraryFiles(ToolHelper.getAndroidJar(minSdk))
             .setMode(CompilationMode.DEBUG)
             .setOutput(outjar, OutputMode.DexIndexed)

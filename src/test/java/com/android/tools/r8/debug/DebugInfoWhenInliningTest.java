@@ -8,10 +8,10 @@ import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.Command;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -33,7 +33,7 @@ public class DebugInfoWhenInliningTest extends DebugTestBase {
       boolean writeProguardMap)
       throws Exception {
     assert outputMode == OutputMode.DexIndexed || outputMode == OutputMode.ClassFile;
-    int minSdk = ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm());
+    AndroidApiLevel minSdk = ToolHelper.getMinApiLevelForDexVm();
     String prefix = outputMode == OutputMode.ClassFile ? "cf" : "dex";
     Path outdir = temp.newFolder().toPath();
     Path outjar = outdir.resolve(prefix + "_r8_compiled.jar");
@@ -41,7 +41,7 @@ public class DebugInfoWhenInliningTest extends DebugTestBase {
     R8Command.Builder builder =
         R8Command.builder()
             .addProgramFiles(DEBUGGEE_JAR)
-            .setMinApiLevel(minSdk)
+            .setMinApiLevel(minSdk.getLevel())
             .addLibraryFiles(ToolHelper.getAndroidJar(minSdk))
             .setMode(CompilationMode.RELEASE)
             .setOutput(outjar, outputMode);

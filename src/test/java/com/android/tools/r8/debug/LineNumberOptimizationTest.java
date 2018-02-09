@@ -7,9 +7,9 @@ import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import org.junit.Test;
 
 /** Tests source file and line numbers on inlined methods. */
@@ -31,14 +31,14 @@ public class LineNumberOptimizationTest extends DebugTestBase {
       boolean writeProguardMap,
       boolean dontOptimizeByEnablingDebug)
       throws Exception {
-    int minSdk = ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm());
+    AndroidApiLevel minSdk = ToolHelper.getMinApiLevelForDexVm();
     Path outdir = temp.newFolder().toPath();
     Path outjar = outdir.resolve("r8_compiled.jar");
     Path proguardMapPath = writeProguardMap ? outdir.resolve("proguard.map") : null;
     R8Command.Builder builder =
         R8Command.builder()
             .addProgramFiles(DEBUGGEE_JAR)
-            .setMinApiLevel(minSdk)
+            .setMinApiLevel(minSdk.getLevel())
             .addLibraryFiles(ToolHelper.getAndroidJar(minSdk))
             .setMode(dontOptimizeByEnablingDebug ? CompilationMode.DEBUG : CompilationMode.RELEASE)
             .setOutput(outjar, OutputMode.DexIndexed);

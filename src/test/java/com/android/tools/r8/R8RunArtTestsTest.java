@@ -105,46 +105,46 @@ public abstract class R8RunArtTestsTest {
       "third_party/gradle/gradle/lib/plugins/hamcrest-core-1.3.jar";
 
   // Test that required to set min-api to a specific value.
-  private static Map<String, Integer> needMinSdkVersion =
-      new ImmutableMap.Builder<String, Integer>()
+  private static Map<String, AndroidApiLevel> needMinSdkVersion =
+      new ImmutableMap.Builder<String, AndroidApiLevel>()
           // Android O
-          .put("952-invoke-custom", AndroidApiLevel.O.getLevel())
-          .put("952-invoke-custom-kinds", AndroidApiLevel.O.getLevel())
-          .put("953-invoke-polymorphic-compiler", AndroidApiLevel.O.getLevel())
-          .put("957-methodhandle-transforms", AndroidApiLevel.O.getLevel())
-          .put("958-methodhandle-stackframe", AndroidApiLevel.O.getLevel())
-          .put("959-invoke-polymorphic-accessors", AndroidApiLevel.O.getLevel())
-          .put("979-const-method-handle", AndroidApiLevel.P.getLevel())
-          .put("990-method-handle-and-mr", AndroidApiLevel.O.getLevel())
+          .put("952-invoke-custom", AndroidApiLevel.O)
+          .put("952-invoke-custom-kinds", AndroidApiLevel.O)
+          .put("953-invoke-polymorphic-compiler", AndroidApiLevel.O)
+          .put("957-methodhandle-transforms", AndroidApiLevel.O)
+          .put("958-methodhandle-stackframe", AndroidApiLevel.O)
+          .put("959-invoke-polymorphic-accessors", AndroidApiLevel.O)
+          .put("979-const-method-handle", AndroidApiLevel.P)
+          .put("990-method-handle-and-mr", AndroidApiLevel.O)
           // Test intentionally asserts presence of bridge default methods desugar removes.
-          .put("044-proxy", AndroidApiLevel.N.getLevel())
+          .put("044-proxy", AndroidApiLevel.N)
           // Test intentionally asserts absence of default interface method in a class.
-          .put("048-reflect-v8", AndroidApiLevel.N.getLevel())
+          .put("048-reflect-v8", AndroidApiLevel.N)
           // Uses default interface methods.
-          .put("162-method-resolution", AndroidApiLevel.N.getLevel())
-          .put("616-cha-interface-default", AndroidApiLevel.N.getLevel())
-          .put("1910-transform-with-default", AndroidApiLevel.N.getLevel())
+          .put("162-method-resolution", AndroidApiLevel.N)
+          .put("616-cha-interface-default", AndroidApiLevel.N)
+          .put("1910-transform-with-default", AndroidApiLevel.N)
           // Interface initializer is not triggered after desugaring.
-          .put("962-iface-static", AndroidApiLevel.N.getLevel())
+          .put("962-iface-static", AndroidApiLevel.N)
           // Interface initializer is not triggered after desugaring.
-          .put("964-default-iface-init-gen", AndroidApiLevel.N.getLevel())
+          .put("964-default-iface-init-gen", AndroidApiLevel.N)
           // AbstractMethodError (for method not implemented in class) instead of
           // IncompatibleClassChangeError (for conflict of default interface methods).
-          .put("968-default-partial-compile-gen", AndroidApiLevel.N.getLevel())
+          .put("968-default-partial-compile-gen", AndroidApiLevel.N)
           // NoClassDefFoundError (for companion class) instead of NoSuchMethodError.
-          .put("970-iface-super-resolution-gen", AndroidApiLevel.N.getLevel())
+          .put("970-iface-super-resolution-gen", AndroidApiLevel.N)
           // NoClassDefFoundError (for companion class) instead of AbstractMethodError.
-          .put("971-iface-super", AndroidApiLevel.N.getLevel())
+          .put("971-iface-super", AndroidApiLevel.N)
           // Test for miranda methods is not relevant for desugaring scenario.
-          .put("972-default-imt-collision", AndroidApiLevel.N.getLevel())
+          .put("972-default-imt-collision", AndroidApiLevel.N)
           // Uses default interface methods.
-          .put("972-iface-super-multidex", AndroidApiLevel.N.getLevel())
+          .put("972-iface-super-multidex", AndroidApiLevel.N)
           // java.util.Objects is missing and test has default methods.
-          .put("973-default-multidex", AndroidApiLevel.N.getLevel())
+          .put("973-default-multidex", AndroidApiLevel.N)
           // a.klass.that.does.not.Exist is missing and test has default methods.
-          .put("974-verify-interface-super", AndroidApiLevel.N.getLevel())
+          .put("974-verify-interface-super", AndroidApiLevel.N)
           // Desugaring of interface private methods is not yet supported.
-          .put("975-iface-private", AndroidApiLevel.N.getLevel())
+          .put("975-iface-private", AndroidApiLevel.N)
           .build();
 
   // Tests that timeout when run with Art.
@@ -1390,13 +1390,13 @@ public abstract class R8RunArtTestsTest {
                 .setMode(mode)
                 .addProgramFiles(ListUtils.map(fileNames, Paths::get))
                 .setOutput(Paths.get(resultPath), OutputMode.DexIndexed);
-        Integer minSdkVersion = needMinSdkVersion.get(name);
+        AndroidApiLevel minSdkVersion = needMinSdkVersion.get(name);
         if (minSdkVersion != null) {
-          builder.setMinApiLevel(minSdkVersion);
+          builder.setMinApiLevel(minSdkVersion.getLevel());
           builder.addLibraryFiles(ToolHelper.getAndroidJar(minSdkVersion));
         } else {
           builder
-              .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.getDefault().getLevel()));
+              .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.getDefault()));
         }
         D8.run(builder.build());
         break;
@@ -1409,12 +1409,12 @@ public abstract class R8RunArtTestsTest {
                   .setOutput(Paths.get(resultPath), OutputMode.DexIndexed);
           // Add program files directly to the underlying app to avoid errors on DEX inputs.
           ToolHelper.getAppBuilder(builder).addProgramFiles(ListUtils.map(fileNames, Paths::get));
-          Integer minSdkVersion = needMinSdkVersion.get(name);
+          AndroidApiLevel minSdkVersion = needMinSdkVersion.get(name);
           if (minSdkVersion != null) {
-            builder.setMinApiLevel(minSdkVersion);
+            builder.setMinApiLevel(minSdkVersion.getLevel());
             ToolHelper.addFilteredAndroidJar(builder, minSdkVersion);
           } else {
-            ToolHelper.addFilteredAndroidJar(builder, AndroidApiLevel.getDefault().getLevel());
+            ToolHelper.addFilteredAndroidJar(builder, AndroidApiLevel.getDefault());
           }
           if (keepRulesFile != null) {
             builder.addProguardConfigurationFiles(Paths.get(keepRulesFile));

@@ -16,7 +16,7 @@ public class Regress69906048Test extends TestBase {
   public void buildWithD8AndRunWithDalvikOrArt() throws Exception {
     AndroidApp androidApp = compileWithR8(
         ImmutableList.of(ClassWithAnnotations.class, AnAnnotation.class),
-        options -> options.minApiLevel = ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm()));
+        options -> options.minApiLevel = ToolHelper.getMinApiLevelForDexVm().getLevel());
     String result = runOnArt(androidApp, ClassWithAnnotations.class);
     Assert.assertEquals("@" + AnAnnotation.class.getCanonicalName() + "()", result);
   }

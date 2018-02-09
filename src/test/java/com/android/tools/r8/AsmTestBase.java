@@ -10,6 +10,7 @@ import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import java.io.IOException;
@@ -32,9 +33,10 @@ public class AsmTestBase extends TestBase {
         exceptionClass);
   }
 
-  protected void ensureSameOutput(String main, int apiLevel, byte[]... classes) throws Exception {
+  protected void ensureSameOutput(String main, AndroidApiLevel apiLevel, byte[]... classes)
+      throws Exception {
     AndroidApp app = buildAndroidApp(classes);
-    Consumer<InternalOptions> setMinApiLevel = o -> o.minApiLevel = apiLevel;
+    Consumer<InternalOptions> setMinApiLevel = o -> o.minApiLevel = apiLevel.getLevel();
     ProcessResult javaResult = runOnJava(main, classes);
     ProcessResult d8Result = runOnArtRaw(compileWithD8(app, setMinApiLevel), main);
     ProcessResult r8Result = runOnArtRaw(compileWithR8(app, setMinApiLevel), main);

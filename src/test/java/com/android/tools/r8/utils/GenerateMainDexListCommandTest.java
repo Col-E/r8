@@ -61,7 +61,7 @@ public class GenerateMainDexListCommandTest {
 
   private void addAndroidJarsToCommandLine(List<String> args) {
     args.add("--lib");
-    args.add(ToolHelper.getAndroidJar(AndroidApiLevel.K.getLevel()).toAbsolutePath().toString());
+    args.add(ToolHelper.getAndroidJar(AndroidApiLevel.K).toAbsolutePath().toString());
   }
 
   // Add the jars used in the com.android.tools.r8.maindexlist.MainDexTracingTest test.

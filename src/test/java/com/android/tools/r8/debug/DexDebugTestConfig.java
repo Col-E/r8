@@ -13,7 +13,7 @@ import java.util.List;
 public class DexDebugTestConfig extends DebugTestConfig {
 
   public static final Path JDWP_DEX_JAR =
-      ToolHelper.getJdwpTestsDexJarPath(ToolHelper.getMinApiLevelForDexVm(ToolHelper.getDexVm()));
+      ToolHelper.getJdwpTestsDexJarPath(ToolHelper.getMinApiLevelForDexVm());
 
   public DexDebugTestConfig() {
     this(Collections.emptyList());
