@@ -1434,7 +1434,7 @@ public class CodeRewriter {
           // and the dominator or the original block has catch handlers.
           continue;
         }
-        if (!dominator.isSimpleAlwaysThrowingPath()) {
+        if (!dominator.isSimpleAlwaysThrowingPath(false)) {
           // Only move string constants into blocks being part of simple
           // always throwing path.
           continue;
@@ -1874,11 +1874,16 @@ public class CodeRewriter {
 
   public void simplifyIf(IRCode code, TypeEnvironment typeEnvironment) {
     int color = code.reserveMarkingColor();
+    boolean ifBranchFlipped = false;
     for (BasicBlock block : code.blocks) {
       if (block.isMarked(color)) {
         continue;
       }
       if (block.exit().isIf()) {
+        // Flip then/else branches if needed.
+        if (flipIfBranchesIfNeeded(block, code.hasDebugPositions)) {
+          ifBranchFlipped = true;
+        }
         // First rewrite zero comparison.
         rewriteIfWithConstZero(block);
 
@@ -1934,6 +1939,9 @@ public class CodeRewriter {
     }
     code.removeMarkedBlocks(color);
     code.returnMarkingColor(color);
+    if (ifBranchFlipped) {
+      code.traceBlocks();
+    }
     assert code.isConsistentSSA();
   }
 
@@ -2197,6 +2205,28 @@ public class CodeRewriter {
         }
       }
     }
+  }
+
+  private boolean flipIfBranchesIfNeeded(BasicBlock block, boolean failOnMissingPosition) {
+    If theIf = block.exit().asIf();
+    BasicBlock trueTarget = theIf.getTrueTarget();
+    BasicBlock fallthrough = theIf.fallthroughBlock();
+    assert trueTarget != fallthrough;
+
+    if (!fallthrough.isSimpleAlwaysThrowingPath(failOnMissingPosition) ||
+        trueTarget.isSimpleAlwaysThrowingPath(failOnMissingPosition)) {
+      return false;
+    }
+
+    // In case fall-through block always trows there is a good chance that it
+    // is created for error checks and 'trueTarget' represents most more common
+    // non-error case. Flipping the if in this case may result in faster code
+    // on older Android versions.
+    List<Value> inValues = theIf.inValues();
+    If newIf = new If(theIf.getType().inverted(), inValues);
+    block.replaceLastInstruction(newIf);
+    block.swapSuccessors(trueTarget, fallthrough);
+    return true;
   }
 
   public void rewriteLongCompareAndRequireNonNull(IRCode code, InternalOptions options) {

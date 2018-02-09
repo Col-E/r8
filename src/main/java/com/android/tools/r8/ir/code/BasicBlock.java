@@ -182,6 +182,14 @@ public class BasicBlock {
     }
   }
 
+  public void swapSuccessors(BasicBlock a, BasicBlock b) {
+    assert a != b;
+    int aIndex = successors.indexOf(a);
+    int bIndex = successors.indexOf(b);
+    assert aIndex >= 0 && bIndex >= 0;
+    swapSuccessorsByIndex(aIndex, bIndex);
+  }
+
   public void swapSuccessorsByIndex(int index1, int index2) {
     assert index1 != index2;
     if (hasCatchHandlers()) {
@@ -1053,18 +1061,23 @@ public class BasicBlock {
     return hare;
   }
 
-  public boolean isSimpleAlwaysThrowingPath() {
+  public boolean isSimpleAlwaysThrowingPath(boolean failOnMissingPosition) {
     // See Floyd's cycle-finding algorithm for reference.
     BasicBlock hare = this;
     BasicBlock tortuous = this;
     boolean advance = false;
     while (true) {
       List<BasicBlock> normalSuccessors = hare.getNormalSuccessors();
-      if (normalSuccessors.size() == 0) {
-        return hare.exit().isThrow();
-      }
       if (normalSuccessors.size() > 1) {
         return false;
+      }
+
+      if (failOnMissingPosition && hasThrowingInstructionWithoutPosition(hare)) {
+        return false;
+      }
+
+      if (normalSuccessors.size() == 0) {
+        return hare.exit().isThrow();
       }
 
       hare = normalSuccessors.get(0);
@@ -1074,6 +1087,15 @@ public class BasicBlock {
         return false;
       }
     }
+  }
+
+  private boolean hasThrowingInstructionWithoutPosition(BasicBlock hare) {
+    for (Instruction instruction : hare.instructions) {
+      if (instruction.instructionTypeCanThrow() && instruction.getPosition().isNone()) {
+        return true;
+      }
+    }
+    return false;
   }
 
   public Position getPosition() {
