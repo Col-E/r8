@@ -113,6 +113,14 @@ def Main():
       print('Uploading %s to %s' % (tagged_jar, destination))
       utils.upload_file_to_cloud_storage(tagged_jar, destination)
       print('File available at: %s' % GetUrl(version, file_name, is_master))
+    # Upload extracted maven directory for easy testing in studio.
+    zip_ref = zipfile.ZipFile(utils.MAVEN_ZIP, 'r')
+    zip_ref.extractall(temp)
+    zip_ref.close()
+    utils.upload_dir_to_cloud_storage(
+        os.path.join(temp, 'com'),
+        GetUploadDestination(version, 'com', is_master))
+    print('Maven repo root available at: %s' % GetUrl(version, '', is_master))
 
 if __name__ == '__main__':
   sys.exit(Main())
