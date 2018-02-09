@@ -4,7 +4,7 @@
 package com.android.tools.r8.naming.overloadaggressively;
 
 public class A {
-  volatile int f1;
+  public volatile int f1;
   volatile Object f2;
-  volatile B f3;
+  public volatile B f3;
 }
