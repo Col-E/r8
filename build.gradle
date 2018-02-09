@@ -292,6 +292,7 @@ def cloudDependencies = [
                 "android_cts_baseline",
                 "shadow",
                 "ddmlib",
+                "core-lambda-stubs",
         ],
         // All dex-vms have a fixed OS of Linux, as they are only supported on Linux, and will be run in a Docker
         // container on other platforms where supported.
