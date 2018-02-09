@@ -16,7 +16,8 @@ fun main(args: Array<String>) {
 
 fun testDataClassCopy() {
     val albert = Person("Albert", 28)
-    val olderJonas = albert.copy("Jonas", albert.age + 10)
+    val youngerJonas = albert.copy("Jonas", albert.age - 10)
+    val olderJonas = youngerJonas.copy("Jonas", albert.age + 20)
     println("Name: ${olderJonas.name}")
     println("Age: ${olderJonas.age}")
 }

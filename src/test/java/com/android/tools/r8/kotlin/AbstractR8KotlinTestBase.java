@@ -24,7 +24,6 @@ import com.android.tools.r8.utils.FileUtils;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 import org.junit.Assume;
 
@@ -90,15 +89,14 @@ public abstract class AbstractR8KotlinTestBase extends TestBase {
     return classSubject;
   }
 
-  private static MethodSubject checkMethod(ClassSubject classSubject, String methodName,
-      String methodReturnType, List<String> methodParameterTypes, boolean isPresent) {
-    return checkMethod(classSubject,
-        new MethodSignature(methodName, methodReturnType, methodParameterTypes), isPresent);
-  }
-
   protected static MethodSubject checkMethodIsPresent(ClassSubject classSubject,
       MethodSignature methodSignature) {
     return checkMethod(classSubject, methodSignature, true);
+  }
+
+  protected static MethodSubject checkMethodIsAbsent(ClassSubject classSubject,
+      MethodSignature methodSignature) {
+    return checkMethod(classSubject, methodSignature, false);
   }
 
   protected static MethodSubject checkMethod(ClassSubject classSubject,
@@ -119,21 +117,6 @@ public abstract class AbstractR8KotlinTestBase extends TestBase {
     assertNotNull("No code for method " + methodSubject.getMethod().descriptor(), code);
     assertTrue(code.isDexCode());
     return code.asDexCode();
-  }
-
-  private static DexCode extractCodeFor(DexInspector dexInspector, String className,
-      String methodName,
-      String methodReturnType, List<String> methodParameterTypes) {
-    ClassSubject classSubject = checkClassExists(dexInspector, className);
-    MethodSubject methodSubject = checkMethodIsPresent(classSubject, methodName, methodReturnType,
-        methodParameterTypes);
-    return getDexCode(methodSubject);
-  }
-
-  protected static MethodSubject checkMethodIsPresent(ClassSubject classSubject, String methodName,
-      String methodReturnType,
-      List<String> methodParameterTypes) {
-    return checkMethod(classSubject, methodName, methodReturnType, methodParameterTypes, true);
   }
 
   private String buildProguardRules(String mainClass) {

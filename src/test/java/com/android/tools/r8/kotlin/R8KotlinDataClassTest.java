@@ -10,11 +10,8 @@ import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.DexInspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Map;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -61,17 +58,16 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
 
       // Getters should be removed after inlining, which is possible only if access is relaxed.
       final boolean areGetterPresent = !allowAccessModification;
+      checkMethod(dataClass, NAME_GETTER_METHOD, areGetterPresent);
+      checkMethod(dataClass, AGE_GETTER_METHOD, areGetterPresent);
 
-      Map<MethodSignature, Boolean> presenceMap = ImmutableMap.<MethodSignature, Boolean>builder()
-          .put(NAME_GETTER_METHOD, areGetterPresent)
-          .put(AGE_GETTER_METHOD, areGetterPresent)
-          // ComponentN and copy methods are not used.
-          .put(COMPONENT1_METHOD, false)
-          .put(COMPONENT2_METHOD, false)
-          .put(COPY_METHOD, false)
-          .put(COPY_DEFAULT_METHOD, false)
-          .build();
-      checkMethodsPresence(dataClass, presenceMap);
+      // No use of componentN functions.
+      checkMethodIsAbsent(dataClass, COMPONENT1_METHOD);
+      checkMethodIsAbsent(dataClass, COMPONENT2_METHOD);
+
+      // No use of copy functions.
+      checkMethodIsAbsent(dataClass, COPY_METHOD);
+      checkMethodIsAbsent(dataClass, COPY_DEFAULT_METHOD);
 
       ClassSubject classSubject = checkClassExists(dexInspector, mainClassName);
       MethodSubject testMethod = checkMethodIsPresent(classSubject, testMethodSignature);
@@ -98,17 +94,16 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
       // ComponentN functions should be removed after inlining, which is possible only if access
       // is relaxed.
       final boolean areComponentMethodsPresent = !allowAccessModification;
+      checkMethod(dataClass, COMPONENT1_METHOD, areComponentMethodsPresent);
+      checkMethod(dataClass, COMPONENT2_METHOD, areComponentMethodsPresent);
 
-      Map<MethodSignature, Boolean> presenceMap = ImmutableMap.<MethodSignature, Boolean>builder()
-          .put(NAME_GETTER_METHOD, false)
-          .put(AGE_GETTER_METHOD, false)
-          // ComponentN and copy methods are not used.
-          .put(COMPONENT1_METHOD, areComponentMethodsPresent)
-          .put(COMPONENT2_METHOD, areComponentMethodsPresent)
-          .put(COPY_METHOD, false)
-          .put(COPY_DEFAULT_METHOD, false)
-          .build();
-      checkMethodsPresence(dataClass, presenceMap);
+      // No use of getter.
+      checkMethodIsAbsent(dataClass, NAME_GETTER_METHOD);
+      checkMethodIsAbsent(dataClass, AGE_GETTER_METHOD);
+
+      // No use of copy functions.
+      checkMethodIsAbsent(dataClass, COPY_METHOD);
+      checkMethodIsAbsent(dataClass, COPY_DEFAULT_METHOD);
 
       ClassSubject classSubject = checkClassExists(dexInspector, mainClassName);
       MethodSubject testMethod = checkMethodIsPresent(classSubject, testMethodSignature);
@@ -132,17 +127,18 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
       ClassSubject dataClass = checkClassExists(dexInspector, TEST_DATA_CLASS.getClassName());
 
       boolean component2IsPresent = !allowAccessModification;
+      checkMethod(dataClass, COMPONENT2_METHOD, component2IsPresent);
 
-      Map<MethodSignature, Boolean> presenceMap = ImmutableMap.<MethodSignature, Boolean>builder()
-          .put(NAME_GETTER_METHOD, false)
-          .put(AGE_GETTER_METHOD, false)
-          // ComponentN and copy methods are not used.
-          .put(COMPONENT1_METHOD, false)
-          .put(COMPONENT2_METHOD, component2IsPresent)
-          .put(COPY_METHOD, false)
-          .put(COPY_DEFAULT_METHOD, false)
-          .build();
-      checkMethodsPresence(dataClass, presenceMap);
+      // Function component1 is not used.
+      checkMethodIsAbsent(dataClass, COMPONENT1_METHOD);
+
+      // No use of getter.
+      checkMethodIsAbsent(dataClass, NAME_GETTER_METHOD);
+      checkMethodIsAbsent(dataClass, AGE_GETTER_METHOD);
+
+      // No use of copy functions.
+      checkMethodIsAbsent(dataClass, COPY_METHOD);
+      checkMethodIsAbsent(dataClass, COPY_DEFAULT_METHOD);
 
       ClassSubject classSubject = checkClassExists(dexInspector, mainClassName);
       MethodSubject testMethod = checkMethodIsPresent(classSubject, testMethodSignature);
@@ -156,27 +152,23 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
   }
 
   @Test
-  public void test_dataclass_copy() throws Exception {
-    final String mainClassName = "dataclass.MainCopyKt";
-    runTest("dataclass", mainClassName, (app) -> {
+  public void test_dataclass_copyIsRemovedIfNotUsed() throws Exception {
+    final String mainClassName = "dataclass.MainComponentOnlyKt";
+    final MethodSignature testMethodSignature =
+        new MethodSignature("testDataClassCopy", "void", Collections.emptyList());
+    final String extraRules = keepClassMethod(mainClassName, testMethodSignature);
+    runTest("dataclass", mainClassName, extraRules, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject dataClass = checkClassExists(dexInspector, TEST_DATA_CLASS.getClassName());
 
-      // Copy method is small enough that it is always inlined.
-      final boolean copyMethodIsPresent = false;
-
-      Map<MethodSignature, Boolean> presenceMap = ImmutableMap.<MethodSignature, Boolean>builder()
-          .put(COPY_METHOD, copyMethodIsPresent)
-          .put(COPY_DEFAULT_METHOD, false)
-          .build();
-      checkMethodsPresence(dataClass, presenceMap);
+      checkMethodIsAbsent(dataClass, COPY_METHOD);
+      checkMethodIsAbsent(dataClass, COPY_DEFAULT_METHOD);
     });
   }
 
   @Test
-  @Ignore("See b/72871423")
-  public void test_dataclass_copyDefault() throws Exception {
-    final String mainClassName = "dataclass.MainCopyWithDefaultKt";
+  public void test_dataclass_copyDefaultIsRemovedIfNotUsed() throws Exception {
+    final String mainClassName = "dataclass.MainCopyKt";
     final MethodSignature testMethodSignature =
         new MethodSignature("testDataClassCopyWithDefault", "void", Collections.emptyList());
     final String extraRules = keepClassMethod(mainClassName, testMethodSignature);
@@ -184,30 +176,7 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject dataClass = checkClassExists(dexInspector, TEST_DATA_CLASS.getClassName());
 
-      // Copy$default method is inlined if access is relaxed.
-      final boolean copyDefaultMethodIsPresent = !allowAccessModification;
-
-      // copy$default is a wrapper around copy to deal with default values. If it's inlined thus
-      // copy is inlined as well.
-      final boolean copyMethodIsPresent = copyDefaultMethodIsPresent;
-
-      Map<MethodSignature, Boolean> presenceMap = ImmutableMap.<MethodSignature, Boolean>builder()
-          .put(COPY_DEFAULT_METHOD, copyDefaultMethodIsPresent)
-          .put(COPY_METHOD, copyMethodIsPresent)
-          .build();
-      checkMethodsPresence(dataClass, presenceMap);
-
-      if (copyDefaultMethodIsPresent) {
-        ClassSubject classSubject = checkClassExists(dexInspector, mainClassName);
-        MethodSubject testMethod = checkMethodIsPresent(classSubject, testMethodSignature);
-        DexCode dexCode = getDexCode(testMethod);
-        checkMethodIsInvokedAtLeastOnce(dexCode, COPY_DEFAULT_METHOD);
-      }
-      if (copyMethodIsPresent) {
-        MethodSubject testMethod = checkMethod(dataClass, COPY_DEFAULT_METHOD, true);
-        DexCode dexCode = getDexCode(testMethod);
-        checkMethodIsInvokedAtLeastOnce(dexCode, COPY_METHOD);
-      }
+      checkMethodIsAbsent(dataClass, COPY_DEFAULT_METHOD);
     });
   }
 
