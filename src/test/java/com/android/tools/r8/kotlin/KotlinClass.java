@@ -63,7 +63,15 @@ class KotlinClass {
 
   public MemberNaming.MethodSignature getGetterForProperty(String name) {
     String type = getProperty(name).type;
-    String getterName = "get" + name.substring(0, 1).toUpperCase() + name.substring(1);
+    String getterName;
+    if (name.length() > 2 && name.startsWith("is")
+        && (name.charAt(2) == '_' || Character.isUpperCase(name.charAt(2)))) {
+      // Getter for property "isAbc" is "isAbc".
+      getterName = name;
+    } else {
+      // Getter for property "abc" is "getAbc".
+      getterName = "get" + Character.toUpperCase(name.charAt(0)) + name.substring(1);
+    }
     return new MemberNaming.MethodSignature(getterName, type, Collections.emptyList());
   }
 }
