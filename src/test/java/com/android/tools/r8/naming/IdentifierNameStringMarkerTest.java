@@ -60,12 +60,13 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
     assertNotNull(method);
 
     DexCode code = method.getCode().asDexCode();
-    assertTrue(code.instructions[0] instanceof InvokeDirect);
-    assertTrue(code.instructions[1] instanceof ConstString);
+    checkInstructions(code, ImmutableList.of(
+        InvokeDirect.class,
+        ConstString.class,
+        IputObject.class,
+        ReturnVoid.class));
     ConstString constString = (ConstString) code.instructions[1];
     assertEquals(BOO, constString.getString().toString());
-    assertTrue(code.instructions[2] instanceof IputObject);
-    assertTrue(code.instructions[3] instanceof ReturnVoid);
   }
 
   @Test
@@ -92,17 +93,18 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
     assertNotNull(method);
 
     DexCode code = method.getCode().asDexCode();
-    assertTrue(code.instructions[0] instanceof InvokeDirect);
-    assertTrue(code.instructions[1] instanceof SgetObject);
-    assertTrue(code.instructions[2] instanceof ConstString);
+    checkInstructions(code, ImmutableList.of(
+        InvokeDirect.class,
+        SgetObject.class,
+        ConstString.class,
+        InvokeVirtual.class,
+        ConstString.class,
+        IputObject.class,
+        ReturnVoid.class));
     ConstString constString = (ConstString) code.instructions[2];
     assertEquals(BOO, constString.getString().toString());
-    assertTrue(code.instructions[3] instanceof InvokeVirtual);
-    assertTrue(code.instructions[4] instanceof ConstString);
     constString = (ConstString) code.instructions[4];
     assertEquals(BOO, constString.getString().toString());
-    assertTrue(code.instructions[5] instanceof IputObject);
-    assertTrue(code.instructions[6] instanceof ReturnVoid);
   }
 
   @Test
@@ -131,17 +133,18 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
     assertNotNull(method);
 
     DexCode code = method.getCode().asDexCode();
-    assertTrue(code.instructions[0] instanceof InvokeDirect);
-    assertTrue(code.instructions[1] instanceof SgetObject);
-    assertTrue(code.instructions[2] instanceof ConstString);
+    checkInstructions(code, ImmutableList.of(
+        InvokeDirect.class,
+        SgetObject.class,
+        ConstString.class,
+        InvokeVirtual.class,
+        ConstString.class,
+        IputObject.class,
+        ReturnVoid.class));
     ConstString constString = (ConstString) code.instructions[2];
     assertEquals(BOO, constString.getString().toString());
-    assertTrue(code.instructions[3] instanceof InvokeVirtual);
-    assertTrue(code.instructions[4] instanceof ConstString);
     constString = (ConstString) code.instructions[4];
     assertNotEquals(BOO, constString.getString().toString());
-    assertTrue(code.instructions[5] instanceof IputObject);
-    assertTrue(code.instructions[6] instanceof ReturnVoid);
   }
 
   @Test
@@ -165,11 +168,12 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
     assertNotNull(method);
 
     DexCode code = method.getCode().asDexCode();
-    assertTrue(code.instructions[0] instanceof ConstString);
+    checkInstructions(code, ImmutableList.of(
+        ConstString.class,
+        SputObject.class,
+        ReturnVoid.class));
     ConstString constString = (ConstString) code.instructions[0];
     assertEquals(BOO, constString.getString().toString());
-    assertTrue(code.instructions[1] instanceof SputObject);
-    assertTrue(code.instructions[2] instanceof ReturnVoid);
   }
 
   @Test
@@ -195,16 +199,17 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
     assertNotNull(method);
 
     DexCode code = method.getCode().asDexCode();
-    assertTrue(code.instructions[0] instanceof SgetObject);
-    assertTrue(code.instructions[1] instanceof ConstString);
+    checkInstructions(code, ImmutableList.of(
+        SgetObject.class,
+        ConstString.class,
+        InvokeVirtual.class,
+        ConstString.class,
+        SputObject.class,
+        ReturnVoid.class));
     ConstString constString = (ConstString) code.instructions[1];
     assertEquals(BOO, constString.getString().toString());
-    assertTrue(code.instructions[2] instanceof InvokeVirtual);
-    assertTrue(code.instructions[3] instanceof ConstString);
     constString = (ConstString) code.instructions[3];
     assertEquals(BOO, constString.getString().toString());
-    assertTrue(code.instructions[4] instanceof SputObject);
-    assertTrue(code.instructions[5] instanceof ReturnVoid);
   }
 
   @Test
@@ -232,16 +237,17 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
     assertNotNull(method);
 
     DexCode code = method.getCode().asDexCode();
-    assertTrue(code.instructions[0] instanceof SgetObject);
-    assertTrue(code.instructions[1] instanceof ConstString);
+    checkInstructions(code, ImmutableList.of(
+        SgetObject.class,
+        ConstString.class,
+        InvokeVirtual.class,
+        ConstString.class,
+        SputObject.class,
+        ReturnVoid.class));
     ConstString constString = (ConstString) code.instructions[1];
     assertEquals(BOO, constString.getString().toString());
-    assertTrue(code.instructions[2] instanceof InvokeVirtual);
-    assertTrue(code.instructions[3] instanceof ConstString);
     constString = (ConstString) code.instructions[3];
     assertNotEquals(BOO, constString.getString().toString());
-    assertTrue(code.instructions[4] instanceof SputObject);
-    assertTrue(code.instructions[5] instanceof ReturnVoid);
   }
 
   @Test
@@ -252,8 +258,7 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
     List<String> pgConfigs = ImmutableList.of(
         "-identifiernamestring class " + CLASS_NAME + " { static java.lang.String sClassName; }",
         "-keep class " + CLASS_NAME + " { static java.lang.String sClassName; }",
-        "-dontshrink",
-        "-dontoptimize");
+        "-dontshrink");
     DexInspector inspector = getInspectorAfterRunR8(builder, pgConfigs);
 
     ClassSubject clazz = inspector.clazz(CLASS_NAME);
@@ -275,8 +280,7 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
         "-identifiernamestring class " + CLASS_NAME + " { static java.lang.String sClassName; }",
         "-keep class " + CLASS_NAME + " { static java.lang.String sClassName; }",
         "-keep,allowobfuscation class " + BOO,
-        "-dontshrink",
-        "-dontoptimize");
+        "-dontshrink");
     DexInspector inspector = getInspectorAfterRunR8(builder, pgConfigs);
 
     ClassSubject clazz = inspector.clazz(CLASS_NAME);
@@ -300,8 +304,7 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
         "-identifiernamestring class " + CLASS_NAME + " { static java.lang.String sFieldName; }",
         "-keep class " + CLASS_NAME + " { static java.lang.String sFieldName; }",
         "-keep,allowobfuscation class " + BOO + " { <fields>; }",
-        "-dontshrink",
-        "-dontoptimize");
+        "-dontshrink");
     DexInspector inspector = getInspectorAfterRunR8(builder, pgConfigs);
 
     ClassSubject clazz = inspector.clazz(CLASS_NAME);
@@ -325,8 +328,7 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
         "-identifiernamestring class " + CLASS_NAME + " { static java.lang.String sMethodName; }",
         "-keep class " + CLASS_NAME + " { static java.lang.String sMethodName; }",
         "-keep,allowobfuscation class " + BOO + " { <methods>; }",
-        "-dontshrink",
-        "-dontoptimize");
+        "-dontshrink");
     DexInspector inspector = getInspectorAfterRunR8(builder, pgConfigs);
 
     ClassSubject clazz = inspector.clazz(CLASS_NAME);
@@ -356,8 +358,7 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
 
     List<String> pgConfigs = ImmutableList.of(
         "-identifiernamestring class " + CLASS_NAME + " { static void foo(...); }",
-        "-keep class " + CLASS_NAME,
-        "-dontoptimize");
+        "-keep class " + CLASS_NAME);
     DexInspector inspector = getInspectorAfterRunR8(builder, pgConfigs);
 
     ClassSubject clazz = inspector.clazz(CLASS_NAME);
@@ -366,15 +367,16 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
     assertNotNull(method);
 
     DexCode code = method.getCode().asDexCode();
-    assertTrue(code.instructions[0] instanceof InvokeDirect);
-    assertTrue(code.instructions[1] instanceof ConstString);
+    checkInstructions(code, ImmutableList.of(
+        InvokeDirect.class,
+        ConstString.class,
+        ConstString.class,
+        InvokeStatic.class,
+        ReturnVoid.class));
     ConstString constString = (ConstString) code.instructions[1];
     assertEquals("Mixed/form.Boo", constString.getString().toString());
-    assertTrue(code.instructions[2] instanceof ConstString);
     constString = (ConstString) code.instructions[2];
     assertEquals(BOO, constString.getString().toString());
-    assertTrue(code.instructions[3] instanceof InvokeStatic);
-    assertTrue(code.instructions[4] instanceof ReturnVoid);
   }
 
   @Test
@@ -396,8 +398,7 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
 
     List<String> pgConfigs = ImmutableList.of(
         "-identifiernamestring class " + CLASS_NAME + " { static void foo(...); }",
-        "-keep class " + CLASS_NAME,
-        "-dontoptimize");
+        "-keep class " + CLASS_NAME);
     DexInspector inspector = getInspectorAfterRunR8(builder, pgConfigs);
 
     ClassSubject clazz = inspector.clazz(CLASS_NAME);
@@ -406,17 +407,18 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
     assertNotNull(method);
 
     DexCode code = method.getCode().asDexCode();
-    assertTrue(code.instructions[0] instanceof InvokeDirect);
-    assertTrue(code.instructions[1] instanceof SgetObject);
-    assertTrue(code.instructions[2] instanceof ConstString);
+    checkInstructions(code, ImmutableList.of(
+        InvokeDirect.class,
+        SgetObject.class,
+        ConstString.class,
+        InvokeVirtual.class,
+        ConstString.class,
+        InvokeStatic.class,
+        ReturnVoid.class));
     ConstString constString = (ConstString) code.instructions[2];
     assertEquals(BOO, constString.getString().toString());
-    assertTrue(code.instructions[3] instanceof InvokeVirtual);
-    assertTrue(code.instructions[4] instanceof ConstString);
     constString = (ConstString) code.instructions[4];
     assertEquals(BOO, constString.getString().toString());
-    assertTrue(code.instructions[5] instanceof InvokeStatic);
-    assertTrue(code.instructions[6] instanceof ReturnVoid);
   }
 
   @Test
@@ -440,8 +442,7 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
     List<String> pgConfigs = ImmutableList.of(
         "-identifiernamestring class " + CLASS_NAME + " { static void foo(...); }",
         "-keep class " + CLASS_NAME,
-        "-keep,allowobfuscation class " + BOO,
-        "-dontoptimize");
+        "-keep,allowobfuscation class " + BOO);
     DexInspector inspector = getInspectorAfterRunR8(builder, pgConfigs);
 
     ClassSubject clazz = inspector.clazz(CLASS_NAME);
@@ -450,17 +451,18 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
     assertNotNull(method);
 
     DexCode code = method.getCode().asDexCode();
-    assertTrue(code.instructions[0] instanceof InvokeDirect);
-    assertTrue(code.instructions[1] instanceof SgetObject);
-    assertTrue(code.instructions[2] instanceof ConstString);
+    checkInstructions(code, ImmutableList.of(
+        InvokeDirect.class,
+        SgetObject.class,
+        ConstString.class,
+        InvokeVirtual.class,
+        ConstString.class,
+        InvokeStatic.class,
+        ReturnVoid.class));
     ConstString constString = (ConstString) code.instructions[2];
     assertEquals(BOO, constString.getString().toString());
-    assertTrue(code.instructions[3] instanceof InvokeVirtual);
-    assertTrue(code.instructions[4] instanceof ConstString);
     constString = (ConstString) code.instructions[4];
     assertNotEquals(BOO, constString.getString().toString());
-    assertTrue(code.instructions[5] instanceof InvokeStatic);
-    assertTrue(code.instructions[6] instanceof ReturnVoid);
   }
 
   @Test
@@ -492,8 +494,7 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
             + "  static java.lang.reflect.Field *(java.lang.Class,java.lang.String);\n"
             + "}",
         "-keep class " + CLASS_NAME,
-        "-keep class R { *; }",
-        "-dontoptimize");
+        "-keep class R { *; }");
     DexInspector inspector = getInspectorAfterRunR8(builder, pgConfigs);
 
     ClassSubject clazz = inspector.clazz(CLASS_NAME);
@@ -502,13 +503,14 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
     assertNotNull(method);
 
     DexCode code = method.getCode().asDexCode();
-    assertTrue(code.instructions[0] instanceof InvokeDirect);
-    assertTrue(code.instructions[1] instanceof ConstClass);
-    assertTrue(code.instructions[2] instanceof ConstString);
+    checkInstructions(code, ImmutableList.of(
+        InvokeDirect.class,
+        ConstClass.class,
+        ConstString.class,
+        InvokeStatic.class,
+        ReturnVoid.class));
     ConstString constString = (ConstString) code.instructions[2];
     assertEquals("foo", constString.getString().toString());
-    assertTrue(code.instructions[3] instanceof InvokeStatic);
-    assertTrue(code.instructions[4] instanceof ReturnVoid);
   }
 
   @Test
@@ -540,8 +542,7 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
             + "  static java.lang.reflect.Field *(java.lang.Class,java.lang.String);\n"
             + "}",
         "-keep class " + CLASS_NAME,
-        "-keep,allowobfuscation class R { *; }",
-        "-dontoptimize");
+        "-keep,allowobfuscation class R { *; }");
     DexInspector inspector = getInspectorAfterRunR8(builder, pgConfigs);
 
     ClassSubject clazz = inspector.clazz(CLASS_NAME);
@@ -550,13 +551,14 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
     assertNotNull(method);
 
     DexCode code = method.getCode().asDexCode();
-    assertTrue(code.instructions[0] instanceof InvokeDirect);
-    assertTrue(code.instructions[1] instanceof ConstClass);
-    assertTrue(code.instructions[2] instanceof ConstString);
+    checkInstructions(code, ImmutableList.of(
+        InvokeDirect.class,
+        ConstClass.class,
+        ConstString.class,
+        InvokeStatic.class,
+        ReturnVoid.class));
     ConstString constString = (ConstString) code.instructions[2];
     assertNotEquals("foo", constString.getString().toString());
-    assertTrue(code.instructions[3] instanceof InvokeStatic);
-    assertTrue(code.instructions[4] instanceof ReturnVoid);
   }
 
   @Test
@@ -595,8 +597,7 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
             + "    *(java.lang.Class,java.lang.String,java.lang.Class[]);\n"
             + "}",
         "-keep class " + CLASS_NAME,
-        "-keep class R { *; }",
-        "-dontoptimize");
+        "-keep class R { *; }");
     DexInspector inspector = getInspectorAfterRunR8(builder, pgConfigs);
 
     ClassSubject clazz = inspector.clazz(CLASS_NAME);
@@ -605,17 +606,18 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
     assertNotNull(method);
 
     DexCode code = method.getCode().asDexCode();
-    assertTrue(code.instructions[0] instanceof InvokeDirect);
-    assertTrue(code.instructions[1] instanceof ConstClass);
-    assertTrue(code.instructions[2] instanceof Const4);
-    assertTrue(code.instructions[3] instanceof NewArray);
-    assertTrue(code.instructions[4] instanceof Const4);
-    assertTrue(code.instructions[5] instanceof AputObject);
-    assertTrue(code.instructions[6] instanceof ConstString);
+    checkInstructions(code, ImmutableList.of(
+        InvokeDirect.class,
+        ConstClass.class,
+        Const4.class,
+        NewArray.class,
+        Const4.class,
+        AputObject.class,
+        ConstString.class,
+        InvokeStatic.class,
+        ReturnVoid.class));
     ConstString constString = (ConstString) code.instructions[6];
     assertEquals("foo", constString.getString().toString());
-    assertTrue(code.instructions[7] instanceof InvokeStatic);
-    assertTrue(code.instructions[8] instanceof ReturnVoid);
   }
 
   @Test
@@ -654,8 +656,7 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
             + "    *(java.lang.Class,java.lang.String,java.lang.Class[]);\n"
             + "}",
         "-keep class " + CLASS_NAME,
-        "-keep,allowobfuscation class R { *; }",
-        "-dontoptimize");
+        "-keep,allowobfuscation class R { *; }");
     DexInspector inspector = getInspectorAfterRunR8(builder, pgConfigs);
 
     ClassSubject clazz = inspector.clazz(CLASS_NAME);
@@ -664,17 +665,18 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
     assertNotNull(method);
 
     DexCode code = method.getCode().asDexCode();
-    assertTrue(code.instructions[0] instanceof InvokeDirect);
-    assertTrue(code.instructions[1] instanceof ConstClass);
-    assertTrue(code.instructions[2] instanceof Const4);
-    assertTrue(code.instructions[3] instanceof NewArray);
-    assertTrue(code.instructions[4] instanceof Const4);
-    assertTrue(code.instructions[5] instanceof AputObject);
-    assertTrue(code.instructions[6] instanceof ConstString);
+    checkInstructions(code, ImmutableList.of(
+        InvokeDirect.class,
+        ConstClass.class,
+        Const4.class,
+        NewArray.class,
+        Const4.class,
+        AputObject.class,
+        ConstString.class,
+        InvokeStatic.class,
+        ReturnVoid.class));
     ConstString constString = (ConstString) code.instructions[6];
     assertNotEquals("foo", constString.getString().toString());
-    assertTrue(code.instructions[7] instanceof InvokeStatic);
-    assertTrue(code.instructions[8] instanceof ReturnVoid);
   }
 
   private DexInspector getInspectorAfterRunR8(

@@ -8,4 +8,7 @@ public class A {
   String bar(String s) {
     return foo + s;
   }
+  public static String baz() {
+    return foo;
+  }
 }

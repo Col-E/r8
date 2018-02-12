@@ -10,7 +10,6 @@
 -keep,allowobfuscation class atomicfieldupdater.A
 
 -dontshrink
--dontoptimize
 
 # This will be added to CompatProguard by default.
 # We are testing whether R8 shows the same behavior.
