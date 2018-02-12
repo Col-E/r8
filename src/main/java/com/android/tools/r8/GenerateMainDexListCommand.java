@@ -204,8 +204,8 @@ public class GenerateMainDexListCommand extends BaseCommand {
     internal.mainDexKeepRules = mainDexKeepRules;
     internal.mainDexListConsumer = mainDexListConsumer;
     internal.minimalMainDex = internal.debug;
-    internal.removeSwitchMaps = false;
-    internal.inlineAccessors = false;
+    internal.enableSwitchMapRemoval = false;
+    internal.enableInlining = false;
     return internal;
   }
 }

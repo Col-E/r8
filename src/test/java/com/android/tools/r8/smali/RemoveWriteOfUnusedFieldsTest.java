@@ -59,7 +59,7 @@ public class RemoveWriteOfUnusedFieldsTest extends SmaliTestBase {
         compileWithR8(
             AndroidApp.builder().addDexProgramData(builder.compile(), Origin.unknown()).build(),
             keepMainProguardConfiguration("Test"),
-            options -> options.inlineAccessors = false);
+            options -> options.enableInlining = false);
 
     DexInspector inspector = new DexInspector(app);
     MethodSubject method = inspector.clazz("Test").method("void", "test", ImmutableList.of());
@@ -111,7 +111,7 @@ public class RemoveWriteOfUnusedFieldsTest extends SmaliTestBase {
         compileWithR8(
             AndroidApp.builder().addDexProgramData(builder.compile(), Origin.unknown()).build(),
             keepMainProguardConfiguration("Test"),
-            options -> options.inlineAccessors = false);
+            options -> options.enableInlining = false);
 
     DexInspector inspector = new DexInspector(app);
     MethodSubject method = inspector.clazz("Test").method("void", "test", ImmutableList.of());

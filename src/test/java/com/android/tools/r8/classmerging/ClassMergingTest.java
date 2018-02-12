@@ -38,7 +38,7 @@ public class ClassMergingTest {
   public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
   private void configure(InternalOptions options) {
-    options.skipClassMerging = false;
+    options.enableClassMerging = true;
   }
 
   private void runR8(Path proguardConfig, Consumer<InternalOptions> optionsConsumer)

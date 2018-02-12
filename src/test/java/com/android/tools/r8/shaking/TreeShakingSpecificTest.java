@@ -94,7 +94,7 @@ public class TreeShakingSpecificTest {
         .addProguardConfigurationFiles(keepRules, printMapping);
     ToolHelper.getAppBuilder(builder).addProgramFiles(originalDex);
     // Turn off inlining, as we want the mapping that is printed to be stable.
-    ToolHelper.runR8(builder.build(), options -> options.inlineAccessors = false);
+    ToolHelper.runR8(builder.build(), options -> options.enableInlining = false);
 
     Path outputmapping = out.resolve("mapping.txt");
     // Remove comments.

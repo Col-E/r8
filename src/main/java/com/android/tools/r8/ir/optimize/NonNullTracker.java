@@ -20,9 +20,9 @@ import com.google.common.collect.Sets;
 import java.util.ListIterator;
 import java.util.Set;
 
-public class NonNullMarker {
+public class NonNullTracker {
 
-  public NonNullMarker() {
+  public NonNullTracker() {
   }
 
   @VisibleForTesting

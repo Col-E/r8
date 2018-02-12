@@ -36,7 +36,7 @@ public class CheckDiscardedTest extends TestBase {
   }
 
   private void noInlining(InternalOptions options) {
-    options.inlineAccessors = false;
+    options.enableInlining = false;
   }
 
   private String checkDiscardRule(boolean member, Class annotation) {

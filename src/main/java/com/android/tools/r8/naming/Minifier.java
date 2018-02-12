@@ -37,7 +37,7 @@ public class Minifier {
   }
 
   public NamingLens run(Timing timing) {
-    assert !options.skipMinification;
+    assert options.enableMinification;
     timing.begin("MinifyClasses");
     Map<DexType, DexString> classRenaming =
         new ClassNameMinifier(appInfo, rootSet, options).computeRenaming(timing);

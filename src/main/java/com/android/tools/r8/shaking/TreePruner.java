@@ -41,8 +41,7 @@ public class TreePruner {
 
   public DexApplication run() {
     application.timing.begin("Pruning application...");
-    if (options.debugKeepRules && !options.skipMinification) {
-
+    if (options.debugKeepRules && options.enableMinification) {
       options.reporter.info(
           new StringDiagnostic(
               "Debugging keep rules on a minified build might yield broken builds, as "

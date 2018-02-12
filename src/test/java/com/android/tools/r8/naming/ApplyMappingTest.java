@@ -293,7 +293,7 @@ public class ApplyMappingTest {
       throws ProguardRuleParserException, ExecutionException, CompilationException, IOException {
     return ToolHelper.runR8(command, options -> {
       // Disable inlining to make this test not depend on inlining decisions.
-      options.inlineAccessors = false;
+      options.enableInlining = false;
     });
   }
 }

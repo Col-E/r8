@@ -1424,7 +1424,7 @@ public abstract class R8RunArtTestsTest {
               builder.build(),
               options -> {
                 if (disableInlining) {
-                  options.inlineAccessors = false;
+                  options.enableInlining = false;
                 }
                 options.lineNumberOptimization = LineNumberOptimization.OFF;
                 // Some tests actually rely on missing classes for what they test.

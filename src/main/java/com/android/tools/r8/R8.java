@@ -287,7 +287,7 @@ public class R8 {
           out.flush();
           proguardSeedsData = bytes.toString();
         }
-        if (options.useTreeShaking) {
+        if (options.enableTreeShaking) {
           TreePruner pruner = new TreePruner(application, appInfo.withLiveness(), options);
           application = pruner.run();
           // Recompute the subtyping information.
@@ -329,7 +329,7 @@ public class R8 {
       if (appInfo.hasLiveness()) {
         graphLense = new MemberRebindingAnalysis(appInfo.withLiveness(), graphLense).run();
         // Class merging requires inlining.
-        if (!options.skipClassMerging && options.inlineAccessors) {
+        if (options.enableClassMerging && options.enableInlining) {
           timing.begin("ClassMerger");
           SimpleClassMerger classMerger = new SimpleClassMerger(application,
               appInfo.withLiveness(), graphLense, timing);
@@ -400,12 +400,12 @@ public class R8 {
 
       appInfo = new AppInfoWithSubtyping(application);
 
-      if (options.useTreeShaking || !options.skipMinification) {
+      if (options.enableTreeShaking || options.enableMinification) {
         timing.begin("Post optimization code stripping");
         try {
           Enqueuer enqueuer = new Enqueuer(appInfo, options);
           appInfo = enqueuer.traceApplication(rootSet, timing);
-          if (options.useTreeShaking) {
+          if (options.enableTreeShaking) {
             TreePruner pruner = new TreePruner(application, appInfo.withLiveness(), options);
             application = pruner.run();
             appInfo = appInfo.withLiveness()
@@ -420,7 +420,7 @@ public class R8 {
       }
 
       // Only perform discard-checking if tree-shaking is turned on.
-      if (options.useTreeShaking && !rootSet.checkDiscarded.isEmpty()) {
+      if (options.enableTreeShaking && !rootSet.checkDiscarded.isEmpty()) {
         new DiscardedChecker(rootSet, application, options).run();
       }
 
@@ -428,9 +428,9 @@ public class R8 {
       // If we did not have keep rules, everything will be marked as keep, so no minification
       // will happen. Just avoid the overhead.
       NamingLens namingLens =
-          options.skipMinification
-              ? NamingLens.getIdentityLens()
-              : new Minifier(appInfo.withLiveness(), rootSet, options).run(timing);
+          options.enableMinification
+              ? new Minifier(appInfo.withLiveness(), rootSet, options).run(timing)
+              : NamingLens.getIdentityLens();
       timing.end();
 
       ProguardMapSupplier proguardMapSupplier;

@@ -26,7 +26,7 @@ public class RemoveAssertionsTest extends TestBase {
     AndroidApp app = compileWithR8(
         ImmutableList.of(testClass),
         keepMainProguardConfiguration(testClass, true, false),
-        options -> options.inlineAccessors = false);
+        options -> options.enableInlining = false);
     DexInspector x = new DexInspector(app);
 
     ClassSubject clazz = x.clazz(ClassWithAssertions.class);

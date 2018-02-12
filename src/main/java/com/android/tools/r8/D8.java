@@ -148,8 +148,8 @@ public final class D8 {
       throws IOException, CompilationException {
     try {
       // Disable global optimizations.
-      options.skipMinification = true;
-      options.inlineAccessors = false;
+      options.enableMinification = false;
+      options.enableInlining = false;
       options.outline.enabled = false;
 
       Timing timing = new Timing("DX timer");

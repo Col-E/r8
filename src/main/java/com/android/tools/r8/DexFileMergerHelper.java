@@ -56,8 +56,8 @@ public class DexFileMergerHelper {
     options.enableDesugaring = false;
     options.enableMainDexListCheck = false;
     options.minimalMainDex = minimalMainDex;
-    options.skipMinification = true;
-    options.inlineAccessors = false;
+    options.enableMinification = false;
+    options.enableInlining = false;
     options.outline.enabled = false;
 
     ExecutorService executor = ThreadUtils.getExecutorService(ThreadUtils.NOT_SPECIFIED);

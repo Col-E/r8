@@ -65,6 +65,15 @@ public class InternalOptions {
     this.reporter = reporter;
     this.proguardConfiguration = proguardConfiguration;
     itemFactory = proguardConfiguration.getDexItemFactory();
+    // -dontoptimize disables optimizations by flipping related flags.
+    if (!proguardConfiguration.isOptimizing()) {
+      enableClassMerging = false;
+      enableNonNullTracking = false;
+      enableInlining = false;
+      enableSwitchMapRemoval = false;
+      outline.enabled = false;
+      enableValuePropagation = false;
+    }
   }
 
   public boolean printTimes = false;
@@ -73,12 +82,12 @@ public class InternalOptions {
   public boolean passthroughDexCode = false;
 
   // Optimization-related flags. These should conform to -dontoptimize.
-  public boolean skipClassMerging = true;
-  public boolean addNonNull = true;
-  public boolean inlineAccessors = true;
-  public boolean removeSwitchMaps = true;
+  public boolean enableClassMerging = false;
+  public boolean enableNonNullTracking = true;
+  public boolean enableInlining = true;
+  public boolean enableSwitchMapRemoval = true;
   public final OutlineOptions outline = new OutlineOptions();
-  public boolean propagateMemberValue = true;
+  public boolean enableValuePropagation = true;
 
   // Number of threads to use while processing the dex files.
   public int numberOfThreads = ThreadUtils.NOT_SPECIFIED;
@@ -162,14 +171,14 @@ public class InternalOptions {
   // to disable the check that the build makes sense for multi-dexing.
   public boolean enableMainDexListCheck = true;
 
-  public boolean useTreeShaking = true;
+  public boolean enableTreeShaking = true;
 
   public boolean printCfg = false;
   public String printCfgFile;
   public boolean ignoreMissingClasses = false;
   // EXPERIMENTAL flag to get behaviour as close to Proguard as possible.
   public boolean forceProguardCompatibility = false;
-  public boolean skipMinification = false;
+  public boolean enableMinification = true;
   public boolean disableAssertions = true;
   public boolean debugKeepRules = false;
 
