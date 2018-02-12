@@ -93,7 +93,7 @@ public class AnnotationRemover {
     }
     DexClass definition = appInfo.definitionFor(annotationType);
     // TODO(73102187): How to handle annotations without definition.
-    if (options.useTreeShaking && definition == null) {
+    if (options.enableTreeShaking && definition == null) {
       return false;
     }
     return definition == null || definition.isLibraryClass()

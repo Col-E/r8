@@ -145,7 +145,7 @@ public class TreeShakingTest {
             .addProguardConfigurationFiles(ListUtils.map(keepRulesFiles, Paths::get))
             .addLibraryFiles(JAR_LIBRARIES);
     ToolHelper.getAppBuilder(builder).addProgramFiles(Paths.get(programFile));
-    ToolHelper.runR8(builder.build(), options -> options.inlineAccessors = inline);
+    ToolHelper.runR8(builder.build(), options -> options.enableInlining = inline);
   }
 
   public static void shaking1HasNoClassUnused(DexInspector inspector) {

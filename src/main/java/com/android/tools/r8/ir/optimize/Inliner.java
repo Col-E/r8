@@ -269,8 +269,8 @@ public class Inliner {
       if (!target.isProcessed()) {
         new LensCodeRewriter(graphLense, appInfo).rewrite(code, target);
       }
-      if (options.addNonNull) {
-        new NonNullMarker().addNonNull(code);
+      if (options.enableNonNullTracking) {
+        new NonNullTracker().addNonNull(code);
       }
       return code;
     }

@@ -84,7 +84,7 @@ public class MemberRebindingTest {
         .addLibraryFiles(JAR_LIBRARIES)
         .setMinApiLevel(minApiLevel);
     ToolHelper.getAppBuilder(builder).addProgramFiles(programFile);
-    ToolHelper.runR8(builder.build(), options -> options.inlineAccessors = false);
+    ToolHelper.runR8(builder.build(), options -> options.enableInlining = false);
   }
 
   private static boolean coolInvokes(InstructionSubject instruction) {

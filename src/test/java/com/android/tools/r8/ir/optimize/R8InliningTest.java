@@ -100,7 +100,7 @@ public class R8InliningTest extends TestBase {
             .build();
     // TODO(62048823): Enable minification.
     ToolHelper.runR8(command, o -> {
-      o.skipMinification = true;
+      o.enableMinification = false;
     });
     String artOutput = ToolHelper.runArtNoVerificationErrors(out + "/classes.dex",
         "inlining.Inlining");

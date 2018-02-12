@@ -31,7 +31,7 @@ import com.android.tools.r8.utils.Timing;
 import java.util.function.Consumer;
 import org.junit.Test;
 
-public class NonNullMarkerTest extends TestBase {
+public class NonNullTrackerTest extends TestBase {
   private static final InternalOptions TEST_OPTIONS = new InternalOptions();
 
   private void buildAndTest(
@@ -50,9 +50,9 @@ public class NonNullMarkerTest extends TestBase {
     IRCode irCode = foo.buildIR(TEST_OPTIONS);
     checkCountOfNonNull(irCode, 0);
 
-    NonNullMarker nonNullMarker = new NonNullMarker();
+    NonNullTracker nonNullTracker = new NonNullTracker();
 
-    nonNullMarker.addNonNull(irCode);
+    nonNullTracker.addNonNull(irCode);
     assertTrue(irCode.isConsistentSSA());
     checkCountOfNonNull(irCode, expectedNumberOfNonNull);
 
@@ -60,7 +60,7 @@ public class NonNullMarkerTest extends TestBase {
       testAugmentedIRCode.accept(irCode);
     }
 
-    nonNullMarker.cleanupNonNull(irCode);
+    nonNullTracker.cleanupNonNull(irCode);
     assertTrue(irCode.isConsistentSSA());
     checkCountOfNonNull(irCode, 0);
   }
@@ -75,7 +75,7 @@ public class NonNullMarkerTest extends TestBase {
       if (curr.isNonNull()) {
         // Make sure non-null is added to the right place.
         assertTrue(prev == null
-            || NonNullMarker.throwsOnNullInput(prev)
+            || NonNullTracker.throwsOnNullInput(prev)
             || (prev.isIf() && prev.asIf().isZeroTest())
             || !curr.getBlock().getPredecessors().contains(prev.getBlock()));
         count++;

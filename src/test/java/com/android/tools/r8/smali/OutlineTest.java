@@ -49,7 +49,7 @@ public class OutlineTest extends SmaliTestBase {
   private Consumer<InternalOptions> configureOptions(Consumer<OutlineOptions> optionsConsumer) {
     return options -> {
       // Disable inlining to make sure that code looks as expected.
-      options.inlineAccessors = false;
+      options.enableInlining = false;
       // Also apply outline options.
       optionsConsumer.accept(options.outline);
     };

@@ -636,26 +636,17 @@ public class R8Command extends BaseCompilerCommand {
     internal.programConsumer = getProgramConsumer();
     internal.minApiLevel = getMinApiLevel();
     internal.enableDesugaring = getEnableDesugaring();
-    // -dontoptimize disables optimizations by flipping related flags.
-    if (!proguardConfiguration.isOptimizing()) {
-      internal.skipClassMerging = true;
-      internal.addNonNull = false;
-      internal.inlineAccessors = false;
-      internal.removeSwitchMaps = false;
-      internal.outline.enabled = false;
-      internal.propagateMemberValue = false;
-    }
-    assert !internal.skipMinification;
-    internal.skipMinification = !getEnableMinification();
-    assert internal.useTreeShaking;
-    internal.useTreeShaking = getEnableTreeShaking();
+    assert internal.enableMinification;
+    internal.enableMinification = getEnableMinification();
+    assert internal.enableTreeShaking;
+    internal.enableTreeShaking = getEnableTreeShaking();
     assert !internal.ignoreMissingClasses;
     internal.ignoreMissingClasses = proguardConfiguration.isIgnoreWarnings()
         // TODO(70706667): We probably only want this in Proguard compatibility mode.
         || (forceProguardCompatibility
             && !proguardConfiguration.isOptimizing()
-            && internal.skipMinification
-            && !internal.useTreeShaking);
+            && !internal.enableMinification
+            && !internal.enableTreeShaking);
 
     assert !internal.verbose;
     internal.mainDexKeepRules = mainDexKeepRules;
@@ -667,7 +658,7 @@ public class R8Command extends BaseCompilerCommand {
 
     if (internal.debug) {
       // TODO(zerny): Should we support inlining in debug mode? b/62937285
-      internal.inlineAccessors = false;
+      internal.enableInlining = false;
       // TODO(zerny): Should we support outlining in debug mode? b/62937285
       internal.outline.enabled = false;
     }

@@ -34,7 +34,7 @@ import com.android.tools.r8.ir.optimize.DeadCodeRemover;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.ir.optimize.MemberValuePropagation;
-import com.android.tools.r8.ir.optimize.NonNullMarker;
+import com.android.tools.r8.ir.optimize.NonNullTracker;
 import com.android.tools.r8.ir.optimize.Outliner;
 import com.android.tools.r8.ir.optimize.PeepholeOptimizer;
 import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
@@ -82,7 +82,7 @@ public class IRConverter {
   private final CodeRewriter codeRewriter;
   private final MemberValuePropagation memberValuePropagation;
   private final LensCodeRewriter lensCodeRewriter;
-  private final NonNullMarker nonNullMarker;
+  private final NonNullTracker nonNullTracker;
   private final Inliner inliner;
   private final ProtoLitePruner protoLiteRewriter;
   private final IdentifierNameStringMarker identifierNameStringMarker;
@@ -113,17 +113,18 @@ public class IRConverter {
             ? new InterfaceMethodRewriter(this, options) : null;
     if (enableWholeProgramOptimizations) {
       assert appInfo.hasLiveness();
-      this.nonNullMarker = new NonNullMarker();
+      this.nonNullTracker = new NonNullTracker();
       this.inliner = new Inliner(appInfo.withLiveness(), graphLense, options);
       this.outliner = new Outliner(appInfo.withLiveness(), options);
       this.memberValuePropagation =
-          options.propagateMemberValue ? new MemberValuePropagation(appInfo.withLiveness()) : null;
+          options.enableValuePropagation ?
+              new MemberValuePropagation(appInfo.withLiveness()) : null;
       this.lensCodeRewriter = new LensCodeRewriter(graphLense, appInfo.withSubtyping());
       if (appInfo.hasLiveness()) {
         // When disabling the pruner here, also disable the ProtoLiteExtension in R8.java.
         this.protoLiteRewriter =
             options.forceProguardCompatibility ? null : new ProtoLitePruner(appInfo.withLiveness());
-        if (!appInfo.withLiveness().identifierNameStrings.isEmpty() && !options.skipMinification) {
+        if (!appInfo.withLiveness().identifierNameStrings.isEmpty() && options.enableMinification) {
           this.identifierNameStringMarker = new IdentifierNameStringMarker(appInfo.withLiveness());
         } else {
           this.identifierNameStringMarker = null;
@@ -133,7 +134,7 @@ public class IRConverter {
         this.identifierNameStringMarker = null;
       }
     } else {
-      this.nonNullMarker = null;
+      this.nonNullTracker = null;
       this.inliner = null;
       this.outliner = null;
       this.memberValuePropagation = null;
@@ -557,18 +558,18 @@ public class IRConverter {
     if (memberValuePropagation != null) {
       memberValuePropagation.rewriteWithConstantValues(code, method.method.holder);
     }
-    if (options.removeSwitchMaps && appInfo.hasLiveness()) {
+    if (options.enableSwitchMapRemoval && appInfo.hasLiveness()) {
       codeRewriter.removeSwitchMaps(code);
     }
     if (options.disableAssertions) {
       codeRewriter.disableAssertions(code);
     }
-    if (options.addNonNull && nonNullMarker != null) {
-      nonNullMarker.addNonNull(code);
+    if (options.enableNonNullTracking && nonNullTracker != null) {
+      nonNullTracker.addNonNull(code);
       assert code.isConsistentSSA();
     }
     TypeEnvironment typeEnvironment = TypeAnalysis.getDefaultTypeEnvironment();
-    if (options.inlineAccessors && inliner != null) {
+    if (options.enableInlining && inliner != null) {
       typeEnvironment = new TypeAnalysis(appInfo, method, code);
       // TODO(zerny): Should we support inlining in debug mode? b/62937285
       assert !options.debug;
@@ -586,8 +587,8 @@ public class IRConverter {
     codeRewriter.rewriteSwitch(code);
     codeRewriter.processMethodsNeverReturningNormally(code);
     codeRewriter.simplifyIf(code, typeEnvironment);
-    if (options.addNonNull && nonNullMarker != null) {
-      nonNullMarker.cleanupNonNull(code);
+    if (options.enableNonNullTracking && nonNullTracker != null) {
+      nonNullTracker.cleanupNonNull(code);
       assert code.isConsistentSSA();
     }
     if (!options.debug) {
@@ -675,7 +676,7 @@ public class IRConverter {
   private void markProcessed(DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
     // After all the optimizations have take place, we compute whether method should be inlinedex.
     Constraint state;
-    if (!options.inlineAccessors || inliner == null) {
+    if (!options.enableInlining || inliner == null) {
       state = Constraint.NEVER;
     } else {
       state = inliner.computeInliningConstraint(code, method);

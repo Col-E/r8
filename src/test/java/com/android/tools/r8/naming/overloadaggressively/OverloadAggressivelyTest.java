@@ -72,7 +72,7 @@ public class OverloadAggressivelyTest extends TestBase {
             Origin.unknown())
         .setOutput(out, OutputMode.DexIndexed)
         .build();
-    return ToolHelper.runR8(command, o -> o.inlineAccessors = false);
+    return ToolHelper.runR8(command, o -> o.enableInlining = false);
   }
 
   @Test

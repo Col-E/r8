@@ -329,22 +329,22 @@ public class D8Command extends BaseCompilerCommand {
     internal.minApiLevel = getMinApiLevel();
     internal.intermediate = intermediate;
     // Assert and fixup defaults.
-    assert !internal.skipMinification;
-    internal.skipMinification = true;
-    assert internal.useTreeShaking;
-    internal.useTreeShaking = false;
+    assert internal.enableMinification;
+    internal.enableMinification = false;
+    assert internal.enableTreeShaking;
+    internal.enableTreeShaking = false;
     assert !internal.passthroughDexCode;
     internal.passthroughDexCode = true;
 
     // Disable some of R8 optimizations.
-    assert internal.inlineAccessors;
-    internal.inlineAccessors = false;
-    assert internal.removeSwitchMaps;
-    internal.removeSwitchMaps = false;
+    assert internal.enableInlining;
+    internal.enableInlining = false;
+    assert internal.enableSwitchMapRemoval;
+    internal.enableSwitchMapRemoval = false;
     assert internal.outline.enabled;
     internal.outline.enabled = false;
-    assert internal.propagateMemberValue;
-    internal.propagateMemberValue = false;
+    assert internal.enableValuePropagation;
+    internal.enableValuePropagation = false;
 
     internal.enableDesugaring = getEnableDesugaring();
     return internal;

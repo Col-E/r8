@@ -150,7 +150,7 @@ public class MainDexTracingTest {
         expectedMainDexList,
         minSdk,
         (options) -> {
-          options.inlineAccessors = false;
+          options.enableInlining = false;
         });
   }
 

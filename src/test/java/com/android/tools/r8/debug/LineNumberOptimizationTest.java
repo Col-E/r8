@@ -51,7 +51,7 @@ public class LineNumberOptimizationTest extends DebugTestBase {
           if (!dontOptimizeByEnablingDebug) {
             options.lineNumberOptimization = lineNumberOptimization;
           }
-          options.inlineAccessors = false;
+          options.enableInlining = false;
         });
     DebugTestConfig config = new D8DebugTestConfig();
     config.addPaths(outjar);
