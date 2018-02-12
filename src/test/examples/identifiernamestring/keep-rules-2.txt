@@ -10,7 +10,6 @@
 -keepnames class identifiernamestring.A
 
 -dontshrink
--dontoptimize
 
 -identifiernamestring class * {
   @identifiernamestring.IdentifierNameString *;

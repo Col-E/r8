@@ -10,7 +10,6 @@
 -keepnames class identifiernamestring.A
 
 -dontshrink
--dontoptimize
 
 -identifiernamestring class * {
   static java.lang.reflect.Field *(java.lang.Class, java.lang.String);

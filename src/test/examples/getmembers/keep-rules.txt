@@ -7,10 +7,13 @@
   public static void main(...);
 }
 
--keep,allowobfuscation class getmembers.A
+-keep,allowobfuscation class getmembers.A {
+  <methods>;
+}
 
--dontshrink
--dontoptimize
+-alwaysinline class getmembers.B {
+  private String toBeInlined();
+}
 
 # This will be added to CompatProguard by default.
 # We are testing whether R8 shows the same behavior.

@@ -9,6 +9,5 @@
 }
 
 -dontshrink
--dontoptimize
 
 -adaptclassstrings *.*A

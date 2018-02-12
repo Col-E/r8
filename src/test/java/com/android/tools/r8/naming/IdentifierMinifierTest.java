@@ -11,6 +11,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
+import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.code.ConstString;
 import com.android.tools.r8.code.ConstStringJumbo;
@@ -18,6 +19,7 @@ import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexValue.DexValueString;
+import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.DexInspector.MethodSubject;
@@ -43,14 +45,11 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class IdentifierMinifierTest {
+public class IdentifierMinifierTest extends TestBase {
 
   private final String appFileName;
   private final List<String> keepRulesFiles;
   private final Consumer<DexInspector> inspection;
-
-  @Rule
-  public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
   public IdentifierMinifierTest(
       String test,
@@ -61,30 +60,28 @@ public class IdentifierMinifierTest {
     this.inspection = inspection;
   }
 
+  private AndroidApp processedApp;
+
   @Before
   public void generateR8ProcessedApp() throws Exception {
     Path out = temp.getRoot().toPath();
     R8Command.Builder builder =
         ToolHelper.addProguardConfigurationConsumer(
-                R8Command.builder(),
-                pgConfig -> {
-                  pgConfig.setPrintMapping(true);
-                  pgConfig.setPrintMappingFile(out.resolve(ToolHelper.DEFAULT_PROGUARD_MAP_FILE));
-                })
+            R8Command.builder(),
+            pgConfig -> {
+              pgConfig.setPrintMapping(true);
+              pgConfig.setPrintMappingFile(out.resolve(ToolHelper.DEFAULT_PROGUARD_MAP_FILE));
+            })
             .setOutput(out, OutputMode.DexIndexed)
             .addProguardConfigurationFiles(ListUtils.map(keepRulesFiles, Paths::get))
             .addLibraryFiles(ToolHelper.getDefaultAndroidJar());
     ToolHelper.getAppBuilder(builder).addProgramFiles(Paths.get(appFileName));
-    ToolHelper.runR8(builder.build());
+    processedApp = ToolHelper.runR8(builder.build(), o -> o.debug = false);
   }
 
   @Test
   public void identiferMinifierTest() throws Exception {
-    Path out = temp.getRoot().toPath();
-    DexInspector dexInspector =
-        new DexInspector(
-            out.resolve("classes.dex"),
-            out.resolve(ToolHelper.DEFAULT_PROGUARD_MAP_FILE).toString());
+    DexInspector dexInspector = new DexInspector(processedApp);
     inspection.accept(dexInspector);
   }
 
@@ -189,6 +186,13 @@ public class IdentifierMinifierTest {
     Set<Instruction> constStringInstructions =
         getRenamedMemberIdentifierConstStrings(a, mainCode.asDexCode().instructions);
     assertEquals(2, constStringInstructions.size());
+
+    ClassSubject b = inspector.clazz("getmembers.B");
+    MethodSubject inliner = b.method("java.lang.String", "inliner", ImmutableList.of());
+    Code inlinerCode = inliner.getMethod().getCode();
+    constStringInstructions =
+        getRenamedMemberIdentifierConstStrings(a, inlinerCode.asDexCode().instructions);
+    assertEquals(1, constStringInstructions.size());
   }
 
   // Without -identifiernamestring
