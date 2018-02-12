@@ -441,11 +441,12 @@ public class Inliner {
                 // Update type env for inlined blocks.
                 typeEnvironment.analyzeBlocks(inlinee.topologicallySortedBlocks());
                 // TODO(b/69964136): need a test where refined env in inlinee affects the caller.
-              }
-              // If we inlined the invoke from a bridge method, it is no longer a bridge method.
-              if (method.accessFlags.isBridge()) {
-                method.accessFlags.unsetSynthetic();
-                method.accessFlags.unsetBridge();
+
+                // If we inlined the invoke from a bridge method, it is no longer a bridge method.
+                if (method.accessFlags.isBridge()) {
+                  method.accessFlags.unsetSynthetic();
+                  method.accessFlags.unsetBridge();
+                }
               }
             }
           }
