@@ -213,8 +213,12 @@ abstract public class DexDebugEvent extends DexItem {
 
     @Override
     public void collectIndexedItems(IndexedItemCollection collection) {
-      name.collectIndexedItems(collection);
-      type.collectIndexedItems(collection);
+      if (name != null) {
+        name.collectIndexedItems(collection);
+      }
+      if (type != null) {
+        type.collectIndexedItems(collection);
+      }
       if (signature != null) {
         signature.collectIndexedItems(collection);
       }
@@ -234,8 +238,8 @@ abstract public class DexDebugEvent extends DexItem {
     public int hashCode() {
       return Constants.DBG_START_LOCAL
           + registerNum * 7
-          + name.hashCode() * 13
-          + type.hashCode() * 17
+          + Objects.hashCode(name) * 13
+          + Objects.hashCode(type) * 17
           + Objects.hashCode(signature) * 19;
     }
 
@@ -248,10 +252,10 @@ abstract public class DexDebugEvent extends DexItem {
       if (registerNum != o.registerNum) {
         return false;
       }
-      if (!name.equals(o.name)) {
+      if (!Objects.equals(name, o.name)) {
         return false;
       }
-      if (!type.equals(o.type)) {
+      if (!Objects.equals(type, o.type)) {
         return false;
       }
       return Objects.equals(signature, o.signature);
