@@ -17,7 +17,6 @@ import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -89,18 +88,19 @@ public class Minifier {
 
     @Override
     void forAllRenamedTypes(Consumer<DexType> consumer) {
-      Iterables.filter(renaming.keySet(), DexType.class).forEach(consumer);
+      renaming.keySet().stream()
+          .filter(DexType.class::isInstance)
+          .map(DexType.class::cast)
+          .forEach(consumer);
     }
 
     @Override
     <T extends DexItem> Map<String, T> getRenamedItems(
         Class<T> clazz, Predicate<T> predicate, Function<T, String> namer) {
-      return renaming
-          .keySet()
-          .stream()
-          .filter(item -> (item.getClass() == clazz) && predicate.test(clazz.cast(item)))
+      return renaming.keySet().stream()
+          .filter(item -> (clazz.isInstance(item) && predicate.test(clazz.cast(item))))
           .map(clazz::cast)
-          .collect(ImmutableMap.toImmutableMap(namer::apply, i -> i));
+          .collect(ImmutableMap.toImmutableMap(namer, i -> i));
     }
 
     /**
