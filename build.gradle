@@ -1167,13 +1167,17 @@ task buildExamplesKotlin {
 task buildKotlinR8TestResources {
     def examplesDir = file("src/test/kotlinR8TestResources")
     examplesDir.eachDir { dir ->
-        def name = dir.getName()
-        def taskName = "jar_kotlinR8TestResources_${name}"
-        task "${taskName}"(type: kotlin.Kotlinc) {
-            source = fileTree(dir: file("${examplesDir}/${name}"), include: '**/*.kt')
-            destination = file("build/test/kotlinR8TestResources/${name}.jar")
+        kotlin.Kotlinc.KotlinTargetVersion.values().each { kotlinTargetVersion ->
+            def name = dir.getName()
+            def taskName = "jar_kotlinR8TestResources_${name}_${kotlinTargetVersion}"
+            def outputFile = "build/test/kotlinR8TestResources/${kotlinTargetVersion}/${name}.jar"
+            task "${taskName}"(type: kotlin.Kotlinc) {
+                source = fileTree(dir: file("${examplesDir}/${name}"), include: '**/*.kt')
+                destination = file(outputFile)
+                targetVersion = kotlinTargetVersion
+            }
+            dependsOn taskName
         }
-        dependsOn taskName
     }
 }
 

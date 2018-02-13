@@ -1245,4 +1245,19 @@ public class ToolHelper {
         options,
         null);
   }
+
+  public enum KotlinTargetVersion {
+    JAVA_6("JAVA_6"),
+    JAVA_8("JAVA_8");
+
+    private final String folderName;
+
+    KotlinTargetVersion(String folderName) {
+      this.folderName = folderName;
+    }
+
+    public String getFolderName() {
+      return folderName;
+    }
+  }
 }

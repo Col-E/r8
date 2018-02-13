@@ -9,15 +9,9 @@ import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.DexInspector.MethodSubject;
-import com.google.common.collect.ImmutableList;
-import java.util.Collection;
 import java.util.Collections;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
 
-@RunWith(Parameterized.class)
 public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
 
   private static final KotlinDataClass TEST_DATA_CLASS = new KotlinDataClass("dataclass.Person")
@@ -36,15 +30,6 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
   private static final MethodSignature COPY_METHOD = TEST_DATA_CLASS.getCopySignature();
   private static final MethodSignature COPY_DEFAULT_METHOD =
       TEST_DATA_CLASS.getCopyDefaultSignature();
-
-  public R8KotlinDataClassTest(boolean allowAccessModification) {
-    super(allowAccessModification);
-  }
-
-  @Parameters(name = "{0}")
-  public static Collection<Object> data() {
-    return ImmutableList.of(Boolean.TRUE, Boolean.FALSE);
-  }
 
   @Test
   public void test_dataclass_gettersOnly() throws Exception {
