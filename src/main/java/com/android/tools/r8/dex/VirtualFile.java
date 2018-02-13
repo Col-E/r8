@@ -372,7 +372,7 @@ public class VirtualFile {
       classes = sortClassesByPackage(classes, originalNames);
 
       new PackageSplitPopulator(
-          filesForDistribution, classes, originalNames, null, application.dexItemFactory,
+          filesForDistribution, classes, originalNames, application.dexItemFactory,
           fillStrategy, fileIndexOffset, writer.namingLens)
           .call();
       return virtualFiles;
@@ -701,7 +701,6 @@ public class VirtualFile {
 
     private final List<DexProgramClass> classes;
     private final Map<DexProgramClass, String> originalNames;
-    private final Set<String> previousPrefixes;
     private final DexItemFactory dexItemFactory;
     private final FillStrategy fillStrategy;
     private final VirtualFileCycler cycler;
@@ -710,14 +709,12 @@ public class VirtualFile {
         List<VirtualFile> files,
         Set<DexProgramClass> classes,
         Map<DexProgramClass, String> originalNames,
-        Set<String> previousPrefixes,
         DexItemFactory dexItemFactory,
         FillStrategy fillStrategy,
         int fileIndexOffset,
         NamingLens namingLens) {
       this.classes = new ArrayList<>(classes);
       this.originalNames = originalNames;
-      this.previousPrefixes = previousPrefixes;
       this.dexItemFactory = dexItemFactory;
       this.fillStrategy = fillStrategy;
       this.cycler = new VirtualFileCycler(files, namingLens, fileIndexOffset);
@@ -774,9 +771,7 @@ public class VirtualFile {
           // com.android.* and com.android.foo.*.
           do {
             newPrefix = extractPrefixToken(++prefixLength, originalName, false);
-          } while (currentPrefix != null &&
-              (currentPrefix.startsWith(newPrefix)
-              || conflictsWithPreviousPrefix(newPrefix, originalName)));
+          } while (currentPrefix != null && currentPrefix.startsWith(newPrefix));
           // Don't set the current prefix if we did not extract one.
           if (!newPrefix.equals("")) {
             currentPrefix = extractPrefixToken(prefixLength, originalName, true);
@@ -870,29 +865,6 @@ public class VirtualFile {
         current = cycler.addFile();
       }
       return current;
-    }
-
-    private boolean conflictsWithPreviousPrefix(String newPrefix, String originalName) {
-      if (previousPrefixes == null) {
-        return false;
-      }
-      for (String previous : previousPrefixes) {
-        // Check whether a previous prefix starts with this new prefix and, if so,
-        // whether the new prefix already is maximal. So for example a new prefix of
-        //   foo.bar
-        // would match
-        //   foo.bar.goo.*
-        // However, if the original class is
-        //   foo.bar.X
-        // then this prefix is the best we can do, and will not turn into a .* prefix and
-        // thus does not conflict.
-        if (previous.startsWith(newPrefix)
-            && (originalName.lastIndexOf('.') > newPrefix.length())) {
-          return true;
-        }
-      }
-
-      return false;
     }
   }
 }
