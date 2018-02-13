@@ -33,13 +33,8 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class ValidNameConflictTest extends JasminTestBase {
   private final String CLASS_NAME = "Example";
-  private final String MSG = "You are seeing undefined behavior.";
-
-  private final String REFLECTIONS =
-      "-identifiernamestring public class java.lang.Class {\n"
-          + "  public java.lang.reflect.Field getField(java.lang.String);\n"
-          + "  public java.lang.reflect.Method getMethod(java.lang.String, java.lang.Class[]);"
-          + "}";
+  private final String ANOTHER_CLASS = "Test";
+  private final String MSG = "Expected to be seen at the end.";
 
   private final DexVm dexVm;
 
@@ -61,21 +56,36 @@ public class ValidNameConflictTest extends JasminTestBase {
   private JasminBuilder buildFieldNameConflictClassFile() throws Exception {
     JasminBuilder builder = new JasminBuilder();
     ClassBuilder classBuilder = builder.addClass(CLASS_NAME);
-    classBuilder.addStaticField("same", "Ljava/lang/String;", "\"" + MSG + "\"");
     classBuilder.addStaticField("same", "Ljava/lang/Object;", null);
+    classBuilder.addStaticField("same", "Ljava/lang/String;", "\"" + MSG + "\"");
     classBuilder.addMainMethod(
         ".limit stack 3",
-        ".limit locals 1",
-        "ldc Example",
-        "ldc \"same\"",
-        "invokevirtual java/lang/Class/getField(Ljava/lang/String;)Ljava/lang/reflect/Field;",
-        "astore_0",
-        "getstatic java/lang/System/out Ljava/io/PrintStream;",
-        "aload_0",
-        "aconst_null",
-        "invokevirtual java/lang/reflect/Field/get(Ljava/lang/Object;)Ljava/lang/Object;",
-        "invokevirtual java/io/PrintStream/print(Ljava/lang/Object;)V",
-        "return");
+        ".limit locals 4",
+        "  ldc Example",
+        "  invokevirtual java/lang/Class/getDeclaredFields()[Ljava/lang/reflect/Field;",
+        "  astore_0",  // Field[]
+        "  aload_0",
+        "  arraylength",
+        "  istore_1",  // Field[].length
+        "  iconst_0",
+        "  istore_2",  // counter
+        "loop:",
+        "  iload_2",
+        "  iload_1",
+        "  if_icmpge end",
+        "  aload_0",
+        "  iload_2",
+        "  aaload",  // Field[counter]
+        "  astore_3",
+        "  getstatic java/lang/System/out Ljava/io/PrintStream;",
+        "  aload_3",
+        "  aconst_null",
+        "  invokevirtual java/lang/reflect/Field/get(Ljava/lang/Object;)Ljava/lang/Object;",
+        "  invokevirtual java/io/PrintStream/println(Ljava/lang/Object;)V",
+        "  iinc 2 1",  // counter++
+        "  goto loop",
+        "end:",
+        "  return");
     return builder;
   }
 
@@ -92,7 +102,6 @@ public class ValidNameConflictTest extends JasminTestBase {
             + "  static <fields>;"
             + "}\n"
             + "-printmapping\n",
-        REFLECTIONS,
         "-dontshrink");
     AndroidApp app = compileWithR8(builder, pgConfigs, null);
 
@@ -109,8 +118,7 @@ public class ValidNameConflictTest extends JasminTestBase {
 
     ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME, dexVm);
     assertEquals(0, artOutput.exitCode);
-    // With reserved *same* names, it is not guaranteed to have same output.
-    // assertEquals(javaOutput.stdout, artOutput.stdout);
+    assertEquals(javaOutput.stdout, artOutput.stdout);
   }
 
 
@@ -123,7 +131,6 @@ public class ValidNameConflictTest extends JasminTestBase {
 
     List<String> pgConfigs = ImmutableList.of(
         keepMainProguardConfiguration(CLASS_NAME),
-        REFLECTIONS,
         "-useuniqueclassmembernames",
         "-dontshrink");
     AndroidApp app = compileWithR8(builder, pgConfigs, null);
@@ -137,12 +144,10 @@ public class ValidNameConflictTest extends JasminTestBase {
     FieldSubject f2 = clazz.field("java.lang.Object", "same");
     assertTrue(f2.isPresent());
     assertTrue(f2.isRenamed());
-    // TODO(b/73149686): -useuniqueclassmembernames for field minification is buggy.
-    // assertEquals(f1.getField().field.name, f2.getField().field.name);
+    assertEquals(f1.getField().field.name, f2.getField().field.name);
 
     ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME, dexVm);
     assertEquals(0, artOutput.exitCode);
-    // TODO(b/73149686): with reserved *same* names, it is not guaranteed to have same output.
     assertEquals(javaOutput.stdout, artOutput.stdout);
   }
 
@@ -155,7 +160,6 @@ public class ValidNameConflictTest extends JasminTestBase {
 
     List<String> pgConfigs = ImmutableList.of(
         keepMainProguardConfiguration(CLASS_NAME),
-        REFLECTIONS,
         "-dontshrink");
     AndroidApp app = compileWithR8(builder, pgConfigs, null);
 
@@ -168,7 +172,8 @@ public class ValidNameConflictTest extends JasminTestBase {
     FieldSubject f2 = clazz.field("java.lang.Object", "same");
     assertTrue(f2.isPresent());
     assertTrue(f2.isRenamed());
-    assertNotEquals(f1.getField().field.name, f2.getField().field.name);
+    // TODO(b/73149686): R8 should be able to fix this conflict w/o -overloadaggressively.
+    assertEquals(f1.getField().field.name, f2.getField().field.name);
 
     ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME, dexVm);
     assertEquals(0, artOutput.exitCode);
@@ -184,7 +189,6 @@ public class ValidNameConflictTest extends JasminTestBase {
 
     List<String> pgConfigs = ImmutableList.of(
         keepMainProguardConfiguration(CLASS_NAME),
-        REFLECTIONS,
         "-overloadaggressively",
         "-dontshrink");
     AndroidApp app = compileWithR8(builder, pgConfigs, null);
@@ -203,38 +207,50 @@ public class ValidNameConflictTest extends JasminTestBase {
 
     ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME, dexVm);
     assertEquals(0, artOutput.exitCode);
-    // TODO(b/72858955): distinct names will make the output be same.
-    // assertEquals(javaOutput.stdout, artOutput.stdout);
+    assertEquals(javaOutput.stdout, artOutput.stdout);
   }
 
   private JasminBuilder buildMethodNameConflictClassFile() throws Exception {
     JasminBuilder builder = new JasminBuilder();
-    ClassBuilder classBuilder = builder.addClass(CLASS_NAME);
-    classBuilder.addStaticMethod("same", ImmutableList.of(), "Ljava/lang/String;",
-        "ldc \"" + MSG + "\"",
-        "areturn");
+    ClassBuilder classBuilder = builder.addClass(ANOTHER_CLASS);
     classBuilder.addStaticMethod("same", ImmutableList.of(), "Ljava/lang/Object;",
         "aconst_null",
         "areturn");
+    classBuilder.addStaticMethod("same", ImmutableList.of(), "Ljava/lang/String;",
+        "ldc \"" + MSG + "\"",
+        "areturn");
+    classBuilder = builder.addClass(CLASS_NAME);
     classBuilder.addMainMethod(
         ".limit stack 3",
-        ".limit locals 1",
-        "ldc Example",
-        "ldc \"same\"",
-        "aconst_null",
-        "checkcast [Ljava/lang/Class;",
-        "invokevirtual java/lang/Class/getMethod"
-            + "(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;",
-        "astore_0",
-        "getstatic java/lang/System/out Ljava/io/PrintStream;",
-        "aload_0",
-        "aconst_null",
-        "aconst_null",
-        "checkcast [Ljava/lang/Object;",
-        "invokevirtual java/lang/reflect/Method/invoke"
+        ".limit locals 4",
+        "  ldc Test",
+        "  invokevirtual java/lang/Class/getDeclaredMethods()[Ljava/lang/reflect/Method;",
+        "  astore_0",  // Method[]
+        "  aload_0",
+        "  arraylength",
+        "  istore_1",  // Method[].length
+        "  iconst_0",
+        "  istore_2",  // counter
+        "loop:",
+        "  iload_2",
+        "  iload_1",
+        "  if_icmpge end",
+        "  aload_0",
+        "  iload_2",
+        "  aaload",  // Method[counter]
+        "  astore_3",
+        "  getstatic java/lang/System/out Ljava/io/PrintStream;",
+        "  aload_3",
+        "  aconst_null",
+        "  aconst_null",
+        "  checkcast [Ljava/lang/Object;",
+        "  invokevirtual java/lang/reflect/Method/invoke"
             + "(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;",
-        "invokevirtual java/io/PrintStream/print(Ljava/lang/Object;)V",
-        "return");
+        "  invokevirtual java/io/PrintStream/println(Ljava/lang/Object;)V",
+        "  iinc 2 1",  // counter++
+        "  goto loop",
+        "end:",
+        "  return");
     return builder;
   }
 
@@ -246,18 +262,16 @@ public class ValidNameConflictTest extends JasminTestBase {
     assertEquals(0, javaOutput.exitCode);
 
     List<String> pgConfigs = ImmutableList.of(
-        "-keep public class " + CLASS_NAME + " {\n"
-            + "  public static void main(java.lang.String[]);\n"
+        "-keep class " + ANOTHER_CLASS + " {\n"
             + "  static <methods>;"
-            + "}\n"
-            + "-printmapping\n",
-        REFLECTIONS,
+            + "}\n",
+        keepMainProguardConfiguration(CLASS_NAME),
         "-useuniqueclassmembernames",
         "-dontshrink");
     AndroidApp app = compileWithR8(builder, pgConfigs, null);
 
     DexInspector dexInspector = new DexInspector(app);
-    ClassSubject clazz = dexInspector.clazz(CLASS_NAME);
+    ClassSubject clazz = dexInspector.clazz(ANOTHER_CLASS);
     assertTrue(clazz.isPresent());
     MethodSubject m1 = clazz.method("java.lang.String", "same", ImmutableList.of());
     assertTrue(m1.isPresent());
@@ -269,8 +283,7 @@ public class ValidNameConflictTest extends JasminTestBase {
 
     ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME, dexVm);
     assertEquals(0, artOutput.exitCode);
-    // With name conflict, it is not guaranteed to get the same output.
-    // assertEquals(javaOutput.stdout, artOutput.stdout);
+    assertEquals(javaOutput.stdout, artOutput.stdout);
   }
 
   @Test
@@ -282,13 +295,12 @@ public class ValidNameConflictTest extends JasminTestBase {
 
     List<String> pgConfigs = ImmutableList.of(
         keepMainProguardConfiguration(CLASS_NAME),
-        REFLECTIONS,
         "-useuniqueclassmembernames",
         "-dontshrink");
     AndroidApp app = compileWithR8(builder, pgConfigs, null);
 
     DexInspector dexInspector = new DexInspector(app);
-    ClassSubject clazz = dexInspector.clazz(CLASS_NAME);
+    ClassSubject clazz = dexInspector.clazz(ANOTHER_CLASS);
     assertTrue(clazz.isPresent());
     MethodSubject m1 = clazz.method("java.lang.String", "same", ImmutableList.of());
     assertTrue(m1.isPresent());
@@ -300,8 +312,7 @@ public class ValidNameConflictTest extends JasminTestBase {
 
     ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME, dexVm);
     assertEquals(0, artOutput.exitCode);
-    // With name conflict, it is not guaranteed to get the same output.
-    // assertEquals(javaOutput.stdout, artOutput.stdout);
+    assertEquals(javaOutput.stdout, artOutput.stdout);
   }
 
   @Test
@@ -313,12 +324,11 @@ public class ValidNameConflictTest extends JasminTestBase {
 
     List<String> pgConfigs = ImmutableList.of(
         keepMainProguardConfiguration(CLASS_NAME),
-        REFLECTIONS,
         "-dontshrink");
     AndroidApp app = compileWithR8(builder, pgConfigs, null);
 
     DexInspector dexInspector = new DexInspector(app);
-    ClassSubject clazz = dexInspector.clazz(CLASS_NAME);
+    ClassSubject clazz = dexInspector.clazz(ANOTHER_CLASS);
     assertTrue(clazz.isPresent());
     MethodSubject m1 = clazz.method("java.lang.String", "same", ImmutableList.of());
     assertTrue(m1.isPresent());
@@ -327,12 +337,11 @@ public class ValidNameConflictTest extends JasminTestBase {
     assertTrue(m2.isPresent());
     assertTrue(m2.isRenamed());
     // TODO(b/73149686): R8 should be able to fix this conflict w/o -overloadaggressively.
-    // assertNotEquals(m1.getMethod().method.name, m2.getMethod().method.name);
+    assertEquals(m1.getMethod().method.name, m2.getMethod().method.name);
 
     ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME, dexVm);
     assertEquals(0, artOutput.exitCode);
-    // TODO(b/73149686): distinct names will output the same results.
-    // assertEquals(javaOutput.stdout, artOutput.stdout);
+    assertEquals(javaOutput.stdout, artOutput.stdout);
   }
 
   @Test
@@ -344,13 +353,12 @@ public class ValidNameConflictTest extends JasminTestBase {
 
     List<String> pgConfigs = ImmutableList.of(
         keepMainProguardConfiguration(CLASS_NAME),
-        REFLECTIONS,
         "-overloadaggressively",
         "-dontshrink");
     AndroidApp app = compileWithR8(builder, pgConfigs, null);
 
     DexInspector dexInspector = new DexInspector(app);
-    ClassSubject clazz = dexInspector.clazz(CLASS_NAME);
+    ClassSubject clazz = dexInspector.clazz(ANOTHER_CLASS);
     assertTrue(clazz.isPresent());
     MethodSubject m1 = clazz.method("java.lang.String", "same", ImmutableList.of());
     assertTrue(m1.isPresent());
@@ -363,8 +371,7 @@ public class ValidNameConflictTest extends JasminTestBase {
 
     ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME, dexVm);
     assertEquals(0, artOutput.exitCode);
-    // TODO(b/73149686): distinct names will output the same results.
-    // assertEquals(javaOutput.stdout, artOutput.stdout);
+    assertEquals(javaOutput.stdout, artOutput.stdout);
   }
 
 }
