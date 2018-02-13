@@ -25,6 +25,22 @@ idea {
     }
 }
 
+ext {
+    androidSupportVersion = '25.4.0'
+    apacheCommonsVersion = '1.12'
+    asmVersion = '6.0'
+    autoValueVersion = '1.5'
+    espressoVersion = '3.0.0'
+    fastutilVersion = '7.2.0'
+    guavaVersion = '23.0'
+    joptSimpleVersion = '4.6'
+    jsonSimpleVersion = '1.1'
+    junitVersion = '4.12'
+    kotlinVersion = '1.2.0'
+    protobufVersion = '3.0.0'
+    smaliVersion = '2.2b4'
+}
+
 def errorProneConfiguration = [
     '-XepDisableAllChecks',
     // D8 want to use reference equality, thus disable the checker explicitly
@@ -192,48 +208,48 @@ configurations {
 }
 
 dependencies {
-    compile 'net.sf.jopt-simple:jopt-simple:4.6'
-    compile 'com.googlecode.json-simple:json-simple:1.1'
+    compile "net.sf.jopt-simple:jopt-simple:$joptSimpleVersion"
+    compile "com.googlecode.json-simple:json-simple:$jsonSimpleVersion"
     // Include all of guava when compiling the code, but exclude annotations that we don't
     // need from the packaging.
-    compileOnly('com.google.guava:guava:23.0')
-    compile('com.google.guava:guava:23.0', {
+    compileOnly("com.google.guava:guava:$guavaVersion")
+    compile("com.google.guava:guava:$guavaVersion", {
         exclude group: 'com.google.errorprone'
         exclude group: 'com.google.code.findbugs'
         exclude group: 'com.google.j2objc'
         exclude group: 'org.codehaus.mojo'
     })
-    compile group: 'it.unimi.dsi', name: 'fastutil', version: '7.2.0'
-    compile group: 'org.ow2.asm', name: 'asm', version: '6.0'
-    compile group: 'org.ow2.asm', name: 'asm-commons', version: '6.0'
-    compile group: 'org.ow2.asm', name: 'asm-tree', version: '6.0'
-    compile group: 'org.ow2.asm', name: 'asm-analysis', version: '6.0'
-    compile group: 'org.ow2.asm', name: 'asm-util', version: '6.0'
+    compile group: 'it.unimi.dsi', name: 'fastutil', version: fastutilVersion
+    compile group: 'org.ow2.asm', name: 'asm', version: asmVersion
+    compile group: 'org.ow2.asm', name: 'asm-commons', version: asmVersion
+    compile group: 'org.ow2.asm', name: 'asm-tree', version: asmVersion
+    compile group: 'org.ow2.asm', name: 'asm-analysis', version: asmVersion
+    compile group: 'org.ow2.asm', name: 'asm-util', version: asmVersion
     testCompile sourceSets.examples.output
-    testCompile 'junit:junit:4.12'
-    testCompile group: 'org.smali', name: 'smali', version: '2.2b4'
+    testCompile "junit:junit:$junitVersion"
+    testCompile group: 'org.smali', name: 'smali', version: smaliVersion
     testCompile files('third_party/jasmin/jasmin-2.4.jar')
     testCompile files('third_party/jdwp-tests/apache-harmony-jdwp-tests-host.jar')
     testCompile files('third_party/ddmlib/ddmlib.jar')
-    bsPatchCompile group: 'org.apache.commons', name: 'commons-compress', version: '1.12'
-    jctfCommonCompile 'junit:junit:4.12'
-    jctfTestsCompile 'junit:junit:4.12'
+    bsPatchCompile "org.apache.commons:commons-compress:$apacheCommonsVersion"
+    jctfCommonCompile "junit:junit:$junitVersion"
+    jctfTestsCompile "junit:junit:$junitVersion"
     jctfTestsCompile sourceSets.jctfCommon.output
-    examplesAndroidOCompile group: 'org.ow2.asm', name: 'asm', version: '6.0'
-    examplesAndroidPCompile group: 'org.ow2.asm', name: 'asm', version: '6.0'
+    examplesAndroidOCompile group: 'org.ow2.asm', name: 'asm', version: asmVersion
+    examplesAndroidPCompile group: 'org.ow2.asm', name: 'asm', version: asmVersion
     // Import Guava for @Nullable annotation
-    examplesCompile 'com.google.guava:guava:23.0'
-    examplesCompile 'com.google.protobuf:protobuf-lite:3.0.0'
-    examplesCompileOnly "com.google.auto.value:auto-value:1.5"
-    examplesRuntime 'com.google.protobuf:protobuf-lite:3.0.0'
-    supportLibs 'com.android.support:support-v4:25.4.0'
-    supportLibs 'junit:junit:4.12'
-    supportLibs 'com.android.support.test.espresso:espresso-core:3.0.0'
+    examplesCompile "com.google.guava:guava:$guavaVersion"
+    examplesCompile "com.google.protobuf:protobuf-lite:$protobufVersion"
+    examplesCompileOnly "com.google.auto.value:auto-value:$autoValueVersion"
+    examplesRuntime "com.google.protobuf:protobuf-lite:$protobufVersion"
+    supportLibs "com.android.support:support-v4:$androidSupportVersion"
+    supportLibs "junit:junit:$junitVersion"
+    supportLibs "com.android.support.test.espresso:espresso-core:$espressoVersion"
     apiUsageSampleCompile sourceSets.main.output
-    debugTestResourcesKotlinCompileOnly 'org.jetbrains.kotlin:kotlin-stdlib:1.2.0'
-    examplesKotlinCompileOnly 'org.jetbrains.kotlin:kotlin-stdlib:1.2.0'
-    kotlinR8TestResourcesCompileOnly 'org.jetbrains.kotlin:kotlin-stdlib:1.2.0'
-    apt 'com.google.auto.value:auto-value:1.5'
+    debugTestResourcesKotlinCompileOnly "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
+    examplesKotlinCompileOnly "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
+    kotlinR8TestResourcesCompileOnly "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
+    apt "com.google.auto.value:auto-value:$autoValueVersion"
 }
 
 configurations.bsPatchCompile.extendsFrom configurations.compile
@@ -245,11 +261,11 @@ licenseTools {
 protobuf {
     protoc {
         // Download from repositories
-        artifact = 'com.google.protobuf:protoc:3.0.0'
+        artifact = "com.google.protobuf:protoc:$protobufVersion"
     }
     plugins {
         javalite {
-            artifact = 'com.google.protobuf:protoc-gen-javalite:3.0.0'
+            artifact = "com.google.protobuf:protoc-gen-javalite:$protobufVersion"
         }
     }
     generateProtoTasks {
