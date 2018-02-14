@@ -81,8 +81,7 @@ public class Position {
     }
     if (other instanceof Position) {
       Position o = (Position) other;
-      return !isNone()
-          && line == o.line
+      return line == o.line
           && file == o.file
           && method == o.method
           && Objects.equals(callerPosition, o.callerPosition);
