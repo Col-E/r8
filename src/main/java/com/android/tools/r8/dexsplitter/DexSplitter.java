@@ -26,7 +26,7 @@ public class DexSplitter {
 
   private static final boolean PRINT_ARGS = false;
 
-  private static class Options {
+  public static class Options {
     List<String> inputArchives = new ArrayList<>();
     List<String> featureJars = new ArrayList<>();
     String splitBaseName = DEFAULT_OUTPUT_ARCHIVE_FILENAME;
@@ -77,10 +77,16 @@ public class DexSplitter {
     return FeatureClassMapping.fromJarFiles(options.featureJars);
   }
 
-  public static void run(String[] args)
+  private static void run(String[] args)
       throws CompilationFailedException, IOException, CompilationException, ExecutionException,
           ResourceException, FeatureMappingException {
     Options options = parseArguments(args);
+    run(options);
+  }
+
+  public static void run(Options options)
+      throws IOException, FeatureMappingException, ResourceException, CompilationException,
+      ExecutionException, CompilationFailedException {
     if (options.inputArchives.isEmpty()) {
       throw new RuntimeException("Need at least one --input");
     }

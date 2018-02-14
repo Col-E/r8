@@ -8,16 +8,20 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
+import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
+import com.android.tools.r8.dexsplitter.DexSplitter.Options;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
+import com.android.tools.r8.utils.FeatureClassMapping.FeatureMappingException;
 import com.google.common.collect.ImmutableList;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -52,31 +56,47 @@ public class DexSplitterTests {
    * therefore can't run without the base being loaded.
    */
   @Test
-  public void splitFilesNoObfuscation() throws CompilationFailedException, IOException {
+  public void splitFilesNoObfuscation()
+      throws CompilationFailedException, IOException, FeatureMappingException, ResourceException,
+      CompilationException, ExecutionException {
+    noObfuscation(false);
+    noObfuscation(true);
+  }
+
+  private void noObfuscation(boolean useOptions)
+      throws IOException, CompilationFailedException, FeatureMappingException,
+      ResourceException, ExecutionException, CompilationException {
     // Initial normal compile to create dex files.
-    Path inputDex = temp.newFolder().toPath().resolve("input.zip");
+    Path inputZip = temp.newFolder().toPath().resolve("input.zip");
     D8.run(
         D8Command.builder()
-            .setOutput(inputDex, OutputMode.DexIndexed)
+            .setOutput(inputZip, OutputMode.DexIndexed)
             .addProgramFiles(Paths.get(CLASS1_CLASS))
             .addProgramFiles(Paths.get(CLASS2_CLASS))
             .addProgramFiles(Paths.get(CLASS3_CLASS))
             .addProgramFiles(Paths.get(CLASS3_INNER_CLASS))
             .build());
 
-    Path outputDex = temp.getRoot().toPath().resolve("output");
+    Path output = temp.getRoot().toPath().resolve("output");
     Path splitSpec = createSplitSpec();
 
-    DexSplitter.main(
-        new String[] {
-          "--input", inputDex.toString(),
-          "--output", outputDex.toString(),
-          "--feature-splits", splitSpec.toString()
-        });
+    if (useOptions) {
+      Options options = new Options();
+      options.inputArchives.add(inputZip.toString());
+      options.featureSplitMapping = splitSpec.toString();
+      options.splitBaseName = output.toString();
+      DexSplitter.run(options);
+    } else {
+      DexSplitter.main(
+          new String[] {
+              "--input", inputZip.toString(),
+              "--output", output.toString(),
+              "--feature-splits", splitSpec.toString()
+          });
+    }
 
-
-    Path base = outputDex.getParent().resolve("output.base.zip");
-    Path feature = outputDex.getParent().resolve("output.feature1.zip");
+    Path base = output.getParent().resolve("output.base.zip");
+    Path feature = output.getParent().resolve("output.feature1.zip");
     validateUnobfuscatedOutput(base, feature);
   }
 
@@ -136,19 +156,28 @@ public class DexSplitterTests {
   }
 
   @Test
-  public void splitFilesFromJar() throws IOException, CompilationFailedException {
+  public void splitFilesFromJar()
+      throws IOException, CompilationFailedException, FeatureMappingException, ResourceException,
+      CompilationException, ExecutionException {
+    splitFromJars(true);
+    splitFromJars(false);
+  }
+
+  private void splitFromJars(boolean useOptions)
+      throws IOException, CompilationFailedException, FeatureMappingException, ResourceException,
+      ExecutionException, CompilationException {
     // Initial normal compile to create dex files.
-    Path inputDex = temp.newFolder().toPath().resolve("input.zip");
+    Path inputZip = temp.newFolder().toPath().resolve("input.zip");
     D8.run(
         D8Command.builder()
-            .setOutput(inputDex, OutputMode.DexIndexed)
+            .setOutput(inputZip, OutputMode.DexIndexed)
             .addProgramFiles(Paths.get(CLASS1_CLASS))
             .addProgramFiles(Paths.get(CLASS2_CLASS))
             .addProgramFiles(Paths.get(CLASS3_CLASS))
             .addProgramFiles(Paths.get(CLASS3_INNER_CLASS))
             .build());
 
-    Path outputDex = temp.getRoot().toPath().resolve("output");
+    Path output = temp.getRoot().toPath().resolve("output");
     Path baseJar = temp.getRoot().toPath().resolve("base.jar");
     Path featureJar = temp.getRoot().toPath().resolve("feature1.jar");
     ZipOutputStream baseStream = new ZipOutputStream(Files.newOutputStream(baseJar));
@@ -172,22 +201,31 @@ public class DexSplitterTests {
     featureStream.write(Files.readAllBytes(Paths.get(CLASS3_INNER_CLASS)));
     featureStream.closeEntry();
     featureStream.close();
-
-    DexSplitter.main(
-        new String[] {
-          "--input",
-          inputDex.toString(),
-          "--output",
-          outputDex.toString(),
-          "--feature-jar",
-          baseJar.toString(),
-          "--feature-jar",
-          featureJar.toString()
-        });
-    Path base = outputDex.getParent().resolve("output.base.zip");
-    Path feature = outputDex.getParent().resolve("output.feature1.zip");
+    if (useOptions) {
+      Options options = new Options();
+      options.inputArchives.add(inputZip.toString());
+      options.splitBaseName = output.toString();
+      options.featureJars.add(baseJar.toString());
+      options.featureJars.add(featureJar.toString());
+      DexSplitter.run(options);
+    } else {
+      DexSplitter.main(
+          new String[]{
+              "--input",
+              inputZip.toString(),
+              "--output",
+              output.toString(),
+              "--feature-jar",
+              baseJar.toString(),
+              "--feature-jar",
+              featureJar.toString()
+          });
+    }
+    Path base = output.getParent().resolve("output.base.zip");
+    Path feature = output.getParent().resolve("output.feature1.zip");
     validateUnobfuscatedOutput(base, feature);
   }
+
 
   @Test
   public void splitFilesObfuscation()
