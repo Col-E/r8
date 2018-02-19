@@ -76,26 +76,26 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-public class DexFileReader {
+public class DexParser {
 
-  final int NO_INDEX = -1;
+  private final int NO_INDEX = -1;
   private final Origin origin;
-  private DexFile file;
-  private final Segment[] segments;
+  private DexReader dexReader;
+  private final DexSection[] dexSections;
   private int[] stringIDs;
   private final ClassKind classKind;
 
-  public static Segment[] parseMapFrom(Path file) throws IOException {
+  public static DexSection[] parseMapFrom(Path file) throws IOException {
     return parseMapFrom(Files.newInputStream(file), new PathOrigin(file));
   }
 
-  public static Segment[] parseMapFrom(InputStream stream, Origin origin) throws IOException {
-    return parseMapFrom(new DexFile(origin, ByteStreams.toByteArray(stream)));
+  public static DexSection[] parseMapFrom(InputStream stream, Origin origin) throws IOException {
+    return parseMapFrom(new DexReader(origin, ByteStreams.toByteArray(stream)));
   }
 
-  private static Segment[] parseMapFrom(DexFile dex) {
-    DexFileReader reader = new DexFileReader(dex, ClassKind.PROGRAM, new DexItemFactory());
-    return reader.segments;
+  private static DexSection[] parseMapFrom(DexReader dexReader) {
+    DexParser dexParser = new DexParser(dexReader, ClassKind.PROGRAM, new DexItemFactory());
+    return dexParser.dexSections;
   }
 
   public void close() {
@@ -103,7 +103,7 @@ public class DexFileReader {
     indexedItems = null;
     codes = null;
     offsetMap = null;
-    file = null;
+    dexReader = null;
     stringIDs = null;
   }
 
@@ -119,43 +119,43 @@ public class DexFileReader {
   // Factory to canonicalize certain dexitems.
   private final DexItemFactory dexItemFactory;
 
-  public DexFileReader(DexFile file, ClassKind classKind, DexItemFactory dexItemFactory) {
-    assert file.getOrigin() != null;
-    this.origin = file.getOrigin();
-    this.file = file;
+  public DexParser(DexReader dexReader, ClassKind classKind, DexItemFactory dexItemFactory) {
+    assert dexReader.getOrigin() != null;
+    this.origin = dexReader.getOrigin();
+    this.dexReader = dexReader;
     this.dexItemFactory = dexItemFactory;
-    file.setByteOrder();
-    segments = parseMap();
+    dexReader.setByteOrder();
+    dexSections = parseMap();
     parseStringIDs();
     this.classKind = classKind;
   }
 
-  public OffsetToObjectMapping getIndexedItemsMap() {
-    return indexedItems;
-  }
+  private void ensureCodesInited() {
+    if (codes == null) {
+      codes = new Int2ObjectOpenHashMap<>();
+    }
 
-  void addCodeItemsTo() {
     if (classKind == ClassKind.LIBRARY) {
       // Ignore contents of library files.
       return;
     }
-    Segment segment = lookupSegment(Constants.TYPE_CODE_ITEM);
-    if (segment.length == 0) {
+    DexSection dexSection = lookupSection(Constants.TYPE_CODE_ITEM);
+    if (dexSection.length == 0) {
       return;
     }
-    file.position(segment.offset);
-    for (int i = 0; i < segment.length; i++) {
-      file.align(4);  // code items are 4 byte aligned.
-      int offset = file.position();
+    dexReader.position(dexSection.offset);
+    for (int i = 0; i < dexSection.length; i++) {
+      dexReader.align(4);  // code items are 4 byte aligned.
+      int offset = dexReader.position();
       DexCode code = parseCodeItem();
       codes.put(offset, code);  // Update the file local offset to code mapping.
     }
   }
 
   private DexTypeList parseTypeList() {
-    DexType[] result = new DexType[file.getUint()];
+    DexType[] result = new DexType[dexReader.getUint()];
     for (int j = 0; j < result.length; j++) {
-      result[j] = indexedItems.getType(file.getUshort());
+      result[j] = indexedItems.getType(dexReader.getUshort());
     }
     return new DexTypeList(result);
   }
@@ -167,68 +167,68 @@ public class DexFileReader {
     return (DexTypeList) cacheAt(offset, this::parseTypeList);
   }
 
-  public DexValue parseEncodedValue() {
-    int header = file.get() & 0xff;
+  private DexValue parseEncodedValue() {
+    int header = dexReader.get() & 0xff;
     int valueArg = header >> 5;
     int valueType = header & 0x1f;
     switch (valueType) {
       case DexValue.VALUE_BYTE: {
         assert valueArg == 0;
-        byte value = (byte) parseSigned(file, 1);
+        byte value = (byte) parseSigned(dexReader, 1);
         return DexValue.DexValueByte.create(value);
       }
       case DexValue.VALUE_SHORT: {
         int size = valueArg + 1;
-        short value = (short) parseSigned(file, size);
+        short value = (short) parseSigned(dexReader, size);
         return DexValue.DexValueShort.create(value);
       }
       case DexValue.VALUE_CHAR: {
         int size = valueArg + 1;
-        char value = (char) parseUnsigned(file, size);
+        char value = (char) parseUnsigned(dexReader, size);
         return DexValue.DexValueChar.create(value);
       }
       case DexValue.VALUE_INT: {
         int size = valueArg + 1;
-        int value = (int) parseSigned(file, size);
+        int value = (int) parseSigned(dexReader, size);
         return DexValue.DexValueInt.create(value);
       }
       case DexValue.VALUE_LONG: {
         int size = valueArg + 1;
-        long value = parseSigned(file, size);
+        long value = parseSigned(dexReader, size);
         return DexValue.DexValueLong.create(value);
       }
       case DexValue.VALUE_FLOAT: {
         int size = valueArg + 1;
-        return DexValue.DexValueFloat.create(parseFloat(file, size));
+        return DexValue.DexValueFloat.create(parseFloat(dexReader, size));
       }
       case DexValue.VALUE_DOUBLE: {
         int size = valueArg + 1;
-        return DexValue.DexValueDouble.create(parseDouble(file, size));
+        return DexValue.DexValueDouble.create(parseDouble(dexReader, size));
       }
       case DexValue.VALUE_STRING: {
         int size = valueArg + 1;
-        int index = (int) parseUnsigned(file, size);
+        int index = (int) parseUnsigned(dexReader, size);
         DexString value = indexedItems.getString(index);
         return new DexValue.DexValueString(value);
       }
       case DexValue.VALUE_TYPE: {
         int size = valueArg + 1;
-        DexType value = indexedItems.getType((int) parseUnsigned(file, size));
+        DexType value = indexedItems.getType((int) parseUnsigned(dexReader, size));
         return new DexValue.DexValueType(value);
       }
       case DexValue.VALUE_FIELD: {
         int size = valueArg + 1;
-        DexField value = indexedItems.getField((int) parseUnsigned(file, size));
+        DexField value = indexedItems.getField((int) parseUnsigned(dexReader, size));
         return new DexValue.DexValueField(value);
       }
       case DexValue.VALUE_METHOD: {
         int size = valueArg + 1;
-        DexMethod value = indexedItems.getMethod((int) parseUnsigned(file, size));
+        DexMethod value = indexedItems.getMethod((int) parseUnsigned(dexReader, size));
         return new DexValue.DexValueMethod(value);
       }
       case DexValue.VALUE_ENUM: {
         int size = valueArg + 1;
-        DexField value = indexedItems.getField((int) parseUnsigned(file, size));
+        DexField value = indexedItems.getField((int) parseUnsigned(dexReader, size));
         return new DexValue.DexValueEnum(value);
       }
       case DexValue.VALUE_ARRAY: {
@@ -249,12 +249,12 @@ public class DexFileReader {
       }
       case DexValue.VALUE_METHOD_TYPE: {
         int size = valueArg + 1;
-        DexProto value = indexedItems.getProto((int) parseUnsigned(file, size));
+        DexProto value = indexedItems.getProto((int) parseUnsigned(dexReader, size));
         return new DexValue.DexValueMethodType(value);
       }
       case DexValue.VALUE_METHOD_HANDLE: {
         int size = valueArg + 1;
-        DexMethodHandle value = indexedItems.getMethodHandle((int) parseUnsigned(file, size));
+        DexMethodHandle value = indexedItems.getMethodHandle((int) parseUnsigned(dexReader, size));
         return new DexValue.DexValueMethodHandle(value);
       }
       default:
@@ -263,11 +263,11 @@ public class DexFileReader {
   }
 
   private DexEncodedAnnotation parseEncodedAnnotation() {
-    int typeIdx = file.getUleb128();
-    int size = file.getUleb128();
+    int typeIdx = dexReader.getUleb128();
+    int size = dexReader.getUleb128();
     DexAnnotationElement[] elements = new DexAnnotationElement[size];
     for (int i = 0; i < size; i++) {
-      int nameIdx = file.getUleb128();
+      int nameIdx = dexReader.getUleb128();
       DexValue value = parseEncodedValue();
       elements[i] = new DexAnnotationElement(indexedItems.getString(nameIdx), value);
     }
@@ -275,7 +275,7 @@ public class DexFileReader {
   }
 
   private DexValue[] parseEncodedArrayValues() {
-    int size = file.getUleb128();
+    int size = dexReader.getUleb128();
     DexValue[] values = new DexValue[size];
     for (int i = 0; i < size; i++) {
       values[i] = parseEncodedValue();
@@ -299,17 +299,17 @@ public class DexFileReader {
     int[] fieldIndices = new int[size];
     int[] annotationOffsets = new int[size];
     for (int i = 0; i < size; i++) {
-      fieldIndices[i] = file.getUint();
-      annotationOffsets[i] = file.getUint();
+      fieldIndices[i] = dexReader.getUint();
+      annotationOffsets[i] = dexReader.getUint();
     }
-    int saved = file.position();
+    int saved = dexReader.position();
     DexFieldAnnotation[] result = new DexFieldAnnotation[size];
     for (int i = 0; i < size; i++) {
       DexField field = indexedItems.getField(fieldIndices[i]);
       DexAnnotationSet annotation = annotationSetAt(annotationOffsets[i]);
       result[i] = new DexFieldAnnotation(field, annotation);
     }
-    file.position(saved);
+    dexReader.position(saved);
     return result;
   }
 
@@ -320,17 +320,17 @@ public class DexFileReader {
     int[] methodIndices = new int[size];
     int[] annotationOffsets = new int[size];
     for (int i = 0; i < size; i++) {
-      methodIndices[i] = file.getUint();
-      annotationOffsets[i] = file.getUint();
+      methodIndices[i] = dexReader.getUint();
+      annotationOffsets[i] = dexReader.getUint();
     }
-    int saved = file.position();
+    int saved = dexReader.position();
     DexMethodAnnotation[] result = new DexMethodAnnotation[size];
     for (int i = 0; i < size; i++) {
       DexMethod method = indexedItems.getMethod(methodIndices[i]);
       DexAnnotationSet annotation = annotationSetAt(annotationOffsets[i]);
       result[i] = new DexMethodAnnotation(method, annotation);
     }
-    file.position(saved);
+    dexReader.position(saved);
     return result;
   }
 
@@ -339,10 +339,10 @@ public class DexFileReader {
   }
 
   private DexAnnotationSetRefList parseAnnotationSetRefList() {
-    int size = file.getUint();
+    int size = dexReader.getUint();
     int[] annotationOffsets = new int[size];
     for (int i = 0; i < size; i++) {
-      annotationOffsets[i] = file.getUint();
+      annotationOffsets[i] = dexReader.getUint();
     }
     DexAnnotationSet[] values = new DexAnnotationSet[size];
     for (int i = 0; i < size; i++) {
@@ -358,10 +358,10 @@ public class DexFileReader {
     int[] methodIndices = new int[size];
     int[] annotationOffsets = new int[size];
     for (int i = 0; i < size; i++) {
-      methodIndices[i] = file.getUint();
-      annotationOffsets[i] = file.getUint();
+      methodIndices[i] = dexReader.getUint();
+      annotationOffsets[i] = dexReader.getUint();
     }
-    int saved = file.position();
+    int saved = dexReader.position();
     DexParameterAnnotation[] result = new DexParameterAnnotation[size];
     for (int i = 0; i < size; i++) {
       DexMethod method = indexedItems.getMethod(methodIndices[i]);
@@ -369,7 +369,7 @@ public class DexFileReader {
           method,
           annotationSetRefListAt(annotationOffsets[i]));
     }
-    file.position(saved);
+    dexReader.position(saved);
     return result;
   }
 
@@ -389,7 +389,7 @@ public class DexFileReader {
       return result;  // return the cached result.
     }
     // Cache is empty so parse the structure.
-    file.position(offset);
+    dexReader.position(offset);
     result = function.get();
     // Update the map.
     offsetMap.put(offset, result);
@@ -399,9 +399,9 @@ public class DexFileReader {
 
   private DexAnnotation parseAnnotation() {
     if (Log.ENABLED) {
-      Log.verbose(getClass(), "Reading Annotation @ 0x%08x.", file.position());
+      Log.verbose(getClass(), "Reading Annotation @ 0x%08x.", dexReader.position());
     }
-    int visibility = file.get();
+    int visibility = dexReader.get();
     return new DexAnnotation(visibility, parseEncodedAnnotation());
   }
 
@@ -411,12 +411,12 @@ public class DexFileReader {
 
   private DexAnnotationSet parseAnnotationSet() {
     if (Log.ENABLED) {
-      Log.verbose(getClass(), "Reading AnnotationSet @ 0x%08x.", file.position());
+      Log.verbose(getClass(), "Reading AnnotationSet @ 0x%08x.", dexReader.position());
     }
-    int size = file.getUint();
+    int size = dexReader.getUint();
     int[] annotationOffsets = new int[size];
     for (int i = 0; i < size; i++) {
-      annotationOffsets[i] = file.getUint();
+      annotationOffsets[i] = dexReader.getUint();
     }
     DexAnnotation[] result = new DexAnnotation[size];
     for (int i = 0; i < size; i++) {
@@ -435,10 +435,10 @@ public class DexFileReader {
   }
 
   private AnnotationsDirectory parseAnnotationsDirectory() {
-    int classAnnotationsOff = file.getUint();
-    int fieldsSize = file.getUint();
-    int methodsSize = file.getUint();
-    int parametersSize = file.getUint();
+    int classAnnotationsOff = dexReader.getUint();
+    int fieldsSize = dexReader.getUint();
+    int methodsSize = dexReader.getUint();
+    int parametersSize = dexReader.getUint();
     final DexFieldAnnotation[] fields = parseFieldAnnotations(fieldsSize);
     final DexMethodAnnotation[] methods = parseMethodAnnotations(methodsSize);
     final DexParameterAnnotation[] parameters = parseParameterAnnotations(parametersSize);
@@ -454,28 +454,28 @@ public class DexFileReader {
   }
 
   private DexDebugInfo parseDebugInfo() {
-    int start = file.getUleb128();
-    int parametersSize = file.getUleb128();
+    int start = dexReader.getUleb128();
+    int parametersSize = dexReader.getUleb128();
     DexString[] parameters = new DexString[parametersSize];
     for (int i = 0; i < parametersSize; i++) {
-      int index = file.getUleb128p1();
+      int index = dexReader.getUleb128p1();
       if (index != NO_INDEX) {
         parameters[i] = indexedItems.getString(index);
       }
     }
     List<DexDebugEvent> events = new ArrayList<>();
-    for (int head = file.getUbyte(); head != Constants.DBG_END_SEQUENCE; head = file.getUbyte()) {
+    for (int head = dexReader.getUbyte(); head != Constants.DBG_END_SEQUENCE; head = dexReader.getUbyte()) {
       switch (head) {
         case Constants.DBG_ADVANCE_PC:
-          events.add(dexItemFactory.createAdvancePC(file.getUleb128()));
+          events.add(dexItemFactory.createAdvancePC(dexReader.getUleb128()));
           break;
         case Constants.DBG_ADVANCE_LINE:
-          events.add(dexItemFactory.createAdvanceLine(file.getSleb128()));
+          events.add(dexItemFactory.createAdvanceLine(dexReader.getSleb128()));
           break;
         case Constants.DBG_START_LOCAL: {
-          int registerNum = file.getUleb128();
-          int nameIdx = file.getUleb128p1();
-          int typeIdx = file.getUleb128p1();
+          int registerNum = dexReader.getUleb128();
+          int nameIdx = dexReader.getUleb128p1();
+          int typeIdx = dexReader.getUleb128p1();
           events.add(new DexDebugEvent.StartLocal(
               registerNum,
               nameIdx == NO_INDEX ? null : indexedItems.getString(nameIdx),
@@ -484,10 +484,10 @@ public class DexFileReader {
           break;
         }
         case Constants.DBG_START_LOCAL_EXTENDED: {
-          int registerNum = file.getUleb128();
-          int nameIdx = file.getUleb128p1();
-          int typeIdx = file.getUleb128p1();
-          int sigIdx = file.getUleb128p1();
+          int registerNum = dexReader.getUleb128();
+          int nameIdx = dexReader.getUleb128p1();
+          int typeIdx = dexReader.getUleb128p1();
+          int sigIdx = dexReader.getUleb128p1();
           events.add(new DexDebugEvent.StartLocal(
               registerNum,
               nameIdx == NO_INDEX ? null : indexedItems.getString(nameIdx),
@@ -496,11 +496,11 @@ public class DexFileReader {
           break;
         }
         case Constants.DBG_END_LOCAL: {
-          events.add(dexItemFactory.createEndLocal(file.getUleb128()));
+          events.add(dexItemFactory.createEndLocal(dexReader.getUleb128()));
           break;
         }
         case Constants.DBG_RESTART_LOCAL: {
-          events.add(dexItemFactory.createRestartLocal(file.getUleb128()));
+          events.add(dexItemFactory.createRestartLocal(dexReader.getUleb128()));
           break;
         }
         case Constants.DBG_SET_PROLOGUE_END: {
@@ -512,7 +512,7 @@ public class DexFileReader {
           break;
         }
         case Constants.DBG_SET_FILE: {
-          int nameIdx = file.getUleb128p1();
+          int nameIdx = dexReader.getUleb128p1();
           DexString sourceFile = nameIdx == NO_INDEX ? null : indexedItems.getString(nameIdx);
           events.add(dexItemFactory.createSetFile(sourceFile));
           break;
@@ -562,9 +562,9 @@ public class DexFileReader {
     MemberAnnotationIterator<DexField, DexAnnotationSet> annotationIterator =
         new MemberAnnotationIterator<>(annotations, DexAnnotationSet::empty);
     for (int i = 0; i < size; i++) {
-      fieldIndex += file.getUleb128();
+      fieldIndex += dexReader.getUleb128();
       DexField field = indexedItems.getField(fieldIndex);
-      FieldAccessFlags accessFlags = FieldAccessFlags.fromDexAccessFlags(file.getUleb128());
+      FieldAccessFlags accessFlags = FieldAccessFlags.fromDexAccessFlags(dexReader.getUleb128());
       DexAnnotationSet fieldAnnotations = annotationIterator.getNextFor(field);
       DexValue staticValue = null;
       if (accessFlags.isStatic()) {
@@ -588,9 +588,9 @@ public class DexFileReader {
     MemberAnnotationIterator<DexMethod, DexAnnotationSetRefList> parameterAnnotationsIterator =
         new MemberAnnotationIterator<>(parameters, DexAnnotationSetRefList::empty);
     for (int i = 0; i < size; i++) {
-      methodIndex += file.getUleb128();
-      MethodAccessFlags accessFlags = MethodAccessFlags.fromDexAccessFlags(file.getUleb128());
-      int codeOff = file.getUleb128();
+      methodIndex += dexReader.getUleb128();
+      MethodAccessFlags accessFlags = MethodAccessFlags.fromDexAccessFlags(dexReader.getUleb128());
+      int codeOff = dexReader.getUleb128();
       DexCode code = null;
       if (!skipCodes) {
         assert codeOff == 0 || codes.get(codeOff) != null;
@@ -604,13 +604,14 @@ public class DexFileReader {
   }
 
   void addClassDefsTo(Consumer<DexClass> classCollection) {
-    final Segment segment = lookupSegment(Constants.TYPE_CLASS_DEF_ITEM);
-    final int length = segment.length;
+    ensureCodesInited();
+    final DexSection dexSection = lookupSection(Constants.TYPE_CLASS_DEF_ITEM);
+    final int length = dexSection.length;
     indexedItems.initializeClasses(length);
     if (length == 0) {
       return;
     }
-    file.position(segment.offset);
+    dexReader.position(dexSection.offset);
 
     int[] classIndices = new int[length];
     int[] accessFlags = new int[length];
@@ -623,16 +624,16 @@ public class DexFileReader {
 
     for (int i = 0; i < length; i++) {
       if (Log.ENABLED) {
-        Log.verbose(getClass(), "Reading ClassDef @ 0x%08x.", file.position());
+        Log.verbose(getClass(), "Reading ClassDef @ 0x%08x.", dexReader.position());
       }
-      classIndices[i] = file.getUint();
-      accessFlags[i] = file.getUint();
-      superclassIndices[i] = file.getInt();
-      interfacesOffsets[i] = file.getUint();
-      sourceFileIndices[i] = file.getInt();
-      annotationsOffsets[i] = file.getUint();
-      classDataOffsets[i] = file.getUint();
-      staticValuesOffsets[i] = file.getUint();
+      classIndices[i] = dexReader.getUint();
+      accessFlags[i] = dexReader.getUint();
+      superclassIndices[i] = dexReader.getInt();
+      interfacesOffsets[i] = dexReader.getUint();
+      sourceFileIndices[i] = dexReader.getInt();
+      annotationsOffsets[i] = dexReader.getUint();
+      classDataOffsets[i] = dexReader.getUint();
+      staticValuesOffsets[i] = dexReader.getUint();
     }
 
     for (int i = 0; i < length; i++) {
@@ -656,11 +657,11 @@ public class DexFileReader {
       if (classDataOffsets[i] != 0) {
         DexEncodedArray staticValues = encodedArrayAt(staticValuesOffsets[i]);
 
-        file.position(classDataOffsets[i]);
-        int staticFieldsSize = file.getUleb128();
-        int instanceFieldsSize = file.getUleb128();
-        int directMethodsSize = file.getUleb128();
-        int virtualMethodsSize = file.getUleb128();
+        dexReader.position(classDataOffsets[i]);
+        int staticFieldsSize = dexReader.getUleb128();
+        int instanceFieldsSize = dexReader.getUleb128();
+        int directMethodsSize = dexReader.getUleb128();
+        int virtualMethodsSize = dexReader.getUleb128();
 
         staticFields = readFields(staticFieldsSize, annotationsDirectory.fields,
             staticValues != null ? staticValues.values : null);
@@ -702,105 +703,105 @@ public class DexFileReader {
   }
 
   private void parseStringIDs() {
-    Segment segment = lookupSegment(Constants.TYPE_STRING_ID_ITEM);
-    stringIDs = new int[segment.length];
-    if (segment.length == 0) {
+    DexSection dexSection = lookupSection(Constants.TYPE_STRING_ID_ITEM);
+    stringIDs = new int[dexSection.length];
+    if (dexSection.length == 0) {
       return;
     }
-    file.position(segment.offset);
-    for (int i = 0; i < segment.length; i++) {
-      stringIDs[i] = file.getUint();
+    dexReader.position(dexSection.offset);
+    for (int i = 0; i < dexSection.length; i++) {
+      stringIDs[i] = dexReader.getUint();
     }
   }
 
-  private Segment lookupSegment(int type) {
-    for (Segment s : segments) {
+  private DexSection lookupSection(int type) {
+    for (DexSection s : dexSections) {
       if (s.type == type) {
         return s;
       }
     }
-    // If the segment doesn't exist, return an empty segment of this type.
-    return new Segment(type, 0, 0, 0);
+    // If the section doesn't exist, return an empty section of this type.
+    return new DexSection(type, 0, 0, 0);
   }
 
-  private Segment[] parseMap() {
-    // Read the segments information from the MAP.
-    int mapOffset = file.getUint(Constants.MAP_OFF_OFFSET);
-    file.position(mapOffset);
-    int mapSize = file.getUint();
-    final Segment[] result = new Segment[mapSize];
+  private DexSection[] parseMap() {
+    // Read the dexSections information from the MAP.
+    int mapOffset = dexReader.getUint(Constants.MAP_OFF_OFFSET);
+    dexReader.position(mapOffset);
+    int mapSize = dexReader.getUint();
+    final DexSection[] result = new DexSection[mapSize];
     for (int i = 0; i < mapSize; i++) {
-      int type = file.getUshort();
-      int unused = file.getUshort();
-      int size = file.getUint();
-      int offset = file.getUint();
-      result[i] = new Segment(type, unused, size, offset);
+      int type = dexReader.getUshort();
+      int unused = dexReader.getUshort();
+      int size = dexReader.getUint();
+      int offset = dexReader.getUint();
+      result[i] = new DexSection(type, unused, size, offset);
     }
     if (Log.ENABLED) {
       for (int i = 0; i < result.length; i++) {
-        Segment segment = result[i];
-        int nextOffset = i < result.length - 1 ? result[i + 1].offset : segment.offset;
-        Log.debug(this.getClass(), "Read segment 0x%04x @ 0x%08x #items %08d size 0x%08x.",
-            segment.type, segment.offset, segment.length, nextOffset - segment.offset);
+        DexSection dexSection = result[i];
+        int nextOffset = i < result.length - 1 ? result[i + 1].offset : dexSection.offset;
+        Log.debug(this.getClass(), "Read section 0x%04x @ 0x%08x #items %08d size 0x%08x.",
+            dexSection.type, dexSection.offset, dexSection.length, nextOffset - dexSection.offset);
       }
     }
     for (int i = 0; i < mapSize - 1; i++) {
       result[i].setEnd(result[i + 1].offset);
     }
-    result[mapSize - 1].setEnd(file.end());
+    result[mapSize - 1].setEnd(dexReader.end());
     return result;
   }
 
   private DexCode parseCodeItem() {
-    int registerSize = file.getUshort();
-    int insSize = file.getUshort();
-    int outsSize = file.getUshort();
-    int triesSize = file.getUshort();
-    int debugInfoOff = file.getUint();
-    int insnsSize = file.getUint();
+    int registerSize = dexReader.getUshort();
+    int insSize = dexReader.getUshort();
+    int outsSize = dexReader.getUshort();
+    int triesSize = dexReader.getUshort();
+    int debugInfoOff = dexReader.getUint();
+    int insnsSize = dexReader.getUint();
     short[] code = new short[insnsSize];
     Try[] tries = new Try[triesSize];
     DexCode.TryHandler[] handlers = null;
 
     if (insnsSize != 0) {
       for (int i = 0; i < insnsSize; i++) {
-        code[i] = file.getShort();
+        code[i] = dexReader.getShort();
       }
       if (insnsSize % 2 != 0) {
-        file.getUshort();  // Skip padding ushort
+        dexReader.getUshort();  // Skip padding ushort
       }
       if (triesSize > 0) {
         Int2IntArrayMap handlerMap = new Int2IntArrayMap();
         // tries: try_item[tries_size].
         for (int i = 0; i < triesSize; i++) {
-          int startAddr = file.getUint();
-          int insnCount = file.getUshort();
-          int handlerOff = file.getUshort();
+          int startAddr = dexReader.getUint();
+          int insnCount = dexReader.getUshort();
+          int handlerOff = dexReader.getUshort();
           tries[i] = new Try(startAddr, insnCount, handlerOff);
         }
         // handlers: encoded_catch_handler_list
-        int encodedCatchHandlerListPosition = file.position();
+        int encodedCatchHandlerListPosition = dexReader.position();
         // - size: uleb128
-        int size = file.getUleb128();
+        int size = dexReader.getUleb128();
         handlers = new TryHandler[size];
         // - list: encoded_catch_handler[handlers_size]
         for (int i = 0; i < size; i++) {
           // encoded_catch_handler
-          int encodedCatchHandlerOffset = file.position() - encodedCatchHandlerListPosition;
+          int encodedCatchHandlerOffset = dexReader.position() - encodedCatchHandlerListPosition;
           handlerMap.put(encodedCatchHandlerOffset, i);
           // - size:	sleb128
-          int hsize = file.getSleb128();
+          int hsize = dexReader.getSleb128();
           int realHsize = Math.abs(hsize);
           // - handlers	encoded_type_addr_pair[abs(size)]
           TryHandler.TypeAddrPair pairs[] = new TryHandler.TypeAddrPair[realHsize];
           for (int j = 0; j < realHsize; j++) {
-            int typeIdx = file.getUleb128();
-            int addr = file.getUleb128();
+            int typeIdx = dexReader.getUleb128();
+            int addr = dexReader.getUleb128();
             pairs[j] = new TypeAddrPair(indexedItems.getType(typeIdx), addr);
           }
           int catchAllAddr = -1;
           if (hsize <= 0) {
-            catchAllAddr = file.getUleb128();
+            catchAllAddr = dexReader.getUleb128();
           }
           handlers[i] = new TryHandler(pairs, catchAllAddr);
         }
@@ -811,9 +812,9 @@ public class DexFileReader {
       }
     }
     // Store and restore offset information around reading debug info.
-    int saved = file.position();
+    int saved = dexReader.position();
     DexDebugInfo debugInfo = debugInfoAt(debugInfoOff);
-    file.position(saved);
+    dexReader.position(saved);
     InstructionFactory factory = new InstructionFactory();
     Instruction[] instructions =
         factory.readSequenceFrom(ShortBuffer.wrap(code), 0, code.length, indexedItems);
@@ -828,105 +829,105 @@ public class DexFileReader {
         factory.getHighestSortingString());
   }
 
-  static void populateIndexTables(DexFileReader fileReader) {
+  void populateIndexTables() {
     // Populate structures that are already sorted upon read.
-    DexFileReader.populateStrings(fileReader);  // Depends on nothing.
-    DexFileReader.populateTypes(fileReader);  // Depends on Strings.
-    DexFileReader.populateFields(fileReader);  // Depends on Types, and Strings.
-    DexFileReader.populateProtos(fileReader);  // Depends on Types and Strings.
-    DexFileReader.populateMethods(fileReader);  // Depends on Protos, Types, and Strings.
-    DexFileReader.populateMethodHandles(fileReader); // Depends on Methods and Fields
-    DexFileReader.populateCallSites(fileReader); // Depends on MethodHandles
+    populateStrings();  // Depends on nothing.
+    populateTypes();  // Depends on Strings.
+    populateFields();  // Depends on Types, and Strings.
+    populateProtos();  // Depends on Types and Strings.
+    populateMethods();  // Depends on Protos, Types, and Strings.
+    populateMethodHandles(); // Depends on Methods and Fields
+    populateCallSites(); // Depends on MethodHandles
   }
 
-  private static void populateStrings(DexFileReader reader) {
-    reader.indexedItems.initializeStrings(reader.stringIDs.length);
-    for (int i = 0; i < reader.stringIDs.length; i++) {
-      reader.indexedItems.setString(i, reader.stringAt(i));
+  private void populateStrings() {
+    indexedItems.initializeStrings(stringIDs.length);
+    for (int i = 0; i < stringIDs.length; i++) {
+      indexedItems.setString(i, stringAt(i));
     }
   }
 
-  private static void populateMethodHandles(DexFileReader reader) {
-    Segment segment = reader.lookupSegment(Constants.TYPE_METHOD_HANDLE_ITEM);
-    reader.indexedItems.initializeMethodHandles(segment.length);
-    for (int i = 0; i < segment.length; i++) {
-      reader.indexedItems.setMethodHandle(i, reader.methodHandleAt(i));
+  private void populateMethodHandles() {
+    DexSection dexSection = lookupSection(Constants.TYPE_METHOD_HANDLE_ITEM);
+    indexedItems.initializeMethodHandles(dexSection.length);
+    for (int i = 0; i < dexSection.length; i++) {
+      indexedItems.setMethodHandle(i, methodHandleAt(i));
     }
   }
 
-  private static void populateCallSites(DexFileReader reader) {
-    Segment segment = reader.lookupSegment(Constants.TYPE_CALL_SITE_ID_ITEM);
-    reader.indexedItems.initializeCallSites(segment.length);
-    for (int i = 0; i < segment.length; i++) {
-      reader.indexedItems.setCallSites(i, reader.callSiteAt(i));
+  private void populateCallSites() {
+    DexSection dexSection = lookupSection(Constants.TYPE_CALL_SITE_ID_ITEM);
+    indexedItems.initializeCallSites(dexSection.length);
+    for (int i = 0; i < dexSection.length; i++) {
+      indexedItems.setCallSites(i, callSiteAt(i));
     }
   }
 
-  private static void populateTypes(DexFileReader reader) {
-    Segment segment = reader.lookupSegment(Constants.TYPE_TYPE_ID_ITEM);
-    reader.indexedItems.initializeTypes(segment.length);
-    for (int i = 0; i < segment.length; i++) {
-      reader.indexedItems.setType(i, reader.typeAt(i));
+  private void populateTypes() {
+    DexSection dexSection = lookupSection(Constants.TYPE_TYPE_ID_ITEM);
+    indexedItems.initializeTypes(dexSection.length);
+    for (int i = 0; i < dexSection.length; i++) {
+      indexedItems.setType(i, typeAt(i));
     }
   }
 
-  private static void populateFields(DexFileReader reader) {
-    Segment segment = reader.lookupSegment(Constants.TYPE_FIELD_ID_ITEM);
-    reader.indexedItems.initializeFields(segment.length);
-    for (int i = 0; i < segment.length; i++) {
-      reader.indexedItems.setField(i, reader.fieldAt(i));
+  private void populateFields() {
+    DexSection dexSection = lookupSection(Constants.TYPE_FIELD_ID_ITEM);
+    indexedItems.initializeFields(dexSection.length);
+    for (int i = 0; i < dexSection.length; i++) {
+      indexedItems.setField(i, fieldAt(i));
     }
   }
 
-  private static void populateProtos(DexFileReader reader) {
-    Segment segment = reader.lookupSegment(Constants.TYPE_PROTO_ID_ITEM);
-    reader.indexedItems.initializeProtos(segment.length);
-    for (int i = 0; i < segment.length; i++) {
-      reader.indexedItems.setProto(i, reader.protoAt(i));
+  private void populateProtos() {
+    DexSection dexSection = lookupSection(Constants.TYPE_PROTO_ID_ITEM);
+    indexedItems.initializeProtos(dexSection.length);
+    for (int i = 0; i < dexSection.length; i++) {
+      indexedItems.setProto(i, protoAt(i));
     }
   }
 
-  private static void populateMethods(DexFileReader reader) {
-    Segment segment = reader.lookupSegment(Constants.TYPE_METHOD_ID_ITEM);
-    reader.indexedItems.initializeMethods(segment.length);
-    for (int i = 0; i < segment.length; i++) {
-      reader.indexedItems.setMethod(i, reader.methodAt(i));
+  private void populateMethods() {
+    DexSection dexSection = lookupSection(Constants.TYPE_METHOD_ID_ITEM);
+    indexedItems.initializeMethods(dexSection.length);
+    for (int i = 0; i < dexSection.length; i++) {
+      indexedItems.setMethod(i, methodAt(i));
     }
   }
 
   private DexString stringAt(int index) {
     final int offset = stringIDs[index];
-    file.position(offset);
-    int size = file.getUleb128();
+    dexReader.position(offset);
+    int size = dexReader.getUleb128();
     ByteArrayOutputStream os = new ByteArrayOutputStream();
     byte read;
     do {
-      read = file.get();
+      read = dexReader.get();
       os.write(read);
     } while (read != 0);
     return dexItemFactory.createString(size, os.toByteArray());
   }
 
   private DexType typeAt(int index) {
-    Segment segment = lookupSegment(Constants.TYPE_TYPE_ID_ITEM);
-    if (index >= segment.length) {
+    DexSection dexSection = lookupSection(Constants.TYPE_TYPE_ID_ITEM);
+    if (index >= dexSection.length) {
       return null;
     }
-    int offset = segment.offset + (Constants.TYPE_TYPE_ID_ITEM_SIZE * index);
-    int stringIndex = file.getUint(offset);
+    int offset = dexSection.offset + (Constants.TYPE_TYPE_ID_ITEM_SIZE * index);
+    int stringIndex = dexReader.getUint(offset);
     return dexItemFactory.createType(indexedItems.getString(stringIndex));
   }
 
   private DexField fieldAt(int index) {
-    Segment segment = lookupSegment(Constants.TYPE_FIELD_ID_ITEM);
-    if (index >= segment.length) {
+    DexSection dexSection = lookupSection(Constants.TYPE_FIELD_ID_ITEM);
+    if (index >= dexSection.length) {
       return null;
     }
-    int offset = segment.offset + (Constants.TYPE_FIELD_ID_ITEM_SIZE * index);
-    file.position(offset);
-    int classIndex = file.getUshort();
-    int typeIndex = file.getUshort();
-    int nameIndex = file.getUint();
+    int offset = dexSection.offset + (Constants.TYPE_FIELD_ID_ITEM_SIZE * index);
+    dexReader.position(offset);
+    int classIndex = dexReader.getUshort();
+    int typeIndex = dexReader.getUshort();
+    int nameIndex = dexReader.getUint();
     DexType clazz = indexedItems.getType(classIndex);
     DexType type = indexedItems.getType(typeIndex);
     DexString name = indexedItems.getString(nameIndex);
@@ -934,15 +935,15 @@ public class DexFileReader {
   }
 
   private DexMethodHandle methodHandleAt(int index) {
-    Segment segment = lookupSegment(Constants.TYPE_METHOD_HANDLE_ITEM);
-    if (index >= segment.length) {
+    DexSection dexSection = lookupSection(Constants.TYPE_METHOD_HANDLE_ITEM);
+    if (index >= dexSection.length) {
       return null;
     }
-    int offset = segment.offset + (Constants.TYPE_METHOD_HANDLE_ITEM_SIZE * index);
-    file.position(offset);
-    MethodHandleType type = MethodHandleType.getKind(file.getUshort());
-    file.getUshort(); // unused
-    int indexFieldOrMethod = file.getUshort();
+    int offset = dexSection.offset + (Constants.TYPE_METHOD_HANDLE_ITEM_SIZE * index);
+    dexReader.position(offset);
+    MethodHandleType type = MethodHandleType.getKind(dexReader.getUshort());
+    dexReader.getUshort(); // unused
+    int indexFieldOrMethod = dexReader.getUshort();
     Descriptor<? extends DexItem, ? extends Descriptor<?, ?>> fieldOrMethod;
     switch (type) {
       case INSTANCE_GET:
@@ -963,18 +964,18 @@ public class DexFileReader {
       default:
         throw new AssertionError("Method handle type unsupported in a dex file.");
     }
-    file.getUshort(); // unused
+    dexReader.getUshort(); // unused
 
     return dexItemFactory.createMethodHandle(type, fieldOrMethod);
   }
 
   private DexCallSite callSiteAt(int index) {
-    Segment segment = lookupSegment(Constants.TYPE_CALL_SITE_ID_ITEM);
-    if (index >= segment.length) {
+    DexSection dexSection = lookupSection(Constants.TYPE_CALL_SITE_ID_ITEM);
+    if (index >= dexSection.length) {
       return null;
     }
     int callSiteOffset =
-        file.getUint(segment.offset + (Constants.TYPE_CALL_SITE_ID_ITEM_SIZE * index));
+        dexReader.getUint(dexSection.offset + (Constants.TYPE_CALL_SITE_ID_ITEM_SIZE * index));
     DexEncodedArray callSiteEncodedArray = encodedArrayAt(callSiteOffset);
     DexValue[] values = callSiteEncodedArray.values;
     assert values[0] instanceof DexValueMethodHandle;
@@ -990,15 +991,15 @@ public class DexFileReader {
   }
 
   private DexProto protoAt(int index) {
-    Segment segment = lookupSegment(Constants.TYPE_PROTO_ID_ITEM);
-    if (index >= segment.length) {
+    DexSection dexSection = lookupSection(Constants.TYPE_PROTO_ID_ITEM);
+    if (index >= dexSection.length) {
       return null;
     }
-    int offset = segment.offset + (Constants.TYPE_PROTO_ID_ITEM_SIZE * index);
-    file.position(offset);
-    int shortyIndex = file.getUint();
-    int returnTypeIndex = file.getUint();
-    int parametersOffsetIndex = file.getUint();
+    int offset = dexSection.offset + (Constants.TYPE_PROTO_ID_ITEM_SIZE * index);
+    dexReader.position(offset);
+    int shortyIndex = dexReader.getUint();
+    int returnTypeIndex = dexReader.getUint();
+    int parametersOffsetIndex = dexReader.getUint();
     DexString shorty = indexedItems.getString(shortyIndex);
     DexType returnType = indexedItems.getType(returnTypeIndex);
     DexTypeList parameters = typeListAt(parametersOffsetIndex);
@@ -1006,15 +1007,15 @@ public class DexFileReader {
   }
 
   private DexMethod methodAt(int index) {
-    Segment segment = lookupSegment(Constants.TYPE_METHOD_ID_ITEM);
-    if (index >= segment.length) {
+    DexSection dexSection = lookupSection(Constants.TYPE_METHOD_ID_ITEM);
+    if (index >= dexSection.length) {
       return null;
     }
-    int offset = segment.offset + (Constants.TYPE_METHOD_ID_ITEM_SIZE * index);
-    file.position(offset);
-    int classIndex = file.getUshort();
-    int protoIndex = file.getUshort();
-    int nameIndex = file.getUint();
+    int offset = dexSection.offset + (Constants.TYPE_METHOD_ID_ITEM_SIZE * index);
+    dexReader.position(offset);
+    int classIndex = dexReader.getUshort();
+    int protoIndex = dexReader.getUshort();
+    int nameIndex = dexReader.getUint();
     return dexItemFactory.createMethod(
         indexedItems.getType(classIndex),
         indexedItems.getProto(protoIndex),

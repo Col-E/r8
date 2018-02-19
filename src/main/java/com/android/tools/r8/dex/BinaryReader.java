@@ -12,15 +12,18 @@ import com.google.common.io.ByteStreams;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-public abstract class BaseFile {
+/**
+ * Base class for reading binary content.
+ */
+public abstract class BinaryReader {
   protected final Origin origin;
   protected final ByteBuffer buffer;
 
-  protected BaseFile(ProgramResource resource) throws ResourceException, IOException {
+  protected BinaryReader(ProgramResource resource) throws ResourceException, IOException {
     this(resource.getOrigin(), ByteStreams.toByteArray(resource.getByteStream()));
   }
 
-  protected BaseFile(Origin origin, byte[] bytes) {
+  protected BinaryReader(Origin origin, byte[] bytes) {
     assert origin != null;
     this.origin = origin;
     buffer = ByteBuffer.wrap(bytes);

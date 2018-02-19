@@ -52,9 +52,9 @@ import java.util.stream.Collectors;
 
 public class ApplicationReader {
 
-  final InternalOptions options;
-  final DexItemFactory itemFactory;
-  final Timing timing;
+  private final InternalOptions options;
+  private final DexItemFactory itemFactory;
+  private final Timing timing;
   private final AndroidApp inputApp;
 
   public interface ProgramClassConflictResolver {
@@ -122,8 +122,8 @@ public class ApplicationReader {
     return builder.build();
   }
 
-  private int verifyOrComputeMinApiLevel(int computedMinApiLevel, DexFile file) {
-    DexVersion version = DexVersion.getDexVersion(file.getDexVersion());
+  private int verifyOrComputeMinApiLevel(int computedMinApiLevel, DexReader dexReader) {
+    DexVersion version = DexVersion.getDexVersion(dexReader.getDexVersion());
     if (options.minApiLevel == AndroidApiLevel.getDefault().getLevel()) {
       computedMinApiLevel = Math
           .max(computedMinApiLevel, AndroidApiLevel.getMinAndroidApiLevel(version).getLevel());
@@ -194,23 +194,22 @@ public class ApplicationReader {
         List<ProgramResource> dexSources, ClassKind classKind, Queue<T> classes)
         throws IOException, ResourceException {
       if (dexSources.size() > 0) {
-        List<DexFileReader> fileReaders = new ArrayList<>(dexSources.size());
+        List<DexParser> dexParsers = new ArrayList<>(dexSources.size());
         int computedMinApiLevel = options.minApiLevel;
         for (ProgramResource input : dexSources) {
-          DexFile file = new DexFile(input);
-          computedMinApiLevel = verifyOrComputeMinApiLevel(computedMinApiLevel, file);
-          fileReaders.add(new DexFileReader(file, classKind, itemFactory));
+          DexReader dexReader = new DexReader(input);
+          computedMinApiLevel = verifyOrComputeMinApiLevel(computedMinApiLevel, dexReader);
+          dexParsers.add(new DexParser(dexReader, classKind, itemFactory));
         }
         options.minApiLevel = computedMinApiLevel;
-        for (DexFileReader reader : fileReaders) {
-          DexFileReader.populateIndexTables(reader);
+        for (DexParser dexParser : dexParsers) {
+          dexParser.populateIndexTables();
         }
         // Read the DexCode items and DexProgramClass items in parallel.
         if (!options.skipReadingDexCode) {
-          for (DexFileReader reader : fileReaders) {
+          for (DexParser dexParser : dexParsers) {
             futures.add(executorService.submit(() -> {
-              reader.addCodeItemsTo();  // Depends on Everything for parsing.
-              reader.addClassDefsTo(
+              dexParser.addClassDefsTo(
                   classKind.bridgeConsumer(classes::add)); // Depends on Methods, Code items etc.
             }));
           }

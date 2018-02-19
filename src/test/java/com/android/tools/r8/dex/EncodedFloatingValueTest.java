@@ -42,33 +42,33 @@ public class EncodedFloatingValueTest {
     );
   }
 
-  // Create a DexFile with correct file magic followed by the argument bytes. Positions the
-  // DexFile after the file magic.
-  private DexFile createDexFileWithContent(byte[] bytes) {
+  // Create a DexReader with correct file magic followed by the argument bytes. Positions the
+  // DexReader after the file magic.
+  private DexReader createDexFileWithContent(byte[] bytes) {
     DexOutputBuffer buffer = new DexOutputBuffer();
     buffer.putBytes(Constants.DEX_FILE_MAGIC_PREFIX);
     buffer.putBytes(AndroidApiLevel.B.getDexVersion().getBytes());
     buffer.putByte(Constants.DEX_FILE_MAGIC_SUFFIX);
     buffer.putBytes(bytes);
-    DexFile dexFile = new DexFile(Origin.unknown(), buffer.asArray());
-    dexFile.position(DEX_MAGIC_SIZE);
-    return dexFile;
+    DexReader dexReader = new DexReader(Origin.unknown(), buffer.asArray());
+    dexReader.position(DEX_MAGIC_SIZE);
+    return dexReader;
   }
 
   @Test
   public void testEncodeDecodeDouble() {
     byte[] bytes = EncodedValueUtils.encodeDouble(value);
     assertTrue(bytes.length <= Double.BYTES);
-    DexFile dexFile = createDexFileWithContent(bytes);
-    Assert.assertEquals(value, EncodedValueUtils.parseDouble(dexFile, bytes.length), 0.0);
+    DexReader dexReader = createDexFileWithContent(bytes);
+    Assert.assertEquals(value, EncodedValueUtils.parseDouble(dexReader, bytes.length), 0.0);
   }
 
   @Test
   public void testEncodeDecodeFloat() {
     byte[] bytes = EncodedValueUtils.encodeFloat((float) value);
     assertTrue(bytes.length <= Float.BYTES);
-    DexFile dexFile = createDexFileWithContent(bytes);
-    Assert.assertEquals((float) value, EncodedValueUtils.parseFloat(dexFile, bytes.length), 0.0f);
+    DexReader dexReader = createDexFileWithContent(bytes);
+    Assert.assertEquals((float) value, EncodedValueUtils.parseFloat(dexReader, bytes.length), 0.0f);
   }
 
   @Test
@@ -77,8 +77,8 @@ public class EncodedFloatingValueTest {
     int length = EncodedValueUtils.putDouble(buffer, value);
     assertTrue(length <= Double.BYTES);
     byte[] bytes = buffer.asArray();
-    DexFile dexFile = createDexFileWithContent(bytes);
-    assertEquals(value, EncodedValueUtils.parseDouble(dexFile, length), 0.0);
+    DexReader dexReader = createDexFileWithContent(bytes);
+    assertEquals(value, EncodedValueUtils.parseDouble(dexReader, length), 0.0);
   }
 
   @Test
@@ -87,7 +87,7 @@ public class EncodedFloatingValueTest {
     int length = EncodedValueUtils.putFloat(buffer, (float) value);
     assertTrue(length <= Float.BYTES);
     byte[] bytes = buffer.asArray();
-    DexFile dexFile = createDexFileWithContent(bytes);
-    assertEquals((float) value, EncodedValueUtils.parseFloat(dexFile, length), 0.0f);
+    DexReader dexReader = createDexFileWithContent(bytes);
+    assertEquals((float) value, EncodedValueUtils.parseFloat(dexReader, length), 0.0f);
   }
 }

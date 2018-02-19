@@ -6,8 +6,8 @@ package com.android.tools.r8;
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.Marker;
-import com.android.tools.r8.dex.VDexFile;
-import com.android.tools.r8.dex.VDexFileReader;
+import com.android.tools.r8.dex.VDexReader;
+import com.android.tools.r8.dex.VDexParser;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.origin.Origin;
@@ -72,10 +72,10 @@ public class ExtractMarker {
       throws IOException, ResourceException {
     if (FileUtils.isVDexFile(file)) {
       PathOrigin vdexOrigin = new PathOrigin(file);
-      VDexFile vdexFile = new VDexFile(vdexOrigin, Files.newInputStream(file));
-      VDexFileReader reader = new VDexFileReader(vdexFile);
+      VDexReader vdexReader = new VDexReader(vdexOrigin, Files.newInputStream(file));
+      VDexParser vDexParser = new VDexParser(vdexReader);
       int index = 0;
-      for (byte[] bytes : reader.getDexFiles()) {
+      for (byte[] bytes : vDexParser.getDexFiles()) {
         appBuilder.addDexProgramData(bytes, new VdexOrigin(vdexOrigin, index));
         index++;
       }

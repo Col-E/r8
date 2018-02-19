@@ -20,11 +20,11 @@ import java.nio.ByteOrder;
 /**
  * See runtime/vdex_file.h and runtime/vdex_file.cc in the Art code for the vdex file format.
  */
-public class VDexFile extends BaseFile {
+public class VDexReader extends BinaryReader {
 
   private final int version;
 
-  public VDexFile(Origin origin, InputStream stream) throws IOException {
+  public VDexReader(Origin origin, InputStream stream) throws IOException {
     super(origin, ByteStreams.toByteArray(stream));
     version = parseMagic(buffer);
     if (!supportedVersion(version)) {

@@ -14,11 +14,14 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-public class DexFile extends BaseFile {
+/**
+ * {@link BinaryReader} for Dex content.
+ */
+public class DexReader extends BinaryReader {
 
   private final int version;
 
-  public DexFile(ProgramResource resource) throws ResourceException, IOException {
+  public DexReader(ProgramResource resource) throws ResourceException, IOException {
     super(resource);
     version = parseMagic(buffer);
   }
@@ -28,7 +31,7 @@ public class DexFile extends BaseFile {
    *
    * @param bytes contents of the file
    */
-  DexFile(Origin origin, byte[] bytes) {
+  DexReader(Origin origin, byte[] bytes) {
     super(origin, bytes);
     version = parseMagic(buffer);
   }

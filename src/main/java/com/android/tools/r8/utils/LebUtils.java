@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
-import com.android.tools.r8.dex.BaseFile;
+import com.android.tools.r8.dex.BinaryReader;
 import com.android.tools.r8.dex.DexOutputBuffer;
 import java.util.Arrays;
 
@@ -13,12 +13,12 @@ public class LebUtils {
   private static final int MORE_DATA_TAG_BIT = 0x80;
   private static final int MAX_BYTES_PER_VALUE = 5;
 
-  public static int parseUleb128(BaseFile file) {
+  public static int parseUleb128(BinaryReader reader) {
     int result = 0;
     byte b;
     int shift = 0;
     do {
-      b = file.get();
+      b = reader.get();
       result |= (b & (byte) PAYLOAD_MASK) << shift;
       shift += BITS_PER_ENCODED_BYTE;
     } while ((b & ~(byte) PAYLOAD_MASK) == ~(byte) PAYLOAD_MASK);
@@ -57,12 +57,12 @@ public class LebUtils {
         .max(1, (Integer.SIZE - Integer.numberOfLeadingZeros(value) + 6) / BITS_PER_ENCODED_BYTE);
   }
 
-  public static int parseSleb128(BaseFile file) {
+  public static int parseSleb128(BinaryReader reader) {
     int result = 0;
     byte b;
     int shift = 0;
     do {
-      b = file.get();
+      b = reader.get();
       result |= (b & (byte) PAYLOAD_MASK) << shift;
       shift += BITS_PER_ENCODED_BYTE;
     } while ((b & ~(byte) PAYLOAD_MASK) == ~(byte) PAYLOAD_MASK);

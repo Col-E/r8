@@ -10,19 +10,22 @@ import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 
-public class VDexFileReader {
+/**
+ * Parse a VDEX and isolate the different dex files it contains.
+ */
+public class VDexParser {
 
-  private VDexFile file;
+  private VDexReader vDexReader;
   private List<byte[]> dexFiles = new ArrayList<>();
 
   public void close() {
-    file = null;
+    vDexReader = null;
     dexFiles = ImmutableList.of();
   }
 
-  public VDexFileReader(VDexFile file) {
-    this.file = file;
-    file.setByteOrder();
+  public VDexParser(VDexReader vDexReader) {
+    this.vDexReader = vDexReader;
+    vDexReader.setByteOrder();
     parseDexFiles();
   }
 
@@ -31,18 +34,18 @@ public class VDexFileReader {
   }
 
   private void parseDexFiles() {
-    file.position(VDEX_NUMBER_OF_DEX_FILES_OFFSET);
-    int numberOfDexFiles = file.getUint();
-    int dexSize = file.getUint();
-    int verifierDepsSize = file.getUint();
-    int quickeningInfoSize = file.getUint();
+    vDexReader.position(VDEX_NUMBER_OF_DEX_FILES_OFFSET);
+    int numberOfDexFiles = vDexReader.getUint();
+    int dexSize = vDexReader.getUint();
+    int verifierDepsSize = vDexReader.getUint();
+    int quickeningInfoSize = vDexReader.getUint();
 
-    int offset = VDexFile.firstDexOffset(numberOfDexFiles);
+    int offset = VDexReader.firstDexOffset(numberOfDexFiles);
     int totalDexSize = 0;
     for (int i = 0; i < numberOfDexFiles; i++) {
-      int size = file.getUint(offset + Constants.FILE_SIZE_OFFSET);
-      file.position(offset);
-      dexFiles.add(file.getByteArray(size));
+      int size = vDexReader.getUint(offset + Constants.FILE_SIZE_OFFSET);
+      vDexReader.position(offset);
+      dexFiles.add(vDexReader.getByteArray(size));
       totalDexSize += size;
       offset += size;
     }

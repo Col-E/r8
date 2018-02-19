@@ -4,8 +4,8 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.ProgramResource.Kind;
-import com.android.tools.r8.dex.DexFileReader;
-import com.android.tools.r8.dex.Segment;
+import com.android.tools.r8.dex.DexParser;
+import com.android.tools.r8.dex.DexSection;
 import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
@@ -98,11 +98,11 @@ public class DexSegments {
     try (Closer closer = Closer.create()) {
       for (ProgramResource resource : app.computeAllProgramResources()) {
         if (resource.getKind() == Kind.DEX) {
-          for (Segment segment :
-              DexFileReader.parseMapFrom(
+          for (DexSection dexSection :
+              DexParser.parseMapFrom(
                   closer.register(resource.getByteStream()), resource.getOrigin())) {
-            int value = result.computeIfAbsent(segment.typeName(), (key) -> 0);
-            result.put(segment.typeName(), value + segment.size());
+            int value = result.computeIfAbsent(dexSection.typeName(), (key) -> 0);
+            result.put(dexSection.typeName(), value + dexSection.size());
           }
         }
       }

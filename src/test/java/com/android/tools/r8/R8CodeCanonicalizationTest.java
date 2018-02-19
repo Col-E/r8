@@ -4,8 +4,8 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.dex.Constants;
-import com.android.tools.r8.dex.DexFileReader;
-import com.android.tools.r8.dex.Segment;
+import com.android.tools.r8.dex.DexParser;
+import com.android.tools.r8.dex.DexSection;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -20,10 +20,10 @@ public class R8CodeCanonicalizationTest {
       ToolHelper.EXAMPLES_BUILD_DIR, "invokeempty", "classes.dex");
 
   private int readNumberOfCodes(Path file) throws IOException {
-    Segment[] segments = DexFileReader.parseMapFrom(file);
-    for (Segment segment : segments) {
-      if (segment.type == Constants.TYPE_CODE_ITEM) {
-        return segment.length;
+    DexSection[] dexSections = DexParser.parseMapFrom(file);
+    for (DexSection dexSection : dexSections) {
+      if (dexSection.type == Constants.TYPE_CODE_ITEM) {
+        return dexSection.length;
       }
     }
     return 0;

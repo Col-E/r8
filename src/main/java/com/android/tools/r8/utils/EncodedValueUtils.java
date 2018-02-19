@@ -3,21 +3,21 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
-import com.android.tools.r8.dex.DexFile;
+import com.android.tools.r8.dex.DexReader;
 import com.android.tools.r8.dex.DexOutputBuffer;
 
 public class EncodedValueUtils {
 
-  public static long parseSigned(DexFile file, int numberOfBytes) {
+  public static long parseSigned(DexReader dexReader, int numberOfBytes) {
     assert numberOfBytes > 0;
     long result = 0;
     int shift = 0;
     for (int i = 1; i < numberOfBytes; i++) {
-      result |= ((long) (file.get() & 0xFF)) << shift;
+      result |= ((long) (dexReader.get() & 0xFF)) << shift;
       shift += 8;
     }
     // Let the last byte sign-extend into any remaining bytes.
-    return result | (((long) file.get()) << shift);
+    return result | (((long) dexReader.get()) << shift);
   }
 
   // Inspired by com.android.dex.EncodedValueCodec
@@ -44,12 +44,12 @@ public class EncodedValueUtils {
     return result;
   }
 
-  public static long parseUnsigned(DexFile file, int numberOfBytes) {
+  public static long parseUnsigned(DexReader dexReader, int numberOfBytes) {
     assert numberOfBytes > 0;
     long result = 0;
     int shift = 0;
     for (int i = 0; i < numberOfBytes; i++) {
-      result |= ((long) (file.get() & 0xFF)) << shift;
+      result |= ((long) (dexReader.get() & 0xFF)) << shift;
       shift += 8;
     }
     return result;
@@ -104,8 +104,9 @@ public class EncodedValueUtils {
     return result;
   }
 
-  public static float parseFloat(DexFile file, int numberOfBytes) {
-    long bits = parseUnsigned(file, numberOfBytes) << ((Float.BYTES - numberOfBytes) * Byte.SIZE);
+  public static float parseFloat(DexReader dexReader, int numberOfBytes) {
+    long bits =
+        parseUnsigned(dexReader, numberOfBytes) << ((Float.BYTES - numberOfBytes) * Byte.SIZE);
     return Float.intBitsToFloat((int) bits);
   }
 
@@ -121,8 +122,9 @@ public class EncodedValueUtils {
     return result;
   }
 
-  public static double parseDouble(DexFile file, int numberOfBytes) {
-    long bits = parseUnsigned(file, numberOfBytes) << ((Double.BYTES - numberOfBytes) * Byte.SIZE);
+  public static double parseDouble(DexReader dexReader, int numberOfBytes) {
+    long bits =
+        parseUnsigned(dexReader, numberOfBytes) << ((Double.BYTES - numberOfBytes) * Byte.SIZE);
     return Double.longBitsToDouble(bits);
   }
 

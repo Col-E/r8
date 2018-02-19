@@ -45,17 +45,17 @@ public class Leb128Test {
     );
   }
 
-  // Create a DexFile with correct file magic followed by the argument bytes. Positions the
-  // DexFile after the file magic.
-  private DexFile createDexFileWithContent(byte[] bytes) {
+  // Create a DexReader with correct file magic followed by the argument bytes. Positions the
+  // DexReader after the file magic.
+  private DexReader createDexFileWithContent(byte[] bytes) {
     DexOutputBuffer buffer = new DexOutputBuffer();
     buffer.putBytes(Constants.DEX_FILE_MAGIC_PREFIX);
     buffer.putBytes(AndroidApiLevel.B.getDexVersion().getBytes());
     buffer.putByte(Constants.DEX_FILE_MAGIC_SUFFIX);
     buffer.putBytes(bytes);
-    DexFile dexFile = new DexFile(Origin.unknown(), buffer.asArray());
-    dexFile.position(DEX_MAGIC_SIZE);
-    return dexFile;
+    DexReader dexReader = new DexReader(Origin.unknown(), buffer.asArray());
+    dexReader.position(DEX_MAGIC_SIZE);
+    return dexReader;
   }
 
   @Test
@@ -66,8 +66,8 @@ public class Leb128Test {
     DexOutputBuffer buffer = new DexOutputBuffer();
     LebUtils.putUleb128(buffer, value);
     Assert.assertEquals(buffer.position(), LebUtils.sizeAsUleb128(value));
-    DexFile file = createDexFileWithContent(buffer.asArray());
-    Assert.assertEquals(value, LebUtils.parseUleb128(file));
+    DexReader reader = createDexFileWithContent(buffer.asArray());
+    Assert.assertEquals(value, LebUtils.parseUleb128(reader));
   }
 
   @Test
@@ -77,8 +77,8 @@ public class Leb128Test {
     }
     byte[] encoded = LebUtils.encodeUleb128(value);
     Assert.assertEquals(encoded.length, LebUtils.sizeAsUleb128(value));
-    DexFile file = createDexFileWithContent(encoded);
-    Assert.assertEquals(value, LebUtils.parseUleb128(file));
+    DexReader reader = createDexFileWithContent(encoded);
+    Assert.assertEquals(value, LebUtils.parseUleb128(reader));
   }
 
   @Test
@@ -86,8 +86,8 @@ public class Leb128Test {
     DexOutputBuffer buffer = new DexOutputBuffer();
     LebUtils.putSleb128(buffer, value);
     Assert.assertEquals(buffer.position(), LebUtils.sizeAsSleb128(value));
-    DexFile file = createDexFileWithContent(buffer.asArray());
-    Assert.assertEquals(value, LebUtils.parseSleb128(file));
+    DexReader reader = createDexFileWithContent(buffer.asArray());
+    Assert.assertEquals(value, LebUtils.parseSleb128(reader));
   }
 
 
@@ -95,7 +95,7 @@ public class Leb128Test {
   public void encodeDecodeSLeb128Test() {
     byte[] encoded = LebUtils.encodeSleb128(value);
     Assert.assertEquals(encoded.length, LebUtils.sizeAsSleb128(value));
-    DexFile file = createDexFileWithContent(encoded);
-    Assert.assertEquals(value, LebUtils.parseSleb128(file));
+    DexReader reader = createDexFileWithContent(encoded);
+    Assert.assertEquals(value, LebUtils.parseSleb128(reader));
   }
 }

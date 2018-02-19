@@ -3,13 +3,16 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.dex;
 
-public class Segment {
+/**
+ * A section as defined by the Dex file format.
+ */
+public class DexSection {
   public final int type;
   public final int length;
   public final int offset;
   private int end;
 
-  public Segment(int type, int unused, int length, int offset) {
+  public DexSection(int type, int unused, int length, int offset) {
     this.type = type;
     assert unused == 0;
     this.length = length;
@@ -21,7 +24,7 @@ public class Segment {
     this.end = end;
   }
 
-  // Returns the byte size of this segment.
+  // Returns the byte size of this section.
   public int size() {
     return end - offset;
   }
