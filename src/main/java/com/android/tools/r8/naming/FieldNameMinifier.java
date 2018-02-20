@@ -88,7 +88,9 @@ class FieldNameMinifier extends MemberNameMinifier<DexField, DexType> {
   private void renameField(DexEncodedField encodedField, NamingState<DexType, ?> state) {
     DexField field = encodedField.field;
     if (!state.isReserved(field.name, field.type)) {
-      renaming.put(field, state.assignNewNameFor(field.name, field.type, false));
+      DexString candidate = state.assignNewNameFor(field.name, field.type, false);
+      renaming.put(field, candidate);
+      state.addRenaming(field.name, field.type, candidate);
     }
   }
 }

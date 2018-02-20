@@ -112,8 +112,8 @@ public class UseUniqueMemberNameTest extends NamingTestBase {
     DexType base = dexItemFactory.createType("Luniquemembernames/BaseCls;");
     DexField f2 = dexItemFactory.createField(base, dexItemFactory.doubleType, "f2");
     DexField another_f2 = dexItemFactory.createField(aa, dexItemFactory.intType, "f2");
-    // They should be renamed differently even w/ -useuniqueclassmembernames.
-    assertNotEquals(
+    // They should renamed to the same name w/ -useuniqueclassmembernames.
+    assertEquals(
         naming.lookupName(f2).toSourceString(),
         naming.lookupName(another_f2).toSourceString());
   }
