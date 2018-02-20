@@ -1517,7 +1517,8 @@ public class IRBuilder {
     Value in2 = readNumericRegister(right, type);
     Value out = writeNumericRegister(dest, type, ThrowingInfo.NO_THROW);
     Instruction instruction;
-    if (in2.isConstNumber() &&
+    if (options.canUseNotInstruction() &&
+        in2.isConstNumber() &&
         in2.getConstInstruction().asConstNumber().isIntegerNegativeOne(type)) {
       instruction = new Not(type, out, in1);
     } else {
@@ -1531,7 +1532,7 @@ public class IRBuilder {
     assert isNonLongIntegerType(type);
     Value in1 = readNumericRegister(value, type);
     Instruction instruction;
-    if (constant == -1) {
+    if (options.canUseNotInstruction() && constant == -1) {
       Value out = writeNumericRegister(dest, type, ThrowingInfo.NO_THROW);
       instruction = new Not(type, out, in1);
     } else {
