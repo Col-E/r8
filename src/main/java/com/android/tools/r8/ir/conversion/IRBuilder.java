@@ -1258,7 +1258,13 @@ public class IRBuilder {
   public void addNot(NumericType type, int dest, int value) {
     Value in = readNumericRegister(value, type);
     Value out = writeNumericRegister(dest, type, ThrowingInfo.NO_THROW);
-    Not instruction = new Not(type, out, in);
+    Instruction instruction;
+    if (options.canUseNotInstruction()) {
+      instruction = new Not(type, out, in);
+    } else {
+      Value minusOne = readLiteral(ValueType.fromNumericType(type), -1);
+      instruction = new Xor(type, out, in, minusOne);
+    }
     assert !instruction.instructionTypeCanThrow();
     addInstruction(instruction);
   }
@@ -1614,6 +1620,22 @@ public class IRBuilder {
 
   public Value readNumericRegister(int register, NumericType type) {
     return readRegister(register, ValueType.fromNumericType(type));
+  }
+
+  public Value readLiteral(ValueType type, long constant) {
+    if (type == ValueType.INT) {
+      return readIntLiteral(constant);
+    } else {
+      assert type == ValueType.LONG;
+      return readLongLiteral(constant);
+    }
+  }
+
+  public Value readLongLiteral(long constant) {
+    Value value = new Value(valueNumberGenerator.next(), ValueType.LONG, null);
+    ConstNumber number = new ConstNumber(value, constant);
+    add(number);
+    return number.outValue();
   }
 
   public Value readIntLiteral(long constant) {
