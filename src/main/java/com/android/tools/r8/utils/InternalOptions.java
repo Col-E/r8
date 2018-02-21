@@ -76,7 +76,7 @@ public class InternalOptions {
     }
   }
 
-  public boolean printTimes = false;
+  public boolean printTimes = System.getProperty("com.android.tools.r8.printtimes") != null;
 
   // Flag to toggle if DEX code objects should pass-through without IR processing.
   public boolean passthroughDexCode = false;

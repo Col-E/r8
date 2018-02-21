@@ -229,6 +229,7 @@ public class IRConverter {
       throws ExecutionException, ApiLevelException {
     removeLambdaDeserializationMethods();
 
+    timing.begin("IR conversion");
     convertClassesToDex(application.classes(), executor);
 
     // Build a new application with jumbo string info,
@@ -239,6 +240,7 @@ public class IRConverter {
     desugarInterfaceMethods(builder, ExcludeDexResources);
 
     handleSynthesizedClassMapping(builder);
+    timing.end();
 
     return builder.build();
   }

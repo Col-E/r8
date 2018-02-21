@@ -146,13 +146,13 @@ public final class D8 {
 
   private static void run(AndroidApp inputApp, InternalOptions options, ExecutorService executor)
       throws IOException, CompilationException {
+    Timing timing = new Timing("D8");
     try {
       // Disable global optimizations.
       options.enableMinification = false;
       options.enableInlining = false;
       options.outline.enabled = false;
 
-      Timing timing = new Timing("DX timer");
       DexApplication app = new ApplicationReader(inputApp, options, timing).read(executor);
       AppInfo appInfo = new AppInfo(app);
       app = optimize(app, appInfo, options, timing, executor);
@@ -171,6 +171,10 @@ public final class D8 {
       throw new AssertionError(e); // unwrapping method should have thrown
     } finally {
       options.signalFinishedToProgramConsumer();
+      // Dump timings.
+      if (options.printTimes) {
+        timing.report();
+      }
     }
   }
 
