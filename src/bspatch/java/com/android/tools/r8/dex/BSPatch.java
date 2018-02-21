@@ -316,14 +316,14 @@ public class BSPatch {
     @Override
     public void writeResult() throws IOException {
       if (dexPath != null) {
-        Segment[] segments = DexFileReader.parseMapFrom(dexPath);
-        for (Segment segment : segments) {
-          int y = segment.offset / width;
+        DexSection[] sections = DexParser.parseMapFrom(dexPath);
+        for (DexSection section : sections) {
+          int y = section.offset / width;
           for (int x = 0; x < width; x++) {
             int val = (x / 10) % 2 == 0 ? 0 : 0xffffff;
             image.setRGB(x, y, val);
           }
-          System.out.println(segment);
+          System.out.println(section);
         }
       }
       ImageIO.write(image, "png", output.toFile());
