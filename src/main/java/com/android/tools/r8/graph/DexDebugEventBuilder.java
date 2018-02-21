@@ -216,7 +216,9 @@ public class DexDebugEventBuilder {
   private void emitLocalChanges(int pc) {
     // If pc advanced since the locals changed and locals indeed have changed, emit the changes.
     if (localsChanged()) {
-      emitAdvancementEvents(emittedPc, emittedPosition, pc, emittedPosition, events, factory);
+      assert emittedPc != pc;
+      int pcDelta = emittedPc == NO_PC_INFO ? pc : pc - emittedPc;
+      events.add(factory.createAdvancePC(pcDelta));
       emittedPc = pc;
       emitLocalChangeEvents(emittedLocals, pendingLocals, lastKnownLocals, events, factory);
       pendingLocalChanges = false;

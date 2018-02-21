@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.CfgPrinter;
+import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -44,11 +45,15 @@ public class IRCode {
 
   public final boolean hasDebugPositions;
 
+  private final InternalOptions options;
+
   public IRCode(
+      InternalOptions options,
       DexEncodedMethod method,
       LinkedList<BasicBlock> blocks,
       ValueNumberGenerator valueNumberGenerator,
       boolean hasDebugPositions) {
+    this.options = options;
     this.method = method;
     this.blocks = blocks;
     this.valueNumberGenerator = valueNumberGenerator;
@@ -251,7 +256,10 @@ public class IRCode {
     ImmutableList.Builder<BasicBlock> builder = ImmutableList.builder();
     BasicBlock entryBlock = blocks.getFirst();
     depthFirstSorting(visitedBlock, entryBlock, builder);
-    return builder.build().reverse();
+    ImmutableList<BasicBlock> ordered = builder.build().reverse();
+    return options.testing.placeExceptionalBlocksLast
+        ? reorderExceptionalBlocksLastForTesting(ordered)
+        : ordered;
   }
 
   private void depthFirstSorting(Set<BasicBlock> visitedBlock, BasicBlock block,
@@ -263,6 +271,23 @@ public class IRCode {
       }
       builder.add(block);
     }
+  }
+
+  // Reorder the blocks forcing all exceptional blocks to be at the end.
+  private static ImmutableList<BasicBlock> reorderExceptionalBlocksLastForTesting(
+      ImmutableList<BasicBlock> blocks) {
+    ImmutableList.Builder<BasicBlock> reordered = ImmutableList.builder();
+    for (BasicBlock block : blocks) {
+      if (!block.entry().isMoveException()) {
+        reordered.add(block);
+      }
+    }
+    for (BasicBlock block : blocks) {
+      if (block.entry().isMoveException()) {
+        reordered.add(block);
+      }
+    }
+    return reordered.build();
   }
 
   public void print(CfgPrinter printer) {

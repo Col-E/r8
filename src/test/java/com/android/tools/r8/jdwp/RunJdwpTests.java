@@ -116,8 +116,6 @@ public class RunJdwpTests {
 
   static final Map<String, TestPredicate> FAILING_TESTS =
       ImmutableMap.<String, TestPredicate>builder()
-          // ART line-table currently returns too many line entries.
-          .put("LineTableDuplicatesTest", RunJdwpTests::isJava)
           // Other failures on various older runtimes.
           .put("ArrayReference.GetValuesTest", RunJdwpTests::isAndroidLOrAbove)
           .put("ArrayReference.LengthTest", RunJdwpTests::isAndroidLOrAbove)

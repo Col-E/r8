@@ -392,6 +392,7 @@ public class InternalOptions {
         Function.identity();
 
     public boolean invertConditionals = false;
+    public boolean placeExceptionalBlocksLast = false;
   }
 
   public boolean canUseInvokePolymorphicOnVarHandle() {

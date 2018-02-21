@@ -234,7 +234,7 @@ public class DexSourceCode implements SourceCode {
       currentPosition = Position.none();
     } else {
       currentPosition = getCanonicalPositionAppendCaller(current);
-      if (current.address == offset) {
+      if (current.lineEntry && current.address == offset) {
         builder.addDebugPosition(currentPosition);
       }
     }

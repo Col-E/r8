@@ -123,9 +123,10 @@ public class ConstantRemovalTest {
     LinkedList<BasicBlock> blocks = new LinkedList<>();
     blocks.add(block);
 
-    IRCode code = new IRCode(null, blocks, new ValueNumberGenerator(), false);
+    InternalOptions options = new InternalOptions();
+    IRCode code = new IRCode(options, null, blocks, new ValueNumberGenerator(), false);
     PeepholeOptimizer.optimize(code,
-        new MockLinearScanRegisterAllocator(code, new InternalOptions()));
+        new MockLinearScanRegisterAllocator(code, options));
 
     // Check that all four constant number instructions remain.
     assertEquals(4,

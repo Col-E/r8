@@ -11,6 +11,7 @@ import java.util.TreeSet;
 
 public class DexDebugEntry {
 
+  public final boolean lineEntry;
   public final int address;
   public final int line;
   public final DexString sourceFile;
@@ -21,6 +22,7 @@ public class DexDebugEntry {
   public final Position callerPosition;
 
   public DexDebugEntry(
+      boolean lineEntry,
       int address,
       int line,
       DexString sourceFile,
@@ -29,6 +31,7 @@ public class DexDebugEntry {
       ImmutableMap<Integer, DebugLocalInfo> locals,
       DexMethod method,
       Position callerPosition) {
+    this.lineEntry = lineEntry;
     this.address = address;
     this.line = line;
     this.sourceFile = sourceFile;

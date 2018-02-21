@@ -390,7 +390,7 @@ public class IRBuilder {
     joinPredecessorsWithIdenticalPhis();
 
     // Package up the IR code.
-    IRCode ir = new IRCode(method, blocks, valueNumberGenerator, hasDebugPositions);
+    IRCode ir = new IRCode(options, method, blocks, valueNumberGenerator, hasDebugPositions);
 
     // Split critical edges to make sure that we have a place to insert phi moves if
     // necessary.

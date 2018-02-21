@@ -125,14 +125,14 @@ public class DebugInfoInspector {
   }
 
   private void checkConsistentEntries() {
-    DexDebugEntry previousEntry = null;
+    DexDebugEntry previousLineEntry = null;
     for (DexDebugEntry entry : entries) {
-      if (previousEntry != null) {
+      if (entry.lineEntry) {
         assertTrue(
             "More than one entry defined for PC " + StringUtils.hexString(entry.address, 2),
-            entry.address > previousEntry.address);
+            previousLineEntry == null || entry.address > previousLineEntry.address);
+        previousLineEntry = entry;
       }
-      previousEntry = entry;
     }
   }
 

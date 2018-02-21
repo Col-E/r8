@@ -98,6 +98,7 @@ public class DexDebugEntryBuilder implements DexDebugEventVisitor {
   @Override
   public void visit(DexDebugEvent.AdvancePC advancePC) {
     positionState.visit(advancePC);
+    entryEventReceived(false);
   }
 
   @Override
@@ -113,7 +114,7 @@ public class DexDebugEntryBuilder implements DexDebugEventVisitor {
   @Override
   public void visit(DexDebugEvent.Default defaultEvent) {
     positionState.visit(defaultEvent);
-    defaultEventReceived();
+    entryEventReceived(true);
   }
 
   @Override
@@ -153,11 +154,12 @@ public class DexDebugEntryBuilder implements DexDebugEventVisitor {
     getEntry(restartLocal.registerNum).reset();
   }
 
-  public void defaultEventReceived() {
+  private void entryEventReceived(boolean lineEntry) {
     if (pending != null) {
       // Local changes contribute to the pending position entry.
       entries.add(
           new DexDebugEntry(
+              pending.lineEntry,
               pending.address,
               pending.line,
               pending.sourceFile,
@@ -169,6 +171,7 @@ public class DexDebugEntryBuilder implements DexDebugEventVisitor {
     }
     pending =
         new DexDebugEntry(
+            lineEntry,
             positionState.getCurrentPc(),
             positionState.getCurrentLine(),
             positionState.getCurrentFile(),
@@ -184,7 +187,7 @@ public class DexDebugEntryBuilder implements DexDebugEventVisitor {
   public List<DexDebugEntry> build() {
     // Flush any pending entry.
     if (pending != null) {
-      defaultEventReceived(); // To flush 'pending'.
+      entryEventReceived(false); // To flush 'pending'.
       pending = null;
     }
     List<DexDebugEntry> result = entries;

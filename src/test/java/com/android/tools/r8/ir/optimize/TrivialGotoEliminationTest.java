@@ -62,7 +62,7 @@ public class TrivialGotoEliminationTest {
     // Check that the goto in block0 remains. There was a bug in the trivial goto elimination
     // that ended up removing that goto changing the code to start with the unreachable
     // throw.
-    IRCode code = new IRCode(null, blocks, new ValueNumberGenerator(), false);
+    IRCode code = new IRCode(null, null, blocks, new ValueNumberGenerator(), false);
     CodeRewriter.collapsTrivialGotos(null, code);
     assertTrue(code.blocks.get(0).isTrivialGoto());
     assertTrue(blocks.contains(block0));
@@ -130,7 +130,7 @@ public class TrivialGotoEliminationTest {
     // Check that the goto in block0 remains. There was a bug in the trivial goto elimination
     // that ended up removing that goto changing the code to start with the unreachable
     // throw.
-    IRCode code = new IRCode(null, blocks, new ValueNumberGenerator(), false);
+    IRCode code = new IRCode(null, null, blocks, new ValueNumberGenerator(), false);
     CodeRewriter.collapsTrivialGotos(null, code);
     assertTrue(block0.getInstructions().get(1).isIf());
     assertEquals(block1, block0.getInstructions().get(1).asIf().fallthroughBlock());

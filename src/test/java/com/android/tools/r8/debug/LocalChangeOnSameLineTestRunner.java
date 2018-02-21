@@ -6,7 +6,6 @@ package com.android.tools.r8.debug;
 import com.android.tools.r8.ToolHelper;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -36,7 +35,6 @@ public class LocalChangeOnSameLineTestRunner extends DebugTestBase {
   /** Test that only hit the break point at line 15 once. */
   @Test
   public void testHitBreakpointOnce() throws Throwable {
-    Assume.assumeFalse("b/72933440 : invalid line info table", config instanceof D8DebugTestConfig);
     runDebugTest(
         config,
         NAME,
