@@ -90,7 +90,7 @@ public class ValidNameConflictTest extends JasminTestBase {
   }
 
   @Test
-  public void remainFieldNameConflictDueToKeepRules() throws Exception {
+  public void remainFieldNameConflict_keepRules() throws Exception {
     Assume.assumeTrue(ToolHelper.artSupported());
     JasminBuilder builder = buildFieldNameConflictClassFile();
     ProcessResult javaOutput = runOnJavaNoVerifyRaw(builder, CLASS_NAME);
@@ -123,7 +123,7 @@ public class ValidNameConflictTest extends JasminTestBase {
 
 
   @Test
-  public void remainFieldNameConflictWithUseUniqueClassMemberNames() throws Exception {
+  public void remainFieldNameConflict_useuniqueclassmembernames() throws Exception {
     Assume.assumeTrue(ToolHelper.artSupported());
     JasminBuilder builder = buildFieldNameConflictClassFile();
     ProcessResult javaOutput = runOnJavaNoVerifyRaw(builder, CLASS_NAME);
@@ -152,7 +152,38 @@ public class ValidNameConflictTest extends JasminTestBase {
   }
 
   @Test
-  public void resolveFieldNameConflictWithoutAnyOption() throws Exception {
+  public void remainFieldNameConflict_useuniqueclassmembernames_overloadaggressively()
+      throws Exception {
+    Assume.assumeTrue(ToolHelper.artSupported());
+    JasminBuilder builder = buildFieldNameConflictClassFile();
+    ProcessResult javaOutput = runOnJavaNoVerifyRaw(builder, CLASS_NAME);
+    assertEquals(0, javaOutput.exitCode);
+
+    List<String> pgConfigs = ImmutableList.of(
+        keepMainProguardConfiguration(CLASS_NAME),
+        "-useuniqueclassmembernames",
+        "-overloadaggressively",  // no-op
+        "-dontshrink");
+    AndroidApp app = compileWithR8(builder, pgConfigs, null);
+
+    DexInspector dexInspector = new DexInspector(app);
+    ClassSubject clazz = dexInspector.clazz(CLASS_NAME);
+    assertTrue(clazz.isPresent());
+    FieldSubject f1 = clazz.field("java.lang.String", "same");
+    assertTrue(f1.isPresent());
+    assertTrue(f1.isRenamed());
+    FieldSubject f2 = clazz.field("java.lang.Object", "same");
+    assertTrue(f2.isPresent());
+    assertTrue(f2.isRenamed());
+    assertEquals(f1.getField().field.name, f2.getField().field.name);
+
+    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME, dexVm);
+    assertEquals(0, artOutput.exitCode);
+    assertEquals(javaOutput.stdout, artOutput.stdout);
+  }
+
+  @Test
+  public void resolveFieldNameConflict_no_options() throws Exception {
     Assume.assumeTrue(ToolHelper.artSupported());
     JasminBuilder builder = buildFieldNameConflictClassFile();
     ProcessResult javaOutput = runOnJavaNoVerifyRaw(builder, CLASS_NAME);
@@ -172,8 +203,7 @@ public class ValidNameConflictTest extends JasminTestBase {
     FieldSubject f2 = clazz.field("java.lang.Object", "same");
     assertTrue(f2.isPresent());
     assertTrue(f2.isRenamed());
-    // TODO(b/73149686): R8 should be able to fix this conflict w/o -overloadaggressively.
-    assertEquals(f1.getField().field.name, f2.getField().field.name);
+    assertNotEquals(f1.getField().field.name, f2.getField().field.name);
 
     ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME, dexVm);
     assertEquals(0, artOutput.exitCode);
@@ -181,7 +211,7 @@ public class ValidNameConflictTest extends JasminTestBase {
   }
 
   @Test
-  public void resolveFieldNameConflictEvenWithOverloadAggressively() throws Exception {
+  public void remainFieldNameConflict_overloadaggressively() throws Exception {
     Assume.assumeTrue(ToolHelper.artSupported());
     JasminBuilder builder = buildFieldNameConflictClassFile();
     ProcessResult javaOutput = runOnJavaNoVerifyRaw(builder, CLASS_NAME);
@@ -202,7 +232,6 @@ public class ValidNameConflictTest extends JasminTestBase {
     FieldSubject f2 = clazz.field("java.lang.Object", "same");
     assertTrue(f2.isPresent());
     assertTrue(f2.isRenamed());
-    // TODO(b/72858955): R8 should resolve this field name conflict.
     assertEquals(f1.getField().field.name, f2.getField().field.name);
 
     ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME, dexVm);
@@ -255,7 +284,7 @@ public class ValidNameConflictTest extends JasminTestBase {
   }
 
   @Test
-  public void remainMethodNameConflictDueToKeepRules() throws Exception {
+  public void remainMethodNameConflict_keepRules() throws Exception {
     Assume.assumeTrue(ToolHelper.artSupported());
     JasminBuilder builder = buildMethodNameConflictClassFile();
     ProcessResult javaOutput = runOnJavaNoVerifyRaw(builder, CLASS_NAME);
@@ -287,7 +316,7 @@ public class ValidNameConflictTest extends JasminTestBase {
   }
 
   @Test
-  public void remainMethodNameConflictWithUseUniqueClassMemberNames() throws Exception {
+  public void remainMethodNameConflict_useuniqueclassmembernames() throws Exception {
     Assume.assumeTrue(ToolHelper.artSupported());
     JasminBuilder builder = buildMethodNameConflictClassFile();
     ProcessResult javaOutput = runOnJavaNoVerifyRaw(builder, CLASS_NAME);
@@ -316,7 +345,39 @@ public class ValidNameConflictTest extends JasminTestBase {
   }
 
   @Test
-  public void resolveMethodNameConflictWithoutAnyOption() throws Exception {
+  public void remainMethodNameConflict_useuniqueclassmembernames_overloadaggressively()
+      throws Exception {
+    Assume.assumeTrue(ToolHelper.artSupported());
+    JasminBuilder builder = buildMethodNameConflictClassFile();
+    ProcessResult javaOutput = runOnJavaNoVerifyRaw(builder, CLASS_NAME);
+    assertEquals(0, javaOutput.exitCode);
+
+    List<String> pgConfigs = ImmutableList.of(
+        keepMainProguardConfiguration(CLASS_NAME),
+        "-useuniqueclassmembernames",
+        "-overloadaggressively",  // no-op
+        "-dontshrink");
+    AndroidApp app = compileWithR8(builder, pgConfigs, null);
+
+    DexInspector dexInspector = new DexInspector(app);
+    ClassSubject clazz = dexInspector.clazz(ANOTHER_CLASS);
+    assertTrue(clazz.isPresent());
+    MethodSubject m1 = clazz.method("java.lang.String", "same", ImmutableList.of());
+    assertTrue(m1.isPresent());
+    assertTrue(m1.isRenamed());
+    MethodSubject m2 = clazz.method("java.lang.Object", "same", ImmutableList.of());
+    assertTrue(m2.isPresent());
+    assertTrue(m2.isRenamed());
+    assertEquals(m1.getMethod().method.name, m2.getMethod().method.name);
+
+    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME, dexVm);
+    assertEquals(0, artOutput.exitCode);
+    assertEquals(javaOutput.stdout, artOutput.stdout);
+  }
+
+
+  @Test
+  public void resolveMethodNameConflict_no_options() throws Exception {
     Assume.assumeTrue(ToolHelper.artSupported());
     JasminBuilder builder = buildMethodNameConflictClassFile();
     ProcessResult javaOutput = runOnJavaNoVerifyRaw(builder, CLASS_NAME);
@@ -345,7 +406,7 @@ public class ValidNameConflictTest extends JasminTestBase {
   }
 
   @Test
-  public void resolveMethodNameConflictEvenWithOverloadAggressively() throws Exception {
+  public void remainMethodNameConflict_overloadaggressively() throws Exception {
     Assume.assumeTrue(ToolHelper.artSupported());
     JasminBuilder builder = buildMethodNameConflictClassFile();
     ProcessResult javaOutput = runOnJavaNoVerifyRaw(builder, CLASS_NAME);
@@ -366,7 +427,6 @@ public class ValidNameConflictTest extends JasminTestBase {
     MethodSubject m2 = clazz.method("java.lang.Object", "same", ImmutableList.of());
     assertTrue(m2.isPresent());
     assertTrue(m2.isRenamed());
-    // TODO(b/73149686): R8 should be able to fix this conflict even w/ -overloadaggressively.
     assertEquals(m1.getMethod().method.name, m2.getMethod().method.name);
 
     ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME, dexVm);

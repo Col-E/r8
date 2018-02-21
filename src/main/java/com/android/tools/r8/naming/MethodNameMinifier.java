@@ -10,7 +10,6 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.MethodJavaSignatureEquivalence;
@@ -90,19 +89,17 @@ import java.util.function.Function;
 class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
 
   private final Equivalence<DexMethod> equivalence;
-  private final ProguardConfiguration config;
 
   MethodNameMinifier(AppInfoWithSubtyping appInfo, RootSet rootSet, InternalOptions options) {
     super(appInfo, rootSet, options);
-    this.config = options.proguardConfiguration;
-    equivalence = config.isOverloadAggressively()
+    equivalence = overloadAggressively
         ? MethodSignatureEquivalence.get()
         : MethodJavaSignatureEquivalence.get();
   }
 
   @Override
-  Function<DexProto, ?> getKeyTransform(ProguardConfiguration config) {
-    if (config.isOverloadAggressively()) {
+  Function<DexProto, ?> getKeyTransform() {
+    if (overloadAggressively) {
       // Use the full proto as key, hence reuse names based on full signature.
       return a -> a;
     } else {
@@ -334,8 +331,7 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
         computeStateIfAbsent(
             libraryFrontier,
             ignore -> parent == null
-                ? NamingState
-                .createRoot(appInfo.dexItemFactory, dictionary, getKeyTransform(config))
+                ? NamingState.createRoot(appInfo.dexItemFactory, dictionary, getKeyTransform())
                 : parent.createChild());
     if (holder != null) {
       boolean keepAll = holder.isLibraryClass() || holder.accessFlags.isAnnotation();

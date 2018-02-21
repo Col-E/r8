@@ -9,7 +9,6 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
@@ -23,8 +22,8 @@ class FieldNameMinifier extends MemberNameMinifier<DexField, DexType> {
   }
 
   @Override
-  Function<DexType, ?> getKeyTransform(ProguardConfiguration config) {
-    if (config.isOverloadAggressively()) {
+  Function<DexType, ?> getKeyTransform() {
+    if (overloadAggressively) {
       // Use the type as the key, hence reuse names per type.
       return a -> a;
     } else {
@@ -88,9 +87,9 @@ class FieldNameMinifier extends MemberNameMinifier<DexField, DexType> {
   private void renameField(DexEncodedField encodedField, NamingState<DexType, ?> state) {
     DexField field = encodedField.field;
     if (!state.isReserved(field.name, field.type)) {
-      DexString candidate = state.assignNewNameFor(field.name, field.type, false);
-      renaming.put(field, candidate);
-      state.addRenaming(field.name, field.type, candidate);
+      renaming.put(
+          field,
+          state.assignNewNameFor(field.name, field.type, useUniqueMemberNames));
     }
   }
 }

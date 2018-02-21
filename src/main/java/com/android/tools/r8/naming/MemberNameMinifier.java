@@ -7,7 +7,6 @@ import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.CachedHashValueDexItem;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
@@ -25,17 +24,19 @@ abstract class MemberNameMinifier<MemberType, StateType extends CachedHashValueD
   protected final Map<DexType, NamingState<StateType, ?>> states = new IdentityHashMap<>();
   protected final NamingState<StateType, ?> globalState;
   protected final boolean useUniqueMemberNames;
+  protected final boolean overloadAggressively;
 
   MemberNameMinifier(AppInfoWithSubtyping appInfo, RootSet rootSet, InternalOptions options) {
     this.appInfo = appInfo;
     this.rootSet = rootSet;
     this.dictionary = options.proguardConfiguration.getObfuscationDictionary();
-    this.globalState = NamingState.createRoot(appInfo.dexItemFactory, dictionary,
-        getKeyTransform(options.proguardConfiguration));
     this.useUniqueMemberNames = options.proguardConfiguration.isUseUniqueClassMemberNames();
+    this.overloadAggressively = options.proguardConfiguration.isOverloadAggressively();
+    this.globalState =
+        NamingState.createRoot(appInfo.dexItemFactory, dictionary, getKeyTransform());
   }
 
-  abstract Function<StateType, ?> getKeyTransform(ProguardConfiguration config);
+  abstract Function<StateType, ?> getKeyTransform();
 
   protected NamingState<StateType, ?> computeStateIfAbsent(
       DexType type, Function<DexType, NamingState<StateType, ?>> f) {
