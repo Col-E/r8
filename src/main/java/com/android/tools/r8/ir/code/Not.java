@@ -52,6 +52,7 @@ public class Not extends Unop {
 
   @Override
   public void buildDex(DexBuilder builder) {
+    assert builder.getOptions().canUseNotInstruction();
     com.android.tools.r8.code.Instruction instruction;
     int dest = builder.allocatedRegister(dest(), getNumber());
     int src = builder.allocatedRegister(source(), getNumber());
