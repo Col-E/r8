@@ -21,6 +21,7 @@ import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.DexInspector.FieldSubject;
 import com.android.tools.r8.utils.DexInspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -33,6 +34,7 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class ValidNameConflictTest extends JasminTestBase {
   private final String CLASS_NAME = "Example";
+  private final String SUPER_CLASS = "Super";
   private final String ANOTHER_CLASS = "Test";
   private final String MSG = "Expected to be seen at the end.";
 
@@ -53,20 +55,15 @@ public class ValidNameConflictTest extends JasminTestBase {
     return testCases;
   }
 
-  private JasminBuilder buildFieldNameConflictClassFile() throws Exception {
-    JasminBuilder builder = new JasminBuilder();
-    ClassBuilder classBuilder = builder.addClass(CLASS_NAME);
-    classBuilder.addStaticField("same", "Ljava/lang/Object;", null);
-    classBuilder.addStaticField("same", "Ljava/lang/String;", "\"" + MSG + "\"");
-    classBuilder.addMainMethod(
-        ".limit stack 3",
-        ".limit locals 4",
-        "  ldc Example",
-        "  invokevirtual java/lang/Class/getDeclaredFields()[Ljava/lang/reflect/Field;",
-        "  astore_0",  // Field[]
+  private Iterable<String> buildCodeForVisitingDeclaredMembers(
+      Iterable<String> prologue, Iterable<String> argumentLoadingAndCall) {
+    return Iterables.concat(
+        prologue,
+        ImmutableList.of(
+        "  astore_0",  // Member[]
         "  aload_0",
         "  arraylength",
-        "  istore_1",  // Field[].length
+        "  istore_1",  // Member[].length
         "  iconst_0",
         "  istore_2",  // counter
         "loop:",
@@ -75,17 +72,34 @@ public class ValidNameConflictTest extends JasminTestBase {
         "  if_icmpge end",
         "  aload_0",
         "  iload_2",
-        "  aaload",  // Field[counter]
+        "  aaload",  // Member[counter]
         "  astore_3",
         "  getstatic java/lang/System/out Ljava/io/PrintStream;",
-        "  aload_3",
-        "  aconst_null",
-        "  invokevirtual java/lang/reflect/Field/get(Ljava/lang/Object;)Ljava/lang/Object;",
+        "  aload_3"),
+        argumentLoadingAndCall,
+        ImmutableList.of(
         "  invokevirtual java/io/PrintStream/println(Ljava/lang/Object;)V",
         "  iinc 2 1",  // counter++
         "  goto loop",
         "end:",
-        "  return");
+        "  return"));
+  }
+
+  private JasminBuilder buildFieldNameConflictClassFile() {
+    JasminBuilder builder = new JasminBuilder();
+    ClassBuilder classBuilder = builder.addClass(CLASS_NAME);
+    classBuilder.addStaticField("same", "Ljava/lang/Object;", null);
+    classBuilder.addStaticField("same", "Ljava/lang/String;", "\"" + MSG + "\"");
+    classBuilder.addMainMethod(
+        buildCodeForVisitingDeclaredMembers(
+            ImmutableList.of(
+                ".limit stack 3",
+                ".limit locals 4",
+                "  ldc " + CLASS_NAME,
+                "  invokevirtual java/lang/Class/getDeclaredFields()[Ljava/lang/reflect/Field;"),
+            ImmutableList.of(
+                "  aconst_null",
+                "  invokevirtual java/lang/reflect/Field/get(Ljava/lang/Object;)Ljava/lang/Object;")));
     return builder;
   }
 
@@ -239,7 +253,7 @@ public class ValidNameConflictTest extends JasminTestBase {
     assertEquals(javaOutput.stdout, artOutput.stdout);
   }
 
-  private JasminBuilder buildMethodNameConflictClassFile() throws Exception {
+  private JasminBuilder buildMethodNameConflictClassFile() {
     JasminBuilder builder = new JasminBuilder();
     ClassBuilder classBuilder = builder.addClass(ANOTHER_CLASS);
     classBuilder.addStaticMethod("same", ImmutableList.of(), "Ljava/lang/Object;",
@@ -250,36 +264,18 @@ public class ValidNameConflictTest extends JasminTestBase {
         "areturn");
     classBuilder = builder.addClass(CLASS_NAME);
     classBuilder.addMainMethod(
-        ".limit stack 3",
-        ".limit locals 4",
-        "  ldc Test",
-        "  invokevirtual java/lang/Class/getDeclaredMethods()[Ljava/lang/reflect/Method;",
-        "  astore_0",  // Method[]
-        "  aload_0",
-        "  arraylength",
-        "  istore_1",  // Method[].length
-        "  iconst_0",
-        "  istore_2",  // counter
-        "loop:",
-        "  iload_2",
-        "  iload_1",
-        "  if_icmpge end",
-        "  aload_0",
-        "  iload_2",
-        "  aaload",  // Method[counter]
-        "  astore_3",
-        "  getstatic java/lang/System/out Ljava/io/PrintStream;",
-        "  aload_3",
-        "  aconst_null",
-        "  aconst_null",
-        "  checkcast [Ljava/lang/Object;",
-        "  invokevirtual java/lang/reflect/Method/invoke"
-            + "(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;",
-        "  invokevirtual java/io/PrintStream/println(Ljava/lang/Object;)V",
-        "  iinc 2 1",  // counter++
-        "  goto loop",
-        "end:",
-        "  return");
+        buildCodeForVisitingDeclaredMembers(
+            ImmutableList.of(
+                ".limit stack 3",
+                ".limit locals 4",
+                "  ldc " + ANOTHER_CLASS,
+                "  invokevirtual java/lang/Class/getDeclaredMethods()[Ljava/lang/reflect/Method;"),
+            ImmutableList.of(
+                "  aconst_null",
+                "  aconst_null",
+                "  checkcast [Ljava/lang/Object;",
+                "  invokevirtual java/lang/reflect/Method/invoke"
+                    + "(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;")));
     return builder;
   }
 
@@ -434,4 +430,265 @@ public class ValidNameConflictTest extends JasminTestBase {
     assertEquals(javaOutput.stdout, artOutput.stdout);
   }
 
+  private JasminBuilder buildMethodNameConflictInHierarchy() {
+    JasminBuilder builder = new JasminBuilder();
+    ClassBuilder classBuilder = builder.addClass(SUPER_CLASS);
+    classBuilder.addVirtualMethod("same", ImmutableList.of(), "Ljava/lang/Object;",
+        "aconst_null",
+        "areturn");
+    classBuilder.addVirtualMethod("same", ImmutableList.of(), "Ljava/lang/String;",
+        "ldc \"" + MSG + "\"",
+        "areturn");
+    classBuilder = builder.addClass(ANOTHER_CLASS, SUPER_CLASS);
+    classBuilder.addVirtualMethod("same", ImmutableList.of(), "Ljava/lang/Object;",
+        "aload_0",
+        "invokespecial " + SUPER_CLASS + "/same()Ljava/lang/Object;",
+        "areturn");
+    classBuilder.addVirtualMethod("same", ImmutableList.of(), "Ljava/lang/String;",
+        "aload_0",
+        "invokespecial " + SUPER_CLASS + "/same()Ljava/lang/String;",
+        "areturn");
+    classBuilder = builder.addClass(CLASS_NAME);
+    classBuilder.addMainMethod(
+        buildCodeForVisitingDeclaredMembers(
+            ImmutableList.of(
+                ".limit stack 3",
+                ".limit locals 5",
+                "  new " + ANOTHER_CLASS,
+                "  dup",
+                "  invokespecial " + ANOTHER_CLASS + "/<init>()V",
+                "  astore 4",
+                "  ldc " + ANOTHER_CLASS,
+                "  invokevirtual java/lang/Class/getDeclaredMethods()[Ljava/lang/reflect/Method;"),
+            ImmutableList.of(
+                "  aload 4",  // instance
+                "  aconst_null",
+                "  checkcast [Ljava/lang/Object;",
+                "  invokevirtual java/lang/reflect/Method/invoke"
+                    + "(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;")));
+    return builder;
+  }
+
+  @Test
+  public void remainMethodNameConflictInHierarchy_keepRules() throws Exception {
+    Assume.assumeTrue(ToolHelper.artSupported());
+    JasminBuilder builder = buildMethodNameConflictInHierarchy();
+    ProcessResult javaOutput = runOnJavaNoVerifyRaw(builder, CLASS_NAME);
+    assertEquals(0, javaOutput.exitCode);
+
+    List<String> pgConfigs = ImmutableList.of(
+        "-keep class " + ANOTHER_CLASS + " {\n"
+            + "  <methods>;"
+            + "}\n",
+        keepMainProguardConfiguration(CLASS_NAME),
+        "-useuniqueclassmembernames",
+        "-dontshrink");
+    AndroidApp app = compileWithR8(builder, pgConfigs, null);
+
+    DexInspector dexInspector = new DexInspector(app);
+    ClassSubject sup = dexInspector.clazz(SUPER_CLASS);
+    assertTrue(sup.isPresent());
+    MethodSubject m1 = sup.method("java.lang.String", "same", ImmutableList.of());
+    assertTrue(m1.isPresent());
+    assertFalse(m1.isRenamed());
+    MethodSubject m2 = sup.method("java.lang.Object", "same", ImmutableList.of());
+    assertTrue(m2.isPresent());
+    assertFalse(m2.isRenamed());
+    assertEquals(m1.getMethod().method.name, m2.getMethod().method.name);
+
+    ClassSubject sub = dexInspector.clazz(ANOTHER_CLASS);
+    assertTrue(sub.isPresent());
+    MethodSubject subM1 = sub.method("java.lang.String", "same", ImmutableList.of());
+    assertTrue(subM1.isPresent());
+    assertFalse(subM1.isRenamed());
+    MethodSubject subM2 = sub.method("java.lang.Object", "same", ImmutableList.of());
+    assertTrue(subM2.isPresent());
+    assertFalse(subM2.isRenamed());
+    assertEquals(subM1.getMethod().method.name, subM2.getMethod().method.name);
+
+    // No matter what, overloading methods should be renamed to the same name.
+    assertEquals(m1.getMethod().method.name, subM1.getMethod().method.name);
+    assertEquals(m2.getMethod().method.name, subM2.getMethod().method.name);
+
+    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME, dexVm);
+    assertEquals(0, artOutput.exitCode);
+    assertEquals(javaOutput.stdout, artOutput.stdout);
+  }
+
+  @Test
+  public void remainMethodNameConflictInHierarchy_useuniqueclassmembernames() throws Exception {
+    Assume.assumeTrue(ToolHelper.artSupported());
+    JasminBuilder builder = buildMethodNameConflictInHierarchy();
+    ProcessResult javaOutput = runOnJavaNoVerifyRaw(builder, CLASS_NAME);
+    assertEquals(0, javaOutput.exitCode);
+
+    List<String> pgConfigs = ImmutableList.of(
+        keepMainProguardConfiguration(CLASS_NAME),
+        "-useuniqueclassmembernames",
+        "-dontshrink");
+    AndroidApp app = compileWithR8(builder, pgConfigs, null);
+
+    DexInspector dexInspector = new DexInspector(app);
+    ClassSubject sup = dexInspector.clazz(SUPER_CLASS);
+    assertTrue(sup.isPresent());
+    MethodSubject m1 = sup.method("java.lang.String", "same", ImmutableList.of());
+    assertTrue(m1.isPresent());
+    assertTrue(m1.isRenamed());
+    MethodSubject m2 = sup.method("java.lang.Object", "same", ImmutableList.of());
+    assertTrue(m2.isPresent());
+    assertTrue(m2.isRenamed());
+    assertEquals(m1.getMethod().method.name, m2.getMethod().method.name);
+
+    ClassSubject sub = dexInspector.clazz(ANOTHER_CLASS);
+    assertTrue(sub.isPresent());
+    MethodSubject subM1 = sub.method("java.lang.String", "same", ImmutableList.of());
+    assertTrue(subM1.isPresent());
+    assertTrue(subM1.isRenamed());
+    MethodSubject subM2 = sub.method("java.lang.Object", "same", ImmutableList.of());
+    assertTrue(subM2.isPresent());
+    assertTrue(subM2.isRenamed());
+    assertEquals(subM1.getMethod().method.name, subM2.getMethod().method.name);
+
+    // No matter what, overloading methods should be renamed to the same name.
+    assertEquals(m1.getMethod().method.name, subM1.getMethod().method.name);
+    assertEquals(m2.getMethod().method.name, subM2.getMethod().method.name);
+
+    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME, dexVm);
+    assertEquals(0, artOutput.exitCode);
+    assertEquals(javaOutput.stdout, artOutput.stdout);
+  }
+
+  @Test
+  public void remainMethodNameConflictInHierarchy_useuniqueclassmembernames_overloadaggressively()
+      throws Exception {
+    Assume.assumeTrue(ToolHelper.artSupported());
+    JasminBuilder builder = buildMethodNameConflictInHierarchy();
+    ProcessResult javaOutput = runOnJavaNoVerifyRaw(builder, CLASS_NAME);
+    assertEquals(0, javaOutput.exitCode);
+
+    List<String> pgConfigs = ImmutableList.of(
+        keepMainProguardConfiguration(CLASS_NAME),
+        "-useuniqueclassmembernames",
+        "-overloadaggressively",  // no-op
+        "-dontshrink");
+    AndroidApp app = compileWithR8(builder, pgConfigs, null);
+
+    DexInspector dexInspector = new DexInspector(app);
+    ClassSubject sup = dexInspector.clazz(SUPER_CLASS);
+    assertTrue(sup.isPresent());
+    MethodSubject m1 = sup.method("java.lang.String", "same", ImmutableList.of());
+    assertTrue(m1.isPresent());
+    assertTrue(m1.isRenamed());
+    MethodSubject m2 = sup.method("java.lang.Object", "same", ImmutableList.of());
+    assertTrue(m2.isPresent());
+    assertTrue(m2.isRenamed());
+    assertEquals(m1.getMethod().method.name, m2.getMethod().method.name);
+
+    ClassSubject sub = dexInspector.clazz(ANOTHER_CLASS);
+    assertTrue(sub.isPresent());
+    MethodSubject subM1 = sub.method("java.lang.String", "same", ImmutableList.of());
+    assertTrue(subM1.isPresent());
+    assertTrue(subM1.isRenamed());
+    MethodSubject subM2 = sub.method("java.lang.Object", "same", ImmutableList.of());
+    assertTrue(subM2.isPresent());
+    assertTrue(subM2.isRenamed());
+    assertEquals(subM1.getMethod().method.name, subM2.getMethod().method.name);
+
+    // No matter what, overloading methods should be renamed to the same name.
+    assertEquals(m1.getMethod().method.name, subM1.getMethod().method.name);
+    assertEquals(m2.getMethod().method.name, subM2.getMethod().method.name);
+
+    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME, dexVm);
+    assertEquals(0, artOutput.exitCode);
+    assertEquals(javaOutput.stdout, artOutput.stdout);
+  }
+
+
+  @Test
+  public void resolveMethodNameConflictInHierarchy_no_options() throws Exception {
+    Assume.assumeTrue(ToolHelper.artSupported());
+    JasminBuilder builder = buildMethodNameConflictInHierarchy();
+    ProcessResult javaOutput = runOnJavaNoVerifyRaw(builder, CLASS_NAME);
+    assertEquals(0, javaOutput.exitCode);
+
+    List<String> pgConfigs = ImmutableList.of(
+        keepMainProguardConfiguration(CLASS_NAME),
+        "-dontshrink");
+    AndroidApp app = compileWithR8(builder, pgConfigs, null);
+
+    DexInspector dexInspector = new DexInspector(app);
+    ClassSubject sup = dexInspector.clazz(SUPER_CLASS);
+    assertTrue(sup.isPresent());
+    MethodSubject m1 = sup.method("java.lang.String", "same", ImmutableList.of());
+    assertTrue(m1.isPresent());
+    assertTrue(m1.isRenamed());
+    MethodSubject m2 = sup.method("java.lang.Object", "same", ImmutableList.of());
+    assertTrue(m2.isPresent());
+    assertTrue(m2.isRenamed());
+    // TODO(b/73149686): R8 should be able to fix this conflict w/o -overloadaggressively.
+    assertEquals(m1.getMethod().method.name, m2.getMethod().method.name);
+
+    ClassSubject sub = dexInspector.clazz(ANOTHER_CLASS);
+    assertTrue(sub.isPresent());
+    MethodSubject subM1 = sub.method("java.lang.String", "same", ImmutableList.of());
+    assertTrue(subM1.isPresent());
+    assertTrue(subM1.isRenamed());
+    MethodSubject subM2 = sub.method("java.lang.Object", "same", ImmutableList.of());
+    assertTrue(subM2.isPresent());
+    assertTrue(subM2.isRenamed());
+    // TODO(b/73149686): R8 should be able to fix this conflict w/o -overloadaggressively.
+    assertEquals(subM1.getMethod().method.name, subM2.getMethod().method.name);
+
+    // No matter what, overloading methods should be renamed to the same name.
+    assertEquals(m1.getMethod().method.name, subM1.getMethod().method.name);
+    assertEquals(m2.getMethod().method.name, subM2.getMethod().method.name);
+
+    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME, dexVm);
+    assertEquals(0, artOutput.exitCode);
+    assertEquals(javaOutput.stdout, artOutput.stdout);
+  }
+
+  @Test
+  public void remainMethodNameConflictInHierarchy_overloadaggressively() throws Exception {
+    Assume.assumeTrue(ToolHelper.artSupported());
+    JasminBuilder builder = buildMethodNameConflictInHierarchy();
+    ProcessResult javaOutput = runOnJavaNoVerifyRaw(builder, CLASS_NAME);
+    assertEquals(0, javaOutput.exitCode);
+
+    List<String> pgConfigs = ImmutableList.of(
+        keepMainProguardConfiguration(CLASS_NAME),
+        "-overloadaggressively",
+        "-dontshrink");
+    AndroidApp app = compileWithR8(builder, pgConfigs, null);
+
+    DexInspector dexInspector = new DexInspector(app);
+
+    ClassSubject sup = dexInspector.clazz(SUPER_CLASS);
+    assertTrue(sup.isPresent());
+    MethodSubject m1 = sup.method("java.lang.String", "same", ImmutableList.of());
+    assertTrue(m1.isPresent());
+    assertTrue(m1.isRenamed());
+    MethodSubject m2 = sup.method("java.lang.Object", "same", ImmutableList.of());
+    assertTrue(m2.isPresent());
+    assertTrue(m2.isRenamed());
+    assertEquals(m1.getMethod().method.name, m2.getMethod().method.name);
+
+    ClassSubject sub = dexInspector.clazz(ANOTHER_CLASS);
+    assertTrue(sub.isPresent());
+    MethodSubject subM1 = sub.method("java.lang.String", "same", ImmutableList.of());
+    assertTrue(subM1.isPresent());
+    assertTrue(subM1.isRenamed());
+    MethodSubject subM2 = sub.method("java.lang.Object", "same", ImmutableList.of());
+    assertTrue(subM2.isPresent());
+    assertTrue(subM2.isRenamed());
+    assertEquals(subM1.getMethod().method.name, subM2.getMethod().method.name);
+
+    // No matter what, overloading methods should be renamed to the same name.
+    assertEquals(m1.getMethod().method.name, subM1.getMethod().method.name);
+    assertEquals(m2.getMethod().method.name, subM2.getMethod().method.name);
+
+    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME, dexVm);
+    assertEquals(0, artOutput.exitCode);
+    assertEquals(javaOutput.stdout, artOutput.stdout);
+  }
 }

@@ -18,6 +18,7 @@ import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import jasmin.ClassFile;
 import java.io.ByteArrayOutputStream;
 import java.io.StringReader;
@@ -142,6 +143,10 @@ public class JasminBuilder {
         String returnType,
         String... lines) {
       return addMethod("static", name, argumentTypes, returnType, lines);
+    }
+
+    public MethodSignature addMainMethod(Iterable<String> lines) {
+      return addMainMethod(Iterables.toArray(lines, String.class));
     }
 
     public MethodSignature addMainMethod(String... lines) {
