@@ -122,7 +122,7 @@ public final class D8 {
 
   static void runForTesting(AndroidApp inputApp, InternalOptions options)
       throws IOException, CompilationException {
-    ExecutorService executor = ThreadUtils.getExecutorService(ThreadUtils.NOT_SPECIFIED);
+    ExecutorService executor = ThreadUtils.getExecutorService(options);
     try {
       run(inputApp, options, executor);
     } finally {
