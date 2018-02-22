@@ -117,7 +117,7 @@ public class RunJdwpTests {
   static final Map<String, TestPredicate> FAILING_TESTS =
       ImmutableMap.<String, TestPredicate>builder()
           // Other failures on various older runtimes.
-          .put("LineTableDuplicatesTest", or(RunJdwpTests::isJava, RunJdwpTests::isAndroidLOrAbove))
+          .put("LineTableDuplicatesTest", or(RunJdwpTests::isJava, RunJdwpTests::isAndroidNOrAbove))
           .put("ArrayReference.GetValuesTest", RunJdwpTests::isAndroidLOrAbove)
           .put("ArrayReference.LengthTest", RunJdwpTests::isAndroidLOrAbove)
           .put("ArrayReference.SetValues003Test", RunJdwpTests::isAndroidNOrAbove)
