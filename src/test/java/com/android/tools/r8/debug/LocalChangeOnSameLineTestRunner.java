@@ -4,8 +4,10 @@
 package com.android.tools.r8.debug;
 
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -17,6 +19,7 @@ public class LocalChangeOnSameLineTestRunner extends DebugTestBase {
   private static final String FILE = CLASS.getSimpleName() + ".java";
   private static final String NAME = CLASS.getCanonicalName();
 
+  private final String name;
   private final DebugTestConfig config;
 
   @Parameterized.Parameters(name = "{0}")
@@ -29,12 +32,15 @@ public class LocalChangeOnSameLineTestRunner extends DebugTestBase {
   }
 
   public LocalChangeOnSameLineTestRunner(String name, DelayedDebugTestConfig config) {
+    this.name = name;
     this.config = config.getConfig(temp);
   }
 
   /** Test that only hit the break point at line 15 once. */
   @Test
   public void testHitBreakpointOnce() throws Throwable {
+    Assume.assumeFalse("b/73803266",
+        name.equals("D8") && ToolHelper.getDexVm() == DexVm.ART_6_0_1_HOST);
     runDebugTest(
         config,
         NAME,

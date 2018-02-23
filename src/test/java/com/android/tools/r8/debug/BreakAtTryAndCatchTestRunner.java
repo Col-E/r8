@@ -4,6 +4,7 @@
 package com.android.tools.r8.debug;
 
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.Collections;
@@ -48,6 +49,8 @@ public class BreakAtTryAndCatchTestRunner extends DebugTestBase {
   @Test
   public void testHitOnEntryOnly() throws Throwable {
     Assume.assumeFalse("b/72933440", name.equals("D8/reorder"));
+    Assume.assumeFalse("b/73803266",
+        name.equals("D8") && ToolHelper.getDexVm() == DexVm.ART_6_0_1_HOST);
     runDebugTest(
         config,
         NAME,
