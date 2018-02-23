@@ -39,6 +39,7 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -111,9 +112,13 @@ public class R8InliningTest extends TestBase {
     assertEquals(javaResult.stdout, artOutput);
   }
 
-  private void checkAbsent(ClassSubject clazz, String name) {
+  private void checkAbsentBooleanMethod(ClassSubject clazz, String name) {
+    checkAbsent(clazz, "boolean", name, Collections.emptyList());
+  }
+
+  private void checkAbsent(ClassSubject clazz, String returnType, String name, List<String> args) {
     assertTrue(clazz.isPresent());
-    MethodSubject method = clazz.method("boolean", name, Collections.emptyList());
+    MethodSubject method = clazz.method(returnType, name, args);
     assertFalse(method.isPresent());
   }
 
@@ -134,20 +139,24 @@ public class R8InliningTest extends TestBase {
     DexInspector inspector = new DexInspector(getGeneratedDexFile().toAbsolutePath(),
         getGeneratedProguardMap());
     ClassSubject clazz = inspector.clazz("inlining.Inlining");
+
     // Simple constant inlining.
-    checkAbsent(clazz, "longExpression");
-    checkAbsent(clazz, "intExpression");
-    checkAbsent(clazz, "doubleExpression");
-    checkAbsent(clazz, "floatExpression");
+    checkAbsentBooleanMethod(clazz, "longExpression");
+    checkAbsentBooleanMethod(clazz, "intExpression");
+    checkAbsentBooleanMethod(clazz, "doubleExpression");
+    checkAbsentBooleanMethod(clazz, "floatExpression");
     // Simple return argument inlining.
-    checkAbsent(clazz, "longArgumentExpression");
-    checkAbsent(clazz, "intArgumentExpression");
-    checkAbsent(clazz, "doubleArgumentExpression");
-    checkAbsent(clazz, "floatArgumentExpression");
+    checkAbsentBooleanMethod(clazz, "longArgumentExpression");
+    checkAbsentBooleanMethod(clazz, "intArgumentExpression");
+    checkAbsentBooleanMethod(clazz, "doubleArgumentExpression");
+    checkAbsentBooleanMethod(clazz, "floatArgumentExpression");
+    // Static method calling interface method. The interface method implementation is in
+    // a private class in another package.
+    checkAbsent(clazz, "int", "callInterfaceMethod", ImmutableList.of("inlining.IFace"));
 
     clazz = inspector.clazz("inlining.Nullability");
-    checkAbsent(clazz, "inlinableWithPublicField");
-    checkAbsent(clazz, "inlinableWithControlFlow");
+    checkAbsentBooleanMethod(clazz, "inlinableWithPublicField");
+    checkAbsentBooleanMethod(clazz, "inlinableWithControlFlow");
   }
 
   @Test

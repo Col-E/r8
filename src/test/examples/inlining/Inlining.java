@@ -4,6 +4,7 @@
 package inlining;
 
 import inlining.Nullability.Factor;
+import inlining.pkg.InterfaceImplementationContainer;
 import inlining.pkg.OtherPublicClass;
 import inlining.pkg.PublicClass;
 import inlining.pkg.Subclass;
@@ -211,10 +212,17 @@ public class Inlining {
     } catch (Throwable unexpected) {
       System.out.println("Unexpected exception for notInlinableOnThrow");
     }
+
+    System.out.println(callInterfaceMethod(InterfaceImplementationContainer.getIFace()));
   }
 
   private static boolean intCmpExpression(A a, A b) {
     return a.a() == b.a();
+  }
+
+  @CheckDiscarded
+  private static int callInterfaceMethod(IFace i) {
+    return i.foo();
   }
 
   @CheckDiscarded
