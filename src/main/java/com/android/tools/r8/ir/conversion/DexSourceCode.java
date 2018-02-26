@@ -136,7 +136,7 @@ public class DexSourceCode implements SourceCode {
 
   @Override
   public void buildPrelude(IRBuilder builder) {
-    currentPosition = Position.none();
+    currentPosition = Position.synthetic(0, method, null);
     if (code.incomingRegisterSize == 0) {
       return;
     }

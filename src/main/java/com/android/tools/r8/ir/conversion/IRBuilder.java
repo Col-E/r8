@@ -396,10 +396,6 @@ public class IRBuilder {
     // necessary.
     ir.splitCriticalEdges();
 
-    if (options.testing.invertConditionals) {
-      invertConditionalsForTesting(ir);
-    }
-
     // Create block order and make sure that all blocks are immediately followed by their
     // fallthrough block if any.
     ir.traceBlocks();
@@ -440,7 +436,7 @@ public class IRBuilder {
           } else {
             current = position;
           }
-        } else if (position.isSome() && !position.equals(current)) {
+        } else if (position.isSome() && !position.synthetic && !position.equals(current)) {
           DebugPosition positionChange = new DebugPosition();
           positionChange.setPosition(position);
           it.previous();
@@ -2004,14 +2000,6 @@ public class IRBuilder {
 
   boolean isNonLongIntegerType(NumericType type) {
     return type != NumericType.FLOAT && type != NumericType.DOUBLE && type != NumericType.LONG;
-  }
-
-  private static void invertConditionalsForTesting(IRCode code) {
-    for (BasicBlock block : code.blocks) {
-      if (block.exit().isIf()) {
-        block.exit().asIf().invert();
-      }
-    }
   }
 
   @Override

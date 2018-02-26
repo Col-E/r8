@@ -949,6 +949,10 @@ public class ToolHelper {
     return Paths.get(System.getProperty("java.home"), "bin", "java").toString();
   }
 
+  public static ProcessResult runArtRaw(ArtCommandBuilder builder) throws IOException {
+    return runArtProcessRaw(builder);
+  }
+
   public static ProcessResult runArtRaw(String file, String mainClass)
       throws IOException {
     return runArtRaw(Collections.singletonList(file), mainClass, null);

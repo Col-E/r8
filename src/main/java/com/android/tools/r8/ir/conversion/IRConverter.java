@@ -24,6 +24,7 @@ import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.analysis.constant.SparseConditionalConstantPropagation;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeEnvironment;
+import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
@@ -511,6 +512,14 @@ public class IRConverter {
     }
   }
 
+  private static void invertConditionalsForTesting(IRCode code) {
+    for (BasicBlock block : code.blocks) {
+      if (block.exit().isIf()) {
+        block.exit().asIf().invert();
+      }
+    }
+  }
+
   private void rewriteCode(DexEncodedMethod method,
       OptimizationFeedback feedback,
       Predicate<DexEncodedMethod> isProcessedConcurrently,
@@ -589,6 +598,12 @@ public class IRConverter {
     codeRewriter.rewriteSwitch(code);
     codeRewriter.processMethodsNeverReturningNormally(code);
     codeRewriter.simplifyIf(code, typeEnvironment);
+
+    if (options.testing.invertConditionals) {
+      invertConditionalsForTesting(code);
+      code.traceBlocks();
+    }
+
     if (options.enableNonNullTracking && nonNullTracker != null) {
       nonNullTracker.cleanupNonNull(code);
       assert code.isConsistentSSA();

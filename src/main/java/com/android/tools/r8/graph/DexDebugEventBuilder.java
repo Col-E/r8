@@ -195,11 +195,13 @@ public class DexDebugEventBuilder {
   private void emitDebugPosition(int pc, Position position) {
     assert !position.equals(emittedPosition);
     if (startLine == NO_LINE_INFO) {
-      if (position.synthetic) {
+      assert emittedPosition.isNone();
+      if (position.synthetic && position.callerPosition == null) {
         // Ignore synthetic positions prior to any actual position.
+        // We do need to preserve synthetic position establishing the stack frame for inlined
+        // methods.
         return;
       }
-      assert emittedPosition.isNone();
       startLine = position.line;
       emittedPosition = new Position(position.line, null, method.method, null);
     }

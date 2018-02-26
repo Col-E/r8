@@ -186,6 +186,9 @@ public class JarSourceCode implements SourceCode {
   // Canonicalized positions to lower memory usage.
   private final Int2ReferenceMap<Position> canonicalPositions = new Int2ReferenceOpenHashMap<>();
 
+  // Synthetic position with line = 0.
+  private Position preamblePosition = null;
+
   // Cooked position to indicate positions in synthesized code (ie, for synchronization).
   private Position syntheticPosition = null;
 
@@ -262,6 +265,8 @@ public class JarSourceCode implements SourceCode {
 
   @Override
   public void buildPrelude(IRBuilder builder) {
+    currentPosition = getPreamblePosition();
+
     // Record types for arguments.
     Int2ReferenceMap<ValueType> argumentLocals = recordArgumentTypes();
     Int2ReferenceMap<ValueType> initializedLocals = new Int2ReferenceOpenHashMap<>(argumentLocals);
@@ -326,8 +331,6 @@ public class JarSourceCode implements SourceCode {
     if (initialLabel != null) {
       locals = state.openLocals(getOffset(initialLabel));
     }
-
-    currentPosition = Position.none();
 
     // Build the actual argument instructions now that type and debug information is known
     // for arguments.
@@ -457,7 +460,7 @@ public class JarSourceCode implements SourceCode {
   private void buildExceptionalPostlude(IRBuilder builder) {
     assert isSynchronized();
     generatingMethodSynchronization = true;
-    currentPosition = getSyntheticPosition();
+    currentPosition = getExceptionalExitPosition();
     buildMonitorExit(builder);
     builder.addThrow(getMoveExceptionRegister());
     generatingMethodSynchronization = false;
@@ -503,7 +506,9 @@ public class JarSourceCode implements SourceCode {
     // writes after the line has changed and thus causing locals to become visible too late.
     currentPosition =
         getDebugPositionAtOffset(
-            insn instanceof LabelNode ? instructionIndex - 1 : instructionIndex);
+            ((instructionIndex > 0) && (insn instanceof LabelNode))
+                ? instructionIndex - 1
+                : instructionIndex);
 
     build(insn, builder);
 
@@ -2906,10 +2911,11 @@ public class JarSourceCode implements SourceCode {
   @Override
   public Position getDebugPositionAtOffset(int offset) {
     if (offset == EXCEPTIONAL_SYNC_EXIT_OFFSET) {
-      return getSyntheticPosition();
+      return getExceptionalExitPosition();
     }
     int index = instructionIndex(offset);
     if (index < 0 || instructionCount() <= index) {
+      assert false;
       return Position.none();
     }
     AbstractInsnNode insn = node.instructions.get(index);
@@ -2923,7 +2929,7 @@ public class JarSourceCode implements SourceCode {
       LineNumberNode line = (LineNumberNode) insn;
       return getCanonicalPosition(line.line);
     }
-    return Position.none();
+    return getPreamblePosition();
   }
 
   @Override
@@ -2936,12 +2942,19 @@ public class JarSourceCode implements SourceCode {
         line, l -> new Position(l, null, method, callerPosition));
   }
 
+  private Position getPreamblePosition() {
+    if (preamblePosition == null) {
+      preamblePosition = Position.synthetic(0, method, null);
+    }
+    return preamblePosition;
+  }
+
   // If we need to emit a synthetic position for exceptional monitor exits, we try to cook up a
   // position that is not actually a valid program position, so as not to incorrectly position the
   // user on an exit that is not the actual exit being taken. Our heuristic for this is that if the
   // method has at least two positions we use the first position minus one as the synthetic exit.
   // If the method only has one position it is safe to just use that position.
-  private Position getSyntheticPosition() {
+  private Position getExceptionalExitPosition() {
     if (syntheticPosition == null) {
       int min = Integer.MAX_VALUE;
       int max = Integer.MIN_VALUE;

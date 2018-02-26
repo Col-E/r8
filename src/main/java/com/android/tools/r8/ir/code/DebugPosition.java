@@ -31,6 +31,7 @@ public class DebugPosition extends Instruction {
 
   @Override
   public void buildDex(DexBuilder builder) {
+    assert getPosition().isSome() && !getPosition().synthetic;
     builder.addDebugPosition(this);
   }
 
@@ -73,6 +74,7 @@ public class DebugPosition extends Instruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
+    assert getPosition().isSome() && !getPosition().synthetic;
     // All redundant debug positions are removed. Remaining ones must force a pc advance.
     builder.add(new CfNop());
   }
