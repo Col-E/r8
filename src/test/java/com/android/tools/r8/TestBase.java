@@ -13,6 +13,7 @@ import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.SmaliWriter;
+import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -25,6 +26,7 @@ import com.android.tools.r8.utils.DexInspector.MethodSubject;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.PreloadedClassFileProvider;
+import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.io.ByteStreams;
@@ -481,24 +483,24 @@ public class TestBase {
   }
 
   protected ProcessResult runOnJava(String main, byte[]... classes) throws IOException {
-    Path file = writeToZip(classes);
+    Path file = writeToZip(Arrays.asList(classes));
     return ToolHelper.runJavaNoVerify(file, main);
   }
 
-  private Path writeToZip(byte[]... classes) throws IOException {
-    File result = temp.newFile();
+  private Path writeToZip(List<byte[]> classes) throws IOException {
+    File result = temp.newFile("tmp.zip");
     try (ZipOutputStream out = new ZipOutputStream(Files.newOutputStream(result.toPath(),
         StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING))) {
       for (byte[] clazz : classes) {
         String name = loadClassFromDump(clazz).getTypeName();
-        ZipEntry zipEntry = new ZipEntry(DescriptorUtils.getPathFromJavaType(name));
-        zipEntry.setSize(clazz.length);
-        out.putNextEntry(zipEntry);
-        out.write(clazz);
-        out.closeEntry();
+        ZipUtils.writeToZipStream(out, DescriptorUtils.getPathFromJavaType(name), clazz);
       }
     }
     return result.toPath();
+  }
+
+  protected Path writeToZip(JasminBuilder jasminBuilder) throws Exception {
+    return writeToZip(jasminBuilder.buildClasses());
   }
 
   protected static Class loadClassFromDump(byte[] dump) {

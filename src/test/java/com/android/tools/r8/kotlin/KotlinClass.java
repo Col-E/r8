@@ -6,7 +6,6 @@ package com.android.tools.r8.kotlin;
 
 import com.android.tools.r8.naming.MemberNaming;
 import com.google.common.collect.Maps;
-
 import java.util.Collections;
 import java.util.Map;
 
@@ -16,15 +15,34 @@ import java.util.Map;
  * <p>See https://kotlinlang.org/docs/reference/classes.html</p>
  */
 class KotlinClass {
+
+  /**
+   * This is the suffix appended by Kotlin compiler to getter and setter method names of
+   * internal properties.
+   *
+   * It must match the string passed in command-line option "-module-name" of Kotlin compiler. The
+   * default value is "main".
+   */
+  private static final String KOTLIN_MODULE_NAME = "main";
+
+  enum Visibility {
+    PUBLIC,
+    INTERNAL,
+    PROTECTED,
+    PRIVATE;
+  }
+
   protected static class KotlinProperty {
     private final String name;
     private final String type;
+    private final Visibility visibility;
     private final int index;
 
-    private KotlinProperty(String name, String type, int index) {
+    private KotlinProperty(String name, String type, Visibility visibility, int index) {
       this.name = name;
       this.type = type;
       this.index = index;
+      this.visibility = visibility;
     }
 
     public String getName() {
@@ -33,6 +51,10 @@ class KotlinClass {
 
     public String getType() {
       return type;
+    }
+
+    public Visibility getVisibility() {
+      return visibility;
     }
 
     public int getIndex() {
@@ -50,9 +72,9 @@ class KotlinClass {
     return className;
   }
 
-  public KotlinClass addProperty(String name, String type) {
+  public KotlinClass addProperty(String name, String type, Visibility visibility) {
     assert !properties.containsKey(name);
-    properties.put(name, new KotlinProperty(name, type, properties.size()));
+    properties.put(name, new KotlinProperty(name, type, visibility, properties.size()));
     return this;
   }
 
@@ -61,17 +83,37 @@ class KotlinClass {
     return properties.get(name);
   }
 
-  public MemberNaming.MethodSignature getGetterForProperty(String name) {
-    String type = getProperty(name).type;
+  public MemberNaming.MethodSignature getGetterForProperty(String propertyName) {
+    KotlinProperty property = getProperty(propertyName);
+    String type = property.type;
     String getterName;
-    if (name.length() > 2 && name.startsWith("is")
-        && (name.charAt(2) == '_' || Character.isUpperCase(name.charAt(2)))) {
+    if (propertyName.length() > 2 && propertyName.startsWith("is")
+        && (propertyName.charAt(2) == '_' || Character.isUpperCase(propertyName.charAt(2)))) {
       // Getter for property "isAbc" is "isAbc".
-      getterName = name;
+      getterName = propertyName;
     } else {
       // Getter for property "abc" is "getAbc".
-      getterName = "get" + Character.toUpperCase(name.charAt(0)) + name.substring(1);
+      getterName =
+          "get" + Character.toUpperCase(propertyName.charAt(0)) + propertyName.substring(1);
+    }
+    if (property.getVisibility() == Visibility.INTERNAL) {
+      // Append module name
+      getterName += "$" + KOTLIN_MODULE_NAME;
     }
     return new MemberNaming.MethodSignature(getterName, type, Collections.emptyList());
   }
+
+  public MemberNaming.MethodSignature getSetterForProperty(String propertyName) {
+    KotlinProperty property = getProperty(propertyName);
+    String setterName = "set"
+        + Character.toUpperCase(property.name.charAt(0))
+        + property.name.substring(1);
+    if (property.getVisibility() == Visibility.INTERNAL) {
+      // Append module name
+      setterName += "$" + KOTLIN_MODULE_NAME;
+    }
+    return new MemberNaming.MethodSignature(setterName, "void",
+        Collections.singleton(property.getType()));
+  }
+
 }

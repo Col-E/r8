@@ -23,8 +23,8 @@ class KotlinDataClass extends KotlinClass {
   }
 
   @Override
-  public KotlinDataClass addProperty(String name, String type) {
-    return (KotlinDataClass) super.addProperty(name, type);
+  public KotlinDataClass addProperty(String name, String type, Visibility visibility) {
+    return (KotlinDataClass) super.addProperty(name, type, visibility);
   }
 
   public MemberNaming.MethodSignature getComponentNFunctionForProperty(String name) {
