@@ -90,7 +90,9 @@ public class ToolHelper {
   private static final String ANDROID_JAR_PATTERN = "third_party/android_jar/lib-v%d/android.jar";
   private static final AndroidApiLevel DEFAULT_MIN_SDK = AndroidApiLevel.I;
 
-  private static final String PROGUARD = "third_party/proguard/proguard5.2.1/bin/proguard.sh";
+  private static final String PROGUARD5_2_1 = "third_party/proguard/proguard5.2.1/bin/proguard.sh";
+  private static final String PROGUARD6_0 = "third_party/proguard/proguard6.0/bin/proguard.sh";
+  private static final String PROGUARD = PROGUARD5_2_1;
 
   public enum DexVm {
     ART_4_0_4_TARGET(Version.V4_0_4, Kind.TARGET),

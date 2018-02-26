@@ -296,9 +296,12 @@ public class ForceProguardCompatibilityTest extends TestBase {
           ImmutableList.of(mainClass, forNameClass1, forNameClass2)),
           proguardedJar, proguardConfigFile);
       Set<String> classesAfterProguard = readClassesInJar(proguardedJar);
+      assertEquals(3, classesAfterProguard.size());
       assertTrue(classesAfterProguard.contains(mainClass.getCanonicalName()));
-      assertTrue(classesAfterProguard.contains(forNameClass1.getCanonicalName()));
-      assertTrue(classesAfterProguard.contains(forNameClass2.getCanonicalName()));
+      if (!allowObfuscation) {
+        assertTrue(classesAfterProguard.contains(forNameClass1.getCanonicalName()));
+        assertTrue(classesAfterProguard.contains(forNameClass2.getCanonicalName()));
+      }
     }
   }
 

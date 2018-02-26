@@ -300,6 +300,7 @@ def cloudDependencies = [
                 "android_jar/lib-v25",
                 "android_jar/lib-v26",
                 "proguard/proguard5.2.1",
+                "proguard/proguard6.0",
                 "gradle/gradle",
                 "jdwp-tests",
                 "jasmin",
