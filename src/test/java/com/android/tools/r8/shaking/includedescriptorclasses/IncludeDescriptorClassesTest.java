@@ -11,18 +11,15 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.DexInspector;
 import com.google.common.collect.ImmutableList;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
 import org.junit.Test;
 
 public class IncludeDescriptorClassesTest extends TestBase {
+  // Actually running Proguard should only be during development.
+  private final boolean RUN_PROGUARD = false;
 
   private class Result {
     final DexInspector inspector;
@@ -75,8 +72,8 @@ public class IncludeDescriptorClassesTest extends TestBase {
 
     Set<String> classesAfterProguard = null;
     // Actually running Proguard should only be during development.
-    if (false) {
-      Path proguardedJar = temp.newFile("proguarded.jar").toPath();
+    if (RUN_PROGUARD) {
+      Path proguardedJar = temp.newFolder().toPath().resolve("proguarded.jar");
       ToolHelper.runProguard(jarTestClasses(classes), proguardedJar, proguardConfig);
       classesAfterProguard = readClassesInJar(proguardedJar);
     }
