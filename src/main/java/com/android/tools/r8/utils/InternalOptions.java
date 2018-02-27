@@ -489,4 +489,11 @@ public class InternalOptions {
   public boolean canUseNotInstruction() {
     return minApiLevel >= AndroidApiLevel.L.getLevel();
   }
+
+  // Art before M has a verifier bug where the type of the contents of the receiver register is
+  // assumed to not change. If the receiver register is reused for something else the verifier
+  // will fail and the code will not run.
+  public boolean canHaveThisTypeVerifierBug() {
+    return minApiLevel < AndroidApiLevel.M.getLevel();
+  }
 }

@@ -2039,6 +2039,24 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
 
   private void computeLiveRanges() {
     computeLiveRanges(options, code, liveAtEntrySets, liveIntervals);
+    // Art VMs before Android M assume that the register for the receiver never changes its value.
+    // This assumption is used during verification. Allowing the receiver register to be
+    // overwritten can therefore lead to verification errors. If we could be targeting one of these
+    // VMs we block the receiver register throughout the method.
+    if (options.canHaveThisTypeVerifierBug() && !code.method.accessFlags.isStatic()) {
+      for (Instruction instruction : code.blocks.get(0).getInstructions()) {
+        if (instruction.isArgument() && instruction.outValue().isThis()) {
+          Value thisValue = instruction.outValue();
+          LiveIntervals thisIntervals = thisValue.getLiveIntervals();
+          thisIntervals.getRanges().clear();
+          thisIntervals.addRange(new LiveRange(0, code.getNextInstructionNumber()));
+          for (Set<Value> values : liveAtEntrySets.values()) {
+            values.add(thisValue);
+          }
+          return;
+        }
+      }
+    }
   }
 
   /**
