@@ -319,6 +319,9 @@ public class R8Command extends BaseCompilerCommand {
 
       assert getProgramConsumer() != null;
 
+      boolean desugaring =
+          (getProgramConsumer() instanceof ClassFileConsumer) ? false : !getDisableDesugaring();
+
       R8Command command =
           new R8Command(
               getAppBuilder().build(),
@@ -329,7 +332,7 @@ public class R8Command extends BaseCompilerCommand {
               getMode(),
               getMinApiLevel(),
               reporter,
-              !getDisableDesugaring(),
+              desugaring,
               configuration.isShrinking(),
               configuration.isObfuscating(),
               forceProguardCompatibility,
