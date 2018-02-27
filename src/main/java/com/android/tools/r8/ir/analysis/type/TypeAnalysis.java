@@ -34,17 +34,23 @@ public class TypeAnalysis implements TypeEnvironment {
   }
 
   @Override
+  public void analyze() {
+    while (!worklist.isEmpty()) {
+      analyzeValue(worklist.poll());
+    }
+  }
+
+  @Override
   public void analyzeBlocks(List<BasicBlock> blocks) {
     assert worklist.isEmpty();
     for (BasicBlock block : blocks) {
       processBasicBlock(block);
     }
-    while (!worklist.isEmpty()) {
-      processValue(worklist.poll());
-    }
+    analyze();
   }
 
-  private void addToWorklist(Value v) {
+  @Override
+  public void enqueue(Value v) {
     assert v != null;
     if (!worklist.contains(v)) {
       worklist.add(v);
@@ -72,16 +78,16 @@ public class TypeAnalysis implements TypeEnvironment {
         updateTypeOfValue(outValue, derived);
       } else {
         if (outValue != null) {
-          addToWorklist(outValue);
+          enqueue(outValue);
         }
       }
     }
     for (Phi phi : block.getPhis()) {
-      addToWorklist(phi);
+      enqueue(phi);
     }
   }
 
-  private void processValue(Value value) {
+  private void analyzeValue(Value value) {
     TypeLatticeElement derived =
         value.isPhi()
             ? computePhiType(value.asPhi())
@@ -100,14 +106,12 @@ public class TypeAnalysis implements TypeEnvironment {
     for (Instruction instruction : value.uniqueUsers()) {
       Value outValue = instruction.outValue();
       if (outValue != null) {
-        // TODO(b/72693244): processValue instead of queueing.
-        addToWorklist(outValue);
+        enqueue(outValue);
       }
     }
     // Propagate the type change to phi users if any.
     for (Phi phi : value.uniquePhiUsers()) {
-      // TODO(b/72693244): processValue instead of queueing.
-      addToWorklist(phi);
+      enqueue(phi);
     }
   }
 
@@ -141,6 +145,18 @@ public class TypeAnalysis implements TypeEnvironment {
 
   private static final TypeEnvironment DEFAULT_ENVIRONMENT = new TypeEnvironment() {
     @Override
+    public void analyze() {
+    }
+
+    @Override
+    public void analyzeBlocks(List<BasicBlock> blocks) {
+    }
+
+    @Override
+    public void enqueue(Value value) {
+    }
+
+    @Override
     public TypeLatticeElement getLatticeElement(Value value) {
       return Top.getInstance();
     }
@@ -148,10 +164,6 @@ public class TypeAnalysis implements TypeEnvironment {
     @Override
     public DexType getRefinedReceiverType(InvokeMethodWithReceiver invoke) {
       return invoke.getInvokedMethod().holder;
-    }
-
-    @Override
-    public void analyzeBlocks(List<BasicBlock> blocks) {
     }
   };
 

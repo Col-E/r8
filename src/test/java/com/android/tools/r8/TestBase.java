@@ -44,6 +44,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.jar.JarOutputStream;
+import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
@@ -555,6 +556,13 @@ public class TestBase {
       assertEquals("Unexpected instruction at index " + i,
           instructions.get(i), code.instructions[i].getClass());
     }
+  }
+
+  protected Stream<Instruction> filterInstructionKind(
+      DexCode dexCode, Class<? extends Instruction> kind) {
+    return Arrays.stream(dexCode.instructions)
+        .filter(kind::isInstance)
+        .map(kind::cast);
   }
 
   public enum MinifyMode {

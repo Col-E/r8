@@ -15,10 +15,13 @@ import java.util.function.Function;
 public class NonNull extends Instruction {
   private final static String ERROR_MESSAGE = "This fake IR should be removed after inlining.";
 
-  public NonNull(Value dest, Value src) {
+  final Instruction origin;
+
+  public NonNull(Value dest, Value src, Instruction origin) {
     super(dest, src);
     assert !src.isNeverNull();
     dest.markNeverNull();
+    this.origin = origin;
   }
 
   public Value dest() {
@@ -27,6 +30,10 @@ public class NonNull extends Instruction {
 
   public Value src() {
     return inValues.get(0);
+  }
+
+  public Instruction origin() {
+    return origin;
   }
 
   @Override
