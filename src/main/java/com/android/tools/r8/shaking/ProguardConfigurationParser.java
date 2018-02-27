@@ -46,19 +46,28 @@ public class ProguardConfigurationParser {
 
   private static final List<String> IGNORED_SINGLE_ARG_OPTIONS = ImmutableList
       .of("protomapping",
-          "target");
+          "target"
+      );
   private static final List<String> IGNORED_OPTIONAL_SINGLE_ARG_OPTIONS = ImmutableList
-      .of("keepdirectories", "runtype", "laststageoutput");
+      .of("keepdirectories",
+          "runtype",
+          "laststageoutput"
+      );
   private static final List<String> IGNORED_FLAG_OPTIONS = ImmutableList
-      .of("forceprocessing", "dontusemixedcaseclassnames",
-          "dontpreverify", "experimentalshrinkunusedprotofields",
+      .of("forceprocessing",
+          "dontusemixedcaseclassnames",
+          "dontpreverify",
+          "experimentalshrinkunusedprotofields",
           "filterlibraryjarswithorginalprogramjars",
           "dontskipnonpubliclibraryclasses",
           "dontskipnonpubliclibraryclassmembers",
-          "invokebasemethod");
+          "invokebasemethod",
+          "android"
+      );
   private static final List<String> IGNORED_CLASS_DESCRIPTOR_OPTIONS = ImmutableList
       .of("isclassnamestring",
-          "whyarenotsimple");
+          "whyarenotsimple"
+      );
 
   private static final List<String> WARNED_SINGLE_ARG_OPTIONS = ImmutableList
       .of("dontnote",
@@ -66,9 +75,22 @@ public class ProguardConfigurationParser {
           // TODO -outjars (http://b/37137994) and -adaptresourcefilecontents (http://b/37139570)
           // should be reported as errors, not just as warnings!
           "outjars",
-          "adaptresourcefilecontents");
+          "adaptresourcefilecontents"
+      );
   private static final List<String> WARNED_FLAG_OPTIONS = ImmutableList
-      .of();
+      .of(
+          // TODO(b/73707846): add support -addconfigurationdebugging
+          "addconfigurationdebugging"
+      );
+  private static final List<String> WARNED_CLASS_DESCRIPTOR_OPTIONS = ImmutableList
+      .of(
+          // TODO(b/73708157): add support -assumenoexternalsideeffects <class_spec>
+          "assumenoexternalsideeffects",
+          // TODO(b/73707404): add support -assumenoescapingparameters <class_spec>
+          "assumenoescapingparameters",
+          // TODO(b/73708085): add support -assumenoexternalreturnvalues <class_spec>
+          "assumenoexternalreturnvalues"
+      );
 
   // Those options are unsupported and are treated as compilation errors.
   // Just ignoring them would produce outputs incompatible with user expectations.
@@ -91,7 +113,7 @@ public class ProguardConfigurationParser {
     if (configurationBuilder.isKeepParameterNames() && configurationBuilder.isObfuscating()) {
       // The flag -keepparameternames has only effect when minifying, so ignore it if we
       // are not.
-      reporter.fatalError(new StringDiagnostic(
+      throw reporter.fatalError(new StringDiagnostic(
           "-keepparameternames is not supported",
           configurationBuilder.getKeepParameterNamesOptionOrigin(),
           configurationBuilder.getKeepParameterNamesOptionPosition()));
@@ -181,14 +203,17 @@ public class ProguardConfigurationParser {
       } else if (
           (option = Iterables.find(WARNED_SINGLE_ARG_OPTIONS,
               this::skipOptionWithSingleArg, null)) != null
-              || (option = Iterables.find(WARNED_FLAG_OPTIONS, this::skipFlag, null)) != null) {
+              || (option = Iterables.find(WARNED_FLAG_OPTIONS,
+                  this::skipFlag, null)) != null
+              || (option = Iterables.find(WARNED_CLASS_DESCRIPTOR_OPTIONS,
+                  this::skipOptionWithClassSpec, null)) != null) {
         warnIgnoringOptions(option, optionStart);
       } else if (
           (option = Iterables.find(UNSUPPORTED_FLAG_OPTIONS, this::skipFlag, null)) != null) {
         reporter.error(new StringDiagnostic(
             "Unsupported option: -" + option,
             origin,
-            getPostion(optionStart)));
+            getPosition(optionStart)));
       } else if (acceptString("renamesourcefileattribute")) {
         skipWhitespace();
         if (isOptionalArgumentGiven()) {
@@ -202,8 +227,7 @@ public class ProguardConfigurationParser {
         ProguardKeepPackageNamesRule rule = parseKeepPackageNamesRule();
         configurationBuilder.addRule(rule);
       } else if (acceptString("keepparameternames")) {
-        configurationBuilder.setKeepParameterNames(true,
-            origin, getPostion(optionStart));
+        configurationBuilder.setKeepParameterNames(true, origin, getPosition(optionStart));
       } else if (acceptString("checkdiscard")) {
         ProguardCheckDiscardRule rule = parseCheckDiscardRule();
         configurationBuilder.addRule(rule);
@@ -220,9 +244,7 @@ public class ProguardConfigurationParser {
         Integer expectedOptimizationPasses = acceptInteger();
         if (expectedOptimizationPasses == null) {
           throw reporter.fatalError(new StringDiagnostic(
-              "Missing n of \"-optimizationpasses n\"",
-              origin,
-              getPostion(optionStart)));
+              "Missing n of \"-optimizationpasses n\"", origin, getPosition(optionStart)));
         }
         warnIgnoringOptions("optimizationpasses", optionStart);
       } else if (acceptString("dontobfuscate")) {
@@ -249,8 +271,7 @@ public class ProguardConfigurationParser {
         }
       } else if (acceptString("repackageclasses")) {
         if (configurationBuilder.getPackageObfuscationMode() == PackageObfuscationMode.FLATTEN) {
-          warnOverridingOptions("repackageclasses", "flattenpackagehierarchy",
-              optionStart);
+          warnOverridingOptions("repackageclasses", "flattenpackagehierarchy", optionStart);
         }
         skipWhitespace();
         if (acceptChar('\'')) {
@@ -261,8 +282,7 @@ public class ProguardConfigurationParser {
         }
       } else if (acceptString("flattenpackagehierarchy")) {
         if (configurationBuilder.getPackageObfuscationMode() == PackageObfuscationMode.REPACKAGE) {
-          warnOverridingOptions("repackageclasses", "flattenpackagehierarchy",
-              optionStart);
+          warnOverridingOptions("repackageclasses", "flattenpackagehierarchy", optionStart);
           skipWhitespace();
           if (isOptionalArgumentGiven()) {
             skipSingleArgument();
@@ -331,14 +351,29 @@ public class ProguardConfigurationParser {
         }
       } else if (acceptString("identifiernamestring")) {
         configurationBuilder.addRule(parseIdentifierNameStringRule());
+      } else if (acceptString("if")) {
+        // TODO(b/73708139): add support -if <class_spec>
+        ProguardKeepRule.Builder keepRuleBuilder = ProguardKeepRule.builder();
+        parseClassSpec(keepRuleBuilder, true);
+        ProguardKeepRule ifRule = keepRuleBuilder.build();
+        assert ifRule.getClassType() == ProguardClassType.CLASS;
+
+        // Required a subsequent keep rule.
+        skipWhitespace();
+        if (acceptString("-keep")) {
+          ProguardKeepRule subsequentRule = parseKeepRule();
+          warnIgnoringOptions("if", optionStart);
+        } else {
+          throw reporter.fatalError(new StringDiagnostic(
+              "Option -if without a subsequent keep rule.", origin, getPosition(optionStart)));
+        }
       } else {
         String unknownOption = acceptString();
-        reporter.error(new StringDiagnostic("Unknown option \"-" + unknownOption + "\"",
-            origin, getPostion(optionStart)));
+        reporter.error(new StringDiagnostic(
+            "Unknown option \"-" + unknownOption + "\"", origin, getPosition(optionStart)));
       }
       return true;
     }
-
 
     private void parseInclude() throws ProguardRuleParserException {
       TextPosition start = getPosition();
@@ -639,9 +674,8 @@ public class ProguardConfigurationParser {
       } else if (acceptString("enum")) {
         builder.setClassType(ProguardClassType.ENUM);
       } else {
-        throw reporter
-            .fatalError(new StringDiagnostic("Expected [!]interface|@interface|class|enum",
-            origin, getPostion(start)));
+        throw reporter.fatalError(new StringDiagnostic(
+            "Expected [!]interface|@interface|class|enum", origin, getPosition(start)));
       }
     }
 
@@ -1199,28 +1233,25 @@ public class ProguardConfigurationParser {
     private ProguardRuleParserException parseError(String message, TextPosition start,
         Throwable cause) {
       return new ProguardRuleParserException(message, snippetForPosition(start),
-          origin, getPostion(start), cause);
+          origin, getPosition(start), cause);
     }
 
     private ProguardRuleParserException parseError(String message, TextPosition start) {
       return new ProguardRuleParserException(message, snippetForPosition(start),
-          origin, getPostion(start));
+          origin, getPosition(start));
     }
 
     private void warnIgnoringOptions(String optionName, TextPosition start) {
       reporter.warning(new StringDiagnostic(
-          "Ignoring option: -" + optionName,
-          origin,
-          getPostion(start)));
+          "Ignoring option: -" + optionName, origin, getPosition(start)));
     }
 
     private void warnOverridingOptions(String optionName, String victim, TextPosition start) {
-      reporter.warning(
-          new StringDiagnostic("Option -" + optionName + " overrides -" + victim,
-              origin, getPostion(start)));
+      reporter.warning(new StringDiagnostic(
+          "Option -" + optionName + " overrides -" + victim, origin, getPosition(start)));
     }
 
-    private Position getPostion(TextPosition start) {
+    private Position getPosition(TextPosition start) {
       if (start.getOffset() == position) {
         return start;
       } else {
