@@ -1122,7 +1122,7 @@ public class Enqueuer {
       if (protoLiteExtension != null && protoLiteExtension.appliesTo(method)) {
         protoLiteExtension.processMethod(method, new UseRegistry(method), protoLiteFields);
       } else {
-        method.registerReachableDefinitions(new UseRegistry(method));
+        method.registerInstructionsReferences(new UseRegistry(method));
       }
       // Add all dependent members to the workqueue.
       enqueueRootItems(rootSet.getDependentItems(method));

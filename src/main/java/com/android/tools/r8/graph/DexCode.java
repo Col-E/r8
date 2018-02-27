@@ -10,6 +10,7 @@ import com.android.tools.r8.code.SwitchPayload;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.DexCode.TryHandler.TypeAddrPair;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
@@ -27,6 +28,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 
 // DexCode corresponds to code item in dalvik/dex-format.html
 public class DexCode extends Code {
@@ -188,9 +190,18 @@ public class DexCode extends Code {
   }
 
   @Override
-  public void registerReachableDefinitions(UseRegistry registry) {
+  public void registerInstructionsReferences(UseRegistry registry) {
     for (Instruction insn : instructions) {
       insn.registerUse(registry);
+    }
+  }
+
+  @Override
+  public void registerCaughtTypes(Consumer<DexType> dexTypeConsumer) {
+    for (TryHandler handler : handlers) {
+      for (TypeAddrPair pair : handler.pairs) {
+        dexTypeConsumer.accept(pair.type);
+      }
     }
   }
 

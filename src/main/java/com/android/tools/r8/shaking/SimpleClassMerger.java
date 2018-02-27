@@ -371,7 +371,7 @@ public class SimpleClassMerger {
         return existing;
       } else if (existing.accessFlags.isBridge()) {
         InvokeSingleTargetExtractor extractor = new InvokeSingleTargetExtractor();
-        existing.getCode().registerReachableDefinitions(extractor);
+        existing.getCode().registerInstructionsReferences(extractor);
         if (extractor.getTarget() != method.method) {
           abortMerge = true;
         }

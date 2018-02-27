@@ -501,12 +501,21 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     return !annotations.isEmpty() || !parameterAnnotations.isEmpty();
   }
 
-  public void registerReachableDefinitions(UseRegistry registry) {
+  public void registerInstructionsReferences(UseRegistry registry) {
     if (code != null) {
       if (Log.ENABLED) {
         Log.verbose(getClass(), "Registering definitions reachable from `%s`.", method);
       }
-      code.registerReachableDefinitions(registry);
+      code.registerInstructionsReferences(registry);
+    }
+  }
+
+  public void registerCatchedTypes(Consumer<DexType> dexTypeConsumer) {
+    if (code != null) {
+      if (Log.ENABLED) {
+        Log.verbose(getClass(), "Visiting catched types `%s`.", method);
+      }
+      code.registerCaughtTypes(dexTypeConsumer);
     }
   }
 
