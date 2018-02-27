@@ -10,6 +10,8 @@ import com.android.tools.r8.cf.code.CfLabel;
 import com.android.tools.r8.cf.code.CfTryCatch;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.Collections;
@@ -150,7 +152,17 @@ public class CfCode extends Code {
   @Override
   public IRCode buildIR(DexEncodedMethod encodedMethod, InternalOptions options)
       throws ApiLevelException {
-    throw new Unimplemented("Converting Java class- file bytecode to IR not yet supported");
+    throw new Unimplemented("Converting Java class-file bytecode to IR not yet supported");
+  }
+
+  @Override
+  public IRCode buildInliningIR(
+      DexEncodedMethod encodedMethod,
+      InternalOptions options,
+      ValueNumberGenerator valueNumberGenerator,
+      Position callerPosition)
+      throws ApiLevelException {
+    throw new Unimplemented("Converting Java class-file bytecode to IR not yet supported");
   }
 
   @Override

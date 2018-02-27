@@ -86,7 +86,7 @@ public interface DexIndexedConsumer extends ProgramConsumer {
 
     private static String getDefaultDexFileName(int fileIndex) {
       return fileIndex == 0
-          ? "classes.dex"
+          ? "classes" + FileUtils.DEX_EXTENSION
           : ("classes" + (fileIndex + 1) + FileUtils.DEX_EXTENSION);
     }
 
