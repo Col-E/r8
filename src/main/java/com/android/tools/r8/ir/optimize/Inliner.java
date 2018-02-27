@@ -374,8 +374,14 @@ public class Inliner {
     if (instruction_allowance < 0) {
       return;
     }
-    InliningOracle oracle = new InliningOracle(
-        this, method, typeEnvironment, callSiteInformation, isProcessedConcurrently);
+    InliningOracle oracle =
+        new InliningOracle(
+            this,
+            method,
+            typeEnvironment,
+            callSiteInformation,
+            isProcessedConcurrently,
+            options.inliningInstructionLimit);
 
     List<BasicBlock> blocksToRemove = new ArrayList<>();
     ListIterator<BasicBlock> blockIterator = code.listIterator();

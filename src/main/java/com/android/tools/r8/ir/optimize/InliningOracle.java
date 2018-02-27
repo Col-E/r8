@@ -24,27 +24,28 @@ import java.util.function.Predicate;
  */
 public class InliningOracle {
 
-  private static final int INLINING_INSTRUCTION_LIMIT = 5;
-
   private final Inliner inliner;
   private final DexEncodedMethod method;
   private final TypeEnvironment typeEnvironment;
   private final CallSiteInformation callSiteInformation;
   private final Predicate<DexEncodedMethod> isProcessedConcurrently;
   private final InliningInfo info;
+  private final int inliningInstructionLimit;
 
   InliningOracle(
       Inliner inliner,
       DexEncodedMethod method,
       TypeEnvironment typeEnvironment,
       CallSiteInformation callSiteInformation,
-      Predicate<DexEncodedMethod> isProcessedConcurrently) {
+      Predicate<DexEncodedMethod> isProcessedConcurrently,
+      int inliningInstructionLimit) {
     this.inliner = inliner;
     this.method = method;
     this.typeEnvironment = typeEnvironment;
     this.callSiteInformation = callSiteInformation;
     this.isProcessedConcurrently = isProcessedConcurrently;
     info = Log.ENABLED ? new InliningInfo(method) : null;
+    this.inliningInstructionLimit = inliningInstructionLimit;
   }
 
   void finish() {
@@ -196,7 +197,7 @@ public class InliningOracle {
     if (reason == Reason.SIMPLE) {
       // If we are looking for a simple method, only inline if actually simple.
       Code code = candidate.getCode();
-      if (code.estimatedSizeForInlining() > INLINING_INSTRUCTION_LIMIT) {
+      if (code.estimatedSizeForInlining() > inliningInstructionLimit) {
         return false;
       }
     }

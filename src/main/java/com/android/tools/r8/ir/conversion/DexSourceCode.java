@@ -78,28 +78,35 @@ public class DexSourceCode implements SourceCode {
   private final Position callerPosition;
   private final DexMethod method;
   private final boolean preserveCaller;
+  private final Position preamblePosition;
 
   public DexSourceCode(
       DexCode code, DexEncodedMethod method, Position callerPosition, boolean preserveCaller) {
     this.code = code;
     this.proto = method.method.proto;
     this.accessFlags = method.accessFlags;
+    this.callerPosition = callerPosition;
+    this.method = method.method;
     this.preserveCaller = preserveCaller;
+
     argumentTypes = computeArgumentTypes();
     DexDebugInfo info = code.getDebugInfo();
     if (info != null) {
       debugEntries = info.computeEntries(method.method);
-      canonicalPositions = new HashMap<>(debugEntries.size());
     }
-    if (info != null && callerPosition != null) {
-      // Canonicalize callerPosition
-      this.callerPosition = callerPosition;
+    canonicalPositions =
+        new HashMap<>(
+            1
+                + (callerPosition == null ? 0 : 1)
+                + (debugEntries == null ? 0 : debugEntries.size()));
+    if (callerPosition != null) {
       canonicalPositions.put(callerPosition, callerPosition);
-    } else {
-      this.callerPosition = null;
     }
-
-    this.method = method.method;
+    preamblePosition =
+        callerPosition == null
+            ? Position.synthetic(0, this.method, null)
+            : new Position(0, null, this.method, callerPosition);
+    canonicalPositions.put(preamblePosition, preamblePosition);
   }
 
   @Override
@@ -136,7 +143,7 @@ public class DexSourceCode implements SourceCode {
 
   @Override
   public void buildPrelude(IRBuilder builder) {
-    currentPosition = Position.synthetic(0, method, null);
+    currentPosition = preamblePosition;
     if (code.incomingRegisterSize == 0) {
       return;
     }
@@ -231,7 +238,7 @@ public class DexSourceCode implements SourceCode {
       current = entry;
     }
     if (current == null) {
-      currentPosition = Position.none();
+      currentPosition = preamblePosition;
     } else {
       currentPosition = getCanonicalPositionAppendCaller(current);
       if (current.lineEntry && current.address == offset) {

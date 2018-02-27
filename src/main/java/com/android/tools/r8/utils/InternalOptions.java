@@ -87,6 +87,7 @@ public class InternalOptions {
   public boolean enableDevirtualization = true;
   public boolean enableNonNullTracking = true;
   public boolean enableInlining = true;
+  public int inliningInstructionLimit = 5;
   public boolean enableSwitchMapRemoval = true;
   public final OutlineOptions outline = new OutlineOptions();
   public boolean enableValuePropagation = true;
