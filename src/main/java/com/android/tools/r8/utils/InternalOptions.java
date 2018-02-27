@@ -68,6 +68,7 @@ public class InternalOptions {
     // -dontoptimize disables optimizations by flipping related flags.
     if (!proguardConfiguration.isOptimizing()) {
       enableClassMerging = false;
+      enableDevirtualization = false;
       enableNonNullTracking = false;
       enableInlining = false;
       enableSwitchMapRemoval = false;
@@ -83,6 +84,7 @@ public class InternalOptions {
 
   // Optimization-related flags. These should conform to -dontoptimize.
   public boolean enableClassMerging = false;
+  public boolean enableDevirtualization = true;
   public boolean enableNonNullTracking = true;
   public boolean enableInlining = true;
   public boolean enableSwitchMapRemoval = true;

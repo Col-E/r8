@@ -10,7 +10,10 @@ import com.android.tools.r8.ir.code.Value;
 import java.util.List;
 
 public interface TypeEnvironment {
+  void analyze();
+  void analyzeBlocks(List<BasicBlock> blocks);
+  void enqueue(Value value);
+
   TypeLatticeElement getLatticeElement(Value value);
   DexType getRefinedReceiverType(InvokeMethodWithReceiver invoke);
-  void analyzeBlocks(List<BasicBlock> blocks);
 }

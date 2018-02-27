@@ -31,6 +31,7 @@ import com.android.tools.r8.ir.desugar.StringConcatRewriter;
 import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.optimize.ConstantCanonicalizer;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover;
+import com.android.tools.r8.ir.optimize.Devirtualizer;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.ir.optimize.MemberValuePropagation;
@@ -86,6 +87,7 @@ public class IRConverter {
   private final Inliner inliner;
   private final ProtoLitePruner protoLiteRewriter;
   private final IdentifierNameStringMarker identifierNameStringMarker;
+  private final Devirtualizer devirtualizer;
 
   private final OptimizationFeedback ignoreOptimizationFeedback = new OptimizationFeedbackIgnore();
   private DexString highestSortingString;
@@ -129,9 +131,12 @@ public class IRConverter {
         } else {
           this.identifierNameStringMarker = null;
         }
+        this.devirtualizer =
+            options.enableDevirtualization ? new Devirtualizer(appInfo.withLiveness()) : null;
       } else {
         this.protoLiteRewriter = null;
         this.identifierNameStringMarker = null;
+        this.devirtualizer = null;
       }
     } else {
       this.nonNullTracker = null;
@@ -141,6 +146,7 @@ public class IRConverter {
       this.lensCodeRewriter = null;
       this.protoLiteRewriter = null;
       this.identifierNameStringMarker = null;
+      this.devirtualizer = null;
     }
   }
 
@@ -578,7 +584,9 @@ public class IRConverter {
       inliner.performInlining(
           method, code, typeEnvironment, isProcessedConcurrently, callSiteInformation);
     }
-    // TODO(b/69962188): MethodDevirtualizer can perform optimizations using type analysis.
+    if (devirtualizer != null) {
+      devirtualizer.devirtualizeInvokeInterface(code, typeEnvironment, method.method.getHolder());
+    }
     codeRewriter.removeCasts(code, typeEnvironment);
     codeRewriter.rewriteLongCompareAndRequireNonNull(code, options);
     codeRewriter.commonSubexpressionElimination(code);

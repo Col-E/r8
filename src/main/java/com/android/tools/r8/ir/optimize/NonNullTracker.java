@@ -100,7 +100,7 @@ public class NonNullTracker {
         // ...y
         Value nonNullValue =
             code.createValue(ValueType.OBJECT, knownToBeNonNullValue.getLocalInfo());
-        NonNull nonNull = new NonNull(nonNullValue, knownToBeNonNullValue);
+        NonNull nonNull = new NonNull(nonNullValue, knownToBeNonNullValue, current);
         nonNull.setPosition(current.getPosition());
         if (blockWithNonNullInstruction !=  block) {
           // If we split, add non-null IR on top of the new split block.
@@ -194,7 +194,7 @@ public class NonNullTracker {
               if (!dominatedUsers.isEmpty() && !dominatedPhiUsers.isEmpty()) {
                 Value nonNullValue = code.createValue(
                     knownToBeNonNullValue.outType(), knownToBeNonNullValue.getLocalInfo());
-                NonNull nonNull = new NonNull(nonNullValue, knownToBeNonNullValue);
+                NonNull nonNull = new NonNull(nonNullValue, knownToBeNonNullValue, theIf);
                 InstructionListIterator targetIterator = target.listIterator();
                 nonNull.setPosition(targetIterator.next().getPosition());
                 targetIterator.previous();
