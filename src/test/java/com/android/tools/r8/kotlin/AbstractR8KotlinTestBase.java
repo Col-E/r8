@@ -20,14 +20,16 @@ import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
+import com.android.tools.r8.utils.DexInspector.FieldSubject;
 import com.android.tools.r8.utils.DexInspector.MethodSubject;
 import com.android.tools.r8.utils.FileUtils;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import org.junit.Assume;
 import org.junit.runner.RunWith;
@@ -40,7 +42,7 @@ public abstract class AbstractR8KotlinTestBase extends TestBase {
 
   @Parameters(name = "{0}_{1}")
   public static Collection<Object[]> data() {
-    ImmutableList.Builder<Object[]> builder = new Builder<>();
+    ImmutableList.Builder<Object[]> builder = new ImmutableList.Builder<>();
     for (KotlinTargetVersion targetVersion : KotlinTargetVersion.values()) {
       builder.add(new Object[]{Boolean.TRUE, targetVersion});
       builder.add(new Object[]{Boolean.FALSE, targetVersion});
@@ -50,6 +52,12 @@ public abstract class AbstractR8KotlinTestBase extends TestBase {
 
   @Parameter(0) public boolean allowAccessModification;
   @Parameter(1) public KotlinTargetVersion targetVersion;
+
+  private final List<Path> extraClasspath = new ArrayList<>();
+
+  protected void addExtraClasspath(Path path) {
+    extraClasspath.add(path);
+  }
 
   protected static void checkMethodIsInvokedAtLeastOnce(DexCode dexCode,
       MethodSignature... methodSignatures) {
@@ -101,14 +109,29 @@ public abstract class AbstractR8KotlinTestBase extends TestBase {
     return classSubject;
   }
 
+  protected static FieldSubject checkFieldIsPresent(ClassSubject classSubject, String fieldType,
+      String fieldName) {
+    FieldSubject fieldSubject = classSubject.field(fieldType, fieldName);
+    assertNotNull(fieldSubject);
+    assertTrue(fieldSubject.isPresent());
+    return fieldSubject;
+  }
+
+  protected static void checkFieldIsAbsent(ClassSubject classSubject, String fieldType,
+      String fieldName) {
+    FieldSubject fieldSubject = classSubject.field(fieldType, fieldName);
+    assertNotNull(fieldSubject);
+    assertFalse(fieldSubject.isPresent());
+  }
+
   protected static MethodSubject checkMethodIsPresent(ClassSubject classSubject,
       MethodSignature methodSignature) {
     return checkMethod(classSubject, methodSignature, true);
   }
 
-  protected static MethodSubject checkMethodIsAbsent(ClassSubject classSubject,
+  protected static void checkMethodIsAbsent(ClassSubject classSubject,
       MethodSignature methodSignature) {
-    return checkMethod(classSubject, methodSignature, false);
+    checkMethod(classSubject, methodSignature, false);
   }
 
   protected static MethodSubject checkMethod(ClassSubject classSubject,
@@ -162,9 +185,14 @@ public abstract class AbstractR8KotlinTestBase extends TestBase {
       proguardRules += extraProguardRules;
     }
 
+    // Build classpath for compilation (and java execution)
+    List<Path> classpath = new ArrayList<>(extraClasspath.size() + 1);
+    classpath.add(jarFile);
+    classpath.addAll(extraClasspath);
+
     // Build with R8
     AndroidApp.Builder builder = AndroidApp.builder();
-    builder.addProgramFiles(jarFile);
+    builder.addProgramFiles(classpath);
     AndroidApp app = compileWithR8(builder.build(), proguardRules.toString());
 
     // Materialize file for execution.
@@ -176,7 +204,7 @@ public abstract class AbstractR8KotlinTestBase extends TestBase {
         ToolHelper.runArtNoVerificationErrors(generatedDexFile.toString(), mainClass);
 
     // Compare with Java.
-    ToolHelper.ProcessResult javaResult = ToolHelper.runJava(jarFile, mainClass);
+    ToolHelper.ProcessResult javaResult = ToolHelper.runJava(classpath, mainClass);
     if (javaResult.exitCode != 0) {
       System.out.println(javaResult.stdout);
       System.err.println(javaResult.stderr);
