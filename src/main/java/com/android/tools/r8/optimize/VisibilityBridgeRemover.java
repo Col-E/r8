@@ -30,7 +30,7 @@ public class VisibilityBridgeRemover {
   private void identifyBridgeMethod(DexEncodedMethod method) {
     if (method.accessFlags.isBridge()) {
       InvokeSingleTargetExtractor targetExtractor = new InvokeSingleTargetExtractor();
-      method.getCode().registerReachableDefinitions(targetExtractor);
+      method.getCode().registerInstructionsReferences(targetExtractor);
       DexMethod target = targetExtractor.getTarget();
       InvokeKind kind = targetExtractor.getKind();
       if (target != null &&

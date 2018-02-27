@@ -1,0 +1,2 @@
+Lmultidex006/ClassForMainDex;
+Lmultidex006/NotThrownException;

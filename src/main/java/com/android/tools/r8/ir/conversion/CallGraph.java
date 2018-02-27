@@ -144,7 +144,7 @@ public class CallGraph extends CallSiteInformation {
       for (DexEncodedMethod method : clazz.allMethodsSorted()) {
         Node node = graph.ensureMethodNode(method);
         InvokeExtractor extractor = new InvokeExtractor(appInfo, graphLense, node, graph);
-        method.registerReachableDefinitions(extractor);
+        method.registerInstructionsReferences(extractor);
       }
     }
     assert allMethodsExists(application, graph);

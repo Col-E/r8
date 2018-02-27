@@ -38,7 +38,7 @@ public class BridgeMethodAnalysis {
     // be removed.
     if (method.accessFlags.isBridge() && !method.accessFlags.isAbstract()) {
       InvokeSingleTargetExtractor targetExtractor = new InvokeSingleTargetExtractor();
-      method.getCode().registerReachableDefinitions(targetExtractor);
+      method.getCode().registerInstructionsReferences(targetExtractor);
       DexMethod target = targetExtractor.getTarget();
       InvokeKind kind = targetExtractor.getKind();
       if (target != null && target.getArity() == method.method.getArity()) {

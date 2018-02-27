@@ -124,6 +124,17 @@ public class MainDexTracingTest {
     doTest5(6);
   }
 
+  @Test
+  public void traceMainDexList006() throws Throwable {
+    doTest(
+        "traceMainDexList006",
+        "multidex006",
+        EXAMPLE_BUILD_DIR,
+        Paths.get(EXAMPLE_SRC_DIR, "multidex006", "main-dex-rules-1.txt"),
+        Paths.get(EXAMPLE_SRC_DIR, "multidex006", "ref-list-1.txt"),
+        AndroidApiLevel.I);
+  }
+
   private void doTest5(int variant) throws Throwable {
     doTest(
         "traceMainDexList003",
@@ -229,9 +240,15 @@ public class MainDexTracingTest {
       int nonLambdaOffset = 0;
       for (int i = 0; i < refList.length; i++) {
         String reference = refList[i].trim();
+        if (r8MainDexList.size() <= i) {
+          Assert.fail("R8 main dex list is missing '" + reference + "'");
+        }
         checkSameMainDexEntry(reference, r8MainDexList.get(i));
         // The main dex list generator does not do any lambda desugaring.
         if (!isLambda(reference)) {
+          if (mainDexGeneratorMainDexList.size() <= i - nonLambdaOffset) {
+            Assert.fail("Main dex list generator is missing '" + reference + "'");
+          }
           checkSameMainDexEntry(reference, mainDexGeneratorMainDexList.get(i - nonLambdaOffset));
           checkSameMainDexEntry(
               reference, mainDexGeneratorMainDexListFromConsumer.get(i - nonLambdaOffset));

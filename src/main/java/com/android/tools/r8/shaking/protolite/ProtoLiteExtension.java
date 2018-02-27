@@ -116,13 +116,13 @@ public class ProtoLiteExtension extends ProtoLiteBase {
       // serialized stream for this proto. As we mask all reads in the writing code and normally
       // remove fields that are only written but never read, we have to mark fields used in setters
       // as read and written.
-      method.registerReachableDefinitions(
+      method.registerInstructionsReferences(
           new FieldWriteImpliesReadUseRegistry(registry, method.method.holder));
     } else {
       // Filter all getters and field accesses in these methods. We do not want fields to become
       // live just due to being referenced in a special method. The pruning phase will remove
       // all references to dead fields in the code later.
-      method.registerReachableDefinitions(new FilteringUseRegistry(registry, method.method.holder,
+      method.registerInstructionsReferences(new FilteringUseRegistry(registry, method.method.holder,
           protoLiteFields));
     }
   }

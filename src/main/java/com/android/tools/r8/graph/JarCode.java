@@ -13,11 +13,13 @@ import com.android.tools.r8.ir.conversion.JarSourceCode;
 import com.android.tools.r8.jar.JarRegisterEffectsVisitor;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
@@ -148,10 +150,17 @@ public class JarCode extends Code {
   }
 
   @Override
-  public void registerReachableDefinitions(UseRegistry registry) {
+  public void registerInstructionsReferences(UseRegistry registry) {
     triggerDelayedParsingIfNeccessary();
     node.instructions.accept(
         new JarRegisterEffectsVisitor(method.getHolder(), registry, application));
+  }
+
+  @Override
+  public void registerCaughtTypes(Consumer<DexType> dexTypeConsumer) {
+    node.tryCatchBlocks.forEach(tryCatchBlockNode ->
+        dexTypeConsumer.accept(application.getTypeFromDescriptor(
+            DescriptorUtils.getDescriptorFromClassBinaryName(tryCatchBlockNode.type))));
   }
 
   @Override
