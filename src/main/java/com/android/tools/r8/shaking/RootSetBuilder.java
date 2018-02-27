@@ -167,7 +167,10 @@ public class RootSetBuilder {
       }
     }
 
-    if (rule.getClassNames().matches(clazz.type)) {
+    if (rule instanceof ProguardIfRule) {
+      // TODO(b/73708139): add support -if <class_spec>
+      // Check if -if part matches or subsequent -keep part matches.
+    } else if (rule.getClassNames().matches(clazz.type)) {
       Collection<ProguardMemberRule> memberKeepRules = rule.getMemberRules();
       if (rule instanceof ProguardKeepRule) {
         switch (((ProguardKeepRule) rule).getType()) {

@@ -1152,6 +1152,24 @@ public class ProguardConfigurationParserTest extends TestBase {
     for (int i = 0; i < 3; i++) {
       assertTrue(handler.warnings.get(i).getDiagnosticMessage().contains("Ignoring option: -if"));
     }
+    ProguardConfiguration config = parser.getConfig();
+    // Three -if rules and one independent -keepnames
+    assertEquals(4, config.getRules().size());
+    long ifCount =
+        config.getRules().stream().filter(rule -> rule instanceof ProguardIfRule).count();
+    assertEquals(3, ifCount);
+    ProguardIfRule if0 = (ProguardIfRule) config.getRules().get(0);
+    assertEquals("**$$ModuleAdapter", if0.getClassNames().toString());
+    assertEquals(ProguardKeepRuleType.KEEP, if0.subsequentRule.getType());
+    assertEquals("A", if0.subsequentRule.getClassNames().toString());
+    ProguardIfRule if1 = (ProguardIfRule) config.getRules().get(1);
+    assertEquals("**$$InjectAdapter", if1.getClassNames().toString());
+    assertEquals(ProguardKeepRuleType.KEEP, if1.subsequentRule.getType());
+    assertEquals("B", if1.subsequentRule.getClassNames().toString());
+    ProguardIfRule if2 = (ProguardIfRule) config.getRules().get(2);
+    assertEquals("**$$StaticInjection", if2.getClassNames().toString());
+    assertEquals(ProguardKeepRuleType.KEEP, if2.subsequentRule.getType());
+    assertEquals("C", if2.subsequentRule.getClassNames().toString());
   }
 
   @Test
