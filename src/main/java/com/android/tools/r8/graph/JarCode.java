@@ -60,6 +60,11 @@ public class JarCode extends Code {
     context.codeList.add(this);
   }
 
+  public MethodNode getNode() {
+    triggerDelayedParsingIfNeccessary();
+    return node;
+  }
+
   @Override
   public boolean isJarCode() {
     return true;
