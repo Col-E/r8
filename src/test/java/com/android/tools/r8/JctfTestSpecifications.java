@@ -4541,10 +4541,6 @@ public class JctfTestSpecifications {
           // 1) t02
           // java.lang.AssertionError: Failed to load serialization resource file: serialization/com/google/jctf/test/lib/java/util/concurrent/PriorityBlockingQueue/serialization/PriorityBlockingQueue_serialization_A01.golden.0.ser
 
-          .put("lang.ThreadGroup.destroy.ThreadGroup_destroy_A01", match(R8_NOT_AFTER_D8_COMPILER))
-          // 1) t05
-          // java.lang.AssertionError: Destroyed thread group was not finalized
-
           .put("lang.ThreadGroup.destroy.ThreadGroup_destroy_A01",
               match(D8_COMPILER, runtimesUpTo(Version.V6_0_1)))
           // 1) t02
