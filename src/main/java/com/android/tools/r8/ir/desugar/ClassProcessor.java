@@ -142,6 +142,7 @@ final class ClassProcessor {
       accumulatedVirtualMethods.addAll(Arrays.asList(clazz.virtualMethods()));
 
       List<DexEncodedMethod> defaultMethodsInDirectInterface = helper.createFullList();
+
       List<DexEncodedMethod> toBeImplementedFromDirectInterface =
           new ArrayList<>(defaultMethodsInDirectInterface.size());
       hideCandidates(accumulatedVirtualMethods,
@@ -209,16 +210,7 @@ final class ClassProcessor {
 
         // Everything still in candidate list is not hidden.
         toBeImplemented.addAll(candidates);
-        // NOTE: we also intentionally remove all candidates coming from android.jar
-        // since it is only possible in case v24+ version of android.jar is provided.
-        // WARNING: This may result in incorrect code on older platforms!
-        toBeImplemented.removeIf(
-            method -> {
-              DexClass holder = rewriter.findDefinitionFor(method.method.holder);
-              // Holder of a found method to implement is a defined interface.
-              assert holder != null;
-              return holder.isLibraryClass();
-            });
+
         return toBeImplemented;
       }
       current = superClass;
@@ -281,6 +273,14 @@ final class ClassProcessor {
       throw new CompilationError(
           "Type " + iface.toSourceString() + " is referenced as an interface of `"
           + implementing.toString() + "`.");
+    }
+
+    if (definedInterface.isLibraryClass()) {
+      // NOTE: We intentionally ignore all candidates coming from android.jar
+      // since it is only possible in case v24+ version of android.jar is provided.
+      // WARNING: This may result in incorrect code if something else than Android bootclasspath
+      // classes are given as libraries!
+      return helper.wrapInCollection();
     }
 
     // Merge information from all superinterfaces.

@@ -415,6 +415,34 @@ public class D8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<D8Command
   }
 
   @Test
+  public void testMissingSuperDesugaredWithLibInterfaceAndroidK() throws Throwable {
+    AndroidApiLevel minApi = AndroidApiLevel.K;
+
+    // Reference case: there's nothing to do, we should not complain.
+    // Class MissingSuperImplementIterator extends C implements Iterator should not require
+    // desugaring because Iterator has no default method at this API level.
+    // The test is compiled with incomplete classpath: lib3 is missing so
+    // MissingSuperImplementIterator is missing its super class.
+    test("desugaringwithmissingclasstest6", "desugaringwithmissingclasstest6", "N/A")
+        .withInterfaceMethodDesugaring(OffOrAuto.Auto)
+        .withAndroidJar(AndroidApiLevel.K)
+        .withMinApiLevel(minApi)
+        .build();
+
+    // More litigious case, D8 needs to detect that the default method is part of bootclasspath.
+    // Class MissingSuperImplementIterator extends C implements Iterator should not require
+    // desugaring of Iterator default method because it is part of the Android API and thus is
+    // declaring the default method only when default methods are supported by the runtime.
+    // test is compiled with incomplete classpath: lib3 is missing so
+    // MissingSuperImplementIterator is missing its super class.
+    test("desugaringwithmissingclasstest6", "desugaringwithmissingclasstest6", "N/A")
+        .withInterfaceMethodDesugaring(OffOrAuto.Auto)
+        .withAndroidJar(AndroidApiLevel.N)
+        .withMinApiLevel(minApi)
+        .build();
+  }
+
+  @Test
   public void testMissingSuperDesugaredWithProgramCrossImplementationAndroidK() throws Throwable {
     AndroidApiLevel minApi = AndroidApiLevel.K;
 
