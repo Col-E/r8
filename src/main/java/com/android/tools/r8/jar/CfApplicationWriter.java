@@ -145,7 +145,7 @@ public class CfApplicationWriter {
     String signature = null; // TODO(zerny): Support generic signatures.
     String[] exceptions = null;
     MethodVisitor visitor = writer.visitMethod(access, name, desc, signature, exceptions);
-    if (!method.accessFlags.isAbstract()) {
+    if (!method.accessFlags.isAbstract() && !method.accessFlags.isNative()) {
       writeCode(method.getCode(), visitor);
     }
   }
