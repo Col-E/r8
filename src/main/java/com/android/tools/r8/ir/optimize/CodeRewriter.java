@@ -1434,7 +1434,7 @@ public class CodeRewriter {
           // and the dominator or the original block has catch handlers.
           continue;
         }
-        if (!dominator.isSimpleAlwaysThrowingPath(false)) {
+        if (!dominator.isSimpleAlwaysThrowingPath()) {
           // Only move string constants into blocks being part of simple
           // always throwing path.
           continue;
@@ -1881,7 +1881,7 @@ public class CodeRewriter {
       }
       if (block.exit().isIf()) {
         // Flip then/else branches if needed.
-        if (flipIfBranchesIfNeeded(block, code.hasDebugPositions)) {
+        if (flipIfBranchesIfNeeded(block)) {
           ifBranchFlipped = true;
         }
         // First rewrite zero comparison.
@@ -2207,18 +2207,17 @@ public class CodeRewriter {
     }
   }
 
-  private boolean flipIfBranchesIfNeeded(BasicBlock block, boolean failOnMissingPosition) {
+  private boolean flipIfBranchesIfNeeded(BasicBlock block) {
     If theIf = block.exit().asIf();
     BasicBlock trueTarget = theIf.getTrueTarget();
     BasicBlock fallthrough = theIf.fallthroughBlock();
     assert trueTarget != fallthrough;
 
-    if (!fallthrough.isSimpleAlwaysThrowingPath(failOnMissingPosition) ||
-        trueTarget.isSimpleAlwaysThrowingPath(failOnMissingPosition)) {
+    if (!fallthrough.isSimpleAlwaysThrowingPath() || trueTarget.isSimpleAlwaysThrowingPath()) {
       return false;
     }
 
-    // In case fall-through block always trows there is a good chance that it
+    // In case fall-through block always throws there is a good chance that it
     // is created for error checks and 'trueTarget' represents most more common
     // non-error case. Flipping the if in this case may result in faster code
     // on older Android versions.

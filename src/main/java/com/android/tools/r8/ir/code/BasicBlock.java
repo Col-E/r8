@@ -1061,7 +1061,7 @@ public class BasicBlock {
     return hare;
   }
 
-  public boolean isSimpleAlwaysThrowingPath(boolean failOnMissingPosition) {
+  public boolean isSimpleAlwaysThrowingPath() {
     // See Floyd's cycle-finding algorithm for reference.
     BasicBlock hare = this;
     BasicBlock tortuous = this;
@@ -1069,10 +1069,6 @@ public class BasicBlock {
     while (true) {
       List<BasicBlock> normalSuccessors = hare.getNormalSuccessors();
       if (normalSuccessors.size() > 1) {
-        return false;
-      }
-
-      if (failOnMissingPosition && hasThrowingInstructionWithoutPosition(hare)) {
         return false;
       }
 
@@ -1087,15 +1083,6 @@ public class BasicBlock {
         return false;
       }
     }
-  }
-
-  private boolean hasThrowingInstructionWithoutPosition(BasicBlock hare) {
-    for (Instruction instruction : hare.instructions) {
-      if (instruction.instructionTypeCanThrow() && instruction.getPosition().isNone()) {
-        return true;
-      }
-    }
-    return false;
   }
 
   public Position getPosition() {
