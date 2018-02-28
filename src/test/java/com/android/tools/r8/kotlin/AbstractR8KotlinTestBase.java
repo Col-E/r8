@@ -16,8 +16,11 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexCode;
+import com.android.tools.r8.jasmin.JasminBuilder;
+import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.DexInspector.FieldSubject;
@@ -39,6 +42,10 @@ import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public abstract class AbstractR8KotlinTestBase extends TestBase {
+
+  // This is the name of the Jasmin-generated class which contains the "main" method which will
+  // invoke the tested method.
+  private static final String JASMIN_MAIN_CLASS = "TestMain";
 
   @Parameters(name = "{0}_{1}")
   public static Collection<Object[]> data() {
@@ -224,5 +231,27 @@ public abstract class AbstractR8KotlinTestBase extends TestBase {
   interface AndroidAppInspector {
 
     void inspectApp(AndroidApp androidApp) throws Exception;
+  }
+
+  /**
+   * Generates a "main" class which invokes the given static method (which has no argument and
+   * return void type). This new class is then added to the test classpath.
+   *
+   * @param methodClass the class of the static method to invoke
+   * @param methodName the name of the static method to invoke
+   * @return the name of the generated class
+   */
+  protected String addMainToClasspath(String methodClass, String methodName) throws Exception {
+    JasminBuilder builder = new JasminBuilder();
+    ClassBuilder mainClassBuilder =
+        builder.addClass(DescriptorUtils.getBinaryNameFromJavaType(JASMIN_MAIN_CLASS));
+    mainClassBuilder.addMainMethod(
+        "invokestatic " + methodClass + "/" + methodName + "()V",
+        "return"
+    );
+
+    Path output = writeToZip(builder);
+    addExtraClasspath(output);
+    return JASMIN_MAIN_CLASS;
   }
 }

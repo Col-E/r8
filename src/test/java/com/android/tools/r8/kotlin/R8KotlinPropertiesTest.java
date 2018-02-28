@@ -6,15 +6,12 @@ package com.android.tools.r8.kotlin;
 
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.jasmin.JasminBuilder;
-import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.kotlin.KotlinClass.Visibility;
+import com.android.tools.r8.naming.MemberNaming;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
-import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.DexInspector.FieldSubject;
-import java.nio.file.Path;
 import org.junit.Test;
 
 public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
@@ -22,10 +19,6 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
   private static final String PACKAGE_NAME = "properties";
 
   private static final String JAVA_LANG_STRING = "java.lang.String";
-
-  // This is the name of the Jasmin-generated class which contains the "main" method which will
-  // invoke the tested method.
-  private static final String JASMIN_MAIN_CLASS = "properties.TestMain";
 
   private static final KotlinClass MUTABLE_PROPERTY_CLASS =
       new KotlinClass("properties.MutableProperty")
@@ -47,10 +40,28 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
           .addProperty("internalLateInitProp", JAVA_LANG_STRING, Visibility.INTERNAL)
           .addProperty("publicLateInitProp", JAVA_LANG_STRING, Visibility.PUBLIC);
 
+  private static final KotlinCompanionClass COMPANION_PROPERTY_CLASS =
+      new KotlinCompanionClass("properties.CompanionProperties")
+          .addProperty("privateProp", JAVA_LANG_STRING, Visibility.PRIVATE)
+          .addProperty("protectedProp", JAVA_LANG_STRING, Visibility.PROTECTED)
+          .addProperty("internalProp", JAVA_LANG_STRING, Visibility.INTERNAL)
+          .addProperty("publicProp", JAVA_LANG_STRING, Visibility.PUBLIC)
+          .addProperty("primitiveProp", "int", Visibility.PUBLIC)
+          .addProperty("privateLateInitProp", JAVA_LANG_STRING, Visibility.PRIVATE)
+          .addProperty("internalLateInitProp", JAVA_LANG_STRING, Visibility.INTERNAL)
+          .addProperty("publicLateInitProp", JAVA_LANG_STRING, Visibility.PUBLIC);
+
+  private static final KotlinCompanionClass COMPANION_LATE_INIT_PROPERTY_CLASS =
+      new KotlinCompanionClass("properties.CompanionLateInitProperties")
+          .addProperty("privateLateInitProp", JAVA_LANG_STRING, Visibility.PRIVATE)
+          .addProperty("internalLateInitProp", JAVA_LANG_STRING, Visibility.INTERNAL)
+          .addProperty("publicLateInitProp", JAVA_LANG_STRING, Visibility.PUBLIC);
+
   @Test
   public void testMutableProperty_getterAndSetterAreRemoveIfNotUsed() throws Exception {
-    addMainToClasspath("properties/MutablePropertyKt", "mutableProperty_noUseOfProperties");
-    runTest(PACKAGE_NAME, JASMIN_MAIN_CLASS, (app) -> {
+    String mainClass = addMainToClasspath("properties/MutablePropertyKt",
+        "mutableProperty_noUseOfProperties");
+    runTest(PACKAGE_NAME, mainClass, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject classSubject = checkClassExists(dexInspector,
           MUTABLE_PROPERTY_CLASS.getClassName());
@@ -65,8 +76,9 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void testMutableProperty_privateIsAlwaysInlined() throws Exception {
-    addMainToClasspath("properties/MutablePropertyKt", "mutableProperty_usePrivateProp");
-    runTest(PACKAGE_NAME, JASMIN_MAIN_CLASS, (app) -> {
+    String mainClass = addMainToClasspath("properties/MutablePropertyKt",
+        "mutableProperty_usePrivateProp");
+    runTest(PACKAGE_NAME, mainClass, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject classSubject = checkClassExists(dexInspector,
           MUTABLE_PROPERTY_CLASS.getClassName());
@@ -86,8 +98,9 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void testMutableProperty_protectedIsAlwaysInlined() throws Exception {
-    addMainToClasspath("properties/MutablePropertyKt", "mutableProperty_useProtectedProp");
-    runTest(PACKAGE_NAME, JASMIN_MAIN_CLASS, (app) -> {
+    String mainClass = addMainToClasspath("properties/MutablePropertyKt",
+        "mutableProperty_useProtectedProp");
+    runTest(PACKAGE_NAME, mainClass, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject classSubject = checkClassExists(dexInspector,
           MUTABLE_PROPERTY_CLASS.getClassName());
@@ -108,8 +121,9 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void testMutableProperty_internalIsAlwaysInlined() throws Exception {
-    addMainToClasspath("properties/MutablePropertyKt", "mutableProperty_useInternalProp");
-    runTest(PACKAGE_NAME, JASMIN_MAIN_CLASS, (app) -> {
+    String mainClass = addMainToClasspath("properties/MutablePropertyKt",
+        "mutableProperty_useInternalProp");
+    runTest(PACKAGE_NAME, mainClass, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject classSubject = checkClassExists(dexInspector,
           MUTABLE_PROPERTY_CLASS.getClassName());
@@ -130,8 +144,9 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void testMutableProperty_publicIsAlwaysInlined() throws Exception {
-    addMainToClasspath("properties/MutablePropertyKt", "mutableProperty_usePublicProp");
-    runTest(PACKAGE_NAME, JASMIN_MAIN_CLASS, (app) -> {
+    String mainClass = addMainToClasspath("properties/MutablePropertyKt",
+        "mutableProperty_usePublicProp");
+    runTest(PACKAGE_NAME, mainClass, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject classSubject = checkClassExists(dexInspector,
           MUTABLE_PROPERTY_CLASS.getClassName());
@@ -152,8 +167,9 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void testMutableProperty_primitivePropertyIsAlwaysInlined() throws Exception {
-    addMainToClasspath("properties/MutablePropertyKt", "mutableProperty_usePrimitiveProp");
-    runTest(PACKAGE_NAME, JASMIN_MAIN_CLASS, (app) -> {
+    String mainClass = addMainToClasspath("properties/MutablePropertyKt",
+        "mutableProperty_usePrimitiveProp");
+    runTest(PACKAGE_NAME, mainClass, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject classSubject = checkClassExists(dexInspector,
           MUTABLE_PROPERTY_CLASS.getClassName());
@@ -176,8 +192,9 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void testLateInitProperty_getterAndSetterAreRemoveIfNotUsed() throws Exception {
-    addMainToClasspath("properties/LateInitPropertyKt", "lateInitProperty_noUseOfProperties");
-    runTest(PACKAGE_NAME, JASMIN_MAIN_CLASS, (app) -> {
+    String mainClass = addMainToClasspath("properties/LateInitPropertyKt",
+        "lateInitProperty_noUseOfProperties");
+    runTest(PACKAGE_NAME, mainClass, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject classSubject = checkClassExists(dexInspector,
           LATE_INIT_PROPERTY_CLASS.getClassName());
@@ -192,8 +209,9 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void testLateInitProperty_privateIsAlwaysInlined() throws Exception {
-    addMainToClasspath("properties/LateInitPropertyKt", "lateInitProperty_usePrivateLateInitProp");
-    runTest(PACKAGE_NAME, JASMIN_MAIN_CLASS, (app) -> {
+    String mainClass = addMainToClasspath(
+        "properties/LateInitPropertyKt", "lateInitProperty_usePrivateLateInitProp");
+    runTest(PACKAGE_NAME, mainClass, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject classSubject = checkClassExists(dexInspector,
           LATE_INIT_PROPERTY_CLASS.getClassName());
@@ -214,9 +232,9 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void testLateInitProperty_protectedIsAlwaysInlined() throws Exception {
-    addMainToClasspath("properties/LateInitPropertyKt",
+    String mainClass = addMainToClasspath("properties/LateInitPropertyKt",
         "lateInitProperty_useProtectedLateInitProp");
-    runTest(PACKAGE_NAME, JASMIN_MAIN_CLASS, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject classSubject = checkClassExists(dexInspector,
           LATE_INIT_PROPERTY_CLASS.getClassName());
@@ -235,8 +253,9 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void testLateInitProperty_internalIsAlwaysInlined() throws Exception {
-    addMainToClasspath("properties/LateInitPropertyKt", "lateInitProperty_useInternalLateInitProp");
-    runTest(PACKAGE_NAME, JASMIN_MAIN_CLASS, (app) -> {
+    String mainClass = addMainToClasspath(
+        "properties/LateInitPropertyKt", "lateInitProperty_useInternalLateInitProp");
+    runTest(PACKAGE_NAME, mainClass, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject classSubject = checkClassExists(dexInspector,
           LATE_INIT_PROPERTY_CLASS.getClassName());
@@ -253,8 +272,9 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void testLateInitProperty_publicIsAlwaysInlined() throws Exception {
-    addMainToClasspath("properties/LateInitPropertyKt", "lateInitProperty_usePublicLateInitProp");
-    runTest(PACKAGE_NAME, JASMIN_MAIN_CLASS, (app) -> {
+    String mainClass = addMainToClasspath(
+        "properties/LateInitPropertyKt", "lateInitProperty_usePublicLateInitProp");
+    runTest(PACKAGE_NAME, mainClass, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject classSubject = checkClassExists(dexInspector,
           LATE_INIT_PROPERTY_CLASS.getClassName());
@@ -271,8 +291,9 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void testUserDefinedProperty_getterAndSetterAreRemoveIfNotUsed() throws Exception {
-    addMainToClasspath("properties/UserDefinedPropertyKt", "userDefinedProperty_noUseOfProperties");
-    runTest(PACKAGE_NAME, JASMIN_MAIN_CLASS, (app) -> {
+    String mainClass = addMainToClasspath(
+        "properties/UserDefinedPropertyKt", "userDefinedProperty_noUseOfProperties");
+    runTest(PACKAGE_NAME, mainClass, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject classSubject = checkClassExists(dexInspector,
           USER_DEFINED_PROPERTY_CLASS.getClassName());
@@ -287,8 +308,9 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void testUserDefinedProperty_publicIsAlwaysInlined() throws Exception {
-    addMainToClasspath("properties/UserDefinedPropertyKt", "userDefinedProperty_useProperties");
-    runTest(PACKAGE_NAME, JASMIN_MAIN_CLASS, (app) -> {
+    String mainClass = addMainToClasspath(
+        "properties/UserDefinedPropertyKt", "userDefinedProperty_useProperties");
+    runTest(PACKAGE_NAME, mainClass, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject classSubject = checkClassExists(dexInspector,
           USER_DEFINED_PROPERTY_CLASS.getClassName());
@@ -310,20 +332,209 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     });
   }
 
-  /**
-   * Generates a "main" class which invokes the given static method on the given klass. This new
-   * class is then added to the test classpath.
-   */
-  private void addMainToClasspath(String klass, String method) throws Exception {
-    JasminBuilder builder = new JasminBuilder();
-    ClassBuilder mainClassBuilder =
-        builder.addClass(DescriptorUtils.getBinaryNameFromJavaType(JASMIN_MAIN_CLASS));
-    mainClassBuilder.addMainMethod(
-        "invokestatic " + klass + "/" + method + "()V",
-        "return"
-    );
+  @Test
+  public void testCompanionProperty_primitivePropertyCannotBeInlined() throws Exception {
+    String mainClass = addMainToClasspath(
+        "properties.CompanionPropertiesKt", "companionProperties_usePrimitiveProp");
+    runTest(PACKAGE_NAME, mainClass, (app) -> {
+      DexInspector dexInspector = new DexInspector(app);
+      ClassSubject outerClass = checkClassExists(dexInspector,
+          "properties.CompanionProperties");
+      ClassSubject companionClass = checkClassExists(dexInspector,
+          COMPANION_PROPERTY_CLASS.getClassName());
+      String propertyName = "primitiveProp";
+      FieldSubject fieldSubject = checkFieldIsPresent(outerClass, "int", propertyName);
+      assertTrue(fieldSubject.getField().accessFlags.isStatic());
 
-    Path output = writeToZip(builder);
-    addExtraClasspath(output);
+      MemberNaming.MethodSignature getter = COMPANION_PROPERTY_CLASS
+          .getGetterForProperty(propertyName);
+      MemberNaming.MethodSignature setter = COMPANION_PROPERTY_CLASS
+          .getSetterForProperty(propertyName);
+
+      // Getter and setter cannot be inlined because we don't know if null check semantic is
+      // preserved.
+      checkMethodIsPresent(companionClass, getter);
+      checkMethodIsPresent(companionClass, setter);
+      if (allowAccessModification) {
+        assertTrue(fieldSubject.getField().accessFlags.isPublic());
+      } else {
+        assertTrue(fieldSubject.getField().accessFlags.isPrivate());
+      }
+    });
+  }
+
+  @Test
+  public void testCompanionProperty_privatePropertyIsAlwaysInlined() throws Exception {
+    String mainClass = addMainToClasspath(
+        "properties.CompanionPropertiesKt", "companionProperties_usePrivateProp");
+    runTest(PACKAGE_NAME, mainClass, (app) -> {
+      DexInspector dexInspector = new DexInspector(app);
+      ClassSubject outerClass = checkClassExists(dexInspector,
+          "properties.CompanionProperties");
+      ClassSubject companionClass = checkClassExists(dexInspector,
+          COMPANION_PROPERTY_CLASS.getClassName());
+      String propertyName = "privateProp";
+      FieldSubject fieldSubject = checkFieldIsPresent(outerClass, JAVA_LANG_STRING, propertyName);
+      assertTrue(fieldSubject.getField().accessFlags.isStatic());
+
+      MemberNaming.MethodSignature getter = COMPANION_PROPERTY_CLASS
+          .getGetterForProperty(propertyName);
+      MemberNaming.MethodSignature setter = COMPANION_PROPERTY_CLASS
+          .getSetterForProperty(propertyName);
+
+      // Because the getter/setter are private, they can only be called from another method in the
+      // class. If this is an instance method, they will be called on 'this' which is known to be
+      // non-null, thus the getter/setter can be inlined if their code is small enough.
+      // Because the backing field is private, they will call into an accessor (static) method. If
+      // access relaxation is enabled, this accessor can be removed.
+      checkMethodIsAbsent(companionClass, getter);
+      checkMethodIsAbsent(companionClass, setter);
+      if (allowAccessModification) {
+        assertTrue(fieldSubject.getField().accessFlags.isPublic());
+      } else {
+        assertTrue(fieldSubject.getField().accessFlags.isPrivate());
+      }
+    });
+  }
+
+  @Test
+  public void testCompanionProperty_internalPropertyCannotBeInlined() throws Exception {
+    String mainClass = addMainToClasspath(
+        "properties.CompanionPropertiesKt", "companionProperties_useInternalProp");
+    runTest(PACKAGE_NAME, mainClass, (app) -> {
+      DexInspector dexInspector = new DexInspector(app);
+      ClassSubject outerClass = checkClassExists(dexInspector,
+          "properties.CompanionProperties");
+      ClassSubject companionClass = checkClassExists(dexInspector,
+          COMPANION_PROPERTY_CLASS.getClassName());
+      String propertyName = "internalProp";
+      FieldSubject fieldSubject = checkFieldIsPresent(outerClass, JAVA_LANG_STRING, propertyName);
+      assertTrue(fieldSubject.getField().accessFlags.isStatic());
+
+      MemberNaming.MethodSignature getter = COMPANION_PROPERTY_CLASS
+          .getGetterForProperty(propertyName);
+      MemberNaming.MethodSignature setter = COMPANION_PROPERTY_CLASS
+          .getSetterForProperty(propertyName);
+
+      // Getter and setter cannot be inlined because we don't know if null check semantic is
+      // preserved.
+      checkMethodIsPresent(companionClass, getter);
+      checkMethodIsPresent(companionClass, setter);
+      if (allowAccessModification) {
+        assertTrue(fieldSubject.getField().accessFlags.isPublic());
+      } else {
+        assertTrue(fieldSubject.getField().accessFlags.isPrivate());
+      }
+    });
+  }
+
+  @Test
+  public void testCompanionProperty_publicPropertyCannotBeInlined() throws Exception {
+    String mainClass = addMainToClasspath(
+        "properties.CompanionPropertiesKt", "companionProperties_usePublicProp");
+    runTest(PACKAGE_NAME, mainClass, (app) -> {
+      DexInspector dexInspector = new DexInspector(app);
+      ClassSubject outerClass = checkClassExists(dexInspector,
+          "properties.CompanionProperties");
+      ClassSubject companionClass = checkClassExists(dexInspector,
+          COMPANION_PROPERTY_CLASS.getClassName());
+      String propertyName = "publicProp";
+      FieldSubject fieldSubject = checkFieldIsPresent(outerClass, JAVA_LANG_STRING, propertyName);
+      assertTrue(fieldSubject.getField().accessFlags.isStatic());
+
+      MemberNaming.MethodSignature getter = COMPANION_PROPERTY_CLASS
+          .getGetterForProperty(propertyName);
+      MemberNaming.MethodSignature setter = COMPANION_PROPERTY_CLASS
+          .getSetterForProperty(propertyName);
+
+      // Getter and setter cannot be inlined because we don't know if null check semantic is
+      // preserved.
+      checkMethodIsPresent(companionClass, getter);
+      checkMethodIsPresent(companionClass, setter);
+      if (allowAccessModification) {
+        assertTrue(fieldSubject.getField().accessFlags.isPublic());
+      } else {
+        assertTrue(fieldSubject.getField().accessFlags.isPrivate());
+      }
+    });
+  }
+
+  @Test
+  public void testCompanionProperty_privateLateInitPropertyIsAlwaysInlined() throws Exception {
+    final KotlinCompanionClass testedClass = COMPANION_LATE_INIT_PROPERTY_CLASS;
+    String mainClass = addMainToClasspath("properties.CompanionLateInitPropertiesKt",
+        "companionLateInitProperties_usePrivateLateInitProp");
+    runTest(PACKAGE_NAME, mainClass, (app) -> {
+      DexInspector dexInspector = new DexInspector(app);
+      ClassSubject outerClass = checkClassExists(dexInspector, testedClass.getOuterClassName());
+      ClassSubject companionClass = checkClassExists(dexInspector, testedClass.getClassName());
+      String propertyName = "privateLateInitProp";
+      FieldSubject fieldSubject = checkFieldIsPresent(outerClass, JAVA_LANG_STRING, propertyName);
+      assertTrue(fieldSubject.getField().accessFlags.isStatic());
+
+      MemberNaming.MethodSignature getter = testedClass.getGetterForProperty(propertyName);
+      MemberNaming.MethodSignature setter = testedClass.getSetterForProperty(propertyName);
+
+      // Because the getter/setter are private, they can only be called from another method in the
+      // class. If this is an instance method, they will be called on 'this' which is known to be
+      // non-null, thus the getter/setter can be inlined if their code is small enough.
+      // Because the backing field is private, they will call into an accessor (static) method. If
+      // access relaxation is enabled, this accessor can be removed.
+      checkMethodIsAbsent(companionClass, getter);
+      checkMethodIsAbsent(companionClass, setter);
+      if (allowAccessModification) {
+        assertTrue(fieldSubject.getField().accessFlags.isPublic());
+      } else {
+        assertTrue(fieldSubject.getField().accessFlags.isPrivate());
+      }
+    });
+  }
+
+  @Test
+  public void testCompanionProperty_internalLateInitPropertyCannotBeInlined() throws Exception {
+    final KotlinCompanionClass testedClass = COMPANION_LATE_INIT_PROPERTY_CLASS;
+    String mainClass = addMainToClasspath("properties.CompanionLateInitPropertiesKt",
+        "companionLateInitProperties_useInternalLateInitProp");
+    runTest(PACKAGE_NAME, mainClass, (app) -> {
+      DexInspector dexInspector = new DexInspector(app);
+      ClassSubject outerClass = checkClassExists(dexInspector, testedClass.getOuterClassName());
+      ClassSubject companionClass = checkClassExists(dexInspector, testedClass.getClassName());
+      String propertyName = "internalLateInitProp";
+      FieldSubject fieldSubject = checkFieldIsPresent(outerClass, JAVA_LANG_STRING, propertyName);
+      assertTrue(fieldSubject.getField().accessFlags.isStatic());
+
+      MemberNaming.MethodSignature getter = testedClass.getGetterForProperty(propertyName);
+      MemberNaming.MethodSignature setter = testedClass.getSetterForProperty(propertyName);
+
+      // Getter and setter cannot be inlined because we don't know if null check semantic is
+      // preserved.
+      checkMethodIsPresent(companionClass, getter);
+      checkMethodIsPresent(companionClass, setter);
+      assertTrue(fieldSubject.getField().accessFlags.isPublic());
+    });
+  }
+
+  @Test
+  public void testCompanionProperty_publicLateInitPropertyCannotBeInlined() throws Exception {
+    final KotlinCompanionClass testedClass = COMPANION_LATE_INIT_PROPERTY_CLASS;
+    String mainClass = addMainToClasspath("properties.CompanionLateInitPropertiesKt",
+        "companionLateInitProperties_usePublicLateInitProp");
+    runTest(PACKAGE_NAME, mainClass, (app) -> {
+      DexInspector dexInspector = new DexInspector(app);
+      ClassSubject outerClass = checkClassExists(dexInspector, testedClass.getOuterClassName());
+      ClassSubject companionClass = checkClassExists(dexInspector, testedClass.getClassName());
+      String propertyName = "publicLateInitProp";
+      FieldSubject fieldSubject = checkFieldIsPresent(outerClass, JAVA_LANG_STRING, propertyName);
+      assertTrue(fieldSubject.getField().accessFlags.isStatic());
+
+      MemberNaming.MethodSignature getter = testedClass.getGetterForProperty(propertyName);
+      MemberNaming.MethodSignature setter = testedClass.getSetterForProperty(propertyName);
+
+      // Getter and setter cannot be inlined because we don't know if null check semantic is
+      // preserved.
+      checkMethodIsPresent(companionClass, getter);
+      checkMethodIsPresent(companionClass, setter);
+      assertTrue(fieldSubject.getField().accessFlags.isPublic());
+    });
   }
 }
