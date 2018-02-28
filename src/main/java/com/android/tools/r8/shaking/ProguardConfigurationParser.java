@@ -352,21 +352,9 @@ public class ProguardConfigurationParser {
       } else if (acceptString("identifiernamestring")) {
         configurationBuilder.addRule(parseIdentifierNameStringRule());
       } else if (acceptString("if")) {
-        // TODO(b/73708139): add support -if <class_spec>
-        ProguardKeepRule.Builder keepRuleBuilder = ProguardKeepRule.builder();
-        parseClassSpec(keepRuleBuilder, true);
-        ProguardKeepRule ifRule = keepRuleBuilder.build();
-        assert ifRule.getClassType() == ProguardClassType.CLASS;
-
-        // Required a subsequent keep rule.
-        skipWhitespace();
-        if (acceptString("-keep")) {
-          ProguardKeepRule subsequentRule = parseKeepRule();
-          warnIgnoringOptions("if", optionStart);
-        } else {
-          throw reporter.fatalError(new StringDiagnostic(
-              "Option -if without a subsequent keep rule.", origin, getPosition(optionStart)));
-        }
+        configurationBuilder.addRule(parseIfRule(optionStart));
+        // TODO(b/73708139): remove warning once we add support -if <class_spec>
+        warnIgnoringOptions("if", optionStart);
       } else {
         String unknownOption = acceptString();
         reporter.error(new StringDiagnostic(
@@ -542,6 +530,22 @@ public class ProguardConfigurationParser {
           ProguardIdentifierNameStringRule.builder();
       parseClassSpec(keepRuleBuilder, false);
       return keepRuleBuilder.build();
+    }
+
+    private ProguardIfRule parseIfRule(TextPosition optionStart)
+        throws ProguardRuleParserException {
+      ProguardIfRule.Builder ifRuleBuilder = ProguardIfRule.builder();
+      parseClassSpec(ifRuleBuilder, true);
+
+      // Required a subsequent keep rule.
+      skipWhitespace();
+      if (acceptString("-keep")) {
+        ProguardKeepRule subsequentRule = parseKeepRule();
+        ifRuleBuilder.setSubsequentRule(subsequentRule);
+        return ifRuleBuilder.build();
+      }
+      throw reporter.fatalError(new StringDiagnostic(
+          "Option -if without a subsequent keep rule.", origin, getPosition(optionStart)));
     }
 
     private void parseClassSpec(
