@@ -146,9 +146,6 @@ public class InliningWithoutPositionsTestRunner {
     int idxAfter = idx + expectedFilePos.length();
     assertTrue(idxAfter == line.length() || !Character.isDigit(line.charAt(idxAfter)));
 
-    // There should be no further stack trace line after this.
-    assertTrue(lines.length == i + 1 || !lines[i + 1].trim().startsWith("at"));
-
     // Reading the Proguard map. An example map (only the relevant part, 'main'):
     //
     //     1:1:void bar():0:0 -> main
