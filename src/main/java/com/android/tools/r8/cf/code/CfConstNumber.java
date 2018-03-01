@@ -75,6 +75,9 @@ public class CfConstNumber extends CfInstruction {
           float value = getFloatValue();
           if (value == 0 || value == 1 || value == 2) {
             visitor.visitInsn(Opcodes.FCONST_0 + (int) value);
+            if (isNegativeZeroFloat(value)) {
+              visitor.visitInsn(Opcodes.FNEG);
+            }
           } else {
             visitor.visitLdcInsn(value);
           }
@@ -85,6 +88,9 @@ public class CfConstNumber extends CfInstruction {
           double value = getDoubleValue();
           if (value == 0 || value == 1) {
             visitor.visitInsn(Opcodes.DCONST_0 + (int) value);
+            if (isNegativeZeroDouble(value)) {
+              visitor.visitInsn(Opcodes.DNEG);
+            }
           } else {
             visitor.visitLdcInsn(value);
           }
@@ -93,6 +99,14 @@ public class CfConstNumber extends CfInstruction {
       default:
         throw new Unreachable("Non supported type in cf backend: " + type);
     }
+  }
+
+  private static boolean isNegativeZeroDouble(double value) {
+    return Double.doubleToLongBits(value) == Double.doubleToLongBits(-0.0);
+  }
+
+  private static boolean isNegativeZeroFloat(float value) {
+    return Float.floatToIntBits(value) == Float.floatToIntBits(-0.0f);
   }
 
   @Override
