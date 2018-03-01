@@ -196,10 +196,11 @@ public class CfBuilder {
     labels = new HashMap<>(code.blocks.size());
     emittedLabels = new HashSet<>(code.blocks.size());
     instructions = new ArrayList<>();
-    Iterator<BasicBlock> blockIterator = code.listIterator();
+    ListIterator<BasicBlock> blockIterator = code.listIterator();
     BasicBlock block = blockIterator.next();
     CfLabel tryCatchStart = null;
     CatchHandlers<BasicBlock> tryCatchHandlers = CatchHandlers.EMPTY_BASIC_BLOCK;
+    BasicBlock pendingFrame = null;
     do {
       CatchHandlers<BasicBlock> handlers = block.getCatchHandlers();
       if (!tryCatchHandlers.equals(handlers)) {
@@ -229,10 +230,26 @@ public class CfBuilder {
         pendingLocalChanges = true;
       }
       buildCfInstructions(block, fallthrough, stack);
-      if (nextBlock != null && (!fallthrough || nextBlock.getPredecessors().size() > 1)) {
-        assert stack.isEmpty();
-        emitLabel(getLabel(nextBlock));
-        addFrame(nextBlock, Collections.emptyList());
+      if (nextBlock != null) {
+        if (!fallthrough || nextBlock.getPredecessors().size() > 1) {
+          assert stack.isEmpty();
+          pendingFrame = nextBlock;
+          emitLabel(getLabel(nextBlock));
+        }
+        if (pendingFrame != null) {
+          BasicBlock nextNextBlock = null;
+          if (blockIterator.hasNext()) {
+            nextNextBlock = blockIterator.next();
+            blockIterator.previous();
+          }
+          boolean advancesPC = hasMaterializingInstructions(nextBlock, nextNextBlock);
+          // If nextBlock has no materializing instructions, then nextNextBlock must be non-null
+          // (or we would fall off the edge of the method).
+          assert advancesPC || nextNextBlock != null;
+          if (advancesPC) {
+            addFrame(pendingFrame, Collections.emptyList());
+          }
+        }
       }
       block = nextBlock;
     } while (block != null);
@@ -249,6 +266,25 @@ public class CfBuilder {
         instructions,
         tryCatchRanges,
         localVariablesTable);
+  }
+
+  private static boolean isNopInstruction(Instruction instruction, BasicBlock nextBlock) {
+    // From DexBuilder
+    return instruction.isArgument()
+        || instruction.isDebugLocalsChange()
+        || (instruction.isGoto() && instruction.asGoto().getTarget() == nextBlock);
+  }
+
+  private boolean hasMaterializingInstructions(BasicBlock block, BasicBlock nextBlock) {
+    if (block == null) {
+      return false;
+    }
+    for (Instruction instruction : block.getInstructions()) {
+      if (!isNopInstruction(instruction, nextBlock)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private void buildCfInstructions(BasicBlock block, boolean fallthrough, Stack stack) {
