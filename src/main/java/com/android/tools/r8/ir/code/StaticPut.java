@@ -132,4 +132,9 @@ public class StaticPut extends FieldInstruction {
   public void buildCf(CfBuilder builder) {
     builder.add(new CfFieldInstruction(Opcodes.PUTSTATIC, field));
   }
+
+  @Override
+  public boolean triggersInitializationOfClass(DexType klass) {
+    return field.clazz == klass;
+  }
 }

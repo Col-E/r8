@@ -111,4 +111,9 @@ public class InvokeStatic extends InvokeMethod {
   public void buildCf(CfBuilder builder) {
     builder.add(new CfInvoke(Opcodes.INVOKESTATIC, getInvokedMethod()));
   }
+
+  @Override
+  public boolean triggersInitializationOfClass(DexType klass) {
+    return getInvokedMethod().holder == klass;
+  }
 }

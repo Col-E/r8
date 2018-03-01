@@ -26,4 +26,7 @@ public class OptimizationFeedbackIgnore implements OptimizationFeedback {
 
   @Override
   public void markCheckNullReceiverBeforeAnySideEffect(DexEncodedMethod method, boolean mark) {}
+
+  @Override
+  public void markTriggerClassInitBeforeAnySideEffect(DexEncodedMethod method, boolean mark) {}
 }

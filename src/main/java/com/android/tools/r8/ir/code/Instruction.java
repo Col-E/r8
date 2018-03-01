@@ -1050,7 +1050,27 @@ public abstract class Instruction {
     throw new Unreachable("Instructions without outValue have no type.");
   }
 
+  /**
+   * Indicates whether the instruction throws a NullPointerException if the object denoted by the
+   * given value is null at runtime execution.
+   *
+   * @param value the value representing an object that may be null at runtime execution.
+   * @return true if the instruction throws NullPointerException if value is null at runtime,
+   * false otherwise.
+   */
   public boolean throwsNpeIfValueIsNull(Value value) {
+    return false;
+  }
+
+  /**
+   * Indicates whether the instruction triggers the class initialization (i.e. the <clinit> method)
+   * of the given class at runtime execution.
+   *
+   * @param klass a class of the program
+   * @return true if the instruction triggers intialization of the class at runtime, false
+   * otherwise.
+   */
+  public boolean triggersInitializationOfClass(DexType klass) {
     return false;
   }
 }

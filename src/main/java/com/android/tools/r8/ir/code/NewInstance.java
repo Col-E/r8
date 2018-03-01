@@ -104,4 +104,9 @@ public class NewInstance extends Instruction {
       AppInfo appInfo, Function<Value, TypeLatticeElement> getLatticeElement) {
     return TypeLatticeElement.fromDexType(clazz, false);
   }
+
+  @Override
+  public boolean triggersInitializationOfClass(DexType klass) {
+    return clazz == klass;
+  }
 }

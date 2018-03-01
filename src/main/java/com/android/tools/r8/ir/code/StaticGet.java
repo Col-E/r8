@@ -144,4 +144,9 @@ public class StaticGet extends FieldInstruction {
       AppInfo appInfo, Function<Value, TypeLatticeElement> getLatticeElement) {
     return TypeLatticeElement.fromDexType(field.type, true);
   }
+
+  @Override
+  public boolean triggersInitializationOfClass(DexType klass) {
+    return field.clazz == klass;
+  }
 }
