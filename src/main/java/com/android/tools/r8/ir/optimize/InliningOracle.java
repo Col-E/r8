@@ -97,9 +97,16 @@ public class InliningOracle {
   private boolean canInlineStaticInvoke(DexEncodedMethod method, DexEncodedMethod target) {
     // Only proceed with inlining a static invoke if:
     // - the holder for the target equals the holder for the method, or
-    // - there is no class initializer.
+    // - the target method always triggers class initialization of its holder before any other side
+    //   effect (hence preserving class initialization semantics).
+    // - there is no non-trivial class initializer.
     DexType targetHolder = target.method.getHolder();
     if (method.method.getHolder() == targetHolder) {
+      return true;
+    }
+    DexClass clazz = inliner.appInfo.definitionFor(targetHolder);
+    assert clazz != null;
+    if (target.getOptimizationInfo().triggersClassInitBeforeAnySideEffect()) {
       return true;
     }
     return classInitializationHasNoSideffects(targetHolder);

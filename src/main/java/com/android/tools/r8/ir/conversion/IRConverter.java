@@ -654,7 +654,9 @@ public class IRConverter {
     codeRewriter.useDedicatedConstantForLitInstruction(code);
     codeRewriter.shortenLiveRanges(code);
     codeRewriter.identifyReturnsArgument(method, code, feedback);
-    codeRewriter.identifyReceiverNullabilityChecks(method, code, feedback);
+    if (options.enableInlining && inliner != null) {
+      codeRewriter.identifyInvokeSemanticsForInlining(method, code, feedback);
+    }
 
     // Insert code to log arguments if requested.
     if (options.methodMatchesLogArgumentsFilter(method)) {

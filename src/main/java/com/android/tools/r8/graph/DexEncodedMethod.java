@@ -533,6 +533,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     private boolean forceInline = false;
     private boolean useIdentifierNameString = false;
     private boolean checksNullReceiverBeforeAnySideEffect = false;
+    private boolean triggersClassInitBeforeAnySideEffect = false;
 
     private OptimizationInfo() {
       // Intentionally left empty.
@@ -586,6 +587,10 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       return checksNullReceiverBeforeAnySideEffect;
     }
 
+    public boolean triggersClassInitBeforeAnySideEffect() {
+      return triggersClassInitBeforeAnySideEffect;
+    }
+
     private void markReturnsArgument(int argument) {
       assert argument >= 0;
       assert returnedArgument == -1 || returnedArgument == argument;
@@ -620,6 +625,10 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
 
     private void markCheckNullReceiverBeforeAnySideEffect(boolean mark) {
       checksNullReceiverBeforeAnySideEffect = mark;
+    }
+
+    private void markTriggerClassInitBeforeAnySideEffect(boolean mark) {
+      triggersClassInitBeforeAnySideEffect = mark;
     }
   }
 
@@ -669,6 +678,10 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
 
   synchronized public void markCheckNullReceiverBeforeAnySideEffect(boolean mark) {
     ensureMutableOI().markCheckNullReceiverBeforeAnySideEffect(mark);
+  }
+
+  synchronized public void markTriggerClassInitBeforeAnySideEffect(boolean mark) {
+    ensureMutableOI().markTriggerClassInitBeforeAnySideEffect(mark);
   }
 
   public OptimizationInfo getOptimizationInfo() {

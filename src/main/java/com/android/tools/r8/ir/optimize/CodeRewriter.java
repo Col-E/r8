@@ -97,11 +97,13 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 public class CodeRewriter {
@@ -709,13 +711,38 @@ public class CodeRewriter {
     }
   }
 
-  public void identifyReceiverNullabilityChecks(
+  public void identifyInvokeSemanticsForInlining(
       DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
-    if (!method.isStaticMethod()) {
+    if (method.isStaticMethod()) {
+      // Identifies if the method preserves class initialization after inlining.
+      feedback.markTriggerClassInitBeforeAnySideEffect(method,
+          triggersClassInitializationBeforeSideEffect(code, method.method.getHolder()));
+    } else {
+      // Identifies if the method preserves null check of the receiver after inlining.
       final Value receiver = code.getThis();
       feedback.markCheckNullReceiverBeforeAnySideEffect(method,
-          receiver.isUsed() && allPathsCheckNullReceiverBeforeSideEffect(code, receiver));
+          receiver.isUsed() && checksNullReceiverBeforeSideEffect(code, receiver));
     }
+  }
+
+  /**
+   * An enum used to classify instructions according to a particular effect that they produce.
+   *
+   * The "effect" of an instruction can be seen as a program state change (or semantic change) at
+   * runtime execution. For example, an instruction could cause the initialization of a class,
+   * change the value of a field, ... while other instructions do not.
+   *
+   * This classification also depends on the type of analysis that is using it. For instance, an
+   * analysis can look for instructions that cause class initialization while another look for
+   * instructions that check nullness of a particular object.
+   *
+   * On the other hand, some instructions may provide a non desired effect which is a signal for
+   * the analysis to stop.
+   */
+  private enum InstructionEffect {
+    DESIRED_EFFECT,
+    OTHER_EFFECT,
+    NO_EFFECT
   }
 
   /**
@@ -724,7 +751,65 @@ public class CodeRewriter {
    *
    * Note: we do not track phis so we may return false negative. This is a conservative approach.
    */
-  private static boolean allPathsCheckNullReceiverBeforeSideEffect(IRCode code, Value receiver) {
+  private static boolean checksNullReceiverBeforeSideEffect(IRCode code, Value receiver) {
+    return alwaysTriggerExpectedEffectBeforeAnythingElse(code, instr -> {
+      if (instr.throwsNpeIfValueIsNull(receiver)) {
+        // In order to preserve NPE semantic, the exception must not be caught by any handler.
+        // Therefore, we must ignore this instruction if it is covered by a catch handler.
+        // Note: this is a conservative approach where we consider that any catch handler could
+        // catch the exception, even if it cannot catch a NullPointerException.
+        if (!instr.getBlock().hasCatchHandlers()) {
+          // We found a NPE check on receiver.
+          return InstructionEffect.DESIRED_EFFECT;
+        }
+      } else if (instructionHasSideEffects(instr)) {
+        // We found a side effect before a NPE check.
+        return InstructionEffect.OTHER_EFFECT;
+      }
+      return InstructionEffect.NO_EFFECT;
+    });
+  }
+
+  private static boolean instructionHasSideEffects(Instruction instruction) {
+    // We consider that an instruction has side effects if it can throw an exception. This is a
+    // conservative approach which can be revised in the future.
+    return instruction.instructionTypeCanThrow();
+  }
+
+  /**
+   * Returns true if the given code unconditionally triggers class initialization before any other
+   * side effecting instruction.
+   *
+   * Note: we do not track phis so we may return false negative. This is a conservative approach.
+   */
+  private static boolean triggersClassInitializationBeforeSideEffect(IRCode code, DexType klass) {
+    return alwaysTriggerExpectedEffectBeforeAnythingElse(code, instruction -> {
+      if (instruction.triggersInitializationOfClass(klass)) {
+        // In order to preserve class initialization semantic, the exception must not be caught by
+        // any handler. Therefore, we must ignore this instruction if it is covered by a catch
+        // handler.
+        // Note: this is a conservative approach where we consider that any catch handler could
+        // catch the exception, even if it cannot catch an ExceptionInInitializerError.
+        if (!instruction.getBlock().hasCatchHandlers()) {
+          // We found an instruction that preserves initialization of the class.
+          return InstructionEffect.DESIRED_EFFECT;
+        }
+      } else if (instructionHasSideEffects(instruction)) {
+        // We found a side effect before class initialization.
+        return InstructionEffect.OTHER_EFFECT;
+      }
+      return InstructionEffect.NO_EFFECT;
+    });
+  }
+
+  /**
+   * Returns true if the given code unconditionally triggers an expected effect before anything
+   * else, false otherwise.
+   *
+   * Note: we do not track phis so we may return false negative. This is a conservative approach.
+   */
+  private static boolean alwaysTriggerExpectedEffectBeforeAnythingElse(IRCode code,
+      Function<Instruction, InstructionEffect> function) {
     final int color = code.reserveMarkingColor();
     try {
       ArrayDeque<BasicBlock> worklist = new ArrayDeque<>();
@@ -736,34 +821,25 @@ public class CodeRewriter {
         BasicBlock currentBlock = worklist.poll();
         assert currentBlock.isMarked(color);
 
-        boolean foundNullCheckBeforeSideEffect = false;
-        for (Instruction instr : currentBlock.getInstructions()) {
-          if (instr.throwsNpeIfValueIsNull(receiver)) {
-            // In order to preserve NPE semantic, the exception must not be caught by any handler.
-            // Therefore, we must ignore this instruction if it is covered by a catch handler.
-            // Note: this is a conservative approach where we consider that any catch handler could
-            // catch the exception, even if it cannot catch a NullPointerException.
-            if (!currentBlock.hasCatchHandlers()) {
-              // We found a NPE check on receiver
-              foundNullCheckBeforeSideEffect = true;
-              break;
-            }
-          } else if (instructionHasSideEffects(instr)) {
-            // We found a side effect before a NPE check.
-            return false;
-          }
+        InstructionEffect result = InstructionEffect.NO_EFFECT;
+        Iterator<Instruction> it = currentBlock.listIterator();
+        while (result == InstructionEffect.NO_EFFECT && it.hasNext()) {
+          result = function.apply(it.next());
         }
-
-        if (foundNullCheckBeforeSideEffect) {
-          // The current path checks NPE. No need to go deeper in this path, go to the next block
-          // in the work list.
+        if (result == InstructionEffect.OTHER_EFFECT) {
+          // We found an instruction that is causing an unexpected side effect.
+          return false;
+        } else if (result == InstructionEffect.DESIRED_EFFECT) {
+          // The current path is causing the expected effect. No need to go deeper in this path,
+          // go to the next block in the work list.
           continue;
         } else {
-          // The block neither checked NPE nor had side effect.
+          assert result == InstructionEffect.NO_EFFECT;
+          // The block did not cause any particular effect.
           if (currentBlock.getNormalSuccessors().isEmpty()) {
-            // This is the end of the current non-exceptional path and we did not find any null
-            // check of the receiver. It means there is at least one path where the receiver is not
-            // checked for null.
+            // This is the end of the current non-exceptional path and we did not find any expected
+            // effect. It means there is at least one path where the expected effect does not
+            // happen.
             Instruction lastInstruction = currentBlock.getInstructions().getLast();
             assert lastInstruction.isReturn() || lastInstruction.isThrow();
             return false;
@@ -779,17 +855,11 @@ public class CodeRewriter {
         }
       }
 
-      // If we reach this point, we checked the null receiver in every possible path.
+      // If we reach this point, we checked that the expected effect happens in every possible path.
       return true;
     } finally {
       code.returnMarkingColor(color);
     }
-  }
-
-  private static boolean instructionHasSideEffects(Instruction instruction) {
-    // We consider that an instruction has side effects if it can throw an exception. This is a
-    // conservative approach which can be revised in the future.
-    return instruction.instructionTypeCanThrow();
   }
 
   private boolean checkArgumentType(InvokeMethod invoke, DexMethod target, int argumentIndex) {
