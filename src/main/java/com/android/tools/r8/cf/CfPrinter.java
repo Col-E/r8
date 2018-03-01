@@ -35,6 +35,7 @@ import com.android.tools.r8.cf.code.CfStore;
 import com.android.tools.r8.cf.code.CfSwitch;
 import com.android.tools.r8.cf.code.CfSwitch.Kind;
 import com.android.tools.r8.cf.code.CfThrow;
+import com.android.tools.r8.cf.code.CfTryCatch;
 import com.android.tools.r8.cf.code.CfUnop;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.CfCode;
@@ -52,6 +53,7 @@ import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceMap.Entry;
 import it.unimi.dsi.fastutil.ints.IntList;
 import java.util.HashMap;
 import java.util.List;
@@ -110,6 +112,21 @@ public class CfPrinter {
           .append(getLabel(local.getEnd()));
       if (info.signature != null) {
         appendComment(info.signature.toString());
+      }
+    }
+    for (CfTryCatch tryCatch : code.getTryCatchRanges()) {
+      for (int i = 0; i < tryCatch.guards.size(); i++) {
+        newline();
+        DexType guard = tryCatch.guards.get(i);
+        builder
+            .append(".catch ")
+            .append(guard == null ? "all" : guard.getInternalName())
+            .append(" from ")
+            .append(getLabel(tryCatch.start))
+            .append(" to ")
+            .append(getLabel(tryCatch.end))
+            .append(" using ")
+            .append(getLabel(tryCatch.targets.get(i)));
       }
     }
     for (CfInstruction instruction : code.getInstructions()) {
@@ -210,9 +227,13 @@ public class CfPrinter {
   }
 
   public void print(CfFrame frame) {
-    StringBuilder builder = new StringBuilder("frame: ");
-    StringUtils.append(builder, frame.getLocals().values(), ", ", BraceType.SQUARE);
-    builder.append(' ');
+    StringBuilder builder = new StringBuilder("frame: [");
+    String separator = "";
+    for (Entry<DexType> entry : frame.getLocals().int2ReferenceEntrySet()) {
+      builder.append(separator).append(entry.getIntKey()).append(':').append(entry.getValue());
+      separator = ", ";
+    }
+    builder.append("] ");
     StringUtils.append(builder, frame.getStack(), ", ", BraceType.SQUARE);
     comment(builder.toString());
   }

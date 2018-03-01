@@ -91,6 +91,10 @@ public class CfCode extends Code {
     return maxLocals;
   }
 
+  public List<CfTryCatch> getTryCatchRanges() {
+    return tryCatchRanges;
+  }
+
   public List<CfInstruction> getInstructions() {
     return Collections.unmodifiableList(instructions);
   }
