@@ -248,6 +248,7 @@ public class CfBuilder {
           assert advancesPC || nextNextBlock != null;
           if (advancesPC) {
             addFrame(pendingFrame, Collections.emptyList());
+            pendingFrame = null;
           }
         }
       }
