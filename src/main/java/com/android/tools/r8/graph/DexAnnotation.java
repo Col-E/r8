@@ -202,6 +202,15 @@ public class DexAnnotation extends DexItem {
         compressSignature(signature, factory));
   }
 
+  public static String getSignature(DexAnnotation signatureAnnotation) {
+    DexValueArray elements = (DexValueArray) signatureAnnotation.annotation.elements[0].value;
+    StringBuilder signature = new StringBuilder();
+    for (DexValue element : elements.getValues()) {
+      signature.append(((DexValueString) element).value.toString());
+    }
+    return signature.toString();
+  }
+
   public static DexAnnotation createThrowsAnnotation(DexValue[] exceptions,
       DexItemFactory factory) {
     return createSystemValueAnnotation(factory.annotationThrows, factory,

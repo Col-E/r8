@@ -15,9 +15,6 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.DexValue;
-import com.android.tools.r8.graph.DexValue.DexValueArray;
-import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.naming.signature.GenericSignatureAction;
 import com.android.tools.r8.naming.signature.GenericSignatureParser;
@@ -162,21 +159,12 @@ class ClassNameMinifier {
     for (int i = 0; i < annotations.length; i++) {
       DexAnnotation annotation = annotations[i];
       if (DexAnnotation.isSignatureAnnotation(annotation, appInfo.dexItemFactory)) {
-        parser.accept(getSignatureFromAnnotation(annotation));
+        parser.accept(DexAnnotation.getSignature(annotation));
         annotations[i] = DexAnnotation.createSignatureAnnotation(
             genericSignatureRewriter.getRenamedSignature(),
             appInfo.dexItemFactory);
       }
     }
-  }
-
-  private static String getSignatureFromAnnotation(DexAnnotation signatureAnnotation) {
-    DexValueArray elements = (DexValueArray) signatureAnnotation.annotation.elements[0].value;
-    StringBuilder signature = new StringBuilder();
-    for (DexValue element : elements.getValues()) {
-      signature.append(((DexValueString) element).value.toString());
-    }
-    return signature.toString();
   }
 
   /**

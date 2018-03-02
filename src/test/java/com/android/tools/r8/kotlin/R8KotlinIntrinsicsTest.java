@@ -17,8 +17,8 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class R8KotlinIntrinsicsTest extends AbstractR8KotlinTestBase {
 
-  private static final KotlinDataClass KOTLIN_INTRINSICS_CLASS =
-      new KotlinDataClass("kotlin.jvm.internal.Intrinsics");
+  private static final TestKotlinDataClass KOTLIN_INTRINSICS_CLASS =
+      new TestKotlinDataClass("kotlin.jvm.internal.Intrinsics");
 
   @Test
   public void testParameterNullCheckIsInlined() throws Exception {

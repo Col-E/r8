@@ -199,7 +199,7 @@ public class ApplicationReader {
         for (ProgramResource input : dexSources) {
           DexReader dexReader = new DexReader(input);
           computedMinApiLevel = verifyOrComputeMinApiLevel(computedMinApiLevel, dexReader);
-          dexParsers.add(new DexParser(dexReader, classKind, itemFactory));
+          dexParsers.add(new DexParser(dexReader, classKind, itemFactory, options.reporter));
         }
         options.minApiLevel = computedMinApiLevel;
         for (DexParser dexParser : dexParsers) {

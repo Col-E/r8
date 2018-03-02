@@ -347,6 +347,7 @@ public class D8Command extends BaseCompilerCommand {
     internal.enableValuePropagation = false;
 
     internal.enableDesugaring = getEnableDesugaring();
+    internal.enableLambdaMerging = false;
     return internal;
   }
 }

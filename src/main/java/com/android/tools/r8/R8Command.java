@@ -643,6 +643,10 @@ public class R8Command extends BaseCompilerCommand {
     internal.enableMinification = getEnableMinification();
     assert internal.enableTreeShaking;
     internal.enableTreeShaking = getEnableTreeShaking();
+    // In current implementation we only enable lambda merger if the tree
+    // shaking is enabled. This is caused by the fact that we rely on tree
+    // shaking for removing the lambda classes which should be revised later.
+    internal.enableLambdaMerging = getEnableTreeShaking();
     assert !internal.ignoreMissingClasses;
     internal.ignoreMissingClasses = proguardConfiguration.isIgnoreWarnings()
         // TODO(70706667): We probably only want this in Proguard compatibility mode.

@@ -39,6 +39,7 @@ import com.android.tools.r8.ir.optimize.MemberValuePropagation;
 import com.android.tools.r8.ir.optimize.NonNullTracker;
 import com.android.tools.r8.ir.optimize.Outliner;
 import com.android.tools.r8.ir.optimize.PeepholeOptimizer;
+import com.android.tools.r8.ir.optimize.lambda.LambdaMerger;
 import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.logging.Log;
@@ -78,6 +79,7 @@ public class IRConverter {
   private final StringConcatRewriter stringConcatRewriter;
   private final LambdaRewriter lambdaRewriter;
   private final InterfaceMethodRewriter interfaceMethodRewriter;
+  private final LambdaMerger lambdaMerger;
   private final InternalOptions options;
   private final CfgPrinter printer;
   private final GraphLense graphLense;
@@ -114,6 +116,8 @@ public class IRConverter {
     this.interfaceMethodRewriter =
         (options.enableDesugaring && enableInterfaceMethodDesugaring())
             ? new InterfaceMethodRewriter(this, options) : null;
+    this.lambdaMerger = options.enableLambdaMerging
+        ? new LambdaMerger(appInfo.dexItemFactory, options.reporter) : null;
     if (enableWholeProgramOptimizations) {
       assert appInfo.hasLiveness();
       this.nonNullTracker = new NonNullTracker();
@@ -360,6 +364,7 @@ public class IRConverter {
       ExecutorService executorService)
       throws ExecutionException, ApiLevelException {
     removeLambdaDeserializationMethods();
+    collectLambdaMergingCandidates(application);
 
     // The process is in two phases.
     // 1) Subject all DexEncodedMethods to optimization (except outlining).
@@ -397,6 +402,7 @@ public class IRConverter {
     desugarInterfaceMethods(builder, IncludeAllResources);
 
     handleSynthesizedClassMapping(builder);
+    finalizeLambdaMerging(application, directFeedback, builder, executorService);
 
     if (outliner != null) {
       timing.begin("IR conversion phase 2");
@@ -431,6 +437,21 @@ public class IRConverter {
     }
 
     return builder.build();
+  }
+
+  private void collectLambdaMergingCandidates(DexApplication application) {
+    if (lambdaMerger != null) {
+      lambdaMerger.collectGroupCandidates(application, appInfo.withLiveness(), options);
+    }
+  }
+
+  private void finalizeLambdaMerging(DexApplication application,
+      OptimizationFeedback directFeedback, Builder<?> builder, ExecutorService executorService)
+      throws ExecutionException, ApiLevelException {
+    if (lambdaMerger != null) {
+      lambdaMerger.applyLambdaClassMapping(
+          application, this, directFeedback, builder, executorService);
+    }
   }
 
   private void clearDexMethodCompilationState() {
@@ -488,8 +509,13 @@ public class IRConverter {
   }
 
   public void optimizeSynthesizedClass(DexProgramClass clazz) throws ApiLevelException {
-    // Process the generated class, but don't apply any outlining.
-    clazz.forEachMethodThrowing(this::optimizeSynthesizedMethod);
+    try {
+      codeRewriter.enterCachedClass(clazz);
+      // Process the generated class, but don't apply any outlining.
+      clazz.forEachMethodThrowing(this::optimizeSynthesizedMethod);
+    } finally {
+      codeRewriter.leaveCachedClass(clazz);
+    }
   }
 
   public void optimizeSynthesizedMethod(DexEncodedMethod method) throws ApiLevelException {
@@ -642,6 +668,10 @@ public class IRConverter {
 
     if (interfaceMethodRewriter != null) {
       interfaceMethodRewriter.rewriteMethodReferences(method, code);
+      assert code.isConsistentSSA();
+    }
+    if (lambdaMerger != null) {
+      lambdaMerger.processMethodCode(method, code);
       assert code.isConsistentSSA();
     }
 

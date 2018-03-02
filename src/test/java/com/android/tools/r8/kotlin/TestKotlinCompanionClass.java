@@ -9,18 +9,18 @@ package com.android.tools.r8.kotlin;
  *
  * <p>See https://kotlinlang.org/docs/reference/object-declarations.html#companion-objects</p>
  */
-public class KotlinCompanionClass extends KotlinClass {
+public class TestKotlinCompanionClass extends TestKotlinClass {
 
   private final String outerClassName;
 
-  public KotlinCompanionClass(String outerClassName) {
+  public TestKotlinCompanionClass(String outerClassName) {
     super(outerClassName + "$Companion");
     this.outerClassName = outerClassName;
   }
 
   @Override
-  public KotlinCompanionClass addProperty(String name, String type, Visibility visibility) {
-    return (KotlinCompanionClass) super.addProperty(name, type, visibility);
+  public TestKotlinCompanionClass addProperty(String name, String type, Visibility visibility) {
+    return (TestKotlinCompanionClass) super.addProperty(name, type, visibility);
   }
 
   public String getOuterClassName() {

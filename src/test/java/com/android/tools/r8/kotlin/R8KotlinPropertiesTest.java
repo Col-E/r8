@@ -6,7 +6,7 @@ package com.android.tools.r8.kotlin;
 
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.kotlin.KotlinClass.Visibility;
+import com.android.tools.r8.kotlin.TestKotlinClass.Visibility;
 import com.android.tools.r8.naming.MemberNaming;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.DexInspector;
@@ -20,28 +20,28 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
 
   private static final String JAVA_LANG_STRING = "java.lang.String";
 
-  private static final KotlinClass MUTABLE_PROPERTY_CLASS =
-      new KotlinClass("properties.MutableProperty")
+  private static final TestKotlinClass MUTABLE_PROPERTY_CLASS =
+      new TestKotlinClass("properties.MutableProperty")
           .addProperty("privateProp", JAVA_LANG_STRING, Visibility.PRIVATE)
           .addProperty("protectedProp", JAVA_LANG_STRING, Visibility.PROTECTED)
           .addProperty("internalProp", JAVA_LANG_STRING, Visibility.INTERNAL)
           .addProperty("publicProp", JAVA_LANG_STRING, Visibility.PUBLIC)
           .addProperty("primitiveProp", "int", Visibility.PUBLIC);
 
-  private static final KotlinClass USER_DEFINED_PROPERTY_CLASS =
-      new KotlinClass("properties.UserDefinedProperty")
+  private static final TestKotlinClass USER_DEFINED_PROPERTY_CLASS =
+      new TestKotlinClass("properties.UserDefinedProperty")
           .addProperty("durationInMilliSeconds", "int", Visibility.PUBLIC)
           .addProperty("durationInSeconds", "int", Visibility.PUBLIC);
 
-  private static final KotlinClass LATE_INIT_PROPERTY_CLASS =
-      new KotlinClass("properties.LateInitProperty")
+  private static final TestKotlinClass LATE_INIT_PROPERTY_CLASS =
+      new TestKotlinClass("properties.LateInitProperty")
           .addProperty("privateLateInitProp", JAVA_LANG_STRING, Visibility.PRIVATE)
           .addProperty("protectedLateInitProp", JAVA_LANG_STRING, Visibility.PROTECTED)
           .addProperty("internalLateInitProp", JAVA_LANG_STRING, Visibility.INTERNAL)
           .addProperty("publicLateInitProp", JAVA_LANG_STRING, Visibility.PUBLIC);
 
-  private static final KotlinCompanionClass COMPANION_PROPERTY_CLASS =
-      new KotlinCompanionClass("properties.CompanionProperties")
+  private static final TestKotlinCompanionClass COMPANION_PROPERTY_CLASS =
+      new TestKotlinCompanionClass("properties.CompanionProperties")
           .addProperty("privateProp", JAVA_LANG_STRING, Visibility.PRIVATE)
           .addProperty("protectedProp", JAVA_LANG_STRING, Visibility.PROTECTED)
           .addProperty("internalProp", JAVA_LANG_STRING, Visibility.INTERNAL)
@@ -51,8 +51,8 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
           .addProperty("internalLateInitProp", JAVA_LANG_STRING, Visibility.INTERNAL)
           .addProperty("publicLateInitProp", JAVA_LANG_STRING, Visibility.PUBLIC);
 
-  private static final KotlinCompanionClass COMPANION_LATE_INIT_PROPERTY_CLASS =
-      new KotlinCompanionClass("properties.CompanionLateInitProperties")
+  private static final TestKotlinCompanionClass COMPANION_LATE_INIT_PROPERTY_CLASS =
+      new TestKotlinCompanionClass("properties.CompanionLateInitProperties")
           .addProperty("privateLateInitProp", JAVA_LANG_STRING, Visibility.PRIVATE)
           .addProperty("internalLateInitProp", JAVA_LANG_STRING, Visibility.INTERNAL)
           .addProperty("publicLateInitProp", JAVA_LANG_STRING, Visibility.PUBLIC);
@@ -461,7 +461,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void testCompanionProperty_privateLateInitPropertyIsAlwaysInlined() throws Exception {
-    final KotlinCompanionClass testedClass = COMPANION_LATE_INIT_PROPERTY_CLASS;
+    final TestKotlinCompanionClass testedClass = COMPANION_LATE_INIT_PROPERTY_CLASS;
     String mainClass = addMainToClasspath("properties.CompanionLateInitPropertiesKt",
         "companionLateInitProperties_usePrivateLateInitProp");
     runTest(PACKAGE_NAME, mainClass, (app) -> {
@@ -492,7 +492,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void testCompanionProperty_internalLateInitPropertyCannotBeInlined() throws Exception {
-    final KotlinCompanionClass testedClass = COMPANION_LATE_INIT_PROPERTY_CLASS;
+    final TestKotlinCompanionClass testedClass = COMPANION_LATE_INIT_PROPERTY_CLASS;
     String mainClass = addMainToClasspath("properties.CompanionLateInitPropertiesKt",
         "companionLateInitProperties_useInternalLateInitProp");
     runTest(PACKAGE_NAME, mainClass, (app) -> {
@@ -516,7 +516,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void testCompanionProperty_publicLateInitPropertyCannotBeInlined() throws Exception {
-    final KotlinCompanionClass testedClass = COMPANION_LATE_INIT_PROPERTY_CLASS;
+    final TestKotlinCompanionClass testedClass = COMPANION_LATE_INIT_PROPERTY_CLASS;
     String mainClass = addMainToClasspath("properties.CompanionLateInitPropertiesKt",
         "companionLateInitProperties_usePublicLateInitProp");
     runTest(PACKAGE_NAME, mainClass, (app) -> {

@@ -160,6 +160,8 @@ public class InternalOptions {
   public boolean intermediate = false;
   public List<String> logArgumentsFilter = ImmutableList.of();
 
+  // Flag to turn on/off lambda class merging in R8.
+  public boolean enableLambdaMerging = false;
   // Flag to turn on/off desugaring in D8/R8.
   public boolean enableDesugaring = true;
   // Defines interface method rewriter behavior.

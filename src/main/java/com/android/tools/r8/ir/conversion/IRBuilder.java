@@ -1846,7 +1846,7 @@ public class IRBuilder {
     targetInfo.block.incrementUnfilledPredecessorCount();
   }
 
-  void ensureNormalSuccessorBlock(int sourceOffset, int targetOffset) {
+  public void ensureNormalSuccessorBlock(int sourceOffset, int targetOffset) {
     ensureSuccessorBlock(sourceOffset, targetOffset, true);
   }
 

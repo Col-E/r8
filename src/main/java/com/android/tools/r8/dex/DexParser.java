@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.EncodedValueUtils.parseFloat;
 import static com.android.tools.r8.utils.EncodedValueUtils.parseSigned;
 import static com.android.tools.r8.utils.EncodedValueUtils.parseUnsigned;
 
+import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.InstructionFactory;
@@ -58,6 +59,7 @@ import com.android.tools.r8.graph.OffsetToObjectMapping;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
+import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.Pair;
 import com.google.common.io.ByteStreams;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
@@ -84,6 +86,7 @@ public class DexParser {
   private final DexSection[] dexSections;
   private int[] stringIDs;
   private final ClassKind classKind;
+  private final DiagnosticsHandler reporter;
 
   public static DexSection[] parseMapFrom(Path file) throws IOException {
     return parseMapFrom(Files.newInputStream(file), new PathOrigin(file));
@@ -94,7 +97,8 @@ public class DexParser {
   }
 
   private static DexSection[] parseMapFrom(DexReader dexReader) {
-    DexParser dexParser = new DexParser(dexReader, ClassKind.PROGRAM, new DexItemFactory());
+    DexParser dexParser = new DexParser(dexReader,
+        ClassKind.PROGRAM, new DexItemFactory(), new DefaultDiagnosticsHandler());
     return dexParser.dexSections;
   }
 
@@ -119,7 +123,8 @@ public class DexParser {
   // Factory to canonicalize certain dexitems.
   private final DexItemFactory dexItemFactory;
 
-  public DexParser(DexReader dexReader, ClassKind classKind, DexItemFactory dexItemFactory) {
+  public DexParser(DexReader dexReader,
+      ClassKind classKind, DexItemFactory dexItemFactory, DiagnosticsHandler reporter) {
     assert dexReader.getOrigin() != null;
     this.origin = dexReader.getOrigin();
     this.dexReader = dexReader;
@@ -128,6 +133,7 @@ public class DexParser {
     dexSections = parseMap();
     parseStringIDs();
     this.classKind = classKind;
+    this.reporter = reporter;
   }
 
   private void ensureCodesInited() {

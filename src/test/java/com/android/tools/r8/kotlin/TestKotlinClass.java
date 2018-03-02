@@ -14,7 +14,7 @@ import java.util.Map;
  *
  * <p>See https://kotlinlang.org/docs/reference/classes.html</p>
  */
-class KotlinClass {
+class TestKotlinClass {
 
   /**
    * This is the suffix appended by Kotlin compiler to getter and setter method names of
@@ -61,10 +61,11 @@ class KotlinClass {
       return index;
     }
   }
+
   protected final String className;
   protected final Map<String, KotlinProperty> properties = Maps.newHashMap();
 
-  public KotlinClass(String className) {
+  public TestKotlinClass(String className) {
     this.className = className;
   }
 
@@ -72,7 +73,7 @@ class KotlinClass {
     return className;
   }
 
-  public KotlinClass addProperty(String name, String type, Visibility visibility) {
+  public TestKotlinClass addProperty(String name, String type, Visibility visibility) {
     assert !properties.containsKey(name);
     properties.put(name, new KotlinProperty(name, type, visibility, properties.size()));
     return this;

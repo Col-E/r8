@@ -168,24 +168,29 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
 
   public boolean isInliningCandidate(DexEncodedMethod container, Reason inliningReason,
       AppInfoWithSubtyping appInfo) {
+    return isInliningCandidate(container.method.getHolder(), inliningReason, appInfo);
+  }
+
+  public boolean isInliningCandidate(DexType containerType, Reason inliningReason,
+      AppInfoWithSubtyping appInfo) {
     if (isClassInitializer()) {
       // This will probably never happen but never inline a class initializer.
       return false;
     }
     if (inliningReason == Reason.FORCE) {
       // Make sure we would be able to inline this normally.
-      assert isInliningCandidate(container, Reason.SIMPLE, appInfo);
+      assert isInliningCandidate(containerType, Reason.SIMPLE, appInfo);
       return true;
     }
     switch (compilationState) {
       case PROCESSED_INLINING_CANDIDATE_ANY:
         return true;
       case PROCESSED_INLINING_CANDIDATE_SUBCLASS:
-        return container.method.getHolder().isSubtypeOf(method.getHolder(), appInfo);
+        return containerType.isSubtypeOf(method.getHolder(), appInfo);
       case PROCESSED_INLINING_CANDIDATE_SAME_PACKAGE:
-        return container.method.getHolder().isSamePackage(method.getHolder());
+        return containerType.isSamePackage(method.getHolder());
       case PROCESSED_INLINING_CANDIDATE_SAME_CLASS:
-        return container.method.getHolder() == method.getHolder();
+        return containerType == method.getHolder();
       default:
         return false;
     }

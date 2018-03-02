@@ -21,8 +21,11 @@ import com.android.tools.r8.ir.conversion.SourceCode;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 
-public abstract class SingleBlockSourceCode implements SourceCode {
+public abstract class SyntheticSourceCode implements SourceCode {
+  protected final static Predicate<IRBuilder> doesNotEndBlock = x -> false;
+  protected final static Predicate<IRBuilder> endsBlock = x -> true;
 
   protected final DexType receiver;
   protected final DexProto proto;
@@ -41,8 +44,9 @@ public abstract class SingleBlockSourceCode implements SourceCode {
 
   // Instruction constructors
   private List<ThrowingConsumer<IRBuilder, ApiLevelException>> constructors = new ArrayList<>();
+  private List<Predicate<IRBuilder>> traceEvents = new ArrayList<>();
 
-  protected SingleBlockSourceCode(DexType receiver, DexProto proto) {
+  protected SyntheticSourceCode(DexType receiver, DexProto proto) {
     assert proto != null;
     this.receiver = receiver;
     this.proto = proto;
@@ -60,7 +64,13 @@ public abstract class SingleBlockSourceCode implements SourceCode {
   }
 
   protected final void add(ThrowingConsumer<IRBuilder, ApiLevelException> constructor) {
+    add(constructor, doesNotEndBlock);
+  }
+
+  protected final void add(
+      ThrowingConsumer<IRBuilder, ApiLevelException> constructor, Predicate<IRBuilder> traceEvent) {
     constructors.add(constructor);
+    traceEvents.add(traceEvent);
   }
 
   protected final int nextRegister(ValueType type) {
@@ -104,6 +114,14 @@ public abstract class SingleBlockSourceCode implements SourceCode {
     return constructors.size();
   }
 
+  protected final int lastInstructionIndex() {
+    return constructors.size() - 1;
+  }
+
+  protected final int nextInstructionIndex() {
+    return constructors.size();
+  }
+
   @Override
   public final int instructionIndex(int instructionOffset) {
     return instructionOffset;
@@ -121,7 +139,8 @@ public abstract class SingleBlockSourceCode implements SourceCode {
 
   @Override
   public final int traceInstruction(int instructionIndex, IRBuilder builder) {
-    return (instructionIndex == constructors.size() - 1) ? instructionIndex : -1;
+    return (traceEvents.get(instructionIndex).test(builder) ||
+        (instructionIndex == constructors.size() - 1)) ? instructionIndex : -1;
   }
 
   @Override
@@ -139,6 +158,7 @@ public abstract class SingleBlockSourceCode implements SourceCode {
   @Override
   public final void clear() {
     constructors = null;
+    traceEvents = null;
     paramRegisters = null;
     paramValues = null;
     receiverValue = null;
@@ -217,6 +237,17 @@ public abstract class SingleBlockSourceCode implements SourceCode {
 
   @Override
   public final boolean verifyRegister(int register) {
+    return true;
+  }
+
+  // To be used as a tracing event for switch instruction.,
+  protected boolean endsSwitch(
+      IRBuilder builder, int switchIndex, int fallthrough, int[] offsets) {
+    // ensure successors of switch instruction
+    for (int offset : offsets) {
+      builder.ensureNormalSuccessorBlock(switchIndex, offset);
+    }
+    builder.ensureNormalSuccessorBlock(switchIndex, fallthrough);
     return true;
   }
 }

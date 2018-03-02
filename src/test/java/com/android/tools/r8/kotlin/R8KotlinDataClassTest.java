@@ -5,7 +5,7 @@
 package com.android.tools.r8.kotlin;
 
 import com.android.tools.r8.graph.DexCode;
-import com.android.tools.r8.kotlin.KotlinClass.Visibility;
+import com.android.tools.r8.kotlin.TestKotlinClass.Visibility;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
@@ -15,7 +15,8 @@ import org.junit.Test;
 
 public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
 
-  private static final KotlinDataClass TEST_DATA_CLASS = new KotlinDataClass("dataclass.Person")
+  private static final TestKotlinDataClass TEST_DATA_CLASS =
+      new TestKotlinDataClass("dataclass.Person")
       .addProperty("name", "java.lang.String", Visibility.PUBLIC)
       .addProperty("age", "int", Visibility.PUBLIC);
 

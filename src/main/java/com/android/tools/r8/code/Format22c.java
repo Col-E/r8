@@ -11,7 +11,7 @@ import com.android.tools.r8.naming.ClassNameMapper;
 import java.nio.ShortBuffer;
 import java.util.function.BiPredicate;
 
-abstract class Format22c extends Base2Format {
+public abstract class Format22c extends Base2Format {
 
   public final byte A;
   public final byte B;

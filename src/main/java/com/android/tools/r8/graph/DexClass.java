@@ -6,6 +6,7 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.kotlin.KotlinInfo;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.google.common.base.MoreObjects;
@@ -262,6 +263,10 @@ public abstract class DexClass extends DexItem {
     return false;
   }
 
+  public DexClasspathClass asClasspathClass() {
+    return null;
+  }
+
   public boolean isLibraryClass() {
     return false;
   }
@@ -346,5 +351,12 @@ public abstract class DexClass extends DexItem {
 
   public void clearInnerClasses() {
     innerClasses.clear();
+  }
+
+  /** Returns kotlin class info if the class is synthesized by kotlin compiler. */
+  public abstract KotlinInfo getKotlinInfo();
+
+  public final boolean hasKotlinInfo() {
+    return getKotlinInfo() != null;
   }
 }

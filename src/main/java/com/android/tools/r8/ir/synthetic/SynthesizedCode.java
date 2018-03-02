@@ -56,7 +56,7 @@ public final class SynthesizedCode extends Code {
   public void registerCaughtTypes(Consumer<DexType> dexTypeConsumer) {
     // Support for synthesized code with catch handler is not implemented.
     // Let's check that we're in a well known where no catch handler is possible.
-    assert sourceCode.instructionCount() == 1 || sourceCode instanceof SingleBlockSourceCode;
+    assert sourceCode.instructionCount() == 1 || sourceCode instanceof SyntheticSourceCode;
   }
 
   @Override

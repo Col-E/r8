@@ -14,12 +14,14 @@ import com.android.tools.r8.errors.DexOverflowException;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.ClassAndMemberPublicizer;
 import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.optimize.EnumOrdinalMapCollector;
 import com.android.tools.r8.ir.optimize.SwitchMapCollector;
 import com.android.tools.r8.jar.CfApplicationWriter;
+import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.Minifier;
 import com.android.tools.r8.naming.NamingLens;
@@ -52,6 +54,7 @@ import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.android.tools.r8.utils.LineNumberOptimizer;
+import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
@@ -270,6 +273,10 @@ public class R8 {
           }
         }
 
+        // Compute kotlin info before setting the roots and before
+        // kotlin metadata annotation is removed.
+        computeKotlinInfoForProgramClasses(application, appInfo);
+
         final ProguardConfiguration.Builder compatibility =
             ProguardConfiguration.builder(application.dexItemFactory, options.reporter);
 
@@ -477,6 +484,15 @@ public class R8 {
       if (options.printTimes) {
         timing.report();
       }
+    }
+  }
+
+  private void computeKotlinInfoForProgramClasses(
+      DexApplication application, AppInfoWithSubtyping appInfo) {
+    Kotlin kotlin = appInfo.dexItemFactory.kotlin;
+    Reporter reporter = options.reporter;
+    for (DexProgramClass programClass : application.classes()) {
+      programClass.setKotlinInfo(kotlin.getKotlinInfo(programClass, reporter));
     }
   }
 

@@ -76,7 +76,7 @@ public class DexType extends IndexedDexItem implements PresortedComparable<DexTy
     }
   }
 
-  synchronized void addDirectSubtype(DexType type) {
+  public synchronized void addDirectSubtype(DexType type) {
     assert hierarchyLevel != UNKNOWN_LEVEL;
     ensureDirectSubTypeSet();
     directSubtypes.add(type);

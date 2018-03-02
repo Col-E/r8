@@ -7,6 +7,7 @@ import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
+import com.android.tools.r8.kotlin.KotlinInfo;
 import com.android.tools.r8.origin.Origin;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -27,6 +28,7 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
   private DexEncodedArray staticValues = SENTINEL_NOT_YET_COMPUTED;
   private final Collection<DexProgramClass> synthesizedFrom;
   private int classFileVersion = -1;
+  private KotlinInfo kotlinInfo = null;
 
   public DexProgramClass(
       DexType type,
@@ -197,6 +199,16 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
   @Override
   public DexProgramClass asProgramClass() {
     return this;
+  }
+
+  @Override
+  public KotlinInfo getKotlinInfo() {
+    return kotlinInfo;
+  }
+
+  public void setKotlinInfo(KotlinInfo kotlinInfo) {
+    assert this.kotlinInfo == null || kotlinInfo == null;
+    this.kotlinInfo = kotlinInfo;
   }
 
   public boolean hasMethodsOrFields() {

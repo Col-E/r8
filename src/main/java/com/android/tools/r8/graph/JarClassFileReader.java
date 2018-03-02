@@ -252,10 +252,8 @@ public class JarClassFileReader {
               instanceFields.toArray(new DexEncodedField[instanceFields.size()]),
               directMethods.toArray(new DexEncodedMethod[directMethods.size()]),
               virtualMethods.toArray(new DexEncodedMethod[virtualMethods.size()]));
-      if (classKind == ClassKind.PROGRAM) {
-        context.owner = clazz.asProgramClass();
-      }
       if (clazz.isProgramClass()) {
+        context.owner = clazz.asProgramClass();
         clazz.asProgramClass().setClassFileVersion(version);
       }
       classConsumer.accept(clazz);

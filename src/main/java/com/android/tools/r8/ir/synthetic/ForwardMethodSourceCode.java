@@ -16,7 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 // Source code representing simple forwarding method.
-public final class ForwardMethodSourceCode extends SingleBlockSourceCode {
+public final class ForwardMethodSourceCode extends SyntheticSourceCode {
 
   private final DexType targetReceiver;
   private final DexMethod target;

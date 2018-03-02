@@ -8,6 +8,7 @@ import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.kotlin.KotlinInfo;
 import com.android.tools.r8.origin.Origin;
 import java.util.List;
 import java.util.function.Supplier;
@@ -80,6 +81,11 @@ public class DexLibraryClass extends DexClass implements Supplier<DexLibraryClas
   @Override
   public DexLibraryClass asLibraryClass() {
     return this;
+  }
+
+  @Override
+  public KotlinInfo getKotlinInfo() {
+    return null;
   }
 
   @Override

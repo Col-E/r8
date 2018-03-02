@@ -10,7 +10,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
-import com.android.tools.r8.kotlin.KotlinClass.Visibility;
+import com.android.tools.r8.kotlin.TestKotlinClass.Visibility;
 import com.android.tools.r8.naming.MemberNaming;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DexInspector;
@@ -25,14 +25,14 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
 
   private static final String JAVA_LANG_STRING = "java.lang.String";
 
-  private static final KotlinCompanionClass ACCESSOR_COMPANION_PROPERTY_CLASS =
-      new KotlinCompanionClass("accessors.Accessor")
+  private static final TestKotlinCompanionClass ACCESSOR_COMPANION_PROPERTY_CLASS =
+      new TestKotlinCompanionClass("accessors.Accessor")
           .addProperty("property", JAVA_LANG_STRING, Visibility.PRIVATE);
 
   private static final String PROPERTIES_PACKAGE_NAME = "properties";
 
-  private static final KotlinCompanionClass COMPANION_PROPERTY_CLASS =
-      new KotlinCompanionClass("properties.CompanionProperties")
+  private static final TestKotlinCompanionClass COMPANION_PROPERTY_CLASS =
+      new TestKotlinCompanionClass("properties.CompanionProperties")
           .addProperty("privateProp", JAVA_LANG_STRING, Visibility.PRIVATE)
           .addProperty("protectedProp", JAVA_LANG_STRING, Visibility.PROTECTED)
           .addProperty("internalProp", JAVA_LANG_STRING, Visibility.INTERNAL)
@@ -170,7 +170,7 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
         "accessor_accessCompanionPrivate");
     runTest("accessors", mainClass, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
-      KotlinCompanionClass testedClass = ACCESSOR_COMPANION_PROPERTY_CLASS;
+      TestKotlinCompanionClass testedClass = ACCESSOR_COMPANION_PROPERTY_CLASS;
       ClassSubject outerClass = checkClassExists(dexInspector,
           testedClass.getOuterClassName());
       ClassSubject companionClass = checkClassExists(dexInspector,

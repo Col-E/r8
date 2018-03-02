@@ -16,6 +16,7 @@ import com.android.tools.r8.graph.DexDebugEvent.SetInlineFrame;
 import com.android.tools.r8.graph.DexDebugEvent.SetPrologueEnd;
 import com.android.tools.r8.graph.DexMethodHandle.MethodHandleType;
 import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.naming.NamingLens;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
@@ -71,6 +72,10 @@ public class DexItemFactory {
               catchAllType, catchAllType,
               nullValueType, nullValueType,
               unknownTypeName, unknownTypeName));
+
+  public DexItemFactory() {
+    this.kotlin = new Kotlin(this);
+  }
 
   public static boolean isInternalSentinel(DexItem item) {
     return internalSentinels.containsKey(item);
@@ -194,7 +199,7 @@ public class DexItemFactory {
   public final LongMethods longMethods = new LongMethods();
   public final ThrowableMethods throwableMethods = new ThrowableMethods();
   public final ClassMethods classMethods = new ClassMethods();
-  public final Kotlin kotlin = new Kotlin();
+  public final Kotlin kotlin;
 
   // Dex system annotations.
   // See https://source.android.com/devices/tech/dalvik/dex-format.html#system-annotation
@@ -332,24 +337,6 @@ public class DexItemFactory {
       consumer.accept(appendString);
       consumer.accept(appendStringBuffer);
       consumer.accept(appendBoolean);
-    }
-  }
-
-  public class Kotlin {
-    private Kotlin() {
-    }
-
-    public final Intrinsics intrinsics = new Intrinsics();
-
-    // kotlin.jvm.internal.Intrinsics class
-    public class Intrinsics {
-      private Intrinsics() {
-      }
-
-      public final DexType type = createType(createString("Lkotlin/jvm/internal/Intrinsics;"));
-      public final DexMethod throwParameterIsNullException =
-          createMethod(type, createProto(voidType, stringType), "throwParameterIsNullException");
-      public final DexMethod throwNpe = createMethod(type, createProto(voidType), "throwNpe");
     }
   }
 

@@ -16,15 +16,15 @@ import java.util.stream.Collectors;
  *
  * <p>See https://kotlinlang.org/docs/reference/data-classes.html</p>
  */
-class KotlinDataClass extends KotlinClass {
+class TestKotlinDataClass extends TestKotlinClass {
 
-  KotlinDataClass(String className) {
+  TestKotlinDataClass(String className) {
     super(className);
   }
 
   @Override
-  public KotlinDataClass addProperty(String name, String type, Visibility visibility) {
-    return (KotlinDataClass) super.addProperty(name, type, visibility);
+  public TestKotlinDataClass addProperty(String name, String type, Visibility visibility) {
+    return (TestKotlinDataClass) super.addProperty(name, type, visibility);
   }
 
   public MemberNaming.MethodSignature getComponentNFunctionForProperty(String name) {

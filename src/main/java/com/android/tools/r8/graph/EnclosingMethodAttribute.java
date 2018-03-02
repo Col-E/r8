@@ -12,7 +12,7 @@ import org.objectweb.asm.ClassWriter;
  * declared in the context of a constructor or method, in which case the method field will be
  * non-null. Otherwise, i.e., if the class is declared in an initializer, method is null.
  */
-public class EnclosingMethodAttribute {
+public final class EnclosingMethodAttribute {
 
   // Enclosing class of the inner class.
   // Null if the inner class is declared inside of a method or constructor.
@@ -47,5 +47,18 @@ public class EnclosingMethodAttribute {
 
   public DexType getEnclosingClass() {
     return enclosingClass;
+  }
+
+  @Override
+  public int hashCode() {
+    assert (enclosingClass == null) != (enclosingMethod == null);
+    return System.identityHashCode(enclosingClass) + System.identityHashCode(enclosingMethod);
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    return obj instanceof EnclosingMethodAttribute &&
+        enclosingClass == ((EnclosingMethodAttribute) obj).enclosingClass &&
+        enclosingMethod == ((EnclosingMethodAttribute) obj).enclosingMethod;
   }
 }

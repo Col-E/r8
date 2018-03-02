@@ -8,10 +8,10 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
-import com.android.tools.r8.ir.synthetic.SingleBlockSourceCode;
+import com.android.tools.r8.ir.synthetic.SyntheticSourceCode;
 
 // Represents source code of synthesized lambda class methods.
-abstract class SynthesizedLambdaSourceCode extends SingleBlockSourceCode {
+abstract class SynthesizedLambdaSourceCode extends SyntheticSourceCode {
 
   final DexMethod currentMethod;
   final LambdaClass lambda;

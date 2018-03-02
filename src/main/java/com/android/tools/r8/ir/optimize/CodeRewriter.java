@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue.DexValueBoolean;
@@ -116,6 +117,12 @@ public class CodeRewriter {
   private final DexItemFactory dexItemFactory;
   private final Set<DexMethod> libraryMethodsReturningReceiver;
   private final InternalOptions options;
+
+  // For some optimizations, e.g. optimizing synthetic classes, we may need to resolve
+  // the current class being optimized. Since all methods of this class are optimized
+  // together and are not concurrent to other optimizations, we just store current
+  // synthetic class.
+  private DexProgramClass cachedClass = null;
 
   public CodeRewriter(
       AppInfo appInfo, Set<DexMethod> libraryMethodsReturningReceiver, InternalOptions options) {
@@ -1026,13 +1033,8 @@ public class CodeRewriter {
     if (code.computeNormalExitBlocks().isEmpty()) {
       return;
     }
-    DexClass clazz = appInfo.definitionFor(method.method.getHolder());
-    if (clazz == null) {
-      // TODO(67672280): Synthesized lambda classes are also optimized. However, they are not
-      // added to the AppInfo.
-      assert method.accessFlags.isSynthetic();
-      return;
-    }
+    DexClass clazz = definitionFor(method.method.getHolder());
+    assert clazz != null;
     DominatorTree dominatorTree = new DominatorTree(code);
     Set<StaticPut> puts = Sets.newIdentityHashSet();
     Map<DexField, StaticPut> dominatingPuts = Maps.newIdentityHashMap();
@@ -1165,6 +1167,23 @@ public class CodeRewriter {
         }
       }
     }
+  }
+
+  private DexClass definitionFor(DexType type) {
+    if (cachedClass != null && cachedClass.type == type) {
+      return cachedClass;
+    }
+    return appInfo.definitionFor(type);
+  }
+
+  public void enterCachedClass(DexProgramClass clazz) {
+    assert cachedClass == null;
+    cachedClass = clazz;
+  }
+
+  public void leaveCachedClass(DexProgramClass clazz) {
+    assert cachedClass == clazz;
+    cachedClass = null;
   }
 
   public void removeCasts(IRCode code, TypeEnvironment typeEnvironment) {
@@ -2390,7 +2409,7 @@ public class CodeRewriter {
       if (type == dexItemFactory.throwableType) {
         return true;
       }
-      DexClass dexClass = appInfo.definitionFor(type);
+      DexClass dexClass = definitionFor(type);
       if (dexClass == null) {
         throw new CompilationError("Class or interface " + type.toSourceString() +
             " required for desugaring of try-with-resources is not found.");
