@@ -303,6 +303,13 @@ public class LiveIntervals implements Comparable<LiveIntervals> {
     return false;
   }
 
+  public boolean hasConflictingRegisters(LiveIntervals other) {
+    if (other.usesRegister(register) || (getType().isWide() && other.usesRegister(register + 1))) {
+      return true;
+    }
+    return false;
+  }
+
   public void clearRegisterAssignment() {
     register = NO_REGISTER;
     hint = null;

@@ -18,8 +18,6 @@ import com.android.tools.r8.ir.regalloc.LiveIntervals;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
-import it.unimi.dsi.fastutil.ints.IntList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -59,7 +57,7 @@ public class CfRegisterAllocator implements RegisterAllocator {
   private final PriorityQueue<LiveIntervals> unhandled = new PriorityQueue<>();
 
   // The set of registers that are free for allocation.
-  private final NavigableSet<Integer> freeRegisters = new TreeSet<>();
+  private NavigableSet<Integer> freeRegisters = new TreeSet<>();
 
   private int nextUnusedRegisterNumber = 0;
 
@@ -158,7 +156,6 @@ public class CfRegisterAllocator implements RegisterAllocator {
           }
         }
       }
-      IntList reactivedBeforeEnd = new IntArrayList(inactive.size());
       {
         // Check for inactive intervals that expired or become active.
         Iterator<LiveIntervals> it = inactive.iterator();
@@ -171,19 +168,35 @@ public class CfRegisterAllocator implements RegisterAllocator {
             assert inactiveIntervals.getRegister() != NO_REGISTER;
             active.add(inactiveIntervals);
             takeRegistersForIntervals(inactiveIntervals);
-          } else if (inactiveIntervals.overlaps(unhandledInterval)) {
-            reactivedBeforeEnd.add(inactiveIntervals.getRegister());
-            takeRegistersForIntervals(inactiveIntervals);
           }
         }
       }
 
-      // Perform the actual allocation.
-      assignRegisterToUnhandledInterval(
-          unhandledInterval, getNextFreeRegister(unhandledInterval.getType().isWide()));
-
-      // Add back the potentially free registers from the inactive set.
-      freeRegisters.addAll(reactivedBeforeEnd);
+      // Find a free register that is not used by an inactive interval that overlaps with
+      // unhandledInterval.
+      boolean wide = unhandledInterval.getType().isWide();
+      int register;
+      NavigableSet<Integer> previousFreeRegisters = new TreeSet<Integer>(freeRegisters);
+      while (true) {
+        register = getNextFreeRegister(wide);
+        boolean overlapsInactiveInterval = false;
+        for (LiveIntervals inactiveIntervals : inactive) {
+          if (unhandledInterval.hasConflictingRegisters(inactiveIntervals)
+              && unhandledInterval.overlaps(inactiveIntervals)) {
+            overlapsInactiveInterval = true;
+            break;
+          }
+        }
+        if (!overlapsInactiveInterval) {
+          break;
+        }
+        // Remove so that next invocation of getNextFreeRegister does not consider this.
+        freeRegisters.remove(register);
+        // For wide types, register + 1 and 2 might be good even though register + 0 and 1 weren't,
+        // so don't remove register+1 from freeRegisters.
+      }
+      freeRegisters = previousFreeRegisters;
+      assignRegisterToUnhandledInterval(unhandledInterval, register);
     }
   }
 
