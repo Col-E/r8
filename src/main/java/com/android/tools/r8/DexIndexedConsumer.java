@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 /**
@@ -150,7 +151,7 @@ public interface DexIndexedConsumer extends ProgramConsumer {
     private synchronized void synchronizedWrite(
         String entry, byte[] content, DiagnosticsHandler handler) {
       try {
-        ZipUtils.writeToZipStream(getStream(handler), entry, content);
+        ZipUtils.writeToZipStream(getStream(handler), entry, content, ZipEntry.STORED);
       } catch (IOException e) {
         handler.error(new IOExceptionDiagnostic(e, origin));
       }
@@ -166,7 +167,7 @@ public interface DexIndexedConsumer extends ProgramConsumer {
             ProgramResource resource = resources.get(i);
             String entryName = getDefaultDexFileName(i);
             byte[] bytes = ByteStreams.toByteArray(closer.register(resource.getByteStream()));
-            ZipUtils.writeToZipStream(out, entryName, bytes);
+            ZipUtils.writeToZipStream(out, entryName, bytes, ZipEntry.STORED);
           }
         }
       }

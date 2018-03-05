@@ -10,6 +10,8 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
@@ -51,8 +53,19 @@ public class DexFileMergerHelper {
 
   public static void run(
       D8Command command, Boolean minimalMainDex, Map<String, Integer> inputOrdering)
-      throws IOException, CompilationException, ExecutionException {
+      throws CompilationFailedException {
     InternalOptions options = command.getInternalOptions();
+    ExceptionUtils.withD8CompilationHandler(
+        options.reporter,
+        () -> runInternal(command.getInputApp(), options, minimalMainDex, inputOrdering));
+  }
+
+  private static void runInternal(
+      AndroidApp inputApp,
+      InternalOptions options,
+      Boolean minimalMainDex,
+      Map<String, Integer> inputOrdering)
+      throws IOException, CompilationException {
     options.enableDesugaring = false;
     options.enableMainDexListCheck = false;
     options.minimalMainDex = minimalMainDex;
@@ -65,7 +78,7 @@ public class DexFileMergerHelper {
       try {
         Timing timing = new Timing("DexFileMerger");
         DexApplication app =
-            new ApplicationReader(command.getInputApp(), options, timing)
+            new ApplicationReader(inputApp, options, timing)
                 .read(
                     null,
                     executor,

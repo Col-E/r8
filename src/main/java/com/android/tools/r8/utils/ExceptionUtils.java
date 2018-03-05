@@ -11,6 +11,7 @@ import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.errors.CompilationError;
 import java.io.IOException;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 public abstract class ExceptionUtils {
 
@@ -35,23 +36,20 @@ public abstract class ExceptionUtils {
     void run() throws IOException, CompilationException, CompilationError, ResourceException;
   }
 
-  private enum Compiler {
-    D8,
-    R8;
-  }
-
   public static void withD8CompilationHandler(Reporter reporter, CompileAction action)
       throws CompilationFailedException {
-    withCompilationHandler(reporter, action, Compiler.D8);
+    withCompilationHandler(reporter, action, CompilationException::getMessageForD8);
   }
 
   public static void withR8CompilationHandler(Reporter reporter, CompileAction action)
       throws CompilationFailedException {
-    withCompilationHandler(reporter, action, Compiler.R8);
+    withCompilationHandler(reporter, action, CompilationException::getMessageForR8);
   }
 
   public static void withCompilationHandler(
-      Reporter reporter, CompileAction action, Compiler compiler)
+      Reporter reporter,
+      CompileAction action,
+      Function<CompilationException, String> compilerMessage)
       throws CompilationFailedException {
     try {
       try {
@@ -59,10 +57,7 @@ public abstract class ExceptionUtils {
       } catch (IOException e) {
         throw reporter.fatalError(new IOExceptionDiagnostic(e));
       } catch (CompilationException e) {
-        throw reporter.fatalError(
-            new StringDiagnostic(
-                compiler == Compiler.D8 ? e.getMessageForD8() : e.getMessageForR8()),
-            e);
+        throw reporter.fatalError(new StringDiagnostic(compilerMessage.apply(e)), e);
       } catch (CompilationError e) {
         throw reporter.fatalError(e);
       } catch (ResourceException e) {

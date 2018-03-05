@@ -494,7 +494,8 @@ public class TestBase {
         StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING))) {
       for (byte[] clazz : classes) {
         String name = loadClassFromDump(clazz).getTypeName();
-        ZipUtils.writeToZipStream(out, DescriptorUtils.getPathFromJavaType(name), clazz);
+        ZipUtils.writeToZipStream(
+            out, DescriptorUtils.getPathFromJavaType(name), clazz, ZipEntry.STORED);
       }
     }
     return result.toPath();

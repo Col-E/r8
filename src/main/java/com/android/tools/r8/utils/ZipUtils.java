@@ -65,15 +65,28 @@ public class ZipUtils {
     return outFiles;
   }
 
-  public static void writeToZipStream(ZipOutputStream stream, String entry, byte[] content)
+  public static void writeToZipStream(
+      ZipOutputStream stream, String entry, byte[] content, int compressionMethod)
+      throws IOException {
+    writeToZipStream(stream, entry, content, compressionMethod, false);
+  }
+
+  public static void writeToZipStream(
+      ZipOutputStream stream,
+      String entry,
+      byte[] content,
+      int compressionMethod,
+      boolean setZeroTime)
       throws IOException {
     CRC32 crc = new CRC32();
     crc.update(content);
     ZipEntry zipEntry = new ZipEntry(entry);
-    zipEntry.setMethod(ZipEntry.STORED);
+    zipEntry.setMethod(compressionMethod);
     zipEntry.setSize(content.length);
-    zipEntry.setCompressedSize(content.length);
     zipEntry.setCrc(crc.getValue());
+    if (setZeroTime) {
+      zipEntry.setTime(0);
+    }
     stream.putNextEntry(zipEntry);
     stream.write(content);
     stream.closeEntry();

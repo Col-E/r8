@@ -15,7 +15,6 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.maindexlist.MainDexListTests;
-import com.android.tools.r8.utils.AbortException;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.google.common.collect.ImmutableList;
@@ -81,7 +80,7 @@ public class DexFileMergerTests {
         });
   }
 
-  @Test(expected = AbortException.class)
+  @Test(expected = CompilationFailedException.class)
   public void failIfTooBig()
       throws IOException, ExecutionException, CompilationException, CompilationFailedException {
     // Generates an application with two classes, each with the number of methods just enough not to

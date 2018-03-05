@@ -21,6 +21,7 @@ import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 /**
@@ -157,7 +158,7 @@ public interface DexFilePerClassFileConsumer extends ProgramConsumer {
     private synchronized void synchronizedWrite(
         String entry, byte[] content, DiagnosticsHandler handler) {
       try {
-        ZipUtils.writeToZipStream(getStream(handler), entry, content);
+        ZipUtils.writeToZipStream(getStream(handler), entry, content, ZipEntry.STORED);
       } catch (IOException e) {
         handler.error(new IOExceptionDiagnostic(e, origin));
       }
@@ -176,7 +177,7 @@ public interface DexFilePerClassFileConsumer extends ProgramConsumer {
             String primaryClassDescriptor = primaryClassDescriptors.get(resource);
             String entryName = getDexFileName(primaryClassDescriptor);
             byte[] bytes = ByteStreams.toByteArray(closer.register(resource.getByteStream()));
-            ZipUtils.writeToZipStream(out, entryName, bytes);
+            ZipUtils.writeToZipStream(out, entryName, bytes, ZipEntry.STORED);
           }
         }
       }

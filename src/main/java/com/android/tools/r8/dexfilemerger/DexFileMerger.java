@@ -4,32 +4,36 @@
 
 package com.android.tools.r8.dexfilemerger;
 
-import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.DexFileMergerHelper;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.IOExceptionDiagnostic;
 import com.android.tools.r8.utils.OptionsParsing;
 import com.android.tools.r8.utils.OptionsParsing.ParseContext;
 import com.android.tools.r8.utils.StringDiagnostic;
+import com.android.tools.r8.utils.ZipUtils;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.concurrent.ExecutionException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 public class DexFileMerger {
@@ -170,29 +174,34 @@ public class DexFileMerger {
   }
 
   /**
-   * Extends DexIndexedConsumer.ArchiveConsumer with support for custom dex file name prefix,
-   * reindexing a single dex output file to a nonzero index and reporting if any data has been
-   * written.
+   * Implements a DexIndexedConsumer writing into a ZipStream with support for custom dex file name
+   * prefix, reindexing a single dex output file to a nonzero index and reporting if any data has
+   * been written.
    */
-  private static class ArchiveConsumer extends DexIndexedConsumer.ArchiveConsumer {
-    private final Integer singleFixedFileIndex;
+  private static class ArchiveConsumer implements DexIndexedConsumer {
+    private final Path path;
     private final String prefix;
+    private final Integer singleFixedFileIndex;
+    private final Origin origin;
+    private ZipOutputStream stream = null;
 
+    private int highestIndexWritten = -1;
     private final Map<Integer, Runnable> writers = new TreeMap<>();
+    private boolean hasWrittenSomething = false;
 
     /** If singleFixedFileIndex is not null then we expect only one output dex file */
     private ArchiveConsumer(Path path, String prefix, Integer singleFixedFileIndex) {
-      super(path);
+      this.path = path;
       this.prefix = prefix;
       this.singleFixedFileIndex = singleFixedFileIndex;
+      this.origin = new PathOrigin(path);
     }
 
-    private boolean hasAnythingToWrite() {
-      return !writers.isEmpty();
+    private boolean hasWrittenSomething() {
+      return hasWrittenSomething;
     }
 
-    @Override
-    protected String getDexFileName(int fileIndex) {
+    private String getDexFileName(int fileIndex) {
       if (singleFixedFileIndex != null) {
         fileIndex = singleFixedFileIndex;
       }
@@ -206,15 +215,57 @@ public class DexFileMerger {
         handler.error(new StringDiagnostic("Result does not fit into a single dex file."));
         return;
       }
-      writers.put(fileIndex, () -> super.accept(fileIndex, data, descriptors, handler));
+      writers.put(fileIndex, () -> writeEntry(fileIndex, data, descriptors, handler));
+
+      while (writers.containsKey(highestIndexWritten + 1)) {
+        ++highestIndexWritten;
+        writers.get(highestIndexWritten).run();
+        writers.remove(highestIndexWritten);
+      }
+    }
+
+    /** Get or open the zip output stream. */
+    private synchronized ZipOutputStream getStream(DiagnosticsHandler handler) {
+      if (stream == null) {
+        try {
+          stream =
+              new ZipOutputStream(
+                  Files.newOutputStream(
+                      path, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING));
+        } catch (IOException e) {
+          handler.error(new IOExceptionDiagnostic(e, origin));
+        }
+      }
+      return stream;
+    }
+
+    private void writeEntry(
+        int fileIndex, byte[] data, Set<String> descriptors, DiagnosticsHandler handler) {
+      try {
+        ZipUtils.writeToZipStream(
+            getStream(handler), getDexFileName(fileIndex), data, ZipEntry.DEFLATED, true);
+        hasWrittenSomething = true;
+      } catch (IOException e) {
+        handler.error(new IOExceptionDiagnostic(e, origin));
+      }
     }
 
     @Override
     public void finished(DiagnosticsHandler handler) {
-      for (Runnable writer : writers.values()) {
-        writer.run();
+      if (!writers.isEmpty()) {
+        handler.error(
+            new StringDiagnostic(
+                "Failed to write zip, for a multidex output some of the classes.dex files were"
+                    + " not produced."));
       }
-      super.finished(handler);
+      try {
+        if (stream != null) {
+          stream.close();
+          stream = null;
+        }
+      } catch (IOException e) {
+        handler.error(new IOExceptionDiagnostic(e, origin));
+      }
     }
   }
 
@@ -235,8 +286,7 @@ public class DexFileMerger {
     return shard;
   }
 
-  public static void run(String[] args)
-      throws CompilationFailedException, IOException, CompilationException, ExecutionException {
+  public static void run(String[] args) throws CompilationFailedException, IOException {
     Options options = parseArguments(args);
 
     if (options.inputArchives.isEmpty()) {
@@ -302,7 +352,7 @@ public class DexFileMerger {
     DexFileMergerHelper.run(builder.build(), options.minimalMainDex, inputOrdering);
 
     // If input was empty we still need to write out an empty zip.
-    if (!consumer.hasAnythingToWrite()) {
+    if (!consumer.hasWrittenSomething()) {
       File f = new File(options.outputArchive);
       ZipOutputStream out = new ZipOutputStream(new FileOutputStream(f));
       out.close();
@@ -315,17 +365,14 @@ public class DexFileMerger {
         printArgs(args);
       }
       run(args);
-    } catch (CompilationFailedException
-        | IOException
-        | CompilationException
-        | ExecutionException e) {
+    } catch (CompilationFailedException | IOException e) {
       System.err.println("Merge failed: " + e.getMessage());
       System.exit(1);
     }
   }
 
   private static void printArgs(String[] args) {
-    System.err.printf("r8.DexFileMerger");
+    System.err.print("r8.DexFileMerger");
     for (String s : args) {
       System.err.printf(" %s", s);
     }

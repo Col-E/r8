@@ -582,7 +582,7 @@ public class CompatDx {
               if (isClassFile(Paths.get(entry.getName()))) {
                 try (InputStream entryStream = zipFile.getInputStream(entry)) {
                   ZipUtils.writeToZipStream(
-                      out, entry.getName(), ByteStreams.toByteArray(entryStream));
+                      out, entry.getName(), ByteStreams.toByteArray(entryStream), ZipEntry.STORED);
                 }
               }
             }

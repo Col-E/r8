@@ -19,6 +19,7 @@ import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.List;
+import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 /**
@@ -137,7 +138,7 @@ public interface ClassFileConsumer extends ProgramConsumer {
     private synchronized void synchronizedWrite(
         String entry, byte[] content, DiagnosticsHandler handler) {
       try {
-        ZipUtils.writeToZipStream(getStream(handler), entry, content);
+        ZipUtils.writeToZipStream(getStream(handler), entry, content, ZipEntry.STORED);
       } catch (IOException e) {
         handler.error(new IOExceptionDiagnostic(e, origin));
       }
@@ -159,7 +160,7 @@ public interface ClassFileConsumer extends ProgramConsumer {
             String className = resource.getClassDescriptors().iterator().next();
             String entryName = getClassFileName(className);
             byte[] bytes = ByteStreams.toByteArray(closer.register(resource.getByteStream()));
-            ZipUtils.writeToZipStream(out, entryName, bytes);
+            ZipUtils.writeToZipStream(out, entryName, bytes, ZipEntry.STORED);
           }
         }
       }
