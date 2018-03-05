@@ -64,6 +64,21 @@ public class FeatureClassMappingTest {
   }
 
   @Test
+  public void testCatchAllWildcards() throws Exception {
+    List<String> lines =
+        ImmutableList.of(
+            "com.google.Feature1:feature1",
+            "*:base",
+            "com.strange.*:feature2");
+    FeatureClassMapping mapping = new FeatureClassMapping(lines);
+    assertEquals(mapping.featureForClass("com.google.Feature1"), "feature1");
+    assertEquals(mapping.featureForClass("com.google.different.Feature1"), "base");
+    assertEquals(mapping.featureForClass("com.strange.different.Feature1"), "feature2");
+    assertEquals(mapping.featureForClass("Feature1"), "base");
+    assertEquals(mapping.featureForClass("a.b.z.A"), "base");
+  }
+
+  @Test
   public void testWrongLines() throws Exception {
     // No colon.
     ensureThrowsMappingException("foo");

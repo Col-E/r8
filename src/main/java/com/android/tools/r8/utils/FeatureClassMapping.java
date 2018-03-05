@@ -146,24 +146,30 @@ public class FeatureClassMapping {
     private static Pattern identifier = Pattern.compile("[A-Za-z_\\-][A-Za-z0-9_$\\-]*");
     final String predicate;
     final String feature;
+    final boolean isCatchAll;
     // False implies class predicate.
     final boolean isWildcard;
 
     FeaturePredicate(String predicate, String feature) throws FeatureMappingException {
       isWildcard = predicate.endsWith(".*");
-      if (isWildcard) {
-        this.predicate = predicate.substring(0, predicate.length() - 3);
+      isCatchAll =  predicate.equals("*");
+      if (isCatchAll) {
+        this.predicate = "";
+      } else if (isWildcard) {
+        this.predicate = predicate.substring(0, predicate.length() - 2);
       } else {
         this.predicate = predicate;
       }
-      if (!DescriptorUtils.isValidJavaType(this.predicate)) {
+      if (!DescriptorUtils.isValidJavaType(this.predicate) && !isCatchAll) {
         throw new FeatureMappingException(this.predicate + " is not a valid identifier");
       }
       this.feature = feature;
     }
 
     boolean match(String className) {
-      if (isWildcard) {
+      if (isCatchAll) {
+        return true;
+      } else if (isWildcard) {
         return className.startsWith(predicate);
       } else {
         // We also put inner classes into the same feature.
