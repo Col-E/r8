@@ -32,6 +32,9 @@ import org.objectweb.asm.util.Textifier;
 import org.objectweb.asm.util.TraceMethodVisitor;
 
 public class CfApplicationWriter {
+  private static final boolean RUN_VERIFIER = false;
+  private static final boolean PRINT_CF = false;
+
   private final DexApplication application;
   private final NamingLens namingLens;
   private final InternalOptions options;
@@ -116,7 +119,15 @@ public class CfApplicationWriter {
     writer.visitEnd();
 
     byte[] result = writer.toByteArray();
-    assert verifyCf(result);
+    if (PRINT_CF) {
+      System.out.print(printCf(result));
+      System.out.flush();
+    }
+    if (RUN_VERIFIER) {
+      // Generally, this will fail with ClassNotFoundException,
+      // so don't assert that verifyCf() returns true.
+      verifyCf(result);
+    }
     ExceptionUtils.withConsumeResourceHandler(
         options.reporter, handler -> consumer.accept(result, desc, handler));
   }
@@ -174,10 +185,9 @@ public class CfApplicationWriter {
     return writer.toString();
   }
 
-  private static boolean verifyCf(byte[] result) {
+  private static void verifyCf(byte[] result) {
     ClassReader reader = new ClassReader(result);
     PrintWriter pw = new PrintWriter(System.out);
     CheckClassAdapter.verify(reader, false, pw);
-    return true;
   }
 }
