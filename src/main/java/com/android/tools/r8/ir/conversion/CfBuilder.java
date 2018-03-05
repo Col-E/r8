@@ -201,6 +201,7 @@ public class CfBuilder {
     CfLabel tryCatchStart = null;
     CatchHandlers<BasicBlock> tryCatchHandlers = CatchHandlers.EMPTY_BASIC_BLOCK;
     BasicBlock pendingFrame = null;
+    boolean previousFallthrough = false;
     do {
       CatchHandlers<BasicBlock> handlers = block.getCatchHandlers();
       if (!tryCatchHandlers.equals(handlers)) {
@@ -218,6 +219,24 @@ public class CfBuilder {
         tryCatchHandlers = handlers;
       }
       BasicBlock nextBlock = blockIterator.hasNext() ? blockIterator.next() : null;
+      // If previousBlock is fallthrough, then it is counted in getPredecessors().size(), but
+      // we only want to set a pendingFrame if we have a predecessor which is not previousBlock.
+      if (block.getPredecessors().size() > (previousFallthrough ? 1 : 0)) {
+        assert stack.isEmpty();
+        pendingFrame = block;
+        emitLabel(getLabel(block));
+      }
+      if (pendingFrame != null) {
+        boolean advancesPC = hasMaterializingInstructions(block, nextBlock);
+        // If block has no materializing instructions, then we postpone emitting the frame
+        // until the next block. In this case, nextBlock must be non-null
+        // (or we would fall off the edge of the method).
+        assert advancesPC || nextBlock != null;
+        if (advancesPC) {
+          addFrame(pendingFrame, Collections.emptyList());
+          pendingFrame = null;
+        }
+      }
       JumpInstruction exit = block.exit();
       boolean fallthrough =
           (exit.isGoto() && exit.asGoto().getTarget() == nextBlock)
@@ -230,29 +249,8 @@ public class CfBuilder {
         pendingLocalChanges = true;
       }
       buildCfInstructions(block, fallthrough, stack);
-      if (nextBlock != null) {
-        if (!fallthrough || nextBlock.getPredecessors().size() > 1) {
-          assert stack.isEmpty();
-          pendingFrame = nextBlock;
-          emitLabel(getLabel(nextBlock));
-        }
-        if (pendingFrame != null) {
-          BasicBlock nextNextBlock = null;
-          if (blockIterator.hasNext()) {
-            nextNextBlock = blockIterator.next();
-            blockIterator.previous();
-          }
-          boolean advancesPC = hasMaterializingInstructions(nextBlock, nextNextBlock);
-          // If nextBlock has no materializing instructions, then nextNextBlock must be non-null
-          // (or we would fall off the edge of the method).
-          assert advancesPC || nextNextBlock != null;
-          if (advancesPC) {
-            addFrame(pendingFrame, Collections.emptyList());
-            pendingFrame = null;
-          }
-        }
-      }
       block = nextBlock;
+      previousFallthrough = fallthrough;
     } while (block != null);
     assert stack.isEmpty();
     CfLabel endLabel = ensureLabel();
