@@ -128,7 +128,6 @@ public class R8RunExamplesTest extends R8RunExamplesCommon {
   @Override
   protected Map<String, TestCondition> getFailingRunCf() {
     return new ImmutableMap.Builder<String, TestCondition>()
-        .put("floating_point_annotations.FloatingPointValuedAnnotationTest", match(R8_COMPILER))
         .build();
   }
 

@@ -13,6 +13,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.origin.Origin;
 import java.nio.file.Path;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -22,6 +23,7 @@ public class AnnotationTestRunner {
   @Rule public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
   @Test
+  @Ignore
   public void test() throws Exception {
     ProcessResult runInput =
         ToolHelper.runJava(ToolHelper.getClassPathForTests(), CLASS.getCanonicalName());
