@@ -396,10 +396,6 @@ public class IRBuilder {
     // necessary.
     ir.splitCriticalEdges();
 
-    // Create block order and make sure that all blocks are immediately followed by their
-    // fallthrough block if any.
-    ir.traceBlocks();
-
     // Clear the code so we don't build multiple times.
     source.clear();
     source = null;

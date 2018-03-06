@@ -348,7 +348,6 @@ public class ProtoLitePruner extends ProtoLiteBase {
     // the fallthrough label. This can introduce critical edges. Therefore, we split critical
     // edges to maintain our edge-split form.
     code.splitCriticalEdges();
-    code.traceBlocks();
     assert code.isConsistentSSA();
   }
 

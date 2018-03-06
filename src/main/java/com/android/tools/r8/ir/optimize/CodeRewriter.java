@@ -565,7 +565,6 @@ public class CodeRewriter {
     // being split on the way in but does not maintain this property. We therefore split
     // critical edges at exit.
     code.splitCriticalEdges();
-    code.traceBlocks();
     assert code.isConsistentSSA();
   }
 
@@ -2028,9 +2027,6 @@ public class CodeRewriter {
     }
     code.removeMarkedBlocks(color);
     code.returnMarkingColor(color);
-    if (ifBranchFlipped) {
-      code.traceBlocks();
-    }
     assert code.isConsistentSSA();
   }
 

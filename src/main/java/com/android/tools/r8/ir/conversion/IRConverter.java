@@ -476,6 +476,7 @@ public class IRConverter {
       Log.debug(getClass(), "Initial (SSA) flow graph for %s:\n%s", method.toSourceString(), code);
     }
     assert code.isConsistentSSA();
+    code.traceBlocks();
     RegisterAllocator registerAllocator = performRegisterAllocation(code, method);
     method.setCode(code, registerAllocator, options);
     if (Log.ENABLED) {
@@ -635,7 +636,6 @@ public class IRConverter {
 
     if (options.testing.invertConditionals) {
       invertConditionalsForTesting(code);
-      code.traceBlocks();
     }
 
     if (options.enableNonNullTracking && nonNullTracker != null) {
@@ -699,6 +699,7 @@ public class IRConverter {
   }
 
   private void finalizeIR(DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
+    code.traceBlocks();
     if (options.isGeneratingClassFiles()) {
       finalizeToCf(method, code, feedback);
     } else {
