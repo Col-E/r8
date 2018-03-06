@@ -23,8 +23,8 @@ public class AnnotationTestRunner {
 
   @Test
   public void test() throws Exception {
-    ProcessResult runInput = ToolHelper
-        .runJava(ToolHelper.getClassPathForTests(), CLASS.getCanonicalName());
+    ProcessResult runInput =
+        ToolHelper.runJava(ToolHelper.getClassPathForTests(), CLASS.getCanonicalName());
     assertEquals(0, runInput.exitCode);
     Path out = temp.getRoot().toPath();
     R8.run(
