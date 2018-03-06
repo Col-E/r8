@@ -1,8 +1,15 @@
 Lmultidex002/Annotated2;
 Lmultidex002/Annotated;
+Lmultidex002/AnnotatedDirectMethod;
+Lmultidex002/AnnotatedInstanceField;
+Lmultidex002/AnnotatedMethodParameter;
+Lmultidex002/AnnotatedStaticField;
+Lmultidex002/AnnotatedVirtualMethod;
 Lmultidex002/AnnotationWithClass;
 Lmultidex002/AnnotationWithEnum2;
+Lmultidex002/AnnotationWithEnum3;
 Lmultidex002/AnnotationWithEnum;
+Lmultidex002/AnnotationWithoutEnum;
 Lmultidex002/InterfaceWithEnum;
 Lmultidex002/IntermediateClass;
 Lmultidex002/MainActivity;

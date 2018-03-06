@@ -146,6 +146,46 @@ public abstract class DexClass extends DexItem {
     return result;
   }
 
+  /**
+   * For all annotations on the class and all annotations on its methods and fields apply the
+   * specified consumer.
+   */
+  public void forEachAnnotation(Consumer<DexAnnotation> consumer) {
+    for (DexAnnotation annotation : annotations.annotations) {
+      consumer.accept(annotation);
+    }
+    for (DexEncodedMethod method : directMethods()) {
+      for (DexAnnotation annotation : method.annotations.annotations) {
+        consumer.accept(annotation);
+      }
+      for (DexAnnotationSet parameterAnnotations : method.parameterAnnotations.values) {
+        for (DexAnnotation annotation : parameterAnnotations.annotations) {
+          consumer.accept(annotation);
+        }
+      }
+    }
+    for (DexEncodedMethod method : virtualMethods()) {
+      for (DexAnnotation annotation : method.annotations.annotations) {
+        consumer.accept(annotation);
+      }
+      for (DexAnnotationSet parameterAnnotations : method.parameterAnnotations.values) {
+        for (DexAnnotation annotation : parameterAnnotations.annotations) {
+          consumer.accept(annotation);
+        }
+      }
+    }
+    for (DexEncodedField field : instanceFields()) {
+      for (DexAnnotation annotation : field.annotations.annotations) {
+        consumer.accept(annotation);
+      }
+    }
+    for (DexEncodedField field : staticFields()) {
+      for (DexAnnotation annotation : field.annotations.annotations) {
+        consumer.accept(annotation);
+      }
+    }
+  }
+
   public void forEachField(Consumer<DexEncodedField> consumer) {
     for (DexEncodedField field : staticFields()) {
       consumer.accept(field);
