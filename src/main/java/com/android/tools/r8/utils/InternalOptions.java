@@ -501,4 +501,17 @@ public class InternalOptions {
   public boolean canHaveThisTypeVerifierBug() {
     return minApiLevel < AndroidApiLevel.M.getLevel();
   }
+
+  // The dalvik jit had a bug where the long operations add, sub, or, xor and and would write
+  // the first part of the result long before reading the second part of the input longs.
+  public boolean canHaveOverlappingLongRegisterBug() {
+    return minApiLevel < AndroidApiLevel.L.getLevel();
+  }
+
+  // Some dalvik versions found in the wild perform invalid JIT compilation of cmp-long
+  // instructions where the result register overlaps with the input registers.
+  // See b/74084493.
+  public boolean canHaveCmpLongBug() {
+    return minApiLevel < AndroidApiLevel.L.getLevel();
+  }
 }

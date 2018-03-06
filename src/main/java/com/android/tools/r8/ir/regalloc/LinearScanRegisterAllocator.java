@@ -1090,6 +1090,46 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     return arrayReg == register;
   }
 
+  private boolean needsSingleResultOverlappingLongOperandsWorkaround(LiveIntervals intervals) {
+    if (!options.canHaveCmpLongBug()) {
+      return false;
+    }
+    if (intervals.requiredRegisters() == 2) {
+      // Not the live range for a single value and therefore not the output of cmp-long.
+      return false;
+    }
+    if (intervals.getValue().isPhi()) {
+      // If this writes a new register pair it will be via a move and not an cmp-long operation.
+      return false;
+    }
+    if (intervals.getSplitParent() != intervals) {
+      // This is a split of a parent interval and therefore if this leads to a write of a
+      // register it will be via a move and not an cmp-long operation.
+      return false;
+    }
+    Instruction definition = intervals.getValue().definition;
+    return definition.isCmp() && definition.asCmp().inValues().get(0).outType().isWide();
+  }
+
+  private boolean singleOverlappingLong(int register1, int register2) {
+    return register1 == register2 || register1 == (register2 + 1);
+  }
+
+  // Is one of the cmp-long argument registers the same as the register we are
+  // allocating for the result?
+  private boolean isSingleResultOverlappingLongOperands(LiveIntervals intervals, int register) {
+    assert needsSingleResultOverlappingLongOperandsWorkaround(intervals);
+    Value left = intervals.getValue().definition.asCmp().leftValue();
+    Value right = intervals.getValue().definition.asCmp().rightValue();
+    int leftReg =
+        left.getLiveIntervals().getSplitCovering(intervals.getStart()).getRegister();
+    int rightReg =
+        right.getLiveIntervals().getSplitCovering(intervals.getStart()).getRegister();
+    assert leftReg != NO_REGISTER;
+    assert rightReg != NO_REGISTER;
+    return singleOverlappingLong(register, leftReg) || singleOverlappingLong(register, rightReg);
+  }
+
   // The dalvik jit had a bug where the long operations add, sub, or, xor and and would write
   // the first part of the result long before reading the second part of the input longs.
   //
@@ -1099,7 +1139,10 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   //
   // Dalvik would add v0 and v2 and write that to v3. It would then read v1 and v3 and produce
   // the wrong result.
-  private boolean needsOverlappingLongRegisterWorkaround(LiveIntervals intervals) {
+  private boolean needsLongResultOverlappingLongOperandsWorkaround(LiveIntervals intervals) {
+    if (!options.canHaveOverlappingLongRegisterBug()) {
+      return false;
+    }
     if (intervals.requiredRegisters() == 1) {
       // Not the live range for a wide value.
       return false;
@@ -1125,8 +1168,14 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     return false;
   }
 
-  private boolean hasOverlappingLongRegisters(LiveIntervals unhandledInterval, int register) {
-    assert needsOverlappingLongRegisterWorkaround(unhandledInterval);
+  private boolean longOverlappingLong(int register1, int register2) {
+    return register1 == register2 || register1 == (register2 + 1)
+        || (register1 + 1) == register2 || (register1 + 1) == (register2 + 1);
+  }
+
+  private boolean isLongResultOverlappingLongOperands(
+      LiveIntervals unhandledInterval, int register) {
+    assert needsLongResultOverlappingLongOperandsWorkaround(unhandledInterval);
     Value left = unhandledInterval.getValue().definition.asBinop().leftValue();
     Value right = unhandledInterval.getValue().definition.asBinop().rightValue();
     int leftReg =
@@ -1135,11 +1184,9 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
         right.getLiveIntervals().getSplitCovering(unhandledInterval.getStart()).getRegister();
     assert leftReg != NO_REGISTER && rightReg != NO_REGISTER;
     // The dalvik bug is actually only for overlap with the second operand, For now we
-    // make sure that there is no overlap with either operand.
-    if ((leftReg + 1) == register || (rightReg + 1) == register) {
-      return true;
-    }
-    return false;
+    // make sure that there is no overlap with either register of either operand. Some vendor
+    // optimization have bees seen to need this more conservative check.
+    return longOverlappingLong(register, leftReg) || longOverlappingLong(register, rightReg);
   }
 
   // Intervals overlap a move exception interval if one of the splits of the intervals does.
@@ -1416,8 +1463,8 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       }
       if (freePosition >= unhandledInterval.getEnd()) {
         // Check for overlapping long registers issue.
-        if (needsOverlappingLongRegisterWorkaround(unhandledInterval) &&
-            hasOverlappingLongRegisters(unhandledInterval, register)) {
+        if (needsLongResultOverlappingLongOperandsWorkaround(unhandledInterval) &&
+            isLongResultOverlappingLongOperands(unhandledInterval, register)) {
           return false;
         }
         // Check for aget-wide bug in recent Art VMs.
@@ -1513,9 +1560,24 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     if (candidate == REGISTER_CANDIDATE_NOT_FOUND) {
       return candidate;
     }
-    if (needsOverlappingLongRegisterWorkaround(unhandledInterval)) {
+    if (needsLongResultOverlappingLongOperandsWorkaround(unhandledInterval)) {
       int lastCandidate = candidate;
-      while (hasOverlappingLongRegisters(unhandledInterval, candidate)) {
+      while (isLongResultOverlappingLongOperands(unhandledInterval, candidate)) {
+        // Make the overlapping register unavailable for allocation and try again.
+        freePositions.set(candidate, 0);
+        candidate = getLargestCandidate(registerConstraint, freePositions, needsRegisterPair, type);
+        // If there are only invalid candidates of the give type we will end up with the same
+        // candidate returned again once we have tried them all. In that case we didn't find a
+        // valid register candidate and we need to broaden the search to other types.
+        if (lastCandidate == candidate) {
+          return REGISTER_CANDIDATE_NOT_FOUND;
+        }
+        lastCandidate = candidate;
+      }
+    }
+    if (needsSingleResultOverlappingLongOperandsWorkaround(unhandledInterval)) {
+      int lastCandidate = candidate;
+      while (isSingleResultOverlappingLongOperands(unhandledInterval, candidate)) {
         // Make the overlapping register unavailable for allocation and try again.
         freePositions.set(candidate, 0);
         candidate = getLargestCandidate(registerConstraint, freePositions, needsRegisterPair, type);

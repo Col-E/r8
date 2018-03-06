@@ -35,12 +35,6 @@ public class Add extends ArithmeticBinop {
 
   @Override
   public com.android.tools.r8.code.Instruction CreateLong(int dest, int left, int right) {
-    // The dalvik jit had a bug where the long operations add, sub, or, xor and and would write
-    // the first part of the result long before reading the second part of the input longs.
-    // Therefore, there can be no overlap of the second part of an input long and the first
-    // part of the output long.
-    assert dest != left + 1;
-    assert dest != right + 1;
     return new AddLong(dest, left, right);
   }
 

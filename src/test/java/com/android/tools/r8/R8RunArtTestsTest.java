@@ -145,6 +145,10 @@ public abstract class R8RunArtTestsTest {
           .put("974-verify-interface-super", AndroidApiLevel.N)
           // Desugaring of interface private methods is not yet supported.
           .put("975-iface-private", AndroidApiLevel.N)
+          // The extended check for overlapping long registers cause this to run out of registers.
+          .put("421-large-frame", AndroidApiLevel.L)
+          // The extended check for overlapping long registers cause this to run out of registers.
+          .put("551-checker-shifter-operand", AndroidApiLevel.L)
           .build();
 
   // Tests that timeout when run with Art.
