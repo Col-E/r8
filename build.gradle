@@ -36,7 +36,7 @@ ext {
     joptSimpleVersion = '4.6'
     jsonSimpleVersion = '1.1'
     junitVersion = '4.12'
-    kotlinVersion = '1.2.0'
+    kotlinVersion = '1.2.30'
     protobufVersion = '3.0.0'
     smaliVersion = '2.2b4'
 }
