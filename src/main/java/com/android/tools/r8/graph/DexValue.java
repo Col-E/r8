@@ -91,6 +91,8 @@ public abstract class DexValue extends DexItem {
     throw new Unreachable("No default value for unexpected type " + type);
   }
 
+  public abstract Object getBoxedValue();
+
   // Returns a const instruction for the non default value.
   public Instruction asConstInstruction(boolean hasClassInitializer, Value dest) {
     return null;
@@ -137,6 +139,11 @@ public abstract class DexValue extends DexItem {
 
     @Override
     public void writeTo(DexOutputBuffer dest, ObjectToOffsetMapping mapping) {
+      throw new Unreachable();
+    }
+
+    @Override
+    public Object getBoxedValue() {
       throw new Unreachable();
     }
 
@@ -213,6 +220,11 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
+    public Object getBoxedValue() {
+      return getValue();
+    }
+
+    @Override
     public void writeTo(DexOutputBuffer dest, ObjectToOffsetMapping mapping) {
       writeHeader(VALUE_BYTE, 0, dest);
       dest.putSignedEncodedValue(value, 1);
@@ -265,6 +277,11 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
+    public Object getBoxedValue() {
+      return getValue();
+    }
+
+    @Override
     public void writeTo(DexOutputBuffer dest, ObjectToOffsetMapping mapping) {
       writeIntegerTo(VALUE_SHORT, value, Short.BYTES, dest);
     }
@@ -313,6 +330,11 @@ public abstract class DexValue extends DexItem {
 
     public char getValue() {
       return value;
+    }
+
+    @Override
+    public Object getBoxedValue() {
+      return getValue();
     }
 
     @Override
@@ -371,6 +393,11 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
+    public Object getBoxedValue() {
+      return getValue();
+    }
+
+    @Override
     public void writeTo(DexOutputBuffer dest, ObjectToOffsetMapping mapping) {
       writeIntegerTo(VALUE_INT, value, Integer.BYTES, dest);
     }
@@ -422,6 +449,11 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
+    public Object getBoxedValue() {
+      return getValue();
+    }
+
+    @Override
     public void writeTo(DexOutputBuffer dest, ObjectToOffsetMapping mapping) {
       writeIntegerTo(VALUE_LONG, value, Long.BYTES, dest);
     }
@@ -470,6 +502,11 @@ public abstract class DexValue extends DexItem {
 
     public float getValue() {
       return value;
+    }
+
+    @Override
+    public Object getBoxedValue() {
+      return getValue();
     }
 
     @Override
@@ -526,6 +563,11 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
+    public Object getBoxedValue() {
+      return getValue();
+    }
+
+    @Override
     public void writeTo(DexOutputBuffer dest, ObjectToOffsetMapping mapping) {
       dest.forward(1);
       int length = EncodedValueUtils.putDouble(dest, value);
@@ -577,6 +619,11 @@ public abstract class DexValue extends DexItem {
       dest.rewind(length + 1);
       writeHeader(getValueKind(), length - 1, dest);
       dest.forward(length);
+    }
+
+    @Override
+    public Object getBoxedValue() {
+      throw new Unreachable("No boxed value for DexValue " + this.getClass().getSimpleName());
     }
 
     @Override
@@ -750,6 +797,11 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
+    public Object getBoxedValue() {
+      throw new Unreachable("No boxed value for DexValueArray");
+    }
+
+    @Override
     public Object asAsmEncodedObject() {
       throw new Unreachable("No ASM conversion for DexValueArray");
     }
@@ -804,6 +856,11 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
+    public Object getBoxedValue() {
+      throw new Unreachable("No boxed value for DexValueAnnotation");
+    }
+
+    @Override
     public Object asAsmEncodedObject() {
       throw new Unreachable("No ASM conversion for DexValueAnnotation");
     }
@@ -854,6 +911,11 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
+    public Object getBoxedValue() {
+      return null;
+    }
+
+    @Override
     public Object asAsmEncodedObject() {
       return null;
     }
@@ -896,6 +958,11 @@ public abstract class DexValue extends DexItem {
 
     public boolean getValue() {
       return value;
+    }
+
+    @Override
+    public Object getBoxedValue() {
+      return getValue();
     }
 
     @Override
