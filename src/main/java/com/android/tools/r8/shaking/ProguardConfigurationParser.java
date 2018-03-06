@@ -535,7 +535,7 @@ public class ProguardConfigurationParser {
     private ProguardIfRule parseIfRule(TextPosition optionStart)
         throws ProguardRuleParserException {
       ProguardIfRule.Builder ifRuleBuilder = ProguardIfRule.builder();
-      parseClassSpec(ifRuleBuilder, true);
+      parseClassSpec(ifRuleBuilder, false);
 
       // Required a subsequent keep rule.
       skipWhitespace();
@@ -1086,15 +1086,52 @@ public class ProguardConfigurationParser {
       return Integer.parseInt(s);
     }
 
+    private final Predicate<Character> CLASS_NAME_PREDICATE =
+        character -> IdentifierUtils.isDexIdentifierPart(character)
+            || character == '.'
+            || character == '*'
+            || character == '?'
+            || character == '%'
+            || character == '['
+            || character == ']';
+
     private String acceptClassName() {
-      return acceptString(character ->
-          IdentifierUtils.isDexIdentifierPart(character)
-              || character == '.'
-              || character == '*'
-              || character == '?'
-              || character == '%'
-              || character == '['
-              || character == ']');
+      return acceptString(CLASS_NAME_PREDICATE);
+    }
+
+    private String acceptClassNameWithNthWildcard() {
+      StringBuilder nthWildcard = null;
+      skipWhitespace();
+      int start = position;
+      int end = position;
+      while (!eof(end)) {
+        char current = contents.charAt(end);
+        if (nthWildcard != null) {
+          if (current == '>') {
+            try {
+              Integer.parseUnsignedInt(nthWildcard.toString());
+            } catch (NullPointerException | NumberFormatException e) {
+              return null;
+            }
+            nthWildcard = null;
+          } else {
+            nthWildcard.append(current);
+          }
+          end++;
+        } else if (CLASS_NAME_PREDICATE.test(current)) {
+          end++;
+        } else if (current == '<') {
+          nthWildcard = new StringBuilder();
+          end++;
+        } else {
+          break;
+        }
+      }
+      if (start == end) {
+        return null;
+      }
+      position = end;
+      return contents.substring(start, end);
     }
 
     private String acceptFieldNameOrIntegerForReturn() {
@@ -1194,7 +1231,7 @@ public class ProguardConfigurationParser {
     }
 
     private String parseClassName() throws ProguardRuleParserException {
-      String name = acceptClassName();
+      String name = acceptClassNameWithNthWildcard();
       if (name == null) {
         throw parseError("Class name expected");
       }

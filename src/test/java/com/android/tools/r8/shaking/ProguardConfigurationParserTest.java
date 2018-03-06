@@ -37,6 +37,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class ProguardConfigurationParserTest extends TestBase {
@@ -544,7 +545,7 @@ public class ProguardConfigurationParserTest extends TestBase {
     assertTrue(
         config.getAdaptClassStrings().matches(dexItemFactory.createType("Lboobaz;")));
     assertTrue(
-        config.getAdaptClassStrings().matches(dexItemFactory.createType("Lboobaz;")));
+        config.getAdaptClassStrings().matches(dexItemFactory.createType("Lboobar;")));
     assertTrue(
         config.getAdaptClassStrings().matches(dexItemFactory.createType("Lfoobar;")));
   }
@@ -561,9 +562,44 @@ public class ProguardConfigurationParserTest extends TestBase {
     assertTrue(
         config.getAdaptClassStrings().matches(dexItemFactory.createType("Lboobaz;")));
     assertTrue(
-        config.getAdaptClassStrings().matches(dexItemFactory.createType("Lboobaz;")));
+        config.getAdaptClassStrings().matches(dexItemFactory.createType("Lboobar;")));
     assertTrue(
         config.getAdaptClassStrings().matches(dexItemFactory.createType("Lfoobar;")));
+  }
+
+  @Test
+  public void testAdaptClassStringsNthWildcard() throws Exception {
+    DexItemFactory dexItemFactory = new DexItemFactory();
+    ProguardConfigurationParser parser =
+        new ProguardConfigurationParser(dexItemFactory, reporter);
+    String wildcard = "-adaptclassstrings *foo<1>";
+    parser.parse(createConfigurationForTesting(ImmutableList.of(wildcard)));
+    verifyParserEndsCleanly();
+    ProguardConfiguration config = parser.getConfig();
+    assertFalse(
+        config.getAdaptClassStrings().matches(dexItemFactory.createType("Lfoobar;")));
+    assertFalse(
+        config.getAdaptClassStrings().matches(dexItemFactory.createType("Lboofoobar;")));
+    // TODO(b/73800755): Use <n> while matching class name list.
+    //assertTrue(
+    //    config.getAdaptClassStrings().matches(dexItemFactory.createType("Lboofooboo;")));
+  }
+
+  @Ignore("b/73800755: verify the range of <n>")
+  @Test
+  public void testAdaptClassStringsNthWildcard_outOfRange() throws Exception {
+    Path proguardConfig = writeTextToTempFile(
+        "-adaptclassstrings *foo<2>"
+    );
+    try {
+      ProguardConfigurationParser parser =
+          new ProguardConfigurationParser(new DexItemFactory(), reporter);
+      parser.parse(proguardConfig);
+      fail();
+    } catch (AbortException e) {
+      checkDiagnostic(handler.errors, proguardConfig, 1, 1,
+          "wildcard", "out", "range");
+    }
   }
 
   @Test
@@ -1170,6 +1206,43 @@ public class ProguardConfigurationParserTest extends TestBase {
     assertEquals("**$$StaticInjection", if2.getClassNames().toString());
     assertEquals(ProguardKeepRuleType.KEEP, if2.subsequentRule.getType());
     assertEquals("C", if2.subsequentRule.getClassNames().toString());
+  }
+
+  @Test
+  public void parse_if_nthWildcard() throws Exception {
+    Path proguardConfig = writeTextToTempFile(
+        "-if class **$R**",
+        "-keep class **$D<2>"  // <2> corresponds to the 2nd ** in -if rule.
+    );
+    ProguardConfigurationParser parser =
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
+    parser.parse(proguardConfig);
+    checkDiagnostic(handler.warnings, proguardConfig, 1, 1,
+        "Ignoring", "-if");
+    ProguardConfiguration config = parser.getConfig();
+    assertEquals(1, config.getRules().size());
+    ProguardIfRule if0 = (ProguardIfRule) config.getRules().get(0);
+    assertEquals("**$R**", if0.getClassNames().toString());
+    assertEquals(ProguardKeepRuleType.KEEP, if0.subsequentRule.getType());
+    assertEquals("**$D<2>", if0.subsequentRule.getClassNames().toString());
+  }
+
+  @Ignore("b/73800755: verify the range of <n>")
+  @Test
+  public void parse_if_nthWildcard_outOfRange() throws Exception {
+    Path proguardConfig = writeTextToTempFile(
+        "-if class **$R**",
+        "-keep class **D<4>"  // There are 3 ** in this rule.
+    );
+    try {
+      ProguardConfigurationParser parser =
+          new ProguardConfigurationParser(new DexItemFactory(), reporter);
+      parser.parse(proguardConfig);
+      fail();
+    } catch (AbortException e) {
+      checkDiagnostic(handler.errors, proguardConfig, 1, 1,
+          "wildcard", "out", "range");
+    }
   }
 
   @Test
