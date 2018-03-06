@@ -4542,7 +4542,7 @@ public class JctfTestSpecifications {
           // java.lang.AssertionError: Failed to load serialization resource file: serialization/com/google/jctf/test/lib/java/util/concurrent/PriorityBlockingQueue/serialization/PriorityBlockingQueue_serialization_A01.golden.0.ser
 
           .put("lang.ThreadGroup.destroy.ThreadGroup_destroy_A01",
-              match(D8_COMPILER, runtimesUpTo(Version.V6_0_1)))
+              match(runtimesUpTo(Version.V6_0_1)))
           // 1) t02
           // java.lang.IllegalThreadStateException: Thread group still contains threads: Test group
           // 2) t04
