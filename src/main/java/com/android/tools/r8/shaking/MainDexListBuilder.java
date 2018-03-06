@@ -85,13 +85,13 @@ public class MainDexListBuilder {
         addMainDexType(dexType);
         continue;
       }
-      for (DexAnnotation annotation : clazz.annotations.annotations) {
-        if (annotation.visibility == DexAnnotation.VISIBILITY_RUNTIME
+      clazz.forEachAnnotation(annotation -> {
+        if (!mainDexTypes.contains(dexType)
+            && annotation.visibility == DexAnnotation.VISIBILITY_RUNTIME
             && isAnnotationWithEnum(annotation.annotation.type)) {
           addMainDexType(dexType);
-          break;
         }
-      }
+      });
     }
   }
 
