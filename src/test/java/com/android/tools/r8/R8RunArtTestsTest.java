@@ -839,6 +839,9 @@ public abstract class R8RunArtTestsTest {
           .put("973-default-multidex", beforeAndroidN) // --min-sdk = 24
           .put("974-verify-interface-super", beforeAndroidN) // --min-sdk = 24
           .put("975-iface-private", beforeAndroidN) // --min-sdk = 24
+          // These tests have min-api set to N.
+          .put("421-large-frame", beforeAndroidN) // --min-sdk = 24
+          .put("551-checker-shifter-operand", beforeAndroidN) // --min-sdk = 24
           // Uses dex file version 37 and therefore only runs on Android N and above.
           .put("972-iface-super-multidex",
               TestCondition.match(TestCondition.tools(DexTool.JACK, DexTool.DX),
