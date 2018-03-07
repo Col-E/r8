@@ -16,7 +16,7 @@ OUTPUT_DIR = os.path.join('build', 'generated', 'test', 'java', 'com',
 JACK_TEST = os.path.join('tests', '2016-12-19', 'art')
 TEST_DIR = os.path.join('tests', '2017-10-04', 'art')
 TOOLCHAINS = ["dx", "jack", "none"]
-TOOLS = ["r8", "d8"]
+TOOLS = ["r8", "d8", "r8cf"]
 TEMPLATE = Template(
 """// Copyright (c) 2016, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
@@ -54,6 +54,7 @@ def create_toolchain_dirs(toolchain):
     rmtree(toolchain_dir)
   makedirs(join(toolchain_dir, "d8"))
   makedirs(join(toolchain_dir, "r8"))
+  makedirs(join(toolchain_dir, "r8cf"))
 
 def write_file(toolchain, tool, class_name, contents):
   file_name = join(OUTPUT_DIR, toolchain, tool, class_name + ".java")
@@ -74,6 +75,10 @@ def create_tests(toolchain):
         tool_enum = 'R8_AFTER_D8'
       else:
         tool_enum = upper(tool)
+      if tool == "r8cf":
+        if toolchain != "none":
+          continue
+        tool_enum = 'D8_AFTER_R8CF'
       contents = TEMPLATE.substitute(
           name=dir,
           compilerUnderTestEnum=tool_enum,
