@@ -865,6 +865,10 @@ public abstract class R8RunArtTestsTest {
           // Contains a subset of JUnit which collides with library definitions of JUnit.
           .put("021-string2", TestCondition.match(TestCondition.D8_AFTER_R8CF_COMPILER))
           .put("082-inline-execute", TestCondition.match(TestCondition.D8_AFTER_R8CF_COMPILER))
+          // Bug in TypeVerificationHelper upon ArrayGet on always-NULL array; fixed in CL 17680.
+          .put(
+              "586-checker-null-array-get",
+              TestCondition.match(TestCondition.D8_AFTER_R8CF_COMPILER))
           .build();
 
   // Tests that are invalid dex files and on which R8/D8 fails and that is OK.
