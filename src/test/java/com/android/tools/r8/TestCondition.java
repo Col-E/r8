@@ -53,22 +53,14 @@ public class TestCondition {
     }
   }
 
-  public static final CompilerSet D8_COMPILER =
-      compilers(CompilerUnderTest.D8, CompilerUnderTest.D8_AFTER_R8CF);
-  public static final CompilerSet D8_NOT_AFTER_R8CF_COMPILER = compilers(CompilerUnderTest.D8);
-  public static final CompilerSet D8_AFTER_R8CF_COMPILER =
-      compilers(CompilerUnderTest.D8_AFTER_R8CF);
+  public static final CompilerSet D8_COMPILER = compilers(CompilerUnderTest.D8);
   // R8_COMPILER refers to R8 both in the standalone setting and after D8
   // R8_NOT_AFTER_D8_COMPILER and R8_AFTER_D8_COMPILER refers to the standalone and the combined
   // settings, respectively
   public static final CompilerSet R8_COMPILER =
-      compilers(
-          CompilerUnderTest.R8, CompilerUnderTest.R8_AFTER_D8, CompilerUnderTest.D8_AFTER_R8CF);
-  public static final CompilerSet R8DEX_COMPILER =
       compilers(CompilerUnderTest.R8, CompilerUnderTest.R8_AFTER_D8);
   public static final CompilerSet R8_AFTER_D8_COMPILER = compilers(CompilerUnderTest.R8_AFTER_D8);
-  public static final CompilerSet R8_NOT_AFTER_D8_COMPILER =
-      compilers(CompilerUnderTest.R8, CompilerUnderTest.D8_AFTER_R8CF);
+  public static final CompilerSet R8_NOT_AFTER_D8_COMPILER = compilers(CompilerUnderTest.R8);
 
   public static final CompilationModeSet DEBUG_MODE =
       new CompilationModeSet(EnumSet.of(CompilationMode.DEBUG));
