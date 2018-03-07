@@ -54,6 +54,8 @@ import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.BiPredicate;
+import java.util.function.Predicate;
 
 /**
  * Linear scan register allocator.
@@ -1561,57 +1563,47 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     return candidate;
   }
 
+  private int handleWorkaround(
+      Predicate<LiveIntervals> workaroundNeeded,
+      BiPredicate<LiveIntervals, Integer> workaroundNeededForCandidate,
+      int candidate, LiveIntervals unhandledInterval, int registerConstraint,
+      boolean needsRegisterPair, RegisterPositions freePositions, RegisterPositions.Type type) {
+    if (workaroundNeeded.test(unhandledInterval)) {
+      int lastCandidate = candidate;
+      while (workaroundNeededForCandidate.test(unhandledInterval, candidate)) {
+        // Make the unusable register unavailable for allocation and try again.
+        freePositions.set(candidate, 0);
+        candidate = getLargestCandidate(registerConstraint, freePositions, needsRegisterPair, type);
+        // If there are only invalid candidates of the give type we will end up with the same
+        // candidate returned again once we have tried them all. In that case we didn't find a
+        // valid register candidate and we need to broaden the search to other types.
+        if (lastCandidate == candidate) {
+          return REGISTER_CANDIDATE_NOT_FOUND;
+        }
+        lastCandidate = candidate;
+      }
+    }
+    return candidate;
+  }
+
   private int getLargestValidCandidate(LiveIntervals unhandledInterval, int registerConstraint,
       boolean needsRegisterPair, RegisterPositions freePositions, RegisterPositions.Type type) {
     int candidate = getLargestCandidate(registerConstraint, freePositions, needsRegisterPair, type);
     if (candidate == REGISTER_CANDIDATE_NOT_FOUND) {
       return candidate;
     }
-    if (needsLongResultOverlappingLongOperandsWorkaround(unhandledInterval)) {
-      int lastCandidate = candidate;
-      while (isLongResultOverlappingLongOperands(unhandledInterval, candidate)) {
-        // Make the overlapping register unavailable for allocation and try again.
-        freePositions.set(candidate, 0);
-        candidate = getLargestCandidate(registerConstraint, freePositions, needsRegisterPair, type);
-        // If there are only invalid candidates of the give type we will end up with the same
-        // candidate returned again once we have tried them all. In that case we didn't find a
-        // valid register candidate and we need to broaden the search to other types.
-        if (lastCandidate == candidate) {
-          return REGISTER_CANDIDATE_NOT_FOUND;
-        }
-        lastCandidate = candidate;
-      }
-    }
-    if (needsSingleResultOverlappingLongOperandsWorkaround(unhandledInterval)) {
-      int lastCandidate = candidate;
-      while (isSingleResultOverlappingLongOperands(unhandledInterval, candidate)) {
-        // Make the overlapping register unavailable for allocation and try again.
-        freePositions.set(candidate, 0);
-        candidate = getLargestCandidate(registerConstraint, freePositions, needsRegisterPair, type);
-        // If there are only invalid candidates of the give type we will end up with the same
-        // candidate returned again once we have tried them all. In that case we didn't find a
-        // valid register candidate and we need to broaden the search to other types.
-        if (lastCandidate == candidate) {
-          return REGISTER_CANDIDATE_NOT_FOUND;
-        }
-        lastCandidate = candidate;
-      }
-    }
-    if (needsArrayGetWideWorkaround(unhandledInterval)) {
-      int lastCandidate = candidate;
-      while (isArrayGetArrayRegister(unhandledInterval, candidate)) {
-        // Make the overlapping register unavailable for allocation and try again.
-        freePositions.set(candidate, 0);
-        candidate = getLargestCandidate(registerConstraint, freePositions, needsRegisterPair, type);
-        // If there are only invalid candidates of the give type we will end up with the same
-        // candidate returned again once we have tried them all. In that case we didn't find a
-        // valid register candidate and we need to broaden the search to other types.
-        if (lastCandidate == candidate) {
-          return REGISTER_CANDIDATE_NOT_FOUND;
-        }
-        lastCandidate = candidate;
-      }
-    }
+    candidate = handleWorkaround(
+        this::needsLongResultOverlappingLongOperandsWorkaround,
+        this::isLongResultOverlappingLongOperands,
+        candidate, unhandledInterval, registerConstraint, needsRegisterPair, freePositions, type);
+    candidate = handleWorkaround(
+        this::needsSingleResultOverlappingLongOperandsWorkaround,
+        this::isSingleResultOverlappingLongOperands,
+        candidate, unhandledInterval, registerConstraint, needsRegisterPair, freePositions, type);
+    candidate = handleWorkaround(
+        this::needsArrayGetWideWorkaround,
+        this::isArrayGetArrayRegister,
+        candidate, unhandledInterval, registerConstraint, needsRegisterPair, freePositions, type);
     return candidate;
   }
 
