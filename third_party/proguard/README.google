@@ -1,8 +1,8 @@
 URL: https://sourceforge.net/projects/proguard/files/proguard/5.2/
 URL: https://sourceforge.net/projects/proguard/files/proguard/6.0/
-Version: 5.2.1, 6.0
+Version: 5.2.1, 6.0.1
 License: GPL
-License File: proguard5.2.1/docs/license.html, proguard6.0/docs/license.html
+License File: proguard5.2.1/docs/license.html, proguard6.0.1/docs/license.html
 
 Description:
 ProGuard Java Optimizer and Obfuscator
