@@ -1348,10 +1348,17 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     // free position.
     int candidate = getLargestValidCandidate(
         unhandledInterval, registerConstraint, needsRegisterPair, freePositions, Type.ANY);
-    assert candidate != REGISTER_CANDIDATE_NOT_FOUND;
-    int largestFreePosition = freePositions.get(candidate);
-    if (needsRegisterPair) {
-      largestFreePosition = Math.min(largestFreePosition, freePositions.get(candidate + 1));
+
+    // It is not always possible to find a largest valid candidate. If none of the usable register
+    // are free we typically get the last candidate. However, if that candidate has to be
+    // discarded in order to workaround bugs we get REGISTER_CANDIDATE_NOT_FOUND. In both cases
+    // we need to spill a valid candidate. That path is triggered when largestFreePosition is 0.
+    int largestFreePosition = 0;
+    if (candidate != REGISTER_CANDIDATE_NOT_FOUND) {
+      largestFreePosition = freePositions.get(candidate);
+      if (needsRegisterPair) {
+        largestFreePosition = Math.min(largestFreePosition, freePositions.get(candidate + 1));
+      }
     }
 
     // Determine what to do based on how long the selected candidate is free.
