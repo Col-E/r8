@@ -13,7 +13,6 @@ import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.DexVm.Kind;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.ArtErrorParser;
@@ -78,8 +77,7 @@ public abstract class R8RunArtTestsTest {
   public enum CompilerUnderTest {
     D8,
     R8,
-    R8_AFTER_D8, // refers to the R8 (default: debug) step but implies a previous D8 step as well
-    D8_AFTER_R8CF
+    R8_AFTER_D8 // refers to the R8 (default: debug) step but implies a previous D8 step as well
   }
 
   private static final String ART_TESTS_DIR = "tests/2017-10-04/art";
@@ -764,7 +762,13 @@ public abstract class R8RunArtTestsTest {
               TestCondition.match(
                   TestCondition.runtimes(DexVm.Version.V4_0_4, DexVm.Version.V4_4_4,
                       DexVm.Version.V5_1_1, DexVm.Version.V6_0_1, DexVm.Version.V7_0_0)))
-          .put("454-get-vreg", TestCondition.match(TestCondition.R8DEX_COMPILER))
+          .put(
+              "454-get-vreg",
+              TestCondition.match(
+                  TestCondition.tools(DexTool.NONE),
+                  TestCondition.D8_COMPILER,
+                  TestCondition.runtimes(DexVm.Version.DEFAULT)))
+          .put("454-get-vreg", TestCondition.match(TestCondition.R8_COMPILER))
           // Fails: regs_jni.cc:42] Check failed: GetVReg(m, 0, kIntVReg, &value)
           // The R8/D8 code does not put values in the same registers as the tests expects.
           .put(
@@ -772,14 +776,20 @@ public abstract class R8RunArtTestsTest {
               TestCondition.match(
                   TestCondition.runtimes(DexVm.Version.V4_0_4, DexVm.Version.V4_4_4,
                       DexVm.Version.V5_1_1, DexVm.Version.V6_0_1, DexVm.Version.V7_0_0)))
-          .put("457-regs", TestCondition.match(TestCondition.R8DEX_COMPILER))
+          .put(
+              "457-regs",
+              TestCondition.match(
+                  TestCondition.tools(DexTool.NONE),
+                  TestCondition.D8_COMPILER,
+                  TestCondition.runtimes(DexVm.Version.DEFAULT)))
+          .put("457-regs", TestCondition.match(TestCondition.R8_COMPILER))
           // Class not found.
           .put("529-checker-unresolved", TestCondition.any())
           // Fails: env_long_ref.cc:44] Check failed: GetVReg(m, 1, kReferenceVReg, &value)
           // The R8/D8 code does not produce values in the same registers as the tests expects in
           // the stack frame for TestCase.testCase checked by the native Main.lookForMyRegisters
           // (v1 vs v0).
-          .put("543-env-long-ref", TestCondition.match(TestCondition.R8DEX_COMPILER))
+          .put("543-env-long-ref", TestCondition.match(TestCondition.R8_COMPILER))
           // Array index out of bounds exception.
           .put("555-UnsafeGetLong-regression", TestCondition.any())
           // Array index out of bounds exception.
@@ -800,9 +810,9 @@ public abstract class R8RunArtTestsTest {
           // Main.testThisWithInstanceCall checked by the native Main.doNativeCallRef (v0 vs. v1 and
           // only 1 register instead fof 2).
           .put("461-get-reference-vreg", TestCondition.match(TestCondition.R8_COMPILER))
-          // This test uses register r1 in method that is declared to only use 1 register (r0).
-          // This is in dex code which D8 does not convert and which R8/CF does not process.
-          // Therefore the error is a verification error at runtime and that is expected.
+          // This test uses register r1 in method that is declared to only use 1 register (r0). This
+          // is in dex code which D8 does not convert. Therefore the error is a verification error
+          // at runtime and that is expected.
           .put("142-classloader2", TestCondition.match(TestCondition.D8_COMPILER))
           // Invoke-custom is supported by D8 and R8, but it can only run on our newest version
           // of art.
@@ -845,9 +855,9 @@ public abstract class R8RunArtTestsTest {
       new ImmutableListMultimap.Builder<String, TestCondition>()
           // Contains two methods with the same name and signature but different code.
           .put("097-duplicate-method", TestCondition.any())
-          // Dex code contains a method (B.<init>) which pass too few arguments to invoke, and it
-          // also contains an iput on a static field.
-          .put("600-verifier-fails", TestCondition.match(TestCondition.R8DEX_COMPILER))
+          // Contains a method (B.<init>) which pass too few arguments to invoke. Also, contains an
+          // iput on a static field.
+          .put("600-verifier-fails", TestCondition.match(TestCondition.R8_COMPILER))
           // Contains a method that falls off the end without a return.
           .put("606-erroneous-class", TestCondition.match(
               TestCondition.tools(DexTool.JACK),
@@ -856,15 +866,11 @@ public abstract class R8RunArtTestsTest {
               TestCondition.tools(DexTool.DX),
               TestCondition.R8_NOT_AFTER_D8_COMPILER,
               LEGACY_RUNTIME))
-          // Dex input contains an illegal InvokeSuper in Z.foo() to Y.foo()
-          // that R8 will fail to compile.
-          .put("594-invoke-super", TestCondition.match(TestCondition.R8DEX_COMPILER))
-          .put("974-verify-interface-super", TestCondition.match(TestCondition.R8DEX_COMPILER))
-          // R8 generates too large code in Goto.bigGoto(). b/74327727
-          .put("003-omnibus-opcodes", TestCondition.match(TestCondition.D8_AFTER_R8CF_COMPILER))
-          // Contains a subset of JUnit which collides with library definitions of JUnit.
-          .put("021-string2", TestCondition.match(TestCondition.D8_AFTER_R8CF_COMPILER))
-          .put("082-inline-execute", TestCondition.match(TestCondition.D8_AFTER_R8CF_COMPILER))
+          // Contains an illegal invoke that R8 will fail to compile.
+          .put("594-invoke-super", TestCondition.match(
+              TestCondition.R8_COMPILER))
+          .put("974-verify-interface-super", TestCondition.match(
+              TestCondition.R8_COMPILER))
           .build();
 
   // Tests that are invalid dex files and on which R8/D8 fails and that is OK.
@@ -876,12 +882,12 @@ public abstract class R8RunArtTestsTest {
           // only one A$B class because of a custom build script that merges them.
           .put("121-modifiers", TestCondition.match(TestCondition.tools(DexTool.NONE)))
           // This test uses register r1 in method that is declared to only use 1 register (r0).
-          .put("142-classloader2", TestCondition.match(TestCondition.R8DEX_COMPILER))
+          .put("142-classloader2", TestCondition.match(TestCondition.R8_COMPILER))
           // This test uses an uninitialized register.
-          .put("471-uninitialized-locals", TestCondition.match(TestCondition.R8DEX_COMPILER))
+          .put("471-uninitialized-locals", TestCondition.match(TestCondition.R8_COMPILER))
           // This test is starting from invalid dex code. It splits up a double value and uses
           // the first register of a double with the second register of another double.
-          .put("800-smali", TestCondition.match(TestCondition.R8DEX_COMPILER))
+          .put("800-smali", TestCondition.match(TestCondition.R8_COMPILER))
           // Contains a loop in the class hierarchy.
           .put("804-class-extends-itself", TestCondition.any())
           // These tests have illegal class flag combinations, so we reject them.
@@ -1304,7 +1310,6 @@ public abstract class R8RunArtTestsTest {
         break;
       case D8:
       case R8_AFTER_D8:
-      case D8_AFTER_R8CF:
         compilationMode = CompilationMode.DEBUG;
         break;
       default:
@@ -1378,97 +1383,6 @@ public abstract class R8RunArtTestsTest {
         CompilationFailedException {
     assert mode != null;
     switch (compilerUnderTest) {
-      case D8_AFTER_R8CF:
-        {
-          assert keepRulesFile == null : "Keep-rules file specified for D8.";
-
-          List<ProgramResource> dexInputs = new ArrayList<>();
-          List<ProgramResource> cfInputs = new ArrayList<>();
-          for (String f : fileNames) {
-            Path p = Paths.get(f);
-            if (FileUtils.isDexFile(p)) {
-              dexInputs.add(ProgramResource.fromFile(ProgramResource.Kind.DEX, p));
-            } else if (FileUtils.isClassFile(p)) {
-              cfInputs.add(ProgramResource.fromFile(ProgramResource.Kind.CF, p));
-            } else {
-              assert FileUtils.isArchive(p);
-              ArchiveProgramResourceProvider provider =
-                  ArchiveProgramResourceProvider.fromArchive(p);
-
-              try {
-                for (ProgramResource pr : provider.getProgramResources()) {
-                  if (pr.getKind() == ProgramResource.Kind.DEX) {
-                    dexInputs.add(pr);
-                  } else {
-                    assert pr.getKind() == ProgramResource.Kind.CF;
-                    cfInputs.add(pr);
-                  }
-                }
-              } catch (ResourceException e) {
-                throw new CompilationException(e);
-              }
-            }
-          }
-
-          D8Command.Builder builder =
-              D8Command.builder()
-                  .setMode(mode)
-                  .addProgramResourceProvider(
-                      new ProgramResourceProvider() {
-                        @Override
-                        public Collection<ProgramResource> getProgramResources()
-                            throws ResourceException {
-                          return dexInputs;
-                        }
-                      })
-                  .setOutput(Paths.get(resultPath), OutputMode.DexIndexed);
-
-          Origin cfOrigin =
-              new Origin(Origin.root()) {
-                @Override
-                public String part() {
-                  return "R8/CF";
-                }
-              };
-
-          R8Command.Builder r8builder =
-              R8Command.builder()
-                  .setMode(mode)
-                  .setProgramConsumer(
-                      new ClassFileConsumer() {
-
-                        @Override
-                        public synchronized void accept(
-                            byte[] data, String descriptor, DiagnosticsHandler handler) {
-                          builder.addClassProgramData(data, cfOrigin);
-                        }
-
-                        @Override
-                        public void finished(DiagnosticsHandler handler) {}
-                      })
-                  .addProgramResourceProvider(
-                      new ProgramResourceProvider() {
-                        @Override
-                        public Collection<ProgramResource> getProgramResources()
-                            throws ResourceException {
-                          return cfInputs;
-                        }
-                      });
-
-          AndroidApiLevel minSdkVersion = needMinSdkVersion.get(name);
-          if (minSdkVersion != null) {
-            builder.setMinApiLevel(minSdkVersion.getLevel());
-            r8builder.setMinApiLevel(minSdkVersion.getLevel());
-            builder.addLibraryFiles(ToolHelper.getAndroidJar(minSdkVersion));
-            r8builder.addLibraryFiles(ToolHelper.getAndroidJar(minSdkVersion));
-          } else {
-            builder.addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.getDefault()));
-            r8builder.addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.getDefault()));
-          }
-          ToolHelper.runR8(r8builder.build(), options -> options.ignoreMissingClasses = true);
-          D8.run(builder.build());
-          break;
-        }
       case D8: {
         assert keepRulesFile == null : "Keep-rules file specified for D8.";
         D8Command.Builder builder =
