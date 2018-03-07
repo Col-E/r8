@@ -614,6 +614,16 @@ public class DexInspector {
     public abstract Signature getOriginalSignature();
 
     public abstract Signature getFinalSignature();
+
+    public String getOriginalName() {
+      Signature originalSignature = getOriginalSignature();
+      return originalSignature == null ? null : originalSignature.name;
+    }
+
+    public String getFinalName() {
+      Signature finalSignature = getFinalSignature();
+      return finalSignature == null ? null : finalSignature.name;
+    }
   }
 
   public abstract class MethodSubject extends MemberSubject {

@@ -128,13 +128,12 @@ public class ValidNameConflictTest extends JasminTestBase {
     FieldSubject f2 = clazz.field("java.lang.Object", "same");
     assertTrue(f2.isPresent());
     assertFalse(f2.isRenamed());
-    assertEquals(f1.getField().field.name, f2.getField().field.name);
+    assertEquals(f1.getFinalName(), f2.getFinalName());
 
     ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME, dexVm);
     assertEquals(0, artOutput.exitCode);
     assertEquals(javaOutput.stdout, artOutput.stdout);
   }
-
 
   @Test
   public void remainFieldNameConflict_useuniqueclassmembernames() throws Exception {
@@ -158,7 +157,7 @@ public class ValidNameConflictTest extends JasminTestBase {
     FieldSubject f2 = clazz.field("java.lang.Object", "same");
     assertTrue(f2.isPresent());
     assertTrue(f2.isRenamed());
-    assertEquals(f1.getField().field.name, f2.getField().field.name);
+    assertEquals(f1.getFinalName(), f2.getFinalName());
 
     ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME, dexVm);
     assertEquals(0, artOutput.exitCode);
@@ -189,7 +188,7 @@ public class ValidNameConflictTest extends JasminTestBase {
     FieldSubject f2 = clazz.field("java.lang.Object", "same");
     assertTrue(f2.isPresent());
     assertTrue(f2.isRenamed());
-    assertEquals(f1.getField().field.name, f2.getField().field.name);
+    assertEquals(f1.getFinalName(), f2.getFinalName());
 
     ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME, dexVm);
     assertEquals(0, artOutput.exitCode);
@@ -217,7 +216,7 @@ public class ValidNameConflictTest extends JasminTestBase {
     FieldSubject f2 = clazz.field("java.lang.Object", "same");
     assertTrue(f2.isPresent());
     assertTrue(f2.isRenamed());
-    assertNotEquals(f1.getField().field.name, f2.getField().field.name);
+    assertNotEquals(f1.getFinalName(), f2.getFinalName());
 
     ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME, dexVm);
     assertEquals(0, artOutput.exitCode);
@@ -246,7 +245,7 @@ public class ValidNameConflictTest extends JasminTestBase {
     FieldSubject f2 = clazz.field("java.lang.Object", "same");
     assertTrue(f2.isPresent());
     assertTrue(f2.isRenamed());
-    assertEquals(f1.getField().field.name, f2.getField().field.name);
+    assertEquals(f1.getFinalName(), f2.getFinalName());
 
     ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME, dexVm);
     assertEquals(0, artOutput.exitCode);
@@ -304,7 +303,7 @@ public class ValidNameConflictTest extends JasminTestBase {
     MethodSubject m2 = clazz.method("java.lang.Object", "same", ImmutableList.of());
     assertTrue(m2.isPresent());
     assertFalse(m2.isRenamed());
-    assertEquals(m1.getMethod().method.name, m2.getMethod().method.name);
+    assertEquals(m1.getFinalName(), m2.getFinalName());
 
     ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME, dexVm);
     assertEquals(0, artOutput.exitCode);
@@ -333,7 +332,7 @@ public class ValidNameConflictTest extends JasminTestBase {
     MethodSubject m2 = clazz.method("java.lang.Object", "same", ImmutableList.of());
     assertTrue(m2.isPresent());
     assertTrue(m2.isRenamed());
-    assertEquals(m1.getMethod().method.name, m2.getMethod().method.name);
+    assertEquals(m1.getFinalName(), m2.getFinalName());
 
     ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME, dexVm);
     assertEquals(0, artOutput.exitCode);
@@ -364,13 +363,12 @@ public class ValidNameConflictTest extends JasminTestBase {
     MethodSubject m2 = clazz.method("java.lang.Object", "same", ImmutableList.of());
     assertTrue(m2.isPresent());
     assertTrue(m2.isRenamed());
-    assertEquals(m1.getMethod().method.name, m2.getMethod().method.name);
+    assertEquals(m1.getFinalName(), m2.getFinalName());
 
     ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME, dexVm);
     assertEquals(0, artOutput.exitCode);
     assertEquals(javaOutput.stdout, artOutput.stdout);
   }
-
 
   @Test
   public void resolveMethodNameConflict_no_options() throws Exception {
@@ -393,8 +391,7 @@ public class ValidNameConflictTest extends JasminTestBase {
     MethodSubject m2 = clazz.method("java.lang.Object", "same", ImmutableList.of());
     assertTrue(m2.isPresent());
     assertTrue(m2.isRenamed());
-    // TODO(b/73149686): R8 should be able to fix this conflict w/o -overloadaggressively.
-    assertEquals(m1.getMethod().method.name, m2.getMethod().method.name);
+    assertNotEquals(m1.getFinalName(), m2.getFinalName());
 
     ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME, dexVm);
     assertEquals(0, artOutput.exitCode);
@@ -423,7 +420,7 @@ public class ValidNameConflictTest extends JasminTestBase {
     MethodSubject m2 = clazz.method("java.lang.Object", "same", ImmutableList.of());
     assertTrue(m2.isPresent());
     assertTrue(m2.isRenamed());
-    assertEquals(m1.getMethod().method.name, m2.getMethod().method.name);
+    assertEquals(m1.getFinalName(), m2.getFinalName());
 
     ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME, dexVm);
     assertEquals(0, artOutput.exitCode);
@@ -494,7 +491,7 @@ public class ValidNameConflictTest extends JasminTestBase {
     MethodSubject m2 = sup.method("java.lang.Object", "same", ImmutableList.of());
     assertTrue(m2.isPresent());
     assertFalse(m2.isRenamed());
-    assertEquals(m1.getMethod().method.name, m2.getMethod().method.name);
+    assertEquals(m1.getFinalName(), m2.getFinalName());
 
     ClassSubject sub = dexInspector.clazz(ANOTHER_CLASS);
     assertTrue(sub.isPresent());
@@ -504,11 +501,11 @@ public class ValidNameConflictTest extends JasminTestBase {
     MethodSubject subM2 = sub.method("java.lang.Object", "same", ImmutableList.of());
     assertTrue(subM2.isPresent());
     assertFalse(subM2.isRenamed());
-    assertEquals(subM1.getMethod().method.name, subM2.getMethod().method.name);
+    assertEquals(subM1.getFinalName(), subM2.getFinalName());
 
     // No matter what, overloading methods should be renamed to the same name.
-    assertEquals(m1.getMethod().method.name, subM1.getMethod().method.name);
-    assertEquals(m2.getMethod().method.name, subM2.getMethod().method.name);
+    assertEquals(m1.getFinalName(), subM1.getFinalName());
+    assertEquals(m2.getFinalName(), subM2.getFinalName());
 
     ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME, dexVm);
     assertEquals(0, artOutput.exitCode);
@@ -537,7 +534,7 @@ public class ValidNameConflictTest extends JasminTestBase {
     MethodSubject m2 = sup.method("java.lang.Object", "same", ImmutableList.of());
     assertTrue(m2.isPresent());
     assertTrue(m2.isRenamed());
-    assertEquals(m1.getMethod().method.name, m2.getMethod().method.name);
+    assertEquals(m1.getFinalName(), m2.getFinalName());
 
     ClassSubject sub = dexInspector.clazz(ANOTHER_CLASS);
     assertTrue(sub.isPresent());
@@ -547,11 +544,11 @@ public class ValidNameConflictTest extends JasminTestBase {
     MethodSubject subM2 = sub.method("java.lang.Object", "same", ImmutableList.of());
     assertTrue(subM2.isPresent());
     assertTrue(subM2.isRenamed());
-    assertEquals(subM1.getMethod().method.name, subM2.getMethod().method.name);
+    assertEquals(subM1.getFinalName(), subM2.getFinalName());
 
     // No matter what, overloading methods should be renamed to the same name.
-    assertEquals(m1.getMethod().method.name, subM1.getMethod().method.name);
-    assertEquals(m2.getMethod().method.name, subM2.getMethod().method.name);
+    assertEquals(m1.getFinalName(), subM1.getFinalName());
+    assertEquals(m2.getFinalName(), subM2.getFinalName());
 
     ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME, dexVm);
     assertEquals(0, artOutput.exitCode);
@@ -582,7 +579,7 @@ public class ValidNameConflictTest extends JasminTestBase {
     MethodSubject m2 = sup.method("java.lang.Object", "same", ImmutableList.of());
     assertTrue(m2.isPresent());
     assertTrue(m2.isRenamed());
-    assertEquals(m1.getMethod().method.name, m2.getMethod().method.name);
+    assertEquals(m1.getFinalName(), m2.getFinalName());
 
     ClassSubject sub = dexInspector.clazz(ANOTHER_CLASS);
     assertTrue(sub.isPresent());
@@ -592,17 +589,16 @@ public class ValidNameConflictTest extends JasminTestBase {
     MethodSubject subM2 = sub.method("java.lang.Object", "same", ImmutableList.of());
     assertTrue(subM2.isPresent());
     assertTrue(subM2.isRenamed());
-    assertEquals(subM1.getMethod().method.name, subM2.getMethod().method.name);
+    assertEquals(subM1.getFinalName(), subM2.getFinalName());
 
     // No matter what, overloading methods should be renamed to the same name.
-    assertEquals(m1.getMethod().method.name, subM1.getMethod().method.name);
-    assertEquals(m2.getMethod().method.name, subM2.getMethod().method.name);
+    assertEquals(m1.getFinalName(), subM1.getFinalName());
+    assertEquals(m2.getFinalName(), subM2.getFinalName());
 
     ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME, dexVm);
     assertEquals(0, artOutput.exitCode);
     assertEquals(javaOutput.stdout, artOutput.stdout);
   }
-
 
   @Test
   public void resolveMethodNameConflictInHierarchy_no_options() throws Exception {
@@ -625,8 +621,7 @@ public class ValidNameConflictTest extends JasminTestBase {
     MethodSubject m2 = sup.method("java.lang.Object", "same", ImmutableList.of());
     assertTrue(m2.isPresent());
     assertTrue(m2.isRenamed());
-    // TODO(b/73149686): R8 should be able to fix this conflict w/o -overloadaggressively.
-    assertEquals(m1.getMethod().method.name, m2.getMethod().method.name);
+    assertNotEquals(m1.getFinalName(), m2.getFinalName());
 
     ClassSubject sub = dexInspector.clazz(ANOTHER_CLASS);
     assertTrue(sub.isPresent());
@@ -637,11 +632,14 @@ public class ValidNameConflictTest extends JasminTestBase {
     assertTrue(subM2.isPresent());
     assertTrue(subM2.isRenamed());
     // TODO(b/73149686): R8 should be able to fix this conflict w/o -overloadaggressively.
-    assertEquals(subM1.getMethod().method.name, subM2.getMethod().method.name);
+    assertEquals(subM1.getFinalName(), subM2.getFinalName());
 
-    // No matter what, overloading methods should be renamed to the same name.
-    assertEquals(m1.getMethod().method.name, subM1.getMethod().method.name);
-    assertEquals(m2.getMethod().method.name, subM2.getMethod().method.name);
+    // TODO(b/73149686): The current impl of method minifier visits classes in a hierarchical order.
+    // Hence, already renamed same names in Super are not resolvable as the internal naming state
+    // uses only _name_ to resolve methods in the hierarchy.
+    // // No matter what, overloading methods should be renamed to the same name.
+    // assertEquals(m1.getFinalName(), subM1.getFinalName());
+    // assertEquals(m2.getFinalName(), subM2.getFinalName());
 
     ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME, dexVm);
     assertEquals(0, artOutput.exitCode);
@@ -671,7 +669,7 @@ public class ValidNameConflictTest extends JasminTestBase {
     MethodSubject m2 = sup.method("java.lang.Object", "same", ImmutableList.of());
     assertTrue(m2.isPresent());
     assertTrue(m2.isRenamed());
-    assertEquals(m1.getMethod().method.name, m2.getMethod().method.name);
+    assertEquals(m1.getFinalName(), m2.getFinalName());
 
     ClassSubject sub = dexInspector.clazz(ANOTHER_CLASS);
     assertTrue(sub.isPresent());
@@ -681,11 +679,11 @@ public class ValidNameConflictTest extends JasminTestBase {
     MethodSubject subM2 = sub.method("java.lang.Object", "same", ImmutableList.of());
     assertTrue(subM2.isPresent());
     assertTrue(subM2.isRenamed());
-    assertEquals(subM1.getMethod().method.name, subM2.getMethod().method.name);
+    assertEquals(subM1.getFinalName(), subM2.getFinalName());
 
     // No matter what, overloading methods should be renamed to the same name.
-    assertEquals(m1.getMethod().method.name, subM1.getMethod().method.name);
-    assertEquals(m2.getMethod().method.name, subM2.getMethod().method.name);
+    assertEquals(m1.getFinalName(), subM1.getFinalName());
+    assertEquals(m2.getFinalName(), subM2.getFinalName());
 
     ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME, dexVm);
     assertEquals(0, artOutput.exitCode);
