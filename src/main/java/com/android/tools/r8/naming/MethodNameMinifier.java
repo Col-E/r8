@@ -143,22 +143,34 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
   private void assignNamesToClassesMethods(DexType type, boolean doPrivates) {
     DexClass holder = appInfo.definitionFor(type);
     if (holder != null && !holder.isLibraryClass()) {
+      Map<DexMethod, DexString> renamingAtThisLevel = new IdentityHashMap<>();
       NamingState<DexProto, ?> state =
           computeStateIfAbsent(type, k -> getState(holder.superType).createChild());
-      holder.forEachMethod(method -> assignNameToMethod(method, state, doPrivates));
+      holder.forEachMethod(method ->
+          assignNameToMethod(method, state, renamingAtThisLevel, doPrivates));
+      if (!doPrivates && !useUniqueMemberNames) {
+        renamingAtThisLevel.forEach((method, candidate) ->
+            state.addRenaming(method.name, method.proto, candidate));
+      }
     }
     type.forAllExtendsSubtypes(subtype -> assignNamesToClassesMethods(subtype, doPrivates));
   }
 
   private void assignNameToMethod(
-      DexEncodedMethod encodedMethod, NamingState<DexProto, ?> state, boolean doPrivates) {
+      DexEncodedMethod encodedMethod,
+      NamingState<DexProto, ?> state,
+      Map<DexMethod, DexString> renamingAtThisLevel,
+      boolean doPrivates) {
     if (encodedMethod.accessFlags.isPrivate() != doPrivates) {
       return;
     }
     DexMethod method = encodedMethod.method;
     if (!state.isReserved(method.name, method.proto)
         && !encodedMethod.accessFlags.isConstructor()) {
-      renaming.put(method, state.assignNewNameFor(method.name, method.proto, !doPrivates));
+      DexString renamedName =
+          state.assignNewNameFor(method.name, method.proto, useUniqueMemberNames);
+      renaming.put(method, renamedName);
+      renamingAtThisLevel.put(method, renamedName);
     }
   }
 
