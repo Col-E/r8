@@ -14,7 +14,6 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Collections;
 
 /** Interface for receiving String resource. */
 public interface StringConsumer {
@@ -101,7 +100,7 @@ public interface StringConsumer {
     public void accept(String string, DiagnosticsHandler handler) {
       super.accept(string, handler);
       try {
-        Files.write(outputPath, Collections.singletonList(string), encoding);
+        Files.write(outputPath, string.getBytes(encoding));
       } catch (IOException e) {
         handler.error(new IOExceptionDiagnostic(e, new PathOrigin(outputPath)));
       }
