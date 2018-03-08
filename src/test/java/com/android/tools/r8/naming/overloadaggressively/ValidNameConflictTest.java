@@ -290,7 +290,6 @@ public class ValidNameConflictTest extends JasminTestBase {
             + "  static <methods>;"
             + "}\n",
         keepMainProguardConfiguration(CLASS_NAME),
-        "-useuniqueclassmembernames",
         "-dontshrink");
     AndroidApp app = compileWithR8(builder, pgConfigs, null);
 
@@ -478,7 +477,6 @@ public class ValidNameConflictTest extends JasminTestBase {
             + "  <methods>;"
             + "}\n",
         keepMainProguardConfiguration(CLASS_NAME),
-        "-useuniqueclassmembernames",
         "-dontshrink");
     AndroidApp app = compileWithR8(builder, pgConfigs, null);
 
@@ -631,15 +629,11 @@ public class ValidNameConflictTest extends JasminTestBase {
     MethodSubject subM2 = sub.method("java.lang.Object", "same", ImmutableList.of());
     assertTrue(subM2.isPresent());
     assertTrue(subM2.isRenamed());
-    // TODO(b/73149686): R8 should be able to fix this conflict w/o -overloadaggressively.
-    assertEquals(subM1.getFinalName(), subM2.getFinalName());
+    assertNotEquals(subM1.getFinalName(), subM2.getFinalName());
 
-    // TODO(b/73149686): The current impl of method minifier visits classes in a hierarchical order.
-    // Hence, already renamed same names in Super are not resolvable as the internal naming state
-    // uses only _name_ to resolve methods in the hierarchy.
-    // // No matter what, overloading methods should be renamed to the same name.
-    // assertEquals(m1.getFinalName(), subM1.getFinalName());
-    // assertEquals(m2.getFinalName(), subM2.getFinalName());
+    // No matter what, overloading methods should be renamed to the same name.
+    assertEquals(m1.getFinalName(), subM1.getFinalName());
+    assertEquals(m2.getFinalName(), subM2.getFinalName());
 
     ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME, dexVm);
     assertEquals(0, artOutput.exitCode);
