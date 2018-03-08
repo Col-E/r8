@@ -1119,7 +1119,8 @@ public class ToolHelper {
     }
   }
 
-  public static String runProguard(Path inJar, Path outJar, Path config) throws IOException {
+  public static String runProguard(Path inJar, Path outJar, Path config, Path map)
+      throws IOException {
     List<String> command = new ArrayList<>();
     command.add(PROGUARD);
     command.add("-forceprocessing");  // Proguard just checks the creation time on the in/out jars.
@@ -1131,6 +1132,9 @@ public class ToolHelper {
     command.add("-outjar");
     command.add(outJar.toString());
     command.add("-printmapping");
+    if (map != null) {
+      command.add(map.toString());
+    }
     ProcessBuilder builder = new ProcessBuilder(command);
     ToolHelper.ProcessResult result = ToolHelper.runProcess(builder);
     if (result.exitCode != 0) {
@@ -1138,7 +1142,6 @@ public class ToolHelper {
     }
     return result.stdout;
   }
-
 
   public static class ProcessResult {
 

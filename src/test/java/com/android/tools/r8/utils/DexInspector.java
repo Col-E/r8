@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
+import com.android.tools.r8.StringResource;
 import com.android.tools.r8.code.Const4;
 import com.android.tools.r8.code.ConstString;
 import com.android.tools.r8.code.Goto;
@@ -133,6 +134,12 @@ public class DexInspector {
     this(
         new ApplicationReader(app, new InternalOptions(), new Timing("DexInspector"))
             .read(app.getProguardMapOutputData()));
+  }
+
+  public DexInspector(AndroidApp app, Path proguardMap) throws IOException, ExecutionException {
+    this(
+        new ApplicationReader(app, new InternalOptions(), new Timing("DexInspector"))
+            .read(StringResource.fromFile(proguardMap)));
   }
 
   public DexInspector(DexApplication application) {
