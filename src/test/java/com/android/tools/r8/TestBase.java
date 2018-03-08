@@ -39,24 +39,30 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Enumeration;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.jar.JarOutputStream;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 
 public class TestBase {
 
+  // Actually running Proguard should only be during development.
+  private boolean runProguard = System.getProperty("run_proguard") != null;
+
   @Rule
   public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
+
+  /**
+   * Check if tests should also run Proguard when applicable.
+   */
+  protected boolean isRunProguard() {
+    return runProguard;
+  }
 
   /**
    * Write lines of text to a temporary file.
@@ -77,6 +83,15 @@ public class TestBase {
     }
     builder.addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.N.getLevel()));
     return builder.build();
+  }
+
+  /**
+   * Build an AndroidApp with the specified jar.
+   */
+  protected AndroidApp readJar(Path jar) {
+    return AndroidApp.builder()
+        .addProgramResourceProvider(ArchiveProgramResourceProvider.fromArchive(jar))
+        .build();
   }
 
   /**
@@ -171,24 +186,6 @@ public class TestBase {
    */
   protected Path jarTestClasses(List<Class> classes) throws IOException {
     return jarTestClasses(classes.toArray(new Class[classes.size()]));
-  }
-
-  /**
-   * Read the names of classes in a jar.
-   */
-  protected Set<String> readClassesInJar(Path jar) throws IOException {
-    Set<String> result = new HashSet<>();
-    try (ZipFile zipFile = new ZipFile(jar.toFile())) {
-      final Enumeration<? extends ZipEntry> entries = zipFile.entries();
-      while (entries.hasMoreElements()) {
-        ZipEntry entry = entries.nextElement();
-        String name = entry.getName();
-        if (name.endsWith(".class")) {
-          result.add(name.substring(0, name.length() - ".class".length()).replace('/', '.'));
-        }
-      }
-    }
-    return result;
   }
 
   /**

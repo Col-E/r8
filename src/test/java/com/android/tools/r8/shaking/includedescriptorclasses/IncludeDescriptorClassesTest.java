@@ -14,48 +14,42 @@ import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import org.junit.Test;
 
 public class IncludeDescriptorClassesTest extends TestBase {
-  // Actually running Proguard should only be during development.
-  private final boolean RUN_PROGUARD = false;
-
   private class Result {
     final DexInspector inspector;
-    final Set<String> classesAfterProguard;
+    final DexInspector proguardedInspector;
 
-    Result(DexInspector inspector, Set<String> classesAfterProguard) {
+    Result(DexInspector inspector, DexInspector proguardedInspector) {
       this.inspector = inspector;
-      this.classesAfterProguard = classesAfterProguard;
+      this.proguardedInspector = proguardedInspector;
     }
 
     void assertKept(Class clazz) {
       assertTrue(inspector.clazz(clazz.getCanonicalName()).isPresent());
       assertFalse(inspector.clazz(clazz.getCanonicalName()).isRenamed());
-      if (classesAfterProguard != null) {
-        assertTrue(classesAfterProguard.contains(clazz.getCanonicalName()));
+      if (proguardedInspector != null) {
+        assertTrue(proguardedInspector.clazz(clazz).isPresent());
       }
     }
 
     // NOTE: 'synchronized' is supposed to disable inlining of this method.
     synchronized void assertRemoved(Class clazz) {
       assertFalse(inspector.clazz(clazz.getCanonicalName()).isPresent());
-      // TODO(sgjesse): Also check that it was not just renamed...
-      if (classesAfterProguard != null) {
-        assertFalse(classesAfterProguard.contains(clazz.getCanonicalName()));
+      if (proguardedInspector != null) {
+        assertFalse(proguardedInspector.clazz(clazz).isPresent());
       }
     }
 
     void assertRenamed(Class clazz) {
       assertTrue(inspector.clazz(clazz.getCanonicalName()).isPresent());
       assertTrue(inspector.clazz(clazz.getCanonicalName()).isRenamed());
-      // TODO(sgjesse): Also check that it was actually renamed...
-      if (classesAfterProguard != null) {
-        assertFalse(classesAfterProguard.contains(clazz.getCanonicalName()));
+      if (proguardedInspector != null) {
+        assertTrue(proguardedInspector.clazz(clazz).isPresent());
+        assertTrue(proguardedInspector.clazz(clazz).isRenamed());
       }
     }
-
   }
 
   private List<Class> applicationClasses = ImmutableList.of(
@@ -70,15 +64,16 @@ public class IncludeDescriptorClassesTest extends TestBase {
 
     DexInspector inspector = new DexInspector(compileWithR8(classes, proguardConfig));
 
-    Set<String> classesAfterProguard = null;
+    DexInspector proguardedInspector = null;
     // Actually running Proguard should only be during development.
-    if (RUN_PROGUARD) {
+    if (isRunProguard()) {
       Path proguardedJar = temp.newFolder().toPath().resolve("proguarded.jar");
-      ToolHelper.runProguard(jarTestClasses(classes), proguardedJar, proguardConfig);
-      classesAfterProguard = readClassesInJar(proguardedJar);
+      Path proguardedMap = temp.newFolder().toPath().resolve("proguarded.map");
+      ToolHelper.runProguard(jarTestClasses(classes), proguardedJar, proguardConfig, proguardedMap);
+      proguardedInspector = new DexInspector(readJar(proguardedJar), proguardedMap);
     }
 
-    return new Result(inspector, classesAfterProguard);
+    return new Result(inspector, proguardedInspector);
   }
 
   @Test

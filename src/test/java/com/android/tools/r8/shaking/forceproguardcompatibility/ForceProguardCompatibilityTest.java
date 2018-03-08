@@ -47,9 +47,6 @@ import java.util.Set;
 import org.junit.Test;
 
 public class ForceProguardCompatibilityTest extends TestBase {
-  // Actually running Proguard should only be during development.
-  private final boolean RUN_PROGUARD = false;
-
   private void test(Class mainClass, Class mentionedClass, boolean forceProguardCompatibility)
       throws Exception {
     String proguardConfig = keepMainProguardConfiguration(mainClass, true, false);
@@ -160,11 +157,13 @@ public class ForceProguardCompatibilityTest extends TestBase {
       assertEquals(0, configuration.getRules().size());
     }
 
-    if (RUN_PROGUARD) {
+    if (isRunProguard()) {
       Path proguardedJar = File.createTempFile("proguarded", ".jar", temp.getRoot()).toPath();
       Path proguardConfigFile = File.createTempFile("proguard", ".config", temp.getRoot()).toPath();
+      Path proguardMapFile = File.createTempFile("proguard", ".map", temp.getRoot()).toPath();
       FileUtils.writeTextFile(proguardConfigFile, proguardConfig);
-      ToolHelper.runProguard(jarTestClasses(testClass), proguardedJar, proguardConfigFile);
+      ToolHelper.runProguard(jarTestClasses(testClass),
+          proguardedJar, proguardConfigFile, proguardMapFile);
     }
   }
 
@@ -199,16 +198,16 @@ public class ForceProguardCompatibilityTest extends TestBase {
       assertEquals(forceProguardCompatibility && containsCheckCast, !clazz.isAbstract());
     }
 
-    if (RUN_PROGUARD) {
+    if (isRunProguard()) {
       Path proguardedJar = File.createTempFile("proguarded", ".jar", temp.getRoot()).toPath();
       Path proguardConfigFile = File.createTempFile("proguard", ".config", temp.getRoot()).toPath();
       FileUtils.writeTextFile(proguardConfigFile, proguardConfig);
       ToolHelper.runProguard(jarTestClasses(ImmutableList.of(mainClass, instantiatedClass)),
-          proguardedJar, proguardConfigFile);
-      Set<String> classesAfterProguard = readClassesInJar(proguardedJar);
-      assertTrue(classesAfterProguard.contains(mainClass.getCanonicalName()));
+          proguardedJar, proguardConfigFile, null);
+      DexInspector proguardInspector = new DexInspector(readJar(proguardedJar));
+      assertTrue(proguardInspector.clazz(mainClass).isPresent());
       assertEquals(
-          containsCheckCast, classesAfterProguard.contains(instantiatedClass.getCanonicalName()));
+          containsCheckCast, proguardInspector.clazz(instantiatedClass).isPresent());
     }
   }
 
@@ -288,19 +287,20 @@ public class ForceProguardCompatibilityTest extends TestBase {
       assertEquals(0, configuration.getRules().size());
     }
 
-    if (RUN_PROGUARD) {
+    if (isRunProguard()) {
       Path proguardedJar = File.createTempFile("proguarded", ".jar", temp.getRoot()).toPath();
       Path proguardConfigFile = File.createTempFile("proguard", ".config", temp.getRoot()).toPath();
+      Path proguardMapFile = File.createTempFile("proguard", ".map", temp.getRoot()).toPath();
       FileUtils.writeTextFile(proguardConfigFile, proguardConfig);
       ToolHelper.runProguard(jarTestClasses(
           ImmutableList.of(mainClass, forNameClass1, forNameClass2)),
-          proguardedJar, proguardConfigFile);
-      Set<String> classesAfterProguard = readClassesInJar(proguardedJar);
-      assertEquals(3, classesAfterProguard.size());
-      assertTrue(classesAfterProguard.contains(mainClass.getCanonicalName()));
-      if (!allowObfuscation) {
-        assertTrue(classesAfterProguard.contains(forNameClass1.getCanonicalName()));
-        assertTrue(classesAfterProguard.contains(forNameClass2.getCanonicalName()));
+          proguardedJar, proguardConfigFile, proguardMapFile);
+      DexInspector proguardedInspector = new DexInspector(readJar(proguardedJar), proguardMapFile);
+      assertEquals(3, proguardedInspector.allClasses().size());
+      assertTrue(proguardedInspector.clazz(mainClass).isPresent());
+      for (Class clazz : ImmutableList.of(forNameClass1, forNameClass2)) {
+        assertTrue(proguardedInspector.clazz(clazz).isPresent());
+        assertEquals(allowObfuscation, proguardedInspector.clazz(clazz).isRenamed());
       }
     }
   }
