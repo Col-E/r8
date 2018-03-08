@@ -343,7 +343,8 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
         computeStateIfAbsent(
             libraryFrontier,
             ignore -> parent == null
-                ? NamingState.createRoot(appInfo.dexItemFactory, dictionary, getKeyTransform())
+                ? NamingState.createRoot(
+                    appInfo.dexItemFactory, dictionary, getKeyTransform(), useUniqueMemberNames)
                 : parent.createChild());
     if (holder != null) {
       boolean keepAll = holder.isLibraryClass() || holder.accessFlags.isAnnotation();
