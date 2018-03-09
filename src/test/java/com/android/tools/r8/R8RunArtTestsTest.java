@@ -67,6 +67,7 @@ public abstract class R8RunArtTestsTest {
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
+  private boolean expectedException = false;
 
   public enum DexTool {
     JACK,
@@ -608,11 +609,6 @@ public abstract class R8RunArtTestsTest {
               TestCondition.match(
                   TestCondition.R8_COMPILER,
                   TestCondition.runtimesUpTo(DexVm.Version.V4_4_4)))
-          .put("134-reg-promotion",
-              TestCondition.match(
-                  TestCondition.tools(DexTool.NONE, DexTool.JACK),
-                  TestCondition.D8_COMPILER,
-                  TestCondition.runtimesUpTo(DexVm.Version.V4_4_4)))
           // VFY: tried to get class from non-ref register.
           .put("506-verify-aput",
               TestCondition.match(TestCondition.runtimesUpTo(DexVm.Version.V4_4_4)))
@@ -675,6 +671,7 @@ public abstract class R8RunArtTestsTest {
           // Switch regression still present in Dalvik 4.0.4.
           .put("095-switch-MAX_INT",
               TestCondition.match(
+                  TestCondition.tools(DexTool.DX),
                   TestCondition.D8_COMPILER,
                   TestCondition.runtimes(DexVm.Version.V4_0_4)))
           .build();
@@ -762,12 +759,6 @@ public abstract class R8RunArtTestsTest {
               TestCondition.match(
                   TestCondition.runtimes(DexVm.Version.V4_0_4, DexVm.Version.V4_4_4,
                       DexVm.Version.V5_1_1, DexVm.Version.V6_0_1, DexVm.Version.V7_0_0)))
-          .put(
-              "454-get-vreg",
-              TestCondition.match(
-                  TestCondition.tools(DexTool.NONE),
-                  TestCondition.D8_COMPILER,
-                  TestCondition.runtimes(DexVm.Version.DEFAULT)))
           .put("454-get-vreg", TestCondition.match(TestCondition.R8_COMPILER))
           // Fails: regs_jni.cc:42] Check failed: GetVReg(m, 0, kIntVReg, &value)
           // The R8/D8 code does not put values in the same registers as the tests expects.
@@ -776,12 +767,6 @@ public abstract class R8RunArtTestsTest {
               TestCondition.match(
                   TestCondition.runtimes(DexVm.Version.V4_0_4, DexVm.Version.V4_4_4,
                       DexVm.Version.V5_1_1, DexVm.Version.V6_0_1, DexVm.Version.V7_0_0)))
-          .put(
-              "457-regs",
-              TestCondition.match(
-                  TestCondition.tools(DexTool.NONE),
-                  TestCondition.D8_COMPILER,
-                  TestCondition.runtimes(DexVm.Version.DEFAULT)))
           .put("457-regs", TestCondition.match(TestCondition.R8_COMPILER))
           // Class not found.
           .put("529-checker-unresolved", TestCondition.any())
@@ -1108,18 +1093,28 @@ public abstract class R8RunArtTestsTest {
     // Has missing classes.
     private final boolean hasMissingClasses;
 
-    TestSpecification(String name, DexTool dexTool,
-        File directory, boolean skipArt, boolean skipTest, boolean failsWithX8,
-        boolean failsWithArt, boolean failsWithArtOutput, boolean failsWithArtOriginalOnly,
-        String nativeLibrary, boolean expectedToFailWithX8, boolean outputMayDiffer,
-        boolean disableInlining, boolean hasMissingClasses) {
+    TestSpecification(
+        String name,
+        DexTool dexTool,
+        File directory,
+        boolean skipArt,
+        boolean skipTest,
+        boolean failsWithX8,
+        boolean failsWithArt,
+        boolean failsWithArtOutput,
+        boolean failsWithArtOriginalOnly,
+        String nativeLibrary,
+        boolean expectedToFailWithX8,
+        boolean outputMayDiffer,
+        boolean disableInlining,
+        boolean hasMissingClasses,
+        DexVm dexVm) {
       this.name = name;
       this.dexTool = dexTool;
       this.nativeLibrary = nativeLibrary;
       this.directory = directory;
       this.skipArt = skipArt;
-      this.skipTest =
-          skipTest || (ToolHelper.isWindows() && ToolHelper.getDexVm().getKind() == Kind.HOST);
+      this.skipTest = skipTest || (ToolHelper.isWindows() && dexVm.getKind() == Kind.HOST);
       this.failsWithX8 = failsWithX8;
       this.failsWithArt = failsWithArt;
       this.failsWithArtOutput = failsWithArtOutput;
@@ -1130,10 +1125,30 @@ public abstract class R8RunArtTestsTest {
       this.hasMissingClasses = hasMissingClasses;
     }
 
-    TestSpecification(String name, DexTool dexTool, File directory, boolean skipArt,
-        boolean failsWithArt, boolean disableInlining) {
-      this(name, dexTool, directory, skipArt,
-          false, false, failsWithArt, false, false, null, false, false, disableInlining, false);
+    TestSpecification(
+        String name,
+        DexTool dexTool,
+        File directory,
+        boolean skipArt,
+        boolean failsWithArt,
+        boolean disableInlining,
+        DexVm dexVm) {
+      this(
+          name,
+          dexTool,
+          directory,
+          skipArt,
+          false,
+          false,
+          failsWithArt,
+          false,
+          false,
+          null,
+          false,
+          false,
+          disableInlining,
+          false,
+          dexVm);
     }
 
     public File resolveFile(String name) {
@@ -1188,7 +1203,8 @@ public abstract class R8RunArtTestsTest {
   }
 
   private static Map<SpecificationKey, TestSpecification> getTestsMap(
-      CompilerUnderTest compilerUnderTest, CompilationMode compilationMode, DexVm.Version version) {
+      CompilerUnderTest compilerUnderTest, CompilationMode compilationMode, DexVm dexVm) {
+    DexVm.Version version = dexVm.getVersion();
     File defaultArtTestDir = new File(ART_TESTS_DIR);
     File legacyArtTestDir = new File(ART_LEGACY_TESTS_DIR);
     if (!defaultArtTestDir.exists() || !legacyArtTestDir.exists()) {
@@ -1248,12 +1264,11 @@ public abstract class R8RunArtTestsTest {
         failsWithArt.addAll(tmpSet);
       }
 
-      if (!ToolHelper.isDefaultDexVm(ToolHelper.getDexVm())) {
+      if (!ToolHelper.isDefaultDexVm(dexVm)) {
         // Generally failing when not TOT art.
         failsWithArt.addAll(expectedToFailRunWithArtNonDefault);
         // Version specific failures
-        failsWithArt
-            .addAll(expectedToFailRunWithArtVersion.get(ToolHelper.getDexVm().getVersion()));
+        failsWithArt.addAll(expectedToFailRunWithArtVersion.get(version));
       }
 
       // Collect the tests failing with output differences in Art.
@@ -1296,7 +1311,8 @@ public abstract class R8RunArtTestsTest {
                 expectedToFailWithCompilerSet.contains(name),
                 outputMayDiffer.contains(name),
                 requireInliningToBeDisabled.contains(name),
-                hasMissingClasses.contains(name)));
+                hasMissingClasses.contains(name),
+                dexVm));
       }
     }
     return data;
@@ -1347,11 +1363,6 @@ public abstract class R8RunArtTestsTest {
       builder.appendProgramArgument(specification.nativeLibrary);
     }
     return builder;
-  }
-
-  protected void runArtTest() throws Throwable {
-    // Use the default dex VM specified.
-    runArtTest(ToolHelper.getDexVm(), CompilerUnderTest.R8);
   }
 
   protected void runArtTest(CompilerUnderTest compilerUnderTest) throws Throwable {
@@ -1489,12 +1500,17 @@ public abstract class R8RunArtTestsTest {
   }
 
   private static BiFunction<Outcome, Boolean, TestSpecification> jctfOutcomeToSpecification(
-      String name, DexTool dexTool, File resultDir) {
-    return (outcome, noInlining) -> new TestSpecification(name, dexTool, resultDir,
-        outcome == JctfTestSpecifications.Outcome.TIMEOUTS_WITH_ART
-            || outcome == JctfTestSpecifications.Outcome.FLAKY_WITH_ART,
-        outcome == JctfTestSpecifications.Outcome.FAILS_WITH_ART,
-        noInlining);
+      String name, DexTool dexTool, File resultDir, DexVm dexVm) {
+    return (outcome, noInlining) ->
+        new TestSpecification(
+            name,
+            dexTool,
+            resultDir,
+            outcome == JctfTestSpecifications.Outcome.TIMEOUTS_WITH_ART
+                || outcome == JctfTestSpecifications.Outcome.FLAKY_WITH_ART,
+            outcome == JctfTestSpecifications.Outcome.FAILS_WITH_ART,
+            noInlining,
+            dexVm);
   }
 
   protected void runJctfTest(CompilerUnderTest compilerUnderTest, String classFilePath,
@@ -1511,9 +1527,13 @@ public abstract class R8RunArtTestsTest {
 
     File resultDir = temp.newFolder(firstCompilerUnderTest.toString().toLowerCase() + "-output");
 
-    TestSpecification specification = JctfTestSpecifications.getExpectedOutcome(
-        name, firstCompilerUnderTest, dexVm, compilationMode,
-        jctfOutcomeToSpecification(name, DexTool.NONE, resultDir));
+    TestSpecification specification =
+        JctfTestSpecifications.getExpectedOutcome(
+            name,
+            firstCompilerUnderTest,
+            dexVm,
+            compilationMode,
+            jctfOutcomeToSpecification(name, DexTool.NONE, resultDir, dexVm));
 
     if (specification.skipTest) {
       return;
@@ -1596,9 +1616,13 @@ public abstract class R8RunArtTestsTest {
               .collect(Collectors.toList());
       File r8ResultDir = temp.newFolder("r8-output");
       compilationMode = CompilationMode.DEBUG;
-      specification = JctfTestSpecifications.getExpectedOutcome(
-          name, CompilerUnderTest.R8_AFTER_D8, dexVm, compilationMode,
-          jctfOutcomeToSpecification(name, DexTool.DX, r8ResultDir));
+      specification =
+          JctfTestSpecifications.getExpectedOutcome(
+              name,
+              CompilerUnderTest.R8_AFTER_D8,
+              dexVm,
+              compilationMode,
+              jctfOutcomeToSpecification(name, DexTool.DX, r8ResultDir, dexVm));
       if (specification.skipTest) {
         return;
       }
@@ -1654,7 +1678,7 @@ public abstract class R8RunArtTestsTest {
     }
 
     ArtCommandBuilder builder = buildArtCommand(processedFile, specification, dexVm);
-    if (ToolHelper.getDexVm().isNewerThan(DexVm.ART_4_4_4_HOST)) {
+    if (dexVm.isNewerThan(DexVm.ART_4_4_4_HOST)) {
       builder.appendArtOption("-Ximage:/system/non/existent/image.art");
     }
     for (String s : ToolHelper.getBootLibs()) {
@@ -1664,7 +1688,7 @@ public abstract class R8RunArtTestsTest {
     builder.appendProgramArgument(fullClassName);
 
     if (specification.failsWithArt) {
-      thrown.expect(AssertionError.class);
+      expectException(AssertionError.class);
     }
 
     try {
@@ -1680,8 +1704,7 @@ public abstract class R8RunArtTestsTest {
     }
   }
 
-  protected void runArtTest(DexVm version, CompilerUnderTest compilerUnderTest)
-      throws Throwable {
+  protected void runArtTest(DexVm dexVm, CompilerUnderTest compilerUnderTest) throws Throwable {
     CompilerUnderTest firstCompilerUnderTest =
         compilerUnderTest == CompilerUnderTest.R8_AFTER_D8
             ? CompilerUnderTest.D8
@@ -1690,11 +1713,11 @@ public abstract class R8RunArtTestsTest {
     CompilationMode compilationMode = defaultCompilationMode(compilerUnderTest);
 
     TestSpecification specification =
-        getTestsMap(firstCompilerUnderTest, compilationMode, version.getVersion())
+        getTestsMap(firstCompilerUnderTest, compilationMode, dexVm)
             .get(new SpecificationKey(name, toolchain));
 
     if (specification == null) {
-      if (version.getVersion() == DexVm.Version.DEFAULT) {
+      if (dexVm.getVersion() == DexVm.Version.DEFAULT) {
         throw new RuntimeException("Test " + name + " has no specification for toolchain"
             + toolchain + ".");
       } else {
@@ -1708,7 +1731,7 @@ public abstract class R8RunArtTestsTest {
       return;
     }
 
-    if (specification.nativeLibrary != null && ToolHelper.getDexVm().getKind() == Kind.TARGET) {
+    if (specification.nativeLibrary != null && dexVm.getKind() == Kind.TARGET) {
       // JNI tests not yet supported for devices
       return;
     }
@@ -1739,12 +1762,17 @@ public abstract class R8RunArtTestsTest {
     File resultDir = temp.newFolder(firstCompilerUnderTest.toString().toLowerCase() + "-output");
 
     runArtTestDoRunOnArt(
-        version, firstCompilerUnderTest, specification, fileNames, resultDir, compilationMode);
+        dexVm, firstCompilerUnderTest, specification, fileNames, resultDir, compilationMode);
 
     if (compilerUnderTest == CompilerUnderTest.R8_AFTER_D8) {
+      if (expectedException) {
+        // The expected exception was not thrown while running D8.
+        return;
+      }
+
       compilationMode = CompilationMode.DEBUG;
       specification =
-          getTestsMap(CompilerUnderTest.R8_AFTER_D8, compilationMode, version.getVersion())
+          getTestsMap(CompilerUnderTest.R8_AFTER_D8, compilationMode, dexVm)
               .get(new SpecificationKey(name, DexTool.DX));
 
       if (specification == null) {
@@ -1764,7 +1792,7 @@ public abstract class R8RunArtTestsTest {
       resultDir = temp.newFolder("r8-output");
 
       runArtTestDoRunOnArt(
-          version, CompilerUnderTest.R8, specification, fileNames, resultDir, compilationMode);
+          dexVm, CompilerUnderTest.R8, specification, fileNames, resultDir, compilationMode);
     }
   }
 
@@ -1789,7 +1817,7 @@ public abstract class R8RunArtTestsTest {
       CompilationMode compilationMode)
       throws Throwable {
     if (specification.expectedToFailWithX8) {
-      thrown.expect(CompilationError.class);
+      expectException(CompilationError.class);
       try {
         executeCompilerUnderTest(
             compilerUnderTest, fileNames, resultDir.getCanonicalPath(), compilationMode,
@@ -1802,7 +1830,7 @@ public abstract class R8RunArtTestsTest {
       System.err.println("Should have failed R8/D8 compilation with a CompilationError.");
       return;
     } else if (specification.failsWithX8) {
-      thrown.expect(Throwable.class);
+      expectException(Throwable.class);
       executeCompilerUnderTest(
           compilerUnderTest, fileNames, resultDir.getCanonicalPath(), compilationMode,
           specification.disableInlining, specification.hasMissingClasses);
@@ -1835,7 +1863,7 @@ public abstract class R8RunArtTestsTest {
       String expected =
           com.google.common.io.Files.asCharSource(expectedFile, Charsets.UTF_8).read();
       if (specification.failsWithArt) {
-        thrown.expect(AssertionError.class);
+        expectException(AssertionError.class);
       }
 
       ArtCommandBuilder builder = buildArtCommand(processedFile, specification, version);
@@ -1872,7 +1900,7 @@ public abstract class R8RunArtTestsTest {
           // produces.
           originalFile = specification.resolveFile(specification.name + ".jar");
           if (specification.failsWithArtOriginalOnly) {
-            thrown.expect(AssertionError.class);
+            expectException(AssertionError.class);
           }
           builder = buildArtCommand(originalFile, specification, version);
           expected = ToolHelper.runArt(builder);
@@ -1882,13 +1910,18 @@ public abstract class R8RunArtTestsTest {
           }
         }
         if (specification.failsWithArtOutput) {
-          thrown.expect(ComparisonFailure.class);
+          expectException(ComparisonFailure.class);
         }
         if (!specification.outputMayDiffer) {
           assertEquals(expected, output);
         }
       }
     }
+  }
+
+  private void expectException(Class<? extends Throwable> exception) {
+    thrown.expect(exception);
+    expectedException = true;
   }
 
   private void failWithDexDiff(File originalFile, File processedFile)
