@@ -922,6 +922,11 @@ public class DexInspector {
     public DexEncodedField getField() {
       return dexField;
     }
+
+    @Override
+    public String toString() {
+      return dexField.toSourceString();
+    }
   }
 
   public class TypeSubject extends Subject {
