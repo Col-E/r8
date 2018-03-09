@@ -16,6 +16,7 @@ import com.android.tools.r8.code.AgetWide;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
@@ -143,7 +144,14 @@ public class ArrayGet extends Instruction {
 
   @Override
   public DexType computeVerificationType(TypeVerificationHelper helper) {
-    return helper.getType(array()).toArrayElementType(helper.getFactory());
+    // This method is not called for ArrayGet on primitive array.
+    assert this.outValue.type.isObject();
+    DexType arrayType = helper.getType(array());
+    if (arrayType == DexItemFactory.nullValueType) {
+      // JVM 8 §4.10.1.9.aaload: Array component type of null is null.
+      return arrayType;
+    }
+    return arrayType.toArrayElementType(helper.getFactory());
   }
 
   @Override
