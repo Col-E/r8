@@ -203,9 +203,28 @@ public class Enqueuer {
   }
 
   private void enqueueRootItems(Map<DexItem, ProguardKeepRule> items) {
-    workList.addAll(
-        items.entrySet().stream().map(Action::forRootItem).collect(Collectors.toList()));
+    items.entrySet().forEach(this::enqueueRootItem);
     pinnedItems.addAll(items.keySet());
+  }
+
+  private void enqueueRootItem(Map.Entry<DexItem, ProguardKeepRule> root) {
+    DexItem item = root.getKey();
+    KeepReason reason = KeepReason.dueToKeepRule(root.getValue());
+    if (item instanceof DexClass) {
+      DexClass clazz = (DexClass) item;
+      workList.add(Action.markInstantiated(clazz, reason));
+      if (options.forceProguardCompatibility && clazz.hasDefaultInitializer()) {
+        ProguardKeepRule rule = ProguardConfigurationUtils.buildDefaultInitializerKeepRule(clazz);
+        proguardCompatibilityWorkList.add(Action.markMethodLive(
+            clazz.getDefaultInitializer(), KeepReason.dueToProguardCompatibilityKeepRule(rule)));
+      }
+    } else if (item instanceof DexEncodedField) {
+      workList.add(Action.markFieldKept((DexEncodedField) item, reason));
+    } else if (item instanceof DexEncodedMethod) {
+      workList.add(Action.markMethodKept((DexEncodedMethod) item, reason));
+    } else {
+      throw new IllegalArgumentException(item.toString());
+    }
   }
 
   //
@@ -372,6 +391,16 @@ public class Enqueuer {
     }
 
     @Override
+    public boolean registerConstClass(DexType type) {
+      return registerConstClassOrCheckCast(type);
+    }
+
+    @Override
+    public boolean registerCheckCast(DexType type) {
+      return registerConstClassOrCheckCast(type);
+    }
+
+    @Override
     public boolean registerTypeReference(DexType type) {
       DexType baseType = type.toBaseType(appInfo.dexItemFactory);
       if (baseType.isClassType()) {
@@ -379,6 +408,25 @@ public class Enqueuer {
         return true;
       }
       return false;
+    }
+
+    private boolean registerConstClassOrCheckCast(DexType type) {
+      if (options.forceProguardCompatibility) {
+        DexType baseType = type.toBaseType(appInfo.dexItemFactory);
+        if (baseType.isClassType()) {
+          DexClass baseClass = appInfo.definitionFor(baseType);
+          if (baseClass != null) {
+            markClassAsInstantiatedWithCompatRule(baseClass);
+          } else {
+            // This handles reporting of missing classes.
+            markTypeAsLive(baseType);
+          }
+          return true;
+        }
+        return false;
+      } else {
+        return registerTypeReference(type);
+      }
     }
   }
 
@@ -439,14 +487,12 @@ public class Enqueuer {
         annotations.forEach(this::handleAnnotationOfLiveType);
       }
 
-      // Add all dependent static members to the workqueue.
-      enqueueRootItems(rootSet.getDependentStaticMembers(type));
-
-      // For Proguard compatibility keep the default initializer for live types.
       if (options.forceProguardCompatibility) {
-        if (holder.isProgramClass() && holder.hasDefaultInitializer()) {
-          markClassAsInstantiatedWithCompatRule(holder);
-        }
+        // Add all dependent members to the workqueue.
+        enqueueRootItems(rootSet.getDependentItems(type));
+      } else {
+        // Add all dependent static members to the workqueue.
+        enqueueRootItems(rootSet.getDependentStaticMembers(type));
       }
     }
   }
@@ -566,6 +612,7 @@ public class Enqueuer {
     if (!instantiatedTypes.add(clazz.type, reason)) {
       return;
     }
+
     collectProguardCompatibilityRule(reason);
     if (Log.ENABLED) {
       Log.verbose(getClass(), "Class `%s` is instantiated, processing...", clazz);
@@ -1284,20 +1331,6 @@ public class Enqueuer {
 
     public static Action markFieldKept(DexEncodedField method, KeepReason reason) {
       return new Action(Kind.MARK_FIELD_KEPT, method, null, reason);
-    }
-
-    public static Action forRootItem(Map.Entry<DexItem, ProguardKeepRule> root) {
-      DexItem item = root.getKey();
-      KeepReason reason = KeepReason.dueToKeepRule(root.getValue());
-      if (item instanceof DexClass) {
-        return markInstantiated((DexClass) item, reason);
-      } else if (item instanceof DexEncodedField) {
-        return markFieldKept((DexEncodedField) item, reason);
-      } else if (item instanceof DexEncodedMethod) {
-        return markMethodKept((DexEncodedMethod) item, reason);
-      } else {
-        throw new IllegalArgumentException(item.toString());
-      }
     }
 
     private enum Kind {

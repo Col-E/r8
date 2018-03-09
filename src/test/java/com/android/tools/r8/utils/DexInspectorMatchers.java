@@ -5,6 +5,9 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
+import com.android.tools.r8.utils.DexInspector.FieldSubject;
+import com.android.tools.r8.utils.DexInspector.MethodSubject;
+import com.android.tools.r8.utils.DexInspector.Subject;
 import com.google.common.collect.ImmutableList;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
@@ -12,22 +15,46 @@ import org.hamcrest.TypeSafeMatcher;
 
 public class DexInspectorMatchers {
 
-  public static Matcher<ClassSubject> isPresent() {
-    return new TypeSafeMatcher<ClassSubject>() {
+  public static Matcher<Subject> isPresent() {
+    return new TypeSafeMatcher<Subject>() {
+      private String type(Subject subject) {
+        String type = "<unknown subject type>";
+        if (subject instanceof ClassSubject) {
+          type = "class";
+        } else if (subject instanceof MethodSubject) {
+          type = "method";
+        } else if (subject instanceof FieldSubject) {
+          type = "field";
+        }
+        return type;
+      }
+
+      private String name(Subject subject) {
+        String name = "<unknown>";
+        if (subject instanceof ClassSubject) {
+          name = ((ClassSubject) subject).getOriginalName();
+        } else if (subject instanceof MethodSubject) {
+          name = ((MethodSubject) subject).getOriginalName();
+        } else if (subject instanceof FieldSubject) {
+          name = ((FieldSubject) subject).getOriginalName();
+        }
+        return name;
+      }
+
       @Override
-      public boolean matchesSafely(final ClassSubject clazz) {
+      public boolean matchesSafely(final Subject clazz) {
         return clazz.isPresent();
       }
 
       @Override
       public void describeTo(final Description description) {
-        description.appendText("class present");
+        description.appendText(" present");
       }
 
       @Override
-      public void describeMismatchSafely(final ClassSubject clazz, Description description) {
+      public void describeMismatchSafely(final Subject subject, Description description) {
         description
-            .appendText("class ").appendValue(clazz.getOriginalName()).appendText(" was not");
+            .appendText(type(subject) + " ").appendValue(name(subject)).appendText(" was not");
       }
     };
   }
@@ -48,6 +75,26 @@ public class DexInspectorMatchers {
       public void describeMismatchSafely(final ClassSubject clazz, Description description) {
         description
             .appendText("class ").appendValue(clazz.getOriginalName()).appendText(" did not");
+      }
+    };
+  }
+
+  public static Matcher<MethodSubject> isAbstract() {
+    return new TypeSafeMatcher<MethodSubject>() {
+      @Override
+      public boolean matchesSafely(final MethodSubject method) {
+        return method.isPresent() && method.isAbstract();
+      }
+
+      @Override
+      public void describeTo(final Description description) {
+        description.appendText("method abstract");
+      }
+
+      @Override
+      public void describeMismatchSafely(final MethodSubject method, Description description) {
+        description
+            .appendText("method ").appendValue(method.getOriginalName()).appendText(" was not");
       }
     };
   }
