@@ -792,7 +792,7 @@ public class ProguardConfigurationParser {
         ruleBuilder.setName("<init>");
         ruleBuilder.setArguments(parseArgumentList());
       } else {
-        String first = acceptClassName();
+        String first = acceptClassNameWithNthWildcard();
         if (first != null) {
           skipWhitespace();
           if (first.equals("*") && hasNextChar(';')) {
@@ -803,7 +803,7 @@ public class ProguardConfigurationParser {
               ruleBuilder.setName(first);
               ruleBuilder.setArguments(parseArgumentList());
             } else {
-              String second = acceptClassName();
+              String second = acceptClassNameWithNthWildcard();
               if (second != null) {
                 skipWhitespace();
                 if (hasNextChar('(')) {
@@ -1109,9 +1109,14 @@ public class ProguardConfigurationParser {
         if (nthWildcard != null) {
           if (current == '>') {
             try {
-              Integer.parseUnsignedInt(nthWildcard.toString());
-            } catch (NullPointerException | NumberFormatException e) {
-              return null;
+              int nth = Integer.parseUnsignedInt(nthWildcard.toString());
+              if (nth <= 0) {
+                throw reporter.fatalError(new StringDiagnostic(
+                    "Wildcard <" + nth + "> is invalid.", origin, getPosition()));
+              }
+            } catch (NumberFormatException e) {
+              throw reporter.fatalError(new StringDiagnostic(
+                  "Wildcard <" + nthWildcard.toString() + "> is invalid.", origin, getPosition()));
             }
             nthWildcard = null;
           } else {

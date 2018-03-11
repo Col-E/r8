@@ -568,41 +568,6 @@ public class ProguardConfigurationParserTest extends TestBase {
   }
 
   @Test
-  public void testAdaptClassStringsNthWildcard() throws Exception {
-    DexItemFactory dexItemFactory = new DexItemFactory();
-    ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(dexItemFactory, reporter);
-    String wildcard = "-adaptclassstrings *foo<1>";
-    parser.parse(createConfigurationForTesting(ImmutableList.of(wildcard)));
-    verifyParserEndsCleanly();
-    ProguardConfiguration config = parser.getConfig();
-    assertFalse(
-        config.getAdaptClassStrings().matches(dexItemFactory.createType("Lfoobar;")));
-    assertFalse(
-        config.getAdaptClassStrings().matches(dexItemFactory.createType("Lboofoobar;")));
-    // TODO(b/73800755): Use <n> while matching class name list.
-    //assertTrue(
-    //    config.getAdaptClassStrings().matches(dexItemFactory.createType("Lboofooboo;")));
-  }
-
-  @Ignore("b/73800755: verify the range of <n>")
-  @Test
-  public void testAdaptClassStringsNthWildcard_outOfRange() throws Exception {
-    Path proguardConfig = writeTextToTempFile(
-        "-adaptclassstrings *foo<2>"
-    );
-    try {
-      ProguardConfigurationParser parser =
-          new ProguardConfigurationParser(new DexItemFactory(), reporter);
-      parser.parse(proguardConfig);
-      fail();
-    } catch (AbortException e) {
-      checkDiagnostic(handler.errors, proguardConfig, 1, 1,
-          "wildcard", "out", "range");
-    }
-  }
-
-  @Test
   public void testIdentifierNameString() throws Exception {
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(new DexItemFactory(), reporter);
@@ -927,6 +892,7 @@ public class ProguardConfigurationParserTest extends TestBase {
     checkDiagnostic(handler.warnings, path, 5, 1,
         "Ignoring", "-optimizationpasses");
     ProguardConfiguration config = parser.getConfig();
+    assertTrue(config.isOptimizing());
   }
 
   @Test
@@ -1225,14 +1191,49 @@ public class ProguardConfigurationParserTest extends TestBase {
     assertEquals("**$R**", if0.getClassNames().toString());
     assertEquals(ProguardKeepRuleType.KEEP, if0.subsequentRule.getType());
     assertEquals("**$D<2>", if0.subsequentRule.getClassNames().toString());
+    // TODO(b/73800755): Test <2> matches with expected wildcard: ** after '$R'.
+  }
+
+  @Test
+  public void parse_if_nthWildcard_notNumber() throws Exception {
+    Path proguardConfig = writeTextToTempFile(
+        "-if class **$R**",
+        "-keep class **D<n>"
+    );
+    try {
+      ProguardConfigurationParser parser =
+          new ProguardConfigurationParser(new DexItemFactory(), reporter);
+      parser.parse(proguardConfig);
+      fail();
+    } catch (AbortException e) {
+      checkDiagnostic(handler.errors, proguardConfig, 2, 13,
+          "Wildcard", "<n>", "invalid");
+    }
+  }
+
+  @Test
+  public void parse_if_nthWildcard_outOfRange_tooSmall() throws Exception {
+    Path proguardConfig = writeTextToTempFile(
+        "-if class **$R**",
+        "-keep class **D<0>"  // nth wildcard starts from 1, not 0.
+    );
+    try {
+      ProguardConfigurationParser parser =
+          new ProguardConfigurationParser(new DexItemFactory(), reporter);
+      parser.parse(proguardConfig);
+      fail();
+    } catch (AbortException e) {
+      checkDiagnostic(handler.errors, proguardConfig, 2, 13,
+          "Wildcard", "<0>", "invalid");
+    }
   }
 
   @Ignore("b/73800755: verify the range of <n>")
   @Test
-  public void parse_if_nthWildcard_outOfRange() throws Exception {
+  public void parse_if_nthWildcard_outOfRange_tooBig() throws Exception {
     Path proguardConfig = writeTextToTempFile(
         "-if class **$R**",
-        "-keep class **D<4>"  // There are 3 ** in this rule.
+        "-keep class **D<4>"  // There are 3 previous wildcards in this rule.
     );
     try {
       ProguardConfigurationParser parser =
@@ -1241,7 +1242,47 @@ public class ProguardConfigurationParserTest extends TestBase {
       fail();
     } catch (AbortException e) {
       checkDiagnostic(handler.errors, proguardConfig, 1, 1,
-          "wildcard", "out", "range");
+          "Wildcard", "<4>", "invalid");
+    }
+  }
+
+  @Ignore("b/73800755: verify the range of <n>")
+  @Test
+  public void parse_if_nthWildcard_outOfRange_inIf() throws Exception {
+    Path proguardConfig = writeTextToTempFile(
+        "-if class **$R<2>", // There is only one wildcard prior to <2>.
+        "-keep class **D<2>"
+    );
+    try {
+      ProguardConfigurationParser parser =
+          new ProguardConfigurationParser(new DexItemFactory(), reporter);
+      parser.parse(proguardConfig);
+      fail();
+    } catch (AbortException e) {
+      checkDiagnostic(handler.errors, proguardConfig, 1, 1,
+          "Wildcard", "<2>", "invalid");
+    }
+  }
+
+  @Ignore("b/73800755: verify the range of <n>")
+  @Test
+  public void parse_if_nthWildcard_not_referable() throws Exception {
+    Path proguardConfig = writeTextToTempFile(
+        "-if class **.R {",
+        "  int id?;",
+        "}",
+        "-keep class <1>.D<2> {",
+        "  int id<3>;",  // Only ** and ? are referable wildcards.
+        "}"
+    );
+    try {
+      ProguardConfigurationParser parser =
+          new ProguardConfigurationParser(new DexItemFactory(), reporter);
+      parser.parse(proguardConfig);
+      fail();
+    } catch (AbortException e) {
+      checkDiagnostic(handler.errors, proguardConfig, 1, 1,
+          "Wildcard", "<3>", "invalid");
     }
   }
 
