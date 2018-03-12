@@ -180,9 +180,6 @@ public final class InterfaceMethodRewriter {
             continue;
           }
 
-          // This is a private instance method call. Note that the referenced method
-          // is expected to be in the current class since it is private, but desugaring
-          // may move some methods or their code into other classes.
           DexClass clazz = findDefinitionFor(method.holder);
           if (clazz == null) {
             // Report missing class since we don't know if it is an interface.
@@ -195,9 +192,32 @@ public final class InterfaceMethodRewriter {
                   getMethodOrigin(encodedMethod.method));
 
             }
-            instructions.replaceCurrentInstruction(
-                new InvokeStatic(privateAsMethodOfCompanionClass(method),
-                    invokeDirect.outValue(), invokeDirect.arguments()));
+
+            // This might be either private method call, or a call to default
+            // interface method made via invoke-direct.
+            DexEncodedMethod virtualTarget = null;
+            for (DexEncodedMethod candidate : clazz.virtualMethods()) {
+              if (candidate.method == method) {
+                virtualTarget = candidate;
+                break;
+              }
+            }
+
+            if (virtualTarget != null) {
+              // This is a invoke-direct call to a virtual method.
+              instructions.replaceCurrentInstruction(
+                  new InvokeStatic(defaultAsMethodOfCompanionClass(method),
+                      invokeDirect.outValue(), invokeDirect.arguments()));
+
+            } else {
+              // Otherwise this must be a private instance method call. Note that the referenced
+              // method is expected to be in the current class since it is private, but desugaring
+              // may move some methods or their code into other classes.
+
+              instructions.replaceCurrentInstruction(
+                  new InvokeStatic(privateAsMethodOfCompanionClass(method),
+                      invokeDirect.outValue(), invokeDirect.arguments()));
+            }
           }
         }
       }
