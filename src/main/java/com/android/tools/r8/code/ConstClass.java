@@ -39,7 +39,7 @@ public class ConstClass extends Format21c {
 
   @Override
   public void registerUse(UseRegistry registry) {
-    registry.registerTypeReference(getType());
+    registry.registerConstClass(getType());
   }
 
   public DexType getType() {

@@ -40,6 +40,13 @@ class MainGetClassSubClass {
   }
 }
 
+class MainCheckCastSubClass {
+
+  public static void main(String[] args) {
+    System.out.println((SubClass) null);
+  }
+}
+
 class MainClassForNameSubClass {
 
   public static void main(String[] args) throws Exception{
@@ -164,6 +171,31 @@ public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatabilityT
   }
 
   @Test
+  public void testCheckCast() throws Exception {
+    // Reference to the class constant keeps the default constructor.
+    Class mainClass = MainCheckCastSubClass.class;
+    runTest(
+        mainClass,
+        ImmutableList.of(mainClass, SuperClass.class, SubClass.class),
+        keepMainProguardConfiguration(mainClass),
+        // TODO(74423424): Proguard eliminates the check-cast on null.
+        this::checkAllClassesPresentWithDefaultConstructor,
+        this::checkOnlyMainPresent);
+  }
+
+
+  @Test
+  public void testCheckCastWithoutInlining() throws Exception {
+    // Reference to the class constant keeps the default constructor.
+    Class mainClass = MainCheckCastSubClass.class;
+    runTest(
+        mainClass,
+        ImmutableList.of(mainClass, SuperClass.class, SubClass.class),
+        keepMainProguardConfiguration(mainClass, ImmutableList.of("-dontoptimize")),
+        this::checkAllClassesPresentWithDefaultConstructor);
+  }
+
+  @Test
   public void testClassForName() throws Exception {
     // Class.forName with a constant string keeps the default constructor.
     Class mainClass = MainClassForNameSubClass.class;
@@ -230,7 +262,7 @@ public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatabilityT
         ImmutableList.of(mainClass, StaticFieldNotInitialized.class),
         keepMainProguardConfiguration(mainClass),
         // TODO(74379749): Proguard does not keep the class with the un-initialized static field.
-        this::checkAllClassesPresentWithDefaultConstructor,
+        this::checkAllClassesPresentOnlyMainWithDefaultConstructor,
         this::checkOnlyMainPresent);
   }
 
@@ -241,9 +273,6 @@ public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatabilityT
         mainClass,
         ImmutableList.of(mainClass, StaticFieldInitialized.class),
         keepMainProguardConfiguration(mainClass),
-        // TODO(74233021): Proguard does not keep the default constructor for the class with the
-        // un-initialized static field.
-        this::checkAllClassesPresentWithDefaultConstructor,
         this::checkAllClassesPresentOnlyMainWithDefaultConstructor);
   }
 
@@ -265,9 +294,6 @@ public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatabilityT
         mainClass,
         ImmutableList.of(mainClass, StaticFieldNotInitialized.class),
         keepMainProguardConfiguration(mainClass, ImmutableList.of("-dontoptimize")),
-        // TODO(74233021): Proguard does not keep the default constructor for the class with the
-        // initialized static field.
-        this::checkAllClassesPresentWithDefaultConstructor,
         this::checkAllClassesPresentOnlyMainWithDefaultConstructor);
   }
 
@@ -278,9 +304,6 @@ public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatabilityT
         mainClass,
         ImmutableList.of(mainClass, StaticFieldInitialized.class),
         keepMainProguardConfiguration(mainClass, ImmutableList.of("-dontoptimize")),
-        // TODO(74233021): Proguard does not keep the default constructor for the class with the
-        // un-initialized static field.
-        this::checkAllClassesPresentWithDefaultConstructor,
         this::checkAllClassesPresentOnlyMainWithDefaultConstructor);
   }
 
@@ -291,9 +314,6 @@ public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatabilityT
         mainClass,
         ImmutableList.of(mainClass, StaticMethod.class),
         keepMainProguardConfiguration(mainClass, ImmutableList.of("-dontoptimize")),
-        // TODO(74233021): Proguard does not keep the default constructor for the class with the
-        // initialized static field.
-        this::checkAllClassesPresentWithDefaultConstructor,
         this::checkAllClassesPresentOnlyMainWithDefaultConstructor);
   }
 }

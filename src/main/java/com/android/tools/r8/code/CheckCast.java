@@ -39,7 +39,7 @@ public class CheckCast extends Format21c {
 
   @Override
   public void registerUse(UseRegistry registry) {
-    registry.registerTypeReference(getType());
+    registry.registerCheckCast(getType());
   }
 
   public DexType getType() {

@@ -27,6 +27,14 @@ public abstract class UseRegistry {
 
   public abstract boolean registerTypeReference(DexType type);
 
+  public boolean registerConstClass(DexType type) {
+    return registerTypeReference(type);
+  }
+
+  public boolean registerCheckCast(DexType type) {
+    return registerTypeReference(type);
+  }
+
   public void registerMethodHandle(DexMethodHandle methodHandle) {
     switch (methodHandle.type) {
       case INSTANCE_GET:
