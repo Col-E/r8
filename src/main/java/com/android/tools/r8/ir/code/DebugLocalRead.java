@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.DexBuilder;
@@ -61,5 +62,10 @@ public class DebugLocalRead extends Instruction {
     // Reads are never dead code.
     // They should also have a non-empty set of debug values (see RegAlloc::computeDebugInfo)
     return false;
+  }
+
+  @Override
+  public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
+    // Non-materializing so no stack values are needed.
   }
 }
