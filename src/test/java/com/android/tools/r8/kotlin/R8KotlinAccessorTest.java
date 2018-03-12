@@ -233,7 +233,7 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
     }
 
     AndroidApp app = compileWithR8(jasminBuilder.build(),
-        keepMainProguardConfiguration("Foo") + "\ndontobfuscate");
+        keepMainProguardConfiguration("Foo") + "\n-dontobfuscate");
     String artOutput = runOnArt(app, "Foo");
     System.out.println(artOutput);
   }
