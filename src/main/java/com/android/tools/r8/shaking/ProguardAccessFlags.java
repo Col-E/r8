@@ -60,6 +60,10 @@ public class ProguardAccessFlags {
     return containsNone(other.getAsCfAccessFlags());
   }
 
+  public void setFlags(AccessFlags other) {
+    this.flags = other.getAsCfAccessFlags();
+  }
+
   public void setPublic() {
     set(Constants.ACC_PUBLIC);
   }

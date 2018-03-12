@@ -42,8 +42,7 @@ public class GetMembersTest extends CompatProguardSmaliTestBase {
     builder.addStaticField("foo", "Ljava/lang/String;");
 
     List<String> pgConfigs = ImmutableList.of(
-        "-keep class " + CLASS_NAME + " { *; }",
-        "-keep,allowobfuscation class " + BOO,
+        keepMainProguardConfiguration(CLASS_NAME),
         "-dontshrink",
         "-dontoptimize");
     DexInspector inspector = runCompatProguard(builder, pgConfigs);
@@ -83,8 +82,7 @@ public class GetMembersTest extends CompatProguardSmaliTestBase {
     builder.addStaticMethod("void", "foo", ImmutableList.of("java.lang.String"), 0, "return-void");
 
     List<String> pgConfigs = ImmutableList.of(
-        "-keep class " + CLASS_NAME + " { *; }",
-        "-keep,allowobfuscation class " + BOO,
+        keepMainProguardConfiguration(CLASS_NAME),
         "-dontshrink",
         "-dontoptimize");
     DexInspector inspector = runCompatProguard(builder, pgConfigs);

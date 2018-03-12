@@ -24,6 +24,7 @@ import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationParser;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
+import com.android.tools.r8.shaking.ProguardKeepRule;
 import com.android.tools.r8.shaking.ProguardMemberRule;
 import com.android.tools.r8.shaking.ProguardMemberType;
 import com.android.tools.r8.shaking.forceproguardcompatibility.defaultmethods.ClassImplementingInterface;
@@ -35,10 +36,13 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
+import com.android.tools.r8.utils.DexInspector.FieldSubject;
 import com.android.tools.r8.utils.DexInspector.MethodSubject;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.ImmutableList;
+import it.unimi.dsi.fastutil.objects.Object2BooleanArrayMap;
+import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -268,6 +272,10 @@ public class ForceProguardCompatibilityTest extends TestBase {
     if (forceProguardCompatibility) {
       assertEquals(2, configuration.getRules().size());
       configuration.getRules().forEach(rule -> {
+        assertTrue(rule instanceof ProguardKeepRule);
+        ProguardKeepRule keepRule = (ProguardKeepRule) rule;
+        assertTrue(keepRule.getModifiers().allowsObfuscation);
+        assertTrue(keepRule.getModifiers().allowsOptimization);
         Set<ProguardMemberRule> memberRules = rule.getMemberRules();
         ProguardClassNameList classNames = rule.getClassNames();
         assertEquals(1, classNames.size());
@@ -311,6 +319,216 @@ public class ForceProguardCompatibilityTest extends TestBase {
     testClassForName(false, false);
     testClassForName(true, true);
     testClassForName(false, true);
+  }
+
+  public void testClassGetMembers(
+      boolean forceProguardCompatibility, boolean allowObfuscation) throws Exception {
+    CompatProguardCommandBuilder builder =
+        new CompatProguardCommandBuilder(forceProguardCompatibility);
+    Class mainClass = TestMainWithGetMembers.class;
+    Class withMemberClass = TestClassWithMembers.class;
+    builder.addProgramFiles(ToolHelper.getClassFileForTestClass(mainClass));
+    builder.addProgramFiles(ToolHelper.getClassFileForTestClass(withMemberClass));
+    ImmutableList.Builder<String> proguardConfigurationBuilder = ImmutableList.builder();
+    proguardConfigurationBuilder.add(
+        "-keep class " + mainClass.getCanonicalName() + " {",
+        "  <init>();",  // Add <init>() so it does not become a compatibility rule below.
+        "  public static void main(java.lang.String[]);",
+        "}");
+    if (!allowObfuscation) {
+      proguardConfigurationBuilder.add("-dontobfuscate");
+    }
+    List<String> proguardConfig = proguardConfigurationBuilder.build();
+    builder.addProguardConfiguration(proguardConfig, Origin.unknown());
+    Path proguardCompatibilityRules = temp.newFile().toPath();
+    builder.setProguardCompatibilityRulesOutput(proguardCompatibilityRules);
+    if (allowObfuscation) {
+      builder.setProguardMapOutputPath(temp.newFile().toPath());
+    }
+
+    builder.setProgramConsumer(DexIndexedConsumer.emptyConsumer());
+    DexInspector inspector = new DexInspector(ToolHelper.runR8(builder.build()));
+    assertTrue(inspector.clazz(getJavacGeneratedClassName(mainClass)).isPresent());
+    ClassSubject classSubject = inspector.clazz(getJavacGeneratedClassName(withMemberClass));
+    // Due to the direct usage of .class
+    assertTrue(classSubject.isPresent());
+    assertEquals(allowObfuscation, classSubject.isRenamed());
+    FieldSubject foo = classSubject.field("java.lang.String", "foo");
+    assertEquals(forceProguardCompatibility, foo.isPresent());
+    assertEquals(foo.isPresent() && allowObfuscation, foo.isRenamed());
+    MethodSubject bar =
+        classSubject.method("java.lang.String", "bar", ImmutableList.of("java.lang.String"));
+    assertEquals(forceProguardCompatibility, bar.isPresent());
+    assertEquals(bar.isPresent() && allowObfuscation, bar.isRenamed());
+
+    // Check the Proguard compatibility rules generated.
+    ProguardConfigurationParser parser =
+        new ProguardConfigurationParser(new DexItemFactory(),
+            new Reporter(new DefaultDiagnosticsHandler()));
+    parser.parse(proguardCompatibilityRules);
+    ProguardConfiguration configuration = parser.getConfigRawForTesting();
+    if (forceProguardCompatibility) {
+      assertEquals(2, configuration.getRules().size());
+      configuration.getRules().forEach(rule -> {
+        assertTrue(rule instanceof ProguardKeepRule);
+        ProguardKeepRule keepRule = (ProguardKeepRule) rule;
+        assertTrue(keepRule.getModifiers().allowsObfuscation);
+        assertTrue(keepRule.getModifiers().allowsOptimization);
+        Set<ProguardMemberRule> memberRules = rule.getMemberRules();
+        ProguardClassNameList classNames = rule.getClassNames();
+        assertEquals(1, classNames.size());
+        DexType type = classNames.asSpecificDexTypes().get(0);
+        assertEquals(withMemberClass.getCanonicalName(), type.toSourceString());
+        assertEquals(1, memberRules.size());
+        ProguardMemberRule memberRule = memberRules.iterator().next();
+        if (memberRule.getRuleType() == ProguardMemberType.FIELD) {
+          assertTrue(memberRule.getName().matches("foo"));
+        } else {
+          assertEquals(ProguardMemberType.METHOD, memberRule.getRuleType());
+          assertTrue(memberRule.getName().matches("bar"));
+        }
+      });
+    } else {
+      assertEquals(0, configuration.getRules().size());
+    }
+
+    if (isRunProguard()) {
+      Path proguardedJar = File.createTempFile("proguarded", ".jar", temp.getRoot()).toPath();
+      Path proguardConfigFile = File.createTempFile("proguard", ".config", temp.getRoot()).toPath();
+      Path proguardMapFile = File.createTempFile("proguard", ".map", temp.getRoot()).toPath();
+      FileUtils.writeTextFile(proguardConfigFile, proguardConfig);
+      ToolHelper.runProguard(jarTestClasses(
+          ImmutableList.of(mainClass, withMemberClass)),
+          proguardedJar, proguardConfigFile, proguardMapFile);
+      DexInspector proguardedInspector = new DexInspector(readJar(proguardedJar), proguardMapFile);
+      assertEquals(2, proguardedInspector.allClasses().size());
+      assertTrue(proguardedInspector.clazz(mainClass).isPresent());
+      classSubject = proguardedInspector.clazz(withMemberClass);
+      assertTrue(classSubject.isPresent());
+      assertEquals(allowObfuscation, classSubject.isRenamed());
+      foo = classSubject.field("java.lang.String", "foo");
+      assertTrue(foo.isPresent());
+      assertEquals(allowObfuscation, foo.isRenamed());
+      bar = classSubject.method("java.lang.String", "bar", ImmutableList.of("java.lang.String"));
+      assertTrue(bar.isPresent());
+      assertEquals(allowObfuscation, bar.isRenamed());
+    }
+  }
+
+  @Test
+  public void classGetMembersTest() throws Exception {
+    testClassGetMembers(true, false);
+    testClassGetMembers(false, false);
+    testClassGetMembers(true, true);
+    testClassGetMembers(false, true);
+  }
+
+  public void testAtomicFieldUpdaters(
+      boolean forceProguardCompatibility, boolean allowObfuscation) throws Exception {
+    CompatProguardCommandBuilder builder =
+        new CompatProguardCommandBuilder(forceProguardCompatibility);
+    Class mainClass = TestMainWithAtomicFieldUpdater.class;
+    Class withVolatileFields = TestClassWithVolatileFields.class;
+    builder.addProgramFiles(ToolHelper.getClassFileForTestClass(mainClass));
+    builder.addProgramFiles(ToolHelper.getClassFileForTestClass(withVolatileFields));
+    ImmutableList.Builder<String> proguardConfigurationBuilder = ImmutableList.builder();
+    proguardConfigurationBuilder.add(
+        "-keep class " + mainClass.getCanonicalName() + " {",
+        "  <init>();",  // Add <init>() so it does not become a compatibility rule below.
+        "  public static void main(java.lang.String[]);",
+        "}");
+    if (!allowObfuscation) {
+      proguardConfigurationBuilder.add("-dontobfuscate");
+    }
+    List<String> proguardConfig = proguardConfigurationBuilder.build();
+    builder.addProguardConfiguration(proguardConfig, Origin.unknown());
+    Path proguardCompatibilityRules = temp.newFile().toPath();
+    builder.setProguardCompatibilityRulesOutput(proguardCompatibilityRules);
+    if (allowObfuscation) {
+      builder.setProguardMapOutputPath(temp.newFile().toPath());
+    }
+
+    builder.setProgramConsumer(DexIndexedConsumer.emptyConsumer());
+    DexInspector inspector = new DexInspector(ToolHelper.runR8(builder.build()));
+    assertTrue(inspector.clazz(getJavacGeneratedClassName(mainClass)).isPresent());
+    ClassSubject classSubject = inspector.clazz(getJavacGeneratedClassName(withVolatileFields));
+    // Due to the direct usage of .class
+    assertTrue(classSubject.isPresent());
+    assertEquals(allowObfuscation, classSubject.isRenamed());
+    FieldSubject f = classSubject.field("int", "intField");
+    assertEquals(forceProguardCompatibility, f.isPresent());
+    assertEquals(f.isPresent() && allowObfuscation, f.isRenamed());
+    f = classSubject.field("long", "longField");
+    assertEquals(forceProguardCompatibility, f.isPresent());
+    assertEquals(f.isPresent() && allowObfuscation, f.isRenamed());
+    f = classSubject.field("java.lang.Object", "objField");
+    assertEquals(forceProguardCompatibility, f.isPresent());
+    assertEquals(f.isPresent() && allowObfuscation, f.isRenamed());
+
+    // Check the Proguard compatibility rules generated.
+    ProguardConfigurationParser parser =
+        new ProguardConfigurationParser(new DexItemFactory(),
+            new Reporter(new DefaultDiagnosticsHandler()));
+    parser.parse(proguardCompatibilityRules);
+    ProguardConfiguration configuration = parser.getConfigRawForTesting();
+    if (forceProguardCompatibility) {
+      assertEquals(3, configuration.getRules().size());
+      Object2BooleanMap<String> keptFields = new Object2BooleanArrayMap<>();
+      configuration.getRules().forEach(rule -> {
+        assertTrue(rule instanceof ProguardKeepRule);
+        ProguardKeepRule keepRule = (ProguardKeepRule) rule;
+        assertTrue(keepRule.getModifiers().allowsObfuscation);
+        assertTrue(keepRule.getModifiers().allowsOptimization);
+        Set<ProguardMemberRule> memberRules = rule.getMemberRules();
+        ProguardClassNameList classNames = rule.getClassNames();
+        assertEquals(1, classNames.size());
+        DexType type = classNames.asSpecificDexTypes().get(0);
+        assertEquals(withVolatileFields.getCanonicalName(), type.toSourceString());
+        assertEquals(1, memberRules.size());
+        ProguardMemberRule memberRule = memberRules.iterator().next();
+        assertEquals(ProguardMemberType.FIELD, memberRule.getRuleType());
+        keptFields.put(memberRule.getName().toString(), true);
+      });
+      assertEquals(3, keptFields.size());
+      assertTrue(keptFields.containsKey("intField"));
+      assertTrue(keptFields.containsKey("longField"));
+      assertTrue(keptFields.containsKey("objField"));
+    } else {
+      assertEquals(0, configuration.getRules().size());
+    }
+
+    if (isRunProguard()) {
+      Path proguardedJar = File.createTempFile("proguarded", ".jar", temp.getRoot()).toPath();
+      Path proguardConfigFile = File.createTempFile("proguard", ".config", temp.getRoot()).toPath();
+      Path proguardMapFile = File.createTempFile("proguard", ".map", temp.getRoot()).toPath();
+      FileUtils.writeTextFile(proguardConfigFile, proguardConfig);
+      ToolHelper.runProguard(jarTestClasses(
+          ImmutableList.of(mainClass, withVolatileFields)),
+          proguardedJar, proguardConfigFile, proguardMapFile);
+      DexInspector proguardedInspector = new DexInspector(readJar(proguardedJar), proguardMapFile);
+      assertEquals(2, proguardedInspector.allClasses().size());
+      assertTrue(proguardedInspector.clazz(mainClass).isPresent());
+      classSubject = proguardedInspector.clazz(withVolatileFields);
+      assertTrue(classSubject.isPresent());
+      assertEquals(allowObfuscation, classSubject.isRenamed());
+      f = classSubject.field("int", "intField");
+      assertTrue(f.isPresent());
+      assertEquals(allowObfuscation, f.isRenamed());
+      f = classSubject.field("long", "longField");
+      assertTrue(f.isPresent());
+      assertEquals(allowObfuscation, f.isRenamed());
+      f = classSubject.field("java.lang.Object", "objField");
+      assertTrue(f.isPresent());
+      assertEquals(allowObfuscation, f.isRenamed());
+    }
+  }
+
+  @Test
+  public void atomicFieldUpdaterTest() throws Exception {
+    testAtomicFieldUpdaters(true, false);
+    testAtomicFieldUpdaters(false, false);
+    testAtomicFieldUpdaters(true, true);
+    testAtomicFieldUpdaters(false, true);
   }
 
   public void testKeepAttributes(boolean forceProguardCompatibility,

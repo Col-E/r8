@@ -5,6 +5,7 @@
 package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
@@ -32,19 +33,46 @@ public class ProguardConfigurationUtils {
     return builder.build();
   }
 
-  public static ProguardKeepRule buildDefaultMethodKeepRule(
-      DexClass clazz, DexEncodedMethod method) {
-    assert clazz.type == method.method.holder;
+  public static ProguardKeepRule buildFieldKeepRule(DexClass clazz, DexEncodedField field) {
+    assert clazz.type == field.field.getHolder();
     ProguardKeepRule.Builder builder = ProguardKeepRule.builder();
     builder.setType(ProguardKeepRuleType.KEEP);
     builder.getModifiersBuilder().setAllowsObfuscation(true);
     builder.getModifiersBuilder().setAllowsOptimization(true);
     builder.getClassAccessFlags().setPublic();
-    builder.setClassType(ProguardClassType.INTERFACE);
+    if (clazz.isInterface()) {
+      builder.setClassType(ProguardClassType.INTERFACE);
+    } else {
+      builder.setClassType(ProguardClassType.CLASS);
+    }
+    builder.setClassNames(
+        ProguardClassNameList.singletonList(ProguardTypeMatcher.create(clazz.type)));
+    ProguardMemberRule.Builder memberRuleBuilder = ProguardMemberRule.builder();
+    memberRuleBuilder.setRuleType(ProguardMemberType.FIELD);
+    memberRuleBuilder.getAccessFlags().setFlags(field.accessFlags);
+    memberRuleBuilder.setName(field.field.name.toString());
+    memberRuleBuilder.setTypeMatcher(ProguardTypeMatcher.create(field.field.type));
+    builder.getMemberRules().add(memberRuleBuilder.build());
+    return builder.build();
+  }
+
+  public static ProguardKeepRule buildMethodKeepRule(DexClass clazz, DexEncodedMethod method) {
+    assert clazz.type == method.method.getHolder();
+    ProguardKeepRule.Builder builder = ProguardKeepRule.builder();
+    builder.setType(ProguardKeepRuleType.KEEP);
+    builder.getModifiersBuilder().setAllowsObfuscation(true);
+    builder.getModifiersBuilder().setAllowsOptimization(true);
+    builder.getClassAccessFlags().setPublic();
+    if (clazz.isInterface()) {
+      builder.setClassType(ProguardClassType.INTERFACE);
+    } else {
+      builder.setClassType(ProguardClassType.CLASS);
+    }
     builder.setClassNames(
         ProguardClassNameList.singletonList(ProguardTypeMatcher.create(clazz.type)));
     ProguardMemberRule.Builder memberRuleBuilder = ProguardMemberRule.builder();
     memberRuleBuilder.setRuleType(ProguardMemberType.METHOD);
+    memberRuleBuilder.getAccessFlags().setFlags(method.accessFlags);
     memberRuleBuilder.setName(method.method.name.toString());
     memberRuleBuilder.setTypeMatcher(ProguardTypeMatcher.create(method.method.proto.returnType));
     List<ProguardTypeMatcher> arguments = Arrays.stream(method.method.proto.parameters.values)

@@ -41,8 +41,7 @@ public class AtomicFieldUpdaterTest extends CompatProguardSmaliTestBase {
     builder.addStaticField("foo", "I");
 
     List<String> pgConfigs = ImmutableList.of(
-        "-keep class " + CLASS_NAME + " { *; }",
-        "-keep,allowobfuscation class " + BOO,
+        keepMainProguardConfiguration(CLASS_NAME),
         "-dontshrink",
         "-dontoptimize");
     DexInspector inspector = runCompatProguard(builder, pgConfigs);
@@ -78,8 +77,7 @@ public class AtomicFieldUpdaterTest extends CompatProguardSmaliTestBase {
     builder.addStaticField("foo", "J");
 
     List<String> pgConfigs = ImmutableList.of(
-        "-keep class " + CLASS_NAME + " { *; }",
-        "-keep,allowobfuscation class " + BOO,
+        keepMainProguardConfiguration(CLASS_NAME),
         "-dontshrink",
         "-dontoptimize");
     DexInspector inspector = runCompatProguard(builder, pgConfigs);
@@ -116,8 +114,7 @@ public class AtomicFieldUpdaterTest extends CompatProguardSmaliTestBase {
     builder.addStaticField("foo", "Ljava/lang/Object;");
 
     List<String> pgConfigs = ImmutableList.of(
-        "-keep class " + CLASS_NAME + " { *; }",
-        "-keep,allowobfuscation class " + BOO,
+        keepMainProguardConfiguration(CLASS_NAME),
         "-dontshrink",
         "-dontoptimize");
     DexInspector inspector = runCompatProguard(builder, pgConfigs);
