@@ -53,6 +53,7 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.FieldInsnNode;
+import org.objectweb.asm.tree.FrameNode;
 import org.objectweb.asm.tree.IincInsnNode;
 import org.objectweb.asm.tree.InsnNode;
 import org.objectweb.asm.tree.IntInsnNode;
@@ -1173,6 +1174,9 @@ public class JarSourceCode implements SourceCode {
       case AbstractInsnNode.LINE:
         updateState((LineNumberNode) insn);
         break;
+      case AbstractInsnNode.FRAME:
+        updateState((FrameNode) insn);
+        break;
       default:
         throw new Unreachable("Unexpected instruction " + insn);
     }
@@ -1794,6 +1798,11 @@ public class JarSourceCode implements SourceCode {
     // Intentionally empty.
   }
 
+  private void updateState(FrameNode insn) {
+    assert application.options.isGeneratingClassFiles();
+    // Intentionally empty.
+  }
+
   private void updateStateForConversion(Type from, Type to) {
     state.pop();
     state.push(to);
@@ -1847,6 +1856,9 @@ public class JarSourceCode implements SourceCode {
         break;
       case AbstractInsnNode.LINE:
         build((LineNumberNode) insn, builder);
+        break;
+      case AbstractInsnNode.FRAME:
+        build((FrameNode) insn, builder);
         break;
       default:
         throw new Unreachable("Unexpected instruction " + insn);
@@ -2914,6 +2926,11 @@ public class JarSourceCode implements SourceCode {
   private void build(LineNumberNode insn, IRBuilder builder) {
     currentPosition = getCanonicalPosition(insn.line);
     builder.addDebugPosition(currentPosition);
+  }
+
+  private void build(FrameNode insn, IRBuilder builder) {
+    assert application.options.isGeneratingClassFiles();
+    // Intentionally empty.
   }
 
   @Override
