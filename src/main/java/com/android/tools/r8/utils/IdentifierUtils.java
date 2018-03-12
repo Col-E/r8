@@ -15,33 +15,25 @@ public class IdentifierUtils {
   }
 
   private static boolean isSimpleNameChar(char ch) {
-    if (ch >= 'A' && ch <= 'Z') {
-      return true;
-    }
-    if (ch >= 'a' && ch <= 'z') {
-      return true;
-    }
-    if (ch >= '0' && ch <= '9') {
-      return true;
-    }
-    if (ch == '$' || ch == '-' || ch == '_') {
-      return true;
-    }
-    if (ch >= 0x00a1 && ch <= 0x1fff) {
-      return true;
-    }
-    if (ch >= 0x2010 && ch <= 0x2027) {
-      return true;
-    }
-    if (ch >= 0x2030 && ch <= 0xd7ff) {
-      return true;
-    }
-    if (ch >= 0xe000 && ch <= 0xffef) {
-      return true;
-    }
-    if (ch >= 0x10000 && ch <= 0x10ffff) {
-      return true;
-    }
-    return false;
+    // Test if we have a SimpleChar,
+    // see https://source.android.com/devices/tech/dalvik/dex-format#string-syntax.
+    //
+    // NOTE: we assume the input strings are well-formed UTF-16 strings.
+    // This matters when checking the range 0x10000..0x10ffff, which is represented by a pair of
+    // UTF-16 surrogates. In that case, instead of checking the actual code point, we let pass all
+    // characters which are high or low surrogates.
+    return ('A' <= ch && ch <= 'Z')
+        || ('a' <= ch && ch <= 'z')
+        || ('0' <= ch && ch <= '9')
+        || ch == '$'
+        || ch == '-'
+        || ch == '_'
+        || (0x00a1 <= ch && ch <= 0x1fff)
+        || (0x2010 <= ch && ch <= 0x2027)
+        // The next range consists of these ranges:
+        // 0x2030..0xd7ff, then
+        // 0xd800..0xdfff (low or high surrogates), then
+        // 0xe000..0xffef.
+        || (0x2030 <= ch && ch <= 0xffef);
   }
 }
