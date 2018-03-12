@@ -8,9 +8,6 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
-import java.util.Set;
 import org.junit.Test;
 
 public class DexStringTest {
@@ -107,25 +104,5 @@ public class DexStringTest {
     assertEquals("\\uffff", factory.createString("\uffff").toASCIIString());
     assertEquals("\\ud800\\udc00", factory.createString("\ud800\udc00").toASCIIString());
     assertEquals("\\udbff\\udfff", factory.createString("\udbff\udfff").toASCIIString());
-  }
-
-  @Test
-  public void testIsValid() {
-    DexItemFactory factory = new DexItemFactory();
-    Set<String> goods =
-        ImmutableSet.of(
-            "\u00a1",
-            "\u1fff\u2010\u2027\u2030\ud7ff\ue000\uffef",
-            "a\ud800\udc00\udbff\udfffb\ud800\udc00c\udbff\udfff");
-    Set<String> bads = ImmutableSet.of("\u00a0", "\u2000", "\u202f", "\uffff");
-    Set<String> all = Sets.union(goods, bads);
-
-    for (String s : all) {
-      DexString ds = factory.createString(s);
-      boolean isGood = goods.contains(s);
-      assertEquals(isGood, ds.isValidFieldName());
-      assertEquals(isGood, ds.isValidMethodName());
-      assertEquals(isGood, factory.createString("L" + s + ";").isValidClassDescriptor());
-    }
   }
 }
