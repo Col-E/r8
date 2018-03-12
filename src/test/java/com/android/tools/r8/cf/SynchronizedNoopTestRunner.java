@@ -6,6 +6,8 @@
 
 package com.android.tools.r8.cf;
 
+import static org.junit.Assert.assertFalse;
+
 import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
@@ -53,7 +55,6 @@ public class SynchronizedNoopTestRunner {
                 insn ->
                     insn.getOpcode() == Opcodes.MONITORENTER
                         || insn.getOpcode() == Opcodes.MONITOREXIT);
-    // TODO(b/73921688): Should not have monitor instruction here
-    assert hasMonitor;
+    assertFalse(hasMonitor);
   }
 }

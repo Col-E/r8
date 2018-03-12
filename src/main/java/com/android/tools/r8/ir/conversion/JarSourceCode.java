@@ -218,8 +218,16 @@ public class JarSourceCode implements SourceCode {
     return (node.access & Opcodes.ACC_STATIC) > 0;
   }
 
-  private boolean isSynchronized() {
-    return (node.access & Opcodes.ACC_SYNCHRONIZED) > 0;
+  /**
+   * Determine if we should emit monitor enter/exit instructions at method entry/exit.
+   *
+   * @return true if we are generating Dex and method is marked synchronized, otherwise false.
+   */
+  private boolean generateMethodSynchronization() {
+    // When generating class files, don't treat the method specially because it is synchronized.
+    // At runtime, the JVM will automatically perform the correct monitor enter/exit instructions.
+    return !application.options.isGeneratingClassFiles()
+        && (node.access & Opcodes.ACC_SYNCHRONIZED) > 0;
   }
 
   private int formalParameterCount() {
@@ -348,7 +356,7 @@ public class JarSourceCode implements SourceCode {
       }
     }
 
-    if (isSynchronized()) {
+    if (generateMethodSynchronization()) {
       generatingMethodSynchronization = true;
       Type clazzType = application.getAsmType(clazz.toDescriptorString());
       int monitorRegister;
@@ -450,7 +458,7 @@ public class JarSourceCode implements SourceCode {
 
   @Override
   public void buildPostlude(IRBuilder builder) {
-    if (isSynchronized()) {
+    if (generateMethodSynchronization()) {
       generatingMethodSynchronization = true;
       buildMonitorExit(builder);
       generatingMethodSynchronization = false;
@@ -458,7 +466,7 @@ public class JarSourceCode implements SourceCode {
   }
 
   private void buildExceptionalPostlude(IRBuilder builder) {
-    assert isSynchronized();
+    assert generateMethodSynchronization();
     generatingMethodSynchronization = true;
     currentPosition = getExceptionalExitPosition();
     buildMonitorExit(builder);
@@ -748,7 +756,7 @@ public class JarSourceCode implements SourceCode {
         handlers.add(tryCatchBlock);
       }
     }
-    if (isSynchronized()) {
+    if (generateMethodSynchronization()) {
       // Add synchronized exceptional exit for synchronized-method instructions without a default.
       assert handlers.isEmpty() || handlers.get(handlers.size() - 1).getType() != null;
       handlers.add(EXCEPTIONAL_SYNC_EXIT);
@@ -2296,7 +2304,7 @@ public class JarSourceCode implements SourceCode {
     if (handlers.isEmpty()) {
       return true;
     }
-    if (!isSynchronized() || handlers.size() > 1) {
+    if (!generateMethodSynchronization() || handlers.size() > 1) {
       return false;
     }
     return handlers.get(0) == EXCEPTIONAL_SYNC_EXIT;
