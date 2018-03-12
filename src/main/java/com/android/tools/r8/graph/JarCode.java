@@ -187,8 +187,14 @@ public class JarCode extends Code {
     if (context != null) {
       // The SecondVistor is in charge of setting the context to null.
       DexProgramClass owner = context.owner;
-      new ClassReader(context.classCache).accept(new SecondVisitor(context, application),
-          ClassReader.SKIP_FRAMES);
+      int flags = ClassReader.SKIP_FRAMES;
+      if (application.options.isGeneratingClassFiles()) {
+        // TODO(mathiasr): Keep frames in JarCode until IR->CF construction is complete.
+        // When we throw Unimplemented in IR->CF construction, the original JarCode is output
+        // instead. In this case we must output frames as well, or we will fail verification.
+        flags = 0;
+      }
+      new ClassReader(context.classCache).accept(new SecondVisitor(context, application), flags);
       assert verifyNoReparseContext(owner);
     }
   }
