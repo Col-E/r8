@@ -1119,16 +1119,17 @@ public class ToolHelper {
     }
   }
 
-  public static String runProguard(Path inJar, Path outJar, Path config, Path map)
+  public static ProcessResult runProguardRaw(
+      String proguardScript, Path inJar, Path outJar, List<Path> configs, Path map)
       throws IOException {
     List<String> command = new ArrayList<>();
-    command.add(PROGUARD);
+    command.add(proguardScript);
     command.add("-forceprocessing");  // Proguard just checks the creation time on the in/out jars.
     command.add("-injars");
     command.add(inJar.toString());
     command.add("-libraryjars");
     command.add(ToolHelper.getDefaultAndroidJar().toString());
-    command.add("@" + config);
+    configs.forEach(config -> command.add("@" + config));
     command.add("-outjar");
     command.add(outJar.toString());
     command.add("-printmapping");
@@ -1136,11 +1137,47 @@ public class ToolHelper {
       command.add(map.toString());
     }
     ProcessBuilder builder = new ProcessBuilder(command);
-    ToolHelper.ProcessResult result = ToolHelper.runProcess(builder);
+    return ToolHelper.runProcess(builder);
+  }
+
+  public static String runProguard(
+      String proguardScript, Path inJar, Path outJar, List<Path> configs, Path map)
+      throws IOException {
+    ToolHelper.ProcessResult result = runProguardRaw(proguardScript, inJar, outJar, configs, map);
     if (result.exitCode != 0) {
       fail("Proguard failed, exit code " + result.exitCode + ", stderr:\n" + result.stderr);
     }
     return result.stdout;
+  }
+
+  public static ProcessResult runProguardRaw(Path inJar, Path outJar, Path config, Path map)
+      throws IOException {
+    return runProguardRaw(PROGUARD, inJar, outJar, ImmutableList.of(config), map);
+  }
+
+  public static String runProguard(Path inJar, Path outJar, Path config, Path map)
+      throws IOException {
+    return runProguard(inJar, outJar, ImmutableList.of(config), map);
+  }
+
+  public static String runProguard(Path inJar, Path outJar, List<Path> config, Path map)
+      throws IOException {
+    return runProguard(PROGUARD, inJar, outJar, config, map);
+  }
+
+  public static ProcessResult runProguard6Raw(Path inJar, Path outJar, Path config, Path map)
+      throws IOException {
+    return runProguardRaw(PROGUARD6_0_1, inJar, outJar, ImmutableList.of(config), map);
+  }
+
+  public static String runProguard6(Path inJar, Path outJar, Path config, Path map)
+      throws IOException {
+    return runProguard6(inJar, outJar, ImmutableList.of(config), map);
+  }
+
+  public static String runProguard6(Path inJar, Path outJar, List<Path> configs, Path map)
+      throws IOException {
+    return runProguard(PROGUARD6_0_1, inJar, outJar, configs, map);
   }
 
   public static class ProcessResult {

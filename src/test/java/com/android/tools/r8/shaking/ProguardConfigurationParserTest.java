@@ -9,13 +9,17 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
+import static org.hamcrest.core.StringContains.containsString;
 
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
@@ -26,10 +30,12 @@ import com.android.tools.r8.position.TextPosition;
 import com.android.tools.r8.position.TextRange;
 import com.android.tools.r8.utils.AbortException;
 import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
+import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions.PackageObfuscationMode;
 import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.ImmutableList;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -39,6 +45,12 @@ import java.util.List;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+
+class EmptyMainClassForProguardTests {
+
+  public static void main(String[] args) {
+  }
+}
 
 public class ProguardConfigurationParserTest extends TestBase {
 
@@ -1206,9 +1218,11 @@ public class ProguardConfigurationParserTest extends TestBase {
       parser.parse(proguardConfig);
       fail();
     } catch (AbortException e) {
+      System.out.println(handler.errors.get(0));
       checkDiagnostic(handler.errors, proguardConfig, 2, 13,
-          "Wildcard", "<n>", "invalid");
+          "Use of generics not allowed for java type");
     }
+    verifyFailWithProguard6(proguardConfig, "Use of generics not allowed for java type");
   }
 
   @Test
@@ -1408,6 +1422,20 @@ public class ProguardConfigurationParserTest extends TestBase {
         "Ignoring", "-addconfigurationdebugging");
   }
 
+  @Test
+  public void parse_regress74508478() throws Exception {
+    Path proguardConfig = writeTextToTempFile(
+        "-keep class A {",
+        "  A <fields>;",
+        "}"
+    );
+    ProguardConfigurationParser parser =
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
+    parser.parse(proguardConfig);
+    verifyParserEndsCleanly();
+    verifyWithProguard(proguardConfig);
+  }
+
   private void verifyParserEndsCleanly() {
     assertEquals(0, handler.infos.size());
     assertEquals(0, handler.warnings.size());
@@ -1428,9 +1456,42 @@ public class ProguardConfigurationParserTest extends TestBase {
     assertEquals(lineStart, position.getLine());
     assertEquals(columnStart, position.getColumn());
     for (String part : messageParts) {
-      assertTrue(diagnostic.getDiagnosticMessage()+ " doesn't contain \"" + part + "\"",
+      assertTrue(diagnostic.getDiagnosticMessage() + " doesn't contain \"" + part + "\"",
           diagnostic.getDiagnosticMessage().contains(part));
     }
     return diagnostic;
+  }
+
+  private void verifyWithProguard(Path proguardConfig) throws Exception {
+    if (isRunProguard()) {
+      // Add a keep rule for the test class as Proguard will fail if the resulting output jar is
+      // empty
+      Class classToKeepForTest = EmptyMainClassForProguardTests.class;
+      Path additionalProguardConfig = writeTextToTempFile(
+          "-keep class " + classToKeepForTest.getCanonicalName() + " {",
+          "  public static void main(java.lang.String[]);",
+          "}"
+      );
+      Path proguardedJar = File.createTempFile("proguarded", ".jar", temp.getRoot()).toPath();
+      ToolHelper
+          .runProguard(jarTestClasses(ImmutableList.of(classToKeepForTest)),
+              proguardedJar, ImmutableList.of(proguardConfig, additionalProguardConfig), null);
+      DexInspector proguardInspector = new DexInspector(readJar(proguardedJar));
+      assertEquals(1, proguardInspector.allClasses().size());
+    }
+  }
+
+  private void verifyFailWithProguard6(Path proguardConfig, String expectedMessage)
+      throws Exception{
+    if (isRunProguard()) {
+      // No need for a keep rule for this class, as we are expecting Proguard to fail with the
+      // specified message.
+      Class classForTest = EmptyMainClassForProguardTests.class;
+      Path proguardedJar = File.createTempFile("proguarded", ".jar", temp.getRoot()).toPath();
+      ProcessResult result = ToolHelper.runProguard6Raw(
+          jarTestClasses(ImmutableList.of(classForTest)), proguardedJar, proguardConfig, null);
+      assertTrue(result.exitCode != 0);
+      assertThat(result.stderr, containsString(expectedMessage));
+    }
   }
 }

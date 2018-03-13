@@ -160,6 +160,11 @@ public class ProguardConfigurationParser {
     reporter.failIfPendingErrors();
   }
 
+  private static enum IdentifierType {
+    CLASS_NAME,
+    ANY
+  }
+
   private class ProguardConfigurationSourceParser {
     private final String name;
     private final String contents;
@@ -792,7 +797,7 @@ public class ProguardConfigurationParser {
         ruleBuilder.setName("<init>");
         ruleBuilder.setArguments(parseArgumentList());
       } else {
-        String first = acceptClassNameWithNthWildcard();
+        String first = acceptIdentifierWithBackreference(IdentifierType.ANY);
         if (first != null) {
           skipWhitespace();
           if (first.equals("*") && hasNextChar(';')) {
@@ -803,7 +808,7 @@ public class ProguardConfigurationParser {
               ruleBuilder.setName(first);
               ruleBuilder.setArguments(parseArgumentList());
             } else {
-              String second = acceptClassNameWithNthWildcard();
+              String second = acceptIdentifierWithBackreference(IdentifierType.ANY);
               if (second != null) {
                 skipWhitespace();
                 if (hasNextChar('(')) {
@@ -1099,38 +1104,53 @@ public class ProguardConfigurationParser {
       return acceptString(CLASS_NAME_PREDICATE);
     }
 
-    private String acceptClassNameWithNthWildcard() {
-      StringBuilder nthWildcard = null;
+    private String acceptIdentifierWithBackreference(IdentifierType kind) {
+      StringBuilder currentBackreference = null;
       skipWhitespace();
       int start = position;
       int end = position;
       while (!eof(end)) {
         char current = contents.charAt(end);
-        if (nthWildcard != null) {
+        if (currentBackreference != null) {
           if (current == '>') {
             try {
-              int nth = Integer.parseUnsignedInt(nthWildcard.toString());
-              if (nth <= 0) {
+              int backreference = Integer.parseUnsignedInt(currentBackreference.toString());
+              if (backreference <= 0) {
                 throw reporter.fatalError(new StringDiagnostic(
-                    "Wildcard <" + nth + "> is invalid.", origin, getPosition()));
+                    "Wildcard <" + backreference + "> is invalid.", origin, getPosition()));
               }
             } catch (NumberFormatException e) {
               throw reporter.fatalError(new StringDiagnostic(
-                  "Wildcard <" + nthWildcard.toString() + "> is invalid.", origin, getPosition()));
+                  "Wildcard <" + currentBackreference.toString() + "> is invalid.",
+                  origin, getPosition()));
             }
-            nthWildcard = null;
+            currentBackreference = null;
+          } else if (Character.isDigit(current)
+              // Only collect integer literal for the backreference.
+              || (current == '-' && currentBackreference.length() == 0)) {
+            currentBackreference.append(current);
+          } else if (kind == IdentifierType.CLASS_NAME) {
+            throw reporter.fatalError(new StringDiagnostic(
+                "Use of generics not allowed for java type.", origin, getPosition()));
           } else {
-            nthWildcard.append(current);
+            // If not parsing a class name allow identifiers including <'s by canceling the
+            // collection of the backreference.
+            currentBackreference = null;
           }
           end++;
-        } else if (CLASS_NAME_PREDICATE.test(current)) {
+        } else if (CLASS_NAME_PREDICATE.test(current) || current == '>') {
           end++;
         } else if (current == '<') {
-          nthWildcard = new StringBuilder();
+          currentBackreference = new StringBuilder();
           end++;
         } else {
           break;
         }
+      }
+      if (kind == IdentifierType.CLASS_NAME && currentBackreference != null) {
+        // Proguard 6 reports this error message, so try to be compatible.
+        throw reporter.fatalError(
+            new StringDiagnostic("Missing closing angular bracket", origin, getPosition()));
       }
       if (start == end) {
         return null;
@@ -1236,7 +1256,7 @@ public class ProguardConfigurationParser {
     }
 
     private String parseClassName() throws ProguardRuleParserException {
-      String name = acceptClassNameWithNthWildcard();
+      String name = acceptIdentifierWithBackreference(IdentifierType.CLASS_NAME);
       if (name == null) {
         throw parseError("Class name expected");
       }
