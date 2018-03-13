@@ -4771,13 +4771,6 @@ public class JctfTestSpecifications {
           // 1) t03
           // java.lang.AssertionError: Expected exception: java.lang.UnsatisfiedLinkError
 
-          .put("lang.StrictMath.nextAfterFD.StrictMath_nextAfter_A01",
-              match(R8_NOT_AFTER_D8_COMPILER, runtimes(Version.V5_1_1)))
-          // 1) t01
-          // java.lang.AssertionError: Wrong value returned for start: Infinity direction: NaN expected:<Infinity> but was:<NaN>
-          // 2) t02
-          // java.lang.AssertionError: Wrong value returned for start: -0.0 direction: NaN expected:<-1.4E-45> but was:<NaN>
-
           .put("lang.Math.hypotDD.Math_hypot_A04", match(runtimesUpTo(Version.V5_1_1)))
           // 1) t04
           // java.lang.AssertionError
