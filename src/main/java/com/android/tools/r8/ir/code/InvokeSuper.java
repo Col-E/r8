@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.code.InvokeSuperRange;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
@@ -10,12 +11,14 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeEnvironment;
+import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import org.objectweb.asm.Opcodes;
 
 public class InvokeSuper extends InvokeMethodWithReceiver {
 
@@ -69,6 +72,11 @@ public class InvokeSuper extends InvokeMethodWithReceiver {
           individualArgumentRegisters[4]); // G
     }
     addInvokeAndMoveResult(instruction, builder);
+  }
+
+  @Override
+  public void buildCf(CfBuilder builder) {
+    builder.add(new CfInvoke(Opcodes.INVOKESPECIAL, getInvokedMethod()));
   }
 
   @Override
