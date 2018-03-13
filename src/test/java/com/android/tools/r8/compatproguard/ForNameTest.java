@@ -36,8 +36,7 @@ public class ForNameTest extends CompatProguardSmaliTestBase {
     builder.addClass(BOO);
 
     List<String> pgConfigs = ImmutableList.of(
-        "-keep class " + CLASS_NAME + " { *; }",
-        "-keep,allowobfuscation class " + BOO,
+        keepMainProguardConfiguration(CLASS_NAME),
         "-dontshrink",
         "-dontoptimize");
     DexInspector inspector = runCompatProguard(builder, pgConfigs);
@@ -67,8 +66,7 @@ public class ForNameTest extends CompatProguardSmaliTestBase {
     builder.addClass(BOO);
 
     List<String> pgConfigs = ImmutableList.of(
-        "-keep class " + CLASS_NAME +" { *; }",
-        "-keep class " + BOO,
+        keepMainProguardConfiguration(CLASS_NAME),
         "-dontshrink",
         "-dontoptimize",
         "-dontobfuscate");

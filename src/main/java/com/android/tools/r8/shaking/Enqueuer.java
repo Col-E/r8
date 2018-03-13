@@ -3,6 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import static com.android.tools.r8.naming.IdentifierNameStringUtils.identifyIdentiferNameString;
+import static com.android.tools.r8.naming.IdentifierNameStringUtils.isReflectionMethod;
+
 import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.dex.IndexedItemCollection;
@@ -19,6 +22,7 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
+import com.android.tools.r8.graph.DexItemBasedString;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
@@ -31,14 +35,13 @@ import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.KeyedDexItem;
 import com.android.tools.r8.graph.PresortedComparable;
-import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.shaking.protolite.ProtoLiteExtension;
-import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.Timing;
@@ -269,6 +272,10 @@ public class Enqueuer {
 
     @Override
     public boolean registerInvokeVirtual(DexMethod method) {
+      if (options.forceProguardCompatibility
+          && appInfo.dexItemFactory.classMethods.isReflectiveMemberLookup(method)) {
+        pendingProguardReflectiveCompatibility.add(currentMethod);
+      }
       if (!registerItemWithTarget(virtualInvokes, method)) {
         return false;
       }
@@ -294,7 +301,8 @@ public class Enqueuer {
     @Override
     public boolean registerInvokeStatic(DexMethod method) {
       if (options.forceProguardCompatibility
-          && method == appInfo.dexItemFactory.classMethods.forName) {
+          && (method == appInfo.dexItemFactory.classMethods.forName
+              || appInfo.dexItemFactory.atomicFieldUpdaterMethods.isFieldUpdater(method))) {
         pendingProguardReflectiveCompatibility.add(currentMethod);
       }
       if (!registerItemWithTarget(staticInvokes, method)) {
@@ -757,6 +765,7 @@ public class Enqueuer {
       }
     }
     liveFields.add(encodedField, reason);
+    collectProguardCompatibilityRule(reason);
     // Add all dependent members to the workqueue.
     enqueueRootItems(rootSet.getDependentItems(encodedField));
   }
@@ -768,6 +777,7 @@ public class Enqueuer {
       Log.verbose(getClass(), "Adding instance field `%s` to live set.", field.field);
     }
     liveFields.add(field, reason);
+    collectProguardCompatibilityRule(reason);
     // Add all dependent members to the workqueue.
     enqueueRootItems(rootSet.getDependentItems(field));
   }
@@ -1247,10 +1257,18 @@ public class Enqueuer {
     }
   }
 
-  private void markMethodAsKeptWithCompatRule(DexEncodedMethod method) {
+  private void markFieldAsKeptWithCompatRule(DexEncodedField field) {
+    DexClass holderClass = appInfo.definitionFor(field.field.getHolder());
     ProguardKeepRule rule =
-        ProguardConfigurationUtils.buildDefaultMethodKeepRule(
-            appInfo.definitionFor(method.method.holder), method);
+        ProguardConfigurationUtils.buildFieldKeepRule(holderClass, field);
+    proguardCompatibilityWorkList.add(
+        Action.markFieldKept(field, KeepReason.dueToProguardCompatibilityKeepRule(rule)));
+  }
+
+  private void markMethodAsKeptWithCompatRule(DexEncodedMethod method) {
+    DexClass holderClass = appInfo.definitionFor(method.method.getHolder());
+    ProguardKeepRule rule =
+        ProguardConfigurationUtils.buildMethodKeepRule(holderClass, method);
     proguardCompatibilityWorkList.add(
         Action.markMethodLive(method, KeepReason.dueToProguardCompatibilityKeepRule(rule)));
   }
@@ -1266,23 +1284,33 @@ public class Enqueuer {
   }
 
   private void handleProguardReflectiveBehavior(Instruction instruction) {
-    // Handle actual invokes of Class.forName(className) where className is a const string
-    // representing a known class as an implicit keep rule on that class.
-    if (instruction.isInvokeStatic()
-        && (instruction.asInvokeStatic().getInvokedMethod() ==
-        appInfo.dexItemFactory.classMethods.forName)
-        && instruction.asInvokeStatic().arguments().get(0).isConstString()) {
-      ConstString constString =
-          instruction.asInvokeStatic().arguments().get(0).getConstInstruction().asConstString();
-      String forNameArgument = constString.getValue().toString();
-      if (DescriptorUtils.isValidJavaType(forNameArgument)) {
-        DexString forNameDescriptor = appInfo.dexItemFactory.createString(
-            DescriptorUtils.javaTypeToDescriptor(forNameArgument));
-        DexType forNameType = appInfo.dexItemFactory.createType(forNameDescriptor);
-        DexClass forNameClass = appInfo.definitionFor(forNameType);
-        if (forNameClass != null) {
-          markClassAsInstantiatedWithCompatRule(forNameClass);
-        }
+    if (!instruction.isInvokeMethod()) {
+      return;
+    }
+    InvokeMethod invoke = instruction.asInvokeMethod();
+    DexMethod invokedMethod = invoke.getInvokedMethod();
+    if (!isReflectionMethod(appInfo.dexItemFactory, invokedMethod)) {
+      return;
+    }
+    DexItemBasedString itemBasedString = identifyIdentiferNameString(appInfo, invoke);
+    if (itemBasedString == null) {
+      return;
+    }
+    if (itemBasedString.basedOn instanceof DexType) {
+      DexClass clazz = appInfo.definitionFor((DexType) itemBasedString.basedOn);
+      if (clazz != null) {
+        markClassAsInstantiatedWithCompatRule(clazz);
+      }
+    } else if (itemBasedString.basedOn instanceof DexField) {
+      DexEncodedField encodedField = appInfo.definitionFor((DexField) itemBasedString.basedOn);
+      if (encodedField != null) {
+        markFieldAsKeptWithCompatRule(encodedField);
+      }
+    } else {
+      assert itemBasedString.basedOn instanceof DexMethod;
+      DexEncodedMethod encodedMethod = appInfo.definitionFor((DexMethod) itemBasedString.basedOn);
+      if (encodedMethod != null) {
+        markMethodAsKeptWithCompatRule(encodedMethod);
       }
     }
   }
@@ -1329,8 +1357,8 @@ public class Enqueuer {
       return new Action(Kind.MARK_METHOD_KEPT, method, null, reason);
     }
 
-    public static Action markFieldKept(DexEncodedField method, KeepReason reason) {
-      return new Action(Kind.MARK_FIELD_KEPT, method, null, reason);
+    public static Action markFieldKept(DexEncodedField field, KeepReason reason) {
+      return new Action(Kind.MARK_FIELD_KEPT, field, null, reason);
     }
 
     private enum Kind {

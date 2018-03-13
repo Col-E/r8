@@ -20,6 +20,7 @@ import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.naming.NamingLens;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import java.util.ArrayList;
@@ -28,6 +29,7 @@ import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
@@ -118,6 +120,10 @@ public class DexItemFactory {
   public final DexString forNameMethodName = createString("forName");
   public final DexString getNameName = createString("getName");
   public final DexString getSimpleNameName = createString("getSimpleName");
+  public final DexString getFieldName = createString("getField");
+  public final DexString getDeclaredFieldName = createString("getDeclaredField");
+  public final DexString getMethodName = createString("getMethod");
+  public final DexString getDeclaredMethodName = createString("getDeclaredMethod");
   public final DexString assertionsDisabled = createString("$assertionsDisabled");
 
   public final DexString stringDescriptor = createString("Ljava/lang/String;");
@@ -144,6 +150,7 @@ public class DexItemFactory {
       createString("Ljava/util/concurrent/atomic/AtomicLongFieldUpdater;");
   public final DexString referenceFieldUpdaterDescriptor =
       createString("Ljava/util/concurrent/atomic/AtomicReferenceFieldUpdater;");
+  public final DexString newUpdaterName = createString("newUpdater");
 
   public final DexString constructorMethodName = createString(Constants.INSTANCE_INITIALIZER_NAME);
   public final DexString classConstructorMethodName = createString(Constants.CLASS_INITIALIZER_NAME);
@@ -199,6 +206,8 @@ public class DexItemFactory {
   public final LongMethods longMethods = new LongMethods();
   public final ThrowableMethods throwableMethods = new ThrowableMethods();
   public final ClassMethods classMethods = new ClassMethods();
+  public final AtomicFieldUpdaterMethods atomicFieldUpdaterMethods =
+      new AtomicFieldUpdaterMethods();
   public final Kotlin kotlin;
 
   // Dex system annotations.
@@ -271,6 +280,11 @@ public class DexItemFactory {
     public DexMethod forName;
     public DexMethod getName;
     public DexMethod getSimpleName;
+    public DexMethod getField;
+    public DexMethod getDeclaredField;
+    public DexMethod getMethod;
+    public DexMethod getDeclaredMethod;
+    private Set<DexMethod> getMembers;
 
     private ClassMethods() {
       desiredAssertionStatus = createMethod(classDescriptor,
@@ -280,6 +294,56 @@ public class DexItemFactory {
       getName = createMethod(classDescriptor, getNameName, stringDescriptor, DexString.EMPTY_ARRAY);
       getSimpleName = createMethod(classDescriptor,
           getSimpleNameName, stringDescriptor, DexString.EMPTY_ARRAY);
+      getField = createMethod(classDescriptor, getFieldName, fieldDescriptor,
+          new DexString[]{stringDescriptor});
+      getDeclaredField = createMethod(classDescriptor, getDeclaredFieldName, fieldDescriptor,
+          new DexString[]{stringDescriptor});
+      getMethod = createMethod(classDescriptor, getMethodName, methodDescriptor,
+          new DexString[]{stringDescriptor, classArrayDescriptor});
+      getDeclaredMethod = createMethod(classDescriptor, getDeclaredMethodName, methodDescriptor,
+          new DexString[]{stringDescriptor, classArrayDescriptor});
+      getMembers = ImmutableSet.of(getField, getDeclaredField, getMethod, getDeclaredMethod);
+    }
+
+    public boolean isReflectiveMemberLookup(DexMethod method) {
+      return getMembers.contains(method);
+    }
+  }
+
+  /**
+   * A class that encompasses methods that create different types of atomic field updaters:
+   *   Atomic(Integer|Long|Reference)FieldUpdater#newUpdater.
+   */
+  public class AtomicFieldUpdaterMethods {
+    public DexMethod intUpdater;
+    public DexMethod longUpdater;
+    public DexMethod referenceUpdater;
+    private Set<DexMethod> updaters;
+
+    private AtomicFieldUpdaterMethods() {
+      intUpdater =
+          createMethod(
+              intFieldUpdaterDescriptor,
+              newUpdaterName,
+              intFieldUpdaterDescriptor,
+              new DexString[]{classDescriptor, stringDescriptor});
+      longUpdater =
+          createMethod(
+              longFieldUpdaterDescriptor,
+              newUpdaterName,
+              longFieldUpdaterDescriptor,
+              new DexString[]{classDescriptor, stringDescriptor});
+      referenceUpdater =
+          createMethod(
+              referenceFieldUpdaterDescriptor,
+              newUpdaterName,
+              referenceFieldUpdaterDescriptor,
+              new DexString[]{classDescriptor, classDescriptor, stringDescriptor});
+      updaters = ImmutableSet.of(intUpdater, longUpdater, referenceUpdater);
+    }
+
+    public boolean isFieldUpdater(DexMethod method) {
+      return updaters.contains(method);
     }
   }
 
