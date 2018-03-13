@@ -25,6 +25,7 @@ import com.android.tools.r8.shaking.ProguardConfigurationParser;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.shaking.ProguardKeepRule;
+import com.android.tools.r8.shaking.ProguardKeepRuleType;
 import com.android.tools.r8.shaking.ProguardMemberRule;
 import com.android.tools.r8.shaking.ProguardMemberType;
 import com.android.tools.r8.shaking.forceproguardcompatibility.defaultmethods.ClassImplementingInterface;
@@ -274,6 +275,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
       configuration.getRules().forEach(rule -> {
         assertTrue(rule instanceof ProguardKeepRule);
         ProguardKeepRule keepRule = (ProguardKeepRule) rule;
+        assertEquals(ProguardKeepRuleType.KEEP, keepRule.getType());
         assertTrue(keepRule.getModifiers().allowsObfuscation);
         assertTrue(keepRule.getModifiers().allowsOptimization);
         Set<ProguardMemberRule> memberRules = rule.getMemberRules();
@@ -372,6 +374,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
       configuration.getRules().forEach(rule -> {
         assertTrue(rule instanceof ProguardKeepRule);
         ProguardKeepRule keepRule = (ProguardKeepRule) rule;
+        assertEquals(ProguardKeepRuleType.KEEP_CLASS_MEMBERS, keepRule.getType());
         assertTrue(keepRule.getModifiers().allowsObfuscation);
         assertTrue(keepRule.getModifiers().allowsOptimization);
         Set<ProguardMemberRule> memberRules = rule.getMemberRules();
@@ -477,6 +480,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
       configuration.getRules().forEach(rule -> {
         assertTrue(rule instanceof ProguardKeepRule);
         ProguardKeepRule keepRule = (ProguardKeepRule) rule;
+        assertEquals(ProguardKeepRuleType.KEEP_CLASS_MEMBERS, keepRule.getType());
         assertTrue(keepRule.getModifiers().allowsObfuscation);
         assertTrue(keepRule.getModifiers().allowsOptimization);
         Set<ProguardMemberRule> memberRules = rule.getMemberRules();

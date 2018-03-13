@@ -36,7 +36,7 @@ public class ProguardConfigurationUtils {
   public static ProguardKeepRule buildFieldKeepRule(DexClass clazz, DexEncodedField field) {
     assert clazz.type == field.field.getHolder();
     ProguardKeepRule.Builder builder = ProguardKeepRule.builder();
-    builder.setType(ProguardKeepRuleType.KEEP);
+    builder.setType(ProguardKeepRuleType.KEEP_CLASS_MEMBERS);
     builder.getModifiersBuilder().setAllowsObfuscation(true);
     builder.getModifiersBuilder().setAllowsOptimization(true);
     builder.getClassAccessFlags().setPublic();
@@ -59,7 +59,7 @@ public class ProguardConfigurationUtils {
   public static ProguardKeepRule buildMethodKeepRule(DexClass clazz, DexEncodedMethod method) {
     assert clazz.type == method.method.getHolder();
     ProguardKeepRule.Builder builder = ProguardKeepRule.builder();
-    builder.setType(ProguardKeepRuleType.KEEP);
+    builder.setType(ProguardKeepRuleType.KEEP_CLASS_MEMBERS);
     builder.getModifiersBuilder().setAllowsObfuscation(true);
     builder.getModifiersBuilder().setAllowsOptimization(true);
     builder.getClassAccessFlags().setPublic();
