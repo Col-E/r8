@@ -423,7 +423,7 @@ public class Enqueuer {
         DexType baseType = type.toBaseType(appInfo.dexItemFactory);
         if (baseType.isClassType()) {
           DexClass baseClass = appInfo.definitionFor(baseType);
-          if (baseClass != null) {
+          if (baseClass != null && !baseClass.isLibraryClass()) {
             markClassAsInstantiatedWithCompatRule(baseClass);
           } else {
             // This handles reporting of missing classes.
