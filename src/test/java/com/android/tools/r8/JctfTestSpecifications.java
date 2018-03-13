@@ -1907,6 +1907,11 @@ public class JctfTestSpecifications {
           // 1) t03
           // java.lang.AssertionError: expected null, but was:<[I@e2603b4>
 
+          .put("lang.ref.SoftReference.enqueue.SoftReference_enqueue_A01",
+                  match(runtimesUpTo(Version.V4_4_4)))
+          // 1) t03(com.google.jctf.test.lib.java.lang.ref.SoftReference.enqueue.SoftReference_enqueue_A01)
+          // java.lang.IndexOutOfBoundsException: Invalid index 0, size is 0
+
           .put("lang.ref.ReferenceQueue.poll.ReferenceQueue_poll_A01",
               match(runtimes(Version.DEFAULT, Version.V7_0_0, Version.V6_0_1, Version.V5_1_1)))
           // 1) t03
