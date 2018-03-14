@@ -65,10 +65,30 @@ public class FeatureClassMappingTest {
 
   @Test
   public void testCatchAllWildcards() throws Exception {
+    testBaseWildcard(true);
+    testBaseWildcard(false);
+    testNonBaseCatchAll();
+  }
+
+  private void testNonBaseCatchAll() throws FeatureMappingException {
     List<String> lines =
         ImmutableList.of(
             "com.google.Feature1:feature1",
-            "*:base",
+            "*:nonbase",
+            "com.strange.*:feature2");
+    FeatureClassMapping mapping = new FeatureClassMapping(lines);
+    assertEquals(mapping.featureForClass("com.google.Feature1"), "feature1");
+    assertEquals(mapping.featureForClass("com.google.different.Feature1"), "nonbase");
+    assertEquals(mapping.featureForClass("com.strange.different.Feature1"), "feature2");
+    assertEquals(mapping.featureForClass("Feature1"), "nonbase");
+    assertEquals(mapping.featureForClass("a.b.z.A"), "nonbase");
+  }
+
+  private void testBaseWildcard(boolean explicitBase) throws FeatureMappingException {
+    List<String> lines =
+        ImmutableList.of(
+            "com.google.Feature1:feature1",
+            explicitBase ? "*:base" : "",
             "com.strange.*:feature2");
     FeatureClassMapping mapping = new FeatureClassMapping(lines);
     assertEquals(mapping.featureForClass("com.google.Feature1"), "feature1");

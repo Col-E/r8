@@ -23,6 +23,7 @@ import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.FeatureClassMapping.FeatureMappingException;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -40,11 +41,15 @@ import org.junit.rules.TemporaryFolder;
 
 public class DexSplitterTests {
 
-  private static final String CLASS_DIR = ToolHelper.EXAMPLES_BUILD_DIR + "classes/dexsplitsample";
+  private static final String CLASS_DIR =
+      ToolHelper.EXAMPLES_ANDROID_N_BUILD_DIR + "classes/dexsplitsample";
   private static final String CLASS1_CLASS = CLASS_DIR + "/Class1.class";
   private static final String CLASS2_CLASS = CLASS_DIR + "/Class2.class";
   private static final String CLASS3_CLASS = CLASS_DIR + "/Class3.class";
   private static final String CLASS3_INNER_CLASS = CLASS_DIR + "/Class3$InnerClass.class";
+  private static final String CLASS4_CLASS = CLASS_DIR + "/Class4.class";
+  private static final String CLASS4_LAMBDA_INTERFACE = CLASS_DIR + "/Class4$LambdaInterface.class";
+
 
   @Rule public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
@@ -75,6 +80,8 @@ public class DexSplitterTests {
             .addProgramFiles(Paths.get(CLASS2_CLASS))
             .addProgramFiles(Paths.get(CLASS3_CLASS))
             .addProgramFiles(Paths.get(CLASS3_INNER_CLASS))
+            .addProgramFiles(Paths.get(CLASS4_CLASS))
+            .addProgramFiles(Paths.get(CLASS4_LAMBDA_INTERFACE))
             .build());
 
     Path output = temp.getRoot().toPath().resolve("output");
@@ -135,6 +142,18 @@ public class DexSplitterTests {
     } catch (AssertionError assertionError) {
       // We expect this to throw since base is not in the path and Class3 depends on Class1
     }
+
+    className = "Class4";
+    builder = new ArtCommandBuilder();
+    builder.appendClasspath(feature.toString());
+    builder.setMainClass("dexsplitsample." + className);
+    try {
+      ToolHelper.runArt(builder);
+      assertFalse(true);
+    } catch (AssertionError assertionError) {
+      // We expect this to throw since base is not in the path and Class4 includes a lambda that
+      // would have been pushed to base.
+    }
   }
 
   private Path createSplitSpec() throws FileNotFoundException, UnsupportedEncodingException {
@@ -143,7 +162,8 @@ public class DexSplitterTests {
       out.write(
           "dexsplitsample.Class1:base\n"
               + "dexsplitsample.Class2:feature1\n"
-              + "dexsplitsample.Class3:feature1");
+              + "dexsplitsample.Class3:feature1\n"
+              + "dexsplitsample.Class4:feature1");
     }
     return splitSpec;
   }
@@ -159,11 +179,13 @@ public class DexSplitterTests {
   public void splitFilesFromJar()
       throws IOException, CompilationFailedException, FeatureMappingException, ResourceException,
       CompilationException, ExecutionException {
-    splitFromJars(true);
-    splitFromJars(false);
+    splitFromJars(true, true);
+    splitFromJars(false, true);
+    splitFromJars(true, false);
+    splitFromJars(false, false);
   }
 
-  private void splitFromJars(boolean useOptions)
+  private void splitFromJars(boolean useOptions, boolean explicitBase)
       throws IOException, CompilationFailedException, FeatureMappingException, ResourceException,
       ExecutionException, CompilationException {
     // Initial normal compile to create dex files.
@@ -175,6 +197,8 @@ public class DexSplitterTests {
             .addProgramFiles(Paths.get(CLASS2_CLASS))
             .addProgramFiles(Paths.get(CLASS3_CLASS))
             .addProgramFiles(Paths.get(CLASS3_INNER_CLASS))
+            .addProgramFiles(Paths.get(CLASS4_CLASS))
+            .addProgramFiles(Paths.get(CLASS4_LAMBDA_INTERFACE))
             .build());
 
     Path output = temp.getRoot().toPath().resolve("output");
@@ -200,26 +224,38 @@ public class DexSplitterTests {
     featureStream.putNextEntry(new ZipEntry(name));
     featureStream.write(Files.readAllBytes(Paths.get(CLASS3_INNER_CLASS)));
     featureStream.closeEntry();
+    name = "dexsplitsample/Class4";
+    featureStream.putNextEntry(new ZipEntry(name));
+    featureStream.write(Files.readAllBytes(Paths.get(CLASS4_CLASS)));
+    featureStream.closeEntry();
+    name = "dexsplitsample/Class4$LambdaInterface";
+    featureStream.putNextEntry(new ZipEntry(name));
+    featureStream.write(Files.readAllBytes(Paths.get(CLASS4_LAMBDA_INTERFACE)));
+    featureStream.closeEntry();
     featureStream.close();
     if (useOptions) {
       Options options = new Options();
       options.inputArchives.add(inputZip.toString());
       options.splitBaseName = output.toString();
-      options.featureJars.add(baseJar.toString());
+      if (explicitBase) {
+        options.featureJars.add(baseJar.toString());
+      }
       options.featureJars.add(featureJar.toString());
       DexSplitter.run(options);
     } else {
-      DexSplitter.main(
-          new String[]{
-              "--input",
-              inputZip.toString(),
-              "--output",
-              output.toString(),
-              "--feature-jar",
-              baseJar.toString(),
-              "--feature-jar",
-              featureJar.toString()
-          });
+      List<String> args = Lists.newArrayList(
+          "--input",
+          inputZip.toString(),
+          "--output",
+          output.toString(),
+          "--feature-jar",
+          featureJar.toString());
+      if (explicitBase) {
+        args.add("--feature-jar");
+        args.add(baseJar.toString());
+      }
+
+      DexSplitter.main(args.toArray(new String[0]));
     }
     Path base = output.getParent().resolve("output.base.zip");
     Path feature = output.getParent().resolve("output.feature1.zip");
@@ -241,6 +277,8 @@ public class DexSplitterTests {
             .addProgramFiles(Paths.get(CLASS2_CLASS))
             .addProgramFiles(Paths.get(CLASS3_CLASS))
             .addProgramFiles(Paths.get(CLASS3_INNER_CLASS))
+            .addProgramFiles(Paths.get(CLASS4_CLASS))
+            .addProgramFiles(Paths.get(CLASS4_LAMBDA_INTERFACE))
             .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
             .setProguardMapOutputPath(proguardMap)
             .addProguardConfiguration(getProguardConf(), null)
