@@ -4,7 +4,10 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.naming.NamingLens;
+import org.objectweb.asm.Handle;
+import org.objectweb.asm.Opcodes;
 
 public class DexMethodHandle extends IndexedDexItem implements
     PresortedComparable<DexMethodHandle> {
@@ -243,5 +246,57 @@ public class DexMethodHandle extends IndexedDexItem implements
   @Override
   public int compareTo(DexMethodHandle other) {
     return sortedCompareTo(other.getSortedIndex());
+  }
+
+  public Handle toAsmHandle() {
+    String owner;
+    String name;
+    String desc;
+    boolean itf;
+    if (isMethodHandle()) {
+      DexMethod method = asMethod();
+      owner = method.holder.getInternalName();
+      name = method.name.toString();
+      desc = method.proto.toDescriptorString();
+      if (method.holder.toDescriptorString().equals("Ljava/lang/invoke/LambdaMetafactory;")) {
+        itf = false;
+      } else {
+        itf = method.holder.isInterface();
+      }
+    } else {
+      assert isFieldHandle();
+      DexField field = asField();
+      owner = field.clazz.getInternalName();
+      name = field.name.toString();
+      desc = field.type.toDescriptorString();
+      itf = field.clazz.isInterface();
+    }
+    return new Handle(getAsmTag(), owner, name, desc, itf);
+  }
+
+  private int getAsmTag() {
+    switch (type) {
+      case INVOKE_STATIC:
+        return Opcodes.H_INVOKESTATIC;
+      case INVOKE_CONSTRUCTOR:
+        return Opcodes.H_NEWINVOKESPECIAL;
+      case INVOKE_INSTANCE:
+        return Opcodes.H_INVOKEVIRTUAL;
+      case INVOKE_SUPER:
+      case INVOKE_DIRECT:
+        return Opcodes.H_INVOKESPECIAL;
+      case STATIC_GET:
+        return Opcodes.H_GETSTATIC;
+      case STATIC_PUT:
+        return Opcodes.H_PUTSTATIC;
+      case INSTANCE_GET:
+        return Opcodes.H_GETFIELD;
+      case INSTANCE_PUT:
+        return Opcodes.H_PUTFIELD;
+      case INVOKE_INTERFACE:
+        return Opcodes.H_INVOKEINTERFACE;
+      default:
+        throw new Unreachable();
+    }
   }
 }

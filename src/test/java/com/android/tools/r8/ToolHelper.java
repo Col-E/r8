@@ -443,7 +443,12 @@ public class ToolHelper {
   private static final String ANGLER_BOOT_IMAGE = ANGLER_DIR + "/system/framework/boot.art";
 
   public static byte[] getClassAsBytes(Class clazz) throws IOException {
-    return ByteStreams.toByteArray(clazz.getResourceAsStream(clazz.getSimpleName() + ".class"));
+    String s = clazz.getSimpleName() + ".class";
+    Class outer = clazz.getEnclosingClass();
+    if (outer != null) {
+      s = outer.getSimpleName() + '$' + s;
+    }
+    return ByteStreams.toByteArray(clazz.getResourceAsStream(s));
   }
 
   public static String getArtDir(DexVm version) {
@@ -883,13 +888,15 @@ public class ToolHelper {
     return runJavaNoVerify(path, main);
   }
 
-  public static ProcessResult runJava(Path classpath, String mainClass) throws IOException {
-    return runJava(ImmutableList.of(classpath), mainClass);
+  public static ProcessResult runJava(Path classpath, String... args) throws IOException {
+    return runJava(ImmutableList.of(classpath), args);
   }
 
-  public static ProcessResult runJava(List<Path> classpath, String mainClass) throws IOException {
+  public static ProcessResult runJava(List<Path> classpath, String... args) throws IOException {
     String cp = classpath.stream().map(Path::toString).collect(Collectors.joining(PATH_SEPARATOR));
-    ProcessBuilder builder = new ProcessBuilder(getJavaExecutable(), "-cp", cp, mainClass);
+    List<String> cmdline = new ArrayList<String>(Arrays.asList(getJavaExecutable(), "-cp", cp));
+    cmdline.addAll(Arrays.asList(args));
+    ProcessBuilder builder = new ProcessBuilder(cmdline);
     return runProcess(builder);
   }
 
@@ -956,6 +963,11 @@ public class ToolHelper {
   public static ProcessResult runArtRaw(String file, String mainClass)
       throws IOException {
     return runArtRaw(Collections.singletonList(file), mainClass, null);
+  }
+
+  public static ProcessResult runArtRaw(
+      String file, String mainClass, Consumer<ArtCommandBuilder> extras) throws IOException {
+    return runArtRaw(Collections.singletonList(file), mainClass, extras);
   }
 
   public static ProcessResult runArtRaw(List<String> files, String mainClass,
