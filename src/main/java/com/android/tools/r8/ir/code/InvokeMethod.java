@@ -170,11 +170,11 @@ public abstract class InvokeMethod extends Invoke {
   @Override
   public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
     helper.loadInValues(this, it);
-    if (method.proto.returnType.isVoidType()) {
+    if (getReturnType().isVoidType()) {
       return;
     }
     if (outValue == null) {
-      helper.popOutType(method.proto.returnType, this, it);
+      helper.popOutType(getReturnType(), this, it);
     } else {
       assert outValue.isUsed();
       helper.storeOutValue(this, it);
@@ -188,7 +188,7 @@ public abstract class InvokeMethod extends Invoke {
 
   @Override
   public DexType computeVerificationType(TypeVerificationHelper helper) {
-    return getInvokedMethod().proto.returnType;
+    return getReturnType();
   }
 
 }

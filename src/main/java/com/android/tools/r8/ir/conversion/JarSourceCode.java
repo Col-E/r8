@@ -141,8 +141,8 @@ public class JarSourceCode implements SourceCode {
       "([Ljava/lang/Object;)Z";
 
   // Various internal names.
-  static final String INTERNAL_NAME_METHOD_HANDLE = "java/lang/invoke/MethodHandle";
-  static final String INTERNAL_NAME_VAR_HANDLE = "java/lang/invoke/VarHandle";
+  public static final String INTERNAL_NAME_METHOD_HANDLE = "java/lang/invoke/MethodHandle";
+  public static final String INTERNAL_NAME_VAR_HANDLE = "java/lang/invoke/VarHandle";
 
   // Language types.
   static final Type CLASS_TYPE = Type.getObjectType("java/lang/Class");
@@ -2601,6 +2601,8 @@ public class JarSourceCode implements SourceCode {
                 default:
                   throw new Unreachable();
               }
+            } else {
+              throw new Unreachable();
             }
             callSiteProto = application.getProto(insn.desc);
           }

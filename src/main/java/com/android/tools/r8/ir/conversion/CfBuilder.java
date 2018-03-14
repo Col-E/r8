@@ -102,6 +102,10 @@ public class CfBuilder {
     this.factory = factory;
   }
 
+  public DexItemFactory getFactory() {
+    return factory;
+  }
+
   public Code build(CodeRewriter rewriter, InternalOptions options, AppInfoWithSubtyping appInfo) {
     try {
       types = new TypeVerificationHelper(code, factory, appInfo).computeVerificationTypes();
