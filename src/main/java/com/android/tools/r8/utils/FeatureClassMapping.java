@@ -18,11 +18,19 @@ import java.util.regex.Pattern;
  *
  * <p>Lines with a # prefix are ignored.
  *
- * <p>We will do most specific matching, i.e., com.google.foobar.*:feature2 com.google.*:base will
- * put everything in the com.google namespace into base, except classes in com.google.foobar that
- * will go to feature2. Class based mappings takes precedence over packages (since they are more
- * specific): com.google.A:feature2 com.google.*:base Puts A into feature2, and all other classes
- * from com.google into base.
+ * <p>We will do most specific matching, i.e.,
+ * <pre>
+ *   com.google.foobar.*:feature2
+ *   com.google.*:base
+ * </pre>
+ * will put everything in the com.google namespace into base, except classes in com.google.foobar
+ * that will go to feature2. Class based mappings takes precedence over packages (since they are
+ * more specific):
+ * <pre>
+ *   com.google.A:feature2
+ *   com.google.*:base
+ *  </pre>
+ * Puts A into feature2, and all other classes from com.google into base.
  *
  * <p>Note that this format does not allow specifying inter-module dependencies, this is simply a
  * placement tool.
@@ -32,10 +40,12 @@ public class FeatureClassMapping {
   HashMap<String, String> parsedRules = new HashMap<>(); // Already parsed rules.
 
   HashSet<FeaturePredicate> mappings = new HashSet<>();
+
   Path mappingFile;
 
   static final String COMMENT = "#";
   static final String SEPARATOR = ":";
+  static final String BASE_NAME = "base";
 
   public static FeatureClassMapping fromSpecification(Path file)
       throws FeatureMappingException, IOException {
@@ -69,7 +79,7 @@ public class FeatureClassMapping {
 
   private FeatureClassMapping() {}
 
-  public void addMapping(String clazz, String feature) throws FeatureMappingException {
+  private void addMapping(String clazz, String feature) throws FeatureMappingException {
     addRule(clazz, feature, 0);
   }
 
@@ -91,7 +101,7 @@ public class FeatureClassMapping {
       }
     }
     if (bestMatch == null) {
-      throw new FeatureMappingException("Class: " + clazz + " is not mapped to any feature");
+      return BASE_NAME;
     }
     return bestMatch.feature;
   }
