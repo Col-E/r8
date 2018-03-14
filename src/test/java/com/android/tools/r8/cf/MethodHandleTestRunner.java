@@ -13,6 +13,7 @@ import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.R8Command.Builder;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -60,12 +61,16 @@ public class MethodHandleTestRunner {
 
     ProcessResult runCf =
         ToolHelper.runJava(outCf, CLASS.getCanonicalName(), ldc ? "error" : "exception");
+    assertEquals(runInput.toString(), runCf.toString());
+    // TODO(mathiasr): Once we include a P runtime, change this to "P and above".
+    if (ToolHelper.getDexVm() != DexVm.ART_DEFAULT) {
+      return;
+    }
     ProcessResult runDex =
         ToolHelper.runArtRaw(
             outDex.toString(),
             CLASS.getCanonicalName(),
             cmd -> cmd.appendProgramArgument(ldc ? "pass" : "exception"));
-    assertEquals(runInput.toString(), runCf.toString());
     // Only compare stdout and exitCode since dex2oat prints to stderr.
     if (runInput.exitCode != runDex.exitCode) {
       System.out.println(runDex.stderr);
