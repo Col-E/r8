@@ -8,10 +8,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.DexVm;
-import com.android.tools.r8.ToolHelper.DexVm.Kind;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.VmTestRunner;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.jasmin.JasminTestBase;
@@ -22,38 +20,16 @@ import com.android.tools.r8.utils.DexInspector.FieldSubject;
 import com.android.tools.r8.utils.DexInspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
 
-@RunWith(Parameterized.class)
+@RunWith(VmTestRunner.class)
 public class ValidNameConflictTest extends JasminTestBase {
   private final String CLASS_NAME = "Example";
   private final String SUPER_CLASS = "Super";
   private final String ANOTHER_CLASS = "Test";
   private final String MSG = "Expected to be seen at the end.";
-
-  private final DexVm dexVm;
-
-  public ValidNameConflictTest(DexVm dexVm) {
-    this.dexVm = dexVm;
-  }
-
-  @Parameters(name = "vm: {0}")
-  public static Collection<Object> data() {
-    List<Object> testCases = new ArrayList<>();
-    for (DexVm version : DexVm.values()) {
-      if (version.getKind() == Kind.HOST) {
-        testCases.add(version);
-      }
-    }
-    return testCases;
-  }
 
   private Iterable<String> buildCodeForVisitingDeclaredMembers(
       Iterable<String> prologue, Iterable<String> argumentLoadingAndCall) {
@@ -105,7 +81,6 @@ public class ValidNameConflictTest extends JasminTestBase {
 
   @Test
   public void remainFieldNameConflict_keepRules() throws Exception {
-    Assume.assumeTrue(ToolHelper.artSupported());
     JasminBuilder builder = buildFieldNameConflictClassFile();
     ProcessResult javaOutput = runOnJavaNoVerifyRaw(builder, CLASS_NAME);
     assertEquals(0, javaOutput.exitCode);
@@ -130,14 +105,13 @@ public class ValidNameConflictTest extends JasminTestBase {
     assertFalse(f2.isRenamed());
     assertEquals(f1.getFinalName(), f2.getFinalName());
 
-    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME, dexVm);
+    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME);
     assertEquals(0, artOutput.exitCode);
     assertEquals(javaOutput.stdout, artOutput.stdout);
   }
 
   @Test
   public void remainFieldNameConflict_useuniqueclassmembernames() throws Exception {
-    Assume.assumeTrue(ToolHelper.artSupported());
     JasminBuilder builder = buildFieldNameConflictClassFile();
     ProcessResult javaOutput = runOnJavaNoVerifyRaw(builder, CLASS_NAME);
     assertEquals(0, javaOutput.exitCode);
@@ -159,7 +133,7 @@ public class ValidNameConflictTest extends JasminTestBase {
     assertTrue(f2.isRenamed());
     assertEquals(f1.getFinalName(), f2.getFinalName());
 
-    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME, dexVm);
+    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME);
     assertEquals(0, artOutput.exitCode);
     assertEquals(javaOutput.stdout, artOutput.stdout);
   }
@@ -167,7 +141,6 @@ public class ValidNameConflictTest extends JasminTestBase {
   @Test
   public void remainFieldNameConflict_useuniqueclassmembernames_overloadaggressively()
       throws Exception {
-    Assume.assumeTrue(ToolHelper.artSupported());
     JasminBuilder builder = buildFieldNameConflictClassFile();
     ProcessResult javaOutput = runOnJavaNoVerifyRaw(builder, CLASS_NAME);
     assertEquals(0, javaOutput.exitCode);
@@ -190,14 +163,13 @@ public class ValidNameConflictTest extends JasminTestBase {
     assertTrue(f2.isRenamed());
     assertEquals(f1.getFinalName(), f2.getFinalName());
 
-    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME, dexVm);
+    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME);
     assertEquals(0, artOutput.exitCode);
     assertEquals(javaOutput.stdout, artOutput.stdout);
   }
 
   @Test
   public void resolveFieldNameConflict_no_options() throws Exception {
-    Assume.assumeTrue(ToolHelper.artSupported());
     JasminBuilder builder = buildFieldNameConflictClassFile();
     ProcessResult javaOutput = runOnJavaNoVerifyRaw(builder, CLASS_NAME);
     assertEquals(0, javaOutput.exitCode);
@@ -218,14 +190,13 @@ public class ValidNameConflictTest extends JasminTestBase {
     assertTrue(f2.isRenamed());
     assertNotEquals(f1.getFinalName(), f2.getFinalName());
 
-    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME, dexVm);
+    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME);
     assertEquals(0, artOutput.exitCode);
     assertEquals(javaOutput.stdout, artOutput.stdout);
   }
 
   @Test
   public void remainFieldNameConflict_overloadaggressively() throws Exception {
-    Assume.assumeTrue(ToolHelper.artSupported());
     JasminBuilder builder = buildFieldNameConflictClassFile();
     ProcessResult javaOutput = runOnJavaNoVerifyRaw(builder, CLASS_NAME);
     assertEquals(0, javaOutput.exitCode);
@@ -247,7 +218,7 @@ public class ValidNameConflictTest extends JasminTestBase {
     assertTrue(f2.isRenamed());
     assertEquals(f1.getFinalName(), f2.getFinalName());
 
-    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME, dexVm);
+    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME);
     assertEquals(0, artOutput.exitCode);
     assertEquals(javaOutput.stdout, artOutput.stdout);
   }
@@ -280,7 +251,6 @@ public class ValidNameConflictTest extends JasminTestBase {
 
   @Test
   public void remainMethodNameConflict_keepRules() throws Exception {
-    Assume.assumeTrue(ToolHelper.artSupported());
     JasminBuilder builder = buildMethodNameConflictClassFile();
     ProcessResult javaOutput = runOnJavaNoVerifyRaw(builder, CLASS_NAME);
     assertEquals(0, javaOutput.exitCode);
@@ -304,14 +274,13 @@ public class ValidNameConflictTest extends JasminTestBase {
     assertFalse(m2.isRenamed());
     assertEquals(m1.getFinalName(), m2.getFinalName());
 
-    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME, dexVm);
+    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME);
     assertEquals(0, artOutput.exitCode);
     assertEquals(javaOutput.stdout, artOutput.stdout);
   }
 
   @Test
   public void remainMethodNameConflict_useuniqueclassmembernames() throws Exception {
-    Assume.assumeTrue(ToolHelper.artSupported());
     JasminBuilder builder = buildMethodNameConflictClassFile();
     ProcessResult javaOutput = runOnJavaNoVerifyRaw(builder, CLASS_NAME);
     assertEquals(0, javaOutput.exitCode);
@@ -333,7 +302,7 @@ public class ValidNameConflictTest extends JasminTestBase {
     assertTrue(m2.isRenamed());
     assertEquals(m1.getFinalName(), m2.getFinalName());
 
-    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME, dexVm);
+    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME);
     assertEquals(0, artOutput.exitCode);
     assertEquals(javaOutput.stdout, artOutput.stdout);
   }
@@ -341,7 +310,6 @@ public class ValidNameConflictTest extends JasminTestBase {
   @Test
   public void remainMethodNameConflict_useuniqueclassmembernames_overloadaggressively()
       throws Exception {
-    Assume.assumeTrue(ToolHelper.artSupported());
     JasminBuilder builder = buildMethodNameConflictClassFile();
     ProcessResult javaOutput = runOnJavaNoVerifyRaw(builder, CLASS_NAME);
     assertEquals(0, javaOutput.exitCode);
@@ -364,14 +332,13 @@ public class ValidNameConflictTest extends JasminTestBase {
     assertTrue(m2.isRenamed());
     assertEquals(m1.getFinalName(), m2.getFinalName());
 
-    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME, dexVm);
+    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME);
     assertEquals(0, artOutput.exitCode);
     assertEquals(javaOutput.stdout, artOutput.stdout);
   }
 
   @Test
   public void resolveMethodNameConflict_no_options() throws Exception {
-    Assume.assumeTrue(ToolHelper.artSupported());
     JasminBuilder builder = buildMethodNameConflictClassFile();
     ProcessResult javaOutput = runOnJavaNoVerifyRaw(builder, CLASS_NAME);
     assertEquals(0, javaOutput.exitCode);
@@ -392,14 +359,13 @@ public class ValidNameConflictTest extends JasminTestBase {
     assertTrue(m2.isRenamed());
     assertNotEquals(m1.getFinalName(), m2.getFinalName());
 
-    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME, dexVm);
+    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME);
     assertEquals(0, artOutput.exitCode);
     assertEquals(javaOutput.stdout, artOutput.stdout);
   }
 
   @Test
   public void remainMethodNameConflict_overloadaggressively() throws Exception {
-    Assume.assumeTrue(ToolHelper.artSupported());
     JasminBuilder builder = buildMethodNameConflictClassFile();
     ProcessResult javaOutput = runOnJavaNoVerifyRaw(builder, CLASS_NAME);
     assertEquals(0, javaOutput.exitCode);
@@ -421,7 +387,7 @@ public class ValidNameConflictTest extends JasminTestBase {
     assertTrue(m2.isRenamed());
     assertEquals(m1.getFinalName(), m2.getFinalName());
 
-    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME, dexVm);
+    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME);
     assertEquals(0, artOutput.exitCode);
     assertEquals(javaOutput.stdout, artOutput.stdout);
   }
@@ -467,7 +433,6 @@ public class ValidNameConflictTest extends JasminTestBase {
 
   @Test
   public void remainMethodNameConflictInHierarchy_keepRules() throws Exception {
-    Assume.assumeTrue(ToolHelper.artSupported());
     JasminBuilder builder = buildMethodNameConflictInHierarchy();
     ProcessResult javaOutput = runOnJavaNoVerifyRaw(builder, CLASS_NAME);
     assertEquals(0, javaOutput.exitCode);
@@ -505,14 +470,13 @@ public class ValidNameConflictTest extends JasminTestBase {
     assertEquals(m1.getFinalName(), subM1.getFinalName());
     assertEquals(m2.getFinalName(), subM2.getFinalName());
 
-    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME, dexVm);
+    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME);
     assertEquals(0, artOutput.exitCode);
     assertEquals(javaOutput.stdout, artOutput.stdout);
   }
 
   @Test
   public void remainMethodNameConflictInHierarchy_useuniqueclassmembernames() throws Exception {
-    Assume.assumeTrue(ToolHelper.artSupported());
     JasminBuilder builder = buildMethodNameConflictInHierarchy();
     ProcessResult javaOutput = runOnJavaNoVerifyRaw(builder, CLASS_NAME);
     assertEquals(0, javaOutput.exitCode);
@@ -548,7 +512,7 @@ public class ValidNameConflictTest extends JasminTestBase {
     assertEquals(m1.getFinalName(), subM1.getFinalName());
     assertEquals(m2.getFinalName(), subM2.getFinalName());
 
-    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME, dexVm);
+    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME);
     assertEquals(0, artOutput.exitCode);
     assertEquals(javaOutput.stdout, artOutput.stdout);
   }
@@ -556,7 +520,6 @@ public class ValidNameConflictTest extends JasminTestBase {
   @Test
   public void remainMethodNameConflictInHierarchy_useuniqueclassmembernames_overloadaggressively()
       throws Exception {
-    Assume.assumeTrue(ToolHelper.artSupported());
     JasminBuilder builder = buildMethodNameConflictInHierarchy();
     ProcessResult javaOutput = runOnJavaNoVerifyRaw(builder, CLASS_NAME);
     assertEquals(0, javaOutput.exitCode);
@@ -593,14 +556,13 @@ public class ValidNameConflictTest extends JasminTestBase {
     assertEquals(m1.getFinalName(), subM1.getFinalName());
     assertEquals(m2.getFinalName(), subM2.getFinalName());
 
-    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME, dexVm);
+    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME);
     assertEquals(0, artOutput.exitCode);
     assertEquals(javaOutput.stdout, artOutput.stdout);
   }
 
   @Test
   public void resolveMethodNameConflictInHierarchy_no_options() throws Exception {
-    Assume.assumeTrue(ToolHelper.artSupported());
     JasminBuilder builder = buildMethodNameConflictInHierarchy();
     ProcessResult javaOutput = runOnJavaNoVerifyRaw(builder, CLASS_NAME);
     assertEquals(0, javaOutput.exitCode);
@@ -635,14 +597,13 @@ public class ValidNameConflictTest extends JasminTestBase {
     assertEquals(m1.getFinalName(), subM1.getFinalName());
     assertEquals(m2.getFinalName(), subM2.getFinalName());
 
-    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME, dexVm);
+    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME);
     assertEquals(0, artOutput.exitCode);
     assertEquals(javaOutput.stdout, artOutput.stdout);
   }
 
   @Test
   public void remainMethodNameConflictInHierarchy_overloadaggressively() throws Exception {
-    Assume.assumeTrue(ToolHelper.artSupported());
     JasminBuilder builder = buildMethodNameConflictInHierarchy();
     ProcessResult javaOutput = runOnJavaNoVerifyRaw(builder, CLASS_NAME);
     assertEquals(0, javaOutput.exitCode);
@@ -679,7 +640,7 @@ public class ValidNameConflictTest extends JasminTestBase {
     assertEquals(m1.getFinalName(), subM1.getFinalName());
     assertEquals(m2.getFinalName(), subM2.getFinalName());
 
-    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME, dexVm);
+    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME);
     assertEquals(0, artOutput.exitCode);
     assertEquals(javaOutput.stdout, artOutput.stdout);
   }

@@ -13,9 +13,8 @@ import com.android.tools.r8.CompatProguardCommandBuilder;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.DexVm;
-import com.android.tools.r8.ToolHelper.DexVm.Kind;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.VmTestRunner;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.origin.Origin;
@@ -25,38 +24,14 @@ import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
 
-@RunWith(Parameterized.class)
+@RunWith(VmTestRunner.class)
 public class OverloadAggressivelyTest extends TestBase {
-  private final DexVm dexVm;
-  private final boolean overloadaggressively;
 
-  public OverloadAggressivelyTest(DexVm dexVm, boolean overloadaggressively) {
-    this.dexVm = dexVm;
-    this.overloadaggressively = overloadaggressively;
-  }
-
-  @Parameters(name = "vm: {0}, overloadaggressively: {1}")
-  public static Collection<Object[]> data() {
-    List<Object[]> testCases = new ArrayList<>();
-    for (DexVm version : DexVm.values()) {
-      if (version.getKind() == Kind.HOST) {
-        testCases.add(new Object[]{version, true});
-        testCases.add(new Object[]{version, false});
-      }
-    }
-    return testCases;
-  }
-
-  private AndroidApp runR8(AndroidApp app, Class main, Path out) throws Exception {
+  private AndroidApp runR8(AndroidApp app, Class main, Path out, boolean overloadaggressively)
+      throws Exception {
      R8Command command =
         ToolHelper.addProguardConfigurationConsumer(
             ToolHelper.prepareR8CommandBuilder(app),
@@ -75,9 +50,7 @@ public class OverloadAggressivelyTest extends TestBase {
     return ToolHelper.runR8(command, o -> o.enableInlining = false);
   }
 
-  @Test
-  public void fieldUpdater() throws Exception {
-    Assume.assumeTrue(ToolHelper.artSupported());
+  private void fieldUpdater(boolean overloadaggressively) throws Exception {
     byte[][] classes = {
         ToolHelper.getClassAsBytes(FieldUpdater.class),
         ToolHelper.getClassAsBytes(A.class),
@@ -85,7 +58,7 @@ public class OverloadAggressivelyTest extends TestBase {
     };
     AndroidApp originalApp = buildAndroidApp(classes);
     Path out = temp.getRoot().toPath();
-    AndroidApp processedApp = runR8(originalApp, FieldUpdater.class, out);
+    AndroidApp processedApp = runR8(originalApp, FieldUpdater.class, out, overloadaggressively);
 
     DexInspector dexInspector = new DexInspector(processedApp);
     ClassSubject a = dexInspector.clazz(A.class.getCanonicalName());
@@ -106,7 +79,7 @@ public class OverloadAggressivelyTest extends TestBase {
     String main = FieldUpdater.class.getCanonicalName();
     ProcessResult javaOutput = runOnJava(main, classes);
     assertEquals(0, javaOutput.exitCode);
-    ProcessResult artOutput = runOnArtRaw(processedApp, main, dexVm);
+    ProcessResult artOutput = runOnArtRaw(processedApp, main);
     // TODO(b/72858955): eventually, R8 should avoid this field resolution conflict.
     if (overloadaggressively) {
       assertNotEquals(0, artOutput.exitCode);
@@ -120,8 +93,16 @@ public class OverloadAggressivelyTest extends TestBase {
   }
 
   @Test
-  public void fieldResolution() throws Exception {
-    Assume.assumeTrue(ToolHelper.artSupported());
+  public void testFieldUpdater_aggressively() throws Exception {
+    fieldUpdater(true);
+  }
+
+  @Test
+  public void testFieldUpdater_not_aggressively() throws Exception {
+    fieldUpdater(false);
+  }
+
+  private void fieldResolution(boolean overloadaggressively) throws Exception {
     byte[][] classes = {
         ToolHelper.getClassAsBytes(FieldResolution.class),
         ToolHelper.getClassAsBytes(A.class),
@@ -129,7 +110,7 @@ public class OverloadAggressivelyTest extends TestBase {
     };
     AndroidApp originalApp = buildAndroidApp(classes);
     Path out = temp.getRoot().toPath();
-    AndroidApp processedApp = runR8(originalApp, FieldResolution.class, out);
+    AndroidApp processedApp = runR8(originalApp, FieldResolution.class, out, overloadaggressively);
 
     DexInspector dexInspector = new DexInspector(processedApp);
     ClassSubject a = dexInspector.clazz(A.class.getCanonicalName());
@@ -144,7 +125,7 @@ public class OverloadAggressivelyTest extends TestBase {
     String main = FieldResolution.class.getCanonicalName();
     ProcessResult javaOutput = runOnJava(main, classes);
     assertEquals(0, javaOutput.exitCode);
-    ProcessResult artOutput = runOnArtRaw(processedApp, main, dexVm);
+    ProcessResult artOutput = runOnArtRaw(processedApp, main);
     // TODO(b/72858955): R8 should avoid field resolution conflict even w/ -overloadaggressively.
     if (overloadaggressively) {
       assertNotEquals(0, artOutput.exitCode);
@@ -158,15 +139,23 @@ public class OverloadAggressivelyTest extends TestBase {
   }
 
   @Test
-  public void methodResolution() throws Exception {
-    Assume.assumeTrue(ToolHelper.artSupported());
+  public void testFieldResolution_aggressively() throws Exception {
+    fieldResolution(true);
+  }
+
+  @Test
+  public void testFieldResolution_not_aggressively() throws Exception {
+    fieldResolution(false);
+  }
+
+  private void methodResolution(boolean overloadaggressively) throws Exception {
     byte[][] classes = {
         ToolHelper.getClassAsBytes(MethodResolution.class),
         ToolHelper.getClassAsBytes(B.class)
     };
     AndroidApp originalApp = buildAndroidApp(classes);
     Path out = temp.getRoot().toPath();
-    AndroidApp processedApp = runR8(originalApp, MethodResolution.class, out);
+    AndroidApp processedApp = runR8(originalApp, MethodResolution.class, out, overloadaggressively);
 
     DexInspector dexInspector = new DexInspector(processedApp);
     ClassSubject b = dexInspector.clazz(B.class.getCanonicalName());
@@ -188,7 +177,7 @@ public class OverloadAggressivelyTest extends TestBase {
     String main = MethodResolution.class.getCanonicalName();
     ProcessResult javaOutput = runOnJava(main, classes);
     assertEquals(0, javaOutput.exitCode);
-    ProcessResult artOutput = runOnArtRaw(processedApp, main, dexVm);
+    ProcessResult artOutput = runOnArtRaw(processedApp, main);
     // TODO(b/72858955): R8 should avoid method resolution conflict even w/ -overloadaggressively.
     if (overloadaggressively) {
       assertEquals(0, artOutput.exitCode);
@@ -199,5 +188,15 @@ public class OverloadAggressivelyTest extends TestBase {
       // ART may dump its own debugging info through stderr.
       // assertEquals(javaOutput.stderr.trim(), artOutput.stderr.trim());
     }
+  }
+
+  @Test
+  public void testMethodResolution_aggressively() throws Exception {
+    methodResolution(true);
+  }
+
+  @Test
+  public void testMethodResolution_not_aggressively() throws Exception {
+    methodResolution(false);
   }
 }
