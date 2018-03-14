@@ -241,6 +241,7 @@ public class DexInspector {
   public abstract class Subject {
 
     public abstract boolean isPresent();
+    public abstract boolean isRenamed();
   }
 
   public abstract class AnnotationSubject extends Subject {
@@ -262,6 +263,11 @@ public class DexInspector {
     }
 
     @Override
+    public boolean isRenamed() {
+      return false;
+    }
+
+    @Override
     public DexEncodedAnnotation getAnnotation() {
       return annotation.annotation;
     }
@@ -271,6 +277,11 @@ public class DexInspector {
 
     @Override
     public boolean isPresent() {
+      return false;
+    }
+
+    @Override
+    public boolean isRenamed() {
       return false;
     }
 
@@ -335,8 +346,6 @@ public class DexInspector {
     public abstract String getOriginalDescriptor();
 
     public abstract String getFinalDescriptor();
-
-    public abstract boolean isRenamed();
 
     public abstract boolean isMemberClass();
 
@@ -653,8 +662,6 @@ public class DexInspector {
         Predicate<InstructionSubject> filter) {
       return null;
     }
-
-    public abstract boolean isRenamed();
   }
 
   public class AbsentMethodSubject extends MethodSubject {
@@ -933,13 +940,18 @@ public class DexInspector {
 
     private final DexType dexType;
 
-    public TypeSubject(DexType dexType) {
+    TypeSubject(DexType dexType) {
       this.dexType = dexType;
     }
 
     @Override
     public boolean isPresent() {
       return true;
+    }
+
+    @Override
+    public boolean isRenamed() {
+      return false;
     }
 
     public boolean is(String type) {
