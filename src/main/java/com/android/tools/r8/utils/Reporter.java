@@ -38,6 +38,7 @@ public class Reporter implements DiagnosticsHandler {
       errorCount++;
     }
   }
+
   public void error(String message) {
     error(new StringDiagnostic(message));
   }

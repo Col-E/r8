@@ -44,58 +44,54 @@ public class ProguardConfigurationParser {
 
   private final Reporter reporter;
 
-  private static final List<String> IGNORED_SINGLE_ARG_OPTIONS = ImmutableList
-      .of("protomapping",
-          "target"
-      );
-  private static final List<String> IGNORED_OPTIONAL_SINGLE_ARG_OPTIONS = ImmutableList
-      .of("keepdirectories",
-          "runtype",
-          "laststageoutput"
-      );
-  private static final List<String> IGNORED_FLAG_OPTIONS = ImmutableList
-      .of("forceprocessing",
-          "dontusemixedcaseclassnames",
-          "dontpreverify",
-          "experimentalshrinkunusedprotofields",
-          "filterlibraryjarswithorginalprogramjars",
-          "dontskipnonpubliclibraryclasses",
-          "dontskipnonpubliclibraryclassmembers",
-          "invokebasemethod",
-          "android"
-      );
-  private static final List<String> IGNORED_CLASS_DESCRIPTOR_OPTIONS = ImmutableList
-      .of("isclassnamestring",
-          "whyarenotsimple"
-      );
+  private static final List<String> IGNORED_SINGLE_ARG_OPTIONS = ImmutableList.of(
+      "dontnote",
+      "protomapping",
+      "target");
 
-  private static final List<String> WARNED_SINGLE_ARG_OPTIONS = ImmutableList
-      .of("dontnote",
-          "printconfiguration",
-          // TODO -outjars (http://b/37137994) and -adaptresourcefilecontents (http://b/37139570)
-          // should be reported as errors, not just as warnings!
-          "outjars",
-          "adaptresourcefilecontents"
-      );
-  private static final List<String> WARNED_FLAG_OPTIONS = ImmutableList
-      .of(
-          // TODO(b/73707846): add support -addconfigurationdebugging
-          "addconfigurationdebugging"
-      );
-  private static final List<String> WARNED_CLASS_DESCRIPTOR_OPTIONS = ImmutableList
-      .of(
-          // TODO(b/73708157): add support -assumenoexternalsideeffects <class_spec>
-          "assumenoexternalsideeffects",
-          // TODO(b/73707404): add support -assumenoescapingparameters <class_spec>
-          "assumenoescapingparameters",
-          // TODO(b/73708085): add support -assumenoexternalreturnvalues <class_spec>
-          "assumenoexternalreturnvalues"
-      );
+  private static final List<String> IGNORED_OPTIONAL_SINGLE_ARG_OPTIONS = ImmutableList.of(
+      "keepdirectories",
+      "runtype",
+      "laststageoutput");
+
+  private static final List<String> IGNORED_FLAG_OPTIONS = ImmutableList.of(
+      "forceprocessing",
+      "dontusemixedcaseclassnames",
+      "dontpreverify",
+      "experimentalshrinkunusedprotofields",
+      "filterlibraryjarswithorginalprogramjars",
+      "dontskipnonpubliclibraryclasses",
+      "dontskipnonpubliclibraryclassmembers",
+      "invokebasemethod",
+      "android");
+
+  private static final List<String> IGNORED_CLASS_DESCRIPTOR_OPTIONS = ImmutableList.of(
+      "isclassnamestring",
+      "whyarenotsimple");
+
+  private static final List<String> WARNED_SINGLE_ARG_OPTIONS = ImmutableList.of(
+      "printconfiguration",
+      // TODO -outjars (http://b/37137994) and -adaptresourcefilecontents (http://b/37139570)
+      // should be reported as errors, not just as warnings!
+      "outjars",
+      "adaptresourcefilecontents");
+
+  private static final List<String> WARNED_FLAG_OPTIONS = ImmutableList.of(
+      // TODO(b/73707846): add support -addconfigurationdebugging
+      "addconfigurationdebugging");
+
+  private static final List<String> WARNED_CLASS_DESCRIPTOR_OPTIONS = ImmutableList.of(
+      // TODO(b/73708157): add support -assumenoexternalsideeffects <class_spec>
+      "assumenoexternalsideeffects",
+      // TODO(b/73707404): add support -assumenoescapingparameters <class_spec>
+      "assumenoescapingparameters",
+      // TODO(b/73708085): add support -assumenoexternalreturnvalues <class_spec>
+      "assumenoexternalreturnvalues");
 
   // Those options are unsupported and are treated as compilation errors.
   // Just ignoring them would produce outputs incompatible with user expectations.
-  private static final List<String> UNSUPPORTED_FLAG_OPTIONS = ImmutableList
-      .of("skipnonpubliclibraryclasses");
+  private static final List<String> UNSUPPORTED_FLAG_OPTIONS =
+      ImmutableList.of("skipnonpubliclibraryclasses");
 
   public ProguardConfigurationParser(
       DexItemFactory dexItemFactory, Reporter reporter) {
@@ -197,28 +193,10 @@ public class ProguardConfigurationParser {
       }
       TextPosition optionStart = getPosition();
       expectChar('-');
-      String option;
-      if (Iterables.any(IGNORED_SINGLE_ARG_OPTIONS, this::skipOptionWithSingleArg)
-          || Iterables.any(
-              IGNORED_OPTIONAL_SINGLE_ARG_OPTIONS, this::skipOptionWithOptionalSingleArg)
-          || Iterables.any(IGNORED_FLAG_OPTIONS, this::skipFlag)
-          || Iterables.any(IGNORED_CLASS_DESCRIPTOR_OPTIONS, this::skipOptionWithClassSpec)
-          || parseOptimizationOption()) {
+      if (parseIgnoredOption() ||
+          parseIgnoredOptionAndWarn(optionStart) ||
+          parseUnsupportedOptionAndErr(optionStart)) {
         // Intentionally left empty.
-      } else if (
-          (option = Iterables.find(WARNED_SINGLE_ARG_OPTIONS,
-              this::skipOptionWithSingleArg, null)) != null
-              || (option = Iterables.find(WARNED_FLAG_OPTIONS,
-                  this::skipFlag, null)) != null
-              || (option = Iterables.find(WARNED_CLASS_DESCRIPTOR_OPTIONS,
-                  this::skipOptionWithClassSpec, null)) != null) {
-        warnIgnoringOptions(option, optionStart);
-      } else if (
-          (option = Iterables.find(UNSUPPORTED_FLAG_OPTIONS, this::skipFlag, null)) != null) {
-        reporter.error(new StringDiagnostic(
-            "Unsupported option: -" + option,
-            origin,
-            getPosition(optionStart)));
       } else if (acceptString("renamesourcefileattribute")) {
         skipWhitespace();
         if (isOptionalArgumentGiven()) {
@@ -366,6 +344,41 @@ public class ProguardConfigurationParser {
             "Unknown option \"-" + unknownOption + "\"", origin, getPosition(optionStart)));
       }
       return true;
+    }
+
+    private boolean parseUnsupportedOptionAndErr(TextPosition optionStart) {
+      String option = Iterables.find(UNSUPPORTED_FLAG_OPTIONS, this::skipFlag, null);
+      if (option != null) {
+        reporter.error(new StringDiagnostic(
+            "Unsupported option: -" + option, origin, getPosition(optionStart)));
+        return true;
+      }
+      return false;
+    }
+
+    private boolean parseIgnoredOptionAndWarn(TextPosition optionStart) {
+      String option =
+          Iterables.find(WARNED_CLASS_DESCRIPTOR_OPTIONS, this::skipOptionWithClassSpec, null);
+      if (option == null) {
+        option = Iterables.find(WARNED_FLAG_OPTIONS, this::skipFlag, null);
+        if (option == null) {
+          option = Iterables.find(WARNED_SINGLE_ARG_OPTIONS, this::skipOptionWithSingleArg, null);
+          if (option == null) {
+            return false;
+          }
+        }
+      }
+      warnIgnoringOptions(option, optionStart);
+      return true;
+    }
+
+    private boolean parseIgnoredOption() {
+      return Iterables.any(IGNORED_SINGLE_ARG_OPTIONS, this::skipOptionWithSingleArg)
+          || Iterables.any(IGNORED_OPTIONAL_SINGLE_ARG_OPTIONS,
+                           this::skipOptionWithOptionalSingleArg)
+          || Iterables.any(IGNORED_FLAG_OPTIONS, this::skipFlag)
+          || Iterables.any(IGNORED_CLASS_DESCRIPTOR_OPTIONS, this::skipOptionWithClassSpec)
+          || parseOptimizationOption();
     }
 
     private void parseInclude() throws ProguardRuleParserException {
