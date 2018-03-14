@@ -4,16 +4,21 @@
 
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import java.util.function.Function;
 
 public class Move extends Instruction {
+  private static final String ERROR_MESSAGE =
+      "This DEX-specific instruction should not be seen in the CF backend";
 
   public Move(Value dest, Value src) {
     super(dest, src);
@@ -33,6 +38,11 @@ public class Move extends Instruction {
   @Override
   public void buildDex(DexBuilder builder) {
     builder.addMove(this);
+  }
+
+  @Override
+  public void buildCf(CfBuilder builder) {
+    throw new Unreachable(ERROR_MESSAGE);
   }
 
   @Override
@@ -92,5 +102,10 @@ public class Move extends Instruction {
   public TypeLatticeElement evaluate(
       AppInfo appInfo, Function<Value, TypeLatticeElement> getLatticeElement) {
     return getLatticeElement.apply(src());
+  }
+
+  @Override
+  public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
+    throw new Unreachable(ERROR_MESSAGE);
   }
 }

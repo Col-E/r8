@@ -3,10 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.code.CfPop;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
+import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
@@ -53,8 +55,18 @@ public class Pop extends Instruction {
   }
 
   @Override
+  public void buildDex(DexBuilder builder) {
+    throw new Unreachable("This classfile-specific IR should not be inserted in the Dex backend.");
+  }
+
+  @Override
   public void buildCf(CfBuilder builder) {
     builder.add(new CfPop(inValues.get(0).type));
+  }
+
+  @Override
+  public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
+    throw new Unreachable("This IR must not be inserted before load and store insertion.");
   }
 
   @Override
