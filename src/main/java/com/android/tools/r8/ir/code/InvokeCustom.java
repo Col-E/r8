@@ -3,9 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.LoadStoreHelper;
+import com.android.tools.r8.cf.TypeVerificationHelper;
+import com.android.tools.r8.cf.code.CfInvokeDynamic;
 import com.android.tools.r8.code.InvokeCustomRange;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
@@ -70,6 +74,11 @@ public final class InvokeCustom extends Invoke {
   }
 
   @Override
+  public void buildCf(CfBuilder builder) {
+    builder.add(new CfInvokeDynamic(getCallSite()));
+  }
+
+  @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
     return other.isInvokeCustom() && callSite == other.asInvokeCustom().callSite;
   }
@@ -94,5 +103,31 @@ public final class InvokeCustom extends Invoke {
   @Override
   public Constraint inliningConstraint(AppInfoWithLiveness info, DexType invocationContext) {
     return Constraint.NEVER;
+  }
+
+  @Override
+  public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
+    // Essentially the same as InvokeMethod but with call site's method proto
+    // instead of a static called method.
+    helper.loadInValues(this, it);
+    if (getCallSite().methodProto.returnType.isVoidType()) {
+      return;
+    }
+    if (outValue == null) {
+      helper.popOutType(getCallSite().methodProto.returnType, this, it);
+    } else {
+      assert outValue.isUsed();
+      helper.storeOutValue(this, it);
+    }
+  }
+
+  @Override
+  public boolean hasInvariantVerificationType() {
+    return true;
+  }
+
+  @Override
+  public DexType computeVerificationType(TypeVerificationHelper helper) {
+    return getCallSite().methodProto.returnType;
   }
 }

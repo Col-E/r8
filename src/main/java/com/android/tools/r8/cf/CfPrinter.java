@@ -20,6 +20,7 @@ import com.android.tools.r8.cf.code.CfIfCmp;
 import com.android.tools.r8.cf.code.CfInstanceOf;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
+import com.android.tools.r8.cf.code.CfInvokeDynamic;
 import com.android.tools.r8.cf.code.CfLabel;
 import com.android.tools.r8.cf.code.CfLoad;
 import com.android.tools.r8.cf.code.CfMonitor;
@@ -224,6 +225,13 @@ public class CfPrinter {
     indent();
     builder.append(opcodeName(invoke.getOpcode())).append(' ');
     appendMethod(invoke.getMethod());
+  }
+
+  public void print(CfInvokeDynamic invoke) {
+    indent();
+    builder.append(opcodeName(Opcodes.INVOKEDYNAMIC)).append(' ');
+    builder.append(invoke.getCallSite().methodName);
+    builder.append(invoke.getCallSite().methodProto.toDescriptorString());
   }
 
   public void print(CfFrame frame) {
