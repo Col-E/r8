@@ -138,13 +138,9 @@ public abstract class Instruction {
     return outValue.outType();
   }
 
-  public void buildDex(DexBuilder builder) {
-    throw new Unreachable("Unexpected instruction when converting to DEX: " + getInstructionName());
-  }
+  public abstract void buildDex(DexBuilder builder);
 
-  public void buildCf(CfBuilder builder) {
-    throw new Unimplemented("No support for building CF instructions for: " + getInstructionName());
-  }
+  public abstract void buildCf(CfBuilder builder);
 
   public void replaceValue(Value oldValue, Value newValue) {
     for (int i = 0; i < inValues.size(); i++) {
@@ -1021,12 +1017,11 @@ public abstract class Instruction {
   public abstract Constraint inliningConstraint(AppInfoWithLiveness info,
       DexType invocationContext);
 
-  public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
-    throw new Unimplemented("Implement load/store insertion for: " + getInstructionName());
-  }
+  public abstract void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper);
 
   public DexType computeVerificationType(TypeVerificationHelper helper) {
-    throw new Unimplemented("Implement verification type computation for: " + getInstructionName());
+    assert outValue == null || !outValue.type.isObject();
+    throw new Unreachable("Instruction without object outValue cannot compute verification type");
   }
 
   public boolean hasInvariantVerificationType() {

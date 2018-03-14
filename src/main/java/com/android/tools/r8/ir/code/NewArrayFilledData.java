@@ -3,10 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.code.FillArrayData;
 import com.android.tools.r8.code.FillArrayDataPayload;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
@@ -14,6 +17,8 @@ import com.android.tools.r8.utils.InternalOptions;
 import java.util.Arrays;
 
 public class NewArrayFilledData extends Instruction {
+  private static final String ERROR_MESSAGE =
+      "Conversion from DEX to classfile not supported for NewArrayFilledData";
 
   public final int element_width;
   public final long size;
@@ -39,6 +44,11 @@ public class NewArrayFilledData extends Instruction {
   public void buildDex(DexBuilder builder) {
     int src = builder.allocatedRegister(src(), getNumber());
     builder.addFillArrayData(this, new FillArrayData(src));
+  }
+
+  @Override
+  public void buildCf(CfBuilder builder) {
+    throw new Unreachable(ERROR_MESSAGE);
   }
 
   @Override
@@ -101,5 +111,10 @@ public class NewArrayFilledData extends Instruction {
   @Override
   public Constraint inliningConstraint(AppInfoWithLiveness info, DexType invocationContext) {
     return Constraint.ALWAYS;
+  }
+
+  @Override
+  public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
+    throw new Unreachable(ERROR_MESSAGE);
   }
 }

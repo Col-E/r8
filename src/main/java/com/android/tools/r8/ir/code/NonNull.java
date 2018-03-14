@@ -3,10 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
@@ -52,6 +54,11 @@ public class NonNull extends Instruction {
   }
 
   @Override
+  public void buildCf(CfBuilder builder) {
+    throw new Unreachable(ERROR_MESSAGE);
+  }
+
+  @Override
   public int maxInValueRegister() {
     throw new Unreachable(ERROR_MESSAGE);
   }
@@ -91,5 +98,10 @@ public class NonNull extends Instruction {
       return l.asNonNullable();
     }
     return l;
+  }
+
+  @Override
+  public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
+    throw new Unreachable(ERROR_MESSAGE);
   }
 }

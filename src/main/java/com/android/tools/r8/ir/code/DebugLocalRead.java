@@ -6,12 +6,14 @@ package com.android.tools.r8.ir.code;
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 
 public class DebugLocalRead extends Instruction {
+  private static final String ERROR_MESSAGE = "Unexpected attempt to emit debug-local read.";
 
   public DebugLocalRead() {
     super(null);
@@ -29,7 +31,12 @@ public class DebugLocalRead extends Instruction {
 
   @Override
   public void buildDex(DexBuilder builder) {
-    throw new Unreachable("Unexpected attempt to emit debug-local read.");
+    throw new Unreachable(ERROR_MESSAGE);
+  }
+
+  @Override
+  public void buildCf(CfBuilder builder) {
+    throw new Unreachable(ERROR_MESSAGE);
   }
 
   @Override
