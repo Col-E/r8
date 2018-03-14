@@ -9,7 +9,6 @@ import com.google.common.annotations.VisibleForTesting;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
-import joptsimple.internal.Strings;
 
 public class ProguardConfigurationSourceStrings implements ProguardConfigurationSource {
 
@@ -40,7 +39,7 @@ public class ProguardConfigurationSourceStrings implements ProguardConfiguration
 
   @Override
   public String get() {
-    return Strings.join(config, System.lineSeparator());
+    return String.join(System.lineSeparator(), config);
   }
 
   @Override

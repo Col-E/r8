@@ -28,6 +28,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.PreloadedClassFileProvider;
 import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.io.ByteStreams;
 import java.io.File;
@@ -47,7 +48,6 @@ import java.util.jar.JarOutputStream;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
-import joptsimple.internal.Strings;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 
@@ -364,12 +364,13 @@ public class TestBase {
    */
   public static String keepMainProguardConfiguration(Class clazz, List<String> additionalLines) {
     String modifier = (clazz.getModifiers() & Modifier.PUBLIC) == Modifier.PUBLIC ? "public " : "";
-    return Strings.join(ImmutableList.of(
-        "-keep " + modifier + "class " + getJavacGeneratedClassName(clazz) + " {",
-        "  public static void main(java.lang.String[]);",
-        "}",
-        "-printmapping"
-    ), "\n") + (additionalLines.size() > 0 ? ("\n" + Strings.join(additionalLines, "\n")) : "");
+    return String.join(System.lineSeparator(),
+        Iterables.concat(ImmutableList.of(
+            "-keep " + modifier + "class " + getJavacGeneratedClassName(clazz) + " {",
+            "  public static void main(java.lang.String[]);",
+            "}",
+            "-printmapping"),
+            additionalLines));
   }
 
   /**

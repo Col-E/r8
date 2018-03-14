@@ -17,7 +17,6 @@ import com.google.common.collect.ImmutableList;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.List;
-import joptsimple.internal.Strings;
 
 public class ProguardCompatabilityTestBase extends TestBase {
 
@@ -31,7 +30,7 @@ public class ProguardCompatabilityTestBase extends TestBase {
 
   protected DexInspector runShrinker(
       Shrinker mode, List<Class> programClasses, List<String> proguadConfigs) throws Exception {
-    return runShrinker(mode, programClasses, Strings.join(proguadConfigs, System.lineSeparator()));
+    return runShrinker(mode, programClasses, String.join(System.lineSeparator(), proguadConfigs));
   }
 
   protected DexInspector runShrinker(
