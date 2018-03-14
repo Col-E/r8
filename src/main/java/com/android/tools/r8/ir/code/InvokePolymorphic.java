@@ -3,19 +3,25 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.code.InvokePolymorphicRange;
+import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import com.android.tools.r8.ir.conversion.JarSourceCode;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.InliningOracle;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import java.util.Collection;
 import java.util.List;
+import org.objectweb.asm.Opcodes;
 
 public class InvokePolymorphic extends InvokeMethod {
 
@@ -75,6 +81,21 @@ public class InvokePolymorphic extends InvokeMethod {
               individualArgumentRegisters[4]); // G
     }
     addInvokeAndMoveResult(instruction, builder);
+  }
+
+  @Override
+  public void buildCf(CfBuilder builder) {
+    DexMethod dexMethod = getInvokedMethod();
+    DexItemFactory factory = builder.getFactory();
+
+    if (dexMethod.holder.getInternalName().equals(JarSourceCode.INTERNAL_NAME_METHOD_HANDLE)) {
+      DexMethod method = factory.createMethod(dexMethod.holder, getProto(), dexMethod.name);
+      builder.add(new CfInvoke(Opcodes.INVOKEVIRTUAL, method));
+    } else {
+      assert dexMethod.holder.getInternalName().equals(JarSourceCode.INTERNAL_NAME_VAR_HANDLE);
+      // VarHandle is new in Java 9
+      throw new Unimplemented();
+    }
   }
 
   @Override
