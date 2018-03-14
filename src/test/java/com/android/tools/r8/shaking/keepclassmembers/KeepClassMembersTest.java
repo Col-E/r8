@@ -77,7 +77,7 @@ public class KeepClassMembersTest extends ProguardCompatabilityTestBase {
     check(inspector, mainClass, staticClass, forceProguardCompatibility, false);
 
     if (isRunProguard()) {
-      inspector = runProguard(ImmutableList.of(mainClass, staticClass), proguardConfig);
+      inspector = runProguard6(ImmutableList.of(mainClass, staticClass), proguardConfig);
       check(inspector, mainClass, staticClass, true, true);
     }
   }

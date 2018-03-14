@@ -135,9 +135,9 @@ public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatabilityT
     r8Checker.accept(mainClass, programClasses, inspector);
 
     if (isRunProguard()) {
-      inspector = runProguard(programClasses, proguardConfiguration);
+      inspector = runProguard6(programClasses, proguardConfiguration);
       proguardChecker.accept(mainClass, programClasses, inspector);
-      inspector = runProguardAndD8(programClasses, proguardConfiguration);
+      inspector = runProguard6AndD8(programClasses, proguardConfiguration);
       proguardChecker.accept(mainClass, programClasses, inspector);
     }
   }

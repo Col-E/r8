@@ -6,6 +6,7 @@ package com.android.tools.r8.shaking;
 import static com.android.tools.r8.shaking.ProguardConfigurationSourceStrings.createConfigurationForTesting;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
@@ -1472,7 +1473,8 @@ public class ProguardConfigurationParserTest extends TestBase {
           "  public static void main(java.lang.String[]);",
           "}"
       );
-      Path proguardedJar = File.createTempFile("proguarded", ".jar", temp.getRoot()).toPath();
+      Path proguardedJar =
+          File.createTempFile("proguarded", FileUtils.JAR_EXTENSION, temp.getRoot()).toPath();
       ToolHelper
           .runProguard(jarTestClasses(ImmutableList.of(classToKeepForTest)),
               proguardedJar, ImmutableList.of(proguardConfig, additionalProguardConfig), null);
@@ -1487,10 +1489,11 @@ public class ProguardConfigurationParserTest extends TestBase {
       // No need for a keep rule for this class, as we are expecting Proguard to fail with the
       // specified message.
       Class classForTest = EmptyMainClassForProguardTests.class;
-      Path proguardedJar = File.createTempFile("proguarded", ".jar", temp.getRoot()).toPath();
+      Path proguardedJar =
+          File.createTempFile("proguarded", FileUtils.JAR_EXTENSION, temp.getRoot()).toPath();
       ProcessResult result = ToolHelper.runProguard6Raw(
           jarTestClasses(ImmutableList.of(classForTest)), proguardedJar, proguardConfig, null);
-      assertTrue(result.exitCode != 0);
+      assertNotEquals(0, result.exitCode);
       assertThat(result.stderr, containsString(expectedMessage));
     }
   }

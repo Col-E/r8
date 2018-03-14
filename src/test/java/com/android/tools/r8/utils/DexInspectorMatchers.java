@@ -15,35 +15,35 @@ import org.hamcrest.TypeSafeMatcher;
 
 public class DexInspectorMatchers {
 
+  private static String type(Subject subject) {
+    String type = "<unknown subject type>";
+    if (subject instanceof ClassSubject) {
+      type = "class";
+    } else if (subject instanceof MethodSubject) {
+      type = "method";
+    } else if (subject instanceof FieldSubject) {
+      type = "field";
+    }
+    return type;
+  }
+
+  private static String name(Subject subject) {
+    String name = "<unknown>";
+    if (subject instanceof ClassSubject) {
+      name = ((ClassSubject) subject).getOriginalName();
+    } else if (subject instanceof MethodSubject) {
+      name = ((MethodSubject) subject).getOriginalName();
+    } else if (subject instanceof FieldSubject) {
+      name = ((FieldSubject) subject).getOriginalName();
+    }
+    return name;
+  }
+
   public static Matcher<Subject> isPresent() {
     return new TypeSafeMatcher<Subject>() {
-      private String type(Subject subject) {
-        String type = "<unknown subject type>";
-        if (subject instanceof ClassSubject) {
-          type = "class";
-        } else if (subject instanceof MethodSubject) {
-          type = "method";
-        } else if (subject instanceof FieldSubject) {
-          type = "field";
-        }
-        return type;
-      }
-
-      private String name(Subject subject) {
-        String name = "<unknown>";
-        if (subject instanceof ClassSubject) {
-          name = ((ClassSubject) subject).getOriginalName();
-        } else if (subject instanceof MethodSubject) {
-          name = ((MethodSubject) subject).getOriginalName();
-        } else if (subject instanceof FieldSubject) {
-          name = ((FieldSubject) subject).getOriginalName();
-        }
-        return name;
-      }
-
       @Override
-      public boolean matchesSafely(final Subject clazz) {
-        return clazz.isPresent();
+      public boolean matchesSafely(final Subject subject) {
+        return subject.isPresent();
       }
 
       @Override
@@ -55,6 +55,46 @@ public class DexInspectorMatchers {
       public void describeMismatchSafely(final Subject subject, Description description) {
         description
             .appendText(type(subject) + " ").appendValue(name(subject)).appendText(" was not");
+      }
+    };
+  }
+
+  public static Matcher<Subject> isRenamed() {
+    return new TypeSafeMatcher<Subject>() {
+      @Override
+      protected boolean matchesSafely(Subject subject) {
+        return subject.isPresent() && subject.isRenamed();
+      }
+
+      @Override
+      public void describeTo(Description description) {
+        description.appendText(" renamed");
+      }
+
+      @Override
+      public void describeMismatchSafely(final Subject subject, Description description) {
+        description
+            .appendText(type(subject) + " ").appendValue(name(subject)).appendText(" was not");
+      }
+    };
+  }
+
+  public static Matcher<Subject> isNotRenamed() {
+    return new TypeSafeMatcher<Subject>() {
+      @Override
+      protected boolean matchesSafely(Subject subject) {
+        return subject.isPresent() && !subject.isRenamed();
+      }
+
+      @Override
+      public void describeTo(Description description) {
+        description.appendText(" not renamed");
+      }
+
+      @Override
+      public void describeMismatchSafely(final Subject subject, Description description) {
+        description
+            .appendText(type(subject) + " ").appendValue(name(subject)).appendText(" was");
       }
     };
   }
