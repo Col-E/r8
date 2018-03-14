@@ -8,12 +8,20 @@ class Accessor {
     companion object {
         private val property = "foo"
 
-        fun printProperty() {
+        fun accessPropertyFromCompanionClass() {
             println(property)
         }
     }
+
+    fun accessPropertyFromOuterClass() {
+        println(property)
+    }
 }
 
-fun accessor_accessCompanionPrivate() {
-    Accessor.printProperty()
+fun accessor_accessPropertyFromCompanionClass() {
+    Accessor.accessPropertyFromCompanionClass()
+}
+
+fun accessor_accessPropertyFromOuterClass() {
+    Accessor().accessPropertyFromOuterClass()
 }

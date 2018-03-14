@@ -5,8 +5,10 @@
 package com.android.tools.r8.kotlin;
 
 import com.android.tools.r8.naming.MemberNaming;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -30,6 +32,22 @@ class TestKotlinClass {
     INTERNAL,
     PROTECTED,
     PRIVATE;
+  }
+
+  enum AccessorKind {
+    FROM_COMPANION("cp"),
+    FROM_INNER("p"),
+    FROM_LAMBDA("lp");
+
+    private final String accessorSuffix;
+
+    AccessorKind(String accessorSuffix) {
+      this.accessorSuffix = accessorSuffix;
+    }
+
+    public String getAccessorSuffix() {
+      return accessorSuffix;
+    }
   }
 
   protected static class KotlinProperty {
@@ -115,6 +133,54 @@ class TestKotlinClass {
     }
     return new MemberNaming.MethodSignature(setterName, "void",
         Collections.singleton(property.getType()));
+  }
+
+  // TODO(shertz) refactor to avoid duplicated code with getGetterForProperty.
+  public MemberNaming.MethodSignature getGetterAccessorForProperty(String propertyName,
+      AccessorKind accessorKind) {
+    KotlinProperty property = getProperty(propertyName);
+    String type = property.type;
+    String getterName;
+    if (propertyName.length() > 2 && propertyName.startsWith("is")
+        && (propertyName.charAt(2) == '_' || Character.isUpperCase(propertyName.charAt(2)))) {
+      // Getter for property "isAbc" is "isAbc".
+      getterName = propertyName;
+    } else {
+      // Getter for property "abc" is "getAbc".
+      getterName =
+          "get" + Character.toUpperCase(propertyName.charAt(0)) + propertyName.substring(1);
+    }
+    // Unlike normal getter, module name is not appended for accessor method of internal property.
+    getterName = wrapWithAccessorPrefixAndSuffix(accessorKind, getterName);
+    List<String> argumentTypes;
+    if (accessorKind != AccessorKind.FROM_COMPANION) {
+      argumentTypes = ImmutableList.of(getClassName());
+    } else {
+      argumentTypes = ImmutableList.of();
+    }
+    return new MemberNaming.MethodSignature(getterName, type, argumentTypes);
+  }
+
+  // TODO(shertz) refactor to avoid duplicated code with getSetterForProperty.
+  public MemberNaming.MethodSignature getSetterAccessorForProperty(String propertyName,
+      AccessorKind accessorKind) {
+    KotlinProperty property = getProperty(propertyName);
+    String setterName = "set"
+        + Character.toUpperCase(property.name.charAt(0))
+        + property.name.substring(1);
+    // Unlike normal setter, module name is not appended for accessor method of internal property.
+    setterName = wrapWithAccessorPrefixAndSuffix(accessorKind, setterName);
+    List<String> argumentTypes;
+    if (accessorKind != AccessorKind.FROM_COMPANION) {
+      argumentTypes = ImmutableList.of(getClassName(), property.getType());
+    } else {
+      argumentTypes = ImmutableList.of(property.getType());
+    }
+    return new MemberNaming.MethodSignature(setterName, "void", argumentTypes);
+  }
+
+  private String wrapWithAccessorPrefixAndSuffix(AccessorKind accessorKind, String methodName) {
+    return "access$" + methodName + "$" + accessorKind.getAccessorSuffix();
   }
 
 }

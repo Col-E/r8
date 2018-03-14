@@ -119,8 +119,8 @@ public abstract class AbstractR8KotlinTestBase extends TestBase {
   protected static FieldSubject checkFieldIsPresent(ClassSubject classSubject, String fieldType,
       String fieldName) {
     FieldSubject fieldSubject = classSubject.field(fieldType, fieldName);
-    assertNotNull(fieldSubject);
-    assertTrue(fieldSubject.isPresent());
+    assertTrue("No field " + fieldName + " in " + classSubject.getOriginalName(),
+        fieldSubject.isPresent());
     return fieldSubject;
   }
 
