@@ -14,7 +14,7 @@ public class CfInvoke extends CfInstruction {
   private final int opcode;
 
   public CfInvoke(int opcode, DexMethod method) {
-    assert Opcodes.INVOKEVIRTUAL <= opcode && opcode <= Opcodes.INVOKEDYNAMIC;
+    assert Opcodes.INVOKEVIRTUAL <= opcode && opcode <= Opcodes.INVOKEINTERFACE;
     this.opcode = opcode;
     this.method = method;
   }
