@@ -105,51 +105,27 @@ class TestKotlinClass {
   public MemberNaming.MethodSignature getGetterForProperty(String propertyName) {
     KotlinProperty property = getProperty(propertyName);
     String type = property.type;
-    String getterName;
-    if (propertyName.length() > 2 && propertyName.startsWith("is")
-        && (propertyName.charAt(2) == '_' || Character.isUpperCase(propertyName.charAt(2)))) {
-      // Getter for property "isAbc" is "isAbc".
-      getterName = propertyName;
-    } else {
-      // Getter for property "abc" is "getAbc".
-      getterName =
-          "get" + Character.toUpperCase(propertyName.charAt(0)) + propertyName.substring(1);
-    }
+    String getterName = computeGetterName(propertyName);
     if (property.getVisibility() == Visibility.INTERNAL) {
-      // Append module name
-      getterName += "$" + KOTLIN_MODULE_NAME;
+      getterName = appendInternalSuffix(getterName);
     }
     return new MemberNaming.MethodSignature(getterName, type, Collections.emptyList());
   }
 
   public MemberNaming.MethodSignature getSetterForProperty(String propertyName) {
     KotlinProperty property = getProperty(propertyName);
-    String setterName = "set"
-        + Character.toUpperCase(property.name.charAt(0))
-        + property.name.substring(1);
+    String setterName = computeSetterName(propertyName);
     if (property.getVisibility() == Visibility.INTERNAL) {
-      // Append module name
-      setterName += "$" + KOTLIN_MODULE_NAME;
+      setterName = appendInternalSuffix(setterName);
     }
     return new MemberNaming.MethodSignature(setterName, "void",
         Collections.singleton(property.getType()));
   }
 
-  // TODO(shertz) refactor to avoid duplicated code with getGetterForProperty.
   public MemberNaming.MethodSignature getGetterAccessorForProperty(String propertyName,
       AccessorKind accessorKind) {
     KotlinProperty property = getProperty(propertyName);
-    String type = property.type;
-    String getterName;
-    if (propertyName.length() > 2 && propertyName.startsWith("is")
-        && (propertyName.charAt(2) == '_' || Character.isUpperCase(propertyName.charAt(2)))) {
-      // Getter for property "isAbc" is "isAbc".
-      getterName = propertyName;
-    } else {
-      // Getter for property "abc" is "getAbc".
-      getterName =
-          "get" + Character.toUpperCase(propertyName.charAt(0)) + propertyName.substring(1);
-    }
+    String getterName = computeGetterName(propertyName);
     // Unlike normal getter, module name is not appended for accessor method of internal property.
     getterName = wrapWithAccessorPrefixAndSuffix(accessorKind, getterName);
     List<String> argumentTypes;
@@ -158,16 +134,13 @@ class TestKotlinClass {
     } else {
       argumentTypes = ImmutableList.of();
     }
-    return new MemberNaming.MethodSignature(getterName, type, argumentTypes);
+    return new MemberNaming.MethodSignature(getterName, property.type, argumentTypes);
   }
 
-  // TODO(shertz) refactor to avoid duplicated code with getSetterForProperty.
   public MemberNaming.MethodSignature getSetterAccessorForProperty(String propertyName,
       AccessorKind accessorKind) {
     KotlinProperty property = getProperty(propertyName);
-    String setterName = "set"
-        + Character.toUpperCase(property.name.charAt(0))
-        + property.name.substring(1);
+    String setterName = computeSetterName(propertyName);
     // Unlike normal setter, module name is not appended for accessor method of internal property.
     setterName = wrapWithAccessorPrefixAndSuffix(accessorKind, setterName);
     List<String> argumentTypes;
@@ -177,6 +150,25 @@ class TestKotlinClass {
       argumentTypes = ImmutableList.of(property.getType());
     }
     return new MemberNaming.MethodSignature(setterName, "void", argumentTypes);
+  }
+
+  private static String computeGetterName(String propertyName) {
+    if (propertyName.length() > 2 && propertyName.startsWith("is")
+        && (propertyName.charAt(2) == '_' || Character.isUpperCase(propertyName.charAt(2)))) {
+      // Getter for property "isAbc" is "isAbc".
+      return propertyName;
+    } else {
+      // Getter for property "abc" is "getAbc".
+      return "get" + Character.toUpperCase(propertyName.charAt(0)) + propertyName.substring(1);
+    }
+  }
+
+  private static String computeSetterName(String propertyName) {
+    return "set" + Character.toUpperCase(propertyName.charAt(0)) + propertyName.substring(1);
+  }
+
+  private static String appendInternalSuffix(String name) {
+    return name + "$" + KOTLIN_MODULE_NAME;
   }
 
   private String wrapWithAccessorPrefixAndSuffix(AccessorKind accessorKind, String methodName) {
