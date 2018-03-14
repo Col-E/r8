@@ -3,10 +3,15 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.LoadStoreHelper;
+import com.android.tools.r8.cf.TypeVerificationHelper;
+import com.android.tools.r8.cf.code.CfConstMethodHandle;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexMethodHandle;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import java.util.function.Function;
 
@@ -32,6 +37,11 @@ public class ConstMethodHandle extends ConstInstruction {
   public void buildDex(DexBuilder builder) {
     int dest = builder.allocatedRegister(dest(), getNumber());
     builder.add(this, new com.android.tools.r8.code.ConstMethodHandle(dest, methodHandle));
+  }
+
+  @Override
+  public void buildCf(CfBuilder builder) {
+    builder.add(new CfConstMethodHandle(methodHandle));
   }
 
   @Override
@@ -84,5 +94,15 @@ public class ConstMethodHandle extends ConstInstruction {
   public TypeLatticeElement evaluate(
       AppInfo appInfo, Function<Value, TypeLatticeElement> getLatticeElement) {
     return TypeLatticeElement.fromDexType(appInfo.dexItemFactory.methodHandleType, false);
+  }
+
+  @Override
+  public DexType computeVerificationType(TypeVerificationHelper helper) {
+    return helper.getFactory().methodHandleType;
+  }
+
+  @Override
+  public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
+    helper.storeOutValue(this, it);
   }
 }

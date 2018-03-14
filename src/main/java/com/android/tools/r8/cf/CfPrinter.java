@@ -9,6 +9,8 @@ import com.android.tools.r8.cf.code.CfArrayStore;
 import com.android.tools.r8.cf.code.CfBinop;
 import com.android.tools.r8.cf.code.CfCheckCast;
 import com.android.tools.r8.cf.code.CfConstClass;
+import com.android.tools.r8.cf.code.CfConstMethodHandle;
+import com.android.tools.r8.cf.code.CfConstMethodType;
 import com.android.tools.r8.cf.code.CfConstNull;
 import com.android.tools.r8.cf.code.CfConstNumber;
 import com.android.tools.r8.cf.code.CfConstString;
@@ -440,6 +442,18 @@ public class CfPrinter {
       default:
         throw new Unreachable("Unexpected numeric type for prefix: " + type);
     }
+  }
+
+  public void print(CfConstMethodHandle handle) {
+    indent();
+    builder.append("ldc ");
+    builder.append(handle.getHandle().toString());
+  }
+
+  public void print(CfConstMethodType type) {
+    indent();
+    builder.append("ldc ");
+    builder.append(type.getType().toString());
   }
 
   private String getLabel(CfLabel label) {
