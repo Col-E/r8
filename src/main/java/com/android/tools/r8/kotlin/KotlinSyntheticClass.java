@@ -7,17 +7,26 @@ package com.android.tools.r8.kotlin;
 public final class KotlinSyntheticClass extends KotlinInfo {
   public enum Flavour {
     KotlinStyleLambda,
+    JavaStyleLambda,
     Unclassified
   }
 
-  public final Flavour flavour;
+  private final Flavour flavour;
 
   KotlinSyntheticClass(Flavour flavour) {
     this.flavour = flavour;
   }
 
+  public boolean isLambda() {
+    return flavour == Flavour.KotlinStyleLambda || flavour == Flavour.JavaStyleLambda;
+  }
+
   public boolean isKotlinStyleLambda() {
     return flavour == Flavour.KotlinStyleLambda;
+  }
+
+  public boolean isJavaStyleLambda() {
+    return flavour == Flavour.JavaStyleLambda;
   }
 
   @Override

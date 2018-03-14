@@ -13,7 +13,9 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
+import com.android.tools.r8.graph.DexValue.DexValueArray;
 import com.android.tools.r8.graph.DexValue.DexValueInt;
+import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.kotlin.KotlinSyntheticClass.Flavour;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.Sets;
@@ -118,7 +120,7 @@ public final class Kotlin {
       case 2:
         return new KotlinFile();
       case 3:
-        return createSyntheticClass(clazz);
+        return createSyntheticClass(clazz, meta);
       case 4:
         return new KotlinClassFacade();
       case 5:
@@ -128,15 +130,26 @@ public final class Kotlin {
     }
   }
 
-  private KotlinSyntheticClass createSyntheticClass(DexClass clazz) {
-    KotlinSyntheticClass.Flavour flavour =
-        isKotlinStyleLambda(clazz) ? Flavour.KotlinStyleLambda : Flavour.Unclassified;
-    return new KotlinSyntheticClass(flavour);
+  private KotlinSyntheticClass createSyntheticClass(DexClass clazz, DexAnnotation meta) {
+    if (isKotlinStyleLambda(clazz)) {
+      return new KotlinSyntheticClass(Flavour.KotlinStyleLambda);
+    }
+    if (isJavaStyleLambda(clazz, meta)) {
+      return new KotlinSyntheticClass(Flavour.JavaStyleLambda);
+    }
+    return new KotlinSyntheticClass(Flavour.Unclassified);
   }
 
   private boolean isKotlinStyleLambda(DexClass clazz) {
     // TODO: replace with direct hints from kotlin metadata when available.
     return clazz.superType == this.functional.lambdaType;
+  }
+
+  private boolean isJavaStyleLambda(DexClass clazz, DexAnnotation meta) {
+    assert !isKotlinStyleLambda(clazz);
+    return clazz.superType == this.factory.objectType &&
+        clazz.interfaces.size() == 1 &&
+        isAnnotationElementNotEmpty(meta, metadata.elementNameD1);
   }
 
   private DexAnnotationElement getAnnotationElement(DexAnnotation annotation, DexString name) {
@@ -146,6 +159,20 @@ public final class Kotlin {
       }
     }
     return null;
+  }
+
+  private boolean isAnnotationElementNotEmpty(DexAnnotation annotation, DexString name) {
+    for (DexAnnotationElement element : annotation.annotation.elements) {
+      if (element.name == name && element.value instanceof DexValueArray) {
+        DexValue[] values = ((DexValueArray) element.value).getValues();
+        if (values.length == 1 && values[0] instanceof DexValueString) {
+          return true;
+        }
+        // Must be broken metadata.
+        assert false;
+      }
+    }
+    return false;
   }
 
   private static class MetadataError extends RuntimeException {

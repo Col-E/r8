@@ -27,10 +27,14 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 // Represents a group of lambda classes which potentially can be represented
 // by the same lambda _group_ class. Each lambda class inside the group is
 // assigned an integer id.
+//
+// NOTE: access to lambdas in lambda group is NOT thread-safe.
 public abstract class LambdaGroup {
   public final LambdaGroupId id;
 
@@ -43,9 +47,6 @@ public abstract class LambdaGroup {
 
   // Maps lambda classes belonging to the group into the index inside the
   // group. Note usage of linked hash map to keep insertion ordering stable.
-  //
-  // WARNING: access to this map is NOT synchronized and must be performed in
-  //          thread-safe context.
   private final Map<DexType, LambdaInfo> lambdas = new LinkedHashMap<>();
 
   public static class LambdaInfo {
@@ -67,11 +68,28 @@ public abstract class LambdaGroup {
     return classType;
   }
 
-  public final List<LambdaInfo> lambdas() {
-    return Lists.newArrayList(lambdas.values());
+  public final int size() {
+    return lambdas.size();
   }
 
-  public final boolean shouldAddToMainDex(AppInfo appInfo) {
+  public final void forEachLambda(Consumer<LambdaInfo> action) {
+    assert verifyLambdaIds(false);
+    for (LambdaInfo info : lambdas.values()) {
+      action.accept(info);
+    }
+  }
+
+  public final boolean anyLambda(Predicate<LambdaInfo> predicate) {
+    assert verifyLambdaIds(false);
+    for (LambdaInfo info : lambdas.values()) {
+      if (predicate.test(info)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  final boolean shouldAddToMainDex(AppInfo appInfo) {
     // We add the group class to main index if any of the
     // lambda classes it replaces is added to main index.
     for (DexType type : lambdas.keySet()) {
@@ -96,6 +114,13 @@ public abstract class LambdaGroup {
     return lambdas.get(lambda).clazz.instanceFields();
   }
 
+  protected final DexEncodedField lambdaSingletonField(DexType lambda) {
+    assert lambdas.containsKey(lambda);
+    DexEncodedField[] fields = lambdas.get(lambda).clazz.staticFields();
+    assert fields.length < 2;
+    return fields.length == 0 ? null : fields[0];
+  }
+
   // Contains less than 2 elements?
   final boolean isTrivial() {
     return lambdas.size() < 2;
@@ -112,6 +137,7 @@ public abstract class LambdaGroup {
   }
 
   final void compact() {
+    assert verifyLambdaIds(false);
     int lastUsed = -1;
     int lastSeen = -1;
     for (Entry<DexType, LambdaInfo> entry : lambdas.entrySet()) {
@@ -123,6 +149,7 @@ public abstract class LambdaGroup {
         entry.getValue().id = lastUsed;
       }
     }
+    assert verifyLambdaIds(true);
   }
 
   public abstract Strategy getCodeStrategy();
@@ -133,15 +160,14 @@ public abstract class LambdaGroup {
   // Package for a lambda group class to be created in.
   protected abstract String getTypePackage();
 
-  public final DexProgramClass synthesizeClass(DexItemFactory factory) {
+  protected abstract String getGroupSuffix();
+
+  final DexProgramClass synthesizeClass(DexItemFactory factory) {
     assert classType == null;
+    assert verifyLambdaIds(true);
     List<LambdaInfo> lambdas = Lists.newArrayList(this.lambdas.values());
     classType = factory.createType(
-        "L" + getTypePackage() + "-$$LambdaGroup$" + createHash(lambdas) + ";");
-    // We need to register new subtype manually  the newly introduced type
-    // does not have 'hierarchyLevel' set, but it is actually needed during
-    // synthetic class methods processing.
-    factory.kotlin.functional.lambdaType.addDirectSubtype(classType);
+        "L" + getTypePackage() + "-$$LambdaGroup$" + getGroupSuffix() + createHash(lambdas) + ";");
     return getBuilder(factory).synthesizeClass();
   }
 
@@ -168,9 +194,25 @@ public abstract class LambdaGroup {
     }
   }
 
+  private boolean verifyLambdaIds(boolean strict) {
+    int previous = -1;
+    for (LambdaInfo info : lambdas.values()) {
+      assert strict ? (previous + 1) == info.id : previous < info.id;
+      previous = info.id;
+    }
+    return true;
+  }
+
   public static class LambdaStructureError extends Exception {
+    final boolean reportable;
+
     public LambdaStructureError(String cause) {
+      this(cause, true);
+    }
+
+    public LambdaStructureError(String cause, boolean reportable) {
       super(cause);
+      this.reportable = reportable;
     }
   }
 }

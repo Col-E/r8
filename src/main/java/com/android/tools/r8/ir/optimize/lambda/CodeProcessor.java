@@ -72,7 +72,7 @@ public abstract class CodeProcessor {
   }
 
   // No-op strategy.
-  public static final Strategy NoOp = new Strategy() {
+  static final Strategy NoOp = new Strategy() {
     @Override
     public LambdaGroup group() {
       return null;

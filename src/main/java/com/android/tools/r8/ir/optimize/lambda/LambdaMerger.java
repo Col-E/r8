@@ -28,9 +28,8 @@ import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.Outliner;
 import com.android.tools.r8.ir.optimize.lambda.CodeProcessor.Strategy;
-import com.android.tools.r8.ir.optimize.lambda.LambdaGroup.LambdaInfo;
 import com.android.tools.r8.ir.optimize.lambda.LambdaGroup.LambdaStructureError;
-import com.android.tools.r8.ir.optimize.lambda.kstyle.KStyleLambdaGroupIdFactory;
+import com.android.tools.r8.ir.optimize.lambda.kotlin.KotlinLambdaGroupIdFactory;
 import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
@@ -59,7 +58,7 @@ import java.util.stream.Collectors;
 //   (c) j-style lambda classes synthesized by kotlin compiler
 //
 // Lambda merging is potentially applicable to all three of them, but
-// current implementation only deals with k-style lambdas.
+// current implementation deals with both k- and j-style lambdas.
 //
 // In general we merge lambdas in 5 phases:
 //   1. collect all lambdas and compute group candidates. we do it synchronously
@@ -151,18 +150,20 @@ public final class LambdaMerger {
         .filter(cls -> !infoWithLiveness.isPinned(cls.type))
         .filter(cls -> cls.hasKotlinInfo() &&
             cls.getKotlinInfo().isSyntheticClass() &&
-            cls.getKotlinInfo().asSyntheticClass().isKotlinStyleLambda())
+            cls.getKotlinInfo().asSyntheticClass().isLambda())
         .sorted((a, b) -> a.type.slowCompareTo(b.type)) // Ensure stable ordering.
         .forEachOrdered(lambda -> {
           try {
-            LambdaGroupId id = KStyleLambdaGroupIdFactory.create(kotlin, lambda, options);
+            LambdaGroupId id = KotlinLambdaGroupIdFactory.create(kotlin, lambda, options);
             LambdaGroup group = groups.computeIfAbsent(id, LambdaGroupId::createGroup);
             group.add(lambda);
             lambdas.put(lambda.type, group);
           } catch (LambdaStructureError error) {
-            reporter.warning(
-                new StringDiagnostic("Invalid Kotlin-style lambda [" +
-                    lambda.type.toSourceString() + "]: " + error.getMessage()));
+            if (error.reportable) {
+              reporter.warning(
+                  new StringDiagnostic("Unrecognized Kotlin lambda [" +
+                      lambda.type.toSourceString() + "]: " + error.getMessage()));
+            }
           }
         });
 
@@ -199,11 +200,12 @@ public final class LambdaMerger {
 
     // Analyse more complex aspects of lambda classes including method code.
     assert converter.appInfo.hasSubtyping();
-    analyzeLambdaClassesStructure(converter.appInfo.withSubtyping(), executorService);
+    AppInfoWithSubtyping appInfo = converter.appInfo.withSubtyping();
+    analyzeLambdaClassesStructure(appInfo, executorService);
 
     // Remove invalidated lambdas, compact groups to ensure
     // sequential lambda ids, create group lambda classes.
-    Map<LambdaGroup, DexProgramClass> lambdaGroupsClasses = finalizeLambdaGroups();
+    Map<LambdaGroup, DexProgramClass> lambdaGroupsClasses = finalizeLambdaGroups(appInfo);
 
     // Switch to APPLY strategy.
     this.strategyFactory = ApplyStrategy::new;
@@ -236,24 +238,25 @@ public final class LambdaMerger {
     for (LambdaGroup group : groups.values()) {
       ThrowingConsumer<DexClass, LambdaStructureError> validator =
           group.lambdaClassValidator(kotlin, appInfo);
-      for (LambdaInfo lambda : group.lambdas()) {
-        futures.add(service.submit(() -> {
-          try {
-            validator.accept(lambda.clazz);
-          } catch (LambdaStructureError error) {
-            reporter.info(
-                new StringDiagnostic("Unexpected Kotlin-style lambda structure [" +
-                    lambda.clazz.type.toSourceString() + "]: " + error.getMessage())
-            );
-            invalidateLambda(lambda.clazz.type);
-          }
-        }));
-      }
+      group.forEachLambda(info ->
+          futures.add(service.submit(() -> {
+            try {
+              validator.accept(info.clazz);
+            } catch (LambdaStructureError error) {
+              if (error.reportable) {
+                reporter.info(
+                    new StringDiagnostic("Unexpected Kotlin lambda structure [" +
+                        info.clazz.type.toSourceString() + "]: " + error.getMessage())
+                );
+              }
+              invalidateLambda(info.clazz.type);
+            }
+          })));
     }
     ThreadUtils.awaitFutures(futures);
   }
 
-  private synchronized Map<LambdaGroup, DexProgramClass> finalizeLambdaGroups() {
+  private Map<LambdaGroup, DexProgramClass> finalizeLambdaGroups(AppInfoWithSubtyping appInfo) {
     for (DexType lambda : invalidatedLambdas) {
       LambdaGroup group = lambdas.get(lambda);
       assert group != null;
@@ -270,7 +273,11 @@ public final class LambdaMerger {
     for (LambdaGroup group : groups.values()) {
       assert !group.isTrivial() : "No trivial group is expected here.";
       group.compact();
-      result.put(group, group.synthesizeClass(factory));
+      DexProgramClass lambdaGroupClass = group.synthesizeClass(factory);
+      result.put(group, lambdaGroupClass);
+
+      // We have to register this new class as a subtype of object.
+      appInfo.registerNewType(lambdaGroupClass.type, lambdaGroupClass.superType);
     }
     return result;
   }
@@ -281,11 +288,8 @@ public final class LambdaMerger {
       Entry<LambdaGroupId, LambdaGroup> group = iterator.next();
       if (group.getValue().isTrivial()) {
         iterator.remove();
-        List<LambdaInfo> lambdas = group.getValue().lambdas();
-        assert lambdas.size() < 2;
-        for (LambdaInfo lambda : lambdas) {
-          this.lambdas.remove(lambda.clazz.type);
-        }
+        assert group.getValue().size() < 2;
+        group.getValue().forEachLambda(info -> this.lambdas.remove(info.clazz.type));
       }
     }
   }

@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.ir.optimize.lambda.kstyle;
+package com.android.tools.r8.ir.optimize.lambda.kotlin;
 
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexAnnotation;
@@ -19,9 +19,9 @@ import com.android.tools.r8.graph.DexValue.DexValueNull;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.MethodAccessFlags;
-import com.android.tools.r8.ir.optimize.lambda.LambdaGroup.LambdaInfo;
 import com.android.tools.r8.ir.optimize.lambda.LambdaGroupClassBuilder;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
+import com.android.tools.r8.ir.synthetic.SyntheticSourceCode;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -30,21 +30,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-// Builds components of k-style lambda group class.
-final class KStyleLambdaGroupClassBuilder
-    extends LambdaGroupClassBuilder<KStyleLambdaGroup> implements KStyleConstants {
+// Builds components of kotlin lambda group class.
+abstract class KotlinLambdaGroupClassBuilder<T extends KotlinLambdaGroup>
+    extends LambdaGroupClassBuilder<T> implements KotlinLambdaConstants {
 
-  private final KStyleLambdaGroupId id;
+  final KotlinLambdaGroupId id;
 
-  KStyleLambdaGroupClassBuilder(DexItemFactory factory, KStyleLambdaGroup group, String origin) {
+  KotlinLambdaGroupClassBuilder(T group, DexItemFactory factory, String origin) {
     super(group, factory, origin);
     this.id = group.id();
   }
 
-  @Override
-  protected DexType getSuperClassType() {
-    return factory.kotlin.functional.lambdaType;
-  }
+  abstract SyntheticSourceCode createInstanceInitializerSourceCode(
+      DexType groupClassType, DexProto initializerProto);
 
   // Always generate public final classes.
   @Override
@@ -61,8 +59,7 @@ final class KStyleLambdaGroupClassBuilder
   // Take the attribute from the group, if exists.
   @Override
   protected List<InnerClassAttribute> buildInnerClasses() {
-    return id.innerClassAccess == KStyleLambdaGroupId.MISSING_INNER_CLASS_ATTRIBUTE
-        ? Collections.emptyList()
+    return !id.hasInnerClassAttribute() ? Collections.emptyList()
         : Lists.newArrayList(new InnerClassAttribute(
             id.innerClassAccess, group.getGroupClassType(), null, null));
   }
@@ -118,7 +115,7 @@ final class KStyleLambdaGroupClassBuilder
             isMainMethod ? id.mainMethodAnnotations : DexAnnotationSet.empty(),
             isMainMethod ? id.mainMethodParamAnnotations : DexAnnotationSetRefList.empty(),
             new SynthesizedCode(
-                new VirtualMethodSourceCode(factory, group.getGroupClassType(),
+                new KotlinLambdaVirtualMethodSourceCode(factory, group.getGroupClassType(),
                     methodProto, group.getLambdaIdField(factory), implMethods))));
       }
     }
@@ -132,26 +129,19 @@ final class KStyleLambdaGroupClassBuilder
   // fact that corresponding lambda does not have a virtual method with this signature.
   private Map<DexString, Map<DexProto, List<DexEncodedMethod>>> collectVirtualMethods() {
     Map<DexString, Map<DexProto, List<DexEncodedMethod>>> methods = new LinkedHashMap<>();
-    assert lambdaIdsOrdered();
-    for (LambdaInfo lambda : lambdas) {
-      for (DexEncodedMethod method : lambda.clazz.virtualMethods()) {
+    int size = group.size();
+    group.forEachLambda(info -> {
+      for (DexEncodedMethod method : info.clazz.virtualMethods()) {
         List<DexEncodedMethod> list = methods
             .computeIfAbsent(method.method.name,
                 k -> new LinkedHashMap<>())
             .computeIfAbsent(method.method.proto,
-                k -> Lists.newArrayList(Collections.nCopies(lambdas.size(), null)));
-        assert list.get(lambda.id) == null;
-        list.set(lambda.id, method);
+                k -> Lists.newArrayList(Collections.nCopies(size, null)));
+        assert list.get(info.id) == null;
+        list.set(info.id, method);
       }
-    }
+    });
     return methods;
-  }
-
-  private boolean lambdaIdsOrdered() {
-    for (int i = 0; i < lambdas.size(); i++) {
-      assert lambdas.get(i).id == i;
-    }
-    return true;
   }
 
   @Override
@@ -159,10 +149,10 @@ final class KStyleLambdaGroupClassBuilder
     // We only build an instance initializer and optional class
     // initializer for stateless lambdas.
 
-    boolean statelessLambda = group.isStateless();
+    boolean needsSingletonInstances = group.isStateless() && group.hasAnySingletons();
     DexType groupClassType = group.getGroupClassType();
 
-    DexEncodedMethod[] result = new DexEncodedMethod[statelessLambda ? 2 : 1];
+    DexEncodedMethod[] result = new DexEncodedMethod[needsSingletonInstances ? 2 : 1];
     // Instance initializer mapping parameters into capture fields.
     DexProto initializerProto = group.createConstructorProto(factory);
     result[0] = new DexEncodedMethod(
@@ -170,13 +160,10 @@ final class KStyleLambdaGroupClassBuilder
         CONSTRUCTOR_FLAGS_RELAXED,  // always create access-relaxed constructor.
         DexAnnotationSet.empty(),
         DexAnnotationSetRefList.empty(),
-        new SynthesizedCode(
-            new InstanceInitializerSourceCode(factory, groupClassType,
-                group.getLambdaIdField(factory), id -> group.getCaptureField(factory, id),
-                initializerProto, id.mainMethodProto.parameters.size())));
+        new SynthesizedCode(createInstanceInitializerSourceCode(groupClassType, initializerProto)));
 
     // Static class initializer for stateless lambdas.
-    if (statelessLambda) {
+    if (needsSingletonInstances) {
       result[1] = new DexEncodedMethod(
           factory.createMethod(groupClassType,
               factory.createProto(factory.voidType),
@@ -184,10 +171,7 @@ final class KStyleLambdaGroupClassBuilder
           CLASS_INITIALIZER_FLAGS,
           DexAnnotationSet.empty(),
           DexAnnotationSetRefList.empty(),
-          new SynthesizedCode(
-              new ClassInitializerSourceCode(
-                  factory, groupClassType, lambdas.size(),
-                  id -> group.getSingletonInstanceField(factory, id))));
+          new SynthesizedCode(new ClassInitializerSourceCode(factory, group)));
     }
 
     return result;
@@ -216,15 +200,16 @@ final class KStyleLambdaGroupClassBuilder
     if (!group.isStateless()) {
       return DexEncodedField.EMPTY_ARRAY;
     }
-
-    // One field for each stateless lambda in the group.
-    int size = lambdas.size();
-    DexEncodedField[] result = new DexEncodedField[size];
-    for (int id = 0; id < size; id++) {
-      result[id] = new DexEncodedField(group.getSingletonInstanceField(factory, id),
-          SINGLETON_FIELD_FLAGS, DexAnnotationSet.empty(), DexValueNull.NULL);
-    }
-    return result;
+    // One field for each singleton lambda in the group.
+    List<DexEncodedField> result = new ArrayList<>(group.size());
+    group.forEachLambda(info -> {
+      if (group.isSingletonLambda(info.clazz.type)) {
+        result.add(new DexEncodedField(group.getSingletonInstanceField(factory, info.id),
+            SINGLETON_FIELD_FLAGS, DexAnnotationSet.empty(), DexValueNull.NULL));
+      }
+    });
+    assert result.isEmpty() == !group.hasAnySingletons();
+    return result.toArray(new DexEncodedField[result.size()]);
   }
 
   @Override

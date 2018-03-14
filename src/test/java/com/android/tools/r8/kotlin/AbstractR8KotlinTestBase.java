@@ -185,8 +185,6 @@ public abstract class AbstractR8KotlinTestBase extends TestBase {
       AndroidAppInspector inspector) throws Exception {
     Assume.assumeTrue(ToolHelper.artSupported());
 
-    Path jarFile = getJarFile(folder);
-
     String proguardRules = buildProguardRules(mainClass);
     if (extraProguardRules != null) {
       proguardRules += extraProguardRules;
@@ -194,7 +192,8 @@ public abstract class AbstractR8KotlinTestBase extends TestBase {
 
     // Build classpath for compilation (and java execution)
     List<Path> classpath = new ArrayList<>(extraClasspath.size() + 1);
-    classpath.add(jarFile);
+    classpath.add(getKotlinJarFile(folder));
+    classpath.add(getJavaJarFile(folder));
     classpath.addAll(extraClasspath);
 
     // Build with R8
@@ -222,9 +221,14 @@ public abstract class AbstractR8KotlinTestBase extends TestBase {
     inspector.inspectApp(app);
   }
 
-  private Path getJarFile(String folder) {
+  private Path getKotlinJarFile(String folder) {
     return Paths.get(ToolHelper.TESTS_BUILD_DIR, "kotlinR8TestResources",
         targetVersion.getFolderName(), folder + FileUtils.JAR_EXTENSION);
+  }
+
+  private Path getJavaJarFile(String folder) {
+    return Paths.get(ToolHelper.TESTS_BUILD_DIR, "kotlinR8TestResources",
+        targetVersion.getFolderName(), folder + ".java" + FileUtils.JAR_EXTENSION);
   }
 
   @FunctionalInterface

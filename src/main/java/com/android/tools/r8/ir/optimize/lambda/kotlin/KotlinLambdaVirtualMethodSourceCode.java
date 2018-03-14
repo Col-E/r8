@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.ir.optimize.lambda.kstyle;
+package com.android.tools.r8.ir.optimize.lambda.kotlin;
 
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -17,12 +17,12 @@ import com.android.tools.r8.ir.synthetic.SyntheticSourceCode;
 import java.util.ArrayList;
 import java.util.List;
 
-final class VirtualMethodSourceCode extends SyntheticSourceCode {
+final class KotlinLambdaVirtualMethodSourceCode extends SyntheticSourceCode {
   private final DexItemFactory factory;
   private final DexField idField;
   private final List<DexEncodedMethod> implMethods;
 
-  VirtualMethodSourceCode(DexItemFactory factory, DexType groupClass,
+  KotlinLambdaVirtualMethodSourceCode(DexItemFactory factory, DexType groupClass,
       DexProto proto, DexField idField, List<DexEncodedMethod> implMethods) {
     super(groupClass, proto);
     this.factory = factory;

@@ -2,11 +2,10 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.ir.optimize.lambda.kstyle;
+package com.android.tools.r8.ir.optimize.lambda.kotlin;
 
-import com.android.tools.r8.code.Const16;
-import com.android.tools.r8.code.Const4;
 import com.android.tools.r8.code.Format22c;
+import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.Iput;
 import com.android.tools.r8.code.IputBoolean;
 import com.android.tools.r8.code.IputByte;
@@ -33,7 +32,7 @@ import com.android.tools.r8.utils.ThrowingConsumer;
 
 // Encapsulates the logic of deep-checking of the lambda class assumptions.
 //
-// For k-style lambdas we only check the code of class and instance
+// For k- and j-style lambdas we only check the code of class and instance
 // initializers to ensure that their code performs no unexpected actions:
 //
 //  (a) Class initializer is only present for stateless lambdas and does
@@ -42,21 +41,33 @@ import com.android.tools.r8.utils.ThrowingConsumer;
 //
 //  (b) Instance initializers stores all captured values in proper capture
 //      fields and calls the super constructor passing arity to it.
-final class KStyleLambdaClassValidator implements ThrowingConsumer<DexClass, LambdaStructureError> {
-  private final Kotlin kotlin;
-  private final KStyleLambdaGroup group;
+abstract class KotlinLambdaClassValidator
+    implements ThrowingConsumer<DexClass, LambdaStructureError> {
+
+  static final String LAMBDA_INIT_CODE_VERIFICATION_FAILED =
+      "instance initializer code verification failed";
+  private static final String LAMBDA_CLINIT_CODE_VERIFICATION_FAILED =
+      "static initializer code verification failed";
+
+  final Kotlin kotlin;
+  private final KotlinLambdaGroup group;
   private final AppInfoWithSubtyping appInfo;
 
-  KStyleLambdaClassValidator(Kotlin kotlin, KStyleLambdaGroup group, AppInfoWithSubtyping appInfo) {
+  KotlinLambdaClassValidator(Kotlin kotlin, KotlinLambdaGroup group, AppInfoWithSubtyping appInfo) {
     this.kotlin = kotlin;
     this.group = group;
     this.appInfo = appInfo;
   }
 
+  // Report a structure error.
+  final LambdaStructureError structureError(String s) {
+    return new LambdaStructureError(s, false);
+  }
+
   @Override
   public void accept(DexClass lambda) throws LambdaStructureError {
     if (!CaptureSignature.getCaptureSignature(lambda.instanceFields()).equals(group.id().capture)) {
-      throw new LambdaStructureError("capture signature was modified");
+      throw structureError("capture signature was modified");
     }
 
     DexEncodedMethod classInitializer = null;
@@ -67,27 +78,27 @@ final class KStyleLambdaClassValidator implements ThrowingConsumer<DexClass, Lam
       // same methods dispatching on lambda id to proper code.
       if (method.isClassInitializer()) {
         Code code = method.getCode();
-        if (!group.isStateless()) {
-          throw new LambdaStructureError("static initializer on stateful lambda");
+        if (!(group.isStateless() && group.isSingletonLambda(lambda.type))) {
+          throw structureError("static initializer on non-singleton lambda");
         }
-        if (classInitializer != null || code == null || !code.isDexCode() ||
-            !validateStatelessLambdaClassInitializer(lambda, code.asDexCode())) {
-          throw new LambdaStructureError("static initializer code verification failed");
+        if (classInitializer != null || code == null || !code.isDexCode()) {
+          throw structureError(LAMBDA_CLINIT_CODE_VERIFICATION_FAILED);
         }
+        validateStatelessLambdaClassInitializer(lambda, code.asDexCode());
         classInitializer = method;
 
       } else if (method.isInstanceInitializer()) {
         Code code = method.getCode();
-        if (instanceInitializer != null || code == null || !code.isDexCode() ||
-            !validateInstanceInitializer(lambda, code.asDexCode())) {
-          throw new LambdaStructureError("instance initializer code verification failed");
+        if (instanceInitializer != null || code == null || !code.isDexCode()) {
+          throw structureError(LAMBDA_INIT_CODE_VERIFICATION_FAILED);
         }
+        validateInstanceInitializer(lambda, code.asDexCode());
         instanceInitializer = method;
       }
     }
 
-    if (group.isStateless() && (classInitializer == null)) {
-      throw new LambdaStructureError("missing static initializer on stateless lambda");
+    if (group.isStateless() && group.isSingletonLambda(lambda.type) && (classInitializer == null)) {
+      throw structureError("missing static initializer on singleton lambda");
     }
 
     // This check is actually not required for lambda class merging, we only have to do
@@ -101,23 +112,38 @@ final class KStyleLambdaClassValidator implements ThrowingConsumer<DexClass, Lam
         "L" + group.getTypePackage() + "-$$LambdaGroup$XXXX;");
     for (DexEncodedMethod method : lambda.virtualMethods()) {
       if (!method.isInliningCandidate(fakeLambdaGroupType, Reason.SIMPLE, appInfo)) {
-        throw new LambdaStructureError("method " + method.method.toSourceString() +
+        throw structureError("method " + method.method.toSourceString() +
             " is not inline-able into lambda group class");
       }
     }
   }
 
-  private boolean validateInstanceInitializer(DexClass lambda, Code code) {
+  abstract int getInstanceInitializerSize(DexEncodedField[] captures);
+
+  abstract int validateInstanceInitializerEpilogue(
+      com.android.tools.r8.code.Instruction[] instructions, int index) throws LambdaStructureError;
+
+  private void validateInstanceInitializer(DexClass lambda, Code code)
+      throws LambdaStructureError {
     DexEncodedField[] captures = lambda.instanceFields();
     com.android.tools.r8.code.Instruction[] instructions = code.asDexCode().instructions;
     int index = 0;
 
-    if (instructions.length != (captures.length + 3)) {
-      return false;
+    if (instructions.length != getInstanceInitializerSize(captures)) {
+      throw structureError(LAMBDA_INIT_CODE_VERIFICATION_FAILED);
     }
 
     // Capture field assignments: go through captured fields in assumed order
     // and ensure they are assigned values from appropriate parameters.
+    index = validateInstanceInitializerParameterMapping(captures, instructions, index);
+
+    // Check the constructor epilogue: a call to superclass constructor.
+    index = validateInstanceInitializerEpilogue(instructions, index);
+    assert index == instructions.length;
+  }
+
+  private int validateInstanceInitializerParameterMapping(DexEncodedField[] captures,
+      Instruction[] instructions, int index) throws LambdaStructureError {
     int wideFieldsSeen = 0;
     for (DexEncodedField field : captures) {
       switch (field.field.type.toShorty()) {
@@ -125,7 +151,7 @@ final class KStyleLambdaClassValidator implements ThrowingConsumer<DexClass, Lam
           if (!(instructions[index] instanceof IputBoolean) ||
               (instructions[index].getField() != field.field) ||
               (((Format22c) instructions[index]).A != (index + 1 + wideFieldsSeen))) {
-            return false;
+            throw structureError(LAMBDA_INIT_CODE_VERIFICATION_FAILED);
           }
           break;
 
@@ -133,7 +159,7 @@ final class KStyleLambdaClassValidator implements ThrowingConsumer<DexClass, Lam
           if (!(instructions[index] instanceof IputByte) ||
               (instructions[index].getField() != field.field) ||
               (((Format22c) instructions[index]).A != (index + 1 + wideFieldsSeen))) {
-            return false;
+            throw structureError(LAMBDA_INIT_CODE_VERIFICATION_FAILED);
           }
           break;
 
@@ -141,7 +167,7 @@ final class KStyleLambdaClassValidator implements ThrowingConsumer<DexClass, Lam
           if (!(instructions[index] instanceof IputShort) ||
               (instructions[index].getField() != field.field) ||
               (((Format22c) instructions[index]).A != (index + 1 + wideFieldsSeen))) {
-            return false;
+            throw structureError(LAMBDA_INIT_CODE_VERIFICATION_FAILED);
           }
           break;
 
@@ -149,7 +175,7 @@ final class KStyleLambdaClassValidator implements ThrowingConsumer<DexClass, Lam
           if (!(instructions[index] instanceof IputChar) ||
               (instructions[index].getField() != field.field) ||
               (((Format22c) instructions[index]).A != (index + 1 + wideFieldsSeen))) {
-            return false;
+            throw structureError(LAMBDA_INIT_CODE_VERIFICATION_FAILED);
           }
           break;
 
@@ -158,7 +184,7 @@ final class KStyleLambdaClassValidator implements ThrowingConsumer<DexClass, Lam
           if (!(instructions[index] instanceof Iput) ||
               (instructions[index].getField() != field.field) ||
               (((Format22c) instructions[index]).A != (index + 1 + wideFieldsSeen))) {
-            return false;
+            throw structureError(LAMBDA_INIT_CODE_VERIFICATION_FAILED);
           }
           break;
 
@@ -167,7 +193,7 @@ final class KStyleLambdaClassValidator implements ThrowingConsumer<DexClass, Lam
           if (!(instructions[index] instanceof IputWide) ||
               (instructions[index].getField() != field.field) ||
               (((Format22c) instructions[index]).A != (index + 1 + wideFieldsSeen))) {
-            return false;
+            throw structureError(LAMBDA_INIT_CODE_VERIFICATION_FAILED);
           }
           wideFieldsSeen++;
           break;
@@ -176,7 +202,7 @@ final class KStyleLambdaClassValidator implements ThrowingConsumer<DexClass, Lam
           if (!(instructions[index] instanceof IputObject) ||
               (instructions[index].getField() != field.field) ||
               (((Format22c) instructions[index]).A != (index + 1 + wideFieldsSeen))) {
-            return false;
+            throw structureError(LAMBDA_INIT_CODE_VERIFICATION_FAILED);
           }
           break;
 
@@ -185,49 +211,31 @@ final class KStyleLambdaClassValidator implements ThrowingConsumer<DexClass, Lam
       }
       index++;
     }
-
-    // Epilogue.
-    if (!(instructions[index] instanceof Const4) &&
-        !(instructions[index] instanceof Const16)) {
-      return false;
-    }
-    index++;
-    if (!(instructions[index] instanceof com.android.tools.r8.code.InvokeDirect) ||
-        instructions[index].getMethod() != kotlin.functional.lambdaInitializerMethod) {
-      return false;
-    }
-    index++;
-    if (!(instructions[index] instanceof ReturnVoid)) {
-      return false;
-    }
-    index++;
-
-    assert index == instructions.length;
-    return true;
+    return index;
   }
 
-  private boolean validateStatelessLambdaClassInitializer(DexClass lambda, Code code) {
-    assert group.isStateless();
+  private void validateStatelessLambdaClassInitializer(DexClass lambda, Code code)
+      throws LambdaStructureError {
+    assert group.isStateless() && group.isSingletonLambda(lambda.type);
     com.android.tools.r8.code.Instruction[] instructions = code.asDexCode().instructions;
     if (instructions.length != 4) {
-      return false;
+      throw structureError(LAMBDA_CLINIT_CODE_VERIFICATION_FAILED);
     }
     if (!(instructions[0] instanceof com.android.tools.r8.code.NewInstance) ||
         ((com.android.tools.r8.code.NewInstance) instructions[0]).getType() != lambda.type) {
-      return false;
+      throw structureError(LAMBDA_CLINIT_CODE_VERIFICATION_FAILED);
     }
     if (!(instructions[1] instanceof com.android.tools.r8.code.InvokeDirect) ||
         !isLambdaInitializerMethod(lambda, instructions[1].getMethod())) {
-      return false;
+      throw structureError(LAMBDA_CLINIT_CODE_VERIFICATION_FAILED);
     }
     if (!(instructions[2] instanceof SputObject) ||
         !isLambdaSingletonField(lambda, instructions[2].getField())) {
-      return false;
+      throw structureError(LAMBDA_CLINIT_CODE_VERIFICATION_FAILED);
     }
     if (!(instructions[3] instanceof ReturnVoid)) {
-      return false;
+      throw structureError(LAMBDA_CLINIT_CODE_VERIFICATION_FAILED);
     }
-    return true;
   }
 
   private boolean isLambdaSingletonField(DexClass lambda, DexField field) {
