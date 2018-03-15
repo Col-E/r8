@@ -28,12 +28,16 @@ third_party/android_jar/lib
 third_party/android_jar/lib.tar.gz
 third_party/android_jar/lib-v[0-9][0-9]
 third_party/android_jar/lib-v[0-9][0-9].tar.gz
+third_party/benchmarks/santa-tracker
+third_party/benchmarks/santa-tracker.tar.gz
 third_party/gmail/*
 !third_party/gmail/*.sha1
 third_party/gmscore/*
 !third_party/gmscore/*.sha1
 third_party/gradle/gradle.tar.gz
 third_party/gradle/gradle
+third_party/gradle-plugin
+third_party/gradle-plugin.tar.gz
 third_party/jasmin.tar.gz
 third_party/jasmin
 third_party/jdwp-tests.tar.gz
