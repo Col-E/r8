@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.ir.optimize.lambda.kstyle;
+package com.android.tools.r8.ir.optimize.lambda.kotlin;
 
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexAnnotationSetRefList;
@@ -15,8 +15,8 @@ import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.ir.optimize.lambda.LambdaGroup;
 import com.android.tools.r8.ir.optimize.lambda.LambdaGroupId;
 
-final class KStyleLambdaGroupId implements LambdaGroupId {
-  public static final int MISSING_INNER_CLASS_ATTRIBUTE = -1;
+abstract class KotlinLambdaGroupId implements LambdaGroupId {
+  private static final int MISSING_INNER_CLASS_ATTRIBUTE = -1;
 
   private final int hash;
 
@@ -50,7 +50,7 @@ final class KStyleLambdaGroupId implements LambdaGroupId {
   // access from InnerClassAttribute.
   final int innerClassAccess;
 
-  KStyleLambdaGroupId(String capture, DexType iface, String pkg, String signature,
+  KotlinLambdaGroupId(String capture, DexType iface, String pkg, String signature,
       DexEncodedMethod mainMethod, InnerClassAttribute inner, EnclosingMethodAttribute enclosing) {
     assert capture != null && iface != null && pkg != null && mainMethod != null;
     assert inner == null || (inner.isAnonymous() && inner.getOuter() == null);
@@ -67,8 +67,12 @@ final class KStyleLambdaGroupId implements LambdaGroupId {
     this.hash = computeHashCode();
   }
 
+  final boolean hasInnerClassAttribute() {
+    return innerClassAccess != MISSING_INNER_CLASS_ATTRIBUTE;
+  }
+
   @Override
-  public int hashCode() {
+  public final int hashCode() {
     return hash;
   }
 
@@ -87,11 +91,9 @@ final class KStyleLambdaGroupId implements LambdaGroupId {
   }
 
   @Override
-  public boolean equals(Object obj) {
-    if (!(obj instanceof KStyleLambdaGroupId)) {
-      return false;
-    }
-    KStyleLambdaGroupId other = (KStyleLambdaGroupId) obj;
+  public abstract boolean equals(Object obj);
+
+  boolean computeEquals(KotlinLambdaGroupId other) {
     return capture.equals(other.capture) &&
         iface == other.iface &&
         pkg.equals(other.pkg) &&
@@ -108,7 +110,7 @@ final class KStyleLambdaGroupId implements LambdaGroupId {
 
   @Override
   public String toString() {
-    StringBuilder builder = new StringBuilder("Kotlin-style lambda group")
+    StringBuilder builder = new StringBuilder(getLambdaKindDescriptor())
         .append("\n  capture: ").append(capture)
         .append("\n  interface: ").append(iface.descriptor)
         .append("\n  package: ").append(pkg)
@@ -131,8 +133,8 @@ final class KStyleLambdaGroupId implements LambdaGroupId {
     return builder.toString();
   }
 
+  abstract String getLambdaKindDescriptor();
+
   @Override
-  public LambdaGroup createGroup() {
-    return new KStyleLambdaGroup(this);
-  }
+  public abstract LambdaGroup createGroup();
 }

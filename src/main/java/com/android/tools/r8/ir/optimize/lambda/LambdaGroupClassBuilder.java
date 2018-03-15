@@ -14,7 +14,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.InnerClassAttribute;
-import com.android.tools.r8.ir.optimize.lambda.LambdaGroup.LambdaInfo;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import java.util.List;
 
@@ -24,22 +23,23 @@ public abstract class LambdaGroupClassBuilder<T extends LambdaGroup> {
   protected final T group;
   protected final DexItemFactory factory;
   protected final String origin;
-  protected final List<LambdaInfo> lambdas;
 
   protected LambdaGroupClassBuilder(T group, DexItemFactory factory, String origin) {
     this.group = group;
     this.factory = factory;
     this.origin = origin;
-    this.lambdas = group.lambdas();
   }
 
   public final DexProgramClass synthesizeClass() {
+    DexType groupClassType = group.getGroupClassType();
+    DexType superClassType = getSuperClassType();
+
     return new DexProgramClass(
-        group.getGroupClassType(),
+        groupClassType,
         null,
         new SynthesizedOrigin(origin, getClass()),
         buildAccessFlags(),
-        getSuperClassType(),
+        superClassType,
         buildInterfaces(),
         factory.createString(origin),
         buildEnclosingMethodAttribute(),

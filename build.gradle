@@ -1190,12 +1190,30 @@ task buildKotlinR8TestResources {
             def name = dir.getName()
             def taskName = "jar_kotlinR8TestResources_${name}_${kotlinTargetVersion}"
             def outputFile = "build/test/kotlinR8TestResources/${kotlinTargetVersion}/${name}.jar"
-            task "${taskName}"(type: kotlin.Kotlinc) {
-                source = fileTree(dir: file("${examplesDir}/${name}"), include: '**/*.kt')
+            def javaOutput = "build/test/kotlinR8TestResources/${kotlinTargetVersion}/${name}/java"
+            def javaOutputJarName = "${name}.java.jar"
+            def javaOutputJarDir = "build/test/kotlinR8TestResources/${kotlinTargetVersion}"
+            task "${taskName}Kotlin"(type: kotlin.Kotlinc) {
+                source = fileTree(dir: file("${examplesDir}/${name}"),
+                        include: ['**/*.kt', '**/*.java'])
                 destination = file(outputFile)
                 targetVersion = kotlinTargetVersion
             }
-            dependsOn taskName
+            task "${taskName}Java"(type: JavaCompile) {
+                source = fileTree(dir: file("${examplesDir}/${name}"), include: '**/*.java')
+                destinationDir = file(javaOutput)
+                classpath = sourceSets.main.compileClasspath
+                sourceCompatibility = JavaVersion.VERSION_1_6
+                targetCompatibility = JavaVersion.VERSION_1_6
+                options.compilerArgs += ["-g", "-Xlint:-options"]
+            }
+            task "${taskName}JavaJar"(type: Jar, dependsOn: "${taskName}Java") {
+                archiveName = javaOutputJarName
+                destinationDir = file(javaOutputJarDir)
+                from javaOutput
+                include "**/*.class"
+            }
+            dependsOn "${taskName}Kotlin", "${taskName}JavaJar"
         }
     }
 }

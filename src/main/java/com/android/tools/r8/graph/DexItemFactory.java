@@ -257,10 +257,13 @@ public class DexItemFactory {
   public class ObjectMethods {
 
     public final DexMethod getClass;
+    public final DexMethod constructor;
 
     private ObjectMethods() {
       getClass = createMethod(objectDescriptor, getClassMethodName, classDescriptor,
           DexString.EMPTY_ARRAY);
+      constructor = createMethod(objectDescriptor,
+          constructorMethodName, voidType.descriptor, DexString.EMPTY_ARRAY);
     }
   }
 

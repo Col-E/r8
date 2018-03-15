@@ -2,14 +2,14 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.ir.optimize.lambda.kstyle;
+package com.android.tools.r8.ir.optimize.lambda.kotlin;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.MethodAccessFlags;
 
-interface KStyleConstants {
+interface KotlinLambdaConstants {
   // Default lambda class flags.
   ClassAccessFlags LAMBDA_CLASS_FLAGS =
       ClassAccessFlags.fromDexAccessFlags(Constants.ACC_FINAL);

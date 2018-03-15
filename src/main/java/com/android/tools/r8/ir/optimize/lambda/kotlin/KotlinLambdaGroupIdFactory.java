@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.ir.optimize.lambda.kstyle;
+package com.android.tools.r8.ir.optimize.lambda.kotlin;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AccessFlags;
@@ -19,8 +19,8 @@ import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.List;
 
-public final class KStyleLambdaGroupIdFactory implements KStyleConstants {
-  private KStyleLambdaGroupIdFactory() {
+public abstract class KotlinLambdaGroupIdFactory implements KotlinLambdaConstants {
+  KotlinLambdaGroupIdFactory() {
   }
 
   // Creates a lambda group id for kotlin style lambda. Should never return null, if the lambda
@@ -32,26 +32,24 @@ public final class KStyleLambdaGroupIdFactory implements KStyleConstants {
   // they may not be converted yet, we'll do that in KStyleLambdaClassValidator.
   public static LambdaGroupId create(Kotlin kotlin, DexClass lambda, InternalOptions options)
       throws LambdaStructureError {
-    boolean accessRelaxed = options.proguardConfiguration.isAccessModificationAllowed();
 
-    checkAccessFlags("class access flags", lambda.accessFlags,
-        PUBLIC_LAMBDA_CLASS_FLAGS, LAMBDA_CLASS_FLAGS);
+    assert lambda.hasKotlinInfo() && lambda.getKotlinInfo().isSyntheticClass();
+    if (lambda.getKotlinInfo().asSyntheticClass().isKotlinStyleLambda()) {
+      return KStyleLambdaGroupIdFactory.INSTANCE.validateAndCreate(kotlin, lambda, options);
+    }
 
-    validateStaticFields(kotlin, lambda);
-    String captureSignature = validateInstanceFields(lambda, accessRelaxed);
-    validateDirectMethods(lambda);
-    DexEncodedMethod mainMethod = validateVirtualMethods(lambda);
-    DexType iface = validateInterfaces(kotlin, lambda);
-    String genericSignature = validateAnnotations(kotlin, lambda);
-    InnerClassAttribute innerClass = validateInnerClasses(lambda);
-
-    return new KStyleLambdaGroupId(captureSignature, iface,
-        accessRelaxed ? "" : lambda.type.getPackageDescriptor(),
-        genericSignature, mainMethod, innerClass, lambda.getEnclosingMethod());
+    assert lambda.getKotlinInfo().asSyntheticClass().isJavaStyleLambda();
+    return JStyleLambdaGroupIdFactory.INSTANCE.validateAndCreate(kotlin, lambda, options);
   }
 
-  private static DexEncodedMethod validateVirtualMethods(DexClass lambda)
-      throws LambdaStructureError {
+  abstract LambdaGroupId validateAndCreate(Kotlin kotlin, DexClass lambda, InternalOptions options)
+      throws LambdaStructureError;
+
+  abstract void validateSuperclass(Kotlin kotlin, DexClass lambda) throws LambdaStructureError;
+
+  abstract DexType validateInterfaces(Kotlin kotlin, DexClass lambda) throws LambdaStructureError;
+
+  DexEncodedMethod validateVirtualMethods(DexClass lambda) throws LambdaStructureError {
     DexEncodedMethod mainMethod = null;
 
     for (DexEncodedMethod method : lambda.virtualMethods()) {
@@ -68,31 +66,28 @@ public final class KStyleLambdaGroupIdFactory implements KStyleConstants {
     }
 
     if (mainMethod == null) {
-      throw new LambdaStructureError("no main method found");
+      // Missing main method may be a result of tree shaking.
+      throw new LambdaStructureError("no main method found", false);
     }
     return mainMethod;
   }
 
-  private static InnerClassAttribute validateInnerClasses(DexClass lambda)
-      throws LambdaStructureError {
+  InnerClassAttribute validateInnerClasses(DexClass lambda) throws LambdaStructureError {
     List<InnerClassAttribute> innerClasses = lambda.getInnerClasses();
-    InnerClassAttribute innerClass = null;
     if (innerClasses != null) {
       for (InnerClassAttribute inner : innerClasses) {
         if (inner.getInner() == lambda.type) {
-          innerClass = inner;
-          if (!innerClass.isAnonymous()) {
+          if (!inner.isAnonymous()) {
             throw new LambdaStructureError("is not anonymous");
           }
-          return innerClass;
+          return inner;
         }
       }
     }
     return null;
   }
 
-  private static String validateAnnotations(Kotlin kotlin, DexClass lambda)
-      throws LambdaStructureError {
+  String validateAnnotations(Kotlin kotlin, DexClass lambda) throws LambdaStructureError {
     String signature = null;
     if (!lambda.annotations.isEmpty()) {
       for (DexAnnotation annotation : lambda.annotations.annotations) {
@@ -115,8 +110,7 @@ public final class KStyleLambdaGroupIdFactory implements KStyleConstants {
     return signature;
   }
 
-  private static void validateStaticFields(Kotlin kotlin, DexClass lambda)
-      throws LambdaStructureError {
+  void validateStaticFields(Kotlin kotlin, DexClass lambda) throws LambdaStructureError {
     DexEncodedField[] staticFields = lambda.staticFields();
     if (staticFields.length == 1) {
       DexEncodedField field = staticFields[0];
@@ -135,30 +129,10 @@ public final class KStyleLambdaGroupIdFactory implements KStyleConstants {
     } else if (staticFields.length > 1) {
       throw new LambdaStructureError(
           "only one static field max expected, found " + staticFields.length);
-
-    } else if (lambda.instanceFields().length == 0) {
-      throw new LambdaStructureError("stateless lambda without INSTANCE field");
     }
   }
 
-  private static DexType validateInterfaces(Kotlin kotlin, DexClass lambda)
-      throws LambdaStructureError {
-    if (lambda.interfaces.size() == 0) {
-      throw new LambdaStructureError("does not implement any interfaces");
-    }
-    if (lambda.interfaces.size() > 1) {
-      throw new LambdaStructureError(
-          "implements more than one interface: " + lambda.interfaces.size());
-    }
-    DexType iface = lambda.interfaces.values[0];
-    if (!kotlin.functional.isFunctionInterface(iface)) {
-      throw new LambdaStructureError("implements " + iface.toSourceString() +
-          " instead of kotlin functional interface.");
-    }
-    return iface;
-  }
-
-  private static String validateInstanceFields(DexClass lambda, boolean accessRelaxed)
+  String validateInstanceFields(DexClass lambda, boolean accessRelaxed)
       throws LambdaStructureError {
     DexEncodedField[] instanceFields = lambda.instanceFields();
     for (DexEncodedField field : instanceFields) {
@@ -169,7 +143,7 @@ public final class KStyleLambdaGroupIdFactory implements KStyleConstants {
     return CaptureSignature.getCaptureSignature(instanceFields);
   }
 
-  private static void validateDirectMethods(DexClass lambda) throws LambdaStructureError {
+  void validateDirectMethods(DexClass lambda) throws LambdaStructureError {
     DexEncodedMethod[] directMethods = lambda.directMethods();
     for (DexEncodedMethod method : directMethods) {
       if (method.isClassInitializer()) {
@@ -194,8 +168,12 @@ public final class KStyleLambdaGroupIdFactory implements KStyleConstants {
           throw new LambdaStructureError("constructor parameters don't match captured values.");
         }
         for (int i = 0; i < parameters.length; i++) {
+          // Kotlin compiler sometimes reshuffles the parameters so that their order
+          // in the constructor don't match order of capture fields. We could add
+          // support for it, but it happens quite rarely so don't bother for now.
           if (parameters[i] != instanceFields[i].field.type) {
-            throw new LambdaStructureError("constructor parameters don't match captured values.");
+            throw new LambdaStructureError(
+                "constructor parameters don't match captured values.", false);
           }
         }
         checkAccessFlags("unexpected constructor access flags",
@@ -208,8 +186,7 @@ public final class KStyleLambdaGroupIdFactory implements KStyleConstants {
     }
   }
 
-  private static void checkDirectMethodAnnotations(DexEncodedMethod method)
-      throws LambdaStructureError {
+  void checkDirectMethodAnnotations(DexEncodedMethod method) throws LambdaStructureError {
     if (!method.annotations.isEmpty()) {
       throw new LambdaStructureError("unexpected method annotations [" +
           method.annotations.toSmaliString() + "] on " + method.method.toSourceString());
@@ -228,7 +205,7 @@ public final class KStyleLambdaGroupIdFactory implements KStyleConstants {
   }
 
   @SafeVarargs
-  private static <T extends AccessFlags> void checkAccessFlags(
+  static <T extends AccessFlags> void checkAccessFlags(
       String message, T actual, T... expected) throws LambdaStructureError {
     for (T flag : expected) {
       if (flag.equals(actual)) {

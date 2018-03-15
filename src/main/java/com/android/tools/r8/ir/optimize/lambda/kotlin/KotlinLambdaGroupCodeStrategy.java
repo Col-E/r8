@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.ir.optimize.lambda.kstyle;
+package com.android.tools.r8.ir.optimize.lambda.kotlin;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexField;
@@ -30,11 +30,11 @@ import com.android.tools.r8.ir.optimize.lambda.LambdaGroup;
 import java.util.ArrayList;
 import java.util.List;
 
-// Defines the code processing strategy for k-style lambdas.
-final class KStyleLambdaGroupCodeStrategy implements Strategy {
-  private final KStyleLambdaGroup group;
+// Defines the code processing strategy for kotlin lambdas.
+final class KotlinLambdaGroupCodeStrategy implements Strategy {
+  private final KotlinLambdaGroup group;
 
-  KStyleLambdaGroupCodeStrategy(KStyleLambdaGroup group) {
+  KotlinLambdaGroupCodeStrategy(KotlinLambdaGroup group) {
     this.group = group;
   }
 
@@ -83,7 +83,7 @@ final class KStyleLambdaGroupCodeStrategy implements Strategy {
   @Override
   public boolean isValidNewInstance(CodeProcessor context, NewInstance invoke) {
     // Only valid for stateful lambdas.
-    return !group.isStateless();
+    return !(group.isStateless() && group.isSingletonLambda(invoke.clazz));
   }
 
   @Override
@@ -95,9 +95,10 @@ final class KStyleLambdaGroupCodeStrategy implements Strategy {
     DexMethod method = invoke.getInvokedMethod();
     DexType lambda = method.holder;
     assert group.containsLambda(lambda);
-    // Allow calls to a constructor from other classes if the lambda is stateful,
+    // Allow calls to a constructor from other classes if the lambda is singleton,
     // otherwise allow such a call only from the same class static initializer.
-    return (group.isStateless() == (context.method.method.holder == lambda)) &&
+    boolean isSingletonLambda = group.isStateless() && group.isSingletonLambda(lambda);
+    return (isSingletonLambda == (context.method.method.holder == lambda)) &&
         invoke.isInvokeDirect() &&
         context.factory.isConstructor(method) &&
         CaptureSignature.getCaptureSignature(method.proto.parameters).equals(group.id().capture);

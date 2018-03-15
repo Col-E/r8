@@ -984,7 +984,14 @@ public class DexBuilder {
       int source = builder.getInfo(jump).getOffset();
       Info targetInfo = builder.getTargetInfo(jump.getTarget());
       int relativeOffset = targetInfo.getOffset() - source;
-      if (size == relativeOffset) {
+      // Emit a return if the target is a return and the size of the return is the computed
+      // size of this instruction.
+      Return ret = targetInfo.getIR().asReturn();
+      if (ret != null && size == targetInfo.getSize() && ret.getPosition().isNone()) {
+        Instruction dex = ret.createDexInstruction(builder);
+        dex.setOffset(getOffset()); // for better printing of the dex code.
+        instructions.add(dex);
+      } else if (size == relativeOffset) {
         // We should never generate a goto targeting the next instruction. However, if we do
         // we replace it with nops. This works around a dalvik bug where the dalvik tracing
         // jit crashes on 'goto next instruction' on Android 4.1.1.
