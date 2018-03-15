@@ -60,7 +60,6 @@ import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import joptsimple.internal.Strings;
 import org.junit.Assume;
 import org.junit.rules.TemporaryFolder;
 
@@ -267,7 +266,7 @@ public class ToolHelper {
       }
       if (!classpaths.isEmpty()) {
         result.add("-cp");
-        result.add(Strings.join(classpaths, ":"));
+        result.add(String.join(":", classpaths));
       }
       if (!bootClassPaths.isEmpty()) {
         result.add("-Xbootclasspath:" + String.join(":", bootClassPaths));

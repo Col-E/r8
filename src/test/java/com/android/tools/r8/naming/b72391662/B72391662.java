@@ -15,7 +15,6 @@ import com.android.tools.r8.naming.b72391662.subpackage.OtherPackageTestClass;
 import com.android.tools.r8.utils.AndroidApp;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
-import joptsimple.internal.Strings;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -41,7 +40,7 @@ public class B72391662 extends TestBase {
     AndroidApp app = readClassesAndAndriodJar(ImmutableList.of(
         mainClass, Interface.class, Super.class, TestClass.class,
         OtherPackageSuper.class, OtherPackageTestClass.class));
-    app = compileWithR8(app, Strings.join(config, System.lineSeparator()));
+    app = compileWithR8(app, String.join(System.lineSeparator(), config));
     assertEquals("123451234567\nABC\n", runOnArt(app, mainClass.getCanonicalName()));
   }
 
