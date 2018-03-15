@@ -1104,14 +1104,15 @@ public class ProguardConfigurationParser {
       return Integer.parseInt(s);
     }
 
-    private final Predicate<Character> CLASS_NAME_PREDICATE =
-        character -> IdentifierUtils.isDexIdentifierPart(character)
-            || character == '.'
-            || character == '*'
-            || character == '?'
-            || character == '%'
-            || character == '['
-            || character == ']';
+    private final Predicate<Integer> CLASS_NAME_PREDICATE =
+        codePoint ->
+            IdentifierUtils.isDexIdentifierPart(codePoint)
+                || codePoint == '.'
+                || codePoint == '*'
+                || codePoint == '?'
+                || codePoint == '%'
+                || codePoint == '['
+                || codePoint == ']';
 
     private String acceptClassName() {
       return acceptString(CLASS_NAME_PREDICATE);
@@ -1123,7 +1124,7 @@ public class ProguardConfigurationParser {
       int start = position;
       int end = position;
       while (!eof(end)) {
-        char current = contents.charAt(end);
+        int current = contents.codePointAt(end);
         if (currentBackreference != null) {
           if (current == '>') {
             try {
@@ -1138,10 +1139,10 @@ public class ProguardConfigurationParser {
                   origin, getPosition()));
             }
             currentBackreference = null;
-          } else if (Character.isDigit(current)
+          } else if (('0' <= current && current <= '9')
               // Only collect integer literal for the backreference.
               || (current == '-' && currentBackreference.length() == 0)) {
-            currentBackreference.append(current);
+            currentBackreference.append((char) current);
           } else if (kind == IdentifierType.CLASS_NAME) {
             throw reporter.fatalError(new StringDiagnostic(
                 "Use of generics not allowed for java type.", origin, getPosition()));
@@ -1150,12 +1151,12 @@ public class ProguardConfigurationParser {
             // collection of the backreference.
             currentBackreference = null;
           }
-          end++;
+          end += Character.charCount(current);
         } else if (CLASS_NAME_PREDICATE.test(current) || current == '>') {
-          end++;
+          end += Character.charCount(current);
         } else if (current == '<') {
           currentBackreference = new StringBuilder();
-          end++;
+          ++end;
         } else {
           break;
         }
@@ -1177,14 +1178,15 @@ public class ProguardConfigurationParser {
       int start = position;
       int end = position;
       while (!eof(end)) {
-        char current = contents.charAt(end);
+        int current = contents.codePointAt(end);
         if (current == '.' && !eof(end + 1) && peekCharAt(end + 1) == '.') {
           // The grammar is ambiguous. End accepting before .. token used in return ranges.
           break;
         }
-        if ((start == end && IdentifierUtils.isDexIdentifierStart(current)) ||
-            ((start < end) && (IdentifierUtils.isDexIdentifierPart(current) || current == '.'))) {
-          end++;
+        if ((start == end && IdentifierUtils.isDexIdentifierStart(current))
+            || ((start < end)
+                && (IdentifierUtils.isDexIdentifierPart(current) || current == '.'))) {
+          end += Character.charCount(current);
         } else {
           break;
         }
@@ -1216,18 +1218,21 @@ public class ProguardConfigurationParser {
     }
 
     private String acceptPattern() {
-      return acceptString(character ->
-          IdentifierUtils.isDexIdentifierPart(character) || character == '!' || character == '*');
+      return acceptString(
+          codePoint ->
+              IdentifierUtils.isDexIdentifierPart(codePoint)
+                  || codePoint == '!'
+                  || codePoint == '*');
     }
 
-    private String acceptString(Predicate<Character> characterAcceptor) {
+    private String acceptString(Predicate<Integer> codepointAcceptor) {
       skipWhitespace();
       int start = position;
       int end = position;
       while (!eof(end)) {
-        char current = contents.charAt(end);
-        if (characterAcceptor.test(current)) {
-          end++;
+        int current = contents.codePointAt(end);
+        if (codepointAcceptor.test(current)) {
+          end += Character.charCount(current);
         } else {
           break;
         }

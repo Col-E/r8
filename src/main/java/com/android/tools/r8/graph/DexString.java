@@ -25,7 +25,7 @@ public class DexString extends IndexedDexItem implements PresortedComparable<Dex
 
   public DexString(String string) {
     this.size = string.length();
-    this.content = encode(string);
+    this.content = encodeToMutf8(string);
   }
 
   @Override
@@ -118,7 +118,7 @@ public class DexString extends IndexedDexItem implements PresortedComparable<Dex
   }
 
   // Inspired from /dex/src/main/java/com/android/dex/Mutf8.java
-  private static byte[] encode(String string) {
+  public static byte[] encodeToMutf8(String string) {
     byte[] result = new byte[countBytes(string)];
     int offset = 0;
     for (int i = 0; i < string.length(); i++) {
@@ -207,15 +207,12 @@ public class DexString extends IndexedDexItem implements PresortedComparable<Dex
     if (string.charAt(1) == '/' || string.charAt(string.length() - 2) == '/') {
       return false;
     }
-    for (int i = 1; i < string.length() - 1; i++) {
-      char ch = string.charAt(i);
-      if (ch == '/') {
-        continue;
+    int cp;
+    for (int i = 1; i < string.length() - 1; i += Character.charCount(cp)) {
+      cp = string.codePointAt(i);
+      if (cp != '/' && !IdentifierUtils.isDexIdentifierPart(cp)) {
+        return false;
       }
-      if (IdentifierUtils.isDexIdentifierPart(ch)) {
-        continue;
-      }
-      return false;
     }
     return true;
   }
@@ -232,12 +229,12 @@ public class DexString extends IndexedDexItem implements PresortedComparable<Dex
             string.equals(Constants.CLASS_INITIALIZER_NAME))) {
       return true;
     }
-    for (int i = 0; i < string.length(); i++) {
-      char ch = string.charAt(i);
-      if (IdentifierUtils.isDexIdentifierPart(ch)) {
-        continue;
+    int cp;
+    for (int i = 0; i < string.length(); i += Character.charCount(cp)) {
+      cp = string.codePointAt(i);
+      if (!IdentifierUtils.isDexIdentifierPart(cp)) {
+        return false;
       }
-      return false;
     }
     return true;
   }
@@ -249,18 +246,19 @@ public class DexString extends IndexedDexItem implements PresortedComparable<Dex
     int start = 0;
     int end = string.length();
     if (string.charAt(0) == '<') {
-      if (string.charAt(string.length() - 1) == '>') {
+      if (string.charAt(end - 1) == '>') {
         start = 1;
-        end = string.length() - 1;
+        --end;
       } else {
         return false;
       }
     }
-    for (int i = start; i < end; i++) {
-      if (IdentifierUtils.isDexIdentifierPart(string.charAt(i))) {
-        continue;
+    int cp;
+    for (int i = start; i < end; i += Character.charCount(cp)) {
+      cp = string.codePointAt(i);
+      if (!IdentifierUtils.isDexIdentifierPart(cp)) {
+        return false;
       }
-      return false;
     }
     return true;
   }

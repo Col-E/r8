@@ -69,11 +69,11 @@ public class ProguardMapReader implements AutoCloseable {
   private int lineOffset = 0;
   private String line;
 
-  private char peek() {
-    return peek(0);
+  private int peekCodePoint() {
+    return lineOffset < line.length() ? line.codePointAt(lineOffset) : '\n';
   }
 
-  private char peek(int distance) {
+  private char peekChar(int distance) {
     return lineOffset + distance < line.length()
         ? line.charAt(lineOffset + distance)
         : '\n';
@@ -83,7 +83,17 @@ public class ProguardMapReader implements AutoCloseable {
     return lineOffset < line.length();
   }
 
-  private char next() {
+  private int nextCodePoint() {
+    try {
+      int cp = line.codePointAt(lineOffset);
+      lineOffset += Character.charCount(cp);
+      return cp;
+    } catch (ArrayIndexOutOfBoundsException e) {
+      throw new ParseException("Unexpected end of line");
+    }
+  }
+
+  private char nextChar() {
     try {
       return line.charAt(lineOffset++);
     } catch (ArrayIndexOutOfBoundsException e) {
@@ -128,8 +138,8 @@ public class ProguardMapReader implements AutoCloseable {
 
   // Helpers for common pattern
   private void skipWhitespace() {
-    while (Character.isWhitespace(peek())) {
-      next();
+    while (Character.isWhitespace(peekCodePoint())) {
+      nextCodePoint();
     }
   }
 
@@ -137,7 +147,7 @@ public class ProguardMapReader implements AutoCloseable {
     if (!hasNext()) {
       throw new ParseException("Expected '" + c + "'", true);
     }
-    if (next() != c) {
+    if (nextChar() != c) {
       throw new ParseException("Expected '" + c + "'");
     }
     return c;
@@ -197,7 +207,7 @@ public class ProguardMapReader implements AutoCloseable {
       // In the last round we're only here to flush the last line read (which may trigger adding a
       // new MemberNaming) and flush activeMemberNaming, so skip parsing.
       if (!lastRound) {
-        if (!Character.isWhitespace(peek())) {
+        if (!Character.isWhitespace(peekCodePoint())) {
           lastRound = true;
           continue;
         }
@@ -212,9 +222,9 @@ public class ProguardMapReader implements AutoCloseable {
           expect(':');
         }
         signature = parseSignature();
-        if (peek() == ':') {
+        if (peekChar(0) == ':') {
           // This is a mapping or inlining definition
-          next();
+          nextChar();
           originalRange = maybeParseRangeOrInt();
           if (originalRange == null) {
             throw new ParseException("No number follows the colon after the method signature.");
@@ -294,22 +304,22 @@ public class ProguardMapReader implements AutoCloseable {
 
   private void skipIdentifier(boolean allowInit) {
     boolean isInit = false;
-    if (allowInit && peek() == '<') {
+    if (allowInit && peekChar(0) == '<') {
       // swallow the leading < character
-      next();
+      nextChar();
       isInit = true;
     }
-    if (!IdentifierUtils.isDexIdentifierStart(peek())) {
+    if (!IdentifierUtils.isDexIdentifierStart(peekCodePoint())) {
       throw new ParseException("Identifier expected");
     }
-    next();
-    while (IdentifierUtils.isDexIdentifierPart(peek())) {
-      next();
+    nextCodePoint();
+    while (IdentifierUtils.isDexIdentifierPart(peekCodePoint())) {
+      nextCodePoint();
     }
     if (isInit) {
       expect('>');
     }
-    if (IdentifierUtils.isDexIdentifierPart(peek())) {
+    if (IdentifierUtils.isDexIdentifierPart(peekCodePoint())) {
       throw new ParseException("End of identifier expected");
     }
   }
@@ -330,8 +340,8 @@ public class ProguardMapReader implements AutoCloseable {
   private String parseMethodName() {
     int startPosition = lineOffset;
     skipIdentifier(true);
-    while (peek() == '.') {
-      next();
+    while (peekChar(0) == '.') {
+      nextChar();
       skipIdentifier(true);
     }
     return substring(startPosition);
@@ -340,13 +350,13 @@ public class ProguardMapReader implements AutoCloseable {
   private String parseType(boolean allowArray) {
     int startPosition = lineOffset;
     skipIdentifier(false);
-    while (peek() == '.') {
-      next();
+    while (peekChar(0) == '.') {
+      nextChar();
       skipIdentifier(false);
     }
     if (allowArray) {
-      while (peek() == '[') {
-        next();
+      while (peekChar(0) == '[') {
+        nextChar();
         expect(']');
       }
     }
@@ -358,15 +368,15 @@ public class ProguardMapReader implements AutoCloseable {
     expect(' ');
     String name = parseMethodName();
     Signature signature;
-    if (peek() == '(') {
-      next();
+    if (peekChar(0) == '(') {
+      nextChar();
       String[] arguments;
-      if (peek() == ')') {
+      if (peekChar(0) == ')') {
         arguments = new String[0];
       } else {
         List<String> items = new LinkedList<>();
         items.add(parseType(true));
-        while (peek() != ')') {
+        while (peekChar(0) != ')') {
           expect(',');
           items.add(parseType(true));
         }
@@ -386,9 +396,9 @@ public class ProguardMapReader implements AutoCloseable {
   }
 
   private boolean acceptArrow() {
-    if (peek() == '-' && peek(1) == '>') {
-      next();
-      next();
+    if (peekChar(0) == '-' && peekChar(1) == '>') {
+      nextChar();
+      nextChar();
       return true;
     }
     return false;
@@ -396,22 +406,26 @@ public class ProguardMapReader implements AutoCloseable {
 
   private boolean acceptString(String s) {
     for (int i = 0; i < s.length(); i++) {
-      if (peek(i) != s.charAt(i)) {
+      if (peekChar(i) != s.charAt(i)) {
         return false;
       }
     }
     for (int i = 0; i < s.length(); i++) {
-      next();
+      nextChar();
     }
     return true;
   }
 
+  private boolean isSimpleDigit(char c) {
+    return '0' <= c && c <= '9';
+  }
+
   private Object maybeParseRangeOrInt() {
-    if (!Character.isDigit(peek())) {
+    if (!isSimpleDigit(peekChar(0))) {
       return null;
     }
     int from = parseNumber();
-    if (peek() != ':') {
+    if (peekChar(0) != ':') {
       return from;
     }
     expect(':');
@@ -421,13 +435,13 @@ public class ProguardMapReader implements AutoCloseable {
 
   private int parseNumber() {
     int result = 0;
-    if (!Character.isDigit(peek())) {
+    if (!isSimpleDigit(peekChar(0))) {
       throw new ParseException("Number expected");
     }
     do {
       result *= 10;
-      result += Character.getNumericValue(next());
-    } while (Character.isDigit(peek()));
+      result += Character.getNumericValue(nextChar());
+    } while (isSimpleDigit(peekChar(0)));
     return result;
   }
 

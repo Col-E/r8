@@ -5,43 +5,27 @@
 package com.android.tools.r8.utils;
 
 public class IdentifierUtils {
-  public static boolean isDexIdentifierStart(char ch) {
+  public static boolean isDexIdentifierStart(int cp) {
     // Dex does not have special restrictions on the first char of an identifier.
-    return isDexIdentifierPart(ch);
+    return isDexIdentifierPart(cp);
   }
 
-  public static boolean isDexIdentifierPart(char ch) {
-    return isSimpleNameChar(ch);
+  public static boolean isDexIdentifierPart(int cp) {
+    return isSimpleNameChar(cp);
   }
 
-  private static boolean isSimpleNameChar(char ch) {
-    if (ch >= 'A' && ch <= 'Z') {
-      return true;
-    }
-    if (ch >= 'a' && ch <= 'z') {
-      return true;
-    }
-    if (ch >= '0' && ch <= '9') {
-      return true;
-    }
-    if (ch == '$' || ch == '-' || ch == '_') {
-      return true;
-    }
-    if (ch >= 0x00a1 && ch <= 0x1fff) {
-      return true;
-    }
-    if (ch >= 0x2010 && ch <= 0x2027) {
-      return true;
-    }
-    if (ch >= 0x2030 && ch <= 0xd7ff) {
-      return true;
-    }
-    if (ch >= 0xe000 && ch <= 0xffef) {
-      return true;
-    }
-    if (ch >= 0x10000 && ch <= 0x10ffff) {
-      return true;
-    }
-    return false;
+  private static boolean isSimpleNameChar(int cp) {
+    // See https://source.android.com/devices/tech/dalvik/dex-format#string-syntax.
+    return ('A' <= cp && cp <= 'Z')
+        || ('a' <= cp && cp <= 'z')
+        || ('0' <= cp && cp <= '9')
+        || cp == '$'
+        || cp == '-'
+        || cp == '_'
+        || (0x00a1 <= cp && cp <= 0x1fff)
+        || (0x2010 <= cp && cp <= 0x2027)
+        || (0x2030 <= cp && cp <= 0xd7ff)
+        || (0xe000 <= cp && cp <= 0xffef)
+        || (0x10000 <= cp && cp <= 0x10ffff);
   }
 }
