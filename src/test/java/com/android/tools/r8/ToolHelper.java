@@ -90,8 +90,8 @@ public class ToolHelper {
   private static final String ANDROID_JAR_PATTERN = "third_party/android_jar/lib-v%d/android.jar";
   private static final AndroidApiLevel DEFAULT_MIN_SDK = AndroidApiLevel.I;
 
-  private static final String PROGUARD5_2_1 = "third_party/proguard/proguard5.2.1/bin/proguard.sh";
-  private static final String PROGUARD6_0_1 = "third_party/proguard/proguard6.0.1/bin/proguard.sh";
+  private static final String PROGUARD5_2_1 = "third_party/proguard/proguard5.2.1/bin/proguard";
+  private static final String PROGUARD6_0_1 = "third_party/proguard/proguard6.0.1/bin/proguard";
   private static final String PROGUARD = PROGUARD5_2_1;
 
   public enum DexVm {
@@ -473,6 +473,20 @@ public class ToolHelper {
     } else {
       return "linux";
     }
+  }
+
+  private static String getProguardScript() {
+    if (isWindows()) {
+      return PROGUARD + ".bat";
+    }
+    return PROGUARD + ".sh";
+  }
+
+  private static String getProguard6Script() {
+    if (isWindows()) {
+      return PROGUARD6_0_1 + ".bat";
+    }
+    return PROGUARD6_0_1 + ".sh";
   }
 
   private static Path getDxExecutablePath() {
@@ -1164,7 +1178,7 @@ public class ToolHelper {
 
   public static ProcessResult runProguardRaw(Path inJar, Path outJar, Path config, Path map)
       throws IOException {
-    return runProguardRaw(PROGUARD, inJar, outJar, ImmutableList.of(config), map);
+    return runProguardRaw(getProguardScript(), inJar, outJar, ImmutableList.of(config), map);
   }
 
   public static String runProguard(Path inJar, Path outJar, Path config, Path map)
@@ -1174,12 +1188,12 @@ public class ToolHelper {
 
   public static String runProguard(Path inJar, Path outJar, List<Path> config, Path map)
       throws IOException {
-    return runProguard(PROGUARD, inJar, outJar, config, map);
+    return runProguard(getProguardScript(), inJar, outJar, config, map);
   }
 
   public static ProcessResult runProguard6Raw(Path inJar, Path outJar, Path config, Path map)
       throws IOException {
-    return runProguardRaw(PROGUARD6_0_1, inJar, outJar, ImmutableList.of(config), map);
+    return runProguardRaw(getProguard6Script(), inJar, outJar, ImmutableList.of(config), map);
   }
 
   public static String runProguard6(Path inJar, Path outJar, Path config, Path map)
@@ -1189,7 +1203,7 @@ public class ToolHelper {
 
   public static String runProguard6(Path inJar, Path outJar, List<Path> configs, Path map)
       throws IOException {
-    return runProguard(PROGUARD6_0_1, inJar, outJar, configs, map);
+    return runProguard(getProguard6Script(), inJar, outJar, configs, map);
   }
 
   public static class ProcessResult {
