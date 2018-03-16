@@ -85,10 +85,12 @@ public class MethodHandleTestRunner {
     AndroidApiLevel apiLevel = AndroidApiLevel.P;
     Builder cfBuilder =
         R8Command.builder()
-            .setMinApiLevel(apiLevel.getLevel())
             .setMode(CompilationMode.DEBUG)
             .addLibraryFiles(ToolHelper.getAndroidJar(apiLevel))
             .setProgramConsumer(programConsumer);
+    if (!(programConsumer instanceof ClassFileConsumer)) {
+      cfBuilder.setMinApiLevel(apiLevel.getLevel());
+    }
     for (Class<?> c : inputClasses) {
       byte[] classAsBytes = getClassAsBytes(c);
       cfBuilder.addClassProgramData(classAsBytes, Origin.unknown());

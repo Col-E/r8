@@ -25,7 +25,6 @@ public class R8CfDebugTestResourcesConfig extends CfDebugTestConfig {
       AndroidAppConsumers sink = new AndroidAppConsumers();
       R8.run(
           R8Command.builder()
-              .setMinApiLevel(minApi.getLevel())
               .setMode(CompilationMode.DEBUG)
               .addProgramFiles(DebugTestBase.DEBUGGEE_JAR)
               .setProgramConsumer(sink.wrapClassFileConsumer(null))

@@ -5,7 +5,6 @@ package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.code.InvokePolymorphicRange;
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -14,7 +13,6 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
-import com.android.tools.r8.ir.conversion.JarSourceCode;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.InliningOracle;
@@ -87,15 +85,12 @@ public class InvokePolymorphic extends InvokeMethod {
   public void buildCf(CfBuilder builder) {
     DexMethod dexMethod = getInvokedMethod();
     DexItemFactory factory = builder.getFactory();
-
-    if (dexMethod.holder.getInternalName().equals(JarSourceCode.INTERNAL_NAME_METHOD_HANDLE)) {
-      DexMethod method = factory.createMethod(dexMethod.holder, getProto(), dexMethod.name);
-      builder.add(new CfInvoke(Opcodes.INVOKEVIRTUAL, method));
-    } else {
-      assert dexMethod.holder.getInternalName().equals(JarSourceCode.INTERNAL_NAME_VAR_HANDLE);
-      // VarHandle is new in Java 9
-      throw new Unimplemented();
-    }
+    // When we translate InvokeVirtual on MethodHandle/VarHandle into InvokePolymorphic,
+    // we translate the invoked prototype into a generic prototype that simply accepts Object[].
+    // To translate InvokePolymorphic back into InvokeVirtual, use the original prototype
+    // that is stored in getProto().
+    DexMethod method = factory.createMethod(dexMethod.holder, getProto(), dexMethod.name);
+    builder.add(new CfInvoke(Opcodes.INVOKEVIRTUAL, method));
   }
 
   @Override

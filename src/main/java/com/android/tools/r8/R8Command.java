@@ -256,6 +256,9 @@ public class R8Command extends BaseCompilerCommand {
               "R8 does not support compiling DEX inputs", new PathOrigin(file)));
         }
       }
+      if (getProgramConsumer() instanceof ClassFileConsumer && isMinApiLevelSet()) {
+        reporter.error("R8 does not support --min-api when compiling to class files");
+      }
       super.validate();
     }
 
