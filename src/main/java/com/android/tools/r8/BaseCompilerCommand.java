@@ -103,7 +103,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     private OutputMode outputMode = OutputMode.DexIndexed;
 
     private CompilationMode mode;
-    private int minApiLevel = AndroidApiLevel.getDefault().getLevel();
+    private int minApiLevel = 0;
     private boolean disableDesugaring = false;
 
     Builder() {}
@@ -228,13 +228,20 @@ public abstract class BaseCompilerCommand extends BaseCommand {
 
     /** Get the minimum API level (aka SDK version). */
     public int getMinApiLevel() {
-      return minApiLevel;
+      return isMinApiLevelSet() ? minApiLevel : AndroidApiLevel.getDefault().getLevel();
+    }
+
+    boolean isMinApiLevelSet() {
+      return minApiLevel != 0;
     }
 
     /** Set the minimum required API level (aka SDK version). */
     public B setMinApiLevel(int minApiLevel) {
-      assert minApiLevel > 0;
-      this.minApiLevel = minApiLevel;
+      if (minApiLevel <= 0) {
+        getReporter().error("Invalid minApiLevel: " + minApiLevel);
+      } else {
+        this.minApiLevel = minApiLevel;
+      }
       return self();
     }
 

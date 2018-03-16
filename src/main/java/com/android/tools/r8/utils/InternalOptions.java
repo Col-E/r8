@@ -401,50 +401,54 @@ public class InternalOptions {
   }
 
   public boolean canUseInvokePolymorphicOnVarHandle() {
-    return minApiLevel >= AndroidApiLevel.P.getLevel();
+    return hasMinApi(AndroidApiLevel.P);
   }
 
   public boolean canUseInvokePolymorphic() {
-    return minApiLevel >= AndroidApiLevel.O.getLevel();
+    return hasMinApi(AndroidApiLevel.O);
   }
 
   public boolean canUseConstantMethodHandle() {
-    return minApiLevel >= AndroidApiLevel.P.getLevel();
+    return hasMinApi(AndroidApiLevel.P);
+  }
+
+  private boolean hasMinApi(AndroidApiLevel level) {
+    return isGeneratingClassFiles() || minApiLevel >= level.getLevel();
   }
 
   public boolean canUseConstantMethodType() {
-    return minApiLevel >= AndroidApiLevel.P.getLevel();
+    return hasMinApi(AndroidApiLevel.P);
   }
 
   public boolean canUseInvokeCustom() {
-    return minApiLevel >= AndroidApiLevel.O.getLevel();
+    return hasMinApi(AndroidApiLevel.O);
   }
 
   public boolean canUseDefaultAndStaticInterfaceMethods() {
-    return minApiLevel >= AndroidApiLevel.N.getLevel();
+    return hasMinApi(AndroidApiLevel.N);
   }
 
   public boolean canUsePrivateInterfaceMethods() {
-    return minApiLevel >= AndroidApiLevel.N.getLevel();
+    return hasMinApi(AndroidApiLevel.N);
   }
 
   public boolean canUseMultidex() {
-    return intermediate || minApiLevel >= AndroidApiLevel.L.getLevel();
+    return intermediate || hasMinApi(AndroidApiLevel.L);
   }
 
   public boolean canUseLongCompareAndObjectsNonNull() {
-    return minApiLevel >= AndroidApiLevel.K.getLevel();
+    return hasMinApi(AndroidApiLevel.K);
   }
 
   public boolean canUseSuppressedExceptions() {
-    return minApiLevel >= AndroidApiLevel.K.getLevel();
+    return hasMinApi(AndroidApiLevel.K);
   }
 
   // APIs for accessing parameter names annotations are not available before Android O, thus does
   // not emit them to avoid wasting space in Dex files because runtimes before Android O will ignore
   // them.
   public boolean canUseParameterNameAnnotations() {
-    return minApiLevel >= AndroidApiLevel.O.getLevel();
+    return hasMinApi(AndroidApiLevel.O);
   }
 
   // Dalvik x86-atom backend had a bug that made it crash on filled-new-array instructions for
@@ -456,7 +460,7 @@ public class InternalOptions {
   //
   // https://android.googlesource.com/platform/dalvik/+/ics-mr0/vm/mterp/out/InterpAsm-x86-atom.S#25106
   public boolean canUseFilledNewArrayOfObjects() {
-    return minApiLevel >= AndroidApiLevel.K.getLevel();
+    return hasMinApi(AndroidApiLevel.K);
   }
 
   // Art had a bug (b/68761724) for Android N and O in the arm32 interpreter
@@ -492,7 +496,7 @@ public class InternalOptions {
   // we can only use not instructions if we are targeting Art-based
   // phones.
   public boolean canUseNotInstruction() {
-    return minApiLevel >= AndroidApiLevel.L.getLevel();
+    return hasMinApi(AndroidApiLevel.L);
   }
 
   // Art before M has a verifier bug where the type of the contents of the receiver register is

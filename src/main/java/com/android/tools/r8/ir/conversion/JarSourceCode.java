@@ -2658,8 +2658,8 @@ public class JarSourceCode implements SourceCode {
     Handle bsmHandle = insn.bsm;
     if (bsmHandle.getTag() != Opcodes.H_INVOKESTATIC &&
         bsmHandle.getTag() != Opcodes.H_NEWINVOKESPECIAL) {
-      throw new Unreachable(
-          "Bootstrap handle is not yet supported: tag == " + bsmHandle.getTag());
+      // JVM9 §4.7.23 note: Tag must be InvokeStatic or NewInvokeSpecial.
+      throw new Unreachable("Bootstrap handle invalid: tag == " + bsmHandle.getTag());
     }
     // Resolve the bootstrap method.
     DexMethodHandle bootstrapMethod = getMethodHandle(application, bsmHandle);

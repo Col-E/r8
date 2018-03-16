@@ -1488,7 +1488,6 @@ public abstract class R8RunArtTestsTest {
           AndroidApiLevel minSdkVersion = needMinSdkVersion.get(name);
           if (minSdkVersion != null) {
             builder.setMinApiLevel(minSdkVersion.getLevel());
-            r8builder.setMinApiLevel(minSdkVersion.getLevel());
             builder.addLibraryFiles(ToolHelper.getAndroidJar(minSdkVersion));
             r8builder.addLibraryFiles(ToolHelper.getAndroidJar(minSdkVersion));
           } else {
