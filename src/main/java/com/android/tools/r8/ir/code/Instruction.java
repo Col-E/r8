@@ -582,6 +582,14 @@ public abstract class Instruction {
     return null;
   }
 
+  public boolean isFieldInstruction() {
+    return false;
+  }
+
+  public FieldInstruction asFieldInstruction() {
+    return null;
+  }
+
   public boolean isGoto() {
     return false;
   }

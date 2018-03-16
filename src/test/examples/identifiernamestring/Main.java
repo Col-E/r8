@@ -10,8 +10,12 @@ public class Main {
   public static void main(String[] args) throws Exception {
     A ax = new A();
     assert ax.boo.equals(A.TYPE_B);
-    // Should be renamed
-    ax.bar("identifiernamestring.B");
+    try {
+      // Should be renamed
+      ax.bar("identifiernamestring.B");
+    } catch (NullPointerException e) {
+      System.err.println(e.getMessage());
+    }
 
     Class a = Class.forName(A.TYPE_A);
     Class bByA = Class.forName(B.TYPO_A);
