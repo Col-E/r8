@@ -12,7 +12,7 @@ import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import java.util.List;
 
-abstract class FieldInstruction extends Instruction {
+public abstract class FieldInstruction extends Instruction {
 
   protected final MemberType type;
   protected final DexField field;
@@ -39,6 +39,16 @@ abstract class FieldInstruction extends Instruction {
 
   public DexField getField() {
     return field;
+  }
+
+  @Override
+  public boolean isFieldInstruction() {
+    return true;
+  }
+
+  @Override
+  public FieldInstruction asFieldInstruction() {
+    return this;
   }
 
   /**
