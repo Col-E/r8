@@ -10,15 +10,20 @@ public class Main {
   private static final int COUNT = 8;
 
   public static void main(String[] args) {
-    I instance = new A0();
+    I a0 = new A0();
     List<I> l = new ArrayList<>();
     for (int i = 0; i < COUNT; i++) {
-      l.add(instance);
+      l.add(a0);
     }
 
     int sum = 0;
     for (int i = 0; i < COUNT; i++) {
-      sum += l.get(i).get();
+      I instance = l.get(i);
+      try {
+        sum += instance.get();
+      } catch (RuntimeException e) {
+        // Just to introduce catch handler.
+      }
     }
     System.out.println(sum);
   }

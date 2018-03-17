@@ -5,7 +5,7 @@ package com.android.tools.r8.ir.optimize.devirtualize.invokeinterface;
 
 public class A1 extends A {
   @Override
-  public int get() {
-    return 1;
+  public int get() throws RuntimeException {
+    throw new RuntimeException("Expected to be discarded");
   }
 }
