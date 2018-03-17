@@ -4,5 +4,5 @@
 package com.android.tools.r8.ir.optimize.devirtualize.invokeinterface;
 
 public interface I {
-  int get();
+  int get() throws RuntimeException;
 }

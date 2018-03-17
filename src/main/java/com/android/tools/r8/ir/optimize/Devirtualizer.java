@@ -144,15 +144,30 @@ public class Devirtualizer {
               checkCast.setPosition(invoke.getPosition());
 
               // We need to add this checkcast *before* the devirtualized invoke-virtual.
+              assert it.peekPrevious() == devirtualizedInvoke;
               it.previous();
-              it.add(checkCast);
               // If the current block has catch handlers, split the new checkcast on its own block.
-              if (block.hasCatchHandlers()) {
-                // Move the cursor backward to the newly added checkcast.
-                assert it.previous() == checkCast;
-                it.split(code, 1, blocks);
+              // Because checkcast is also a throwing instr, we should split before adding it.
+              // Otherwise, catch handlers are bound to a block with checkcast, not invoke IR.
+              BasicBlock blockWithDevirtualizedInvoke =
+                  block.hasCatchHandlers() ? it.split(code, blocks) : block;
+              if (blockWithDevirtualizedInvoke != block) {
+                // If we split, add the new checkcast at the end of the currently visiting block.
+                it = block.listIterator(block.getInstructions().size());
+                it.previous();
+                it.add(checkCast);
                 // Update the dominator tree after the split.
                 dominatorTree = new DominatorTree(code);
+                // Restore the cursor.
+                it = blockWithDevirtualizedInvoke.listIterator();
+                assert it.peekNext() == devirtualizedInvoke;
+                it.next();
+              } else {
+                // Otherwise, just add it to the current block at the position of the iterator.
+                it.add(checkCast);
+                // Restore the cursor.
+                assert it.peekNext() == devirtualizedInvoke;
+                it.next();
               }
             }
 
