@@ -10,6 +10,7 @@ import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexApplication;
@@ -711,9 +712,7 @@ public class IRConverter {
   private void finalizeToCf(DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
     assert !method.getCode().isDexCode();
     CfBuilder builder = new CfBuilder(method, code, options.itemFactory);
-    // TODO(zerny): Change the return type of CfBuilder::build CfCode once complete.
-    Code result = builder.build(codeRewriter, options, appInfo.withSubtyping());
-    assert result.isCfCode() || result.isJarCode();
+    CfCode result = builder.build(codeRewriter, options, appInfo.withSubtyping());
     method.setCode(result);
     markProcessed(method, code, feedback);
   }

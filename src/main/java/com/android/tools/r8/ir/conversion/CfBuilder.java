@@ -11,12 +11,10 @@ import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfLabel;
 import com.android.tools.r8.cf.code.CfPosition;
 import com.android.tools.r8.cf.code.CfTryCatch;
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.CfCode.LocalVariableInfo;
-import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -106,27 +104,23 @@ public class CfBuilder {
     return factory;
   }
 
-  public Code build(CodeRewriter rewriter, InternalOptions options, AppInfoWithSubtyping appInfo) {
-    try {
-      types = new TypeVerificationHelper(code, factory, appInfo).computeVerificationTypes();
-      splitExceptionalBlocks();
-      LoadStoreHelper loadStoreHelper = new LoadStoreHelper(code, types);
-      loadStoreHelper.insertLoadsAndStores();
-      DeadCodeRemover.removeDeadCode(code, rewriter, options);
-      removeUnneededLoadsAndStores();
-      registerAllocator = new CfRegisterAllocator(code, options);
-      registerAllocator.allocateRegisters();
-      loadStoreHelper.insertPhiMoves(registerAllocator);
-      CodeRewriter.collapsTrivialGotos(method, code);
-      int instructionTableCount =
-          DexBuilder.instructionNumberToIndex(code.numberRemainingInstructions());
-      DexBuilder.removeRedundantDebugPositions(code, instructionTableCount);
-      CfCode code = buildCfCode();
-      return code;
-    } catch (Unimplemented e) {
-      System.out.println("Incomplete CF construction: " + e.getMessage());
-      return method.getCode().asJarCode();
-    }
+  public CfCode build(
+      CodeRewriter rewriter, InternalOptions options, AppInfoWithSubtyping appInfo) {
+    types = new TypeVerificationHelper(code, factory, appInfo).computeVerificationTypes();
+    splitExceptionalBlocks();
+    LoadStoreHelper loadStoreHelper = new LoadStoreHelper(code, types);
+    loadStoreHelper.insertLoadsAndStores();
+    DeadCodeRemover.removeDeadCode(code, rewriter, options);
+    removeUnneededLoadsAndStores();
+    registerAllocator = new CfRegisterAllocator(code, options);
+    registerAllocator.allocateRegisters();
+    loadStoreHelper.insertPhiMoves(registerAllocator);
+    CodeRewriter.collapsTrivialGotos(method, code);
+    int instructionTableCount =
+        DexBuilder.instructionNumberToIndex(code.numberRemainingInstructions());
+    DexBuilder.removeRedundantDebugPositions(code, instructionTableCount);
+    CfCode code = buildCfCode();
+    return code;
   }
 
   // Split all blocks with throwing instructions and exceptional edges such that any non-throwing
