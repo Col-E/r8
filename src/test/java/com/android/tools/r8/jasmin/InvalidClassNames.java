@@ -3,80 +3,88 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.jasmin;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
 
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.errors.CompilationError;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class InvalidClassNames extends JasminTestBase {
+public class InvalidClassNames extends NameTestBase {
 
-  public boolean runsOnJVM;
-  public String name;
+  private static final String RESULT = "MAIN";
+  private static final String MAIN_CLASS = "Main";
 
-  public InvalidClassNames(String name, boolean runsOnJVM) {
-    this.name = name;
-    this.runsOnJVM = runsOnJVM;
-  }
-
-  private void runTest(JasminBuilder builder, String main, String expected) throws Exception {
-    if (runsOnJVM) {
-      String javaResult = runOnJava(builder, main);
-      assertEquals(expected, javaResult);
-    }
-    String artResult = null;
-    try {
-      artResult = runOnArtD8(builder, main);
-      fail();
-    } catch (CompilationError t) {
-      // Intentionally left empty.
-    } catch (Throwable t) {
-      t.printStackTrace(System.out);
-      fail("Invalid dex class names should be compilation errors.");
-    }
-    assertNull("Invalid dex class names should be rejected.", artResult);
-  }
-
-  @Parameters
+  @Parameters(name = "\"{0}\", jvm: {1}, art: {2}")
   public static Collection<Object[]> data() {
-    return Arrays.asList(new Object[][]{
-        {"\u00a0", !ToolHelper.isJava9Runtime()},
-        {"\u2000", !ToolHelper.isWindows() && !ToolHelper.isJava9Runtime()},
-        {"\u200f", !ToolHelper.isWindows() && !ToolHelper.isJava9Runtime()},
-        {"\u2028", !ToolHelper.isWindows() && !ToolHelper.isJava9Runtime()},
-        {"\u202f", !ToolHelper.isWindows() && !ToolHelper.isJava9Runtime()},
-        {"\ud800", false},
-        {"\udfff", false},
-        {"\ufff0", !ToolHelper.isWindows() && !ToolHelper.isJava9Runtime()},
-        {"\uffff", !ToolHelper.isWindows() && !ToolHelper.isJava9Runtime()},
-        {"a/b/c/a/D/", true},
-        {"a<b", !ToolHelper.isWindows() && !ToolHelper.isJava9Runtime()},
-        {"a>b", !ToolHelper.isWindows() && !ToolHelper.isJava9Runtime()},
-        {"<a>b", !ToolHelper.isWindows() && !ToolHelper.isJava9Runtime()},
-        {"<a>", !ToolHelper.isWindows() && !ToolHelper.isJava9Runtime()}
-    });
+    Collection<Object[]> data = new ArrayList<>();
+    data.addAll(NameTestBase.getCommonNameTestData(true));
+    data.addAll(
+        Arrays.asList(
+            new Object[][] {
+              {new TestString("a/b/c/a/D/"), true, false},
+              {
+                new TestString("a<b"),
+                !ToolHelper.isWindows() && !ToolHelper.isJava9Runtime(),
+                false
+              },
+              {
+                new TestString("a>b"),
+                !ToolHelper.isWindows() && !ToolHelper.isJava9Runtime(),
+                false
+              },
+              {
+                new TestString("<a>b"),
+                !ToolHelper.isWindows() && !ToolHelper.isJava9Runtime(),
+                false
+              },
+              {
+                new TestString("<a>"),
+                !ToolHelper.isWindows() && !ToolHelper.isJava9Runtime(),
+                false
+              }
+            }));
+    return data;
+  }
+
+  private String name;
+  private boolean validForJVM;
+  private boolean validForArt;
+
+  public InvalidClassNames(TestString name, boolean validForJVM, boolean validForArt) {
+    this.name = name.getValue();
+    this.validForJVM = validForJVM;
+    this.validForArt = validForArt;
+  }
+
+  private JasminBuilder createJasminBuilder() {
+    JasminBuilder builder = new JasminBuilder();
+    JasminBuilder.ClassBuilder clazz = builder.addClass(name);
+    clazz.addStaticMethod(
+        "run",
+        Collections.emptyList(),
+        "V",
+        ".limit stack 2",
+        ".limit locals 0",
+        "  getstatic java/lang/System/out Ljava/io/PrintStream;",
+        "  ldc \"" + RESULT + "\"",
+        "  invokevirtual java/io/PrintStream/print(Ljava/lang/String;)V",
+        "  return");
+
+    clazz = builder.addClass(MAIN_CLASS);
+    clazz.addMainMethod(
+        ".limit stack 0", ".limit locals 1", "invokestatic " + name + "/run()V", "  return");
+
+    return builder;
   }
 
   @Test
   public void invalidClassName() throws Exception {
-    JasminBuilder builder = new JasminBuilder();
-    JasminBuilder.ClassBuilder clazz = builder.addClass(name);
-    clazz.addMainMethod(
-        ".limit stack 2",
-        ".limit locals 1",
-        "  getstatic java/lang/System/out Ljava/io/PrintStream;",
-        "  ldc \"MAIN\"",
-        "  invokevirtual java/io/PrintStream.print(Ljava/lang/String;)V",
-        "  return");
-
-    runTest(builder, clazz.name, "MAIN");
+    runNameTesting(validForJVM, createJasminBuilder(), MAIN_CLASS, RESULT, validForArt, name);
   }
 }

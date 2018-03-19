@@ -639,7 +639,8 @@ public class MainDexListTests extends TestBase {
               DexEncodedField.EMPTY_ARRAY,
               DexEncodedField.EMPTY_ARRAY,
               directMethods,
-              DexEncodedMethod.EMPTY_ARRAY));
+              DexEncodedMethod.EMPTY_ARRAY,
+              false));
     }
     DirectMappedDexApplication application = builder.build().toDirect();
     ApplicationWriter writer =

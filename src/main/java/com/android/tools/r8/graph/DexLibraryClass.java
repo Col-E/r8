@@ -29,7 +29,8 @@ public class DexLibraryClass extends DexClass implements Supplier<DexLibraryClas
       DexEncodedField[] staticFields,
       DexEncodedField[] instanceFields,
       DexEncodedMethod[] directMethods,
-      DexEncodedMethod[] virtualMethods) {
+      DexEncodedMethod[] virtualMethods,
+      boolean skipNameValidationForTesting) {
     super(
         sourceFile,
         interfaces,
@@ -43,7 +44,8 @@ public class DexLibraryClass extends DexClass implements Supplier<DexLibraryClas
         enclosingMember,
         innerClasses,
         annotations,
-        origin);
+        origin,
+        skipNameValidationForTesting);
     // Set all static field values to unknown. We don't want to use the value from the library
     // at compile time, as it can be different at runtime.
     for (DexEncodedField staticField : staticFields) {

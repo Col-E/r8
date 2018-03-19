@@ -172,6 +172,7 @@ final class InterfaceProcessor {
             DexEncodedField.EMPTY_ARRAY,
             companionMethods.toArray(new DexEncodedMethod[companionMethods.size()]),
             DexEncodedMethod.EMPTY_ARRAY,
+            rewriter.factory.getSkipNameValidationForTesting(),
             Collections.singletonList(iface));
     companionClasses.put(iface, companionClass);
   }

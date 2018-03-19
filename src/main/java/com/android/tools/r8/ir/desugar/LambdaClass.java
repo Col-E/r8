@@ -139,6 +139,7 @@ final class LambdaClass {
         synthesizeInstanceFields(),
         synthesizeDirectMethods(),
         synthesizeVirtualMethods(),
+        rewriter.factory.getSkipNameValidationForTesting(),
         synthesizedFrom);
   }
 

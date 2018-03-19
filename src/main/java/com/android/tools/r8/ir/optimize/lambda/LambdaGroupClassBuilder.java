@@ -48,7 +48,8 @@ public abstract class LambdaGroupClassBuilder<T extends LambdaGroup> {
         buildStaticFields(),
         buildInstanceFields(),
         buildDirectMethods(),
-        buildVirtualMethods());
+        buildVirtualMethods(),
+        factory.getSkipNameValidationForTesting());
   }
 
   protected abstract DexType getSuperClassType();

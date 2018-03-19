@@ -29,7 +29,8 @@ public class DexClasspathClass extends DexClass implements Supplier<DexClasspath
       DexEncodedField[] staticFields,
       DexEncodedField[] instanceFields,
       DexEncodedMethod[] directMethods,
-      DexEncodedMethod[] virtualMethods) {
+      DexEncodedMethod[] virtualMethods,
+      boolean skipNameValidationForTesting) {
     super(
         sourceFile,
         interfaces,
@@ -43,7 +44,8 @@ public class DexClasspathClass extends DexClass implements Supplier<DexClasspath
         enclosingMember,
         innerClasses,
         annotations,
-        origin);
+        origin,
+        skipNameValidationForTesting);
     assert kind == Kind.CF : "Invalid kind " + kind + " for class-path class " + type;
   }
 

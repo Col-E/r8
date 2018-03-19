@@ -75,7 +75,13 @@ public class JasminTestBase extends TestBase {
   }
 
   protected String runOnArtD8(JasminBuilder builder, String main) throws Exception {
-    return runOnArt(compileWithD8(builder), main);
+    return runOnArtD8(builder, main, null);
+  }
+
+  protected String runOnArtD8(
+      JasminBuilder builder, String main, Consumer<InternalOptions> optionsConsumer)
+      throws Exception {
+    return runOnArt(compileWithD8(builder, optionsConsumer), main);
   }
 
   protected ProcessResult runOnArtD8Raw(JasminBuilder builder, String main) throws Exception {

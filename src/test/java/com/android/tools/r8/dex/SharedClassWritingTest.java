@@ -103,6 +103,7 @@ public class SharedClassWritingTest {
         DexEncodedField.EMPTY_ARRAY,
         DexEncodedMethod.EMPTY_ARRAY,
         new DexEncodedMethod[] {makeMethod(type, stringCount, startOffset)},
+        false,
         synthesizedFrom);
   }
 

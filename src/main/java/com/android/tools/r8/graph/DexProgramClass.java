@@ -44,7 +44,8 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
       DexEncodedField[] staticFields,
       DexEncodedField[] instanceFields,
       DexEncodedMethod[] directMethods,
-      DexEncodedMethod[] virtualMethods) {
+      DexEncodedMethod[] virtualMethods,
+      boolean skipNameValidationForTesting) {
     this(
         type,
         originKind,
@@ -60,6 +61,7 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
         instanceFields,
         directMethods,
         virtualMethods,
+        skipNameValidationForTesting,
         Collections.emptyList());
   }
 
@@ -78,6 +80,7 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
       DexEncodedField[] instanceFields,
       DexEncodedMethod[] directMethods,
       DexEncodedMethod[] virtualMethods,
+      boolean skipNameValidationForTesting,
       Collection<DexProgramClass> synthesizedDirectlyFrom) {
     super(
         sourceFile,
@@ -92,7 +95,8 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
         enclosingMember,
         innerClasses,
         classAnnotations,
-        origin);
+        origin,
+        skipNameValidationForTesting);
     assert classAnnotations != null;
     this.originKind = originKind;
     this.synthesizedFrom = accumulateSynthesizedFrom(new HashSet<>(), synthesizedDirectlyFrom);

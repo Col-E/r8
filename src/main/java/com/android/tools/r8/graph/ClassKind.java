@@ -27,7 +27,8 @@ public enum ClassKind {
         DexEncodedField[] staticFields,
         DexEncodedField[] instanceFields,
         DexEncodedMethod[] directMethods,
-        DexEncodedMethod[] virtualMethods);
+        DexEncodedMethod[] virtualMethods,
+        boolean skipNameValidationForTesting);
   }
 
   private final Factory factory;
@@ -52,7 +53,8 @@ public enum ClassKind {
       DexEncodedField[] staticFields,
       DexEncodedField[] instanceFields,
       DexEncodedMethod[] directMethods,
-      DexEncodedMethod[] virtualMethods) {
+      DexEncodedMethod[] virtualMethods,
+      boolean skipNameValidationForTesting) {
     return factory.create(
         type,
         kind,
@@ -67,7 +69,8 @@ public enum ClassKind {
         staticFields,
         instanceFields,
         directMethods,
-        virtualMethods);
+        virtualMethods,
+        skipNameValidationForTesting);
   }
 
   public boolean isOfKind(DexClass clazz) {

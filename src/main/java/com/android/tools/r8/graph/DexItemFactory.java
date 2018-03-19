@@ -227,6 +227,16 @@ public class DexItemFactory {
   public final DexType annotationSynthesizedClassMap =
       createType("Lcom/android/tools/r8/annotations/SynthesizedClassMap;");
 
+  private boolean skipNameValidationForTesting = false;
+
+  public void setSkipNameValidationForTesting(boolean skipNameValidationForTesting) {
+    this.skipNameValidationForTesting = skipNameValidationForTesting;
+  }
+
+  public boolean getSkipNameValidationForTesting() {
+    return skipNameValidationForTesting;
+  }
+
   public synchronized void clearSubtypeInformation() {
     types.values().forEach(DexType::clearSubtypeInformation);
   }
@@ -479,7 +489,7 @@ public class DexItemFactory {
 
   public DexField createField(DexType clazz, DexType type, DexString name) {
     assert !sorted;
-    DexField field = new DexField(clazz, type, name);
+    DexField field = new DexField(clazz, type, name, skipNameValidationForTesting);
     return canonicalize(fields, field);
   }
 
@@ -510,7 +520,7 @@ public class DexItemFactory {
 
   public DexMethod createMethod(DexType holder, DexProto proto, DexString name) {
     assert !sorted;
-    DexMethod method = new DexMethod(holder, proto, name);
+    DexMethod method = new DexMethod(holder, proto, name, skipNameValidationForTesting);
     return canonicalize(methods, method);
   }
 

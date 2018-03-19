@@ -251,7 +251,8 @@ public class JarClassFileReader {
               staticFields.toArray(new DexEncodedField[staticFields.size()]),
               instanceFields.toArray(new DexEncodedField[instanceFields.size()]),
               directMethods.toArray(new DexEncodedMethod[directMethods.size()]),
-              virtualMethods.toArray(new DexEncodedMethod[virtualMethods.size()]));
+              virtualMethods.toArray(new DexEncodedMethod[virtualMethods.size()]),
+              application.getFactory().getSkipNameValidationForTesting());
       if (clazz.isProgramClass()) {
         context.owner = clazz.asProgramClass();
         clazz.asProgramClass().setClassFileVersion(version);

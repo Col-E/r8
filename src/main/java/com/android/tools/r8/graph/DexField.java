@@ -14,11 +14,11 @@ public class DexField extends Descriptor<DexEncodedField, DexField> implements
   public final DexType type;
   public final DexString name;
 
-  DexField(DexType clazz, DexType type, DexString name) {
+  DexField(DexType clazz, DexType type, DexString name, boolean skipNameValidationForTesting) {
     this.clazz = clazz;
     this.type = type;
     this.name = name;
-    if (!name.isValidFieldName()) {
+    if (!skipNameValidationForTesting && !name.isValidFieldName()) {
       throw new CompilationError(
           "Field name '" + name.toString() + "' cannot be represented in dex format.");
     }

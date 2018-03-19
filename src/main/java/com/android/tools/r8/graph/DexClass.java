@@ -64,7 +64,8 @@ public abstract class DexClass extends DexItem {
       EnclosingMethodAttribute enclosingMethod,
       List<InnerClassAttribute> innerClasses,
       DexAnnotationSet annotations,
-      Origin origin) {
+      Origin origin,
+      boolean skipNameValidationForTesting) {
     assert origin != null;
     this.origin = origin;
     this.sourceFile = sourceFile;
@@ -87,7 +88,7 @@ public abstract class DexClass extends DexItem {
         throw new CompilationError("Interface " + type.toString() + " cannot implement itself");
       }
     }
-    if (!type.descriptor.isValidClassDescriptor()) {
+    if (!skipNameValidationForTesting && !type.descriptor.isValidClassDescriptor()) {
       throw new CompilationError(
           "Class descriptor '"
               + type.descriptor.toString()

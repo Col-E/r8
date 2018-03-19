@@ -689,21 +689,23 @@ public class DexParser {
       AttributesAndAnnotations attrs =
           new AttributesAndAnnotations(type, annotationsDirectory.clazz, dexItemFactory);
 
-      DexClass clazz = classKind.create(
-          type,
-          Kind.DEX,
-          origin,
-          flags,
-          superclass,
-          typeListAt(interfacesOffsets[i]),
-          source,
-          attrs.getEnclosingMethodAttribute(),
-          attrs.getInnerClasses(),
-          attrs.getAnnotations(),
-          staticFields,
-          instanceFields,
-          directMethods,
-          virtualMethods);
+      DexClass clazz =
+          classKind.create(
+              type,
+              Kind.DEX,
+              origin,
+              flags,
+              superclass,
+              typeListAt(interfacesOffsets[i]),
+              source,
+              attrs.getEnclosingMethodAttribute(),
+              attrs.getInnerClasses(),
+              attrs.getAnnotations(),
+              staticFields,
+              instanceFields,
+              directMethods,
+              virtualMethods,
+              dexItemFactory.getSkipNameValidationForTesting());
       classCollection.accept(clazz);  // Update the application object.
     }
   }

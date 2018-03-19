@@ -1083,8 +1083,8 @@ public class Outliner {
             DexEncodedField.EMPTY_ARRAY, // Static fields.
             DexEncodedField.EMPTY_ARRAY, // Instance fields.
             direct,
-            DexEncodedMethod.EMPTY_ARRAY // Virtual methods.
-            );
+            DexEncodedMethod.EMPTY_ARRAY, // Virtual methods.
+            options.itemFactory.getSkipNameValidationForTesting());
 
     return clazz;
   }

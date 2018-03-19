@@ -19,11 +19,11 @@ public class DexMethod extends Descriptor<DexEncodedMethod, DexMethod>
   // Caches used during processing.
   private Map<DexType, DexEncodedMethod> singleTargetCache;
 
-  DexMethod(DexType holder, DexProto proto, DexString name) {
+  DexMethod(DexType holder, DexProto proto, DexString name, boolean skipNameValidationForTesting) {
     this.holder = holder;
     this.proto = proto;
     this.name = name;
-    if (!name.isValidMethodName()) {
+    if (!skipNameValidationForTesting && !name.isValidMethodName()) {
       throw new CompilationError(
           "Method name '" + name.toASCIIString() + "' in class '" + holder.toSourceString() +
               "' cannot be represented in dex format.");

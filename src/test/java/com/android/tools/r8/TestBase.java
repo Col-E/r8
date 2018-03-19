@@ -54,7 +54,7 @@ import org.junit.rules.TemporaryFolder;
 public class TestBase {
 
   // Actually running Proguard should only be during development.
-  private boolean runProguard = System.getProperty("run_proguard") != null;
+  private static final boolean RUN_PROGUARD = System.getProperty("run_proguard") != null;
 
   @Rule
   public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
@@ -63,7 +63,7 @@ public class TestBase {
    * Check if tests should also run Proguard when applicable.
    */
   protected boolean isRunProguard() {
-    return runProguard;
+    return RUN_PROGUARD;
   }
 
   /**
