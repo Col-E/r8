@@ -4,11 +4,14 @@
 
 package com.android.tools.r8.desugaring.interfacemethods;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import com.android.tools.r8.AsmTestBase;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.VmTestRunner;
-import com.android.tools.r8.desugaring.interfacemethods.test0.InterfaceWithDefaults;
-import com.android.tools.r8.desugaring.interfacemethods.test0.TestMain;
+import com.android.tools.r8.VmTestRunner.IgnoreForRangeOfVmVersions;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -25,13 +28,35 @@ public class InterfaceMethodDesugaringTests extends AsmTestBase {
 
   @Test
   public void testInvokeSpecialToDefaultMethod() throws Exception {
-    ensureSameOutput(TestMain.class.getCanonicalName(),
+    ensureSameOutput(
+        com.android.tools.r8.desugaring.interfacemethods.test0.TestMain.class.getCanonicalName(),
         ToolHelper.getMinApiLevelForDexVm(),
-        ToolHelper.getClassAsBytes(TestMain.class),
-        introduceInvokeSpecial(ToolHelper.getClassAsBytes(InterfaceWithDefaults.class)));
+        ToolHelper.getClassAsBytes(
+            com.android.tools.r8.desugaring.interfacemethods.test0.TestMain.class),
+        introduceInvokeSpecial(ToolHelper.getClassAsBytes(
+            com.android.tools.r8.desugaring.interfacemethods.test0.InterfaceWithDefaults.class)));
+  }
+
+  // NOTE: this particular test is working on pre-N devices since
+  //       it's fixed by interface default method desugaring.
+  @IgnoreForRangeOfVmVersions(from = Version.V7_0_0, to = Version.DEFAULT)
+  @Test
+  public void testInvokeSpecialToDefaultMethodFromStatic() throws Exception {
+    ensureSameOutput(
+        com.android.tools.r8.desugaring.interfacemethods.test1.TestMain.class.getCanonicalName(),
+        ToolHelper.getMinApiLevelForDexVm(),
+        ToolHelper.getClassAsBytes(
+            com.android.tools.r8.desugaring.interfacemethods.test1.TestMain.class),
+        introduceInvokeSpecial(ToolHelper.getClassAsBytes(
+            com.android.tools.r8.desugaring.interfacemethods.test1.InterfaceWithDefaults.class)));
+  }
+
+  private class MutableBoolean {
+    boolean value;
   }
 
   private byte[] introduceInvokeSpecial(byte[] classBytes) throws IOException {
+    MutableBoolean patched = new MutableBoolean();
     try (InputStream input = new ByteArrayInputStream(classBytes)) {
       ClassReader cr = new ClassReader(input);
       ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
@@ -46,9 +71,11 @@ public class InterfaceMethodDesugaringTests extends AsmTestBase {
                 public void visitMethodInsn(
                     int opcode, String owner, String name, String desc, boolean itf) {
                   if (opcode == Opcodes.INVOKEINTERFACE &&
-                      owner.endsWith("test0/InterfaceWithDefaults") &&
+                      owner.endsWith("InterfaceWithDefaults") &&
                       name.equals("foo")) {
+                    assertFalse(patched.value);
                     super.visitMethodInsn(Opcodes.INVOKESPECIAL, owner, name, desc, itf);
+                    patched.value = true;
 
                   } else {
                     super.visitMethodInsn(opcode, owner, name, desc, itf);
@@ -57,6 +84,7 @@ public class InterfaceMethodDesugaringTests extends AsmTestBase {
               };
             }
           }, 0);
+      assertTrue(patched.value);
       return cw.toByteArray();
     }
   }

@@ -2,16 +2,16 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.desugaring.interfacemethods.test0;
+package com.android.tools.r8.desugaring.interfacemethods.test1;
 
 public interface InterfaceWithDefaults {
   default void foo() {
     System.out.println("InterfaceWithDefaults::foo()");
   }
 
-  default void bar() {
+  static void bar(InterfaceWithDefaults iface) {
     System.out.println("InterfaceWithDefaults::bar()");
-    this.foo();
+    iface.foo();
   }
 
   void test();
