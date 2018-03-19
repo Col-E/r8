@@ -2,11 +2,11 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package lambdas.kstyle.trivial.inner
+package lambdas_kstyle_trivial.inner
 
-import lambdas.kstyle.trivial.consumeEmpty
-import lambdas.kstyle.trivial.consumeOne
-import lambdas.kstyle.trivial.consumeTwo
+import lambdas_kstyle_trivial.consumeEmpty
+import lambdas_kstyle_trivial.consumeOne
+import lambdas_kstyle_trivial.consumeTwo
 
 fun testInner() {
     testInnerStateless()

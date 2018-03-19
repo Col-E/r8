@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package lambdas.kstyle.captures
+package lambdas_kstyle_captures
 
 fun consume(l: () -> String) = l()
 

@@ -2,9 +2,9 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package lambdas.kstyle.trivial
+package lambdas_kstyle_trivial
 
-import lambdas.kstyle.trivial.inner.testInner
+import lambdas_kstyle_trivial.inner.testInner
 
 private var COUNT = 11
 

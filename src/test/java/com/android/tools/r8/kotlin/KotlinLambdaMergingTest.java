@@ -251,10 +251,10 @@ public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void testTrivialKs() throws Exception {
-    final String mainClassName = "lambdas.kstyle.trivial.MainKt";
+    final String mainClassName = "lambdas_kstyle_trivial.MainKt";
     runTest("lambdas_kstyle_trivial", mainClassName, null, (app) -> {
       Verifier verifier = new Verifier(app);
-      String pkg = "lambdas/kstyle/trivial";
+      String pkg = "lambdas_kstyle_trivial";
 
       verifier.assertLambdaGroups(
           allowAccessModification ?
@@ -292,10 +292,10 @@ public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void testCapturesKs() throws Exception {
-    final String mainClassName = "lambdas.kstyle.captures.MainKt";
+    final String mainClassName = "lambdas_kstyle_captures.MainKt";
     runTest("lambdas_kstyle_captures", mainClassName, null, (app) -> {
       Verifier verifier = new Verifier(app);
-      String pkg = "lambdas/kstyle/captures";
+      String pkg = "lambdas_kstyle_captures";
       String grpPkg = allowAccessModification ? "" : pkg;
 
       verifier.assertLambdaGroups(
@@ -317,10 +317,10 @@ public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void testGenericsNoSignatureKs() throws Exception {
-    final String mainClassName = "lambdas.kstyle.generics.MainKt";
+    final String mainClassName = "lambdas_kstyle_generics.MainKt";
     runTest("lambdas_kstyle_generics", mainClassName, null, (app) -> {
       Verifier verifier = new Verifier(app);
-      String pkg = "lambdas/kstyle/generics";
+      String pkg = "lambdas_kstyle_generics";
       String grpPkg = allowAccessModification ? "" : pkg;
 
       verifier.assertLambdaGroups(
@@ -338,10 +338,10 @@ public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void testInnerClassesAndEnclosingMethodsKs() throws Exception {
-    final String mainClassName = "lambdas.kstyle.generics.MainKt";
+    final String mainClassName = "lambdas_kstyle_generics.MainKt";
     runTest("lambdas_kstyle_generics", mainClassName, KEEP_INNER_AND_ENCLOSING, (app) -> {
       Verifier verifier = new Verifier(app);
-      String pkg = "lambdas/kstyle/generics";
+      String pkg = "lambdas_kstyle_generics";
       String grpPkg = allowAccessModification ? "" : pkg;
 
       verifier.assertLambdaGroups(
@@ -361,10 +361,10 @@ public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void testGenericsSignatureInnerEnclosingKs() throws Exception {
-    final String mainClassName = "lambdas.kstyle.generics.MainKt";
+    final String mainClassName = "lambdas_kstyle_generics.MainKt";
     runTest("lambdas_kstyle_generics", mainClassName, KEEP_SIGNATURE_INNER_ENCLOSING, (app) -> {
       Verifier verifier = new Verifier(app);
-      String pkg = "lambdas/kstyle/generics";
+      String pkg = "lambdas_kstyle_generics";
       String grpPkg = allowAccessModification ? "" : pkg;
 
       verifier.assertLambdaGroups(
@@ -386,17 +386,17 @@ public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void testTrivialJs() throws Exception {
-    final String mainClassName = "lambdas.jstyle.trivial.MainKt";
+    final String mainClassName = "lambdas_jstyle_trivial.MainKt";
     runTest("lambdas_jstyle_trivial", mainClassName, null, (app) -> {
       Verifier verifier = new Verifier(app);
-      String pkg = "lambdas/jstyle/trivial";
+      String pkg = "lambdas_jstyle_trivial";
       String grp = allowAccessModification ? "" : pkg;
 
-      String supplier = "Lambdas$Supplier";
-      String intSupplier = "Lambdas$IntSupplier";
-      String consumer = "Lambdas$Consumer";
-      String intConsumer = "Lambdas$IntConsumer";
-      String multiFunction = "Lambdas$MultiFunction";
+      String supplier = "lambdas_jstyle_trivial.Lambdas$Supplier";
+      String intSupplier = "lambdas_jstyle_trivial.Lambdas$IntSupplier";
+      String consumer = "lambdas_jstyle_trivial.Lambdas$Consumer";
+      String intConsumer = "lambdas_jstyle_trivial.Lambdas$IntConsumer";
+      String multiFunction = "lambdas_jstyle_trivial.Lambdas$MultiFunction";
 
       verifier.assertLambdaGroups(
           jstyle(grp, 0, intSupplier, 2),
@@ -434,10 +434,10 @@ public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void testSingleton() throws Exception {
-    final String mainClassName = "lambdas.singleton.MainKt";
+    final String mainClassName = "lambdas_singleton.MainKt";
     runTest("lambdas_singleton", mainClassName, null, (app) -> {
       Verifier verifier = new Verifier(app);
-      String pkg = "lambdas/singleton";
+      String pkg = "lambdas_singleton";
       String grp = allowAccessModification ? "" : pkg;
 
       verifier.assertLambdaGroups(
