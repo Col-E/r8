@@ -1930,6 +1930,11 @@ public class JctfTestSpecifications {
           // 1) t03
           // java.lang.AssertionError: reference is not enqueued after 2 sec
 
+          .put("lang.ref.WeakReference.enqueue.WeakReference_enqueue_A01",
+              match(D8_COMPILER, runtimesUpTo(Version.V4_4_4)))
+          // 1) t03
+          // java.lang.IndexOutOfBoundsException: Invalid index 0, size is 0
+
           .put("lang.StackTraceElement.toString.StackTraceElement_toString_A01",
               match(runtimes(Version.DEFAULT)))
           // 1) t03
