@@ -58,6 +58,8 @@ public class InterfaceMethodTest extends DebugTestBase {
     // TODO(shertz) we should see the local variable this even when desugaring.
     if (supportsDefaultMethod(config)) {
       commands.add(checkLocal("this"));
+    } else {
+      commands.add(checkLocal("-this"));
     }
     commands.add(checkLocal(parameterName));
     commands.add(stepOver(INTELLIJ_FILTER));
