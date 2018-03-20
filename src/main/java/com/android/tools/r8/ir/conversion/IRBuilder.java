@@ -327,7 +327,8 @@ public class IRBuilder {
     targets.put(INITIAL_BLOCK_OFFSET, new BlockInfo());
 
     // Process reachable code paths starting from instruction 0.
-    processedInstructions = new boolean[source.instructionCount()];
+    int instCount = source.instructionCount();
+    processedInstructions = new boolean[instCount];
     traceBlocksWorklist.add(0);
     while (!traceBlocksWorklist.isEmpty()) {
       int startOfBlockOffset = traceBlocksWorklist.remove();
@@ -337,17 +338,17 @@ public class IRBuilder {
         continue;
       }
       // Process each instruction until the block is closed.
-      for (int index = startOfBlockIndex; index < source.instructionCount(); ++index) {
+      for (int index = startOfBlockIndex; index < instCount; ++index) {
         markIndexProcessed(index);
         int closedAt = source.traceInstruction(index, this);
         if (closedAt != -1) {
-          if (closedAt + 1 < source.instructionCount()) {
+          if (closedAt + 1 < instCount) {
             ensureBlockWithoutEnqueuing(source.instructionOffset(closedAt + 1));
           }
           break;
         }
         // If the next instruction starts a block, fall through to it.
-        if (index + 1 < source.instructionCount()) {
+        if (index + 1 < instCount) {
           int nextOffset = source.instructionOffset(index + 1);
           if (targets.get(nextOffset) != null) {
             ensureNormalSuccessorBlock(startOfBlockOffset, nextOffset);
@@ -491,7 +492,8 @@ public class IRBuilder {
         continue;
       }
       // Build IR for each dex instruction in the block.
-      for (int i = item.firstInstructionIndex; i < source.instructionCount(); ++i) {
+      int instCount = source.instructionCount();
+      for (int i = item.firstInstructionIndex; i < instCount; ++i) {
         if (currentBlock == null) {
           break;
         }
