@@ -2,11 +2,11 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package lambdas.jstyle.trivial.inner
+package lambdas_jstyle_trivial.inner
 
-import Lambdas
-import lambdas.jstyle.trivial.next
-import lambdas.jstyle.trivial.nextInt
+import lambdas_jstyle_trivial.Lambdas
+import lambdas_jstyle_trivial.next
+import lambdas_jstyle_trivial.nextInt
 
 fun testInner() {
     testInner1(nextInt(), nextInt(), nextInt(), nextInt())

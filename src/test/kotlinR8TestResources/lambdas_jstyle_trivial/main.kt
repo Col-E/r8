@@ -2,10 +2,10 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package lambdas.jstyle.trivial
+package lambdas_jstyle_trivial
 
-import Lambdas
-import lambdas.jstyle.trivial.inner.testInner
+import lambdas_jstyle_trivial.Lambdas
+import lambdas_jstyle_trivial.inner.testInner
 
 private var COUNT = 0
 
