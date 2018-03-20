@@ -91,7 +91,7 @@ import java.util.stream.Stream;
 @Deprecated
 final public class ResourceShrinker {
 
-  final static class Command extends BaseCommand {
+  public final static class Command extends BaseCommand {
 
     Command(AndroidApp app) {
       super(app);
@@ -103,7 +103,7 @@ final public class ResourceShrinker {
     }
   }
 
-  final public static class Builder extends BaseCommand.Builder<Command, Builder> {
+  public final static class Builder extends BaseCommand.Builder<Command, Builder> {
 
     @Override
     Builder self() {
@@ -120,7 +120,7 @@ final public class ResourceShrinker {
    * Classes that would like to process data relevant to resource shrinking should implement this
    * interface.
    */
-  interface ReferenceChecker {
+  public interface ReferenceChecker {
 
     /**
      * Returns if the class with specified internal name should be processed. Typically,
