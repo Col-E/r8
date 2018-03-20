@@ -1907,11 +1907,6 @@ public class JctfTestSpecifications {
           // 1) t03
           // java.lang.AssertionError: expected null, but was:<[I@e2603b4>
 
-          .put("lang.ref.SoftReference.enqueue.SoftReference_enqueue_A01",
-                  match(runtimesUpTo(Version.V4_4_4)))
-          // 1) t03(com.google.jctf.test.lib.java.lang.ref.SoftReference.enqueue.SoftReference_enqueue_A01)
-          // java.lang.IndexOutOfBoundsException: Invalid index 0, size is 0
-
           .put("lang.ref.ReferenceQueue.poll.ReferenceQueue_poll_A01",
               match(runtimes(Version.DEFAULT, Version.V7_0_0, Version.V6_0_1, Version.V5_1_1)))
           // 1) t03
@@ -1929,11 +1924,6 @@ public class JctfTestSpecifications {
               match(runtimes(Version.DEFAULT, Version.V7_0_0, Version.V6_0_1, Version.V5_1_1)))
           // 1) t03
           // java.lang.AssertionError: reference is not enqueued after 2 sec
-
-          .put("lang.ref.WeakReference.enqueue.WeakReference_enqueue_A01",
-              match(D8_COMPILER, runtimesUpTo(Version.V4_4_4)))
-          // 1) t03
-          // java.lang.IndexOutOfBoundsException: Invalid index 0, size is 0
 
           .put("lang.StackTraceElement.toString.StackTraceElement_toString_A01",
               match(runtimes(Version.DEFAULT)))
@@ -4968,11 +4958,23 @@ public class JctfTestSpecifications {
 
           .put("lang.ref.PhantomReference.isEnqueued.PhantomReference_isEnqueued_A01",
               match(runtimesUpTo(Version.V4_4_4)))
+
           .put("lang.ref.WeakReference.isEnqueued.WeakReference_isEnqueued_A01",
               match(runtimesUpTo(Version.V4_4_4)))
+
+          .put("lang.ref.WeakReference.enqueue.WeakReference_enqueue_A01",
+              match(runtimesUpTo(Version.V4_4_4)))
+          // 1) t03
+          // java.lang.IndexOutOfBoundsException: Invalid index 0, size is 0
+
           .put("lang.ref.SoftReference.isEnqueued.SoftReference_isEnqueued_A01",
               match(runtimesUpTo(Version.V4_4_4)))
           // Passes or fails randomly. Check that something is enqueued after 2 seconds.
+
+          .put("lang.ref.SoftReference.enqueue.SoftReference_enqueue_A01",
+              match(runtimesUpTo(Version.V4_4_4)))
+          // 1) t03(com.google.jctf.test.lib.java.lang.ref.SoftReference.enqueue.SoftReference_enqueue_A01)
+          // java.lang.IndexOutOfBoundsException: Invalid index 0, size is 0
 
           .put("lang.ref.ReferenceQueue.poll.ReferenceQueue_poll_A01",
               match(runtimesUpTo(Version.V4_4_4)))
