@@ -112,8 +112,6 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
 
   @Override
   public void collectIndexedItems(IndexedItemCollection indexedItems) {
-    assert getEnclosingMethod() == null;
-    assert getInnerClasses().isEmpty();
     if (indexedItems.addClass(this)) {
       type.collectIndexedItems(indexedItems);
       if (superType != null) {
@@ -129,6 +127,12 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
       }
       if (interfaces != null) {
         interfaces.collectIndexedItems(indexedItems);
+      }
+      if (getEnclosingMethod() != null) {
+        getEnclosingMethod().collectIndexedItems(indexedItems);
+      }
+      for (InnerClassAttribute attribute : getInnerClasses()) {
+        attribute.collectIndexedItems(indexedItems);
       }
       synchronizedCollectAll(indexedItems, staticFields);
       synchronizedCollectAll(indexedItems, instanceFields);

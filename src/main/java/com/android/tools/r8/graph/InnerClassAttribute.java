@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.dex.IndexedItemCollection;
 import org.objectweb.asm.ClassWriter;
 
 /** Representation of an entry in the Java InnerClasses attribute table. */
@@ -64,5 +65,15 @@ public class InnerClassAttribute {
         outer == null ? null : outer.getInternalName(),
         innerName == null ? null : innerName.toString(),
         access);
+  }
+
+  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+    inner.collectIndexedItems(indexedItems);
+    if (outer != null) {
+      outer.collectIndexedItems(indexedItems);
+    }
+    if (innerName != null) {
+      innerName.collectIndexedItems(indexedItems);
+    }
   }
 }
