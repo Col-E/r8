@@ -103,6 +103,6 @@ public class InvokeInterface extends InvokeMethodWithReceiver {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfInvoke(Opcodes.INVOKEINTERFACE, getInvokedMethod()));
+    builder.add(new CfInvoke(Opcodes.INVOKEINTERFACE, getInvokedMethod(), true));
   }
 }

@@ -107,8 +107,6 @@ public class R8CFRunExamplesJava9Test extends RunExamplesJava9Test<R8Command.Bui
 
   private static List<String> expectedFailures =
       ImmutableList.of(
-          "native-private-interface-methods",
-          "desugared-private-interface-methods"
       );
 
   private boolean expectedToFailCf(String testName) {

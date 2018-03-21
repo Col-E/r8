@@ -22,8 +22,15 @@ import org.objectweb.asm.Opcodes;
 
 public class InvokeStatic extends InvokeMethod {
 
+  private final boolean itf;
+
   public InvokeStatic(DexMethod target, Value result, List<Value> arguments) {
+    this(target, result, arguments, false);
+  }
+
+  public InvokeStatic(DexMethod target, Value result, List<Value> arguments, boolean itf) {
     super(target, result, arguments);
+    this.itf = itf;
   }
 
   @Override
@@ -109,7 +116,7 @@ public class InvokeStatic extends InvokeMethod {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfInvoke(Opcodes.INVOKESTATIC, getInvokedMethod()));
+    builder.add(new CfInvoke(Opcodes.INVOKESTATIC, getInvokedMethod(), itf));
   }
 
   @Override

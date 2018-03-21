@@ -39,15 +39,20 @@ public abstract class Invoke extends Instruction {
 
   public static Invoke create(
       Type type, DexItem target, DexProto proto, Value result, List<Value> arguments) {
+    return create(type, target, proto, result, arguments, false);
+  }
+
+  public static Invoke create(
+      Type type, DexItem target, DexProto proto, Value result, List<Value> arguments, boolean itf) {
     switch (type) {
       case DIRECT:
-        return new InvokeDirect((DexMethod) target, result, arguments);
+        return new InvokeDirect((DexMethod) target, result, arguments, itf);
       case INTERFACE:
         return new InvokeInterface((DexMethod) target, result, arguments);
       case STATIC:
-        return new InvokeStatic((DexMethod) target, result, arguments);
+        return new InvokeStatic((DexMethod) target, result, arguments, itf);
       case SUPER:
-        return new InvokeSuper((DexMethod) target, result, arguments);
+        return new InvokeSuper((DexMethod) target, result, arguments, itf);
       case VIRTUAL:
         return new InvokeVirtual((DexMethod) target, result, arguments);
       case NEW_ARRAY:

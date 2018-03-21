@@ -12,11 +12,15 @@ public class CfInvoke extends CfInstruction {
 
   private final DexMethod method;
   private final int opcode;
+  private final boolean itf;
 
-  public CfInvoke(int opcode, DexMethod method) {
+  public CfInvoke(int opcode, DexMethod method, boolean itf) {
     assert Opcodes.INVOKEVIRTUAL <= opcode && opcode <= Opcodes.INVOKEINTERFACE;
+    assert !(opcode == Opcodes.INVOKEVIRTUAL && itf) : "InvokeVirtual on interface type";
+    assert !(opcode == Opcodes.INVOKEINTERFACE && !itf) : "InvokeInterface on class type";
     this.opcode = opcode;
     this.method = method;
+    this.itf = itf;
   }
 
   public DexMethod getMethod() {
@@ -32,8 +36,7 @@ public class CfInvoke extends CfInstruction {
     String owner = method.getHolder().getInternalName();
     String name = method.name.toString();
     String desc = method.proto.toDescriptorString();
-    boolean isInterface = opcode == Opcodes.INVOKEINTERFACE;
-    visitor.visitMethodInsn(opcode, owner, name, desc, isInterface);
+    visitor.visitMethodInsn(opcode, owner, name, desc, itf);
   }
 
   @Override

@@ -22,8 +22,11 @@ import org.objectweb.asm.Opcodes;
 
 public class InvokeSuper extends InvokeMethodWithReceiver {
 
-  public InvokeSuper(DexMethod target, Value result, List<Value> arguments) {
+  public final boolean itf;
+
+  public InvokeSuper(DexMethod target, Value result, List<Value> arguments, boolean itf) {
     super(target, result, arguments);
+    this.itf = itf;
   }
 
   @Override
@@ -76,7 +79,7 @@ public class InvokeSuper extends InvokeMethodWithReceiver {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfInvoke(Opcodes.INVOKESPECIAL, getInvokedMethod()));
+    builder.add(new CfInvoke(Opcodes.INVOKESPECIAL, getInvokedMethod(), itf));
   }
 
   @Override
