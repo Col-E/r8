@@ -1838,8 +1838,17 @@ public class CodeRewriter {
 
   private static class CSEExpressionEquivalence extends Equivalence<Instruction> {
 
+    private final IRCode code;
+
+    private CSEExpressionEquivalence(IRCode code) {
+      this.code = code;
+    }
+
     @Override
     protected boolean doEquivalent(Instruction a, Instruction b) {
+      if (a.isCmp() && code.options.canHaveCmpLongBug()) {
+        return false;
+      }
       // Note that we don't consider positions because CSE can at most remove an instruction.
       if (a.getClass() != b.getClass() || !a.identicalNonValueNonPositionParts(b)) {
         return false;
@@ -1923,7 +1932,7 @@ public class CodeRewriter {
   public void commonSubexpressionElimination(IRCode code) {
     final ListMultimap<Wrapper<Instruction>, Value> instructionToValue = ArrayListMultimap.create();
     final DominatorTree dominatorTree = new DominatorTree(code);
-    final CSEExpressionEquivalence equivalence = new CSEExpressionEquivalence();
+    final CSEExpressionEquivalence equivalence = new CSEExpressionEquivalence(code);
 
     for (int i = 0; i < dominatorTree.getSortedBlocks().length; i++) {
       BasicBlock block = dominatorTree.getSortedBlocks()[i];

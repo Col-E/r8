@@ -45,7 +45,7 @@ public class IRCode {
 
   public final boolean hasDebugPositions;
 
-  private final InternalOptions options;
+  public final InternalOptions options;
 
   public IRCode(
       InternalOptions options,
