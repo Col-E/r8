@@ -242,7 +242,20 @@ public class BasicBlock {
         if (indexOfNewBlock >= successors.size() - 2 && indexOfOldBlock >= successors.size() - 2) {
           // New and old are true target and fallthrough, replace last instruction with a goto.
           Instruction instruction = getInstructions().removeLast();
-          for (Value value : instruction.inValues()) {
+          // Iterate in reverse order to ensure that POP instructions are inserted in correct order.
+          for (int i = instruction.inValues().size() - 1; i >= 0; i--) {
+            Value value = instruction.inValues().get(i);
+            if (value instanceof StackValue) {
+              if (value.definition.isLoad()) {
+                assert value.definition.getBlock() == this;
+                removeInstruction(value.definition);
+              } else {
+                Pop pop = new Pop((StackValue) value);
+                pop.setBlock(this);
+                pop.setPosition(instruction.getPosition());
+                getInstructions().addLast(pop);
+              }
+            }
             if (value.hasUsersInfo()) {
               value.removeUser(instruction);
             }
