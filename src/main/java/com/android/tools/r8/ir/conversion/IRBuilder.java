@@ -997,7 +997,8 @@ public class IRBuilder {
     add(instruction);
   }
 
-  public void addInvoke(Type type, DexItem item, DexProto callSiteProto, List<Value> arguments)
+  public void addInvoke(
+      Type type, DexItem item, DexProto callSiteProto, List<Value> arguments, boolean itf)
       throws ApiLevelException {
     if (type == Invoke.Type.POLYMORPHIC) {
       assert item instanceof DexMethod;
@@ -1014,7 +1015,12 @@ public class IRBuilder {
             null /* sourceString */);
       }
     }
-    add(Invoke.create(type, item, callSiteProto, null, arguments));
+    add(Invoke.create(type, item, callSiteProto, null, arguments, itf));
+  }
+
+  public void addInvoke(Type type, DexItem item, DexProto callSiteProto, List<Value> arguments)
+      throws ApiLevelException {
+    addInvoke(type, item, callSiteProto, arguments, false);
   }
 
   public void addInvoke(
@@ -1024,12 +1030,23 @@ public class IRBuilder {
       List<ValueType> types,
       List<Integer> registers)
       throws ApiLevelException {
+    addInvoke(type, item, callSiteProto, types, registers, false);
+  }
+
+  public void addInvoke(
+      Invoke.Type type,
+      DexItem item,
+      DexProto callSiteProto,
+      List<ValueType> types,
+      List<Integer> registers,
+      boolean itf)
+      throws ApiLevelException {
     assert types.size() == registers.size();
     List<Value> arguments = new ArrayList<>(types.size());
     for (int i = 0; i < types.size(); i++) {
       arguments.add(readRegister(registers.get(i), types.get(i)));
     }
-    addInvoke(type, item, callSiteProto, arguments);
+    addInvoke(type, item, callSiteProto, arguments, itf);
   }
 
   public void addInvokeCustomRegisters(

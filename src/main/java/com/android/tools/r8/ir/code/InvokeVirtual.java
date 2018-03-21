@@ -103,6 +103,6 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfInvoke(Opcodes.INVOKEVIRTUAL, getInvokedMethod()));
+    builder.add(new CfInvoke(Opcodes.INVOKEVIRTUAL, getInvokedMethod(), false));
   }
 }

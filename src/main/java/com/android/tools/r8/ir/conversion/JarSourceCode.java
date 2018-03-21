@@ -2606,7 +2606,7 @@ public class JarSourceCode implements SourceCode {
             }
             callSiteProto = application.getProto(insn.desc);
           }
-          builder.addInvoke(invokeType, targetMethod, callSiteProto, types, registers);
+          builder.addInvoke(invokeType, targetMethod, callSiteProto, types, registers, insn.itf);
         });
   }
 
