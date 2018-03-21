@@ -16,7 +16,6 @@ import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.Collections;
 import java.util.List;
-import java.util.function.Consumer;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 
@@ -171,15 +170,17 @@ public class CfCode extends Code {
   }
 
   @Override
-  public void registerInstructionsReferences(UseRegistry registry) {
+  public void registerCodeReferences(UseRegistry registry) {
     for (CfInstruction instruction : instructions) {
       instruction.registerUse(registry, method.holder);
     }
-  }
-
-  @Override
-  public void registerCaughtTypes(Consumer<DexType> dexTypeConsumer) {
-    throw new Unimplemented("Inspecting Java class-file bytecode not yet supported");
+    for (CfTryCatch tryCatch : tryCatchRanges) {
+      for (DexType guard : tryCatch.guards) {
+        if (guard != DexItemFactory.catchAllType) {
+          registry.registerTypeReference(guard);
+        }
+      }
+    }
   }
 
   @Override

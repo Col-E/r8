@@ -8,7 +8,6 @@ import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.conversion.IRBuilder;
@@ -48,15 +47,8 @@ public final class SynthesizedCode extends Code {
   }
 
   @Override
-  public void registerInstructionsReferences(UseRegistry registry) {
+  public void registerCodeReferences(UseRegistry registry) {
     registryCallback.accept(registry);
-  }
-
-  @Override
-  public void registerCaughtTypes(Consumer<DexType> dexTypeConsumer) {
-    // Support for synthesized code with catch handler is not implemented.
-    // Let's check that we're in a well known where no catch handler is possible.
-    assert sourceCode.instructionCount() == 1 || sourceCode instanceof SyntheticSourceCode;
   }
 
   @Override

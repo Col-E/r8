@@ -62,7 +62,6 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.function.Consumer;
 
 public class Outliner {
 
@@ -1010,12 +1009,7 @@ public class Outliner {
     }
 
     @Override
-    public void registerInstructionsReferences(UseRegistry registry) {
-      throw new Unreachable();
-    }
-
-    @Override
-    public void registerCaughtTypes(Consumer<DexType> dexTypeConsumer) {
+    public void registerCodeReferences(UseRegistry registry) {
       throw new Unreachable();
     }
 

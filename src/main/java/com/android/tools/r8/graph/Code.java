@@ -13,7 +13,6 @@ import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.optimize.Outliner.OutlineCode;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.InternalOptions;
-import java.util.function.Consumer;
 
 public abstract class Code extends CachedHashValueDexItem {
 
@@ -30,9 +29,7 @@ public abstract class Code extends CachedHashValueDexItem {
         + getClass().getCanonicalName());
   }
 
-  public abstract void registerInstructionsReferences(UseRegistry registry);
-
-  public abstract void registerCaughtTypes(Consumer<DexType> dexTypeConsumer);
+  public abstract void registerCodeReferences(UseRegistry registry);
 
   @Override
   public abstract String toString();
