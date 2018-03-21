@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.dex.IndexedItemCollection;
 import org.objectweb.asm.ClassWriter;
 
 /**
@@ -60,5 +61,14 @@ public final class EnclosingMethodAttribute {
     return obj instanceof EnclosingMethodAttribute &&
         enclosingClass == ((EnclosingMethodAttribute) obj).enclosingClass &&
         enclosingMethod == ((EnclosingMethodAttribute) obj).enclosingMethod;
+  }
+
+  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+    if (enclosingClass != null) {
+      enclosingClass.collectIndexedItems(indexedItems);
+    }
+    if (enclosingMethod != null) {
+      enclosingMethod.collectIndexedItems(indexedItems);
+    }
   }
 }
