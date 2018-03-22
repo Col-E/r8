@@ -1453,6 +1453,7 @@ test {
         dependsOn jctfTestsClasses
         dependsOn buildDebugInfoExamplesDex
         dependsOn buildPreNJdwpTestsJar
+        dependsOn buildPreNJdwpTestsDex
     } else {
         logger.lifecycle("WARNING: Testing in not supported on your platform. Testing is only fully supported on " +
             "Linux and partially supported on Mac OS and Windows. Art does not run on other platforms.")
