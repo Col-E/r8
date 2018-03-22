@@ -18,12 +18,16 @@ import com.android.tools.r8.utils.InternalOptions;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.commons.JSRInlinerAdapter;
+import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.LabelNode;
+import org.objectweb.asm.tree.LineNumberNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.util.Textifier;
 import org.objectweb.asm.util.TraceMethodVisitor;
@@ -95,6 +99,19 @@ public class JarCode extends Code {
       return node.equals(o.node);
     }
     return false;
+  }
+
+  @Override
+  public boolean isEmptyVoidMethod() {
+    for (Iterator<AbstractInsnNode> it = getNode().instructions.iterator(); it.hasNext(); ) {
+      AbstractInsnNode insn = it.next();
+      if (insn.getType() != Opcodes.RETURN
+          && !(insn instanceof LabelNode)
+          && !(insn instanceof LineNumberNode)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   @Override

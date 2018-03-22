@@ -50,16 +50,20 @@ public class SourceFileRewriter {
         if (code == null) {
           return;
         }
-        assert code.isDexCode();
-        DexDebugInfo dexDebugInfo = code.asDexCode().getDebugInfo();
-        if (dexDebugInfo == null) {
-          return;
+        if (code.isDexCode()) {
+          DexDebugInfo dexDebugInfo = code.asDexCode().getDebugInfo();
+          if (dexDebugInfo == null) {
+            return;
+          }
+          // Thanks to a single global source file, we can safely remove DBG_SET_FILE entirely.
+          dexDebugInfo.events =
+              Arrays.stream(dexDebugInfo.events)
+                  .filter(dexDebugEvent -> !(dexDebugEvent instanceof SetFile))
+                  .toArray(DexDebugEvent[]::new);
+        } else {
+          assert code.isCfCode();
+          // CF has nothing equivalent to SetFile, so there is nothing to remove.
         }
-        // Thanks to a single global source file, we can safely remove DBG_SET_FILE entirely.
-        dexDebugInfo.events =
-            Arrays.stream(dexDebugInfo.events)
-                .filter(dexDebugEvent -> !(dexDebugEvent instanceof SetFile))
-                .toArray(DexDebugEvent[]::new);
       });
     }
   }

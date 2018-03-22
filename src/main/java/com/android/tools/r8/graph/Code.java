@@ -81,4 +81,6 @@ public abstract class Code extends CachedHashValueDexItem {
   void collectMixedSectionItems(MixedSectionCollection collection) {
     throw new Unreachable();
   }
+
+  public abstract boolean isEmptyVoidMethod();
 }

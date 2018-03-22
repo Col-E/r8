@@ -10,6 +10,8 @@ import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase.MinifyMode;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
+import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -57,8 +59,7 @@ import org.junit.runners.Parameterized.Parameters;
 public class TreeShakingTest {
 
   private static final Path ANDROID_JAR = ToolHelper.getDefaultAndroidJar();
-  private static final List<Path> JAR_LIBRARIES = ImmutableList
-      .of(ANDROID_JAR, Paths.get(ToolHelper.EXAMPLES_BUILD_DIR + "shakinglib.jar"));
+  private final List<Path> JAR_LIBRARIES;
   private static final String EMPTY_FLAGS = "src/test/proguard/valid/empty.flags";
   private static final Set<String> IGNORED_FLAGS = ImmutableSet.of(
       "examples/minification:conflict-mapping.txt",
@@ -66,33 +67,35 @@ public class TreeShakingTest {
   );
   private static final Set<String> IGNORED = ImmutableSet.of(
       // there's no point in running those without obfuscation
-      "examples/shaking1:keep-rules-repackaging.txt:DEX:NONE",
-      "examples/shaking1:keep-rules-repackaging.txt:JAR:NONE",
-      "examples/shaking16:keep-rules-1.txt:DEX:NONE",
-      "examples/shaking16:keep-rules-1.txt:JAR:NONE",
-      "examples/shaking16:keep-rules-2.txt:DEX:NONE",
-      "examples/shaking16:keep-rules-2.txt:JAR:NONE",
-      "examples/shaking15:keep-rules.txt:DEX:NONE",
-      "examples/shaking15:keep-rules.txt:JAR:NONE",
-      "examples/minifygeneric:keep-rules.txt:DEX:NONE",
-      "examples/minifygeneric:keep-rules.txt:JAR:NONE",
-      "examples/minifygenericwithinner:keep-rules.txt:DEX:NONE",
-      "examples/minifygenericwithinner:keep-rules.txt:JAR:NONE",
+      "examples/shaking1:keep-rules-repackaging.txt:*:NONE",
+      "examples/shaking16:keep-rules-1.txt:*:NONE",
+      "examples/shaking16:keep-rules-2.txt:*:NONE",
+      "examples/shaking15:keep-rules.txt:*:NONE",
+      "examples/minifygeneric:keep-rules.txt:*:NONE",
+      "examples/minifygenericwithinner:keep-rules.txt:*:NONE",
       // No prebuild DEX files for AndroidN
-      "examplesAndroidN/shaking:keep-rules.txt:DEX:NONE",
-      "examplesAndroidN/shaking:keep-rules.txt:DEX:JAVA",
-      "examplesAndroidN/shaking:keep-rules.txt:DEX:AGGRESSIVE"
+      "examplesAndroidN/shaking:keep-rules.txt:DEX:DEX:*",
+      // TODO(b/75997473): No inlining in R8/CF yet
+      "examples/inlining:keep-rules-discard.txt:JAR:CF:*",
+      "examples/inlining:keep-rules.txt:JAR:CF:*"
   );
 
   private static Set<String> SKIPPED = Collections.emptySet();
 
   private final MinifyMode minify;
+  private Path proguardMap;
+  private Path out;
 
   private enum Frontend {
     DEX, JAR
-
   }
-  private final Frontend kind;
+
+  private enum Backend {
+    DEX, CF
+  }
+
+  private final Frontend frontend;
+  private final Backend backend;
   private final String originalDex;
   private final String programFile;
   private final String mainClass;
@@ -105,13 +108,14 @@ public class TreeShakingTest {
   @Rule
   public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
-  public TreeShakingTest(String test, Frontend kind, String mainClass, List<String> keepRulesFiles,
-      MinifyMode minify, Consumer<DexInspector> inspection,
+  public TreeShakingTest(String test, Frontend frontend, Backend backend, String mainClass,
+      List<String> keepRulesFiles, MinifyMode minify, Consumer<DexInspector> inspection,
       BiConsumer<String, String> outputComparator,
       BiConsumer<DexInspector, DexInspector> dexComparator) {
-    this.kind = kind;
+    this.frontend = frontend;
+    this.backend = backend;
     originalDex = ToolHelper.TESTS_BUILD_DIR + test + "/classes.dex";
-    if (kind == Frontend.DEX) {
+    if (frontend == Frontend.DEX) {
       this.programFile = originalDex;
     } else {
       this.programFile = ToolHelper.TESTS_BUILD_DIR + test + ".jar";
@@ -122,12 +126,23 @@ public class TreeShakingTest {
     this.minify = minify;
     this.outputComparator = outputComparator;
     this.dexComparator = dexComparator;
+    if (backend == Backend.CF) {
+      JAR_LIBRARIES =
+          ImmutableList.of(
+              Paths.get(ToolHelper.JAVA_8_RUNTIME),
+              Paths.get(ToolHelper.EXAMPLES_BUILD_DIR + "shakinglib.jar"));
+    } else {
+      JAR_LIBRARIES =
+          ImmutableList.of(
+              ANDROID_JAR, Paths.get(ToolHelper.EXAMPLES_BUILD_DIR + "shakinglib.jar"));
+    }
   }
 
   @Before
   public void generateTreeShakedVersion() throws Exception {
+    out = temp.getRoot().toPath().resolve("out.zip");
+    proguardMap = temp.getRoot().toPath().resolve(DEFAULT_PROGUARD_MAP_FILE);
     // Generate R8 processed version without library option.
-    Path out = temp.getRoot().toPath();
     boolean inline = programFile.contains("inlining");
 
     R8Command.Builder builder =
@@ -135,15 +150,24 @@ public class TreeShakingTest {
                 R8Command.builder(),
                 pgConfig -> {
                   pgConfig.setPrintMapping(true);
-                  pgConfig.setPrintMappingFile(out.resolve(ToolHelper.DEFAULT_PROGUARD_MAP_FILE));
+                  pgConfig.setPrintMappingFile(proguardMap);
                   pgConfig.setOverloadAggressively(minify == MinifyMode.AGGRESSIVE);
                   if (!minify.isMinify()) {
                     pgConfig.disableObfuscation();
                   }
                 })
-            .setOutput(out, OutputMode.DexIndexed)
             .addProguardConfigurationFiles(ListUtils.map(keepRulesFiles, Paths::get))
             .addLibraryFiles(JAR_LIBRARIES);
+    switch (backend) {
+      case CF:
+        builder.setOutput(out, OutputMode.ClassFile);
+        break;
+      case DEX:
+        builder.setOutput(out, OutputMode.DexIndexed);
+        break;
+      default:
+        throw new Unreachable();
+    }
     ToolHelper.getAppBuilder(builder).addProgramFiles(Paths.get(programFile));
     ToolHelper.runR8(builder.build(), options -> options.enableInlining = inline);
   }
@@ -364,6 +388,10 @@ public class TreeShakingTest {
     ClassSubject mainClass = inspector.clazz("shaking13.Shaking");
     MethodSubject testMethod = mainClass.method("void", "fieldTest", Collections.emptyList());
     Assert.assertTrue(testMethod.isPresent());
+    if (testMethod.getMethod().getCode().isJarCode()) {
+      // TODO(mathiasr): Implement iterateInstructions() for JarCode/CfCode
+      return;
+    }
     Iterator<FieldAccessInstructionSubject> iterator =
         testMethod.iterateInstructions(InstructionSubject::isFieldAccess);
     Assert.assertTrue(iterator.hasNext() && iterator.next().holder().is("shakinglib.LibraryClass"));
@@ -617,7 +645,7 @@ public class TreeShakingTest {
         clazz.field(signature.type, signature.name).isPresent());
   }
 
-  @Parameters(name = "dex: {0} frontend: {1} keep: {3} minify: {4}")
+  @Parameters(name = "dex:{0} mode:{1}-{2} keep:{4} minify:{5}")
   public static Collection<Object[]> data() {
     List<String> tests = Arrays
         .asList(
@@ -837,21 +865,38 @@ public class TreeShakingTest {
       return;
     }
     for (MinifyMode mode : MinifyMode.values()) {
-      addTestCase(testCases, test, Frontend.JAR, mainClass, keepName, keepList, mode, inspection,
-          outputComparator, dexComparator);
-      addTestCase(testCases, test, Frontend.DEX, mainClass, keepName, keepList, mode, inspection,
-          outputComparator, dexComparator);
+      addTestCase(testCases, test, Frontend.JAR, Backend.CF, mainClass, keepName, keepList, mode,
+          inspection, outputComparator, dexComparator);
+      addTestCase(testCases, test, Frontend.JAR, Backend.DEX, mainClass, keepName, keepList, mode,
+          inspection, outputComparator, dexComparator);
+      addTestCase(testCases, test, Frontend.DEX, Backend.DEX, mainClass, keepName, keepList, mode,
+          inspection, outputComparator, dexComparator);
     }
   }
 
-  private static void addTestCase(List<Object[]> testCases, String test, Frontend kind,
-      String mainClass, String keepName, List<String> keepList, MinifyMode minify,
+  private static void addTestCase(List<Object[]> testCases, String test, Frontend frontend,
+      Backend backend, String mainClass, String keepName, List<String> keepList, MinifyMode minify,
       Consumer<DexInspector> inspection, BiConsumer<String, String> outputComparator,
       BiConsumer<DexInspector, DexInspector> dexComparator) {
+    String full = test + ":" + keepName + ":" + frontend + ":" + backend + ":" + minify;
+    String anyKind = test + ":" + keepName + ":*:" + minify;
+    String anyMinify = test + ":" + keepName + ":" + frontend + ":" + backend + ":*";
     if (!IGNORED_FLAGS.contains(test + ":" + keepName)
-        && !IGNORED.contains(test + ":" + keepName + ":" + kind + ":" + minify)) {
-      testCases.add(new Object[]{
-          test, kind, mainClass, keepList, minify, inspection, outputComparator, dexComparator});
+        && !IGNORED.contains(full)
+        && !IGNORED.contains(anyKind)
+        && !IGNORED.contains(anyMinify)) {
+      testCases.add(
+          new Object[] {
+            test,
+            frontend,
+            backend,
+            mainClass,
+            keepList,
+            minify,
+            inspection,
+            outputComparator,
+            dexComparator
+          });
     }
   }
 
@@ -888,11 +933,32 @@ public class TreeShakingTest {
 
   @Test
   public void treeShakingTest() throws IOException, InterruptedException, ExecutionException {
+    if (backend == Backend.CF) {
+      Path shakinglib = Paths.get(ToolHelper.EXAMPLES_BUILD_DIR, "shakinglib.jar");
+      ProcessResult resultInput =
+          ToolHelper.runJava(Arrays.asList(Paths.get(programFile), shakinglib), mainClass);
+      Assert.assertEquals(0, resultInput.exitCode);
+      ProcessResult resultOutput =
+          ToolHelper.runJava(Arrays.asList(out, shakinglib), mainClass);
+      if (outputComparator != null) {
+        outputComparator.accept(resultInput.stdout, resultOutput.stdout);
+      } else {
+        Assert.assertEquals(resultInput.toString(), resultOutput.toString());
+      }
+      if (inspection != null) {
+        DexInspector inspector =
+            new DexInspector(
+                out,
+                minify.isMinify()
+                    ? proguardMap.toString()
+                    : null);
+        inspection.accept(inspector);
+      }
+      return;
+    }
     if (!ToolHelper.artSupported()) {
       return;
     }
-    String out = temp.getRoot().getCanonicalPath();
-    Path generated = Paths.get(out, "classes.dex");
     Consumer<ArtCommandBuilder> extraArtArgs = builder -> {
       builder.appendClasspath(ToolHelper.EXAMPLES_BUILD_DIR + "shakinglib/classes.dex");
     };
@@ -902,19 +968,18 @@ public class TreeShakingTest {
         String output1 = ToolHelper.runArtNoVerificationErrors(
             Collections.singletonList(originalDex), mainClass, extraArtArgs, null);
         String output2 = ToolHelper.runArtNoVerificationErrors(
-            Collections.singletonList(generated.toString()), mainClass, extraArtArgs, null);
+            Collections.singletonList(out.toString()), mainClass, extraArtArgs, null);
         outputComparator.accept(output1, output2);
       } else {
         ToolHelper.checkArtOutputIdentical(Collections.singletonList(originalDex),
-            Collections.singletonList(generated.toString()), mainClass,
+            Collections.singletonList(out.toString()), mainClass,
             extraArtArgs, null);
       }
 
       if (dexComparator != null) {
         DexInspector ref = new DexInspector(Paths.get(originalDex));
-        DexInspector inspector = new DexInspector(generated,
-            minify.isMinify() ? temp.getRoot().toPath().resolve(DEFAULT_PROGUARD_MAP_FILE)
-                .toString()
+        DexInspector inspector = new DexInspector(out,
+            minify.isMinify() ? proguardMap.toString()
                 : null);
         dexComparator.accept(ref, inspector);
       }
@@ -922,12 +987,12 @@ public class TreeShakingTest {
       Assert.assertNull(outputComparator);
       Assert.assertNull(dexComparator);
       ToolHelper.runArtNoVerificationErrors(
-          Collections.singletonList(generated.toString()), mainClass, extraArtArgs, null);
+          Collections.singletonList(out.toString()), mainClass, extraArtArgs, null);
     }
 
     if (inspection != null) {
-      DexInspector inspector = new DexInspector(generated,
-          minify.isMinify() ? temp.getRoot().toPath().resolve(DEFAULT_PROGUARD_MAP_FILE).toString()
+      DexInspector inspector = new DexInspector(out,
+          minify.isMinify() ? proguardMap.toString()
               : null);
       inspection.accept(inspector);
     }

@@ -996,6 +996,11 @@ public class Outliner {
     }
 
     @Override
+    public boolean isEmptyVoidMethod() {
+      return false;
+    }
+
+    @Override
     public IRCode buildIR(DexEncodedMethod encodedMethod, InternalOptions options)
         throws ApiLevelException {
       OutlineSourceCode source = new OutlineSourceCode(outline);

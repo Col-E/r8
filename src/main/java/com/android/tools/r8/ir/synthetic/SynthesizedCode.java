@@ -32,6 +32,11 @@ public final class SynthesizedCode extends Code {
   }
 
   @Override
+  public boolean isEmptyVoidMethod() {
+    return false;
+  }
+
+  @Override
   public final IRCode buildIR(DexEncodedMethod encodedMethod, InternalOptions options)
       throws ApiLevelException {
     return new IRBuilder(encodedMethod, sourceCode, options).build();

@@ -339,9 +339,7 @@ public abstract class DexClass extends DexItem {
       return superType == null;
     }
     DexEncodedMethod clinit = getClassInitializer();
-    return clinit != null
-        && clinit.getCode() != null
-        && clinit.getCode().asDexCode().isEmptyVoidMethod();
+    return clinit != null && clinit.getCode() != null && clinit.getCode().isEmptyVoidMethod();
   }
 
   public boolean hasNonTrivialClassInitializer() {
@@ -353,11 +351,7 @@ public abstract class DexClass extends DexItem {
     if (clinit == null || clinit.getCode() == null) {
       return false;
     }
-    if (clinit.getCode().isDexCode()) {
-      return !clinit.getCode().asDexCode().isEmptyVoidMethod();
-    }
-    // For non-dex code we don't try to check the code.
-    return true;
+    return !clinit.getCode().isEmptyVoidMethod();
   }
 
   public boolean hasDefaultInitializer() {

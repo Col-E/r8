@@ -10,6 +10,9 @@ import static com.android.tools.r8.graph.DexEncodedMethod.CompilationState.PROCE
 import static com.android.tools.r8.graph.DexEncodedMethod.CompilationState.PROCESSED_NOT_INLINING_CANDIDATE;
 
 import com.android.tools.r8.ApiLevelException;
+import com.android.tools.r8.cf.code.CfConstNull;
+import com.android.tools.r8.cf.code.CfInstruction;
+import com.android.tools.r8.cf.code.CfThrow;
 import com.android.tools.r8.code.Const;
 import com.android.tools.r8.code.ConstString;
 import com.android.tools.r8.code.ConstStringJumbo;
@@ -40,6 +43,7 @@ import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.InternalOptions;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
@@ -365,12 +369,28 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
         outRegisters, instructions, new DexCode.Try[0], new DexCode.TryHandler[0], null, null);
   }
 
-  public DexEncodedMethod toEmptyThrowingMethod() {
-    Instruction insn[] = {new Const(0, 0), new Throw(0)};
-    DexCode code = generateCodeFromTemplate(1, 0, insn);
-    assert !accessFlags.isAbstract();
+  public DexEncodedMethod toEmptyThrowingMethodDex() {
+    assert !accessFlags.isAbstract() && !accessFlags.isNative();
     Builder builder = builder(this);
-    builder.setCode(code);
+    Instruction insn[] = {new Const(0, 0), new Throw(0)};
+    DexCode emptyThrowingCode = generateCodeFromTemplate(1, 0, insn);
+    builder.setCode(emptyThrowingCode);
+    return builder.build();
+  }
+
+  public DexEncodedMethod toEmptyThrowingMethodCf() {
+    assert !accessFlags.isAbstract() && !accessFlags.isNative();
+    Builder builder = builder(this);
+    CfInstruction insn[] = {new CfConstNull(), new CfThrow()};
+    CfCode emptyThrowingCode =
+        new CfCode(
+            method,
+            1,
+            method.proto.parameters.size() + 1,
+            Arrays.asList(insn),
+            Collections.emptyList(),
+            Collections.emptyList());
+    builder.setCode(emptyThrowingCode);
     return builder.build();
   }
 
