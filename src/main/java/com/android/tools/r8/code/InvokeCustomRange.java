@@ -44,7 +44,7 @@ public class InvokeCustomRange extends Format3rc {
 
   @Override
   public void registerUse(UseRegistry registry) {
-    InvokeCustom.registerCallSite(registry, getCallSite());
+    registry.registerCallSite(getCallSite());
   }
 
   @Override

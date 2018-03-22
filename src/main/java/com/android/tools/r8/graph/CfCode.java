@@ -172,7 +172,9 @@ public class CfCode extends Code {
 
   @Override
   public void registerInstructionsReferences(UseRegistry registry) {
-    throw new Unimplemented("Inspecting Java class-file bytecode not yet supported");
+    for (CfInstruction instruction : instructions) {
+      instruction.registerUse(registry, method.holder);
+    }
   }
 
   @Override

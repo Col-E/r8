@@ -73,6 +73,14 @@ public class MethodHandleTest {
     }
   }
 
+  public static class E {
+    // Class that is only mentioned in parameter list of LDC(MethodType)-instruction.
+  }
+
+  public static class F {
+    // Class that is only mentioned in return value of LDC(MethodType)-instruction.
+  }
+
   public interface I {
     int ii = 42;
 
@@ -166,6 +174,8 @@ public class MethodHandleTest {
       MethodHandle methodHandle = D.vcviSpecialMethod();
       methodHandle.invoke(new D(), 20);
       constructorMethod().invoke(21);
+      System.out.println(veType().parameterType(0).getName().lastIndexOf('.'));
+      System.out.println(fType().returnType().getName().lastIndexOf('.'));
     } catch (Throwable e) {
       throw new RuntimeException(e);
     }
@@ -197,6 +207,14 @@ public class MethodHandleTest {
 
   public static MethodType jicType() {
     return MethodType.methodType(long.class, int.class, char.class);
+  }
+
+  public static MethodType veType() {
+    return MethodType.methodType(void.class, E.class);
+  }
+
+  public static MethodType fType() {
+    return MethodType.methodType(F.class);
   }
 
   public static MethodHandle scviMethod() {

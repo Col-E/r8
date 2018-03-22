@@ -19,6 +19,7 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
 import java.nio.file.Path;
+import java.util.Arrays;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -27,8 +28,10 @@ public class MethodHandleTestRunner {
   static final Class<?> CLASS = MethodHandleTest.class;
 
   private boolean ldc = false;
+  private boolean minify = false;
 
-  @Rule public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
+  @Rule
+  public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
   @Test
   public void testMethodHandlesLookup() throws Exception {
@@ -44,20 +47,35 @@ public class MethodHandleTestRunner {
     test();
   }
 
+  @Test
+  public void testMinify() throws Exception {
+    // Run test with LDC methods, i.e. without java.lang.invoke.MethodHandles
+    ldc = true;
+    ProcessResult runInput = runInput();
+    assertEquals(0, runInput.exitCode);
+    Path outCf = temp.getRoot().toPath().resolve("cf.jar");
+    build(new ClassFileConsumer.ArchiveConsumer(outCf), true);
+    ProcessResult runCf =
+        ToolHelper.runJava(outCf, CLASS.getCanonicalName(), ldc ? "error" : "exception");
+    assertEquals(runInput.toString(), runCf.toString());
+  }
+
   private final Class[] inputClasses = {
     MethodHandleTest.class,
     MethodHandleTest.C.class,
     MethodHandleTest.I.class,
     MethodHandleTest.Impl.class,
     MethodHandleTest.D.class,
+    MethodHandleTest.E.class,
+    MethodHandleTest.F.class,
   };
 
   private void test() throws Exception {
     ProcessResult runInput = runInput();
     Path outCf = temp.getRoot().toPath().resolve("cf.jar");
-    build(new ClassFileConsumer.ArchiveConsumer(outCf));
+    build(new ClassFileConsumer.ArchiveConsumer(outCf), false);
     Path outDex = temp.getRoot().toPath().resolve("dex.zip");
-    build(new DexIndexedConsumer.ArchiveConsumer(outDex));
+    build(new DexIndexedConsumer.ArchiveConsumer(outDex), false);
 
     ProcessResult runCf =
         ToolHelper.runJava(outCf, CLASS.getCanonicalName(), ldc ? "error" : "exception");
@@ -79,7 +97,7 @@ public class MethodHandleTestRunner {
     assertEquals(runInput.exitCode, runDex.exitCode);
   }
 
-  private void build(ProgramConsumer programConsumer) throws Exception {
+  private void build(ProgramConsumer programConsumer, boolean minify) throws Exception {
     // MethodHandle.invoke() only supported from Android O
     // ConstMethodHandle only supported from Android P
     AndroidApiLevel apiLevel = AndroidApiLevel.P;
@@ -94,6 +112,14 @@ public class MethodHandleTestRunner {
     for (Class<?> c : inputClasses) {
       byte[] classAsBytes = getClassAsBytes(c);
       cfBuilder.addClassProgramData(classAsBytes, Origin.unknown());
+    }
+    if (minify) {
+      cfBuilder.addProguardConfiguration(
+          Arrays.asList(
+              "-keep public class com.android.tools.r8.cf.MethodHandleTest {",
+              "  public static void main(...);",
+              "}"),
+          Origin.unknown());
     }
     R8.run(cfBuilder.build());
   }

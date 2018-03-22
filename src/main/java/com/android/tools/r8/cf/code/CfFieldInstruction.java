@@ -4,8 +4,12 @@
 package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.UseRegistry;
 import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
 
 public class CfFieldInstruction extends CfInstruction {
 
@@ -36,5 +40,25 @@ public class CfFieldInstruction extends CfInstruction {
   @Override
   public void print(CfPrinter printer) {
     printer.print(this);
+  }
+
+  @Override
+  public void registerUse(UseRegistry registry, DexType clazz) {
+    switch (opcode) {
+      case Opcodes.GETFIELD:
+        registry.registerInstanceFieldRead(field);
+        break;
+      case Opcodes.PUTFIELD:
+        registry.registerInstanceFieldWrite(field);
+        break;
+      case Opcodes.GETSTATIC:
+        registry.registerStaticFieldRead(field);
+        break;
+      case Opcodes.PUTSTATIC:
+        registry.registerStaticFieldWrite(field);
+        break;
+      default:
+        throw new Unreachable("Unexpected opcode " + opcode);
+    }
   }
 }

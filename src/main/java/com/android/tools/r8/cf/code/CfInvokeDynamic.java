@@ -7,6 +7,7 @@ import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexMethodHandle;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueDouble;
 import com.android.tools.r8.graph.DexValue.DexValueFloat;
@@ -16,6 +17,7 @@ import com.android.tools.r8.graph.DexValue.DexValueMethodHandle;
 import com.android.tools.r8.graph.DexValue.DexValueMethodType;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.DexValue.DexValueType;
+import com.android.tools.r8.graph.UseRegistry;
 import java.util.List;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.MethodVisitor;
@@ -75,5 +77,10 @@ public class CfInvokeDynamic extends CfInstruction {
 
   public DexCallSite getCallSite() {
     return callSite;
+  }
+
+  @Override
+  public void registerUse(UseRegistry registry, DexType clazz) {
+    registry.registerCallSite(callSite);
   }
 }

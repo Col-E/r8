@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.naming.NamingLens;
@@ -77,6 +78,39 @@ public class DexMethodHandle extends IndexedDexItem implements
       return kind;
     }
 
+    public static MethodHandleType fromAsmHandle(
+        Handle handle, JarApplicationReader application, DexType clazz) {
+      switch (handle.getTag()) {
+        case Opcodes.H_GETFIELD:
+          return MethodHandleType.INSTANCE_GET;
+        case Opcodes.H_GETSTATIC:
+          return MethodHandleType.STATIC_GET;
+        case Opcodes.H_PUTFIELD:
+          return MethodHandleType.INSTANCE_PUT;
+        case Opcodes.H_PUTSTATIC:
+          return MethodHandleType.STATIC_PUT;
+        case Opcodes.H_INVOKESPECIAL:
+          assert !handle.getName().equals(Constants.INSTANCE_INITIALIZER_NAME);
+          assert !handle.getName().equals(Constants.CLASS_INITIALIZER_NAME);
+          DexType owner = application.getTypeFromName(handle.getOwner());
+          if (owner == clazz) {
+            return MethodHandleType.INVOKE_DIRECT;
+          } else {
+            return MethodHandleType.INVOKE_SUPER;
+          }
+        case Opcodes.H_INVOKEVIRTUAL:
+          return MethodHandleType.INVOKE_INSTANCE;
+        case Opcodes.H_INVOKEINTERFACE:
+          return MethodHandleType.INVOKE_INTERFACE;
+        case Opcodes.H_INVOKESTATIC:
+          return MethodHandleType.INVOKE_STATIC;
+        case Opcodes.H_NEWINVOKESPECIAL:
+          return MethodHandleType.INVOKE_CONSTRUCTOR;
+        default:
+          throw new Unreachable("MethodHandle tag is not supported: " + handle.getTag());
+      }
+    }
+
     public boolean isFieldType() {
       return isStaticPut() || isStaticGet() || isInstancePut() || isInstanceGet();
     }
@@ -135,6 +169,16 @@ public class DexMethodHandle extends IndexedDexItem implements
       Descriptor<? extends DexItem, ? extends Descriptor<?,?>> fieldOrMethod) {
     this.type = type;
     this.fieldOrMethod = fieldOrMethod;
+  }
+
+  public static DexMethodHandle fromAsmHandle(
+      Handle handle, JarApplicationReader application, DexType clazz) {
+    MethodHandleType methodHandleType = MethodHandleType.fromAsmHandle(handle, application, clazz);
+    Descriptor<? extends DexItem, ? extends Descriptor<?, ?>> descriptor =
+        methodHandleType.isFieldType()
+            ? application.getField(handle.getOwner(), handle.getName(), handle.getDesc())
+            : application.getMethod(handle.getOwner(), handle.getName(), handle.getDesc());
+    return application.getMethodHandle(methodHandleType, descriptor);
   }
 
   @Override

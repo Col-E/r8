@@ -15,7 +15,11 @@ import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.List;
+import org.objectweb.asm.Handle;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.tree.InvokeDynamicInsnNode;
 
 public final class DexCallSite extends IndexedDexItem {
 
@@ -38,6 +42,37 @@ public final class DexCallSite extends IndexedDexItem {
     this.methodProto = methodProto;
     this.bootstrapMethod = bootstrapMethod;
     this.bootstrapArgs = bootstrapArgs;
+  }
+
+  public static DexCallSite fromAsmInvokeDynamic(
+      InvokeDynamicInsnNode insn, JarApplicationReader application, DexType clazz) {
+    return fromAsmInvokeDynamic(application, clazz, insn.name, insn.desc, insn.bsm, insn.bsmArgs);
+  }
+
+  public static DexCallSite fromAsmInvokeDynamic(
+      JarApplicationReader application,
+      DexType clazz,
+      String name,
+      String desc,
+      Handle bsmHandle,
+      Object[] bsmArgs) {
+    // Bootstrap method
+    if (bsmHandle.getTag() != Opcodes.H_INVOKESTATIC
+        && bsmHandle.getTag() != Opcodes.H_NEWINVOKESPECIAL) {
+      // JVM9 §4.7.23 note: Tag must be InvokeStatic or NewInvokeSpecial.
+      throw new Unreachable("Bootstrap handle invalid: tag == " + bsmHandle.getTag());
+    }
+    // Resolve the bootstrap method.
+    DexMethodHandle bootstrapMethod = DexMethodHandle.fromAsmHandle(bsmHandle, application, clazz);
+
+    // Decode static bootstrap arguments
+    List<DexValue> bootstrapArgs = new ArrayList<>();
+    for (Object arg : bsmArgs) {
+      bootstrapArgs.add(DexValue.fromAsmBootstrapArgument(arg, application, clazz));
+    }
+
+    // Construct call site
+    return application.getCallSite(name, desc, bootstrapMethod, bootstrapArgs);
   }
 
   @Override

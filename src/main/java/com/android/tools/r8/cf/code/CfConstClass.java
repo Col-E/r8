@@ -6,6 +6,7 @@ package com.android.tools.r8.cf.code;
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.UseRegistry;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 
@@ -55,5 +56,10 @@ public class CfConstClass extends CfInstruction {
       default:
         throw new Unreachable("Unexpected type in const-class: " + type);
     }
+  }
+
+  @Override
+  public void registerUse(UseRegistry registry, DexType clazz) {
+    registry.registerConstClass(type);
   }
 }

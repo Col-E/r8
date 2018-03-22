@@ -3,6 +3,15 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.graph.DexValue.DexValueDouble;
+import com.android.tools.r8.graph.DexValue.DexValueFloat;
+import com.android.tools.r8.graph.DexValue.DexValueInt;
+import com.android.tools.r8.graph.DexValue.DexValueLong;
+import com.android.tools.r8.graph.DexValue.DexValueMethodHandle;
+import com.android.tools.r8.graph.DexValue.DexValueMethodType;
+import com.android.tools.r8.graph.DexValue.DexValueString;
+import com.android.tools.r8.graph.DexValue.DexValueType;
+
 public abstract class UseRegistry {
 
   public abstract boolean registerInvokeVirtual(DexMethod method);
@@ -71,6 +80,35 @@ public abstract class UseRegistry {
         break;
       default:
         throw new AssertionError();
+    }
+  }
+
+  public void registerCallSite(DexCallSite callSite) {
+    registerMethodHandle(callSite.bootstrapMethod);
+
+    // Register bootstrap method arguments.
+    // Only Type, MethodHandle, and MethodType need to be registered.
+    for (DexValue arg : callSite.bootstrapArgs) {
+      if (arg instanceof DexValueType) {
+        registerTypeReference(((DexValueType) arg).value);
+      } else if (arg instanceof DexValueMethodHandle) {
+        registerMethodHandle(((DexValueMethodHandle) arg).value);
+      } else if (arg instanceof DexValueMethodType) {
+        registerProto(((DexValueMethodType) arg).value);
+      } else {
+        assert (arg instanceof DexValueInt)
+            || (arg instanceof DexValueLong)
+            || (arg instanceof DexValueFloat)
+            || (arg instanceof DexValueDouble)
+            || (arg instanceof DexValueString);
+      }
+    }
+  }
+
+  public void registerProto(DexProto proto) {
+    registerTypeReference(proto.returnType);
+    for (DexType type : proto.parameters.values) {
+      registerTypeReference(type);
     }
   }
 }
