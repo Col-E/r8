@@ -515,6 +515,32 @@ public class InternalOptions {
   // Some dalvik versions found in the wild perform invalid JIT compilation of cmp-long
   // instructions where the result register overlaps with the input registers.
   // See b/74084493.
+  //
+  // The same dalvik versions also have a bug where the JIT compilation of code such as:
+  //
+  // void method(long l) {
+  //  if (l < 0) throw new RuntimeException("less than");
+  //  if (l == 0) throw new RuntimeException("equal");
+  // }
+  //
+  // Will enter the case for l==0 even when l is non-zero. The code generated for this is of
+  // the form:
+  //
+  // 0:   0x00: ConstWide16         v0, 0x0000000000000000 (0)
+  // 1:   0x02: CmpLong             v2, v4, v0
+  // 2:   0x04: IfLtz               v2, 0x0c (+8)
+  // 3:   0x06: IfNez               v2, 0x0a (+4)
+  //
+  // However, the jit apparently clobbers the input register in the IfLtz instruction. Therefore,
+  // for dalvik VMs we have to instead generate the following code:
+  //
+  // 0:   0x00: ConstWide16         v0, 0x0000000000000000 (0)
+  // 1:   0x02: CmpLong             v2, v4, v0
+  // 2:   0x04: IfLtz               v2, 0x0e (+10)
+  // 3:   0x06: CmpLong             v2, v4, v0
+  // 4:   0x08: IfNez               v2, 0x0c (+4)
+  //
+  // See b/75408029.
   public boolean canHaveCmpLongBug() {
     return minApiLevel < AndroidApiLevel.L.getLevel();
   }

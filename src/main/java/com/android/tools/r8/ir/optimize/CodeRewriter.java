@@ -1846,6 +1846,9 @@ public class CodeRewriter {
 
     @Override
     protected boolean doEquivalent(Instruction a, Instruction b) {
+      // Some Dalvik VMs incorrectly handle Cmp instructions which leads to a requirement
+      // that we do not perform common subexpression elimination for them. See comment on
+      // canHaveCmpLongBug for details.
       if (a.isCmp() && code.options.canHaveCmpLongBug()) {
         return false;
       }
