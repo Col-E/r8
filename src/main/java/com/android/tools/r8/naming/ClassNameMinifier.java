@@ -438,14 +438,15 @@ class ClassNameMinifier {
           appInfo.dexItemFactory.createType(
               getDescriptorFromClassBinaryName(
                   getClassBinaryNameFromDescriptor(enclosingDescriptor)
-                  + '$' + name));
+                      + Minifier.INNER_CLASS_SEPARATOR
+                      + name));
       String enclosingRenamedBinaryName =
           getClassBinaryNameFromDescriptor(
               renaming.getOrDefault(enclosingType, enclosingType.descriptor).toString());
       String renamed =
           getClassBinaryNameFromDescriptor(
               renaming.getOrDefault(type, type.descriptor).toString());
-      assert renamed.startsWith(enclosingRenamedBinaryName + '$');
+      assert renamed.startsWith(enclosingRenamedBinaryName + Minifier.INNER_CLASS_SEPARATOR);
       String outName = renamed.substring(enclosingRenamedBinaryName.length() + 1);
       renamedSignature.append(outName);
       return type;

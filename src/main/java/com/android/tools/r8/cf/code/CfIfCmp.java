@@ -8,6 +8,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.If.Type;
 import com.android.tools.r8.ir.code.ValueType;
+import com.android.tools.r8.naming.NamingLens;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -60,7 +61,7 @@ public class CfIfCmp extends CfInstruction {
   }
 
   @Override
-  public void write(MethodVisitor visitor) {
+  public void write(MethodVisitor visitor, NamingLens lens) {
     visitor.visitJumpInsn(getOpcode(), target.getLabel());
   }
 }

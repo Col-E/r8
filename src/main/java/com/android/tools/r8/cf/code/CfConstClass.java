@@ -6,6 +6,8 @@ package com.android.tools.r8.cf.code;
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.UseRegistry;
+import com.android.tools.r8.naming.NamingLens;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 
@@ -22,8 +24,8 @@ public class CfConstClass extends CfInstruction {
   }
 
   @Override
-  public void write(MethodVisitor visitor) {
-    visitor.visitLdcInsn(Type.getObjectType(getInternalName()));
+  public void write(MethodVisitor visitor, NamingLens lens) {
+    visitor.visitLdcInsn(Type.getObjectType(getInternalName(lens)));
   }
 
   @Override
@@ -31,11 +33,11 @@ public class CfConstClass extends CfInstruction {
     printer.print(this);
   }
 
-  private String getInternalName() {
+  private String getInternalName(NamingLens lens) {
     switch (type.toShorty()) {
       case '[':
       case 'L':
-        return type.getInternalName();
+        return lens.lookupInternalName(type);
       case 'Z':
         return "java/lang/Boolean/TYPE";
       case 'B':
@@ -55,5 +57,10 @@ public class CfConstClass extends CfInstruction {
       default:
         throw new Unreachable("Unexpected type in const-class: " + type);
     }
+  }
+
+  @Override
+  public void registerUse(UseRegistry registry, DexType clazz) {
+    registry.registerConstClass(type);
   }
 }

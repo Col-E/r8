@@ -151,8 +151,7 @@ public class MainDexListBuilder {
       clazz.forEachField(field -> addMainDexType(field.field.type));
       clazz.forEachMethod(method -> {
         traceMethodDirectDependencies(method.method);
-        method.registerInstructionsReferences(codeDirectReferenceCollector);
-        method.registerCatchedTypes(this::addMainDexType);
+        method.registerCodeReferences(codeDirectReferenceCollector);
       });
     }
   }

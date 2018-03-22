@@ -4,6 +4,7 @@
 package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
+import com.android.tools.r8.naming.NamingLens;
 import org.objectweb.asm.MethodVisitor;
 
 public class CfUnop extends CfInstruction {
@@ -15,7 +16,7 @@ public class CfUnop extends CfInstruction {
   }
 
   @Override
-  public void write(MethodVisitor visitor) {
+  public void write(MethodVisitor visitor, NamingLens lens) {
     visitor.visitInsn(this.opcode);
   }
 

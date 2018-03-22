@@ -22,14 +22,18 @@ import org.objectweb.asm.*;
 // so this LDC instruction must be in a subclass of C, and not directly on MethodHandleTest.
 public class MethodHandleDump implements Opcodes {
 
+  private static final String cDesc = "com/android/tools/r8/cf/MethodHandleTest$C";
+  private static final String eDesc = "com/android/tools/r8/cf/MethodHandleTest$E";
+  private static final String fDesc = "com/android/tools/r8/cf/MethodHandleTest$F";
+  private static final String iDesc = "com/android/tools/r8/cf/MethodHandleTest$I";
   private static final Type viType = Type.getMethodType(Type.VOID_TYPE, Type.INT_TYPE);
   private static final Type jiType = Type.getMethodType(Type.LONG_TYPE, Type.INT_TYPE);
   private static final Type vicType =
       Type.getMethodType(Type.VOID_TYPE, Type.INT_TYPE, Type.CHAR_TYPE);
   private static final Type jicType =
       Type.getMethodType(Type.LONG_TYPE, Type.INT_TYPE, Type.CHAR_TYPE);
-  private static final String cDesc = "com/android/tools/r8/cf/MethodHandleTest$C";
-  private static final String iDesc = "com/android/tools/r8/cf/MethodHandleTest$I";
+  private static final Type veType = Type.getMethodType(Type.VOID_TYPE, Type.getObjectType(eDesc));
+  private static final Type fType = Type.getMethodType(Type.getObjectType(fDesc));
   private static final String viDesc = viType.getDescriptor();
   private static final String jiDesc = jiType.getDescriptor();
   private static final String vicDesc = vicType.getDescriptor();
@@ -44,6 +48,8 @@ public class MethodHandleDump implements Opcodes {
             .put("jiType", jiType)
             .put("vicType", vicType)
             .put("jicType", jicType)
+            .put("veType", veType)
+            .put("fType", fType)
             .build();
 
     Builder<String, Handle> methodsBuilder = ImmutableMap.builder();

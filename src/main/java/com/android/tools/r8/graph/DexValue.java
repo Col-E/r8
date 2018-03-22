@@ -13,6 +13,8 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.utils.EncodedValueUtils;
 import java.util.Arrays;
+import org.objectweb.asm.Handle;
+import org.objectweb.asm.Type;
 
 public abstract class DexValue extends DexItem {
 
@@ -36,6 +38,40 @@ public abstract class DexValue extends DexItem {
   public static final byte VALUE_ANNOTATION = 0x1d;
   public static final byte VALUE_NULL = 0x1e;
   public static final byte VALUE_BOOLEAN = 0x1f;
+
+  public static DexValue fromAsmBootstrapArgument(
+      Object value, JarApplicationReader application, DexType clazz) {
+    if (value instanceof Integer) {
+      return DexValue.DexValueInt.create((Integer) value);
+    } else if (value instanceof Long) {
+      return DexValue.DexValueLong.create((Long) value);
+    } else if (value instanceof Float) {
+      return DexValue.DexValueFloat.create((Float) value);
+    } else if (value instanceof Double) {
+      return DexValue.DexValueDouble.create((Double) value);
+    } else if (value instanceof String) {
+      return new DexValue.DexValueString(application.getString((String) value));
+
+    } else if (value instanceof Type) {
+      Type type = (Type) value;
+      switch (type.getSort()) {
+        case Type.OBJECT:
+          return new DexValue.DexValueType(
+              application.getTypeFromDescriptor(((Type) value).getDescriptor()));
+        case Type.METHOD:
+          return new DexValue.DexValueMethodType(
+              application.getProto(((Type) value).getDescriptor()));
+        default:
+          throw new Unreachable("Type sort is not supported: " + type.getSort());
+      }
+    } else if (value instanceof Handle) {
+      return new DexValue.DexValueMethodHandle(
+          DexMethodHandle.fromAsmHandle((Handle) value, application, clazz));
+    } else {
+      throw new Unreachable(
+          "Unsupported bootstrap static argument of type " + value.getClass().getSimpleName());
+    }
+  }
 
   private static void writeHeader(byte type, int arg, DexOutputBuffer dest) {
     dest.putByte((byte) ((arg << 5) | type));

@@ -5,18 +5,29 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.cf.CfPrinter;
+import com.android.tools.r8.cf.code.CfConstNull;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfLabel;
+import com.android.tools.r8.cf.code.CfPosition;
+import com.android.tools.r8.cf.code.CfReturnVoid;
+import com.android.tools.r8.cf.code.CfThrow;
 import com.android.tools.r8.cf.code.CfTryCatch;
 import com.android.tools.r8.errors.Unimplemented;
+import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.ir.code.Throw;
+import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
+import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.function.Consumer;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 
@@ -113,9 +124,9 @@ public class CfCode extends Code {
     return this;
   }
 
-  public void write(MethodVisitor visitor) {
+  public void write(MethodVisitor visitor, NamingLens namingLens) {
     for (CfInstruction instruction : instructions) {
-      instruction.write(visitor);
+      instruction.write(visitor, namingLens);
     }
     visitor.visitEnd();
     visitor.visitMaxs(maxStack, maxLocals);
@@ -129,14 +140,14 @@ public class CfCode extends Code {
             start,
             end,
             target,
-            guard == DexItemFactory.catchAllType ? null : guard.getInternalName());
+            guard == DexItemFactory.catchAllType ? null : namingLens.lookupInternalName(guard));
       }
     }
     for (LocalVariableInfo localVariable : localVariables) {
       DebugLocalInfo info = localVariable.local;
       visitor.visitLocalVariable(
           info.name.toString(),
-          info.type.toDescriptorString(),
+          namingLens.lookupDescriptor(info.type).toString(),
           info.signature == null ? null : info.signature.toString(),
           localVariable.start.getLabel(),
           localVariable.end.getLabel(),
@@ -155,8 +166,35 @@ public class CfCode extends Code {
   }
 
   @Override
+  public boolean isEmptyVoidMethod() {
+    for (CfInstruction insn : instructions) {
+      if (!(insn instanceof CfReturnVoid)
+          && !(insn instanceof CfLabel)
+          && !(insn instanceof CfPosition)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  @Override
   public IRCode buildIR(DexEncodedMethod encodedMethod, InternalOptions options)
       throws ApiLevelException {
+    if (instructions.size() == 2
+        && instructions.get(0) instanceof CfConstNull
+        && instructions.get(1) instanceof CfThrow) {
+      BasicBlock block = new BasicBlock();
+      block.setNumber(1);
+      Value nullValue = new Value(0, ValueType.OBJECT, null);
+      block.add(new ConstNumber(nullValue, 0L));
+      block.add(new Throw(nullValue));
+      block.close(null);
+      for (Instruction insn : block.getInstructions()) {
+        insn.setPosition(Position.none());
+      }
+      LinkedList<BasicBlock> blocks = new LinkedList<>(Collections.singleton(block));
+      return new IRCode(options, encodedMethod, blocks, null, false);
+    }
     throw new Unimplemented("Converting Java class-file bytecode to IR not yet supported");
   }
 
@@ -171,13 +209,17 @@ public class CfCode extends Code {
   }
 
   @Override
-  public void registerInstructionsReferences(UseRegistry registry) {
-    throw new Unimplemented("Inspecting Java class-file bytecode not yet supported");
-  }
-
-  @Override
-  public void registerCaughtTypes(Consumer<DexType> dexTypeConsumer) {
-    throw new Unimplemented("Inspecting Java class-file bytecode not yet supported");
+  public void registerCodeReferences(UseRegistry registry) {
+    for (CfInstruction instruction : instructions) {
+      instruction.registerUse(registry, method.holder);
+    }
+    for (CfTryCatch tryCatch : tryCatchRanges) {
+      for (DexType guard : tryCatch.guards) {
+        if (guard != DexItemFactory.catchAllType) {
+          registry.registerTypeReference(guard);
+        }
+      }
+    }
   }
 
   @Override

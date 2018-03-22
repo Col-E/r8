@@ -5,6 +5,9 @@ package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.graph.DexMethodHandle;
+import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.UseRegistry;
+import com.android.tools.r8.naming.NamingLens;
 import org.objectweb.asm.MethodVisitor;
 
 public class CfConstMethodHandle extends CfInstruction {
@@ -20,12 +23,17 @@ public class CfConstMethodHandle extends CfInstruction {
   }
 
   @Override
-  public void write(MethodVisitor visitor) {
-    visitor.visitLdcInsn(handle.toAsmHandle());
+  public void write(MethodVisitor visitor, NamingLens lens) {
+    visitor.visitLdcInsn(handle.toAsmHandle(lens));
   }
 
   @Override
   public void print(CfPrinter printer) {
     printer.print(this);
+  }
+
+  @Override
+  public void registerUse(UseRegistry registry, DexType clazz) {
+    registry.registerMethodHandle(handle);
   }
 }

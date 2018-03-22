@@ -25,6 +25,8 @@ import java.util.function.Predicate;
 
 public class Minifier {
 
+  static final char INNER_CLASS_SEPARATOR = '$';
+
   private final AppInfoWithLiveness appInfo;
   private final RootSet rootSet;
   private final InternalOptions options;
@@ -74,6 +76,12 @@ public class Minifier {
     @Override
     public DexString lookupDescriptor(DexType type) {
       return renaming.getOrDefault(type, type.descriptor);
+    }
+
+    @Override
+    public String lookupSimpleName(DexType inner, DexString innerName) {
+      String internalName = lookupInternalName(inner);
+      return internalName.substring(internalName.lastIndexOf(INNER_CLASS_SEPARATOR) + 1);
     }
 
     @Override

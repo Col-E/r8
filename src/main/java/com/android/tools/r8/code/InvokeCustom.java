@@ -4,9 +4,6 @@
 package com.android.tools.r8.code;
 
 import com.android.tools.r8.graph.DexCallSite;
-import com.android.tools.r8.graph.DexValue;
-import com.android.tools.r8.graph.DexValue.DexValueMethodHandle;
-import com.android.tools.r8.graph.DexValue.DexValueType;
 import com.android.tools.r8.graph.IndexedDexItem;
 import com.android.tools.r8.graph.OffsetToObjectMapping;
 import com.android.tools.r8.graph.UseRegistry;
@@ -43,7 +40,7 @@ public class InvokeCustom extends Format35c {
 
   @Override
   public void registerUse(UseRegistry registry) {
-    registerCallSite(registry, getCallSite());
+    registry.registerCallSite(getCallSite());
   }
 
   @Override
@@ -59,18 +56,5 @@ public class InvokeCustom extends Format35c {
   @Override
   public boolean canThrow() {
     return true;
-  }
-
-  static void registerCallSite(UseRegistry registry, DexCallSite callSite) {
-    registry.registerMethodHandle(callSite.bootstrapMethod);
-
-    // Register bootstrap method arguments, only Type and MethodHandle need to be register.
-    for (DexValue arg : callSite.bootstrapArgs) {
-      if (arg instanceof DexValueType) {
-        registry.registerTypeReference(((DexValueType) arg).value);
-      } else if (arg instanceof DexValueMethodHandle) {
-        registry.registerMethodHandle(((DexValueMethodHandle) arg).value);
-      }
-    }
   }
 }

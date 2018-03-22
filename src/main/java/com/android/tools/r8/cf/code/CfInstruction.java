@@ -4,11 +4,14 @@
 package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
+import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.UseRegistry;
+import com.android.tools.r8.naming.NamingLens;
 import org.objectweb.asm.MethodVisitor;
 
 public abstract class CfInstruction {
 
-  public abstract void write(MethodVisitor visitor);
+  public abstract void write(MethodVisitor visitor, NamingLens lens);
 
   public abstract void print(CfPrinter printer);
 
@@ -19,4 +22,7 @@ public abstract class CfInstruction {
     return printer.toString();
   }
 
+  public void registerUse(UseRegistry registry, DexType clazz) {
+    // Intentionally empty.
+  }
 }

@@ -68,6 +68,8 @@ third_party/ddmlib
 third_party/ddmlib.tar.gz
 third_party/core-lambda-stubs
 third_party/core-lambda-stubs.tar.gz
+third_party/openjdk/openjdk-rt-1.8
+third_party/openjdk/openjdk-rt-1.8.tar.gz
 src/test/jack/ub-jack
 gradle-app.setting
 gradlew

@@ -7,8 +7,10 @@ import static org.objectweb.asm.Opcodes.ASM6;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.JarApplicationReader;
 import com.android.tools.r8.graph.UseRegistry;
@@ -50,13 +52,16 @@ public class JarRegisterEffectsVisitor extends MethodVisitor {
   @Override
   public void visitLdcInsn(Object cst) {
     if (cst instanceof Type) {
-      // Nothing to register for method type, it represents only a prototype not associated with a
-      // method name.
-      if (((Type) cst).getSort() != Type.METHOD) {
+      if (((Type) cst).getSort() == Type.METHOD) {
+        String descriptor = ((Type) cst).getDescriptor();
+        assert descriptor.charAt(0) == '(';
+        registry.registerProto(application.getProto(descriptor));
+      } else {
         registry.registerConstClass(application.getType((Type) cst));
       }
     } else if (cst instanceof Handle) {
-      registerMethodHandleType((Handle) cst);
+      registry.registerMethodHandle(
+          DexMethodHandle.fromAsmHandle((Handle) cst, application, clazz));
     }
   }
 
@@ -109,55 +114,8 @@ public class JarRegisterEffectsVisitor extends MethodVisitor {
 
   @Override
   public void visitInvokeDynamicInsn(String name, String desc, Handle bsm, Object... bsmArgs) {
-    registerMethodHandleType(bsm);
-
-    // Register bootstrap method arguments, only Type and MethodHandle need to be register.
-    for (Object arg : bsmArgs) {
-      if (arg instanceof Type && ((Type) arg).getSort() == Type.OBJECT) {
-        registry.registerTypeReference(application.getType((Type) arg));
-      } else if (arg instanceof Handle) {
-        registerMethodHandleType((Handle) arg);
-      }
-    }
+    registry.registerCallSite(
+        DexCallSite.fromAsmInvokeDynamic(application, clazz, name, desc, bsm, bsmArgs));
   }
 
-  private void registerMethodHandleType(Handle handle) {
-    switch (handle.getTag()) {
-      case Opcodes.H_GETFIELD:
-        visitFieldInsn(Opcodes.GETFIELD, handle.getOwner(), handle.getName(), handle.getDesc());
-        break;
-      case Opcodes.H_GETSTATIC:
-        visitFieldInsn(Opcodes.GETSTATIC, handle.getOwner(), handle.getName(), handle.getDesc());
-        break;
-      case Opcodes.H_PUTFIELD:
-        visitFieldInsn(Opcodes.PUTFIELD, handle.getOwner(), handle.getName(), handle.getDesc());
-        break;
-      case Opcodes.H_PUTSTATIC:
-        visitFieldInsn(Opcodes.PUTSTATIC, handle.getOwner(), handle.getName(), handle.getDesc());
-        break;
-      case Opcodes.H_INVOKEVIRTUAL:
-        visitMethodInsn(
-            Opcodes.INVOKEVIRTUAL, handle.getOwner(), handle.getName(), handle.getDesc(), false);
-        break;
-      case Opcodes.H_INVOKEINTERFACE:
-        visitMethodInsn(
-            Opcodes.INVOKEINTERFACE, handle.getOwner(), handle.getName(), handle.getDesc(), true);
-        break;
-      case Opcodes.H_INVOKESPECIAL:
-        visitMethodInsn(
-            Opcodes.INVOKESPECIAL, handle.getOwner(), handle.getName(), handle.getDesc(), false);
-        break;
-      case Opcodes.H_INVOKESTATIC:
-        visitMethodInsn(
-            Opcodes.INVOKESTATIC, handle.getOwner(), handle.getName(), handle.getDesc(), false);
-        break;
-      case Opcodes.H_NEWINVOKESPECIAL:
-        registry.registerNewInstance(application.getTypeFromName(handle.getOwner()));
-        visitMethodInsn(
-            Opcodes.INVOKESPECIAL, handle.getOwner(), handle.getName(), handle.getDesc(), false);
-        break;
-      default:
-        throw new Unreachable("MethodHandle tag is not supported: " + handle.getTag());
-    }
-  }
 }

@@ -8,17 +8,13 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DebugLocalInfo;
-import com.android.tools.r8.graph.Descriptor;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexField;
-import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
-import com.android.tools.r8.graph.DexMethodHandle.MethodHandleType;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.JarApplicationReader;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.Cmp.Bias;
@@ -2654,102 +2650,11 @@ public class JarSourceCode implements SourceCode {
   }
 
   private void build(InvokeDynamicInsnNode insn, IRBuilder builder) throws ApiLevelException {
-    // Bootstrap method
-    Handle bsmHandle = insn.bsm;
-    if (bsmHandle.getTag() != Opcodes.H_INVOKESTATIC &&
-        bsmHandle.getTag() != Opcodes.H_NEWINVOKESPECIAL) {
-      // JVM9 §4.7.23 note: Tag must be InvokeStatic or NewInvokeSpecial.
-      throw new Unreachable("Bootstrap handle invalid: tag == " + bsmHandle.getTag());
-    }
-    // Resolve the bootstrap method.
-    DexMethodHandle bootstrapMethod = getMethodHandle(application, bsmHandle);
-
-    // Decode static bootstrap arguments
-    List<DexValue> bootstrapArgs = new ArrayList<>();
-    for (Object arg : insn.bsmArgs) {
-      bootstrapArgs.add(decodeBootstrapArgument(arg));
-    }
-
-    // Construct call site
-    DexCallSite callSite = application
-        .getCallSite(insn.name, insn.desc, bootstrapMethod, bootstrapArgs);
+    DexCallSite callSite = DexCallSite.fromAsmInvokeDynamic(insn, application, clazz);
 
     buildInvoke(insn.desc, null /* Not needed */,
         false /* Receiver is passed explicitly */, builder,
         (types, registers) -> builder.addInvokeCustom(callSite, types, registers));
-  }
-
-  private DexValue decodeBootstrapArgument(Object value) {
-    if (value instanceof Integer) {
-      return DexValue.DexValueInt.create((Integer) value);
-    } else if (value instanceof Long) {
-      return DexValue.DexValueLong.create((Long) value);
-    } else if (value instanceof Float) {
-      return DexValue.DexValueFloat.create((Float) value);
-    } else if (value instanceof Double) {
-      return DexValue.DexValueDouble.create((Double) value);
-    } else if (value instanceof String) {
-      return new DexValue.DexValueString(application.getString((String) value));
-
-    } else if (value instanceof Type) {
-      Type type = (Type) value;
-      switch (type.getSort()) {
-        case Type.OBJECT:
-          return new DexValue.DexValueType(
-              application.getTypeFromDescriptor(((Type) value).getDescriptor()));
-        case Type.METHOD:
-          return new DexValue.DexValueMethodType(
-              application.getProto(((Type) value).getDescriptor()));
-        default:
-          throw new Unreachable("Type sort is not supported: " + type.getSort());
-      }
-    } else if (value instanceof Handle) {
-      return new DexValue.DexValueMethodHandle(getMethodHandle(application, (Handle) value));
-    } else {
-      throw new Unreachable(
-          "Unsupported bootstrap static argument of type " + value.getClass().getSimpleName());
-    }
-  }
-
-  private DexMethodHandle getMethodHandle(JarApplicationReader application, Handle handle) {
-    MethodHandleType methodHandleType = getMethodHandleType(handle);
-    Descriptor<? extends DexItem, ? extends Descriptor<?,?>> descriptor =
-        methodHandleType.isFieldType()
-            ? application.getField(handle.getOwner(), handle.getName(), handle.getDesc())
-            : application.getMethod(handle.getOwner(), handle.getName(), handle.getDesc());
-    return application.getMethodHandle(methodHandleType, descriptor);
-  }
-
-  private MethodHandleType getMethodHandleType(Handle handle) {
-    switch (handle.getTag()) {
-      case Opcodes.H_GETFIELD:
-        return MethodHandleType.INSTANCE_GET;
-      case Opcodes.H_GETSTATIC:
-        return MethodHandleType.STATIC_GET;
-      case Opcodes.H_PUTFIELD:
-        return MethodHandleType.INSTANCE_PUT;
-      case Opcodes.H_PUTSTATIC:
-        return MethodHandleType.STATIC_PUT;
-      case Opcodes.H_INVOKESPECIAL:
-        assert !handle.getName().equals(Constants.INSTANCE_INITIALIZER_NAME);
-        assert !handle.getName().equals(Constants.CLASS_INITIALIZER_NAME);
-        DexType owner = application.getTypeFromName(handle.getOwner());
-        if (owner == clazz) {
-          return MethodHandleType.INVOKE_DIRECT;
-        } else {
-          return MethodHandleType.INVOKE_SUPER;
-        }
-      case Opcodes.H_INVOKEVIRTUAL:
-        return MethodHandleType.INVOKE_INSTANCE;
-      case Opcodes.H_INVOKEINTERFACE:
-        return MethodHandleType.INVOKE_INTERFACE;
-      case Opcodes.H_INVOKESTATIC:
-        return MethodHandleType.INVOKE_STATIC;
-      case Opcodes.H_NEWINVOKESPECIAL:
-        return MethodHandleType.INVOKE_CONSTRUCTOR;
-      default:
-        throw new Unreachable("MethodHandle tag is not supported: " + handle.getTag());
-    }
   }
 
   private void build(JumpInsnNode insn, IRBuilder builder) {
@@ -2844,7 +2749,7 @@ public class JarSourceCode implements SourceCode {
     } else if (insn.cst instanceof Handle) {
       Handle handle = (Handle) insn.cst;
       int dest = state.push(METHOD_HANDLE_TYPE);
-      builder.addConstMethodHandle(dest, getMethodHandle(application, handle));
+      builder.addConstMethodHandle(dest, DexMethodHandle.fromAsmHandle(handle, application, clazz));
     } else {
       throw new CompilationError("Unsupported constant: " + insn.cst.toString());
     }

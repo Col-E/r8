@@ -86,6 +86,7 @@ public class ToolHelper {
   public static final String DEFAULT_DEX_FILENAME = "classes.dex";
   public static final String DEFAULT_PROGUARD_MAP_FILE = "proguard.map";
 
+  public static final String JAVA_8_RUNTIME = "third_party/openjdk/openjdk-rt-1.8/rt.jar";
   private static final String ANDROID_JAR_PATTERN = "third_party/android_jar/lib-v%d/android.jar";
   private static final AndroidApiLevel DEFAULT_MIN_SDK = AndroidApiLevel.I;
 

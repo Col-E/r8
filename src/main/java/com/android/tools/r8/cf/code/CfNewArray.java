@@ -6,9 +6,11 @@ package com.android.tools.r8.cf.code;
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.UseRegistry;
+import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.utils.DescriptorUtils;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.Type;
 
 public class CfNewArray extends CfInstruction {
 
@@ -46,22 +48,32 @@ public class CfNewArray extends CfInstruction {
     }
   }
 
-  private String getElementInternalName() {
+  private String getElementInternalName(NamingLens lens) {
     assert !type.isPrimitiveArrayType();
-    return Type.getType(type.toDescriptorString().substring(1)).getInternalName();
+    String renamedArrayType = lens.lookupDescriptor(type).toString();
+    assert renamedArrayType.charAt(0) == '[';
+    String elementType = renamedArrayType.substring(1);
+    return DescriptorUtils.descriptorToInternalName(elementType);
   }
 
   @Override
-  public void write(MethodVisitor visitor) {
+  public void write(MethodVisitor visitor, NamingLens lens) {
     if (type.isPrimitiveArrayType()) {
       visitor.visitIntInsn(Opcodes.NEWARRAY, getPrimitiveTypeCode());
     } else {
-      visitor.visitTypeInsn(Opcodes.ANEWARRAY, getElementInternalName());
+      visitor.visitTypeInsn(Opcodes.ANEWARRAY, getElementInternalName(lens));
     }
   }
 
   @Override
   public void print(CfPrinter printer) {
     printer.print(this);
+  }
+
+  @Override
+  public void registerUse(UseRegistry registry, DexType clazz) {
+    if (!type.isPrimitiveArrayType()) {
+      registry.registerTypeReference(type);
+    }
   }
 }

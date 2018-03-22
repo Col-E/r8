@@ -310,6 +310,7 @@ def cloudDependencies = [
                 "shadow",
                 "ddmlib",
                 "core-lambda-stubs",
+                "openjdk/openjdk-rt-1.8",
         ],
         // All dex-vms have a fixed OS of Linux, as they are only supported on Linux, and will be run in a Docker
         // container on other platforms where supported.
