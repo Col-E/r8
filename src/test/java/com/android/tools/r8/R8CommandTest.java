@@ -361,6 +361,47 @@ public class R8CommandTest {
         .build());
   }
 
+  private ProcessResult runR8OnShaking1(Path additionalProguardConfiguration) throws Throwable {
+    Path input = Paths.get(EXAMPLES_BUILD_DIR, "shaking1.jar").toAbsolutePath();
+    Path proguardConfiguration =
+        Paths.get(ToolHelper.EXAMPLES_DIR, "shaking1", "keep-rules.txt").toAbsolutePath();
+    return ToolHelper.forkR8(temp.getRoot().toPath(),
+        "--pg-conf", proguardConfiguration.toString(),
+        "--pg-conf", additionalProguardConfiguration.toString(),
+        "--lib", ToolHelper.getDefaultAndroidJar().toAbsolutePath().toString(),
+        input.toString());
+  }
+
+  @Test
+  public void printsPrintSeedsOnStdout() throws Throwable {
+    Path proguardPrintSeedsConfiguration = temp.newFile("printseeds.txt").toPath().toAbsolutePath();
+    FileUtils.writeTextFile(proguardPrintSeedsConfiguration, ImmutableList.of("-printseeds"));
+    ProcessResult result = runR8OnShaking1(proguardPrintSeedsConfiguration);
+    assertTrue(result.exitCode == 0);
+    assertTrue(result.stdout.contains("void main(java.lang.String[])"));
+  }
+
+  @Test
+  public void printsPrintUsageOnStdout() throws Throwable {
+    Path proguardPrintUsageConfiguration = temp.newFile("printusage.txt").toPath().toAbsolutePath();
+    FileUtils.writeTextFile(proguardPrintUsageConfiguration, ImmutableList.of("-printusage"));
+    ProcessResult result = runR8OnShaking1(proguardPrintUsageConfiguration);
+    assertTrue(result.exitCode == 0);
+    assertTrue(result.stdout.contains("shaking1.Unused"));
+  }
+
+  @Test
+  public void printsPrintSeedsAndPrintUsageOnStdout() throws Throwable {
+    Path proguardPrintSeedsConfiguration =
+        temp.newFile("printseedsandprintusage.txt").toPath().toAbsolutePath();
+    FileUtils.writeTextFile(
+        proguardPrintSeedsConfiguration, ImmutableList.of("-printseeds", "-printusage"));
+    ProcessResult result = runR8OnShaking1(proguardPrintSeedsConfiguration);
+    assertTrue(result.exitCode == 0);
+    assertTrue(result.stdout.contains("void main(java.lang.String[])"));
+    assertTrue(result.stdout.contains("shaking1.Unused"));
+  }
+
   private R8Command parse(String... args) throws CompilationFailedException {
     return R8Command.parse(args, EmbeddedOrigin.INSTANCE).build();
   }
