@@ -6,6 +6,7 @@ package com.android.tools.r8.cf.code;
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.UseRegistry;
+import com.android.tools.r8.naming.NamingLens;
 import org.objectweb.asm.MethodVisitor;
 
 public class CfMultiANewArray extends CfInstruction {
@@ -27,8 +28,8 @@ public class CfMultiANewArray extends CfInstruction {
   }
 
   @Override
-  public void write(MethodVisitor visitor) {
-    visitor.visitMultiANewArrayInsn(type.getInternalName(), dimensions);
+  public void write(MethodVisitor visitor, NamingLens lens) {
+    visitor.visitMultiANewArrayInsn(lens.lookupInternalName(type), dimensions);
   }
 
   @Override

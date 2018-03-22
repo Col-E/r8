@@ -292,16 +292,16 @@ public class DexMethodHandle extends IndexedDexItem implements
     return sortedCompareTo(other.getSortedIndex());
   }
 
-  public Handle toAsmHandle() {
+  public Handle toAsmHandle(NamingLens lens) {
     String owner;
     String name;
     String desc;
     boolean itf;
     if (isMethodHandle()) {
       DexMethod method = asMethod();
-      owner = method.holder.getInternalName();
-      name = method.name.toString();
-      desc = method.proto.toDescriptorString();
+      owner = lens.lookupInternalName(method.holder);
+      name = lens.lookupName(method).toString();
+      desc = method.proto.toDescriptorString(lens);
       if (method.holder.toDescriptorString().equals("Ljava/lang/invoke/LambdaMetafactory;")) {
         itf = false;
       } else {
@@ -310,9 +310,9 @@ public class DexMethodHandle extends IndexedDexItem implements
     } else {
       assert isFieldHandle();
       DexField field = asField();
-      owner = field.clazz.getInternalName();
-      name = field.name.toString();
-      desc = field.type.toDescriptorString();
+      owner = lens.lookupInternalName(field.clazz);
+      name = lens.lookupName(field).toString();
+      desc = lens.lookupDescriptor(field.type).toString();
       itf = field.clazz.isInterface();
     }
     return new Handle(getAsmTag(), owner, name, desc, itf);

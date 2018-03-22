@@ -18,6 +18,7 @@ import com.android.tools.r8.graph.DexValue.DexValueMethodType;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.DexValue.DexValueType;
 import com.android.tools.r8.graph.UseRegistry;
+import com.android.tools.r8.naming.NamingLens;
 import java.util.List;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.MethodVisitor;
@@ -32,14 +33,14 @@ public class CfInvokeDynamic extends CfInstruction {
   }
 
   @Override
-  public void write(MethodVisitor visitor) {
+  public void write(MethodVisitor visitor, NamingLens lens) {
     DexMethodHandle bootstrapMethod = callSite.bootstrapMethod;
     List<DexValue> bootstrapArgs = callSite.bootstrapArgs;
     Object[] bsmArgs = new Object[bootstrapArgs.size()];
     for (int i = 0; i < bootstrapArgs.size(); i++) {
-      bsmArgs[i] = decodeBootstrapArgument(bootstrapArgs.get(i));
+      bsmArgs[i] = decodeBootstrapArgument(bootstrapArgs.get(i), lens);
     }
-    Handle bsmHandle = bootstrapMethod.toAsmHandle();
+    Handle bsmHandle = bootstrapMethod.toAsmHandle(lens);
     visitor.visitInvokeDynamicInsn(
         callSite.methodName.toString(),
         callSite.methodProto.toDescriptorString(),
@@ -47,7 +48,7 @@ public class CfInvokeDynamic extends CfInstruction {
         bsmArgs);
   }
 
-  private Object decodeBootstrapArgument(DexValue dexValue) {
+  private Object decodeBootstrapArgument(DexValue dexValue, NamingLens lens) {
     if (dexValue instanceof DexValueInt) {
       return ((DexValueInt) dexValue).getValue();
     } else if (dexValue instanceof DexValueLong) {
@@ -63,7 +64,7 @@ public class CfInvokeDynamic extends CfInstruction {
     } else if (dexValue instanceof DexValueMethodType) {
       return Type.getMethodType(((DexValueMethodType) dexValue).value.toDescriptorString());
     } else if (dexValue instanceof DexValueMethodHandle) {
-      return ((DexValueMethodHandle) dexValue).value.toAsmHandle();
+      return ((DexValueMethodHandle) dexValue).value.toAsmHandle(lens);
     } else {
       throw new Unreachable(
           "Unsupported bootstrap argument of type " + dexValue.getClass().getSimpleName());

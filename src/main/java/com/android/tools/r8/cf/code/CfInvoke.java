@@ -9,6 +9,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.UseRegistry;
+import com.android.tools.r8.naming.NamingLens;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -36,10 +37,10 @@ public class CfInvoke extends CfInstruction {
   }
 
   @Override
-  public void write(MethodVisitor visitor) {
-    String owner = method.getHolder().getInternalName();
-    String name = method.name.toString();
-    String desc = method.proto.toDescriptorString();
+  public void write(MethodVisitor visitor, NamingLens lens) {
+    String owner = lens.lookupInternalName(method.getHolder());
+    String name = lens.lookupName(method).toString();
+    String desc = method.proto.toDescriptorString(lens);
     visitor.visitMethodInsn(opcode, owner, name, desc, itf);
   }
 

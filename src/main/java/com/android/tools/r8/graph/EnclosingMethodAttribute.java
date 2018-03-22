@@ -4,6 +4,7 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
+import com.android.tools.r8.naming.NamingLens;
 import org.objectweb.asm.ClassWriter;
 
 /**
@@ -31,14 +32,14 @@ public final class EnclosingMethodAttribute {
     this.enclosingMethod = enclosingMethod;
   }
 
-  public void write(ClassWriter writer) {
+  public void write(ClassWriter writer, NamingLens lens) {
     if (enclosingMethod != null) {
       writer.visitOuterClass(
-          enclosingMethod.getHolder().getInternalName(),
-          enclosingMethod.name.toString(),
-          enclosingMethod.proto.toDescriptorString());
+          lens.lookupInternalName(enclosingMethod.getHolder()),
+          lens.lookupName(enclosingMethod).toString(),
+          enclosingMethod.proto.toDescriptorString(lens));
     } else {
-      writer.visitOuterClass(enclosingClass.getInternalName(), null, null);
+      writer.visitOuterClass(lens.lookupInternalName(enclosingClass), null, null);
     }
   }
 

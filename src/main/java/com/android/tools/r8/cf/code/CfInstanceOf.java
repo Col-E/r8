@@ -6,6 +6,7 @@ package com.android.tools.r8.cf.code;
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.UseRegistry;
+import com.android.tools.r8.naming.NamingLens;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -22,8 +23,8 @@ public class CfInstanceOf extends CfInstruction {
   }
 
   @Override
-  public void write(MethodVisitor visitor) {
-    visitor.visitTypeInsn(Opcodes.INSTANCEOF, type.getInternalName());
+  public void write(MethodVisitor visitor, NamingLens lens) {
+    visitor.visitTypeInsn(Opcodes.INSTANCEOF, lens.lookupInternalName(type));
   }
 
   @Override

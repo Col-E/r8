@@ -9,6 +9,7 @@ import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.naming.NamingLens;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import java.util.List;
 import org.objectweb.asm.MethodVisitor;
@@ -33,11 +34,11 @@ public class CfFrame extends CfInstruction {
   }
 
   @Override
-  public void write(MethodVisitor visitor) {
+  public void write(MethodVisitor visitor, NamingLens lens) {
     int stackCount = computeStackCount();
-    Object[] stackTypes = computeStackTypes(stackCount);
+    Object[] stackTypes = computeStackTypes(stackCount, lens);
     int localsCount = computeLocalsCount();
-    Object[] localsTypes = computeLocalsTypes(localsCount);
+    Object[] localsTypes = computeLocalsTypes(localsCount, lens);
     visitor.visitFrame(F_NEW, localsCount, localsTypes, stackCount, stackTypes);
   }
 
@@ -49,14 +50,14 @@ public class CfFrame extends CfInstruction {
     return stack.size();
   }
 
-  private Object[] computeStackTypes(int stackCount) {
+  private Object[] computeStackTypes(int stackCount, NamingLens lens) {
     assert stackCount == stack.size();
     if (stackCount == 0) {
       return null;
     }
     Object[] stackTypes = new Object[stackCount];
     for (int i = 0; i < stackCount; i++) {
-      stackTypes[i] = getType(stack.get(i));
+      stackTypes[i] = getType(stack.get(i), lens);
     }
     return stackTypes;
   }
@@ -78,7 +79,7 @@ public class CfFrame extends CfInstruction {
     return localsCount;
   }
 
-  private Object[] computeLocalsTypes(int localsCount) {
+  private Object[] computeLocalsTypes(int localsCount, NamingLens lens) {
     if (localsCount == 0) {
       return null;
     }
@@ -87,7 +88,7 @@ public class CfFrame extends CfInstruction {
     int localIndex = 0;
     for (int i = 0; i <= maxRegister; i++) {
       DexType type = locals.get(i);
-      Object typeOpcode = getType(type);
+      Object typeOpcode = getType(type, lens);
       localsTypes[localIndex++] = typeOpcode;
       if (type != null && isWide(type)) {
         i++;
@@ -96,7 +97,7 @@ public class CfFrame extends CfInstruction {
     return localsTypes;
   }
 
-  private Object getType(DexType type) {
+  private Object getType(DexType type, NamingLens lens) {
     if (type == null) {
       return Opcodes.TOP;
     }
@@ -105,7 +106,7 @@ public class CfFrame extends CfInstruction {
     }
     switch (type.toShorty()) {
       case 'L':
-        return type.getInternalName();
+        return lens.lookupInternalName(type);
       case 'I':
         return Opcodes.INTEGER;
       case 'F':

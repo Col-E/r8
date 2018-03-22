@@ -5,6 +5,7 @@ package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.ir.code.ValueType;
+import com.android.tools.r8.naming.NamingLens;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -17,7 +18,7 @@ public class CfPop extends CfInstruction {
   }
 
   @Override
-  public void write(MethodVisitor visitor) {
+  public void write(MethodVisitor visitor, NamingLens lens) {
     visitor.visitInsn(type.isWide() ? Opcodes.POP2 : Opcodes.POP);
   }
 

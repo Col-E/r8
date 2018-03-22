@@ -463,8 +463,7 @@ public class DexType extends IndexedDexItem implements PresortedComparable<DexTy
   /** Get the fully qualified name using '/' in place of '.', ala the "internal type name" in ASM */
   public String getInternalName() {
     assert isClassType() || isArrayType();
-    String descriptor = toDescriptorString();
-    return isArrayType() ? descriptor : descriptor.substring(1, descriptor.length() - 1);
+    return DescriptorUtils.descriptorToInternalName(toDescriptorString());
   }
 
   public boolean isImmediateSubtypeOf(DexType type) {

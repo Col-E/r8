@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.optimize.MemberRebindingAnalysis;
+import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -30,6 +31,8 @@ public abstract class NamingLens {
 
   public abstract DexString lookupDescriptor(DexType type);
 
+  public abstract String lookupSimpleName(DexType inner, DexString innerName);
+
   public abstract DexString lookupName(DexMethod method);
 
   public abstract DexString lookupName(DexField field);
@@ -40,6 +43,11 @@ public abstract class NamingLens {
 
   public final boolean isIdentityLens() {
     return this instanceof IdentityLens;
+  }
+
+  public String lookupInternalName(DexType type) {
+    assert type.isClassType() || type.isArrayType();
+    return DescriptorUtils.descriptorToInternalName(lookupDescriptor(type).toString());
   }
 
   abstract void forAllRenamedTypes(Consumer<DexType> consumer);
@@ -65,6 +73,11 @@ public abstract class NamingLens {
     @Override
     public DexString lookupDescriptor(DexType type) {
       return type.descriptor;
+    }
+
+    @Override
+    public String lookupSimpleName(DexType inner, DexString innerName) {
+      return innerName == null ? null : innerName.toString();
     }
 
     @Override

@@ -38,6 +38,7 @@ import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
+import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.Collections;
 import java.util.List;
@@ -296,13 +297,17 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   }
 
   public String descriptor() {
+    return descriptor(NamingLens.getIdentityLens());
+  }
+
+  public String descriptor(NamingLens namingLens) {
     StringBuilder builder = new StringBuilder();
     builder.append("(");
     for (DexType type : method.proto.parameters.values) {
-      builder.append(type.descriptor.toString());
+      builder.append(namingLens.lookupDescriptor(type).toString());
     }
     builder.append(")");
-    builder.append(method.proto.returnType.descriptor.toString());
+    builder.append(namingLens.lookupDescriptor(method.proto.returnType).toString());
     return builder.toString();
   }
 

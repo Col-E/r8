@@ -13,6 +13,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.Collections;
 import java.util.List;
@@ -112,9 +113,9 @@ public class CfCode extends Code {
     return this;
   }
 
-  public void write(MethodVisitor visitor) {
+  public void write(MethodVisitor visitor, NamingLens namingLens) {
     for (CfInstruction instruction : instructions) {
-      instruction.write(visitor);
+      instruction.write(visitor, namingLens);
     }
     visitor.visitEnd();
     visitor.visitMaxs(maxStack, maxLocals);
@@ -128,14 +129,14 @@ public class CfCode extends Code {
             start,
             end,
             target,
-            guard == DexItemFactory.catchAllType ? null : guard.getInternalName());
+            guard == DexItemFactory.catchAllType ? null : namingLens.lookupInternalName(guard));
       }
     }
     for (LocalVariableInfo localVariable : localVariables) {
       DebugLocalInfo info = localVariable.local;
       visitor.visitLocalVariable(
           info.name.toString(),
-          info.type.toDescriptorString(),
+          namingLens.lookupDescriptor(info.type).toString(),
           info.signature == null ? null : info.signature.toString(),
           localVariable.start.getLabel(),
           localVariable.end.getLabel(),

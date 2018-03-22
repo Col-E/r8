@@ -93,13 +93,17 @@ public class DexProto extends IndexedDexItem implements PresortedComparable<DexP
   }
 
   public String toDescriptorString() {
+    return toDescriptorString(NamingLens.getIdentityLens());
+  }
+
+  public String toDescriptorString(NamingLens lens) {
     StringBuilder builder = new StringBuilder();
     builder.append("(");
     for (int i = 0; i < parameters.values.length; i++) {
-      builder.append(parameters.values[i].toDescriptorString());
+      builder.append(lens.lookupDescriptor(parameters.values[i]));
     }
     builder.append(")");
-    builder.append(returnType.toDescriptorString());
+    builder.append(lens.lookupDescriptor(returnType));
     return builder.toString();
   }
 }

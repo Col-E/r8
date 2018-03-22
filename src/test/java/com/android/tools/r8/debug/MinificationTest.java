@@ -3,13 +3,20 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.debug;
 
+import static org.junit.Assert.assertTrue;
+
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase.MinifyMode;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.debug.DebugTestConfig.RuntimeKind;
+import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.DexInspector;
+import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
@@ -28,13 +35,15 @@ public class MinificationTest extends DebugTestBase {
 
   private static final String SOURCE_FILE = "Minified.java";
 
-  @Parameterized.Parameters(name = "minification: {0}, proguardMap: {1}")
+  @Parameterized.Parameters(name = "backend:{0} minification:{1} proguardMap:{2}")
   public static Collection minificationControl() {
     ImmutableList.Builder<Object> builder = ImmutableList.builder();
-    for (MinifyMode mode : MinifyMode.values()) {
-      builder.add((Object) new Object[]{mode, false});
-      if (mode.isMinify()) {
-        builder.add((Object) new Object[]{mode, true});
+    for (RuntimeKind kind : RuntimeKind.values()) {
+      for (MinifyMode mode : MinifyMode.values()) {
+        builder.add((Object) new Object[] {kind, mode, false});
+        if (mode.isMinify()) {
+          builder.add((Object) new Object[] {kind, mode, true});
+        }
       }
     }
     return builder.build();
@@ -43,10 +52,13 @@ public class MinificationTest extends DebugTestBase {
   @Rule
   public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
+  private final RuntimeKind runtimeKind;
   private final MinifyMode minificationMode;
   private final boolean writeProguardMap;
 
-  public MinificationTest(MinifyMode minificationMode, boolean writeProguardMap) throws Exception {
+  public MinificationTest(
+      RuntimeKind runtimeKind, MinifyMode minificationMode, boolean writeProguardMap) {
+    this.runtimeKind = runtimeKind;
     this.minificationMode = minificationMode;
     this.writeProguardMap = writeProguardMap;
   }
@@ -69,15 +81,19 @@ public class MinificationTest extends DebugTestBase {
     }
 
     AndroidApiLevel minSdk = ToolHelper.getMinApiLevelForDexVm();
-    Path dexOutputDir = temp.newFolder().toPath();
-    Path proguardMap = writeProguardMap ? dexOutputDir.resolve("proguard.map") : null;
+    Path outputPath = temp.getRoot().toPath().resolve("classes.zip");
+    Path proguardMap = writeProguardMap ? temp.getRoot().toPath().resolve("proguard.map") : null;
+    OutputMode outputMode =
+        runtimeKind == RuntimeKind.CF ? OutputMode.ClassFile : OutputMode.DexIndexed;
     R8Command.Builder builder =
         R8Command.builder()
             .addProgramFiles(DEBUGGEE_JAR)
-            .setOutput(dexOutputDir, OutputMode.DexIndexed)
-            .setMinApiLevel(minSdk.getLevel())
+            .setOutput(outputPath, outputMode)
             .setMode(CompilationMode.DEBUG)
             .addLibraryFiles(ToolHelper.getAndroidJar(minSdk));
+    if (runtimeKind != RuntimeKind.CF) {
+      builder.setMinApiLevel(minSdk.getLevel());
+    }
     if (proguardMap != null) {
       builder.setProguardMapOutputPath(proguardMap);
     }
@@ -91,9 +107,22 @@ public class MinificationTest extends DebugTestBase {
             ? (oc -> oc.lineNumberOptimization = LineNumberOptimization.OFF)
             : null);
 
-    DexDebugTestConfig config = new DexDebugTestConfig(dexOutputDir.resolve("classes.dex"));
-    config.setProguardMap(proguardMap);
-    return config;
+    switch (runtimeKind) {
+      case CF:
+        {
+          CfDebugTestConfig config = new CfDebugTestConfig(outputPath);
+          config.setProguardMap(proguardMap);
+          return config;
+        }
+      case DEX:
+        {
+          DexDebugTestConfig config = new DexDebugTestConfig(outputPath);
+          config.setProguardMap(proguardMap);
+          return config;
+        }
+      default:
+        throw new Unreachable();
+    }
   }
 
   @Test
@@ -104,8 +133,15 @@ public class MinificationTest extends DebugTestBase {
     final String innerClassName = minifiedNames() ? "a" : "Minified$Inner";
     final String innerMethodName = minifiedNames() ? "a" : "innerTest";
     final String innerSignature = "()I";
+    DebugTestConfig config = getTestConfig();
+    checkStructure(
+        config,
+        className,
+        MethodSignature.fromSignature(methodName, signature),
+        innerClassName,
+        MethodSignature.fromSignature(innerMethodName, innerSignature));
     runDebugTest(
-        getTestConfig(),
+        config,
         className,
         breakpoint(className, methodName, signature),
         run(),
@@ -126,13 +162,45 @@ public class MinificationTest extends DebugTestBase {
     final String innerClassName = minifiedNames() ? "a" : "Minified$Inner";
     final String innerMethodName = minifiedNames() ? "a" : "innerTest";
     final String innerSignature = "()I";
+    DebugTestConfig config = getTestConfig();
+    checkStructure(
+        config,
+        className,
+        innerClassName,
+        MethodSignature.fromSignature(innerMethodName, innerSignature));
     runDebugTest(
-        getTestConfig(),
+        config,
         className,
         breakpoint(innerClassName, innerMethodName, innerSignature),
         run(),
         checkMethod(innerClassName, innerMethodName, innerSignature),
         checkLine(SOURCE_FILE, 8),
         run());
+  }
+
+  private void checkStructure(
+      DebugTestConfig config,
+      String className,
+      MethodSignature method,
+      String innerClassName,
+      MethodSignature innerMethod)
+      throws Throwable {
+    Path proguardMap = config.getProguardMap();
+    String mappingFile = proguardMap == null ? null : proguardMap.toString();
+    DexInspector inspector = new DexInspector(config.getPaths(), mappingFile);
+    ClassSubject clazz = inspector.clazz(className);
+    assertTrue(clazz.isPresent());
+    if (method != null) {
+      assertTrue(clazz.method(method).isPresent());
+    }
+    ClassSubject innerClass = inspector.clazz(innerClassName);
+    assertTrue(innerClass.isPresent());
+    assertTrue(innerClass.method(innerMethod).isPresent());
+  }
+
+  private void checkStructure(
+      DebugTestConfig config, String className, String innerClassName, MethodSignature innerMethod)
+      throws Throwable {
+    checkStructure(config, className, null, innerClassName, innerMethod);
   }
 }

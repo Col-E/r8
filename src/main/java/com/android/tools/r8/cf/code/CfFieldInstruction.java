@@ -8,6 +8,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.UseRegistry;
+import com.android.tools.r8.naming.NamingLens;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -30,10 +31,10 @@ public class CfFieldInstruction extends CfInstruction {
   }
 
   @Override
-  public void write(MethodVisitor visitor) {
-    String owner = field.getHolder().getInternalName();
-    String name = field.name.toString();
-    String desc = field.type.toDescriptorString();
+  public void write(MethodVisitor visitor, NamingLens lens) {
+    String owner = lens.lookupInternalName(field.getHolder());
+    String name = lens.lookupName(field).toString();
+    String desc = lens.lookupDescriptor(field.type).toString();
     visitor.visitFieldInsn(opcode, owner, name, desc);
   }
 

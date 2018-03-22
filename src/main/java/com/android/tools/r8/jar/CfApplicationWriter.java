@@ -108,25 +108,27 @@ public class CfApplicationWriter {
     writer.visitSource(clazz.sourceFile != null ? clazz.sourceFile.toString() : null, null);
     int version = clazz.getClassFileVersion();
     int access = clazz.accessFlags.getAsCfAccessFlags();
-    String desc = clazz.type.toDescriptorString();
-    String name = clazz.type.getInternalName();
+    String desc = namingLens.lookupDescriptor(clazz.type).toString();
+    String name = namingLens.lookupInternalName(clazz.type);
     String signature = getSignature(clazz.annotations);
     String superName =
-        clazz.type == options.itemFactory.objectType ? null : clazz.superType.getInternalName();
+        clazz.type == options.itemFactory.objectType
+            ? null
+            : namingLens.lookupInternalName(clazz.superType);
     String[] interfaces = new String[clazz.interfaces.values.length];
     for (int i = 0; i < clazz.interfaces.values.length; i++) {
-      interfaces[i] = clazz.interfaces.values[i].getInternalName();
+      interfaces[i] = namingLens.lookupInternalName(clazz.interfaces.values[i]);
     }
     writer.visit(version, access, name, signature, superName, interfaces);
     writeAnnotations(writer::visitAnnotation, clazz.annotations.annotations);
     ImmutableMap<DexString, DexValue> defaults = getAnnotationDefaults(clazz.annotations);
 
     if (clazz.getEnclosingMethod() != null) {
-      clazz.getEnclosingMethod().write(writer);
+      clazz.getEnclosingMethod().write(writer, namingLens);
     }
 
     for (InnerClassAttribute entry : clazz.getInnerClasses()) {
-      entry.write(writer);
+      entry.write(writer, namingLens);
     }
 
     for (DexEncodedField field : clazz.staticFields()) {
@@ -175,6 +177,7 @@ public class CfApplicationWriter {
     if (value == null) {
       return null;
     }
+    // Signature has already been minified by ClassNameMinifier.renameTypesInGenericSignatures().
     DexValue[] parts = value.getValues();
     StringBuilder res = new StringBuilder();
     for (DexValue part : parts) {
@@ -208,7 +211,7 @@ public class CfApplicationWriter {
     DexValue[] values = value.getValues();
     String[] res = new String[values.length];
     for (int i = 0; i < values.length; i++) {
-      res[i] = ((DexValueType) values[i]).value.getInternalName();
+      res[i] = namingLens.lookupInternalName(((DexValueType) values[i]).value);
     }
     return res;
   }
@@ -222,8 +225,8 @@ public class CfApplicationWriter {
 
   private void writeField(DexEncodedField field, ClassWriter writer) {
     int access = field.accessFlags.getAsCfAccessFlags();
-    String name = field.field.name.toString();
-    String desc = field.field.type.toDescriptorString();
+    String name = namingLens.lookupName(field.field).toString();
+    String desc = namingLens.lookupDescriptor(field.field.type).toString();
     String signature = getSignature(field.annotations);
     Object value = getStaticValue(field);
     FieldVisitor visitor = writer.visitField(access, name, desc, signature, value);
@@ -234,8 +237,8 @@ public class CfApplicationWriter {
   private void writeMethod(
       DexEncodedMethod method, ClassWriter writer, ImmutableMap<DexString, DexValue> defaults) {
     int access = method.accessFlags.getAsCfAccessFlags();
-    String name = method.method.name.toString();
-    String desc = method.descriptor();
+    String name = namingLens.lookupName(method.method).toString();
+    String desc = method.descriptor(namingLens);
     String signature = getSignature(method.annotations);
     String[] exceptions = getExceptions(method.annotations);
     MethodVisitor visitor = writer.visitMethod(access, name, desc, signature, exceptions);
@@ -332,10 +335,11 @@ public class CfApplicationWriter {
 
   private void writeCode(Code code, MethodVisitor visitor) {
     if (code.isJarCode()) {
+      assert namingLens.isIdentityLens();
       code.asJarCode().writeTo(visitor);
     } else {
       assert code.isCfCode();
-      code.asCfCode().write(visitor);
+      code.asCfCode().write(visitor, namingLens);
     }
   }
 

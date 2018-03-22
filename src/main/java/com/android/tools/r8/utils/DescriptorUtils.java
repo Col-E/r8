@@ -138,6 +138,23 @@ public class DescriptorUtils {
   }
 
   /**
+   * Convert a class type descriptor to an ASM internal name.
+   *
+   * @param descriptor type descriptor
+   * @return Java type name
+   */
+  public static String descriptorToInternalName(String descriptor) {
+    switch (descriptor.charAt(0)) {
+      case '[':
+        return descriptor;
+      case 'L':
+        return descriptor.substring(1, descriptor.length() - 1);
+      default:
+        throw new Unreachable("Not array or class type");
+    }
+  }
+
+  /**
    * Convert a type descriptor to a Java type name. Will also deobfuscate class names if a
    * class mapper is provided.
    *

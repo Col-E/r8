@@ -7,6 +7,7 @@ import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.UseRegistry;
+import com.android.tools.r8.naming.NamingLens;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 
@@ -23,8 +24,8 @@ public class CfConstMethodType extends CfInstruction {
   }
 
   @Override
-  public void write(MethodVisitor visitor) {
-    visitor.visitLdcInsn(Type.getType(type.toDescriptorString()));
+  public void write(MethodVisitor visitor, NamingLens lens) {
+    visitor.visitLdcInsn(Type.getType(type.toDescriptorString(lens)));
   }
 
   @Override
