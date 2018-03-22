@@ -1339,6 +1339,10 @@ task buildPreNJdwpTestsJar(type: Jar) {
 }
 
 task buildPreNJdwpTestsDex(type: Exec, dependsOn: "buildPreNJdwpTestsJar") {
+    if (OperatingSystem.current().isWindows()) {
+        // TODO(b/76135355): Update dx.bat on Windows to something that can build this.
+        return;
+    }
     def inFile = buildPreNJdwpTestsJar.archivePath
     def outFile = new File(buildPreNJdwpTestsJar.destinationDir, buildPreNJdwpTestsJar.baseName + '-dex.jar')
     inputs.file inFile
