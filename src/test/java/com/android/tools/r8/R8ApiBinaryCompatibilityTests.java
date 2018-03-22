@@ -3,6 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.FileUtils;
@@ -13,7 +16,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -31,13 +33,15 @@ public class R8ApiBinaryCompatibilityTests {
     List<Path> inputs =
         ImmutableList.of(Paths.get(ToolHelper.EXAMPLES_BUILD_DIR, "arithmetic.jar"));
 
+    String keepMain = "-keep public class arithmetic.Arithmetic {\n"
+        + "  public static void main(java.lang.String[]);\n"
+        + "}";
+
     Path pgConf = temp.getRoot().toPath().resolve("pg.conf");
-    FileUtils.writeTextFile(
-        pgConf, TestBase.keepMainProguardConfiguration("arithmetic.Arithmetic"));
+    FileUtils.writeTextFile(pgConf, keepMain);
 
     Path mainDexRules = temp.getRoot().toPath().resolve("maindex.rules");
-    FileUtils.writeTextFile(
-        mainDexRules, TestBase.keepMainProguardConfiguration("arithmetic.Arithmetic"));
+    FileUtils.writeTextFile(mainDexRules, keepMain);
 
     Path mainDexList = temp.getRoot().toPath().resolve("maindexlist.txt");
     FileUtils.writeTextFile(mainDexList, "arithmetic/Arithmetic.class");
@@ -68,8 +72,8 @@ public class R8ApiBinaryCompatibilityTests {
 
     ProcessBuilder builder = new ProcessBuilder(command);
     ProcessResult result = ToolHelper.runProcess(builder);
-    Assert.assertEquals(result.stderr + "\n" + result.stdout, 0, result.exitCode);
-    Assert.assertTrue(result.stdout, result.stdout.isEmpty());
-    Assert.assertTrue(result.stderr, result.stderr.isEmpty());
+    assertEquals(result.stderr + "\n" + result.stdout, 0, result.exitCode);
+    assertTrue(result.stdout, result.stdout.isEmpty());
+    assertTrue(result.stderr, result.stderr.isEmpty());
   }
 }

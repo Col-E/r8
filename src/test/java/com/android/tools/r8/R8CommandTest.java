@@ -377,7 +377,7 @@ public class R8CommandTest {
     Path proguardPrintSeedsConfiguration = temp.newFile("printseeds.txt").toPath().toAbsolutePath();
     FileUtils.writeTextFile(proguardPrintSeedsConfiguration, ImmutableList.of("-printseeds"));
     ProcessResult result = runR8OnShaking1(proguardPrintSeedsConfiguration);
-    assertTrue(result.exitCode == 0);
+    assertEquals("R8 run failed: " + result.stderr, 0, result.exitCode);
     assertTrue(result.stdout.contains("void main(java.lang.String[])"));
   }
 
@@ -386,7 +386,7 @@ public class R8CommandTest {
     Path proguardPrintUsageConfiguration = temp.newFile("printusage.txt").toPath().toAbsolutePath();
     FileUtils.writeTextFile(proguardPrintUsageConfiguration, ImmutableList.of("-printusage"));
     ProcessResult result = runR8OnShaking1(proguardPrintUsageConfiguration);
-    assertTrue(result.exitCode == 0);
+    assertEquals("R8 run failed: " + result.stderr, 0, result.exitCode);
     assertTrue(result.stdout.contains("shaking1.Unused"));
   }
 
@@ -397,7 +397,7 @@ public class R8CommandTest {
     FileUtils.writeTextFile(
         proguardPrintSeedsConfiguration, ImmutableList.of("-printseeds", "-printusage"));
     ProcessResult result = runR8OnShaking1(proguardPrintSeedsConfiguration);
-    assertTrue(result.exitCode == 0);
+    assertEquals("R8 run failed: " + result.stderr, 0, result.exitCode);
     assertTrue(result.stdout.contains("void main(java.lang.String[])"));
     assertTrue(result.stdout.contains("shaking1.Unused"));
   }
