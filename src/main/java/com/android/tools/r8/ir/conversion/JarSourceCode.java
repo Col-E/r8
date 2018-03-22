@@ -424,11 +424,12 @@ public class JarSourceCode implements SourceCode {
     for (JarStateWorklistItem item = worklist.poll(); item != null; item = worklist.poll()) {
       state.restoreState(item.instructionIndex);
       // Iterate each of the instructions in the block to compute the outgoing JarState.
-      for (int i = item.instructionIndex; i <= instructionCount(); ++i) {
+      int instCount = instructionCount();
+      for (int i = item.instructionIndex; i <= instCount; ++i) {
         // If we are at the end of the instruction stream or if we have reached the start
         // of a new block, propagate the state to all successors and add the ones
         // that changed to the worklist.
-        if (i == instructionCount() || (i != item.instructionIndex && CFG.containsKey(i))) {
+        if (i == instCount || (i != item.instructionIndex && CFG.containsKey(i))) {
           item.blockInfo.normalSuccessors.iterator().forEachRemaining(offset -> {
             if (state.recordStateForTarget(offset)) {
               if (offset >= 0) {
