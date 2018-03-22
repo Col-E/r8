@@ -139,6 +139,9 @@ public abstract class DebugTestBase {
     Assume.assumeTrue("Skipping test " + testName.getMethodName()
             + " because debug tests are not yet supported on Windows",
         !ToolHelper.isWindows());
+    Assume.assumeTrue("Skipping test " + testName.getMethodName()
+            + " because debug tests are not yet supported on device",
+        ToolHelper.getDexVm().getKind() == ToolHelper.DexVm.Kind.HOST);
 
     ClassNameMapper classNameMapper =
         config.getProguardMap() == null
