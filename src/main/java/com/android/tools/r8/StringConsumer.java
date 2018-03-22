@@ -147,6 +147,7 @@ public interface StringConsumer {
           new BufferedWriter(new OutputStreamWriter(outputStream, encoding.newEncoder()));
       try {
         writer.write(string);
+        writer.flush();
       } catch (IOException e) {
         handler.error(new IOExceptionDiagnostic(e, origin));
       }
