@@ -5,6 +5,7 @@ package com.android.tools.r8.shaking;
 
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.identifyIdentiferNameString;
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.isReflectionMethod;
+import static com.android.tools.r8.shaking.ProguardConfigurationUtils.buildIdentifierNameStringRule;
 
 import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.Diagnostic;
@@ -103,6 +104,7 @@ public class Enqueuer {
 
   private final ProtoLiteExtension protoLiteExtension;
   private final Set<DexField> protoLiteFields = Sets.newIdentityHashSet();
+  private final Set<DexItem> identifierNameStrings = Sets.newIdentityHashSet();
 
   /**
    * This map keeps a view of all virtual methods that are reachable from virtual invokes. A method
@@ -272,9 +274,14 @@ public class Enqueuer {
 
     @Override
     public boolean registerInvokeVirtual(DexMethod method) {
-      if (options.forceProguardCompatibility
-          && appInfo.dexItemFactory.classMethods.isReflectiveMemberLookup(method)) {
-        pendingProguardReflectiveCompatibility.add(currentMethod);
+      if (appInfo.dexItemFactory.classMethods.isReflectiveMemberLookup(method)) {
+        if (options.forceProguardCompatibility) {
+          // TODO(b/76181966): whether or not add this rule in normal mode.
+          if (identifierNameStrings.add(method) && compatibility != null) {
+            compatibility.addRule(buildIdentifierNameStringRule(method));
+          }
+          pendingProguardReflectiveCompatibility.add(currentMethod);
+        }
       }
       if (!registerItemWithTarget(virtualInvokes, method)) {
         return false;
@@ -300,10 +307,15 @@ public class Enqueuer {
 
     @Override
     public boolean registerInvokeStatic(DexMethod method) {
-      if (options.forceProguardCompatibility
-          && (method == appInfo.dexItemFactory.classMethods.forName
-              || appInfo.dexItemFactory.atomicFieldUpdaterMethods.isFieldUpdater(method))) {
-        pendingProguardReflectiveCompatibility.add(currentMethod);
+      if (method == appInfo.dexItemFactory.classMethods.forName
+          || appInfo.dexItemFactory.atomicFieldUpdaterMethods.isFieldUpdater(method)) {
+        if (options.forceProguardCompatibility) {
+          // TODO(b/76181966): whether or not add this rule in normal mode.
+          if (identifierNameStrings.add(method) && compatibility != null) {
+            compatibility.addRule(buildIdentifierNameStringRule(method));
+          }
+          pendingProguardReflectiveCompatibility.add(currentMethod);
+        }
       }
       if (!registerItemWithTarget(staticInvokes, method)) {
         return false;
@@ -1510,7 +1522,8 @@ public class Enqueuer {
       this.noSideEffects = enqueuer.rootSet.noSideEffects;
       this.assumedValues = enqueuer.rootSet.assumedValues;
       this.alwaysInline = enqueuer.rootSet.alwaysInline;
-      this.identifierNameStrings = enqueuer.rootSet.identifierNameStrings;
+      this.identifierNameStrings =
+          Sets.union(enqueuer.rootSet.identifierNameStrings, enqueuer.identifierNameStrings);
       this.protoLiteFields = enqueuer.protoLiteFields;
       this.prunedTypes = Collections.emptySet();
       this.switchMaps = Collections.emptyMap();

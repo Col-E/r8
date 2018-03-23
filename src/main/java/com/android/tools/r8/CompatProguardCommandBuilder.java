@@ -4,37 +4,9 @@
 
 package com.android.tools.r8;
 
-import com.android.tools.r8.origin.EmbeddedOrigin;
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
-import java.util.List;
 
 public class CompatProguardCommandBuilder extends R8Command.Builder {
-  @VisibleForTesting
-  public static final List<String> REFLECTIONS = ImmutableList.of(
-      "-identifiernamestring public class java.lang.Class {",
-      "  public static java.lang.Class forName(java.lang.String);",
-      "  public java.lang.reflect.Field getField(java.lang.String);",
-      "  public java.lang.reflect.Field getDeclaredField(java.lang.String);",
-      "  public java.lang.reflect.Method getMethod(java.lang.String, java.lang.Class[]);",
-      "  public java.lang.reflect.Method getDeclaredMethod(java.lang.String, java.lang.Class[]);",
-      "}",
-      "-identifiernamestring public class java.util.concurrent.atomic.AtomicIntegerFieldUpdater {",
-      "  public static java.util.concurrent.atomic.AtomicIntegerFieldUpdater",
-      "      newUpdater(java.lang.Class, java.lang.String);",
-      "}",
-      "-identifiernamestring public class java.util.concurrent.atomic.AtomicLongFieldUpdater {",
-      "  public static java.util.concurrent.atomic.AtomicLongFieldUpdater",
-      "      newUpdater(java.lang.Class, java.lang.String);",
-      "}",
-      "-identifiernamestring public class",
-      "    java.util.concurrent.atomic.AtomicReferenceFieldUpdater {",
-      "  public static java.util.concurrent.atomic.AtomicReferenceFieldUpdater",
-      "      newUpdater(java.lang.Class, java.lang.Class, java.lang.String);",
-      "}"
-  );
-
   public CompatProguardCommandBuilder() {
     this(true);
   }
@@ -43,13 +15,11 @@ public class CompatProguardCommandBuilder extends R8Command.Builder {
       boolean forceProguardCompatibility, DiagnosticsHandler diagnosticsHandler) {
     super(forceProguardCompatibility, diagnosticsHandler);
     setIgnoreDexInArchive(true);
-    addProguardConfiguration(REFLECTIONS, EmbeddedOrigin.INSTANCE);
   }
 
   public CompatProguardCommandBuilder(boolean forceProguardCompatibility) {
     super(forceProguardCompatibility);
     setIgnoreDexInArchive(true);
-    addProguardConfiguration(REFLECTIONS, EmbeddedOrigin.INSTANCE);
   }
 
   public void setProguardCompatibilityRulesOutput(Path path) {
