@@ -9,7 +9,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.CompatProguardCommandBuilder;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
@@ -22,7 +21,6 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import java.nio.file.Path;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -40,14 +38,16 @@ public class OverloadAggressivelyTest extends TestBase {
               pgConfig.setPrintMappingFile(out.resolve(ToolHelper.DEFAULT_PROGUARD_MAP_FILE));
             })
         .addProguardConfiguration(
-            ImmutableList.copyOf(Iterables.concat(ImmutableList.of(
+            ImmutableList.of(
                 keepMainProguardConfiguration(main),
                 overloadaggressively ? "-overloadaggressively" : ""),
-                CompatProguardCommandBuilder.REFLECTIONS)),
             Origin.unknown())
         .setOutput(out, OutputMode.DexIndexed)
         .build();
-    return ToolHelper.runR8(command, o -> o.enableInlining = false);
+    return ToolHelper.runR8(command, o -> {
+      o.enableInlining = false;
+      o.forceProguardCompatibility = true;
+    });
   }
 
   private void fieldUpdater(boolean overloadaggressively) throws Exception {

@@ -7,6 +7,10 @@ package com.android.tools.r8.shaking;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexItem;
+import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexType;
 import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import java.util.List;
@@ -79,6 +83,39 @@ public class ProguardConfigurationUtils {
         .map(ProguardTypeMatcher::create)
         .collect(Collectors.toList());
     memberRuleBuilder.setArguments(arguments);
+    builder.getMemberRules().add(memberRuleBuilder.build());
+    return builder.build();
+  }
+
+  public static ProguardIdentifierNameStringRule buildIdentifierNameStringRule(DexItem item) {
+    assert item instanceof DexField || item instanceof DexMethod;
+    ProguardIdentifierNameStringRule.Builder builder = ProguardIdentifierNameStringRule.builder();
+    ProguardMemberRule.Builder memberRuleBuilder = ProguardMemberRule.builder();
+    DexType holderType;
+    if (item instanceof DexField) {
+      DexField field = (DexField) item;
+      holderType = field.getHolder();
+      memberRuleBuilder.setRuleType(ProguardMemberType.FIELD);
+      memberRuleBuilder.setName(field.name.toString());
+      memberRuleBuilder.setTypeMatcher(ProguardTypeMatcher.create(field.type));
+    } else {
+      DexMethod method = (DexMethod) item;
+      holderType = method.getHolder();
+      memberRuleBuilder.setRuleType(ProguardMemberType.METHOD);
+      memberRuleBuilder.setName(method.name.toString());
+      memberRuleBuilder.setTypeMatcher(ProguardTypeMatcher.create(method.proto.returnType));
+      List<ProguardTypeMatcher> arguments = Arrays.stream(method.proto.parameters.values)
+          .map(ProguardTypeMatcher::create)
+          .collect(Collectors.toList());
+      memberRuleBuilder.setArguments(arguments);
+    }
+    if (holderType.isInterface()) {
+      builder.setClassType(ProguardClassType.INTERFACE);
+    } else {
+      builder.setClassType(ProguardClassType.CLASS);
+    }
+    builder.setClassNames(
+        ProguardClassNameList.singletonList(ProguardTypeMatcher.create(holderType)));
     builder.getMemberRules().add(memberRuleBuilder.build());
     return builder.build();
   }

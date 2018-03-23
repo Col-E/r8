@@ -285,8 +285,8 @@ public class R8 {
                 .run(executorService);
         ProtoLiteExtension protoLiteExtension =
             options.forceProguardCompatibility ? null : new ProtoLiteExtension(appInfo);
-        appInfo = new Enqueuer(appInfo, options, compatibility, protoLiteExtension)
-            .traceApplication(rootSet, timing);
+        Enqueuer enqueuer = new Enqueuer(appInfo, options, compatibility, protoLiteExtension);
+        appInfo = enqueuer.traceApplication(rootSet, timing);
         if (options.proguardConfiguration.isPrintSeeds()) {
           ByteArrayOutputStream bytes = new ByteArrayOutputStream();
           PrintStream out = new PrintStream(bytes);
