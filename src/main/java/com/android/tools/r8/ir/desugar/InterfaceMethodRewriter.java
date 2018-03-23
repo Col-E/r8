@@ -26,6 +26,7 @@ import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeSuper;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.desugar.DefaultMethodsHelper.Collection;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -33,6 +34,7 @@ import com.google.common.collect.Sets;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 //
 // Default and static interface method desugaring rewriter (note that lambda
@@ -74,6 +76,9 @@ public final class InterfaceMethodRewriter {
   // All forwarding methods generated during desugaring. We don't synchronize access
   // to this collection since it is only filled in ClassProcessor running synchronously.
   private final Set<DexEncodedMethod> forwardingMethods = Sets.newIdentityHashSet();
+
+  // Caches default interface method info for already processed interfaces.
+  private final Map<DexType, DefaultMethodsHelper.Collection> cache = new ConcurrentHashMap<>();
 
   /**
    * A set of dexitems we have reported missing to dedupe warnings.
@@ -166,8 +171,10 @@ public final class InterfaceMethodRewriter {
             // of android.jar is provided.
             // WARNING: This may result in incorrect code on older platforms!
             // Retarget call to an appropriate method of companion class.
+            DexMethod amendedMethod = amendDefaultMethod(
+                findDefinitionFor(encodedMethod.method.holder), method);
             instructions.replaceCurrentInstruction(
-                new InvokeStatic(defaultAsMethodOfCompanionClass(method),
+                new InvokeStatic(defaultAsMethodOfCompanionClass(amendedMethod),
                     invokeSuper.outValue(), invokeSuper.arguments()));
           }
           continue;
@@ -294,6 +301,15 @@ public final class InterfaceMethodRewriter {
         factory.createString(prefix + method.name.toString()));
   }
 
+  // It is possible that referenced method actually points to an interface which does
+  // not define this default methods, but inherits it. We are making our best effort
+  // to find an appropriate method, but still use the original one in case we fail.
+  private DexMethod amendDefaultMethod(DexClass classToDesugar, DexMethod method) {
+    DexMethod singleCandidate = getOrCreateInterfaceInfo(
+        classToDesugar, classToDesugar, method.holder).getSingleCandidate(method);
+    return singleCandidate != null ? singleCandidate : method;
+  }
+
   // Represent a default interface method as a method of companion class.
   final DexMethod defaultAsMethodOfCompanionClass(DexMethod method) {
     return instanceAsMethodOfCompanionClass(method, DEFAULT_METHOD_PREFIX);
@@ -329,6 +345,14 @@ public final class InterfaceMethodRewriter {
     for (DexEncodedMethod method : forwardingMethods) {
       converter.optimizeSynthesizedMethod(method);
     }
+
+    // Cached data is not needed any more.
+    clear();
+  }
+
+  private void clear() {
+    this.cache.clear();
+    this.forwardingMethods.clear();
   }
 
   private static boolean shouldProcess(
@@ -425,5 +449,63 @@ public final class InterfaceMethodRewriter {
     }
     DexClass clazz = converter.appInfo.definitionFor(holder);
     return clazz == null ? Origin.unknown() : clazz.getOrigin();
+  }
+
+  final DefaultMethodsHelper.Collection getOrCreateInterfaceInfo(
+      DexClass classToDesugar,
+      DexClass implementing,
+      DexType iface) {
+    DefaultMethodsHelper.Collection collection = cache.get(iface);
+    if (collection != null) {
+      return collection;
+    }
+    collection = createInterfaceInfo(classToDesugar, implementing, iface);
+    Collection existing = cache.putIfAbsent(iface, collection);
+    return existing != null ? existing : collection;
+  }
+
+  private DefaultMethodsHelper.Collection createInterfaceInfo(
+      DexClass classToDesugar,
+      DexClass implementing,
+      DexType iface) {
+    DefaultMethodsHelper helper = new DefaultMethodsHelper();
+    DexClass definedInterface = findDefinitionFor(iface);
+    if (definedInterface == null) {
+      warnMissingInterface(classToDesugar, implementing, iface);
+      return helper.wrapInCollection();
+    }
+
+    if (!definedInterface.isInterface()) {
+      throw new CompilationError(
+          "Type " + iface.toSourceString() + " is referenced as an interface from `"
+              + implementing.toString() + "`.");
+    }
+
+    if (definedInterface.isLibraryClass()) {
+      // NOTE: We intentionally ignore all candidates coming from android.jar
+      // since it is only possible in case v24+ version of android.jar is provided.
+      // WARNING: This may result in incorrect code if something else than Android bootclasspath
+      // classes are given as libraries!
+      return helper.wrapInCollection();
+    }
+
+    // Merge information from all superinterfaces.
+    for (DexType superinterface : definedInterface.interfaces.values) {
+      helper.merge(getOrCreateInterfaceInfo(classToDesugar, definedInterface, superinterface));
+    }
+
+    // Hide by virtual methods of this interface.
+    for (DexEncodedMethod virtual : definedInterface.virtualMethods()) {
+      helper.hideMatches(virtual.method);
+    }
+
+    // Add all default methods of this interface.
+    for (DexEncodedMethod encoded : definedInterface.virtualMethods()) {
+      if (isDefaultMethod(encoded)) {
+        helper.addDefaultMethod(encoded);
+      }
+    }
+
+    return helper.wrapInCollection();
   }
 }

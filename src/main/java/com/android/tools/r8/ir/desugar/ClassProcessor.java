@@ -32,8 +32,6 @@ final class ClassProcessor {
   private final Set<DexClass> processedClasses = Sets.newIdentityHashSet();
   // Maps already created methods into default methods they were generated based on.
   private final Map<DexEncodedMethod, DexEncodedMethod> createdMethods = new IdentityHashMap<>();
-  // Caches default interface method info for already processed interfaces.
-  private final Map<DexType, DefaultMethodsHelper.Collection> cache = new IdentityHashMap<>();
 
   ClassProcessor(InterfaceMethodRewriter rewriter) {
     this.rewriter = rewriter;
@@ -67,7 +65,7 @@ final class ClassProcessor {
     if (superClass != null && superType != rewriter.factory.objectType) {
       if (superClass.isInterface()) {
         throw new CompilationError("Interface `" + superClass.toSourceString()
-        + "` used as super class of `" + clazz.toSourceString() + "`.");
+            + "` used as super class of `" + clazz.toSourceString() + "`.");
       }
       process(superClass);
     }
@@ -136,7 +134,7 @@ final class ClassProcessor {
     // the future.
     while (current.type != rewriter.factory.objectType) {
       for (DexType type : current.interfaces.values) {
-        helper.merge(getOrCreateInterfaceInfo(clazz, current, type));
+        helper.merge(rewriter.getOrCreateInterfaceInfo(clazz, current, type));
       }
 
       accumulatedVirtualMethods.addAll(Arrays.asList(clazz.virtualMethods()));
@@ -168,8 +166,8 @@ final class ClassProcessor {
         } else {
           String message = "Default method desugaring of `" + clazz.toSourceString() + "` failed";
           if (current == clazz) {
-            message += " because its super class `" + clazz.superType.toSourceString()
-            + "` is missing";
+            message += " because its super class `" +
+                clazz.superType.toSourceString() + "` is missing";
           } else {
             message +=
                 " because it's hierarchy is incomplete. The class `"
@@ -243,63 +241,5 @@ final class ClassProcessor {
         }
       }
     }
-  }
-
-  private DefaultMethodsHelper.Collection getOrCreateInterfaceInfo(
-      DexClass classToDesugar,
-      DexClass implementing,
-      DexType iface) {
-    DefaultMethodsHelper.Collection collection = cache.get(iface);
-    if (collection != null) {
-      return collection;
-    }
-    collection = createInterfaceInfo(classToDesugar, implementing, iface);
-    cache.put(iface, collection);
-    return collection;
-  }
-
-  private DefaultMethodsHelper.Collection createInterfaceInfo(
-      DexClass classToDesugar,
-      DexClass implementing,
-      DexType iface) {
-    DefaultMethodsHelper helper = new DefaultMethodsHelper();
-    DexClass definedInterface = rewriter.findDefinitionFor(iface);
-    if (definedInterface == null) {
-      rewriter.warnMissingInterface(classToDesugar, implementing, iface);
-      return helper.wrapInCollection();
-    }
-
-    if (!definedInterface.isInterface()) {
-      throw new CompilationError(
-          "Type " + iface.toSourceString() + " is referenced as an interface of `"
-          + implementing.toString() + "`.");
-    }
-
-    if (definedInterface.isLibraryClass()) {
-      // NOTE: We intentionally ignore all candidates coming from android.jar
-      // since it is only possible in case v24+ version of android.jar is provided.
-      // WARNING: This may result in incorrect code if something else than Android bootclasspath
-      // classes are given as libraries!
-      return helper.wrapInCollection();
-    }
-
-    // Merge information from all superinterfaces.
-    for (DexType superinterface : definedInterface.interfaces.values) {
-      helper.merge(getOrCreateInterfaceInfo(classToDesugar, definedInterface, superinterface));
-    }
-
-    // Hide by virtual methods of this interface.
-    for (DexEncodedMethod virtual : definedInterface.virtualMethods()) {
-      helper.hideMatches(virtual.method);
-    }
-
-    // Add all default methods of this interface.
-    for (DexEncodedMethod encoded : definedInterface.virtualMethods()) {
-      if (rewriter.isDefaultMethod(encoded)) {
-        helper.addDefaultMethod(encoded);
-      }
-    }
-
-    return helper.wrapInCollection();
   }
 }

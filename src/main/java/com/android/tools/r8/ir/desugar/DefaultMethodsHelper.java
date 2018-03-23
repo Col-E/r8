@@ -40,6 +40,22 @@ final class DefaultMethodsHelper {
       this.live = live;
       this.hidden = hidden;
     }
+
+    // If there is just one live method having specified
+    // signature return it, otherwise return null.
+    DexMethod getSingleCandidate(DexMethod method) {
+      DexMethod candidate = null;
+      for (DexEncodedMethod encodedMethod : live) {
+        DexMethod current = encodedMethod.method;
+        if (current.proto == method.proto && current.name == method.name) {
+          if (candidate != null) {
+            return null;
+          }
+          candidate = current;
+        }
+      }
+      return candidate;
+    }
   }
 
   final void merge(Collection collection) {
