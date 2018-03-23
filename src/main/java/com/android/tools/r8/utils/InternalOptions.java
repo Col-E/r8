@@ -225,7 +225,8 @@ public class InternalOptions {
   private final Map<Origin, List<InvalidParameterAnnotationInfo>> warningInvalidParameterAnnotations
       = new HashMap<>();
 
-  private final Map<Origin, List<DexEncodedMethod>> warningInvalidDebugInfo = new HashMap<>();
+  private final Map<Origin, List<Pair<DexEncodedMethod, String>>> warningInvalidDebugInfo
+      = new HashMap<>();
 
   // Don't read code from dex files. Used to extract non-code information from vdex files where
   // the code contains unsupported byte codes.
@@ -268,7 +269,8 @@ public class InternalOptions {
   public void warningInvalidDebugInfo(
       DexEncodedMethod method, Origin origin, InvalidDebugInfoException e) {
     synchronized (warningInvalidDebugInfo) {
-      warningInvalidDebugInfo.computeIfAbsent(origin, k -> new ArrayList<>()).add(method);
+      warningInvalidDebugInfo.computeIfAbsent(
+          origin, k -> new ArrayList<>()).add(new Pair<>(method, e.getMessage()));
     }
   }
 
@@ -299,7 +301,7 @@ public class InternalOptions {
     }
     if (warningInvalidDebugInfo.size() > 0) {
       int count = 0;
-      for (List<DexEncodedMethod> methods : warningInvalidDebugInfo.values()) {
+      for (List<Pair<DexEncodedMethod, String>> methods : warningInvalidDebugInfo.values()) {
         count += methods.size();
       }
       reporter.warning(
@@ -309,10 +311,11 @@ public class InternalOptions {
                   + (count == 1 ? " method." : " methods.")));
       for (Origin origin : new TreeSet<>(warningInvalidDebugInfo.keySet())) {
         StringBuilder builder = new StringBuilder("Methods with invalid locals information:");
-        for (DexEncodedMethod method : warningInvalidDebugInfo.get(origin)) {
-          builder.append("\n  ").append(method.toSourceString());
+        for (Pair<DexEncodedMethod, String> method : warningInvalidDebugInfo.get(origin)) {
+          builder.append("\n  ").append(method.getFirst().toSourceString());
+          builder.append("\n  ").append(method.getSecond());
         }
-        reporter.info(new StringDiagnostic(builder.toString(), origin));
+        reporter.warning(new StringDiagnostic(builder.toString(), origin));
       }
       printed = true;
       printOutdatedToolchain = true;
