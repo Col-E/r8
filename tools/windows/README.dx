@@ -1,5 +1,5 @@
-Dx version: 1.12
-dx.bat and dx.jar are fetched from SDK build tools 24.0.0.
+Dx version: 1.13
+dx.bat and dx.jar are fetched from SDK build tools 26.0.0.
 dx.bat has been modified so that the code that checks if 'java' if on current path
 is removed and replaced by a direct reference to it.
 This is done because this relies on a tool found in the SDK and not present in the
