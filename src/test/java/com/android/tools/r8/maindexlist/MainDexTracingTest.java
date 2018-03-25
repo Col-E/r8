@@ -125,6 +125,11 @@ public class MainDexTracingTest {
   }
 
   @Test
+  public void traceMainDexList005_7() throws Throwable {
+    doTest5(7);
+  }
+
+  @Test
   public void traceMainDexList006() throws Throwable {
     doTest(
         "traceMainDexList006",
@@ -137,7 +142,7 @@ public class MainDexTracingTest {
 
   private void doTest5(int variant) throws Throwable {
     doTest(
-        "traceMainDexList003",
+        "traceMainDexList005",
         "multidex005",
         EXAMPLE_BUILD_DIR,
         Paths.get(EXAMPLE_SRC_DIR, "multidex005", "main-dex-rules-" + variant + ".txt"),

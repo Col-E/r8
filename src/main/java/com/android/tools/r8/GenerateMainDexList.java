@@ -8,14 +8,18 @@ import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.Enqueuer;
+import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.MainDexListBuilder;
+import com.android.tools.r8.shaking.ReasonPrinter;
 import com.android.tools.r8.shaking.RootSetBuilder;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
+import com.android.tools.r8.shaking.TreePruner;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -37,9 +41,11 @@ public class GenerateMainDexList {
     AppInfoWithSubtyping appInfo = new AppInfoWithSubtyping(application);
     RootSet mainDexRootSet =
         new RootSetBuilder(application, appInfo, options.mainDexKeepRules, options).run(executor);
-    Set<DexType> mainDexBaseClasses =
-        new Enqueuer(appInfo, options).traceMainDex(mainDexRootSet, timing);
-    Set<DexType> mainDexClasses = new MainDexListBuilder(mainDexBaseClasses, application).run();
+    Enqueuer enqueuer = new Enqueuer(appInfo, options, true);
+    AppInfoWithLiveness mainDexAppInfo = enqueuer.traceMainDex(mainDexRootSet, timing);
+    // LiveTypes is the result.
+    Set<DexType> mainDexClasses =
+        new MainDexListBuilder(new HashSet<>(mainDexAppInfo.liveTypes), application).run();
 
     List<String> result = mainDexClasses.stream()
         .map(c -> c.toSourceString().replace('.', '/') + ".class")
@@ -48,6 +54,15 @@ public class GenerateMainDexList {
 
     if (options.mainDexListConsumer != null) {
       options.mainDexListConsumer.accept(String.join("\n", result), options.reporter);
+    }
+
+    // Print -whyareyoukeeping results if any.
+    if (mainDexRootSet.reasonAsked.size() > 0) {
+      // Print reasons on the application after pruning, so that we reflect the actual result.
+      TreePruner pruner = new TreePruner(application, appInfo.withLiveness(), options);
+      application = pruner.run();
+      ReasonPrinter reasonPrinter = enqueuer.getReasonPrinter(mainDexRootSet.reasonAsked);
+      reasonPrinter.run(application);
     }
 
     return result;

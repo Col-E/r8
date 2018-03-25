@@ -106,7 +106,8 @@ public class SingleTargetLookupTest extends AsmTestBase {
     RootSet rootSet = new RootSetBuilder(application, appInfoWithSubtyping,
         buildKeepRuleForClass(Main.class, application.dexItemFactory), options).run(
         Executors.newSingleThreadExecutor());
-    appInfo = new Enqueuer(appInfoWithSubtyping, options).traceApplication(rootSet, timing);
+    appInfo = new Enqueuer(appInfoWithSubtyping, options, options.forceProguardCompatibility)
+        .traceApplication(rootSet, timing);
     // We do not run the tree pruner to ensure that the hierarchy is as designed and not modified
     // due to liveness.
   }

@@ -482,6 +482,10 @@ public class DexItemFactory {
     return createType(createString(descriptor));
   }
 
+  synchronized public DexType lookupType(DexString descriptor) {
+    return types.get(descriptor);
+  }
+
   public DexType createArrayType(int nesting, DexType baseType) {
     assert nesting > 0;
     return createType(Strings.repeat("[", nesting) + baseType.toDescriptorString());

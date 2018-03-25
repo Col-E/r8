@@ -85,6 +85,8 @@ import java.util.stream.Collectors;
  * field descriptions for details.
  */
 public class Enqueuer {
+
+  private final boolean forceProguardCompatibility;
   private boolean tracingMainDex = false;
 
   private final AppInfoWithSubtyping appInfo;
@@ -195,16 +197,19 @@ public class Enqueuer {
    */
   private final ProguardConfiguration.Builder compatibility;
 
-  public Enqueuer(AppInfoWithSubtyping appInfo, InternalOptions options) {
-    this(appInfo, options, null, null);
+  public Enqueuer(AppInfoWithSubtyping appInfo, InternalOptions options,
+      boolean forceProguardCompatibility) {
+    this(appInfo, options, forceProguardCompatibility, null, null);
   }
 
   public Enqueuer(AppInfoWithSubtyping appInfo, InternalOptions options,
+      boolean forceProguardCompatibility,
       ProguardConfiguration.Builder compatibility, ProtoLiteExtension protoLiteExtension) {
     this.appInfo = appInfo;
     this.compatibility = compatibility;
     this.options = options;
     this.protoLiteExtension = protoLiteExtension;
+    this.forceProguardCompatibility = forceProguardCompatibility;
   }
 
   private void enqueueRootItems(Map<DexItem, ProguardKeepRule> items) {
@@ -218,7 +223,7 @@ public class Enqueuer {
     if (item instanceof DexClass) {
       DexClass clazz = (DexClass) item;
       workList.add(Action.markInstantiated(clazz, reason));
-      if (options.forceProguardCompatibility && clazz.hasDefaultInitializer()) {
+      if (forceProguardCompatibility && clazz.hasDefaultInitializer()) {
         ProguardKeepRule rule = ProguardConfigurationUtils.buildDefaultInitializerKeepRule(clazz);
         proguardCompatibilityWorkList.add(Action.markMethodLive(
             clazz.getDefaultInitializer(), KeepReason.dueToProguardCompatibilityKeepRule(rule)));
@@ -275,7 +280,7 @@ public class Enqueuer {
     @Override
     public boolean registerInvokeVirtual(DexMethod method) {
       if (appInfo.dexItemFactory.classMethods.isReflectiveMemberLookup(method)) {
-        if (options.forceProguardCompatibility) {
+        if (forceProguardCompatibility) {
           // TODO(b/76181966): whether or not add this rule in normal mode.
           if (identifierNameStrings.add(method) && compatibility != null) {
             compatibility.addRule(buildIdentifierNameStringRule(method));
@@ -309,7 +314,7 @@ public class Enqueuer {
     public boolean registerInvokeStatic(DexMethod method) {
       if (method == appInfo.dexItemFactory.classMethods.forName
           || appInfo.dexItemFactory.atomicFieldUpdaterMethods.isFieldUpdater(method)) {
-        if (options.forceProguardCompatibility) {
+        if (forceProguardCompatibility) {
           // TODO(b/76181966): whether or not add this rule in normal mode.
           if (identifierNameStrings.add(method) && compatibility != null) {
             compatibility.addRule(buildIdentifierNameStringRule(method));
@@ -431,7 +436,7 @@ public class Enqueuer {
     }
 
     private boolean registerConstClassOrCheckCast(DexType type) {
-      if (options.forceProguardCompatibility) {
+      if (forceProguardCompatibility) {
         DexType baseType = type.toBaseType(appInfo.dexItemFactory);
         if (baseType.isClassType()) {
           DexClass baseClass = appInfo.definitionFor(baseType);
@@ -507,7 +512,7 @@ public class Enqueuer {
         annotations.forEach(this::handleAnnotationOfLiveType);
       }
 
-      if (options.forceProguardCompatibility) {
+      if (forceProguardCompatibility) {
         // Add all dependent members to the workqueue.
         enqueueRootItems(rootSet.getDependentItems(type));
       } else {
@@ -581,7 +586,7 @@ public class Enqueuer {
       Diagnostic message = new StringDiagnostic("Library class " + context.toSourceString()
           + (holder.isInterface() ? " implements " : " extends ")
           + "program class " + type.toSourceString());
-      if (options.forceProguardCompatibility) {
+      if (forceProguardCompatibility) {
         options.reporter.warning(message);
       } else {
         options.reporter.error(message);
@@ -613,7 +618,7 @@ public class Enqueuer {
       Log.verbose(getClass(), "Method `%s` is targeted.", encodedMethod.method);
     }
     targetedMethods.add(encodedMethod, reason);
-    if (options.forceProguardCompatibility) {
+    if (forceProguardCompatibility) {
       // Keep targeted default methods in compatibility mode. The tree pruner will otherwise make
       // these methods abstract, whereas Proguard does not (seem to) touch their code.
       DexClass clazz = appInfo.definitionFor(encodedMethod.method.holder);
@@ -1022,15 +1027,14 @@ public class Enqueuer {
         reachability, instantiatedTypes.getReasons());
   }
 
-  public Set<DexType> traceMainDex(RootSet rootSet, Timing timing) {
+  public AppInfoWithLiveness traceMainDex(RootSet rootSet, Timing timing) {
     this.tracingMainDex = true;
     this.rootSet = rootSet;
     // Translate the result of root-set computation into enqueuer actions.
     enqueueRootItems(rootSet.noShrinking);
     AppInfoWithLiveness appInfo = trace(timing);
     options.reporter.failIfPendingErrors();
-    // LiveTypes is the result, just make a copy because further work will modify its content.
-    return new HashSet<>(appInfo.liveTypes);
+    return appInfo;
   }
 
   public AppInfoWithLiveness traceApplication(RootSet rootSet, Timing timing) {
