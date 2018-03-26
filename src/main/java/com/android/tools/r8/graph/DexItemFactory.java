@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexDebugEvent.SetFile;
 import com.android.tools.r8.graph.DexDebugEvent.SetInlineFrame;
 import com.android.tools.r8.graph.DexDebugEvent.SetPrologueEnd;
 import com.android.tools.r8.graph.DexMethodHandle.MethodHandleType;
+import com.android.tools.r8.graph.DexValue.DexValueMethodType;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.naming.NamingLens;
@@ -544,7 +545,17 @@ public class DexItemFactory {
       DexString methodName, DexProto methodProto,
       DexMethodHandle bootstrapMethod, List<DexValue> bootstrapArgs) {
     assert !sorted;
-    DexCallSite callSite = new DexCallSite(methodName, methodProto, bootstrapMethod, bootstrapArgs);
+    String bootstrapClass = bootstrapMethod.asMethod().holder.toDescriptorString();
+    DexMethod interfaceMethod = null;
+    if (bootstrapClass.equals("Ljava/lang/invoke/LambdaMetafactory;")) {
+      DexType interfaceType = methodProto.returnType;
+      assert bootstrapArgs.size() == 3;
+      // bootstrapArgs contains samMethodType, implMethod and instantiatedMethodType.
+      DexValueMethodType samMethodType = (DexValueMethodType) bootstrapArgs.get(0);
+      interfaceMethod = createMethod(interfaceType, samMethodType.value, methodName);
+    }
+    DexCallSite callSite =
+        new DexCallSite(methodName, methodProto, bootstrapMethod, bootstrapArgs, interfaceMethod);
     return canonicalize(callSites, callSite);
   }
 

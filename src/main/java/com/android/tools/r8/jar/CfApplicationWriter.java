@@ -276,7 +276,7 @@ public class CfApplicationWriter {
       }
       AnnotationVisitor v =
           visitor.visit(
-              dexAnnotation.annotation.type.toDescriptorString(),
+              namingLens.lookupDescriptor(dexAnnotation.annotation.type).toString(),
               dexAnnotation.visibility == DexAnnotation.VISIBILITY_RUNTIME);
       if (v != null) {
         writeAnnotation(v, dexAnnotation.annotation);
@@ -295,7 +295,8 @@ public class CfApplicationWriter {
     if (value instanceof DexValueAnnotation) {
       DexValueAnnotation valueAnnotation = (DexValueAnnotation) value;
       AnnotationVisitor innerVisitor =
-          visitor.visitAnnotation(name, valueAnnotation.value.type.toDescriptorString());
+          visitor.visitAnnotation(
+              name, namingLens.lookupDescriptor(valueAnnotation.value.type).toString());
       if (innerVisitor != null) {
         writeAnnotation(innerVisitor, valueAnnotation.value);
         innerVisitor.visitEnd();
@@ -311,7 +312,8 @@ public class CfApplicationWriter {
       }
     } else if (value instanceof DexValueEnum) {
       DexValueEnum en = (DexValueEnum) value;
-      visitor.visitEnum(name, en.value.type.toDescriptorString(), en.value.name.toString());
+      visitor.visitEnum(
+          name, namingLens.lookupDescriptor(en.value.type).toString(), en.value.name.toString());
     } else if (value instanceof DexValueField) {
       throw new Unreachable("writeAnnotationElement of DexValueField");
     } else if (value instanceof DexValueMethod) {
@@ -325,7 +327,7 @@ public class CfApplicationWriter {
       visitor.visit(name, str.getValue().toString());
     } else if (value instanceof DexValueType) {
       DexValueType ty = (DexValueType) value;
-      visitor.visit(name, Type.getType(ty.value.toDescriptorString()));
+      visitor.visit(name, Type.getType(namingLens.lookupDescriptor(ty.value).toString()));
     } else if (value instanceof UnknownDexValue) {
       throw new Unreachable("writeAnnotationElement of UnknownDexValue");
     } else {
