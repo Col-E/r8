@@ -47,7 +47,7 @@ public abstract class AbstractR8KotlinTestBase extends TestBase {
   // invoke the tested method.
   private static final String JASMIN_MAIN_CLASS = "TestMain";
 
-  @Parameters(name = "{0}_{1}")
+  @Parameters(name = "allowAccessModification: {0} target: {1}")
   public static Collection<Object[]> data() {
     ImmutableList.Builder<Object[]> builder = new ImmutableList.Builder<>();
     for (KotlinTargetVersion targetVersion : KotlinTargetVersion.values()) {
@@ -171,9 +171,16 @@ public abstract class AbstractR8KotlinTestBase extends TestBase {
     return proguardRules.toString();
   }
 
+  protected String keepAllMembers(String className) {
+    return "-keep class " + className + " {" + System.lineSeparator()
+        + "  *;" + System.lineSeparator()
+        + "}";
+  }
+
   protected String keepClassMethod(String className, MethodSignature methodSignature) {
-    return "-keep class " + className + " {" + System.lineSeparator() +
-        methodSignature.toString() + ";" + System.lineSeparator() + "}";
+    return "-keep class " + className + " {" + System.lineSeparator()
+        + methodSignature.toString() + ";" + System.lineSeparator()
+        + "}";
   }
 
   protected void runTest(String folder, String mainClass, AndroidAppInspector inspector)
@@ -199,7 +206,7 @@ public abstract class AbstractR8KotlinTestBase extends TestBase {
     // Build with R8
     AndroidApp.Builder builder = AndroidApp.builder();
     builder.addProgramFiles(classpath);
-    AndroidApp app = compileWithR8(builder.build(), proguardRules.toString());
+    AndroidApp app = compileWithR8(builder.build(), proguardRules);
 
     // Materialize file for execution.
     Path generatedDexFile = temp.getRoot().toPath().resolve("classes.jar");
