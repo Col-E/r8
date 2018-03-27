@@ -548,11 +548,14 @@ public class DexItemFactory {
     String bootstrapClass = bootstrapMethod.asMethod().holder.toDescriptorString();
     DexMethod interfaceMethod = null;
     if (bootstrapClass.equals("Ljava/lang/invoke/LambdaMetafactory;")) {
-      DexType interfaceType = methodProto.returnType;
-      assert bootstrapArgs.size() == 3;
-      // bootstrapArgs contains samMethodType, implMethod and instantiatedMethodType.
-      DexValueMethodType samMethodType = (DexValueMethodType) bootstrapArgs.get(0);
-      interfaceMethod = createMethod(interfaceType, samMethodType.value, methodName);
+      if (methodName.toString().equals("metafactory")) {
+        DexType interfaceType = methodProto.returnType;
+        assert bootstrapArgs.size() == 3;
+        // bootstrapArgs contains samMethodType, implMethod and instantiatedMethodType.
+        DexValueMethodType samMethodType = (DexValueMethodType) bootstrapArgs.get(0);
+        interfaceMethod = createMethod(interfaceType, samMethodType.value, methodName);
+      }
+      // TODO(mathiasr): Support altMetafactory, possibly using ir.desugar.LambdaDescriptor
     }
     DexCallSite callSite =
         new DexCallSite(methodName, methodProto, bootstrapMethod, bootstrapArgs, interfaceMethod);
