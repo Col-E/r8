@@ -36,7 +36,7 @@ public class PublicFieldInnerClassTestRunner extends TestBase {
     assertEquals(runInput.toString(), runCf.toString());
     assertEquals(
         -1,
-        runCf.stderr.indexOf("Exception in thread \"main\" java.lang.NoSuchFieldError:"));
+        runCf.stderr.indexOf("java.lang.NoSuchFieldError"));
   }
 
   @Test
@@ -53,7 +53,7 @@ public class PublicFieldInnerClassTestRunner extends TestBase {
     assertNotEquals(runInput.exitCode, runDex.exitCode);
     assertNotEquals(
         -1,
-        runDex.stderr.indexOf("Exception in thread \"main\" java.lang.NoSuchFieldError:"));
+        runDex.stderr.indexOf("java.lang.NoSuchFieldError"));
   }
 
   private void build(ProgramConsumer consumer) throws Exception {
