@@ -4,9 +4,11 @@
 package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
+import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexMethodHandle;
+import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueDouble;
@@ -41,11 +43,16 @@ public class CfInvokeDynamic extends CfInstruction {
       bsmArgs[i] = decodeBootstrapArgument(bootstrapArgs.get(i), lens);
     }
     Handle bsmHandle = bootstrapMethod.toAsmHandle(lens);
+    DexString methodName;
+    if (lens.isIdentityLens()) {
+      methodName = callSite.methodName;
+    } else if (callSite.interfaceMethod != null) {
+      methodName = lens.lookupName(callSite.interfaceMethod);
+    } else {
+      throw new Unimplemented("Minification of non-lambda InvokeDynamic not supported");
+    }
     visitor.visitInvokeDynamicInsn(
-        callSite.methodName.toString(),
-        callSite.methodProto.toDescriptorString(),
-        bsmHandle,
-        bsmArgs);
+        methodName.toString(), callSite.methodProto.toDescriptorString(lens), bsmHandle, bsmArgs);
   }
 
   private Object decodeBootstrapArgument(DexValue dexValue, NamingLens lens) {
@@ -60,9 +67,9 @@ public class CfInvokeDynamic extends CfInstruction {
     } else if (dexValue instanceof DexValueString) {
       return ((DexValueString) dexValue).getValue();
     } else if (dexValue instanceof DexValueType) {
-      return Type.getType(((DexValueType) dexValue).value.toDescriptorString());
+      return Type.getType(lens.lookupDescriptor(((DexValueType) dexValue).value).toString());
     } else if (dexValue instanceof DexValueMethodType) {
-      return Type.getMethodType(((DexValueMethodType) dexValue).value.toDescriptorString());
+      return Type.getMethodType(((DexValueMethodType) dexValue).value.toDescriptorString(lens));
     } else if (dexValue instanceof DexValueMethodHandle) {
       return ((DexValueMethodHandle) dexValue).value.toAsmHandle(lens);
     } else {
