@@ -16,6 +16,7 @@ import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.CfCode.LocalVariableInfo;
 import com.android.tools.r8.graph.DebugLocalInfo;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -128,7 +129,8 @@ public class CfBuilder {
   }
 
   public DexField resolveField(DexField field) {
-    return appInfo.resolveFieldOn(field.clazz, field).field;
+    DexEncodedField resolvedField = appInfo.resolveFieldOn(field.clazz, field);
+    return resolvedField == null ? field : resolvedField.field;
   }
 
   // Split all blocks with throwing instructions and exceptional edges such that any non-throwing
