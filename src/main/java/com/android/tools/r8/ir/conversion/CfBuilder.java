@@ -17,6 +17,7 @@ import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.CfCode.LocalVariableInfo;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.Argument;
@@ -73,6 +74,8 @@ public class CfBuilder {
   private final Int2ReferenceMap<LocalVariableInfo> openLocalVariables =
       new Int2ReferenceOpenHashMap<>();
 
+  private AppInfoWithSubtyping appInfo;
+
   // Internal abstraction of the stack values and height.
   private static class Stack {
     int maxHeight = 0;
@@ -119,8 +122,13 @@ public class CfBuilder {
     int instructionTableCount =
         DexBuilder.instructionNumberToIndex(code.numberRemainingInstructions());
     DexBuilder.removeRedundantDebugPositions(code, instructionTableCount);
+    this.appInfo = appInfo;
     CfCode code = buildCfCode();
     return code;
+  }
+
+  public DexField resolveField(DexField field) {
+    return appInfo.resolveFieldOn(field.clazz, field).field;
   }
 
   // Split all blocks with throwing instructions and exceptional edges such that any non-throwing

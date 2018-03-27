@@ -136,7 +136,7 @@ public class InstancePut extends FieldInstruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfFieldInstruction(Opcodes.PUTFIELD, field));
+    builder.add(new CfFieldInstruction(Opcodes.PUTFIELD, field, builder.resolveField(field)));
   }
 
   @Override

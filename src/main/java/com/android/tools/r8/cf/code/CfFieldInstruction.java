@@ -16,10 +16,13 @@ public class CfFieldInstruction extends CfInstruction {
 
   private final int opcode;
   private final DexField field;
+  private final DexField declaringField;
 
-  public CfFieldInstruction(int opcode, DexField field) {
+  public CfFieldInstruction(int opcode, DexField field, DexField declaringField) {
     this.opcode = opcode;
     this.field = field;
+    this.declaringField = declaringField;
+    assert field.type == declaringField.type;
   }
 
   public DexField getField() {
@@ -33,7 +36,7 @@ public class CfFieldInstruction extends CfInstruction {
   @Override
   public void write(MethodVisitor visitor, NamingLens lens) {
     String owner = lens.lookupInternalName(field.getHolder());
-    String name = lens.lookupName(field).toString();
+    String name = lens.lookupName(declaringField).toString();
     String desc = lens.lookupDescriptor(field.type).toString();
     visitor.visitFieldInsn(opcode, owner, name, desc);
   }

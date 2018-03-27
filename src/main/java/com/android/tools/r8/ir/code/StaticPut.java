@@ -130,7 +130,7 @@ public class StaticPut extends FieldInstruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfFieldInstruction(Opcodes.PUTSTATIC, field));
+    builder.add(new CfFieldInstruction(Opcodes.PUTSTATIC, field, builder.resolveField(field)));
   }
 
   @Override
