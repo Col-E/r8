@@ -712,12 +712,12 @@ public class Enqueuer {
     assert clazz.accessFlags.isInterface();
     SetWithReason<DexEncodedMethod> reachableMethods = reachableVirtualMethods.get(iface);
     if (reachableMethods != null) {
-      seen = seen.newNestedScope();
-      transitionNonAbstractMethodsToLiveAndShadow(reachableMethods.getItems(), instantiatedType,
-          seen);
-      for (DexType subInterface : clazz.interfaces.values) {
-        transitionDefaultMethodsForInstantiatedClass(subInterface, instantiatedType, seen);
-      }
+      transitionNonAbstractMethodsToLiveAndShadow(
+          reachableMethods.getItems(), instantiatedType, seen.newNestedScope());
+    }
+    seen = seen.newNestedScope();
+    for (DexType subInterface : clazz.interfaces.values) {
+      transitionDefaultMethodsForInstantiatedClass(subInterface, instantiatedType, seen);
     }
   }
 
