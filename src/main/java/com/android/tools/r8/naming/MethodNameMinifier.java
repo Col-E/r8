@@ -12,7 +12,6 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.MethodJavaSignatureEquivalence;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.base.Equivalence;
@@ -88,13 +87,10 @@ import java.util.function.Function;
  */
 class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
 
-  private final Equivalence<DexMethod> equivalence;
+  private final Equivalence<DexMethod> equivalence = MethodSignatureEquivalence.get();
 
   MethodNameMinifier(AppInfoWithSubtyping appInfo, RootSet rootSet, InternalOptions options) {
     super(appInfo, rootSet, options);
-    equivalence = overloadAggressively
-        ? MethodSignatureEquivalence.get()
-        : MethodJavaSignatureEquivalence.get();
   }
 
   @Override
