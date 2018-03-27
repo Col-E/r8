@@ -153,7 +153,7 @@ public class InstanceGet extends FieldInstruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfFieldInstruction(Opcodes.GETFIELD, field));
+    builder.add(new CfFieldInstruction(Opcodes.GETFIELD, field, builder.resolveField(field)));
   }
 
   @Override

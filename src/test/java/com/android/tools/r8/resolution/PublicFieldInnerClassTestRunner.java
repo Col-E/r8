@@ -33,9 +33,8 @@ public class PublicFieldInnerClassTestRunner extends TestBase {
     Path outCf = temp.getRoot().toPath().resolve("cf.jar");
     build(new ClassFileConsumer.ArchiveConsumer(outCf));
     ProcessResult runCf = ToolHelper.runJava(outCf, CLASS.getCanonicalName());
-    // TODO(b/76191597): Change to assertEquals when bug is fixed
-    assertNotEquals(runInput.toString(), runCf.toString());
-    assertNotEquals(
+    assertEquals(runInput.toString(), runCf.toString());
+    assertEquals(
         -1,
         runCf.stderr.indexOf("Exception in thread \"main\" java.lang.NoSuchFieldError:"));
   }

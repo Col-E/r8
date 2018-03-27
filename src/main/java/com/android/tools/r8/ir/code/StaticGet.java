@@ -131,7 +131,7 @@ public class StaticGet extends FieldInstruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfFieldInstruction(Opcodes.GETSTATIC, field));
+    builder.add(new CfFieldInstruction(Opcodes.GETSTATIC, field, builder.resolveField(field)));
   }
 
   @Override
