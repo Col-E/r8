@@ -185,11 +185,6 @@ public class MinificationTest extends DebugTestBase {
       String innerClassName,
       MethodSignature innerMethod)
       throws Throwable {
-    if (ToolHelper.isWindows()) {
-      // TODO(b/76135355): Update dx.bat on Windows to something that can build
-      // jdwp-tests-preN-dex.jar.
-      return;
-    }
     Path proguardMap = config.getProguardMap();
     String mappingFile = proguardMap == null ? null : proguardMap.toString();
     DexInspector inspector = new DexInspector(config.getPaths(), mappingFile);
