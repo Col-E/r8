@@ -24,7 +24,6 @@ import org.junit.Test;
 public class InterfaceRenamingTestRunner extends TestBase {
   static final Class CLASS = InterfaceRenamingTest.class;
   static final Class[] CLASSES = InterfaceRenamingTest.CLASSES;
-  private boolean bug = false;
 
   @Test
   public void testCfNoMinify() throws Exception {
@@ -33,7 +32,6 @@ public class InterfaceRenamingTestRunner extends TestBase {
 
   @Test
   public void testCfMinify() throws Exception {
-    bug = true;
     testCf(MinifyMode.JAVA);
   }
 
@@ -49,7 +47,6 @@ public class InterfaceRenamingTestRunner extends TestBase {
 
   @Test
   public void testDexMinify() throws Exception {
-    bug = true;
     testDex(MinifyMode.JAVA);
   }
 
@@ -65,11 +62,6 @@ public class InterfaceRenamingTestRunner extends TestBase {
     Path outCf = temp.getRoot().toPath().resolve("cf.zip");
     build(new ClassFileConsumer.ArchiveConsumer(outCf), minify);
     ProcessResult runCf = ToolHelper.runJava(outCf, CLASS.getCanonicalName());
-    if (bug) {
-      assertNotEquals(-1, runCf.stderr.indexOf("java.lang.AbstractMethodError"));
-      assertNotEquals(0, runCf.exitCode);
-      return;
-    }
     assertEquals(runInput.toString(), runCf.toString());
   }
 
@@ -79,12 +71,6 @@ public class InterfaceRenamingTestRunner extends TestBase {
     assertEquals(0, runInput.exitCode);
     Path outDex = temp.getRoot().toPath().resolve("dex.zip");
     build(new DexIndexedConsumer.ArchiveConsumer(outDex), minify);
-    if (bug) {
-      ProcessResult runDex = ToolHelper.runArtRaw(outDex.toString(), CLASS.getCanonicalName());
-      assertNotEquals(-1, runDex.stderr.indexOf("java.lang.AbstractMethodError"));
-      assertNotEquals(0, runDex.exitCode);
-      return;
-    }
     ProcessResult runDex =
         ToolHelper.runArtNoVerificationErrorsRaw(outDex.toString(), CLASS.getCanonicalName());
     assertEquals(runInput.stdout, runDex.stdout);
