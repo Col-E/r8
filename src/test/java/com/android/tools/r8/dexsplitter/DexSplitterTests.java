@@ -89,9 +89,9 @@ public class DexSplitterTests {
 
     if (useOptions) {
       Options options = new Options();
-      options.inputArchives.add(inputZip.toString());
-      options.featureSplitMapping = splitSpec.toString();
-      options.splitBaseName = output.toString();
+      options.addInputArchive(inputZip.toString());
+      options.setFeatureSplitMapping(splitSpec.toString());
+      options.setSplitBaseName(output.toString());
       DexSplitter.run(options);
     } else {
       DexSplitter.main(
@@ -235,12 +235,12 @@ public class DexSplitterTests {
     featureStream.close();
     if (useOptions) {
       Options options = new Options();
-      options.inputArchives.add(inputZip.toString());
-      options.splitBaseName = output.toString();
+      options.addInputArchive(inputZip.toString());
+      options.setSplitBaseName(output.toString());
       if (explicitBase) {
-        options.featureJars.add(baseJar.toString());
+        options.addFeatureJar(baseJar.toString());
       }
-      options.featureJars.add(featureJar.toString());
+      options.addFeatureJar(featureJar.toString());
       DexSplitter.run(options);
     } else {
       List<String> args = Lists.newArrayList(

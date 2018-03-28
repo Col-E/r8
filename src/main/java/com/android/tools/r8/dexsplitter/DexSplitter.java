@@ -14,6 +14,7 @@ import com.android.tools.r8.utils.FeatureClassMapping;
 import com.android.tools.r8.utils.FeatureClassMapping.FeatureMappingException;
 import com.android.tools.r8.utils.OptionsParsing;
 import com.android.tools.r8.utils.OptionsParsing.ParseContext;
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -27,40 +28,80 @@ public class DexSplitter {
   private static final boolean PRINT_ARGS = false;
 
   public static class Options {
-    List<String> inputArchives = new ArrayList<>();
-    List<String> featureJars = new ArrayList<>();
-    String splitBaseName = DEFAULT_OUTPUT_ARCHIVE_FILENAME;
-    String featureSplitMapping;
-    String proguardMap;
+    private List<String> inputArchives = new ArrayList<>();
+    private List<String> featureJars = new ArrayList<>();
+    private String splitBaseName = DEFAULT_OUTPUT_ARCHIVE_FILENAME;
+    private String featureSplitMapping;
+    private String proguardMap;
+
+    public String getSplitBaseName() {
+      return splitBaseName;
+    }
+
+    public void setSplitBaseName(String splitBaseName) {
+      this.splitBaseName = splitBaseName;
+    }
+
+    public String getFeatureSplitMapping() {
+      return featureSplitMapping;
+    }
+
+    public void setFeatureSplitMapping(String featureSplitMapping) {
+      this.featureSplitMapping = featureSplitMapping;
+    }
+
+    public String getProguardMap() {
+      return proguardMap;
+    }
+
+    public void setProguardMap(String proguardMap) {
+      this.proguardMap = proguardMap;
+    }
+
+    public void addInputArchive(String inputArchive) {
+      inputArchives.add(inputArchive);
+    }
+
+    public void addFeatureJar(String featureJar) {
+      featureJars.add(featureJar);
+    }
+
+    public ImmutableList<String> getInputArchives() {
+      return ImmutableList.copyOf(inputArchives);
+    }
+
+    public ImmutableList<String> getFeatureJars() {
+      return ImmutableList.copyOf(featureJars);
+    }
   }
 
   private static Options parseArguments(String[] args) throws IOException {
     Options options = new Options();
     ParseContext context = new ParseContext(args);
     while (context.head() != null) {
-      List<String> input = OptionsParsing.tryParseMulti(context, "--input");
-      if (input != null) {
-        options.inputArchives.addAll(input);
+      List<String> inputs = OptionsParsing.tryParseMulti(context, "--input");
+      if (inputs != null) {
+        inputs.stream().forEach(options::addInputArchive);
         continue;
       }
       List<String> featureJars = OptionsParsing.tryParseMulti(context, "--feature-jar");
       if (featureJars != null) {
-        options.featureJars.addAll(featureJars);
+        featureJars.stream().forEach(options::addFeatureJar);
         continue;
       }
       String output = OptionsParsing.tryParseSingle(context, "--output", "-o");
       if (output != null) {
-        options.splitBaseName = output;
+        options.setSplitBaseName(output);
         continue;
       }
       String proguardMap = OptionsParsing.tryParseSingle(context, "--proguard-map", null);
       if (proguardMap != null) {
-        options.proguardMap = proguardMap;
+        options.setProguardMap(proguardMap);
         continue;
       }
       String featureSplit = OptionsParsing.tryParseSingle(context, "--feature-splits", null);
       if (featureSplit != null) {
-        options.featureSplitMapping = featureSplit;
+        options.setFeatureSplitMapping(featureSplit);
         continue;
       }
       throw new RuntimeException(String.format("Unknown options: '%s'.", context.head()));
@@ -70,8 +111,8 @@ public class DexSplitter {
 
   private static FeatureClassMapping createFeatureClassMapping(Options options)
       throws IOException, FeatureMappingException, ResourceException {
-    if (options.featureSplitMapping != null) {
-      return FeatureClassMapping.fromSpecification(Paths.get(options.featureSplitMapping));
+    if (options.getFeatureSplitMapping() != null) {
+      return FeatureClassMapping.fromSpecification(Paths.get(options.getFeatureSplitMapping()));
     }
     assert !options.featureJars.isEmpty();
     return FeatureClassMapping.fromJarFiles(options.featureJars);
@@ -87,13 +128,13 @@ public class DexSplitter {
   public static void run(Options options)
       throws IOException, FeatureMappingException, ResourceException, CompilationException,
       ExecutionException, CompilationFailedException {
-    if (options.inputArchives.isEmpty()) {
+    if (options.getInputArchives().isEmpty()) {
       throw new RuntimeException("Need at least one --input");
     }
-    if (options.featureSplitMapping == null && options.featureJars.isEmpty()) {
+    if (options.getFeatureSplitMapping() == null && options.getFeatureJars().isEmpty()) {
       throw new RuntimeException("You must supply a feature split mapping or feature jars");
     }
-    if (options.featureSplitMapping != null && !options.featureJars.isEmpty()) {
+    if (options.getFeatureSplitMapping() != null && !options.getFeatureJars().isEmpty()) {
       throw new RuntimeException("You can't supply both a feature split mapping and feature jars");
     }
 
@@ -108,7 +149,7 @@ public class DexSplitter {
     FeatureClassMapping featureClassMapping = createFeatureClassMapping(options);
 
     DexSplitterHelper.run(
-        builder.build(), featureClassMapping, options.splitBaseName, options.proguardMap);
+        builder.build(), featureClassMapping, options.getSplitBaseName(), options.getProguardMap());
   }
 
   public static void main(String[] args) {
