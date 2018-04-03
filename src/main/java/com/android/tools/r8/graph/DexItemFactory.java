@@ -17,6 +17,7 @@ import com.android.tools.r8.graph.DexDebugEvent.SetPrologueEnd;
 import com.android.tools.r8.graph.DexMethodHandle.MethodHandleType;
 import com.android.tools.r8.graph.DexValue.DexValueMethodType;
 import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.naming.NamingLens;
 import com.google.common.base.Strings;
@@ -26,6 +27,7 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -227,6 +229,33 @@ public class DexItemFactory {
   public final DexType annotationThrows = createType("Ldalvik/annotation/Throws;");
   public final DexType annotationSynthesizedClassMap =
       createType("Lcom/android/tools/r8/annotations/SynthesizedClassMap;");
+
+  private static final String METAFACTORY_METHOD_NAME = "metafactory";
+  private static final String METAFACTORY_ALT_METHOD_NAME = "altMetafactory";
+
+  public final DexType metafactoryType = createType("Ljava/lang/invoke/LambdaMetafactory;");
+  public final DexType callSiteType = createType("Ljava/lang/invoke/CallSite;");
+  public final DexType lookupType = createType("Ljava/lang/invoke/MethodHandles$Lookup;");
+  public final DexType serializableType = createType("Ljava/io/Serializable;");
+
+  public final DexMethod metafactoryMethod =
+      createMethod(
+          metafactoryType,
+          createProto(
+              callSiteType,
+              lookupType,
+              stringType,
+              methodTypeType,
+              methodTypeType,
+              methodHandleType,
+              methodTypeType),
+          createString(METAFACTORY_METHOD_NAME));
+
+  public final DexMethod metafactoryAltMethod =
+      createMethod(
+          metafactoryType,
+          createProto(callSiteType, lookupType, stringType, methodTypeType, objectArrayType),
+          createString(METAFACTORY_ALT_METHOD_NAME));
 
   private boolean skipNameValidationForTesting = false;
 
@@ -545,21 +574,44 @@ public class DexItemFactory {
       DexString methodName, DexProto methodProto,
       DexMethodHandle bootstrapMethod, List<DexValue> bootstrapArgs) {
     assert !sorted;
-    String bootstrapClass = bootstrapMethod.asMethod().holder.toDescriptorString();
-    DexMethod interfaceMethod = null;
-    if (bootstrapClass.equals("Ljava/lang/invoke/LambdaMetafactory;")) {
-      if (methodName.toString().equals("metafactory")) {
-        DexType interfaceType = methodProto.returnType;
-        assert bootstrapArgs.size() == 3;
-        // bootstrapArgs contains samMethodType, implMethod and instantiatedMethodType.
-        DexValueMethodType samMethodType = (DexValueMethodType) bootstrapArgs.get(0);
-        interfaceMethod = createMethod(interfaceType, samMethodType.value, methodName);
-      }
-      // TODO(mathiasr): Support altMetafactory, possibly using ir.desugar.LambdaDescriptor
-    }
+    List<DexMethod> interfaceMethods =
+        getCallSiteInterfaceMethods(methodName, methodProto, bootstrapMethod, bootstrapArgs);
     DexCallSite callSite =
-        new DexCallSite(methodName, methodProto, bootstrapMethod, bootstrapArgs, interfaceMethod);
+        new DexCallSite(methodName, methodProto, bootstrapMethod, bootstrapArgs, interfaceMethods);
     return canonicalize(callSites, callSite);
+  }
+
+  private List<DexMethod> getCallSiteInterfaceMethods(
+      DexString methodName,
+      DexProto methodProto,
+      DexMethodHandle bootstrapMethodHandle,
+      List<DexValue> bootstrapArgs) {
+    // TODO(mathiasr): Unify this with LambdaDescriptor.infer().
+    if (!bootstrapMethodHandle.type.isInvokeStatic()) {
+      return Collections.emptyList();
+    }
+    DexMethod bootstrapMethod = bootstrapMethodHandle.asMethod();
+    if (bootstrapMethod != metafactoryMethod && bootstrapMethod != metafactoryAltMethod) {
+      return Collections.emptyList();
+    }
+    DexType interfaceType = methodProto.returnType;
+    assert bootstrapMethod == metafactoryAltMethod || bootstrapArgs.size() == 3;
+    // Signature of main functional interface method.
+    // In Java docs, this argument is named 'samMethodType'.
+    DexValueMethodType funcErasedSignature = (DexValueMethodType) bootstrapArgs.get(0);
+    DexMethod mainMethod = createMethod(interfaceType, funcErasedSignature.value, methodName);
+    if (bootstrapMethod == metafactoryAltMethod) {
+      List<DexMethod> result = new ArrayList<>();
+      result.add(mainMethod);
+      LambdaDescriptor.extractAltMetafactory(
+          this,
+          bootstrapArgs,
+          type -> result.add(createMethod(type, funcErasedSignature.value, methodName)),
+          bridge -> {});
+      return result;
+    } else {
+      return Collections.singletonList(mainMethod);
+    }
   }
 
   public DexMethod createMethod(DexString clazzDescriptor, DexString name,

@@ -46,8 +46,8 @@ public class CfInvokeDynamic extends CfInstruction {
     DexString methodName;
     if (lens.isIdentityLens()) {
       methodName = callSite.methodName;
-    } else if (callSite.interfaceMethod != null) {
-      methodName = lens.lookupName(callSite.interfaceMethod);
+    } else if (!callSite.interfaceMethods.isEmpty()) {
+      methodName = lens.lookupName(callSite.interfaceMethods.get(0));
     } else {
       throw new Unimplemented("Minification of non-lambda InvokeDynamic not supported");
     }

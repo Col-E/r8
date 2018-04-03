@@ -29,22 +29,27 @@ public final class DexCallSite extends IndexedDexItem {
   public final DexMethodHandle bootstrapMethod;
   public final List<DexValue> bootstrapArgs;
 
-  public final DexMethod interfaceMethod;
+  public final List<DexMethod> interfaceMethods;
 
   private DexEncodedArray encodedArray = null;
 
-  DexCallSite(DexString methodName, DexProto methodProto,
-      DexMethodHandle bootstrapMethod, List<DexValue> bootstrapArgs, DexMethod interfaceMethod) {
+  DexCallSite(
+      DexString methodName,
+      DexProto methodProto,
+      DexMethodHandle bootstrapMethod,
+      List<DexValue> bootstrapArgs,
+      List<DexMethod> interfaceMethods) {
     assert methodName != null;
     assert methodProto != null;
     assert bootstrapMethod != null;
     assert bootstrapArgs != null;
+    assert interfaceMethods != null;
 
     this.methodName = methodName;
     this.methodProto = methodProto;
     this.bootstrapMethod = bootstrapMethod;
     this.bootstrapArgs = bootstrapArgs;
-    this.interfaceMethod = interfaceMethod;
+    this.interfaceMethods = interfaceMethods;
   }
 
   public static DexCallSite fromAsmInvokeDynamic(
