@@ -55,7 +55,10 @@ public class Inliner {
 
   private final Set<DexMethod> blackList = Sets.newIdentityHashSet();
 
-  public Inliner(AppInfoWithLiveness appInfo, GraphLense graphLense, InternalOptions options) {
+  public Inliner(
+      AppInfoWithLiveness appInfo,
+      GraphLense graphLense,
+      InternalOptions options) {
     this.appInfo = appInfo;
     this.graphLense = graphLense;
     this.options = options;
@@ -269,9 +272,6 @@ public class Inliner {
       if (!target.isProcessed()) {
         new LensCodeRewriter(graphLense, appInfo).rewrite(code, target);
       }
-      if (options.enableNonNullTracking) {
-        new NonNullTracker().addNonNull(code);
-      }
       return code;
     }
   }
@@ -443,7 +443,17 @@ public class Inliner {
               iterator.previous();
               instruction_allowance -= numberOfInstructions(inlinee);
               if (instruction_allowance >= 0 || result.ignoreInstructionBudget()) {
-                iterator.inlineInvoke(code, inlinee, blockIterator, blocksToRemove, downcast);
+                BasicBlock invokeSuccessor =
+                    iterator.inlineInvoke(code, inlinee, blockIterator, blocksToRemove, downcast);
+                if (options.enableNonNullTracking) {
+                  // Move the cursor back to where the inlinee blocks are added.
+                  blockIterator = code.blocks.listIterator(code.blocks.indexOf(block));
+                  // Kick off the tracker to add non-null IRs only to the inlinee blocks.
+                  new NonNullTracker()
+                      .addNonNullInPart(code, blockIterator, inlinee.blocks::contains);
+                  // Move the cursor forward to where the inlinee blocks end.
+                  blockIterator = code.blocks.listIterator(code.blocks.indexOf(invokeSuccessor));
+                }
                 // Update type env for inlined blocks.
                 typeEnvironment.analyzeBlocks(inlinee.topologicallySortedBlocks());
                 // TODO(b/69964136): need a test where refined env in inlinee affects the caller.

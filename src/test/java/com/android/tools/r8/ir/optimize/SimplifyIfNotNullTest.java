@@ -30,8 +30,8 @@ public class SimplifyIfNotNullTest extends TestBase {
 
   private void buildAndTest(Class<?> testClass, List<MethodSignature> signatures) throws Exception {
     AndroidApp app = buildAndroidApp(ToolHelper.getClassAsBytes(testClass));
-    AndroidApp r8Result = compileWithR8(
-        app, keepMainProguardConfiguration(testClass), o -> o.enableInlining = false);
+    AndroidApp r8Result = compileWithR8(app,
+        "-keep class " + testClass.getCanonicalName() + " { *; }");
     DexInspector dexInspector = new DexInspector(r8Result);
     for (MethodSignature signature : signatures) {
       DexEncodedMethod method =
