@@ -21,9 +21,10 @@ import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 
 // Represents the lambda descriptor inferred from calls site.
-final class LambdaDescriptor {
+public final class LambdaDescriptor {
   private static final int LAMBDA_ALT_SERIALIZABLE = 1;
   private static final int LAMBDA_ALT_HAS_EXTRA_INTERFACES = 2;
   private static final int LAMBDA_ALT_HAS_BRIDGES = 4;
@@ -227,8 +228,8 @@ final class LambdaDescriptor {
     }
 
     DexMethod bootstrapMethod = callSite.bootstrapMethod.asMethod();
-    boolean isMetafactoryMethod = bootstrapMethod == rewriter.metafactoryMethod;
-    boolean isAltMetafactoryMethod = bootstrapMethod == rewriter.metafactoryAltMethod;
+    boolean isMetafactoryMethod = bootstrapMethod == rewriter.factory.metafactoryMethod;
+    boolean isAltMetafactoryMethod = bootstrapMethod == rewriter.factory.metafactoryAltMethod;
     if (!isMetafactoryMethod && !isAltMetafactoryMethod) {
       // It is not a lambda, thus no need to manage this call site.
       return LambdaDescriptor.MATCH_FAILED;
@@ -240,18 +241,18 @@ final class LambdaDescriptor {
 
     // Signature of main functional interface method.
     DexValue.DexValueMethodType funcErasedSignature =
-        getBootstrapArgument(callSite, 0, DexValue.DexValueMethodType.class);
+        getBootstrapArgument(callSite.bootstrapArgs, 0, DexValue.DexValueMethodType.class);
 
     // Method handle of the implementation method.
     DexMethodHandle lambdaImplMethodHandle =
-        getBootstrapArgument(callSite, 1, DexValue.DexValueMethodHandle.class).value;
+        getBootstrapArgument(callSite.bootstrapArgs, 1, DexValue.DexValueMethodHandle.class).value;
     // Even though there are some limitations on which method handle kinds are
     // allowed for lambda impl-methods, there is no way to detect unsupported
     // handle kinds after they are transformed into DEX method handle.
 
     // Signature to be enforced on main method.
     DexValue.DexValueMethodType funcEnforcedSignature =
-        getBootstrapArgument(callSite, 2, DexValue.DexValueMethodType.class);
+        getBootstrapArgument(callSite.bootstrapArgs, 2, DexValue.DexValueMethodType.class);
     if (!isEnforcedSignatureValid(
         rewriter, funcEnforcedSignature.value, funcErasedSignature.value)) {
       throw new Unreachable(
@@ -277,67 +278,70 @@ final class LambdaDescriptor {
             "Unexpected number of metafactory method arguments in " + callSite.toString());
       }
     } else {
-      extractExtraLambdaInfo(rewriter, callSite, match);
+      extractAltMetafactory(
+          rewriter.factory,
+          callSite.bootstrapArgs,
+          interfaceType -> {
+            if (!match.interfaces.contains(interfaceType)) {
+              match.interfaces.add(interfaceType);
+            }
+          },
+          match.bridges::add);
     }
 
     return match;
   }
 
-  private static void extractExtraLambdaInfo(
-      LambdaRewriter rewriter, DexCallSite callSite, LambdaDescriptor match) {
+  public static void extractAltMetafactory(
+      DexItemFactory dexItemFactory,
+      List<DexValue> bootstrapArgs,
+      Consumer<DexType> interfaceConsumer,
+      Consumer<DexProto> bridgeConsumer) {
     int argIndex = 3;
-    int flagsArg = getBootstrapArgument(
-        callSite, argIndex++, DexValue.DexValueInt.class).value;
+    int flagsArg =
+        getBootstrapArgument(bootstrapArgs, argIndex++, DexValue.DexValueInt.class).value;
     assert (flagsArg & ~LAMBDA_ALT_MASK) == 0;
 
     // Load extra interfaces if any.
     if ((flagsArg & LAMBDA_ALT_HAS_EXTRA_INTERFACES) != 0) {
-      int count = getBootstrapArgument(
-          callSite, argIndex++, DexValue.DexValueInt.class).value;
+      int count = getBootstrapArgument(bootstrapArgs, argIndex++, DexValue.DexValueInt.class).value;
       for (int i = 0; i < count; i++) {
-        DexType type = getBootstrapArgument(
-            callSite, argIndex++, DexValue.DexValueType.class).value;
-        if (!match.interfaces.contains(type)) {
-          match.interfaces.add(type);
-        }
+        DexType interfaceType =
+            getBootstrapArgument(bootstrapArgs, argIndex++, DexValue.DexValueType.class).value;
+        interfaceConsumer.accept(interfaceType);
       }
     }
 
     // If the lambda is serializable, add it.
     if ((flagsArg & LAMBDA_ALT_SERIALIZABLE) != 0) {
-      if (!match.interfaces.contains(rewriter.serializableType)) {
-        match.interfaces.add(rewriter.serializableType);
-      }
+      interfaceConsumer.accept(dexItemFactory.serializableType);
     }
 
     // Load bridges if any.
     if ((flagsArg & LAMBDA_ALT_HAS_BRIDGES) != 0) {
-      int count = getBootstrapArgument(
-          callSite, argIndex++, DexValue.DexValueInt.class).value;
+      int count = getBootstrapArgument(bootstrapArgs, argIndex++, DexValue.DexValueInt.class).value;
       for (int i = 0; i < count; i++) {
-        DexProto bridgeProto = getBootstrapArgument(
-            callSite, argIndex++, DexValue.DexValueMethodType.class).value;
-        match.bridges.add(bridgeProto);
+        DexProto bridgeProto =
+            getBootstrapArgument(bootstrapArgs, argIndex++, DexValue.DexValueMethodType.class)
+                .value;
+        bridgeConsumer.accept(bridgeProto);
       }
     }
 
-    if (callSite.bootstrapArgs.size() != argIndex) {
-      throw new Unreachable(
-          "Unexpected number of metafactory method arguments in " + callSite.toString());
+    if (bootstrapArgs.size() != argIndex) {
+      throw new Unreachable("Unexpected number of metafactory method arguments in DexCallSite");
     }
   }
 
   @SuppressWarnings("unchecked")
-  private static <T> T getBootstrapArgument(DexCallSite callSite, int i, Class<T> clazz) {
-    List<DexValue> bootstrapArgs = callSite.bootstrapArgs;
+  private static <T> T getBootstrapArgument(List<DexValue> bootstrapArgs, int i, Class<T> clazz) {
     if (bootstrapArgs.size() < i) {
-      throw new Unreachable("Expected to find at least "
-          + i + " bootstrap arguments in " + callSite.toString());
+      throw new Unreachable(
+          "Expected to find at least " + i + " bootstrap arguments in DexCallSite");
     }
     DexValue value = bootstrapArgs.get(i);
     if (!clazz.isAssignableFrom(value.getClass())) {
-      throw new Unreachable("Unexpected type of "
-          + "bootstrap arguments #" + i + " in " + callSite.toString());
+      throw new Unreachable("Unexpected type of bootstrap arguments #" + i + " in DexCallSite");
     }
     return (T) value;
   }

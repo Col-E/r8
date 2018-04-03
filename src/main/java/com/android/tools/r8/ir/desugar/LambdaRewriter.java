@@ -41,16 +41,8 @@ import java.util.Map;
  * lambda class generation, and instruction patching.
  */
 public class LambdaRewriter {
-  private static final String METAFACTORY_TYPE_DESCR = "Ljava/lang/invoke/LambdaMetafactory;";
-  private static final String CALLSITE_TYPE_DESCR = "Ljava/lang/invoke/CallSite;";
-  private static final String LOOKUP_TYPE_DESCR = "Ljava/lang/invoke/MethodHandles$Lookup;";
-  private static final String METHODTYPE_TYPE_DESCR = "Ljava/lang/invoke/MethodType;";
-  private static final String METHODHANDLE_TYPE_DESCR = "Ljava/lang/invoke/MethodHandle;";
-  private static final String SERIALIZABLE_TYPE_DESCR = "Ljava/io/Serializable;";
   private static final String SERIALIZED_LAMBDA_TYPE_DESCR = "Ljava/lang/invoke/SerializedLambda;";
 
-  private static final String METAFACTORY_METHOD_NAME = "metafactory";
-  private static final String METAFACTORY_ALT_METHOD_NAME = "altMetafactory";
   private static final String DESERIALIZE_LAMBDA_METHOD_NAME = "$deserializeLambda$";
 
   // Public for testing.
@@ -62,11 +54,7 @@ public class LambdaRewriter {
   final AppInfo appInfo;
   final DexItemFactory factory;
 
-  final DexMethod metafactoryMethod;
   final DexMethod objectInitMethod;
-
-  final DexMethod metafactoryAltMethod;
-  final DexType serializableType;
 
   final DexString constructorName;
   final DexString classConstructorName;
@@ -97,28 +85,11 @@ public class LambdaRewriter {
     this.factory = converter.appInfo.dexItemFactory;
     this.appInfo = converter.appInfo;
 
-    DexType metafactoryType = factory.createType(METAFACTORY_TYPE_DESCR);
-    DexType callSiteType = factory.createType(CALLSITE_TYPE_DESCR);
-    DexType lookupType = factory.createType(LOOKUP_TYPE_DESCR);
-    DexType methodTypeType = factory.createType(METHODTYPE_TYPE_DESCR);
-    DexType methodHandleType = factory.createType(METHODHANDLE_TYPE_DESCR);
-
-    this.metafactoryMethod = factory.createMethod(metafactoryType,
-        factory.createProto(callSiteType, lookupType, factory.stringType, methodTypeType,
-            methodTypeType, methodHandleType, methodTypeType),
-        factory.createString(METAFACTORY_METHOD_NAME));
-
-    this.metafactoryAltMethod = factory.createMethod(metafactoryType,
-        factory.createProto(callSiteType, lookupType, factory.stringType, methodTypeType,
-            factory.objectArrayType),
-        factory.createString(METAFACTORY_ALT_METHOD_NAME));
-
     this.constructorName = factory.createString(Constants.INSTANCE_INITIALIZER_NAME);
     DexProto initProto = factory.createProto(factory.voidType);
     this.objectInitMethod = factory.createMethod(factory.objectType, initProto, constructorName);
     this.classConstructorName = factory.createString(Constants.CLASS_INITIALIZER_NAME);
     this.instanceFieldName = factory.createString(LAMBDA_INSTANCE_FIELD_NAME);
-    this.serializableType = factory.createType(SERIALIZABLE_TYPE_DESCR);
 
     this.deserializeLambdaMethodName = factory.createString(DESERIALIZE_LAMBDA_METHOD_NAME);
     this.deserializeLambdaMethodProto = factory.createProto(
