@@ -17,16 +17,53 @@ import org.objectweb.asm.Opcodes;
 
 public class CfFrame extends CfInstruction {
 
+  public abstract static class Uninitialized {
+    abstract Object getAsmLabel();
+  }
+
+  public static class UninitializedNew extends Uninitialized {
+    private final CfLabel label;
+
+    public UninitializedNew(CfLabel label) {
+      this.label = label;
+    }
+
+    @Override
+    Object getAsmLabel() {
+      return label.getLabel();
+    }
+
+    public CfLabel getLabel() {
+      return label;
+    }
+  }
+
+  public static class UninitializedThis extends Uninitialized {
+    @Override
+    Object getAsmLabel() {
+      return Opcodes.UNINITIALIZED_THIS;
+    }
+  }
+
   private final Int2ReferenceSortedMap<DexType> locals;
+  private final Int2ReferenceSortedMap<Uninitialized> allocators;
   private final List<DexType> stack;
 
-  public CfFrame(Int2ReferenceSortedMap<DexType> locals, List<DexType> stack) {
+  public CfFrame(
+      Int2ReferenceSortedMap<DexType> locals,
+      Int2ReferenceSortedMap<Uninitialized> allocators,
+      List<DexType> stack) {
     this.locals = locals;
+    this.allocators = allocators;
     this.stack = stack;
   }
 
   public Int2ReferenceSortedMap<DexType> getLocals() {
     return locals;
+  }
+
+  public Int2ReferenceSortedMap<Uninitialized> getAllocators() {
+    return allocators;
   }
 
   public List<DexType> getStack() {
@@ -88,7 +125,8 @@ public class CfFrame extends CfInstruction {
     int localIndex = 0;
     for (int i = 0; i <= maxRegister; i++) {
       DexType type = locals.get(i);
-      Object typeOpcode = getType(type, lens);
+      Uninitialized allocator = allocators.get(i);
+      Object typeOpcode = allocator == null ? getType(type, lens) : allocator.getAsmLabel();
       localsTypes[localIndex++] = typeOpcode;
       if (type != null && isWide(type)) {
         i++;

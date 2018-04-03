@@ -16,6 +16,9 @@ import com.android.tools.r8.cf.code.CfConstNumber;
 import com.android.tools.r8.cf.code.CfConstString;
 import com.android.tools.r8.cf.code.CfFieldInstruction;
 import com.android.tools.r8.cf.code.CfFrame;
+import com.android.tools.r8.cf.code.CfFrame.Uninitialized;
+import com.android.tools.r8.cf.code.CfFrame.UninitializedNew;
+import com.android.tools.r8.cf.code.CfFrame.UninitializedThis;
 import com.android.tools.r8.cf.code.CfGoto;
 import com.android.tools.r8.cf.code.CfIf;
 import com.android.tools.r8.cf.code.CfIfCmp;
@@ -240,7 +243,17 @@ public class CfPrinter {
     StringBuilder builder = new StringBuilder("frame: [");
     String separator = "";
     for (Entry<DexType> entry : frame.getLocals().int2ReferenceEntrySet()) {
-      builder.append(separator).append(entry.getIntKey()).append(':').append(entry.getValue());
+      builder.append(separator).append(entry.getIntKey()).append(':');
+      Uninitialized allocator = frame.getAllocators().get(entry.getIntKey());
+      if (allocator == null) {
+        builder.append(entry.getValue());
+      } else if (allocator instanceof UninitializedThis) {
+        builder.append("uninitialized this");
+      } else {
+        builder
+            .append("uninitialized ")
+            .append(getLabel(((UninitializedNew) allocator).getLabel()));
+      }
       separator = ", ";
     }
     builder.append("] ");

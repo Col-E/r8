@@ -7,6 +7,9 @@ import com.android.tools.r8.cf.CfRegisterAllocator;
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfFrame;
+import com.android.tools.r8.cf.code.CfFrame.Uninitialized;
+import com.android.tools.r8.cf.code.CfFrame.UninitializedNew;
+import com.android.tools.r8.cf.code.CfFrame.UninitializedThis;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfLabel;
 import com.android.tools.r8.cf.code.CfPosition;
@@ -28,8 +31,10 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
+import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.JumpInstruction;
 import com.android.tools.r8.ir.code.Load;
+import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.StackValue;
 import com.android.tools.r8.ir.code.Store;
@@ -42,9 +47,11 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap.Entry;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -76,6 +83,10 @@ public class CfBuilder {
       new Int2ReferenceOpenHashMap<>();
 
   private AppInfoWithSubtyping appInfo;
+
+  private Map<NewInstance, List<InvokeDirect>> initializers;
+  private List<InvokeDirect> thisInitializers;
+  private Map<NewInstance, CfLabel> newInstanceLabels;
 
   // Internal abstraction of the stack values and height.
   private static class Stack {
@@ -110,6 +121,7 @@ public class CfBuilder {
 
   public CfCode build(
       CodeRewriter rewriter, InternalOptions options, AppInfoWithSubtyping appInfo) {
+    computeInitializers();
     types = new TypeVerificationHelper(code, factory, appInfo).computeVerificationTypes();
     splitExceptionalBlocks();
     LoadStoreHelper loadStoreHelper = new LoadStoreHelper(code, types);
@@ -131,6 +143,39 @@ public class CfBuilder {
   public DexField resolveField(DexField field) {
     DexEncodedField resolvedField = appInfo.resolveFieldOn(field.clazz, field);
     return resolvedField == null ? field : resolvedField.field;
+  }
+
+  private void computeInitializers() {
+    assert initializers == null;
+    assert thisInitializers == null;
+    initializers = new HashMap<>();
+    for (BasicBlock block : code.blocks) {
+      for (Instruction insn : block.getInstructions()) {
+        if (insn.isNewInstance()) {
+          initializers.put(insn.asNewInstance(), computeInitializers(insn.outValue()));
+        } else if (insn.isArgument() && method.isInstanceInitializer()) {
+          if (insn.outValue().isThis()) {
+            // By JVM8 §4.10.1.9 (invokespecial), a this() or super() call in a constructor
+            // changes the type of `this` from uninitializedThis
+            // to the type of the class of the <init> method.
+            thisInitializers = computeInitializers(insn.outValue());
+          }
+        }
+      }
+    }
+    assert !(method.isInstanceInitializer() && thisInitializers == null);
+  }
+
+  private List<InvokeDirect> computeInitializers(Value value) {
+    List<InvokeDirect> initializers = new ArrayList<>();
+    for (Instruction user : value.uniqueUsers()) {
+      if (user instanceof InvokeDirect
+          && user.inValues().get(0) == value
+          && user.asInvokeDirect().getInvokedMethod().name == factory.constructorMethodName) {
+        initializers.add(user.asInvokeDirect());
+      }
+    }
+    return initializers;
   }
 
   // Split all blocks with throwing instructions and exceptional edges such that any non-throwing
@@ -203,6 +248,7 @@ public class CfBuilder {
     List<CfTryCatch> tryCatchRanges = new ArrayList<>();
     labels = new HashMap<>(code.blocks.size());
     emittedLabels = new HashSet<>(code.blocks.size());
+    newInstanceLabels = new HashMap<>(initializers.size());
     instructions = new ArrayList<>();
     ListIterator<BasicBlock> blockIterator = code.listIterator();
     BasicBlock block = blockIterator.next();
@@ -211,6 +257,7 @@ public class CfBuilder {
     BasicBlock pendingFrame = null;
     boolean previousFallthrough = false;
     do {
+      assert stack.isEmpty();
       CatchHandlers<BasicBlock> handlers = block.getCatchHandlers();
       if (!tryCatchHandlers.equals(handlers)) {
         if (!tryCatchHandlers.isEmpty()) {
@@ -230,7 +277,6 @@ public class CfBuilder {
       // If previousBlock is fallthrough, then it is counted in getPredecessors().size(), but
       // we only want to set a pendingFrame if we have a predecessor which is not previousBlock.
       if (block.getPredecessors().size() > (previousFallthrough ? 1 : 0)) {
-        assert stack.isEmpty();
         pendingFrame = block;
         emitLabel(getLabel(block));
       }
@@ -318,6 +364,9 @@ public class CfBuilder {
           pendingLocalChanges = true;
         }
       } else {
+        if (instruction.isNewInstance()) {
+          newInstanceLabels.put(instruction.asNewInstance(), ensureLabel());
+        }
         updatePositionAndLocals(instruction);
         instruction.buildCf(this);
       }
@@ -400,9 +449,11 @@ public class CfBuilder {
 
     Collection<Value> locals = registerAllocator.getLocalsAtBlockEntry(block);
     Int2ReferenceSortedMap<DexType> mapping = new Int2ReferenceAVLTreeMap<>();
+    Int2ReferenceSortedMap<Uninitialized> allocators = new Int2ReferenceAVLTreeMap<>();
 
     for (Value local : locals) {
       DexType type;
+      Uninitialized allocator = null;
       switch (local.outType()) {
         case INT:
           type = factory.intType;
@@ -418,14 +469,64 @@ public class CfBuilder {
           break;
         case OBJECT:
           type = types.get(local);
+          allocator = findAllocator(block, local);
           break;
         default:
           throw new Unreachable(
               "Unexpected local type: " + local.outType() + " for local: " + local);
       }
       mapping.put(getLocalRegister(local), type);
+      if (allocator != null) {
+        allocators.put(getLocalRegister(local), allocator);
+      }
     }
-    instructions.add(new CfFrame(mapping, stackTypes));
+    instructions.add(new CfFrame(mapping, allocators, stackTypes));
+  }
+
+  private Uninitialized findAllocator(BasicBlock liveBlock, Value value) {
+    Instruction definition = value.definition;
+    while (definition != null && (definition.isStore() || definition.isLoad())) {
+      definition = definition.inValues().get(0).definition;
+    }
+    if (definition == null) {
+      return null;
+    }
+    Uninitialized res;
+    if (definition.isNewInstance()) {
+      res = new UninitializedNew(newInstanceLabels.get(definition.asNewInstance()));
+    } else if (definition.isArgument()
+        && method.isInstanceInitializer()
+        && definition.outValue().isThis()) {
+      res = new UninitializedThis();
+    } else {
+      return null;
+    }
+    BasicBlock definitionBlock = definition.getBlock();
+    Set<BasicBlock> visited = new HashSet<>();
+    Deque<BasicBlock> toVisit = new ArrayDeque<>();
+    List<InvokeDirect> valueInitializers =
+        definition.isArgument() ? thisInitializers : initializers.get(definition.asNewInstance());
+    for (InvokeDirect initializer : valueInitializers) {
+      BasicBlock initializerBlock = initializer.getBlock();
+      if (initializerBlock == liveBlock) {
+        return res;
+      }
+      if (initializerBlock != definitionBlock && visited.add(initializerBlock)) {
+        toVisit.addLast(initializerBlock);
+      }
+    }
+    while (!toVisit.isEmpty()) {
+      BasicBlock block = toVisit.removeLast();
+      for (BasicBlock predecessor : block.getPredecessors()) {
+        if (predecessor == liveBlock) {
+          return res;
+        }
+        if (predecessor != definitionBlock && visited.add(predecessor)) {
+          toVisit.addLast(predecessor);
+        }
+      }
+    }
+    return null;
   }
 
   private void emitLabel(CfLabel label) {
