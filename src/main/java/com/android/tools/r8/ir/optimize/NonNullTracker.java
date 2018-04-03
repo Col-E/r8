@@ -19,6 +19,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
 import java.util.ListIterator;
 import java.util.Set;
+import java.util.function.Predicate;
 
 public class NonNullTracker {
 
@@ -56,9 +57,16 @@ public class NonNullTracker {
   }
 
   public void addNonNull(IRCode code) {
-    ListIterator<BasicBlock> blocks = code.blocks.listIterator();
-    while (blocks.hasNext()) {
-      BasicBlock block = blocks.next();
+    addNonNullInPart(code, code.blocks.listIterator(), b -> true);
+  }
+
+  public void addNonNullInPart(
+      IRCode code, ListIterator<BasicBlock> blockIterator, Predicate<BasicBlock> blockTester) {
+    while (blockIterator.hasNext()) {
+      BasicBlock block = blockIterator.next();
+      if (!blockTester.test(block)) {
+        continue;
+      }
       // Add non-null after instructions that implicitly indicate receiver/array is not null.
       InstructionListIterator iterator = block.listIterator();
       while (iterator.hasNext()) {
@@ -90,7 +98,7 @@ public class NonNullTracker {
         // A: ...y // blockWithNonNullInstruction
         //
         BasicBlock blockWithNonNullInstruction =
-            block.hasCatchHandlers() ? iterator.split(code, blocks) : block;
+            block.hasCatchHandlers() ? iterator.split(code, blockIterator) : block;
         // Next, add non-null fake IR, e.g.,
         // ...x
         // invoke(rcv, ...)
@@ -191,7 +199,7 @@ public class NonNullTracker {
                 }
               }
               // Avoid adding a non-null for the value without meaningful users.
-              if (!dominatedUsers.isEmpty() && !dominatedPhiUsers.isEmpty()) {
+              if (!dominatedUsers.isEmpty() || !dominatedPhiUsers.isEmpty()) {
                 Value nonNullValue = code.createValue(
                     knownToBeNonNullValue.outType(), knownToBeNonNullValue.getLocalInfo());
                 NonNull nonNull = new NonNull(nonNullValue, knownToBeNonNullValue, theIf);

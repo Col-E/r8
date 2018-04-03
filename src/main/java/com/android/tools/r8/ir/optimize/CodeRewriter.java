@@ -2023,7 +2023,8 @@ public class CodeRewriter {
               simplifyIfWithKnownCondition(code, block, theIf, cond, color);
             }
           }
-        } else if (theIf.isZeroTest() && !inValues.get(0).isConstNumber()) {
+        } else if (theIf.isZeroTest() && !inValues.get(0).isConstNumber()
+            && (theIf.getType() == Type.EQ || theIf.getType() == Type.NE)) {
           if (inValues.get(0).isNeverNull()) {
             simplifyIfWithKnownCondition(code, block, theIf, 1, color);
           } else {

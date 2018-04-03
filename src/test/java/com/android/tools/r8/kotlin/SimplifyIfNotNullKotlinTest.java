@@ -43,9 +43,8 @@ public class SimplifyIfNotNullKotlinTest extends AbstractR8KotlinTestBase {
       long count = Arrays.stream(dexCode.instructions)
           .filter(SimplifyIfNotNullKotlinTest::isIf).count();
       if (allowAccessModification) {
-        // TODO(b/76200247): 6 -> 5
         // Three null-check's from inlined checkParameterIsNotNull for receiver and two arguments.
-        assertEquals(6, count);
+        assertEquals(5, count);
       } else {
         // One after Iterator#hasNext, and another in the filter predicate: sinceYear != null.
         assertEquals(2, count);

@@ -185,6 +185,6 @@ public class NonNullTrackerTest extends TestBase {
     buildAndTest(NonNullAfterNullCheck.class, bar, 1, this::checkInvokeGetsNonNullReceiver);
     MethodSignature baz =
         new MethodSignature("baz", "int", new String[]{"java.lang.String"});
-    buildAndTest(NonNullAfterNullCheck.class, baz, 1, this::checkInvokeGetsNullReceiver);
+    buildAndTest(NonNullAfterNullCheck.class, baz, 2, this::checkInvokeGetsNullReceiver);
   }
 }
