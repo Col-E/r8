@@ -550,24 +550,6 @@ public abstract class R8RunArtTestsTest {
   // Tests where the output of R8 fails when run with Art.
   private static final Multimap<String, TestCondition> failingRunWithArt =
       new ImmutableListMultimap.Builder<String, TestCondition>()
-          // This test relies on specific field access patterns, which we rewrite.
-          .put("064-field-access",
-              TestCondition.match(
-                  TestCondition.R8DEX_NOT_AFTER_D8_COMPILER,
-                  TestCondition.runtimesUpTo(DexVm.Version.V4_4_4)))
-          .put("064-field-access",
-              TestCondition.match(
-                  TestCondition.R8DEX_COMPILER,
-                  TestCondition.runtimes(
-                      DexVm.Version.DEFAULT, DexVm.Version.V7_0_0, DexVm.Version.V6_0_1,
-                      DexVm.Version.V5_1_1)))
-          .put("064-field-access",
-              TestCondition.match(
-                  TestCondition.tools(DexTool.NONE),
-                  TestCondition.D8_AFTER_R8CF_COMPILER,
-                  TestCondition.runtimes(
-                      DexVm.Version.DEFAULT, DexVm.Version.V7_0_0, DexVm.Version.V6_0_1,
-                      DexVm.Version.V5_1_1)))
           // The growth limit test fails after processing by R8 because R8 will eliminate an
           // "unneeded" const store. The following reflective call to the VM's GC will then see the
           // large array as still live and the subsequent allocations will fail to reach the desired
