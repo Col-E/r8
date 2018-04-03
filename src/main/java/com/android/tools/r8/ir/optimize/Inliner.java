@@ -202,7 +202,7 @@ public class Inliner {
         }
         return NEVER;
       } else {
-      /* package-private */
+        /* package-private */
         return targetHolder.isSamePackage(contextHolder) ? PACKAGE : NEVER;
       }
     }
