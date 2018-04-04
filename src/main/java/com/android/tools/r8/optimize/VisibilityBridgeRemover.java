@@ -33,8 +33,9 @@ public class VisibilityBridgeRemover {
       method.getCode().registerCodeReferences(targetExtractor);
       DexMethod target = targetExtractor.getTarget();
       InvokeKind kind = targetExtractor.getKind();
-      if (target != null &&
-          target.proto == method.method.proto) {
+      // javac-generated visibility forward bridge method has same descriptor (name, signature and
+      // return type).
+      if (target != null && target.hasSameProtoAndName(method.method)) {
         assert !method.accessFlags.isPrivate() && !method.accessFlags.isConstructor();
         if (kind == InvokeKind.SUPER) {
           // This is a visibility forward, so check for the direct target.
