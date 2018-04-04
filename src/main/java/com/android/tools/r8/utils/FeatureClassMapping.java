@@ -4,6 +4,7 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.ArchiveClassFileProvider;
+import com.android.tools.r8.dexsplitter.DexSplitter.FeatureJar;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -58,20 +59,15 @@ public class FeatureClassMapping {
     return mapping;
   }
 
-  public static FeatureClassMapping fromJarFiles(List<String> jarFiles)
+  public static FeatureClassMapping fromJarFiles(List<FeatureJar> featureJars)
       throws FeatureMappingException, IOException {
     FeatureClassMapping mapping = new FeatureClassMapping();
-    for (String jar : jarFiles) {
-      Path jarPath = Paths.get(jar);
-      String featureName = jarPath.getFileName().toString();
-      if (featureName.endsWith(".jar") || featureName.endsWith(".zip")) {
-        featureName = featureName.substring(0, featureName.length() - 4);
-      }
-
+    for (FeatureJar featureJar : featureJars) {
+      Path jarPath = Paths.get(featureJar.getJar());
       ArchiveClassFileProvider provider = new ArchiveClassFileProvider(jarPath);
       for (String javaDescriptor : provider.getClassDescriptors()) {
           String javaType = DescriptorUtils.descriptorToJavaType(javaDescriptor);
-          mapping.addMapping(javaType, featureName);
+          mapping.addMapping(javaType, featureJar.getOutputName());
       }
     }
     return mapping;
