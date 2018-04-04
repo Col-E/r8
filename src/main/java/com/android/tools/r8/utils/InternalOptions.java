@@ -9,6 +9,7 @@ import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.ProgramConsumer;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.dex.Marker;
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.InvalidDebugInfoException;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -100,6 +101,8 @@ public class InternalOptions {
   public boolean verbose = false;
   // Silencing output.
   public boolean quiet = false;
+  // Throw exception if there is a warning about invalid debug info.
+  public boolean invalidDebugInfoFatal = false;
 
   // Hidden marker for classes.dex
   private boolean hasMarker = false;
@@ -268,6 +271,9 @@ public class InternalOptions {
 
   public void warningInvalidDebugInfo(
       DexEncodedMethod method, Origin origin, InvalidDebugInfoException e) {
+    if (invalidDebugInfoFatal) {
+      throw new CompilationError("Fatal warning: Invalid debug info", e);
+    }
     synchronized (warningInvalidDebugInfo) {
       warningInvalidDebugInfo.computeIfAbsent(
           origin, k -> new ArrayList<>()).add(new Pair<>(method, e.getMessage()));
