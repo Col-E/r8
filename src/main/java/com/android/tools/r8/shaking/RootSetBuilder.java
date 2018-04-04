@@ -17,7 +17,6 @@ import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexLibraryClass;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.logging.Log;
@@ -40,17 +39,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class RootSetBuilder {
 
-  private final DirectMappedDexApplication application;
   private final AppInfo appInfo;
-  private final List<ProguardConfigurationRule> rules;
+  private final DirectMappedDexApplication application;
+  private final Collection<ProguardConfigurationRule> rules;
   private final Map<DexItem, ProguardKeepRule> noShrinking = new IdentityHashMap<>();
   private final Set<DexItem> noOptimization = Sets.newIdentityHashSet();
   private final Set<DexItem> noObfuscation = Sets.newIdentityHashSet();
@@ -67,18 +66,37 @@ public class RootSetBuilder {
   private final Set<DexItem> identifierNameStrings = Sets.newIdentityHashSet();
   private final InternalOptions options;
 
-  public RootSetBuilder(DexApplication application, AppInfo appInfo,
-      List<ProguardConfigurationRule> rules, InternalOptions options) {
-    this.application = application.asDirect();
+  private final DexStringCache dexStringCache = new DexStringCache();
+  private final Set<ProguardIfRule> ifRules = Sets.newIdentityHashSet();
+
+  public RootSetBuilder(
+      AppInfo appInfo,
+      DexApplication application,
+      List<ProguardConfigurationRule> rules,
+      InternalOptions options) {
     this.appInfo = appInfo;
-    this.rules = rules;
+    this.application = application.asDirect();
+    this.rules = rules == null ? null : Collections.unmodifiableCollection(rules);
     this.options = options;
   }
 
-  private boolean anySuperTypeMatches(DexType type, ProguardTypeMatcher name,
+  RootSetBuilder(
+      AppInfo appInfo,
+      Set<ProguardIfRule> ifRules,
+      InternalOptions options) {
+    this.appInfo = appInfo;
+    this.application = appInfo.app.asDirect();
+    this.rules = Collections.unmodifiableCollection(ifRules);
+    this.options = options;
+  }
+
+  private boolean anySuperTypeMatches(
+      DexType type,
+      Function<DexType, DexClass> definitionFor,
+      ProguardTypeMatcher name,
       ProguardTypeMatcher annotation) {
     while (type != null) {
-      DexClass clazz = application.definitionFor(type);
+      DexClass clazz = definitionFor.apply(type);
       if (clazz == null) {
         // TODO(herhut): Warn about broken supertype chain?
         return false;
@@ -91,36 +109,42 @@ public class RootSetBuilder {
     return false;
   }
 
-  private boolean anyImplementedInterfaceMatches(DexClass clazz,
-      ProguardTypeMatcher className, ProguardTypeMatcher annotation) {
+  private boolean anyImplementedInterfaceMatches(
+      DexClass clazz,
+      Function<DexType, DexClass> definitionFor,
+      ProguardTypeMatcher className,
+      ProguardTypeMatcher annotation) {
     if (clazz == null) {
       return false;
     }
     for (DexType iface : clazz.interfaces.values) {
-      DexClass ifaceClass = application.definitionFor(iface);
+      DexClass ifaceClass = definitionFor.apply(iface);
       if (ifaceClass == null) {
         // TODO(herhut): Warn about broken supertype chain?
         return false;
       }
       // TODO(herhut): Maybe it would be better to do this breadth first.
       if ((className.matches(iface) && containsAnnotation(annotation, ifaceClass.annotations))
-          || anyImplementedInterfaceMatches(ifaceClass, className, annotation)) {
+          || anyImplementedInterfaceMatches(ifaceClass, definitionFor, className, annotation)) {
         return true;
       }
     }
     if (clazz.superType == null) {
       return false;
     }
-    DexClass superClass = application.definitionFor(clazz.superType);
+    DexClass superClass = definitionFor.apply(clazz.superType);
     if (superClass == null) {
       // TODO(herhut): Warn about broken supertype chain?
       return false;
     }
-    return anyImplementedInterfaceMatches(superClass, className, annotation);
+    return anyImplementedInterfaceMatches(superClass, definitionFor, className, annotation);
   }
 
   // Process a class with the keep rule.
-  private void process(DexClass clazz, ProguardConfigurationRule rule) {
+  private void process(
+      DexClass clazz,
+      ProguardConfigurationRule rule,
+      ProguardIfRule ifRule) {
     if (rule.getClassType().matches(clazz) == rule.getClassTypeNegated()) {
       return;
     }
@@ -140,12 +164,18 @@ public class RootSetBuilder {
     // TODO(herhut): One day make this do what it says.
     if (rule.hasInheritanceClassName()) {
       boolean extendsExpected =
-          anySuperTypeMatches(clazz.superType, rule.getInheritanceClassName(),
+          anySuperTypeMatches(
+              clazz.superType,
+              application::definitionFor,
+              rule.getInheritanceClassName(),
               rule.getInheritanceAnnotation());
       boolean implementsExpected = false;
       if (!extendsExpected) {
         implementsExpected =
-            anyImplementedInterfaceMatches(clazz, rule.getInheritanceClassName(),
+            anyImplementedInterfaceMatches(
+                clazz,
+                application::definitionFor,
+                rule.getInheritanceClassName(),
                 rule.getInheritanceAnnotation());
       }
       if (!extendsExpected && !implementsExpected) {
@@ -167,16 +197,15 @@ public class RootSetBuilder {
       }
     }
 
-    if (rule instanceof ProguardIfRule) {
-      // TODO(b/73708139): add support -if <class_spec>
-      // Check if -if part matches or subsequent -keep part matches.
-    } else if (rule.getClassNames().matches(clazz.type)) {
+    if (rule.getClassNames().matches(clazz.type)) {
       Collection<ProguardMemberRule> memberKeepRules = rule.getMemberRules();
       if (rule instanceof ProguardKeepRule) {
         switch (((ProguardKeepRule) rule).getType()) {
           case KEEP_CLASS_MEMBERS: {
-            markMatchingVisibleMethods(clazz, memberKeepRules, rule, clazz.type);
-            markMatchingFields(clazz, memberKeepRules, rule, clazz.type);
+            // If we're handling -if consequent part, that means precondition already met.
+            DexType precondition = ifRule != null ? null : clazz.type;
+            markMatchingVisibleMethods(clazz, memberKeepRules, rule, precondition);
+            markMatchingFields(clazz, memberKeepRules, rule, precondition);
             break;
           }
           case KEEP_CLASSES_WITH_MEMBERS: {
@@ -191,6 +220,9 @@ public class RootSetBuilder {
             markMatchingFields(clazz, memberKeepRules, rule, null);
             break;
           }
+          case CONDITIONAL:
+            assert rule instanceof ProguardIfRule;
+            throw new Unreachable("-if rule will be evaluated separately, not here.");
         }
       } else if (rule instanceof ProguardCheckDiscardRule) {
         if (memberKeepRules.isEmpty()) {
@@ -220,6 +252,36 @@ public class RootSetBuilder {
     }
   }
 
+  private void runPerRule(
+      ExecutorService executorService,
+      List<Future<?>> futures,
+      ProguardConfigurationRule rule,
+      ProguardIfRule ifRule) {
+    List<DexType> specifics = rule.getClassNames().asSpecificDexTypes();
+    if (specifics != null) {
+      // This keep rule only lists specific type matches.
+      // This means there is no need to iterate over all classes.
+      for (DexType type : specifics) {
+        DexClass clazz = application.definitionFor(type);
+        // Ignore keep rule iff it does not reference a class in the app.
+        if (clazz != null) {
+          process(clazz, rule, ifRule);
+        }
+      }
+    } else {
+      futures.add(executorService.submit(() -> {
+        for (DexProgramClass clazz : application.classes()) {
+          process(clazz, rule, ifRule);
+        }
+        if (rule.applyToLibraryClasses()) {
+          for (DexLibraryClass clazz : application.libraryClasses()) {
+            process(clazz, rule, ifRule);
+          }
+        }
+      }));
+    }
+  }
+
   public RootSet run(ExecutorService executorService) throws ExecutionException {
     application.timing.begin("Build root set...");
     try {
@@ -227,28 +289,11 @@ public class RootSetBuilder {
       // Mark all the things explicitly listed in keep rules.
       if (rules != null) {
         for (ProguardConfigurationRule rule : rules) {
-          List<DexType> specifics = rule.getClassNames().asSpecificDexTypes();
-          if (specifics != null) {
-            // This keep rule only lists specific type matches.
-            // This means there is no need to iterate over all classes.
-            for (DexType type : specifics) {
-              DexClass clazz = application.definitionFor(type);
-              // Ignore keep rule iff it does not reference a class in the app.
-              if (clazz != null) {
-                process(clazz, rule);
-              }
-            }
+          if (rule instanceof ProguardIfRule) {
+            ProguardIfRule ifRule = (ProguardIfRule) rule;
+            ifRules.add(ifRule);
           } else {
-            futures.add(executorService.submit(() -> {
-              for (DexProgramClass clazz : application.classes()) {
-                process(clazz, rule);
-              }
-              if (rule.applyToLibraryClasses()) {
-                for (DexLibraryClass clazz : application.libraryClasses()) {
-                  process(clazz, rule);
-                }
-              }
-            }));
+            runPerRule(executorService, futures, rule, null);
           }
         }
         ThreadUtils.awaitFutures(futures);
@@ -267,33 +312,65 @@ public class RootSetBuilder {
         noSideEffects,
         assumedValues,
         dependentNoShrinking,
-        identifierNameStrings);
+        identifierNameStrings,
+        ifRules);
   }
 
-  private void markMatchingVisibleMethods(DexClass clazz,
-      Collection<ProguardMemberRule> memberKeepRules, ProguardConfigurationRule rule,
+  ConsequentRootSet runForIfRules(
+      ExecutorService executorService,
+      Set<DexType> liveTypes,
+      Set<DexEncodedMethod> liveMethods,
+      Set<DexEncodedField> liveFields) throws ExecutionException {
+    application.timing.begin("Find consequent items for -if rules...");
+    try {
+      List<Future<?>> futures = new ArrayList<>();
+      if (rules != null) {
+        for (ProguardConfigurationRule rule : rules) {
+          assert rule instanceof ProguardIfRule;
+          ProguardIfRule ifRule = (ProguardIfRule) rule;
+          if (ruleSatisfiedWithLiveItems(
+              ifRule, appInfo::definitionFor, liveTypes, liveMethods, liveFields)) {
+            runPerRule(executorService, futures, ifRule.subsequentRule, ifRule);
+          }
+        }
+        ThreadUtils.awaitFutures(futures);
+      }
+    } finally {
+      application.timing.end();
+    }
+    return new ConsequentRootSet(noShrinking, noOptimization, noObfuscation);
+  }
+
+  private void markMatchingVisibleMethods(
+      DexClass clazz,
+      Collection<ProguardMemberRule> memberKeepRules,
+      ProguardConfigurationRule rule,
       DexType onlyIfClassKept) {
     Set<Wrapper<DexMethod>> methodsMarked = new HashSet<>();
     Arrays.stream(clazz.directMethods()).forEach(method ->
-        markMethod(method, memberKeepRules, rule, methodsMarked, onlyIfClassKept));
+        markMethod(method, memberKeepRules, methodsMarked, rule, onlyIfClassKept));
     while (clazz != null) {
       Arrays.stream(clazz.virtualMethods()).forEach(method ->
-          markMethod(method, memberKeepRules, rule, methodsMarked, onlyIfClassKept));
+          markMethod(method, memberKeepRules, methodsMarked, rule, onlyIfClassKept));
       clazz = clazz.superType == null ? null : application.definitionFor(clazz.superType);
     }
   }
 
-  private void markMatchingMethods(DexClass clazz,
-      Collection<ProguardMemberRule> memberKeepRules, ProguardConfigurationRule rule,
+  private void markMatchingMethods(
+      DexClass clazz,
+      Collection<ProguardMemberRule> memberKeepRules,
+      ProguardConfigurationRule rule,
       DexType onlyIfClassKept) {
     Arrays.stream(clazz.directMethods()).forEach(method ->
-        markMethod(method, memberKeepRules, rule, null, onlyIfClassKept));
+        markMethod(method, memberKeepRules, null, rule, onlyIfClassKept));
     Arrays.stream(clazz.virtualMethods()).forEach(method ->
-        markMethod(method, memberKeepRules, rule, null, onlyIfClassKept));
+        markMethod(method, memberKeepRules, null, rule, onlyIfClassKept));
   }
 
-  private void markMatchingFields(DexClass clazz,
-      Collection<ProguardMemberRule> memberKeepRules, ProguardConfigurationRule rule,
+  private void markMatchingFields(
+      DexClass clazz,
+      Collection<ProguardMemberRule> memberKeepRules,
+      ProguardConfigurationRule rule,
       DexType onlyIfClassKept) {
     clazz.forEachField(field -> markField(field, memberKeepRules, rule, onlyIfClassKept));
   }
@@ -341,6 +418,79 @@ public class RootSetBuilder {
     out.close();
   }
 
+  private boolean satisfyInheritanceRule(
+      DexType type,
+      Function<DexType, DexClass> definitionFor,
+      ProguardConfigurationRule rule) {
+    DexClass clazz = definitionFor.apply(type);
+    if (clazz == null) {
+      return false;
+    }
+    return
+        anySuperTypeMatches(
+            clazz.superType,
+            definitionFor,
+            rule.getInheritanceClassName(),
+            rule.getInheritanceAnnotation())
+        || anyImplementedInterfaceMatches(
+            clazz,
+            definitionFor,
+            rule.getInheritanceClassName(),
+            rule.getInheritanceAnnotation());
+  }
+
+  private boolean ruleSatisfiedWithLiveItems(
+      ProguardIfRule ifRule,
+      Function<DexType, DexClass> definitionFor,
+      Set<DexType> liveTypes,
+      Set<DexEncodedMethod> liveMethods,
+      Set<DexEncodedField> liveFields) {
+    DexType matchedType = null;
+    Function<DexType, DexClass> definitionForWithLiveTypes = type -> {
+      DexClass clazz = definitionFor.apply(type);
+      if (clazz != null && liveTypes.contains(clazz.type)) {
+        return clazz;
+      }
+      return null;
+    };
+    for (DexType liveType : liveTypes) {
+      if (ifRule.hasInheritanceClassName()) {
+        if (!satisfyInheritanceRule(liveType, definitionForWithLiveTypes, ifRule)) {
+          // Try another live type since the current one doesn't satisfy the inheritance rule.
+          continue;
+        }
+      }
+      if (ifRule.getClassNames().matches(liveType)) {
+        matchedType = liveType;
+        final DexType filterType = matchedType;
+        Collection<ProguardMemberRule> memberKeepRules = ifRule.getMemberRules();
+        Set<DexEncodedMethod> filteredMethods =
+            liveMethods.stream().filter(method -> method.method.getHolder() == filterType)
+                .collect(Collectors.toSet());
+        Set<DexEncodedField> filteredFields =
+            liveFields.stream().filter(field -> field.field.getHolder() == filterType)
+                .collect(Collectors.toSet());
+        boolean notSatisfied = false;
+        for (ProguardMemberRule rule : memberKeepRules) {
+          if (!ruleSatisfiedByMethods(rule, filteredMethods)
+            && !ruleSatisfiedByFields(rule, filteredFields)) {
+            notSatisfied = true;
+            break;
+          }
+        }
+        // Try another live type if the current live type does not satisfy any member rule.
+        if (notSatisfied) {
+          continue;
+        }
+        // TODO(b/73800755): we may need to return the matched live type for back reference.
+        // Maybe, collect all matched live types.
+        return true;
+      }
+    }
+    // No live types satisfy the given -if rule.
+    return false;
+  }
+
   private boolean allRulesSatisfied(Collection<ProguardMemberRule> memberKeepRules,
       DexClass clazz) {
     for (ProguardMemberRule rule : memberKeepRules) {
@@ -362,10 +512,36 @@ public class RootSetBuilder {
         || ruleSatisfiedByFields(rule, clazz.instanceFields());
   }
 
+  private boolean ruleSatisfiedByMethods(
+      ProguardMemberRule rule,
+      Iterable<DexEncodedMethod> methods) {
+    if (rule.getRuleType().includesMethods()) {
+      for (DexEncodedMethod method : methods) {
+        if (rule.matches(method, dexStringCache)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   private boolean ruleSatisfiedByMethods(ProguardMemberRule rule, DexEncodedMethod[] methods) {
     if (rule.getRuleType().includesMethods()) {
       for (DexEncodedMethod method : methods) {
-        if (rule.matches(method, this)) {
+        if (rule.matches(method, dexStringCache)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  private boolean ruleSatisfiedByFields(
+      ProguardMemberRule rule,
+      Iterable<DexEncodedField> fields) {
+    if (rule.getRuleType().includesFields()) {
+      for (DexEncodedField field : fields) {
+        if (rule.matches(field, dexStringCache)) {
           return true;
         }
       }
@@ -376,7 +552,7 @@ public class RootSetBuilder {
   private boolean ruleSatisfiedByFields(ProguardMemberRule rule, DexEncodedField[] fields) {
     if (rule.getRuleType().includesFields()) {
       for (DexEncodedField field : fields) {
-        if (rule.matches(field, this)) {
+        if (rule.matches(field, dexStringCache)) {
           return true;
         }
       }
@@ -400,21 +576,18 @@ public class RootSetBuilder {
     return false;
   }
 
-  private final ConcurrentHashMap<DexString, String> stringCache = new ConcurrentHashMap<>();
-
-  public String lookupString(DexString name) {
-    return stringCache.computeIfAbsent(name, DexString::toString);
-  }
-
-  private void markMethod(DexEncodedMethod method, Collection<ProguardMemberRule> rules,
-      ProguardConfigurationRule context, Set<Wrapper<DexMethod>> methodsMarked,
-      DexType onlyIfClassKept) {
+  private void markMethod(
+      DexEncodedMethod method,
+      Collection<ProguardMemberRule> rules,
+      Set<Wrapper<DexMethod>> methodsMarked,
+      ProguardConfigurationRule context,
+      DexItem precondition) {
     if ((methodsMarked != null)
         && methodsMarked.contains(MethodSignatureEquivalence.get().wrap(method.method))) {
       return;
     }
     for (ProguardMemberRule rule : rules) {
-      if (rule.matches(method, this)) {
+      if (rule.matches(method, dexStringCache)) {
         if (Log.ENABLED) {
           Log.verbose(getClass(), "Marking method `%s` due to `%s { %s }`.", method, context,
               rule);
@@ -422,20 +595,23 @@ public class RootSetBuilder {
         if (methodsMarked != null) {
           methodsMarked.add(MethodSignatureEquivalence.get().wrap(method.method));
         }
-        addItemToSets(method, context, rule, onlyIfClassKept);
+        addItemToSets(method, context, rule, precondition);
       }
     }
   }
 
-  private void markField(DexEncodedField field, Collection<ProguardMemberRule> rules,
-      ProguardConfigurationRule context, DexType onlyIfClassKept) {
+  private void markField(
+      DexEncodedField field,
+      Collection<ProguardMemberRule> rules,
+      ProguardConfigurationRule context,
+      DexItem precondition) {
     for (ProguardMemberRule rule : rules) {
-      if (rule.matches(field, this)) {
+      if (rule.matches(field, dexStringCache)) {
         if (Log.ENABLED) {
           Log.verbose(getClass(), "Marking field `%s` due to `%s { %s }`.", field, context,
               rule);
         }
-        addItemToSets(field, context, rule, onlyIfClassKept);
+        addItemToSets(field, context, rule, precondition);
       }
     }
   }
@@ -480,14 +656,17 @@ public class RootSetBuilder {
     }
   }
 
-  private synchronized void addItemToSets(DexItem item, ProguardConfigurationRule context,
-      ProguardMemberRule rule, DexType onlyIfClassKept) {
+  private synchronized void addItemToSets(
+      DexItem item,
+      ProguardConfigurationRule context,
+      ProguardMemberRule rule,
+      DexItem precondition) {
     if (context instanceof ProguardKeepRule) {
       ProguardKeepRule keepRule = (ProguardKeepRule) context;
       ProguardKeepRuleModifiers modifiers = keepRule.getModifiers();
       if (!modifiers.allowsShrinking) {
-        if (onlyIfClassKept != null) {
-          dependentNoShrinking.computeIfAbsent(onlyIfClassKept, x -> new IdentityHashMap<>())
+        if (precondition != null) {
+          dependentNoShrinking.computeIfAbsent(precondition, x -> new IdentityHashMap<>())
               .put(item, keepRule);
         } else {
           noShrinking.put(item, keepRule);
@@ -540,6 +719,7 @@ public class RootSetBuilder {
     public final Map<DexItem, ProguardMemberRule> assumedValues;
     private final Map<DexItem, Map<DexItem, ProguardKeepRule>> dependentNoShrinking;
     public final Set<DexItem> identifierNameStrings;
+    public final Set<ProguardIfRule> ifRules;
 
     private boolean isTypeEncodedMethodOrEncodedField(DexItem item) {
       assert item instanceof DexType
@@ -573,10 +753,11 @@ public class RootSetBuilder {
         Map<DexItem, ProguardMemberRule> noSideEffects,
         Map<DexItem, ProguardMemberRule> assumedValues,
         Map<DexItem, Map<DexItem, ProguardKeepRule>> dependentNoShrinking,
-        Set<DexItem> identifierNameStrings) {
+        Set<DexItem> identifierNameStrings,
+        Set<ProguardIfRule> ifRules) {
       this.noShrinking = Collections.unmodifiableMap(noShrinking);
-      this.noOptimization = Collections.unmodifiableSet(noOptimization);
-      this.noObfuscation = Collections.unmodifiableSet(noObfuscation);
+      this.noOptimization = noOptimization;
+      this.noObfuscation = noObfuscation;
       this.reasonAsked = Collections.unmodifiableSet(reasonAsked);
       this.keepPackageName = Collections.unmodifiableSet(keepPackageName);
       this.checkDiscarded = Collections.unmodifiableSet(checkDiscarded);
@@ -585,6 +766,7 @@ public class RootSetBuilder {
       this.assumedValues = Collections.unmodifiableMap(assumedValues);
       this.dependentNoShrinking = dependentNoShrinking;
       this.identifierNameStrings = Collections.unmodifiableSet(identifierNameStrings);
+      this.ifRules = Collections.unmodifiableSet(ifRules);
       assert legalNoObfuscationItems(noObfuscation);
       assert legalDependentNoShrinkingItems(dependentNoShrinking);
     }
@@ -629,6 +811,7 @@ public class RootSetBuilder {
       builder.append("\nassumedValues: " + assumedValues.size());
       builder.append("\ndependentNoShrinking: " + dependentNoShrinking.size());
       builder.append("\nidentifierNameStrings: " + identifierNameStrings.size());
+      builder.append("\nifRules: " + ifRules.size());
 
       builder.append("\n\nNo Shrinking:");
       noShrinking.keySet().stream()
@@ -637,6 +820,22 @@ public class RootSetBuilder {
               .append("\n").append(a.toSourceString()).append(" ").append(noShrinking.get(a)));
       builder.append("\n");
       return builder.toString();
+    }
+  }
+
+  // A partial RootSet that becomes live due to the enabled -if rule.
+  static class ConsequentRootSet {
+    final Map<DexItem, ProguardKeepRule> noShrinking;
+    final Set<DexItem> noOptimization;
+    final Set<DexItem> noObfuscation;
+
+    private ConsequentRootSet(
+        Map<DexItem, ProguardKeepRule> noShrinking,
+        Set<DexItem> noOptimization,
+        Set<DexItem> noObfuscation) {
+      this.noShrinking = Collections.unmodifiableMap(noShrinking);
+      this.noOptimization = Collections.unmodifiableSet(noOptimization);
+      this.noObfuscation = Collections.unmodifiableSet(noObfuscation);
     }
   }
 }

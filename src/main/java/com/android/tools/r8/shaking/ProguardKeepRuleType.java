@@ -8,7 +8,8 @@ import com.android.tools.r8.errors.Unreachable;
 public enum ProguardKeepRuleType {
   KEEP,
   KEEP_CLASS_MEMBERS,
-  KEEP_CLASSES_WITH_MEMBERS;
+  KEEP_CLASSES_WITH_MEMBERS,
+  CONDITIONAL;
 
   @Override
   public String toString() {
@@ -19,6 +20,8 @@ public enum ProguardKeepRuleType {
         return "keepclassmembers";
       case KEEP_CLASSES_WITH_MEMBERS:
         return "keepclasseswithmembers";
+      case CONDITIONAL:
+        return "if";
       default:
         throw new Unreachable("Unknown ProguardKeepRuleType.");
     }

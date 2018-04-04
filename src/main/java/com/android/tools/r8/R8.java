@@ -282,13 +282,13 @@ public class R8 {
             ProguardConfiguration.builder(application.dexItemFactory, options.reporter);
 
         rootSet = new RootSetBuilder(
-                    application, appInfo, options.proguardConfiguration.getRules(), options)
+                    appInfo, application, options.proguardConfiguration.getRules(), options)
                 .run(executorService);
         ProtoLiteExtension protoLiteExtension =
             options.forceProguardCompatibility ? null : new ProtoLiteExtension(appInfo);
         Enqueuer enqueuer = new Enqueuer(appInfo, options, options.forceProguardCompatibility,
             compatibility, protoLiteExtension);
-        appInfo = enqueuer.traceApplication(rootSet, timing);
+        appInfo = enqueuer.traceApplication(rootSet, executorService, timing);
         if (options.proguardConfiguration.isPrintSeeds()) {
           ByteArrayOutputStream bytes = new ByteArrayOutputStream();
           PrintStream out = new PrintStream(bytes);
@@ -396,9 +396,10 @@ public class R8 {
         Enqueuer enqueuer = new Enqueuer(appInfo, options, true);
         // Lets find classes which may have code executed before secondary dex files installation.
         RootSet mainDexRootSet =
-            new RootSetBuilder(application, appInfo, options.mainDexKeepRules, options)
+            new RootSetBuilder(appInfo, application, options.mainDexKeepRules, options)
                 .run(executorService);
-        AppInfoWithLiveness mainDexAppInfo = enqueuer.traceMainDex(mainDexRootSet, timing);
+        AppInfoWithLiveness mainDexAppInfo =
+            enqueuer.traceMainDex(mainDexRootSet, executorService, timing);
 
         // LiveTypes is the result.
         Set<DexType> mainDexBaseClasses = new HashSet<>(mainDexAppInfo.liveTypes);
@@ -416,7 +417,7 @@ public class R8 {
         timing.begin("Post optimization code stripping");
         try {
           Enqueuer enqueuer = new Enqueuer(appInfo, options, options.forceProguardCompatibility);
-          appInfo = enqueuer.traceApplication(rootSet, timing);
+          appInfo = enqueuer.traceApplication(rootSet, executorService, timing);
           if (options.enableTreeShaking) {
             TreePruner pruner = new TreePruner(application, appInfo.withLiveness(), options);
             application = pruner.run();

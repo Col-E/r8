@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.function.BiConsumer;
 import org.junit.Before;
 
@@ -74,10 +75,11 @@ abstract class NamingTestBase {
       ClassAndMemberPublicizer.run(program, dexItemFactory);
     }
 
-    RootSet rootSet = new RootSetBuilder(program, appInfo, configuration.getRules(), options)
-        .run(ThreadUtils.getExecutorService(options));
+    ExecutorService executor = ThreadUtils.getExecutorService(1);
+    RootSet rootSet = new RootSetBuilder(appInfo, program, configuration.getRules(), options)
+        .run(executor);
     Enqueuer enqueuer = new Enqueuer(appInfo, options, options.forceProguardCompatibility);
-    appInfo = enqueuer.traceApplication(rootSet, timing);
+    appInfo = enqueuer.traceApplication(rootSet, executor, timing);
     return new Minifier(appInfo.withLiveness(), rootSet, options).run(timing);
   }
 

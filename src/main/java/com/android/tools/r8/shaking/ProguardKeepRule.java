@@ -14,7 +14,7 @@ public class ProguardKeepRule extends ProguardConfigurationRule {
     private final ProguardKeepRuleModifiers.Builder modifiersBuilder
         = ProguardKeepRuleModifiers.builder();
 
-    private Builder() {}
+    protected Builder() {}
 
     public void setType(ProguardKeepRuleType type) {
       this.type = type;
@@ -34,7 +34,7 @@ public class ProguardKeepRule extends ProguardConfigurationRule {
   private final ProguardKeepRuleType type;
   private final ProguardKeepRuleModifiers modifiers;
 
-  private ProguardKeepRule(
+  protected ProguardKeepRule(
       ProguardTypeMatcher classAnnotation,
       ProguardAccessFlags classAccessFlags,
       ProguardAccessFlags negatedClassAccessFlags,

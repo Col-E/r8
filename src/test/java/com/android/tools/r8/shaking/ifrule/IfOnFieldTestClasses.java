@@ -27,6 +27,21 @@ class R {
   public static int id2 = 2;
 }
 
+interface I {
+  void ack();
+}
+
+class Impl implements I {
+  private int usedPrivateIntField;
+  private int unusedPrivateIntField;
+  public int unusedPublicIntField;
+  public String unusedPublicStringField;
+
+  public void ack() {
+    System.out.println("ack(" + usedPrivateIntField++ + ")");
+  }
+}
+
 class MainUsesR {
   public static void main(String[] args) {
     System.out.println(R.id1);
@@ -62,3 +77,9 @@ class MainWithInner {
   }
 }
 
+class MainUsesImpl {
+  public static void main(String[] args) {
+    I instance = new Impl();
+    instance.ack();
+  }
+}

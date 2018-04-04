@@ -78,7 +78,44 @@ public class IfOnClassTest extends ProguardCompatabilityTestBase {
   }
 
   @Test
-  public void ifThenKeep() throws Exception {
+  public void ifThenKeep_withoutNthWildcard() throws Exception {
+    List<String> config = ImmutableList.of(
+        "-if class **.Precondition",
+        "-keep,allowobfuscation class **.*User",
+        "-if class **.DependentUser",
+        "-keep,allowobfuscation class **.Dependent"
+    );
+
+    DexInspector dexInspector = runShrinker(shrinker, CLASSES, config);
+    if (!keepPrecondition) {
+      // TODO(b/73708139): Proguard6 kept Dependent (w/o any members), which is not necessary.
+      if (shrinker == Shrinker.PROGUARD6) {
+        return;
+      }
+      assertEquals(1, dexInspector.allClasses().size());
+      return;
+    }
+
+    ClassSubject clazz = dexInspector.clazz(DependentUser.class);
+    assertThat(clazz, isRenamed());
+    // Members of DependentUser are not used anywhere.
+    MethodSubject m = clazz.method("void", "callFoo", ImmutableList.of());
+    assertThat(m, not(isPresent()));
+    FieldSubject f = clazz.field("int", "canBeShrinked");
+    assertThat(f, not(isPresent()));
+
+    // Although DependentUser#callFoo is shrinked, Dependent is kept via -if.
+    clazz = dexInspector.clazz(Dependent.class);
+    assertThat(clazz, isRenamed());
+    // But, its members are gone.
+    m = clazz.method("java.lang.String", "foo", ImmutableList.of());
+    assertThat(m, not(isPresent()));
+    f = clazz.field("int", "intField");
+    assertThat(f, not(isPresent()));
+  }
+
+  @Test
+  public void ifThenKeep_withNthWildcard() throws Exception {
     List<String> config = ImmutableList.of(
         "-if class **.Precondition",
         "-keep,allowobfuscation class **.*User",
@@ -96,7 +133,7 @@ public class IfOnClassTest extends ProguardCompatabilityTestBase {
       return;
     }
 
-    // TODO(b/73708139): not implemented yet.
+    // TODO(b/73800755): not implemented yet.
     if (shrinker == Shrinker.R8) {
       return;
     }
@@ -134,8 +171,43 @@ public class IfOnClassTest extends ProguardCompatabilityTestBase {
       return;
     }
 
-    // TODO(b/73708139): not implemented yet.
-    if (shrinker == Shrinker.R8) {
+    ClassSubject clazz = dexInspector.clazz(DependentUser.class);
+    assertThat(clazz, isRenamed());
+    MethodSubject m = clazz.method("void", "callFoo", ImmutableList.of());
+    assertThat(m, isRenamed());
+    FieldSubject f = clazz.field("int", "canBeShrinked");
+    assertThat(f, not(isPresent()));
+
+    // Dependent is kept due to DependentUser#callFoo, but renamed.
+    clazz = dexInspector.clazz(Dependent.class);
+    assertThat(clazz, isRenamed());
+    m = clazz.method("java.lang.String", "foo", ImmutableList.of());
+    assertThat(m, isRenamed());
+    f = clazz.field("int", "intField");
+    assertThat(f, isRenamed());
+  }
+
+  @Test
+  public void ifThenKeepClassMembers_withoutNthWildcard() throws Exception {
+    List<String> config = ImmutableList.of(
+        "-if class **.Precondition",
+        "-keepclassmembers,allowobfuscation class **.*User {",
+        "  static void callFoo(...);",
+        "}",
+        // If the member is kept, keep the enclosing class too.
+        "-if class **.*User {",
+        "  static void callFoo(...);",
+        "}",
+        "-keep,allowobfuscation class **.*User"
+    );
+
+    DexInspector dexInspector = runShrinker(shrinker, CLASSES, config);
+    if (!keepPrecondition) {
+      // TODO(b/73708139): Proguard6 kept DependentUser (w/o any members), which is not necessary.
+      if (shrinker == Shrinker.PROGUARD6) {
+        return;
+      }
+      assertEquals(1, dexInspector.allClasses().size());
       return;
     }
 
@@ -156,15 +228,15 @@ public class IfOnClassTest extends ProguardCompatabilityTestBase {
   }
 
   @Test
-  public void ifThenKeepClassMembers() throws Exception {
+  public void ifThenKeepClassMembers_withNthWildcard() throws Exception {
     List<String> config = ImmutableList.of(
         "-if class **.Precondition",
         "-keepclassmembers,allowobfuscation class **.*User {",
         "  static void callFoo(...);",
         "}",
-        // If members are kept, keep the enclosing class too.
+        // If the member is kept, keep the enclosing class too.
         "-if class **.*User {",
-        "  <methods>;",
+        "  static void callFoo(...);",
         "}",
         "-keep,allowobfuscation class <1>.<2>User"
     );
@@ -179,7 +251,7 @@ public class IfOnClassTest extends ProguardCompatabilityTestBase {
       return;
     }
 
-    // TODO(b/73708139): not implemented yet.
+    // TODO(b/73800755): not implemented yet.
     if (shrinker == Shrinker.R8) {
       return;
     }
@@ -214,11 +286,6 @@ public class IfOnClassTest extends ProguardCompatabilityTestBase {
 
     DexInspector dexInspector = runShrinker(shrinker, CLASSES, config);
 
-    // TODO(b/73708139): not implemented yet.
-    if (shrinker == Shrinker.R8) {
-      return;
-    }
-
     ClassSubject clazz = dexInspector.clazz(Dependent.class);
     // Only class name is not renamed, if triggered.
     assertThat(clazz, keepPrecondition ? isNotRenamed() : isRenamed());
@@ -243,11 +310,6 @@ public class IfOnClassTest extends ProguardCompatabilityTestBase {
     );
 
     DexInspector dexInspector = runShrinker(shrinker, CLASSES, config);
-
-    // TODO(b/73708139): not implemented yet.
-    if (shrinker == Shrinker.R8) {
-      return;
-    }
 
     ClassSubject clazz = dexInspector.clazz(Dependent.class);
     // Class name is not renamed, if triggered.
@@ -274,11 +336,6 @@ public class IfOnClassTest extends ProguardCompatabilityTestBase {
     );
 
     DexInspector dexInspector = runShrinker(shrinker, CLASSES, config);
-
-    // TODO(b/73708139): not implemented yet.
-    if (shrinker == Shrinker.R8) {
-      return;
-    }
 
     ClassSubject clazz = dexInspector.clazz(Dependent.class);
     assertThat(clazz, isRenamed());
