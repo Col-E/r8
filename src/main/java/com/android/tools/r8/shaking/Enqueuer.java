@@ -41,6 +41,7 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.logging.Log;
+import com.android.tools.r8.shaking.RootSetBuilder.ConsequentRootSet;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.shaking.protolite.ProtoLiteExtension;
 import com.android.tools.r8.utils.InternalOptions;
@@ -70,6 +71,8 @@ import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -132,7 +135,7 @@ public class Enqueuer {
       .newIdentityHashMap();
 
   /**
-   * Set of types that are mentioned in the program. We at least need an empty abstract classitem
+   * Set of types that are mentioned in the program. We at least need an empty abstract class item
    * for these.
    */
   private final Set<DexType> liveTypes = Sets.newIdentityHashSet();
@@ -1031,30 +1034,36 @@ public class Enqueuer {
         reachability, instantiatedTypes.getReasons());
   }
 
-  public AppInfoWithLiveness traceMainDex(RootSet rootSet, Timing timing) {
+  public AppInfoWithLiveness traceMainDex(
+      RootSet rootSet, ExecutorService executorService, Timing timing) throws ExecutionException {
     this.tracingMainDex = true;
     this.rootSet = rootSet;
     // Translate the result of root-set computation into enqueuer actions.
     enqueueRootItems(rootSet.noShrinking);
-    AppInfoWithLiveness appInfo = trace(timing);
+    AppInfoWithLiveness appInfo = trace(executorService, timing);
     options.reporter.failIfPendingErrors();
     return appInfo;
   }
 
-  public AppInfoWithLiveness traceApplication(RootSet rootSet, Timing timing) {
+  public AppInfoWithLiveness traceApplication(
+      RootSet rootSet, ExecutorService executorService, Timing timing) throws ExecutionException {
     this.rootSet = rootSet;
     // Translate the result of root-set computation into enqueuer actions.
     enqueueRootItems(rootSet.noShrinking);
     appInfo.libraryClasses().forEach(this::markAllLibraryVirtualMethodsReachable);
-    AppInfoWithLiveness result = trace(timing);
+    AppInfoWithLiveness result = trace(executorService, timing);
     options.reporter.failIfPendingErrors();
     return result;
   }
 
-  private AppInfoWithLiveness trace(Timing timing) {
+  private AppInfoWithLiveness trace(
+      ExecutorService executorService, Timing timing) throws ExecutionException {
     timing.begin("Grow the tree.");
     try {
       while (true) {
+        long numOfLiveItems = (long) liveTypes.size();
+        numOfLiveItems += (long) liveMethods.items.size();
+        numOfLiveItems += (long) liveFields.items.size();
         while (!workList.isEmpty()) {
           Action action = workList.poll();
           switch (action.kind) {
@@ -1087,6 +1096,24 @@ public class Enqueuer {
               throw new IllegalArgumentException(action.kind.toString());
           }
         }
+
+        // Continue fix-point processing if -if rules are enabled by items that newly became live.
+        long numOfLiveItemsAfterProcessing = (long) liveTypes.size();
+        numOfLiveItemsAfterProcessing += (long) liveMethods.items.size();
+        numOfLiveItemsAfterProcessing += (long) liveFields.items.size();
+        if (numOfLiveItemsAfterProcessing > numOfLiveItems) {
+          RootSetBuilder consequentSetBuilder =
+              new RootSetBuilder(appInfo, rootSet.ifRules, options);
+          ConsequentRootSet consequentRootSet = consequentSetBuilder.runForIfRules(
+              executorService, liveTypes, liveMethods.getItems(), liveFields.getItems());
+          enqueueRootItems(consequentRootSet.noShrinking);
+          rootSet.noOptimization.addAll(consequentRootSet.noOptimization);
+          rootSet.noObfuscation.addAll(consequentRootSet.noObfuscation);
+          if (!workList.isEmpty()) {
+            continue;
+          }
+        }
+
         // Continue fix-point processing while there are additional work items to ensure
         // Proguard compatibility.
         if (proguardCompatibilityWorkList.isEmpty()

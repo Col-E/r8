@@ -156,7 +156,7 @@ public class ProguardMemberRule {
     return type;
   }
 
-  public boolean matches(DexEncodedField field, RootSetBuilder builder) {
+  public boolean matches(DexEncodedField field, DexStringCache stringCache) {
     switch (getRuleType()) {
       case ALL:
       case ALL_FIELDS:
@@ -169,7 +169,7 @@ public class ProguardMemberRule {
         return RootSetBuilder.containsAnnotation(annotation, field.annotations);
       case FIELD:
         // Name check.
-        String name = builder.lookupString(field.field.name);
+        String name = stringCache.lookupString(field.field.name);
         if (!getName().matches(name)) {
           break;
         }
@@ -196,7 +196,7 @@ public class ProguardMemberRule {
     return false;
   }
 
-  public boolean matches(DexEncodedMethod method, RootSetBuilder builder) {
+  public boolean matches(DexEncodedMethod method, DexStringCache stringCache) {
     switch (getRuleType()) {
       case ALL_METHODS:
         if (method.isClassInitializer()) {
@@ -220,7 +220,7 @@ public class ProguardMemberRule {
       case CONSTRUCTOR:
       case INIT:
         // Name check.
-        String name = builder.lookupString(method.method.name);
+        String name = stringCache.lookupString(method.method.name);
         if (!getName().matches(name)) {
           break;
         }

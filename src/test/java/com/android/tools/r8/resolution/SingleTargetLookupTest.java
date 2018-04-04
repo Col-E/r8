@@ -42,11 +42,13 @@ import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import org.junit.Assert;
@@ -103,11 +105,11 @@ public class SingleTargetLookupTest extends AsmTestBase {
     DexApplication application = new ApplicationReader(app, options, timing).read().toDirect();
     AppInfoWithSubtyping appInfoWithSubtyping = new AppInfoWithSubtyping(application);
 
-    RootSet rootSet = new RootSetBuilder(application, appInfoWithSubtyping,
-        buildKeepRuleForClass(Main.class, application.dexItemFactory), options).run(
-        Executors.newSingleThreadExecutor());
+    ExecutorService executor = Executors.newSingleThreadExecutor();
+    RootSet rootSet = new RootSetBuilder(appInfoWithSubtyping, application,
+        buildKeepRuleForClass(Main.class, application.dexItemFactory), options).run(executor);
     appInfo = new Enqueuer(appInfoWithSubtyping, options, options.forceProguardCompatibility)
-        .traceApplication(rootSet, timing);
+        .traceApplication(rootSet, executor, timing);
     // We do not run the tree pruner to ensure that the hierarchy is as designed and not modified
     // due to liveness.
   }

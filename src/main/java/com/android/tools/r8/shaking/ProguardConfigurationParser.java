@@ -336,8 +336,6 @@ public class ProguardConfigurationParser {
         configurationBuilder.addRule(parseIdentifierNameStringRule());
       } else if (acceptString("if")) {
         configurationBuilder.addRule(parseIfRule(optionStart));
-        // TODO(b/73708139): remove warning once we add support -if <class_spec>
-        warnIgnoringOptions("if", optionStart);
       } else {
         String unknownOption = acceptString();
         reporter.error(new StringDiagnostic(

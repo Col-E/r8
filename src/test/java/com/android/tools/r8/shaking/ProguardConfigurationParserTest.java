@@ -1163,10 +1163,7 @@ public class ProguardConfigurationParserTest extends TestBase {
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(proguardConfig);
-    assertEquals(3, handler.warnings.size());
-    for (int i = 0; i < 3; i++) {
-      assertTrue(handler.warnings.get(i).getDiagnosticMessage().contains("Ignoring option: -if"));
-    }
+    verifyParserEndsCleanly();
     ProguardConfiguration config = parser.getConfig();
     // Three -if rules and one independent -keepnames
     assertEquals(4, config.getRules().size());
@@ -1196,8 +1193,7 @@ public class ProguardConfigurationParserTest extends TestBase {
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(proguardConfig);
-    checkDiagnostic(handler.warnings, proguardConfig, 1, 1,
-        "Ignoring", "-if");
+    verifyParserEndsCleanly();
     ProguardConfiguration config = parser.getConfig();
     assertEquals(1, config.getRules().size());
     ProguardIfRule if0 = (ProguardIfRule) config.getRules().get(0);
