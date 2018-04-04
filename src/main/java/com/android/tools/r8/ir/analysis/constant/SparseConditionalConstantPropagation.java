@@ -129,16 +129,24 @@ public class SparseConditionalConstantPropagation {
     BasicBlock phiBlock = phi.getBlock();
     int phiBlockNumber = phiBlock.getNumber();
     LatticeElement element = Top.getInstance();
-    for (int i = 0; i < phiBlock.getPredecessors().size(); i++) {
-      BasicBlock predecessor = phiBlock.getPredecessors().get(i);
+    List<BasicBlock> predecessors = phiBlock.getPredecessors();
+    int size = predecessors.size();
+    for (int i = 0; i < size; i++) {
+      BasicBlock predecessor = predecessors.get(i);
       if (isExecutableEdge(predecessor.getNumber(), phiBlockNumber)) {
         element = element.meet(getLatticeElement(phi.getOperand(i)));
+        // bottom lattice can no longer be changed, thus no need to continue
+        if (element.isBottom()) {
+          break;
+        }
       }
     }
-    LatticeElement currentPhiElement = getLatticeElement(phi);
-    if (!element.isTop() && currentPhiElement.meet(element) != currentPhiElement) {
-      ssaEdges.add(phi);
-      setLatticeElement(phi, element);
+    if (!element.isTop()) {
+      LatticeElement currentPhiElement = getLatticeElement(phi);
+      if (currentPhiElement.meet(element) != currentPhiElement) {
+        ssaEdges.add(phi);
+        setLatticeElement(phi, element);
+      }
     }
   }
 
