@@ -188,7 +188,8 @@ public abstract class SyntheticSourceCode implements SourceCode {
   }
 
   @Override
-  public final void buildInstruction(IRBuilder builder, int instructionIndex)
+  public final void buildInstruction(
+      IRBuilder builder, int instructionIndex, boolean firstBlockInstruction)
       throws ApiLevelException {
     constructors.get(instructionIndex).accept(builder);
   }

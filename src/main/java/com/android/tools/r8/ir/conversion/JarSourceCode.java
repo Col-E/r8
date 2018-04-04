@@ -489,7 +489,9 @@ public class JarSourceCode implements SourceCode {
   }
 
   @Override
-  public void buildInstruction(IRBuilder builder, int instructionIndex) throws ApiLevelException {
+  public void buildInstruction(
+      IRBuilder builder, int instructionIndex, boolean firstBlockInstruction)
+      throws ApiLevelException {
     if (instructionIndex == EXCEPTIONAL_SYNC_EXIT_OFFSET) {
       buildExceptionalPostlude(builder);
       return;
@@ -499,22 +501,23 @@ public class JarSourceCode implements SourceCode {
     assert verifyExceptionEdgesAreRecorded(insn);
 
     // If a new block is starting here, we restore the computed JarState.
-    if (builder.getCFG().containsKey(instructionIndex) || instructionIndex == 0) {
+    // current position needs to be compute only for the first instruction of a block, thereafter
+    // current position will be updated by LineNumberNode into this block.
+    if (firstBlockInstruction || instructionIndex == 0) {
       state.restoreState(instructionIndex);
+      // Don't include line changes when processing a label. Doing so will end up emitting local
+      // writes after the line has changed and thus causing locals to become visible too late.
+      currentPosition =
+          getDebugPositionAtOffset(
+              ((instructionIndex > 0) && (insn instanceof LabelNode))
+                  ? instructionIndex - 1
+                  : instructionIndex);
     }
 
     String preInstructionState;
     if (Log.ENABLED) {
       preInstructionState = state.toString();
     }
-
-    // Don't include line changes when processing a label. Doing so will end up emitting local
-    // writes after the line has changed and thus causing locals to become visible too late.
-    currentPosition =
-        getDebugPositionAtOffset(
-            ((instructionIndex > 0) && (insn instanceof LabelNode))
-                ? instructionIndex - 1
-                : instructionIndex);
 
     build(insn, builder);
 

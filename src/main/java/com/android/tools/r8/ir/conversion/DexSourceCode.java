@@ -172,7 +172,9 @@ public class DexSourceCode implements SourceCode {
   }
 
   @Override
-  public void buildInstruction(IRBuilder builder, int instructionIndex) throws ApiLevelException {
+  public void buildInstruction(
+      IRBuilder builder, int instructionIndex, boolean firstBlockInstruction)
+      throws ApiLevelException {
     updateCurrentCatchHandlers(instructionIndex);
     updateDebugPosition(instructionIndex, builder);
     currentDexInstruction = code.instructions[instructionIndex];

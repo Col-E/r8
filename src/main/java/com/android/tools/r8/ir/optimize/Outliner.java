@@ -859,7 +859,8 @@ public class Outliner {
     }
 
     @Override
-    public void buildInstruction(IRBuilder builder, int instructionIndex) {
+    public void buildInstruction(
+        IRBuilder builder, int instructionIndex, boolean firstBlockInstruction) {
       if (instructionIndex == outline.templateInstructions.size()) {
         if (outline.returnType == dexItemFactory.voidType) {
           builder.addReturn();
