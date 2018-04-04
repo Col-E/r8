@@ -504,7 +504,7 @@ public class IRBuilder {
           addToWorklist(info.block, i);
           break;
         }
-        source.buildInstruction(this, i);
+        source.buildInstruction(this, i, i == item.firstInstructionIndex);
       }
     }
   }

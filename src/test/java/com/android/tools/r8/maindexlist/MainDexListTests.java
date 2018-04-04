@@ -707,7 +707,8 @@ public class MainDexListTests extends TestBase {
     }
 
     @Override
-    public void buildInstruction(IRBuilder builder, int instructionIndex) {
+    public void buildInstruction(
+        IRBuilder builder, int instructionIndex, boolean firstBlockInstruction) {
       assert instructionIndex == 0;
       builder.addReturn();
     }

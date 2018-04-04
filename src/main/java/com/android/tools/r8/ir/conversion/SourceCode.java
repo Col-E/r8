@@ -47,7 +47,9 @@ public interface SourceCode {
 
   // Delegates for IR building.
   void buildPrelude(IRBuilder builder);
-  void buildInstruction(IRBuilder builder, int instructionIndex) throws ApiLevelException;
+
+  void buildInstruction(IRBuilder builder, int instructionIndex, boolean firstBlockInstruction)
+      throws ApiLevelException;
   void buildPostlude(IRBuilder builder);
 
   // Helper to resolve switch payloads and build switch instructions (dex code only).
