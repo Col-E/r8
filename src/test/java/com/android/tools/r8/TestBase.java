@@ -398,6 +398,13 @@ public class TestBase {
         + (obfuscate ? "-printmapping\n" : "-dontobfuscate\n");
   }
 
+  public static String keepMainProguardConfiguration(
+      String clazz, boolean allowaccessmodification, boolean obfuscate) {
+    return keepMainProguardConfiguration(clazz)
+        + (allowaccessmodification ? "-allowaccessmodification\n" : "")
+        + (obfuscate ? "-printmapping\n" : "-dontobfuscate\n");
+  }
+
   /**
    * Run application on the specified version of Art with the specified main class.
    */

@@ -120,6 +120,15 @@ public class JasminBuilder {
       return addMethod("public", name, argumentTypes, returnType, lines);
     }
 
+    public MethodSignature addBridgeMethod(
+        String name,
+        List<String> argumentTypes,
+        String returnType,
+        String... lines) {
+      makeInit = true;
+      return addMethod("public bridge", name, argumentTypes, returnType, lines);
+    }
+
     public MethodSignature addPrivateVirtualMethod(
         String name,
         List<String> argumentTypes,

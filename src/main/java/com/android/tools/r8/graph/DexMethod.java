@@ -71,6 +71,14 @@ public class DexMethod extends Descriptor<DexEncodedMethod, DexMethod>
     return false;
   }
 
+  /**
+   * Returns true if the other method has the same name and prototype (including signature and
+   * return type), false otherwise.
+   */
+  public boolean hasSameProtoAndName(DexMethod other) {
+    return name == other.name && proto == other.proto;
+  }
+
   @Override
   public int compareTo(DexMethod other) {
     return sortedCompareTo(other.getSortedIndex());
