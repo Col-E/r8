@@ -84,14 +84,15 @@ public class DexSplitterTests {
             .addProgramFiles(Paths.get(CLASS4_LAMBDA_INTERFACE))
             .build());
 
-    Path output = temp.getRoot().toPath().resolve("output");
+    Path output = temp.newFolder().toPath().resolve("output");
+    Files.createDirectory(output);
     Path splitSpec = createSplitSpec();
 
     if (useOptions) {
       Options options = new Options();
       options.addInputArchive(inputZip.toString());
       options.setFeatureSplitMapping(splitSpec.toString());
-      options.setSplitBaseName(output.toString());
+      options.setOutput(output.toString());
       DexSplitter.run(options);
     } else {
       DexSplitter.main(
@@ -102,8 +103,8 @@ public class DexSplitterTests {
           });
     }
 
-    Path base = output.getParent().resolve("output.base.zip");
-    Path feature = output.getParent().resolve("output.feature1.zip");
+    Path base = output.resolve("base").resolve("classes.dex");
+    Path feature = output.resolve("feature1").resolve("classes.dex");
     validateUnobfuscatedOutput(base, feature);
   }
 
@@ -201,7 +202,8 @@ public class DexSplitterTests {
             .addProgramFiles(Paths.get(CLASS4_LAMBDA_INTERFACE))
             .build());
 
-    Path output = temp.getRoot().toPath().resolve("output");
+    Path output = temp.newFolder().toPath().resolve("output");
+    Files.createDirectory(output);
     Path baseJar = temp.getRoot().toPath().resolve("base.jar");
     Path featureJar = temp.getRoot().toPath().resolve("feature1.jar");
     ZipOutputStream baseStream = new ZipOutputStream(Files.newOutputStream(baseJar));
@@ -233,14 +235,16 @@ public class DexSplitterTests {
     featureStream.write(Files.readAllBytes(Paths.get(CLASS4_LAMBDA_INTERFACE)));
     featureStream.closeEntry();
     featureStream.close();
+    // Make sure that we can pass in a name for the output.
+    String specificOutputName = "renamed";
     if (useOptions) {
       Options options = new Options();
       options.addInputArchive(inputZip.toString());
-      options.setSplitBaseName(output.toString());
+      options.setOutput(output.toString());
       if (explicitBase) {
         options.addFeatureJar(baseJar.toString());
       }
-      options.addFeatureJar(featureJar.toString());
+      options.addFeatureJar(featureJar.toString(), specificOutputName);
       DexSplitter.run(options);
     } else {
       List<String> args = Lists.newArrayList(
@@ -249,7 +253,7 @@ public class DexSplitterTests {
           "--output",
           output.toString(),
           "--feature-jar",
-          featureJar.toString());
+          featureJar.toString().concat(":").concat(specificOutputName));
       if (explicitBase) {
         args.add("--feature-jar");
         args.add(baseJar.toString());
@@ -257,8 +261,8 @@ public class DexSplitterTests {
 
       DexSplitter.main(args.toArray(new String[0]));
     }
-    Path base = output.getParent().resolve("output.base.zip");
-    Path feature = output.getParent().resolve("output.feature1.zip");
+    Path base = output.resolve("base").resolve("classes.dex");
+    Path feature = output.resolve(specificOutputName).resolve("classes.dex");;
     validateUnobfuscatedOutput(base, feature);
   }
 
@@ -284,7 +288,8 @@ public class DexSplitterTests {
             .addProguardConfiguration(getProguardConf(), null)
             .build());
 
-    Path outputDex = temp.getRoot().toPath().resolve("output");
+    Path outputDex = temp.newFolder().toPath().resolve("output");
+    Files.createDirectory(outputDex);
     Path splitSpec = createSplitSpec();
 
     DexSplitter.main(
@@ -295,8 +300,8 @@ public class DexSplitterTests {
           "--proguard-map", proguardMap.toString()
         });
 
-    Path base = outputDex.getParent().resolve("output.base.zip");
-    Path feature = outputDex.getParent().resolve("output.feature1.zip");
+    Path base = outputDex.resolve("base").resolve("classes.dex");
+    Path feature = outputDex.resolve("feature1").resolve("classes.dex");
     String class3 = "dexsplitsample.Class3";
     // We should still be able to run the Class3 which we kept, it has a call to the obfuscated
     // class1 which is in base.

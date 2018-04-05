@@ -4,7 +4,7 @@
 
 package com.android.tools.r8;
 
-import com.android.tools.r8.DexIndexedConsumer.ArchiveConsumer;
+import com.android.tools.r8.DexIndexedConsumer.DirectoryConsumer;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.graph.AppInfo;
@@ -19,6 +19,8 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
@@ -31,7 +33,7 @@ public class DexSplitterHelper {
   public static void run(
       D8Command command,
       FeatureClassMapping featureClassMapping,
-      String outputArchive,
+      String output,
       String proguardMap)
       throws IOException, CompilationException, ExecutionException {
     InternalOptions options = command.getInternalOptions();
@@ -65,8 +67,12 @@ public class DexSplitterHelper {
           AppInfo appInfo = new AppInfo(featureApp);
           featureApp = D8.optimize(featureApp, appInfo, options, timing, executor);
           // We create a specific consumer for each split.
-          DexIndexedConsumer consumer =
-              new ArchiveConsumer(Paths.get(outputArchive + "." + entry.getKey() + ".zip"));
+          Path outputDir = Paths.get(output).resolve(entry.getKey());
+          if (!Files.exists(outputDir)) {
+            Files.createDirectory(outputDir);
+          }
+          DexIndexedConsumer consumer = new DirectoryConsumer(outputDir);
+
           try {
             new ApplicationWriter(
                     featureApp,
