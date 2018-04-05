@@ -82,6 +82,7 @@ import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.code.Xor;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.Pair;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
@@ -1604,27 +1605,50 @@ public class IRBuilder {
 
   private Value readRegisterRecursive(
       int register, BasicBlock block, EdgeType readingEdge, ValueType type, DebugLocalInfo local) {
-    Value value;
-    if (!block.isSealed()) {
-      assert !blocks.isEmpty() : "No write to " + register;
-      Phi phi = new Phi(valueNumberGenerator.next(), block, type, local);
-      block.addIncompletePhi(register, phi, readingEdge);
-      value = phi;
-    } else if (block.getPredecessors().size() == 1) {
-      assert block.verifyFilledPredecessors();
-      BasicBlock pred = block.getPredecessors().get(0);
-      EdgeType edgeType = pred.getEdgeType(block);
-      value = readRegister(register, type, pred, edgeType, local);
-    } else {
-      Phi phi = new Phi(valueNumberGenerator.next(), block, type, local);
-      // We need to write the phi before adding operands to break cycles. If the phi is trivial
-      // and is removed by addOperands, the definition is overwritten and looked up again below.
-      block.updateCurrentDefinition(register, phi, readingEdge);
-      phi.addOperands(this, register);
-      // Lookup the value for the register again at this point. Recursive trivial
-      // phi removal could have simplified what we wanted to return here.
-      value = block.readCurrentDefinition(register, readingEdge);
+    Value value = null;
+    // Iterate back along the predecessor chain as long as there is a single sealed predecessor.
+    List<Pair<BasicBlock, EdgeType>> stack = null;
+    if (block.isSealed() && block.getPredecessors().size() == 1) {
+      stack = new ArrayList<>(blocks.size());
+      do {
+        assert block.verifyFilledPredecessors();
+        BasicBlock pred = block.getPredecessors().get(0);
+        EdgeType edgeType = pred.getEdgeType(block);
+        checkRegister(register);
+        value = pred.readCurrentDefinition(register, edgeType);
+        if (value != null) {
+          break;
+        }
+        stack.add(new Pair<>(block, readingEdge));
+        block = pred;
+        readingEdge = edgeType;
+      } while (block.isSealed() && block.getPredecessors().size() == 1);
     }
+    // If the register still has unknown value create a phi value for it.
+    if (value == null) {
+      if (!block.isSealed()) {
+        assert !blocks.isEmpty() : "No write to " + register;
+        Phi phi = new Phi(valueNumberGenerator.next(), block, type, local);
+        block.addIncompletePhi(register, phi, readingEdge);
+        value = phi;
+      } else {
+        Phi phi = new Phi(valueNumberGenerator.next(), block, type, local);
+        // We need to write the phi before adding operands to break cycles. If the phi is trivial
+        // and is removed by addOperands, the definition is overwritten and looked up again below.
+        block.updateCurrentDefinition(register, phi, readingEdge);
+        phi.addOperands(this, register);
+        // Lookup the value for the register again at this point. Recursive trivial
+        // phi removal could have simplified what we wanted to return here.
+        value = block.readCurrentDefinition(register, readingEdge);
+      }
+    }
+    // If the stack of successors is non-empty then update their definitions with the value.
+    if (stack != null) {
+      for (Pair<BasicBlock, EdgeType> item : stack) {
+        item.getFirst().updateCurrentDefinition(register, value, item.getSecond());
+      }
+    }
+    // Update the last block at which the definition was found/created.
     block.updateCurrentDefinition(register, value, readingEdge);
     return value;
   }
