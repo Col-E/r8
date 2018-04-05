@@ -42,6 +42,7 @@ class Benchmark:
   moduleName = ""
   buildCommand = ""
   cleanCommand = ""
+  env = {}
 
   def __init__(self, displayName, benchmarkDir, moduleName, buildCommand, cleanCommand):
     self.displayName = displayName
@@ -50,6 +51,9 @@ class Benchmark:
     self.moduleName = moduleName
     self.buildCommand = buildCommand
     self.cleanCommand = cleanCommand
+    self.env = os.environ.copy()
+    self.env["ANDROID_HOME"] = os.path.join(utils.REPO_ROOT, 'third_party', 'benchmarks',
+                                            'android-sdk')
 
   def RunGradle(self, command, tool, desugarMode):
 
@@ -72,7 +76,7 @@ class Benchmark:
 
     args.extend(command)
 
-    return gradle.RunGradleWrapperInGetOutput(args, self.appPath)
+    return gradle.RunGradleWrapperInGetOutput(args, self.appPath, env=self.env)
 
   def Build(self, tool, desugarMode):
     return self.RunGradle(self.buildCommand, tool, desugarMode)
