@@ -82,7 +82,8 @@ def run_aapt_pack(aapt, api, app):
             '-S', 'res',
             '-m',
             '-J', get_gen_path(app),
-            '-F', os.path.join(get_bin_path(app), 'resources.ap_')]
+            '-F', os.path.join(get_bin_path(app), 'resources.ap_'),
+            '-G', os.path.join(get_build_dir(app), 'proguard_options')]
     run_aapt(aapt, args)
 
 def compile_with_javac(api, app):
