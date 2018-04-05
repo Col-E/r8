@@ -58,41 +58,41 @@ def EnsureDeps():
   EnsureGradle()
   EnsureShadow()
 
-def RunGradleIn(gradleCmd, args, cwd, throw_on_failure=True):
+def RunGradleIn(gradleCmd, args, cwd, throw_on_failure=True, env=None):
   EnsureDeps()
   cmd = [gradleCmd]
   cmd.extend(args)
   utils.PrintCmd(cmd)
   with utils.ChangedWorkingDirectory(cwd):
-    return_value = subprocess.call(cmd)
+    return_value = subprocess.call(cmd, env=env)
     if throw_on_failure and return_value != 0:
       raise Exception('Failed to execute gradle')
     return return_value
 
-def RunGradleWrapperIn(args, cwd, throw_on_failure=True):
-  return RunGradleIn('./gradlew', args, cwd, throw_on_failure)
+def RunGradleWrapperIn(args, cwd, throw_on_failure=True, env=None):
+  return RunGradleIn('./gradlew', args, cwd, throw_on_failure, env=env)
 
-def RunGradle(args, throw_on_failure=True):
-  return RunGradleIn(GRADLE, args, utils.REPO_ROOT, throw_on_failure)
+def RunGradle(args, throw_on_failure=True, env=None):
+  return RunGradleIn(GRADLE, args, utils.REPO_ROOT, throw_on_failure, env=env)
 
-def RunGradleExcludeDeps(args, throw_on_failure=True):
+def RunGradleExcludeDeps(args, throw_on_failure=True, env=None):
   EnsureDeps()
   args.append('-Pexclude_deps')
-  return RunGradle(args, throw_on_failure)
+  return RunGradle(args, throw_on_failure, env=env)
 
-def RunGradleInGetOutput(gradleCmd, args, cwd):
+def RunGradleInGetOutput(gradleCmd, args, cwd, env=None):
   EnsureDeps()
   cmd = [gradleCmd]
   cmd.extend(args)
   utils.PrintCmd(cmd)
   with utils.ChangedWorkingDirectory(cwd):
-    return subprocess.check_output(cmd)
+    return subprocess.check_output(cmd, env=env)
 
-def RunGradleWrapperInGetOutput(args, cwd):
-  return RunGradleInGetOutput('./gradlew', args, cwd)
+def RunGradleWrapperInGetOutput(args, cwd, env=None):
+  return RunGradleInGetOutput('./gradlew', args, cwd, env=env)
 
-def RunGradleGetOutput(args):
-  return RunGradleInGetOutput(GRADLE, args, utils.REPO_ROOT)
+def RunGradleGetOutput(args, env=None):
+  return RunGradleInGetOutput(GRADLE, args, utils.REPO_ROOT, env=env)
 
 def Main():
   RunGradle(sys.argv[1:])
