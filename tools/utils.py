@@ -48,6 +48,12 @@ def PrintCmd(s):
 def IsWindows():
   return os.name == 'nt'
 
+def DownloadFromX20(sha1_file):
+  download_script = os.path.join(REPO_ROOT, 'tools', 'download_from_x20.py')
+  cmd = [download_script, sha1_file]
+  PrintCmd(cmd)
+  subprocess.check_call(cmd)
+
 def DownloadFromGoogleCloudStorage(sha1_file, bucket='r8-deps'):
   suffix = '.bat' if IsWindows() else ''
   download_script = 'download_from_google_storage%s' % suffix
