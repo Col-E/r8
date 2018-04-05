@@ -663,4 +663,31 @@ public class IRCode {
   public boolean verifyNoColorsInUse() {
     return usedMarkingColors == 0;
   }
+
+  public void removeUnreachableBlocks() {
+    int color = reserveMarkingColor();
+    Queue<BasicBlock> worklist = new ArrayDeque<>();
+    worklist.add(blocks.getFirst());
+    while (!worklist.isEmpty()) {
+      BasicBlock block = worklist.poll();
+      if (block.isMarked(color)) {
+        continue;
+      }
+      block.mark(color);
+      for (BasicBlock successor : block.getSuccessors()) {
+        if (!successor.isMarked(color)) {
+          worklist.add(successor);
+        }
+      }
+    }
+    ListIterator<BasicBlock> blockIterator = listIterator();
+    while (blockIterator.hasNext()) {
+      BasicBlock current = blockIterator.next();
+      if (!current.isMarked(color)) {
+        current.cleanForRemoval();
+        blockIterator.remove();
+      }
+    }
+    returnMarkingColor(color);
+  }
 }

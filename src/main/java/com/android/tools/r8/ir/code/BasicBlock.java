@@ -569,13 +569,15 @@ public class BasicBlock {
   }
 
   /**
-   * Unlinks this block from a single predecessor and successor.
+   * Unlinks the current block based on the assumption that it is a catch handler.
    *
-   * @return Returns the unlinked successor
+   * Catch handlers always have only one predecessor and at most one successor.
+   * That is because we have edge-split form for all exceptional flow.
    */
-  public BasicBlock unlinkSingle() {
-    unlinkSinglePredecessor();
-    return unlinkSingleSuccessor();
+  public void unlinkCatchHandler() {
+    assert predecessors.size() == 1;
+    predecessors.get(0).removeSuccessor(this);
+    predecessors.clear();
   }
 
   public void detachAllSuccessors() {
@@ -590,32 +592,39 @@ public class BasicBlock {
     assert successor.predecessors.contains(this);
     List<BasicBlock> removedBlocks = new ArrayList<>();
     for (BasicBlock dominated : dominator.dominatedBlocks(successor)) {
+      dominated.cleanForRemoval();
       removedBlocks.add(dominated);
-      for (BasicBlock block : dominated.successors) {
-        block.removePredecessor(dominated);
-      }
-      dominated.successors.clear();
-      for (BasicBlock block : dominated.predecessors) {
-        block.removeSuccessor(dominated);
-      }
-      dominated.predecessors.clear();
-      for (Phi phi : dominated.getPhis()) {
-        for (Value operand : phi.getOperands()) {
-          operand.removePhiUser(phi);
-        }
-      }
-      dominated.getPhis().clear();
-      for (Instruction instruction : dominated.getInstructions()) {
-        for (Value value : instruction.inValues) {
-          value.removeUser(instruction);
-        }
-        for (Value value : instruction.getDebugValues()) {
-          value.removeDebugUser(instruction);
-        }
-      }
     }
     assert blocksClean(removedBlocks);
     return removedBlocks;
+  }
+
+  public void cleanForRemoval() {
+    for (BasicBlock block : successors) {
+      block.removePredecessor(this);
+    }
+    successors.clear();
+    for (BasicBlock block : predecessors) {
+      block.removeSuccessor(this);
+    }
+    predecessors.clear();
+    for (Phi phi : getPhis()) {
+      for (Value operand : phi.getOperands()) {
+        operand.removePhiUser(phi);
+      }
+    }
+    getPhis().clear();
+    for (Instruction instruction : getInstructions()) {
+      if (instruction.outValue != null) {
+        instruction.outValue.clearUsers();
+      }
+      for (Value value : instruction.inValues) {
+        value.removeUser(instruction);
+      }
+      for (Value value : instruction.getDebugValues()) {
+        value.removeDebugUser(instruction);
+      }
+    }
   }
 
   public void linkCatchSuccessors(List<DexType> guards, List<BasicBlock> targets) {
