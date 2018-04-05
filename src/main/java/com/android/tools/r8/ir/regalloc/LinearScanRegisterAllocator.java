@@ -513,9 +513,12 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     // Compute the set of registers that is used based on all live intervals.
     Set<Integer> usedRegisters = new HashSet<>();
     for (LiveIntervals intervals : liveIntervals) {
-      addRegisterIfUsed(usedRegisters, intervals);
-      for (LiveIntervals childIntervals : intervals.getSplitChildren()) {
-        addRegisterIfUsed(usedRegisters, childIntervals);
+      // Argument sentinel values do not occupy any registers.
+      if (!isArgumentSentinelIntervals(intervals)) {
+        addRegisterIfUsed(usedRegisters, intervals);
+        for (LiveIntervals childIntervals : intervals.getSplitChildren()) {
+          addRegisterIfUsed(usedRegisters, childIntervals);
+        }
       }
     }
     // Additionally, we have used temporary registers for parallel move scheduling, those
@@ -533,6 +536,11 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       computed[i] = unused;
     }
     unusedRegisters = computed;
+  }
+
+  private boolean isArgumentSentinelIntervals(LiveIntervals intervals) {
+    return intervals.isArgumentInterval() &&
+            (intervals.getPreviousConsecutive() == null || intervals.getNextConsecutive() == null);
   }
 
   private void addRegisterIfUsed(Set<Integer> used, LiveIntervals intervals) {
