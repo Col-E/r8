@@ -1,0 +1,74 @@
+def r8RootDir = System.properties['r8.root.dir']
+
+allprojects {
+    buildscript {
+        repositories {
+            maven { url r8RootDir+ '/third_party/gradle-plugin' }
+            // We don't use 'google()' in order to support projects using gradle
+            // lower to 4.1 version.
+            maven { url 'https://maven.google.com' }
+            jcenter()
+        }
+        dependencies {
+            classpath files(r8RootDir + '/build/libs/r8.jar')
+            classpath 'com.android.tools.build:gradle:3.2.0-dev'
+        }
+    }
+    repositories {
+        maven { url r8RootDir+ '/third_party/gradle-plugin' }
+        maven { url 'https://maven.google.com' }
+        jcenter()
+        mavenCentral()
+    }
+}
+
+//
+// Dump detailed timings per subtask
+//
+import java.util.concurrent.TimeUnit;
+class TimingsListener implements TaskExecutionListener, BuildListener {
+    private long startTimeInNs;
+    private timings = []
+
+    @Override
+    void beforeExecute(Task task) {
+        startTimeInNs = System.nanoTime();
+    }
+
+    @Override
+    void afterExecute(Task task, TaskState taskState) {
+        def ms = TimeUnit.MILLISECONDS.convert(
+                System.nanoTime() - startTimeInNs, TimeUnit.NANOSECONDS);
+        timings.add([task.path,ms])
+    }
+
+    @Override
+    void buildStarted(Gradle gradle) {
+    }
+
+    @Override
+    void buildFinished(BuildResult result) {
+        def total=0
+        for (timing in timings) {
+            total += timing[1]
+        }
+
+        for (timing in timings) {
+            printf "BENCH,%s,%s\n", timing
+        }
+
+        printf "BENCH,totalGradleTasks,%s\n", total
+
+    }
+
+    @Override
+    void projectsEvaluated(Gradle gradle) {}
+
+    @Override
+    void projectsLoaded(Gradle gradle) {}
+
+    @Override
+    void settingsEvaluated(Settings settings) {}
+}
+
+gradle.addListener new TimingsListener()

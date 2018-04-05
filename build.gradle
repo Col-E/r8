@@ -348,7 +348,6 @@ cloudDependencies.each { entry ->
 
 def x20Dependencies = [
     "third_party": [
-        "benchmarks/santa-tracker",
         "gmail/gmail_android_170604.16",
         "gmscore/v4",
         "gmscore/v5",
@@ -358,7 +357,6 @@ def x20Dependencies = [
         "gmscore/gmscore_v9",
         "gmscore/gmscore_v10",
         "gmscore/latest",
-        "gradle-plugin",
         "photos/2017-06-06",
         "youtube/youtube.android_12.10",
         "youtube/youtube.android_12.17",
