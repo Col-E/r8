@@ -944,6 +944,32 @@ public class ProguardConfigurationParserTest extends TestBase {
   }
 
   @Test
+  public void parse_printconfiguration_noArguments() throws Exception {
+    ProguardConfigurationParser parser =
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
+    parser.parse(createConfigurationForTesting(ImmutableList.of(
+        "-printconfiguration"
+    )));
+    verifyParserEndsCleanly();
+    ProguardConfiguration config = parser.getConfig();
+    assertTrue(config.isPrintConfiguration());
+    assertNull(config.getPrintConfigurationFile());
+  }
+
+  @Test
+  public void parse_printconfiguration_argument() throws Exception {
+    ProguardConfigurationParser parser =
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
+    parser.parse(createConfigurationForTesting(ImmutableList.of(
+        "-printconfiguration file_name"
+    )));
+    verifyParserEndsCleanly();
+    ProguardConfiguration config = parser.getConfig();
+    assertTrue(config.isPrintConfiguration());
+    assertEquals("./file_name", config.getPrintConfigurationFile().toString());
+  }
+
+  @Test
   public void parsePrintUsage() throws Exception {
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(new DexItemFactory(), reporter);

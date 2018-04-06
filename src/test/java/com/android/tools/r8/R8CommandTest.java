@@ -373,6 +373,17 @@ public class R8CommandTest {
   }
 
   @Test
+  public void printsConfigurationOnStdout() throws Throwable {
+    Path proguardPrintConfigurationConfiguration =
+        temp.newFile("printconfiguration.txt").toPath().toAbsolutePath();
+    FileUtils.writeTextFile(
+        proguardPrintConfigurationConfiguration, ImmutableList.of("-printconfiguration"));
+    ProcessResult result = runR8OnShaking1(proguardPrintConfigurationConfiguration);
+    assertEquals("R8 run failed: " + result.stderr, 0, result.exitCode);
+    assertTrue(result.stdout.contains("-printconfiguration"));
+  }
+
+  @Test
   public void printsPrintSeedsOnStdout() throws Throwable {
     Path proguardPrintSeedsConfiguration = temp.newFile("printseeds.txt").toPath().toAbsolutePath();
     FileUtils.writeTextFile(proguardPrintSeedsConfiguration, ImmutableList.of("-printseeds"));
@@ -400,6 +411,21 @@ public class R8CommandTest {
     assertEquals("R8 run failed: " + result.stderr, 0, result.exitCode);
     assertTrue(result.stdout.contains("void main(java.lang.String[])"));
     assertTrue(result.stdout.contains("shaking1.Unused"));
+  }
+
+  @Test
+  public void printsPrintSeedsAndPrintUsageAndPrintConfigurationOnStdout() throws Throwable {
+    Path proguardPrintSeedsConfiguration =
+        temp.newFile("printseedsandprintusageandprintconfiguration.txt").toPath().toAbsolutePath();
+    FileUtils.writeTextFile(proguardPrintSeedsConfiguration,
+        ImmutableList.of("-printseeds", "-printusage", "-printconfiguration"));
+    ProcessResult result = runR8OnShaking1(proguardPrintSeedsConfiguration);
+    assertEquals("R8 run failed: " + result.stderr, 0, result.exitCode);
+    assertTrue(result.stdout.contains("void main(java.lang.String[])"));
+    assertTrue(result.stdout.contains("shaking1.Unused"));
+    assertTrue(result.stdout.contains("-printseeds"));
+    assertTrue(result.stdout.contains("-printusage"));
+    assertTrue(result.stdout.contains("-printconfiguration"));
   }
 
   private R8Command parse(String... args) throws CompilationFailedException {

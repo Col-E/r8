@@ -70,7 +70,6 @@ public class ProguardConfigurationParser {
       "whyarenotsimple");
 
   private static final List<String> WARNED_SINGLE_ARG_OPTIONS = ImmutableList.of(
-      "printconfiguration",
       // TODO -outjars (http://b/37137994) and -adaptresourcefilecontents (http://b/37139570)
       // should be reported as errors, not just as warnings!
       "outjars",
@@ -165,6 +164,7 @@ public class ProguardConfigurationParser {
     private final String name;
     private final String contents;
     private int position = 0;
+    private int positionAfterInclude = 0;
     private int line = 1;
     private int lineStartPosition = 0;
     private Path baseDirectory;
@@ -181,6 +181,9 @@ public class ProguardConfigurationParser {
       do {
         skipWhitespace();
       } while (parseOption());
+      // Collect the parsed configuration.
+      configurationBuilder.addParsedConfiguration(
+          contents.substring(positionAfterInclude, contents.length()));
     }
 
     private boolean parseOption()
@@ -283,6 +286,12 @@ public class ProguardConfigurationParser {
         configurationBuilder.setOverloadAggressively(true);
       } else if (acceptString("allowaccessmodification")) {
         configurationBuilder.setAllowAccessModification(true);
+      } else if (acceptString("printconfiguration")) {
+        configurationBuilder.setPrintConfiguration(true);
+        skipWhitespace();
+        if (isOptionalArgumentGiven()) {
+          configurationBuilder.setPrintConfigurationFile(parseFileName());
+        }
       } else if (acceptString("printmapping")) {
         configurationBuilder.setPrintMapping(true);
         skipWhitespace();
@@ -298,8 +307,12 @@ public class ProguardConfigurationParser {
         ProguardAssumeValuesRule rule = parseAssumeValuesRule();
         configurationBuilder.addRule(rule);
       } else if (acceptString("include")) {
+        // Collect the parsed configuration until the include.
+        configurationBuilder.addParsedConfiguration(
+            contents.substring(positionAfterInclude, position - ("include".length() + 1)));
         skipWhitespace();
         parseInclude();
+        positionAfterInclude = position;
       } else if (acceptString("basedirectory")) {
         skipWhitespace();
         baseDirectory = parseFileName();

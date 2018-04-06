@@ -260,6 +260,11 @@ public class ApplicationWriter {
       String deadCode,
       ProguardMapSupplier proguardMapSupplier,
       String proguardSeedsData) {
+    if (options.configurationConsumer != null) {
+      ExceptionUtils.withConsumeResourceHandler(
+          options.reporter, options.configurationConsumer,
+          options.proguardConfiguration.getParsedConfiguration());
+    }
     if (options.usageInformationConsumer != null && deadCode != null) {
       ExceptionUtils.withConsumeResourceHandler(
           options.reporter, options.usageInformationConsumer, deadCode);

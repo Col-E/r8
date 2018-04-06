@@ -251,6 +251,10 @@ public class InternalOptions {
   // If non-null, it must be and is passed to the consumer.
   public StringConsumer usageInformationConsumer = null;
 
+  // If null, no configuration information needs to be printed.
+  // If non-null, configuration must be passed to the consumer.
+  public StringConsumer configurationConsumer = null;
+
   public Path proguardCompatibilityRulesOutput = null;
 
   public void warningMissingEnclosingMember(DexType clazz, Origin origin, int version) {
