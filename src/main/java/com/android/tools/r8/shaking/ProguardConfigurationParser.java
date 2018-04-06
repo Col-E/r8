@@ -50,7 +50,6 @@ public class ProguardConfigurationParser {
       "target");
 
   private static final List<String> IGNORED_OPTIONAL_SINGLE_ARG_OPTIONS = ImmutableList.of(
-      "keepdirectories",
       "runtype",
       "laststageoutput");
 
@@ -72,8 +71,7 @@ public class ProguardConfigurationParser {
   private static final List<String> WARNED_SINGLE_ARG_OPTIONS = ImmutableList.of(
       // TODO -outjars (http://b/37137994) and -adaptresourcefilecontents (http://b/37139570)
       // should be reported as errors, not just as warnings!
-      "outjars",
-      "adaptresourcefilecontents");
+      "outjars");
 
   private static final List<String> WARNED_FLAG_OPTIONS = ImmutableList.of(
       // TODO(b/73707846): add support -addconfigurationdebugging
@@ -217,6 +215,13 @@ public class ProguardConfigurationParser {
       } else if (acceptString("checkdiscard")) {
         ProguardCheckDiscardRule rule = parseCheckDiscardRule();
         configurationBuilder.addRule(rule);
+      } else if (acceptString("keepdirectories")) {
+        skipWhitespace();
+        if (isOptionalArgumentGiven()) {
+          configurationBuilder.addKeepDirectories(parsePathFilter());
+        } else {
+          configurationBuilder.addKeepDirectories(ProguardPathList.emptyList());
+        }
       } else if (acceptString("keep")) {
         ProguardKeepRule rule = parseKeepRule();
         configurationBuilder.addRule(rule);
@@ -344,6 +349,20 @@ public class ProguardConfigurationParser {
         } else {
           configurationBuilder.addAdaptClassStringsPattern(
               ProguardClassNameList.singletonList(ProguardTypeMatcher.defaultAllMatcher()));
+        }
+      } else if (acceptString("adaptresourcefilenames")) {
+        skipWhitespace();
+        if (isOptionalArgumentGiven()) {
+          configurationBuilder.addAdaptResourceFilenames(parsePathFilter());
+        } else {
+          configurationBuilder.addAdaptResourceFilenames(ProguardPathList.emptyList());
+        }
+      } else if (acceptString("adaptresourcefilecontents")) {
+        skipWhitespace();
+        if (isOptionalArgumentGiven()) {
+          configurationBuilder.addAdaptResourceFilecontents(parsePathFilter());
+        } else {
+          configurationBuilder.addAdaptResourceFilecontents(ProguardPathList.emptyList());
         }
       } else if (acceptString("identifiernamestring")) {
         configurationBuilder.addRule(parseIdentifierNameStringRule());
@@ -1290,6 +1309,34 @@ public class ProguardConfigurationParser {
         throw parseError("Class name expected");
       }
       return name;
+    }
+
+    private boolean pathFilterMatcher(Integer character) {
+      return character != ',' && !Character.isWhitespace(character);
+    }
+
+    private ProguardPathList parsePathFilter() throws ProguardRuleParserException {
+      ProguardPathList.Builder builder = ProguardPathList.builder();
+      skipWhitespace();
+      boolean negated = acceptChar('!');
+      String fileFilter = acceptString(this::pathFilterMatcher);
+      if (fileFilter == null) {
+        throw parseError("Path filter expected");
+      }
+      builder.addFileName(negated, fileFilter);
+      skipWhitespace();
+      while (acceptChar(',')) {
+        skipWhitespace();
+        negated = acceptChar('!');
+        skipWhitespace();
+        fileFilter = acceptString(this::pathFilterMatcher);
+        if (fileFilter == null) {
+          throw parseError("Path filter expected");
+        }
+        builder.addFileName(negated, fileFilter);
+        skipWhitespace();
+      }
+      return builder.build();
     }
 
     private String snippetForPosition() {

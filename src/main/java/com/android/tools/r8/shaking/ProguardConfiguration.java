@@ -54,6 +54,10 @@ public class ProguardConfiguration {
     private Origin keepParameterNamesOptionOrigin;
     private Position keepParameterNamesOptionPosition;
     private final ProguardClassFilter.Builder adaptClassStrings = ProguardClassFilter.builder();
+    private final ProguardPathFilter.Builder adaptResourceFilenames = ProguardPathFilter.builder();
+    private final ProguardPathFilter.Builder adaptResourceFilecontents =
+        ProguardPathFilter.builder();
+    private final ProguardPathFilter.Builder keepDirectories = ProguardPathFilter.builder();
     private boolean forceProguardCompatibility = false;
     private boolean overloadAggressively;
 
@@ -222,6 +226,18 @@ public class ProguardConfiguration {
       adaptClassStrings.addPattern(pattern);
     }
 
+    public void addAdaptResourceFilenames(ProguardPathList pattern) {
+      adaptResourceFilenames.addPattern(pattern);
+    }
+
+    public void addAdaptResourceFilecontents(ProguardPathList pattern) {
+      adaptResourceFilecontents.addPattern(pattern);
+    }
+
+    public void addKeepDirectories(ProguardPathList pattern) {
+      keepDirectories.addPattern(pattern);
+    }
+
     public void setForceProguardCompatibility(boolean forceProguardCompatibility) {
       this.forceProguardCompatibility = forceProguardCompatibility;
     }
@@ -264,7 +280,10 @@ public class ProguardConfiguration {
           DictionaryReader.readAllNames(packageObfuscationDictionary, reporter),
           useUniqueClassMemberNames,
           keepParameterNames,
-          adaptClassStrings.build());
+          adaptClassStrings.build(),
+          adaptResourceFilenames.build(),
+          adaptResourceFilecontents.build(),
+          keepDirectories.build());
 
       reporter.failIfPendingErrors();
 
@@ -330,6 +349,9 @@ public class ProguardConfiguration {
   private final boolean useUniqueClassMemberNames;
   private final boolean keepParameterNames;
   private final ProguardClassFilter adaptClassStrings;
+  private final ProguardPathFilter adaptResourceFilenames;
+  private final ProguardPathFilter adaptResourceFilecontents;
+  private final ProguardPathFilter keepDirectories;
 
   private ProguardConfiguration(
       String parsedConfiguration,
@@ -363,7 +385,10 @@ public class ProguardConfiguration {
       ImmutableList<String> packageObfuscationDictionary,
       boolean useUniqueClassMemberNames,
       boolean keepParameterNames,
-      ProguardClassFilter adaptClassStrings) {
+      ProguardClassFilter adaptClassStrings,
+      ProguardPathFilter adaptResourceFilenames,
+      ProguardPathFilter adaptResourceFilecontents,
+      ProguardPathFilter keepDirectories) {
     this.parsedConfiguration = parsedConfiguration;
     this.dexItemFactory = factory;
     this.injars = ImmutableList.copyOf(injars);
@@ -396,6 +421,9 @@ public class ProguardConfiguration {
     this.useUniqueClassMemberNames = useUniqueClassMemberNames;
     this.keepParameterNames = keepParameterNames;
     this.adaptClassStrings = adaptClassStrings;
+    this.adaptResourceFilenames = adaptResourceFilenames;
+    this.adaptResourceFilecontents = adaptResourceFilecontents;
+    this.keepDirectories = keepDirectories;
   }
 
   /**
@@ -528,6 +556,18 @@ public class ProguardConfiguration {
 
   public ProguardClassFilter getAdaptClassStrings() {
     return adaptClassStrings;
+  }
+
+  public ProguardPathFilter getAdaptResourceFilenames() {
+    return adaptResourceFilenames;
+  }
+
+  public ProguardPathFilter getAdaptResourceFilecontents() {
+    return adaptResourceFilecontents;
+  }
+
+  public ProguardPathFilter getKeepDirectories() {
+    return keepDirectories;
   }
 
   public static ProguardConfiguration defaultConfiguration(DexItemFactory dexItemFactory,

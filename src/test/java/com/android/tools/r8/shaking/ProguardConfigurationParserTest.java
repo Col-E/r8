@@ -26,6 +26,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.position.TextPosition;
 import com.android.tools.r8.position.TextRange;
@@ -157,11 +158,13 @@ public class ProguardConfigurationParserTest extends TestBase {
 
   private Reporter reporter;
   private KeepingDiagnosticHandler handler;
+  private ProguardConfigurationParser parser;
 
   @Before
-  public void setup() {
+  public void reset() {
     handler = new KeepingDiagnosticHandler();
     reporter = new Reporter(handler);
+    parser = new ProguardConfigurationParser(new DexItemFactory(), reporter);
   }
 
   @Test
@@ -1175,6 +1178,146 @@ public class ProguardConfigurationParserTest extends TestBase {
     }
   }
 
+  private void checkFileFilterMatchAnything(ProguardPathFilter filter) {
+    assertTrue(filter.matches("x"));
+    assertTrue(filter.matches("x/y"));
+    assertTrue(filter.matches("x/y/x"));
+  }
+
+  @Test
+  public void parse_adaptresourcexxx_keepdirectories_noArguments1() {
+    ProguardConfiguration config = parseAndVerifyParserEndsCleanly(ImmutableList.of(
+        "-adaptresourcefilenames",
+        "-adaptresourcefilecontents",
+        "-keepdirectories"
+    ));
+    checkFileFilterMatchAnything(config.getAdaptResourceFilenames());
+    checkFileFilterMatchAnything(config.getAdaptResourceFilecontents());
+    checkFileFilterMatchAnything(config.getKeepDirectories());
+  }
+
+  @Test
+  public void parse_adaptresourcexxx_keepdirectories_noArguments2() {
+    ProguardConfiguration config = parseAndVerifyParserEndsCleanly(ImmutableList.of(
+        "-keepdirectories",
+        "-adaptresourcefilenames",
+        "-adaptresourcefilecontents"
+    ));
+    checkFileFilterMatchAnything(config.getAdaptResourceFilenames());
+    checkFileFilterMatchAnything(config.getAdaptResourceFilecontents());
+    checkFileFilterMatchAnything(config.getKeepDirectories());
+  }
+
+  @Test
+  public void parse_adaptresourcexxx_keepdirectories_noArguments3() {
+    ProguardConfiguration config = parseAndVerifyParserEndsCleanly(ImmutableList.of(
+        "-adaptresourcefilecontents",
+        "-keepdirectories",
+        "-adaptresourcefilenames"
+    ));
+    checkFileFilterMatchAnything(config.getAdaptResourceFilenames());
+    checkFileFilterMatchAnything(config.getAdaptResourceFilecontents());
+    checkFileFilterMatchAnything(config.getKeepDirectories());
+  }
+
+  private String FILE_FILTER_SINGLE = "xxx/*";
+
+  private void checkFileFilterSingle(ProguardPathFilter filter) {
+    assertTrue(filter.matches("xxx/x"));
+    assertTrue(filter.matches("xxx/"));
+    assertFalse(filter.matches("xxx/yyy/z"));
+    assertFalse(filter.matches("xxx"));
+  }
+
+  @Test
+  public void parse_adaptresourcexxx_keepdirectories_singleArgument() {
+    ProguardConfiguration config = parseAndVerifyParserEndsCleanly(ImmutableList.of(
+        "-adaptresourcefilenames " + FILE_FILTER_SINGLE,
+        "-adaptresourcefilecontents " + FILE_FILTER_SINGLE,
+        "-keepdirectories " + FILE_FILTER_SINGLE
+    ));
+    checkFileFilterSingle(config.getAdaptResourceFilenames());
+    checkFileFilterSingle(config.getAdaptResourceFilecontents());
+    checkFileFilterSingle(config.getKeepDirectories());
+  }
+
+  private String FILE_FILTER_MULTIPLE =
+      "xxx/*, !**.gif  ,images/**  ,  com/myapp/**/*.xml,com/mylib/*/*.xml";
+
+  private void checkFileFilterMultiple(ProguardPathFilter filter) {
+    assertTrue(filter.matches("xxx/x"));
+    assertTrue(filter.matches("xxx/x.gif"));
+    assertTrue(filter.matches("images/x.jpg"));
+    assertTrue(filter.matches("images/xxx/x.jpg"));
+    assertTrue(filter.matches("com/myapp/package1/x.xml"));
+    assertTrue(filter.matches("com/myapp/package1/package2/x.xml"));
+    assertTrue(filter.matches("com/mylib/package1/x.xml"));
+    assertFalse(filter.matches("x.gif"));
+    assertFalse(filter.matches("images/x.gif"));
+    assertFalse(filter.matches("images/xxx/y.gif"));
+    assertFalse(filter.matches("images/xxx/yyy/z.gif"));
+    assertFalse(filter.matches("com/myapp/package1/x.jpg"));
+    assertFalse(filter.matches("com/myapp/package1/package2/x.jpg"));
+    assertFalse(filter.matches("com/mylib/package1/package2/x.xml"));
+  }
+
+  @Test
+  public void parse_adaptresourcexxx_keepdirectories_multipleArgument() {
+    ProguardConfiguration config = parseAndVerifyParserEndsCleanly(ImmutableList.of(
+        "-adaptresourcefilenames " + FILE_FILTER_MULTIPLE,
+        "-adaptresourcefilecontents " + FILE_FILTER_MULTIPLE,
+        "-keepdirectories " + FILE_FILTER_MULTIPLE
+    ));
+    checkFileFilterMultiple(config.getAdaptResourceFilenames());
+    checkFileFilterMultiple(config.getAdaptResourceFilecontents());
+    checkFileFilterMultiple(config.getKeepDirectories());
+  }
+
+  @Test
+  public void parse_adaptresourcexxx_keepdirectories_leadingComma() {
+    List<String> options = ImmutableList.of(
+        "-adaptresourcefilenames", "-adaptresourcefilecontents", "-keepdirectories");
+    for (String option : options) {
+      try {
+        reset();
+        parser.parse(createConfigurationForTesting(ImmutableList.of(option + " ,")));
+        fail("Expect to fail due to the lack of path filter.");
+      } catch (AbortException e) {
+        checkDiagnostic(handler.errors, null, 1, option.length() + 2, "Path filter expected");
+      }
+    }
+  }
+
+  @Test
+  public void parse_adaptresourcexxx_keepdirectories_emptyListElement() {
+    List<String> options = ImmutableList.of(
+        "-adaptresourcefilenames", "-adaptresourcefilecontents", "-keepdirectories");
+    for (String option : options) {
+      try {
+        reset();
+        parser.parse(createConfigurationForTesting(ImmutableList.of(option + " xxx,,yyy")));
+        fail("Expect to fail due to the lack of path filter.");
+      } catch (AbortException e) {
+        checkDiagnostic(handler.errors, null, 1, option.length() + 6, "Path filter expected");
+      }
+    }
+  }
+
+  @Test
+  public void parse_adaptresourcexxx_keepdirectories_trailingComma() {
+    List<String> options = ImmutableList.of(
+        "-adaptresourcefilenames", "-adaptresourcefilecontents", "-keepdirectories");
+    for (String option : options) {
+      try {
+        reset();
+        parser.parse(createConfigurationForTesting(ImmutableList.of(option + " xxx,")));
+        fail("Expect to fail due to the lack of path filter.");
+      } catch (AbortException e) {
+        checkDiagnostic(handler.errors, null, 1, option.length() + 6, "Path filter expected");
+      }
+    }
+  }
+
   @Test
   public void parse_if() throws Exception {
     Path proguardConfig = writeTextToTempFile(
@@ -1459,6 +1602,12 @@ public class ProguardConfigurationParserTest extends TestBase {
     verifyWithProguard(proguardConfig);
   }
 
+  private ProguardConfiguration parseAndVerifyParserEndsCleanly(List<String> config) {
+    parser.parse(createConfigurationForTesting(config));
+    verifyParserEndsCleanly();
+    return parser.getConfig();
+  }
+
   private void verifyParserEndsCleanly() {
     assertEquals(0, handler.infos.size());
     assertEquals(0, handler.warnings.size());
@@ -1469,7 +1618,11 @@ public class ProguardConfigurationParserTest extends TestBase {
       int columnStart, String... messageParts) {
     assertEquals(1, diagnostics.size());
     Diagnostic diagnostic = diagnostics.get(0);
-    assertEquals(path, ((PathOrigin) diagnostic.getOrigin()).getPath());
+    if (path != null) {
+      assertEquals(path, ((PathOrigin) diagnostic.getOrigin()).getPath());
+    } else {
+      assertSame(Origin.unknown(), diagnostic.getOrigin());
+    }
     TextPosition position;
     if (diagnostic.getPosition() instanceof TextRange) {
       position = ((TextRange) diagnostic.getPosition()).getStart();
