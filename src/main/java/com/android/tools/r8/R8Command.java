@@ -673,6 +673,13 @@ public class R8Command extends BaseCompilerCommand {
       internal.outline.enabled = false;
     }
 
+    // Setup a configuration consumer.
+    if (proguardConfiguration.isPrintConfiguration()) {
+      internal.configurationConsumer = proguardConfiguration.getPrintConfigurationFile() != null
+          ? new StringConsumer.FileConsumer(proguardConfiguration.getPrintConfigurationFile())
+          : new StringConsumer.StreamConsumer(StandardOutOrigin.instance(), System.out);
+    }
+
     // Setup a usage information consumer.
     if (proguardConfiguration.isPrintUsage()) {
       internal.usageInformationConsumer = proguardConfiguration.getPrintUsageFile() != null

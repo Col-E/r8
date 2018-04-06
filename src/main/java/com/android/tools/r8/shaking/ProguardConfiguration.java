@@ -20,6 +20,7 @@ public class ProguardConfiguration {
 
   public static class Builder {
 
+    private final List<String> parsedConfiguration = new ArrayList<>();
     private final List<FilteredClassPath> injars = new ArrayList<>();
     private final List<FilteredClassPath> libraryjars = new ArrayList<>();
     private final Reporter reporter;
@@ -30,6 +31,8 @@ public class ProguardConfiguration {
     private boolean optimizing = true;
     private boolean obfuscating = true;
     private boolean shrinking = true;
+    private boolean printConfiguration;
+    private Path printConfigurationFile;
     private boolean printUsage;
     private Path printUsageFile;
     private boolean printMapping;
@@ -57,6 +60,10 @@ public class ProguardConfiguration {
     private Builder(DexItemFactory dexItemFactory, Reporter reporter) {
       this.dexItemFactory = dexItemFactory;
       this.reporter = reporter;
+    }
+
+    public void addParsedConfiguration(String source) {
+      parsedConfiguration.add(source);
     }
 
     public void addInjars(List<FilteredClassPath> injars) {
@@ -111,6 +118,15 @@ public class ProguardConfiguration {
 
     public void disableShrinking() {
       shrinking = false;
+    }
+
+    public void setPrintConfiguration(boolean printConfiguration) {
+      this.printConfiguration = printConfiguration;
+    }
+
+    public void setPrintConfigurationFile(Path file) {
+      assert printConfiguration;
+      this.printConfigurationFile = file;
     }
 
     public void setPrintUsage(boolean printUsage) {
@@ -217,6 +233,7 @@ public class ProguardConfiguration {
     public ProguardConfiguration buildRaw() {
 
       ProguardConfiguration configuration = new ProguardConfiguration(
+          String.join(System.lineSeparator(), parsedConfiguration),
           dexItemFactory,
           injars,
           libraryjars,
@@ -227,6 +244,8 @@ public class ProguardConfiguration {
           optimizing,
           obfuscating,
           shrinking,
+          printConfiguration,
+          printConfigurationFile,
           printUsage,
           printUsageFile,
           printMapping,
@@ -279,6 +298,7 @@ public class ProguardConfiguration {
     }
   }
 
+  private final String parsedConfiguration;
   private final DexItemFactory dexItemFactory;
   private final ImmutableList<FilteredClassPath> injars;
   private final ImmutableList<FilteredClassPath> libraryjars;
@@ -289,6 +309,8 @@ public class ProguardConfiguration {
   private final boolean optimizing;
   private final boolean obfuscating;
   private final boolean shrinking;
+  private final boolean printConfiguration;
+  private final Path printConfigurationFile;
   private final boolean printUsage;
   private final Path printUsageFile;
   private final boolean printMapping;
@@ -310,6 +332,7 @@ public class ProguardConfiguration {
   private final ProguardClassFilter adaptClassStrings;
 
   private ProguardConfiguration(
+      String parsedConfiguration,
       DexItemFactory factory,
       List<FilteredClassPath> injars,
       List<FilteredClassPath> libraryjars,
@@ -320,6 +343,8 @@ public class ProguardConfiguration {
       boolean optimizing,
       boolean obfuscating,
       boolean shrinking,
+      boolean printConfiguration,
+      Path printConfigurationFile,
       boolean printUsage,
       Path printUsageFile,
       boolean printMapping,
@@ -339,6 +364,7 @@ public class ProguardConfiguration {
       boolean useUniqueClassMemberNames,
       boolean keepParameterNames,
       ProguardClassFilter adaptClassStrings) {
+    this.parsedConfiguration = parsedConfiguration;
     this.dexItemFactory = factory;
     this.injars = ImmutableList.copyOf(injars);
     this.libraryjars = ImmutableList.copyOf(libraryjars);
@@ -349,6 +375,8 @@ public class ProguardConfiguration {
     this.optimizing = optimizing;
     this.obfuscating = obfuscating;
     this.shrinking = shrinking;
+    this.printConfiguration = printConfiguration;
+    this.printConfigurationFile = printConfigurationFile;
     this.printUsage = printUsage;
     this.printUsageFile = printUsageFile;
     this.printMapping = printMapping;
@@ -376,6 +404,10 @@ public class ProguardConfiguration {
   public static Builder builder(DexItemFactory dexItemFactory,
       Reporter reporter) {
     return new Builder(dexItemFactory, reporter);
+  }
+
+  public String getParsedConfiguration() {
+    return parsedConfiguration;
   }
 
   public DexItemFactory getDexItemFactory() {
@@ -432,6 +464,14 @@ public class ProguardConfiguration {
 
   public boolean isShrinking() {
     return shrinking;
+  }
+
+  public boolean isPrintConfiguration() {
+    return printConfiguration;
+  }
+
+  public Path getPrintConfigurationFile() {
+    return printConfigurationFile;
   }
 
   public boolean isPrintUsage() {
