@@ -20,14 +20,16 @@ class MoveEliminator {
   public boolean shouldBeEliminated(Instruction instruction) {
     if (instruction.isMove()) {
       Move move = instruction.asMove();
-      int moveSrcRegister = allocator.getRegisterForValue(move.src(), move.getNumber());
+      int moveSrcRegister =
+          allocator.getArgumentOrAllocateRegisterForValue(move.src(), move.getNumber());
       int moveDstRegister = allocator.getRegisterForValue(move.dest(), move.getNumber());
       if (moveSrcRegister == moveDstRegister) {
         return true;
       }
       for (Move activeMove : activeMoves) {
         int activeMoveSrcRegister =
-            allocator.getRegisterForValue(activeMove.src(), activeMove.getNumber());
+            allocator.getArgumentOrAllocateRegisterForValue(
+                activeMove.src(), activeMove.getNumber());
         int activeMoveDstRegister =
             allocator.getRegisterForValue(activeMove.dest(), activeMove.getNumber());
         if (activeMoveSrcRegister == moveSrcRegister && activeMoveDstRegister == moveDstRegister) {
@@ -47,19 +49,21 @@ class MoveEliminator {
     if (instruction.outValue() != null && instruction.outValue().needsRegister()) {
       Value defined = instruction.outValue();
       int definedRegister = allocator.getRegisterForValue(defined, instruction.getNumber());
-      activeMoves.removeIf((m) -> {
-        int moveSrcRegister = allocator.getRegisterForValue(m.src(), m.getNumber());
-        int moveDstRegister = allocator.getRegisterForValue(m.dest(), m.getNumber());
-        for (int i = 0; i < defined.requiredRegisters(); i++) {
-          for (int j = 0; j < m.outValue().requiredRegisters(); j++) {
-            if (definedRegister + i == moveDstRegister + j
-                || definedRegister + i == moveSrcRegister + j) {
-              return true;
+      activeMoves.removeIf(
+          (m) -> {
+            int moveSrcRegister =
+                allocator.getArgumentOrAllocateRegisterForValue(m.src(), m.getNumber());
+            int moveDstRegister = allocator.getRegisterForValue(m.dest(), m.getNumber());
+            for (int i = 0; i < defined.requiredRegisters(); i++) {
+              for (int j = 0; j < m.outValue().requiredRegisters(); j++) {
+                if (definedRegister + i == moveDstRegister + j
+                    || definedRegister + i == moveSrcRegister + j) {
+                  return true;
+                }
+              }
             }
-          }
-        }
-        return false;
-      });
+            return false;
+          });
     }
     if (instruction.isMove()) {
       activeMoves.add(instruction.asMove());
