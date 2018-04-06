@@ -16,7 +16,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 public class B77240639 extends TestBase {
-  @Ignore("b/77240639")
   @Test
   public void test() throws Exception {
     AndroidApp app = compileWithD8(readClasses(TestClass.class));
