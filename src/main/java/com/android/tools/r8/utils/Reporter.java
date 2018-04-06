@@ -15,6 +15,7 @@ public class Reporter implements DiagnosticsHandler {
 
   private final DiagnosticsHandler clientHandler;
   private int errorCount = 0;
+  private Diagnostic lastError;
   private final Collection<Throwable> suppressedExceptions = new ArrayList<>();
 
   public Reporter(DiagnosticsHandler clientHandler) {
@@ -35,6 +36,7 @@ public class Reporter implements DiagnosticsHandler {
   public void error(Diagnostic error) {
     clientHandler.error(error);
     synchronized (this) {
+      lastError = error;
       errorCount++;
     }
   }
@@ -46,6 +48,7 @@ public class Reporter implements DiagnosticsHandler {
   public void error(Diagnostic error, Throwable suppressedException) {
     clientHandler.error(error);
     synchronized (this) {
+      lastError = error;
       errorCount++;
       suppressedExceptions.add(suppressedException);
     }
@@ -75,7 +78,12 @@ public class Reporter implements DiagnosticsHandler {
   public void failIfPendingErrors() {
     synchronized (this) {
       if (errorCount != 0) {
-        AbortException abort = new AbortException();
+        AbortException abort;
+        if (lastError != null && lastError.getDiagnosticMessage() != null) {
+          abort = new AbortException("Error: " + lastError.getDiagnosticMessage());
+        } else {
+          abort = new AbortException();
+        }
         throw addSuppressedExceptions(abort);
       }
     }
