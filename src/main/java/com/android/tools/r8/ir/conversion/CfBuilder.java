@@ -231,7 +231,7 @@ public class CfBuilder {
             store.outValue().removeUser(load);
             // Remove the store.
             it.previous();
-            it.remove();
+            it.removeOrReplaceByDebugLocalRead();
             // Remove the load.
             it.next();
             it.remove();
