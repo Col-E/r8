@@ -3,7 +3,6 @@
 # for details. All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
-
 from __future__ import print_function
 import argparse
 import os
@@ -11,7 +10,6 @@ import sys
 import utils
 import gradle
 from enum import Enum
-
 
 BENCHMARKS_ROOT_DIR = os.path.join(utils.REPO_ROOT, 'third_party', 'benchmarks')
 
@@ -24,8 +22,9 @@ def parse_arguments():
                       choices=['dx', 'd8'],
                       required=True,
                       help='Compiler tool to use.')
+  parser.add_argument('--benchmark',
+                      help='Which benchmark to run, default all')
   return parser.parse_args()
-
 
 class Benchmark:
   class Tools(Enum):
@@ -88,7 +87,6 @@ class Benchmark:
   def EnsurePresence(self):
     EnsurePresence(self.rootDirPath, self.displayName)
 
-
 def EnsurePresence(dir, displayName):
   if not os.path.exists(dir) or os.path.getmtime(dir + '.tar.gz')\
           < os.path.getmtime(dir + '.tar.gz.sha1'):
@@ -110,7 +108,6 @@ def TaskFilter(taskname):
   ]
 
   return any(namePattern in taskname for namePattern in acceptedGradleTasks)
-
 
 def PrintBuildTimeForGolem(benchmark, stdOut):
   for line in stdOut.splitlines():
@@ -137,7 +134,6 @@ def PrintBuildTimeForGolem(benchmark, stdOut):
       if TaskFilter(taskName):
         print('{}(RunTimeRaw): {} ms'
               .format(benchmark.displayName + '-' + taskName, commaSplit[2]))
-
 
 def Main():
   args = parse_arguments()
@@ -191,10 +187,16 @@ def Main():
 
   ]
 
-  EnsurePresence(os.path.join('third_party', 'benchmarks', 'android-sdk'), 'android SDK')
-  EnsurePresence(os.path.join('third_party', 'gradle-plugin'), 'Android Gradle plugin')
-
-  for benchmark in buildTimeBenchmarks:
+  EnsurePresence(os.path.join('third_party', 'benchmarks', 'android-sdk'),
+                 'android SDK')
+  EnsurePresence(os.path.join('third_party', 'gradle-plugin'),
+                 'Android Gradle plugin')
+  toRun = buildTimeBenchmarks
+  if args.benchmark:
+    toRun = [b for b in toRun if b.displayName == args.benchmark]
+    if len(toRun) != 1:
+      raise AssertionError("Unknown benchmark: " + args.benchmark)
+  for benchmark in toRun:
     benchmark.EnsurePresence()
     benchmark.Clean()
     stdOut = benchmark.Build(tool, desugarMode)
