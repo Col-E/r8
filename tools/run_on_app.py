@@ -88,15 +88,17 @@ def ParseOptions(argv):
                         '\'<BENCHMARKNAME>-<segment>(CodeSize): <bytes>\'')
   return result.parse_args(argv)
 
-# Most apps have the -printmapping and -printseeds in the Proguard
-# configuration. However we don't want to write these files in these
-# locations. Instead generate an auxiliary Proguard configuration
-# placing these two output files together with the dex output.
+# Most apps have the -printmapping, -printseeds and -printusage in the
+# Proguard configuration. However we don't want to write these files
+# in the locations specified. Instead generate an auxiliary Proguard
+# configuration placing these two output files together with the dex
+# output.
 def GenerateAdditionalProguardConfiguration(temp, outdir):
   name = "output.config"
   with open(os.path.join(temp, name), 'w') as f:
     f.write('-printmapping ' + os.path.join(outdir, 'proguard.map') + "\n")
     f.write('-printseeds ' + os.path.join(outdir, 'proguard.seeds') + "\n")
+    f.write('-printusage ' + os.path.join(outdir, 'proguard.usage') + "\n")
     return os.path.abspath(f.name)
 
 def main(argv):
