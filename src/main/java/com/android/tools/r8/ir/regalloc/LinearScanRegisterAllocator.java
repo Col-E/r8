@@ -1669,13 +1669,10 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       usePositions.set(getMoveExceptionRegister(), 0);
     }
 
-    // Treat active linked argument intervals as pinned. They cannot be given another register
-    // at their uses.
-    blockLinkedRegisters(active, unhandledInterval, registerConstraint, usePositions,
-        blockedPositions);
-
-    // Treat inactive linked argument intervals as pinned. They cannot be given another register
-    // at their uses.
+    // Treat active and inactive linked argument intervals as pinned. They cannot be given another
+    // register at their uses.
+    blockLinkedRegisters(
+        active, unhandledInterval, registerConstraint, usePositions, blockedPositions);
     blockLinkedRegisters(inactive, unhandledInterval, registerConstraint, usePositions,
         blockedPositions);
 
@@ -1711,7 +1708,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     }
 
     int largestUsePosition = getLargestPosition(usePositions, candidate, needsRegisterPair);
-    int blockedPosition = getBlockedPosition(blockedPositions, candidate, needsRegisterPair);
+    int blockedPosition = getLargestPosition(blockedPositions, candidate, needsRegisterPair);
 
     if (largestUsePosition < unhandledInterval.getFirstUse()) {
       // All active and inactive intervals are used before current. Therefore, it is best to spill
@@ -1734,26 +1731,13 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     }
   }
 
-  private int getLargestPosition(RegisterPositions usePositions, int register,
-      boolean needsRegisterPair) {
-    int largestUsePosition = usePositions.get(register);
-
+  private int getLargestPosition(
+      RegisterPositions positions, int register, boolean needsRegisterPair) {
+    int position = positions.get(register);
     if (needsRegisterPair) {
-      largestUsePosition = Math.min(largestUsePosition, usePositions.get(register + 1));
+      return Math.min(position, positions.get(register + 1));
     }
-
-    return largestUsePosition;
-  }
-
-  private int getBlockedPosition(RegisterPositions blockedPositions, int register,
-      boolean needsRegisterPair) {
-    int blockedPosition = blockedPositions.get(register);
-
-    if (needsRegisterPair) {
-      blockedPosition = Math.min(blockedPosition, blockedPositions.get(register + 1));
-    }
-
-    return blockedPosition;
+    return position;
   }
 
   private void assignRegisterAndSpill(
