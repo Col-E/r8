@@ -1165,7 +1165,7 @@ public class DexBuilder {
     @Override
     public int computeSize(DexBuilder builder) {
       Move move = getMove();
-      int srcRegister = builder.allocatedRegister(move.src(), move.getNumber());
+      int srcRegister = builder.argumentOrAllocateRegister(move.src(), move.getNumber());
       int destRegister = builder.allocatedRegister(move.dest(), move.getNumber());
       if (srcRegister == destRegister) {
         size = 1;
@@ -1183,8 +1183,8 @@ public class DexBuilder {
     public void addInstructions(DexBuilder builder, List<Instruction> instructions) {
       Move move = getMove();
       MoveType moveType = MoveType.fromValueType(move.outType());
+      int src = builder.argumentOrAllocateRegister(move.src(), move.getNumber());
       int dest = builder.allocatedRegister(move.dest(), move.getNumber());
-      int src = builder.allocatedRegister(move.src(), move.getNumber());
       Instruction instruction = null;
       switch (size) {
         case 1:
