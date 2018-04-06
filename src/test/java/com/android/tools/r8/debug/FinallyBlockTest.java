@@ -80,7 +80,9 @@ public class FinallyBlockTest extends DebugTestBase {
         checkLine(FILE, 11), // throw without catch
         stepOver(),
         checkLine(FILE, 18), // finally
-        stepOver(),
+        // Don't single step here as some Java compilers generate line entry 19 and some don't.
+        breakpoint(CLASS, "callFinallyBlock", 26),
+        run(),
         checkLine(FILE, 26), // catch in callFinallyBlock
         run());
   }
