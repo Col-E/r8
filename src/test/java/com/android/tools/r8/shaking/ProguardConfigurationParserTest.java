@@ -966,7 +966,7 @@ public class ProguardConfigurationParserTest extends TestBase {
     verifyParserEndsCleanly();
     ProguardConfiguration config = parser.getConfig();
     assertTrue(config.isPrintConfiguration());
-    assertEquals("./file_name", config.getPrintConfigurationFile().toString());
+    assertEquals("." + File.separator + "file_name", config.getPrintConfigurationFile().toString());
   }
 
   @Test
