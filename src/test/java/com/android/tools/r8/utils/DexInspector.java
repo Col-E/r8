@@ -329,6 +329,8 @@ public class DexInspector {
 
     public abstract boolean isAbstract();
 
+    public abstract boolean isAnnotation();
+
     public String dumpMethods() {
       StringBuilder dump = new StringBuilder();
       forAllMethods((FoundMethodSubject method) ->
@@ -381,6 +383,11 @@ public class DexInspector {
 
     @Override
     public boolean isAbstract() {
+      return false;
+    }
+
+    @Override
+    public boolean isAnnotation() {
       return false;
     }
 
@@ -514,6 +521,11 @@ public class DexInspector {
     @Override
     public boolean isAbstract() {
       return dexClass.accessFlags.isAbstract();
+    }
+
+    @Override
+    public boolean isAnnotation() {
+      return dexClass.accessFlags.isAnnotation();
     }
 
     private DexEncodedField findField(DexEncodedField[] fields, DexField dexField) {

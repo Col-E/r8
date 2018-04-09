@@ -141,6 +141,10 @@ public class ClassAccessFlags extends AccessFlags {
     set(Constants.ACC_ANNOTATION);
   }
 
+  public void unsetAnnotation() {
+    unset(Constants.ACC_ANNOTATION);
+  }
+
   public boolean isEnum() {
     return isSet(Constants.ACC_ENUM);
   }
