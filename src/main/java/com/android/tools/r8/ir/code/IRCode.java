@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
@@ -252,25 +253,44 @@ public class IRCode {
    * no sorting.
    */
   public ImmutableList<BasicBlock> topologicallySortedBlocks() {
-    Set<BasicBlock> visitedBlock = new HashSet<>();
-    ImmutableList.Builder<BasicBlock> builder = ImmutableList.builder();
-    BasicBlock entryBlock = blocks.getFirst();
-    depthFirstSorting(visitedBlock, entryBlock, builder);
-    ImmutableList<BasicBlock> ordered = builder.build().reverse();
+    ImmutableList<BasicBlock> ordered = depthFirstSorting();
     return options.testing.placeExceptionalBlocksLast
         ? reorderExceptionalBlocksLastForTesting(ordered)
         : ordered;
   }
 
-  private void depthFirstSorting(Set<BasicBlock> visitedBlock, BasicBlock block,
-      ImmutableList.Builder<BasicBlock> builder) {
-    if (!visitedBlock.contains(block)) {
-      visitedBlock.add(block);
-      for (BasicBlock succ : block.getSuccessors()) {
-        depthFirstSorting(visitedBlock, succ, builder);
+  private ImmutableList<BasicBlock> depthFirstSorting() {
+    // Stack marker to denote when all successors of a block have been processed.
+    class BlockMarker {
+      final BasicBlock block;
+      public BlockMarker(BasicBlock block) {
+        this.block = block;
       }
-      builder.add(block);
     }
+    ArrayList<BasicBlock> reverseOrdered = new ArrayList<>(blocks.size());
+    Set<BasicBlock> visitedBlocks = new HashSet<>(blocks.size());
+    Deque<Object> worklist = new ArrayDeque<>(blocks.size());
+    worklist.addLast(blocks.getFirst());
+    while (!worklist.isEmpty()) {
+      Object item = worklist.removeLast();
+      if (item instanceof BlockMarker) {
+        reverseOrdered.add(((BlockMarker) item).block);
+        continue;
+      }
+      BasicBlock block = (BasicBlock) item;
+      if (!visitedBlocks.contains(block)) {
+        visitedBlocks.add(block);
+        worklist.addLast(new BlockMarker(block));
+        for (int i = block.getSuccessors().size() - 1; i >= 0; i--) {
+          worklist.addLast(block.getSuccessors().get(i));
+        }
+      }
+    }
+    ImmutableList.Builder<BasicBlock> builder = ImmutableList.builder();
+    for (int i = reverseOrdered.size() - 1; i >= 0; i--) {
+      builder.add(reverseOrdered.get(i));
+    }
+    return builder.build();
   }
 
   // Reorder the blocks forcing all exceptional blocks to be at the end.
