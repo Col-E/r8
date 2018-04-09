@@ -108,6 +108,8 @@ final class ClassProcessor {
     // default method, including bridge flag.
     DexMethod newMethod = rewriter.factory.createMethod(clazz.type, method.proto, method.name);
     MethodAccessFlags newFlags = defaultMethod.accessFlags.copy();
+    // Some debuggers (like IntelliJ) automatically skip synthetic methods on single step.
+    newFlags.setSynthetic();
     return new DexEncodedMethod(newMethod, newFlags,
         defaultMethod.annotations, defaultMethod.parameterAnnotations,
         new SynthesizedCode(new ForwardMethodSourceCode(
