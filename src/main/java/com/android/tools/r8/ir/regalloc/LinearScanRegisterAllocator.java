@@ -2173,22 +2173,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
             if (options.isGeneratingDex()) {
               int inConstraint = instruction.maxInValueRegister();
               LiveIntervals useIntervals = use.getLiveIntervals();
-              // Arguments are always kept in their original, incoming register. For every
-              // unconstrained use of an argument we therefore use its incoming register.
-              // As a result, we do not need to record that the argument is being used at the
-              // current instruction.
-              //
-              // For ranged invoke instructions that use a subset of the arguments in the current
-              // order, registering a use for the arguments at the invoke can cause us to run out of
-              // registers. That is because all arguments are forced back into a chosen register at
-              // all uses. Therefore, if we register a use of an argument where we can actually use
-              // it in the argument register, the register allocator would use two registers for the
-              // argument but in reality only use one.
-              boolean isUnconstrainedArgumentUse =
-                  use.isArgument() && inConstraint == Constants.U16BIT_MAX;
-              if (!isUnconstrainedArgumentUse) {
-                useIntervals.addUse(new LiveIntervalsUse(instruction.getNumber(), inConstraint));
-              }
+              useIntervals.addUse(new LiveIntervalsUse(instruction.getNumber(), inConstraint));
             }
           }
         }
