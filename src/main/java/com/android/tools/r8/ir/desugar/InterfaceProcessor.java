@@ -151,6 +151,7 @@ final class InterfaceProcessor {
     ClassAccessFlags companionClassFlags = iface.accessFlags.copy();
     companionClassFlags.unsetAbstract();
     companionClassFlags.unsetInterface();
+    companionClassFlags.unsetAnnotation();
     companionClassFlags.setFinal();
     companionClassFlags.setSynthetic();
     // Companion class must be public so moved methods can be called from anywhere.
