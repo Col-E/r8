@@ -131,9 +131,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   // The set of registers that are free for allocation.
   private TreeSet<Integer> freeRegisters = new TreeSet<>();
   // The max register number used.
-  private int maxRegisterNumber = 0;
-  // The next available register number not yet included in the set of used registers.
-  private int nextUnusedRegisterNumber = 0;
+  private int maxRegisterNumber = -1;
 
   // List of all top-level live intervals for all SSA values.
   private List<LiveIntervals> liveIntervals = new ArrayList<>();
@@ -162,6 +160,10 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   private int getMoveExceptionRegister() {
     return numberOfArgumentRegisters + NUMBER_OF_SENTINEL_REGISTERS +
         RESERVED_MOVE_EXCEPTION_REGISTER;
+  }
+
+  private int getNextUnusedRegisterNumber() {
+    return maxRegisterNumber + 1;
   }
 
   public LinearScanRegisterAllocator(IRCode code, InternalOptions options) {
@@ -677,8 +679,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
 
   private void clearRegisterAssignments() {
     freeRegisters.clear();
-    maxRegisterNumber = 0;
-    nextUnusedRegisterNumber = 0;
+    maxRegisterNumber = -1;
     active.clear();
     inactive.clear();
     unhandled.clear();
@@ -928,7 +929,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
         if (destIntervals.getRegister() == NO_REGISTER) {
           // Save the current register allocation state so we can restore it at the end.
           TreeSet<Integer> savedFreeRegisters = new TreeSet<>(freeRegisters);
-          int savedUnusedRegisterNumber = nextUnusedRegisterNumber;
+          int savedUnusedRegisterNumber = getNextUnusedRegisterNumber();
           List<LiveIntervals> savedActive = new LinkedList<>(active);
           List<LiveIntervals> savedInactive = new LinkedList<>(inactive);
 
@@ -956,7 +957,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
           allocateLinkedIntervals(destIntervals);
           // Restore the register allocation state.
           freeRegisters = savedFreeRegisters;
-          for (int i = savedUnusedRegisterNumber; i < nextUnusedRegisterNumber; i++) {
+          for (int i = savedUnusedRegisterNumber, j = getNextUnusedRegisterNumber(); i < j; i++) {
             freeRegisters.add(i);
           }
           active = savedActive;
@@ -1033,17 +1034,13 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   // Update the information about used registers when |register| has been selected for use.
   private void updateRegisterState(int register, boolean needsRegisterPair) {
     int maxRegister = register + (needsRegisterPair ? 1 : 0);
-    if (maxRegister >= nextUnusedRegisterNumber) {
-      nextUnusedRegisterNumber = maxRegister + 1;
-    }
     maxRegisterNumber = Math.max(maxRegisterNumber, maxRegister);
   }
 
   private int getSpillRegister(LiveIntervals intervals) {
-    int registerNumber = nextUnusedRegisterNumber++;
+    int registerNumber = getNextUnusedRegisterNumber();
     maxRegisterNumber = registerNumber;
     if (intervals.getType().isWide()) {
-      nextUnusedRegisterNumber++;
       maxRegisterNumber++;
     }
     return registerNumber;
@@ -2388,7 +2385,6 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       }
     }
     freeRegisters.addAll(unused);
-    maxRegisterNumber = Math.max(maxRegisterNumber, first + numberOfRegister - 1);
     return first;
   }
 
@@ -2396,7 +2392,8 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     if (freeRegisters.size() > 0) {
       return freeRegisters.pollFirst();
     }
-    return nextUnusedRegisterNumber++;
+    maxRegisterNumber = getNextUnusedRegisterNumber();
+    return maxRegisterNumber;
   }
 
   private void excludeRegistersForInterval(LiveIntervals intervals, Set<Integer> excluded) {
