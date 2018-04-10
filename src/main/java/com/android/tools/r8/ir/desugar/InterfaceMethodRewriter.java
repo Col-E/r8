@@ -65,8 +65,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class InterfaceMethodRewriter {
 
   // Public for testing.
-  public static final String COMPANION_CLASS_NAME_SUFFIX = "-CC";
-  private static final String DEFAULT_METHOD_PREFIX = "$default$";
+  public static final String COMPANION_CLASS_NAME_SUFFIX = "$-CC";
+  public static final String DEFAULT_METHOD_PREFIX = "$default$";
   private static final String PRIVATE_METHOD_PREFIX = "$private$";
 
   private final IRConverter converter;

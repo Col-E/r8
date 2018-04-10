@@ -4,7 +4,10 @@
 
 package com.android.tools.r8.debug;
 
+import static org.junit.Assert.assertEquals;
+
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.Command;
+import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -19,7 +22,8 @@ import org.junit.runners.Parameterized.Parameters;
 public class InterfaceMethodTest extends DebugTestBase {
 
   private static final Path JAR = DebugTestBase.DEBUGGEE_JAVA8_JAR;
-  private static final String SOURCE_FILE = "DebugInterfaceMethod.java";
+  private static final String TEST_SOURCE_FILE = "DebugInterfaceMethod.java";
+  private static final String INTERFACE_SOURCE_FILE = "InterfaceWithDefaultAndStaticMethods.java";
 
   @Parameters(name = "{0}")
   public static Collection configs() {
@@ -43,29 +47,42 @@ public class InterfaceMethodTest extends DebugTestBase {
     String parameterName = "msg";
     String localVariableName = "name";
 
+    final String defaultMethodContainerClass;
+    final String defaultMethodName;
+    final String defaultMethodThisName;
+    if (supportsDefaultMethod(config)) {
+      defaultMethodContainerClass = "InterfaceWithDefaultAndStaticMethods";
+      defaultMethodName = "doSomething";
+      defaultMethodThisName = "this";
+    } else {
+      defaultMethodContainerClass = "InterfaceWithDefaultAndStaticMethods"
+          + InterfaceMethodRewriter.COMPANION_CLASS_NAME_SUFFIX;
+      // IntelliJ's debugger does not know about the companion class. The only way to match it with
+      // the source file or the desguared interface is to make it an inner class.
+      assertEquals('$', InterfaceMethodRewriter.COMPANION_CLASS_NAME_SUFFIX.charAt(0));
+      defaultMethodName = InterfaceMethodRewriter.DEFAULT_METHOD_PREFIX + "doSomething";
+      defaultMethodThisName = "-this";
+    }
+
+
     List<Command> commands = new ArrayList<>();
     commands.add(breakpoint(debuggeeClass, "testDefaultMethod"));
     commands.add(run());
     commands.add(checkMethod(debuggeeClass, "testDefaultMethod"));
-    commands.add(checkLine(SOURCE_FILE, 31));
-    if (!supportsDefaultMethod(config)) {
-      // We desugared default method. This means we're going to step through an extra (forward)
-      // method first.
-      commands.add(stepInto(INTELLIJ_FILTER));
-    }
+    commands.add(checkLine(TEST_SOURCE_FILE, 20));
+
+    // Step into the default method.
     commands.add(stepInto(INTELLIJ_FILTER));
-    commands.add(checkLine(SOURCE_FILE, 9));
-    // TODO(shertz) we should see the local variable this even when desugaring.
-    if (supportsDefaultMethod(config)) {
-      commands.add(checkLocal("this"));
-    } else {
-      commands.add(checkLocal("-this"));
-    }
+    commands.add(checkLine(INTERFACE_SOURCE_FILE, 7));
+    commands.add(checkMethod(defaultMethodContainerClass, defaultMethodName));
+    commands.add(checkLocal(defaultMethodThisName));
     commands.add(checkLocal(parameterName));
     commands.add(stepOver(INTELLIJ_FILTER));
+    commands.add(checkLine(INTERFACE_SOURCE_FILE, 8));
+    commands.add(checkMethod(defaultMethodContainerClass, defaultMethodName));
+    commands.add(checkLocal(defaultMethodThisName));
     commands.add(checkLocal(parameterName));
     commands.add(checkLocal(localVariableName));
-    // TODO(shertz) check current method name ?
     commands.add(run());
     commands.add(run()  /* resume after 2nd breakpoint */);
 
@@ -83,7 +100,7 @@ public class InterfaceMethodTest extends DebugTestBase {
     commands.add(run());
     commands.add(run() /* resume after 1st breakpoint */);
     commands.add(checkMethod(debuggeeClass, "testDefaultMethod"));
-    commands.add(checkLine(SOURCE_FILE, 31));
+    commands.add(checkLine(TEST_SOURCE_FILE, 20));
     commands.add(stepInto());
     commands.add(checkMethod("DebugInterfaceMethod$OverrideImpl", "doSomething"));
     commands.add(checkLocal("this"));
@@ -102,14 +119,30 @@ public class InterfaceMethodTest extends DebugTestBase {
     String debuggeeClass = "DebugInterfaceMethod";
     String parameterName = "msg";
 
+    final String staticMethodContainerClass;
+    final String staticMethodName = "printString";
+    if (supportsDefaultMethod(config)) {
+      staticMethodContainerClass = "InterfaceWithDefaultAndStaticMethods";
+    } else {
+      staticMethodContainerClass = "InterfaceWithDefaultAndStaticMethods"
+          + InterfaceMethodRewriter.COMPANION_CLASS_NAME_SUFFIX;
+    }
+
     List<Command> commands = new ArrayList<>();
     commands.add(breakpoint(debuggeeClass, "testStaticMethod"));
     commands.add(run());
     commands.add(checkMethod(debuggeeClass, "testStaticMethod"));
-    commands.add(checkLine(SOURCE_FILE, 35));
+    commands.add(checkLine(TEST_SOURCE_FILE, 24));
+
+    // Step into static method.
     commands.add(stepInto());
+    commands.add(checkLine(INTERFACE_SOURCE_FILE, 12));
+    commands.add(checkMethod(staticMethodContainerClass, staticMethodName));
+    commands.add(checkNoLocal("this"));
+    commands.add(checkNoLocal("-this"));
     commands.add(checkLocal(parameterName));
     commands.add(stepOver());
+    commands.add(checkLine(INTERFACE_SOURCE_FILE, 13));
     commands.add(checkLocal(parameterName));
     commands.add(run());
 
