@@ -74,7 +74,7 @@ public class DexAnnotation extends DexItem {
       DexAnnotation annotation, DexItemFactory factory) {
     DexValueType typeValue =
         (DexValueType) getSystemValueAnnotationValue(factory.annotationEnclosingClass, annotation);
-    return typeValue.value;
+    return typeValue == null ? null : typeValue.value;
   }
 
   public static DexAnnotation createEnclosingMethodAnnotation(DexMethod enclosingMethod,
@@ -88,7 +88,7 @@ public class DexAnnotation extends DexItem {
     DexValueMethod methodValue =
         (DexValueMethod)
             getSystemValueAnnotationValue(factory.annotationEnclosingMethod, annotation);
-    return methodValue.value;
+    return methodValue == null ? null : methodValue.value;
   }
 
   public static boolean isEnclosingClassAnnotation(DexAnnotation annotation,
@@ -157,6 +157,9 @@ public class DexAnnotation extends DexItem {
       DexAnnotation annotation, DexItemFactory factory) {
     DexValueArray membersArray =
         (DexValueArray) getSystemValueAnnotationValue(factory.annotationMemberClasses, annotation);
+    if (membersArray == null) {
+      return null;
+    }
     List<DexType> types = new ArrayList<>(membersArray.getValues().length);
     for (DexValue value : membersArray.getValues()) {
       types.add(((DexValueType) value).value);
@@ -228,7 +231,9 @@ public class DexAnnotation extends DexItem {
   private static DexValue getSystemValueAnnotationValue(DexType type, DexAnnotation annotation) {
     assert annotation.visibility == VISIBILITY_SYSTEM;
     assert annotation.annotation.type == type;
-    return annotation.annotation.elements[0].value;
+    return annotation.annotation.elements.length == 0
+        ? null
+        : annotation.annotation.elements[0].value;
   }
 
   public static boolean isThrowingAnnotation(DexAnnotation annotation,
