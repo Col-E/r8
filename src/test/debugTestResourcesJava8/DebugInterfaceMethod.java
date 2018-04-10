@@ -4,21 +4,10 @@
 
 public class DebugInterfaceMethod {
 
-  interface I {
-    default void doSomething(String msg) {
-      String name = getClass().getName();
-      System.out.println(name + ": " + msg);
-    }
-
-    static void printString(String msg) {
-      System.out.println(msg);
-    }
+  static class DefaultImpl implements InterfaceWithDefaultAndStaticMethods {
   }
 
-  static class DefaultImpl implements I {
-  }
-
-  static class OverrideImpl implements I {
+  static class OverrideImpl implements InterfaceWithDefaultAndStaticMethods {
 
     @Override
     public void doSomething(String msg) {
@@ -27,12 +16,12 @@ public class DebugInterfaceMethod {
     }
   }
 
-  private static void testDefaultMethod(I i) {
+  private static void testDefaultMethod(InterfaceWithDefaultAndStaticMethods i) {
     i.doSomething("Test");
   }
 
   private static void testStaticMethod() {
-    I.printString("I'm a static method in interface");
+    InterfaceWithDefaultAndStaticMethods.printString("I'm a static method in interface");
   }
 
   public static void main(String[] args) {

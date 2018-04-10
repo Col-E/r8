@@ -290,7 +290,7 @@ public class LambdasWithStaticAndDefaultMethods {
     private static Class getCompanionClassOrInterface() {
       try {
         return Class.forName("lambdadesugaringnplus."
-            + "LambdasWithStaticAndDefaultMethods$B38302860$AnnotatedInterface-CC");
+            + "LambdasWithStaticAndDefaultMethods$B38302860$AnnotatedInterface$-CC");
       } catch (Exception e) {
         return AnnotatedInterface.class;
       }
