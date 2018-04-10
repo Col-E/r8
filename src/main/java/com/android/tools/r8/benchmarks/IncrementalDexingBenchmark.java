@@ -25,6 +25,7 @@ public class IncrementalDexingBenchmark {
         D8Command.builder()
             .addProgramFiles(Paths.get("build/test/examples/arithmetic.jar"))
             .setMode(CompilationMode.DEBUG)
+            .setDisableDesugaring(true)
             .setProgramConsumer(
                 new DexIndexedConsumer.ForwardingConsumer(null) {
                   @Override
