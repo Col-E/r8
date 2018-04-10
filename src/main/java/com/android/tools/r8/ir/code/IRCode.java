@@ -27,6 +27,15 @@ import java.util.stream.Collectors;
 
 public class IRCode {
 
+  // Stack marker to denote when all successors of a block have been processed when topologically
+  // sorting.
+  private static class BlockMarker {
+    final BasicBlock block;
+    BlockMarker(BasicBlock block) {
+      this.block = block;
+    }
+  }
+
   // When numbering instructions we number instructions only with even numbers. This allows us to
   // use odd instruction numbers for the insertion of moves during spilling.
   public static final int INSTRUCTION_NUMBER_DELTA = 2;
@@ -260,13 +269,6 @@ public class IRCode {
   }
 
   private ImmutableList<BasicBlock> depthFirstSorting() {
-    // Stack marker to denote when all successors of a block have been processed.
-    class BlockMarker {
-      final BasicBlock block;
-      public BlockMarker(BasicBlock block) {
-        this.block = block;
-      }
-    }
     ArrayList<BasicBlock> reverseOrdered = new ArrayList<>(blocks.size());
     Set<BasicBlock> visitedBlocks = new HashSet<>(blocks.size());
     Deque<Object> worklist = new ArrayDeque<>(blocks.size());
