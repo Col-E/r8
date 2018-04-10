@@ -1760,9 +1760,8 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     Iterator<LiveIntervals> inactiveIterator = inactive.iterator();
     while (inactiveIterator.hasNext()) {
       LiveIntervals intervals = inactiveIterator.next();
-      if ((intervals.usesRegister(candidate) ||
-          (needsRegisterPair && intervals.usesRegister(candidate + 1))) &&
-          intervals.overlaps(unhandledInterval)) {
+      if (intervals.usesRegister(candidate, needsRegisterPair)
+          && intervals.overlaps(unhandledInterval)) {
         if (intervals.isLinked() && !intervals.isArgumentInterval()) {
           // If the inactive register is linked but not an argument, it needs to get the
           // same register again at the next use after the start of the unhandled interval.
@@ -1800,8 +1799,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     Iterator<LiveIntervals> activeIterator = active.iterator();
     while (activeIterator.hasNext()) {
       LiveIntervals intervals = activeIterator.next();
-      if (intervals.usesRegister(candidate) ||
-          (needsRegisterPair && intervals.usesRegister(candidate + 1))) {
+      if (intervals.usesRegister(candidate, needsRegisterPair)) {
         activeIterator.remove();
         freeRegistersForIntervals(intervals);
         LiveIntervals splitChild = intervals.splitBefore(unhandledInterval.getStart());
