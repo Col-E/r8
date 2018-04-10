@@ -43,16 +43,18 @@ class Benchmark:
   cleanCommand = ""
   env = {}
 
-  def __init__(self, displayName, benchmarkDir, moduleName, buildCommand, cleanCommand):
+  def __init__(self, displayName, benchmarkDir, moduleName, buildCommand,
+               cleanCommand):
     self.displayName = displayName
-    self.rootDirPath = os.path.join(BENCHMARKS_ROOT_DIR, benchmarkDir.split(os.sep)[0])
+    self.rootDirPath = os.path.join(BENCHMARKS_ROOT_DIR,
+                                    benchmarkDir.split(os.sep)[0])
     self.appPath = os.path.join(BENCHMARKS_ROOT_DIR, benchmarkDir)
     self.moduleName = moduleName
     self.buildCommand = buildCommand
     self.cleanCommand = cleanCommand
     self.env = os.environ.copy()
-    self.env["ANDROID_HOME"] = os.path.join(utils.REPO_ROOT, 'third_party', 'benchmarks',
-                                            'android-sdk')
+    self.env["ANDROID_HOME"] = os.path.join(utils.REPO_ROOT, 'third_party',
+                                            'benchmarks', 'android-sdk')
 
   def RunGradle(self, command, tool, desugarMode):
 
@@ -82,7 +84,9 @@ class Benchmark:
 
   def Clean(self):
     # tools and desugar mode not relevant for clean
-    return self.RunGradle(self.cleanCommand, self.Tools.D8, self.DesugarMode.D8_DESUGARING)
+    return self.RunGradle(self.cleanCommand,
+                          self.Tools.D8,
+                          self.DesugarMode.D8_DESUGARING)
 
   def EnsurePresence(self):
     EnsurePresence(self.rootDirPath, self.displayName)
@@ -123,17 +127,25 @@ def PrintBuildTimeForGolem(benchmark, stdOut):
       taskName = commaSplit[1][(len(benchmark.moduleName) + 1):]
 
       # Just a temporary assumption.
-      # This means we have submodules, so we'll need to check their configuration
-      # so that the right r8/d8 is taken. For now it shouldn't be the case.
+      # This means we have submodules, so we'll need to check their
+      # configuration so that the right r8/d8 is taken. For now it shouldn't
+      # be the case.
       assert taskName.find(':') == -1, taskName
 
-      # Output example:
-      # SantaTracker-transformClassesWithDexBuilderForDevelopmentDebug(RunTimeRaw): 748 ms
-
-      golemBenchmarkValue = benchmark.displayName + '-' + taskName + '(RunTimeRaw): '
       if TaskFilter(taskName):
-        print('{}(RunTimeRaw): {} ms'
-              .format(benchmark.displayName + '-' + taskName, commaSplit[2]))
+        # taskName looks like:
+        #  transformClassesWithDexBuilderForDevelopmentDebug
+        # we don't want unimportant information in UI, so we strip it down to:
+        #  ClassesDexBuilderDevelopment
+        # Output example:
+        # SantaTracker-ClassesDexBuilderDevelopment(RunTimeRaw): 748 ms
+        assert taskName.startswith('transform')
+        taskName = taskName[len('transform'):]
+        taskName = taskName.replace('With', '')
+        taskName = taskName.replace('For', '')
+        taskName = taskName.replace('Default', '')
+        benchmarkName = benchmark.displayName + '-' + taskName
+        print('{}(RunTimeRaw): {} ms'.format(benchmarkName, commaSplit[2]))
 
 def Main():
   args = parse_arguments()
@@ -154,17 +166,20 @@ def Main():
     Benchmark('Maps',
               'gradle-java-1.6',
               ':maps',
-              [':maps:assembleDebug', '--settings-file', 'settings.gradle.maps'],
+              [':maps:assembleDebug', '--settings-file',
+               'settings.gradle.maps'],
               ['clean']),
     Benchmark('Music2',
               'gradle-java-1.6',
               ':music2Old',
-              [':music2Old:assembleDebug', '--settings-file', 'settings.gradle.music2Old'],
+              [':music2Old:assembleDebug', '--settings-file',
+               'settings.gradle.music2Old'],
               ['clean']),
     Benchmark('Velvet',
               'gradle-java-1.6',
               ':velvet',
-              [':velvet:assembleDebug', '--settings-file', 'settings.gradle.velvet'],
+              [':velvet:assembleDebug', '--settings-file',
+               'settings.gradle.velvet'],
               ['clean']),
     Benchmark('SantaTracker',
               'santa-tracker',
