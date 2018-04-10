@@ -1932,43 +1932,65 @@ public class CodeRewriter {
     return ch0.equals(ch1);
   }
 
-  public void commonSubexpressionElimination(IRCode code) {
-    final ListMultimap<Wrapper<Instruction>, Value> instructionToValue = ArrayListMultimap.create();
-    final DominatorTree dominatorTree = new DominatorTree(code);
-    final CSEExpressionEquivalence equivalence = new CSEExpressionEquivalence(code);
+  private boolean isCSEInstructionCandidate(Instruction instruction) {
+    return (instruction.isBinop()
+        || instruction.isUnop()
+        || instruction.isInstanceOf()
+        || instruction.isCheckCast())
+        && instruction.getLocalInfo() == null
+        && !instruction.hasInValueWithLocalInfo();
+  }
 
-    for (int i = 0; i < dominatorTree.getSortedBlocks().length; i++) {
-      BasicBlock block = dominatorTree.getSortedBlocks()[i];
+  private boolean hasCSECandidate(IRCode code, int noCandidate) {
+    for (BasicBlock block : code.blocks) {
       InstructionListIterator iterator = block.listIterator();
       while (iterator.hasNext()) {
-        Instruction instruction = iterator.next();
-        if (instruction.isBinop()
-            || instruction.isUnop()
-            || instruction.isInstanceOf()
-            || instruction.isCheckCast()) {
-          if (instruction.getLocalInfo() != null || instruction.hasInValueWithLocalInfo()) {
-            // If the instruction has input or output values then it is not safe to share it.
-            continue;
-          }
-          List<Value> candidates = instructionToValue.get(equivalence.wrap(instruction));
-          boolean eliminated = false;
-          if (candidates.size() > 0) {
-            for (Value candidate : candidates) {
-              if (dominatorTree.dominatedBy(block, candidate.definition.getBlock()) &&
-                  shareCatchHandlers(instruction, candidate.definition)) {
-                instruction.outValue().replaceUsers(candidate);
-                eliminated = true;
-                iterator.removeOrReplaceByDebugLocalRead();
-                break;  // Don't try any more candidates.
+        if (isCSEInstructionCandidate(iterator.next())) {
+          return true;
+        }
+      }
+      block.mark(noCandidate);
+    }
+    return false;
+  }
+
+  public void commonSubexpressionElimination(IRCode code) {
+    int noCandidate = code.reserveMarkingColor();
+    if (hasCSECandidate(code, noCandidate)) {
+      final ListMultimap<Wrapper<Instruction>, Value> instructionToValue =
+          ArrayListMultimap.create();
+      final CSEExpressionEquivalence equivalence = new CSEExpressionEquivalence(code);
+      final DominatorTree dominatorTree = new DominatorTree(code);
+      for (int i = 0; i < dominatorTree.getSortedBlocks().length; i++) {
+        BasicBlock block = dominatorTree.getSortedBlocks()[i];
+        if (block.isMarked(noCandidate)) {
+          continue;
+        }
+        InstructionListIterator iterator = block.listIterator();
+        while (iterator.hasNext()) {
+          Instruction instruction = iterator.next();
+          if (isCSEInstructionCandidate(instruction)) {
+            List<Value> candidates = instructionToValue.get(equivalence.wrap(instruction));
+            boolean eliminated = false;
+            if (candidates.size() > 0) {
+              for (Value candidate : candidates) {
+                if (dominatorTree.dominatedBy(block, candidate.definition.getBlock())
+                    && shareCatchHandlers(instruction, candidate.definition)) {
+                  instruction.outValue().replaceUsers(candidate);
+                  eliminated = true;
+                  iterator.removeOrReplaceByDebugLocalRead();
+                  break;  // Don't try any more candidates.
+                }
               }
             }
-          }
-          if (!eliminated) {
-            instructionToValue.put(equivalence.wrap(instruction), instruction.outValue());
+            if (!eliminated) {
+              instructionToValue.put(equivalence.wrap(instruction), instruction.outValue());
+            }
           }
         }
       }
     }
+    code.returnMarkingColor(noCandidate);
     assert code.isConsistentSSA();
   }
 
