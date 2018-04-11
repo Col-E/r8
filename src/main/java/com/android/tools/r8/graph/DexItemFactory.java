@@ -483,7 +483,7 @@ public class DexItemFactory {
   }
 
   // Debugging support to extract marking string.
-  synchronized public Marker extractMarker() {
+  public synchronized Marker extractMarker() {
     // This is slow but it is not needed for any production code yet.
     for (DexString dexString : strings.keySet()) {
       Marker result = Marker.parse(dexString.toString());
@@ -492,6 +492,20 @@ public class DexItemFactory {
       }
     }
     return null;
+  }
+
+  // Debugging support to extract marking string.
+  // Find all markers.
+  public synchronized List<Marker> extractMarkers() {
+    // This is slow but it is not needed for any production code yet.
+    List<Marker> markers = new ArrayList<>();
+    for (DexString dexString : strings.keySet()) {
+      Marker marker = Marker.parse(dexString.toString());
+      if (marker != null) {
+        markers.add(marker);
+      }
+    }
+    return markers;
   }
 
   synchronized public DexType createType(DexString descriptor) {

@@ -6,6 +6,7 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.ApplicationWriter;
+import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -16,6 +17,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -86,9 +88,10 @@ public class DexFileMergerHelper {
         AppInfo appInfo = new AppInfo(app);
         app = D8.optimize(app, appInfo, options, timing, executor);
 
+        List<Marker> markers = app.dexItemFactory.extractMarkers();
+
         assert !options.hasMethodsFilter();
-        new ApplicationWriter(
-                app, options, D8.getMarker(options), null, NamingLens.getIdentityLens(), null, null)
+        new ApplicationWriter(app, options, markers, null, NamingLens.getIdentityLens(), null, null)
             .write(executor);
         options.printWarnings();
       } catch (ExecutionException e) {
@@ -100,5 +103,12 @@ public class DexFileMergerHelper {
     } finally {
       executor.shutdown();
     }
+  }
+
+  public static void runForTesting(D8Command command, boolean dontCreateMarkerInD8)
+      throws IOException, CompilationException {
+    InternalOptions options = command.getInternalOptions();
+    options.testing.dontCreateMarkerInD8 = dontCreateMarkerInD8;
+    D8.runForTesting(command.getInputApp(), options);
   }
 }

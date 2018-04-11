@@ -46,7 +46,7 @@ public class ApplicationWriter {
   public final NamingLens namingLens;
   public final String proguardSeedsData;
   public final InternalOptions options;
-  public DexString markerString;
+  public List<DexString> markerStrings;
   public DexIndexedConsumer programConsumer;
   public final ProguardMapSupplier proguardMapSupplier;
 
@@ -110,7 +110,7 @@ public class ApplicationWriter {
   public ApplicationWriter(
       DexApplication application,
       InternalOptions options,
-      Marker marker,
+      List<Marker> markers,
       String deadCode,
       NamingLens namingLens,
       String proguardSeedsData,
@@ -118,7 +118,7 @@ public class ApplicationWriter {
     this(
         application,
         options,
-        marker,
+        markers,
         deadCode,
         namingLens,
         proguardSeedsData,
@@ -129,7 +129,7 @@ public class ApplicationWriter {
   public ApplicationWriter(
       DexApplication application,
       InternalOptions options,
-      Marker marker,
+      List<Marker> markers,
       String deadCode,
       NamingLens namingLens,
       String proguardSeedsData,
@@ -139,9 +139,12 @@ public class ApplicationWriter {
     this.application = application;
     assert options != null;
     this.options = options;
-    this.markerString = (marker == null)
-        ? null
-        : application.dexItemFactory.createString(marker.toString());
+    if (markers != null && !markers.isEmpty()) {
+      this.markerStrings = new ArrayList<>();
+      for (Marker marker : markers) {
+        this.markerStrings.add(application.dexItemFactory.createString(marker.toString()));
+      }
+    }
     this.deadCode = deadCode;
     this.namingLens = namingLens;
     this.proguardSeedsData = proguardSeedsData;
@@ -174,7 +177,9 @@ public class ApplicationWriter {
       insertAttributeAnnotations();
 
       application.dexItemFactory.sort(namingLens);
-      assert this.markerString == null || application.dexItemFactory.extractMarker() != null;
+      assert this.markerStrings == null
+          || this.markerStrings.isEmpty()
+          || application.dexItemFactory.extractMarker() != null;
 
       SortAnnotations sortAnnotations = new SortAnnotations();
       application.classes().forEach((clazz) -> clazz.addDependencies(sortAnnotations));

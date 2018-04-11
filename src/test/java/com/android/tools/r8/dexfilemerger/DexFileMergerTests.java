@@ -8,12 +8,15 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
+import com.android.tools.r8.DexFileMergerHelper;
+import com.android.tools.r8.ExtractMarker;
 import com.android.tools.r8.OutputMode;
+import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.maindexlist.MainDexListTests;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
@@ -35,16 +38,57 @@ public class DexFileMergerTests {
 
   @Rule public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
-  @Test
-  public void mergeTwoFiles() throws CompilationFailedException, IOException {
+  private Path createMergerInputWithTwoClasses(OutputMode outputMode, boolean dontCreateMarkerInD8)
+      throws CompilationFailedException, CompilationException, IOException {
     // Compile Class1 and Class2
     Path mergerInputZip = temp.newFolder().toPath().resolve("merger-input.zip");
-    D8.run(
+    D8Command command =
         D8Command.builder()
-            .setOutput(mergerInputZip, OutputMode.DexFilePerClassFile)
+            .setOutput(mergerInputZip, outputMode)
             .addProgramFiles(Paths.get(CLASS1_CLASS))
             .addProgramFiles(Paths.get(CLASS2_CLASS))
-            .build());
+            .build();
+
+    DexFileMergerHelper.runForTesting(command, dontCreateMarkerInD8);
+
+    return mergerInputZip;
+  }
+
+  private void testMarkerPreservedOrNotAdded(boolean testNotAdding)
+      throws CompilationFailedException, CompilationException, IOException, ResourceException,
+          ExecutionException {
+    Path mergerInputZip = createMergerInputWithTwoClasses(OutputMode.DexIndexed, testNotAdding);
+
+    Marker inputMarker = ExtractMarker.extractMarkerFromDexFile(mergerInputZip);
+    assertEquals(inputMarker == null, testNotAdding);
+
+    Path mergerOutputZip = temp.getRoot().toPath().resolve("merger-out.zip");
+    DexFileMerger.main(
+        new String[] {
+          "--input", mergerInputZip.toString(), "--output", mergerOutputZip.toString()
+        });
+
+    Marker outputMarker = ExtractMarker.extractMarkerFromDexFile(mergerOutputZip);
+    assertEquals(outputMarker == null, testNotAdding);
+  }
+
+  @Test
+  public void testMarkerPreserved()
+      throws CompilationFailedException, CompilationException, IOException, ResourceException,
+          ExecutionException {
+    testMarkerPreservedOrNotAdded(false);
+  }
+
+  @Test
+  public void testMarkerNotAdded()
+      throws CompilationFailedException, CompilationException, IOException, ResourceException,
+          ExecutionException {
+    testMarkerPreservedOrNotAdded(true);
+  }
+
+  @Test
+  public void mergeTwoFiles() throws CompilationFailedException, CompilationException, IOException {
+    Path mergerInputZip = createMergerInputWithTwoClasses(OutputMode.DexFilePerClassFile, false);
 
     Path mergerOutputZip = temp.getRoot().toPath().resolve("merger-out.zip");
     DexFileMerger.main(

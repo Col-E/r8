@@ -7,6 +7,7 @@ package com.android.tools.r8;
 import com.android.tools.r8.DexIndexedConsumer.DirectoryConsumer;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.ApplicationWriter;
+import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexApplication.Builder;
@@ -22,6 +23,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -74,10 +76,11 @@ public class DexSplitterHelper {
           DexIndexedConsumer consumer = new DirectoryConsumer(outputDir);
 
           try {
+            Marker marker = D8.getMarker(options);
             new ApplicationWriter(
                     featureApp,
                     options,
-                    D8.getMarker(options),
+                    marker == null ? null : Collections.singletonList(marker),
                     null,
                     NamingLens.getIdentityLens(),
                     null,

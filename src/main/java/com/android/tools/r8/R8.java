@@ -70,6 +70,7 @@ import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.StandardOpenOption;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -195,7 +196,7 @@ public class R8 {
         new ApplicationWriter(
                 application,
                 options,
-                marker,
+                marker == null ? null : Collections.singletonList(marker),
                 deadCode,
                 namingLens,
                 proguardSeedsData,

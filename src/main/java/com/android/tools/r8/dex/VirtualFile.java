@@ -275,8 +275,10 @@ public class VirtualFile {
       mainDexFile = new VirtualFile(0, writer.namingLens);
       assert virtualFiles.isEmpty();
       virtualFiles.add(mainDexFile);
-      if (writer.markerString != null) {
-        mainDexFile.transaction.addString(writer.markerString);
+      if (writer.markerStrings != null && !writer.markerStrings.isEmpty()) {
+        for (DexString markerString : writer.markerStrings) {
+          mainDexFile.transaction.addString(markerString);
+        }
         mainDexFile.commitTransaction();
       }
 

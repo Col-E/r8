@@ -25,6 +25,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
@@ -135,6 +136,9 @@ public final class D8 {
     if (options.hasMarker()) {
       return options.getMarker();
     }
+    if (options.testing.dontCreateMarkerInD8) {
+      return null;
+    }
     Marker marker = new Marker(Tool.D8)
         .setVersion(Version.LABEL)
         .setMinApi(options.minApiLevel);
@@ -163,7 +167,14 @@ public final class D8 {
         options.methodsFilter.forEach((m) -> System.out.println("  - " + m));
       }
       Marker marker = getMarker(options);
-      new ApplicationWriter(app, options, marker, null, NamingLens.getIdentityLens(), null, null)
+      new ApplicationWriter(
+              app,
+              options,
+              marker == null ? null : Collections.singletonList(marker),
+              null,
+              NamingLens.getIdentityLens(),
+              null,
+              null)
           .write(executor);
       options.printWarnings();
     } catch (ExecutionException e) {
