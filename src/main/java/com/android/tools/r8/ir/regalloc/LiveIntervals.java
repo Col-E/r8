@@ -7,6 +7,7 @@ import static com.android.tools.r8.dex.Constants.U16BIT_MAX;
 
 import com.android.tools.r8.code.MoveType;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.utils.CfgPrinter;
@@ -139,14 +140,9 @@ public class LiveIntervals implements Comparable<LiveIntervals> {
   }
 
   public boolean isArgumentInterval() {
-    // TODO(ager): This is pretty indirect. We might want to have a more direct indication.
-    LiveIntervals current = splitParent;
-    while (current.previousConsecutive != null) {
-      current = current.previousConsecutive;
-    }
-    return current.ranges.get(0).isInfinite();
+    Instruction definition = this.splitParent.value.definition;
+    return definition != null && definition.isArgument();
   }
-
 
   public LiveIntervals getStartOfConsecutive() {
     LiveIntervals current = this;
