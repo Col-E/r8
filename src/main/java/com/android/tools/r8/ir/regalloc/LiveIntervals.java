@@ -296,18 +296,21 @@ public class LiveIntervals implements Comparable<LiveIntervals> {
     return splitParent.computeMaxNonSpilledRegister();
   }
 
-  public boolean usesRegister(int n) {
-    if (register == n || (getType().isWide() && register + 1 == n)) {
+  public boolean usesRegister(int n, boolean otherIsWide) {
+    if (register == n) {
+      return true;
+    }
+    if (getType().isWide() && register + 1 == n) {
+      return true;
+    }
+    if (otherIsWide && register == n + 1) {
       return true;
     }
     return false;
   }
 
   public boolean hasConflictingRegisters(LiveIntervals other) {
-    if (other.usesRegister(register) || (getType().isWide() && other.usesRegister(register + 1))) {
-      return true;
-    }
-    return false;
+    return other.usesRegister(register, getType().isWide());
   }
 
   public void clearRegisterAssignment() {
