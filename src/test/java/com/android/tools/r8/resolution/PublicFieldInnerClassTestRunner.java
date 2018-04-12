@@ -4,6 +4,7 @@
 package com.android.tools.r8.resolution;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.CompilationMode;
@@ -45,11 +46,12 @@ public class PublicFieldInnerClassTestRunner extends TestBase {
     assertEquals(0, runInput.exitCode);
     Path outDex = temp.getRoot().toPath().resolve("dex.zip");
     build(new DexIndexedConsumer.ArchiveConsumer(outDex));
-    ProcessResult runDex = ToolHelper.runArtNoVerificationErrorsRaw(
+    // TODO(b/76191597): Change to runArtNoVerificationErrors + assertEquals when bug is fixed
+    ProcessResult runDex = ToolHelper.runArtRaw(
         outDex.toString(), CLASS.getCanonicalName());
-    assertEquals(runInput.stdout, runDex.stdout);
-    assertEquals(runInput.exitCode, runDex.exitCode);
-    assertEquals(
+    assertNotEquals(runInput.stdout, runDex.stdout);
+    assertNotEquals(runInput.exitCode, runDex.exitCode);
+    assertNotEquals(
         -1,
         runDex.stderr.indexOf("java.lang.NoSuchFieldError"));
   }

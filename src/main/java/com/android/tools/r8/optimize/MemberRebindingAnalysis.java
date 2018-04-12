@@ -11,9 +11,8 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
-import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
-import java.util.Map;
+import com.google.common.collect.Sets;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -125,7 +124,7 @@ public class MemberRebindingAnalysis {
       // Rebind to the lowest library class or program class.
       if (target != null && target.method != method) {
         DexClass targetClass = appInfo.definitionFor(target.method.holder);
-        // If the target class is not public but the targeted method is, we might run into
+        // If the targetclass is not public but the targeted method is, we might run into
         // visibility problems when rebinding.
         if (!targetClass.accessFlags.isPublic() && target.accessFlags.isPublic()) {
           // If the original class is public and this method is public, it might have been called
@@ -179,37 +178,27 @@ public class MemberRebindingAnalysis {
     return null;
   }
 
-  private void computeFieldRebinding(Map<DexField, Set<DexEncodedMethod>> fields,
+  private void computeFieldRebinding(Set<DexField> fields,
       BiFunction<DexType, DexField, DexEncodedField> lookup,
       BiFunction<DexClass, DexField, DexEncodedField> lookupTargetOnClass) {
-    for (Map.Entry<DexField, Set<DexEncodedMethod>> entry : fields.entrySet()) {
-      DexField field = entry.getKey();
+    for (DexField field : fields) {
       field = lense.lookupField(field, null);
       DexEncodedField target = lookup.apply(field.getHolder(), field);
       // Rebind to the lowest library class or program class. Do not rebind accesses to fields that
-      // are not visible from the access context.
-      Set<DexEncodedMethod> contexts = entry.getValue();
-      if (target != null && target.field != field && contexts.stream().allMatch(context ->
-          isVisibleFromOriginalContext(context.method.getHolder(), target))) {
+      // are not public, as this might lead to access violation errors.
+      if (target != null && target.field != field && isVisibleFromOtherClasses(target)) {
         builder.map(field, validTargetFor(target.field, field, lookupTargetOnClass));
       }
     }
   }
 
-  private boolean isVisibleFromOriginalContext(DexType context, DexEncodedField field) {
-    DexType holderType = field.field.getHolder();
-    DexClass holder = appInfo.definitionFor(holderType);
-    if (holder == null) {
-      return false;
+  private boolean isVisibleFromOtherClasses(DexEncodedField field) {
+    // If the field is not public, the visibility on the class can not be a further constraint.
+    if (!field.accessFlags.isPublic()) {
+      return true;
     }
-    Constraint classVisibility =
-        Constraint.deriveConstraint(context, holderType, holder.accessFlags, appInfo);
-    if (classVisibility == Constraint.NEVER) {
-      return false;
-    }
-    Constraint fieldVisibility =
-        Constraint.deriveConstraint(context, holderType, field.accessFlags, appInfo);
-    return fieldVisibility != Constraint.NEVER;
+    // If the field is public, then a non-public holder class will further constrain visibility.
+    return appInfo.definitionFor(field.field.getHolder()).accessFlags.isPublic();
   }
 
   public GraphLense run() {
@@ -224,15 +213,10 @@ public class MemberRebindingAnalysis {
     // Likewise static invokes.
     computeMethodRebinding(appInfo.staticInvokes, this::anyLookup);
 
-    computeFieldRebinding(appInfo.staticFieldReads,
+    computeFieldRebinding(Sets.union(appInfo.staticFieldReads, appInfo.staticFieldWrites),
         appInfo::resolveFieldOn, DexClass::lookupField);
-    computeFieldRebinding(appInfo.staticFieldWrites,
+    computeFieldRebinding(Sets.union(appInfo.instanceFieldReads, appInfo.instanceFieldWrites),
         appInfo::resolveFieldOn, DexClass::lookupField);
-    computeFieldRebinding(appInfo.instanceFieldReads,
-        appInfo::resolveFieldOn, DexClass::lookupField);
-    computeFieldRebinding(appInfo.instanceFieldWrites,
-        appInfo::resolveFieldOn, DexClass::lookupField);
-
     return builder.build(appInfo.dexItemFactory, lense);
   }
 }
