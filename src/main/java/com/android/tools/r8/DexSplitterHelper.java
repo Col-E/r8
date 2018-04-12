@@ -23,8 +23,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ExecutionException;
@@ -53,6 +53,7 @@ public class DexSplitterHelper {
         DexApplication app =
             new ApplicationReader(command.getInputApp(), options, timing).read(null, executor);
 
+        List<Marker> markers = app.dexItemFactory.extractMarkers();
 
         ClassNameMapper mapper = null;
         if (proguardMap != null) {
@@ -76,11 +77,10 @@ public class DexSplitterHelper {
           DexIndexedConsumer consumer = new DirectoryConsumer(outputDir);
 
           try {
-            Marker marker = D8.getMarker(options);
             new ApplicationWriter(
                     featureApp,
                     options,
-                    marker == null ? null : Collections.singletonList(marker),
+                    markers,
                     null,
                     NamingLens.getIdentityLens(),
                     null,
@@ -121,5 +121,12 @@ public class DexSplitterHelper {
       featureApplication.addProgramClass(clazz);
     }
     return applications;
+  }
+
+  public static void runD8ForTesting(D8Command command, boolean dontCreateMarkerInD8)
+      throws IOException, CompilationException {
+    InternalOptions options = command.getInternalOptions();
+    options.testing.dontCreateMarkerInD8 = dontCreateMarkerInD8;
+    D8.runForTesting(command.getInputApp(), options);
   }
 }

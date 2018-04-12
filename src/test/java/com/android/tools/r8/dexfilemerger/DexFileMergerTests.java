@@ -49,7 +49,7 @@ public class DexFileMergerTests {
             .addProgramFiles(Paths.get(CLASS2_CLASS))
             .build();
 
-    DexFileMergerHelper.runForTesting(command, dontCreateMarkerInD8);
+    DexFileMergerHelper.runD8ForTesting(command, dontCreateMarkerInD8);
 
     return mergerInputZip;
   }

@@ -10,14 +10,16 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
+import com.android.tools.r8.DexSplitterHelper;
+import com.android.tools.r8.ExtractMarker;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
+import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dexsplitter.DexSplitter.Options;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
@@ -53,6 +55,65 @@ public class DexSplitterTests {
 
   @Rule public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
+  private Path createInput(boolean dontCreateMarkerInD8)
+      throws IOException, CompilationFailedException, CompilationException {
+    // Initial normal compile to create dex files.
+    Path inputZip = temp.newFolder().toPath().resolve("input.zip");
+    D8Command command =
+        D8Command.builder()
+            .setOutput(inputZip, OutputMode.DexIndexed)
+            .addProgramFiles(Paths.get(CLASS1_CLASS))
+            .addProgramFiles(Paths.get(CLASS2_CLASS))
+            .addProgramFiles(Paths.get(CLASS3_CLASS))
+            .addProgramFiles(Paths.get(CLASS3_INNER_CLASS))
+            .addProgramFiles(Paths.get(CLASS4_CLASS))
+            .addProgramFiles(Paths.get(CLASS4_LAMBDA_INTERFACE))
+            .build();
+
+    DexSplitterHelper.runD8ForTesting(command, dontCreateMarkerInD8);
+
+    return inputZip;
+  }
+
+  private void testMarker(boolean addMarkerToInput)
+      throws CompilationFailedException, CompilationException, IOException, ResourceException,
+          ExecutionException {
+    Path inputZip = createInput(!addMarkerToInput);
+
+    Path output = temp.newFolder().toPath().resolve("output");
+    Files.createDirectory(output);
+    Path splitSpec = createSplitSpec();
+
+    DexSplitter.main(
+        new String[] {
+          "--input", inputZip.toString(),
+          "--output", output.toString(),
+          "--feature-splits", splitSpec.toString()
+        });
+
+    Path base = output.resolve("base").resolve("classes.dex");
+    Path feature = output.resolve("feature1").resolve("classes.dex");
+
+    for (Path path : new Path[] {inputZip, base, feature}) {
+      Marker marker = ExtractMarker.extractMarkerFromDexFile(path);
+      assertEquals(addMarkerToInput, marker != null);
+    }
+  }
+
+  @Test
+  public void testMarkerPreserved()
+      throws CompilationFailedException, CompilationException, IOException, ResourceException,
+          ExecutionException {
+    testMarker(true);
+  }
+
+  @Test
+  public void testMarkerNotAdded()
+      throws CompilationFailedException, CompilationException, IOException, ResourceException,
+          ExecutionException {
+    testMarker(false);
+  }
+
   /**
    * To test the file splitting we have 3 classes that we distribute like this: Class1 -> base
    * Class2 -> feature1 Class3 -> feature1
@@ -71,19 +132,7 @@ public class DexSplitterTests {
   private void noObfuscation(boolean useOptions)
       throws IOException, CompilationFailedException, FeatureMappingException,
       ResourceException, ExecutionException, CompilationException {
-    // Initial normal compile to create dex files.
-    Path inputZip = temp.newFolder().toPath().resolve("input.zip");
-    D8.run(
-        D8Command.builder()
-            .setOutput(inputZip, OutputMode.DexIndexed)
-            .addProgramFiles(Paths.get(CLASS1_CLASS))
-            .addProgramFiles(Paths.get(CLASS2_CLASS))
-            .addProgramFiles(Paths.get(CLASS3_CLASS))
-            .addProgramFiles(Paths.get(CLASS3_INNER_CLASS))
-            .addProgramFiles(Paths.get(CLASS4_CLASS))
-            .addProgramFiles(Paths.get(CLASS4_LAMBDA_INTERFACE))
-            .build());
-
+    Path inputZip = createInput(false);
     Path output = temp.newFolder().toPath().resolve("output");
     Files.createDirectory(output);
     Path splitSpec = createSplitSpec();
@@ -189,19 +238,7 @@ public class DexSplitterTests {
   private void splitFromJars(boolean useOptions, boolean explicitBase)
       throws IOException, CompilationFailedException, FeatureMappingException, ResourceException,
       ExecutionException, CompilationException {
-    // Initial normal compile to create dex files.
-    Path inputZip = temp.newFolder().toPath().resolve("input.zip");
-    D8.run(
-        D8Command.builder()
-            .setOutput(inputZip, OutputMode.DexIndexed)
-            .addProgramFiles(Paths.get(CLASS1_CLASS))
-            .addProgramFiles(Paths.get(CLASS2_CLASS))
-            .addProgramFiles(Paths.get(CLASS3_CLASS))
-            .addProgramFiles(Paths.get(CLASS3_INNER_CLASS))
-            .addProgramFiles(Paths.get(CLASS4_CLASS))
-            .addProgramFiles(Paths.get(CLASS4_LAMBDA_INTERFACE))
-            .build());
-
+    Path inputZip = createInput(false);
     Path output = temp.newFolder().toPath().resolve("output");
     Files.createDirectory(output);
     Path baseJar = temp.getRoot().toPath().resolve("base.jar");
