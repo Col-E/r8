@@ -75,7 +75,6 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
 
   public static final int REGISTER_CANDIDATE_NOT_FOUND = -1;
   public static final int MIN_CONSTANT_FREE_FOR_POSITIONS = 5;
-  private static final int RESERVED_MOVE_EXCEPTION_REGISTER = 0;
 
   private enum ArgumentReuseMode {
     ALLOW_ARGUMENT_REUSE,
@@ -113,8 +112,6 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
 
   // The max register number that will fit in any dex instruction encoding.
   private static final int MAX_SMALL_REGISTER = Constants.U4BIT_MAX;
-  // We put one sentinel in front of the argument chain and one after the argument chain.
-  private static final int NUMBER_OF_SENTINEL_REGISTERS = 2;
 
   // The code for which to allocate registers.
   private final IRCode code;
@@ -125,8 +122,8 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
 
   // Mapping from basic blocks to the set of values live at entry to that basic block.
   private Map<BasicBlock, Set<Value>> liveAtEntrySets;
-  // The sentinel value starting the chain of linked argument values.
-  private Value preArgumentSentinelValue = null;
+  // The value of the first argument, or null if the method has no arguments.
+  private Value firstArgumentValue;
 
   // The set of registers that are free for allocation.
   private TreeSet<Integer> freeRegisters = new TreeSet<>();
@@ -157,9 +154,10 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   // register.
   private boolean hasDedicatedMoveExceptionRegister = false;
 
+  // We allocate a dedicated move exception register right after the arguments.
   private int getMoveExceptionRegister() {
-    return numberOfArgumentRegisters + NUMBER_OF_SENTINEL_REGISTERS +
-        RESERVED_MOVE_EXCEPTION_REGISTER;
+    assert hasDedicatedMoveExceptionRegister;
+    return numberOfArgumentRegisters;
   }
 
   private int getNextUnusedRegisterNumber() {
@@ -515,12 +513,9 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     // Compute the set of registers that is used based on all live intervals.
     Set<Integer> usedRegisters = new HashSet<>();
     for (LiveIntervals intervals : liveIntervals) {
-      // Argument sentinel values do not occupy any registers.
-      if (!isArgumentSentinelIntervals(intervals)) {
-        addRegisterIfUsed(usedRegisters, intervals);
-        for (LiveIntervals childIntervals : intervals.getSplitChildren()) {
-          addRegisterIfUsed(usedRegisters, childIntervals);
-        }
+      addRegisterIfUsed(usedRegisters, intervals);
+      for (LiveIntervals childIntervals : intervals.getSplitChildren()) {
+        addRegisterIfUsed(usedRegisters, childIntervals);
       }
     }
     // Additionally, we have used temporary registers for parallel move scheduling, those
@@ -538,11 +533,6 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       computed[i] = unused;
     }
     unusedRegisters = computed;
-  }
-
-  private boolean isArgumentSentinelIntervals(LiveIntervals intervals) {
-    return intervals.isArgumentInterval() &&
-            (intervals.getPreviousConsecutive() == null || intervals.getNextConsecutive() == null);
   }
 
   private void addRegisterIfUsed(Set<Integer> used, LiveIntervals intervals) {
@@ -567,7 +557,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
 
   @Override
   public int registersUsed() {
-    int numberOfRegister = maxRegisterNumber + 1 - NUMBER_OF_SENTINEL_REGISTERS;
+    int numberOfRegister = maxRegisterNumber + 1;
     if (unusedRegisters != null) {
       return numberOfRegister - unusedRegisters[unusedRegisters.length - 1];
     }
@@ -627,7 +617,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   // for all uses and thereby avoid moving argument values around.
   private boolean unsplitArguments() {
     boolean argumentRegisterUnsplit = false;
-    Value current = preArgumentSentinelValue;
+    Value current = firstArgumentValue;
     while (current != null) {
       LiveIntervals intervals = current.getLiveIntervals();
       assert intervals.getRegisterLimit() == Constants.U16BIT_MAX;
@@ -701,15 +691,12 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     assert allocated != NO_REGISTER;
     assert allocated >= 0;
     int register;
-    if (allocated < numberOfArgumentRegisters + NUMBER_OF_SENTINEL_REGISTERS) {
+    if (allocated < numberOfArgumentRegisters) {
       // For the |numberOfArguments| first registers map to the correct argument register.
-      // Due to the sentinel register in front of the arguments, the register number returned is
-      // the argument number starting from one.
-      register = maxRegisterNumber - (numberOfArgumentRegisters - allocated)
-          - NUMBER_OF_SENTINEL_REGISTERS;
+      register = maxRegisterNumber - (numberOfArgumentRegisters - allocated - 1);
     } else {
       // For everything else use the lower numbers.
-      register = allocated - numberOfArgumentRegisters - NUMBER_OF_SENTINEL_REGISTERS;
+      register = allocated - numberOfArgumentRegisters;
     }
     return register;
   }
@@ -730,8 +717,10 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
 
   private boolean performLinearScan(ArgumentReuseMode mode) {
     unhandled.addAll(liveIntervals);
-    LiveIntervals argumentInterval = preArgumentSentinelValue.getLiveIntervals();
-    while (argumentInterval != null) {
+
+    Value argumentValue = firstArgumentValue;
+    while (argumentValue != null) {
+      LiveIntervals argumentInterval = argumentValue.getLiveIntervals();
       assert argumentInterval.getRegister() != NO_REGISTER;
       unhandled.remove(argumentInterval);
       if (mode == ArgumentReuseMode.ALLOW_ARGUMENT_REUSE) {
@@ -758,7 +747,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
           }
         }
       }
-      argumentInterval = argumentInterval.getNextConsecutive();
+      argumentValue = argumentValue.getNextConsecutive();
     }
 
     // We have to be careful when it comes to the register allocated for a move exception
@@ -783,7 +772,6 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
             unhandled.remove(intervals);
             moveExceptionIntervals.add(intervals);
             if (moveExceptionRegister == NO_REGISTER) {
-              assert RESERVED_MOVE_EXCEPTION_REGISTER == 0;
               moveExceptionRegister = getFreeConsecutiveRegisters(1);
               assert moveExceptionRegister == getMoveExceptionRegister();
               assert !freeRegisters.contains(moveExceptionRegister);
@@ -957,6 +945,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
           allocateLinkedIntervals(destIntervals);
           // Restore the register allocation state.
           freeRegisters = savedFreeRegisters;
+          // In case maxRegisterNumber has changed, update freeRegisters.
           for (int i = savedUnusedRegisterNumber, j = getNextUnusedRegisterNumber(); i < j; i++) {
             freeRegisters.add(i);
           }
@@ -993,7 +982,6 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     // Exclude move exception register if the first interval overlaps a move exception interval.
     if (overlapsMoveExceptionInterval(current) &&
         freeRegisters.remove(getMoveExceptionRegister())) {
-      assert RESERVED_MOVE_EXCEPTION_REGISTER == 0;
       excludedRegisters.add(getMoveExceptionRegister());
     }
     // Select registers.
@@ -1260,13 +1248,9 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     }
 
     if (registerConstraint < Constants.U16BIT_MAX) {
-      // We always have argument sentinels that will not actually occupy registers. Therefore, we
-      // allow the use of NUMBER_OF_SENTINEL_REGISTERS more than the limit.
-      registerConstraint += NUMBER_OF_SENTINEL_REGISTERS;
       if (mode == ArgumentReuseMode.DISALLOW_ARGUMENT_REUSE) {
         // We know that none of the argument registers will be reused. Therefore, we allow the
-        // use of number of arguments more registers. (We will never use number of arguments +
-        // number of sentinel registers of them.)
+        // use of number of arguments more registers.
         registerConstraint += numberOfArgumentRegisters;
       }
     }
@@ -1275,26 +1259,18 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     RegisterPositions freePositions = new RegisterPositions(registerConstraint + 1);
 
     if (mode == ArgumentReuseMode.ALLOW_ARGUMENT_REUSE) {
-      // The sentinel registers cannot be used and we block them.
-      freePositions.set(0, 0);
       if (options.debug && !code.method.accessFlags.isStatic()) {
         // If we are generating debug information, we pin the this value register since the
         // debugger expects to always be able to find it in the input register.
         assert numberOfArgumentRegisters > 0;
-        assert preArgumentSentinelValue.getNextConsecutive().requiredRegisters() == 1;
-        freePositions.set(1, 0);
-      }
-      int lastSentinelRegister = numberOfArgumentRegisters + NUMBER_OF_SENTINEL_REGISTERS - 1;
-      if (lastSentinelRegister <= registerConstraint) {
-        freePositions.set(lastSentinelRegister, 0);
+        assert firstArgumentValue != null && firstArgumentValue.requiredRegisters() == 1;
+        freePositions.set(0, 0);
       }
     } else {
       // Argument reuse is not allowed and we block all the argument registers so that
       // arguments are never free.
-      for (int i = 0; i < numberOfArgumentRegisters + NUMBER_OF_SENTINEL_REGISTERS; i++) {
-        if (i <= registerConstraint) {
-          freePositions.set(i, 0);
-        }
+      for (int i = 0; i < numberOfArgumentRegisters && i <= registerConstraint; i++) {
+        freePositions.set(i, 0);
       }
     }
 
@@ -1541,8 +1517,11 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     active.add(unhandledInterval);
   }
 
-  private int getLargestCandidate(int registerConstraint, RegisterPositions freePositions,
-      boolean needsRegisterPair, RegisterPositions.Type type) {
+  private int getLargestCandidate(
+      int registerConstraint,
+      RegisterPositions freePositions,
+      boolean needsRegisterPair,
+      RegisterPositions.Type type) {
     int candidate = REGISTER_CANDIDATE_NOT_FOUND;
     int largest = -1;
 
@@ -1552,6 +1531,10 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       }
       int freePosition = freePositions.get(i);
       if (needsRegisterPair) {
+        if (i == numberOfArgumentRegisters - 1) {
+          // The last register of the method is |i|, so we cannot use the pair (|i|, |i+1|).
+          continue;
+        }
         if (i >= registerConstraint) {
           break;
         }
@@ -1615,11 +1598,8 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   private void allocateBlockedRegister(LiveIntervals unhandledInterval) {
     int registerConstraint = unhandledInterval.getRegisterLimit();
     if (registerConstraint < Constants.U16BIT_MAX) {
-      // We always have argument sentinels that will not actually occupy registers. Therefore, we
-      // allow the use of NUMBER_OF_SENTINEL_REGISTERS more than the limit. Additionally, we never
-      // reuse argument registers and therefore allow the use of numberOfArgumentRegisters as well.
+      // We never reuse argument registers and therefore allow the use of numberOfArgumentRegisters.
       registerConstraint += numberOfArgumentRegisters;
-      registerConstraint += NUMBER_OF_SENTINEL_REGISTERS;
     }
 
     // Initialize all candidate registers to Integer.MAX_VALUE.
@@ -1657,7 +1637,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
 
     // Disallow the reuse of argument registers by always treating them as being used
     // at instruction number 0.
-    for (int i = 0; i < numberOfArgumentRegisters + NUMBER_OF_SENTINEL_REGISTERS; i++) {
+    for (int i = 0; i < numberOfArgumentRegisters; i++) {
       usePositions.set(i, 0);
     }
 
@@ -1949,8 +1929,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   }
 
   private void insertMoves() {
-    SpillMoveSet spillMoves =
-        new SpillMoveSet(this, code, numberOfArgumentRegisters + NUMBER_OF_SENTINEL_REGISTERS);
+    SpillMoveSet spillMoves = new SpillMoveSet(this, code, numberOfArgumentRegisters);
     for (LiveIntervals intervals : liveIntervals) {
       if (intervals.hasSplits()) {
         LiveIntervals current = intervals;
@@ -2261,53 +2240,36 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     return true;
   }
 
-  private Value createSentinelRegisterValue() {
-    return createValue(ValueType.OBJECT);
-  }
-
-  private LiveIntervals createSentinelLiveInterval(Value sentinelValue) {
-    LiveIntervals sentinelInterval = new LiveIntervals(sentinelValue);
-    sentinelInterval.addRange(LiveRange.INFINITE);
-    liveIntervals.add(sentinelInterval);
-    return sentinelInterval;
-  }
-
-  private void linkArgumentValues() {
-    Value current = preArgumentSentinelValue = createSentinelRegisterValue();
-    for (Value argument : code.collectArguments()) {
-      current.linkTo(argument);
-      current = argument;
-    }
-    Value endSentinel = createSentinelRegisterValue();
-    current.linkTo(endSentinel);
-  }
-
-  private void setupArgumentLiveIntervals() {
-    Value current = preArgumentSentinelValue;
-    LiveIntervals currentIntervals = createSentinelLiveInterval(current);
-    current = current.getNextConsecutive();
+  private void createArgumentLiveIntervals(List<Value> arguments) {
     int index = 0;
-    while (current.getNextConsecutive() != null) {
+    for (Value argument : arguments) {
       // Add a live range to this value from the beginning of the block up to the argument
       // instruction to avoid dead arguments without a range. This may create an actually empty
       // range like [0,0[ but that works, too.
-      LiveIntervals argumentInterval = new LiveIntervals(current);
-      argumentInterval.addRange(new LiveRange(0, index * INSTRUCTION_NUMBER_DELTA));
-      index++;
+      LiveIntervals argumentInterval = new LiveIntervals(argument);
+      argumentInterval.addRange(new LiveRange(0, index));
       liveIntervals.add(argumentInterval);
-      currentIntervals.link(argumentInterval);
-      currentIntervals = argumentInterval;
-      current = current.getNextConsecutive();
+      index += INSTRUCTION_NUMBER_DELTA;
     }
-    currentIntervals.link(createSentinelLiveInterval(current));
+  }
+
+  private void linkArgumentValuesAndIntervals(List<Value> arguments) {
+    if (!arguments.isEmpty()) {
+      Value last = firstArgumentValue = arguments.get(0);
+      for (int i = 1; i < arguments.size(); ++i) {
+        Value next = arguments.get(i);
+        last.linkTo(next);
+        last.getLiveIntervals().link(next.getLiveIntervals());
+        last = next;
+      }
+    }
   }
 
   private void insertArgumentMoves() {
     // Record the constraint that incoming arguments are in consecutive registers.
-    // We also insert sentinel registers before and after the arguments at this
-    // point.
-    linkArgumentValues();
-    setupArgumentLiveIntervals();
+    List<Value> arguments = code.collectArguments();
+    createArgumentLiveIntervals(arguments);
+    linkArgumentValuesAndIntervals(arguments);
     for (BasicBlock block : code.blocks) {
       InstructionListIterator it = block.listIterator();
       while (it.hasNext()) {
@@ -2336,30 +2298,32 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
 
   private void pinArgumentRegisters() {
     // Special handling for arguments. Pin their register.
-    int register = 0;
-    Value current = preArgumentSentinelValue;
-    while (current != null) {
-      LiveIntervals argumentLiveInterval = current.getLiveIntervals();
-      // Pin the argument register. We use getFreeConsecutiveRegisters to make sure that we update
-      // the max register number.
-      register = getFreeConsecutiveRegisters(argumentLiveInterval.requiredRegisters());
-      assignRegister(argumentLiveInterval, register);
-      current = current.getNextConsecutive();
+    if (firstArgumentValue != null) {
+      int register = 0;
+      Value current = firstArgumentValue;
+      while (current != null) {
+        LiveIntervals argumentLiveInterval = current.getLiveIntervals();
+        // Pin the argument register. We use getFreeConsecutiveRegisters to make sure that we update
+        // the max register number.
+        register = getFreeConsecutiveRegisters(argumentLiveInterval.requiredRegisters());
+        assignRegister(argumentLiveInterval, register);
+        current = current.getNextConsecutive();
+      }
+      // If the last argument is wide, then its register will be numberOfArgumentRegisters - 2.
+      assert register == numberOfArgumentRegisters - 1 || register == numberOfArgumentRegisters - 2;
     }
-    assert register == numberOfArgumentRegisters + NUMBER_OF_SENTINEL_REGISTERS - 1;
   }
 
-  private int getFreeConsecutiveRegisters(int numberOfRegister) {
-    List<Integer> unused = new ArrayList<>();
-    int first = getNextFreeRegister();
+  private int getFreeConsecutiveRegisters(int numberOfRegisters) {
+    Iterator<Integer> freeRegistersIterator = freeRegisters.iterator();
+    int first = getNextFreeRegister(freeRegistersIterator);
     int current = first;
-    while ((current - first + 1) != numberOfRegister) {
-      for (int i = 0; i < numberOfRegister - 1; i++) {
-        int next = getNextFreeRegister();
-        if (next != current + 1) {
-          for (int j = first; j <= current; j++) {
-            unused.add(j);
-          }
+    while (current - first + 1 != numberOfRegisters) {
+      for (int i = 0; i < numberOfRegisters - 1; i++) {
+        int next = getNextFreeRegister(freeRegistersIterator);
+        // We cannot allow that some are argument registers and some or not, because they will no
+        // longer be consecutive if we later decide to increment maxRegisterNumber.
+        if (next != current + 1 || next == numberOfArgumentRegisters) {
           first = next;
           current = first;
           break;
@@ -2367,13 +2331,21 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
         current++;
       }
     }
-    freeRegisters.addAll(unused);
+    for (int register = first; register < first + numberOfRegisters; ++register) {
+      freeRegisters.remove(register);
+    }
+    // Either all the consecutive registers are from the argument registers, or all are from the
+    // non-argument registers.
+    assert (first < numberOfArgumentRegisters
+            && first + numberOfRegisters - 1 < numberOfArgumentRegisters)
+        || (first >= numberOfArgumentRegisters
+            && first + numberOfRegisters - 1 >= numberOfArgumentRegisters);
     return first;
   }
 
-  private int getNextFreeRegister() {
-    if (freeRegisters.size() > 0) {
-      return freeRegisters.pollFirst();
+  private int getNextFreeRegister(Iterator<Integer> freeRegistersIterator) {
+    if (freeRegistersIterator.hasNext()) {
+      return freeRegistersIterator.next();
     }
     maxRegisterNumber = getNextUnusedRegisterNumber();
     return maxRegisterNumber;
