@@ -298,10 +298,11 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     ranges.sort(LocalRange::compareTo);
 
     // At each instruction compute the changes to live locals.
-    boolean localsChanged = false;
     LinkedList<LocalRange> openRanges = new LinkedList<>();
     Iterator<LocalRange> rangeIterator = ranges.iterator();
     LocalRange nextStartingRange = rangeIterator.next();
+    Int2ReferenceMap<DebugLocalInfo> ending = new Int2ReferenceOpenHashMap<>();
+    Int2ReferenceMap<DebugLocalInfo> starting = new Int2ReferenceOpenHashMap<>();
 
     for (BasicBlock block : blocks) {
       // Skip past all spill moves to obtain the instruction number of the actual first instruction.
@@ -347,53 +348,58 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
           instruction.clearDebugValues();
           instructionIterator.remove();
         }
-        if (isSpillInstruction(instruction)) {
+        if (!instructionIterator.hasNext()) {
+          break;
+        }
+        Instruction nextInstruction = instructionIterator.peekNext();
+        if (isSpillInstruction(nextInstruction)) {
+          // No need to insert a DebugLocalsChange instruction before a spill instruction.
           continue;
         }
-        int index = instruction.getNumber();
+        int index = nextInstruction.getNumber();
         ListIterator<LocalRange> it = openRanges.listIterator(0);
-        Int2ReferenceMap<DebugLocalInfo> ending = new Int2ReferenceOpenHashMap<>();
-        Int2ReferenceMap<DebugLocalInfo> starting = new Int2ReferenceOpenHashMap<>();
         while (it.hasNext()) {
           LocalRange openRange = it.next();
-          // Any local change is inserted after the instruction so end is inclusive.
-          if (openRange.end <= index) {
+          // Close ranges up-to but excluding the first instruction.
+          if (!isLocalLiveAtInstruction(nextInstruction, openRange)) {
             it.remove();
             assert currentLocals.get(openRange.register) == openRange.local;
             currentLocals.remove(openRange.register);
-            localsChanged = true;
             ending.put(openRange.register, openRange.local);
           }
         }
-        while (nextStartingRange != null && nextStartingRange.start <= index) {
+        while (nextStartingRange != null && nextStartingRange.start < index) {
           // If the range is live at this index open it.
-          if (index < nextStartingRange.end) {
+          if (isLocalLiveAtInstruction(nextInstruction, nextStartingRange)) {
             openRanges.add(nextStartingRange);
             assert !currentLocals.containsKey(nextStartingRange.register);
             currentLocals.put(nextStartingRange.register, nextStartingRange.local);
             starting.put(nextStartingRange.register, nextStartingRange.local);
-            localsChanged = true;
           }
           nextStartingRange = rangeIterator.hasNext() ? rangeIterator.next() : null;
         }
-        if (localsChanged && instruction.getBlock().exit() != instruction) {
-          DebugLocalsChange change = createLocalsChange(ending, starting);
-          if (change != null) {
-            instructionIterator.add(change);
+        // Compute the final change in locals and insert it before nextInstruction.
+        boolean localsChanged = !ending.isEmpty() || !starting.isEmpty();
+        if (localsChanged) {
+          boolean skipChange =
+              nextInstruction == nextInstruction.getBlock().exit() && nextInstruction.isGoto();
+          if (!skipChange) {
+            DebugLocalsChange change = createLocalsChange(ending, starting);
+            if (change != null) {
+              // Insert the DebugLocalsChange instruction before nextInstruction.
+              instructionIterator.add(change);
+            }
           }
+          // Create new maps for the next DebugLocalsChange instruction.
+          ending = new Int2ReferenceOpenHashMap<>();
+          starting = new Int2ReferenceOpenHashMap<>();
         }
-        localsChanged = false;
       }
     }
   }
 
   private static boolean isLocalLiveAtInstruction(Instruction instruction, LocalRange range) {
     return isLocalLiveAtInstruction(instruction, range.start, range.end, range.value);
-  }
-
-  public static boolean isLocalLiveAtInstruction(
-      Instruction instruction, LiveRange range, Value value) {
-    return isLocalLiveAtInstruction(instruction, range.start, range.end, value);
   }
 
   private static boolean isLocalLiveAtInstruction(
