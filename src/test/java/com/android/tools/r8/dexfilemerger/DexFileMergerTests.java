@@ -38,7 +38,7 @@ public class DexFileMergerTests {
 
   @Rule public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
-  private Path createMergerInputWithTwoClasses(OutputMode outputMode, boolean dontCreateMarkerInD8)
+  private Path createMergerInputWithTwoClasses(OutputMode outputMode, boolean addMarker)
       throws CompilationFailedException, CompilationException, IOException {
     // Compile Class1 and Class2
     Path mergerInputZip = temp.newFolder().toPath().resolve("merger-input.zip");
@@ -49,18 +49,18 @@ public class DexFileMergerTests {
             .addProgramFiles(Paths.get(CLASS2_CLASS))
             .build();
 
-    DexFileMergerHelper.runD8ForTesting(command, dontCreateMarkerInD8);
+    DexFileMergerHelper.runD8ForTesting(command, !addMarker);
 
     return mergerInputZip;
   }
 
-  private void testMarkerPreservedOrNotAdded(boolean testNotAdding)
+  private void testMarker(boolean addMarkerToInput)
       throws CompilationFailedException, CompilationException, IOException, ResourceException,
           ExecutionException {
-    Path mergerInputZip = createMergerInputWithTwoClasses(OutputMode.DexIndexed, testNotAdding);
+    Path mergerInputZip = createMergerInputWithTwoClasses(OutputMode.DexIndexed, addMarkerToInput);
 
     Marker inputMarker = ExtractMarker.extractMarkerFromDexFile(mergerInputZip);
-    assertEquals(inputMarker == null, testNotAdding);
+    assertEquals(addMarkerToInput, inputMarker != null);
 
     Path mergerOutputZip = temp.getRoot().toPath().resolve("merger-out.zip");
     DexFileMerger.main(
@@ -69,21 +69,21 @@ public class DexFileMergerTests {
         });
 
     Marker outputMarker = ExtractMarker.extractMarkerFromDexFile(mergerOutputZip);
-    assertEquals(outputMarker == null, testNotAdding);
+    assertEquals(addMarkerToInput, outputMarker != null);
   }
 
   @Test
   public void testMarkerPreserved()
       throws CompilationFailedException, CompilationException, IOException, ResourceException,
           ExecutionException {
-    testMarkerPreservedOrNotAdded(false);
+    testMarker(true);
   }
 
   @Test
   public void testMarkerNotAdded()
       throws CompilationFailedException, CompilationException, IOException, ResourceException,
           ExecutionException {
-    testMarkerPreservedOrNotAdded(true);
+    testMarker(false);
   }
 
   @Test
