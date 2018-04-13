@@ -15,7 +15,9 @@ import com.android.tools.r8.code.DivInt;
 import com.android.tools.r8.code.DivInt2Addr;
 import com.android.tools.r8.code.Goto;
 import com.android.tools.r8.code.InvokeStatic;
+import com.android.tools.r8.code.InvokeStaticRange;
 import com.android.tools.r8.code.InvokeVirtual;
+import com.android.tools.r8.code.InvokeVirtualRange;
 import com.android.tools.r8.code.MoveResult;
 import com.android.tools.r8.code.MoveResultWide;
 import com.android.tools.r8.code.Return;
@@ -844,7 +846,7 @@ public class OutlineTest extends SmaliTestBase {
     List<DexType> r = new ArrayList<>();
     for (int i = 0; i < clazz.getDexClass().directMethods().length; i++) {
       if (clazz.getDexClass().directMethods()[i].getCode().asDexCode().instructions[0]
-          instanceof InvokeVirtual) {
+          instanceof InvokeVirtualRange) {
         r.add(clazz.getDexClass().directMethods()[i].method.proto.returnType);
       }
     }
@@ -1090,9 +1092,9 @@ public class OutlineTest extends SmaliTestBase {
     DexEncodedMethod method = getMethod(processedApplication, signature);
     DexCode code = method.getCode().asDexCode();
     assertEquals(2, code.instructions.length);
-    assertTrue(code.instructions[0] instanceof InvokeStatic);
+    assertTrue(code.instructions[0] instanceof InvokeStaticRange);
     assertTrue(code.instructions[1] instanceof ReturnObject);
-    InvokeStatic invoke = (InvokeStatic) code.instructions[0];
+    InvokeStaticRange invoke = (InvokeStaticRange) code.instructions[0];
     assertEquals(firstOutlineMethodName(), invoke.getMethod().qualifiedName());
 
     // Run code and check result.
@@ -1294,9 +1296,9 @@ public class OutlineTest extends SmaliTestBase {
     DexEncodedMethod method = getMethod(processedApplication, signature);
     DexCode code = method.getCode().asDexCode();
     assertEquals(2, code.instructions.length);
-    assertTrue(code.instructions[0] instanceof InvokeStatic);
+    assertTrue(code.instructions[0] instanceof InvokeStaticRange);
     assertTrue(code.instructions[1] instanceof ReturnVoid);
-    InvokeStatic invoke = (InvokeStatic) code.instructions[0];
+    InvokeStaticRange invoke = (InvokeStaticRange) code.instructions[0];
     assertEquals(firstOutlineMethodName(), invoke.getMethod().qualifiedName());
 
     // Run code and check result.

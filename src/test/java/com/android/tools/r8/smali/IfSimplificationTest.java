@@ -14,7 +14,7 @@ import com.android.tools.r8.code.IfGtz;
 import com.android.tools.r8.code.IfLez;
 import com.android.tools.r8.code.IfLtz;
 import com.android.tools.r8.code.IfNez;
-import com.android.tools.r8.code.InvokeVirtual;
+import com.android.tools.r8.code.InvokeVirtualRange;
 import com.android.tools.r8.code.Return;
 import com.android.tools.r8.code.ReturnObject;
 import com.android.tools.r8.graph.DexCode;
@@ -391,7 +391,7 @@ public class IfSimplificationTest extends SmaliTestBase {
     );
     DexCode code = method.getCode().asDexCode();
     assertEquals(3, code.instructions.length);
-    assertTrue(code.instructions[0] instanceof InvokeVirtual);
+    assertTrue(code.instructions[0] instanceof InvokeVirtualRange);
     assertTrue(code.instructions[1] instanceof Const4);
     assertEquals(0, ((Const4) code.instructions[1]).B);
     assertTrue(code.instructions[2] instanceof ReturnObject);

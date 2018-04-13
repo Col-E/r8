@@ -13,6 +13,7 @@ import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.code.Const4;
 import com.android.tools.r8.code.InvokeDirect;
+import com.android.tools.r8.code.InvokeDirectRange;
 import com.android.tools.r8.code.IputObject;
 import com.android.tools.r8.code.NewInstance;
 import com.android.tools.r8.code.ReturnVoid;
@@ -46,26 +47,27 @@ public class MemberValuePropagationTest {
     Path processedApp = runR8(EXAMPLE_KEEP);
     DexInspector inspector = new DexInspector(processedApp);
     ClassSubject clazz = inspector.clazz(WRITE_ONLY_FIELD + ".WriteOnlyCls");
-    clazz.forAllMethods(methodSubject -> {
-      if (methodSubject.isClassInitializer()) {
-        DexEncodedMethod encodedMethod = methodSubject.getMethod();
-        DexCode code = encodedMethod.getCode().asDexCode();
-        assertEquals(4, code.instructions.length);
-        assertTrue(code.instructions[0] instanceof NewInstance);
-        assertTrue(code.instructions[1] instanceof Const4);
-        assertTrue(code.instructions[2] instanceof InvokeDirect);
-        assertTrue(code.instructions[3] instanceof ReturnVoid);
-      }
-      if (methodSubject.isInstanceInitializer()) {
-        DexEncodedMethod encodedMethod = methodSubject.getMethod();
-        DexCode code = encodedMethod.getCode().asDexCode();
-        assertEquals(4, code.instructions.length);
-        assertTrue(code.instructions[0] instanceof InvokeDirect);
-        assertTrue(code.instructions[1] instanceof NewInstance);
-        assertTrue(code.instructions[2] instanceof InvokeDirect);
-        assertTrue(code.instructions[3] instanceof ReturnVoid);
-      }
-    });
+    clazz.forAllMethods(
+        methodSubject -> {
+          if (methodSubject.isClassInitializer()) {
+            DexEncodedMethod encodedMethod = methodSubject.getMethod();
+            DexCode code = encodedMethod.getCode().asDexCode();
+            assertEquals(4, code.instructions.length);
+            assertTrue(code.instructions[0] instanceof NewInstance);
+            assertTrue(code.instructions[1] instanceof Const4);
+            assertTrue(code.instructions[2] instanceof InvokeDirect);
+            assertTrue(code.instructions[3] instanceof ReturnVoid);
+          }
+          if (methodSubject.isInstanceInitializer()) {
+            DexEncodedMethod encodedMethod = methodSubject.getMethod();
+            DexCode code = encodedMethod.getCode().asDexCode();
+            assertEquals(4, code.instructions.length);
+            assertTrue(code.instructions[0] instanceof InvokeDirectRange);
+            assertTrue(code.instructions[1] instanceof NewInstance);
+            assertTrue(code.instructions[2] instanceof InvokeDirect);
+            assertTrue(code.instructions[3] instanceof ReturnVoid);
+          }
+        });
   }
 
   @Test
@@ -73,28 +75,29 @@ public class MemberValuePropagationTest {
     Path processedApp = runR8(DONT_OPTIMIZE);
     DexInspector inspector = new DexInspector(processedApp);
     ClassSubject clazz = inspector.clazz(WRITE_ONLY_FIELD + ".WriteOnlyCls");
-    clazz.forAllMethods(methodSubject -> {
-      if (methodSubject.isClassInitializer()) {
-        DexEncodedMethod encodedMethod = methodSubject.getMethod();
-        DexCode code = encodedMethod.getCode().asDexCode();
-        assertEquals(5, code.instructions.length);
-        assertTrue(code.instructions[0] instanceof NewInstance);
-        assertTrue(code.instructions[1] instanceof Const4);
-        assertTrue(code.instructions[2] instanceof InvokeDirect);
-        assertTrue(code.instructions[3] instanceof SputObject);
-        assertTrue(code.instructions[4] instanceof ReturnVoid);
-      }
-      if (methodSubject.isInstanceInitializer()) {
-        DexEncodedMethod encodedMethod = methodSubject.getMethod();
-        DexCode code = encodedMethod.getCode().asDexCode();
-        assertEquals(5, code.instructions.length);
-        assertTrue(code.instructions[0] instanceof InvokeDirect);
-        assertTrue(code.instructions[1] instanceof NewInstance);
-        assertTrue(code.instructions[2] instanceof InvokeDirect);
-        assertTrue(code.instructions[3] instanceof IputObject);
-        assertTrue(code.instructions[4] instanceof ReturnVoid);
-      }
-    });
+    clazz.forAllMethods(
+        methodSubject -> {
+          if (methodSubject.isClassInitializer()) {
+            DexEncodedMethod encodedMethod = methodSubject.getMethod();
+            DexCode code = encodedMethod.getCode().asDexCode();
+            assertEquals(5, code.instructions.length);
+            assertTrue(code.instructions[0] instanceof NewInstance);
+            assertTrue(code.instructions[1] instanceof Const4);
+            assertTrue(code.instructions[2] instanceof InvokeDirect);
+            assertTrue(code.instructions[3] instanceof SputObject);
+            assertTrue(code.instructions[4] instanceof ReturnVoid);
+          }
+          if (methodSubject.isInstanceInitializer()) {
+            DexEncodedMethod encodedMethod = methodSubject.getMethod();
+            DexCode code = encodedMethod.getCode().asDexCode();
+            assertEquals(5, code.instructions.length);
+            assertTrue(code.instructions[0] instanceof InvokeDirectRange);
+            assertTrue(code.instructions[1] instanceof NewInstance);
+            assertTrue(code.instructions[2] instanceof InvokeDirect);
+            assertTrue(code.instructions[3] instanceof IputObject);
+            assertTrue(code.instructions[4] instanceof ReturnVoid);
+          }
+        });
   }
 
   private Path runR8(Path proguardConfig)

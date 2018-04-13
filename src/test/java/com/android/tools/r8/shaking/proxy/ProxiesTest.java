@@ -11,8 +11,8 @@ import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.code.Instruction;
-import com.android.tools.r8.code.InvokeInterface;
-import com.android.tools.r8.code.InvokeVirtual;
+import com.android.tools.r8.code.InvokeInterfaceRange;
+import com.android.tools.r8.code.InvokeVirtualRange;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.invokesuper.Consumer;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
@@ -92,9 +92,9 @@ public class ProxiesTest extends TestBase {
 
   private void noInterfaceKept(DexInspector inspector) {
     // Indirectly assert that method is inlined into x, y and z.
-    assertEquals(1, countInstructionInX(inspector, InvokeInterface.class));
-    assertEquals(1, countInstructionInY(inspector, InvokeInterface.class));
-    assertEquals(1, countInstructionInZ(inspector, InvokeVirtual.class));
+    assertEquals(1, countInstructionInX(inspector, InvokeInterfaceRange.class));
+    assertEquals(1, countInstructionInY(inspector, InvokeInterfaceRange.class));
+    assertEquals(1, countInstructionInZ(inspector, InvokeVirtualRange.class));
   }
 
   @Test
@@ -106,11 +106,11 @@ public class ProxiesTest extends TestBase {
 
   private void baseInterfaceKept(DexInspector inspector) {
     // Indirectly assert that method is not inlined into x.
-    assertEquals(3, countInstructionInX(inspector, InvokeInterface.class));
+    assertEquals(3, countInstructionInX(inspector, InvokeInterfaceRange.class));
     // Indirectly assert that method is inlined into y and z.
-    assertEquals(1, countInstructionInY(inspector, InvokeInterface.class));
-    assertEquals(1, countInstructionInZ(inspector, InvokeVirtual.class));
-    assertEquals(1, countInstructionInZSubClass(inspector, InvokeVirtual.class));
+    assertEquals(1, countInstructionInY(inspector, InvokeInterfaceRange.class));
+    assertEquals(1, countInstructionInZ(inspector, InvokeVirtualRange.class));
+    assertEquals(1, countInstructionInZSubClass(inspector, InvokeVirtualRange.class));
   }
 
   @Test
@@ -126,11 +126,11 @@ public class ProxiesTest extends TestBase {
 
   private void subInterfaceKept(DexInspector inspector) {
     // Indirectly assert that method is not inlined into x or y.
-    assertEquals(3, countInstructionInX(inspector, InvokeInterface.class));
-    assertEquals(3, countInstructionInY(inspector, InvokeInterface.class));
+    assertEquals(3, countInstructionInX(inspector, InvokeInterfaceRange.class));
+    assertEquals(3, countInstructionInY(inspector, InvokeInterfaceRange.class));
     // Indirectly assert that method is inlined into z.
-    assertEquals(1, countInstructionInZ(inspector, InvokeVirtual.class));
-    assertEquals(1, countInstructionInZSubClass(inspector, InvokeVirtual.class));
+    assertEquals(1, countInstructionInZ(inspector, InvokeVirtualRange.class));
+    assertEquals(1, countInstructionInZSubClass(inspector, InvokeVirtualRange.class));
   }
 
   @Test
@@ -148,10 +148,10 @@ public class ProxiesTest extends TestBase {
 
   private void classKept(DexInspector inspector) {
     // Indirectly assert that method is not inlined into x, y or z.
-    assertEquals(3, countInstructionInX(inspector, InvokeInterface.class));
-    assertEquals(3, countInstructionInY(inspector, InvokeInterface.class));
-    assertEquals(3, countInstructionInZ(inspector, InvokeVirtual.class));
-    assertEquals(3, countInstructionInZSubClass(inspector, InvokeVirtual.class));
+    assertEquals(3, countInstructionInX(inspector, InvokeInterfaceRange.class));
+    assertEquals(3, countInstructionInY(inspector, InvokeInterfaceRange.class));
+    assertEquals(3, countInstructionInZ(inspector, InvokeVirtualRange.class));
+    assertEquals(3, countInstructionInZSubClass(inspector, InvokeVirtualRange.class));
   }
 
   @Test

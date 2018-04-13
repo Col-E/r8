@@ -225,8 +225,9 @@ abstract class KotlinLambdaClassValidator
         ((com.android.tools.r8.code.NewInstance) instructions[0]).getType() != lambda.type) {
       throw structureError(LAMBDA_CLINIT_CODE_VERIFICATION_FAILED);
     }
-    if (!(instructions[1] instanceof com.android.tools.r8.code.InvokeDirect) ||
-        !isLambdaInitializerMethod(lambda, instructions[1].getMethod())) {
+    if (!(instructions[1] instanceof com.android.tools.r8.code.InvokeDirect
+            || instructions[1] instanceof com.android.tools.r8.code.InvokeDirectRange)
+        || !isLambdaInitializerMethod(lambda, instructions[1].getMethod())) {
       throw structureError(LAMBDA_CLINIT_CODE_VERIFICATION_FAILED);
     }
     if (!(instructions[2] instanceof SputObject) ||
