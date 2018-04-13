@@ -53,7 +53,7 @@ public class InvokeStatic extends InvokeMethod {
     com.android.tools.r8.code.Instruction instruction;
     int argumentRegisters = requiredArgumentRegisters();
     builder.requestOutgoingRegisters(argumentRegisters);
-    if (needsRangedInvoke(builder)) {
+    if (needsRangedInvoke()) {
       assert argumentsConsecutive(builder);
       int firstRegister = argumentRegisterValue(0, builder);
       instruction = new InvokeStaticRange(firstRegister, argumentRegisters, getInvokedMethod());

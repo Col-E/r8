@@ -160,8 +160,9 @@ final class JStyleLambdaGroup extends KotlinLambdaGroup {
     int validateInstanceInitializerEpilogue(
         com.android.tools.r8.code.Instruction[] instructions, int index)
         throws LambdaStructureError {
-      if (!(instructions[index] instanceof com.android.tools.r8.code.InvokeDirect) ||
-          instructions[index].getMethod() != kotlin.factory.objectMethods.constructor) {
+      if (!(instructions[index] instanceof com.android.tools.r8.code.InvokeDirect
+              || instructions[index] instanceof com.android.tools.r8.code.InvokeDirectRange)
+          || instructions[index].getMethod() != kotlin.factory.objectMethods.constructor) {
         throw structureError(LAMBDA_INIT_CODE_VERIFICATION_FAILED);
       }
       index++;

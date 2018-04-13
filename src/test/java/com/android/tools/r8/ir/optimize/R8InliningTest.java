@@ -18,7 +18,7 @@ import com.android.tools.r8.code.Goto;
 import com.android.tools.r8.code.IfEqz;
 import com.android.tools.r8.code.Iget;
 import com.android.tools.r8.code.Instruction;
-import com.android.tools.r8.code.InvokeVirtual;
+import com.android.tools.r8.code.InvokeVirtualRange;
 import com.android.tools.r8.code.MoveResult;
 import com.android.tools.r8.code.MulInt2Addr;
 import com.android.tools.r8.code.PackedSwitch;
@@ -179,23 +179,27 @@ public class R8InliningTest extends TestBase {
     MethodSubject m = clazz.method("int", "inlinable", ImmutableList.of("inlining.A"));
     assertTrue(m.isPresent());
     DexCode code = m.getMethod().getCode().asDexCode();
-    checkInstructions(code, ImmutableList.of(
-        Iget.class,
-        // TODO(b/70572176): below two could be replaced with Iget via inlining
-        InvokeVirtual.class,
-        MoveResult.class,
-        AddInt2Addr.class,
-        Return.class));
+    checkInstructions(
+        code,
+        ImmutableList.of(
+            Iget.class,
+            // TODO(b/70572176): below two could be replaced with Iget via inlining
+            InvokeVirtualRange.class,
+            MoveResult.class,
+            AddInt2Addr.class,
+            Return.class));
 
     m = clazz.method("int", "notInlinable", ImmutableList.of("inlining.A"));
     assertTrue(m.isPresent());
     code = m.getMethod().getCode().asDexCode();
-    checkInstructions(code, ImmutableList.of(
-        InvokeVirtual.class,
-        MoveResult.class,
-        Iget.class,
-        AddInt2Addr.class,
-        Return.class));
+    checkInstructions(
+        code,
+        ImmutableList.of(
+            InvokeVirtualRange.class,
+            MoveResult.class,
+            Iget.class,
+            AddInt2Addr.class,
+            Return.class));
 
     m = clazz.method("int", "notInlinableDueToMissingNpe", ImmutableList.of("inlining.A"));
     assertTrue(m.isPresent());
@@ -210,13 +214,15 @@ public class R8InliningTest extends TestBase {
     m = clazz.method("int", "notInlinableDueToSideEffect", ImmutableList.of("inlining.A"));
     assertTrue(m.isPresent());
     code = m.getMethod().getCode().asDexCode();
-    checkInstructions(code, ImmutableList.of(
-        IfEqz.class,
-        InvokeVirtual.class,
-        MoveResult.class,
-        Goto.class,
-        Iget.class,
-        Return.class));
+    checkInstructions(
+        code,
+        ImmutableList.of(
+            IfEqz.class,
+            InvokeVirtualRange.class,
+            MoveResult.class,
+            Goto.class,
+            Iget.class,
+            Return.class));
 
     m = clazz.method("int", "notInlinableOnThrow", ImmutableList.of("java.lang.Throwable"));
     assertTrue(m.isPresent());
@@ -241,15 +247,17 @@ public class R8InliningTest extends TestBase {
     MethodSubject m = clazz.method("int", "conditionalOperator", ImmutableList.of("inlining.A"));
     assertTrue(m.isPresent());
     DexCode code = m.getMethod().getCode().asDexCode();
-    checkInstructions(code, ImmutableList.of(
-        IfEqz.class,
-        // TODO(b/70794661): below two could be replaced with Iget via inlining if access
-        // modification is allowed.
-        InvokeVirtual.class,
-        MoveResult.class,
-        Goto.class,
-        Const4.class,
-        Return.class));
+    checkInstructions(
+        code,
+        ImmutableList.of(
+            IfEqz.class,
+            // TODO(b/70794661): below two could be replaced with Iget via inlining if access
+            // modification is allowed.
+            InvokeVirtualRange.class,
+            MoveResult.class,
+            Goto.class,
+            Const4.class,
+            Return.class));
 
     m = clazz.method("int", "moreControlFlows",
         ImmutableList.of("inlining.A", "inlining.Nullability$Factor"));
@@ -257,7 +265,7 @@ public class R8InliningTest extends TestBase {
     code = m.getMethod().getCode().asDexCode();
     ImmutableList.Builder<Class<? extends Instruction>> builder = ImmutableList.builder();
     // Enum#ordinal
-    builder.add(InvokeVirtual.class);
+    builder.add(InvokeVirtualRange.class);
     builder.add(MoveResult.class);
     builder.add(PackedSwitch.class);
     for (int i = 0; i < 4; ++i) {
@@ -268,7 +276,7 @@ public class R8InliningTest extends TestBase {
     builder.add(IfEqz.class);
     builder.add(IfEqz.class);
     // TODO(b/70794661): below two could be replaced with Iget via inlining
-    builder.add(InvokeVirtual.class);
+    builder.add(InvokeVirtualRange.class);
     builder.add(MoveResult.class);
     builder.add(MulInt2Addr.class);
     builder.add(Return.class);

@@ -170,8 +170,9 @@ final class KStyleLambdaGroup extends KotlinLambdaGroup {
         throw structureError(LAMBDA_INIT_CODE_VERIFICATION_FAILED);
       }
       index++;
-      if (!(instructions[index] instanceof com.android.tools.r8.code.InvokeDirect) ||
-          instructions[index].getMethod() != kotlin.functional.lambdaInitializerMethod) {
+      if (!(instructions[index] instanceof com.android.tools.r8.code.InvokeDirect
+              || instructions[index] instanceof com.android.tools.r8.code.InvokeDirectRange)
+          || instructions[index].getMethod() != kotlin.functional.lambdaInitializerMethod) {
         throw structureError(LAMBDA_INIT_CODE_VERIFICATION_FAILED);
       }
       index++;

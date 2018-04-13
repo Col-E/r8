@@ -103,7 +103,7 @@ public abstract class Invoke extends Instruction {
   }
 
   protected int argumentRegisterValue(int i, DexBuilder builder) {
-    assert needsRangedInvoke(builder);
+    assert needsRangedInvoke();
     if (i < arguments().size()) {
       // If argument values flow into ranged invokes, all the ranged invoke arguments
       // are arguments to this method in order. Therefore, we use the incoming registers
@@ -116,24 +116,17 @@ public abstract class Invoke extends Instruction {
   }
 
   protected int fillArgumentRegisters(DexBuilder builder, int[] registers) {
+    assert !needsRangedInvoke();
     int i = 0;
     for (Value value : arguments()) {
       int register = builder.allocatedRegister(value, getNumber());
+      assert register <= Constants.U4BIT_MAX;
       for (int j = 0; j < value.requiredRegisters(); j++) {
         assert i < 5;
         registers[i++] = register++;
       }
     }
     return i;
-  }
-
-  protected boolean hasHighArgumentRegister(DexBuilder builder) {
-    for (Value value : arguments()) {
-      if (builder.argumentValueUsesHighRegister(value, getNumber())) {
-        return true;
-      }
-    }
-    return false;
   }
 
   protected boolean argumentsConsecutive(DexBuilder builder) {
@@ -206,19 +199,8 @@ public abstract class Invoke extends Instruction {
     return true;
   }
 
-  private boolean argumentsAreConsecutiveInputArgumentsWithHighRegisters(
-      DexBuilder builder) {
-    if (!argumentsAreConsecutiveInputArguments()) {
-      return false;
-    }
-    Value lastArgument = arguments().get(arguments().size() - 1);
-    return builder.argumentOrAllocateRegister(lastArgument, getNumber()) > Constants.U4BIT_MAX;
-  }
-
-  protected boolean needsRangedInvoke(DexBuilder builder) {
-    return requiredArgumentRegisters() > 5
-        || hasHighArgumentRegister(builder)
-        || argumentsAreConsecutiveInputArgumentsWithHighRegisters(builder);
+  protected boolean needsRangedInvoke() {
+    return requiredArgumentRegisters() > 5 || argumentsAreConsecutiveInputArguments();
   }
 
   @Override
