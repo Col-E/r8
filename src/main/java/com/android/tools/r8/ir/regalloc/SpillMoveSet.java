@@ -296,8 +296,18 @@ class SpillMoveSet {
         scheduler.addMove(
             new RegisterMove(move.to.getRegister(), move.type, move.from.getValue().definition));
       } else if (move.to.getRegister() != move.from.getRegister()) {
-        scheduler.addMove(
-            new RegisterMove(move.to.getRegister(), move.from.getRegister(), move.type));
+        // In case the runtime might have a bound-check elimination bug we make sure to define all
+        // indexing constants with an actual const instruction rather than a move. This appears to
+        // avoid a bug where the index variable could end up being uninitialized.
+        if (code.options.canHaveBoundsCheckEliminationBug()
+            && move.from.getValue().isConstNumber()
+            && move.type == MoveType.SINGLE) {
+          scheduler.addMove(
+              new RegisterMove(move.to.getRegister(), move.type, move.from.getValue().definition));
+        } else {
+          scheduler.addMove(
+              new RegisterMove(move.to.getRegister(), move.from.getRegister(), move.type));
+        }
       }
     }
     scheduler.schedule();
