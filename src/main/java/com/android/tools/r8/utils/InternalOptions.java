@@ -558,4 +558,26 @@ public class InternalOptions {
   public boolean canHaveCmpLongBug() {
     return minApiLevel < AndroidApiLevel.L.getLevel();
   }
+
+  // Some Lollipop VMs incorrectly optimize code with mul2addr instructions. In particular,
+  // the following hash code method produces wrong results after optimizations:
+  //
+  //    0:   0x00: IgetObject          v0, v3, Field java.lang.Class MultiClassKey.first
+  //    1:   0x02: InvokeVirtual       { v0 } Ljava/lang/Object;->hashCode()I
+  //    2:   0x05: MoveResult          v0
+  //    3:   0x06: Const16             v1, 0x001f (31)
+  //    4:   0x08: MulInt2Addr         v1, v0
+  //    5:   0x09: IgetObject          v2, v3, Field java.lang.Class MultiClassKey.second
+  //    6:   0x0b: InvokeVirtual       { v2 } Ljava/lang/Object;->hashCode()I
+  //    7:   0x0e: MoveResult          v2
+  //    8:   0x0f: AddInt2Addr         v1, v2
+  //    9:   0x10: Return              v1
+  //
+  // It seems that the issue is the MulInt2Addr instructions. Avoiding that, the VM computes
+  // hash codes correctly also after optimizations.
+  //
+  // This issue has only been observed on a Verizon Ellipsis 8 tablet. See b/76115465.
+  public boolean canHaveMul2AddrBug() {
+    return minApiLevel < AndroidApiLevel.M.getLevel();
+  }
 }

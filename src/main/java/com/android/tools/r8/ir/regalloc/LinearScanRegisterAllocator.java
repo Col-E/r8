@@ -584,6 +584,11 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     return getRegisterForValue(value, instructionNumber);
   }
 
+  @Override
+  public InternalOptions getOptions() {
+    return options;
+  }
+
   private ImmutableList<BasicBlock> computeLivenessInformation() {
     ImmutableList<BasicBlock> blocks = code.numberInstructions();
     liveAtEntrySets = code.computeLiveAtEntrySets();

@@ -12,6 +12,7 @@ import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
+import com.android.tools.r8.utils.InternalOptions;
 import org.junit.Test;
 
 public class IdenticalAfterRegisterAllocationTest {
@@ -40,6 +41,11 @@ public class IdenticalAfterRegisterAllocationTest {
     @Override
     public int getArgumentOrAllocateRegisterForValue(Value value, int instructionNumber) {
       return value.getNumber();
+    }
+
+    @Override
+    public InternalOptions getOptions() {
+      return new InternalOptions();
     }
   }
 

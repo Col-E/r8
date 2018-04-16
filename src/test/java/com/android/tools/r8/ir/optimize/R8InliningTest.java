@@ -27,6 +27,7 @@ import com.android.tools.r8.code.Return;
 import com.android.tools.r8.code.Throw;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.DexInspector.MethodSubject;
@@ -96,6 +97,7 @@ public class R8InliningTest extends TestBase {
     R8Command command =
         R8Command.builder()
             .addProgramFiles(getInputFile())
+            .setMinApiLevel(AndroidApiLevel.M.getLevel())
             .setOutput(out, OutputMode.DexIndexed)
             .addProguardConfigurationFiles(Paths.get(keepRulesFile))
             .build();

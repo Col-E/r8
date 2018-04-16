@@ -26,8 +26,13 @@ public abstract class Binop extends Instruction {
   public Binop(NumericType type, Value dest, Value left, Value right) {
     super(dest);
     this.type = type;
-    addInValue(left);
-    addInValue(right);
+    if (isCommutative() && (!right.isConstNumber() && left.isConstNumber())) {
+      addInValue(right);
+      addInValue(left);
+    } else {
+      addInValue(left);
+      addInValue(right);
+    }
   }
 
   public NumericType getNumericType() {
@@ -53,7 +58,8 @@ public abstract class Binop extends Instruction {
       return ((leftRegister == destRegister) ||
           (isCommutative() && rightRegister == destRegister)) &&
           leftRegister <= U4BIT_MAX &&
-          rightRegister <= U4BIT_MAX;
+          rightRegister <= U4BIT_MAX &&
+          !(allocator.getOptions().canHaveMul2AddrBug() && isMul());
     }
     return false;
   }

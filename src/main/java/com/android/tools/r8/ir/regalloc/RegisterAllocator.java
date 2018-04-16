@@ -4,6 +4,7 @@
 package com.android.tools.r8.ir.regalloc;
 
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.utils.InternalOptions;
 
 public interface RegisterAllocator {
   void allocateRegisters(boolean debug);
@@ -11,4 +12,5 @@ public interface RegisterAllocator {
   int getRegisterForValue(Value value, int instructionNumber);
   boolean argumentValueUsesHighRegister(Value value, int instructionNumber);
   int getArgumentOrAllocateRegisterForValue(Value value, int instructionNumber);
+  InternalOptions getOptions();
 }
