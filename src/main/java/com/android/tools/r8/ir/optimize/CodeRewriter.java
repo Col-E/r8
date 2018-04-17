@@ -1549,8 +1549,7 @@ public class CodeRewriter {
     insertAt.nextUntil(i ->
         i.inValues().contains(instruction.outValue())
         || i.isJumpInstruction()
-        || (hasCatchHandlers && i.instructionTypeCanThrow())
-        || (options.canHaveBoundsCheckEliminationBug() && i.isArrayLength()));
+        || (hasCatchHandlers && i.instructionTypeCanThrow()));
     Instruction next = insertAt.previous();
     instruction.forceSetPosition(
         next.isGoto() ? next.asGoto().getTarget().getPosition() : next.getPosition());
