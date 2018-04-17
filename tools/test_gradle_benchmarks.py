@@ -18,10 +18,14 @@ def parse_arguments():
     description='Run D8 or DX on gradle apps located in'
                 ' third_party/benchmarks/.'
                 ' Report Golem-compatible RunTimeRaw values.')
+  result.add_option('--skip_download',
+                    help='Don\'t automatically pull down dependencies.',
+                    default=False, action='store_true')
   parser.add_argument('--tool',
                       choices=['dx', 'd8'],
                       required=True,
                       help='Compiler tool to use.')
+
   parser.add_argument('--benchmark',
                       help='Which benchmark to run, default all')
   return parser.parse_args()
@@ -201,18 +205,19 @@ def Main():
               ['clean']),
 
   ]
-
-  EnsurePresence(os.path.join('third_party', 'benchmarks', 'android-sdk'),
-                 'android SDK')
-  EnsurePresence(os.path.join('third_party', 'gradle-plugin'),
-                 'Android Gradle plugin')
+  if not args.skip_download:
+    EnsurePresence(os.path.join('third_party', 'benchmarks', 'android-sdk'),
+                   'android SDK')
+    EnsurePresence(os.path.join('third_party', 'gradle-plugin'),
+                   'Android Gradle plugin')
   toRun = buildTimeBenchmarks
   if args.benchmark:
     toRun = [b for b in toRun if b.displayName == args.benchmark]
     if len(toRun) != 1:
       raise AssertionError("Unknown benchmark: " + args.benchmark)
   for benchmark in toRun:
-    benchmark.EnsurePresence()
+    if not args.skip_download:
+      benchmark.EnsurePresence()
     benchmark.Clean()
     stdOut = benchmark.Build(tool, desugarMode)
     PrintBuildTimeForGolem(benchmark, stdOut)
