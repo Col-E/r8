@@ -18,7 +18,7 @@ def parse_arguments():
     description='Run D8 or DX on gradle apps located in'
                 ' third_party/benchmarks/.'
                 ' Report Golem-compatible RunTimeRaw values.')
-  result.add_option('--skip_download',
+  parser.add_argument('--skip_download',
                     help='Don\'t automatically pull down dependencies.',
                     default=False, action='store_true')
   parser.add_argument('--tool',
