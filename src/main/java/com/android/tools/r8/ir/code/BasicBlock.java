@@ -495,6 +495,8 @@ public class BasicBlock {
 
   public void removePhi(Phi phi) {
     phis.remove(phi);
+    assert currentDefinitions == null || !currentDefinitions.containsValue(phi)
+        : "Attempt to remove Phi " + phi + " which is present in currentDefinitions";
   }
 
   public void add(Instruction next) {
@@ -678,7 +680,17 @@ public class BasicBlock {
   public void replaceCurrentDefinitions(Value oldValue, Value newValue) {
     assert oldValue.definition.getBlock() == this;
     assert !oldValue.isUsed();
-    currentDefinitions.replaceAll((index, value) -> value == oldValue ? newValue : value);
+    for (Entry<Integer, Value> entry : currentDefinitions.entrySet()) {
+      if (entry.getValue() == oldValue) {
+        if (oldValue.isPhi()) {
+          oldValue.asPhi().removeDefinitionsUser(currentDefinitions);
+        }
+        entry.setValue(newValue);
+        if (newValue.isPhi()) {
+          newValue.asPhi().addDefinitionsUser(currentDefinitions);
+        }
+      }
+    }
   }
 
   public void updateCurrentDefinition(int register, Value value, EdgeType readingEdge) {
