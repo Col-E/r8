@@ -43,14 +43,18 @@ public class FeatureClassMapping {
   HashSet<FeaturePredicate> mappings = new HashSet<>();
 
   Path mappingFile;
+  String baseName;
+
+  static final String DEFAULT_BASE_NAME = "base";
 
   static final String COMMENT = "#";
   static final String SEPARATOR = ":";
-  static final String BASE_NAME = "base";
+
 
   public static FeatureClassMapping fromSpecification(Path file)
       throws FeatureMappingException, IOException {
     FeatureClassMapping mapping = new FeatureClassMapping();
+    mapping.baseName = DEFAULT_BASE_NAME;
     List<String> lines = FileUtils.readAllLines(file);
     for (int i = 0; i < lines.size(); i++) {
       String line = lines.get(i);
@@ -59,9 +63,10 @@ public class FeatureClassMapping {
     return mapping;
   }
 
-  public static FeatureClassMapping fromJarFiles(List<FeatureJar> featureJars)
+  public static FeatureClassMapping fromJarFiles(List<FeatureJar> featureJars, String baseName)
       throws FeatureMappingException, IOException {
     FeatureClassMapping mapping = new FeatureClassMapping();
+    mapping.baseName = baseName != null ? baseName : DEFAULT_BASE_NAME;
     for (FeatureJar featureJar : featureJars) {
       Path jarPath = Paths.get(featureJar.getJar());
       ArchiveClassFileProvider provider = new ArchiveClassFileProvider(jarPath);
@@ -97,7 +102,7 @@ public class FeatureClassMapping {
       }
     }
     if (bestMatch == null) {
-      return BASE_NAME;
+      return baseName;
     }
     return bestMatch.feature;
   }

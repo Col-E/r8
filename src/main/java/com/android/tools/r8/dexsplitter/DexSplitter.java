@@ -25,6 +25,7 @@ import java.util.concurrent.ExecutionException;
 public class DexSplitter {
 
   private static final String DEFAULT_OUTPUT_DIR = "output";
+  private static final String DEFAULT_BASE_NAME = "base";
 
   private static final boolean PRINT_ARGS = false;
 
@@ -63,6 +64,7 @@ public class DexSplitter {
   public static class Options {
     private List<String> inputArchives = new ArrayList<>();
     private List<FeatureJar> featureJars = new ArrayList<>();
+    private String baseOutputName = DEFAULT_BASE_NAME;
     private String output = DEFAULT_OUTPUT_DIR;
     private String featureSplitMapping;
     private String proguardMap;
@@ -89,6 +91,14 @@ public class DexSplitter {
 
     public void setProguardMap(String proguardMap) {
       this.proguardMap = proguardMap;
+    }
+
+    public String getBaseOutputName() {
+      return baseOutputName;
+    }
+
+    public void setBaseOutputName(String baseOutputName) {
+      this.baseOutputName = baseOutputName;
     }
 
     public void addInputArchive(String inputArchive) {
@@ -159,6 +169,11 @@ public class DexSplitter {
         options.setProguardMap(proguardMap);
         continue;
       }
+      String baseOutputName = OptionsParsing.tryParseSingle(context, "--base-output-name", null);
+      if (baseOutputName != null) {
+        options.setBaseOutputName(baseOutputName);
+        continue;
+      }
       String featureSplit = OptionsParsing.tryParseSingle(context, "--feature-splits", null);
       if (featureSplit != null) {
         options.setFeatureSplitMapping(featureSplit);
@@ -175,7 +190,7 @@ public class DexSplitter {
       return FeatureClassMapping.fromSpecification(Paths.get(options.getFeatureSplitMapping()));
     }
     assert !options.getFeatureJars().isEmpty();
-    return FeatureClassMapping.fromJarFiles(options.getFeatureJars());
+    return FeatureClassMapping.fromJarFiles(options.getFeatureJars(), options.getBaseOutputName());
   }
 
   private static void run(String[] args)

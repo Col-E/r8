@@ -280,6 +280,9 @@ public class DexSplitterTests {
       options.setOutput(output.toString());
       if (explicitBase) {
         options.addFeatureJar(baseJar.toString());
+      } else {
+        // Ensure that we can rename base (if people called a feature base)
+        options.setBaseOutputName("base_renamed");
       }
       options.addFeatureJar(featureJar.toString(), specificOutputName);
       DexSplitter.run(options);
@@ -294,11 +297,15 @@ public class DexSplitterTests {
       if (explicitBase) {
         args.add("--feature-jar");
         args.add(baseJar.toString());
+      } else {
+        args.add("--base-output-name");
+        args.add("base_renamed");
       }
 
       DexSplitter.main(args.toArray(new String[0]));
     }
-    Path base = output.resolve("base").resolve("classes.dex");
+    String baseOutputName = explicitBase ? "base" : "base_renamed";
+    Path base = output.resolve(baseOutputName).resolve("classes.dex");
     Path feature = output.resolve(specificOutputName).resolve("classes.dex");;
     validateUnobfuscatedOutput(base, feature);
   }
