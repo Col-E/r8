@@ -142,7 +142,7 @@ public class Phi extends Value {
     operands.addAll(copy.subList(current, copy.size()));
   }
 
-  public void replace(int predIndex, Value newValue) {
+  public void replaceOperandAt(int predIndex, Value newValue) {
     Value current = operands.get(predIndex);
     operands.set(predIndex, newValue);
     newValue.addPhiUser(this);

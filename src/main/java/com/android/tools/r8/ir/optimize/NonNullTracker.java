@@ -17,7 +17,13 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntList;
+import java.util.IdentityHashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.ListIterator;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -122,7 +128,7 @@ public class NonNullTracker {
         // propagated through dominance.
         Set<Instruction> users = knownToBeNonNullValue.uniqueUsers();
         Set<Instruction> dominatedUsers = Sets.newIdentityHashSet();
-        Set<Phi> dominatedPhiUsers = Sets.newIdentityHashSet();
+        Map<Phi, IntList> dominatedPhiUsersWithPotisions = new IdentityHashMap<>();
         DominatorTree dominatorTree = new DominatorTree(code);
         Set<BasicBlock> dominatedBlocks = Sets.newIdentityHashSet();
         for (BasicBlock dominatee : dominatorTree.dominatedBlocks(blockWithNonNullInstruction)) {
@@ -142,12 +148,14 @@ public class NonNullTracker {
           }
         }
         for (Phi user : knownToBeNonNullValue.uniquePhiUsers()) {
-          if (dominatedBlocks.contains(user.getBlock())) {
-            dominatedPhiUsers.add(user);
+          IntList dominatedPredecessorIndexes =
+              findDominatedPredecessorIndexesInPhi(user, knownToBeNonNullValue, dominatedBlocks);
+          if (!dominatedPredecessorIndexes.isEmpty()) {
+            dominatedPhiUsersWithPotisions.put(user, dominatedPredecessorIndexes);
           }
         }
         knownToBeNonNullValue.replaceSelectiveUsers(
-            nonNullValue, dominatedUsers, dominatedPhiUsers);
+            nonNullValue, dominatedUsers, dominatedPhiUsersWithPotisions);
       }
 
       // Add non-null on top of the successor block if the current block ends with a null check.
@@ -185,7 +193,7 @@ public class NonNullTracker {
             if (dominatorTree.dominatedBy(target, block)) {
               // Collect users of the original value that are dominated by the target block.
               Set<Instruction> dominatedUsers = Sets.newIdentityHashSet();
-              Set<Phi> dominatedPhiUsers = Sets.newIdentityHashSet();
+              Map<Phi, IntList> dominatedPhiUsersWithPositions = new IdentityHashMap<>();
               Set<BasicBlock> dominatedBlocks =
                   Sets.newHashSet(dominatorTree.dominatedBlocks(target));
               for (Instruction user : knownToBeNonNullValue.uniqueUsers()) {
@@ -194,12 +202,14 @@ public class NonNullTracker {
                 }
               }
               for (Phi user : knownToBeNonNullValue.uniquePhiUsers()) {
-                if (dominatedBlocks.contains(user.getBlock())) {
-                  dominatedPhiUsers.add(user);
+                IntList dominatedPredecessorIndexes = findDominatedPredecessorIndexesInPhi(
+                    user, knownToBeNonNullValue, dominatedBlocks);
+                if (!dominatedPredecessorIndexes.isEmpty()) {
+                  dominatedPhiUsersWithPositions.put(user, dominatedPredecessorIndexes);
                 }
               }
               // Avoid adding a non-null for the value without meaningful users.
-              if (!dominatedUsers.isEmpty() || !dominatedPhiUsers.isEmpty()) {
+              if (!dominatedUsers.isEmpty() || !dominatedPhiUsersWithPositions.isEmpty()) {
                 Value nonNullValue = code.createValue(
                     knownToBeNonNullValue.outType(), knownToBeNonNullValue.getLocalInfo());
                 NonNull nonNull = new NonNull(nonNullValue, knownToBeNonNullValue, theIf);
@@ -208,13 +218,38 @@ public class NonNullTracker {
                 targetIterator.previous();
                 targetIterator.add(nonNull);
                 knownToBeNonNullValue.replaceSelectiveUsers(
-                    nonNullValue, dominatedUsers, dominatedPhiUsers);
+                    nonNullValue, dominatedUsers, dominatedPhiUsersWithPositions);
               }
             }
           }
         }
       }
     }
+  }
+
+  private IntList findDominatedPredecessorIndexesInPhi(
+      Phi user, Value knownToBeNonNullValue, Set<BasicBlock> dominatedBlocks) {
+    assert user.getOperands().contains(knownToBeNonNullValue);
+    List<Value> operands = user.getOperands();
+    List<BasicBlock> predecessors = user.getBlock().getPredecessors();
+    assert operands.size() == predecessors.size();
+
+    IntList predecessorIndexes = new IntArrayList();
+    int index = 0;
+    Iterator<Value> operandIterator = operands.iterator();
+    Iterator<BasicBlock> predecessorIterator = predecessors.iterator();
+    while (operandIterator.hasNext() && predecessorIterator.hasNext()) {
+      Value operand = operandIterator.next();
+      BasicBlock predecessor = predecessorIterator.next();
+      // When this phi is chosen to be known-to-be-non-null value,
+      // check if the corresponding predecessor is dominated by the block where non-null is added.
+      if (operand == knownToBeNonNullValue && dominatedBlocks.contains(predecessor)) {
+        predecessorIndexes.add(index);
+      }
+
+      index++;
+    }
+    return predecessorIndexes;
   }
 
   public void cleanupNonNull(IRCode code) {

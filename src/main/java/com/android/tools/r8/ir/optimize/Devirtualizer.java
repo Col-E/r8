@@ -20,6 +20,7 @@ import com.android.tools.r8.ir.code.NonNull;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.IdentityHashMap;
 import java.util.ListIterator;
@@ -64,7 +65,7 @@ public class Devirtualizer {
             InvokeVirtual devirtualizedInvoke = devirtualizedCall.get(origin.asInvokeInterface());
             if (dominatorTree.dominatedBy(block, devirtualizedInvoke.getBlock())) {
               nonNull.src().replaceSelectiveUsers(
-                  devirtualizedInvoke.getReceiver(), ImmutableSet.of(nonNull), ImmutableSet.of());
+                  devirtualizedInvoke.getReceiver(), ImmutableSet.of(nonNull), ImmutableMap.of());
             }
           }
         }
@@ -172,7 +173,7 @@ public class Devirtualizer {
             }
 
             receiver.replaceSelectiveUsers(
-                newReceiver, ImmutableSet.of(devirtualizedInvoke), ImmutableSet.of());
+                newReceiver, ImmutableSet.of(devirtualizedInvoke), ImmutableMap.of());
             // TODO(b/72693244): Analyze it when creating a new Value or after replace*Users
             typeEnvironment.enqueue(newReceiver);
             typeEnvironment.analyze();
