@@ -10,6 +10,7 @@ import com.android.tools.r8.ir.regalloc.LiveIntervals;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.LongInterval;
 import com.google.common.collect.ImmutableSet;
+import it.unimi.dsi.fastutil.ints.IntList;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -403,7 +404,9 @@ public class Value {
   }
 
   public void replaceSelectiveUsers(
-      Value newValue, Set<Instruction> selectedInstructions, Set<Phi> selectedPhis) {
+      Value newValue,
+      Set<Instruction> selectedInstructions,
+      Map<Phi, IntList> selectedPhisWithPredecessorIndexes) {
     if (this == newValue) {
       return;
     }
@@ -416,10 +419,19 @@ public class Value {
         user.replaceValue(this, newValue);
       }
     }
+    Set<Phi> selectedPhis = selectedPhisWithPredecessorIndexes.keySet();
     for (Phi user : uniquePhiUsers()) {
       if (selectedPhis.contains(user)) {
-        fullyRemovePhiUser(user);
-        user.replaceOperand(this, newValue);
+        long count = user.getOperands().stream().filter(operand -> operand == this).count();
+        IntList positionsToUpdate = selectedPhisWithPredecessorIndexes.get(user);
+        // We may not _fully_ remove this from the phi, e.g., phi(v0, v1, v1) -> phi(v0, vn, v1).
+        if (count == positionsToUpdate.size()) {
+          fullyRemovePhiUser(user);
+        }
+        for (int position : positionsToUpdate) {
+          assert user.getOperand(position) == this;
+          user.replaceOperandAt(position, newValue);
+        }
       }
     }
     if (debugData != null) {

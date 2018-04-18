@@ -68,14 +68,8 @@ public class SimplifyIfNotNullKotlinTest extends AbstractR8KotlinTestBase {
       DexCode dexCode = getDexCode(testMethod);
       long count = Arrays.stream(dexCode.instructions)
           .filter(SimplifyIfNotNullKotlinTest::isIf).count();
-      if (allowAccessModification) {
-        // TODO(b/76202537): 3 -> 2,
-        //   Yet another null-check from checkParameterIsNotNull should subsume another from ?:
-        assertEquals(3, count);
-      } else {
-        // One null-check from force inlined coalesce and another from ?:
-        assertEquals(2, count);
-      }
+      // One null-check from force inlined coalesce and another from ?:
+      assertEquals(2, count);
     });
   }
 
