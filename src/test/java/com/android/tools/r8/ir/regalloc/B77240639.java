@@ -4,25 +4,36 @@
 package com.android.tools.r8.ir.regalloc;
 
 import static com.android.tools.r8.utils.DexInspectorMatchers.isPresent;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import java.util.List;
 import java.util.Map;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class B77240639 extends TestBase {
-  @Ignore("b/77240639")
   @Test
-  public void test() throws Exception {
+  public void test1() throws Exception {
     AndroidApp app = compileWithD8(readClasses(TestClass.class));
     DexInspector inspector = new DexInspector(app);
     ClassSubject clazz = inspector.clazz(TestClass.class);
     assertThat(clazz, isPresent());
+  }
+
+  @Test
+  public void test2() throws Exception {
+    AndroidApp app = compileWithD8(readClasses(OtherTestClass.class));
+    DexInspector inspector = new DexInspector(app);
+    ClassSubject clazz = inspector.clazz(OtherTestClass.class);
+    assertThat(clazz, isPresent());
+    ToolHelper.ProcessResult d8Result = runOnArtRaw(app, OtherTestClass.class.getCanonicalName());
+    assertThat(d8Result.stderr, not(containsString("StringIndexOutOfBoundsException")));
   }
 }
 
@@ -817,4 +828,26 @@ class TestClass {
       List<Object> v107,
       Map<String, Object> v108,
       Map<String, Object> v109);
+}
+
+class OtherTestClass {
+  public static void main(String[] args) {
+    f("x", 0, 1, "", true, true, true);
+  }
+
+  static void f(String x1, int x2, int x3, String x4, boolean x5, boolean x6, boolean x7) {
+    x1.codePointAt(0);
+    int x8 = 37;
+    for (int x9 = x2; x9 < x3; x9 += Character.charCount(x8)) {
+      if ((x8 >= 128 && x7) || x4.indexOf(37) != -1 || !x5 || x6) {
+        Object obj = new Object();
+        h(obj, x1, x2, x3, x4, x5, x6, x7);
+        obj.toString();
+      }
+    }
+    x1.substring(x2, x3);
+  }
+
+  static void h(
+      Object obj, String x1, int x2, int x3, String x4, boolean x5, boolean x6, boolean x7) {}
 }
