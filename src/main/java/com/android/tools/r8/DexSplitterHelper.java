@@ -38,6 +38,21 @@ public class DexSplitterHelper {
       String output,
       String proguardMap)
       throws IOException, CompilationException, ExecutionException {
+    ExecutorService executor = ThreadUtils.getExecutorService(ThreadUtils.NOT_SPECIFIED);
+    try {
+      run(command, featureClassMapping, output, proguardMap, executor);
+    } finally {
+      executor.shutdown();
+    }
+  }
+
+  public static void run(
+      D8Command command,
+      FeatureClassMapping featureClassMapping,
+      String output,
+      String proguardMap,
+      ExecutorService executor)
+      throws IOException, CompilationException, ExecutionException {
     InternalOptions options = command.getInternalOptions();
     options.enableDesugaring = false;
     options.enableMainDexListCheck = false;
@@ -46,62 +61,57 @@ public class DexSplitterHelper {
     options.enableInlining = false;
     options.outline.enabled = false;
 
-    ExecutorService executor = ThreadUtils.getExecutorService(ThreadUtils.NOT_SPECIFIED);
     try {
-      try {
-        Timing timing = new Timing("DexSplitter");
-        DexApplication app =
-            new ApplicationReader(command.getInputApp(), options, timing).read(null, executor);
+      Timing timing = new Timing("DexSplitter");
+      DexApplication app =
+          new ApplicationReader(command.getInputApp(), options, timing).read(null, executor);
 
-        List<Marker> markers = app.dexItemFactory.extractMarkers();
+      List<Marker> markers = app.dexItemFactory.extractMarkers();
 
-        ClassNameMapper mapper = null;
-        if (proguardMap != null) {
-          mapper = ClassNameMapper.mapperFromFile(Paths.get(proguardMap));
-        }
-        Map<String, Builder> applications = getDistribution(app, featureClassMapping, mapper);
-        for (Entry<String, Builder> entry : applications.entrySet()) {
-          DexApplication featureApp = entry.getValue().build();
-          // We use the same factory, reset sorting.
-          featureApp.dexItemFactory.resetSortedIndices();
-          assert !options.hasMethodsFilter();
-
-          // Run d8 optimize to ensure jumbo strings are handled.
-          AppInfo appInfo = new AppInfo(featureApp);
-          featureApp = D8.optimize(featureApp, appInfo, options, timing, executor);
-          // We create a specific consumer for each split.
-          Path outputDir = Paths.get(output).resolve(entry.getKey());
-          if (!Files.exists(outputDir)) {
-            Files.createDirectory(outputDir);
-          }
-          DexIndexedConsumer consumer = new DirectoryConsumer(outputDir);
-
-          try {
-            new ApplicationWriter(
-                    featureApp,
-                    options,
-                    markers,
-                    null,
-                    NamingLens.getIdentityLens(),
-                    null,
-                    null,
-                    consumer)
-                .write(executor);
-            options.printWarnings();
-          } finally {
-            consumer.finished(options.reporter);
-          }
-        }
-      } catch (ExecutionException e) {
-        R8.unwrapExecutionException(e);
-        throw new AssertionError(e); // unwrapping method should have thrown
-      } catch (FeatureMappingException e) {
-        options.reporter.error(e.getMessage());
-      } finally {
-        options.signalFinishedToProgramConsumer();
+      ClassNameMapper mapper = null;
+      if (proguardMap != null) {
+        mapper = ClassNameMapper.mapperFromFile(Paths.get(proguardMap));
       }
+      Map<String, Builder> applications = getDistribution(app, featureClassMapping, mapper);
+      for (Entry<String, Builder> entry : applications.entrySet()) {
+        DexApplication featureApp = entry.getValue().build();
+        // We use the same factory, reset sorting.
+        featureApp.dexItemFactory.resetSortedIndices();
+        assert !options.hasMethodsFilter();
+
+        // Run d8 optimize to ensure jumbo strings are handled.
+        AppInfo appInfo = new AppInfo(featureApp);
+        featureApp = D8.optimize(featureApp, appInfo, options, timing, executor);
+        // We create a specific consumer for each split.
+        Path outputDir = Paths.get(output).resolve(entry.getKey());
+        if (!Files.exists(outputDir)) {
+          Files.createDirectory(outputDir);
+        }
+        DexIndexedConsumer consumer = new DirectoryConsumer(outputDir);
+
+        try {
+          new ApplicationWriter(
+                  featureApp,
+                  options,
+                  markers,
+                  null,
+                  NamingLens.getIdentityLens(),
+                  null,
+                  null,
+                  consumer)
+              .write(executor);
+          options.printWarnings();
+        } finally {
+          consumer.finished(options.reporter);
+        }
+      }
+    } catch (ExecutionException e) {
+      R8.unwrapExecutionException(e);
+      throw new AssertionError(e); // unwrapping method should have thrown
+    } catch (FeatureMappingException e) {
+      options.reporter.error(e.getMessage());
     } finally {
-      executor.shutdown();
+      options.signalFinishedToProgramConsumer();
     }
   }
 
