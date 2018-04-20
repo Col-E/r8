@@ -184,8 +184,7 @@ public class FeatureClassMapping {
       } else if (isWildcard) {
         return className.startsWith(predicate);
       } else {
-        // We also put inner classes into the same feature.
-        return className.startsWith(predicate);
+        return className.equals(predicate);
       }
     }
   }
