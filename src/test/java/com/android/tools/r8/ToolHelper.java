@@ -1148,13 +1148,20 @@ public class ToolHelper {
   public static ProcessResult runProguardRaw(
       String proguardScript, Path inJar, Path outJar, List<Path> configs, Path map)
       throws IOException {
+    return runProguardRaw(
+        proguardScript, inJar, outJar, ToolHelper.getDefaultAndroidJar(), configs, map);
+  }
+
+  public static ProcessResult runProguardRaw(
+      String proguardScript, Path inJar, Path outJar, Path lib, List<Path> configs, Path map)
+      throws IOException {
     List<String> command = new ArrayList<>();
     command.add(proguardScript);
     command.add("-forceprocessing");  // Proguard just checks the creation time on the in/out jars.
     command.add("-injars");
     command.add(inJar.toString());
     command.add("-libraryjars");
-    command.add(ToolHelper.getDefaultAndroidJar().toString());
+    command.add(lib.toString());
     configs.forEach(config -> command.add("@" + config));
     command.add("-outjar");
     command.add(outJar.toString());
@@ -1194,6 +1201,11 @@ public class ToolHelper {
   public static ProcessResult runProguard6Raw(Path inJar, Path outJar, Path config, Path map)
       throws IOException {
     return runProguardRaw(getProguard6Script(), inJar, outJar, ImmutableList.of(config), map);
+  }
+
+  public static ProcessResult runProguard6Raw(
+      Path inJar, Path outJar, Path lib, Path config, Path map) throws IOException {
+    return runProguardRaw(getProguard6Script(), inJar, outJar, lib, ImmutableList.of(config), map);
   }
 
   public static String runProguard6(Path inJar, Path outJar, Path config, Path map)

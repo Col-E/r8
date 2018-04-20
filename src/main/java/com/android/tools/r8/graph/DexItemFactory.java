@@ -257,6 +257,33 @@ public class DexItemFactory {
           createProto(callSiteType, lookupType, stringType, methodTypeType, objectArrayType),
           createString(METAFACTORY_ALT_METHOD_NAME));
 
+  public final DexType stringConcatFactoryType =
+      createType("Ljava/lang/invoke/StringConcatFactory;");
+
+  public final DexMethod stringConcatWithConstantsMethod =
+      createMethod(
+          stringConcatFactoryType,
+          createProto(
+              callSiteType,
+              lookupType,
+              stringType,
+              methodTypeType,
+              stringType,
+              objectArrayType),
+          createString("makeConcatWithConstants")
+      );
+
+  public final DexMethod stringConcatMethod =
+      createMethod(
+          stringConcatFactoryType,
+          createProto(
+              callSiteType,
+              lookupType,
+              stringType,
+              methodTypeType),
+          createString("makeConcat")
+      );
+
   private boolean skipNameValidationForTesting = false;
 
   public void setSkipNameValidationForTesting(boolean skipNameValidationForTesting) {

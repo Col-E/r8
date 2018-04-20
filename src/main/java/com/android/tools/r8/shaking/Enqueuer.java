@@ -158,6 +158,12 @@ public class Enqueuer {
   private final SetWithReason<DexEncodedField> liveFields = new SetWithReason<>();
 
   /**
+   * Set of interface types for which a lambda expression can be reached. These never have a single
+   * interface implementation.
+   */
+  private final SetWithReason<DexType> instantiatedLambdas = new SetWithReason<>();
+
+  /**
    * A queue of items that need processing. Different items trigger different actions:
    */
   private final Queue<Action> workList = Queues.newArrayDeque();
@@ -436,6 +442,15 @@ public class Enqueuer {
         return true;
       }
       return false;
+    }
+
+    @Override
+    public void registerCallSite(DexCallSite callSite) {
+      super.registerCallSite(callSite);
+      for (DexEncodedMethod method :
+          appInfo.lookupLambdaImplementedMethods(callSite, options.reporter)) {
+        markLambdaInstantiated(method.method.holder, currentMethod);
+      }
     }
 
     private boolean registerConstClassOrCheckCast(DexType type) {
@@ -815,6 +830,10 @@ public class Enqueuer {
       Log.verbose(getClass(), "Register new instatiation of `%s`.", clazz);
     }
     workList.add(Action.markInstantiated(clazz, KeepReason.instantiatedIn(method)));
+  }
+
+  private void markLambdaInstantiated(DexType itf, DexEncodedMethod method) {
+    instantiatedLambdas.add(itf, KeepReason.instantiatedIn(method));
   }
 
   private void markDirectStaticOrConstructorMethodAsLive(
@@ -1529,12 +1548,17 @@ public class Enqueuer {
      */
     final Map<DexType, Reference2IntMap<DexField>> ordinalsMaps;
 
+    final ImmutableSortedSet<DexType> instantiatedLambdas;
+
     private AppInfoWithLiveness(AppInfoWithSubtyping appInfo, Enqueuer enqueuer) {
       super(appInfo);
       this.liveTypes = ImmutableSortedSet.copyOf(
           PresortedComparable<DexType>::slowCompareTo, enqueuer.liveTypes);
       this.instantiatedTypes = ImmutableSortedSet.copyOf(
           PresortedComparable<DexType>::slowCompareTo, enqueuer.instantiatedTypes.getItems());
+      this.instantiatedLambdas =
+          ImmutableSortedSet.copyOf(
+              PresortedComparable<DexType>::slowCompareTo, enqueuer.instantiatedLambdas.getItems());
       this.targetedMethods = toSortedDescriptorSet(enqueuer.targetedMethods.getItems());
       this.liveMethods = toSortedDescriptorSet(enqueuer.liveMethods.getItems());
       this.liveFields = toSortedDescriptorSet(enqueuer.liveFields.getItems());
@@ -1568,6 +1592,7 @@ public class Enqueuer {
       super(application);
       this.liveTypes = previous.liveTypes;
       this.instantiatedTypes = previous.instantiatedTypes;
+      this.instantiatedLambdas = previous.instantiatedLambdas;
       this.targetedMethods = previous.targetedMethods;
       this.liveMethods = previous.liveMethods;
       this.liveFields = previous.liveFields;
@@ -1603,6 +1628,7 @@ public class Enqueuer {
       super(application, lense);
       this.liveTypes = rewriteItems(previous.liveTypes, lense::lookupType);
       this.instantiatedTypes = rewriteItems(previous.instantiatedTypes, lense::lookupType);
+      this.instantiatedLambdas = rewriteItems(previous.instantiatedLambdas, lense::lookupType);
       this.targetedMethods = rewriteItems(previous.targetedMethods, lense::lookupMethod);
       this.liveMethods = rewriteItems(previous.liveMethods, lense::lookupMethod);
       this.liveFields = rewriteItems(previous.liveFields, lense::lookupField);
@@ -1645,6 +1671,7 @@ public class Enqueuer {
       super(previous);
       this.liveTypes = previous.liveTypes;
       this.instantiatedTypes = previous.instantiatedTypes;
+      this.instantiatedLambdas = previous.instantiatedLambdas;
       this.targetedMethods = previous.targetedMethods;
       this.liveMethods = previous.liveMethods;
       this.liveFields = previous.liveFields;
@@ -2021,6 +2048,9 @@ public class Enqueuer {
 
     public DexEncodedMethod lookupSingleInterfaceTarget(
         DexMethod method, DexType refinedReceiverType) {
+      if (instantiatedLambdas.contains(method.holder)) {
+        return null;
+      }
       DexClass holder = definitionFor(method.holder);
       if ((holder == null) || holder.isLibraryClass() || !holder.accessFlags.isInterface()) {
         return null;

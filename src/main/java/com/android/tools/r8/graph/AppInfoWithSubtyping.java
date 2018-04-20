@@ -3,14 +3,19 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.utils.Reporter;
+import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
@@ -188,6 +193,55 @@ public class AppInfoWithSubtyping extends AppInfo {
       }
     }
     return result;
+  }
+
+  /**
+   * Resolve the methods implemented by the lambda expression that created the {@code callSite}.
+   *
+   * <p>If {@code callSite} was not created as a result of a lambda expression (i.e. the metafactory
+   * is not {@code LambdaMetafactory}), the empty set is returned.
+   *
+   * <p>If the metafactory is neither {@code LambdaMetafactory} nor {@code StringConcatFactory}, a
+   * warning is issued.
+   *
+   * <p>The returned set of methods all have {@code callSite.methodName} as the method name.
+   *
+   * @param callSite Call site to resolve.
+   * @param reporter Reporter used when an unknown metafactory is encountered.
+   * @return Methods implemented by the lambda expression that created the {@code callSite}.
+   */
+  public Set<DexEncodedMethod> lookupLambdaImplementedMethods(
+      DexCallSite callSite, Reporter reporter) {
+    List<DexType> callSiteInterfaces =
+        LambdaDescriptor.getInterfaces(callSite, this, dexItemFactory);
+    if (callSiteInterfaces == null) {
+      if (!isStringConcat(callSite.bootstrapMethod)) {
+        Diagnostic message =
+            new StringDiagnostic("Unknown bootstrap method " + callSite.bootstrapMethod);
+        reporter.warning(message);
+      }
+      return Collections.emptySet();
+    }
+    Set<DexEncodedMethod> result = new HashSet<>();
+    for (DexType iface : callSiteInterfaces) {
+      assert iface.isInterface();
+      DexClass clazz = definitionFor(iface);
+      if (clazz != null) {
+        clazz.forEachMethod(
+            method -> {
+              if (method.method.name == callSite.methodName && method.accessFlags.isAbstract()) {
+                result.add(method);
+              }
+            });
+      }
+    }
+    return result;
+  }
+
+  private boolean isStringConcat(DexMethodHandle bootstrapMethod) {
+    return bootstrapMethod.type.isInvokeStatic()
+        && (bootstrapMethod.asMethod() == dexItemFactory.stringConcatWithConstantsMethod
+            || bootstrapMethod.asMethod() == dexItemFactory.stringConcatMethod);
   }
 
   @Override
