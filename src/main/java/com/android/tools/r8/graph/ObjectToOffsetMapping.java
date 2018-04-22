@@ -5,9 +5,9 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
-import it.unimi.dsi.fastutil.objects.Reference2IntArrayMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
+import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -96,35 +96,43 @@ public class ObjectToOffsetMapping {
    * superclasses and interfaces is 1.
    */
   private static class ProgramClassDepthsMemoized {
+
+    private final static int UNKNOWN_DEPTH = -1;
+
     private final DexApplication application;
-    private final Reference2IntMap<DexProgramClass> depthOfClasses = new Reference2IntArrayMap<>();
+    private final Reference2IntMap<DexProgramClass> depthOfClasses = new Reference2IntOpenHashMap<>();
 
     ProgramClassDepthsMemoized(DexApplication application) {
       this.application = application;
+      depthOfClasses.defaultReturnValue(UNKNOWN_DEPTH);
     }
 
     int getDepth(DexProgramClass programClass) {
-      return depthOfClasses.computeIfAbsent(
-          programClass,
-          programClassToCompute -> {
-            // Emulating the algorithm of com.android.dx.merge.SortableType.tryAssignDepth().
-            DexType superType = programClassToCompute.superType;
-            int maxDepth;
-            if (superType == null) {
-              maxDepth = 0;
-            } else {
-              maxDepth = 1;
-              DexProgramClass superClass = application.programDefinitionFor(superType);
-              if (superClass != null) {
-                maxDepth = getDepth(superClass);
-              }
-            }
-            for (DexType inf : programClassToCompute.interfaces.values) {
-              DexProgramClass infClass = application.programDefinitionFor(inf);
-              maxDepth = Math.max(maxDepth, infClass == null ? 1 : getDepth(infClass));
-            }
-            return maxDepth + 1;
-          });
+      int depth = depthOfClasses.getInt(programClass);
+
+      // TODO(b/65536002): use "computeIntIfAbsent" after upgrading to fastutils 8.x.
+      if (depth == UNKNOWN_DEPTH) {
+        // Emulating the algorithm of com.android.dx.merge.SortableType.tryAssignDepth().
+        DexType superType = programClass.superType;
+        int maxDepth;
+        if (superType == null) {
+          maxDepth = 0;
+        } else {
+          maxDepth = 1;
+          DexProgramClass superClass = application.programDefinitionFor(superType);
+          if (superClass != null) {
+            maxDepth = getDepth(superClass);
+          }
+        }
+        for (DexType inf : programClass.interfaces.values) {
+          DexProgramClass infClass = application.programDefinitionFor(inf);
+          maxDepth = Math.max(maxDepth, infClass == null ? 1 : getDepth(infClass));
+        }
+        depth = maxDepth + 1;
+        depthOfClasses.put(programClass, depth);
+      }
+
+      return depth;
     }
   }
 
