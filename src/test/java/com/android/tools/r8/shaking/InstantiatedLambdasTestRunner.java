@@ -116,7 +116,7 @@ public class InstantiatedLambdasTestRunner extends TestBase {
       // TODO(b/75997473): Enable inlining when supported by CF backend
       ToolHelper.runR8(builder.build(), options -> options.enableInlining = false);
     } else {
-      builder.setMinApiLevel(AndroidApiLevel.O.getLevel());
+      builder.setMinApiLevel(ToolHelper.getMinApiLevelForDexVm().getLevel());
       ToolHelper.runR8(builder.build());
     }
   }
