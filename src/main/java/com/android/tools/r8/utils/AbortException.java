@@ -9,5 +9,11 @@ package com.android.tools.r8.utils;
  * {@link com.android.tools.r8.DiagnosticsHandler}.
  */
 public class AbortException extends RuntimeException {
+  public AbortException() {
 
+  }
+
+  public AbortException(String message) {
+    super(message);
+  }
 }
