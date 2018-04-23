@@ -198,7 +198,7 @@ public class DexString extends IndexedDexItem implements PresortedComparable<Dex
     return slowCompareTo(other);
   }
 
-  private boolean isValidClassDescriptor(String string) {
+  private static boolean isValidClassDescriptor(String string) {
     if (string.length() < 3
         || string.charAt(0) != 'L'
         || string.charAt(string.length() - 1) != ';') {
@@ -217,7 +217,7 @@ public class DexString extends IndexedDexItem implements PresortedComparable<Dex
     return true;
   }
 
-  private boolean isValidMethodName(String string) {
+  private static boolean isValidMethodName(String string) {
     if (string.isEmpty()) {
       return false;
     }
@@ -239,7 +239,7 @@ public class DexString extends IndexedDexItem implements PresortedComparable<Dex
     return true;
   }
 
-  private boolean isValidFieldName(String string) {
+  private static boolean isValidFieldName(String string) {
     if (string.isEmpty()) {
       return false;
     }
