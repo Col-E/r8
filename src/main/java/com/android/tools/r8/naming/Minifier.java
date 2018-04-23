@@ -4,6 +4,7 @@
 package com.android.tools.r8.naming;
 
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -11,6 +12,7 @@ import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.naming.MethodNameMinifier.MethodRenaming;
 import com.android.tools.r8.optimize.MemberRebindingAnalysis;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
@@ -44,7 +46,7 @@ public class Minifier {
         new ClassNameMinifier(appInfo, rootSet, options).computeRenaming(timing);
     timing.end();
     timing.begin("MinifyMethods");
-    Map<DexMethod, DexString> methodRenaming =
+    MethodRenaming methodRenaming =
         new MethodNameMinifier(appInfo, rootSet, options).computeRenaming(timing);
     timing.end();
     timing.begin("MinifyFields");
@@ -64,12 +66,15 @@ public class Minifier {
     private final AppInfo appInfo;
     private final Map<DexItem, DexString> renaming = new IdentityHashMap<>();
 
-    private MinifiedRenaming(Map<DexType, DexString> classRenaming,
-        Map<DexMethod, DexString> methodRenaming, Map<DexField, DexString> fieldRenaming,
+    private MinifiedRenaming(
+        Map<DexType, DexString> classRenaming,
+        MethodRenaming methodRenaming,
+        Map<DexField, DexString> fieldRenaming,
         AppInfo appInfo) {
       this.appInfo = appInfo;
       renaming.putAll(classRenaming);
-      renaming.putAll(methodRenaming);
+      renaming.putAll(methodRenaming.renaming);
+      renaming.putAll(methodRenaming.callSiteRenaming);
       renaming.putAll(fieldRenaming);
     }
 
@@ -87,6 +92,11 @@ public class Minifier {
     @Override
     public DexString lookupName(DexMethod method) {
       return renaming.getOrDefault(method, method.name);
+    }
+
+    @Override
+    public DexString lookupMethodName(DexCallSite callSite) {
+      return renaming.getOrDefault(callSite, callSite.methodName);
     }
 
     @Override

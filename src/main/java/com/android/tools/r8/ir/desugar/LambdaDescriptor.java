@@ -288,7 +288,7 @@ public final class LambdaDescriptor {
     return match;
   }
 
-  public static void extractAltMetafactory(
+  private static void extractAltMetafactory(
       DexItemFactory dexItemFactory,
       List<DexValue> bootstrapArgs,
       Consumer<DexType> interfaceConsumer,

@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
+import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexMethod;
@@ -34,6 +35,8 @@ public abstract class NamingLens {
   public abstract String lookupSimpleName(DexType inner, DexString innerName);
 
   public abstract DexString lookupName(DexMethod method);
+
+  public abstract DexString lookupMethodName(DexCallSite callSite);
 
   public abstract DexString lookupName(DexField field);
 
@@ -83,6 +86,11 @@ public abstract class NamingLens {
     @Override
     public DexString lookupName(DexMethod method) {
       return method.name;
+    }
+
+    @Override
+    public DexString lookupMethodName(DexCallSite callSite) {
+      return callSite.methodName;
     }
 
     @Override
