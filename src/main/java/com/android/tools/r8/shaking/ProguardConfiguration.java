@@ -42,6 +42,7 @@ public class ProguardConfiguration {
     private String renameSourceFileAttribute;
     private final List<String> keepAttributePatterns = new ArrayList<>();
     private final ProguardClassFilter.Builder dontWarnPatterns = ProguardClassFilter.builder();
+    private final ProguardClassFilter.Builder dontNotePatterns = ProguardClassFilter.builder();
     protected final Set<ProguardConfigurationRule> rules = Sets.newLinkedHashSet();
     private final DexItemFactory dexItemFactory;
     private boolean printSeeds;
@@ -174,6 +175,10 @@ public class ProguardConfiguration {
       dontWarnPatterns.addPattern(pattern);
     }
 
+    public void addDontNotePattern(ProguardClassNameList pattern) {
+      dontNotePatterns.addPattern(pattern);
+    }
+
     public void setSeedFile(Path seedFile) {
       this.seedFile = seedFile;
     }
@@ -271,6 +276,7 @@ public class ProguardConfiguration {
           renameSourceFileAttribute,
           ProguardKeepAttributes.fromPatterns(keepAttributePatterns),
           dontWarnPatterns.build(),
+          dontNotePatterns.build(),
           rules,
           printSeeds,
           seedFile,
@@ -339,6 +345,7 @@ public class ProguardConfiguration {
   private final String renameSourceFileAttribute;
   private final ProguardKeepAttributes keepAttributes;
   private final ProguardClassFilter dontWarnPatterns;
+  private final ProguardClassFilter dontNotePatterns;
   protected final ImmutableList<ProguardConfigurationRule> rules;
   private final boolean printSeeds;
   private final Path seedFile;
@@ -376,6 +383,7 @@ public class ProguardConfiguration {
       String renameSourceFileAttribute,
       ProguardKeepAttributes keepAttributes,
       ProguardClassFilter dontWarnPatterns,
+      ProguardClassFilter dontNotePatterns,
       Set<ProguardConfigurationRule> rules,
       boolean printSeeds,
       Path seedFile,
@@ -411,6 +419,7 @@ public class ProguardConfiguration {
     this.renameSourceFileAttribute = renameSourceFileAttribute;
     this.keepAttributes = keepAttributes;
     this.dontWarnPatterns = dontWarnPatterns;
+    this.dontNotePatterns = dontNotePatterns;
     this.rules = ImmutableList.copyOf(rules);
     this.printSeeds = printSeeds;
     this.seedFile = seedFile;
@@ -524,6 +533,10 @@ public class ProguardConfiguration {
 
   public ProguardClassFilter getDontWarnPatterns() {
     return dontWarnPatterns;
+  }
+
+  public ProguardClassFilter getDontNotePatterns() {
+    return dontNotePatterns;
   }
 
   public ImmutableList<ProguardConfigurationRule> getRules() {
