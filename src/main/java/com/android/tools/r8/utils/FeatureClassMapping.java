@@ -81,7 +81,7 @@ public class FeatureClassMapping {
 
   private FeatureClassMapping() {}
 
-  private void addMapping(String clazz, String feature) throws FeatureMappingException {
+  public void addMapping(String clazz, String feature) throws FeatureMappingException {
     addRule(clazz, feature, 0);
   }
 
