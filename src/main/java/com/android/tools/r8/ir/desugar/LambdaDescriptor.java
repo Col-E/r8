@@ -56,10 +56,10 @@ public final class LambdaDescriptor {
     targetMethod = null;
   }
 
-  private LambdaDescriptor(LambdaRewriter rewriter, DexCallSite callSite,
+  private LambdaDescriptor(AppInfo appInfo, DexCallSite callSite,
       DexString name, DexProto erasedProto, DexProto enforcedProto,
       DexMethodHandle implHandle, DexType mainInterface, DexTypeList captures) {
-    assert rewriter != null;
+    assert appInfo != null;
     assert callSite != null;
     assert name != null;
     assert erasedProto != null;
@@ -76,7 +76,7 @@ public final class LambdaDescriptor {
     this.captures = captures;
 
     this.interfaces.add(mainInterface);
-    this.targetMethod = lookupTargetMethod(rewriter);
+    this.targetMethod = lookupTargetMethod(appInfo);
   }
 
   final DexType getImplReceiverType() {
@@ -88,13 +88,12 @@ public final class LambdaDescriptor {
     return captures.length > 0 ? captures[0] : params[0];
   }
 
-  private DexEncodedMethod lookupTargetMethod(LambdaRewriter rewriter) {
+  private DexEncodedMethod lookupTargetMethod(AppInfo appInfo) {
     // Find the lambda's impl-method target.
     DexMethod method = implHandle.asMethod();
     switch (implHandle.type) {
       case INVOKE_DIRECT:
       case INVOKE_INSTANCE: {
-        AppInfo appInfo = rewriter.converter.appInfo;
         DexEncodedMethod target = appInfo.lookupVirtualTarget(getImplReceiverType(), method);
         if (target == null) {
           target = appInfo.lookupDirectTarget(method);
@@ -106,21 +105,18 @@ public final class LambdaDescriptor {
       }
 
       case INVOKE_STATIC: {
-        AppInfo appInfo = rewriter.converter.appInfo;
         DexEncodedMethod target = appInfo.lookupStaticTarget(method);
         assert target == null || target.accessFlags.isStatic();
         return target;
       }
 
       case INVOKE_CONSTRUCTOR: {
-        AppInfo appInfo = rewriter.converter.appInfo;
         DexEncodedMethod target = appInfo.lookupDirectTarget(method);
         assert target == null || target.accessFlags.isConstructor();
         return target;
       }
 
       case INVOKE_INTERFACE: {
-        AppInfo appInfo = rewriter.converter.appInfo;
         DexEncodedMethod target = appInfo.lookupVirtualTarget(getImplReceiverType(), method);
         assert target == null || isInstanceMethod(target);
         return target;
@@ -220,7 +216,7 @@ public final class LambdaDescriptor {
    * Matches call site for lambda metafactory invocation pattern and
    * returns extracted match information, or null if match failed.
    */
-  static LambdaDescriptor infer(LambdaRewriter rewriter, DexCallSite callSite) {
+  static LambdaDescriptor infer(DexCallSite callSite, AppInfo appInfo, DexItemFactory factory) {
     // We expect bootstrap method to be either `metafactory` or `altMetafactory` method
     // of `java.lang.invoke.LambdaMetafactory` class. Both methods are static.
     if (!callSite.bootstrapMethod.type.isInvokeStatic()) {
@@ -228,8 +224,8 @@ public final class LambdaDescriptor {
     }
 
     DexMethod bootstrapMethod = callSite.bootstrapMethod.asMethod();
-    boolean isMetafactoryMethod = bootstrapMethod == rewriter.factory.metafactoryMethod;
-    boolean isAltMetafactoryMethod = bootstrapMethod == rewriter.factory.metafactoryAltMethod;
+    boolean isMetafactoryMethod = bootstrapMethod == factory.metafactoryMethod;
+    boolean isAltMetafactoryMethod = bootstrapMethod == factory.metafactoryAltMethod;
     if (!isMetafactoryMethod && !isAltMetafactoryMethod) {
       // It is not a lambda, thus no need to manage this call site.
       return LambdaDescriptor.MATCH_FAILED;
@@ -254,7 +250,7 @@ public final class LambdaDescriptor {
     DexValue.DexValueMethodType funcEnforcedSignature =
         getBootstrapArgument(callSite.bootstrapArgs, 2, DexValue.DexValueMethodType.class);
     if (!isEnforcedSignatureValid(
-        rewriter, funcEnforcedSignature.value, funcErasedSignature.value)) {
+        factory, funcEnforcedSignature.value, funcErasedSignature.value)) {
       throw new Unreachable(
           "Enforced and erased signatures are inconsistent in " + callSite.toString());
     }
@@ -268,7 +264,7 @@ public final class LambdaDescriptor {
     DexTypeList captures = lambdaFactoryProto.parameters;
 
     // Create a match.
-    LambdaDescriptor match = new LambdaDescriptor(rewriter, callSite,
+    LambdaDescriptor match = new LambdaDescriptor(appInfo, callSite,
         funcMethodName, funcErasedSignature.value, funcEnforcedSignature.value,
         lambdaImplMethodHandle, mainFuncInterface, captures);
 
@@ -279,7 +275,7 @@ public final class LambdaDescriptor {
       }
     } else {
       extractAltMetafactory(
-          rewriter.factory,
+          factory,
           callSite.bootstrapArgs,
           interfaceType -> {
             if (!match.interfaces.contains(interfaceType)) {
@@ -292,7 +288,7 @@ public final class LambdaDescriptor {
     return match;
   }
 
-  public static void extractAltMetafactory(
+  private static void extractAltMetafactory(
       DexItemFactory dexItemFactory,
       List<DexValue> bootstrapArgs,
       Consumer<DexType> interfaceConsumer,
@@ -333,6 +329,16 @@ public final class LambdaDescriptor {
     }
   }
 
+  public static List<DexType> getInterfaces(
+      DexCallSite callSite, AppInfo appInfo, DexItemFactory factory) {
+    LambdaDescriptor descriptor = infer(callSite, appInfo, factory);
+    if (descriptor == LambdaDescriptor.MATCH_FAILED) {
+      return null;
+    }
+    assert descriptor.interfaces != null;
+    return descriptor.interfaces;
+  }
+
   @SuppressWarnings("unchecked")
   private static <T> T getBootstrapArgument(List<DexValue> bootstrapArgs, int i, Class<T> clazz) {
     if (bootstrapArgs.size() < i) {
@@ -347,8 +353,8 @@ public final class LambdaDescriptor {
   }
 
   private static boolean isEnforcedSignatureValid(
-      LambdaRewriter rewriter, DexProto enforced, DexProto erased) {
-    if (!isSameOrDerived(rewriter.factory, enforced.returnType, erased.returnType)) {
+      DexItemFactory factory, DexProto enforced, DexProto erased) {
+    if (!isSameOrDerived(factory, enforced.returnType, erased.returnType)) {
       return false;
     }
     DexType[] enforcedValues = enforced.parameters.values;
@@ -358,7 +364,7 @@ public final class LambdaDescriptor {
       return false;
     }
     for (int i = 0; i < count; i++) {
-      if (!isSameOrDerived(rewriter.factory, enforcedValues[i], erasedValues[i])) {
+      if (!isSameOrDerived(factory, enforcedValues[i], erasedValues[i])) {
         return false;
       }
     }

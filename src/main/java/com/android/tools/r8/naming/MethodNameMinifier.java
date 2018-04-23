@@ -4,6 +4,7 @@
 package com.android.tools.r8.naming;
 
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
@@ -18,11 +19,13 @@ import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -88,6 +91,7 @@ import java.util.function.Function;
 class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
 
   private final Equivalence<DexMethod> equivalence = MethodSignatureEquivalence.get();
+  private final Map<DexCallSite, DexString> callSiteRenaming = new IdentityHashMap<>();
 
   MethodNameMinifier(AppInfoWithSubtyping appInfo, RootSet rootSet, InternalOptions options) {
     super(appInfo, rootSet, options);
@@ -104,7 +108,18 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
     }
   }
 
-  Map<DexMethod, DexString> computeRenaming(Timing timing) {
+  static class MethodRenaming {
+    final Map<DexMethod, DexString> renaming;
+    final Map<DexCallSite, DexString> callSiteRenaming;
+
+    private MethodRenaming(
+        Map<DexMethod, DexString> renaming, Map<DexCallSite, DexString> callSiteRenaming) {
+      this.renaming = renaming;
+      this.callSiteRenaming = callSiteRenaming;
+    }
+  }
+
+  MethodRenaming computeRenaming(Timing timing) {
     // Phase 1: Reserve all the names that need to be kept and allocate linked state in the
     //          library part.
     timing.begin("Phase 1");
@@ -133,7 +148,7 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
     assignNamesToClassesMethods(appInfo.dexItemFactory.objectType, true);
     timing.end();
 
-    return renaming;
+    return new MethodRenaming(renaming, callSiteRenaming);
   }
 
   private void assignNamesToClassesMethods(DexType type, boolean doPrivates) {
@@ -210,6 +225,53 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
             method, collectedStates, globalStateMap, sourceMethodsMap, originStates, iface));
       }
     });
+    // If the input program contains a multi-interface lambda expression that implements
+    // interface methods with different protos, we need to make sure that
+    // the implemented lambda methods are renamed to the same name.
+    // To achieve this, we map each DexCallSite that corresponds to a lambda expression to one of
+    // the DexMethods it implements, and we unify the DexMethods that need to be renamed together.
+    Map<DexCallSite, DexMethod> callSites = new IdentityHashMap<>();
+    // Union-find structure to keep track of methods that must be renamed together.
+    // Note that if the input does not use multi-interface lambdas,
+    // unificationParent will remain empty.
+    Map<Wrapper<DexMethod>, Wrapper<DexMethod>> unificationParent = new HashMap<>();
+    appInfo.dexItemFactory.forAllCallSites(
+        callSite -> {
+          Set<Wrapper<DexMethod>> callSiteMethods = new HashSet<>();
+          Set<DexEncodedMethod> implementedMethods =
+              appInfo.lookupLambdaImplementedMethods(callSite, reporter);
+          if (implementedMethods.isEmpty()) {
+            return;
+          }
+          callSites.put(callSite, implementedMethods.iterator().next().method);
+          for (DexEncodedMethod method : implementedMethods) {
+            DexType iface = method.method.holder;
+            assert iface.isInterface();
+            Set<NamingState<DexProto, ?>> collectedStates = getReachableStates(iface, frontierMap);
+            addStatesToGlobalMapForMethod(
+                method, collectedStates, globalStateMap, sourceMethodsMap, originStates, iface);
+            callSiteMethods.add(equivalence.wrap(method.method));
+          }
+          if (callSiteMethods.size() > 1) {
+            // Implemented interfaces have different return types. Unify them.
+            Wrapper<DexMethod> mainKey = callSiteMethods.iterator().next();
+            mainKey = unificationParent.getOrDefault(mainKey, mainKey);
+            for (Wrapper<DexMethod> key : callSiteMethods) {
+              unificationParent.put(key, mainKey);
+            }
+          }
+        });
+    Map<Wrapper<DexMethod>, Set<Wrapper<DexMethod>>> unification = new HashMap<>();
+    for (Wrapper<DexMethod> key : unificationParent.keySet()) {
+      // Find root with path-compression.
+      Wrapper<DexMethod> root = unificationParent.get(key);
+      while (unificationParent.get(root) != root) {
+        Wrapper<DexMethod> k = unificationParent.get(unificationParent.get(root));
+        unificationParent.put(root, k);
+        root = k;
+      }
+      unification.computeIfAbsent(root, k -> new HashSet<>()).add(key);
+    }
     timing.end();
     // Go over every method and assign a name.
     timing.begin("Allocate names");
@@ -218,12 +280,36 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
     List<Wrapper<DexMethod>> methods = new ArrayList<>(globalStateMap.keySet());
     methods.sort((a, b) -> globalStateMap.get(b).size() - globalStateMap.get(a).size());
     for (Wrapper<DexMethod> key : methods) {
+      if (!unificationParent.getOrDefault(key, key).equals(key)) {
+        continue;
+      }
+      List<MethodNamingState> collectedStates = new ArrayList<>();
+      Set<DexMethod> sourceMethods = Sets.newIdentityHashSet();
+      for (Wrapper<DexMethod> k : unification.getOrDefault(key, Collections.singleton(key))) {
+        DexMethod unifiedMethod = k.get();
+        assert unifiedMethod != null;
+        sourceMethods.addAll(sourceMethodsMap.get(k));
+        for (NamingState<DexProto, ?> namingState : globalStateMap.get(k)) {
+          collectedStates.add(
+              new MethodNamingState(namingState, unifiedMethod.name, unifiedMethod.proto));
+        }
+      }
       DexMethod method = key.get();
-      assignNameForInterfaceMethodInAllStates(
-          method,
-          globalStateMap.get(key),
-          sourceMethodsMap.get(key),
-          originStates.get(key));
+      assert method != null;
+      MethodNamingState originState =
+          new MethodNamingState(originStates.get(key), method.name, method.proto);
+      assignNameForInterfaceMethodInAllStates(collectedStates, sourceMethods, originState);
+    }
+    for (Entry<DexCallSite, DexMethod> entry : callSites.entrySet()) {
+      DexMethod method = entry.getValue();
+      DexString renamed = renaming.get(method);
+      if (originStates.get(equivalence.wrap(method)).isReserved(method.name, method.proto)) {
+        assert renamed == null;
+        callSiteRenaming.put(entry.getKey(), method.name);
+      } else {
+        assert renamed != null;
+        callSiteRenaming.put(entry.getKey(), renamed);
+      }
     }
     timing.end();
   }
@@ -264,46 +350,50 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
   }
 
   private void assignNameForInterfaceMethodInAllStates(
-      DexMethod method,
-      Set<NamingState<DexProto, ?>> collectedStates,
+      List<MethodNamingState> collectedStates,
       Set<DexMethod> sourceMethods,
-      NamingState<DexProto, ?> originState) {
-    boolean isReserved = false;
-    if (globalState.isReserved(method.name, method.proto)) {
-      for (NamingState<DexProto, ?> state : collectedStates) {
-        if (state.isReserved(method.name, method.proto)) {
-          isReserved = true;
-          break;
-        }
+      MethodNamingState originState) {
+    if (anyIsReserved(collectedStates)) {
+      // This method's name is reserved in at least one naming state, so reserve it everywhere.
+      for (MethodNamingState state : collectedStates) {
+        state.reserveName();
       }
-      if (isReserved) {
-        // This method's name is reserved in at least on naming state, so reserve it everywhere.
-        for (NamingState<DexProto, ?> state : collectedStates) {
-          state.reserveName(method.name, method.proto);
-        }
-        return;
-      }
+      return;
     }
     // We use the origin state to allocate a name here so that we can reuse names between different
     // unrelated interfaces. This saves some space. The alternative would be to use a global state
     // for allocating names, which would save the work to search here.
     DexString candidate = null;
     do {
-      candidate = originState.assignNewNameFor(method.name, method.proto, false);
-      for (NamingState<DexProto, ?> state : collectedStates) {
-        if (!state.isAvailable(method.name, method.proto, candidate)) {
+      candidate = originState.assignNewNameFor(false);
+      for (MethodNamingState state : collectedStates) {
+        if (!state.isAvailable(candidate)) {
           candidate = null;
           break;
         }
       }
     } while (candidate == null);
-    for (NamingState<DexProto, ?> state : collectedStates) {
-      state.addRenaming(method.name, method.proto, candidate);
+    for (MethodNamingState state : collectedStates) {
+      state.addRenaming(candidate);
     }
     // Rename all methods in interfaces that gave rise to this renaming.
     for (DexMethod sourceMethod : sourceMethods) {
       renaming.put(sourceMethod, candidate);
     }
+  }
+
+  private boolean anyIsReserved(List<MethodNamingState> collectedStates) {
+    DexString name = collectedStates.get(0).getName();
+    Map<DexProto, Boolean> globalStateCache = new HashMap<>();
+    for (MethodNamingState state : collectedStates) {
+      assert state.getName() == name;
+      if (globalStateCache.computeIfAbsent(
+              state.getProto(), proto -> globalState.isReserved(name, proto))
+          && state.isReserved()) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private void reserveNamesInClasses(DexType type, DexType libraryFrontier,
@@ -354,6 +444,53 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
     if (keepAll || rootSet.noObfuscation.contains(method)) {
       state.reserveName(method.method.name, method.method.proto);
       globalState.reserveName(method.method.name, method.method.proto);
+    }
+  }
+
+  /**
+   * Capture a (name, proto)-pair for a {@link NamingState}. Each method methodState.METHOD(...)
+   * simply defers to parent.METHOD(name, proto, ...). This allows R8 to assign the same name to
+   * methods with different prototypes, which is needed for multi-interface lambdas.
+   */
+  private static class MethodNamingState {
+
+    private final NamingState<DexProto, ?> parent;
+    private final DexString name;
+    private final DexProto proto;
+
+    MethodNamingState(NamingState<DexProto, ?> parent, DexString name, DexProto proto) {
+      assert parent != null;
+      this.parent = parent;
+      this.name = name;
+      this.proto = proto;
+    }
+
+    DexString assignNewNameFor(boolean markAsUsed) {
+      return parent.assignNewNameFor(name, proto, markAsUsed);
+    }
+
+    void reserveName() {
+      parent.reserveName(name, proto);
+    }
+
+    boolean isReserved() {
+      return parent.isReserved(name, proto);
+    }
+
+    boolean isAvailable(DexString candidate) {
+      return parent.isAvailable(name, proto, candidate);
+    }
+
+    void addRenaming(DexString newName) {
+      parent.addRenaming(name, proto, newName);
+    }
+
+    DexString getName() {
+      return name;
+    }
+
+    DexProto getProto() {
+      return proto;
     }
   }
 }

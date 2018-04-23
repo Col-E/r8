@@ -190,8 +190,12 @@ public class LambdaRewriter {
     // in rare case when another thread has same call site processed concurrently,
     // but this is a low price to pay comparing to making whole method synchronous.
     LambdaDescriptor descriptor = getKnown(knownCallSites, callSite);
-    return descriptor != null ? descriptor
-        : putIfAbsent(knownCallSites, callSite, LambdaDescriptor.infer(this, callSite));
+    return descriptor != null
+        ? descriptor
+        : putIfAbsent(
+            knownCallSites,
+            callSite,
+            LambdaDescriptor.infer(callSite, this.converter.appInfo, this.factory));
   }
 
   private boolean isInMainDexList(DexType type) {

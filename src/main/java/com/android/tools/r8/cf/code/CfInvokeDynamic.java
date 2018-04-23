@@ -4,7 +4,6 @@
 package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexMethodHandle;
@@ -43,14 +42,7 @@ public class CfInvokeDynamic extends CfInstruction {
       bsmArgs[i] = decodeBootstrapArgument(bootstrapArgs.get(i), lens);
     }
     Handle bsmHandle = bootstrapMethod.toAsmHandle(lens);
-    DexString methodName;
-    if (lens.isIdentityLens()) {
-      methodName = callSite.methodName;
-    } else if (!callSite.interfaceMethods.isEmpty()) {
-      methodName = lens.lookupName(callSite.interfaceMethods.get(0));
-    } else {
-      throw new Unimplemented("Minification of non-lambda InvokeDynamic not supported");
-    }
+    DexString methodName = lens.lookupMethodName(callSite);
     visitor.visitInvokeDynamicInsn(
         methodName.toString(), callSite.methodProto.toDescriptorString(lens), bsmHandle, bsmArgs);
   }
