@@ -44,6 +44,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Function;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -252,75 +253,87 @@ public class ProguardConfigurationParserTest extends TestBase {
     assertEquals(0x03, matches);
   }
 
-  @Test
-  public void testDontWarn() throws Exception {
+  private void testDontXXX(String xxx, Function<ProguardConfiguration, ProguardClassFilter> pattern)
+      throws Exception {
     DexItemFactory dexItemFactory = new DexItemFactory();
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(dexItemFactory, reporter);
-    String dontwarn = "-dontwarn !foobar,*bar";
-    parser.parse(createConfigurationForTesting(ImmutableList.of(dontwarn)));
+    String configuration = "-dont" + xxx + " !foobar,*bar";
+    parser.parse(createConfigurationForTesting(ImmutableList.of(configuration)));
     verifyParserEndsCleanly();
     ProguardConfiguration config = parser.getConfig();
-    assertFalse(
-        config.getDontWarnPatterns().matches(dexItemFactory.createType("Lboobaz;")));
-    assertTrue(
-        config.getDontWarnPatterns().matches(dexItemFactory.createType("Lboobar;")));
-    assertFalse(
-        config.getDontWarnPatterns().matches(dexItemFactory.createType("Lfoobar;")));
+    assertFalse(pattern.apply(config).matches(dexItemFactory.createType("Lboobaz;")));
+    assertTrue(pattern.apply(config).matches(dexItemFactory.createType("Lboobar;")));
+    assertFalse(pattern.apply(config).matches(dexItemFactory.createType("Lfoobar;")));
   }
 
   @Test
-  public void testDontWarnMultiple() throws Exception {
+  public void testDontXXX() throws Exception {
+    testDontXXX("warn", ProguardConfiguration::getDontWarnPatterns);
+    testDontXXX("note", ProguardConfiguration::getDontNotePatterns);
+  }
+
+  private void testDontXXXMultiple(
+      String xxx, Function<ProguardConfiguration, ProguardClassFilter> pattern) throws Exception {
     DexItemFactory dexItemFactory = new DexItemFactory();
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(dexItemFactory, reporter);
-    List<String> configuration1 = ImmutableList.of("-dontwarn foo.**, bar.**");
-    List<String> configuration2 = ImmutableList.of("-dontwarn foo.**", "-dontwarn bar.**");
+    List<String> configuration1 = ImmutableList.of("-dont" + xxx + " foo.**, bar.**");
+    List<String> configuration2 = ImmutableList.of("-dont" + xxx + " foo.**", "-dontwarn bar.**");
     for (List<String> configuration : ImmutableList.of(configuration1, configuration2)) {
       parser.parse(createConfigurationForTesting(configuration));
       verifyParserEndsCleanly();
       ProguardConfiguration config = parser.getConfig();
-      assertTrue(
-          config.getDontWarnPatterns().matches(dexItemFactory.createType("Lfoo/Bar;")));
-      assertTrue(
-          config.getDontWarnPatterns().matches(dexItemFactory.createType("Lfoo/bar7Bar;")));
-      assertTrue(
-          config.getDontWarnPatterns().matches(dexItemFactory.createType("Lbar/Foo;")));
+      assertTrue(pattern.apply(config).matches(dexItemFactory.createType("Lfoo/Bar;")));
+      assertTrue(pattern.apply(config).matches(dexItemFactory.createType("Lfoo/bar7Bar;")));
+      assertTrue(pattern.apply(config).matches(dexItemFactory.createType("Lbar/Foo;")));
     }
   }
 
   @Test
-  public void testDontWarnAllExplicitly() throws Exception {
+  public void testDontWarnMultiple() throws Exception {
+    testDontXXXMultiple("warn", ProguardConfiguration::getDontWarnPatterns);
+    testDontXXXMultiple("note", ProguardConfiguration::getDontNotePatterns);
+  }
+
+  private void testDontXXXAllExplicitly(
+      String xxx, Function<ProguardConfiguration, ProguardClassFilter> pattern) throws Exception {
     DexItemFactory dexItemFactory = new DexItemFactory();
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(dexItemFactory, reporter);
-    String dontwarnAll = "-dontwarn *";
+    String dontwarnAll = "-dont" + xxx + " *";
     parser.parse(createConfigurationForTesting(ImmutableList.of(dontwarnAll)));
     verifyParserEndsCleanly();
     ProguardConfiguration config = parser.getConfig();
-    assertTrue(
-        config.getDontWarnPatterns().matches(dexItemFactory.createType("Lboobaz;")));
-    assertTrue(
-        config.getDontWarnPatterns().matches(dexItemFactory.createType("Lboobar;")));
-    assertTrue(
-        config.getDontWarnPatterns().matches(dexItemFactory.createType("Lfoobar;")));
+    assertTrue(pattern.apply(config).matches(dexItemFactory.createType("Lboobaz;")));
+    assertTrue(pattern.apply(config).matches(dexItemFactory.createType("Lboobar;")));
+    assertTrue(pattern.apply(config).matches(dexItemFactory.createType("Lfoobar;")));
+  }
+
+  @Test
+  public void testDontWarnAllExplicitly() throws Exception {
+    testDontXXXAllExplicitly("warn", ProguardConfiguration::getDontWarnPatterns);
+    testDontXXXAllExplicitly("note", ProguardConfiguration::getDontNotePatterns);
+  }
+
+  private void testDontXXXAllImplicitly(
+      String xxx, Function<ProguardConfiguration, ProguardClassFilter> pattern) throws Exception {
+    DexItemFactory dexItemFactory = new DexItemFactory();
+    ProguardConfigurationParser parser =
+        new ProguardConfigurationParser(dexItemFactory, reporter);
+    String dontwarnAll = "-dont" + xxx;
+    String otherOption = "-keep class *";
+    parser.parse(createConfigurationForTesting(ImmutableList.of(dontwarnAll, otherOption)));
+    ProguardConfiguration config = parser.getConfig();
+    assertTrue(pattern.apply(config).matches(dexItemFactory.createType("Lboobaz;")));
+    assertTrue(pattern.apply(config).matches(dexItemFactory.createType("Lboobar;")));
+    assertTrue(pattern.apply(config).matches(dexItemFactory.createType("Lfoobar;")));
   }
 
   @Test
   public void testDontWarnAllImplicitly() throws Exception {
-    DexItemFactory dexItemFactory = new DexItemFactory();
-    ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(dexItemFactory, reporter);
-    String dontwarnAll = "-dontwarn";
-    String otherOption = "-keep class *";
-    parser.parse(createConfigurationForTesting(ImmutableList.of(dontwarnAll, otherOption)));
-    ProguardConfiguration config = parser.getConfig();
-    assertTrue(
-        config.getDontWarnPatterns().matches(dexItemFactory.createType("Lboobaz;")));
-    assertTrue(
-        config.getDontWarnPatterns().matches(dexItemFactory.createType("Lboobar;")));
-    assertTrue(
-        config.getDontWarnPatterns().matches(dexItemFactory.createType("Lfoobar;")));
+    testDontXXXAllImplicitly("warn", ProguardConfiguration::getDontWarnPatterns);
+    testDontXXXAllImplicitly("note", ProguardConfiguration::getDontNotePatterns);
   }
 
   @Test
