@@ -1994,21 +1994,16 @@ public class CodeRewriter {
   }
 
   public void simplifyIf(IRCode code, TypeEnvironment typeEnvironment) {
-    int color = code.reserveMarkingColor();
-    boolean ifBranchFlipped = false;
     for (BasicBlock block : code.blocks) {
-      if (block.isMarked(color)) {
+      // Skip removed (= unreachable) blocks.
+      if (block.getNumber() != 0 && block.getPredecessors().isEmpty()) {
         continue;
       }
       if (block.exit().isIf()) {
-        // Flip then/else branches if needed.
-        if (flipIfBranchesIfNeeded(block)) {
-          ifBranchFlipped = true;
-        }
-        // First rewrite zero comparison.
+        flipIfBranchesIfNeeded(block);
         rewriteIfWithConstZero(block);
 
-        if (simplifyKnownBooleanCondition(code, block, color)) {
+        if (simplifyKnownBooleanCondition(code, block)) {
           continue;
         }
 
@@ -2021,11 +2016,11 @@ public class CodeRewriter {
           // Zero test with a constant of comparison between between two constants.
           if (theIf.isZeroTest()) {
             int cond = inValues.get(0).getConstInstruction().asConstNumber().getIntValue();
-            simplifyIfWithKnownCondition(code, block, theIf, cond, color);
+            simplifyIfWithKnownCondition(code, block, theIf, cond);
           } else {
             long left = (long) inValues.get(0).getConstInstruction().asConstNumber().getIntValue();
             long right = (long) inValues.get(1).getConstInstruction().asConstNumber().getIntValue();
-            simplifyIfWithKnownCondition(code, block, theIf, Long.signum(left - right), color);
+            simplifyIfWithKnownCondition(code, block, theIf, Long.signum(left - right));
           }
         } else if (inValues.get(0).hasValueRange()
             && (theIf.isZeroTest() || inValues.get(1).hasValueRange())) {
@@ -2034,42 +2029,40 @@ public class CodeRewriter {
           if (theIf.isZeroTest()) {
             if (!inValues.get(0).isValueInRange(0)) {
               int cond = Long.signum(inValues.get(0).getValueRange().getMin());
-              simplifyIfWithKnownCondition(code, block, theIf, cond, color);
+              simplifyIfWithKnownCondition(code, block, theIf, cond);
             }
           } else {
             LongInterval leftRange = inValues.get(0).getValueRange();
             LongInterval rightRange = inValues.get(1).getValueRange();
             if (!leftRange.overlapsWith(rightRange)) {
               int cond = Long.signum(leftRange.getMin() - rightRange.getMin());
-              simplifyIfWithKnownCondition(code, block, theIf, cond, color);
+              simplifyIfWithKnownCondition(code, block, theIf, cond);
             }
           }
         } else if (theIf.isZeroTest() && !inValues.get(0).isConstNumber()
             && (theIf.getType() == Type.EQ || theIf.getType() == Type.NE)) {
           if (inValues.get(0).isNeverNull()) {
-            simplifyIfWithKnownCondition(code, block, theIf, 1, color);
+            simplifyIfWithKnownCondition(code, block, theIf, 1);
           } else {
             // TODO(b/72693244): annotate type lattice to value
             TypeLatticeElement l = typeEnvironment.getLatticeElement(inValues.get(0));
             if (!l.isPrimitive() && !l.isNullable()) {
               // Any non-zero value should work.
-              simplifyIfWithKnownCondition(code, block, theIf, 1, color);
+              simplifyIfWithKnownCondition(code, block, theIf, 1);
             }
           }
         }
       }
     }
-    code.removeMarkedBlocks(color);
-    code.returnMarkingColor(color);
+    code.removeUnreachableBlocks();
     assert code.isConsistentSSA();
   }
 
-  private void simplifyIfWithKnownCondition(
-      IRCode code, BasicBlock block, If theIf, int cond, int markingColor) {
+  private void simplifyIfWithKnownCondition(IRCode code, BasicBlock block, If theIf, int cond) {
     BasicBlock target = theIf.targetFromCondition(cond);
     BasicBlock deadTarget =
         target == theIf.getTrueTarget() ? theIf.fallthroughBlock() : theIf.getTrueTarget();
-    rewriteIfToGoto(code, block, theIf, target, deadTarget, markingColor);
+    rewriteIfToGoto(code, block, theIf, target, deadTarget);
   }
 
   // Find all method invocations that never returns normally, split the block
@@ -2179,7 +2172,7 @@ public class CodeRewriter {
    * which can be replaced by a fallthrough and the phi value can be replaced
    * by an xor instruction which is smaller.
    */
-  private boolean simplifyKnownBooleanCondition(IRCode code, BasicBlock block, int color) {
+  private boolean simplifyKnownBooleanCondition(IRCode code, BasicBlock block) {
     If theIf = block.exit().asIf();
     Value testValue = theIf.inValues().get(0);
     if (theIf.isZeroTest() && testValue.knownToBeBoolean()) {
@@ -2241,7 +2234,7 @@ public class CodeRewriter {
           // If all phis were removed, there is no need for the diamond shape anymore
           // and it can be rewritten to a goto to one of the branches.
           if (deadPhis == targetBlock.getPhis().size()) {
-            rewriteIfToGoto(code, block, theIf, trueBlock, falseBlock, color);
+            rewriteIfToGoto(code, block, theIf, trueBlock, falseBlock);
             return true;
           }
         }
@@ -2283,15 +2276,9 @@ public class CodeRewriter {
     return false;
   }
 
-  private void rewriteIfToGoto(IRCode code, BasicBlock block,
-      If theIf, BasicBlock target, BasicBlock deadTarget, int color) {
-    DominatorTree dominatorTree = new DominatorTree(code);
-    List<BasicBlock> removedBlocks = block.unlink(deadTarget, dominatorTree);
-    for (BasicBlock removedBlock : removedBlocks) {
-      if (!removedBlock.isMarked(color)) {
-        removedBlock.mark(color);
-      }
-    }
+  private void rewriteIfToGoto(
+      IRCode code, BasicBlock block, If theIf, BasicBlock target, BasicBlock deadTarget) {
+    deadTarget.unlinkSinglePredecessorSiblingsAllowed();
     assert theIf == block.exit();
     block.replaceLastInstruction(new Goto());
     assert block.exit().isGoto();

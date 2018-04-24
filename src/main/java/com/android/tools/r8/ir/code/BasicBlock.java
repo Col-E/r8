@@ -555,6 +555,14 @@ public class BasicBlock {
     return unlinkedBlock;
   }
 
+  /** Like unlinkSinglePredecessor but the predecessor may have multiple successors. */
+  public void unlinkSinglePredecessorSiblingsAllowed() {
+    assert predecessors.size() == 1; // There are no critical edges.
+    assert predecessors.get(0).successors.contains(this);
+    predecessors.get(0).successors.remove(this);
+    predecessors.clear();
+  }
+
   /**
    * Unlinks this block from a single normal successor.
    *
@@ -591,7 +599,8 @@ public class BasicBlock {
 
   public List<BasicBlock> unlink(BasicBlock successor, DominatorTree dominator) {
     assert successors.contains(successor);
-    assert successor.predecessors.contains(this);
+    assert successor.predecessors.size() == 1; // There are no critical edges.
+    assert successor.predecessors.get(0) == this;
     List<BasicBlock> removedBlocks = new ArrayList<>();
     for (BasicBlock dominated : dominator.dominatedBlocks(successor)) {
       dominated.cleanForRemoval();
