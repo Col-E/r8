@@ -224,6 +224,21 @@ public class AppInfoWithSubtyping extends AppInfo {
     }
     Set<DexEncodedMethod> result = new HashSet<>();
     for (DexType iface : callSiteInterfaces) {
+      if (iface.isUnknown()) {
+        StringDiagnostic message =
+            new StringDiagnostic(
+                "Lambda expression implements missing library interface " + iface.toSourceString());
+        reporter.warning(message);
+        // Skip this interface. If the lambda only implements missing library interfaces and not any
+        // program interfaces, then minification and tree shaking are not interested in this
+        // DexCallSite anyway, so skipping this interface is harmless. On the other hand, if
+        // minification is run on a program with a lambda interface that implements both a missing
+        // library interface and a present program interface, then we might minify the method name
+        // on the program interface even though it should be kept the same as the (missing) library
+        // interface method. That is a shame, but minification is not suited for incomplete programs
+        // anyway.
+        continue;
+      }
       assert iface.isInterface();
       DexClass clazz = definitionFor(iface);
       if (clazz != null) {
