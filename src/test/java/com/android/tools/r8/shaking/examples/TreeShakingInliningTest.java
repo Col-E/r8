@@ -21,6 +21,7 @@ public class TreeShakingInliningTest extends TreeShakingTest {
   public static Collection<Object[]> data() {
     List<Object[]> parameters = new ArrayList<>();
     for (MinifyMode minify : MinifyMode.values()) {
+      // TODO(b/75997473): Add Frontend.JAR, Backend.CF when inlining is supported in CF backend.
       parameters.add(new Object[] {Frontend.JAR, Backend.DEX, minify});
       parameters.add(new Object[] {Frontend.DEX, Backend.DEX, minify});
     }

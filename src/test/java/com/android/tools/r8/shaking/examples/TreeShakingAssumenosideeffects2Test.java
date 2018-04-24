@@ -5,18 +5,21 @@ package com.android.tools.r8.shaking.examples;
 
 import com.android.tools.r8.TestBase.MinifyMode;
 import com.android.tools.r8.shaking.TreeShakingTest;
+import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+@Ignore("TODO(b/70550443): Enable once fixed.")
 @RunWith(Parameterized.class)
-public class TreeShakingMinificationTest extends TreeShakingTest {
+public class TreeShakingAssumenosideeffects2Test extends TreeShakingTest {
 
   @Parameters(name = "mode:{0}-{1} minify:{2}")
   public static Collection<Object[]> data() {
@@ -29,29 +32,27 @@ public class TreeShakingMinificationTest extends TreeShakingTest {
     return parameters;
   }
 
-  public TreeShakingMinificationTest(Frontend frontend, Backend backend, MinifyMode minify) {
-    super("examples/minification", "minification.Minification", frontend, backend, minify);
+  public TreeShakingAssumenosideeffects2Test(
+      Frontend frontend, Backend backend, MinifyMode minify) {
+    super(
+        "examples/assumenosideeffects2",
+        "assumenosideeffects2.Assumenosideeffects",
+        frontend,
+        backend,
+        minify);
   }
 
   @Test
   public void test() throws Exception {
-    runTest(null, null, null, ImmutableList.of("src/test/examples/minification/keep-rules.txt"));
-  }
-
-  @Ignore
-  @Test
-  public void testConflictmapping() throws Exception {
-    runTest(
-        null, null, null, ImmutableList.of("src/test/examples/minification/conflict-mapping.txt"));
-  }
-
-  @Ignore
-  @Test
-  public void testKeeprulesapplyconflictmapping() throws Exception {
     runTest(
         null,
+        TreeShakingAssumenosideeffects2Test::assumenosideeffects2CheckOutput,
         null,
-        null,
-        ImmutableList.of("src/test/examples/minification/keep-rules-apply-conflict-mapping.txt"));
+        ImmutableList.of("src/test/examples/assumenosideeffects2/keep-rules.txt"));
+  }
+
+  private static void assumenosideeffects2CheckOutput(String output1, String output2) {
+    Assert.assertEquals(StringUtils.lines("Hello, world!"), output1);
+    Assert.assertEquals("", output2);
   }
 }
