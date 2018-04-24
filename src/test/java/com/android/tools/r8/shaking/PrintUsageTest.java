@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
-import static com.android.tools.r8.shaking.TreeShakingTest.getTestOptionalParameter;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -122,6 +121,20 @@ public class PrintUsageTest {
     }
     assert usedInspections.size() == inspections.size();
     return testCases;
+  }
+
+  private static <T> T getTestOptionalParameter(
+      Map<String, T> specifications, Set<String> usedSpecifications, String test, String keepName) {
+    T parameter = specifications.get(test);
+    if (parameter == null) {
+      parameter = specifications.get(test + ":" + keepName);
+      if (parameter != null) {
+        usedSpecifications.add(test + ":" + keepName);
+      }
+    } else {
+      usedSpecifications.add(test);
+    }
+    return parameter;
   }
 
   private static void inspectShaking1(PrintUsageInspector inspector) {
