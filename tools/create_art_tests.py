@@ -4,18 +4,19 @@
 # BSD-style license that can be found in the LICENSE file.
 
 import os
-from os import makedirs, listdir
-from os.path import join, exists, isdir
-from string import Template, upper
-from sys import exit
-from shutil import rmtree
+import shutil
+from string import Template
 
 OUTPUT_DIR = os.path.join('build', 'generated', 'test', 'java', 'com',
                           'android', 'tools', 'r8', 'art')
 # Test that comes from Jack are generated from the legacy snapshot.
 JACK_TEST = os.path.join('tests', '2016-12-19', 'art')
 TEST_DIR = os.path.join('tests', '2017-10-04', 'art')
-TOOLCHAINS = ["dx", "jack", "none"]
+TOOLCHAINS = [
+    ("dx", os.path.join(TEST_DIR, "dx")),
+    ("jack", os.path.join(JACK_TEST, "jack")),
+    ("none", os.path.join(TEST_DIR, "dx")),
+]
 TOOLS = ["r8", "d8", "r8cf"]
 TEMPLATE = Template(
 """// Copyright (c) 2016, the R8 project authors. Please see the AUTHORS file
@@ -48,51 +49,45 @@ public class $testClassName extends R8RunArtTestsTest {
 }
 """)
 
-def create_toolchain_dirs(toolchain):
-  toolchain_dir = join(OUTPUT_DIR, toolchain)
-  if exists(toolchain_dir):
-    rmtree(toolchain_dir)
-  makedirs(join(toolchain_dir, "d8"))
-  makedirs(join(toolchain_dir, "r8"))
-  makedirs(join(toolchain_dir, "r8cf"))
 
-def write_file(toolchain, tool, class_name, contents):
-  file_name = join(OUTPUT_DIR, toolchain, tool, class_name + ".java")
-  with open(file_name, "w") as file:
-    file.write(contents)
-
-def create_tests(toolchain):
-  source_dir = join(TEST_DIR, "dx" if toolchain == "none" else toolchain)
-  # For the toolchain "jack" tests are generated from a previous snapshot.
-  if (toolchain == "jack"):
-    source_dir = join(JACK_TEST, toolchain)
-  dirs = [d for d in listdir(source_dir)
-          if isdir(join(source_dir, d))]
-  for dir in dirs:
-    class_name = "Art" + dir.replace("-", "_") + "Test"
+def get_test_configurations():
+  for toolchain, source_dir in TOOLCHAINS:
     for tool in TOOLS:
       if tool == "d8" and toolchain == "none":
         tool_enum = 'R8_AFTER_D8'
       else:
-        tool_enum = upper(tool)
+        tool_enum = tool.upper()
       if tool == "r8cf":
         if toolchain != "none":
           continue
         tool_enum = 'D8_AFTER_R8CF'
+      output_dir = os.path.join(OUTPUT_DIR, toolchain, tool)
+      yield (tool_enum, tool, toolchain, source_dir, output_dir)
+
+
+def create_tests():
+  for tool_enum, tool, toolchain, source_dir, output_dir in get_test_configurations():
+    test_cases = [d for d in os.listdir(source_dir)
+                  if os.path.isdir(os.path.join(source_dir, d))]
+    if os.path.exists(output_dir):
+      shutil.rmtree(output_dir)
+    os.makedirs(output_dir)
+    for test_case in test_cases:
+      class_name = "Art" + test_case.replace("-", "_") + "Test"
       contents = TEMPLATE.substitute(
-          name=dir,
+          name=test_case,
           compilerUnderTestEnum=tool_enum,
           compilerUnderTest=tool,
           testGeneratingToolchain=toolchain,
-          testGeneratingToolchainEnum=upper(toolchain),
+          testGeneratingToolchainEnum=toolchain.upper(),
           testClassName=class_name)
-      write_file(toolchain, tool, class_name, contents)
+      with open(os.path.join(output_dir, class_name + ".java"), "w") as fp:
+        fp.write(contents)
 
 
 def main():
-  for toolchain in TOOLCHAINS:
-    create_toolchain_dirs(toolchain)
-    create_tests(toolchain)
+  create_tests()
+
 
 if __name__ == "__main__":
-  exit(main())
+  main()
