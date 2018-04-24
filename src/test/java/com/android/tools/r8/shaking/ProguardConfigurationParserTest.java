@@ -808,6 +808,33 @@ public class ProguardConfigurationParserTest extends TestBase {
   }
 
   @Test
+  public void parseKeepModifiers() {
+    List<String> ws = ImmutableList.of("", " ", "   ", "\t", " \t", " \t", " \t ", " \t\t \t ");
+
+    for (String before : ws) {
+      for (String after : ws) {
+        reset();
+        ProguardConfiguration config = parseAndVerifyParserEndsCleanly(ImmutableList.of(
+            "-keep"
+                + before + "," + after + "includedescriptorclasses"
+                + before + "," + after + "allowshrinking"
+                + before + "," + after + "allowobfuscation"
+                + before + "," + after + "allowoptimization "
+                + "class A { *; }"
+        ));
+      }
+    }
+  }
+
+  @Test
+  public void regress78442725() {
+    parseAndVerifyParserEndsCleanly(ImmutableList.of(
+        "-keep, includedescriptorclasses class in.uncod.android.bypass.Document { *; }",
+        "-keep, includedescriptorclasses class in.uncod.android.bypass.Element { *; }"
+    ));
+  }
+
+  @Test
   public void parseSeeds() throws Exception {
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(new DexItemFactory(), reporter);
