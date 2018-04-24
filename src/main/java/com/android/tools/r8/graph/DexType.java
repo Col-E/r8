@@ -96,6 +96,10 @@ public class DexType extends IndexedDexItem implements PresortedComparable<DexTy
     return hierarchyLevel == INTERFACE_LEVEL;
   }
 
+  boolean isUnknown() {
+    return hierarchyLevel == UNKNOWN_LEVEL;
+  }
+
   synchronized void addInterfaceSubtype(DexType type) {
     // Interfaces all inherit from java.lang.Object. However, we assign a special level to
     // identify them later on.
