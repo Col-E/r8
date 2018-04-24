@@ -31,18 +31,14 @@ class SpillMoveSet {
   private final IRCode code;
   // The register allocator generating moves.
   private final LinearScanRegisterAllocator allocator;
-  // All registers below this number are arguments.
-  private final int argumentRegisterLimit;
   // Mapping from instruction numbers to the block that start with that instruction if any.
   private final Map<Integer, BasicBlock> blockStartMap = new HashMap<>();
   // The number of temporary registers used for parallel moves when scheduling the moves.
   private int usedTempRegisters = 0;
 
-  public SpillMoveSet(
-      LinearScanRegisterAllocator allocator, IRCode code, int argumentRegisterLimit) {
+  public SpillMoveSet(LinearScanRegisterAllocator allocator, IRCode code) {
     this.allocator = allocator;
     this.code = code;
-    this.argumentRegisterLimit = argumentRegisterLimit;
     for (BasicBlock block : code.blocks) {
       blockStartMap.put(block.entry().getNumber(), block);
     }
@@ -137,10 +133,6 @@ class SpillMoveSet {
       }
     }
     return usedTempRegisters;
-  }
-
-  private boolean isArgumentRegister(int register) {
-    return register < argumentRegisterLimit;
   }
 
   private MoveType moveTypeForIntervals(LiveIntervals to, LiveIntervals from) {
@@ -277,7 +269,11 @@ class SpillMoveSet {
     Iterator<SpillMove> moveIterator = moves.iterator();
     while (moveIterator.hasNext()) {
       SpillMove move = moveIterator.next();
-      if (isArgumentRegister(move.to.getRegister())) {
+      // The argument registers can be used for other values than the arguments in intervals where
+      // the arguments are not live, so it is insufficient to check that the destination register
+      // is in the argument register range.
+      if (move.to.getRegister() < allocator.numberOfArgumentRegisters
+          && move.to.isArgumentInterval()) {
         moveIterator.remove();
       }
     }

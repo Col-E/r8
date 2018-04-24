@@ -116,7 +116,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   // The code for which to allocate registers.
   private final IRCode code;
   // Number of registers used for arguments.
-  private final int numberOfArgumentRegisters;
+  protected final int numberOfArgumentRegisters;
   // Compiler options.
   private final InternalOptions options;
 
@@ -1940,7 +1940,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   }
 
   private void insertMoves() {
-    SpillMoveSet spillMoves = new SpillMoveSet(this, code, numberOfArgumentRegisters);
+    SpillMoveSet spillMoves = new SpillMoveSet(this, code);
     for (LiveIntervals intervals : liveIntervals) {
       if (intervals.hasSplits()) {
         LiveIntervals current = intervals;
