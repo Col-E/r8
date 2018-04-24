@@ -19,6 +19,7 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
 import com.android.tools.r8.utils.DexInspector;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
 import java.util.ListIterator;
@@ -56,7 +57,7 @@ public class LambdaTestRunner {
     R8.run(
         R8Command.builder()
             .setMode(CompilationMode.DEBUG)
-            .addLibraryFiles(ToolHelper.getAndroidJar(ToolHelper.getMinApiLevelForDexVm()))
+            .addLibraryFiles(Paths.get(ToolHelper.JAVA_8_RUNTIME))
             .setProgramConsumer(appBuilder.wrapClassFileConsumer(new ArchiveConsumer(outPath)))
             .addClassProgramData(inputClass, Origin.unknown())
             .build());
