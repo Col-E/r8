@@ -615,7 +615,9 @@ public class ProguardConfigurationParser {
     }
 
     private void parseRuleModifiers(ProguardKeepRule.Builder builder) {
+      skipWhitespace();
       while (acceptChar(',')) {
+        skipWhitespace();
         if (acceptString("allow")) {
           if (acceptString("shrinking")) {
             builder.getModifiersBuilder().setAllowsShrinking(true);
@@ -627,6 +629,7 @@ public class ProguardConfigurationParser {
         } else if (acceptString("includedescriptorclasses")) {
           builder.getModifiersBuilder().setIncludeDescriptorClasses(true);
         }
+        skipWhitespace();
       }
     }
 
