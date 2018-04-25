@@ -2075,11 +2075,10 @@ public class CodeRewriter {
       return;
     }
 
-    int color = code.reserveMarkingColor();
     ListIterator<BasicBlock> blockIterator = code.listIterator();
     while (blockIterator.hasNext()) {
       BasicBlock block = blockIterator.next();
-      if (block.isMarked(color)) {
+      if (block.getNumber() != 0 && block.getPredecessors().isEmpty()) {
         continue;
       }
       InstructionListIterator insnIterator = block.listIterator();
@@ -2096,19 +2095,13 @@ public class CodeRewriter {
         }
 
         // Split the block.
-        BasicBlock newBlock = insnIterator.split(code, blockIterator);
-        assert !insnIterator.hasNext(); // must be pointing *after* inserted GoTo.
-        // Move block iterator back so current block is 'newBlock'.
-        blockIterator.previous();
+        {
+          BasicBlock newBlock = insnIterator.split(code, blockIterator);
+          assert !insnIterator.hasNext(); // must be pointing *after* inserted GoTo.
+          // Move block iterator back so current block is 'newBlock'.
+          blockIterator.previous();
 
-        // Unlink the next block representing all the instructions of the original
-        // block after the invocation which never returns normally. Mark all the
-        // removed blocks for deletion.
-        List<BasicBlock> removedBlocks = block.unlink(newBlock, new DominatorTree(code));
-        for (BasicBlock removedBlock : removedBlocks) {
-          if (!removedBlock.isMarked(color)) {
-            removedBlock.mark(color);
-          }
+          newBlock.unlinkSinglePredecessorSiblingsAllowed();
         }
 
         // We want to follow the invoke instruction with 'throw null', which should
@@ -2137,8 +2130,7 @@ public class CodeRewriter {
         notReachableThrow.forceSetPosition(insn.getPosition());
       }
     }
-    code.removeMarkedBlocks(color);
-    code.returnMarkingColor(color);
+    code.removeUnreachableBlocks();
     assert code.isConsistentSSA();
   }
 
