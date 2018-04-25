@@ -123,6 +123,10 @@ public abstract class Instruction {
     this.offset = offset;
   }
 
+  public boolean isSimpleNop() {
+    return !isPayload() && this instanceof Nop;
+  }
+
   public boolean isPayload() {
     return false;
   }

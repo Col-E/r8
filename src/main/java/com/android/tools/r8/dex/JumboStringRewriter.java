@@ -7,7 +7,6 @@ import static com.android.tools.r8.graph.DexCode.TryHandler.NO_HANDLER;
 
 import com.android.tools.r8.code.ConstString;
 import com.android.tools.r8.code.ConstStringJumbo;
-import com.android.tools.r8.code.FillArrayDataPayload;
 import com.android.tools.r8.code.Format21t;
 import com.android.tools.r8.code.Format22t;
 import com.android.tools.r8.code.Format31t;
@@ -97,6 +96,8 @@ public class JumboStringRewriter {
       = new Int2ReferenceOpenHashMap<>();
   private final Map<Instruction, Instruction> payloadToSwitch = new IdentityHashMap<>();
   private final Map<Try, TryTargets> tryTargets = new IdentityHashMap<>();
+  private final Int2ReferenceMap<Instruction> tryRangeStartAndEndTargets
+      = new Int2ReferenceOpenHashMap<>();
   private final Map<TryHandler, List<Instruction>> handlerTargets = new IdentityHashMap<>();
 
   public JumboStringRewriter(
@@ -159,7 +160,7 @@ public class JumboStringRewriter {
         Goto32 jump = (Goto32) instruction;
         int offset = instructionTargets.get(jump).get(0).getOffset() - instruction.getOffset();
         jump.AAAAAAAA = offset;
-      } else if (instruction instanceof Format31t) {  // FillArrayData, SparseSwitch, PackedSwitch
+      } else if (instruction.hasPayload()) {  // FillArrayData, SparseSwitch, PackedSwitch
         Format31t payloadUser = (Format31t) instruction;
         int offset =
             instructionTargets.get(payloadUser).get(0).getOffset() - instruction.getOffset();
@@ -279,7 +280,8 @@ public class JumboStringRewriter {
       offsetDelta = 0;
       while (it.hasNext()) {
         Instruction instruction = it.next();
-        instruction.setOffset(instruction.getOffset() + offsetDelta);
+        int orignalOffset = instruction.getOffset();
+        instruction.setOffset(orignalOffset + offsetDelta);
         if (instruction instanceof ConstString) {
           ConstString string = (ConstString) instruction;
           if (string.getString().compareTo(firstJumboString) >= 0) {
@@ -378,18 +380,33 @@ public class JumboStringRewriter {
           }
         } else if (instruction instanceof Goto32) {
           // Instruction big enough for any offset.
-        } else if (instruction instanceof Format31t) {  // FillArrayData, SparseSwitch, PackedSwitch
+        } else if (instruction.hasPayload()) {  // FillArrayData, SparseSwitch, PackedSwitch
           // Instruction big enough for any offset.
-        } else if (instruction instanceof SwitchPayload
-            || instruction instanceof FillArrayDataPayload) {
+        } else if (instruction.isPayload()) {
+          // Payload instructions must be 4 byte aligned (instructions are 2 bytes).
           if (instruction.getOffset() % 2 != 0) {
-            offsetDelta++;
             it.previous();
-            Nop nop = new Nop();
-            nop.setOffset(instruction.getOffset());
-            it.add(nop);
+            // Check if the previous instruction was a simple nop. If that is the case, remove it
+            // to make the alignment instead of adding another one. Only allow removal if this
+            // instruction is not targeted by anything. See b/78072750.
+            Instruction instructionBeforePayload = it.hasPrevious() ? it.previous() : null;
+            if (instructionBeforePayload != null
+                && instructionBeforePayload.isSimpleNop()
+                && debugEventTargets.get(orignalOffset) == null
+                && tryRangeStartAndEndTargets.get(orignalOffset) == null) {
+              it.remove();
+              offsetDelta--;
+            } else {
+              if (instructionBeforePayload != null) {
+                it.next();
+              }
+              Nop nop = new Nop();
+              nop.setOffset(instruction.getOffset());
+              it.add(nop);
+              offsetDelta++;
+            }
+            instruction.setOffset(orignalOffset + offsetDelta);
             it.next();
-            instruction.setOffset(instruction.getOffset() + 1);
           }
           // Instruction big enough for any offset.
         }
@@ -463,7 +480,7 @@ public class JumboStringRewriter {
         Instruction target = offsetToInstruction.get(jump.getOffset() + jump.AAAAAAAA);
         assert target != null;
         instructionTargets.put(instruction, Lists.newArrayList(target));
-      } else if (instruction instanceof Format31t) {  // FillArrayData, SparseSwitch, PackedSwitch
+      } else if (instruction.hasPayload()) {  // FillArrayData, SparseSwitch, PackedSwitch
         Format31t offsetInstruction = (Format31t) instruction;
         Instruction target = offsetToInstruction.get(
             offsetInstruction.getOffset() + offsetInstruction.getPayloadOffset());
@@ -512,17 +529,21 @@ public class JumboStringRewriter {
     DexCode code = method.getCode().asDexCode();
     for (Try theTry : code.tries) {
       Instruction start = offsetToInstruction.get(theTry.startAddress);
+      Instruction end = null;
       int endAddress = theTry.startAddress + theTry.instructionCount;
       TryTargets targets;
       if (endAddress > lastInstruction.getOffset()) {
+        end = lastInstruction;
         targets = new TryTargets(start, lastInstruction, true);
       } else {
-        Instruction end = offsetToInstruction.get(endAddress);
+        end = offsetToInstruction.get(endAddress);
         targets = new TryTargets(start, end, false);
       }
       assert theTry.startAddress == targets.getStartOffset();
       assert theTry.instructionCount == targets.getStartToEndDelta();
       tryTargets.put(theTry, targets);
+      tryRangeStartAndEndTargets.put(start.getOffset(), start);
+      tryRangeStartAndEndTargets.put(end.getOffset(), end);
     }
     if (code.handlers != null) {
       for (TryHandler handler : code.handlers) {
@@ -548,13 +569,13 @@ public class JumboStringRewriter {
     boolean containsPayloads = false;
     for (Instruction instruction : instructions) {
       offsetToInstruction.put(instruction.getOffset(), instruction);
-      if (instruction instanceof Format31t) {  // FillArrayData, SparseSwitch, PackedSwitch
+      if (instruction.hasPayload()) {  // FillArrayData, SparseSwitch, PackedSwitch
         containsPayloads = true;
       }
     }
     if (containsPayloads) {
       for (Instruction instruction : instructions) {
-        if (instruction instanceof Format31t) {  // FillArrayData, SparseSwitch, PackedSwitch
+        if (instruction.hasPayload()) {  // FillArrayData, SparseSwitch, PackedSwitch
           Instruction payload =
               offsetToInstruction.get(instruction.getOffset() + instruction.getPayloadOffset());
           assert payload != null;
