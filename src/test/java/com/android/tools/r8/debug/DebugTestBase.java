@@ -1488,10 +1488,16 @@ public abstract class DebugTestBase {
       ReplyPacket replyPacket = getMirror().getLineTable(classId, breakpointMethodId);
       checkReplyPacket(replyPacket, "Failed to get method line table");
       long start = replyPacket.getNextValueAsLong(); // start
-      long end = replyPacket.getNextValueAsLong(); // end
+      replyPacket.getNextValueAsLong(); // end
       int linesCount = replyPacket.getNextValueAsInt();
       if (linesCount == 0) {
-        pcs.add(-1L);
+        if (lineToSearch == FIRST_LINE) {
+          // There is no line table but we are not looking for a specific line. Therefore just
+          // set the breakpoint on the 1st instruction.
+          pcs.add(start);
+        } else {
+          pcs.add(-1L);
+        }
       } else {
         if (lineToSearch == FIRST_LINE) {
           // Read only the 1st line because code indices are in ascending order

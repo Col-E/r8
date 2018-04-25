@@ -4,50 +4,19 @@
 
 package com.android.tools.r8.debug;
 
-import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.utils.AndroidApp;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import org.apache.harmony.jpda.tests.framework.jdwp.Frame.Variable;
 import org.apache.harmony.jpda.tests.framework.jdwp.Location;
 import org.junit.BeforeClass;
-import org.junit.rules.TemporaryFolder;
 
 /**
  * A specialization for Kotlin-based tests which provides extra commands.
  */
 public abstract class KotlinDebugTestBase extends DebugTestBase {
-
-  private static final Path DEBUGGEE_KOTLIN_JAR =
-      Paths.get(ToolHelper.BUILD_DIR, "test", "debug_test_resources_kotlin.jar");
-
-  protected static class KotlinD8Config extends D8DebugTestConfig {
-
-    private static AndroidApp compiledResources = null;
-
-    private static synchronized AndroidApp getCompiledResources() throws Throwable {
-      if (compiledResources == null) {
-        compiledResources =
-            D8DebugTestConfig.d8Compile(Collections.singletonList(DEBUGGEE_KOTLIN_JAR), null);
-      }
-      return compiledResources;
-    }
-
-    public KotlinD8Config(TemporaryFolder temp) {
-      super();
-      try {
-        Path out = temp.newFolder().toPath().resolve("d8_debug_test_resources_kotlin.jar");
-        getCompiledResources().write(out, OutputMode.DexIndexed);
-        addPaths(out);
-      } catch (Throwable e) {
-        throw new RuntimeException(e);
-      }
-    }
-  }
 
   private static KotlinD8Config d8Config;
 
