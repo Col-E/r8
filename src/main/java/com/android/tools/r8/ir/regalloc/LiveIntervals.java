@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.TreeSet;
+import java.util.function.IntConsumer;
 
 public class LiveIntervals implements Comparable<LiveIntervals> {
 
@@ -381,6 +382,14 @@ public class LiveIntervals implements Comparable<LiveIntervals> {
       }
     }
     return null;
+  }
+
+  public void forEachRegister(IntConsumer consumer) {
+    assert register != NO_REGISTER;
+    consumer.accept(register);
+    if (getType().isWide()) {
+      consumer.accept(register + 1);
+    }
   }
 
   public LiveIntervals splitBefore(int start) {
