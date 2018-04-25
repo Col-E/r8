@@ -1118,21 +1118,27 @@ public abstract class DebugTestBase {
                       }));
         }
 
+        private String convertCurrentLocationToString() {
+          return getSourceFile() + ":" + getLineNumber()
+              + " (pc 0x" + Long.toHexString(location.index) + ")";
+        }
+
         private void failNoLocal(String localName) {
-          Assert.fail(
-              "line " + getLineNumber() + ": Expected local '" + localName + "' not present");
+          String locationString = convertCurrentLocationToString();
+          Assert.fail("expected local '" + localName + "' is not present at " + locationString);
         }
 
         @Override
         public void checkNoLocal(String localName) {
-          Optional<Variable> localVar = JUnit3Wrapper
-              .getVariableAt(mirror, getLocation(), localName);
-          Assert.assertFalse("Unexpected local: " + localName, localVar.isPresent());
+          Optional<Variable> localVar = getVariableAt(mirror, getLocation(), localName);
+          if (localVar.isPresent()) {
+            String locationString = convertCurrentLocationToString();
+            Assert.fail("unexpected local '" + localName + "' is present at " + locationString);
+          }
         }
 
         public void checkLocal(String localName) {
-          Optional<Variable> localVar = JUnit3Wrapper
-              .getVariableAt(mirror, getLocation(), localName);
+          Optional<Variable> localVar = getVariableAt(mirror, getLocation(), localName);
           if (!localVar.isPresent()) {
             failNoLocal(localName);
           }
