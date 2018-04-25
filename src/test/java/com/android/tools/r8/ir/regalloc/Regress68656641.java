@@ -29,7 +29,7 @@ public class Regress68656641 extends SmaliTestBase {
     }
 
     public void splitOverlappingInactiveIntervals(LiveIntervals intervals, int register) {
-      splitOverlappingInactiveIntervals(intervals, false, register);
+      splitOverlappingInactiveIntervals(intervals, register, false);
     }
 
     public PriorityQueue<LiveIntervals> getUnhandled() {
