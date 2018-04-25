@@ -12,24 +12,32 @@ import org.junit.Test;
 
 public class ContinuousSteppingTest extends DebugTestBase {
 
-  private static DebugTestConfig config;
+  private static DebugTestConfig javaD8Config;
+  private static DebugTestConfig kotlinD8Config;
 
   @BeforeClass
   public static void setup() {
-    config = new D8DebugTestResourcesConfig(temp);
+    javaD8Config = new D8DebugTestResourcesConfig(temp);
+    kotlinD8Config = new KotlinD8Config(temp);
   }
 
   @Test
   public void testArithmetic() throws Throwable {
-    runContinuousTest("Arithmetic");
+    runContinuousTest("Arithmetic", javaD8Config);
   }
 
   @Test
   public void testLocals() throws Throwable {
-    runContinuousTest("Locals");
+    runContinuousTest("Locals", javaD8Config);
   }
 
-  private void runContinuousTest(String debuggeeClassName) throws Throwable {
+  @Test
+  public void testKotlinInline() throws Throwable {
+    runContinuousTest("KotlinInline", kotlinD8Config);
+  }
+
+  private void runContinuousTest(String debuggeeClassName, DebugTestConfig config)
+      throws Throwable {
     runDebugTest(
         config,
         debuggeeClassName,
