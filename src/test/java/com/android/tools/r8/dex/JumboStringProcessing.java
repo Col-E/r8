@@ -3,8 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.dex;
 
+import static org.junit.Assert.assertEquals;
+
+import com.android.tools.r8.TestBase;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.code.Const4;
 import com.android.tools.r8.code.ConstString;
+import com.android.tools.r8.code.ConstStringJumbo;
 import com.android.tools.r8.code.Goto32;
 import com.android.tools.r8.code.IfEq;
 import com.android.tools.r8.code.IfEqz;
@@ -19,11 +24,18 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.DexInspector;
+import com.google.common.collect.ImmutableList;
+import com.google.common.io.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.Test;
 
-public class JumboStringProcessing {
+public class JumboStringProcessing extends TestBase {
 
   @Test
   public void branching() {
@@ -86,6 +98,53 @@ public class JumboStringProcessing {
     instructions.add(instr);
     assert instr.getOffset() == lastInstructionOffset;
     return instructions.toArray(new Instruction[instructions.size()]);
+  }
+
+  private int countJumboStrings(Instruction[] instructions) {
+    int count = 0;
+    for (Instruction instruction : instructions) {
+      count += instruction instanceof ConstStringJumbo ? 1 : 0;
+    }
+    return count;
+  }
+
+  private int countSimpleNops(Instruction[] instructions) {
+    int count = 0;
+    for (Instruction instruction : instructions) {
+      count += instruction.isSimpleNop() ? 1 : 0;
+    }
+    return count;
+  }
+
+  @Test
+  public void regress78072750() throws Exception {
+    // This dex file have the baksmali output from the failing class from b/78072750, with all
+    // const-string/jumbo replaced with const-string. Also one of the nops before the first
+    // payload has been removed to make it valid dex file (correct alignment of the payload
+    // instruction).
+    Path originalDexFile =
+        Paths.get(ToolHelper.SMALI_BUILD_DIR, "regression/78072750/78072750.dex");
+    AndroidApp application = AndroidApp.builder()
+        .addDexProgramData(Files.toByteArray(originalDexFile.toFile()), Origin.unknown())
+        .build();
+    DexInspector inspector = new DexInspector(application);
+    DexEncodedMethod method = getMethod(
+        inspector,
+        "android.databinding.DataBinderMapperImpl",
+        "android.databinding.ViewDataBinding",
+        "getDataBinder",
+        ImmutableList.of("android.databinding.DataBindingComponent", "android.view.View", "int"));
+    Instruction[] instructions = method.getCode().asDexCode().instructions;
+    assertEquals(0, countJumboStrings(instructions));
+    assertEquals(1, countSimpleNops(instructions));
+
+    DexItemFactory factory = inspector.getFactory();
+    DexString string = factory.createString("view must have a tag");
+    factory.sort(NamingLens.getIdentityLens());
+    DexCode code = jumboStringProcess(factory, string, instructions);
+    Instruction[] rewrittenInstructions = code.instructions;
+    assertEquals(289, countJumboStrings(rewrittenInstructions));
+    assertEquals(0, countSimpleNops(rewrittenInstructions));
   }
 
   private DexCode jumboStringProcess(
