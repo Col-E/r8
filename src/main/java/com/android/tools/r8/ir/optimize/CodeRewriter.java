@@ -2478,70 +2478,40 @@ public class CodeRewriter {
     iterator.add(new InvokeVirtual(print, null, ImmutableList.of(out, value)));
 
     Value openParenthesis = addConstString(code, iterator, "(");
-    Value comma = addConstString(code, iterator, ",");
+    Value comma = addConstString(code, iterator, ", ");
     Value closeParenthesis = addConstString(code, iterator, ")");
-    Value indent = addConstString(code, iterator, "  ");
-    Value nul = addConstString(code, iterator, "(null)");
-    Value primitive = addConstString(code, iterator, "(primitive)");
-    Value empty = addConstString(code, iterator, "");
 
-    iterator.add(new InvokeVirtual(printLn, null, ImmutableList.of(out, openParenthesis)));
+    iterator.add(new InvokeVirtual(print, null, ImmutableList.of(out, openParenthesis)));
     for (int i = 0; i < arguments.size(); i++) {
-      iterator.add(new InvokeVirtual(print, null, ImmutableList.of(out, indent)));
-
-      // Add a block for end-of-line printing.
-      BasicBlock eol = BasicBlock.createGotoBlock(code.blocks.size());
-      code.blocks.add(eol);
-
-      BasicBlock successor = block.unlinkSingleSuccessor();
-      block.link(eol);
-      eol.link(successor);
-
+      if (i != 0) {
+        iterator.add(new InvokeVirtual(print, null, ImmutableList.of(out, comma)));
+      }
       Value argument = arguments.get(i);
-      if (argument.outType() != ValueType.OBJECT) {
-        iterator.add(new InvokeVirtual(print, null, ImmutableList.of(out, primitive)));
+      if (i == 0 && !method.isStaticMethod()) {
+        Value thisString = addConstString(code, iterator, "this");
+        iterator.add(createPrint(out, dexItemFactory.stringType, thisString));
       } else {
-        // Insert "if (argument != null) ...".
-        successor = block.unlinkSingleSuccessor();
-        If theIf = new If(If.Type.NE, argument);
-        theIf.setPosition(position);
-        BasicBlock ifBlock = BasicBlock.createIfBlock(code.blocks.size(), theIf);
-        code.blocks.add(ifBlock);
-        // Fallthrough block must be added right after the if.
-        BasicBlock isNullBlock = BasicBlock.createGotoBlock(code.blocks.size());
-        code.blocks.add(isNullBlock);
-        BasicBlock isNotNullBlock = BasicBlock.createGotoBlock(code.blocks.size());
-        code.blocks.add(isNotNullBlock);
-
-        // Link the added blocks together.
-        block.link(ifBlock);
-        ifBlock.link(isNotNullBlock);
-        ifBlock.link(isNullBlock);
-        isNotNullBlock.link(successor);
-        isNullBlock.link(successor);
-
-        // Fill code into the blocks.
-        iterator = isNullBlock.listIterator();
-        iterator.setInsertionPosition(position);
-        iterator.add(new InvokeVirtual(print, null, ImmutableList.of(out, nul)));
-        iterator = isNotNullBlock.listIterator();
-        iterator.setInsertionPosition(position);
-        value = code.createValue(ValueType.OBJECT);
-        iterator.add(new InvokeVirtual(dexItemFactory.objectMethods.getClass, value,
-            ImmutableList.of(arguments.get(i))));
-        iterator.add(new InvokeVirtual(print, null, ImmutableList.of(out, value)));
+        int formalIndex = method.isStaticMethod() ? i : i - 1;
+        DexType argumentType = method.method.proto.parameters.values[formalIndex];
+        iterator.add(createPrint(out, argumentType, argument));
       }
-
-      iterator = eol.listIterator();
-      iterator.setInsertionPosition(position);
-      if (i == arguments.size() - 1) {
-        iterator.add(new InvokeVirtual(printLn, null, ImmutableList.of(out, closeParenthesis)));
-      } else {
-        iterator.add(new InvokeVirtual(printLn, null, ImmutableList.of(out, comma)));
-      }
-      block = eol;
     }
-    // When we fall out of the loop the iterator is in the last eol block.
-    iterator.add(new InvokeVirtual(printLn, null, ImmutableList.of(out, empty)));
+    iterator.add(new InvokeVirtual(printLn, null, ImmutableList.of(out, closeParenthesis)));
+  }
+
+  private Instruction createPrint(Value printStream, DexType argumentType, Value argumentValue) {
+    if (argumentType.isPrimitiveType()) {
+      if (argumentType != dexItemFactory.longType
+          && argumentType != dexItemFactory.doubleType
+          && argumentType != dexItemFactory.floatType) {
+        argumentType = dexItemFactory.intType;
+      }
+    } else {
+      argumentType = dexItemFactory.objectType;
+    }
+    DexType javaIoPrintStreamType = dexItemFactory.createType("Ljava/io/PrintStream;");
+    DexProto proto = dexItemFactory.createProto(dexItemFactory.voidType, argumentType);
+    DexMethod print = dexItemFactory.createMethod(javaIoPrintStreamType, proto, "print");
+    return new InvokeVirtual(print, null, ImmutableList.of(printStream, argumentValue));
   }
 }
