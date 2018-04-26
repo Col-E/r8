@@ -502,19 +502,23 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
    * was rewritten to avoid rewriting again unless needed.
    */
   public synchronized void rewriteCodeWithJumboStrings(ObjectToOffsetMapping mapping,
-      DexApplication application) {
+      DexApplication application, boolean force) {
     assert code == null || code.isDexCode();
     if (code == null) {
       return;
     }
     DexCode code = this.code.asDexCode();
-    if (code.highestSortingString != null) {
-      if (mapping.getOffsetFor(code.highestSortingString) > Constants.MAX_NON_JUMBO_INDEX) {
-        JumboStringRewriter rewriter =
-            new JumboStringRewriter(this, mapping.getFirstJumboString(),
-                application.dexItemFactory);
-        rewriter.rewrite();
-      }
+    DexString firstJumboString = null;
+    if (force) {
+      firstJumboString = mapping.getFirstString();
+    } else if (code.highestSortingString != null
+        && mapping.getOffsetFor(code.highestSortingString) > Constants.MAX_NON_JUMBO_INDEX) {
+      firstJumboString = mapping.getFirstJumboString();
+    }
+    if (firstJumboString != null) {
+      JumboStringRewriter rewriter =
+          new JumboStringRewriter(this, firstJumboString, application.dexItemFactory);
+      rewriter.rewrite();
     }
   }
 

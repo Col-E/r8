@@ -226,7 +226,7 @@ public class JumboStringRewriter {
           lastOriginalOffset += advance.delta;
           Instruction target = debugEventTargets.get(lastOriginalOffset);
           int pcDelta = target.getOffset() - lastNewOffset;
-          addAdvancementEvents(0, pcDelta, events);
+          events.add(factory.createAdvancePC(pcDelta));
           lastNewOffset = target.getOffset();
         } else if (event instanceof Default) {
           Default defaultEvent = (Default) event;
@@ -234,7 +234,7 @@ public class JumboStringRewriter {
           Instruction target = debugEventTargets.get(lastOriginalOffset);
           int lineDelta = defaultEvent.getLineDelta();
           int pcDelta = target.getOffset() - lastNewOffset;
-          addAdvancementEvents(lineDelta, pcDelta, events);
+          addDefaultEvent(lineDelta, pcDelta, events);
           lastNewOffset = target.getOffset();
         } else {
           events.add(event);
@@ -248,21 +248,19 @@ public class JumboStringRewriter {
     return code.getDebugInfo();
   }
 
-  private void addAdvancementEvents(int lineDelta, int pcDelta, List<DexDebugEvent> events) {
+  // Add a default event. If the lineDelta and pcDelta can be encoded in one default event
+  // that will be done. Otherwise, this can output an advance line and/or advance pc event
+  // followed by a default event. A default event is always emitted as that is what will
+  // materialize an entry in the line table.
+  private void addDefaultEvent(int lineDelta, int pcDelta, List<DexDebugEvent> events) {
     if (lineDelta < Constants.DBG_LINE_BASE
         || lineDelta - Constants.DBG_LINE_BASE >= Constants.DBG_LINE_RANGE) {
       events.add(factory.createAdvanceLine(lineDelta));
       lineDelta = 0;
-      if (pcDelta == 0) {
-        return;
-      }
     }
     if (pcDelta >= Constants.DBG_ADDRESS_RANGE) {
       events.add(factory.createAdvancePC(pcDelta));
       pcDelta = 0;
-      if (lineDelta == 0) {
-        return;
-      }
     }
     int specialOpcode =
         0x0a + (lineDelta - Constants.DBG_LINE_BASE) + Constants.DBG_LINE_RANGE * pcDelta;
