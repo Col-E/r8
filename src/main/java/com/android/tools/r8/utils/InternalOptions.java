@@ -195,6 +195,15 @@ public class InternalOptions {
 
   public ImmutableList<ProguardConfigurationRule> mainDexKeepRules = ImmutableList.of();
   public boolean minimalMainDex;
+  /**
+   * Enable usage of InheritanceClassInDexDistributor for multidex legacy builds.
+   * This allows distribution of classes to minimize DexOpt LinearAlloc usage by minimizing linking
+   * errors during DexOpt and controlling the load of classes with linking issues.
+   * This has the consequence of making minimal main dex not absolutely minimal regarding runtime
+   * execution constraints because it's adding classes in the main dex to satisfy also DexOpt
+   * constraints.
+   */
+  public boolean enableInheritanceClassInDexDistributor = true;
 
   public LineNumberOptimization lineNumberOptimization = LineNumberOptimization.ON;
 

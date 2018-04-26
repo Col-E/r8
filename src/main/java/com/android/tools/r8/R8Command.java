@@ -340,7 +340,8 @@ public class R8Command extends BaseCompilerCommand {
               configuration.isObfuscating(),
               forceProguardCompatibility,
               proguardMapConsumer,
-              proguardCompatibilityRulesOutput);
+              proguardCompatibilityRulesOutput,
+              isOptimizeMultidexForLinearAlloc());
 
       return command;
     }
@@ -547,6 +548,8 @@ public class R8Command extends BaseCompilerCommand {
         builder.addMainDexListFiles(Paths.get(args[++i]));
       } else if (arg.equals("--main-dex-list-output")) {
         builder.setMainDexListOutputPath(Paths.get(args[++i]));
+      } else if (arg.equals("--optimize-multidex-for-linearalloc")) {
+        builder.setOptimizeMultidexForLinearAlloc(true);
       } else if (arg.equals("--pg-conf")) {
         builder.addProguardConfigurationFiles(Paths.get(args[++i]));
       } else if (arg.equals("--pg-map-output")) {
@@ -598,8 +601,10 @@ public class R8Command extends BaseCompilerCommand {
       boolean enableMinification,
       boolean forceProguardCompatibility,
       StringConsumer proguardMapConsumer,
-      Path proguardCompatibilityRulesOutput) {
-    super(inputApp, mode, programConsumer, minApiLevel, reporter, enableDesugaring);
+      Path proguardCompatibilityRulesOutput,
+      boolean optimizeMultidexForLinearAlloc) {
+    super(inputApp, mode, programConsumer, minApiLevel, reporter, enableDesugaring,
+        optimizeMultidexForLinearAlloc);
     assert proguardConfiguration != null;
     assert mainDexKeepRules != null;
     this.mainDexKeepRules = mainDexKeepRules;
@@ -718,6 +723,8 @@ public class R8Command extends BaseCompilerCommand {
     // EXPERIMENTAL flags.
     assert !internal.forceProguardCompatibility;
     internal.forceProguardCompatibility = forceProguardCompatibility;
+
+    internal.enableInheritanceClassInDexDistributor = isOptimizeMultidexForLinearAlloc();
 
     return internal;
   }

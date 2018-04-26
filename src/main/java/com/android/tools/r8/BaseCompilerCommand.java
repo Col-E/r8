@@ -30,6 +30,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
   private final int minApiLevel;
   private final Reporter reporter;
   private final boolean enableDesugaring;
+  private final boolean optimizeMultidexForLinearAlloc;
 
   BaseCompilerCommand(boolean printHelp, boolean printVersion) {
     super(printHelp, printVersion);
@@ -38,6 +39,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     minApiLevel = 0;
     reporter = new Reporter(new DefaultDiagnosticsHandler());
     enableDesugaring = true;
+    optimizeMultidexForLinearAlloc = false;
   }
 
   BaseCompilerCommand(
@@ -46,7 +48,8 @@ public abstract class BaseCompilerCommand extends BaseCommand {
       ProgramConsumer programConsumer,
       int minApiLevel,
       Reporter reporter,
-      boolean enableDesugaring) {
+      boolean enableDesugaring,
+      boolean optimizeMultidexForLinearAlloc) {
     super(app);
     assert minApiLevel > 0;
     assert mode != null;
@@ -55,6 +58,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     this.minApiLevel = minApiLevel;
     this.reporter = reporter;
     this.enableDesugaring = enableDesugaring;
+    this.optimizeMultidexForLinearAlloc = optimizeMultidexForLinearAlloc;
   }
 
   /**
@@ -84,6 +88,14 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     return enableDesugaring;
   }
 
+  /**
+   * If true, legacy multidex partitioning will be optimized to reduce LinearAlloc usage during
+   * Dalvik DexOpt.
+   */
+  public boolean isOptimizeMultidexForLinearAlloc() {
+    return optimizeMultidexForLinearAlloc;
+  }
+
   Reporter getReporter() {
     return reporter;
   }
@@ -105,6 +117,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     private CompilationMode mode;
     private int minApiLevel = 0;
     private boolean disableDesugaring = false;
+    private boolean optimizeMultidexForLinearAlloc = false;
 
     Builder() {}
 
@@ -167,6 +180,24 @@ public abstract class BaseCompilerCommand extends BaseCommand {
      */
     public ProgramConsumer getProgramConsumer() {
       return programConsumer;
+    }
+
+    /**
+     * If set to true, legacy multidex partitioning will be optimized to reduce LinearAlloc usage
+     * during Dalvik DexOpt. Has no effect when compiling for a target with native multidex support
+     * or without main dex list specification.
+     */
+    public B setOptimizeMultidexForLinearAlloc(boolean optimizeMultidexForLinearAlloc) {
+      this.optimizeMultidexForLinearAlloc = optimizeMultidexForLinearAlloc;
+      return self();
+    }
+
+    /**
+     * If true, legacy multidex partitioning will be optimized to reduce LinearAlloc usage during
+     * Dalvik DexOpt.
+     */
+    protected boolean isOptimizeMultidexForLinearAlloc() {
+      return optimizeMultidexForLinearAlloc;
     }
 
     /**

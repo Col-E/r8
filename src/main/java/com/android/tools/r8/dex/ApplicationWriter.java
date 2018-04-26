@@ -152,7 +152,7 @@ public class ApplicationWriter {
     this.programConsumer = consumer;
   }
 
-  private Iterable<VirtualFile> distribute()
+  private Iterable<VirtualFile> distribute(ExecutorService executorService)
       throws ExecutionException, IOException, DexOverflowException {
     // Distribute classes into dex files.
     VirtualFile.Distributor distributor;
@@ -164,7 +164,7 @@ public class ApplicationWriter {
         && options.enableMainDexListCheck) {
       distributor = new VirtualFile.MonoDexDistributor(this, options);
     } else {
-      distributor = new VirtualFile.FillFilesDistributor(this, options);
+      distributor = new VirtualFile.FillFilesDistributor(this, options, executorService);
     }
 
     return distributor.run();
@@ -189,7 +189,7 @@ public class ApplicationWriter {
       // item that is valid for all dex files.
       // Use a linked hash map as the order matters when addDexProgramData is called below.
       Map<VirtualFile, Future<ObjectToOffsetMapping>> offsetMappingFutures = new LinkedHashMap<>();
-      for (VirtualFile newFile : distribute()) {
+      for (VirtualFile newFile : distribute(executorService)) {
         assert !newFile.isEmpty();
         if (!newFile.isEmpty()) {
           offsetMappingFutures

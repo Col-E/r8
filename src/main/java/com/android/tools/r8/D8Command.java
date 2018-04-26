@@ -137,7 +137,8 @@ public class D8Command extends BaseCompilerCommand {
           getMinApiLevel(),
           getReporter(),
           !getDisableDesugaring(),
-          intermediate);
+          intermediate,
+          isOptimizeMultidexForLinearAlloc());
     }
 
     private static DexIndexedConsumer createIndexedConsumer(Path path) {
@@ -267,6 +268,8 @@ public class D8Command extends BaseCompilerCommand {
           builder.addClasspathFiles(Paths.get(args[++i]));
         } else if (arg.equals("--main-dex-list")) {
           builder.addMainDexListFiles(Paths.get(args[++i]));
+        } else if (arg.equals("--optimize-multidex-for-linearalloc")) {
+          builder.setOptimizeMultidexForLinearAlloc(true);
         } else if (arg.equals("--min-api")) {
           hasDefinedApiLevel = parseMinApi(builder, args[++i], hasDefinedApiLevel, origin);
         } else if (arg.equals("--intermediate")) {
@@ -304,14 +307,16 @@ public class D8Command extends BaseCompilerCommand {
       int minApiLevel,
       Reporter diagnosticsHandler,
       boolean enableDesugaring,
-      boolean intermediate) {
+      boolean intermediate,
+      boolean optimizeMultidexForLinearAlloc) {
     super(
         inputApp,
         mode,
         programConsumer,
         minApiLevel,
         diagnosticsHandler,
-        enableDesugaring);
+        enableDesugaring,
+        optimizeMultidexForLinearAlloc);
     this.intermediate = intermediate;
   }
 
@@ -348,6 +353,7 @@ public class D8Command extends BaseCompilerCommand {
 
     internal.enableDesugaring = getEnableDesugaring();
     internal.enableLambdaMerging = false;
+    internal.enableInheritanceClassInDexDistributor = isOptimizeMultidexForLinearAlloc();
     return internal;
   }
 }

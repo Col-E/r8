@@ -477,6 +477,7 @@ public abstract class RunExamplesAndroidOTest
             .withInterfaceMethodDesugaring(OffOrAuto.Auto)
             .withMinApiLevel(minApi)
             .withOptionConsumer(option -> option.minimalMainDex = true)
+            .withOptionConsumer(option -> option.enableInheritanceClassInDexDistributor = false)
             .withMainDexClass(mainDexClasses);
     Path fullDexes = temp.getRoot().toPath().resolve(packageName + "full" + ZIP_EXTENSION);
     full.build(input, fullDexes);
@@ -533,6 +534,7 @@ public abstract class RunExamplesAndroidOTest
     TestRunner<?> end =
         test(packageName + "dex", packageName, "N/A")
             .withOptionConsumer(option -> option.minimalMainDex = true)
+            .withOptionConsumer(option -> option.enableInheritanceClassInDexDistributor = false)
             .withMainDexClass(mainDexClasses)
             .withMinApiLevel(minApi);
 

@@ -5,6 +5,7 @@ package com.android.tools.r8.dex;
 
 import com.android.tools.r8.errors.DexOverflowException;
 import com.android.tools.r8.errors.InternalCompilerError;
+import com.android.tools.r8.errors.MainDexOverflowException;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
@@ -40,7 +41,9 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 public class VirtualFile {
 
@@ -54,7 +57,8 @@ public class VirtualFile {
     // TODO(sgjesse): Does "minimal main dex" combined with "leave space for growth" make sense?
   }
 
-  private static final int MAX_ENTRIES = Constants.U16BIT_MAX + 1;
+  public static final int MAX_ENTRIES = Constants.U16BIT_MAX + 1;
+
   /**
    * When distributing classes across files we aim to leave some space. The amount of space left is
    * driven by this constant.
@@ -67,7 +71,7 @@ public class VirtualFile {
 
   private final DexProgramClass primaryClass;
 
-  private VirtualFile(int id, NamingLens namingLens) {
+  VirtualFile(int id, NamingLens namingLens) {
     this(id, namingLens, null);
   }
 
@@ -160,23 +164,32 @@ public class VirtualFile {
         indexedItems.methodHandles);
   }
 
-  private void addClass(DexProgramClass clazz) {
+  void addClass(DexProgramClass clazz) {
     transaction.addClassAndDependencies(clazz);
   }
 
-  private static boolean isFull(int numberOfMethods, int numberOfFields, int maximum) {
-    return (numberOfMethods > maximum) || (numberOfFields > maximum);
+  public boolean isFull(int maxEntries) {
+    return (transaction.getNumberOfMethods() > maxEntries)
+        || (transaction.getNumberOfFields() > maxEntries);
   }
 
-  private boolean isFull() {
-    return isFull(transaction.getNumberOfMethods(), transaction.getNumberOfFields(), MAX_ENTRIES);
+  boolean isFull() {
+    return isFull(MAX_ENTRIES);
+  }
+
+  public int getNumberOfMethods() {
+    return transaction.getNumberOfMethods();
+  }
+
+  public int getNumberOfFields() {
+    return transaction.getNumberOfFields();
   }
 
   void throwIfFull(boolean hasMainDexList) throws DexOverflowException {
     if (!isFull()) {
       return;
     }
-    throw new DexOverflowException(
+    throw new MainDexOverflowException(
         hasMainDexList,
         transaction.getNumberOfMethods(),
         transaction.getNumberOfFields(),
@@ -184,10 +197,7 @@ public class VirtualFile {
   }
 
   private boolean isFilledEnough(FillStrategy fillStrategy) {
-    return isFull(
-        transaction.getNumberOfMethods(),
-        transaction.getNumberOfFields(),
-        fillStrategy == FillStrategy.FILL_MAX ? MAX_ENTRIES : MAX_PREFILL_ENTRIES);
+    return isFull(fillStrategy == FillStrategy.FILL_MAX ? MAX_ENTRIES : MAX_PREFILL_ENTRIES);
   }
 
   public void abortTransaction() {
@@ -343,14 +353,18 @@ public class VirtualFile {
 
   public static class FillFilesDistributor extends DistributorBase {
     private final FillStrategy fillStrategy;
+    private final ExecutorService executorService;
 
-    FillFilesDistributor(ApplicationWriter writer, InternalOptions options) {
+    FillFilesDistributor(ApplicationWriter writer, InternalOptions options,
+        ExecutorService executorService) {
       super(writer, options);
       this.fillStrategy = FillStrategy.FILL_MAX;
+      this.executorService = executorService;
     }
 
     @Override
     public Collection<VirtualFile> run() throws IOException, DexOverflowException {
+      int totalClassNumber = classes.size();
       // First fill required classes into the main dex file.
       fillForMainDexList(classes);
       if (classes.isEmpty()) {
@@ -360,7 +374,8 @@ public class VirtualFile {
 
       List<VirtualFile> filesForDistribution = virtualFiles;
       int fileIndexOffset = 0;
-      if (options.minimalMainDex && !mainDexFile.isEmpty()) {
+      boolean multidexLegacy = !mainDexFile.isEmpty();
+      if (options.minimalMainDex && multidexLegacy) {
         assert !virtualFiles.get(0).isEmpty();
         assert virtualFiles.size() == 1;
         // The main dex file is filtered out, so ensure at least one file for the remaining classes.
@@ -369,14 +384,20 @@ public class VirtualFile {
         fileIndexOffset = 1;
       }
 
-      // Sort the remaining classes based on the original names.
-      // This with make classes from the same package be adjacent.
-      classes = sortClassesByPackage(classes, originalNames);
-
-      new PackageSplitPopulator(
-          filesForDistribution, classes, originalNames, application.dexItemFactory,
-          fillStrategy, fileIndexOffset, writer.namingLens)
-          .call();
+      if (multidexLegacy && options.enableInheritanceClassInDexDistributor) {
+        new InheritanceClassInDexDistributor(mainDexFile, filesForDistribution, classes,
+            originalNames, fileIndexOffset, writer.namingLens, writer.application, executorService)
+            .distribute();
+      } else {
+        // Sort the remaining classes based on the original names.
+        // This with make classes from the same package be adjacent.
+        classes = sortClassesByPackage(classes, originalNames);
+        new PackageSplitPopulator(
+            filesForDistribution, classes, originalNames, application.dexItemFactory,
+            fillStrategy, fileIndexOffset, writer.namingLens)
+            .call();
+      }
+      assert totalClassNumber == virtualFiles.stream().mapToInt(dex -> dex.classes().size()).sum();
       return virtualFiles;
     }
   }
@@ -632,7 +653,7 @@ public class VirtualFile {
    * If the fill strategy indicate that the main dex file should be minimal, then the main dex file
    * will not be part of the iteration.
    */
-  private static class VirtualFileCycler {
+  static class VirtualFileCycler {
 
     private final List<VirtualFile> files;
     private final NamingLens namingLens;
@@ -650,7 +671,7 @@ public class VirtualFile {
       reset();
     }
 
-    private void reset() {
+    void reset() {
       allFilesCyclic = Iterators.cycle(files);
       restart();
     }
@@ -661,6 +682,38 @@ public class VirtualFile {
 
     VirtualFile next() {
       return activeFiles.next();
+    }
+
+    /**
+     * Get next {@link VirtualFile} and create a new empty one if there is no next available.
+     */
+    VirtualFile nextOrCreate() {
+      if (hasNext()) {
+        return activeFiles.next();
+      } else {
+        VirtualFile newFile = new VirtualFile(nextFileId++, namingLens);
+        files.add(newFile);
+        allFilesCyclic = Iterators.cycle(files);
+        return newFile;
+      }
+    }
+
+    /**
+     * Get next {@link VirtualFile} accepted by the given filter and create a new empty one if there
+     * is no next available.
+     * @param filter allows to to reject some of the available {@link VirtualFile}. Rejecting empt
+     * {@link VirtualFile} is not authorized since it would sometimes prevent to find a result.
+     */
+    VirtualFile nextOrCreate(Predicate<? super VirtualFile> filter) {
+      while (true) {
+        VirtualFile dex = nextOrCreate();
+        if (dex.isEmpty()) {
+          assert filter.test(dex);
+          return dex;
+        } else if (filter.test(dex)) {
+          return dex;
+        }
+      }
     }
 
     // Start a new iteration over all files, starting at the current one.
@@ -869,4 +922,5 @@ public class VirtualFile {
       return current;
     }
   }
+
 }
