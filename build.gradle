@@ -85,11 +85,7 @@ buildscript {
     dependencies {
         classpath 'com.google.protobuf:protobuf-gradle-plugin:0.8.1'
         classpath 'com.cookpad.android.licensetools:license-tools-plugin:0.23.0'
-        // TODO(ager): shadow does not support java9 class files yet. Once it does,
-        // we should use the offial version instead of our fork using ASM 6.0 to
-        // support java9.
-        // classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.1'
-        classpath files("third_party/shadow/shadow-2.0.1.jar")
+        classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.3'
         classpath "net.ltgt.gradle:gradle-errorprone-plugin:0.0.13"
         classpath "net.ltgt.gradle:gradle-apt-plugin:0.12"
     }
@@ -307,7 +303,6 @@ def cloudDependencies = [
                 "jctf",
                 "kotlin",
                 "android_cts_baseline",
-                "shadow",
                 "ddmlib",
                 "core-lambda-stubs",
                 "openjdk/openjdk-rt-1.8",
