@@ -135,7 +135,7 @@ public class ArrayPut extends Instruction {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
-    return other.asArrayPut().type == type;
+    return other.isArrayPut() && other.asArrayPut().type == type;
   }
 
   @Override

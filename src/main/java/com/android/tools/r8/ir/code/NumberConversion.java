@@ -116,6 +116,9 @@ public class NumberConversion extends Unop {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
+    if (!other.isNumberConversion()) {
+      return false;
+    }
     NumberConversion o = other.asNumberConversion();
     return o.from == from && o.to == to;
   }

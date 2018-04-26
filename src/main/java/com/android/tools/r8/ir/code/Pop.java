@@ -31,7 +31,7 @@ public class Pop extends Instruction {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
-    return true;
+    return other.isPop();
   }
 
   @Override

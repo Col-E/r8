@@ -44,7 +44,7 @@ public class NewInstance extends Instruction {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
-    return other.asNewInstance().clazz == clazz;
+    return other.isNewInstance() && other.asNewInstance().clazz == clazz;
   }
 
   @Override

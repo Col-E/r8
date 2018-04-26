@@ -66,7 +66,7 @@ public class And extends LogicalBinop {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
-    return other.asAnd().type == type;
+    return other.isAnd() && other.asAnd().type == type;
   }
 
   @Override

@@ -92,7 +92,7 @@ public class Mul extends ArithmeticBinop {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
-    return other.asMul().type == type;
+    return other.isMul() && other.asMul().type == type;
   }
 
   @Override

@@ -88,6 +88,9 @@ public class StaticPut extends FieldInstruction {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
+    if (!other.isStaticPut()) {
+      return false;
+    }
     StaticPut o = other.asStaticPut();
     return o.field == field && o.type == type;
   }

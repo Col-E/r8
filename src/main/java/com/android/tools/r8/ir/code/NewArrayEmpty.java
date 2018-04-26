@@ -65,7 +65,7 @@ public class NewArrayEmpty extends Instruction {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
-    return other.asNewArrayEmpty().type == type;
+    return other.isNewArrayEmpty() && other.asNewArrayEmpty().type == type;
   }
 
   @Override

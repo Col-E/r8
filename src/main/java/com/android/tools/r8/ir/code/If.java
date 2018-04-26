@@ -149,6 +149,9 @@ public class If extends JumpInstruction {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
+    if (!other.isIf()) {
+      return false;
+    }
     If o = other.asIf();
     return o.getTrueTarget() == getTrueTarget()
         && o.fallthroughBlock() == fallthroughBlock()

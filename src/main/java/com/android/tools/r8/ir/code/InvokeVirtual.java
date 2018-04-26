@@ -67,10 +67,7 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
-    if (!other.isInvokeVirtual()) {
-      return false;
-    }
-    return super.identicalNonValueNonPositionParts(other);
+    return other.isInvokeVirtual() && super.identicalNonValueNonPositionParts(other);
   }
 
   @Override

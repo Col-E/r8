@@ -64,7 +64,7 @@ public class Xor extends LogicalBinop {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
-    return other.asXor().type == type;
+    return other.isXor() && other.asXor().type == type;
   }
 
   @Override

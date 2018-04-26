@@ -1852,7 +1852,7 @@ public class CodeRewriter {
         return false;
       }
       // Note that we don't consider positions because CSE can at most remove an instruction.
-      if (a.getClass() != b.getClass() || !a.identicalNonValueNonPositionParts(b)) {
+      if (!a.identicalNonValueNonPositionParts(b)) {
         return false;
       }
       // For commutative binary operations any order of in-values are equal.

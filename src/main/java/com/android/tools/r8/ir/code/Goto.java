@@ -78,7 +78,7 @@ public class Goto extends JumpInstruction {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
-    return other.asGoto().getTarget() == getTarget();
+    return other.isGoto() && other.asGoto().getTarget() == getTarget();
   }
 
   @Override

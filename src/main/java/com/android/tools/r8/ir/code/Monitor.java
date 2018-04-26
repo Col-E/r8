@@ -54,7 +54,7 @@ public class Monitor extends Instruction {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
-    return other.asMonitor().type == type;
+    return other.isMonitor() && other.asMonitor().type == type;
   }
 
   @Override

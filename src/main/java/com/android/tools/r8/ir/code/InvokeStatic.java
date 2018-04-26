@@ -74,10 +74,7 @@ public class InvokeStatic extends InvokeMethod {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
-    if (!other.isInvokeStatic()) {
-      return false;
-    }
-    return super.identicalNonValueNonPositionParts(other);
+    return other.isInvokeStatic() && super.identicalNonValueNonPositionParts(other);
   }
 
   @Override

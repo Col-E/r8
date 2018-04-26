@@ -56,8 +56,7 @@ public class Argument extends Instruction {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
-    assert other.isArgument();
-    return true;
+    return other.isArgument();
   }
 
   @Override

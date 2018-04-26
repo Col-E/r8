@@ -44,7 +44,7 @@ public class ConstString extends ConstInstruction {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
-    return other.asConstString().value == value;
+    return other.isConstString() && other.asConstString().value == value;
   }
 
   @Override

@@ -32,7 +32,7 @@ public class Load extends Instruction {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
-    return true;
+    return other.isLoad();
   }
 
   @Override
