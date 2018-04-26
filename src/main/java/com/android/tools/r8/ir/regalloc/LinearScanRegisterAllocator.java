@@ -673,7 +673,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       // const number instructions are for values that can be rematerialized instead of
       // spilled.
       assert instruction.getNumber() == -1;
-      assert instruction.isMove() || instruction.isConstNumber();
+      assert instruction.isMove() || instruction.isConstNumber() || instruction.isConstString();
       assert !instruction.isDebugInstruction();
       return true;
     }
@@ -1928,8 +1928,11 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
         newActive.add(splitChild);
         // If the constant is split before its first actual use, mark the constant as being
         // spilled. That will allows us to remove it afterwards if it is rematerializable.
-        if (intervals.getValue().isConstNumber()
-            && intervals.getStart() == intervals.getValue().definition.getNumber()
+        Value intervalsValue = intervals.getValue();
+        boolean isRematerializableConstantValue =
+            intervalsValue.isConstNumber() || intervalsValue.isConstString();
+        if (isRematerializableConstantValue
+            && intervals.getStart() == intervalsValue.definition.getNumber()
             && intervals.getUses().size() == 1) {
           intervals.setSpilled(true);
         }
@@ -1939,9 +1942,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
             LiveIntervals splitOfSplit = splitChild.splitBefore(splitChild.getFirstUse());
             splitOfSplit.setRegister(intervals.getRegister());
             inactive.add(splitOfSplit);
-          } else if (intervals.getValue().isConstNumber()) {
-            // TODO(ager): Do this for all constants. Currently we only rematerialize const
-            // number and therefore we only do it for numbers at this point.
+          } else if (isRematerializableConstantValue) {
             splitRangesForSpilledConstant(splitChild, registerNumber);
           } else if (intervals.isArgumentInterval()) {
             splitRangesForSpilledArgument(splitChild);
@@ -1972,6 +1973,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     // register for as long as possible to avoid further moves.
     assert spilled.isSpilled();
     assert !spilled.getValue().isConstNumber();
+    assert !spilled.getValue().isConstString();
     assert !spilled.isLinked() || spilled.isArgumentInterval();
     boolean isSpillingToArgumentRegister =
         (spilled.isArgumentInterval() || registerNumber < numberOfArgumentRegisters);
@@ -2004,7 +2006,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     // spill we are running low on registers and this constant should get out of the way
     // as much as possible.
     assert spilled.isSpilled();
-    assert spilled.getValue().isConstNumber();
+    assert spilled.getValue().isConstNumber() || spilled.getValue().isConstString();
     assert !spilled.isLinked() || spilled.isArgumentInterval();
     // Do not split range if constant is reused by one of the eleven following instruction.
     int maxGapSize = 11 * INSTRUCTION_NUMBER_DELTA;

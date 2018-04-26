@@ -4,8 +4,10 @@
 package com.android.tools.r8.ir.regalloc;
 
 import com.android.tools.r8.code.MoveType;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.ConstNumber;
+import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.FixedRegisterValue;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
@@ -130,16 +132,22 @@ public class RegisterMoveScheduler {
   private Integer createMove(RegisterMove move) {
     Instruction instruction;
     if (move.definition != null) {
-      if (move.definition.isArgument()) {
-        Argument argument = move.definition.asArgument();
+      Instruction definition = move.definition;
+      if (definition.isArgument()) {
+        Argument argument = definition.asArgument();
         int argumentRegister = argument.outValue().getLiveIntervals().getRegister();
         Value to = new FixedRegisterValue(argument.outType(), move.dst);
         Value from = new FixedRegisterValue(argument.outType(), argumentRegister);
         instruction = new Move(to, from);
       } else {
-        ConstNumber number = move.definition.asConstNumber();
-        Value to = new FixedRegisterValue(number.outType(), move.dst);
-        instruction = new ConstNumber(to, number.getRawValue());
+        Value to = new FixedRegisterValue(definition.outType(), move.dst);
+        if (definition.isConstNumber()) {
+          instruction = new ConstNumber(to, definition.asConstNumber().getRawValue());
+        } else if (definition.isConstString()) {
+          instruction = new ConstString(to, definition.asConstString().getValue());
+        } else {
+          throw new Unreachable("Unexpected definition");
+        }
       }
     } else {
       Value to = new FixedRegisterValue(move.type.toValueType(), move.dst);
