@@ -369,20 +369,24 @@ public class ApplicationWriter {
    * If run multiple times on a class, the lowest index that is required to be a JumboString will
    * be used.
    */
-  private static void rewriteCodeWithJumboStrings(ObjectToOffsetMapping mapping,
+  private void rewriteCodeWithJumboStrings(ObjectToOffsetMapping mapping,
       Collection<DexProgramClass> classes, DexApplication application) {
-    // If there are no strings with jumbo indices at all this is a no-op.
-    if (!mapping.hasJumboStrings()) {
-      return;
-    }
-    // If the globally highest sorting string is not a jumbo string this is also a no-op.
-    if (application.highestSortingString != null &&
-        application.highestSortingString.slowCompareTo(mapping.getFirstJumboString()) < 0) {
-      return;
+    // Do not bail out early if forcing jumbo string processing.
+    if (!options.testing.forceJumboStringProcessing) {
+      // If there are no strings with jumbo indices at all this is a no-op.
+      if (!mapping.hasJumboStrings()) {
+        return;
+      }
+      // If the globally highest sorting string is not a jumbo string this is also a no-op.
+      if (application.highestSortingString != null &&
+          application.highestSortingString.slowCompareTo(mapping.getFirstJumboString()) < 0) {
+        return;
+      }
     }
     // At least one method needs a jumbo string.
     for (DexProgramClass clazz : classes) {
-      clazz.forEachMethod(method -> method.rewriteCodeWithJumboStrings(mapping, application));
+      clazz.forEachMethod(method -> method.rewriteCodeWithJumboStrings(
+          mapping, application, options.testing.forceJumboStringProcessing));
     }
   }
 

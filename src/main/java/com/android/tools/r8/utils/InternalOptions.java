@@ -412,6 +412,7 @@ public class InternalOptions {
     public boolean invertConditionals = false;
     public boolean placeExceptionalBlocksLast = false;
     public boolean dontCreateMarkerInD8 = false;
+    public boolean forceJumboStringProcessing = false;
   }
 
   public boolean canUseInvokePolymorphicOnVarHandle() {

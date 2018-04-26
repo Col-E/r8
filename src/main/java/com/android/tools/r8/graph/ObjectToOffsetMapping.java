@@ -7,6 +7,7 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import it.unimi.dsi.fastutil.objects.Reference2IntLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
+import it.unimi.dsi.fastutil.objects.Reference2IntMap.Entry;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import java.util.Collection;
 import java.util.Collections;
@@ -195,6 +196,15 @@ public class ObjectToOffsetMapping {
 
   public DexString getFirstJumboString() {
     return firstJumboString;
+  }
+
+  public DexString getFirstString() {
+    for (Entry<DexString> dexStringEntry : strings.reference2IntEntrySet()) {
+      if (dexStringEntry.getIntValue() == 0) {
+        return dexStringEntry.getKey();
+      }
+    }
+    return null;
   }
 
   private <T extends IndexedDexItem> int getOffsetFor(T item, Reference2IntMap<T> map) {

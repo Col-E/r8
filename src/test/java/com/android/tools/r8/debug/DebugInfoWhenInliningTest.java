@@ -27,16 +27,13 @@ public class DebugInfoWhenInliningTest extends DebugTestBase {
 
   private static final String SOURCE_FILE = "Inlining1.java";
 
-  private static DebugTestConfig makeConfig(
-      OutputMode outputMode,
+  private DebugTestConfig makeConfig(
       LineNumberOptimization lineNumberOptimization,
       boolean writeProguardMap)
       throws Exception {
-    assert outputMode == OutputMode.DexIndexed || outputMode == OutputMode.ClassFile;
     AndroidApiLevel minSdk = ToolHelper.getMinApiLevelForDexVm();
-    String prefix = outputMode == OutputMode.ClassFile ? "cf" : "dex";
     Path outdir = temp.newFolder().toPath();
-    Path outjar = outdir.resolve(prefix + "_r8_compiled.jar");
+    Path outjar = outdir.resolve("dex_r8_compiled.jar");
     Path proguardMapPath = writeProguardMap ? outdir.resolve("proguard.map") : null;
     R8Command.Builder builder =
         R8Command.builder()
@@ -44,29 +41,29 @@ public class DebugInfoWhenInliningTest extends DebugTestBase {
             .setMinApiLevel(minSdk.getLevel())
             .addLibraryFiles(ToolHelper.getAndroidJar(minSdk))
             .setMode(CompilationMode.RELEASE)
-            .setOutput(outjar, outputMode);
+            .setOutput(outjar, OutputMode.DexIndexed);
     if (proguardMapPath != null) {
       builder.setProguardMapOutputPath(proguardMapPath);
     }
     ToolHelper.runR8(
-        builder.build(), options -> options.lineNumberOptimization = lineNumberOptimization);
-    DebugTestConfig config =
-        outputMode == OutputMode.ClassFile
-            ? new CfDebugTestConfig(outjar)
-            : new DexDebugTestConfig(outjar);
+        builder.build(), options -> {
+          options.lineNumberOptimization = lineNumberOptimization;
+          options.testing.forceJumboStringProcessing = forceJumboStringProcessing;
+        });
+    DebugTestConfig config = new DexDebugTestConfig(outjar);
     config.setProguardMap(proguardMapPath);
     return config;
   }
 
-  private OutputMode outputMode;
+  private boolean forceJumboStringProcessing;
 
-  @Parameters(name = "{0}")
-  public static Collection<OutputMode> data() {
-    return Arrays.asList(OutputMode.DexIndexed);
+  @Parameters(name="forceJumbo: {0}")
+  public static Collection<Boolean> data() {
+    return Arrays.asList(true, false);
   }
 
-  public DebugInfoWhenInliningTest(OutputMode outputMode) {
-    this.outputMode = outputMode;
+  public DebugInfoWhenInliningTest(boolean forceJumboStringProcessing) {
+    this.forceJumboStringProcessing = forceJumboStringProcessing;
   }
 
   @Test
@@ -78,7 +75,7 @@ public class DebugInfoWhenInliningTest extends DebugTestBase {
     // (innermost callee) the line numbers are actually 7, 7, 32, 32, ... but even if the positions
     // are emitted duplicated in the dex code, the debugger stops only when there's a change.
     int[] lineNumbers = {7, 32, 11, 7};
-    testEachLine(makeConfig(outputMode, LineNumberOptimization.OFF, false), lineNumbers);
+    testEachLine(makeConfig(LineNumberOptimization.OFF, false), lineNumbers);
   }
 
   @Test
@@ -90,13 +87,13 @@ public class DebugInfoWhenInliningTest extends DebugTestBase {
     // (innermost callee) the line numbers are actually 7, 7, 32, 32, ... but even if the positions
     // are emitted duplicated in the dex code, the debugger stops only when there's a change.
     int[] lineNumbers = {7, 32, 11, 7};
-    testEachLine(makeConfig(outputMode, LineNumberOptimization.OFF, true), lineNumbers);
+    testEachLine(makeConfig(LineNumberOptimization.OFF, true), lineNumbers);
   }
 
   @Test
   public void testEachLineOptimized() throws Throwable {
     int[] lineNumbers = {1, 2, 3, 4, 5, 6, 7, 8};
-    testEachLine(makeConfig(outputMode, LineNumberOptimization.ON, false), lineNumbers);
+    testEachLine(makeConfig(LineNumberOptimization.ON, false), lineNumbers);
   }
 
   @Test
@@ -133,7 +130,7 @@ public class DebugInfoWhenInliningTest extends DebugTestBase {
                 new SignatureAndLine("void Inlining2.differentFileMultilevelInliningLevel1()", 36),
                 new SignatureAndLine("void main(java.lang.String[])", 26)));
     testEachLine(
-        makeConfig(outputMode, LineNumberOptimization.ON, true), lineNumbers, inlineFramesList);
+        makeConfig(LineNumberOptimization.ON, true), lineNumbers, inlineFramesList);
   }
 
   private void testEachLine(DebugTestConfig config, int[] lineNumbers) throws Throwable {
