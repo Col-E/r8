@@ -14,6 +14,7 @@ import com.android.tools.r8.code.ConstClass;
 import com.android.tools.r8.code.ConstString;
 import com.android.tools.r8.code.InvokeDirectRange;
 import com.android.tools.r8.code.InvokeStatic;
+import com.android.tools.r8.code.InvokeStaticRange;
 import com.android.tools.r8.code.InvokeVirtual;
 import com.android.tools.r8.code.IputObject;
 import com.android.tools.r8.code.NewArray;
@@ -420,7 +421,7 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
             ConstString.class,
             InvokeVirtual.class,
             ConstString.class,
-            InvokeStatic.class,
+            InvokeStaticRange.class,
             ReturnVoid.class));
     ConstString constString = (ConstString) code.instructions[2];
     assertEquals(BOO, constString.getString().toString());
@@ -466,7 +467,7 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
             ConstString.class,
             InvokeVirtual.class,
             ConstString.class,
-            InvokeStatic.class,
+            InvokeStaticRange.class,
             ReturnVoid.class));
     ConstString constString = (ConstString) code.instructions[2];
     assertEquals(BOO, constString.getString().toString());

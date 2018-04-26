@@ -8,7 +8,7 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.code.ConstString;
-import com.android.tools.r8.code.InvokeStatic;
+import com.android.tools.r8.code.InvokeStaticRange;
 import com.android.tools.r8.code.ReturnVoid;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.smali.SmaliBuilder;
@@ -50,7 +50,7 @@ public class ForNameTest extends CompatProguardSmaliTestBase {
     assertTrue(code.instructions[0] instanceof ConstString);
     ConstString constString = (ConstString) code.instructions[0];
     assertNotEquals(BOO, constString.getString().toString());
-    assertTrue(code.instructions[1] instanceof InvokeStatic);
+    assertTrue(code.instructions[1] instanceof InvokeStaticRange);
     assertTrue(code.instructions[2] instanceof ReturnVoid);
   }
 
@@ -81,7 +81,7 @@ public class ForNameTest extends CompatProguardSmaliTestBase {
     assertTrue(code.instructions[0] instanceof ConstString);
     ConstString constString = (ConstString) code.instructions[0];
     assertEquals(BOO, constString.getString().toString());
-    assertTrue(code.instructions[1] instanceof InvokeStatic);
+    assertTrue(code.instructions[1] instanceof InvokeStaticRange);
     assertTrue(code.instructions[2] instanceof ReturnVoid);
   }
 

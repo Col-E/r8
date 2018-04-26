@@ -14,6 +14,7 @@ import com.android.tools.r8.code.ConstWideHigh16;
 import com.android.tools.r8.code.DivInt;
 import com.android.tools.r8.code.DivInt2Addr;
 import com.android.tools.r8.code.Goto;
+import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.InvokeStatic;
 import com.android.tools.r8.code.InvokeStaticRange;
 import com.android.tools.r8.code.InvokeVirtual;
@@ -556,7 +557,7 @@ public class OutlineTest extends SmaliTestBase {
         InvokeStatic invoke = (InvokeStatic) mainCode.instructions[4];
         assertTrue(isOutlineMethodName(invoke.getMethod().qualifiedName()));
       } else if (i == 3) {
-        InvokeStatic invoke = (InvokeStatic) mainCode.instructions[1];
+        InvokeStaticRange invoke = (InvokeStaticRange) mainCode.instructions[1];
         assertTrue(isOutlineMethodName(invoke.getMethod().qualifiedName()));
       } else {
         assert i == 4 || i == 5;
@@ -706,7 +707,6 @@ public class OutlineTest extends SmaliTestBase {
       assertEquals(2, getNumberOfProgramClasses(processedApplication));
 
       DexCode code = getMethod(processedApplication, signature).getCode().asDexCode();
-      InvokeStatic invoke;
       int outlineInstructionIndex;
       switch (i) {
         case 2:
@@ -719,8 +719,14 @@ public class OutlineTest extends SmaliTestBase {
         default:
           outlineInstructionIndex = 2;
       }
-      invoke = (InvokeStatic) code.instructions[outlineInstructionIndex];
-      assertTrue(isOutlineMethodName(invoke.getMethod().qualifiedName()));
+      Instruction instruction = code.instructions[outlineInstructionIndex];
+      if (instruction instanceof InvokeStatic) {
+        InvokeStatic invoke = (InvokeStatic) instruction;
+        assertTrue(isOutlineMethodName(invoke.getMethod().qualifiedName()));
+      } else {
+        InvokeStaticRange invoke = (InvokeStaticRange) instruction;
+        assertTrue(isOutlineMethodName(invoke.getMethod().qualifiedName()));
+      }
 
       // Run code and check result.
       String result = runArt(processedApplication);
