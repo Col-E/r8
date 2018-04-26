@@ -46,8 +46,6 @@ third_party/jdwp-tests.tar.gz
 third_party/jdwp-tests
 third_party/kotlin.tar.gz
 third_party/kotlin
-third_party/shadow
-third_party/shadow.tar.gz
 third_party/photos/*
 !third_party/photos/*.sha1
 third_party/proguard/*
