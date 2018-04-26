@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import static com.android.tools.r8.ir.code.IRCode.INSTRUCTION_NUMBER_DELTA;
+
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DebugLocalInfo;
@@ -407,6 +409,14 @@ public class BasicBlock {
   public void setNumber(int number) {
     assert number >= 0;
     this.number = number;
+  }
+
+  public int numberInstructions(int nextInstructionNumber) {
+    for (Instruction instruction : instructions) {
+      instruction.setNumber(nextInstructionNumber);
+      nextInstructionNumber += INSTRUCTION_NUMBER_DELTA;
+    }
+    return nextInstructionNumber;
   }
 
   public LinkedList<Instruction> getInstructions() {

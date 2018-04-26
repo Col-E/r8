@@ -556,10 +556,7 @@ public class IRCode {
   public ImmutableList<BasicBlock> numberInstructions() {
     ImmutableList<BasicBlock> blocks = topologicallySortedBlocks();
     for (BasicBlock block : blocks) {
-      for (Instruction instruction : block.getInstructions()) {
-        instruction.setNumber(nextInstructionNumber);
-        nextInstructionNumber += INSTRUCTION_NUMBER_DELTA;
-      }
+      nextInstructionNumber = block.numberInstructions(nextInstructionNumber);
     }
     return blocks;
   }

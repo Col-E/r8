@@ -2351,6 +2351,23 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     if (invoke.requiredArgumentRegisters() > 5 && !argumentsAreAlreadyLinked(invoke)) {
       List<Value> arguments = invoke.arguments();
       Value previous = null;
+
+      PriorityQueue<Move> insertAtDefinition = null;
+      if (invoke.requiredArgumentRegisters() > 16) {
+        insertAtDefinition =
+            new PriorityQueue<>(
+                (x, y) -> x.src().definition.getNumber() - y.src().definition.getNumber());
+
+        // Number the instructions in this basic block such that we can order the moves according
+        // to the positions of the instructions that define the srcs of the moves. Note that this
+        // is a local numbering of the instructions. These instruction numbers will be recomputed
+        // just before the liveness analysis.
+        BasicBlock block = invoke.getBlock();
+        if (block.entry().getNumber() == -1) {
+          block.numberInstructions(0);
+        }
+      }
+
       for (int i = 0; i < arguments.size(); i++) {
         Value argument = arguments.get(i);
         Value newArgument = argument;
@@ -2371,15 +2388,65 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
           newArgument = createValue(argument.outType());
           Move move = new Move(newArgument, argument);
           move.setBlock(invoke.getBlock());
-          move.setPosition(invoke.getPosition());
           replaceArgument(invoke, i, newArgument);
-          insertAt.add(move);
+
+          boolean argumentIsDefinedInSameBlock =
+              argument.definition != null && argument.definition.getBlock() == invoke.getBlock();
+          if (invoke.requiredArgumentRegisters() > 16 && argumentIsDefinedInSameBlock) {
+            // Heuristic: Insert the move immediately after the argument. This increases the
+            // likelyhood that we will be able to move the argument directly into the register it
+            // needs to be in for the ranged invoke.
+            //
+            // If we instead were to insert the moves immediately before the ranged invoke when
+            // there are many arguments, then there is a high risk that we will need to spill the
+            // arguments before they get moved to the correct register right before the invoke.
+            assert move.src().definition.getNumber() >= 0;
+            insertAtDefinition.add(move);
+            move.setPosition(argument.definition.getPosition());
+          } else {
+            insertAt.add(move);
+            move.setPosition(invoke.getPosition());
+          }
         }
         if (previous != null) {
           previous.linkTo(newArgument);
         }
         previous = newArgument;
       }
+
+      if (insertAtDefinition != null && !insertAtDefinition.isEmpty()) {
+        generateArgumentMovesAtDefinitions(invoke, insertAtDefinition, insertAt);
+      }
+    }
+  }
+
+  private void generateArgumentMovesAtDefinitions(
+      Invoke invoke, PriorityQueue<Move> insertAtDefinition, InstructionListIterator insertAt) {
+    Move move = insertAtDefinition.poll();
+    // Rewind instruction iterator to the position where the first move needs to be inserted.
+    Instruction previousDefinition = move.src().definition;
+    while (insertAt.peekPrevious() != previousDefinition) {
+      insertAt.previous();
+    }
+    // Insert the instructions one by one after their definition.
+    insertAt.add(move);
+    while (!insertAtDefinition.isEmpty()) {
+      move = insertAtDefinition.poll();
+      Instruction currentDefinition = move.src().definition;
+      assert currentDefinition.getNumber() >= previousDefinition.getNumber();
+      if (currentDefinition.getNumber() > previousDefinition.getNumber()) {
+        // Move the instruction iterator forward to where this move needs to be inserted.
+        while (insertAt.peekPrevious() != currentDefinition) {
+          insertAt.next();
+        }
+      }
+      insertAt.add(move);
+      // Update state.
+      previousDefinition = currentDefinition;
+    }
+    // Move the instruction iterator forward to its old position.
+    while (insertAt.peekNext() != invoke) {
+      insertAt.next();
     }
   }
 

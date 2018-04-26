@@ -26,7 +26,7 @@ public class RegisterMove implements Comparable<RegisterMove> {
     this.dst = dst;
     this.src = LiveIntervals.NO_REGISTER;
     this.type = type;
-    assert definition.isConstInstruction() || definition.isArgument();
+    assert definition.isOutConstant() || definition.isArgument();
     this.definition = definition;
   }
 

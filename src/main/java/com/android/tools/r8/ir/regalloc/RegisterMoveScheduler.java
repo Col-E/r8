@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.regalloc;
 import com.android.tools.r8.code.MoveType;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.code.Argument;
+import com.android.tools.r8.ir.code.ConstInstruction;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.FixedRegisterValue;
@@ -132,15 +133,16 @@ public class RegisterMoveScheduler {
   private Integer createMove(RegisterMove move) {
     Instruction instruction;
     if (move.definition != null) {
-      Instruction definition = move.definition;
-      if (definition.isArgument()) {
-        Argument argument = definition.asArgument();
+      if (move.definition.isArgument()) {
+        Argument argument = move.definition.asArgument();
         int argumentRegister = argument.outValue().getLiveIntervals().getRegister();
         Value to = new FixedRegisterValue(argument.outType(), move.dst);
         Value from = new FixedRegisterValue(argument.outType(), argumentRegister);
         instruction = new Move(to, from);
       } else {
-        Value to = new FixedRegisterValue(definition.outType(), move.dst);
+        assert move.definition.isOutConstant();
+        Value to = new FixedRegisterValue(move.definition.outType(), move.dst);
+        ConstInstruction definition = move.definition.getOutConstantConstInstruction();
         if (definition.isConstNumber()) {
           instruction = new ConstNumber(to, definition.asConstNumber().getRawValue());
         } else if (definition.isConstString()) {
