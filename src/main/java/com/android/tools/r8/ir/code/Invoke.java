@@ -172,10 +172,9 @@ public abstract class Invoke extends Instruction {
 
   @Override
   public int maxInValueRegister() {
-    if (requiredArgumentRegisters() > 5) {
-      return Constants.U16BIT_MAX;
-    }
-    if (argumentsAreConsecutiveInputArguments()) {
+    if (arguments().size() == 1
+        || requiredArgumentRegisters() > 5
+        || argumentsAreConsecutiveInputArguments()) {
       return Constants.U16BIT_MAX;
     }
     return Constants.U4BIT_MAX;
@@ -200,7 +199,11 @@ public abstract class Invoke extends Instruction {
   }
 
   protected boolean needsRangedInvoke() {
-    return requiredArgumentRegisters() > 5 || argumentsAreConsecutiveInputArguments();
+    // By using an invoke-range instruction when there is only one argument, we avoid having to
+    // satisfy the constraint that the argument register(s) must fit in 4 bits.
+    return arguments().size() == 1
+        || requiredArgumentRegisters() > 5
+        || argumentsAreConsecutiveInputArguments();
   }
 
   @Override

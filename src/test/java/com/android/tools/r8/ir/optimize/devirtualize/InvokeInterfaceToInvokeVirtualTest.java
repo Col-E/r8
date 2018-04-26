@@ -14,6 +14,7 @@ import com.android.tools.r8.VmTestRunner;
 import com.android.tools.r8.code.CheckCast;
 import com.android.tools.r8.code.InvokeInterface;
 import com.android.tools.r8.code.InvokeVirtual;
+import com.android.tools.r8.code.InvokeVirtualRange;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.optimize.devirtualize.invokeinterface.A;
@@ -73,7 +74,9 @@ public class InvokeInterfaceToInvokeVirtualTest extends TestBase {
     long numOfInvokeInterface = filterInstructionKind(code, InvokeInterface.class).count();
     // List#add, List#get
     assertEquals(2, numOfInvokeInterface);
-    long numOfInvokeVirtual = filterInstructionKind(code, InvokeVirtual.class).count();
+    long numOfInvokeVirtual =
+        filterInstructionKind(code, InvokeVirtual.class).count()
+            + filterInstructionKind(code, InvokeVirtualRange.class).count();
     // System.out.println, I#get ~> A0#get
     assertEquals(2, numOfInvokeVirtual);
     long numOfCast = filterInstructionKind(code, CheckCast.class).count();
