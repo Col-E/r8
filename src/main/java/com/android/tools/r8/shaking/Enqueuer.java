@@ -102,10 +102,14 @@ public class Enqueuer {
       Maps.newIdentityHashMap();
   private final Map<DexType, Set<DexMethod>> directInvokes = Maps.newIdentityHashMap();
   private final Map<DexType, Set<DexMethod>> staticInvokes = Maps.newIdentityHashMap();
-  private final Map<DexType, Set<DexField>> instanceFieldsWritten = Maps.newIdentityHashMap();
-  private final Map<DexType, Set<DexField>> instanceFieldsRead = Maps.newIdentityHashMap();
-  private final Map<DexType, Set<DexField>> staticFieldsRead = Maps.newIdentityHashMap();
-  private final Map<DexType, Set<DexField>> staticFieldsWritten = Maps.newIdentityHashMap();
+  private final Map<DexType, Set<TargetWithContext<DexField>>> instanceFieldsWritten =
+      Maps.newIdentityHashMap();
+  private final Map<DexType, Set<TargetWithContext<DexField>>> instanceFieldsRead =
+      Maps.newIdentityHashMap();
+  private final Map<DexType, Set<TargetWithContext<DexField>>> staticFieldsRead =
+      Maps.newIdentityHashMap();
+  private final Map<DexType, Set<TargetWithContext<DexField>>> staticFieldsWritten =
+      Maps.newIdentityHashMap();
 
   private final ProtoLiteExtension protoLiteExtension;
   private final Set<DexField> protoLiteFields = Sets.newIdentityHashSet();
@@ -370,7 +374,7 @@ public class Enqueuer {
 
     @Override
     public boolean registerInstanceFieldWrite(DexField field) {
-      if (!registerItemWithTarget(instanceFieldsWritten, field)) {
+      if (!registerItemWithTargetAndContext(instanceFieldsWritten, field, currentMethod)) {
         return false;
       }
       if (Log.ENABLED) {
@@ -383,7 +387,7 @@ public class Enqueuer {
 
     @Override
     public boolean registerInstanceFieldRead(DexField field) {
-      if (!registerItemWithTarget(instanceFieldsRead, field)) {
+      if (!registerItemWithTargetAndContext(instanceFieldsRead, field, currentMethod)) {
         return false;
       }
       if (Log.ENABLED) {
@@ -401,7 +405,7 @@ public class Enqueuer {
 
     @Override
     public boolean registerStaticFieldRead(DexField field) {
-      if (!registerItemWithTarget(staticFieldsRead, field)) {
+      if (!registerItemWithTargetAndContext(staticFieldsRead, field, currentMethod)) {
         return false;
       }
       if (Log.ENABLED) {
@@ -413,7 +417,7 @@ public class Enqueuer {
 
     @Override
     public boolean registerStaticFieldWrite(DexField field) {
-      if (!registerItemWithTarget(staticFieldsWritten, field)) {
+      if (!registerItemWithTargetAndContext(staticFieldsWritten, field, currentMethod)) {
         return false;
       }
       if (Log.ENABLED) {
@@ -1254,34 +1258,41 @@ public class Enqueuer {
     }
   }
 
-  private Set<DexField> collectFields(Map<DexType, Set<DexField>> map) {
-    return map.values().stream().flatMap(Collection::stream)
-        .collect(Collectors.toCollection(Sets::newIdentityHashSet));
+  private Map<DexField, Set<DexEncodedMethod>> collectFields(
+      Map<DexType, Set<TargetWithContext<DexField>>> map) {
+    Map<DexField, Set<DexEncodedMethod>> result = new IdentityHashMap<>();
+    for (Map.Entry<DexType, Set<TargetWithContext<DexField>>> entry : map.entrySet()) {
+      for (TargetWithContext<DexField> fieldWithContext : entry.getValue()) {
+        DexField field = fieldWithContext.getTarget();
+        DexEncodedMethod context = fieldWithContext.getContext();
+        result.computeIfAbsent(field, k -> Sets.newIdentityHashSet())
+            .add(context);
+      }
+    }
+    return result;
   }
 
-  SortedSet<DexField> collectInstanceFieldsRead() {
-    return ImmutableSortedSet.copyOf(
-        PresortedComparable<DexField>::slowCompareTo, collectFields(instanceFieldsRead));
+  Map<DexField, Set<DexEncodedMethod>> collectInstanceFieldsRead() {
+    return Collections.unmodifiableMap(collectFields(instanceFieldsRead));
   }
 
-  SortedSet<DexField> collectInstanceFieldsWritten() {
-    return ImmutableSortedSet.copyOf(
-        PresortedComparable<DexField>::slowCompareTo, collectFields(instanceFieldsWritten));
+  Map<DexField, Set<DexEncodedMethod>> collectInstanceFieldsWritten() {
+    return Collections.unmodifiableMap(collectFields(instanceFieldsWritten));
   }
 
-  SortedSet<DexField> collectStaticFieldsRead() {
-    return ImmutableSortedSet.copyOf(
-        PresortedComparable<DexField>::slowCompareTo, collectFields(staticFieldsRead));
+  Map<DexField, Set<DexEncodedMethod>> collectStaticFieldsRead() {
+    return Collections.unmodifiableMap(collectFields(staticFieldsRead));
   }
 
-  SortedSet<DexField> collectStaticFieldsWritten() {
-    return ImmutableSortedSet.copyOf(
-        PresortedComparable<DexField>::slowCompareTo, collectFields(staticFieldsWritten));
+  Map<DexField, Set<DexEncodedMethod>> collectStaticFieldsWritten() {
+    return Collections.unmodifiableMap(collectFields(staticFieldsWritten));
   }
 
-  private Set<DexField> collectReachedFields(Map<DexType, Set<DexField>> map,
-      Function<DexField, DexField> lookup) {
-    return map.values().stream().flatMap(set -> set.stream().map(lookup).filter(Objects::nonNull))
+  private Set<DexField> collectReachedFields(
+      Set<DexField> set, Function<DexField, DexField> lookup) {
+    return set.stream()
+        .map(lookup)
+        .filter(Objects::nonNull)
         .collect(Collectors.toCollection(Sets::newIdentityHashSet));
   }
 
@@ -1295,16 +1306,11 @@ public class Enqueuer {
     return target == null ? null : target.field;
   }
 
-  SortedSet<DexField> collectFieldsRead() {
+  SortedSet<DexField> mergeFieldAccesses(Set<DexField> instanceFields, Set<DexField> staticFields) {
     return ImmutableSortedSet.copyOf(PresortedComparable<DexField>::slowCompareTo,
-        Sets.union(collectReachedFields(instanceFieldsRead, this::tryLookupInstanceField),
-            collectReachedFields(staticFieldsRead, this::tryLookupStaticField)));
-  }
-
-  SortedSet<DexField> collectFieldsWritten() {
-    return ImmutableSortedSet.copyOf(PresortedComparable<DexField>::slowCompareTo,
-        Sets.union(collectReachedFields(instanceFieldsWritten, this::tryLookupInstanceField),
-            collectReachedFields(staticFieldsWritten, this::tryLookupStaticField)));
+        Sets.union(
+            collectReachedFields(instanceFields, this::tryLookupInstanceField),
+            collectReachedFields(staticFields, this::tryLookupStaticField)));
   }
 
   private void markClassAsInstantiatedWithCompatRule(DexClass clazz) {
@@ -1475,21 +1481,21 @@ public class Enqueuer {
      */
     public final SortedSet<DexField> fieldsWritten;
     /**
-     * Set of all field ids used in instance field reads.
+     * Set of all field ids used in instance field reads, along with access context.
      */
-    public final SortedSet<DexField> instanceFieldReads;
+    public final Map<DexField, Set<DexEncodedMethod>> instanceFieldReads;
     /**
-     * Set of all field ids used in instance field writes.
+     * Set of all field ids used in instance field writes, along with access context.
      */
-    public final SortedSet<DexField> instanceFieldWrites;
+    public final Map<DexField, Set<DexEncodedMethod>> instanceFieldWrites;
     /**
-     * Set of all field ids used in static static field reads.
+     * Set of all field ids used in static field reads, along with access context.
      */
-    public final SortedSet<DexField> staticFieldReads;
+    public final Map<DexField, Set<DexEncodedMethod>> staticFieldReads;
     /**
-     * Set of all field ids used in static field writes.
+     * Set of all field ids used in static field writes, along with access context.
      */
-    public final SortedSet<DexField> staticFieldWrites;
+    public final Map<DexField, Set<DexEncodedMethod>> staticFieldWrites;
     /**
      * Set of all methods referenced in virtual invokes;
      */
@@ -1566,8 +1572,10 @@ public class Enqueuer {
       this.instanceFieldWrites = enqueuer.collectInstanceFieldsWritten();
       this.staticFieldReads = enqueuer.collectStaticFieldsRead();
       this.staticFieldWrites = enqueuer.collectStaticFieldsWritten();
-      this.fieldsRead = enqueuer.collectFieldsRead();
-      this.fieldsWritten = enqueuer.collectFieldsWritten();
+      this.fieldsRead = enqueuer.mergeFieldAccesses(
+          instanceFieldReads.keySet(), staticFieldReads.keySet());
+      this.fieldsWritten = enqueuer.mergeFieldAccesses(
+          instanceFieldWrites.keySet(), staticFieldWrites.keySet());
       this.pinnedItems = rewritePinnedItemsToDescriptors(enqueuer.pinnedItems);
       this.virtualInvokes = joinInvokedMethods(enqueuer.virtualInvokes);
       this.interfaceInvokes = joinInvokedMethods(enqueuer.interfaceInvokes);
@@ -1583,8 +1591,8 @@ public class Enqueuer {
       this.prunedTypes = Collections.emptySet();
       this.switchMaps = Collections.emptyMap();
       this.ordinalsMaps = Collections.emptyMap();
-      assert Sets.intersection(instanceFieldReads, staticFieldReads).size() == 0;
-      assert Sets.intersection(instanceFieldWrites, staticFieldWrites).size() == 0;
+      assert Sets.intersection(instanceFieldReads.keySet(), staticFieldReads.keySet()).isEmpty();
+      assert Sets.intersection(instanceFieldWrites.keySet(), staticFieldWrites.keySet()).isEmpty();
     }
 
     private AppInfoWithLiveness(AppInfoWithLiveness previous, DexApplication application,
@@ -1618,8 +1626,8 @@ public class Enqueuer {
       this.prunedTypes = mergeSets(previous.prunedTypes, removedClasses);
       this.switchMaps = previous.switchMaps;
       this.ordinalsMaps = previous.ordinalsMaps;
-      assert Sets.intersection(instanceFieldReads, staticFieldReads).size() == 0;
-      assert Sets.intersection(instanceFieldWrites, staticFieldWrites).size() == 0;
+      assert Sets.intersection(instanceFieldReads.keySet(), staticFieldReads.keySet()).isEmpty();
+      assert Sets.intersection(instanceFieldWrites.keySet(), staticFieldWrites.keySet()).isEmpty();
     }
 
     private AppInfoWithLiveness(AppInfoWithLiveness previous,
@@ -1632,10 +1640,14 @@ public class Enqueuer {
       this.targetedMethods = rewriteItems(previous.targetedMethods, lense::lookupMethod);
       this.liveMethods = rewriteItems(previous.liveMethods, lense::lookupMethod);
       this.liveFields = rewriteItems(previous.liveFields, lense::lookupField);
-      this.instanceFieldReads = rewriteItems(previous.instanceFieldReads, lense::lookupField);
-      this.instanceFieldWrites = rewriteItems(previous.instanceFieldWrites, lense::lookupField);
-      this.staticFieldReads = rewriteItems(previous.staticFieldReads, lense::lookupField);
-      this.staticFieldWrites = rewriteItems(previous.staticFieldWrites, lense::lookupField);
+      this.instanceFieldReads =
+          rewriteKeysWhileMergingValues(previous.instanceFieldReads, lense::lookupField);
+      this.instanceFieldWrites =
+          rewriteKeysWhileMergingValues(previous.instanceFieldWrites, lense::lookupField);
+      this.staticFieldReads =
+          rewriteKeysWhileMergingValues(previous.staticFieldReads, lense::lookupField);
+      this.staticFieldWrites =
+          rewriteKeysWhileMergingValues(previous.staticFieldWrites, lense::lookupField);
       this.fieldsRead = rewriteItems(previous.fieldsRead, lense::lookupField);
       this.fieldsWritten = rewriteItems(previous.fieldsWritten, lense::lookupField);
       this.pinnedItems = rewriteMixedItems(previous.pinnedItems, lense);
@@ -1661,8 +1673,8 @@ public class Enqueuer {
       this.ordinalsMaps = rewriteKeys(previous.ordinalsMaps, lense::lookupType);
       this.protoLiteFields = previous.protoLiteFields;
       // Sanity check sets after rewriting.
-      assert Sets.intersection(instanceFieldReads, staticFieldReads).isEmpty();
-      assert Sets.intersection(instanceFieldWrites, staticFieldWrites).isEmpty();
+      assert Sets.intersection(instanceFieldReads.keySet(), staticFieldReads.keySet()).isEmpty();
+      assert Sets.intersection(instanceFieldWrites.keySet(), staticFieldWrites.keySet()).isEmpty();
     }
 
     public AppInfoWithLiveness(AppInfoWithLiveness previous,
@@ -1796,6 +1808,18 @@ public class Enqueuer {
         builder.put(rewrite.apply(item, null), original.get(item));
       }
       return builder.build();
+    }
+
+    private static <T extends PresortedComparable<T>, S> Map<T, Set<S>>
+        rewriteKeysWhileMergingValues(
+            Map<T, Set<S>> original, BiFunction<T, DexEncodedMethod, T> rewrite) {
+      Map<T, Set<S>> result = new IdentityHashMap<>();
+      for (T item : original.keySet()) {
+        T rewrittenKey = rewrite.apply(item, null);
+        result.computeIfAbsent(rewrittenKey, k -> Sets.newIdentityHashSet())
+            .addAll(original.get(item));
+      }
+      return Collections.unmodifiableMap(result);
     }
 
     private static ImmutableSet<DexItem> rewriteMixedItems(
@@ -2150,6 +2174,10 @@ public class Enqueuer {
 
     public T getTarget() {
       return target;
+    }
+
+    public DexEncodedMethod getContext() {
+      return context;
     }
 
     @Override
