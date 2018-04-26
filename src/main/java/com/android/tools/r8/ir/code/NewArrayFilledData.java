@@ -53,6 +53,9 @@ public class NewArrayFilledData extends Instruction {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
+    if (!other.isNewArrayFilledData()) {
+      return false;
+    }
     NewArrayFilledData o = other.asNewArrayFilledData();
     return o.element_width == element_width
         && o.size == size

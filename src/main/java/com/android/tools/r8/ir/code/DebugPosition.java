@@ -37,8 +37,7 @@ public class DebugPosition extends Instruction {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
-    assert other.isDebugPosition();
-    return true;
+    return other.isDebugPosition();
   }
 
   @Override

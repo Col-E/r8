@@ -85,10 +85,7 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
-    if (!other.isInvokeDirect()) {
-      return false;
-    }
-    return super.identicalNonValueNonPositionParts(other);
+    return other.isInvokeDirect() && super.identicalNonValueNonPositionParts(other);
   }
 
   @Override

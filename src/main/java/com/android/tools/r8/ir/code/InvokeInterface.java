@@ -67,10 +67,7 @@ public class InvokeInterface extends InvokeMethodWithReceiver {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
-    if (!other.isInvokeInterface()) {
-      return false;
-    }
-    return super.identicalNonValueNonPositionParts(other);
+    return other.isInvokeInterface() && super.identicalNonValueNonPositionParts(other);
   }
 
   @Override

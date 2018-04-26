@@ -206,7 +206,7 @@ public class ConstNumber extends ConstInstruction {
     if (other == this) {
       return true;
     }
-    if (preciseTypeUnknown()) {
+    if (!other.isConstNumber() || preciseTypeUnknown()) {
       return false;
     }
     ConstNumber o = other.asConstNumber();

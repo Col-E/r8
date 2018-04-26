@@ -70,7 +70,7 @@ public class Shr extends LogicalBinop {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
-    return other.asShr().type == type;
+    return other.isShr() && other.asShr().type == type;
   }
 
   @Override

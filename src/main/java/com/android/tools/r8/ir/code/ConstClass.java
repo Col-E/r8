@@ -70,7 +70,7 @@ public class ConstClass extends ConstInstruction {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
-    return other.asConstClass().clazz == clazz;
+    return other.isConstClass() && other.asConstClass().clazz == clazz;
   }
 
   @Override

@@ -46,7 +46,7 @@ public class ConstMethodType extends ConstInstruction {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
-    return other.asConstMethodType().methodType == methodType;
+    return other.isConstMethodType() && other.asConstMethodType().methodType == methodType;
   }
 
   @Override

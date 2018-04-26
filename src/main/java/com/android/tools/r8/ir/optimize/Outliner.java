@@ -159,7 +159,7 @@ public class Outliner {
         Instruction i0 = instructions0.get(i);
         Instruction i1 = instructions1.get(i);
         // Note that we don't consider positions as this optimization already breaks stack traces.
-        if (i0.getClass() != i1.getClass() || !i0.identicalNonValueNonPositionParts(i1)) {
+        if (!i0.identicalNonValueNonPositionParts(i1)) {
           return false;
         }
         if ((i0.outValue() != null) != (i1.outValue() != null)) {

@@ -92,7 +92,7 @@ public class Div extends ArithmeticBinop {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
-    return other.asDiv().type == type;
+    return other.isDiv() && other.asDiv().type == type;
   }
 
   @Override

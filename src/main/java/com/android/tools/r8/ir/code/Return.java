@@ -75,11 +75,14 @@ public class Return extends JumpInstruction {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
-    if (isReturnVoid()) {
-      return other.asReturn().isReturnVoid();
-    } else {
-      return other.asReturn().returnValue().type == returnValue().type;
+    if (!other.isReturn()) {
+      return false;
     }
+    Return o = other.asReturn();
+    if (isReturnVoid()) {
+      return o.isReturnVoid();
+    }
+    return o.returnValue().type == returnValue().type;
   }
 
   @Override

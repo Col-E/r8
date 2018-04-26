@@ -65,7 +65,7 @@ public class Or extends LogicalBinop {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
-    return other.asOr().type == type;
+    return other.isOr() && other.asOr().type == type;
   }
 
   @Override

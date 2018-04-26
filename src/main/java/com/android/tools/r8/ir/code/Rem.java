@@ -92,7 +92,7 @@ public class Rem extends ArithmeticBinop {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
-    return other.asRem().type == type;
+    return other.isRem() && other.asRem().type == type;
   }
 
   @Override

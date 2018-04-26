@@ -84,10 +84,7 @@ public class InvokeSuper extends InvokeMethodWithReceiver {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
-    if (!other.isInvokeSuper()) {
-      return false;
-    }
-    return super.identicalNonValueNonPositionParts(other);
+    return other.isInvokeSuper() && super.identicalNonValueNonPositionParts(other);
   }
 
   @Override

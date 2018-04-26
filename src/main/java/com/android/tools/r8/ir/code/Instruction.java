@@ -300,8 +300,6 @@ public abstract class Instruction {
 
   /**
    * Compare equality of two class-equivalent instructions modulo their values and positions.
-   *
-   * <p>It is a precondition to this method that this.getClass() == other.getClass().
    */
   public abstract boolean identicalNonValueNonPositionParts(Instruction other);
 

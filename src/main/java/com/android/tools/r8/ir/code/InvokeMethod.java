@@ -40,7 +40,7 @@ public abstract class InvokeMethod extends Invoke {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
-    return method == other.asInvokeMethod().getInvokedMethod();
+    return other.isInvokeMethod() && method == other.asInvokeMethod().getInvokedMethod();
   }
 
   @Override

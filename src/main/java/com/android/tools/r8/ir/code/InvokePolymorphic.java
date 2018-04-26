@@ -95,10 +95,8 @@ public class InvokePolymorphic extends InvokeMethod {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
-    if (!other.isInvokePolymorphic()) {
-      return false;
-    }
-    return proto.equals(((InvokePolymorphic) other).proto)
+    return other.isInvokePolymorphic()
+        && proto.equals(other.asInvokePolymorphic().proto)
         && super.identicalNonValueNonPositionParts(other);
   }
 

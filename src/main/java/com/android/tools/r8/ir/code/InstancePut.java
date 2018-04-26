@@ -84,6 +84,9 @@ public class InstancePut extends FieldInstruction {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
+    if (!other.isInstancePut()) {
+      return false;
+    }
     InstancePut o = other.asInstancePut();
     return o.field == field && o.type == type;
   }

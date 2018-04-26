@@ -75,8 +75,7 @@ public class NonNull extends Instruction {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
-    assert other instanceof NonNull;
-    return true;
+    return other.isNonNull();
   }
 
   @Override

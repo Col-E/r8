@@ -34,7 +34,7 @@ public class Store extends Instruction {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
-    return true;
+    return other.isStore();
   }
 
   @Override

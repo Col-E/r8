@@ -120,7 +120,7 @@ public class Cmp extends Binop {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
-    return other.asCmp().bias == bias;
+    return other.isCmp() && other.asCmp().bias == bias;
   }
 
   @Override

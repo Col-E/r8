@@ -50,8 +50,7 @@ public class MoveException extends Instruction {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
-    assert other.isMoveException();
-    return true;
+    return other.isMoveException();
   }
 
   @Override

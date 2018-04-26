@@ -89,6 +89,9 @@ public class StaticGet extends FieldInstruction {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
+    if (!other.isStaticGet()) {
+      return false;
+    }
     StaticGet o = other.asStaticGet();
     return o.field == field && o.type == type;
   }

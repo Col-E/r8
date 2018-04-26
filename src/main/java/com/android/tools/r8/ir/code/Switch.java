@@ -148,8 +148,7 @@ public class Switch extends JumpInstruction {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
-    assert other.isSwitch();
-    return false;
+    return other.isSwitch();
   }
 
   @Override

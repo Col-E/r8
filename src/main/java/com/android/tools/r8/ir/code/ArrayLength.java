@@ -80,8 +80,7 @@ public class ArrayLength extends Instruction {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
-    assert other.isArrayLength();
-    return true;
+    return other.isArrayLength();
   }
 
   @Override

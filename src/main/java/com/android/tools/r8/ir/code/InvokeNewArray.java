@@ -77,10 +77,7 @@ public class InvokeNewArray extends Invoke {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
-    if (!other.isInvokeNewArray()) {
-      return false;
-    }
-    return type == other.asInvokeNewArray().type;
+    return other.isInvokeNewArray() && type == other.asInvokeNewArray().type;
   }
 
   @Override

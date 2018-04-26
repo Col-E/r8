@@ -65,7 +65,7 @@ public class CheckCast extends Instruction {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
-    return other.asCheckCast().type == type;
+    return other.isCheckCast() && other.asCheckCast().type == type;
   }
 
   @Override

@@ -60,8 +60,10 @@ public class DebugLocalsChange extends Instruction {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
-    assert other.isDebugLocalsChange();
-    DebugLocalsChange o = (DebugLocalsChange) other;
+    if (!other.isDebugLocalsChange()) {
+      return false;
+    }
+    DebugLocalsChange o = other.asDebugLocalsChange();
     return DebugLocalInfo.localsInfoMapsEqual(ending, o.ending)
         && DebugLocalInfo.localsInfoMapsEqual(starting, o.starting);
   }

@@ -62,7 +62,7 @@ public class InstanceOf extends Instruction {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
-    return other.asInstanceOf().type == type;
+    return other.isInstanceOf() && other.asInstanceOf().type == type;
   }
 
   @Override

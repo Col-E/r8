@@ -98,7 +98,7 @@ public class ArrayGet extends Instruction {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
-    return other.asArrayGet().type == type;
+    return other.isArrayGet() && other.asArrayGet().type == type;
   }
 
   @Override
