@@ -5,7 +5,7 @@ package com.android.tools.r8.ir.optimize;
 
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.ir.code.BasicBlock;
-import com.android.tools.r8.ir.code.ConstNumber;
+import com.android.tools.r8.ir.code.ConstInstruction;
 import com.android.tools.r8.ir.code.DebugLocalsChange;
 import com.android.tools.r8.ir.code.Goto;
 import com.android.tools.r8.ir.code.IRCode;
@@ -266,9 +266,10 @@ public class PeepholeOptimizer {
       // Mapping from register number to const number instructions for this basic block.
       // Used to remove redundant const instructions that reloads the same constant into
       // the same register.
-      Map<Integer, ConstNumber> registerToNumber = new HashMap<>();
+      Map<Integer, ConstInstruction> registerToConstant = new HashMap<>();
       MoveEliminator moveEliminator = new MoveEliminator(allocator);
       ListIterator<Instruction> iterator = block.getInstructions().listIterator();
+      boolean mayNoLongerThrow = false;
       while (iterator.hasNext()) {
         Instruction current = iterator.next();
         if (moveEliminator.shouldBeEliminated(current)) {
@@ -276,28 +277,30 @@ public class PeepholeOptimizer {
         } else if (current.outValue() != null && current.outValue().needsRegister()) {
           Value outValue = current.outValue();
           int instructionNumber = current.getNumber();
-          if (outValue.isConstant() && current.isConstNumber()) {
-            if (constantSpilledAtDefinition(current.asConstNumber(), allocator)) {
+          if (!outValue.hasLocalInfo() && (current.isConstNumber() || current.isConstString())) {
+            if (constantSpilledAtDefinition(current.asConstInstruction(), allocator)) {
               // Remove constant instructions that are spilled at their definition and are
               // therefore unused.
               iterator.remove();
-              continue;
-            }
-            int outRegister = allocator.getRegisterForValue(outValue, instructionNumber);
-            ConstNumber numberInRegister = registerToNumber.get(outRegister);
-            if (numberInRegister != null
-                && numberInRegister.identicalNonValueNonPositionParts(current)) {
-              // This instruction is not needed, the same constant is already in this register.
-              // We don't consider the positions of the two (non-throwing) instructions.
-              iterator.remove();
+              mayNoLongerThrow |= current.instructionTypeCanThrow();
             } else {
-              // Insert the current constant in the mapping. Make sure to clobber the second
-              // register if wide and register-1 if that defines a wide value.
-              registerToNumber.put(outRegister, current.asConstNumber());
-              if (current.outType().isWide()) {
-                registerToNumber.remove(outRegister + 1);
+              int outRegister = allocator.getRegisterForValue(outValue, instructionNumber);
+              ConstInstruction constantInRegister = registerToConstant.get(outRegister);
+              if (constantInRegister != null
+                  && constantInRegister.identicalNonValueNonPositionParts(current)) {
+                // This instruction is not needed, the same constant is already in this register.
+                // We don't consider the positions of the two (non-throwing) instructions.
+                iterator.remove();
+                mayNoLongerThrow |= current.instructionTypeCanThrow();
               } else {
-                removeWideConstantCovering(registerToNumber, outRegister);
+                // Insert the current constant in the mapping. Make sure to clobber the second
+                // register if wide and register-1 if that defines a wide value.
+                registerToConstant.put(outRegister, current.asConstNumber());
+                if (current.outType().isWide()) {
+                  registerToConstant.remove(outRegister + 1);
+                } else {
+                  removeWideConstantCovering(registerToConstant, outRegister);
+                }
               }
             }
           } else {
@@ -305,32 +308,40 @@ public class PeepholeOptimizer {
             // from the mapping.
             int outRegister = allocator.getRegisterForValue(outValue, instructionNumber);
             for (int i = 0; i < outValue.requiredRegisters(); i++) {
-              registerToNumber.remove(outRegister + i);
+              registerToConstant.remove(outRegister + i);
             }
             // Check if the first register written is the second part of a wide value. If so
             // the wide value is no longer active.
-            removeWideConstantCovering(registerToNumber, outRegister);
+            removeWideConstantCovering(registerToConstant, outRegister);
           }
         }
+      }
+
+      if (mayNoLongerThrow && block.hasCatchHandlers() && !block.canThrow()) {
+        block.clearCatchHandlers();
       }
     }
   }
 
   private static void removeWideConstantCovering(
-      Map<Integer, ConstNumber> registerToNumber, int register) {
-    ConstNumber number = registerToNumber.get(register - 1);
-    if (number != null && number.outType().isWide()) {
-      registerToNumber.remove(register - 1);
+      Map<Integer, ConstInstruction> registerToConstant, int register) {
+    ConstInstruction constant = registerToConstant.get(register - 1);
+    if (constant != null && constant.outType().isWide()) {
+      registerToConstant.remove(register - 1);
     }
   }
 
   private static boolean constantSpilledAtDefinition(
-      ConstNumber constNumber, LinearScanRegisterAllocator allocator) {
-    if (constNumber.outValue().isFixedRegisterValue()) {
+      ConstInstruction constInstruction, LinearScanRegisterAllocator allocator) {
+    assert constInstruction.isConstNumber() || constInstruction.isConstString();
+    if (constInstruction.outValue().isFixedRegisterValue()) {
       return false;
     }
     LiveIntervals definitionIntervals =
-        constNumber.outValue().getLiveIntervals().getSplitCovering(constNumber.getNumber());
+        constInstruction
+            .outValue()
+            .getLiveIntervals()
+            .getSplitCovering(constInstruction.getNumber());
     return definitionIntervals.isSpilledAndRematerializable(allocator);
   }
 }
