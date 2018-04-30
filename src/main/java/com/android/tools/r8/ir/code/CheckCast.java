@@ -49,20 +49,16 @@ public class CheckCast extends Instruction {
     // if the register allocator could not put input and output in the same register
     // we have to insert a move before the check cast instruction.
     int inRegister = builder.allocatedRegister(inValues.get(0), getNumber());
-    if (outValue == null) {
-      builder.add(this, new com.android.tools.r8.code.CheckCast(inRegister, type));
+    int outRegister = builder.allocatedRegister(outValue, getNumber());
+    if (inRegister == outRegister) {
+      builder.add(this, new com.android.tools.r8.code.CheckCast(outRegister, type));
     } else {
-      int outRegister = builder.allocatedRegister(outValue, getNumber());
-      if (inRegister == outRegister) {
-        builder.add(this, new com.android.tools.r8.code.CheckCast(outRegister, type));
+      com.android.tools.r8.code.CheckCast cast =
+          new com.android.tools.r8.code.CheckCast(outRegister, type);
+      if (outRegister <= Constants.U4BIT_MAX && inRegister <= Constants.U4BIT_MAX) {
+        builder.add(this, new MoveObject(outRegister, inRegister), cast);
       } else {
-        com.android.tools.r8.code.CheckCast cast =
-            new com.android.tools.r8.code.CheckCast(outRegister, type);
-        if (outRegister <= Constants.U4BIT_MAX && inRegister <= Constants.U4BIT_MAX) {
-          builder.add(this, new MoveObject(outRegister, inRegister), cast);
-        } else {
-          builder.add(this, new MoveObjectFrom16(outRegister, inRegister), cast);
-        }
+        builder.add(this, new MoveObjectFrom16(outRegister, inRegister), cast);
       }
     }
   }
