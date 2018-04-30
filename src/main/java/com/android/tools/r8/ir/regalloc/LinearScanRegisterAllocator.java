@@ -186,6 +186,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     // There are no linked values prior to register allocation.
     assert noLinkedValues();
     assert code.isConsistentSSA();
+    transformCheckCastInstructions();
     computeNeedsRegister();
     insertArgumentMoves();
     ImmutableList<BasicBlock> blocks = computeLivenessInformation();
@@ -2330,6 +2331,27 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
 
   private void clearUserInfo() {
     code.blocks.forEach(BasicBlock::clearUserInfo);
+  }
+
+  private void transformCheckCastInstructions() {
+    // Replaces all uses of values that are defined by a check-cast instruction by the in-value to
+    // the corresponding check-cast instruction. As a result, we will always use the same register
+    // for the in- and out-value of a check-cast instruction. This is useful since the check-cast
+    // instruction in dex does not write a new register.
+    //
+    // This transformation helps to ensure that we do not insert unnecessary moves in bridge
+    // methods with an invoke-range instruction, since all the arguments to the invoke-range
+    // instruction will be original, consecutive arguments of the enclosing method
+    // (and importantly, not values that have been defined by a check-cast instruction).
+    for (BasicBlock block : code.blocks) {
+      for (Instruction instruction : block.getInstructions()) {
+        if (instruction.isCheckCast()) {
+          CheckCast castInstruction = instruction.asCheckCast();
+          castInstruction.outValue().replaceUsers(castInstruction.object());
+          castInstruction.setOutValue(null);
+        }
+      }
+    }
   }
 
   private Value createValue(ValueType type) {
