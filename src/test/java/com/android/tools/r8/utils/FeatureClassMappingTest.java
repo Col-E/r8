@@ -94,6 +94,7 @@ public class FeatureClassMappingTest {
     assertEquals(mapping.featureForClass("com.google.Feature1"), "feature1");
     assertEquals(mapping.featureForClass("com.google.different.Feature1"), "base");
     assertEquals(mapping.featureForClass("com.strange.different.Feature1"), "feature2");
+    assertEquals(mapping.featureForClass("com.stranger.Clazz"), "base");
     assertEquals(mapping.featureForClass("Feature1"), "base");
     assertEquals(mapping.featureForClass("a.b.z.A"), "base");
   }
@@ -114,5 +115,18 @@ public class FeatureClassMappingTest {
         ImmutableList.of("com.google.foo:feature1", "com.google.foo:feature2"));
     ensureThrowsMappingException(
         ImmutableList.of("com.google.foo.*:feature1", "com.google.foo.*:feature2"));
+  }
+
+  @Test
+  public void testUsesOnlyExactMappings() throws Exception {
+    List<String> lines =
+        ImmutableList.of(
+            "com.pkg1.Clazz:feature1",
+            "com.pkg2.Clazz:feature2");
+    FeatureClassMapping mapping = new FeatureClassMapping(lines);
+
+    assertEquals(mapping.featureForClass("com.pkg1.Clazz"), "feature1");
+    assertEquals(mapping.featureForClass("com.pkg2.Clazz"), "feature2");
+    assertEquals(mapping.featureForClass("com.pkg1.Other"), mapping.baseName);
   }
 }

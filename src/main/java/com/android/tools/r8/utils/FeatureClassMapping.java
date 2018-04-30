@@ -39,6 +39,7 @@ import java.util.regex.Pattern;
 public class FeatureClassMapping {
 
   HashMap<String, String> parsedRules = new HashMap<>(); // Already parsed rules.
+  boolean usesOnlyExactMappings = true;
 
   HashSet<FeaturePredicate> mappings = new HashSet<>();
 
@@ -76,6 +77,7 @@ public class FeatureClassMapping {
           mapping.addMapping(javaType, featureJar.getOutputName());
       }
     }
+    assert mapping.usesOnlyExactMappings;
     return mapping;
   }
 
@@ -93,19 +95,22 @@ public class FeatureClassMapping {
   }
 
   public String featureForClass(String clazz) throws FeatureMappingException {
-    // Todo(ricow): improve performance (e.g., direct lookup of class predicates through hashmap).
-    FeaturePredicate bestMatch = null;
-    for (FeaturePredicate mapping : mappings) {
-      if (mapping.match(clazz)) {
-        if (bestMatch == null || bestMatch.predicate.length() < mapping.predicate.length()) {
-          bestMatch = mapping;
+    if (usesOnlyExactMappings) {
+      return parsedRules.getOrDefault(clazz, baseName);
+    } else {
+      FeaturePredicate bestMatch = null;
+      for (FeaturePredicate mapping : mappings) {
+        if (mapping.match(clazz)) {
+          if (bestMatch == null || bestMatch.predicate.length() < mapping.predicate.length()) {
+            bestMatch = mapping;
+          }
         }
       }
+      if (bestMatch == null) {
+        return baseName;
+      }
+      return bestMatch.feature;
     }
-    if (bestMatch == null) {
-      return baseName;
-    }
-    return bestMatch.feature;
   }
 
   private void parseAndAdd(String line, int lineNumber) throws FeatureMappingException {
@@ -140,6 +145,7 @@ public class FeatureClassMapping {
     parsedRules.put(predicate, feature);
     FeaturePredicate featurePredicate = new FeaturePredicate(predicate, feature);
     mappings.add(featurePredicate);
+    usesOnlyExactMappings &= featurePredicate.isExactmapping();
   }
 
   private void error(String error, int line) throws FeatureMappingException {
@@ -168,12 +174,17 @@ public class FeatureClassMapping {
       if (isCatchAll) {
         this.predicate = "";
       } else if (isWildcard) {
-        this.predicate = predicate.substring(0, predicate.length() - 2);
+        String packageName = predicate.substring(0, predicate.length() - 2);
+        if (!DescriptorUtils.isValidJavaType(packageName)) {
+          throw new FeatureMappingException(packageName + " is not a valid identifier");
+        }
+        // Prefix of a fully-qualified class name, including a terminating dot.
+        this.predicate = predicate.substring(0, predicate.length() - 1);
       } else {
+        if (!DescriptorUtils.isValidJavaType(predicate)) {
+          throw new FeatureMappingException(predicate + " is not a valid identifier");
+        }
         this.predicate = predicate;
-      }
-      if (!DescriptorUtils.isValidJavaType(this.predicate) && !isCatchAll) {
-        throw new FeatureMappingException(this.predicate + " is not a valid identifier");
       }
       this.feature = feature;
     }
@@ -186,6 +197,10 @@ public class FeatureClassMapping {
       } else {
         return className.equals(predicate);
       }
+    }
+
+    boolean isExactmapping() {
+      return !isWildcard && !isCatchAll;
     }
   }
 }
