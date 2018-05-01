@@ -16,17 +16,23 @@ public class CfTryCatch {
   public final List<DexType> guards;
   public final List<CfLabel> targets;
 
-  public CfTryCatch(
+  public CfTryCatch(CfLabel start, CfLabel end, List<DexType> guards, List<CfLabel> targets) {
+    this.start = start;
+    this.end = end;
+    this.guards = guards;
+    this.targets = targets;
+  }
+
+  public static CfTryCatch fromBuilder(
       CfLabel start,
       CfLabel end,
       CatchHandlers<BasicBlock> handlers,
       CfBuilder builder) {
-    this.start = start;
-    this.end = end;
-    guards = handlers.getGuards();
-    targets = new ArrayList<>(handlers.getAllTargets().size());
+    List<DexType> guards = handlers.getGuards();
+    ArrayList<CfLabel> targets = new ArrayList<>(handlers.getAllTargets().size());
     for (BasicBlock block : handlers.getAllTargets()) {
       targets.add(builder.getLabel(block));
     }
+    return new CfTryCatch(start, end, guards, targets);
   }
 }

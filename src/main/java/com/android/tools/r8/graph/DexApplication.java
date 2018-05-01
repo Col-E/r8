@@ -9,6 +9,7 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.dex.ApplicationReader.ProgramClassConflictResolver;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ProgramClassCollection;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableSet;
@@ -66,7 +67,9 @@ public abstract class DexApplication {
   // code, but this non-determinism exists even with the same order of classes since we
   // may process classes concurrently and fail-fast on the first error.
   private <T> boolean reorderClasses(List<T> classes) {
-    Collections.shuffle(classes);
+    if (!InternalOptions.DETERMINISTIC_DEBUGGING) {
+      Collections.shuffle(classes);
+    }
     return true;
   }
 

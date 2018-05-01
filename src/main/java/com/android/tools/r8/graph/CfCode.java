@@ -45,6 +45,11 @@ public class CfCode extends Code {
       this.start = start;
     }
 
+    public LocalVariableInfo(int index, DebugLocalInfo local, CfLabel start, CfLabel end) {
+      this(index, local, start);
+      setEnd(end);
+    }
+
     public void setEnd(CfLabel end) {
       assert this.end == null;
       assert end != null;

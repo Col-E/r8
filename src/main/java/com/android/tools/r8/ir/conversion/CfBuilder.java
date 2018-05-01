@@ -263,7 +263,8 @@ public class CfBuilder {
         if (!tryCatchHandlers.isEmpty()) {
           // Close try-catch and save the range.
           CfLabel tryCatchEnd = getLabel(block);
-          tryCatchRanges.add(new CfTryCatch(tryCatchStart, tryCatchEnd, tryCatchHandlers, this));
+          tryCatchRanges.add(
+              CfTryCatch.fromBuilder(tryCatchStart, tryCatchEnd, tryCatchHandlers, this));
           emitLabel(tryCatchEnd);
         }
         if (!handlers.isEmpty()) {

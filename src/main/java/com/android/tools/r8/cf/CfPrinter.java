@@ -14,6 +14,7 @@ import com.android.tools.r8.cf.code.CfConstMethodType;
 import com.android.tools.r8.cf.code.CfConstNull;
 import com.android.tools.r8.cf.code.CfConstNumber;
 import com.android.tools.r8.cf.code.CfConstString;
+import com.android.tools.r8.cf.code.CfExtended;
 import com.android.tools.r8.cf.code.CfFieldInstruction;
 import com.android.tools.r8.cf.code.CfFrame;
 import com.android.tools.r8.cf.code.CfFrame.Uninitialized;
@@ -22,6 +23,7 @@ import com.android.tools.r8.cf.code.CfFrame.UninitializedThis;
 import com.android.tools.r8.cf.code.CfGoto;
 import com.android.tools.r8.cf.code.CfIf;
 import com.android.tools.r8.cf.code.CfIfCmp;
+import com.android.tools.r8.cf.code.CfIinc;
 import com.android.tools.r8.cf.code.CfInstanceOf;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
@@ -150,6 +152,13 @@ public class CfPrinter {
 
   public void print(CfNop nop) {
     print("nop");
+  }
+
+  public void print(CfExtended instruction) {
+    switch (instruction.getOpcode()) {
+      default:
+        print("???");
+    }
   }
 
   public void print(CfThrow insn) {
@@ -399,6 +408,15 @@ public class CfPrinter {
 
   public void print(CfStore store) {
     printPrefixed(store.getType(), "store", store.getLocalIndex());
+  }
+
+  public void print(CfIinc instruction) {
+    indent();
+    builder
+        .append("iinc ")
+        .append(instruction.getLocalIndex())
+        .append(' ')
+        .append(instruction.getIncrement());
   }
 
   private void printPrefixed(ValueType type, String instruction, int local) {

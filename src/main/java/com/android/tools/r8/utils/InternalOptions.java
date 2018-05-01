@@ -30,6 +30,10 @@ import java.util.function.Function;
 
 public class InternalOptions {
 
+  // Set to true to run compilation in a single thread and without randomly shuffling the input.
+  // This makes life easier when running R8 in a debugger.
+  public static final boolean DETERMINISTIC_DEBUGGING = false;
+
   public enum LineNumberOptimization {
     OFF,
     ON,
@@ -94,7 +98,7 @@ public class InternalOptions {
   public boolean enableValuePropagation = true;
 
   // Number of threads to use while processing the dex files.
-  public int numberOfThreads = ThreadUtils.NOT_SPECIFIED;
+  public int numberOfThreads = DETERMINISTIC_DEBUGGING ? 1 : ThreadUtils.NOT_SPECIFIED;
   // Print smali disassembly.
   public boolean useSmaliSyntax = false;
   // Verbose output.
@@ -189,6 +193,10 @@ public class InternalOptions {
   public boolean enableMinification = true;
   public boolean disableAssertions = true;
   public boolean debugKeepRules = false;
+  // Read input classes into CfCode format (instead of JarCode).
+  public boolean enableCfFrontend = false;
+  // Don't convert Code objects to IRCode.
+  public boolean skipIR = false;
 
   public boolean debug = false;
   public final TestingOptions testing = new TestingOptions();

@@ -568,6 +568,10 @@ public class IRConverter {
       Log.debug(getClass(), "Original code for %s:\n%s",
           method.toSourceString(), logCode(options, method));
     }
+    if (options.skipIR) {
+      feedback.markProcessed(method, Constraint.NEVER);
+      return;
+    }
     IRCode code = method.buildIR(options);
     if (code == null) {
       feedback.markProcessed(method, Constraint.NEVER);
