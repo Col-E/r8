@@ -4,7 +4,7 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.LoadStoreHelper;
-import com.android.tools.r8.cf.code.CfPop;
+import com.android.tools.r8.cf.code.CfStackInstruction;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
@@ -61,7 +61,7 @@ public class Pop extends Instruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfPop(inValues.get(0).type));
+    builder.add(CfStackInstruction.popType(inValues.get(0).type));
   }
 
   @Override

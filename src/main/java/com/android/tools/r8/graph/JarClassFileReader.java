@@ -20,7 +20,6 @@ import com.android.tools.r8.cf.code.CfConstMethodType;
 import com.android.tools.r8.cf.code.CfConstNull;
 import com.android.tools.r8.cf.code.CfConstNumber;
 import com.android.tools.r8.cf.code.CfConstString;
-import com.android.tools.r8.cf.code.CfExtended;
 import com.android.tools.r8.cf.code.CfFieldInstruction;
 import com.android.tools.r8.cf.code.CfFrame;
 import com.android.tools.r8.cf.code.CfFrame.Uninitialized;
@@ -41,10 +40,10 @@ import com.android.tools.r8.cf.code.CfMultiANewArray;
 import com.android.tools.r8.cf.code.CfNew;
 import com.android.tools.r8.cf.code.CfNewArray;
 import com.android.tools.r8.cf.code.CfNop;
-import com.android.tools.r8.cf.code.CfPop;
 import com.android.tools.r8.cf.code.CfPosition;
 import com.android.tools.r8.cf.code.CfReturn;
 import com.android.tools.r8.cf.code.CfReturnVoid;
+import com.android.tools.r8.cf.code.CfStackInstruction;
 import com.android.tools.r8.cf.code.CfStore;
 import com.android.tools.r8.cf.code.CfSwitch;
 import com.android.tools.r8.cf.code.CfThrow;
@@ -810,11 +809,7 @@ public class JarClassFileReader {
           instructions.add(new CfArrayStore(getMemberTypeForOpcode(opcode)));
           break;
         case Opcodes.POP:
-          instructions.add(new CfPop(ValueType.INT_OR_FLOAT_OR_NULL));
-          break;
         case Opcodes.POP2:
-          instructions.add(new CfPop(ValueType.LONG_OR_DOUBLE));
-          break;
         case Opcodes.DUP:
         case Opcodes.DUP_X1:
         case Opcodes.DUP_X2:
@@ -822,8 +817,7 @@ public class JarClassFileReader {
         case Opcodes.DUP2_X1:
         case Opcodes.DUP2_X2:
         case Opcodes.SWAP:
-          // TODO(mathiasr): Merge with POP/POP2; rename into CfStackInstruction with enum field.
-          instructions.add(new CfExtended(opcode));
+          instructions.add(CfStackInstruction.fromAsm(opcode));
           break;
         case Opcodes.IADD:
         case Opcodes.LADD:

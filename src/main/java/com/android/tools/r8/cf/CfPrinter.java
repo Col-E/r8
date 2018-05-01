@@ -14,7 +14,6 @@ import com.android.tools.r8.cf.code.CfConstMethodType;
 import com.android.tools.r8.cf.code.CfConstNull;
 import com.android.tools.r8.cf.code.CfConstNumber;
 import com.android.tools.r8.cf.code.CfConstString;
-import com.android.tools.r8.cf.code.CfExtended;
 import com.android.tools.r8.cf.code.CfFieldInstruction;
 import com.android.tools.r8.cf.code.CfFrame;
 import com.android.tools.r8.cf.code.CfFrame.Uninitialized;
@@ -35,10 +34,10 @@ import com.android.tools.r8.cf.code.CfMultiANewArray;
 import com.android.tools.r8.cf.code.CfNew;
 import com.android.tools.r8.cf.code.CfNewArray;
 import com.android.tools.r8.cf.code.CfNop;
-import com.android.tools.r8.cf.code.CfPop;
 import com.android.tools.r8.cf.code.CfPosition;
 import com.android.tools.r8.cf.code.CfReturn;
 import com.android.tools.r8.cf.code.CfReturnVoid;
+import com.android.tools.r8.cf.code.CfStackInstruction;
 import com.android.tools.r8.cf.code.CfStore;
 import com.android.tools.r8.cf.code.CfSwitch;
 import com.android.tools.r8.cf.code.CfSwitch.Kind;
@@ -154,10 +153,37 @@ public class CfPrinter {
     print("nop");
   }
 
-  public void print(CfExtended instruction) {
+  public void print(CfStackInstruction instruction) {
     switch (instruction.getOpcode()) {
+      case Pop:
+        print("pop");
+        return;
+      case Pop2:
+        print("pop2");
+        return;
+      case Dup:
+        print("dup");
+        return;
+      case DupX1:
+        print("dup_x1");
+        return;
+      case DupX2:
+        print("dup_x2");
+        return;
+      case Dup2:
+        print("dup2");
+        return;
+      case Dup2X1:
+        print("dup2_x1");
+        return;
+      case Dup2X2:
+        print("dup2_x2");
+        return;
+      case Swap:
+        print("swap");
+        return;
       default:
-        print("???");
+        throw new Unreachable("Invalid instruction for CfStackInstruction");
     }
   }
 
@@ -214,10 +240,6 @@ public class CfPrinter {
 
   public void print(CfUnop unop) {
     print(opcodeName(unop.getOpcode()));
-  }
-
-  public void print(CfPop pop) {
-    print("pop");
   }
 
   public void print(CfConstString constString) {
