@@ -56,6 +56,10 @@ public class CfConstNumber extends CfInstruction {
           int value = getIntValue();
           if (-1 <= value && value <= 5) {
             visitor.visitInsn(Opcodes.ICONST_0 + value);
+          } else if (Byte.MIN_VALUE <= value && value <= Byte.MAX_VALUE) {
+            visitor.visitIntInsn(Opcodes.BIPUSH, value);
+          } else if (Short.MIN_VALUE <= value && value <= Short.MAX_VALUE) {
+            visitor.visitIntInsn(Opcodes.SIPUSH, value);
           } else {
             visitor.visitLdcInsn(value);
           }
