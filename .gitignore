@@ -1,7 +1,6 @@
 build/
 buildSrc/out/
 .idea/
-r8.iml
 .gradle/
 android-data*/
 tests/2016-12-19/art.tar.gz
@@ -68,6 +67,8 @@ third_party/core-lambda-stubs
 third_party/core-lambda-stubs.tar.gz
 third_party/openjdk/openjdk-rt-1.8
 third_party/openjdk/openjdk-rt-1.8.tar.gz
+third_party/r8
+third_party/r8.tar.gz
 src/test/jack/ub-jack
 gradle-app.setting
 gradlew
