@@ -117,49 +117,21 @@ public class Regress78493232Dump implements Opcodes {
       mv.visitLdcInsn(new Integer(iterations));
       Label l1 = new Label();
       mv.visitJumpInsn(IF_ICMPGE, l1);
-      {
-        mv.visitMethodInsn(INVOKESTATIC, CLASS_INTERNAL, "run", "()Ljava/lang/String;", false);
-
-        mv.visitVarInsn(ASTORE, 2);
-        mv.visitVarInsn(ALOAD, 2);
-        mv.visitLdcInsn("java.security.SecureRandom");
-        mv.visitMethodInsn(
-            INVOKEVIRTUAL, "java/lang/String", "equals", "(Ljava/lang/Object;)Z", false);
-        Label l2 = new Label();
-        mv.visitJumpInsn(IFNE, l2);
-        mv.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
-        mv.visitLdcInsn("result incorrect: ");
-        mv.visitMethodInsn(
-            INVOKEVIRTUAL, "java/io/PrintStream", "print", "(Ljava/lang/String;)V", false);
-        mv.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
-        mv.visitVarInsn(ALOAD, 2);
-        mv.visitMethodInsn(
-            INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/String;)V", false);
-        mv.visitInsn(ICONST_1);
-        mv.visitMethodInsn(INVOKESTATIC, "java/lang/System", "exit", "(I)V", false);
-        mv.visitInsn(RETURN);
-
-        mv.visitLabel(l2);
-        getHash(mv);
-        mv.visitLdcInsn(new Integer(419176645));
-        Label l3 = new Label();
-        mv.visitJumpInsn(IF_ICMPEQ, l3);
-        mv.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
-        mv.visitLdcInsn("state incorrect: ");
-        mv.visitMethodInsn(
-            INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/String;)V", false);
-        mv.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
-        printState(mv);
-        mv.visitInsn(ICONST_2);
-        mv.visitMethodInsn(INVOKESTATIC, "java/lang/System", "exit", "(I)V", false);
-        mv.visitInsn(RETURN);
-        mv.visitLabel(l3);
-      }
+      mv.visitMethodInsn(INVOKESTATIC, CLASS_INTERNAL, "run", "()Ljava/lang/String;", false);
+      mv.visitVarInsn(ILOAD, 1);
+      mv.visitMethodInsn(
+          INVOKESTATIC, UTILS_CLASS_INTERNAL, "compare", "(Ljava/lang/String;I)V", false);
+      mv.visitFieldInsn(GETSTATIC, CLASS_INTERNAL, "staticIntA", "I");
+      mv.visitFieldInsn(GETSTATIC, CLASS_INTERNAL, "staticIntB", "I");
+      mv.visitFieldInsn(GETSTATIC, CLASS_INTERNAL, "staticByteArray", "[B");
+      mv.visitVarInsn(ILOAD, 1);
+      mv.visitMethodInsn(INVOKESTATIC, UTILS_CLASS_INTERNAL, "compareHash", "(II[BI)V", false);
       mv.visitIincInsn(1, 1);
       mv.visitJumpInsn(GOTO, l0);
       mv.visitLabel(l1);
-
-      println(mv, "Completed successfully after " + iterations + " iterations");
+      mv.visitLdcInsn("Completed successfully after " + iterations + " iterations");
+      mv.visitMethodInsn(
+          INVOKESTATIC, UTILS_CLASS_INTERNAL, "println", "(Ljava/lang/String;)V", false);
       mv.visitInsn(RETURN);
       mv.visitMaxs(-1, -1);
       mv.visitEnd();
@@ -335,20 +307,6 @@ public class Regress78493232Dump implements Opcodes {
     return cw.toByteArray();
   }
 
-  private static void printState(MethodVisitor mv) {
-    println(mv, "staticIntA:");
-    mv.visitFieldInsn(GETSTATIC, CLASS_INTERNAL, "staticIntA", "I");
-    printlnInt(mv);
-
-    println(mv, "staticIntB:");
-    mv.visitFieldInsn(GETSTATIC, CLASS_INTERNAL, "staticIntB", "I");
-    printlnInt(mv);
-
-    println(mv, "staticByteArray:");
-    mv.visitFieldInsn(GETSTATIC, CLASS_INTERNAL, "staticByteArray", "[B");
-    printByteArray(mv);
-  }
-
   private static void getHash(MethodVisitor mv) {
     mv.visitFieldInsn(GETSTATIC, CLASS_INTERNAL, "staticIntA", "I");
     mv.visitFieldInsn(GETSTATIC, CLASS_INTERNAL, "staticIntB", "I");
@@ -356,21 +314,4 @@ public class Regress78493232Dump implements Opcodes {
     mv.visitMethodInsn(INVOKESTATIC, UTILS_CLASS_INTERNAL, "getHash", "(II[B)I", false);
   }
 
-  private static void printByteArray(MethodVisitor mv) {
-    mv.visitMethodInsn(INVOKESTATIC, UTILS_CLASS_INTERNAL, "printByteArray", "([B)V", false);
-  }
-
-  private static void printlnInt(MethodVisitor mv) {
-    mv.visitMethodInsn(INVOKESTATIC, UTILS_CLASS_INTERNAL, "println", "(I)V", false);
-  }
-
-  private static void printlnString(MethodVisitor mv) {
-    mv.visitMethodInsn(
-        INVOKESTATIC, UTILS_CLASS_INTERNAL, "println", "(Ljava/lang/String;)V", false);
-  }
-
-  private static void println(MethodVisitor mv, String msg) {
-    mv.visitLdcInsn(msg);
-    printlnString(mv);
-  }
 }
