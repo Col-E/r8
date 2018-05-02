@@ -111,6 +111,22 @@ public class JasminBuilder {
       return "L" + name + ";";
     }
 
+    public MethodSignature addAbstractMethod(
+        String name,
+        List<String> argumentTypes,
+        String returnType) {
+      return addMethod("public abstract", name, argumentTypes, returnType);
+    }
+
+    public MethodSignature addFinalMethod(
+        String name,
+        List<String> argumentTypes,
+        String returnType,
+        String... lines) {
+      makeInit = true;
+      return addMethod("public final", name, argumentTypes, returnType, lines);
+    }
+
     public MethodSignature addVirtualMethod(
         String name,
         List<String> argumentTypes,
@@ -238,7 +254,7 @@ public class JasminBuilder {
       isInterface = true;
     }
 
-    void setAccess(String access) {
+    public void setAccess(String access) {
       this.access = access;
     }
 
