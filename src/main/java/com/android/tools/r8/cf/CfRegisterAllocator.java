@@ -5,7 +5,6 @@ package com.android.tools.r8.cf;
 
 import static com.android.tools.r8.ir.regalloc.LiveIntervals.NO_REGISTER;
 
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -84,11 +83,6 @@ public class CfRegisterAllocator implements RegisterAllocator {
     }
     assert !value.getLiveIntervals().hasSplits();
     return value.getLiveIntervals().getRegister();
-  }
-
-  @Override
-  public boolean argumentValueUsesHighRegister(Value value, int instructionNumber) {
-    throw new Unreachable();
   }
 
   @Override

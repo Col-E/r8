@@ -558,12 +558,6 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     }
   }
 
-  @Override
-  public boolean argumentValueUsesHighRegister(Value value, int instructionNumber) {
-    return isHighRegister(
-        getRegisterForValue(value, instructionNumber) + value.requiredRegisters() - 1);
-  }
-
   public int highestUsedRegister() {
     return registersUsed() - 1;
   }
