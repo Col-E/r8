@@ -43,6 +43,8 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntArraySet;
 import it.unimi.dsi.fastutil.ints.IntIterator;
 import it.unimi.dsi.fastutil.ints.IntSet;
+import it.unimi.dsi.fastutil.objects.Reference2IntArrayMap;
+import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -186,6 +188,9 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     // There are no linked values prior to register allocation.
     assert noLinkedValues();
     assert code.isConsistentSSA();
+    if (this.code.method.accessFlags.isBridge() && implementationIsBridge(this.code)) {
+      transformBridgeMethod();
+    }
     computeNeedsRegister();
     insertArgumentMoves();
     ImmutableList<BasicBlock> blocks = computeLivenessInformation();
@@ -2330,6 +2335,96 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
 
   private void clearUserInfo() {
     code.blocks.forEach(BasicBlock::clearUserInfo);
+  }
+
+  // Rewrites casts on the form "lhs = (T) rhs" into "(T) rhs" and replaces the uses of lhs by rhs.
+  // This transformation helps to ensure that we do not insert unnecessary moves in bridge methods
+  // with an invoke-range instruction, since all the arguments to the invoke-range instruction will
+  // be original, consecutive arguments of the enclosing method (and importantly, not values that
+  // have been defined by a check-cast instruction).
+  private void transformBridgeMethod() {
+    assert implementationIsBridge(this.code);
+    BasicBlock entry = this.code.blocks.getFirst();
+    InstructionListIterator iterator = entry.listIterator();
+    // Create a mapping from argument values to their index, while scanning over the arguments.
+    Reference2IntMap<Value> argumentIndices = new Reference2IntArrayMap<>();
+    while (iterator.peekNext().isArgument()) {
+      Value argument = iterator.next().asArgument().outValue();
+      argumentIndices.put(argument, argumentIndices.size());
+    }
+    // Move forward until the invocation.
+    while (!iterator.peekNext().isInvoke()) {
+      iterator.next();
+    }
+    Invoke invokeInstruction = iterator.peekNext().asInvoke();
+    // Determine if all of the arguments can be cast without having to move them into lower
+    // registers.
+    int numberOfRequiredRegisters = numberOfArgumentRegisters;
+    if (invokeInstruction.outValue() != null) {
+      numberOfRequiredRegisters += invokeInstruction.outValue().requiredRegisters();
+    }
+    if (numberOfRequiredRegisters - 1 > Constants.U8BIT_MAX) {
+      return;
+    }
+    // Determine if the arguments are consecutive input arguments.
+    List<Value> arguments = invokeInstruction.arguments();
+    if (arguments.size() >= 1) {
+      int previousArgumentIndex = -1;
+      for (int i = 0; i < arguments.size(); ++i) {
+        Value current = arguments.get(i);
+        if (!current.isArgument()) {
+          current = current.definition.asCheckCast().object();
+        }
+        assert current.isArgument();
+        int currentArgumentIndex = argumentIndices.getInt(current);
+        if (previousArgumentIndex >= 0 && currentArgumentIndex != previousArgumentIndex + 1) {
+          return;
+        }
+        previousArgumentIndex = currentArgumentIndex;
+      }
+    } else {
+      return;
+    }
+
+    // Rewrite all casts before the invocation on the form "lhs = (T) rhs" into "(T) rhs", and
+    // replace the uses of lhs by rhs.
+    while (iterator.peekPrevious().isCheckCast()) {
+      CheckCast castInstruction = iterator.previous().asCheckCast();
+      castInstruction.outValue().replaceUsers(castInstruction.object());
+      castInstruction.setOutValue(null);
+    }
+  }
+
+  // Returns true if the IR for this method consists of zero or more arguments, zero or more casts
+  // of the arguments, a single invocation, an optional cast of the result, and a return (in this
+  // particular order).
+  private static boolean implementationIsBridge(IRCode code) {
+    if (code.blocks.size() > 1) {
+      return false;
+    }
+    InstructionListIterator iterator = code.blocks.getFirst().listIterator();
+    // Move forward to the first instruction after the definition of the arguments.
+    while (iterator.hasNext() && iterator.peekNext().isArgument()) {
+      iterator.next();
+    }
+    // Move forward to the first instruction after the casts.
+    while (iterator.hasNext()
+        && iterator.peekNext().isCheckCast()
+        && iterator.peekNext().asCheckCast().object().isArgument()) {
+      iterator.next();
+    }
+    // Check if there is an invoke instruction followed by an optional cast of the result,
+    // and a return.
+    if (!iterator.hasNext() || !iterator.next().isInvoke()) {
+      return false;
+    }
+    if (iterator.hasNext() && iterator.peekNext().isCheckCast()) {
+      iterator.next();
+    }
+    if (!iterator.hasNext() || !iterator.next().isReturn()) {
+      return false;
+    }
+    return true;
   }
 
   private Value createValue(ValueType type) {
