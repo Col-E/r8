@@ -71,8 +71,7 @@ public class CfFrontendExamplesTest extends TestBase {
     makeTest("regress_65104300.Regress"),
     makeTest("regress_70703087.Test"),
     makeTest("regress_70736958.Test"),
-    // TODO(mathiasr): Support uninitialized values in stack slots in CfFrame.
-    // makeTest("regress_70737019.Test"),
+    makeTest("regress_70737019.Test"),
     makeTest("regress_72361252.Test"),
     makeTest("memberrebinding3.Memberrebinding"),
     makeTest("minification.Minification"),

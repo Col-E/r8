@@ -16,9 +16,7 @@ import com.android.tools.r8.cf.code.CfConstNumber;
 import com.android.tools.r8.cf.code.CfConstString;
 import com.android.tools.r8.cf.code.CfFieldInstruction;
 import com.android.tools.r8.cf.code.CfFrame;
-import com.android.tools.r8.cf.code.CfFrame.Uninitialized;
-import com.android.tools.r8.cf.code.CfFrame.UninitializedNew;
-import com.android.tools.r8.cf.code.CfFrame.UninitializedThis;
+import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.cf.code.CfGoto;
 import com.android.tools.r8.cf.code.CfIf;
 import com.android.tools.r8.cf.code.CfIfCmp;
@@ -58,8 +56,6 @@ import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.utils.DescriptorUtils;
-import com.android.tools.r8.utils.StringUtils;
-import com.android.tools.r8.utils.StringUtils.BraceType;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap.Entry;
 import it.unimi.dsi.fastutil.ints.IntList;
 import java.util.HashMap;
@@ -272,24 +268,33 @@ public class CfPrinter {
 
   public void print(CfFrame frame) {
     StringBuilder builder = new StringBuilder("frame: [");
-    String separator = "";
-    for (Entry<DexType> entry : frame.getLocals().int2ReferenceEntrySet()) {
-      builder.append(separator).append(entry.getIntKey()).append(':');
-      Uninitialized allocator = frame.getAllocators().get(entry.getIntKey());
-      if (allocator == null) {
-        builder.append(entry.getValue());
-      } else if (allocator instanceof UninitializedThis) {
-        builder.append("uninitialized this");
-      } else {
-        builder
-            .append("uninitialized ")
-            .append(getLabel(((UninitializedNew) allocator).getLabel()));
+    {
+      String separator = "";
+      for (Entry<FrameType> entry : frame.getLocals().int2ReferenceEntrySet()) {
+        builder.append(separator).append(entry.getIntKey()).append(':');
+        print(entry.getValue(), builder);
+        separator = ", ";
       }
-      separator = ", ";
     }
-    builder.append("] ");
-    StringUtils.append(builder, frame.getStack(), ", ", BraceType.SQUARE);
+    builder.append("] [");
+    {
+      String separator = "";
+      for (FrameType element : frame.getStack()) {
+        builder.append(separator);
+        print(element, builder);
+        separator = ", ";
+      }
+    }
+    builder.append(']');
     comment(builder.toString());
+  }
+
+  private void print(FrameType type, StringBuilder builder) {
+    if (type.isUninitializedNew()) {
+      builder.append("uninitialized ").append(getLabel(type.getUninitializedLabel()));
+    } else {
+      builder.append(type.toString());
+    }
   }
 
   public void print(CfInstanceOf insn) {

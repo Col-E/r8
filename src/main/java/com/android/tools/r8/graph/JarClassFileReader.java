@@ -22,9 +22,7 @@ import com.android.tools.r8.cf.code.CfConstNumber;
 import com.android.tools.r8.cf.code.CfConstString;
 import com.android.tools.r8.cf.code.CfFieldInstruction;
 import com.android.tools.r8.cf.code.CfFrame;
-import com.android.tools.r8.cf.code.CfFrame.Uninitialized;
-import com.android.tools.r8.cf.code.CfFrame.UninitializedNew;
-import com.android.tools.r8.cf.code.CfFrame.UninitializedThis;
+import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.cf.code.CfGoto;
 import com.android.tools.r8.cf.code.CfIf;
 import com.android.tools.r8.cf.code.CfIfCmp;
@@ -680,34 +678,44 @@ public class JarClassFileReader {
 
     @Override
     public void visitFrame(
-        int type, int nLocal, Object[] localTypes, int nStack, Object[] stackTypes) {
-      Int2ReferenceSortedMap<DexType> dexLocals = new Int2ReferenceAVLTreeMap<>();
-      Int2ReferenceSortedMap<Uninitialized> allocators = new Int2ReferenceAVLTreeMap<>();
-      parseLocals(nLocal, localTypes, dexLocals, allocators);
-      List<DexType> dexStack = parseStack(nStack, stackTypes);
-      instructions.add(new CfFrame(dexLocals, allocators, dexStack));
+        int frameType, int nLocals, Object[] localTypes, int nStack, Object[] stackTypes) {
+      assert frameType == Opcodes.F_NEW;
+      Int2ReferenceSortedMap<FrameType> parsedLocals = parseLocals(nLocals, localTypes);
+      List<FrameType> parsedStack = parseStack(nStack, stackTypes);
+      instructions.add(new CfFrame(parsedLocals, parsedStack));
     }
 
-    private void parseLocals(
-        int nLocal,
-        Object[] localTypes,
-        Int2ReferenceSortedMap<DexType> dexLocals,
-        Int2ReferenceSortedMap<Uninitialized> allocators) {
+    private Int2ReferenceSortedMap<FrameType> parseLocals(int typeCount, Object[] asmTypes) {
+      Int2ReferenceSortedMap<FrameType> types = new Int2ReferenceAVLTreeMap<>();
       int i = 0;
-      for (int j = 0; j < nLocal; j++) {
-        Object localType = localTypes[j];
-        if (localType instanceof Label) {
-          CfLabel cfLabel = getLabel((Label) localType);
-          allocators.put(i++, new UninitializedNew(cfLabel));
-        } else if (localType == Opcodes.UNINITIALIZED_THIS) {
-          allocators.put(i++, new UninitializedThis());
-        } else {
-          DexType dexType = parseAsmType(localType);
-          dexLocals.put(i++, dexType);
-          if (dexType == factory.longType || dexType == factory.doubleType) {
-            i++;
-          }
+      for (int j = 0; j < typeCount; j++) {
+        Object localType = asmTypes[j];
+        FrameType value = getFrameType(localType);
+        types.put(i++, value);
+        if (value.isWide()) {
+          i++;
         }
+      }
+      return types;
+    }
+
+    private List<FrameType> parseStack(int nStack, Object[] stackTypes) {
+      List<FrameType> dexStack = new ArrayList<>(nStack);
+      for (int i = 0; i < nStack; i++) {
+        dexStack.add(getFrameType(stackTypes[i]));
+      }
+      return dexStack;
+    }
+
+    private FrameType getFrameType(Object localType) {
+      if (localType instanceof Label) {
+        return FrameType.uninitializedNew(getLabel((Label) localType));
+      } else if (localType == Opcodes.UNINITIALIZED_THIS) {
+        return FrameType.uninitializedThis();
+      } else if (localType == null || localType == Opcodes.TOP) {
+        return FrameType.top();
+      } else {
+        return FrameType.initialized(parseAsmType(localType));
       }
     }
 
@@ -715,23 +723,9 @@ public class JarClassFileReader {
       return labelMap.computeIfAbsent(label, l -> new CfLabel());
     }
 
-    private List<DexType> parseStack(int nStack, Object[] stackTypes) {
-      List<DexType> dexStack = new ArrayList<>(nStack);
-      for (int i = 0; i < nStack; i++) {
-        Object stackType = stackTypes[i];
-        if (stackType instanceof Label || stackType == Opcodes.UNINITIALIZED_THIS) {
-          throw new Unimplemented("Uninitialized values not supported in stack slots");
-        }
-        DexType dexType = parseAsmType(stackType);
-        dexStack.add(dexType);
-      }
-      return dexStack;
-    }
-
     private DexType parseAsmType(Object local) {
-      if (local == null || local == Opcodes.TOP) {
-        return null;
-      } else if (local == Opcodes.INTEGER) {
+      assert local != null && local != Opcodes.TOP;
+      if (local == Opcodes.INTEGER) {
         return factory.intType;
       } else if (local == Opcodes.FLOAT) {
         return factory.floatType;

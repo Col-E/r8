@@ -12,61 +12,155 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.NamingLens;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import java.util.List;
+import java.util.Objects;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 public class CfFrame extends CfInstruction {
 
-  public abstract static class Uninitialized {
-    abstract Object getAsmLabel();
+  public abstract static class FrameType {
+
+    public static FrameType initialized(DexType type) {
+      return new InitializedType(type);
+    }
+
+    public static FrameType uninitializedNew(CfLabel label) {
+      return new UninitializedNew(label);
+    }
+
+    public static FrameType uninitializedThis() {
+      return new UninitializedThis();
+    }
+
+    public static FrameType top() {
+      return Top.SINGLETON;
+    }
+
+    abstract Object getTypeOpcode(NamingLens lens);
+
+    public boolean isWide() {
+      return false;
+    }
+
+    public boolean isUninitializedNew() {
+      return false;
+    }
+
+    public CfLabel getUninitializedLabel() {
+      return null;
+    }
+
+    private FrameType() {}
   }
 
-  public static class UninitializedNew extends Uninitialized {
+  private static class InitializedType extends FrameType {
+
+    private final DexType type;
+
+    private InitializedType(DexType type) {
+      assert type != null;
+      this.type = type;
+    }
+
+    @Override
+    public String toString() {
+      return type.toString();
+    }
+
+    @Override
+    Object getTypeOpcode(NamingLens lens) {
+      if (type == DexItemFactory.nullValueType) {
+        return Opcodes.NULL;
+      }
+      switch (type.toShorty()) {
+        case 'L':
+          return lens.lookupInternalName(type);
+        case 'I':
+          return Opcodes.INTEGER;
+        case 'F':
+          return Opcodes.FLOAT;
+        case 'J':
+          return Opcodes.LONG;
+        case 'D':
+          return Opcodes.DOUBLE;
+        default:
+          throw new Unreachable("Unexpected value type: " + type);
+      }
+    }
+
+    @Override
+    public boolean isWide() {
+      return type.isPrimitiveType() && (type.toShorty() == 'J' || type.toShorty() == 'D');
+    }
+  }
+
+  private static class Top extends FrameType {
+
+    private static final Top SINGLETON = new Top();
+
+    @Override
+    public String toString() {
+      return "top";
+    }
+
+    @Override
+    Object getTypeOpcode(NamingLens lens) {
+      return Opcodes.TOP;
+    }
+  }
+
+  private static class UninitializedNew extends FrameType {
     private final CfLabel label;
 
-    public UninitializedNew(CfLabel label) {
+    private UninitializedNew(CfLabel label) {
       this.label = label;
     }
 
     @Override
-    Object getAsmLabel() {
+    public String toString() {
+      return "uninitialized new";
+    }
+
+    @Override
+    Object getTypeOpcode(NamingLens lens) {
       return label.getLabel();
     }
 
-    public CfLabel getLabel() {
+    @Override
+    public CfLabel getUninitializedLabel() {
       return label;
     }
   }
 
-  public static class UninitializedThis extends Uninitialized {
+  private static class UninitializedThis extends FrameType {
+    private UninitializedThis() {}
+
     @Override
-    Object getAsmLabel() {
+    Object getTypeOpcode(NamingLens lens) {
       return Opcodes.UNINITIALIZED_THIS;
+    }
+
+    @Override
+    public String toString() {
+      return "uninitialized this";
     }
   }
 
-  private final Int2ReferenceSortedMap<DexType> locals;
-  private final Int2ReferenceSortedMap<Uninitialized> allocators;
-  private final List<DexType> stack;
+  private final Int2ReferenceSortedMap<FrameType> locals;
+  private final List<FrameType> stack;
 
-  public CfFrame(
-      Int2ReferenceSortedMap<DexType> locals,
-      Int2ReferenceSortedMap<Uninitialized> allocators,
-      List<DexType> stack) {
+  public CfFrame(Int2ReferenceSortedMap<FrameType> locals, List<FrameType> stack) {
+    assert locals.values().stream().allMatch(Objects::nonNull);
+    assert stack.stream().allMatch(Objects::nonNull);
     this.locals = locals;
-    this.allocators = allocators;
     this.stack = stack;
   }
 
-  public Int2ReferenceSortedMap<DexType> getLocals() {
+  public Int2ReferenceSortedMap<FrameType> getLocals() {
     return locals;
   }
 
-  public Int2ReferenceSortedMap<Uninitialized> getAllocators() {
-    return allocators;
-  }
-
-  public List<DexType> getStack() {
+  public List<FrameType> getStack() {
     return stack;
   }
 
@@ -77,10 +171,6 @@ public class CfFrame extends CfInstruction {
     int localsCount = computeLocalsCount();
     Object[] localsTypes = computeLocalsTypes(localsCount, lens);
     visitor.visitFrame(F_NEW, localsCount, localsTypes, stackCount, stackTypes);
-  }
-
-  private boolean isWide(DexType type) {
-    return type.isPrimitiveType() && (type.toShorty() == 'J' || type.toShorty() == 'D');
   }
 
   private int computeStackCount() {
@@ -94,7 +184,7 @@ public class CfFrame extends CfInstruction {
     }
     Object[] stackTypes = new Object[stackCount];
     for (int i = 0; i < stackCount; i++) {
-      stackTypes[i] = getType(stack.get(i), lens);
+      stackTypes[i] = stack.get(i).getTypeOpcode(lens);
     }
     return stackTypes;
   }
@@ -108,8 +198,8 @@ public class CfFrame extends CfInstruction {
     int localsCount = 0;
     for (int i = 0; i <= maxRegister; i++) {
       localsCount++;
-      DexType type = locals.get(i);
-      if (type != null && isWide(type)) {
+      FrameType type = locals.get(i);
+      if (type != null && type.isWide()) {
         i++;
       }
     }
@@ -124,38 +214,13 @@ public class CfFrame extends CfInstruction {
     Object[] localsTypes = new Object[localsCount];
     int localIndex = 0;
     for (int i = 0; i <= maxRegister; i++) {
-      DexType type = locals.get(i);
-      Uninitialized allocator = allocators.get(i);
-      Object typeOpcode = allocator == null ? getType(type, lens) : allocator.getAsmLabel();
-      localsTypes[localIndex++] = typeOpcode;
-      if (type != null && isWide(type)) {
+      FrameType type = locals.get(i);
+      localsTypes[localIndex++] = type == null ? Opcodes.TOP : type.getTypeOpcode(lens);
+      if (type != null && type.isWide()) {
         i++;
       }
     }
     return localsTypes;
-  }
-
-  private Object getType(DexType type, NamingLens lens) {
-    if (type == null) {
-      return Opcodes.TOP;
-    }
-    if (type == DexItemFactory.nullValueType) {
-      return Opcodes.NULL;
-    }
-    switch (type.toShorty()) {
-      case 'L':
-        return lens.lookupInternalName(type);
-      case 'I':
-        return Opcodes.INTEGER;
-      case 'F':
-        return Opcodes.FLOAT;
-      case 'J':
-        return Opcodes.LONG;
-      case 'D':
-        return Opcodes.DOUBLE;
-      default:
-        throw new Unreachable("Unexpected value type: " + type);
-    }
   }
 
   @Override

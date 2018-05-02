@@ -7,9 +7,7 @@ import com.android.tools.r8.cf.CfRegisterAllocator;
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfFrame;
-import com.android.tools.r8.cf.code.CfFrame.Uninitialized;
-import com.android.tools.r8.cf.code.CfFrame.UninitializedNew;
-import com.android.tools.r8.cf.code.CfFrame.UninitializedThis;
+import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfLabel;
 import com.android.tools.r8.cf.code.CfPosition;
@@ -440,51 +438,43 @@ public class CfBuilder {
     // TODO(zerny): Support having values on the stack on control-edges.
     assert stack.isEmpty();
 
-    List<DexType> stackTypes;
+    List<FrameType> stackTypes;
     if (block.entry().isMoveException()) {
       StackValue exception = (StackValue) block.entry().outValue();
-      stackTypes = Collections.singletonList(exception.getObjectType());
+      stackTypes = Collections.singletonList(FrameType.initialized(exception.getObjectType()));
     } else {
       stackTypes = Collections.emptyList();
     }
 
     Collection<Value> locals = registerAllocator.getLocalsAtBlockEntry(block);
-    Int2ReferenceSortedMap<DexType> mapping = new Int2ReferenceAVLTreeMap<>();
-    Int2ReferenceSortedMap<Uninitialized> allocators = new Int2ReferenceAVLTreeMap<>();
+    Int2ReferenceSortedMap<FrameType> mapping = new Int2ReferenceAVLTreeMap<>();
 
     for (Value local : locals) {
-      DexType type;
-      Uninitialized allocator = null;
-      switch (local.outType()) {
-        case INT:
-          type = factory.intType;
-          break;
-        case FLOAT:
-          type = factory.floatType;
-          break;
-        case LONG:
-          type = factory.longType;
-          break;
-        case DOUBLE:
-          type = factory.doubleType;
-          break;
-        case OBJECT:
-          type = types.get(local);
-          allocator = findAllocator(block, local);
-          break;
-        default:
-          throw new Unreachable(
-              "Unexpected local type: " + local.outType() + " for local: " + local);
-      }
-      mapping.put(getLocalRegister(local), type);
-      if (allocator != null) {
-        allocators.put(getLocalRegister(local), allocator);
-      }
+      mapping.put(getLocalRegister(local), getFrameType(block, local));
     }
-    instructions.add(new CfFrame(mapping, allocators, stackTypes));
+    instructions.add(new CfFrame(mapping, stackTypes));
   }
 
-  private Uninitialized findAllocator(BasicBlock liveBlock, Value value) {
+  private FrameType getFrameType(BasicBlock liveBlock, Value local) {
+    switch (local.outType()) {
+      case INT:
+        return FrameType.initialized(factory.intType);
+      case FLOAT:
+        return FrameType.initialized(factory.floatType);
+      case LONG:
+        return FrameType.initialized(factory.longType);
+      case DOUBLE:
+        return FrameType.initialized(factory.doubleType);
+      case OBJECT:
+        FrameType type = findAllocator(liveBlock, local);
+        return type != null ? type : FrameType.initialized(types.get(local));
+      default:
+        throw new Unreachable(
+            "Unexpected local type: " + local.outType() + " for local: " + local);
+    }
+  }
+
+  private FrameType findAllocator(BasicBlock liveBlock, Value value) {
     Instruction definition = value.definition;
     while (definition != null && (definition.isStore() || definition.isLoad())) {
       definition = definition.inValues().get(0).definition;
@@ -492,13 +482,13 @@ public class CfBuilder {
     if (definition == null) {
       return null;
     }
-    Uninitialized res;
+    FrameType res;
     if (definition.isNewInstance()) {
-      res = new UninitializedNew(newInstanceLabels.get(definition.asNewInstance()));
+      res = FrameType.uninitializedNew(newInstanceLabels.get(definition.asNewInstance()));
     } else if (definition.isArgument()
         && method.isInstanceInitializer()
         && definition.outValue().isThis()) {
-      res = new UninitializedThis();
+      res = FrameType.uninitializedThis();
     } else {
       return null;
     }
