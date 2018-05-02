@@ -10,7 +10,6 @@ public interface RegisterAllocator {
   void allocateRegisters(boolean debug);
   int registersUsed();
   int getRegisterForValue(Value value, int instructionNumber);
-  boolean argumentValueUsesHighRegister(Value value, int instructionNumber);
   int getArgumentOrAllocateRegisterForValue(Value value, int instructionNumber);
   InternalOptions getOptions();
 }

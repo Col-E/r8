@@ -420,10 +420,6 @@ public class DexBuilder {
     return registerAllocator.getArgumentOrAllocateRegisterForValue(value, instructionNumber);
   }
 
-  public boolean argumentValueUsesHighRegister(Value value, int instructionNumber) {
-    return registerAllocator.argumentValueUsesHighRegister(value, instructionNumber);
-  }
-
   public void addGoto(com.android.tools.r8.ir.code.Goto jump) {
     if (jump.getTarget() != nextBlock) {
       add(jump, new GotoInfo(jump));
