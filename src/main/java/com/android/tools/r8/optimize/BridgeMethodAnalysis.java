@@ -93,14 +93,14 @@ public class BridgeMethodAnalysis {
     @Override
     public DexMethod lookupMethod(DexMethod method, DexEncodedMethod context) {
       DexMethod previous = previousLense.lookupMethod(method, context);
-      DexMethod target = bridgeTargetToBridgeMap.get(previous);
+      DexMethod bridge = bridgeTargetToBridgeMap.get(previous);
       // Do not forward calls from a bridge method to itself while the bridge method is still
       // a bridge.
-      if (target == null ||
-          (context.accessFlags.isBridge() && target == context.method)) {
+      if (bridge == null
+          || (context.accessFlags.isBridge() && bridge == context.method)) {
         return previous;
       } else {
-        return target;
+        return bridge;
       }
     }
 

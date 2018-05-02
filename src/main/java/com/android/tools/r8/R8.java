@@ -29,7 +29,6 @@ import com.android.tools.r8.naming.ProguardMapApplier;
 import com.android.tools.r8.naming.ProguardMapSupplier;
 import com.android.tools.r8.naming.SeedMapper;
 import com.android.tools.r8.naming.SourceFileRewriter;
-import com.android.tools.r8.optimize.BridgeMethodAnalysis;
 import com.android.tools.r8.optimize.MemberRebindingAnalysis;
 import com.android.tools.r8.optimize.VisibilityBridgeRemover;
 import com.android.tools.r8.origin.CommandLineOrigin;
@@ -363,7 +362,8 @@ public class R8 {
         appInfo = new SwitchMapCollector(appInfo.withLiveness(), options).run();
         appInfo = new EnumOrdinalMapCollector(appInfo.withLiveness(), options).run();
 
-        graphLense = new BridgeMethodAnalysis(graphLense, appInfo.withLiveness()).run();
+        // TODO(b/79143143): re-enable once fixed.
+        // graphLense = new BridgeMethodAnalysis(graphLense, appInfo.withLiveness()).run();
       }
 
       timing.begin("Create IR");

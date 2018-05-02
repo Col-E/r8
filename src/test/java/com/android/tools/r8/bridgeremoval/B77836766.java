@@ -21,7 +21,6 @@ import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.DexInspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class B77836766 extends TestBase {
@@ -61,9 +60,8 @@ public class B77836766 extends TestBase {
    * Note that we can't write such code in Java because javac requires Itf?#foo, which are
    * technically abstract methods, to be explicitly overridden.
    */
-  @Ignore("b/77836766")
   @Test
-  public void testBridgeTargetInBase_differentBridges() throws Exception {
+  public void test_bridgeTargetInBase_differentBridges() throws Exception {
     JasminBuilder jasminBuilder = new JasminBuilder();
 
     ClassBuilder absCls = jasminBuilder.addClass("AbsCls");
@@ -133,6 +131,7 @@ public class B77836766 extends TestBase {
 
     DexInspector inspector = new DexInspector(processedApp);
     ClassSubject absSubject = inspector.clazz(absCls.name);
+    assertThat(absSubject, isPresent());
     ClassSubject cls1Subject = inspector.clazz(cls1.name);
     assertThat(cls1Subject, isPresent());
     ClassSubject cls2Subject = inspector.clazz(cls2.name);
@@ -180,9 +179,8 @@ public class B77836766 extends TestBase {
    *     foo(o);
    *   } }
    */
-  @Ignore("b/77836766")
   @Test
-  public void testBridgeTargetInBase_bridgeAndNonBridge() throws Exception {
+  public void test_bridgeTargetInBase_bridgeAndNonBridge() throws Exception {
     JasminBuilder jasminBuilder = new JasminBuilder();
 
     ClassBuilder baseCls = jasminBuilder.addClass("Base");
@@ -244,6 +242,7 @@ public class B77836766 extends TestBase {
 
     DexInspector inspector = new DexInspector(processedApp);
     ClassSubject baseSubject = inspector.clazz(baseCls.name);
+    assertThat(baseSubject, isPresent());
     ClassSubject cls1Subject = inspector.clazz(cls1.name);
     assertThat(cls1Subject, isPresent());
     ClassSubject cls2Subject = inspector.clazz(cls2.name);
@@ -285,7 +284,6 @@ public class B77836766 extends TestBase {
    *     foo(o);
    *   } }
    */
-  @Ignore("b/77836766")
   @Test
   public void test_nonBridgeInSubType() throws Exception {
     JasminBuilder jasminBuilder = new JasminBuilder();
@@ -344,6 +342,7 @@ public class B77836766 extends TestBase {
 
     DexInspector inspector = new DexInspector(processedApp);
     ClassSubject baseSubject = inspector.clazz(baseCls.name);
+    assertThat(baseSubject, isPresent());
     ClassSubject subSubject = inspector.clazz(subCls.name);
     assertThat(subSubject, isPresent());
 
@@ -351,6 +350,82 @@ public class B77836766 extends TestBase {
 
     MethodSubject barInSub =
         subSubject.method("void", "bar", ImmutableList.of("java.lang.String"));
+    assertThat(barInSub, isPresent());
+    DexCode code = barInSub.getMethod().getCode().asDexCode();
+    checkInstructions(code, ImmutableList.of(
+        InvokeVirtualRange.class,
+        ReturnVoid.class));
+    InvokeVirtualRange invoke = (InvokeVirtualRange) code.instructions[0];
+    assertEquals(baseSubject.getDexClass().type, invoke.getMethod().getHolder());
+  }
+
+  /*
+   * public class Base {
+   *  public bridge void foo(Integer i) { foo((Object) i); }
+   *  public foo(Object o) { print(o); }
+   *  public bar(String s) { foo(s); }
+   * }
+   */
+  @Test
+  public void test_bridgeTargetInsideTheSameClass() throws Exception {
+    JasminBuilder jasminBuilder = new JasminBuilder();
+
+    ClassBuilder cls = jasminBuilder.addClass("Base");
+    cls.addBridgeMethod("foo", ImmutableList.of("Ljava/lang/Integer;"), "V",
+        ".limit stack 2",
+        ".limit locals 2",
+        "aload_0",
+        "aload_1",
+        "invokevirtual " + cls.name + "/foo(Ljava/lang/Object;)V",
+        "return");
+    cls.addVirtualMethod("foo", ImmutableList.of("Ljava/lang/Object;"), "V",
+        ".limit stack 3",
+        ".limit locals 2",
+        "getstatic java/lang/System/out Ljava/io/PrintStream;",
+        "aload_1",
+        "invokevirtual java/io/PrintStream/print(Ljava/lang/Object;)V",
+        "return");
+    cls.addVirtualMethod("bar", ImmutableList.of("Ljava/lang/String;"), "V",
+        ".limit stack 2",
+        ".limit locals 2",
+        "aload_0",
+        "aload_1",
+        "invokevirtual " + cls.name + "/foo(Ljava/lang/Object;)V",
+        "return");
+
+    ClassBuilder mainClass = jasminBuilder.addClass("Main");
+    mainClass.addMainMethod(
+        ".limit stack 5",
+        ".limit locals 2",
+        "new " + cls.name,
+        "dup",
+        "invokespecial " + cls.name + "/<init>()V",
+        "astore_0",
+        "aload_0",
+        "iconst_0",
+        "invokestatic java/lang/Integer/valueOf(I)Ljava/lang/Integer;",
+        "invokevirtual " + cls.name + "/foo(Ljava/lang/Integer;)V",
+        "new " + cls.name,
+        "dup",
+        "invokespecial " + cls.name + "/<init>()V",
+        "astore_0",
+        "aload_0",
+        "ldc \"Bar\"",
+        "invokevirtual " + cls.name + "/bar(Ljava/lang/String;)V",
+        "return"
+    );
+    final String mainClassName = mainClass.name;
+    String proguardConfig = keepMainProguardConfiguration(mainClass.name, false, false);
+    AndroidApp processedApp = runAndVerifyOnJvmAndArt(jasminBuilder, mainClassName, proguardConfig);
+
+    DexInspector inspector = new DexInspector(processedApp);
+    ClassSubject baseSubject = inspector.clazz(cls.name);
+    assertThat(baseSubject, isPresent());
+
+    // Base#bar should remain as-is, i.e., refer to Base#foo(Object).
+
+    MethodSubject barInSub =
+        baseSubject.method("void", "bar", ImmutableList.of("java.lang.String"));
     assertThat(barInSub, isPresent());
     DexCode code = barInSub.getMethod().getCode().asDexCode();
     checkInstructions(code, ImmutableList.of(
