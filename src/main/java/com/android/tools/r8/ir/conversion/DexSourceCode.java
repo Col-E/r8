@@ -120,7 +120,13 @@ public class DexSourceCode implements SourceCode {
   }
 
   @Override
-  public DebugLocalInfo getCurrentLocal(int register) {
+  public DebugLocalInfo getIncomingLocal(int register) {
+    // TODO(zerny): Support locals in the dex front-end. b/36378142
+    return null;
+  }
+
+  @Override
+  public DebugLocalInfo getOutgoingLocal(int register) {
     // TODO(zerny): Support locals in the dex front-end. b/36378142
     return null;
   }
@@ -163,12 +169,6 @@ public class DexSourceCode implements SourceCode {
   @Override
   public void buildPostlude(IRBuilder builder) {
     // Intentionally left empty. (Needed in the Java bytecode frontend for synchronization support.)
-  }
-
-  @Override
-  public void closingCurrentBlockWithFallthrough(
-      int fallthroughInstructionIndex, IRBuilder builder) {
-    // Intentionally empty.
   }
 
   @Override

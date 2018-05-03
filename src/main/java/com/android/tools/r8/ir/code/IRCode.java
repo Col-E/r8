@@ -125,7 +125,8 @@ public class IRCode {
         }
       }
     }
-    assert liveAtEntrySets.get(sorted.get(0)).size() == 0;
+    assert liveAtEntrySets.get(sorted.get(0)).size() == 0
+        : "Unexpected values live at entry to first block: " + liveAtEntrySets.get(sorted.get(0));
     return liveAtEntrySets;
   }
 
@@ -494,11 +495,10 @@ public class IRCode {
   }
 
   private boolean consistentBlockInstructions() {
+    boolean argumentsAllowed = true;
     for (BasicBlock block : blocks) {
-      for (Instruction instruction : block.getInstructions()) {
-        assert instruction.getPosition() != null;
-        assert instruction.getBlock() == block;
-      }
+      block.consistentBlockInstructions(argumentsAllowed);
+      argumentsAllowed = false;
     }
     return true;
   }

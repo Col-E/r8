@@ -500,7 +500,6 @@ public class IRBuilder {
         }
         BlockInfo info = targets.get(source.instructionOffset(i));
         if (info != null && info.block != currentBlock) {
-          source.closingCurrentBlockWithFallthrough(i, this);
           closeCurrentBlockWithFallThrough(info.block);
           addToWorklist(info.block, i);
           break;
@@ -549,20 +548,20 @@ public class IRBuilder {
   }
 
   public void addThisArgument(int register) {
-    DebugLocalInfo local = getCurrentLocal(register);
+    DebugLocalInfo local = getOutgoingLocal(register);
     Value value = writeRegister(register, ValueType.OBJECT, ThrowingInfo.NO_THROW, local);
     addInstruction(new Argument(value));
     value.markAsThis();
   }
 
   public void addNonThisArgument(int register, ValueType valueType) {
-    DebugLocalInfo local = getCurrentLocal(register);
+    DebugLocalInfo local = getOutgoingLocal(register);
     Value value = writeRegister(register, valueType, ThrowingInfo.NO_THROW, local);
     addInstruction(new Argument(value));
   }
 
   public void addBooleanNonThisArgument(int register) {
-    DebugLocalInfo local = getCurrentLocal(register);
+    DebugLocalInfo local = getOutgoingLocal(register);
     Value value = writeRegister(register, ValueType.INT, ThrowingInfo.NO_THROW, local);
     value.setKnownToBeBoolean(true);
     addInstruction(new Argument(value));
@@ -585,10 +584,10 @@ public class IRBuilder {
     addInstruction(write);
   }
 
-  private Value getLocalValue(int register, DebugLocalInfo local) {
+  private Value getIncomingLocalValue(int register, DebugLocalInfo local) {
     assert options.debug;
     assert local != null;
-    assert local == getCurrentLocal(register);
+    assert local == getIncomingLocal(register);
     ValueType valueType = ValueType.fromDexType(local.type);
     return readRegisterIgnoreLocal(register, valueType);
   }
@@ -603,7 +602,7 @@ public class IRBuilder {
     if (!options.debug) {
       return;
     }
-    Value value = getLocalValue(register, local);
+    Value value = getIncomingLocalValue(register, local);
     if (isValidFor(value, local)) {
       debugLocalReads.add(value);
     }
@@ -613,40 +612,42 @@ public class IRBuilder {
     if (!options.debug) {
       return;
     }
-    Value value = getLocalValue(register, local);
+    assert local != null;
+    assert local == getOutgoingLocal(register);
+    ValueType valueType = ValueType.fromDexType(local.type);
+    Value incomingValue = readRegisterIgnoreLocal(register, valueType);
 
-    // If the value is for a different local, introduce the new local. We cannot shortcut if the
-    // local is defined by a phi as it could end up being trivial.
-    if (value.isPhi() || value.getLocalInfo() != local) {
-      addDebugLocalWrite(ValueType.fromDexType(local.type), register, value);
+    // TODO(mathiasr): This can be simplified once trivial phi removal is local-info aware.
+    if (incomingValue.isPhi() || incomingValue.getLocalInfo() != local) {
+      addDebugLocalWrite(ValueType.fromDexType(local.type), register, incomingValue);
       return;
     }
+    assert incomingValue.getLocalInfo() == local;
+    assert !incomingValue.isUninitializedLocal();
 
-    if (!isValidFor(value, local)) {
-      return;
-    }
-
-    // When inserting a start there are two possibilities:
+    // When inserting a start there are three possibilities:
     // 1. The block is empty (eg, instructions from block entry until now materialized to nothing).
-    // 2. The block is non-empty (and the last instruction does not define the local to start).
+    // 2. The block is non-empty and the last instruction defines the local to start.
+    // 3. The block is non-empty and the last instruction does not define the local to start.
     if (currentBlock.getInstructions().isEmpty()) {
       addInstruction(new DebugLocalRead());
     }
     Instruction instruction = currentBlock.getInstructions().getLast();
-    assert instruction.outValue() != value;
-    instruction.addDebugValue(value);
-    value.addDebugLocalStart(instruction);
+    if (instruction.outValue() == incomingValue) {
+      return;
+    }
+    instruction.addDebugValue(incomingValue);
+    incomingValue.addDebugLocalStart(instruction);
   }
 
   public void addDebugLocalEnd(int register, DebugLocalInfo local) {
     if (!options.debug) {
       return;
     }
-    Value value = getLocalValue(register, local);
+    Value value = getIncomingLocalValue(register, local);
     if (!isValidFor(value, local)) {
       return;
     }
-
     // When inserting an end there are three possibilities:
     // 1. The block is empty (eg, instructions from block entry until now materialized to nothing).
     // 2. The block has an instruction not defining the local being ended.
@@ -862,7 +863,7 @@ public class IRBuilder {
     Value in = readRegister(src, type);
     if (options.debug) {
       // If the move is writing to a different local we must construct a new value.
-      DebugLocalInfo destLocal = getCurrentLocal(dest);
+      DebugLocalInfo destLocal = getOutgoingLocal(dest);
       if (destLocal != null && destLocal != in.getLocalInfo()) {
         addDebugLocalWrite(type, dest, in);
         return;
@@ -1573,7 +1574,7 @@ public class IRBuilder {
   // Value abstraction methods.
 
   public Value readRegister(int register, ValueType type) {
-    DebugLocalInfo local = getCurrentLocal(register);
+    DebugLocalInfo local = getIncomingLocal(register);
     Value value = readRegister(register, type, currentBlock, EdgeType.NON_EDGE, local);
     // Check that any information about a current-local is consistent with the read.
     if (local != null && value.getLocalInfo() != local && !value.isUninitializedLocal()) {
@@ -1591,8 +1592,8 @@ public class IRBuilder {
     return value;
   }
 
-  public Value readRegisterIgnoreLocal(int register, ValueType type) {
-    DebugLocalInfo local = getCurrentLocal(register);
+  private Value readRegisterIgnoreLocal(int register, ValueType type) {
+    DebugLocalInfo local = getIncomingLocal(register);
     return readRegister(register, type, currentBlock, EdgeType.NON_EDGE, local);
   }
 
@@ -1691,17 +1692,33 @@ public class IRBuilder {
   }
 
   public Value writeRegister(int register, ValueType type, ThrowingInfo throwing) {
-    DebugLocalInfo local = getCurrentLocal(register);
-    previousLocalValue = local == null ? null : readRegisterIgnoreLocal(register, type);
-    return writeRegister(register, type, throwing, local);
+    DebugLocalInfo incomingLocal = getIncomingLocal(register);
+    DebugLocalInfo outgoingLocal = getOutgoingLocal(register);
+    // If the local info does not change at the current instruction, we need to ensure
+    // that the old value is read at the instruction by setting 'previousLocalValue'.
+    // If the local info changes, then there must be both an old local ending
+    // and a new local starting at the current instruction, and it is up to the SourceCode
+    // to ensure that the old local is read when it ends.
+    // Furthermore, if incomingLocal != outgoingLocal, then we cannot be sure that
+    // the type of the incomingLocal is the same as the type of the outgoingLocal,
+    // and we must not call readRegisterIgnoreLocal() with the wrong type.
+    previousLocalValue =
+        (incomingLocal == null || incomingLocal != outgoingLocal)
+            ? null
+            : readRegisterIgnoreLocal(register, type);
+    return writeRegister(register, type, throwing, outgoingLocal);
   }
 
   public Value writeNumericRegister(int register, NumericType type, ThrowingInfo throwing) {
     return writeRegister(register, ValueType.fromNumericType(type), throwing);
   }
 
-  private DebugLocalInfo getCurrentLocal(int register) {
-    return options.debug ? source.getCurrentLocal(register) : null;
+  private DebugLocalInfo getIncomingLocal(int register) {
+    return options.debug ? source.getIncomingLocal(register) : null;
+  }
+
+  private DebugLocalInfo getOutgoingLocal(int register) {
+    return options.debug ? source.getOutgoingLocal(register) : null;
   }
 
   private void checkRegister(int register) {

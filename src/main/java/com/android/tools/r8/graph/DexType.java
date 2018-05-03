@@ -92,7 +92,8 @@ public class DexType extends IndexedDexItem implements PresortedComparable<DexTy
   }
 
   public boolean isInterface() {
-    assert isClassType() && hierarchyLevel != UNKNOWN_LEVEL;
+    assert hierarchyLevel != UNKNOWN_LEVEL : "Program class missing: " + this;
+    assert isClassType();
     return hierarchyLevel == INTERFACE_LEVEL;
   }
 

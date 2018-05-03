@@ -50,4 +50,12 @@ public abstract class JumpInstruction extends Instruction {
   public Constraint inliningConstraint(AppInfoWithLiveness info, DexType invocationContext) {
     return Constraint.ALWAYS;
   }
+
+  static String blockNumberToString(BasicBlock block) {
+    try {
+      return "" + block.getNumber();
+    } catch (AssertionError e) {
+      return "<invalid>";
+    }
+  }
 }

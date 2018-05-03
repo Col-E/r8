@@ -8,6 +8,7 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -16,6 +17,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
+import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue.DexValueBoolean;
 import com.android.tools.r8.graph.DexValue.DexValueByte;
@@ -1206,8 +1208,7 @@ public class CodeRewriter {
           && outValue.isUsed()
           && outValue.numberOfPhiUsers() == 0
           && outValue.uniqueUsers().stream().allMatch(isCheckcastToSubtype)) {
-        outValue.replaceUsers(inValue);
-        it.removeOrReplaceByDebugLocalRead();
+        removeOrReplaceByDebugLocalWrite(it, inValue, outValue);
         continue;
       }
 
@@ -1232,8 +1233,7 @@ public class CodeRewriter {
         if (TypeLatticeElement.lessThanOrEqual(appInfo, inTypeLattice, castTypeLattice)) {
           assert outTypeLattice.equals(inTypeLattice);
           needToRemoveTrivialPhis = needToRemoveTrivialPhis || outValue.numberOfPhiUsers() != 0;
-          outValue.replaceUsers(inValue);
-          it.removeOrReplaceByDebugLocalRead();
+          removeOrReplaceByDebugLocalWrite(it, inValue, outValue);
           continue;
         }
         // Otherwise, keep the checkcast to preserve verification errors. E.g., down-cast:
@@ -1253,7 +1253,19 @@ public class CodeRewriter {
     if (needToRemoveTrivialPhis) {
       code.removeAllTrivialPhis();
     }
+    it = code.instructionIterator();
     assert code.isConsistentSSA();
+  }
+
+  private void removeOrReplaceByDebugLocalWrite(
+      InstructionIterator it, Value inValue, Value outValue) {
+    if (outValue.getLocalInfo() != inValue.getLocalInfo() && outValue.hasLocalInfo()) {
+      DebugLocalWrite debugLocalWrite = new DebugLocalWrite(outValue, inValue);
+      it.replaceCurrentInstruction(debugLocalWrite);
+    } else {
+      outValue.replaceUsers(inValue);
+      it.removeOrReplaceByDebugLocalRead();
+    }
   }
 
   private boolean canBeFolded(Instruction instruction) {
@@ -1754,7 +1766,8 @@ public class CodeRewriter {
   }
 
   // TODO(mikaelpeltier) Manage that from and to instruction do not belong to the same block.
-  private static boolean hasLineChangeBetween(Instruction from, Instruction to) {
+  private static boolean hasLocalOrLineChangeBetween(
+      Instruction from, Instruction to, DexString localVar) {
     if (from.getBlock() != to.getBlock()) {
       return true;
     }
@@ -1778,6 +1791,11 @@ public class CodeRewriter {
       if (instruction == to) {
         return false;
       }
+      if (instruction.outValue() != null && instruction.outValue().hasLocalInfo()) {
+        if (instruction.outValue().getLocalInfo().name == localVar) {
+          return true;
+        }
+      }
     }
     throw new Unreachable();
   }
@@ -1793,21 +1811,29 @@ public class CodeRewriter {
         }
       }
 
-      InstructionIterator iterator = block.iterator();
+      InstructionListIterator iterator = block.listIterator();
       while (iterator.hasNext()) {
+        Instruction prevInstruction = iterator.peekPrevious();
         Instruction instruction = iterator.next();
         if (instruction.isDebugLocalWrite()) {
           assert instruction.inValues().size() == 1;
           Value inValue = instruction.inValues().get(0);
+          DebugLocalInfo localInfo = instruction.outValue().getLocalInfo();
+          DexString localName = localInfo.name;
           if (!inValue.hasLocalInfo() &&
               inValue.numberOfAllUsers() == 1 &&
               inValue.definition != null &&
-              !hasLineChangeBetween(inValue.definition, instruction)) {
-            inValue.setLocalInfo(instruction.outValue().getLocalInfo());
-            instruction.moveDebugValues(inValue.definition);
+              !hasLocalOrLineChangeBetween(inValue.definition, instruction, localName)) {
+            inValue.setLocalInfo(localInfo);
             instruction.outValue().replaceUsers(inValue);
-            instruction.clearDebugValues();
-            iterator.remove();
+            Value overwrittenLocal = instruction.removeDebugValue(localInfo);
+            if (overwrittenLocal != null) {
+              inValue.definition.addDebugValue(overwrittenLocal);
+            }
+            if (prevInstruction != null) {
+              instruction.moveDebugValues(prevInstruction);
+            }
+            iterator.removeOrReplaceByDebugLocalRead();
           }
         }
       }
@@ -1832,6 +1858,7 @@ public class CodeRewriter {
         iterator.removeOrReplaceByDebugLocalRead();
         return;
       }
+      assert next.getLocalInfo().name != write.getLocalInfo().name;
     }
   }
 

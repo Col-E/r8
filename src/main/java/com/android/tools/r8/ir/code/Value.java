@@ -68,6 +68,23 @@ public class Value {
           throw new Unreachable();
       }
     }
+
+    static DebugUse join(DebugUse a, DebugUse b) {
+      if (a == LIVE_FINAL || b == LIVE_FINAL) {
+        return LIVE_FINAL;
+      }
+      if (a == b) {
+        return a;
+      }
+      if (a == LIVE) {
+        return b;
+      }
+      if (b == LIVE) {
+        return a;
+      }
+      assert (a == START && b == END) || (a == END && b == START);
+      return LIVE_FINAL;
+    }
   }
 
   public static final int UNDEFINED_NUMBER = -1;
@@ -393,9 +410,10 @@ public class Value {
       user.replaceOperand(this, newValue);
     }
     if (debugData != null) {
-      for (Instruction user : debugUsers()) {
-        user.replaceDebugValue(this, newValue);
+      for (Entry<Instruction, DebugUse> user : debugData.users.entrySet()) {
+        replaceUserInDebugData(user, newValue);
       }
+      debugData.users.clear();
       for (Phi user : debugPhiUsers()) {
         user.replaceDebugValue(this, newValue);
       }
@@ -435,12 +453,12 @@ public class Value {
       }
     }
     if (debugData != null) {
-      Iterator<Instruction> it = debugData.users.keySet().iterator();
-      while (it.hasNext()) {
-        Instruction user = it.next();
-        if (selectedInstructions.contains(user)) {
-          it.remove();
-          user.replaceDebugValue(this, newValue);
+      Iterator<Entry<Instruction, DebugUse>> users = debugData.users.entrySet().iterator();
+      while (users.hasNext()) {
+        Entry<Instruction, DebugUse> user = users.next();
+        if (selectedInstructions.contains(user.getKey())) {
+          replaceUserInDebugData(user, newValue);
+          users.remove();
         }
       }
       Iterator<Phi> phis = debugData.phiUsers.iterator();
@@ -454,8 +472,27 @@ public class Value {
     }
   }
 
+  private void replaceUserInDebugData(Entry<Instruction, DebugUse> user, Value newValue) {
+    Instruction instruction = user.getKey();
+    DebugUse debugUse = user.getValue();
+    instruction.replaceDebugValue(this, newValue);
+    // If user is a DebugLocalRead and now has no debug values, we would like to remove it.
+    // However, replaceUserInDebugData() is called in contexts where the instruction list is being
+    // iterated, so we cannot remove user from the instruction list at this point.
+    if (newValue.hasLocalInfo()) {
+      DebugUse existing = newValue.debugData.users.get(instruction);
+      assert existing != null;
+      newValue.debugData.users.put(instruction, DebugUse.join(debugUse, existing));
+    }
+  }
+
   public void replaceDebugUser(Instruction oldUser, Instruction newUser) {
     DebugUse use = debugData.users.remove(oldUser);
+    if (use == DebugUse.START && newUser.outValue == this) {
+      // Register allocation requires that debug values are live at the entry to the instruction.
+      // Remove this debug use since it is starting at the instruction that defines it.
+      return;
+    }
     if (use != null) {
       newUser.addDebugValue(this);
       debugData.users.put(newUser, use);

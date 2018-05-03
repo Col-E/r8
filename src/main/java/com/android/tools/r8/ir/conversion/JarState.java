@@ -7,6 +7,7 @@ import com.android.tools.r8.errors.InvalidDebugInfoException;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.JarApplicationReader;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.Pair;
 import com.google.common.base.Equivalence;
 import com.google.common.collect.ImmutableList;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
@@ -426,41 +427,108 @@ public class JarState {
 
   // Local variable procedures.
 
-  public List<Local> openLocals(int offset) {
-    LocalsAtOffset localsAtOffset = localsAtOffsetTable.get(offset);
-    if (localsAtOffset == null) {
-      return Collections.emptyList();
+  private List<Pair<Integer, Type>> writes = new ArrayList<>();
+  private List<Local> localsToOpen = new ArrayList<>();
+  private List<Local> localsToClose = new ArrayList<>();
+
+  public void beginTransaction(int offset, boolean hasNextInstruction) {
+    getLocalsToClose(offset);
+    if (hasNextInstruction) {
+      getLocalsToOpen(offset);
+    } else {
+      assert localsToOpen.isEmpty();
+      localsToOpen.clear();
     }
-    ArrayList<Local> locals = new ArrayList<>(localsAtOffset.starts.size());
-    for (LocalNodeInfo start : localsAtOffset.starts) {
-      locals.add(setLocalInfo(start.node.index, start.type, start.info));
-    }
-    return locals;
+    assert writes.isEmpty();
+    writes.clear();
   }
 
-  public List<Local> getLocalsToClose(int offset) {
+  public void beginTransactionSynthetic() {
+    assert localsToClose.isEmpty();
+    assert localsToOpen.isEmpty();
+    assert writes.isEmpty();
+    writes.clear();
+  }
+
+  public void endTransaction() {
+    closeLocals();
+    applyWrites();
+    openLocals();
+  }
+
+  public void beginTransactionAtBlockStart(int offset) {
+    // If there are locals closing at the start of a block, just ignore them,
+    // since we should have closed them at the end of the predecessor blocks.
+    assert localsToClose.isEmpty();
+    assert writes.isEmpty();
+    getLocalsToOpen(offset);
+  }
+
+  private void applyWrites() {
+    for (Pair<Integer, Type> write : writes) {
+      applyWriteLocal(write.getFirst(), write.getSecond());
+    }
+    writes.clear();
+  }
+
+  private void getLocalsToOpen(int offset) {
+    assert localsToOpen.isEmpty();
     LocalsAtOffset localsAtOffset = localsAtOffsetTable.get(offset);
     if (localsAtOffset == null) {
-      return Collections.emptyList();
+      return;
     }
-    ArrayList<Local> locals = new ArrayList<>(localsAtOffset.ends.size());
+    for (LocalNodeInfo start : localsAtOffset.starts) {
+      int register = getLocalRegister(start.node.index, start.type);
+      Local existingLocal = getLocalForRegister(register);
+      assert existingLocal != null;
+      Local local = new Local(existingLocal.slot, start.info);
+      localsToOpen.add(local);
+    }
+  }
+
+  private void openLocals() {
+    for (Local local : localsToOpen) {
+      assert local != null;
+      openLocal(local);
+    }
+    localsToOpen.clear();
+  }
+
+  private void getLocalsToClose(int offset) {
+    assert localsToClose.isEmpty();
+    LocalsAtOffset localsAtOffset = localsAtOffsetTable.get(offset);
+    if (localsAtOffset == null) {
+      return;
+    }
     for (LocalNodeInfo end : localsAtOffset.ends) {
       int register = getLocalRegister(end.node.index, end.type);
       Local local = getLocalForRegister(register);
       assert local != null;
       if (local.info != null) {
-        locals.add(local);
+        localsToClose.add(local);
       }
     }
-    return locals;
   }
 
-  public void closeLocals(List<Local> localsToClose) {
-    for (Local local : localsToClose) {
-      assert local != null;
-      assert local == getLocalForRegister(local.slot.register);
+  private void closeLocals() {
+    for (Local localToClose : localsToClose) {
+      assert localToClose != null;
+      // Since the instruction preceding this point may have strongly updated the type,
+      // and the localsToClose list may have been generated before the preceding instruction,
+      // we cannot assert that localToClose == local at this point.
+      // We only set the info to null and leave the type as-is.
+      Local local = getLocalForRegister(localToClose.slot.register);
       setLocalForRegister(local.slot.register, local.slot.type, null);
     }
+    localsToClose.clear();
+  }
+
+  public List<Local> getLocalsToClose() {
+    return localsToClose;
+  }
+
+  public List<Local> getLocalsToOpen() {
+    return localsToOpen;
   }
 
   public ImmutableList<Local> getLocals() {
@@ -485,12 +553,33 @@ public class JarState {
     return Slot.isCategory1(type) ? index + localsSize : index + 2 * localsSize;
   }
 
-  public DebugLocalInfo getLocalInfoForRegister(int register) {
+  public DebugLocalInfo getIncomingLocalInfoForRegister(int register) {
     if (register >= locals.length) {
       return null;
     }
     Local local = getLocalForRegister(register);
     return local == null ? null : local.info;
+  }
+
+  public DebugLocalInfo getOutgoingLocalInfoForRegister(int register) {
+    DebugLocalInfo local = getIncomingLocalInfoForRegister(register);
+    if (local != null && localsToClose != null) {
+      for (Local localToClose : localsToClose) {
+        if (localToClose.slot.register == register) {
+          local = null;
+          break;
+        }
+      }
+    }
+    if (local == null && localsToOpen != null) {
+      for (Local localToOpen : localsToOpen) {
+        if (localToOpen.slot.register == register) {
+          local = localToOpen.info;
+          break;
+        }
+      }
+    }
+    return local;
   }
 
   private Local getLocalForRegister(int register) {
@@ -512,24 +601,25 @@ public class JarState {
     return local;
   }
 
-  private Local setLocalInfo(int index, Type type, DebugLocalInfo info) {
-    return setLocalInfoForRegister(getLocalRegister(index, type), info);
-  }
-
-  private Local setLocalInfoForRegister(int register, DebugLocalInfo info) {
-    Local existingLocal = getLocalForRegister(register);
+  private void openLocal(Local localToOpen) {
+    int register = localToOpen.slot.register;
+    DebugLocalInfo info = localToOpen.info;
+    Local local = getLocalForRegister(register);
     Type type = Type.getType(info.type.toDescriptorString());
-    if (!existingLocal.slot.isCompatibleWith(type)) {
+    if (!local.slot.isCompatibleWith(type)) {
       throw new InvalidDebugInfoException(
-          "Attempt to define local of type " + prettyType(existingLocal.slot.type) + " as " + info);
+          "Attempt to define local of type " + prettyType(local.slot.type) + " as " + info);
     }
-    Local local = new Local(existingLocal.slot, info);
-    locals[register] = local;
-    return local;
+    // Only update local info; keep slot type intact.
+    locals[register] = new Local(local.slot, localToOpen.info);
   }
-
 
   public int writeLocal(int index, Type type) {
+    writes.add(new Pair<>(index, type));
+    return getLocalRegister(index, type);
+  }
+
+  private void applyWriteLocal(int index, Type type) {
     assert nonNullType(type);
     Local local = getLocal(index, type);
     if (local != null && local.info != null && !local.slot.isCompatibleWith(type)) {
@@ -540,9 +630,8 @@ public class JarState {
     // scopes of locals. We assume the program to be verified and overwrite if the types mismatch.
     if (local == null || !typeEquals(local.slot.type, type)) {
       DebugLocalInfo info = local == null ? null : local.info;
-      local = setLocal(index, type, info);
+      setLocal(index, type, info);
     }
-    return local.slot.register;
   }
 
   public boolean typeEquals(Type type1, Type type2) {
@@ -599,7 +688,8 @@ public class JarState {
 
   public Slot pop(Type type) {
     Slot slot = pop();
-    assert slot.isCompatibleWith(type);
+    assert slot.isCompatibleWith(type)
+        : "Tried to pop " + prettyType(slot.type) + " as " + prettyType(type);
     return slot;
   }
 

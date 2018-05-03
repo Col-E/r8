@@ -133,7 +133,12 @@ public abstract class SyntheticSourceCode implements SourceCode {
   }
 
   @Override
-  public DebugLocalInfo getCurrentLocal(int register) {
+  public DebugLocalInfo getIncomingLocal(int register) {
+    return null;
+  }
+
+  @Override
+  public DebugLocalInfo getOutgoingLocal(int register) {
     return null;
   }
 
@@ -141,11 +146,6 @@ public abstract class SyntheticSourceCode implements SourceCode {
   public final int traceInstruction(int instructionIndex, IRBuilder builder) {
     return (traceEvents.get(instructionIndex).test(builder) ||
         (instructionIndex == constructors.size() - 1)) ? instructionIndex : -1;
-  }
-
-  @Override
-  public final void closingCurrentBlockWithFallthrough(
-      int fallthroughInstructionIndex, IRBuilder builder) {
   }
 
   @Override

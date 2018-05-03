@@ -271,6 +271,8 @@ public class JarSourceCode implements SourceCode {
   public void buildPrelude(IRBuilder builder) {
     currentPosition = getPreamblePosition();
 
+    state.beginTransactionSynthetic();
+
     // Record types for arguments.
     Int2ReferenceMap<ValueType> argumentLocals = recordArgumentTypes();
     Int2ReferenceMap<ValueType> initializedLocals = new Int2ReferenceOpenHashMap<>(argumentLocals);
@@ -328,13 +330,8 @@ public class JarSourceCode implements SourceCode {
       }
     }
 
-    // TODO(zerny): This is getting a little out of hands. Clean it up.
-
-    // Add debug information for all locals at the initial label.
-    List<Local> locals = null;
-    if (initialLabel != null) {
-      locals = state.openLocals(getOffset(initialLabel));
-    }
+    state.endTransaction();
+    state.beginTransaction(0, true);
 
     // Build the actual argument instructions now that type and debug information is known
     // for arguments.
@@ -344,13 +341,13 @@ public class JarSourceCode implements SourceCode {
       builder.addDebugUninitialized(entry.getIntKey(), entry.getValue());
     }
 
-    if (locals != null) {
-      for (Local local : locals) {
-        if (!argumentLocals.containsKey(local.slot.register)) {
-          builder.addDebugLocalStart(local.slot.register, local.info);
-        }
+    // Add debug information for all locals at the initial label.
+    for (Local local : state.getLocalsToOpen()) {
+      if (!argumentLocals.containsKey(local.slot.register)) {
+        builder.addDebugLocalStart(local.slot.register, local.info);
       }
     }
+    state.endTransaction();
 
     if (generateMethodSynchronization()) {
       generatingMethodSynchronization = true;
@@ -422,33 +419,36 @@ public class JarSourceCode implements SourceCode {
     state.recordStateForTarget(0);
     for (JarStateWorklistItem item = worklist.poll(); item != null; item = worklist.poll()) {
       state.restoreState(item.instructionIndex);
+      state.beginTransactionAtBlockStart(item.instructionIndex);
+      state.endTransaction();
       // Iterate each of the instructions in the block to compute the outgoing JarState.
       int instCount = instructionCount();
-      for (int i = item.instructionIndex; i <= instCount; ++i) {
-        // If we are at the end of the instruction stream or if we have reached the start
-        // of a new block, propagate the state to all successors and add the ones
-        // that changed to the worklist.
-        if (i == instCount || (i != item.instructionIndex && CFG.containsKey(i))) {
-          item.blockInfo.normalSuccessors.iterator().forEachRemaining(offset -> {
-            if (state.recordStateForTarget(offset)) {
-              if (offset >= 0) {
-                worklist.add(new JarStateWorklistItem(CFG.get(offset.intValue()), offset));
-              }
-            }
-          });
-          item.blockInfo.exceptionalSuccessors.iterator().forEachRemaining(offset -> {
-            if (state.recordStateForExceptionalTarget(offset)) {
-              if (offset >= 0) {
-                worklist.add(new JarStateWorklistItem(CFG.get(offset.intValue()), offset));
-              }
-            }
-          });
-          break;
-        }
-
+      int blockEnd = item.instructionIndex + 1;
+      while (blockEnd < instCount && !CFG.containsKey(blockEnd)) {
+        blockEnd += 1;
+      }
+      for (int i = item.instructionIndex; i < blockEnd; ++i) {
+        state.beginTransaction(i + 1, i + 1 != blockEnd);
         AbstractInsnNode insn = getInstruction(i);
         updateState(insn);
+        state.endTransaction();
       }
+      // At the end of the current block, propagate the state to all successors and add the ones
+      // that changed to the worklist.
+      item.blockInfo.normalSuccessors.iterator().forEachRemaining(offset -> {
+        if (state.recordStateForTarget(offset)) {
+          if (offset >= 0) {
+            worklist.add(new JarStateWorklistItem(CFG.get(offset.intValue()), offset));
+          }
+        }
+      });
+      item.blockInfo.exceptionalSuccessors.iterator().forEachRemaining(offset -> {
+        if (state.recordStateForExceptionalTarget(offset)) {
+          if (offset >= 0) {
+            worklist.add(new JarStateWorklistItem(CFG.get(offset.intValue()), offset));
+          }
+        }
+      });
     }
     state.restoreState(0);
   }
@@ -474,17 +474,6 @@ public class JarSourceCode implements SourceCode {
   private void buildMonitorExit(IRBuilder builder) {
     assert generatingMethodSynchronization;
     builder.add(new Monitor(Monitor.Type.EXIT, monitorEnter.inValues().get(0)));
-  }
-
-  @Override
-  public void closingCurrentBlockWithFallthrough(
-      int fallthroughInstructionIndex, IRBuilder builder) {
-    AbstractInsnNode insn = node.instructions.get(fallthroughInstructionIndex);
-    if (insn instanceof LabelNode) {
-      for (Local local : state.getLocalsToClose(getOffset(insn))) {
-        builder.addDebugLocalEnd(local.slot.register, local.info);
-      }
-    }
   }
 
   @Override
@@ -518,7 +507,35 @@ public class JarSourceCode implements SourceCode {
       preInstructionState = state.toString();
     }
 
+    if (firstBlockInstruction && insn != initialLabel) {
+      int offset = getOffset(insn);
+      state.beginTransactionAtBlockStart(offset);
+      assert state.getLocalsToClose().isEmpty();
+      for (Local local : state.getLocalsToOpen()) {
+        builder.addDebugLocalStart(local.slot.register, local.info);
+      }
+      state.endTransaction();
+    }
+
+    boolean hasNextInstruction =
+        instructionIndex + 1 != instructionCount()
+            && !builder.getCFG().containsKey(instructionIndex + 1);
+    state.beginTransaction(instructionIndex + 1, hasNextInstruction);
     build(insn, builder);
+    if (hasNextInstruction || !isControlFlowInstruction(insn)) {
+      // We're either in straight-line code or at the end of a fallthrough block.
+      // Close locals starting at this point.
+      for (Local local : state.getLocalsToClose()) {
+        builder.addDebugLocalEnd(local.slot.register, local.info);
+      }
+    }
+    if (hasNextInstruction) {
+      // Open the scope of locals starting at this point.
+      for (Local local : state.getLocalsToOpen()) {
+        builder.addDebugLocalStart(local.slot.register, local.info);
+      }
+    }
+    state.endTransaction();
 
     if (Log.ENABLED && !(insn instanceof LineNumberNode)) {
       int offset = getOffset(insn);
@@ -555,8 +572,13 @@ public class JarSourceCode implements SourceCode {
   }
 
   @Override
-  public DebugLocalInfo getCurrentLocal(int register) {
-    return generatingMethodSynchronization ? null : state.getLocalInfoForRegister(register);
+  public DebugLocalInfo getIncomingLocal(int register) {
+    return generatingMethodSynchronization ? null : state.getIncomingLocalInfoForRegister(register);
+  }
+
+  @Override
+  public DebugLocalInfo getOutgoingLocal(int register) {
+    return generatingMethodSynchronization ? null : state.getOutgoingLocalInfoForRegister(register);
   }
 
   @Override
@@ -1740,14 +1762,7 @@ public class JarSourceCode implements SourceCode {
   }
 
   private void updateState(LabelNode insn) {
-    int offset = getOffset(insn);
-    // Close scope of locals ending at this point.
-    List<Local> locals = state.getLocalsToClose(offset);
-    state.closeLocals(locals);
-    // Open the scope of locals starting at this point.
-    if (insn != initialLabel) {
-      state.openLocals(offset);
-    }
+    // Intentionally empty.
   }
 
   private void updateState(LdcInsnNode insn) {
@@ -2455,8 +2470,9 @@ public class JarSourceCode implements SourceCode {
     } else {
       assert Opcodes.ISTORE <= opcode && opcode <= Opcodes.ASTORE;
       Slot src = state.pop(expectedType);
-      int dest = state.writeLocal(insn.var, src.type);
+      int dest = state.getLocalRegister(insn.var, src.type);
       builder.addMove(valueType(src.type), dest, src.register);
+      state.writeLocal(insn.var, src.type);
     }
   }
 
@@ -2697,20 +2713,7 @@ public class JarSourceCode implements SourceCode {
   }
 
   private void build(LabelNode insn, IRBuilder builder) {
-    int offset = getOffset(insn);
-    // Close locals starting at this point.
-    List<Local> locals = state.getLocalsToClose(offset);
-    for (Local local : locals) {
-      builder.addDebugLocalEnd(local.slot.register, local.info);
-    }
-    state.closeLocals(locals);
-
-    // Open the scope of locals starting at this point.
-    if (insn != initialLabel) {
-      for (Local local : state.openLocals(offset)) {
-        builder.addDebugLocalStart(local.slot.register, local.info);
-      }
-    }
+    // Intentionally empty.
   }
 
   private void build(LdcInsnNode insn, IRBuilder builder) throws ApiLevelException {

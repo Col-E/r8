@@ -138,6 +138,7 @@ public class CfRegisterAllocator implements RegisterAllocator {
 
     while (!unhandled.isEmpty()) {
       LiveIntervals unhandledInterval = unhandled.poll();
+      assert !unhandledInterval.getValue().isArgument();
       int start = unhandledInterval.getStart();
       {
         // Check for active intervals that expired or became inactive.

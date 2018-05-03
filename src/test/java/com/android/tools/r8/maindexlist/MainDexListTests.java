@@ -676,19 +676,18 @@ public class MainDexListTests extends TestBase {
     }
 
     @Override
-    public DebugLocalInfo getCurrentLocal(int register) {
+    public DebugLocalInfo getIncomingLocal(int register) {
+      return null;
+    }
+
+    @Override
+    public DebugLocalInfo getOutgoingLocal(int register) {
       return null;
     }
 
     @Override
     public int traceInstruction(int instructionIndex, IRBuilder builder) {
       return instructionIndex;
-    }
-
-    @Override
-    public void closingCurrentBlockWithFallthrough(
-        int fallthroughInstructionIndex, IRBuilder builder) {
-      throw new Unreachable();
     }
 
     @Override

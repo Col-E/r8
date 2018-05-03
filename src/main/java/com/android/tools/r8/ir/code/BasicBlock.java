@@ -42,6 +42,22 @@ public class BasicBlock {
 
   private Int2ReferenceMap<DebugLocalInfo> localsAtEntry;
 
+  public boolean consistentBlockInstructions(boolean argumentsAllowed) {
+    for (Instruction instruction : getInstructions()) {
+      assert instruction.getPosition() != null;
+      assert instruction.getBlock() == this;
+      assert !instruction.isArgument() || argumentsAllowed;
+      assert !instruction.isDebugLocalRead() || !instruction.getDebugValues().isEmpty();
+      // TODO(b/79186787): Ensure DEX backend inserts Move *after* arguments.
+      if (!(instruction.isArgument()
+          || instruction.isMove()
+          || instruction.isDebugLocalsChange())) {
+        argumentsAllowed = false;
+      }
+    }
+    return true;
+  }
+
   public void setLocalsAtEntry(Int2ReferenceMap<DebugLocalInfo> localsAtEntry) {
     this.localsAtEntry = localsAtEntry;
   }

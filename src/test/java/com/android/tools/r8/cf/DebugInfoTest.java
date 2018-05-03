@@ -18,8 +18,7 @@ public class DebugInfoTest {
     int intVar;
     if (arg) {
       float floatVar1 = 0f;
-      intVar = (int) floatVar1;
-    } else {
+      intVar = (int) floatVar1; /* No line break before 'else' to avoid DebugPosition */ } else {
       float floatVar2 = 0f;
       intVar = (int) floatVar2;
     }

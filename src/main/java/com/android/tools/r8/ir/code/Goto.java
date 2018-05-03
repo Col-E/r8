@@ -65,7 +65,7 @@ public class Goto extends JumpInstruction {
   @Override
   public String toString() {
     if (getBlock() != null && !getBlock().getSuccessors().isEmpty()) {
-      return super.toString() + "block " + getTarget().getNumber();
+      return super.toString() + "block " + blockNumberToString(getTarget());
     }
     return super.toString() + "block <unknown>";
   }

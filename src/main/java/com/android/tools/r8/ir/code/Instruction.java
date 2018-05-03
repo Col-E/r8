@@ -26,6 +26,7 @@ import com.android.tools.r8.utils.StringUtils.BraceType;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
@@ -164,11 +165,16 @@ public abstract class Instruction {
 
   public void replaceDebugValue(Value oldValue, Value newValue) {
     if (debugValues.remove(oldValue)) {
+      // TODO(mathiasr): Enable this assertion when BasicBlock has current position so trivial phi
+      // removal can take local info into account.
+      // assert newValue.getLocalInfo() == oldValue.getLocalInfo()
+      //     : "Replacing debug values with inconsistent locals " +
+      //       oldValue.getLocalInfo() + " and " + newValue.getLocalInfo() +
+      //       ". This is likely a code transformation bug " +
+      //       "that has not taken local information into account";
       if (newValue.hasLocalInfo()) {
-        // TODO(zerny): Insert a write if replacing a phi with different debug-local info.
         addDebugValue(newValue);
       }
-      // TODO(zerny): Else: Insert a write if replacing a phi with associated debug-local info.
     }
   }
 
@@ -198,6 +204,21 @@ public abstract class Instruction {
       return;
     }
     assert false;
+  }
+
+  public Value removeDebugValue(DebugLocalInfo localInfo) {
+    if (debugValues != null) {
+      Iterator<Value> it = debugValues.iterator();
+      while (it.hasNext()) {
+        Value value = it.next();
+        if (value.hasLocalInfo() && value.getLocalInfo() == localInfo) {
+          it.remove();
+          value.removeDebugUser(this);
+          return value;
+        }
+      }
+    }
+    return null;
   }
 
   public void clearDebugValues() {

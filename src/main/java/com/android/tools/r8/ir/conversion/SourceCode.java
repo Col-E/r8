@@ -22,7 +22,9 @@ public interface SourceCode {
   int instructionIndex(int instructionOffset);
   int instructionOffset(int instructionIndex);
 
-  DebugLocalInfo getCurrentLocal(int register);
+  DebugLocalInfo getIncomingLocal(int register);
+
+  DebugLocalInfo getOutgoingLocal(int register);
 
   Position getCurrentPosition();
 
@@ -38,8 +40,6 @@ public interface SourceCode {
    * otherwise -1.
    */
   int traceInstruction(int instructionIndex, IRBuilder builder);
-
-  void closingCurrentBlockWithFallthrough(int fallthroughInstructionIndex, IRBuilder builder);
 
   // Setup and release resources used temporarily during trace/build.
   void setUp();

@@ -821,7 +821,12 @@ public class Outliner {
     }
 
     @Override
-    public DebugLocalInfo getCurrentLocal(int register) {
+    public DebugLocalInfo getIncomingLocal(int register) {
+      return null;
+    }
+
+    @Override
+    public DebugLocalInfo getOutgoingLocal(int register) {
       return null;
     }
 
@@ -829,11 +834,6 @@ public class Outliner {
     public int traceInstruction(int instructionIndex, IRBuilder builder) {
       // There is just one block, and after the last instruction it is closed.
       return instructionIndex == outline.templateInstructions.size() ? instructionIndex : -1;
-    }
-
-    @Override
-    public void closingCurrentBlockWithFallthrough(
-        int fallthroughInstructionIndex, IRBuilder builder) {
     }
 
     @Override

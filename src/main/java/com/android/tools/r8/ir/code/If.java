@@ -126,8 +126,14 @@ public class If extends JumpInstruction {
 
   @Override
   public String toString() {
-    return super.toString() + " " + type + " block " + getTrueTarget().getNumber()
-        + " (fallthrough " + fallthroughBlock().getNumber() + ")";
+    return super.toString()
+        + " "
+        + type
+        + " block "
+        + blockNumberToString(getTrueTarget())
+        + " (fallthrough "
+        + blockNumberToString(fallthroughBlock())
+        + ")";
   }
 
   @Override
