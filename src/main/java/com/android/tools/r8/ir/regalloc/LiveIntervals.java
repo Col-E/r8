@@ -99,8 +99,8 @@ public class LiveIntervals implements Comparable<LiveIntervals> {
     if (value.isArgument()) {
       return true;
     }
-    boolean isRematerializableConstantValue = value.isConstNumber() || value.isConstString();
-    if (!isRematerializableConstantValue) {
+    // TODO(ager): rematerialize const string as well.
+    if (!value.isConstNumber()) {
       return false;
     }
     // If one of the non-spilled splits uses a register that is higher than U8BIT_MAX we cannot
