@@ -8,7 +8,6 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.ConstInstruction;
 import com.android.tools.r8.ir.code.ConstNumber;
-import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.FixedRegisterValue;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
@@ -141,12 +140,10 @@ public class RegisterMoveScheduler {
         instruction = new Move(to, from);
       } else {
         assert move.definition.isOutConstant();
-        Value to = new FixedRegisterValue(move.definition.outType(), move.dst);
         ConstInstruction definition = move.definition.getOutConstantConstInstruction();
         if (definition.isConstNumber()) {
+          Value to = new FixedRegisterValue(move.definition.outType(), move.dst);
           instruction = new ConstNumber(to, definition.asConstNumber().getRawValue());
-        } else if (definition.isConstString()) {
-          instruction = new ConstString(to, definition.asConstString().getValue());
         } else {
           throw new Unreachable("Unexpected definition");
         }
