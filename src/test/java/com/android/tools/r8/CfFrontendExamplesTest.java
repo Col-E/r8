@@ -53,6 +53,7 @@ public class CfFrontendExamplesTest extends TestBase {
     makeTest("returns.Returns"),
     makeTest("staticfield.StaticField"),
     makeTest("stringbuilding.StringBuilding"),
+    makeTest("switches.Switches"),
     makeTest("throwing.Throwing"),
     makeTest("trivial.Trivial"),
     makeTest("trycatch.TryCatch"),
@@ -76,13 +77,11 @@ public class CfFrontendExamplesTest extends TestBase {
     makeTest("minification.Minification"),
     makeTest("enclosingmethod.Main"),
     makeTest("enclosingmethod_proguarded.Main"),
-    makeTest("interfaceinlining.Main")
+    makeTest("interfaceinlining.Main"),
     // TODO(mathiasr): These fail because we add a zero initializer to an field with no initializer.
     // makeTest("sync.Sync"),
     // makeTest("memberrebinding2.Memberrebinding"),
-    // TODO(mathiasr): Support emitting table switches in CfSwitch.
-    // makeTest("switches.Switches"),
-    // makeTest("switchmaps.Switches"),
+    makeTest("switchmaps.Switches")
   );
 
   private static Object[] makeTest(String className) {

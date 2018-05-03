@@ -20,12 +20,13 @@ public class CfSwitch extends CfInstruction {
   private final int[] keys;
   private final List<CfLabel> targets;
 
-  public CfSwitch(CfLabel defaultTarget, int[] keys, List<CfLabel> targets) {
-    // TODO(zerny): Support emitting table switches.
-    this.kind = Kind.LOOKUP;
+  public CfSwitch(Kind kind, CfLabel defaultTarget, int[] keys, List<CfLabel> targets) {
+    this.kind = kind;
     this.defaultTarget = defaultTarget;
     this.keys = keys;
     this.targets = targets;
+    assert kind != Kind.LOOKUP || keys.length == targets.size();
+    assert kind != Kind.TABLE || keys.length == 1;
   }
 
   public Kind getKind() {
@@ -50,7 +51,16 @@ public class CfSwitch extends CfInstruction {
     for (int i = 0; i < targets.size(); i++) {
       labels[i] = targets.get(i).getLabel();
     }
-    visitor.visitLookupSwitchInsn(defaultTarget.getLabel(), keys, labels);
+    switch (kind) {
+      case LOOKUP:
+        visitor.visitLookupSwitchInsn(defaultTarget.getLabel(), keys, labels);
+        break;
+      case TABLE: {
+        int min = keys[0];
+        int max = min + labels.length - 1;
+        visitor.visitTableSwitchInsn(min, max, defaultTarget.getLabel(), labels);
+      }
+    }
   }
 
   @Override

@@ -412,14 +412,16 @@ public class CfPrinter {
 
   public void print(CfSwitch cfSwitch) {
     indent();
-    builder.append(cfSwitch.getKind() == Kind.LOOKUP ? "lookup" : "table").append("switch");
+    Kind kind = cfSwitch.getKind();
+    builder.append(kind == Kind.LOOKUP ? "lookup" : "table").append("switch");
     IntList keys = cfSwitch.getKeys();
     List<CfLabel> targets = cfSwitch.getTargets();
-    for (int i = 0; i < keys.size(); i++) {
+    for (int i = 0; i < targets.size(); i++) {
       indent();
+      int key = kind == Kind.LOOKUP ? keys.getInt(i) : (keys.getInt(0) + i);
       builder
           .append("  ")
-          .append(keys.getInt(i))
+          .append(key)
           .append(": ")
           .append(getLabel(targets.get(i)));
     }

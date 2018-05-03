@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.code;
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.code.CfLabel;
 import com.android.tools.r8.cf.code.CfSwitch;
+import com.android.tools.r8.cf.code.CfSwitch.Kind;
 import com.android.tools.r8.code.Nop;
 import com.android.tools.r8.code.PackedSwitch;
 import com.android.tools.r8.code.PackedSwitchPayload;
@@ -294,6 +295,6 @@ public class Switch extends JumpInstruction {
     for (int index : targetBlockIndices) {
       labels.add(builder.getLabel(successors.get(index)));
     }
-    builder.add(new CfSwitch(builder.getLabel(fallthroughBlock()), keys, labels));
+    builder.add(new CfSwitch(Kind.LOOKUP, builder.getLabel(fallthroughBlock()), keys, labels));
   }
 }

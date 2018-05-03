@@ -49,7 +49,6 @@ import com.android.tools.r8.cf.code.CfTryCatch;
 import com.android.tools.r8.cf.code.CfUnop;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.CfCode.LocalVariableInfo;
 import com.android.tools.r8.graph.DexValue.DexValueAnnotation;
@@ -1218,8 +1217,12 @@ public class JarClassFileReader {
 
     @Override
     public void visitTableSwitchInsn(int min, int max, Label dflt, Label... labels) {
-      // TODO(mathiasr): Support emitting table switches in CfSwitch.
-      throw new Unimplemented("Table switches not supported in CF backend");
+      assert max == min + labels.length - 1;
+      ArrayList<CfLabel> targets = new ArrayList<>(labels.length);
+      for (Label label : labels) {
+        targets.add(getLabel(label));
+      }
+      instructions.add(new CfSwitch(CfSwitch.Kind.TABLE, getLabel(dflt), new int[] {min}, targets));
     }
 
     @Override
@@ -1228,7 +1231,7 @@ public class JarClassFileReader {
       for (Label label : labels) {
         targets.add(getLabel(label));
       }
-      instructions.add(new CfSwitch(getLabel(dflt), keys, targets));
+      instructions.add(new CfSwitch(CfSwitch.Kind.LOOKUP, getLabel(dflt), keys, targets));
     }
 
     @Override
