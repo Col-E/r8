@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
-import java.util.Set;
+import java.util.List;
 
 public class ProguardAssumeValuesRule extends ProguardConfigurationRule {
   public static class Builder extends ProguardClassSpecification.Builder {
@@ -27,7 +27,7 @@ public class ProguardAssumeValuesRule extends ProguardConfigurationRule {
       ProguardTypeMatcher inheritanceAnnotation,
       ProguardTypeMatcher inheritanceClassName,
       boolean inheritanceIsExtends,
-      Set<ProguardMemberRule> memberRules) {
+      List<ProguardMemberRule> memberRules) {
     super(classAnnotation, classAccessFlags, negatedClassAccessFlags, classTypeNegated, classType,
         classNames, inheritanceAnnotation, inheritanceClassName, inheritanceIsExtends, memberRules);
   }

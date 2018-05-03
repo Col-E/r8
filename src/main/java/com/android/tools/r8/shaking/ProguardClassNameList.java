@@ -14,6 +14,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 public abstract class ProguardClassNameList {
 
@@ -73,6 +74,10 @@ public abstract class ProguardClassNameList {
   public abstract List<DexType> asSpecificDexTypes();
 
   public abstract boolean matches(DexType type);
+
+  protected Iterable<String> getWildcards() {
+    return ImmutableList.of();
+  }
 
   public abstract void forEachTypeMatcher(Consumer<ProguardTypeMatcher> consumer);
 
@@ -135,6 +140,11 @@ public abstract class ProguardClassNameList {
     }
 
     @Override
+    protected Iterable<String> getWildcards() {
+      return className.getWildcards();
+    }
+
+    @Override
     public void forEachTypeMatcher(Consumer<ProguardTypeMatcher> consumer) {
       consumer.accept(className);
     }
@@ -177,6 +187,14 @@ public abstract class ProguardClassNameList {
     @Override
     public boolean matches(DexType type) {
       return classNames.stream().anyMatch(name -> name.matches(type));
+    }
+
+    @Override
+    protected Iterable<String> getWildcards() {
+      return classNames.stream()
+          .map(ProguardTypeMatcher::getWildcards)
+          .flatMap(it -> StreamSupport.stream(it.spliterator(), false))
+          .collect(Collectors.toList());
     }
 
     @Override
@@ -227,6 +245,14 @@ public abstract class ProguardClassNameList {
         }
       }
       return false;
+    }
+
+    @Override
+    protected Iterable<String> getWildcards() {
+      return classNames.keySet().stream()
+          .map(ProguardTypeMatcher::getWildcards)
+          .flatMap(it -> StreamSupport.stream(it.spliterator(), false))
+          .collect(Collectors.toList());
     }
 
     @Override

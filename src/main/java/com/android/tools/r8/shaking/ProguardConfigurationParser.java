@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import static com.android.tools.r8.utils.DescriptorUtils.javaTypeToDescriptor;
+
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -16,7 +18,6 @@ import com.android.tools.r8.position.TextRange;
 import com.android.tools.r8.shaking.ProguardConfiguration.Builder;
 import com.android.tools.r8.shaking.ProguardTypeMatcher.ClassOrType;
 import com.android.tools.r8.shaking.ProguardTypeMatcher.MatchSpecificType;
-import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.IdentifierUtils;
 import com.android.tools.r8.utils.InternalOptions.PackageObfuscationMode;
 import com.android.tools.r8.utils.LongInterval;
@@ -33,9 +34,12 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class ProguardConfigurationParser {
 
@@ -511,7 +515,8 @@ public class ProguardConfigurationParser {
         // If there are no member rules, a default rule for the parameterless constructor
         // applies. So we add that here.
         ProguardMemberRule.Builder defaultRuleBuilder = ProguardMemberRule.builder();
-        defaultRuleBuilder.setName(Constants.INSTANCE_INITIALIZER_NAME);
+        defaultRuleBuilder.setName(
+            IdentifierPatternWithWildcards.withoutWildcards(Constants.INSTANCE_INITIALIZER_NAME));
         defaultRuleBuilder.setRuleType(ProguardMemberType.INIT);
         defaultRuleBuilder.setArguments(Collections.emptyList());
         keepRuleBuilder.getMemberRules().add(defaultRuleBuilder.build());
@@ -565,10 +570,33 @@ public class ProguardConfigurationParser {
       if (acceptString("-keep")) {
         ProguardKeepRule subsequentRule = parseKeepRule();
         ifRuleBuilder.setSubsequentRule(subsequentRule);
-        return ifRuleBuilder.build();
+        ProguardIfRule ifRule = ifRuleBuilder.build();
+        verifyWildcardRange(ifRule.getWildcards());
+        return ifRule;
       }
       throw reporter.fatalError(new StringDiagnostic(
-          "Option -if without a subsequent keep rule.", origin, getPosition(optionStart)));
+          "Expecting '-keep' option after '-if' option.", origin, getPosition(optionStart)));
+    }
+
+    private void verifyWildcardRange(Iterable<String> wildcards) {
+      Pattern backReference = Pattern.compile("<(\\d+)>");
+      int i = 1;
+      Iterator<String> iterator = wildcards.iterator();
+      while (iterator.hasNext()) {
+        String wildcard = iterator.next();
+        Matcher m = backReference.matcher(wildcard);
+        if (m.matches()) {
+          int n = Integer.parseInt(m.group(1));
+          if (i <= n) {
+            throw reporter.fatalError(new StringDiagnostic(
+                "Wildcard <" + n + "> is invalid.", origin, getPosition()));
+          }
+        } else {
+          // Increase the index of wildcards for non-back-reference only
+          // to not allow one back-reference to point to another back-reference
+          i++;
+        }
+      }
     }
 
     private void parseClassSpec(
@@ -639,14 +667,16 @@ public class ProguardConfigurationParser {
       skipWhitespace();
       int startPosition = position;
       if (acceptChar('@')) {
-        String className = parseClassName();
+        IdentifierPatternWithWildcards identifierPatternWithWildcards = parseClassName();
+        String className = identifierPatternWithWildcards.pattern;
         if (className.equals("interface")) {
           // Not an annotation after all but a class type. Move position back to start
           // so this can be dealt with as a class type instead.
           position = startPosition;
           return null;
         }
-        return ProguardTypeMatcher.create(className, ClassOrType.CLASS, dexItemFactory);
+        return ProguardTypeMatcher.create(
+            identifierPatternWithWildcards, ClassOrType.CLASS, dexItemFactory);
       }
       return null;
     }
@@ -815,13 +845,14 @@ public class ProguardConfigurationParser {
         ruleBuilder.setRuleType(ProguardMemberType.ALL_FIELDS);
       } else if (acceptString("<init>")) {
         ruleBuilder.setRuleType(ProguardMemberType.INIT);
-        ruleBuilder.setName("<init>");
+        ruleBuilder.setName(IdentifierPatternWithWildcards.withoutWildcards("<init>"));
         ruleBuilder.setArguments(parseArgumentList());
       } else {
-        String first = acceptIdentifierWithBackreference(IdentifierType.ANY);
+        IdentifierPatternWithWildcards first =
+            acceptIdentifierWithBackreference(IdentifierType.ANY);
         if (first != null) {
           skipWhitespace();
-          if (first.equals("*") && hasNextChar(';')) {
+          if (first.pattern.equals("*") && hasNextChar(';')) {
             ruleBuilder.setRuleType(ProguardMemberType.ALL);
           } else {
             if (hasNextChar('(')) {
@@ -829,7 +860,8 @@ public class ProguardConfigurationParser {
               ruleBuilder.setName(first);
               ruleBuilder.setArguments(parseArgumentList());
             } else {
-              String second = acceptIdentifierWithBackreference(IdentifierType.ANY);
+              IdentifierPatternWithWildcards second =
+                  acceptIdentifierWithBackreference(IdentifierType.ANY);
               if (second != null) {
                 skipWhitespace();
                 if (hasNextChar('(')) {
@@ -880,7 +912,7 @@ public class ProguardConfigurationParser {
                               .getTypeMatcher()).type;
                           DexType fieldClass =
                               dexItemFactory.createType(
-                                  DescriptorUtils.javaTypeToDescriptor(
+                                  javaTypeToDescriptor(
                                       qualifiedFieldNameOrInteger.substring(0, lastDotIndex)));
                           DexString fieldName =
                               dexItemFactory.createString(
@@ -918,13 +950,16 @@ public class ProguardConfigurationParser {
         return arguments;
       }
       if (acceptString("...")) {
-        arguments
-            .add(ProguardTypeMatcher.create("...", ClassOrType.TYPE, dexItemFactory));
+        arguments.add(ProguardTypeMatcher.create(
+            IdentifierPatternWithWildcards.withoutWildcards("..."),
+            ClassOrType.TYPE,
+            dexItemFactory));
       } else {
-        for (String name = parseClassName(); name != null; name =
-            acceptChar(',') ? parseClassName() : null) {
-          arguments
-              .add(ProguardTypeMatcher.create(name, ClassOrType.TYPE, dexItemFactory));
+        for (IdentifierPatternWithWildcards identifierPatternWithWildcards = parseClassName();
+            identifierPatternWithWildcards != null;
+            identifierPatternWithWildcards = acceptChar(',') ? parseClassName() : null) {
+          arguments.add(ProguardTypeMatcher.create(
+              identifierPatternWithWildcards, ClassOrType.TYPE, dexItemFactory));
           skipWhitespace();
         }
       }
@@ -1126,13 +1161,17 @@ public class ProguardConfigurationParser {
       return acceptString(CLASS_NAME_PREDICATE);
     }
 
-    private String acceptIdentifierWithBackreference(IdentifierType kind) {
+    private IdentifierPatternWithWildcards acceptIdentifierWithBackreference(IdentifierType kind) {
+      ImmutableList.Builder<String> wildcardsCollector = ImmutableList.builder();
+      StringBuilder currentAsterisks = null;
       StringBuilder currentBackreference = null;
       skipWhitespace();
       int start = position;
       int end = position;
       while (!eof(end)) {
         int current = contents.codePointAt(end);
+        // Should not be both in asterisk collecting state and back reference collecting state.
+        assert currentAsterisks == null || currentBackreference == null;
         if (currentBackreference != null) {
           if (current == '>') {
             try {
@@ -1146,28 +1185,54 @@ public class ProguardConfigurationParser {
                   "Wildcard <" + currentBackreference.toString() + "> is invalid.",
                   origin, getPosition()));
             }
+            wildcardsCollector.add("<" + currentBackreference.toString() + ">");
             currentBackreference = null;
+            end += Character.charCount(current);
+            continue;
           } else if (('0' <= current && current <= '9')
-              // Only collect integer literal for the backreference.
+              // Only collect integer literal for the back reference.
               || (current == '-' && currentBackreference.length() == 0)) {
             currentBackreference.append((char) current);
+            end += Character.charCount(current);
+            continue;
           } else if (kind == IdentifierType.CLASS_NAME) {
             throw reporter.fatalError(new StringDiagnostic(
                 "Use of generics not allowed for java type.", origin, getPosition()));
           } else {
             // If not parsing a class name allow identifiers including <'s by canceling the
-            // collection of the backreference.
+            // collection of the back reference.
             currentBackreference = null;
           }
+        } else if (currentAsterisks != null) {
+          if (current == '*') {
+            currentAsterisks.append((char) current);
+            end += Character.charCount(current);
+            continue;
+          } else {
+            wildcardsCollector.add(currentAsterisks.toString());
+            currentAsterisks = null;
+          }
+        }
+        // From now on, neither in asterisk collecting state nor back reference collecting state.
+        assert currentAsterisks == null && currentBackreference == null;
+        if (current == '*') {
+          currentAsterisks = new StringBuilder();
+          currentAsterisks.append((char) current);
+          end += Character.charCount(current);
+        } else if (current == '?' || current == '%') {
+          wildcardsCollector.add(String.valueOf((char) current));
           end += Character.charCount(current);
         } else if (CLASS_NAME_PREDICATE.test(current) || current == '>') {
           end += Character.charCount(current);
         } else if (current == '<') {
           currentBackreference = new StringBuilder();
-          ++end;
+          end += Character.charCount(current);
         } else {
           break;
         }
+      }
+      if (currentAsterisks != null) {
+        wildcardsCollector.add(currentAsterisks.toString());
       }
       if (kind == IdentifierType.CLASS_NAME && currentBackreference != null) {
         // Proguard 6 reports this error message, so try to be compatible.
@@ -1178,7 +1243,9 @@ public class ProguardConfigurationParser {
         return null;
       }
       position = end;
-      return contents.substring(start, end);
+      return new IdentifierPatternWithWildcards(
+          contents.substring(start, end),
+          wildcardsCollector.build());
     }
 
     private String acceptFieldNameOrIntegerForReturn() {
@@ -1292,8 +1359,9 @@ public class ProguardConfigurationParser {
       return name == null ? "" : name;
     }
 
-    private String parseClassName() throws ProguardRuleParserException {
-      String name = acceptIdentifierWithBackreference(IdentifierType.CLASS_NAME);
+    private IdentifierPatternWithWildcards parseClassName() throws ProguardRuleParserException {
+      IdentifierPatternWithWildcards name =
+          acceptIdentifierWithBackreference(IdentifierType.CLASS_NAME);
       if (name == null) {
         throw parseError("Class name expected");
       }
@@ -1406,6 +1474,24 @@ public class ProguardConfigurationParser {
 
     private int getColumn() {
       return position - lineStartPosition + 1 /* column starts at 1 */;
+    }
+  }
+
+  static class IdentifierPatternWithWildcards {
+    final String pattern;
+    final List<String> wildcards;
+
+    IdentifierPatternWithWildcards(String pattern, List<String> wildcards) {
+      this.pattern = pattern;
+      this.wildcards = wildcards;
+    }
+
+    static IdentifierPatternWithWildcards withoutWildcards(String pattern) {
+      return new IdentifierPatternWithWildcards(pattern, ImmutableList.of());
+    }
+
+    boolean isMatchAllNames() {
+      return pattern.equals("*");
     }
   }
 }

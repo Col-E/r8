@@ -3,21 +3,25 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import com.android.tools.r8.shaking.ProguardConfigurationParser.IdentifierPatternWithWildcards;
+import com.google.common.collect.ImmutableList;
+import java.util.List;
+
 public abstract class ProguardNameMatcher {
 
   private static final ProguardNameMatcher MATCH_ALL_NAMES = new MatchAllNames();
 
   private ProguardNameMatcher() {
-
   }
 
-  public static ProguardNameMatcher create(String pattern) {
-    if (pattern.equals("*")) {
+  public static ProguardNameMatcher create(
+      IdentifierPatternWithWildcards identifierPatternWithWildcards) {
+    if (identifierPatternWithWildcards.isMatchAllNames()) {
       return MATCH_ALL_NAMES;
-    } else if (pattern.contains("*") || pattern.contains("?")) {
-      return new MatchNamePattern(pattern);
+    } else if (identifierPatternWithWildcards.wildcards.isEmpty()) {
+      return new MatchSpecificName(identifierPatternWithWildcards.pattern);
     } else {
-      return new MatchSpecificName(pattern);
+      return new MatchNamePattern(identifierPatternWithWildcards);
     }
   }
 
@@ -63,11 +67,20 @@ public abstract class ProguardNameMatcher {
 
   public abstract boolean matches(String name);
 
+  protected Iterable<String> getWildcards() {
+    return ImmutableList.of();
+  }
+
   private static class MatchAllNames extends ProguardNameMatcher {
 
     @Override
     public boolean matches(String name) {
       return true;
+    }
+
+    @Override
+    protected Iterable<String> getWildcards() {
+      return ImmutableList.of("*");
     }
 
     @Override
@@ -79,14 +92,21 @@ public abstract class ProguardNameMatcher {
   private static class MatchNamePattern extends ProguardNameMatcher {
 
     private final String pattern;
+    private final List<String> wildcards;
 
-    MatchNamePattern(String pattern) {
-      this.pattern = pattern;
+    MatchNamePattern(IdentifierPatternWithWildcards identifierPatternWithWildcards) {
+      this.pattern = identifierPatternWithWildcards.pattern;
+      this.wildcards = identifierPatternWithWildcards.wildcards;
     }
 
     @Override
     public boolean matches(String name) {
       return matchFieldOrMethodName(pattern, name);
+    }
+
+    @Override
+    protected Iterable<String> getWildcards() {
+      return wildcards;
     }
 
     @Override

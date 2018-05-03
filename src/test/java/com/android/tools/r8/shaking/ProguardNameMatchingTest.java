@@ -7,6 +7,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.shaking.ProguardConfigurationParser.IdentifierPatternWithWildcards;
 import com.android.tools.r8.shaking.ProguardTypeMatcher.ClassOrType;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.collect.ImmutableList;
@@ -22,7 +23,8 @@ public class ProguardNameMatchingTest {
   private static final DexItemFactory dexItemFactory = new DexItemFactory();
 
   private static boolean matchTypeName(String typeName, String pattern) {
-    return ProguardTypeMatcher.create(pattern, ClassOrType.TYPE, dexItemFactory)
+    return ProguardTypeMatcher.create(
+        toIdentifierPatternWithWildCards(pattern), ClassOrType.TYPE, dexItemFactory)
         .matches(dexItemFactory.createType(DescriptorUtils.javaTypeToDescriptor(typeName)));
   }
 
@@ -37,8 +39,8 @@ public class ProguardNameMatchingTest {
       for (String pattern : patterns) {
         boolean isNegated = pattern.startsWith("!");
         String actualPattern = isNegated ? pattern.substring(1) : pattern;
-        listBuilder.addClassName(isNegated,
-            ProguardTypeMatcher.create(actualPattern, ClassOrType.CLASS, dexItemFactory));
+        listBuilder.addClassName(isNegated, ProguardTypeMatcher.create(
+            toIdentifierPatternWithWildCards(actualPattern), ClassOrType.CLASS, dexItemFactory));
       }
       builder.addPattern(listBuilder.build());
     }
@@ -142,5 +144,36 @@ public class ProguardNameMatchingTest {
     assertFalse(ProguardNameMatcher.matchFieldOrMethodName("getObject?", "getObject"));
     assertTrue(ProguardNameMatcher.matchFieldOrMethodName("getObject?", "getObject1"));
     assertTrue(ProguardNameMatcher.matchFieldOrMethodName("getObject?", "getObject5"));
- }
+  }
+
+  private static IdentifierPatternWithWildcards toIdentifierPatternWithWildCards(String pattern) {
+    ImmutableList.Builder<String> builder = ImmutableList.builder();
+    String allPattern = "";
+    String backReference = "";
+    for (int i = 0; i < pattern.length(); i++) {
+      char patternChar = pattern.charAt(i);
+      if (patternChar == '?' || patternChar == '%') {
+        builder.add(String.valueOf(patternChar));
+      } else if (patternChar == '*') {
+        allPattern += patternChar;
+      } else if (patternChar == '<') {
+        backReference += patternChar;
+      } else if (patternChar == '>') {
+        backReference += patternChar;
+        builder.add(backReference);
+        backReference = "";
+      } else {
+        if (allPattern.length() > 0) {
+          builder.add(allPattern);
+          allPattern = "";
+        } else if (backReference.length() > 0) {
+          backReference += patternChar;
+        }
+      }
+    }
+    if (allPattern.length() > 0) {
+      builder.add(allPattern);
+    }
+    return new IdentifierPatternWithWildcards(pattern, builder.build());
+  }
 }
