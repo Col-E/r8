@@ -436,11 +436,32 @@ public class ToolHelper {
     BOOT_LIBS = builder.build();
   }
 
-  private static final String LIB_PATH = TOOLS + "/linux/art/lib";
   private static final Path DX = getDxExecutablePath();
-  private static final String DEX2OAT = TOOLS + "/linux/art/bin/dex2oat";
-  private static final String ANGLER_DIR = TOOLS + "/linux/art/product/angler";
-  private static final String ANGLER_BOOT_IMAGE = ANGLER_DIR + "/system/framework/boot.art";
+
+  private static Path getDexVmPath(DexVm vm) {
+    return Paths.get(
+        TOOLS,
+        "linux",
+        vm.getVersion() == DexVm.Version.DEFAULT
+            ? "art"
+            : "art-" + vm.getVersion());
+  }
+
+  private static Path getDexVmLibPath(DexVm vm) {
+    return getDexVmPath(vm).resolve("lib");
+  }
+
+  private static Path getDex2OatPath(DexVm vm) {
+    return getDexVmPath(vm).resolve("bin").resolve("dex2oat");
+  }
+
+  private static Path getAnglerPath(DexVm vm) {
+    return getDexVmPath(vm).resolve("product").resolve("angler");
+  }
+
+  private static Path getAnglerBootImagePath(DexVm vm) {
+    return getAnglerPath(vm).resolve("system").resolve("framework").resolve("boot.art");
+  }
 
   public static byte[] getClassAsBytes(Class clazz) throws IOException {
     String s = clazz.getSimpleName() + ".class";
@@ -1120,22 +1141,27 @@ public class ToolHelper {
   }
 
   public static void runDex2Oat(Path file, Path outFile) throws IOException {
+    // TODO(b/79191363): Support running dex2oat for past android versions.
+    runDex2Oat(file, outFile, DexVm.ART_DEFAULT);
+  }
+
+  public static void runDex2Oat(Path file, Path outFile, DexVm vm) throws IOException {
     Assume.assumeTrue(ToolHelper.artSupported());
     // TODO(jmhenaff): find a way to run this on windows (push dex and run on device/emulator?)
     Assume.assumeTrue(!ToolHelper.isWindows());
     assert Files.exists(file);
     assert ByteStreams.toByteArray(Files.newInputStream(file)).length > 0;
     List<String> command = new ArrayList<>();
-    command.add(DEX2OAT);
-    command.add("--android-root=" + ANGLER_DIR);
+    command.add(getDex2OatPath(vm).toString());
+    command.add("--android-root=" + getAnglerPath(vm));
     command.add("--runtime-arg");
     command.add("-Xnorelocate");
-    command.add("--boot-image=" + ANGLER_BOOT_IMAGE);
+    command.add("--boot-image=" + getAnglerBootImagePath(vm));
     command.add("--dex-file=" + file.toAbsolutePath());
     command.add("--oat-file=" + outFile.toAbsolutePath());
     command.add("--instruction-set=arm64");
     ProcessBuilder builder = new ProcessBuilder(command);
-    builder.environment().put("LD_LIBRARY_PATH", LIB_PATH);
+    builder.environment().put("LD_LIBRARY_PATH", getDexVmLibPath(vm).toString());
     ProcessResult result = runProcess(builder);
     if (result.exitCode != 0) {
       fail("dex2oat failed, exit code " + result.exitCode + ", stderr:\n" + result.stderr);
