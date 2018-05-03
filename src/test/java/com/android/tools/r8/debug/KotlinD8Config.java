@@ -17,7 +17,7 @@ import org.junit.rules.TemporaryFolder;
  */
 class KotlinD8Config extends D8DebugTestConfig {
 
-  private static final Path DEBUGGEE_KOTLIN_JAR =
+  public static final Path DEBUGGEE_KOTLIN_JAR =
       Paths.get(ToolHelper.BUILD_DIR, "test", "debug_test_resources_kotlin.jar");
 
   private static AndroidApp compiledResources = null;
