@@ -143,6 +143,92 @@ public class LambdasWithStaticAndDefaultMethods {
     }
   }
 
+  static class B78901754 {
+    public static class A {
+      public final String msg;
+
+      public A(String msg) {
+        this.msg = msg;
+      }
+    }
+
+    public static class B extends A {
+      public B(String msg) {
+        super(msg);
+      }
+    }
+
+    public interface IAA {
+      A[] foo(A[] p);
+    }
+
+    public interface IAB {
+      A[] foo(B[] p);
+    }
+
+    public interface IBA {
+      B[] foo(A[] p);
+    }
+
+    public interface IBB {
+      B[] foo(B[] p);
+    }
+
+    public static A[] fooAA(A[] p) {
+      return new A[]{new A("fooAA")};
+    }
+
+    public static A[] fooBA(B[] p) {
+      return new A[]{new A("fooBA")};
+    }
+
+    public static B[] fooAB(A[] p) {
+      return new B[]{new B("fooAB")};
+    }
+
+    public static B[] fooBB(B[] p) {
+      return new B[]{new B("fooBB")};
+    }
+
+    public static void testAA(IAA i) {
+      System.out.println(i.foo(null)[0].msg);
+    }
+
+    public static void testAB(IAB i) {
+      System.out.println(i.foo(null)[0].msg);
+    }
+
+    public static void testBA(IBA i) {
+      System.out.println(i.foo(null)[0].msg);
+    }
+
+    public static void testBB(IBB i) {
+      System.out.println(i.foo(null)[0].msg);
+    }
+
+    public static void test() {
+      testAA(B78901754::fooAA);
+      testAA(B78901754::fooAB);
+      // testAA(B78901754::fooBA); javac error: incompatible types: A[] cannot be converted to B[]
+      // testAA(B78901754::fooBB); javac error: incompatible types: A[] cannot be converted to B[]
+
+      testAB(B78901754::fooAA);
+      testAB(B78901754::fooAB);
+      testAB(B78901754::fooBA);
+      testAB(B78901754::fooBB);
+
+      // testBA(B78901754::fooAA); javac error: A[] cannot be converted to B[]
+      testBA(B78901754::fooAB);
+      // testBA(B78901754::fooBA); javac error: incompatible types: A[] cannot be converted to B[]
+      // testBA(B78901754::fooBB); javac error: incompatible types: A[] cannot be converted to B[]
+
+      // testBB(B78901754::fooAA); javac error: A[] cannot be converted to B[]
+      testBB(B78901754::fooAB);
+      // testBB(B78901754::fooBA); javac error: A[] cannot be converted to B[]
+      testBB(B78901754::fooBB);
+    }
+  }
+
   interface B38257037_I1 {
     default Number getNumber() {
       return new Integer(1);
@@ -420,5 +506,6 @@ public class LambdasWithStaticAndDefaultMethods {
     B38308515.test();
     B38302860.test();
     B62168701.test();
+    B78901754.test();
   }
 }

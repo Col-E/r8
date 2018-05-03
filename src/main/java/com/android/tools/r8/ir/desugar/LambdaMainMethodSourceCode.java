@@ -113,8 +113,10 @@ final class LambdaMainMethodSourceCode extends SynthesizedLambdaSourceCode {
 
     DexItemFactory factory = factory();
     if (a.isArrayType()) {
-      // Arrays are only adaptable to java.lang.Object.
-      return b == factory.objectType;
+      // Arrays are only adaptable to java.lang.Object or other arrays, note that we
+      // don't check element type inheritance in the second case since we assume the
+      // input code is verifiable.
+      return b == factory.objectType || b.isArrayType();
     }
 
     if (a.isPrimitiveType()) {
@@ -342,8 +344,10 @@ final class LambdaMainMethodSourceCode extends SynthesizedLambdaSourceCode {
       }
     }
 
-    if (fromType.isArrayType() && toType == factory().objectType) {
+    if (fromType.isArrayType() && (toType == factory().objectType || toType.isArrayType())) {
       // If `fromType` is an array and `toType` is java.lang.Object, no cast is needed.
+      // If both `fromType` and `toType` are arrays, no cast is needed since we assume
+      // the input code is verifiable.
       return register;
     }
 
