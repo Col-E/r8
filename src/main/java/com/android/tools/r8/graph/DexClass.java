@@ -369,7 +369,7 @@ public abstract class DexClass extends DexItem {
 
   public boolean defaultValuesForStaticFieldsMayTriggerAllocation() {
     return Arrays.stream(staticFields())
-        .anyMatch(field -> !field.staticValue.mayTriggerAllocation());
+        .anyMatch(field -> !field.getStaticValue().mayTriggerAllocation());
   }
 
   public List<InnerClassAttribute> getInnerClasses() {

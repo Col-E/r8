@@ -405,7 +405,7 @@ public class JarClassFileReader {
 
     private DexValue getStaticValue(Object value, DexType type) {
       if (value == null) {
-        return DexValue.defaultForType(type, parent.application.getFactory());
+        return null;
       }
       DexItemFactory factory = parent.application.getFactory();
       if (type == factory.booleanType) {

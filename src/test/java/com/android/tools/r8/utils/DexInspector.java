@@ -821,7 +821,7 @@ public class DexInspector {
   }
 
   public abstract class FieldSubject extends MemberSubject {
-    public abstract boolean hasStaticValue();
+    public abstract boolean hasExplicitStaticValue();
 
     public abstract DexEncodedField getField();
 
@@ -863,7 +863,7 @@ public class DexInspector {
     }
 
     @Override
-    public boolean hasStaticValue() {
+    public boolean hasExplicitStaticValue() {
       return false;
     }
 
@@ -928,13 +928,13 @@ public class DexInspector {
     }
 
     @Override
-    public boolean hasStaticValue() {
-      return dexField.staticValue != null;
+    public boolean hasExplicitStaticValue() {
+      return isStatic() && dexField.hasExplicitStaticValue();
     }
 
     @Override
     public DexValue getStaticValue() {
-      return dexField.staticValue;
+      return dexField.getStaticValue();
     }
 
     @Override

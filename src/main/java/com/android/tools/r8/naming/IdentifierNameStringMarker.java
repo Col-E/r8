@@ -18,6 +18,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstString;
@@ -61,13 +62,17 @@ public class IdentifierNameStringMarker {
     if (!identifierNameStrings.contains(encodedField.field)) {
       return;
     }
-    if (!(encodedField.staticValue instanceof DexValueString)) {
+    if (!encodedField.accessFlags.isStatic()) {
       return;
     }
-    DexString original = ((DexValueString) encodedField.staticValue).getValue();
+    DexValue staticValue = encodedField.getStaticValue();
+    if (!(staticValue instanceof DexValueString)) {
+      return;
+    }
+    DexString original = ((DexValueString) staticValue).getValue();
     DexItemBasedString itemBasedString = inferMemberOrTypeFromNameString(appInfo, original);
     if (itemBasedString != null) {
-      encodedField.staticValue = new DexValueString(itemBasedString);
+      encodedField.setStaticValue(new DexValueString(itemBasedString));
     }
   }
 

@@ -219,10 +219,10 @@ public class CfApplicationWriter {
   }
 
   private Object getStaticValue(DexEncodedField field) {
-    if (!field.accessFlags.isStatic() || field.staticValue == null) {
+    if (!field.accessFlags.isStatic() || !field.hasExplicitStaticValue()) {
       return null;
     }
-    return field.staticValue.asAsmEncodedObject();
+    return field.getStaticValue().asAsmEncodedObject();
   }
 
   private void writeField(DexEncodedField field, ClassWriter writer) {

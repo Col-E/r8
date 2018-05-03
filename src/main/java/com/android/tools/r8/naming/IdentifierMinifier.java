@@ -19,6 +19,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardClassFilter;
@@ -62,13 +63,17 @@ class IdentifierMinifier {
   }
 
   private void adaptClassStringsInField(DexEncodedField encodedField) {
-    if (!(encodedField.staticValue instanceof DexValueString)) {
+    if (!encodedField.accessFlags.isStatic()) {
       return;
     }
-    DexString original = ((DexValueString) encodedField.staticValue).getValue();
+    DexValue staticValue = encodedField.getStaticValue();
+    if (!(staticValue instanceof DexValueString)) {
+      return;
+    }
+    DexString original = ((DexValueString) staticValue).getValue();
     DexString renamed = getRenamedStringLiteral(original);
     if (renamed != original) {
-      encodedField.staticValue = new DexValueString(renamed);
+      encodedField.setStaticValue(new DexValueString(renamed));
     }
   }
 
@@ -123,12 +128,16 @@ class IdentifierMinifier {
   }
 
   private void replaceIdentifierNameStringInField(DexEncodedField encodedField) {
-    if (!(encodedField.staticValue instanceof DexValueString)) {
+    if (!encodedField.accessFlags.isStatic()) {
       return;
     }
-    DexString original = ((DexValueString) encodedField.staticValue).getValue();
+    DexValue staticValue = encodedField.getStaticValue();
+    if (!(staticValue instanceof DexValueString)) {
+      return;
+    }
+    DexString original = ((DexValueString) staticValue).getValue();
     if (original instanceof DexItemBasedString) {
-      encodedField.staticValue = new DexValueString(materialize((DexItemBasedString) original));
+      encodedField.setStaticValue(new DexValueString(materialize((DexItemBasedString) original)));
     }
   }
 

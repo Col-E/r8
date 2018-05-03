@@ -1086,47 +1086,47 @@ public class CodeRewriter {
           if (put.inValue().isConstant()) {
             if (put.inValue().isConstNumber()) {
               assert put.inValue().isZero();
-              encodedField.staticValue = DexValueNull.NULL;
+              encodedField.setStaticValue(DexValueNull.NULL);
             } else {
               ConstString cnst = put.inValue().getConstInstruction().asConstString();
-              encodedField.staticValue = new DexValueString(cnst.getValue());
+              encodedField.setStaticValue(new DexValueString(cnst.getValue()));
             }
           } else {
             InvokeVirtual invoke = put.inValue().definition.asInvokeVirtual();
             String name = method.method.getHolder().toSourceString();
             if (invoke.getInvokedMethod() == dexItemFactory.classMethods.getSimpleName) {
               String simpleName = name.substring(name.lastIndexOf('.') + 1);
-              encodedField.staticValue =
-                  new DexValueString(dexItemFactory.createString(simpleName));
+              encodedField.setStaticValue(
+                  new DexValueString(dexItemFactory.createString(simpleName)));
             } else {
               assert invoke.getInvokedMethod() == dexItemFactory.classMethods.getName;
-              encodedField.staticValue = new DexValueString(dexItemFactory.createString(name));
+              encodedField.setStaticValue(new DexValueString(dexItemFactory.createString(name)));
             }
           }
         } else if (field.type.isClassType() || field.type.isArrayType()) {
           if (put.inValue().isZero()) {
-            encodedField.staticValue = DexValueNull.NULL;
+            encodedField.setStaticValue(DexValueNull.NULL);
           } else {
             throw new Unreachable("Unexpected default value for field type " + field.type + ".");
           }
         } else {
           ConstNumber cnst = put.inValue().getConstInstruction().asConstNumber();
           if (field.type == dexItemFactory.booleanType) {
-            encodedField.staticValue = DexValueBoolean.create(cnst.getBooleanValue());
+            encodedField.setStaticValue(DexValueBoolean.create(cnst.getBooleanValue()));
           } else if (field.type == dexItemFactory.byteType) {
-            encodedField.staticValue = DexValueByte.create((byte) cnst.getIntValue());
+            encodedField.setStaticValue(DexValueByte.create((byte) cnst.getIntValue()));
           } else if (field.type == dexItemFactory.shortType) {
-            encodedField.staticValue = DexValueShort.create((short) cnst.getIntValue());
+            encodedField.setStaticValue(DexValueShort.create((short) cnst.getIntValue()));
           } else if (field.type == dexItemFactory.intType) {
-            encodedField.staticValue = DexValueInt.create(cnst.getIntValue());
+            encodedField.setStaticValue(DexValueInt.create(cnst.getIntValue()));
           } else if (field.type == dexItemFactory.longType) {
-            encodedField.staticValue = DexValueLong.create(cnst.getLongValue());
+            encodedField.setStaticValue(DexValueLong.create(cnst.getLongValue()));
           } else if (field.type == dexItemFactory.floatType) {
-            encodedField.staticValue = DexValueFloat.create(cnst.getFloatValue());
+            encodedField.setStaticValue(DexValueFloat.create(cnst.getFloatValue()));
           } else if (field.type == dexItemFactory.doubleType) {
-            encodedField.staticValue = DexValueDouble.create(cnst.getDoubleValue());
+            encodedField.setStaticValue(DexValueDouble.create(cnst.getDoubleValue()));
           } else if (field.type == dexItemFactory.charType) {
-            encodedField.staticValue = DexValueChar.create((char) cnst.getIntValue());
+            encodedField.setStaticValue(DexValueChar.create((char) cnst.getIntValue()));
           } else {
             throw new Unreachable("Unexpected field type " + field.type + ".");
           }

@@ -54,6 +54,7 @@ public class CfFrontendExamplesTest extends TestBase {
     makeTest("staticfield.StaticField"),
     makeTest("stringbuilding.StringBuilding"),
     makeTest("switches.Switches"),
+    makeTest("sync.Sync"),
     makeTest("throwing.Throwing"),
     makeTest("trivial.Trivial"),
     makeTest("trycatch.TryCatch"),
@@ -73,14 +74,12 @@ public class CfFrontendExamplesTest extends TestBase {
     makeTest("regress_70736958.Test"),
     makeTest("regress_70737019.Test"),
     makeTest("regress_72361252.Test"),
+    makeTest("memberrebinding2.Memberrebinding"),
     makeTest("memberrebinding3.Memberrebinding"),
     makeTest("minification.Minification"),
     makeTest("enclosingmethod.Main"),
     makeTest("enclosingmethod_proguarded.Main"),
     makeTest("interfaceinlining.Main"),
-    // TODO(mathiasr): These fail because we add a zero initializer to an field with no initializer.
-    // makeTest("sync.Sync"),
-    // makeTest("memberrebinding2.Memberrebinding"),
     makeTest("switchmaps.Switches")
   );
 

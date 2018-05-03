@@ -275,9 +275,10 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
         List<DexValue> values = new ArrayList<>(fields.length);
         for (int i = 0; i < fields.length; i++) {
           DexEncodedField field = fields[i];
-          assert field.staticValue != null;
-          values.add(field.staticValue);
-          if (!field.staticValue.isDefault(field.field.type, factory)) {
+          DexValue staticValue = field.getStaticValue();
+          assert staticValue != null;
+          values.add(staticValue);
+          if (!staticValue.isDefault(field.field.type)) {
             length = i + 1;
           }
         }

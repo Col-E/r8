@@ -100,47 +100,47 @@ public class StaticValuesTest extends SmaliTestBase {
         inspector.clazz("Test").clinit().getMethod().getCode().asDexCode().isEmptyVoidMethod());
 
     DexValue value;
-    assertTrue(inspector.clazz("Test").field("boolean", "booleanField").hasStaticValue());
+    assertTrue(inspector.clazz("Test").field("boolean", "booleanField").hasExplicitStaticValue());
     value = inspector.clazz("Test").field("boolean", "booleanField").getStaticValue();
     assertTrue(value instanceof DexValueBoolean);
     assertEquals(true, ((DexValueBoolean) value).getValue());
 
-    assertTrue(inspector.clazz("Test").field("byte", "byteField").hasStaticValue());
+    assertTrue(inspector.clazz("Test").field("byte", "byteField").hasExplicitStaticValue());
     value = inspector.clazz("Test").field("byte", "byteField").getStaticValue();
     assertTrue(value instanceof DexValueByte);
     assertEquals(1, ((DexValueByte) value).getValue());
 
-    assertTrue(inspector.clazz("Test").field("short", "shortField").hasStaticValue());
+    assertTrue(inspector.clazz("Test").field("short", "shortField").hasExplicitStaticValue());
     value = inspector.clazz("Test").field("short", "shortField").getStaticValue();
     assertTrue(value instanceof DexValueShort);
     assertEquals(2, ((DexValueShort) value).getValue());
 
-    assertTrue(inspector.clazz("Test").field("int", "intField").hasStaticValue());
+    assertTrue(inspector.clazz("Test").field("int", "intField").hasExplicitStaticValue());
     value = inspector.clazz("Test").field("int", "intField").getStaticValue();
     assertTrue(value instanceof DexValueInt);
     assertEquals(3, ((DexValueInt) value).getValue());
 
-    assertTrue(inspector.clazz("Test").field("long", "longField").hasStaticValue());
+    assertTrue(inspector.clazz("Test").field("long", "longField").hasExplicitStaticValue());
     value = inspector.clazz("Test").field("long", "longField").getStaticValue();
     assertTrue(value instanceof DexValueLong);
     assertEquals(4, ((DexValueLong) value).getValue());
 
-    assertTrue(inspector.clazz("Test").field("float", "floatField").hasStaticValue());
+    assertTrue(inspector.clazz("Test").field("float", "floatField").hasExplicitStaticValue());
     value = inspector.clazz("Test").field("float", "floatField").getStaticValue();
     assertTrue(value instanceof DexValueFloat);
     assertEquals(5.0f, ((DexValueFloat) value).getValue(), 0.0);
 
-    assertTrue(inspector.clazz("Test").field("double", "doubleField").hasStaticValue());
+    assertTrue(inspector.clazz("Test").field("double", "doubleField").hasExplicitStaticValue());
     value = inspector.clazz("Test").field("double", "doubleField").getStaticValue();
     assertTrue(value instanceof DexValueDouble);
     assertEquals(6.0f, ((DexValueDouble) value).getValue(), 0.0);
 
-    assertTrue(inspector.clazz("Test").field("char", "charField").hasStaticValue());
+    assertTrue(inspector.clazz("Test").field("char", "charField").hasExplicitStaticValue());
     value = inspector.clazz("Test").field("char", "charField").getStaticValue();
     assertTrue(value instanceof DexValueChar);
     assertEquals(0x30 + 7, ((DexValueChar) value).getValue());
 
-    assertTrue(inspector.clazz("Test").field("java.lang.String", "stringField").hasStaticValue());
+    assertTrue(inspector.clazz("Test").field("java.lang.String", "stringField").hasExplicitStaticValue());
     value = inspector.clazz("Test").field("java.lang.String", "stringField").getStaticValue();
     assertTrue(value instanceof DexValueString);
     assertEquals(("8"), ((DexValueString) value).getValue().toString());
@@ -317,12 +317,12 @@ public class StaticValuesTest extends SmaliTestBase {
         inspector.clazz("Test").clinit().getMethod().getCode().asDexCode().isEmptyVoidMethod());
 
     DexValue value;
-    assertTrue(inspector.clazz("Test").field("int", "intField").hasStaticValue());
+    assertTrue(inspector.clazz("Test").field("int", "intField").hasExplicitStaticValue());
     value = inspector.clazz("Test").field("int", "intField").getStaticValue();
     assertTrue(value instanceof DexValueInt);
     assertEquals(3, ((DexValueInt) value).getValue());
 
-    assertTrue(inspector.clazz("Test").field("java.lang.String", "stringField").hasStaticValue());
+    assertTrue(inspector.clazz("Test").field("java.lang.String", "stringField").hasExplicitStaticValue());
     value = inspector.clazz("Test").field("java.lang.String", "stringField").getStaticValue();
     assertTrue(value instanceof DexValueString);
     assertEquals(("7"), ((DexValueString) value).getValue().toString());
@@ -388,12 +388,12 @@ public class StaticValuesTest extends SmaliTestBase {
     assertTrue(inspector.clazz("Test").clinit().isPresent());
 
     DexValue value;
-    assertTrue(inspector.clazz("Test").field("int", "intField").hasStaticValue());
+    assertTrue(inspector.clazz("Test").field("int", "intField").hasExplicitStaticValue());
     value = inspector.clazz("Test").field("int", "intField").getStaticValue();
     assertTrue(value instanceof DexValueInt);
     assertEquals(3, ((DexValueInt) value).getValue());
 
-    assertTrue(inspector.clazz("Test").field("java.lang.String", "stringField").hasStaticValue());
+    assertTrue(inspector.clazz("Test").field("java.lang.String", "stringField").hasExplicitStaticValue());
     value = inspector.clazz("Test").field("java.lang.String", "stringField").getStaticValue();
     assertTrue(value instanceof DexValueString);
     assertEquals(("7"), ((DexValueString) value).getValue().toString());

@@ -15,14 +15,13 @@ public class DexEncodedField extends KeyedDexItem<DexField> {
   public final DexField field;
   public final FieldAccessFlags accessFlags;
   public DexAnnotationSet annotations;
-  public DexValue staticValue;
+  private DexValue staticValue;
 
   public DexEncodedField(
       DexField field,
       FieldAccessFlags accessFlags,
       DexAnnotationSet annotations,
       DexValue staticValue) {
-    assert !accessFlags.isStatic() || staticValue != null;
     this.field = field;
     this.accessFlags = accessFlags;
     this.annotations = annotations;
@@ -33,8 +32,8 @@ public class DexEncodedField extends KeyedDexItem<DexField> {
   public void collectIndexedItems(IndexedItemCollection indexedItems) {
     field.collectIndexedItems(indexedItems);
     annotations.collectIndexedItems(indexedItems);
-    if (staticValue != null) {
-      staticValue.collectIndexedItems(indexedItems);
+    if (accessFlags.isStatic()) {
+      getStaticValue().collectIndexedItems(indexedItems);
     }
   }
 
@@ -67,6 +66,22 @@ public class DexEncodedField extends KeyedDexItem<DexField> {
     return !annotations.isEmpty();
   }
 
+  public boolean hasExplicitStaticValue() {
+    assert accessFlags.isStatic();
+    return staticValue != null;
+  }
+
+  public void setStaticValue(DexValue staticValue) {
+    assert accessFlags.isStatic();
+    assert staticValue != null;
+    this.staticValue = staticValue;
+  }
+
+  public DexValue getStaticValue() {
+    assert accessFlags.isStatic();
+    return staticValue == null ? DexValue.defaultForType(field.type) : staticValue;
+  }
+
   // Returns a const instructions if this field is a compile time final const.
   public Instruction valueAsConstInstruction(AppInfo appInfo, Value dest) {
     // The only way to figure out whether the DexValue contains the final value
@@ -74,7 +89,7 @@ public class DexEncodedField extends KeyedDexItem<DexField> {
     if (accessFlags.isStatic() && accessFlags.isPublic() && accessFlags.isFinal()) {
       DexClass clazz = appInfo.definitionFor(field.getHolder());
       assert clazz != null : "Class for the field must be present";
-      return staticValue.asConstInstruction(clazz.hasClassInitializer(), dest);
+      return getStaticValue().asConstInstruction(clazz.hasClassInitializer(), dest);
     }
     return null;
   }

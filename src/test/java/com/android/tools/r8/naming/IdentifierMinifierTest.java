@@ -303,9 +303,10 @@ public class IdentifierMinifierTest extends TestBase {
   private static int countRenamedClassIdentifier(
       DexInspector inspector, DexEncodedField[] fields) {
     return Arrays.stream(fields)
-        .filter(encodedField -> encodedField.staticValue instanceof DexValueString)
+        .filter(encodedField -> encodedField.getStaticValue() instanceof DexValueString)
         .reduce(0, (cnt, encodedField) -> {
-          String cnstString = ((DexValueString) encodedField.staticValue).getValue().toString();
+          String cnstString =
+              ((DexValueString) encodedField.getStaticValue()).getValue().toString();
           if (isValidJavaType(cnstString)) {
             ClassSubject classSubject = inspector.clazz(cnstString);
             if (classSubject.isRenamed()

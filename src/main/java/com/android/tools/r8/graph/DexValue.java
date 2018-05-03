@@ -96,35 +96,29 @@ public abstract class DexValue extends DexItem {
   @Override
   public abstract String toString();
 
-  public static DexValue defaultForType(DexType type, DexItemFactory factory) {
-    if (type == factory.booleanType) {
-      return DexValueBoolean.DEFAULT;
+  public static DexValue defaultForType(DexType type) {
+    switch (type.toShorty()) {
+      case 'Z':
+        return DexValueBoolean.DEFAULT;
+      case 'B':
+        return DexValueByte.DEFAULT;
+      case 'C':
+        return DexValueChar.DEFAULT;
+      case 'S':
+        return DexValueShort.DEFAULT;
+      case 'I':
+        return DexValueInt.DEFAULT;
+      case 'J':
+        return DexValueLong.DEFAULT;
+      case 'F':
+        return DexValueFloat.DEFAULT;
+      case 'D':
+        return DexValueDouble.DEFAULT;
+      case 'L':
+        return DexValueNull.NULL;
+      default:
+        throw new Unreachable("No default value for unexpected type " + type);
     }
-    if (type == factory.byteType) {
-      return DexValueByte.DEFAULT;
-    }
-    if (type == factory.charType) {
-      return DexValueChar.DEFAULT;
-    }
-    if (type == factory.shortType) {
-      return DexValueShort.DEFAULT;
-    }
-    if (type == factory.intType) {
-      return DexValueInt.DEFAULT;
-    }
-    if (type == factory.longType) {
-      return DexValueLong.DEFAULT;
-    }
-    if (type == factory.floatType) {
-      return DexValueFloat.DEFAULT;
-    }
-    if (type == factory.doubleType) {
-      return DexValueDouble.DEFAULT;
-    }
-    if (type.isArrayType() || type.isClassType()) {
-      return DexValueNull.NULL;
-    }
-    throw new Unreachable("No default value for unexpected type " + type);
   }
 
   public abstract Object getBoxedValue();
@@ -134,8 +128,8 @@ public abstract class DexValue extends DexItem {
     return null;
   }
 
-  public boolean isDefault(DexType type, DexItemFactory factory) {
-    return this == defaultForType(type, factory);
+  public boolean isDefault(DexType type) {
+    return this == defaultForType(type);
   }
 
   /**

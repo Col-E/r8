@@ -153,8 +153,9 @@ final public class ResourceShrinker {
       }
 
       for (DexEncodedField field : classDef.staticFields()) {
-        if (field.staticValue != null) {
-          processFieldValue(field.staticValue);
+        DexValue staticValue = field.getStaticValue();
+        if (staticValue != null) {
+          processFieldValue(staticValue);
         }
       }
 

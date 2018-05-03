@@ -78,7 +78,7 @@ public class MemberValuePropagation {
       DexEncodedField staticField = appInfo.lookupStaticTarget(field.clazz, field);
       if (staticField != null) {
         Value value = code.createValue(valueType, instruction.getLocalInfo());
-        replacement = staticField.staticValue.asConstInstruction(false, value);
+        replacement = staticField.getStaticValue().asConstInstruction(false, value);
       } else {
         throw new CompilationError(field.clazz.toSourceString() + "." + field.name.toString() +
             " used in assumevalues rule does not exist.");

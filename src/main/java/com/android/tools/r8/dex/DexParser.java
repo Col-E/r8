@@ -576,8 +576,6 @@ public class DexParser {
       if (accessFlags.isStatic()) {
         if (staticValues != null && i < staticValues.length) {
           staticValue = staticValues[i];
-        } else {
-          staticValue = DexValue.defaultForType(field.type, dexItemFactory);
         }
       }
       fields[i] = new DexEncodedField(field, accessFlags, fieldAnnotations, staticValue);
