@@ -4,10 +4,10 @@
 package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.utils.StringUtils;
-import java.util.Collections;
-import java.util.LinkedHashSet;
+import com.google.common.collect.ImmutableList;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 
 public abstract class ProguardClassSpecification {
 
@@ -22,16 +22,16 @@ public abstract class ProguardClassSpecification {
     protected ProguardTypeMatcher inheritanceAnnotation;
     protected ProguardTypeMatcher inheritanceClassName;
     protected boolean inheritanceIsExtends = false;
-    protected Set<ProguardMemberRule> memberRules = new LinkedHashSet<>();
+    protected List<ProguardMemberRule> memberRules = new LinkedList<>();
 
     protected Builder() {
     }
 
-    public Set<ProguardMemberRule> getMemberRules() {
+    public List<ProguardMemberRule> getMemberRules() {
       return memberRules;
     }
 
-    public void setMemberRules(Set<ProguardMemberRule> memberRules) {
+    public void setMemberRules(List<ProguardMemberRule> memberRules) {
       this.memberRules = memberRules;
     }
 
@@ -113,7 +113,7 @@ public abstract class ProguardClassSpecification {
 
     protected void matchAllSpecification() {
       setClassNames(ProguardClassNameList.singletonList(ProguardTypeMatcher.defaultAllMatcher()));
-      setMemberRules(Collections.singleton(ProguardMemberRule.defaultKeepAllRule()));
+      setMemberRules(ImmutableList.of(ProguardMemberRule.defaultKeepAllRule()));
     }
   }
 
@@ -126,7 +126,7 @@ public abstract class ProguardClassSpecification {
   private final ProguardTypeMatcher inheritanceAnnotation;
   private final ProguardTypeMatcher inheritanceClassName;
   private final boolean inheritanceIsExtends;
-  private final Set<ProguardMemberRule> memberRules;
+  private final List<ProguardMemberRule> memberRules;
 
   protected ProguardClassSpecification(
       ProguardTypeMatcher classAnnotation,
@@ -138,7 +138,7 @@ public abstract class ProguardClassSpecification {
       ProguardTypeMatcher inheritanceAnnotation,
       ProguardTypeMatcher inheritanceClassName,
       boolean inheritanceIsExtends,
-      Set<ProguardMemberRule> memberRules) {
+      List<ProguardMemberRule> memberRules) {
     this.classAnnotation = classAnnotation;
     this.classAccessFlags = classAccessFlags;
     this.negatedClassAccessFlags = negatedClassAccessFlags;
@@ -152,7 +152,7 @@ public abstract class ProguardClassSpecification {
     this.memberRules = memberRules;
   }
 
-  public Set<ProguardMemberRule> getMemberRules() {
+  public List<ProguardMemberRule> getMemberRules() {
     return memberRules;
   }
 

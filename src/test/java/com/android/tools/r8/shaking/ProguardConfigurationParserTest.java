@@ -30,6 +30,7 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.position.TextPosition;
 import com.android.tools.r8.position.TextRange;
+import com.android.tools.r8.shaking.ProguardConfigurationParser.IdentifierPatternWithWildcards;
 import com.android.tools.r8.utils.AbortException;
 import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.DexInspector;
@@ -46,7 +47,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 class EmptyMainClassForProguardTests {
@@ -205,7 +205,8 @@ public class ProguardConfigurationParserTest extends TestBase {
     assertEquals("some.library.Class", rule.getInheritanceClassName().toString());
     ProguardMemberRule memberRule = rule.getMemberRules().iterator().next();
     assertTrue(memberRule.getAccessFlags().isProtected());
-    assertEquals(ProguardNameMatcher.create("getContents"), memberRule.getName());
+    assertEquals(ProguardNameMatcher.create(
+        IdentifierPatternWithWildcards.withoutWildcards("getContents")), memberRule.getName());
     assertEquals("java.lang.Object[][]", memberRule.getType().toString());
     assertEquals(ProguardMemberType.METHOD, memberRule.getRuleType());
     assertEquals(0, memberRule.getArguments().size());
@@ -1410,10 +1411,12 @@ public class ProguardConfigurationParserTest extends TestBase {
     assertEquals(ProguardKeepRuleType.KEEP, if0.subsequentRule.getType());
     assertEquals("**$D<2>", if0.subsequentRule.getClassNames().toString());
     // TODO(b/73800755): Test <2> matches with expected wildcard: ** after '$R'.
+
+    verifyWithProguard6(proguardConfig);
   }
 
   @Test
-  public void parse_if_nthWildcard_notNumber() throws Exception {
+  public void parse_if_nthWildcard_notNumber_literalN() throws Exception {
     Path proguardConfig = writeTextToTempFile(
         "-if class **$R**",
         "-keep class **D<n>"
@@ -1424,11 +1427,80 @@ public class ProguardConfigurationParserTest extends TestBase {
       parser.parse(proguardConfig);
       fail();
     } catch (AbortException e) {
-      System.out.println(handler.errors.get(0));
       checkDiagnostic(handler.errors, proguardConfig, 2, 13,
           "Use of generics not allowed for java type");
     }
     verifyFailWithProguard6(proguardConfig, "Use of generics not allowed for java type");
+  }
+
+  @Test
+  public void parse_if_nthWildcard_notNumber_asterisk_inClassName() throws Exception {
+    Path proguardConfig = writeTextToTempFile(
+        "-if class **$R**",
+        "-keep class **D<*>"
+    );
+    try {
+      ProguardConfigurationParser parser =
+          new ProguardConfigurationParser(new DexItemFactory(), reporter);
+      parser.parse(proguardConfig);
+      fail();
+    } catch (AbortException e) {
+      checkDiagnostic(handler.errors, proguardConfig, 2, 13,
+          "Use of generics not allowed for java type");
+    }
+    verifyFailWithProguard6(proguardConfig, "Use of generics not allowed for java type");
+  }
+
+  @Test
+  public void parse_if_nthWildcard_notNumber_asterisk_inMemberName() throws Exception {
+    Path proguardConfig = writeTextToTempFile(
+        "-if class **$R**",
+        "-keep class **D<2> {",
+        "  int id<*>;",
+        "}"
+    );
+    ProguardConfigurationParser parser =
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
+    parser.parse(proguardConfig);
+    verifyParserEndsCleanly();
+
+    verifyWithProguard6(proguardConfig);
+  }
+
+  @Test
+  public void parse_if_nestedAngularBrackets_inMemberName() throws Exception {
+    Path proguardConfig = writeTextToTempFile(
+        "-if class **$R**",
+        "-keep class **D<2> {",
+        "  int id<<*>>;",
+        "}"
+    );
+    ProguardConfigurationParser parser =
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
+    parser.parse(proguardConfig);
+    verifyParserEndsCleanly();
+
+    verifyWithProguard6(proguardConfig);
+  }
+
+  @Test
+  public void parse_if_nestedAngularBrackets_outOfRange() throws Exception {
+    Path proguardConfig = writeTextToTempFile(
+        "-if class **$R**",
+        "-keep class **D<2> {",
+        "  int id<<4>>;",  // There are 3 previous referable wildcards in this rule.
+        "}"
+    );
+    try {
+      ProguardConfigurationParser parser =
+          new ProguardConfigurationParser(new DexItemFactory(), reporter);
+      parser.parse(proguardConfig);
+      fail();
+    } catch (AbortException e) {
+      checkDiagnostic(handler.errors, proguardConfig, 4, 2,
+          "Wildcard", "<4>", "invalid");
+    }
+    verifyFailWithProguard6(proguardConfig, "Invalid reference to wildcard (4,");
   }
 
   @Test
@@ -1446,9 +1518,9 @@ public class ProguardConfigurationParserTest extends TestBase {
       checkDiagnostic(handler.errors, proguardConfig, 2, 13,
           "Wildcard", "<0>", "invalid");
     }
+    verifyFailWithProguard6(proguardConfig, "Invalid reference to wildcard (0,");
   }
 
-  @Ignore("b/73800755: verify the range of <n>")
   @Test
   public void parse_if_nthWildcard_outOfRange_tooBig() throws Exception {
     Path proguardConfig = writeTextToTempFile(
@@ -1461,12 +1533,12 @@ public class ProguardConfigurationParserTest extends TestBase {
       parser.parse(proguardConfig);
       fail();
     } catch (AbortException e) {
-      checkDiagnostic(handler.errors, proguardConfig, 1, 1,
+      checkDiagnostic(handler.errors, proguardConfig, 3, 1,
           "Wildcard", "<4>", "invalid");
     }
+    verifyFailWithProguard6(proguardConfig, "Invalid reference to wildcard (4,");
   }
 
-  @Ignore("b/73800755: verify the range of <n>")
   @Test
   public void parse_if_nthWildcard_outOfRange_inIf() throws Exception {
     Path proguardConfig = writeTextToTempFile(
@@ -1479,12 +1551,12 @@ public class ProguardConfigurationParserTest extends TestBase {
       parser.parse(proguardConfig);
       fail();
     } catch (AbortException e) {
-      checkDiagnostic(handler.errors, proguardConfig, 1, 1,
+      checkDiagnostic(handler.errors, proguardConfig, 3, 1,
           "Wildcard", "<2>", "invalid");
     }
+    verifyFailWithProguard6(proguardConfig, "Invalid reference to wildcard (2,");
   }
 
-  @Ignore("b/73800755: verify the range of <n>")
   @Test
   public void parse_if_nthWildcard_not_referable() throws Exception {
     Path proguardConfig = writeTextToTempFile(
@@ -1501,9 +1573,10 @@ public class ProguardConfigurationParserTest extends TestBase {
       parser.parse(proguardConfig);
       fail();
     } catch (AbortException e) {
-      checkDiagnostic(handler.errors, proguardConfig, 1, 1,
+      checkDiagnostic(handler.errors, proguardConfig, 6, 2,
           "Wildcard", "<3>", "invalid");
     }
+    verifyFailWithProguard6(proguardConfig, "Invalid reference to wildcard (3,");
   }
 
   @Test
@@ -1519,8 +1592,9 @@ public class ProguardConfigurationParserTest extends TestBase {
       fail();
     } catch (AbortException e) {
       checkDiagnostic(handler.errors, proguardConfig, 1, 1,
-          "without", "subsequent", "keep");
+          "Expecting", "'-keep'", "after", "'-if'");
     }
+    verifyFailWithProguard6(proguardConfig, "Expecting '-keep' option after '-if' option");
   }
 
   @Test
@@ -1535,8 +1609,9 @@ public class ProguardConfigurationParserTest extends TestBase {
       fail();
     } catch (AbortException e) {
       checkDiagnostic(handler.errors, proguardConfig, 1, 1,
-          "without", "subsequent", "keep");
+          "Expecting", "'-keep'", "after", "'-if'");
     }
+    verifyFailWithProguard6(proguardConfig, "Expecting '-keep' option after '-if' option");
   }
 
   @Test
@@ -1690,9 +1765,35 @@ public class ProguardConfigurationParserTest extends TestBase {
       );
       Path proguardedJar =
           File.createTempFile("proguarded", FileUtils.JAR_EXTENSION, temp.getRoot()).toPath();
-      ToolHelper
-          .runProguard(jarTestClasses(ImmutableList.of(classToKeepForTest)),
-              proguardedJar, ImmutableList.of(proguardConfig, additionalProguardConfig), null);
+      ProcessResult result = ToolHelper.runProguardRaw(
+          jarTestClasses(ImmutableList.of(classToKeepForTest)),
+          proguardedJar,
+          ImmutableList.of(proguardConfig, additionalProguardConfig),
+          null);
+      assertEquals(0, result.exitCode);
+      DexInspector proguardInspector = new DexInspector(readJar(proguardedJar));
+      assertEquals(1, proguardInspector.allClasses().size());
+    }
+  }
+
+  private void verifyWithProguard6(Path proguardConfig) throws Exception {
+    if (isRunProguard()) {
+      // Add a keep rule for the test class as Proguard will fail if the resulting output jar is
+      // empty
+      Class classToKeepForTest = EmptyMainClassForProguardTests.class;
+      Path additionalProguardConfig = writeTextToTempFile(
+          "-keep class " + classToKeepForTest.getCanonicalName() + " {",
+          "  public static void main(java.lang.String[]);",
+          "}"
+      );
+      Path proguardedJar =
+          File.createTempFile("proguarded", FileUtils.JAR_EXTENSION, temp.getRoot()).toPath();
+      ProcessResult result = ToolHelper.runProguard6Raw(
+          jarTestClasses(ImmutableList.of(classToKeepForTest)),
+          proguardedJar,
+          ImmutableList.of(proguardConfig, additionalProguardConfig),
+          null);
+      assertEquals(0, result.exitCode);
       DexInspector proguardInspector = new DexInspector(readJar(proguardedJar));
       assertEquals(1, proguardInspector.allClasses().size());
     }

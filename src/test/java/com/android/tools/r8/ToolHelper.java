@@ -1183,6 +1183,11 @@ public class ToolHelper {
     return result.stdout;
   }
 
+  public static ProcessResult runProguardRaw(Path inJar, Path outJar, List<Path> config, Path map)
+      throws IOException {
+    return runProguardRaw(getProguardScript(), inJar, outJar, config, map);
+  }
+
   public static ProcessResult runProguardRaw(Path inJar, Path outJar, Path config, Path map)
       throws IOException {
     return runProguardRaw(getProguardScript(), inJar, outJar, ImmutableList.of(config), map);
@@ -1201,6 +1206,11 @@ public class ToolHelper {
   public static ProcessResult runProguard6Raw(Path inJar, Path outJar, Path config, Path map)
       throws IOException {
     return runProguardRaw(getProguard6Script(), inJar, outJar, ImmutableList.of(config), map);
+  }
+
+  public static ProcessResult runProguard6Raw(
+      Path inJar, Path outJar, List<Path> config, Path map) throws IOException {
+    return runProguardRaw(getProguard6Script(), inJar, outJar, config, map);
   }
 
   public static ProcessResult runProguard6Raw(

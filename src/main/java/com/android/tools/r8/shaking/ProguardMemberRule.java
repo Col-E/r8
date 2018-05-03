@@ -7,9 +7,14 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.shaking.ProguardConfigurationParser.IdentifierPatternWithWildcards;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 public class ProguardMemberRule {
 
@@ -19,8 +24,8 @@ public class ProguardMemberRule {
     private ProguardAccessFlags accessFlags = new ProguardAccessFlags();
     private ProguardAccessFlags negatedAccessFlags = new ProguardAccessFlags();
     private ProguardMemberType ruleType;
-    private ProguardNameMatcher name;
     private ProguardTypeMatcher type;
+    private ProguardNameMatcher name;
     private List<ProguardTypeMatcher> arguments;
     private ProguardMemberRuleReturnValue returnValue;
 
@@ -50,16 +55,16 @@ public class ProguardMemberRule {
       this.ruleType = ruleType;
     }
 
-    public void setName(String name) {
-      this.name = ProguardNameMatcher.create(name);
-    }
-
     public ProguardTypeMatcher getTypeMatcher() {
       return type;
     }
 
     public void setTypeMatcher(ProguardTypeMatcher type) {
       this.type = type;
+    }
+
+    public void setName(IdentifierPatternWithWildcards identifierPatternWithWildcards) {
+      this.name = ProguardNameMatcher.create(identifierPatternWithWildcards);
     }
 
     public void setArguments(List<ProguardTypeMatcher> arguments) {
@@ -76,8 +81,8 @@ public class ProguardMemberRule {
 
     public ProguardMemberRule build() {
       assert isValid();
-      return new ProguardMemberRule(annotation, accessFlags, negatedAccessFlags, ruleType, name,
-          type, arguments, returnValue);
+      return new ProguardMemberRule(annotation, accessFlags, negatedAccessFlags, ruleType, type,
+          name, arguments, returnValue);
     }
   }
 
@@ -85,8 +90,8 @@ public class ProguardMemberRule {
   private final ProguardAccessFlags accessFlags;
   private final ProguardAccessFlags negatedAccessFlags;
   private final ProguardMemberType ruleType;
-  private final ProguardNameMatcher name;
   private final ProguardTypeMatcher type;
+  private final ProguardNameMatcher name;
   private final List<ProguardTypeMatcher> arguments;
   private final ProguardMemberRuleReturnValue returnValue;
 
@@ -95,17 +100,17 @@ public class ProguardMemberRule {
       ProguardAccessFlags accessFlags,
       ProguardAccessFlags negatedAccessFlags,
       ProguardMemberType ruleType,
-      ProguardNameMatcher name,
       ProguardTypeMatcher type,
+      ProguardNameMatcher name,
       List<ProguardTypeMatcher> arguments,
       ProguardMemberRuleReturnValue returnValue) {
     this.annotation = annotation;
     this.accessFlags = accessFlags;
     this.negatedAccessFlags = negatedAccessFlags;
     this.ruleType = ruleType;
-    this.name = name;
     this.type = type;
-    this.arguments = arguments != null ? ImmutableList.copyOf(arguments) : null;
+    this.name = name;
+    this.arguments = arguments != null ? Collections.unmodifiableList(arguments) : null;
     this.returnValue = returnValue;
   }
 
@@ -132,12 +137,12 @@ public class ProguardMemberRule {
     return ruleType;
   }
 
-  public ProguardNameMatcher getName() {
-    return name;
-  }
-
   public ProguardTypeMatcher getType() {
     return type;
+  }
+
+  public ProguardNameMatcher getName() {
+    return name;
   }
 
   public List<ProguardTypeMatcher> getArguments() {
@@ -261,6 +266,20 @@ public class ProguardMemberRule {
     return false;
   }
 
+  Iterable<String> getWildcards() {
+    return Iterables.concat(
+        annotation != null ? annotation.getWildcards() : ImmutableList.of(),
+        type != null ? type.getWildcards() : ImmutableList.of(),
+        name != null ? name.getWildcards() : ImmutableList.of(),
+        arguments != null
+            ? arguments.stream()
+                .map(ProguardTypeMatcher::getWildcards)
+                .flatMap(it -> StreamSupport.stream(it.spliterator(), false))
+                .collect(Collectors.toList())
+            : ImmutableList.of()
+    );
+  }
+
   @Override
   public boolean equals(Object o) {
     if (!(o instanceof ProguardMemberRule)) {
@@ -296,8 +315,8 @@ public class ProguardMemberRule {
     result = 31 * result + accessFlags.hashCode();
     result = 31 * result + negatedAccessFlags.hashCode();
     result = 31 * result + (ruleType != null ? ruleType.hashCode() : 0);
-    result = 31 * result + (name != null ? name.hashCode() : 0);
     result = 31 * result + (type != null ? type.hashCode() : 0);
+    result = 31 * result + (name != null ? name.hashCode() : 0);
     result = 31 * result + (arguments != null ? arguments.hashCode() : 0);
     return result;
   }

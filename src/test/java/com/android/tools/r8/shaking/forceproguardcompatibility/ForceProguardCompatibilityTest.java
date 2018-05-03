@@ -50,7 +50,6 @@ import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import org.junit.Test;
 
 public class ForceProguardCompatibilityTest extends TestBase {
@@ -157,7 +156,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
       assertEquals(1, classNames.size());
       assertEquals(testClass.getCanonicalName(),
           classNames.asSpecificDexTypes().get(0).toSourceString());
-      Set<ProguardMemberRule> memberRules = configuration.getRules().get(0).getMemberRules();
+      List<ProguardMemberRule> memberRules = configuration.getRules().get(0).getMemberRules();
       assertEquals(1, memberRules.size());
       assertEquals(ProguardMemberType.INIT, memberRules.iterator().next().getRuleType());
     } else {
@@ -279,7 +278,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
         assertEquals(ProguardKeepRuleType.KEEP, rule.getType());
         assertTrue(rule.getModifiers().allowsObfuscation);
         assertTrue(rule.getModifiers().allowsOptimization);
-        Set<ProguardMemberRule> memberRules = rule.getMemberRules();
+        List<ProguardMemberRule> memberRules = rule.getMemberRules();
         ProguardClassNameList classNames = rule.getClassNames();
         assertEquals(1, classNames.size());
         DexType type = classNames.asSpecificDexTypes().get(0);
@@ -295,7 +294,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
         }
       });
       Iterables.filter(rules, ProguardIdentifierNameStringRule.class).forEach(rule -> {
-        Set<ProguardMemberRule> memberRules = rule.getMemberRules();
+        List<ProguardMemberRule> memberRules = rule.getMemberRules();
         ProguardClassNameList classNames = rule.getClassNames();
         assertEquals(1, classNames.size());
         DexType type = classNames.asSpecificDexTypes().get(0);
@@ -388,7 +387,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
         assertEquals(ProguardKeepRuleType.KEEP_CLASS_MEMBERS, rule.getType());
         assertTrue(rule.getModifiers().allowsObfuscation);
         assertTrue(rule.getModifiers().allowsOptimization);
-        Set<ProguardMemberRule> memberRules = rule.getMemberRules();
+        List<ProguardMemberRule> memberRules = rule.getMemberRules();
         ProguardClassNameList classNames = rule.getClassNames();
         assertEquals(1, classNames.size());
         DexType type = classNames.asSpecificDexTypes().get(0);
@@ -403,7 +402,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
         }
       });
       Iterables.filter(rules, ProguardIdentifierNameStringRule.class).forEach(rule -> {
-        Set<ProguardMemberRule> memberRules = rule.getMemberRules();
+        List<ProguardMemberRule> memberRules = rule.getMemberRules();
         ProguardClassNameList classNames = rule.getClassNames();
         assertEquals(1, classNames.size());
         DexType type = classNames.asSpecificDexTypes().get(0);
@@ -504,7 +503,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
         assertEquals(ProguardKeepRuleType.KEEP_CLASS_MEMBERS, rule.getType());
         assertTrue(rule.getModifiers().allowsObfuscation);
         assertTrue(rule.getModifiers().allowsOptimization);
-        Set<ProguardMemberRule> memberRules = rule.getMemberRules();
+        List<ProguardMemberRule> memberRules = rule.getMemberRules();
         ProguardClassNameList classNames = rule.getClassNames();
         assertEquals(1, classNames.size());
         DexType type = classNames.asSpecificDexTypes().get(0);
@@ -519,7 +518,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
       assertTrue(keptFields.containsKey("longField"));
       assertTrue(keptFields.containsKey("objField"));
       Iterables.filter(rules, ProguardIdentifierNameStringRule.class).forEach(rule -> {
-        Set<ProguardMemberRule> memberRules = rule.getMemberRules();
+        List<ProguardMemberRule> memberRules = rule.getMemberRules();
         ProguardClassNameList classNames = rule.getClassNames();
         assertEquals(1, classNames.size());
         DexType type = classNames.asSpecificDexTypes().get(0);
@@ -683,7 +682,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
   private void defaultMethodCompatibilityRules(ProguardConfiguration configuration) {
     assertEquals(1, configuration.getRules().size());
     ProguardConfigurationRule rule = configuration.getRules().get(0);
-    Set<ProguardMemberRule> memberRules = rule.getMemberRules();
+    List<ProguardMemberRule> memberRules = rule.getMemberRules();
     ProguardClassNameList classNames = rule.getClassNames();
     assertEquals(1, classNames.size());
     DexType type = classNames.asSpecificDexTypes().get(0);
@@ -708,7 +707,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
   private void defaultMethod2CompatibilityRules(ProguardConfiguration configuration) {
     assertEquals(1, configuration.getRules().size());
     ProguardConfigurationRule rule = configuration.getRules().get(0);
-    Set<ProguardMemberRule> memberRules = rule.getMemberRules();
+    List<ProguardMemberRule> memberRules = rule.getMemberRules();
     ProguardClassNameList classNames = rule.getClassNames();
     assertEquals(1, classNames.size());
     DexType type = classNames.asSpecificDexTypes().get(0);

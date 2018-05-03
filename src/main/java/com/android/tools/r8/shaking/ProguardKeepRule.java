@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
-import java.util.Set;
+import java.util.List;
 import java.util.function.Consumer;
 
 public class ProguardKeepRule extends ProguardConfigurationRule {
@@ -11,8 +11,8 @@ public class ProguardKeepRule extends ProguardConfigurationRule {
   public static class Builder extends ProguardClassSpecification.Builder {
 
     private ProguardKeepRuleType type;
-    private final ProguardKeepRuleModifiers.Builder modifiersBuilder
-        = ProguardKeepRuleModifiers.builder();
+    private final ProguardKeepRuleModifiers.Builder modifiersBuilder =
+        ProguardKeepRuleModifiers.builder();
 
     protected Builder() {}
 
@@ -44,7 +44,7 @@ public class ProguardKeepRule extends ProguardConfigurationRule {
       ProguardTypeMatcher inheritanceAnnotation,
       ProguardTypeMatcher inheritanceClassName,
       boolean inheritanceIsExtends,
-      Set<ProguardMemberRule> memberRules,
+      List<ProguardMemberRule> memberRules,
       ProguardKeepRuleType type,
       ProguardKeepRuleModifiers modifiers) {
     super(classAnnotation, classAccessFlags, negatedClassAccessFlags, classTypeNegated, classType,

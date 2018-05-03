@@ -3,9 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import static com.android.tools.r8.utils.DescriptorUtils.javaTypeToDescriptor;
+
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.shaking.ProguardConfigurationParser.IdentifierPatternWithWildcards;
+import com.google.common.collect.ImmutableList;
+import java.util.List;
 
 public abstract class ProguardTypeMatcher {
 
@@ -25,6 +29,10 @@ public abstract class ProguardTypeMatcher {
 
   public abstract boolean matches(DexType type);
 
+  protected Iterable<String> getWildcards() {
+    return ImmutableList.of();
+  }
+
   @Override
   public abstract String toString();
 
@@ -32,12 +40,14 @@ public abstract class ProguardTypeMatcher {
     return false;
   }
 
-  public static ProguardTypeMatcher create(String pattern, ClassOrType kind,
+  public static ProguardTypeMatcher create(
+      IdentifierPatternWithWildcards identifierPatternWithWildcards,
+      ClassOrType kind,
       DexItemFactory dexItemFactory) {
-    if (pattern == null) {
+    if (identifierPatternWithWildcards == null || identifierPatternWithWildcards.pattern == null) {
       return null;
     }
-    switch (pattern) {
+    switch (identifierPatternWithWildcards.pattern) {
       case MATCH_ALL_PATTERN:
         return MatchAllTypes.MATCH_ALL_TYPES;
       case MATCH_ANY_ARG_SEQUENCE_PATTERN:
@@ -49,11 +59,11 @@ public abstract class ProguardTypeMatcher {
       case MATCH_BASIC_PATTERN:
         return MatchBasicTypes.MATCH_BASIC_TYPES;
       default:
-        if (!pattern.contains("*") && !pattern.contains("%") && !pattern.contains("?")) {
-          return new MatchSpecificType(
-              dexItemFactory.createType(DescriptorUtils.javaTypeToDescriptor(pattern)));
+        if (identifierPatternWithWildcards.wildcards.isEmpty()) {
+          return new MatchSpecificType(dexItemFactory.createType(
+              javaTypeToDescriptor(identifierPatternWithWildcards.pattern)));
         }
-        return new MatchTypePattern(pattern, kind);
+        return new MatchTypePattern(identifierPatternWithWildcards, kind);
     }
   }
 
@@ -82,6 +92,11 @@ public abstract class ProguardTypeMatcher {
     @Override
     public boolean matches(DexType type) {
       return true;
+    }
+
+    @Override
+    protected Iterable<String> getWildcards() {
+      return ImmutableList.of(MATCH_ALL_PATTERN);
     }
 
     @Override
@@ -150,6 +165,11 @@ public abstract class ProguardTypeMatcher {
     }
 
     @Override
+    protected Iterable<String> getWildcards() {
+      return ImmutableList.of(pattern);
+    }
+
+    @Override
     public String toString() {
       return pattern;
     }
@@ -172,6 +192,11 @@ public abstract class ProguardTypeMatcher {
     @Override
     public boolean matches(DexType type) {
       return type.isPrimitiveType();
+    }
+
+    @Override
+    protected Iterable<String> getWildcards() {
+      return ImmutableList.of(MATCH_BASIC_PATTERN);
     }
 
     @Override
@@ -230,10 +255,13 @@ public abstract class ProguardTypeMatcher {
   private static class MatchTypePattern extends ProguardTypeMatcher {
 
     private final String pattern;
+    private final List<String> wildcards;
     private final ClassOrType kind;
 
-    private MatchTypePattern(String pattern, ClassOrType kind) {
-      this.pattern = pattern;
+    private MatchTypePattern(
+        IdentifierPatternWithWildcards identifierPatternWithWildcards, ClassOrType kind) {
+      this.pattern = identifierPatternWithWildcards.pattern;
+      this.wildcards = identifierPatternWithWildcards.wildcards;
       this.kind = kind;
     }
 
@@ -242,6 +270,11 @@ public abstract class ProguardTypeMatcher {
       // TODO(herhut): Translate pattern to work on descriptors instead.
       String typeName = type.toSourceString();
       return matchClassOrTypeNameImpl(pattern, 0, typeName, 0, kind);
+    }
+
+    @Override
+    protected Iterable<String> getWildcards() {
+      return wildcards;
     }
 
     private static boolean matchClassOrTypeNameImpl(

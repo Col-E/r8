@@ -3,7 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
-import java.util.Set;
+import com.google.common.collect.Iterables;
+import java.util.List;
 
 public class ProguardIfRule extends ProguardKeepRule {
 
@@ -32,7 +33,7 @@ public class ProguardIfRule extends ProguardKeepRule {
       ProguardClassType classType, ProguardClassNameList classNames,
       ProguardTypeMatcher inheritanceAnnotation,
       ProguardTypeMatcher inheritanceClassName, boolean inheritanceIsExtends,
-      Set<ProguardMemberRule> memberRules,
+      List<ProguardMemberRule> memberRules,
       ProguardKeepRule subsequentRule) {
     super(classAnnotation, classAccessFlags, negatedClassAccessFlags, classTypeNegated, classType,
         classNames, inheritanceAnnotation, inheritanceClassName, inheritanceIsExtends, memberRules,
@@ -42,6 +43,11 @@ public class ProguardIfRule extends ProguardKeepRule {
 
   public static Builder builder() {
     return new Builder();
+  }
+
+  @Override
+  protected Iterable<String> getWildcards() {
+    return Iterables.concat(super.getWildcards(), subsequentRule.getWildcards());
   }
 
   @Override

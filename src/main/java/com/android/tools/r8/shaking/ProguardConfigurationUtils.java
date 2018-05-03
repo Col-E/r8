@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.shaking.ProguardConfigurationParser.IdentifierPatternWithWildcards;
 import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import java.util.List;
@@ -30,7 +31,7 @@ public class ProguardConfigurationUtils {
     if (clazz.hasDefaultInitializer()) {
       ProguardMemberRule.Builder memberRuleBuilder = ProguardMemberRule.builder();
       memberRuleBuilder.setRuleType(ProguardMemberType.INIT);
-      memberRuleBuilder.setName("<init>");
+      memberRuleBuilder.setName(IdentifierPatternWithWildcards.withoutWildcards("<init>"));
       memberRuleBuilder.setArguments(ImmutableList.of());
       builder.getMemberRules().add(memberRuleBuilder.build());
     }
@@ -54,7 +55,8 @@ public class ProguardConfigurationUtils {
     ProguardMemberRule.Builder memberRuleBuilder = ProguardMemberRule.builder();
     memberRuleBuilder.setRuleType(ProguardMemberType.FIELD);
     memberRuleBuilder.getAccessFlags().setFlags(field.accessFlags);
-    memberRuleBuilder.setName(field.field.name.toString());
+    memberRuleBuilder.setName(
+        IdentifierPatternWithWildcards.withoutWildcards(field.field.name.toString()));
     memberRuleBuilder.setTypeMatcher(ProguardTypeMatcher.create(field.field.type));
     builder.getMemberRules().add(memberRuleBuilder.build());
     return builder.build();
@@ -77,7 +79,8 @@ public class ProguardConfigurationUtils {
     ProguardMemberRule.Builder memberRuleBuilder = ProguardMemberRule.builder();
     memberRuleBuilder.setRuleType(ProguardMemberType.METHOD);
     memberRuleBuilder.getAccessFlags().setFlags(method.accessFlags);
-    memberRuleBuilder.setName(method.method.name.toString());
+    memberRuleBuilder.setName(
+        IdentifierPatternWithWildcards.withoutWildcards(method.method.name.toString()));
     memberRuleBuilder.setTypeMatcher(ProguardTypeMatcher.create(method.method.proto.returnType));
     List<ProguardTypeMatcher> arguments = Arrays.stream(method.method.proto.parameters.values)
         .map(ProguardTypeMatcher::create)
@@ -96,13 +99,15 @@ public class ProguardConfigurationUtils {
       DexField field = (DexField) item;
       holderType = field.getHolder();
       memberRuleBuilder.setRuleType(ProguardMemberType.FIELD);
-      memberRuleBuilder.setName(field.name.toString());
+      memberRuleBuilder.setName(
+          IdentifierPatternWithWildcards.withoutWildcards(field.name.toString()));
       memberRuleBuilder.setTypeMatcher(ProguardTypeMatcher.create(field.type));
     } else {
       DexMethod method = (DexMethod) item;
       holderType = method.getHolder();
       memberRuleBuilder.setRuleType(ProguardMemberType.METHOD);
-      memberRuleBuilder.setName(method.name.toString());
+      memberRuleBuilder.setName(
+          IdentifierPatternWithWildcards.withoutWildcards(method.name.toString()));
       memberRuleBuilder.setTypeMatcher(ProguardTypeMatcher.create(method.proto.returnType));
       List<ProguardTypeMatcher> arguments = Arrays.stream(method.proto.parameters.values)
           .map(ProguardTypeMatcher::create)
