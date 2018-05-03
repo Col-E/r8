@@ -7,6 +7,7 @@ package com.android.tools.r8.debug;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.Pair;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
@@ -41,8 +42,6 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class ContinuousSteppingTest extends DebugTestBase {
 
-  private static final String CLASS_EXTENSION = ".class";
-  private static final String JAR_EXTENSION = ".jar";
   private static final String MAIN_METHOD_NAME = "main";
 
   // A list of self-contained jars to process (which do not depend on other jar files).
@@ -97,7 +96,7 @@ public class ContinuousSteppingTest extends DebugTestBase {
   private static List<Path> findAllJarsIn(Path root) {
     try {
       return Files.walk(root)
-          .filter(p -> p.toFile().getPath().endsWith(JAR_EXTENSION))
+          .filter(p -> p.toFile().getPath().endsWith(FileUtils.JAR_EXTENSION))
           .collect(Collectors.toList());
     } catch (IOException e) {
       return Collections.emptyList();
@@ -159,8 +158,9 @@ public class ContinuousSteppingTest extends DebugTestBase {
       JarEntry entry;
       while ((entry = jarInputStream.getNextJarEntry()) != null) {
         String entryName = entry.getName();
-        if (entryName.endsWith(CLASS_EXTENSION)) {
-          String className = entryName.substring(0, entryName.length() - CLASS_EXTENSION.length());
+        if (entryName.endsWith(FileUtils.CLASS_EXTENSION)) {
+          String className =
+              entryName.substring(0, entryName.length() - FileUtils.CLASS_EXTENSION.length());
           className = className.replace(DescriptorUtils.DESCRIPTOR_PACKAGE_SEPARATOR,
               DescriptorUtils.JAVA_PACKAGE_SEPARATOR);
           try {
