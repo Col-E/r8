@@ -65,8 +65,7 @@ public class CfFrontendExamplesTest extends TestBase {
     makeTest("regress_37658666.Regress", CfFrontendExamplesTest::compareRegress37658666),
     makeTest("regress_37875803.Regress"),
     makeTest("regress_37955340.Regress"),
-    // TODO(mathiasr): This test fails because we remove ASM's java.lang.Synthetic annotations.
-    // makeTest("regress_62300145.Regress"),
+    makeTest("regress_62300145.Regress"),
     makeTest("regress_64881691.Regress"),
     makeTest("regress_65104300.Regress"),
     makeTest("regress_70703087.Test"),

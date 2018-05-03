@@ -12,6 +12,7 @@ public class DexAnnotationSetRefList extends DexItem {
   private static final DexAnnotationSetRefList theEmptyTypeList = new DexAnnotationSetRefList();
 
   public final DexAnnotationSet[] values;
+  private final int missingParameterAnnotations;
 
   public static DexAnnotationSetRefList empty() {
     return theEmptyTypeList;
@@ -19,11 +20,17 @@ public class DexAnnotationSetRefList extends DexItem {
 
   private DexAnnotationSetRefList() {
     this.values = new DexAnnotationSet[0];
+    this.missingParameterAnnotations = 0;
   }
 
   public DexAnnotationSetRefList(DexAnnotationSet[] values) {
+    this(values, 0);
+  }
+
+  public DexAnnotationSetRefList(DexAnnotationSet[] values, int missingParameterAnnotations) {
     assert values != null && values.length > 0;
     this.values = values;
+    this.missingParameterAnnotations = missingParameterAnnotations;
   }
 
   @Override
@@ -56,5 +63,9 @@ public class DexAnnotationSetRefList extends DexItem {
 
   public boolean isEmpty() {
     return values.length == 0;
+  }
+
+  public int getMissingParameterAnnotations() {
+    return missingParameterAnnotations;
   }
 }

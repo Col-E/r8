@@ -105,6 +105,8 @@ public class JarClassFileReader {
 
   // Hidden ASM "synthetic attribute" bit we need to clear.
   private static final int ACC_SYNTHETIC_ATTRIBUTE = 0x40000;
+  // Descriptor used by ASM for missing annotations.
+  public static final String SYNTHETIC_ANNOTATION = "Ljava/lang/Synthetic;";
 
   private final JarApplicationReader application;
   private final Consumer<DexClass> classConsumer;
@@ -521,7 +523,7 @@ public class JarClassFileReader {
       // with that descriptor. If javac is fixed, the ASM workaround will not be hit and we will
       // never see this non-existing annotation descriptor. ASM uses the same check to make
       // sure to undo their workaround for the javac bug in their MethodWriter.
-      if (desc.equals("Ljava/lang/Synthetic;")) {
+      if (desc.equals(SYNTHETIC_ANNOTATION)) {
         // We can iterate through all the parameters twice. Once for visible and once for
         // invisible parameter annotations. We only record the number of fake parameter
         // annotations once.
@@ -595,7 +597,7 @@ public class JarClassFileReader {
         for (int i = 0; i < parameterAnnotations.size(); i++) {
           sets[i] = createAnnotationSet(parameterAnnotations.get(i));
         }
-        parameterAnnotationSets = new DexAnnotationSetRefList(sets);
+        parameterAnnotationSets = new DexAnnotationSetRefList(sets, fakeParameterAnnotations);
       }
       InternalOptions internalOptions = parent.application.options;
       if (parameterNames != null && internalOptions.canUseParameterNameAnnotations()) {

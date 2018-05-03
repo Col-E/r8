@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationElement;
 import com.android.tools.r8.graph.DexAnnotationSet;
+import com.android.tools.r8.graph.DexAnnotationSetRefList;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedAnnotation;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -32,6 +33,7 @@ import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.DexValue.DexValueType;
 import com.android.tools.r8.graph.DexValue.UnknownDexValue;
 import com.android.tools.r8.graph.InnerClassAttribute;
+import com.android.tools.r8.graph.JarClassFileReader;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.ProguardMapSupplier;
 import com.android.tools.r8.utils.ExceptionUtils;
@@ -250,16 +252,29 @@ public class CfApplicationWriter {
       }
     }
     writeAnnotations(visitor::visitAnnotation, method.annotations.annotations);
-    for (int i = 0; i < method.parameterAnnotations.values.length; i++) {
-      final int iFinal = i;
-      writeAnnotations(
-          (d, vis) -> visitor.visitParameterAnnotation(iFinal, d, vis),
-          method.parameterAnnotations.values[i].annotations);
-    }
+    writeParameterAnnotations(visitor, method.parameterAnnotations);
     if (!method.accessFlags.isAbstract() && !method.accessFlags.isNative()) {
       writeCode(method.getCode(), visitor);
     }
     visitor.visitEnd();
+  }
+
+  private void writeParameterAnnotations(
+      MethodVisitor visitor, DexAnnotationSetRefList parameterAnnotations) {
+    int missingParameterAnnotations = parameterAnnotations.getMissingParameterAnnotations();
+    for (int i = 0; i < missingParameterAnnotations; i++) {
+      AnnotationVisitor av =
+          visitor.visitParameterAnnotation(i, JarClassFileReader.SYNTHETIC_ANNOTATION, false);
+      if (av != null) {
+        av.visitEnd();
+      }
+    }
+    for (int i = 0; i < parameterAnnotations.values.length; i++) {
+      int parameterIndex = i + missingParameterAnnotations;
+      writeAnnotations(
+          (d, vis) -> visitor.visitParameterAnnotation(parameterIndex, d, vis),
+          parameterAnnotations.values[i].annotations);
+    }
   }
 
   private interface AnnotationConsumer {
