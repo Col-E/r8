@@ -1141,8 +1141,13 @@ public class ToolHelper {
   }
 
   public static void runDex2Oat(Path file, Path outFile) throws IOException {
-    // TODO(b/79191363): Support running dex2oat for past android versions.
-    runDex2Oat(file, outFile, DexVm.ART_DEFAULT);
+    DexVm vm = getDexVm();
+    if (vm.isOlderThanOrEqual(DexVm.ART_5_1_1_HOST)) {
+      // TODO(b/79191363): Support running dex2oat for past android versions.
+      // Run default dex2oat for tests on old runtimes.
+      vm = DexVm.ART_DEFAULT;
+    }
+    runDex2Oat(file, outFile, vm);
   }
 
   public static void runDex2Oat(Path file, Path outFile, DexVm vm) throws IOException {
