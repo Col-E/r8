@@ -13,7 +13,6 @@ import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.code.Const4;
 import com.android.tools.r8.code.InvokeDirect;
-import com.android.tools.r8.code.InvokeDirectRange;
 import com.android.tools.r8.code.IputObject;
 import com.android.tools.r8.code.NewInstance;
 import com.android.tools.r8.code.ReturnVoid;
@@ -62,7 +61,7 @@ public class MemberValuePropagationTest {
             DexEncodedMethod encodedMethod = methodSubject.getMethod();
             DexCode code = encodedMethod.getCode().asDexCode();
             assertEquals(4, code.instructions.length);
-            assertTrue(code.instructions[0] instanceof InvokeDirectRange);
+            assertTrue(code.instructions[0] instanceof InvokeDirect);
             assertTrue(code.instructions[1] instanceof NewInstance);
             assertTrue(code.instructions[2] instanceof InvokeDirect);
             assertTrue(code.instructions[3] instanceof ReturnVoid);
@@ -91,7 +90,7 @@ public class MemberValuePropagationTest {
             DexEncodedMethod encodedMethod = methodSubject.getMethod();
             DexCode code = encodedMethod.getCode().asDexCode();
             assertEquals(5, code.instructions.length);
-            assertTrue(code.instructions[0] instanceof InvokeDirectRange);
+            assertTrue(code.instructions[0] instanceof InvokeDirect);
             assertTrue(code.instructions[1] instanceof NewInstance);
             assertTrue(code.instructions[2] instanceof InvokeDirect);
             assertTrue(code.instructions[3] instanceof IputObject);

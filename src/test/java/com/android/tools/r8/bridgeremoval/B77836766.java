@@ -10,7 +10,7 @@ import static org.junit.Assert.assertThat;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.code.InvokeVirtualRange;
+import com.android.tools.r8.code.InvokeVirtual;
 import com.android.tools.r8.code.ReturnVoid;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.jasmin.JasminBuilder;
@@ -144,20 +144,16 @@ public class B77836766 extends TestBase {
         cls2Subject.method("void", "foo", ImmutableList.of("java.lang.Integer"));
     assertThat(fooInCls2, isPresent());
     DexCode code = fooInCls2.getMethod().getCode().asDexCode();
-    checkInstructions(code, ImmutableList.of(
-        InvokeVirtualRange.class,
-        ReturnVoid.class));
-    InvokeVirtualRange invoke = (InvokeVirtualRange) code.instructions[0];
+    checkInstructions(code, ImmutableList.of(InvokeVirtual.class, ReturnVoid.class));
+    InvokeVirtual invoke = (InvokeVirtual) code.instructions[0];
     assertEquals(absSubject.getDexClass().type, invoke.getMethod().getHolder());
 
     MethodSubject fooInCls1 =
         cls1Subject.method("void", "foo", ImmutableList.of("java.lang.String"));
     assertThat(fooInCls1, isPresent());
     code = fooInCls1.getMethod().getCode().asDexCode();
-    checkInstructions(code, ImmutableList.of(
-        InvokeVirtualRange.class,
-        ReturnVoid.class));
-    invoke = (InvokeVirtualRange) code.instructions[0];
+    checkInstructions(code, ImmutableList.of(InvokeVirtual.class, ReturnVoid.class));
+    invoke = (InvokeVirtual) code.instructions[0];
     assertEquals(absSubject.getDexClass().type, invoke.getMethod().getHolder());
   }
 
@@ -254,20 +250,16 @@ public class B77836766 extends TestBase {
         cls2Subject.method("void", "bar", ImmutableList.of("java.lang.String"));
     assertThat(barInCls2, isPresent());
     DexCode code = barInCls2.getMethod().getCode().asDexCode();
-    checkInstructions(code, ImmutableList.of(
-        InvokeVirtualRange.class,
-        ReturnVoid.class));
-    InvokeVirtualRange invoke = (InvokeVirtualRange) code.instructions[0];
+    checkInstructions(code, ImmutableList.of(InvokeVirtual.class, ReturnVoid.class));
+    InvokeVirtual invoke = (InvokeVirtual) code.instructions[0];
     assertEquals(baseSubject.getDexClass().type, invoke.getMethod().getHolder());
 
     MethodSubject fooInCls1 =
         cls1Subject.method("void", "foo", ImmutableList.of("java.lang.Integer"));
     assertThat(fooInCls1, isPresent());
     code = fooInCls1.getMethod().getCode().asDexCode();
-    checkInstructions(code, ImmutableList.of(
-        InvokeVirtualRange.class,
-        ReturnVoid.class));
-    invoke = (InvokeVirtualRange) code.instructions[0];
+    checkInstructions(code, ImmutableList.of(InvokeVirtual.class, ReturnVoid.class));
+    invoke = (InvokeVirtual) code.instructions[0];
     assertEquals(baseSubject.getDexClass().type, invoke.getMethod().getHolder());
   }
 
@@ -352,10 +344,8 @@ public class B77836766 extends TestBase {
         subSubject.method("void", "bar", ImmutableList.of("java.lang.String"));
     assertThat(barInSub, isPresent());
     DexCode code = barInSub.getMethod().getCode().asDexCode();
-    checkInstructions(code, ImmutableList.of(
-        InvokeVirtualRange.class,
-        ReturnVoid.class));
-    InvokeVirtualRange invoke = (InvokeVirtualRange) code.instructions[0];
+    checkInstructions(code, ImmutableList.of(InvokeVirtual.class, ReturnVoid.class));
+    InvokeVirtual invoke = (InvokeVirtual) code.instructions[0];
     assertEquals(baseSubject.getDexClass().type, invoke.getMethod().getHolder());
   }
 
@@ -428,10 +418,8 @@ public class B77836766 extends TestBase {
         baseSubject.method("void", "bar", ImmutableList.of("java.lang.String"));
     assertThat(barInSub, isPresent());
     DexCode code = barInSub.getMethod().getCode().asDexCode();
-    checkInstructions(code, ImmutableList.of(
-        InvokeVirtualRange.class,
-        ReturnVoid.class));
-    InvokeVirtualRange invoke = (InvokeVirtualRange) code.instructions[0];
+    checkInstructions(code, ImmutableList.of(InvokeVirtual.class, ReturnVoid.class));
+    InvokeVirtual invoke = (InvokeVirtual) code.instructions[0];
     assertEquals(baseSubject.getDexClass().type, invoke.getMethod().getHolder());
   }
 

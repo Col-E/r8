@@ -14,8 +14,8 @@ import com.android.tools.r8.code.CheckCast;
 import com.android.tools.r8.code.Const4;
 import com.android.tools.r8.code.ConstString;
 import com.android.tools.r8.code.IgetObject;
-import com.android.tools.r8.code.InvokeDirectRange;
-import com.android.tools.r8.code.InvokeVirtualRange;
+import com.android.tools.r8.code.InvokeDirect;
+import com.android.tools.r8.code.InvokeVirtual;
 import com.android.tools.r8.code.NewArray;
 import com.android.tools.r8.code.NewInstance;
 import com.android.tools.r8.code.ReturnVoid;
@@ -57,7 +57,7 @@ public class CheckCastRemovalTest extends JasminTestBase {
 
     checkInstructions(
         method.getCode().asDexCode(),
-        ImmutableList.of(NewInstance.class, InvokeDirectRange.class, ReturnVoid.class));
+        ImmutableList.of(NewInstance.class, InvokeDirect.class, ReturnVoid.class));
 
     checkRuntime(builder, app, CLASS_NAME);
   }
@@ -96,7 +96,7 @@ public class CheckCastRemovalTest extends JasminTestBase {
 
     checkInstructions(
         method.getCode().asDexCode(),
-        ImmutableList.of(NewInstance.class, InvokeDirectRange.class, ReturnVoid.class));
+        ImmutableList.of(NewInstance.class, InvokeDirect.class, ReturnVoid.class));
 
     checkRuntime(builder, app, CLASS_NAME);
   }
@@ -137,8 +137,7 @@ public class CheckCastRemovalTest extends JasminTestBase {
     DexCode code = method.getCode().asDexCode();
     checkInstructions(
         code,
-        ImmutableList.of(
-            NewInstance.class, InvokeDirectRange.class, CheckCast.class, ReturnVoid.class));
+        ImmutableList.of(NewInstance.class, InvokeDirect.class, CheckCast.class, ReturnVoid.class));
     CheckCast cast = (CheckCast) code.instructions[2];
     assertEquals("C", cast.getType().toString());
 
@@ -184,7 +183,7 @@ public class CheckCastRemovalTest extends JasminTestBase {
             Const4.class,
             AputObject.class,
             AgetObject.class,
-            InvokeVirtualRange.class,
+            InvokeVirtual.class,
             ReturnVoid.class));
 
     checkRuntime(builder, app, CLASS_NAME);

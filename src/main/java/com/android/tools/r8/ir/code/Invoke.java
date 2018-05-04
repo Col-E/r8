@@ -103,7 +103,7 @@ public abstract class Invoke extends Instruction {
   }
 
   protected int argumentRegisterValue(int i, DexBuilder builder) {
-    assert needsRangedInvoke();
+    assert needsRangedInvoke(builder);
     if (i < arguments().size()) {
       // If argument values flow into ranged invokes, all the ranged invoke arguments
       // are arguments to this method in order. Therefore, we use the incoming registers
@@ -116,7 +116,7 @@ public abstract class Invoke extends Instruction {
   }
 
   protected int fillArgumentRegisters(DexBuilder builder, int[] registers) {
-    assert !needsRangedInvoke();
+    assert !needsRangedInvoke(builder);
     int i = 0;
     for (Value value : arguments()) {
       int register = builder.allocatedRegister(value, getNumber());
@@ -198,12 +198,25 @@ public abstract class Invoke extends Instruction {
     return true;
   }
 
-  protected boolean needsRangedInvoke() {
+  protected boolean needsRangedInvoke(DexBuilder builder) {
+    if (requiredArgumentRegisters() > 5) {
+      // No way around using an invoke-range instruction.
+      return true;
+    }
     // By using an invoke-range instruction when there is only one argument, we avoid having to
     // satisfy the constraint that the argument register(s) must fit in 4 bits.
-    return arguments().size() == 1
-        || requiredArgumentRegisters() > 5
-        || argumentsAreConsecutiveInputArguments();
+    boolean registersGuaranteedToBeConsecutive =
+        arguments().size() == 1 || argumentsAreConsecutiveInputArguments();
+    if (!registersGuaranteedToBeConsecutive) {
+      // No way that we will need an invoke-range.
+      return false;
+    }
+    // If we could use an invoke-range instruction, but all the registers fit in 4 bits, then we
+    // use a non-range invoke.
+    assert argumentsConsecutive(builder);
+    int registerStart = builder.argumentOrAllocateRegister(arguments().get(0), getNumber());
+    int registerEnd = registerStart + requiredArgumentRegisters() - 1;
+    return registerEnd > Constants.U4BIT_MAX;
   }
 
   @Override
