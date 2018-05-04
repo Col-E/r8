@@ -48,10 +48,7 @@ public class BasicBlock {
       assert instruction.getBlock() == this;
       assert !instruction.isArgument() || argumentsAllowed;
       assert !instruction.isDebugLocalRead() || !instruction.getDebugValues().isEmpty();
-      // TODO(b/79186787): Ensure DEX backend inserts Move *after* arguments.
-      if (!(instruction.isArgument()
-          || instruction.isMove()
-          || instruction.isDebugLocalsChange())) {
+      if (!instruction.isArgument()) {
         argumentsAllowed = false;
       }
     }
