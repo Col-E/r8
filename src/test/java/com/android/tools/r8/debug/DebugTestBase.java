@@ -390,12 +390,28 @@ public abstract class DebugTestBase {
     return inspect(t -> t.checkLocal(localName));
   }
 
+  protected final JUnit3Wrapper.Command checkLocals(String... localNames) {
+    return inspect(t -> {
+      for (String str : localNames) {
+        t.checkLocal(str);
+      }
+    });
+  }
+
   protected final JUnit3Wrapper.Command checkLocal(String localName, Value expectedValue) {
     return inspect(t -> t.checkLocal(localName, expectedValue));
   }
 
   protected final JUnit3Wrapper.Command checkNoLocal(String localName) {
     return inspect(t -> t.checkNoLocal(localName));
+  }
+
+  protected final JUnit3Wrapper.Command checkNoLocals(String... localNames) {
+    return inspect(t -> {
+      for (String str : localNames) {
+        t.checkNoLocal(str);
+      }
+    });
   }
 
   protected final JUnit3Wrapper.Command checkNoLocal() {
