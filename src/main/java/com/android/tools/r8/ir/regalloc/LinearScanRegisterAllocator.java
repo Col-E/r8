@@ -125,7 +125,9 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   // Mapping from basic blocks to the set of values live at entry to that basic block.
   private Map<BasicBlock, Set<Value>> liveAtEntrySets;
   // The value of the first argument, or null if the method has no arguments.
-  private Value firstArgumentValue;
+  protected Value firstArgumentValue;
+  // The value of the last argument, or null if the method has no arguments.
+  private Value lastArgumentValue;
 
   // The set of registers that are free for allocation.
   private TreeSet<Integer> freeRegisters = new TreeSet<>();
@@ -2511,7 +2513,8 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       Invoke invoke, PriorityQueue<Move> insertAtDefinition, InstructionListIterator insertAt) {
     Move move = insertAtDefinition.poll();
     // Rewind instruction iterator to the position where the first move needs to be inserted.
-    Instruction previousDefinition = move.src().definition;
+    Instruction previousDefinition =
+        move.src().isArgument() ? lastArgumentValue.definition : move.src().definition;
     while (insertAt.peekPrevious() != previousDefinition) {
       insertAt.previous();
     }
@@ -2519,7 +2522,8 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     insertAt.add(move);
     while (!insertAtDefinition.isEmpty()) {
       move = insertAtDefinition.poll();
-      Instruction currentDefinition = move.src().definition;
+      Instruction currentDefinition =
+          move.src().isArgument() ? lastArgumentValue.definition : move.src().definition;
       assert currentDefinition.getNumber() >= previousDefinition.getNumber();
       if (currentDefinition.getNumber() > previousDefinition.getNumber()) {
         // Move the instruction iterator forward to where this move needs to be inserted.
@@ -2572,6 +2576,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
         last.getLiveIntervals().link(next.getLiveIntervals());
         last = next;
       }
+      lastArgumentValue = last;
     }
   }
 

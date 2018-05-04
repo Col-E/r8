@@ -10,6 +10,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.ir.code.Value;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -119,17 +120,33 @@ class SpillMoveSet {
    */
   public int scheduleAndInsertMoves(int tempRegister) {
     for (BasicBlock block : code.blocks) {
-      InstructionListIterator it = block.listIterator();
-      while (it.hasNext()) {
-        Instruction instruction = it.next();
+      InstructionListIterator insertAt = block.listIterator();
+      if (block == code.blocks.getFirst()) {
+        // Move insertAt iterator to the first non-argument, such that moves for the arguments will
+        // be inserted after the last argument.
+        while (insertAt.hasNext() && insertAt.peekNext().isArgument()) {
+          insertAt.next();
+        }
+        // Generate moves for each argument.
+        for (Value argumentValue = allocator.firstArgumentValue;
+            argumentValue != null;
+            argumentValue = argumentValue.getNextConsecutive()) {
+          Instruction instruction = argumentValue.definition;
+          int number = instruction.getNumber();
+          if (needsMovesBeforeInstruction(number)) {
+            scheduleMovesBeforeInstruction(tempRegister, instruction, insertAt);
+          }
+        }
+      }
+
+      while (insertAt.hasNext()) {
+        Instruction instruction = insertAt.peekNext();
+        assert !instruction.isArgument();
         int number = instruction.getNumber();
         if (needsMovesBeforeInstruction(number)) {
-          // Move back so moves are inserted before the instruction.
-          it.previous();
-          scheduleMovesBeforeInstruction(tempRegister, number, it);
-          // Move past the instruction again.
-          it.next();
+          scheduleMovesBeforeInstruction(tempRegister, instruction, insertAt);
         }
+        insertAt.next();
       }
     }
     return usedTempRegisters;
@@ -218,14 +235,15 @@ class SpillMoveSet {
   }
 
   private void scheduleMovesBeforeInstruction(
-      int tempRegister, int instruction, InstructionListIterator insertAt) {
+      int tempRegister, Instruction instruction, InstructionListIterator insertAt) {
+    int number = instruction.getNumber();
 
     Position position;
     if (insertAt.hasPrevious() && insertAt.peekPrevious().isMoveException()) {
       position = insertAt.peekPrevious().getPosition();
     } else {
       Instruction next = insertAt.peekNext();
-      assert next.getNumber() == instruction;
+      assert next.getNumber() == number || instruction.isArgument();
       position = next.getPosition();
       if (position.isNone() && next.isGoto()) {
         position = next.asGoto().getTarget().getPosition();
@@ -234,17 +252,17 @@ class SpillMoveSet {
 
     // Spill and restore moves for the incoming edge.
     Set<SpillMove> inMoves =
-        instructionToInMoves.computeIfAbsent(instruction - 1, (k) -> new LinkedHashSet<>());
+        instructionToInMoves.computeIfAbsent(number - 1, (k) -> new LinkedHashSet<>());
     removeArgumentRestores(inMoves);
 
     // Spill and restore moves for the outgoing edge.
     Set<SpillMove> outMoves =
-        instructionToOutMoves.computeIfAbsent(instruction - 1, (k) -> new LinkedHashSet<>());
+        instructionToOutMoves.computeIfAbsent(number - 1, (k) -> new LinkedHashSet<>());
     removeArgumentRestores(outMoves);
 
     // Get the phi moves for this instruction and schedule them with the out going spill moves.
     Set<SpillMove> phiMoves =
-        instructionToPhiMoves.computeIfAbsent(instruction - 1, (k) -> new LinkedHashSet<>());
+        instructionToPhiMoves.computeIfAbsent(number - 1, (k) -> new LinkedHashSet<>());
 
     // Remove/rewrite moves that we can guarantee will not be needed.
     pruneParallelMoveSets(inMoves, outMoves, phiMoves);
