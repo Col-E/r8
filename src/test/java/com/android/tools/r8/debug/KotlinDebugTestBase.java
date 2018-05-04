@@ -4,6 +4,9 @@
 
 package com.android.tools.r8.debug;
 
+import com.android.tools.r8.ToolHelper;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 import org.apache.harmony.jpda.tests.framework.jdwp.Frame.Variable;
