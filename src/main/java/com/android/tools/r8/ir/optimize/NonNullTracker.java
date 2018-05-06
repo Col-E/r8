@@ -128,7 +128,7 @@ public class NonNullTracker {
         // propagated through dominance.
         Set<Instruction> users = knownToBeNonNullValue.uniqueUsers();
         Set<Instruction> dominatedUsers = Sets.newIdentityHashSet();
-        Map<Phi, IntList> dominatedPhiUsersWithPotisions = new IdentityHashMap<>();
+        Map<Phi, IntList> dominatedPhiUsersWithPositions = new IdentityHashMap<>();
         DominatorTree dominatorTree = new DominatorTree(code);
         Set<BasicBlock> dominatedBlocks = Sets.newIdentityHashSet();
         for (BasicBlock dominatee : dominatorTree.dominatedBlocks(blockWithNonNullInstruction)) {
@@ -151,11 +151,11 @@ public class NonNullTracker {
           IntList dominatedPredecessorIndexes =
               findDominatedPredecessorIndexesInPhi(user, knownToBeNonNullValue, dominatedBlocks);
           if (!dominatedPredecessorIndexes.isEmpty()) {
-            dominatedPhiUsersWithPotisions.put(user, dominatedPredecessorIndexes);
+            dominatedPhiUsersWithPositions.put(user, dominatedPredecessorIndexes);
           }
         }
         knownToBeNonNullValue.replaceSelectiveUsers(
-            nonNullValue, dominatedUsers, dominatedPhiUsersWithPotisions);
+            nonNullValue, dominatedUsers, dominatedPhiUsersWithPositions);
       }
 
       // Add non-null on top of the successor block if the current block ends with a null check.
