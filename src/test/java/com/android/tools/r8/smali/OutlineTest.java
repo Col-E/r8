@@ -18,7 +18,6 @@ import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.InvokeStatic;
 import com.android.tools.r8.code.InvokeStaticRange;
 import com.android.tools.r8.code.InvokeVirtual;
-import com.android.tools.r8.code.InvokeVirtualRange;
 import com.android.tools.r8.code.MoveResult;
 import com.android.tools.r8.code.MoveResultWide;
 import com.android.tools.r8.code.Return;
@@ -557,7 +556,7 @@ public class OutlineTest extends SmaliTestBase {
         InvokeStatic invoke = (InvokeStatic) mainCode.instructions[4];
         assertTrue(isOutlineMethodName(invoke.getMethod().qualifiedName()));
       } else if (i == 3) {
-        InvokeStaticRange invoke = (InvokeStaticRange) mainCode.instructions[1];
+        InvokeStatic invoke = (InvokeStatic) mainCode.instructions[1];
         assertTrue(isOutlineMethodName(invoke.getMethod().qualifiedName()));
       } else {
         assert i == 4 || i == 5;
@@ -852,7 +851,7 @@ public class OutlineTest extends SmaliTestBase {
     List<DexType> r = new ArrayList<>();
     for (int i = 0; i < clazz.getDexClass().directMethods().length; i++) {
       if (clazz.getDexClass().directMethods()[i].getCode().asDexCode().instructions[0]
-          instanceof InvokeVirtualRange) {
+          instanceof InvokeVirtual) {
         r.add(clazz.getDexClass().directMethods()[i].method.proto.returnType);
       }
     }
@@ -1098,9 +1097,9 @@ public class OutlineTest extends SmaliTestBase {
     DexEncodedMethod method = getMethod(processedApplication, signature);
     DexCode code = method.getCode().asDexCode();
     assertEquals(2, code.instructions.length);
-    assertTrue(code.instructions[0] instanceof InvokeStaticRange);
+    assertTrue(code.instructions[0] instanceof InvokeStatic);
     assertTrue(code.instructions[1] instanceof ReturnObject);
-    InvokeStaticRange invoke = (InvokeStaticRange) code.instructions[0];
+    InvokeStatic invoke = (InvokeStatic) code.instructions[0];
     assertEquals(firstOutlineMethodName(), invoke.getMethod().qualifiedName());
 
     // Run code and check result.
@@ -1302,9 +1301,9 @@ public class OutlineTest extends SmaliTestBase {
     DexEncodedMethod method = getMethod(processedApplication, signature);
     DexCode code = method.getCode().asDexCode();
     assertEquals(2, code.instructions.length);
-    assertTrue(code.instructions[0] instanceof InvokeStaticRange);
+    assertTrue(code.instructions[0] instanceof InvokeStatic);
     assertTrue(code.instructions[1] instanceof ReturnVoid);
-    InvokeStaticRange invoke = (InvokeStaticRange) code.instructions[0];
+    InvokeStatic invoke = (InvokeStatic) code.instructions[0];
     assertEquals(firstOutlineMethodName(), invoke.getMethod().qualifiedName());
 
     // Run code and check result.

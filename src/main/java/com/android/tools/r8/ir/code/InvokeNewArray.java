@@ -56,7 +56,7 @@ public class InvokeNewArray extends Invoke {
     com.android.tools.r8.code.Instruction instruction;
     int argumentRegisters = requiredArgumentRegisters();
     builder.requestOutgoingRegisters(argumentRegisters);
-    if (needsRangedInvoke()) {
+    if (needsRangedInvoke(builder)) {
       assert argumentsConsecutive(builder);
       int firstRegister = argumentRegisterValue(0, builder);
       instruction = new FilledNewArrayRange(firstRegister, argumentRegisters, type);

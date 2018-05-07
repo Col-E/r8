@@ -13,7 +13,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.VmTestRunner;
-import com.android.tools.r8.code.InvokeDirectRange;
+import com.android.tools.r8.code.InvokeDirect;
 import com.android.tools.r8.code.IputObject;
 import com.android.tools.r8.code.ReturnVoid;
 import com.android.tools.r8.graph.DexCode;
@@ -110,11 +110,8 @@ public class B76025099 extends TestBase {
     MethodSubject init = impl.init(ImmutableList.of("java.lang.String"));
     assertThat(init, isPresent());
     DexCode dexCode = init.getMethod().getCode().asDexCode();
-    checkInstructions(dexCode, ImmutableList.of(
-        InvokeDirectRange.class,
-        IputObject.class,
-        ReturnVoid.class
-    ));
+    checkInstructions(
+        dexCode, ImmutableList.of(InvokeDirect.class, IputObject.class, ReturnVoid.class));
     IputObject iput = (IputObject) dexCode.instructions[1];
     DexField fld = iput.getField();
     assertEquals("name", fld.name.toString());
