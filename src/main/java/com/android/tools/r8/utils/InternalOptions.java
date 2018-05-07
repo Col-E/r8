@@ -596,4 +596,13 @@ public class InternalOptions {
   public boolean canHaveMul2AddrBug() {
     return minApiLevel < AndroidApiLevel.M.getLevel();
   }
+
+  // Some Marshmallow VMs create an incorrect doubly-linked list of instructions. When the VM
+  // attempts to create a fixup for a Cortex 53 long add/sub issue, it may diverge due to the cyclic
+  // list.
+  //
+  // See b/77842465.
+  public boolean canHaveDex2OatLinkedListBug() {
+    return minApiLevel < AndroidApiLevel.N.getLevel();
+  }
 }
