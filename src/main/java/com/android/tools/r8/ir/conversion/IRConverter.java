@@ -25,8 +25,14 @@ import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.analysis.constant.SparseConditionalConstantPropagation;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeEnvironment;
+import com.android.tools.r8.ir.code.AlwaysMaterializingDefinition;
+import com.android.tools.r8.ir.code.AlwaysMaterializingUser;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.InstructionListIterator;
+import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import com.android.tools.r8.ir.desugar.StringConcatRewriter;
@@ -759,6 +765,7 @@ public class IRConverter {
     // Always perform dead code elimination before register allocation. The register allocator
     // does not allow dead code (to make sure that we do not waste registers for unneeded values).
     DeadCodeRemover.removeDeadCode(code, codeRewriter, options);
+    materializeInstructionBeforeLongOperationsWorkaround(code, options);
     LinearScanRegisterAllocator registerAllocator = new LinearScanRegisterAllocator(code, options);
     registerAllocator.allocateRegisters(options.debug);
     printMethod(code, "After register allocation (non-SSA)");
@@ -772,6 +779,65 @@ public class IRConverter {
           method.toSourceString(), code);
     }
     return registerAllocator;
+  }
+
+  private static void materializeInstructionBeforeLongOperationsWorkaround(
+      IRCode code, InternalOptions options) {
+    if (!options.canHaveDex2OatLinkedListBug()) {
+      return;
+    }
+    for (BasicBlock block : code.blocks) {
+      InstructionListIterator it = block.listIterator();
+      Instruction firstMaterializing =
+          it.nextUntil(IRConverter::isMaterializingInstructionOnArtArmVersionM);
+      if (needsInstructionBeforeLongOperation(firstMaterializing)) {
+        ensureInstructionBeforeLongOperation(code, block, firstMaterializing, it);
+      }
+    }
+  }
+
+  private static void ensureInstructionBeforeLongOperation(
+      IRCode code, BasicBlock block, Instruction firstMaterializing, InstructionListIterator it) {
+    // Force materialize a constant-zero before the long operation.
+    Instruction check = it.previous();
+    assert firstMaterializing == check;
+    Value fixitValue = code.createValue(ValueType.INT);
+    // Forced definition of const-zero
+    Instruction fixitDefinition = new AlwaysMaterializingDefinition(fixitValue);
+    fixitDefinition.setBlock(block);
+    fixitDefinition.setPosition(firstMaterializing.getPosition());
+    it.add(fixitDefinition);
+    // Forced user of the forced definition to ensure it has a user and thus live range.
+    Instruction fixitUser = new AlwaysMaterializingUser(fixitValue);
+    fixitUser.setBlock(block);
+    it.add(fixitUser);
+  }
+
+  private static boolean needsInstructionBeforeLongOperation(Instruction instruction) {
+    // The cortex fixup will only trigger on long sub and long add instructions.
+    if (!((instruction.isAdd() || instruction.isSub()) && instruction.outType().isWide())) {
+      return false;
+    }
+    // If the block with the instruction is a fallthrough block, then it can't end up being
+    // preceded by the incorrectly linked prologue/epilogue..
+    BasicBlock block = instruction.getBlock();
+    for (BasicBlock pred : block.getPredecessors()) {
+      if (pred.exit().fallthroughBlock() == block) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private static boolean isMaterializingInstructionOnArtArmVersionM(Instruction instruction) {
+    return !instruction.isDebugInstruction()
+        && !instruction.isMove()
+        && !isPossiblyNonMaterializingLongOperationOnArtArmVersionM(instruction);
+  }
+
+  private static boolean isPossiblyNonMaterializingLongOperationOnArtArmVersionM(
+      Instruction instruction) {
+    return (instruction.isMul() || instruction.isDiv()) && instruction.outType().isWide();
   }
 
   private void printC1VisualizerHeader(DexEncodedMethod method) {
