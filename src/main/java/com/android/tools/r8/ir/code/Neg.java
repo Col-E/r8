@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.code.CfNeg;
 import com.android.tools.r8.code.NegDouble;
 import com.android.tools.r8.code.NegFloat;
 import com.android.tools.r8.code.NegInt;
@@ -11,9 +12,9 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.analysis.constant.Bottom;
 import com.android.tools.r8.ir.analysis.constant.ConstLatticeElement;
 import com.android.tools.r8.ir.analysis.constant.LatticeElement;
+import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import java.util.function.Function;
-import org.objectweb.asm.Opcodes;
 
 public class Neg extends Unop {
 
@@ -99,18 +100,7 @@ public class Neg extends Unop {
   }
 
   @Override
-  public int getCfOpcode() {
-    switch (type) {
-      case INT:
-        return Opcodes.INEG;
-      case FLOAT:
-        return Opcodes.FNEG;
-      case LONG:
-        return Opcodes.LNEG;
-      case DOUBLE:
-        return Opcodes.DNEG;
-      default:
-        throw new Unreachable("Unexpected type: " + type);
-    }
+  public void buildCf(CfBuilder builder) {
+    builder.add(new CfNeg(type));
   }
 }

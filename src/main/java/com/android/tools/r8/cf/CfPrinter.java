@@ -3,11 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.cf;
 
+import com.android.tools.r8.cf.code.CfArithmeticBinop;
 import com.android.tools.r8.cf.code.CfArrayLength;
 import com.android.tools.r8.cf.code.CfArrayLoad;
 import com.android.tools.r8.cf.code.CfArrayStore;
-import com.android.tools.r8.cf.code.CfBinop;
 import com.android.tools.r8.cf.code.CfCheckCast;
+import com.android.tools.r8.cf.code.CfCmp;
 import com.android.tools.r8.cf.code.CfConstClass;
 import com.android.tools.r8.cf.code.CfConstMethodHandle;
 import com.android.tools.r8.cf.code.CfConstMethodType;
@@ -27,11 +28,14 @@ import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.cf.code.CfInvokeDynamic;
 import com.android.tools.r8.cf.code.CfLabel;
 import com.android.tools.r8.cf.code.CfLoad;
+import com.android.tools.r8.cf.code.CfLogicalBinop;
 import com.android.tools.r8.cf.code.CfMonitor;
 import com.android.tools.r8.cf.code.CfMultiANewArray;
+import com.android.tools.r8.cf.code.CfNeg;
 import com.android.tools.r8.cf.code.CfNew;
 import com.android.tools.r8.cf.code.CfNewArray;
 import com.android.tools.r8.cf.code.CfNop;
+import com.android.tools.r8.cf.code.CfNumberConversion;
 import com.android.tools.r8.cf.code.CfPosition;
 import com.android.tools.r8.cf.code.CfReturn;
 import com.android.tools.r8.cf.code.CfReturnVoid;
@@ -41,7 +45,6 @@ import com.android.tools.r8.cf.code.CfSwitch;
 import com.android.tools.r8.cf.code.CfSwitch.Kind;
 import com.android.tools.r8.cf.code.CfThrow;
 import com.android.tools.r8.cf.code.CfTryCatch;
-import com.android.tools.r8.cf.code.CfUnop;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.CfCode.LocalVariableInfo;
@@ -230,12 +233,24 @@ public class CfPrinter {
     print(monitor.getType() == Monitor.Type.ENTER ? "monitorenter" : "monitorexit");
   }
 
-  public void print(CfBinop binop) {
-    print(opcodeName(binop.getOpcode()));
+  public void print(CfArithmeticBinop arithmeticBinop) {
+    print(opcodeName(arithmeticBinop.getAsmOpcode()));
   }
 
-  public void print(CfUnop unop) {
-    print(opcodeName(unop.getOpcode()));
+  public void print(CfCmp cmp) {
+    print(opcodeName(cmp.getAsmOpcode()));
+  }
+
+  public void print(CfLogicalBinop logicalBinop) {
+    print(opcodeName(logicalBinop.getAsmOpcode()));
+  }
+
+  public void print(CfNeg neg) {
+    print(opcodeName(neg.getAsmOpcode()));
+  }
+
+  public void print(CfNumberConversion numberConversion) {
+    print(opcodeName(numberConversion.getAsmOpcode()));
   }
 
   public void print(CfConstString constString) {

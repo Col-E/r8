@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.code.CfArithmeticBinop;
 import com.android.tools.r8.code.DivDouble;
 import com.android.tools.r8.code.DivDouble2Addr;
 import com.android.tools.r8.code.DivFloat;
@@ -13,11 +14,9 @@ import com.android.tools.r8.code.DivIntLit16;
 import com.android.tools.r8.code.DivIntLit8;
 import com.android.tools.r8.code.DivLong;
 import com.android.tools.r8.code.DivLong2Addr;
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.analysis.constant.Bottom;
 import com.android.tools.r8.ir.analysis.constant.LatticeElement;
 import java.util.function.Function;
-import org.objectweb.asm.Opcodes;
 
 public class Div extends ArithmeticBinop {
 
@@ -140,21 +139,7 @@ public class Div extends ArithmeticBinop {
   }
 
   @Override
-  int getCfOpcode() {
-    switch (type) {
-      case BYTE:
-      case CHAR:
-      case SHORT:
-      case INT:
-        return Opcodes.IDIV;
-      case FLOAT:
-        return Opcodes.FDIV;
-      case LONG:
-        return Opcodes.LDIV;
-      case DOUBLE:
-        return Opcodes.DDIV;
-      default:
-        throw new Unreachable("Unexpected numeric type: " + type);
-    }
+  CfArithmeticBinop.Opcode getCfOpcode() {
+    return CfArithmeticBinop.Opcode.Div;
   }
 }

@@ -3,14 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.code.CfLogicalBinop;
 import com.android.tools.r8.code.OrInt;
 import com.android.tools.r8.code.OrInt2Addr;
 import com.android.tools.r8.code.OrIntLit16;
 import com.android.tools.r8.code.OrIntLit8;
 import com.android.tools.r8.code.OrLong;
 import com.android.tools.r8.code.OrLong2Addr;
-import com.android.tools.r8.errors.Unreachable;
-import org.objectweb.asm.Opcodes;
 
 public class Or extends LogicalBinop {
 
@@ -84,17 +83,7 @@ public class Or extends LogicalBinop {
   }
 
   @Override
-  int getCfOpcode() {
-    switch (type) {
-      case BYTE:
-      case CHAR:
-      case SHORT:
-      case INT:
-        return Opcodes.IOR;
-      case LONG:
-        return Opcodes.LOR;
-      default:
-        throw new Unreachable("Unexpected numeric type for or: " + type);
-    }
+  CfLogicalBinop.Opcode getCfOpcode() {
+    return CfLogicalBinop.Opcode.Or;
   }
 }

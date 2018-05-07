@@ -3,13 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.code.CfLogicalBinop;
 import com.android.tools.r8.code.ShrInt;
 import com.android.tools.r8.code.ShrInt2Addr;
 import com.android.tools.r8.code.ShrIntLit8;
 import com.android.tools.r8.code.ShrLong;
 import com.android.tools.r8.code.ShrLong2Addr;
 import com.android.tools.r8.errors.Unreachable;
-import org.objectweb.asm.Opcodes;
 
 public class Shr extends LogicalBinop {
 
@@ -89,17 +89,7 @@ public class Shr extends LogicalBinop {
   }
 
   @Override
-  int getCfOpcode() {
-    switch (type) {
-      case BYTE:
-      case CHAR:
-      case SHORT:
-      case INT:
-        return Opcodes.ISHR;
-      case LONG:
-        return Opcodes.LSHR;
-      default:
-        throw new Unreachable("Unexpected numeric type in shift: " + type);
-    }
+  CfLogicalBinop.Opcode getCfOpcode() {
+    return CfLogicalBinop.Opcode.Shr;
   }
 }

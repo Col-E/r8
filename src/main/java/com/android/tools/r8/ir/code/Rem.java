@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.code.CfArithmeticBinop;
 import com.android.tools.r8.code.RemDouble;
 import com.android.tools.r8.code.RemDouble2Addr;
 import com.android.tools.r8.code.RemFloat;
@@ -13,11 +14,9 @@ import com.android.tools.r8.code.RemIntLit16;
 import com.android.tools.r8.code.RemIntLit8;
 import com.android.tools.r8.code.RemLong;
 import com.android.tools.r8.code.RemLong2Addr;
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.analysis.constant.Bottom;
 import com.android.tools.r8.ir.analysis.constant.LatticeElement;
 import java.util.function.Function;
-import org.objectweb.asm.Opcodes;
 
 public class Rem extends ArithmeticBinop {
 
@@ -140,21 +139,7 @@ public class Rem extends ArithmeticBinop {
   }
 
   @Override
-  int getCfOpcode() {
-    switch (type) {
-      case BYTE:
-      case CHAR:
-      case SHORT:
-      case INT:
-        return Opcodes.IREM;
-      case FLOAT:
-        return Opcodes.FREM;
-      case LONG:
-        return Opcodes.LREM;
-      case DOUBLE:
-        return Opcodes.DREM;
-      default:
-        throw new Unreachable("Unexpected numeric type: " + type);
-    }
+  CfArithmeticBinop.Opcode getCfOpcode() {
+    return CfArithmeticBinop.Opcode.Rem;
   }
 }

@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.code.CfArithmeticBinop;
 import com.android.tools.r8.code.AddDouble;
 import com.android.tools.r8.code.AddDouble2Addr;
 import com.android.tools.r8.code.AddFloat;
@@ -14,8 +15,6 @@ import com.android.tools.r8.code.AddIntLit16;
 import com.android.tools.r8.code.AddIntLit8;
 import com.android.tools.r8.code.AddLong;
 import com.android.tools.r8.code.AddLong2Addr;
-import com.android.tools.r8.errors.Unreachable;
-import org.objectweb.asm.Opcodes;
 
 public class Add extends ArithmeticBinop {
 
@@ -119,21 +118,7 @@ public class Add extends ArithmeticBinop {
   }
 
   @Override
-  int getCfOpcode() {
-    switch (type) {
-      case BYTE:
-      case CHAR:
-      case SHORT:
-      case INT:
-        return Opcodes.IADD;
-      case FLOAT:
-        return Opcodes.FADD;
-      case LONG:
-        return Opcodes.LADD;
-      case DOUBLE:
-        return Opcodes.DADD;
-      default:
-        throw new Unreachable("Unexpected numeric type in add: " + type);
-    }
+  CfArithmeticBinop.Opcode getCfOpcode() {
+    return CfArithmeticBinop.Opcode.Add;
   }
 }

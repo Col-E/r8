@@ -4,13 +4,11 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.LoadStoreHelper;
-import com.android.tools.r8.cf.code.CfUnop;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.PrimitiveTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
-import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import java.util.function.Function;
@@ -58,13 +56,6 @@ abstract public class Unop extends Instruction {
   public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
     helper.loadInValues(this, it);
     helper.storeOutValue(this, it);
-  }
-
-  public abstract int getCfOpcode();
-
-  @Override
-  public void buildCf(CfBuilder builder) {
-    builder.add(new CfUnop(getCfOpcode()));
   }
 
   @Override

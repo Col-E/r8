@@ -7,13 +7,11 @@ import static com.android.tools.r8.dex.Constants.U4BIT_MAX;
 import static com.android.tools.r8.dex.Constants.U8BIT_MAX;
 
 import com.android.tools.r8.cf.LoadStoreHelper;
-import com.android.tools.r8.cf.code.CfBinop;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.PrimitiveTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
-import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
@@ -134,13 +132,6 @@ public abstract class Binop extends Instruction {
   public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
     helper.loadInValues(this, it);
     helper.storeOutValue(this, it);
-  }
-
-  abstract int getCfOpcode();
-
-  @Override
-  public void buildCf(CfBuilder builder) {
-    builder.add(new CfBinop(getCfOpcode()));
   }
 
   @Override

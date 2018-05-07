@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.code.CfArithmeticBinop;
 import com.android.tools.r8.code.MulDouble;
 import com.android.tools.r8.code.MulDouble2Addr;
 import com.android.tools.r8.code.MulFloat;
@@ -14,8 +15,6 @@ import com.android.tools.r8.code.MulIntLit16;
 import com.android.tools.r8.code.MulIntLit8;
 import com.android.tools.r8.code.MulLong;
 import com.android.tools.r8.code.MulLong2Addr;
-import com.android.tools.r8.errors.Unreachable;
-import org.objectweb.asm.Opcodes;
 
 public class Mul extends ArithmeticBinop {
 
@@ -131,21 +130,7 @@ public class Mul extends ArithmeticBinop {
   }
 
   @Override
-  int getCfOpcode() {
-    switch (type) {
-      case BYTE:
-      case CHAR:
-      case SHORT:
-      case INT:
-        return Opcodes.IMUL;
-      case FLOAT:
-        return Opcodes.FMUL;
-      case LONG:
-        return Opcodes.LMUL;
-      case DOUBLE:
-        return Opcodes.DMUL;
-      default:
-        throw new Unreachable("Unexpected numeric type: " + type);
-    }
+  CfArithmeticBinop.Opcode getCfOpcode() {
+    return CfArithmeticBinop.Opcode.Mul;
   }
 }

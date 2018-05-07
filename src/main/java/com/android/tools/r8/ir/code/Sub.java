@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.code.CfArithmeticBinop;
 import com.android.tools.r8.code.AddIntLit16;
 import com.android.tools.r8.code.AddIntLit8;
 import com.android.tools.r8.code.RsubInt;
@@ -19,7 +20,6 @@ import com.android.tools.r8.code.SubLong2Addr;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.conversion.DexBuilder;
-import org.objectweb.asm.Opcodes;
 
 public class Sub extends ArithmeticBinop {
 
@@ -208,21 +208,7 @@ public class Sub extends ArithmeticBinop {
   }
 
   @Override
-  int getCfOpcode() {
-    switch (type) {
-      case BYTE:
-      case CHAR:
-      case SHORT:
-      case INT:
-        return Opcodes.ISUB;
-      case FLOAT:
-        return Opcodes.FSUB;
-      case LONG:
-        return Opcodes.LSUB;
-      case DOUBLE:
-        return Opcodes.DSUB;
-      default:
-        throw new Unreachable("Unexpected numeric type: " + type);
-    }
+  CfArithmeticBinop.Opcode getCfOpcode() {
+    return CfArithmeticBinop.Opcode.Sub;
   }
 }
