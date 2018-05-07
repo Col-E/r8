@@ -92,9 +92,13 @@ public class AndroidAppConsumers {
           @Override
           public void finished(DiagnosticsHandler handler) {
             super.finished(handler);
-            closed = true;
-            files.forEach((v, d) -> builder.addDexProgramData(d.contents, d.descriptors));
-            files = null;
+            if (!closed) {
+              closed = true;
+              files.forEach((v, d) -> builder.addDexProgramData(d.contents, d.descriptors));
+              files = null;
+            } else {
+              assert getDataResourceConsumer() != null;
+            }
           }
 
           synchronized void addDexFile(int fileIndex, byte[] data, Set<String> descriptors) {
@@ -132,9 +136,13 @@ public class AndroidAppConsumers {
           @Override
           public void finished(DiagnosticsHandler handler) {
             super.finished(handler);
-            closed = true;
-            files.forEach((v, d) -> builder.addDexProgramData(d.contents, d.descriptors, v));
-            files = null;
+            if (!closed) {
+              closed = true;
+              files.forEach((v, d) -> builder.addDexProgramData(d.contents, d.descriptors, v));
+              files = null;
+            } else {
+              assert getDataResourceConsumer() != null;
+            }
           }
         };
     programConsumer = wrapped;
@@ -161,10 +169,14 @@ public class AndroidAppConsumers {
           @Override
           public void finished(DiagnosticsHandler handler) {
             super.finished(handler);
-            closed = true;
-            files.forEach(
-                d -> builder.addClassProgramData(d.contents, Origin.unknown(), d.descriptors));
-            files = null;
+            if (!closed) {
+              closed = true;
+              files.forEach(
+                  d -> builder.addClassProgramData(d.contents, Origin.unknown(), d.descriptors));
+              files = null;
+            } else {
+              assert getDataResourceConsumer() != null;
+            }
           }
         };
     programConsumer = wrapped;

@@ -6,12 +6,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.DataResourceProvider;
 import com.android.tools.r8.dex.ApplicationReader.ProgramClassConflictResolver;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ProgramClassCollection;
 import com.android.tools.r8.utils.Timing;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -24,6 +26,8 @@ public abstract class DexApplication {
 
   // Maps type into class, may be used concurrently.
   final ProgramClassCollection programClasses;
+
+  public final ImmutableList<DataResourceProvider> dataResourceProviders;
 
   public final ImmutableSet<DexType> mainDexList;
   public final String deadCode;
@@ -43,6 +47,7 @@ public abstract class DexApplication {
   DexApplication(
       ClassNameMapper proguardMap,
       ProgramClassCollection programClasses,
+      ImmutableList<DataResourceProvider> dataResourceProviders,
       ImmutableSet<DexType> mainDexList,
       String deadCode,
       DexItemFactory dexItemFactory,
@@ -51,6 +56,7 @@ public abstract class DexApplication {
     assert programClasses != null;
     this.proguardMap = proguardMap;
     this.programClasses = programClasses;
+    this.dataResourceProviders = dataResourceProviders;
     this.mainDexList = mainDexList;
     this.deadCode = deadCode;
     this.dexItemFactory = dexItemFactory;
@@ -112,6 +118,8 @@ public abstract class DexApplication {
 
     final List<DexProgramClass> programClasses;
 
+    final List<DataResourceProvider> dataResourceProviders = new ArrayList<>();
+
     public final DexItemFactory dexItemFactory;
     ClassNameMapper proguardMap;
     final Timing timing;
@@ -133,6 +141,7 @@ public abstract class DexApplication {
 
     public Builder(DexApplication application) {
       programClasses = application.programClasses.getAllClasses();
+      replaceDataResourceProviders(application.dataResourceProviders);
       proguardMap = application.getProguardMap();
       timing = application.timing;
       highestSortingString = application.highestSortingString;
@@ -152,6 +161,15 @@ public abstract class DexApplication {
       assert newProgramClasses != null;
       this.programClasses.clear();
       this.programClasses.addAll(newProgramClasses);
+      return self();
+    }
+
+    public synchronized T replaceDataResourceProviders(
+        List<DataResourceProvider> dataResourceProviders) {
+      this.dataResourceProviders.clear();
+      if (dataResourceProviders != null) {
+        this.dataResourceProviders.addAll(dataResourceProviders);
+      }
       return self();
     }
 

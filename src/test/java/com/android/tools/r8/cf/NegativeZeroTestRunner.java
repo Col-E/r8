@@ -9,7 +9,6 @@ import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.AndroidAppConsumers;
 import java.nio.file.Path;
 import org.junit.Rule;
 import org.junit.Test;

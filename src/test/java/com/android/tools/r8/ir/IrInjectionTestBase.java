@@ -122,7 +122,7 @@ public class IrInjectionTestBase extends SmaliTestBase {
         throws DexOverflowException {
       try {
         ToolHelper.writeApplication(application, options);
-        options.signalFinishedToProgramConsumer();
+        options.signalFinishedToConsumers();
         return consumers.build();
       } catch (ExecutionException e) {
         throw new RuntimeException(e);

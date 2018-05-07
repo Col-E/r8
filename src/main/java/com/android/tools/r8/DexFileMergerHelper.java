@@ -98,7 +98,7 @@ public class DexFileMergerHelper {
         R8.unwrapExecutionException(e);
         throw new AssertionError(e); // unwrapping method should have thrown
       } finally {
-        options.signalFinishedToProgramConsumer();
+        options.signalFinishedToConsumers();
       }
     } finally {
       executor.shutdown();

@@ -866,6 +866,7 @@ task buildExampleKotlinJars {
 // We change the options passed to javac to ignore it.
 compileExamplesJava.options.compilerArgs = ["-Xlint:none"]
 
+
 task buildExampleJars {
     dependsOn downloadProguard
     def examplesDir = file("src/test/examples")
@@ -884,7 +885,16 @@ task buildExampleJars {
         into "$buildDir/runtime/examples/"
     }
 
-    task "compile_examples"(type: JavaCompile, dependsOn: "generateExamplesProto") {
+    task "copy_examples_resources"(type: org.gradle.api.tasks.Copy) {
+        from examplesDir
+        exclude "**/*.java"
+        exclude "**/keep-rules*.txt"
+        into file("build/test/examples/classes")
+    }
+
+    task "compile_examples"(type: JavaCompile) {
+        dependsOn "generateExamplesProto"
+        dependsOn "copy_examples_resources"
         source examplesDir, protoSourceDir
         include "**/*.java"
         destinationDir = file("build/test/examples/classes")
@@ -976,9 +986,9 @@ task buildExampleJars {
                 archiveName = "${name}.jar"
                 destinationDir = exampleOutputDir
                 from "build/test/examples/classes"
-                include name + "/**/*.class"
+                include name + "/**/*"
                 with runtimeDependencies
-                includeEmptyDirs false
+                includeEmptyDirs true
             }
             task "jar_example_${name}_debuginfo_all"(type: Jar, dependsOn: "compile_examples_debuginfo_all") {
                 archiveName = "${name}_debuginfo_all.jar"

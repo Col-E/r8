@@ -14,6 +14,7 @@ import com.android.tools.r8.DexFilePerClassFileConsumer;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.DirectoryClassFileProvider;
 import com.android.tools.r8.OutputMode;
+import com.android.tools.r8.DataResourceProvider;
 import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.ProgramResourceProvider;
@@ -48,6 +49,7 @@ import java.util.Set;
 public class AndroidApp {
 
   private final ImmutableList<ProgramResourceProvider> programResourceProviders;
+  private final ImmutableList<DataResourceProvider> dataResourceProviders;
   private final ImmutableMap<Resource, String> programResourcesMainDescriptor;
   private final ImmutableList<ClassFileResourceProvider> classpathResourceProviders;
   private final ImmutableList<ClassFileResourceProvider> libraryResourceProviders;
@@ -59,6 +61,7 @@ public class AndroidApp {
   // See factory methods and AndroidApp.Builder below.
   private AndroidApp(
       ImmutableList<ProgramResourceProvider> programResourceProviders,
+      ImmutableList<DataResourceProvider> dataResourceProviders,
       ImmutableMap<Resource, String> programResourcesMainDescriptor,
       ImmutableList<ClassFileResourceProvider> classpathResourceProviders,
       ImmutableList<ClassFileResourceProvider> libraryResourceProviders,
@@ -66,6 +69,7 @@ public class AndroidApp {
       List<StringResource> mainDexListResources,
       List<String> mainDexClasses) {
     this.programResourceProviders = programResourceProviders;
+    this.dataResourceProviders = dataResourceProviders;
     this.programResourcesMainDescriptor = programResourcesMainDescriptor;
     this.classpathResourceProviders = classpathResourceProviders;
     this.libraryResourceProviders = libraryResourceProviders;
@@ -126,6 +130,11 @@ public class AndroidApp {
   /** Get program resource providers. */
   public List<ProgramResourceProvider> getProgramResourceProviders() {
     return programResourceProviders;
+  }
+
+  /** Get non program resource providers. */
+  public List<DataResourceProvider> getDataResourceProviders() {
+    return dataResourceProviders;
   }
 
   /** Get classpath resource providers. */
@@ -253,6 +262,7 @@ public class AndroidApp {
 
     private final List<ProgramResourceProvider> programResourceProviders = new ArrayList<>();
     private final List<ProgramResource> programResources = new ArrayList<>();
+    private final List<DataResourceProvider> dataResourceProviders = new ArrayList<>();
     private final Map<ProgramResource, String> programResourcesMainDescriptor = new HashMap<>();
     private final List<ClassFileResourceProvider> classpathResourceProviders = new ArrayList<>();
     private final List<ClassFileResourceProvider> libraryResourceProviders = new ArrayList<>();
@@ -272,6 +282,7 @@ public class AndroidApp {
       programResourceProviders.addAll(app.programResourceProviders);
       classpathResourceProviders.addAll(app.classpathResourceProviders);
       libraryResourceProviders.addAll(app.libraryResourceProviders);
+      dataResourceProviders.addAll(app.dataResourceProviders);
       mainDexListResources = app.mainDexListResources;
       mainDexListClasses = app.mainDexClasses;
     }
@@ -294,8 +305,11 @@ public class AndroidApp {
         throws NoSuchFileException {
       for (FilteredClassPath archive : filteredArchives) {
         assert isArchive(archive.getPath());
-        addProgramResourceProvider(
-            new FilteredArchiveProgramResourceProvider(archive, ignoreDexInArchive));
+        ArchiveResourceProvider archiveResourceProvider =
+            new ArchiveResourceProvider(archive, ignoreDexInArchive);
+        addProgramResourceProvider(archiveResourceProvider);
+        addDataResourceProvider(archiveResourceProvider);
+
       }
       return this;
     }
@@ -303,6 +317,12 @@ public class AndroidApp {
     public Builder addProgramResourceProvider(ProgramResourceProvider provider) {
       assert provider != null;
       programResourceProviders.add(provider);
+      return this;
+    }
+
+    public Builder addDataResourceProvider(DataResourceProvider provider) {
+      assert provider != null;
+      dataResourceProviders.add(provider);
       return this;
     }
 
@@ -518,6 +538,7 @@ public class AndroidApp {
       }
       return new AndroidApp(
           ImmutableList.copyOf(programResourceProviders),
+          ImmutableList.copyOf(dataResourceProviders),
           ImmutableMap.copyOf(programResourcesMainDescriptor),
           ImmutableList.copyOf(classpathResourceProviders),
           ImmutableList.copyOf(libraryResourceProviders),
@@ -535,9 +556,10 @@ public class AndroidApp {
       } else if (isClassFile(file)) {
         addProgramResources(ProgramResource.fromFile(Kind.CF, file));
       } else if (isArchive(file)) {
-        addProgramResourceProvider(
-            new FilteredArchiveProgramResourceProvider(
-                FilteredClassPath.unfiltered(file), ignoreDexInArchive));
+        ArchiveResourceProvider archiveResourceProvider = new ArchiveResourceProvider(
+            FilteredClassPath.unfiltered(file), ignoreDexInArchive);
+        addProgramResourceProvider(archiveResourceProvider);
+        addDataResourceProvider(archiveResourceProvider);
       } else {
         throw new CompilationError("Unsupported source file type", new PathOrigin(file));
       }

@@ -232,27 +232,28 @@ public abstract class BaseCompilerCommand extends BaseCommand {
       assert outputMode != null;
       this.outputPath = outputPath;
       this.outputMode = outputMode;
-      programConsumer = createProgramOutputConsumer(outputPath, outputMode);
+      programConsumer = createProgramOutputConsumer(outputPath, outputMode, false);
       return self();
     }
 
-    private InternalProgramOutputPathConsumer createProgramOutputConsumer(
+    protected InternalProgramOutputPathConsumer createProgramOutputConsumer(
         Path path,
-        OutputMode mode) {
+        OutputMode mode,
+        boolean consumeDataResources) {
       if (mode == OutputMode.DexIndexed) {
         return FileUtils.isArchive(path)
-            ? new DexIndexedConsumer.ArchiveConsumer(path)
-            : new DexIndexedConsumer.DirectoryConsumer(path);
+            ? new DexIndexedConsumer.ArchiveConsumer(path, consumeDataResources)
+            : new DexIndexedConsumer.DirectoryConsumer(path, consumeDataResources);
       }
       if (mode == OutputMode.DexFilePerClassFile) {
         return FileUtils.isArchive(path)
-            ? new DexFilePerClassFileConsumer.ArchiveConsumer(path)
-            : new DexFilePerClassFileConsumer.DirectoryConsumer(path);
+            ? new DexFilePerClassFileConsumer.ArchiveConsumer(path, consumeDataResources)
+            : new DexFilePerClassFileConsumer.DirectoryConsumer(path, consumeDataResources);
       }
       if (mode == OutputMode.ClassFile) {
         return FileUtils.isArchive(path)
-            ? new ClassFileConsumer.ArchiveConsumer(path)
-            : new ClassFileConsumer.DirectoryConsumer(path);
+            ? new ClassFileConsumer.ArchiveConsumer(path, consumeDataResources)
+            : new ClassFileConsumer.DirectoryConsumer(path, consumeDataResources);
       }
       throw new Unreachable("Unexpected output mode: " + mode);
     }

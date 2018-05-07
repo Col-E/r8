@@ -28,7 +28,6 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.IOExceptionDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
-import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.ByteStreams;
 import java.io.File;
@@ -46,7 +45,6 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
-import java.util.zip.ZipOutputStream;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
@@ -458,7 +456,8 @@ public class CompatDx {
       CompatDxHelper.ignoreDexInArchive(builder);
       builder
           .addProgramFiles(inputs)
-          .setProgramConsumer(createConsumer(inputs, output, singleDexFile, dexArgs.keepClasses))
+          .setProgramConsumer(
+              createConsumer(inputs, output, singleDexFile, dexArgs.keepClasses))
           .setMode(mode)
           .setMinApiLevel(dexArgs.minApiLevel);
       if (mainDexList != null) {
@@ -486,7 +485,8 @@ public class CompatDx {
   }
 
   private static DexIndexedConsumer createDexConsumer(
-      Path output, List<Path> inputs, boolean keepClasses) throws DxUsageMessage {
+      Path output, List<Path> inputs, boolean keepClasses)
+      throws DxUsageMessage {
     if (keepClasses) {
       if (!isArchive(output)) {
         throw new DxCompatOptions.DxUsageMessage(
@@ -564,14 +564,14 @@ public class CompatDx {
     @Override
     public void finished(DiagnosticsHandler handler) {
       try {
-        writeZipWithClasses(getStream(handler));
+        writeZipWithClasses(handler);
       } catch (IOException e) {
         handler.error(new IOExceptionDiagnostic(e));
       }
       super.finished(handler);
     }
 
-    private void writeZipWithClasses(ZipOutputStream out) throws IOException {
+    private void writeZipWithClasses(DiagnosticsHandler handler) throws IOException {
       // For each input archive file, add all class files within.
       for (Path input : inputs) {
         if (isArchive(input)) {
@@ -581,8 +581,8 @@ public class CompatDx {
               ZipEntry entry = entries.nextElement();
               if (isClassFile(Paths.get(entry.getName()))) {
                 try (InputStream entryStream = zipFile.getInputStream(entry)) {
-                  ZipUtils.writeToZipStream(
-                      out, entry.getName(), ByteStreams.toByteArray(entryStream), ZipEntry.STORED);
+                  outputBuilder.addFile(
+                      entry.getName(), ByteStreams.toByteArray(entryStream), handler);
                 }
               }
             }

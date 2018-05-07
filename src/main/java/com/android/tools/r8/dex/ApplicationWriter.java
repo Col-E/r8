@@ -4,7 +4,14 @@
 package com.android.tools.r8.dex;
 
 import com.android.tools.r8.ApiLevelException;
+import com.android.tools.r8.DataDirectoryResource;
+import com.android.tools.r8.DataEntryResource;
+import com.android.tools.r8.DataResourceConsumer;
+import com.android.tools.r8.DataResourceProvider;
+import com.android.tools.r8.DataResourceProvider.Visitor;
 import com.android.tools.r8.DexIndexedConsumer;
+import com.android.tools.r8.ResourceException;
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.DexOverflowException;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationDirectory;
@@ -287,6 +294,28 @@ public class ApplicationWriter {
     if (options.mainDexListConsumer != null) {
       ExceptionUtils.withConsumeResourceHandler(
           options.reporter, options.mainDexListConsumer, writeMainDexList(application, namingLens));
+    }
+    DataResourceConsumer dataResourceConsumer = options.dataResourceConsumer;
+    if (dataResourceConsumer != null) {
+      for (DataResourceProvider dataResourceProvider : application.dataResourceProviders) {
+        try {
+          dataResourceProvider.accept(new Visitor() {
+            @Override
+            public void visit(DataDirectoryResource directory) {
+              dataResourceConsumer.accept(directory, options.reporter);
+              options.reporter.failIfPendingErrors();
+            }
+
+            @Override
+            public void visit(DataEntryResource file) {
+              dataResourceConsumer.accept(file, options.reporter);
+              options.reporter.failIfPendingErrors();
+            }
+          });
+        } catch (ResourceException e) {
+          throw new CompilationError(e.getMessage(), e);
+        }
+      }
     }
   }
 

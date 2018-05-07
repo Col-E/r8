@@ -114,6 +114,7 @@ public class ApplicationReader {
       classReader.readSources();
       ThreadUtils.awaitFutures(futures);
       classReader.initializeLazyClassCollection(builder);
+      builder.replaceDataResourceProviders(inputApp.getDataResourceProviders());
     } catch (ResourceException e) {
       throw options.reporter.fatalError(new StringDiagnostic(e.getMessage(), e.getOrigin()));
     } finally {

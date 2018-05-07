@@ -7,7 +7,6 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -139,24 +138,6 @@ public class D8Command extends BaseCompilerCommand {
           !getDisableDesugaring(),
           intermediate,
           isOptimizeMultidexForLinearAlloc());
-    }
-
-    private static DexIndexedConsumer createIndexedConsumer(Path path) {
-      if (path == null) {
-        return DexIndexedConsumer.emptyConsumer();
-      }
-      return FileUtils.isArchive(path)
-          ? new DexIndexedConsumer.ArchiveConsumer(path)
-          : new DexIndexedConsumer.DirectoryConsumer(path);
-    }
-
-    private static DexFilePerClassFileConsumer createPerClassFileConsumer(Path path) {
-      if (path == null) {
-        return DexFilePerClassFileConsumer.emptyConsumer();
-      }
-      return FileUtils.isArchive(path)
-          ? new DexFilePerClassFileConsumer.ArchiveConsumer(path)
-          : new DexFilePerClassFileConsumer.DirectoryConsumer(path);
     }
   }
 

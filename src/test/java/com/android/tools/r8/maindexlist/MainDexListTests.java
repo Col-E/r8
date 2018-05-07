@@ -653,7 +653,7 @@ public class MainDexListTests extends TestBase {
     } finally {
       executor.shutdown();
     }
-    options.signalFinishedToProgramConsumer();
+    options.signalFinishedToConsumers();
     return compatSink.build();
   }
 

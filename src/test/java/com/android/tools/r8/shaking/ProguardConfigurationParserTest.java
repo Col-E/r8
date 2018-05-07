@@ -17,7 +17,6 @@ import static org.junit.Assert.fail;
 import static org.hamcrest.core.StringContains.containsString;
 
 import com.android.tools.r8.Diagnostic;
-import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
@@ -36,13 +35,13 @@ import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions.PackageObfuscationMode;
+import com.android.tools.r8.utils.KeepingDiagnosticHandler;
 import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.ImmutableList;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
@@ -135,27 +134,6 @@ public class ProguardConfigurationParserTest extends TestBase {
       VALID_PROGUARD_DIR + "printusage-to-file.flags";
   private static final String TARGET =
       VALID_PROGUARD_DIR + "target.flags";
-
-  private static class KeepingDiagnosticHandler implements DiagnosticsHandler {
-    private final List<Diagnostic> infos = new ArrayList<>();
-    private final List<Diagnostic> warnings = new ArrayList<>();
-    private final List<Diagnostic> errors = new ArrayList<>();
-
-    @Override
-    public void info(Diagnostic info) {
-      infos.add(info);
-    }
-
-    @Override
-    public void warning(Diagnostic warning) {
-      warnings.add(warning);
-    }
-
-    @Override
-    public void error(Diagnostic error) {
-      errors.add(error);
-    }
-  }
 
   private Reporter reporter;
   private KeepingDiagnosticHandler handler;

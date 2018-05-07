@@ -45,6 +45,7 @@ public class PublicFieldInnerClassTestRunner extends TestBase {
     assertEquals(0, runInput.exitCode);
     Path outDex = temp.getRoot().toPath().resolve("dex.zip");
     build(new DexIndexedConsumer.ArchiveConsumer(outDex));
+    // TODO(b/76191597): Change to runArtNoVerificationErrors + assertEquals when bug is fixed
     ProcessResult runDex = ToolHelper.runArtNoVerificationErrorsRaw(
         outDex.toString(), CLASS.getCanonicalName());
     assertEquals(runInput.stdout, runDex.stdout);

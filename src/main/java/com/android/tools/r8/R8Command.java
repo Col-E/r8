@@ -238,6 +238,20 @@ public class R8Command extends BaseCompilerCommand {
           new EnsureNonDexProgramResourceProvider(programProvider));
     }
 
+    public Builder addDataResourceProvider(DataResourceProvider dataResourceProvider) {
+      assert dataResourceProvider != null;
+      getAppBuilder().addDataResourceProvider(dataResourceProvider);
+      return self();
+    }
+
+    @Override
+    protected InternalProgramOutputPathConsumer createProgramOutputConsumer(
+        Path path,
+        OutputMode mode,
+        boolean consumeDataResources) {
+      return super.createProgramOutputConsumer(path, mode, true);
+    }
+
     @Override
     void validate() {
       Reporter reporter = getReporter();
@@ -415,6 +429,7 @@ public class R8Command extends BaseCompilerCommand {
       "  --help                   # Print this message."));
 
   private final ImmutableList<ProguardConfigurationRule> mainDexKeepRules;
+  private DataResourceConsumer dataResourceConsumer;
   private final StringConsumer mainDexListConsumer;
   private final ProguardConfiguration proguardConfiguration;
   private final boolean enableTreeShaking;
@@ -719,6 +734,7 @@ public class R8Command extends BaseCompilerCommand {
     }
 
     internal.proguardCompatibilityRulesOutput = proguardCompatibilityRulesOutput;
+    internal.dataResourceConsumer = internal.programConsumer.getDataResourceConsumer();
 
     // EXPERIMENTAL flags.
     assert !internal.forceProguardCompatibility;

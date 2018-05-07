@@ -3,10 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
-import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
+import com.android.tools.r8.utils.ArchiveBuilder;
+import com.android.tools.r8.utils.DirectoryBuilder;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.IOExceptionDiagnostic;
+import com.android.tools.r8.utils.OutputBuilder;
 import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.Closer;
@@ -65,6 +67,21 @@ public interface DexIndexedConsumer extends ProgramConsumer {
       this.consumer = consumer;
     }
 
+    protected static String getDefaultDexFileName(int fileIndex) {
+      return fileIndex == 0
+          ? "classes" + FileUtils.DEX_EXTENSION
+          : ("classes" + (fileIndex + 1) + FileUtils.DEX_EXTENSION);
+    }
+
+    protected String getDexFileName(int fileIndex) {
+      return getDefaultDexFileName(fileIndex);
+    }
+
+    @Override
+    public DataResourceConsumer getDataResourceConsumer() {
+      return consumer != null ? consumer.getDataResourceConsumer() : null;
+    }
+
     @Override
     public void accept(
         int fileIndex, byte[] data, Set<String> descriptors, DiagnosticsHandler handler) {
@@ -79,81 +96,65 @@ public interface DexIndexedConsumer extends ProgramConsumer {
         consumer.finished(handler);
       }
     }
-
   }
 
-  /** Archive consumer to write program resources to a zip archive. */
-  class ArchiveConsumer extends ForwardingConsumer implements InternalProgramOutputPathConsumer {
-
-    private static String getDefaultDexFileName(int fileIndex) {
-      return fileIndex == 0
-          ? "classes" + FileUtils.DEX_EXTENSION
-          : ("classes" + (fileIndex + 1) + FileUtils.DEX_EXTENSION);
-    }
-
-    private final Path archive;
-    private final Origin origin;
-    private ZipOutputStream stream = null;
-    private boolean closed = false;
+  /** Consumer to write program resources to an output. */
+  class ArchiveConsumer extends ForwardingConsumer
+      implements DataResourceConsumer, InternalProgramOutputPathConsumer {
+    protected final OutputBuilder outputBuilder;
+    protected final boolean consumeDataResources;
 
     public ArchiveConsumer(Path archive) {
-      this(archive, null);
+      this(archive, null, false);
+    }
+
+    public ArchiveConsumer(Path archive, boolean consumeDataResouces) {
+      this(archive, null, consumeDataResouces);
     }
 
     public ArchiveConsumer(Path archive, DexIndexedConsumer consumer) {
-      super(consumer);
-      this.archive = archive;
-      origin = new PathOrigin(archive);
+      this(archive, consumer, false);
     }
 
-    protected String getDexFileName(int fileIndex) {
-      return getDefaultDexFileName(fileIndex);
+    public ArchiveConsumer(Path archive, DexIndexedConsumer consumer, boolean consumeDataResouces) {
+      super(consumer);
+      this.outputBuilder = new ArchiveBuilder(archive);
+      this.consumeDataResources = consumeDataResouces;
+      this.outputBuilder.open();
+      if (getDataResourceConsumer() != null) {
+        this.outputBuilder.open();
+      }
+    }
+
+    @Override
+    public DataResourceConsumer getDataResourceConsumer() {
+      return consumeDataResources ? this : null;
     }
 
     @Override
     public void accept(
         int fileIndex, byte[] data, Set<String> descriptors, DiagnosticsHandler handler) {
       super.accept(fileIndex, data, descriptors, handler);
-      synchronizedWrite(getDexFileName(fileIndex), data, handler);
+      outputBuilder.addFile(getDexFileName(fileIndex), data, handler);
+    }
+
+    @Override
+    public void accept(DataDirectoryResource directory, DiagnosticsHandler handler) {
+      outputBuilder.addDirectory(directory.getName(), handler);
+    }
+
+    @Override
+    public void accept(DataEntryResource file, DiagnosticsHandler handler) {
+      outputBuilder.addFile(file.getName(), file, handler);
     }
 
     @Override
     public void finished(DiagnosticsHandler handler) {
       super.finished(handler);
-      assert !closed;
-      closed = true;
       try {
-        if (stream != null) {
-          stream.close();
-          stream = null;
-        }
+        outputBuilder.close();
       } catch (IOException e) {
-        handler.error(new IOExceptionDiagnostic(e, origin));
-      }
-    }
-
-    /** Get or open the zip output stream. */
-    protected synchronized ZipOutputStream getStream(DiagnosticsHandler handler) {
-      assert !closed;
-      if (stream == null) {
-        try {
-          stream =
-              new ZipOutputStream(
-                  Files.newOutputStream(
-                      archive, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING));
-        } catch (IOException e) {
-          handler.error(new IOExceptionDiagnostic(e, origin));
-        }
-      }
-      return stream;
-    }
-
-    private synchronized void synchronizedWrite(
-        String entry, byte[] content, DiagnosticsHandler handler) {
-      try {
-        ZipUtils.writeToZipStream(getStream(handler), entry, content, ZipEntry.STORED);
-      } catch (IOException e) {
-        handler.error(new IOExceptionDiagnostic(e, origin));
+        handler.error(new IOExceptionDiagnostic(e, outputBuilder.getOrigin()));
       }
     }
 
@@ -175,42 +176,72 @@ public interface DexIndexedConsumer extends ProgramConsumer {
 
     @Override
     public Path internalGetOutputPath() {
-      return archive;
+      return outputBuilder.getPath();
     }
-
   }
 
-  /** Directory consumer to write program resources to a directory. */
-  class DirectoryConsumer extends ForwardingConsumer implements InternalProgramOutputPathConsumer {
-
+  class DirectoryConsumer extends ForwardingConsumer
+      implements DataResourceConsumer, InternalProgramOutputPathConsumer {
     private final Path directory;
     private boolean preparedDirectory = false;
+    private final OutputBuilder outputBuilder;
+    protected final boolean consumeDataResouces;
 
     public DirectoryConsumer(Path directory) {
-      this(directory, null);
+      this(directory, null, false);
+    }
+
+    public DirectoryConsumer(Path directory, boolean consumeDataResouces) {
+      this(directory, null, consumeDataResouces);
     }
 
     public DirectoryConsumer(Path directory, DexIndexedConsumer consumer) {
+      this(directory, consumer, false);
+    }
+
+    public DirectoryConsumer(
+        Path directory, DexIndexedConsumer consumer, boolean consumeDataResouces) {
       super(consumer);
       this.directory = directory;
+      this.outputBuilder = new DirectoryBuilder(directory);
+      this.consumeDataResouces = consumeDataResouces;
+    }
+
+    @Override
+    public DataResourceConsumer getDataResourceConsumer() {
+      return consumeDataResouces ? this : null;
     }
 
     @Override
     public void accept(
         int fileIndex, byte[] data, Set<String> descriptors, DiagnosticsHandler handler) {
       super.accept(fileIndex, data, descriptors, handler);
-      Path target = getTargetDexFile(directory, fileIndex);
       try {
         prepareDirectory();
-        writeFile(data, target);
       } catch (IOException e) {
-        handler.error(new IOExceptionDiagnostic(e, new PathOrigin(target)));
+        handler.error(new IOExceptionDiagnostic(e, new PathOrigin(directory)));
       }
+      outputBuilder.addFile(getDexFileName(fileIndex), data, handler);
+    }
+
+    @Override
+    public void accept(DataDirectoryResource directory, DiagnosticsHandler handler) {
+      outputBuilder.addDirectory(directory.getName(), handler);
+    }
+
+    @Override
+    public void accept(DataEntryResource file, DiagnosticsHandler handler) {
+      outputBuilder.addFile(file.getName(), file, handler);
     }
 
     @Override
     public void finished(DiagnosticsHandler handler) {
       super.finished(handler);
+      try {
+        outputBuilder.close();
+      } catch (IOException e) {
+        handler.error(new IOExceptionDiagnostic(e, outputBuilder.getOrigin()));
+      }
     }
 
     private synchronized void prepareDirectory() throws IOException {
@@ -221,7 +252,7 @@ public interface DexIndexedConsumer extends ProgramConsumer {
       deleteClassesDexFiles(directory);
     }
 
-    public static void deleteClassesDexFiles(Path directory) throws IOException {
+    static void deleteClassesDexFiles(Path directory) throws IOException {
       try (Stream<Path> filesInDir = Files.list(directory)) {
         for (Path path : filesInDir.collect(Collectors.toList())) {
           if (FileUtils.isClassesDexFile(path)) {
@@ -244,7 +275,7 @@ public interface DexIndexedConsumer extends ProgramConsumer {
     }
 
     private static Path getTargetDexFile(Path directory, int fileIndex) {
-      return directory.resolve(ArchiveConsumer.getDefaultDexFileName(fileIndex));
+      return directory.resolve(ForwardingConsumer.getDefaultDexFileName(fileIndex));
     }
 
     private static void writeFile(byte[] contents, Path target) throws IOException {
@@ -254,8 +285,7 @@ public interface DexIndexedConsumer extends ProgramConsumer {
 
     @Override
     public Path internalGetOutputPath() {
-      return directory;
+      return outputBuilder.getPath();
     }
-
   }
 }

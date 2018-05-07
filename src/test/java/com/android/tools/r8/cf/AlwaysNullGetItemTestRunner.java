@@ -6,8 +6,8 @@ package com.android.tools.r8.cf;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.ClassFileConsumer;
-import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.DexIndexedConsumer;
+import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;

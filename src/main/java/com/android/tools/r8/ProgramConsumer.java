@@ -9,6 +9,14 @@ package com.android.tools.r8;
 public interface ProgramConsumer {
 
   /**
+   * Returns a {@link DataResourceConsumer} that will receive data resources. If this
+   * returns <code>null</code> no data resources will be processed.
+   */
+  default DataResourceConsumer getDataResourceConsumer() {
+    return null;
+  }
+
+  /**
    * Callback signifying that compilation of program resources has finished.
    *
    * <p>Called only once after all program outputs have been generated and consumed.

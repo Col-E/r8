@@ -6,12 +6,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.DataResourceProvider;
 import com.android.tools.r8.dex.ApplicationReader.ProgramClassConflictResolver;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.ClasspathClassCollection;
 import com.android.tools.r8.utils.LibraryClassCollection;
 import com.android.tools.r8.utils.ProgramClassCollection;
 import com.android.tools.r8.utils.Timing;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -26,12 +28,13 @@ public class LazyLoadedDexApplication extends DexApplication {
    */
   private LazyLoadedDexApplication(ClassNameMapper proguardMap,
       ProgramClassCollection programClasses,
+      ImmutableList<DataResourceProvider> dataResourceProviders,
       ClasspathClassCollection classpathClasses,
       LibraryClassCollection libraryClasses,
       ImmutableSet<DexType> mainDexList, String deadCode,
       DexItemFactory dexItemFactory, DexString highestSortingString,
       Timing timing) {
-    super(proguardMap, programClasses, mainDexList, deadCode,
+    super(proguardMap, programClasses, dataResourceProviders, mainDexList, deadCode,
         dexItemFactory, highestSortingString, timing);
     this.classpathClasses = classpathClasses;
     this.libraryClasses = libraryClasses;
@@ -119,6 +122,7 @@ public class LazyLoadedDexApplication extends DexApplication {
       return new LazyLoadedDexApplication(
           proguardMap,
           ProgramClassCollection.create(programClasses, resolver),
+          ImmutableList.copyOf(dataResourceProviders),
           classpathClasses,
           libraryClasses,
           ImmutableSet.copyOf(mainDexList),

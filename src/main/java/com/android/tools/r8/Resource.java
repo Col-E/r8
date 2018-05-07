@@ -20,7 +20,6 @@ import com.android.tools.r8.origin.Origin;
  * client is free to provide their own.
  */
 public interface Resource {
-
   /**
    * Get the origin of the resource.
    *
@@ -28,5 +27,4 @@ public interface Resource {
    * what that means for a particular resource.
    */
   Origin getOrigin();
-
 }

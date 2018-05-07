@@ -111,7 +111,7 @@ public class DexSplitterHelper {
     } catch (FeatureMappingException e) {
       options.reporter.error(e.getMessage());
     } finally {
-      options.signalFinishedToProgramConsumer();
+      options.signalFinishedToConsumers();
     }
   }
 

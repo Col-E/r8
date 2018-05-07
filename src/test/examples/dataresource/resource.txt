@@ -1,0 +1,42 @@
+this is a text with some content
+- partly matching pattern 123dataresource.lib.LibClass123
+- totally matching pattern dataresource.lib.LibClass and something after
+- matching the package dataresource.lib
+- matching class simple name LibClass
+- or only single element of the package name: lib
+- matching class descriptor dataresource/lib/LibClass
+- matching class full descriptor Ldataresource/lib/LibClass;
+- matching windows path dataresource\lib\LibClass
+- matching pattern dataresource.lib.LibClass.
+- matching pattern .dataresource.lib.LibClass
+- matching pattern dataresource.lib.LibClass,
+- matching pattern ,dataresource.lib.LibClass
+- matching pattern =dataresource.lib.LibClass
+- matching pattern dataresource.lib.LibClass=
+- matching pattern dataresource.lib.LibClass/
+- matching pattern /dataresource.lib.LibClass
+- matching pattern ?dataresource.lib.LibClass
+- matching pattern dataresource.lib.LibClass?
+- matching pattern dataresource.lib.LibClass!
+- matching pattern !dataresource.lib.LibClass
+- matching pattern :dataresource.lib.LibClass
+- matching pattern dataresource.lib.LibClass:
+- matching pattern dataresource.lib.LibClass*
+- matching pattern *dataresource.lib.LibClass
+- matching pattern $dataresource.lib.LibClass
+- matching pattern +dataresource.lib.LibClass
+- matching pattern -dataresource.lib.LibClass
+- matching pattern ^dataresource.lib.LibClass
+- matching pattern @dataresource.lib.LibClass
+- matching pattern (dataresource.lib.LibClass
+- matching pattern )dataresource.lib.LibClass
+- matching pattern àdataresource.lib.LibClass
+- matching pattern |dataresource.lib.LibClass
+- matching pattern [dataresource.lib.LibClass
+- matching pattern 'dataresource.lib.LibClass
+- matching pattern "dataresource.lib.LibClass
+- matching pattern `dataresource.lib.LibClass
+- matching pattern ~dataresource.lib.LibClass
+- matching pattern &dataresource.lib.LibClass
+- matching pattern -dataresource.lib.LibClass
+- matching pattern dataresource.lib.LibClass-

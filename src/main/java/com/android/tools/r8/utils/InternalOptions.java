@@ -6,6 +6,8 @@ package com.android.tools.r8.utils;
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.DexFilePerClassFileConsumer;
 import com.android.tools.r8.DexIndexedConsumer;
+import com.android.tools.r8.DataResourceConsumer;
+import com.android.tools.r8.DataResourceProvider;
 import com.android.tools.r8.ProgramConsumer;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.dex.Marker;
@@ -46,6 +48,9 @@ public class InternalOptions {
 
   // TODO(zerny): Make this private-final once we have full program-consumer support.
   public ProgramConsumer programConsumer = null;
+
+  public final List<DataResourceProvider> dataResourceProviders = new ArrayList<>();
+  public DataResourceConsumer dataResourceConsumer;
 
   // Constructor for testing and/or other utilities.
   public InternalOptions() {
@@ -154,9 +159,12 @@ public class InternalOptions {
     return (ClassFileConsumer) programConsumer;
   }
 
-  public void signalFinishedToProgramConsumer() {
+  public void signalFinishedToConsumers() {
     if (programConsumer != null) {
       programConsumer.finished(reporter);
+      if (dataResourceConsumer != null) {
+        dataResourceConsumer.finished(reporter);
+      }
     }
   }
 

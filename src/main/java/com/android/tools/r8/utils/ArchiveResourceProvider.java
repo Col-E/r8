@@ -7,6 +7,9 @@ import static com.android.tools.r8.utils.FileUtils.isArchive;
 import static com.android.tools.r8.utils.FileUtils.isClassFile;
 import static com.android.tools.r8.utils.FileUtils.isDexFile;
 
+import com.android.tools.r8.DataDirectoryResource;
+import com.android.tools.r8.DataEntryResource;
+import com.android.tools.r8.DataResourceProvider;
 import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.ProgramResourceProvider;
@@ -30,20 +33,20 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
 
-public class FilteredArchiveProgramResourceProvider implements ProgramResourceProvider {
+public class ArchiveResourceProvider implements ProgramResourceProvider, DataResourceProvider {
 
   private final Origin origin;
   private final FilteredClassPath archive;
   private final boolean ignoreDexInArchive;
 
-  FilteredArchiveProgramResourceProvider(FilteredClassPath archive, boolean ignoreDexInArchive) {
+  ArchiveResourceProvider(FilteredClassPath archive, boolean ignoreDexInArchive) {
+    assert isArchive(archive.getPath());
     origin = new PathOrigin(archive.getPath());
     this.archive = archive;
     this.ignoreDexInArchive = ignoreDexInArchive;
   }
 
   private List<ProgramResource> readArchive() throws IOException {
-    assert isArchive(archive.getPath());
     List<ProgramResource> dexResources = new ArrayList<>();
     List<ProgramResource> classResources = new ArrayList<>();
     try (ZipFile zipFile = new ZipFile(archive.getPath().toFile())) {
@@ -93,5 +96,33 @@ public class FilteredArchiveProgramResourceProvider implements ProgramResourcePr
     } catch (IOException e) {
       throw new ResourceException(origin, e);
     }
+  }
+
+  @Override
+  public void accept(Visitor resourceBrowser) throws ResourceException {
+    try (ZipFile zipFile = new ZipFile(archive.getPath().toFile())) {
+      final Enumeration<? extends ZipEntry> entries = zipFile.entries();
+      while (entries.hasMoreElements()) {
+        ZipEntry entry = entries.nextElement();
+        Path name = Paths.get(entry.getName());
+        if (archive.matchesFile(name) && !isProgramResourceName(name)) {
+          if (entry.isDirectory()) {
+            resourceBrowser.visit(DataDirectoryResource.fromZip(zipFile, entry));
+          } else {
+            resourceBrowser.visit(DataEntryResource.fromZip(zipFile, entry));
+          }
+        }
+      }
+    } catch (ZipException e) {
+      throw new ResourceException(origin, new CompilationError(
+          "Zip error while reading '" + archive + "': " + e.getMessage(), e));
+    } catch (IOException e) {
+      throw new ResourceException(origin, new CompilationError(
+          "I/O exception while reading '" + archive + "': " + e.getMessage(), e));
+    }
+  }
+
+  private boolean isProgramResourceName(Path name) {
+    return isClassFile(name) || (isDexFile(name) && !ignoreDexInArchive);
   }
 }
