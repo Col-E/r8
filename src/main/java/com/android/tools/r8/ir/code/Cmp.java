@@ -20,7 +20,6 @@ import com.android.tools.r8.utils.LongInterval;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
 import java.util.function.Function;
-import org.objectweb.asm.Opcodes;
 
 public class Cmp extends Binop {
 
