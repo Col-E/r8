@@ -10,11 +10,11 @@ import static com.android.tools.r8.utils.FileUtils.isDexFile;
 import com.android.tools.r8.ArchiveClassFileProvider;
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.ClassFileResourceProvider;
+import com.android.tools.r8.DataResourceProvider;
 import com.android.tools.r8.DexFilePerClassFileConsumer;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.DirectoryClassFileProvider;
 import com.android.tools.r8.OutputMode;
-import com.android.tools.r8.DataResourceProvider;
 import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.ProgramResourceProvider;
@@ -78,18 +78,32 @@ public class AndroidApp {
     this.mainDexClasses = mainDexClasses;
   }
 
+  static Reporter defaultReporter() {
+    return new Reporter(new DefaultDiagnosticsHandler());
+  }
+
   /**
    * Create a new empty builder.
    */
   public static Builder builder() {
-    return new Builder();
+    return builder(defaultReporter());
+  }
+
+  /** Create a new empty builder. */
+  public static Builder builder(Reporter reporter) {
+    return new Builder(reporter);
   }
 
   /**
    * Create a new builder initialized with the resources from @code{app}.
    */
   public static Builder builder(AndroidApp app) {
-    return new Builder(app);
+    return builder(app, defaultReporter());
+  }
+
+  /** Create a new builder initialized with the resources from @code{app}. */
+  public static Builder builder(AndroidApp app, Reporter reporter) {
+    return new Builder(reporter, app);
   }
 
   /** Get full collection of all program resources from all program providers. */
@@ -273,18 +287,26 @@ public class AndroidApp {
     // Proguard map data is output only data. This should never be used as input to a compilation.
     private StringResource proguardMapOutputData;
 
+    private final Reporter reporter;
+
     // See AndroidApp::builder().
-    private Builder() {
+    private Builder(Reporter reporter) {
+      this.reporter = reporter;
     }
 
     // See AndroidApp::builder(AndroidApp).
-    private Builder(AndroidApp app) {
+    private Builder(Reporter reporter, AndroidApp app) {
+      this(reporter);
       programResourceProviders.addAll(app.programResourceProviders);
       classpathResourceProviders.addAll(app.classpathResourceProviders);
       libraryResourceProviders.addAll(app.libraryResourceProviders);
       dataResourceProviders.addAll(app.dataResourceProviders);
       mainDexListResources = app.mainDexListResources;
       mainDexListClasses = app.mainDexClasses;
+    }
+
+    public Reporter getReporter() {
+      return reporter;
     }
 
     /** Add program file resources. */
@@ -378,11 +400,14 @@ public class AndroidApp {
     }
 
     /** Add library file resources. */
-    public Builder addFilteredLibraryArchives(Collection<FilteredClassPath> filteredArchives)
-        throws IOException {
+    public Builder addFilteredLibraryArchives(Collection<FilteredClassPath> filteredArchives) {
       for (FilteredClassPath archive : filteredArchives) {
         assert isArchive(archive.getPath());
-        libraryResourceProviders.add(new FilteredArchiveClassFileProvider(archive));
+        try {
+          libraryResourceProviders.add(new FilteredArchiveClassFileProvider(archive));
+        } catch (IOException e) {
+          reporter.error(new ExceptionDiagnostic(e, new PathOrigin(archive.getPath())));
+        }
       }
       return this;
     }

@@ -13,12 +13,17 @@ public class CompatProguardCommandBuilder extends R8Command.Builder {
 
   public CompatProguardCommandBuilder(
       boolean forceProguardCompatibility, DiagnosticsHandler diagnosticsHandler) {
-    super(forceProguardCompatibility, diagnosticsHandler);
+    super(diagnosticsHandler);
+    if (forceProguardCompatibility) {
+      internalForceProguardCompatibility();
+    }
     setIgnoreDexInArchive(true);
   }
 
   public CompatProguardCommandBuilder(boolean forceProguardCompatibility) {
-    super(forceProguardCompatibility);
+    if (forceProguardCompatibility) {
+      internalForceProguardCompatibility();
+    }
     setIgnoreDexInArchive(true);
   }
 

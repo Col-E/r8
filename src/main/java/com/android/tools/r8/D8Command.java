@@ -48,18 +48,14 @@ public class D8Command extends BaseCompilerCommand {
 
     private boolean intermediate = false;
 
-    Builder() {
-      setMode(CompilationMode.DEBUG);
-    }
+    private Builder() {}
 
-    Builder(DiagnosticsHandler diagnosticsHandler) {
+    private Builder(DiagnosticsHandler diagnosticsHandler) {
       super(diagnosticsHandler);
-      setMode(CompilationMode.DEBUG);
     }
 
     private Builder(AndroidApp app) {
       super(app);
-      setMode(CompilationMode.DEBUG);
     }
 
     /** Add dex program-data. */
@@ -109,6 +105,11 @@ public class D8Command extends BaseCompilerCommand {
     @Override
     Builder self() {
       return this;
+    }
+
+    @Override
+    CompilationMode defaultCompilationMode() {
+      return CompilationMode.DEBUG;
     }
 
     @Override

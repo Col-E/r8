@@ -15,8 +15,6 @@ import com.android.tools.r8.shaking.ProguardConfigurationSource;
 import com.android.tools.r8.shaking.ProguardConfigurationSourceFile;
 import com.android.tools.r8.shaking.ProguardConfigurationSourceStrings;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.ExceptionDiagnostic;
-import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
@@ -66,40 +64,31 @@ public class R8Command extends BaseCompilerCommand {
 
     private StringConsumer mainDexListConsumer = null;
 
-    private Builder() {
-      setMode(CompilationMode.RELEASE);
-    }
+    // TODO(zerny): Consider refactoring CompatProguardCommandBuilder to avoid subclassing.
+    Builder() {}
 
-    // Internal compatibility mode for use from CompatProguard tool.
-    Builder(boolean forceProguardCompatibility) {
-      setMode(CompilationMode.RELEASE);
-      this.forceProguardCompatibility = forceProguardCompatibility;
-    }
-
-    Builder(boolean forceProguardCompatibility, DiagnosticsHandler diagnosticsHandler) {
+    Builder(DiagnosticsHandler diagnosticsHandler) {
       super(diagnosticsHandler);
-      setMode(CompilationMode.RELEASE);
-      this.forceProguardCompatibility = forceProguardCompatibility;
-    }
-
-    private Builder(DiagnosticsHandler diagnosticsHandler) {
-      super(diagnosticsHandler);
-      setMode(CompilationMode.DEBUG);
     }
 
     private Builder(AndroidApp app) {
       super(app);
-      setMode(CompilationMode.RELEASE);
     }
 
-    private Builder(AndroidApp app, DiagnosticsHandler diagnosticsHandler) {
-      super(app, diagnosticsHandler);
-      setMode(CompilationMode.RELEASE);
+    // Internal
+
+    void internalForceProguardCompatibility() {
+      this.forceProguardCompatibility = true;
     }
 
     @Override
     Builder self() {
       return this;
+    }
+
+    @Override
+    CompilationMode defaultCompilationMode() {
+      return CompilationMode.RELEASE;
     }
 
     /**
@@ -279,20 +268,14 @@ public class R8Command extends BaseCompilerCommand {
 
     @Override
     R8Command makeCommand() {
-      try {
-        // If printing versions ignore everything else.
-        if (isPrintHelp() || isPrintVersion()) {
-          return new R8Command(isPrintHelp(), isPrintVersion());
-        }
-
-        return makeR8Command();
-      } catch (IOException e) {
-        throw getReporter()
-            .fatalError(new ExceptionDiagnostic(e, ExceptionUtils.extractIOExceptionOrigin(e)));
+      // If printing versions ignore everything else.
+      if (isPrintHelp() || isPrintVersion()) {
+        return new R8Command(isPrintHelp(), isPrintVersion());
       }
+      return makeR8Command();
     }
 
-    private R8Command makeR8Command() throws IOException {
+    private R8Command makeR8Command() {
       Reporter reporter = getReporter();
       DexItemFactory factory = new DexItemFactory();
       ImmutableList<ProguardConfigurationRule> mainDexKeepRules;
@@ -428,7 +411,6 @@ public class R8Command extends BaseCompilerCommand {
       "  --help                   # Print this message."));
 
   private final ImmutableList<ProguardConfigurationRule> mainDexKeepRules;
-  private DataResourceConsumer dataResourceConsumer;
   private final StringConsumer mainDexListConsumer;
   private final ProguardConfiguration proguardConfiguration;
   private final boolean enableTreeShaking;
@@ -450,11 +432,6 @@ public class R8Command extends BaseCompilerCommand {
   // Internal builder to start from an existing AndroidApp.
   static Builder builder(AndroidApp app) {
     return new Builder(app);
-  }
-
-  // Internal builder to start from an existing AndroidApp.
-  static Builder builder(AndroidApp app, DiagnosticsHandler diagnosticsHandler) {
-    return new Builder(app, diagnosticsHandler);
   }
 
   /**

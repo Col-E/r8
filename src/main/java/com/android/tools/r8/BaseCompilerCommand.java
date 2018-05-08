@@ -119,20 +119,21 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     private boolean disableDesugaring = false;
     private boolean optimizeMultidexForLinearAlloc = false;
 
-    Builder() {}
+    abstract CompilationMode defaultCompilationMode();
+
+    Builder() {
+      mode = defaultCompilationMode();
+    }
 
     Builder(DiagnosticsHandler diagnosticsHandler) {
       super(diagnosticsHandler);
+      mode = defaultCompilationMode();
     }
 
     // Internal constructor for testing.
     Builder(AndroidApp app) {
       super(AndroidApp.builder(app));
-    }
-
-    // Internal constructor for testing.
-    Builder(AndroidApp app, DiagnosticsHandler diagnosticsHandler) {
-      super(AndroidApp.builder(app), diagnosticsHandler);
+      mode = defaultCompilationMode();
     }
 
     /**

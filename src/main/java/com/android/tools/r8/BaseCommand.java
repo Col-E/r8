@@ -8,7 +8,6 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.AbortException;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
@@ -112,20 +111,16 @@ public abstract class BaseCommand {
     List<Path> programFiles = new ArrayList<>();
 
     Builder() {
-      this(AndroidApp.builder(), new DefaultDiagnosticsHandler());
+      this(AndroidApp.builder());
     }
 
     Builder(DiagnosticsHandler handler) {
-      this(AndroidApp.builder(), handler);
+      this(AndroidApp.builder(new Reporter(handler)));
     }
 
     Builder(AndroidApp.Builder builder) {
-      this(builder, new DefaultDiagnosticsHandler());
-    }
-
-    Builder(AndroidApp.Builder builder, DiagnosticsHandler handler) {
       this.app = builder;
-      this.reporter = new Reporter(handler);
+      this.reporter = builder.getReporter();
     }
 
     abstract B self();

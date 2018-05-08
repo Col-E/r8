@@ -6,15 +6,16 @@ package com.android.tools.r8.maindexlist;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableList;
@@ -40,20 +41,21 @@ public class MainDexListOutputTest extends TestBase {
   @Rule
   public ExpectedException thrown = ExpectedException.none();
 
-  @Test
+  @Test(expected = CompilationFailedException.class)
   public void testNoMainDex() throws Exception {
     Reporter reporter = new Reporter();
     try {
       Path mainDexListOutput = temp.getRoot().toPath().resolve("main-dex-output.txt");
-      R8Command command =
-          ToolHelper.prepareR8CommandBuilder(readClasses(HelloWorldMain.class), reporter)
-              .setMainDexListOutputPath(mainDexListOutput)
-              .build();
+      R8Command.builder(reporter)
+          .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+          .addClassProgramData(
+              ToolHelper.getClassAsBytes(HelloWorldMain.class), Origin.unknown())
+          .setMainDexListOutputPath(mainDexListOutput)
+          .build();
     } catch (CompilationFailedException e) {
       assertEquals(1, reporter.errorCount);
-      return;
+      throw e;
     }
-    fail("Expected CompilationFailedException");
   }
 
   @Test

@@ -789,12 +789,6 @@ public class ToolHelper {
     return R8Command.builder(app).setProgramConsumer(DexIndexedConsumer.emptyConsumer());
   }
 
-  public static R8Command.Builder prepareR8CommandBuilder(
-      AndroidApp app, DiagnosticsHandler diagnosticsHandler) {
-    return R8Command.builder(app, diagnosticsHandler)
-        .setProgramConsumer(DexIndexedConsumer.emptyConsumer());
-  }
-
   public static AndroidApp runR8(AndroidApp app) throws IOException, CompilationException {
     try {
       return runR8(prepareR8CommandBuilder(app).build());
