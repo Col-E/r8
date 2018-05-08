@@ -9,11 +9,12 @@ import static org.objectweb.asm.Opcodes.ACC_DEPRECATED;
 import static org.objectweb.asm.Opcodes.ASM6;
 
 import com.android.tools.r8.ProgramResource.Kind;
+import com.android.tools.r8.cf.code.CfArithmeticBinop;
 import com.android.tools.r8.cf.code.CfArrayLength;
 import com.android.tools.r8.cf.code.CfArrayLoad;
 import com.android.tools.r8.cf.code.CfArrayStore;
-import com.android.tools.r8.cf.code.CfBinop;
 import com.android.tools.r8.cf.code.CfCheckCast;
+import com.android.tools.r8.cf.code.CfCmp;
 import com.android.tools.r8.cf.code.CfConstClass;
 import com.android.tools.r8.cf.code.CfConstMethodHandle;
 import com.android.tools.r8.cf.code.CfConstMethodType;
@@ -33,11 +34,14 @@ import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.cf.code.CfInvokeDynamic;
 import com.android.tools.r8.cf.code.CfLabel;
 import com.android.tools.r8.cf.code.CfLoad;
+import com.android.tools.r8.cf.code.CfLogicalBinop;
 import com.android.tools.r8.cf.code.CfMonitor;
 import com.android.tools.r8.cf.code.CfMultiANewArray;
+import com.android.tools.r8.cf.code.CfNeg;
 import com.android.tools.r8.cf.code.CfNew;
 import com.android.tools.r8.cf.code.CfNewArray;
 import com.android.tools.r8.cf.code.CfNop;
+import com.android.tools.r8.cf.code.CfNumberConversion;
 import com.android.tools.r8.cf.code.CfPosition;
 import com.android.tools.r8.cf.code.CfReturn;
 import com.android.tools.r8.cf.code.CfReturnVoid;
@@ -46,7 +50,6 @@ import com.android.tools.r8.cf.code.CfStore;
 import com.android.tools.r8.cf.code.CfSwitch;
 import com.android.tools.r8.cf.code.CfThrow;
 import com.android.tools.r8.cf.code.CfTryCatch;
-import com.android.tools.r8.cf.code.CfUnop;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
@@ -834,13 +837,13 @@ public class JarClassFileReader {
         case Opcodes.LREM:
         case Opcodes.FREM:
         case Opcodes.DREM:
-          instructions.add(new CfBinop(opcode));
+          instructions.add(CfArithmeticBinop.fromAsm(opcode));
           break;
         case Opcodes.INEG:
         case Opcodes.LNEG:
         case Opcodes.FNEG:
         case Opcodes.DNEG:
-          instructions.add(new CfUnop(opcode));
+          instructions.add(CfNeg.fromAsm(opcode));
           break;
         case Opcodes.ISHL:
         case Opcodes.LSHL:
@@ -854,7 +857,7 @@ public class JarClassFileReader {
         case Opcodes.LOR:
         case Opcodes.IXOR:
         case Opcodes.LXOR:
-          instructions.add(new CfBinop(opcode));
+          instructions.add(CfLogicalBinop.fromAsm(opcode));
           break;
         case Opcodes.I2L:
         case Opcodes.I2F:
@@ -871,14 +874,14 @@ public class JarClassFileReader {
         case Opcodes.I2B:
         case Opcodes.I2C:
         case Opcodes.I2S:
-          instructions.add(new CfUnop(opcode));
+          instructions.add(CfNumberConversion.fromAsm(opcode));
           break;
         case Opcodes.LCMP:
         case Opcodes.FCMPL:
         case Opcodes.FCMPG:
         case Opcodes.DCMPL:
         case Opcodes.DCMPG:
-          instructions.add(new CfBinop(opcode));
+          instructions.add(CfCmp.fromAsm(opcode));
           break;
         case Opcodes.IRETURN:
           instructions.add(new CfReturn(ValueType.INT));

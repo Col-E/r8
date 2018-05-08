@@ -3,13 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.code.CfLogicalBinop;
 import com.android.tools.r8.code.XorInt;
 import com.android.tools.r8.code.XorInt2Addr;
 import com.android.tools.r8.code.XorIntLit16;
 import com.android.tools.r8.code.XorIntLit8;
 import com.android.tools.r8.code.XorLong;
 import com.android.tools.r8.code.XorLong2Addr;
-import org.objectweb.asm.Opcodes;
 
 public class Xor extends LogicalBinop {
 
@@ -83,7 +83,7 @@ public class Xor extends LogicalBinop {
   }
 
   @Override
-  int getCfOpcode() {
-    return type.isWide() ? Opcodes.LXOR : Opcodes.IXOR;
+  CfLogicalBinop.Opcode getCfOpcode() {
+    return CfLogicalBinop.Opcode.Xor;
   }
 }

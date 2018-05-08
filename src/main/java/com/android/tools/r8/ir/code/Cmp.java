@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.code.CfCmp;
 import com.android.tools.r8.code.CmpLong;
 import com.android.tools.r8.code.CmpgDouble;
 import com.android.tools.r8.code.CmpgFloat;
@@ -13,6 +14,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.analysis.constant.Bottom;
 import com.android.tools.r8.ir.analysis.constant.ConstLatticeElement;
 import com.android.tools.r8.ir.analysis.constant.LatticeElement;
+import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.utils.LongInterval;
 import com.android.tools.r8.utils.StringUtils;
@@ -222,17 +224,7 @@ public class Cmp extends Binop {
   }
 
   @Override
-  int getCfOpcode() {
-    switch (type) {
-      case LONG:
-        assert bias == Bias.NONE;
-        return Opcodes.LCMP;
-      case FLOAT:
-        return bias == Bias.GT ? Opcodes.FCMPG : Opcodes.FCMPL;
-      case DOUBLE:
-        return bias == Bias.GT ? Opcodes.DCMPG : Opcodes.DCMPL;
-      default:
-        throw new Unreachable("Unexpected cmp type: " + type);
-    }
+  public void buildCf(CfBuilder builder) {
+    builder.add(new CfCmp(bias, type));
   }
 }

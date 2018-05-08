@@ -3,11 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.code.CfLogicalBinop;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.analysis.constant.Bottom;
 import com.android.tools.r8.ir.analysis.constant.ConstLatticeElement;
 import com.android.tools.r8.ir.analysis.constant.LatticeElement;
+import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import java.util.function.Function;
 
@@ -132,5 +134,12 @@ public abstract class LogicalBinop extends Binop {
       return new ConstLatticeElement(newConst);
     }
     return Bottom.getInstance();
+  }
+
+  abstract CfLogicalBinop.Opcode getCfOpcode();
+
+  @Override
+  public void buildCf(CfBuilder builder) {
+    builder.add(new CfLogicalBinop(getCfOpcode(), type));
   }
 }
