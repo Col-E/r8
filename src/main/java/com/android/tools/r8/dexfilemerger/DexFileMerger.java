@@ -12,8 +12,8 @@ import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
+import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.FileUtils;
-import com.android.tools.r8.utils.IOExceptionDiagnostic;
 import com.android.tools.r8.utils.OptionsParsing;
 import com.android.tools.r8.utils.OptionsParsing.ParseContext;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -233,7 +233,7 @@ public class DexFileMerger {
                   Files.newOutputStream(
                       path, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING));
         } catch (IOException e) {
-          handler.error(new IOExceptionDiagnostic(e, origin));
+          handler.error(new ExceptionDiagnostic(e, origin));
         }
       }
       return stream;
@@ -246,7 +246,7 @@ public class DexFileMerger {
             getStream(handler), getDexFileName(fileIndex), data, ZipEntry.DEFLATED, true);
         hasWrittenSomething = true;
       } catch (IOException e) {
-        handler.error(new IOExceptionDiagnostic(e, origin));
+        handler.error(new ExceptionDiagnostic(e, origin));
       }
     }
 
@@ -264,7 +264,7 @@ public class DexFileMerger {
           stream = null;
         }
       } catch (IOException e) {
-        handler.error(new IOExceptionDiagnostic(e, origin));
+        handler.error(new ExceptionDiagnostic(e, origin));
       }
     }
   }

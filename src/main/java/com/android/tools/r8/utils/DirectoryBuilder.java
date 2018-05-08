@@ -39,7 +39,7 @@ public class DirectoryBuilder implements OutputBuilder {
     try {
       Files.createDirectories(target.getParent());
     } catch (IOException e) {
-      handler.error(new IOExceptionDiagnostic(e, new PathOrigin(target)));
+      handler.error(new ExceptionDiagnostic(e, new PathOrigin(target)));
     }
   }
 
@@ -48,7 +48,7 @@ public class DirectoryBuilder implements OutputBuilder {
     try (InputStream in = content.getByteStream()) {
       addFile(name, ByteStreams.toByteArray(in), handler);
     } catch (IOException e) {
-      handler.error(new IOExceptionDiagnostic(e, content.getOrigin()));
+      handler.error(new ExceptionDiagnostic(e, content.getOrigin()));
     } catch (ResourceException e) {
       handler.error(new StringDiagnostic("Failed to open input: " + e.getMessage(),
           content.getOrigin()));
@@ -62,7 +62,7 @@ public class DirectoryBuilder implements OutputBuilder {
       Files.createDirectories(target.getParent());
       FileUtils.writeToFile(target, null, content);
     } catch (IOException e) {
-      handler.error(new IOExceptionDiagnostic(e, new PathOrigin(target)));
+      handler.error(new ExceptionDiagnostic(e, new PathOrigin(target)));
     }
   }
 

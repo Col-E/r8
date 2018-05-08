@@ -61,7 +61,7 @@ public class ArchiveBuilder implements OutputBuilder {
                 Files.newOutputStream(
                     archive, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING));
       } catch (IOException e) {
-        handler.error(new IOExceptionDiagnostic(e, origin));
+        handler.error(new ExceptionDiagnostic(e, origin));
       }
     }
     return stream;
@@ -71,9 +71,9 @@ public class ArchiveBuilder implements OutputBuilder {
     if (e instanceof ZipException && e.getMessage().startsWith("duplicate entry")) {
       // For now we stick to the Proguard behaviour, see section "Warning: can't write resource ...
       // Duplicate zip entry" on https://www.guardsquare.com/en/proguard/manual/troubleshooting.
-      handler.warning(new IOExceptionDiagnostic(e, origin));
+      handler.warning(new ExceptionDiagnostic(e, origin));
     } else {
-      handler.error(new IOExceptionDiagnostic(e, origin));
+      handler.error(new ExceptionDiagnostic(e, origin));
     }
   }
 

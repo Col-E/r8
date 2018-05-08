@@ -15,8 +15,9 @@ import com.android.tools.r8.shaking.ProguardConfigurationSource;
 import com.android.tools.r8.shaking.ProguardConfigurationSourceFile;
 import com.android.tools.r8.shaking.ProguardConfigurationSourceStrings;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.ExceptionDiagnostic;
+import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.FileUtils;
-import com.android.tools.r8.utils.IOExceptionDiagnostic;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.android.tools.r8.utils.Reporter;
@@ -286,14 +287,12 @@ public class R8Command extends BaseCompilerCommand {
 
         return makeR8Command();
       } catch (IOException e) {
-        throw getReporter().fatalError(new IOExceptionDiagnostic(e), e);
-      } catch (CompilationException e) {
-        throw getReporter().fatalError(new StringDiagnostic(e.getMessage()), e);
+        throw getReporter()
+            .fatalError(new ExceptionDiagnostic(e, ExceptionUtils.extractIOExceptionOrigin(e)));
       }
     }
 
-    private R8Command makeR8Command()
-        throws IOException, CompilationException {
+    private R8Command makeR8Command() throws IOException {
       Reporter reporter = getReporter();
       DexItemFactory factory = new DexItemFactory();
       ImmutableList<ProguardConfigurationRule> mainDexKeepRules;

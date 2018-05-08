@@ -14,4 +14,8 @@ public abstract class DiagnosticWithThrowable implements Diagnostic {
     assert throwable != null;
     this.throwable = throwable;
   }
+
+  public Throwable getThrowable() {
+    return throwable;
+  }
 }

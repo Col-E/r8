@@ -32,6 +32,13 @@ import java.util.Collection;
  */
 public class D8Command extends BaseCompilerCommand {
 
+  private static class ClasspathInputOrigin extends InputFileOrigin {
+
+    public ClasspathInputOrigin(Path file) {
+      super("classpath input", file);
+    }
+  }
+
   /**
    * Builder for constructing a D8Command.
    *
@@ -78,7 +85,7 @@ public class D8Command extends BaseCompilerCommand {
         try {
           getAppBuilder().addClasspathFile(file);
         } catch (IOException e) {
-          error("Error with classpath entry: ", file, e);
+          error(new ClasspathInputOrigin(file), e);
         }
       });
     }

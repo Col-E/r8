@@ -11,6 +11,7 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.DexVersion;
 import java.io.IOException;
+import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
@@ -38,6 +39,12 @@ public class DexReader extends BinaryReader {
 
   // Parse the magic header and determine the dex file version.
   private int parseMagic(ByteBuffer buffer) {
+    try {
+      buffer.get();
+      buffer.rewind();
+    } catch (BufferUnderflowException e) {
+      throw new CompilationError("Dex file is empty", origin);
+    }
     int index = 0;
     for (byte prefixByte : DEX_FILE_MAGIC_PREFIX) {
       if (buffer.get(index++) != prefixByte) {

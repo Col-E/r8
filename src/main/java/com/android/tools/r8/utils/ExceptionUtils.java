@@ -9,7 +9,11 @@ import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.origin.PathOrigin;
 import java.io.IOException;
+import java.nio.file.FileSystemException;
+import java.nio.file.Paths;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -55,16 +59,13 @@ public abstract class ExceptionUtils {
       try {
         action.run();
       } catch (IOException e) {
-        throw reporter.fatalError(new IOExceptionDiagnostic(e));
+        throw reporter.fatalError(new ExceptionDiagnostic(e, extractIOExceptionOrigin(e)));
       } catch (CompilationException e) {
         throw reporter.fatalError(new StringDiagnostic(compilerMessage.apply(e)), e);
       } catch (CompilationError e) {
         throw reporter.fatalError(e);
       } catch (ResourceException e) {
-        throw reporter.fatalError(
-            e.getCause() instanceof IOException
-                ? new IOExceptionDiagnostic((IOException) e.getCause(), e.getOrigin())
-                : new StringDiagnostic(e.getMessage(), e.getOrigin()));
+        throw reporter.fatalError(new ExceptionDiagnostic(e, e.getOrigin()));
       }
       reporter.failIfPendingErrors();
     } catch (AbortException e) {
@@ -89,6 +90,19 @@ public abstract class ExceptionUtils {
       cause.printStackTrace();
       System.exit(STATUS_ERROR);
     }
-
   }
+
+  // We should try to avoid the use of this extraction as it signifies a point where we don't have
+  // enough context to associate a specific origin with an IOException. Concretely, we should move
+  // towards always catching IOException and rethrowing CompilationError with proper origins.
+  public static Origin extractIOExceptionOrigin(IOException e) {
+    if (e instanceof FileSystemException) {
+      FileSystemException fse = (FileSystemException) e;
+      if (fse.getFile() != null && !fse.getFile().isEmpty()) {
+        return new PathOrigin(Paths.get(fse.getFile()));
+      }
+    }
+    return Origin.unknown();
+  }
+
 }

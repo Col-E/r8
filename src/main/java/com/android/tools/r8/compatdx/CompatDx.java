@@ -24,9 +24,10 @@ import com.android.tools.r8.compatdx.CompatDx.DxCompatOptions.PositionInfo;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.logging.Log;
+import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.FileUtils;
-import com.android.tools.r8.utils.IOExceptionDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.ByteStreams;
@@ -547,7 +548,7 @@ public class CompatDx {
             StandardOpenOption.TRUNCATE_EXISTING,
             StandardOpenOption.WRITE);
       } catch (IOException e) {
-        handler.error(new IOExceptionDiagnostic(e));
+        handler.error(new ExceptionDiagnostic(e, new PathOrigin(output)));
       }
     }
   }
@@ -566,7 +567,7 @@ public class CompatDx {
       try {
         writeZipWithClasses(handler);
       } catch (IOException e) {
-        handler.error(new IOExceptionDiagnostic(e));
+        handler.error(new ExceptionDiagnostic(e, getOrigin()));
       }
       super.finished(handler);
     }
