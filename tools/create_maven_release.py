@@ -74,7 +74,7 @@ def determine_version():
   with open(version_file, 'r') as file:
     for line in file:
       if 'final String LABEL ' in line:
-        result = line[line.find('"v') + 2:]
+        result = line[line.find('"') + 1:]
         result = result[:result.find('"')]
         return result
   raise Exception('Unable to determine version.')
