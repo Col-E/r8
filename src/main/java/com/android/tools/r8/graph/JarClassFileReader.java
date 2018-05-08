@@ -244,6 +244,24 @@ public class JarClassFileReader {
               : new EnclosingMethodAttribute(application.getMethod(ownerType, name, desc));
     }
 
+    private String illegalClassFilePrefix(ClassAccessFlags accessFlags, String name) {
+      return "Illegal class file: "
+          + (accessFlags.isInterface() ? "Interface" : "Class")
+          + " "
+          + name;
+    }
+
+    private String illegalClassFilePostfix(int version) {
+      return "Class file version " + version;
+    }
+
+    private String illegalClassFileMessage(
+        ClassAccessFlags accessFlags, String name, int version, String message) {
+      return illegalClassFilePrefix(accessFlags, name)
+          + " " + message
+          + ". " + illegalClassFilePostfix(version) + ".";
+    }
+
     @Override
     public void visit(int version, int access, String name, String signature, String superName,
         String[] interfaces) {
@@ -252,18 +270,22 @@ public class JarClassFileReader {
       type = application.getTypeFromName(name);
       // Check if constraints from
       // https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-4.html#jvms-4.1 are met.
-      if (!accessFlags.areValid(getMajorVersion())) {
-        throw new CompilationError("Illegal class file: Class " + name
-            + " has invalid access flags. Found: " + accessFlags.toString(), origin);
+      if (!accessFlags.areValid(getMajorVersion(), name.endsWith("/package-info"))) {
+        throw new CompilationError(
+            illegalClassFileMessage(accessFlags, name, version,
+                "has invalid access flags. Found: " + accessFlags.toString()), origin);
       }
       if (superName == null && !name.equals(Constants.JAVA_LANG_OBJECT_NAME)) {
-        throw new CompilationError("Illegal class file: Class " + name
-            + " is missing a super type.", origin);
+        throw new CompilationError(
+            illegalClassFileMessage(accessFlags, name, version,
+                "is missing a super type"), origin);
       }
       if (accessFlags.isInterface()
           && !Objects.equals(superName, Constants.JAVA_LANG_OBJECT_NAME)) {
-        throw new CompilationError("Illegal class file: Interface " + name
-            + " must extend class java.lang.Object. Found: " + Objects.toString(superName), origin);
+        throw new CompilationError(
+            illegalClassFileMessage(accessFlags, name, version,
+                "must extend class java.lang.Object. Found: " + Objects.toString(superName)),
+            origin);
       }
       assert superName != null || name.equals(Constants.JAVA_LANG_OBJECT_NAME);
       superType = superName == null ? null : application.getTypeFromName(superName);

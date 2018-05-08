@@ -649,7 +649,7 @@ public class DexParser {
       ClassAccessFlags flags = ClassAccessFlags.fromDexAccessFlags(accessFlags[i]);
       // Check if constraints from
       // https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-4.html#jvms-4.1 are met.
-      if (!flags.areValid(Constants.CORRESPONDING_CLASS_FILE_VERSION)) {
+      if (!flags.areValid(Constants.CORRESPONDING_CLASS_FILE_VERSION, false)) {
         throw new CompilationError("Class " + type.toSourceString()
             + " has illegal access flags. Found: " + flags, origin);
       }

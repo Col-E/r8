@@ -92,15 +92,16 @@ public class ClassAccessFlags extends AccessFlags {
    * Checks whether the constraints from
    * https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-4.html#jvms-4.1 are met.
    */
-  public boolean areValid(int majorVersion) {
+  public boolean areValid(int majorVersion, boolean isPackageInfo) {
     if (isInterface()) {
       // We ignore the super flags prior to JDK 9, as so did the VM.
       if ((majorVersion >= 53) && isSuper()) {
         return false;
       }
-      // We require interfaces to be abstract from JDK 7 onwards. Old versions of javac seem to
-      // have produced package-info classes that are interfaces but not abstract.
-      if ((majorVersion >= 51) && (!isAbstract())) {
+      // We require interfaces to be abstract - except for package-info classes - as both old
+      // versions of javac and other tools can produce package-info classes that are interfaces but
+      // not abstract.
+      if (!isAbstract() && !isPackageInfo) {
         return false;
       }
       return !isFinal() && !isEnum();
