@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexApplication.Builder;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.FeatureClassMapping;
 import com.android.tools.r8.utils.FeatureClassMapping.FeatureMappingException;
 import com.android.tools.r8.utils.InternalOptions;
@@ -33,14 +34,14 @@ import java.util.concurrent.ExecutorService;
 public class DexSplitterHelper {
 
   public static void run(
-      D8Command command,
-      FeatureClassMapping featureClassMapping,
-      String output,
-      String proguardMap)
-      throws IOException, CompilationException, ExecutionException {
+      D8Command command, FeatureClassMapping featureClassMapping, String output, String proguardMap)
+      throws CompilationFailedException {
     ExecutorService executor = ThreadUtils.getExecutorService(ThreadUtils.NOT_SPECIFIED);
     try {
-      run(command, featureClassMapping, output, proguardMap, executor);
+      ExceptionUtils.withCompilationHandler(
+          command.getReporter(),
+          () -> run(command, featureClassMapping, output, proguardMap, executor),
+          CompilationException::getMessage);
     } finally {
       executor.shutdown();
     }
@@ -52,7 +53,7 @@ public class DexSplitterHelper {
       String output,
       String proguardMap,
       ExecutorService executor)
-      throws IOException, CompilationException, ExecutionException {
+      throws IOException, CompilationException {
     InternalOptions options = command.getInternalOptions();
     options.enableDesugaring = false;
     options.enableMainDexListCheck = false;

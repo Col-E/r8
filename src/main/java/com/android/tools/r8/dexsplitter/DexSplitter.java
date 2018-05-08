@@ -4,23 +4,25 @@
 
 package com.android.tools.r8.dexsplitter;
 
-import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.DexSplitterHelper;
-import com.android.tools.r8.ResourceException;
+import com.android.tools.r8.Diagnostic;
+import com.android.tools.r8.DiagnosticsHandler;
+import com.android.tools.r8.utils.AbortException;
+import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
+import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.FeatureClassMapping;
 import com.android.tools.r8.utils.FeatureClassMapping.FeatureMappingException;
 import com.android.tools.r8.utils.OptionsParsing;
 import com.android.tools.r8.utils.OptionsParsing.ParseContext;
+import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableList;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 
 public class DexSplitter {
 
@@ -28,6 +30,37 @@ public class DexSplitter {
   private static final String DEFAULT_BASE_NAME = "base";
 
   private static final boolean PRINT_ARGS = false;
+
+  public static class Reporter implements DiagnosticsHandler {
+
+    private final DiagnosticsHandler handler = new DefaultDiagnosticsHandler();
+    private boolean reportedErrors = false;
+
+    public RuntimeException fatal(Diagnostic error) {
+      error(error);
+      throw new AbortException();
+    }
+
+    public boolean hasReportedErrors() {
+      return reportedErrors;
+    }
+
+    @Override
+    public void error(Diagnostic error) {
+      handler.error(error);
+      reportedErrors = true;
+    }
+
+    @Override
+    public void warning(Diagnostic warning) {
+      handler.warning(warning);
+    }
+
+    @Override
+    public void info(Diagnostic info) {
+      handler.info(info);
+    }
+  }
 
   public static class FeatureJar {
     private String jar;
@@ -62,12 +95,17 @@ public class DexSplitter {
   }
 
   public static class Options {
+    private final Reporter reporter = new Reporter();
     private List<String> inputArchives = new ArrayList<>();
     private List<FeatureJar> featureJars = new ArrayList<>();
     private String baseOutputName = DEFAULT_BASE_NAME;
     private String output = DEFAULT_OUTPUT_DIR;
     private String featureSplitMapping;
     private String proguardMap;
+
+    public Reporter getReporter() {
+      return reporter;
+    }
 
     public String getOutput() {
       return output;
@@ -124,6 +162,11 @@ public class DexSplitter {
     public ImmutableList<FeatureJar> getFeatureJars() {
       return ImmutableList.copyOf(featureJars);
     }
+
+    // Shorthand error messages.
+    public void error(String msg) {
+      reporter.error(new StringDiagnostic(msg));
+    }
   }
 
   /**
@@ -144,7 +187,7 @@ public class DexSplitter {
     return new FeatureJar(argument);
   }
 
-  private static Options parseArguments(String[] args) throws IOException {
+  private static Options parseArguments(String[] args) {
     Options options = new Options();
     ParseContext context = new ParseContext(args);
     while (context.head() != null) {
@@ -185,32 +228,35 @@ public class DexSplitter {
   }
 
   private static FeatureClassMapping createFeatureClassMapping(Options options)
-      throws IOException, FeatureMappingException, ResourceException {
+      throws FeatureMappingException {
     if (options.getFeatureSplitMapping() != null) {
-      return FeatureClassMapping.fromSpecification(Paths.get(options.getFeatureSplitMapping()));
+      return FeatureClassMapping.fromSpecification(
+          Paths.get(options.getFeatureSplitMapping()), options.getReporter());
     }
     assert !options.getFeatureJars().isEmpty();
-    return FeatureClassMapping.fromJarFiles(options.getFeatureJars(), options.getBaseOutputName());
+    return FeatureClassMapping.fromJarFiles(
+        options.getFeatureJars(), options.getBaseOutputName(), options.getReporter());
   }
 
   private static void run(String[] args)
-      throws CompilationFailedException, IOException, CompilationException, ExecutionException,
-          ResourceException, FeatureMappingException {
+      throws CompilationFailedException, FeatureMappingException {
     Options options = parseArguments(args);
     run(options);
   }
 
   public static void run(Options options)
-      throws IOException, FeatureMappingException, ResourceException, CompilationException,
-      ExecutionException, CompilationFailedException {
+      throws FeatureMappingException, CompilationFailedException {
     if (options.getInputArchives().isEmpty()) {
-      throw new RuntimeException("Need at least one --input");
+      options.error("Need at least one --input");
     }
     if (options.getFeatureSplitMapping() == null && options.getFeatureJars().isEmpty()) {
-      throw new RuntimeException("You must supply a feature split mapping or feature jars");
+      options.error("You must supply a feature split mapping or feature jars");
     }
     if (options.getFeatureSplitMapping() != null && !options.getFeatureJars().isEmpty()) {
-      throw new RuntimeException("You can't supply both a feature split mapping and feature jars");
+      options.error("You can't supply both a feature split mapping and feature jars");
+    }
+    if (options.getReporter().hasReportedErrors()) {
+      throw new AbortException();
     }
 
     D8Command.Builder builder = D8Command.builder();
@@ -228,20 +274,19 @@ public class DexSplitter {
   }
 
   public static void main(String[] args) {
-    try {
-      if (PRINT_ARGS) {
-        printArgs(args);
-      }
-      run(args);
-    } catch (CompilationFailedException
-        | IOException
-        | CompilationException
-        | ExecutionException
-        | ResourceException
-        | FeatureMappingException e) {
-      System.err.println("Splitting failed: " + e.getMessage());
-      System.exit(1);
+    if (PRINT_ARGS) {
+      printArgs(args);
     }
+    ExceptionUtils.withMainProgramHandler(
+        () -> {
+          try {
+            run(args);
+          } catch (FeatureMappingException e) {
+            // TODO(ricow): Report feature mapping errors via the reporter.
+            System.err.println("Splitting failed: " + e.getMessage());
+            System.exit(1);
+          }
+        });
   }
 
   private static void printArgs(String[] args) {

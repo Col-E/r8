@@ -4,7 +4,9 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.ArchiveClassFileProvider;
+import com.android.tools.r8.dexsplitter.DexSplitter;
 import com.android.tools.r8.dexsplitter.DexSplitter.FeatureJar;
+import com.android.tools.r8.origin.PathOrigin;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -51,11 +53,39 @@ public class FeatureClassMapping {
   static final String COMMENT = "#";
   static final String SEPARATOR = ":";
 
+  private static class SpecificationOrigin extends PathOrigin {
 
-  public static FeatureClassMapping fromSpecification(Path file)
-      throws FeatureMappingException, IOException {
+    public SpecificationOrigin(Path path) {
+      super(path);
+    }
+
+    @Override
+    public String part() {
+      return "specification file '" + super.part() + "'";
+    }
+  }
+
+  private static class JarFileOrigin extends PathOrigin {
+
+    public JarFileOrigin(Path path) {
+      super(path);
+    }
+
+    @Override
+    public String part() {
+      return "jar file '" + super.part() + "'";
+    }
+  }
+
+  public static FeatureClassMapping fromSpecification(Path file, DexSplitter.Reporter reporter)
+      throws FeatureMappingException {
     FeatureClassMapping mapping = new FeatureClassMapping();
-    List<String> lines = FileUtils.readAllLines(file);
+    List<String> lines = null;
+    try {
+      lines = FileUtils.readAllLines(file);
+    } catch (IOException e) {
+      throw reporter.fatal(new ExceptionDiagnostic(e, new SpecificationOrigin(file)));
+    }
     for (int i = 0; i < lines.size(); i++) {
       String line = lines.get(i);
       mapping.parseAndAdd(line, i);
@@ -63,15 +93,21 @@ public class FeatureClassMapping {
     return mapping;
   }
 
-  public static FeatureClassMapping fromJarFiles(List<FeatureJar> featureJars, String baseName)
-      throws FeatureMappingException, IOException {
+  public static FeatureClassMapping fromJarFiles(
+      List<FeatureJar> featureJars, String baseName, DexSplitter.Reporter reporter)
+      throws FeatureMappingException {
     FeatureClassMapping mapping = new FeatureClassMapping();
     if (mapping.baseName != null) {
       mapping.baseName = baseName;
     }
     for (FeatureJar featureJar : featureJars) {
       Path jarPath = Paths.get(featureJar.getJar());
-      ArchiveClassFileProvider provider = new ArchiveClassFileProvider(jarPath);
+      ArchiveClassFileProvider provider = null;
+      try {
+        provider = new ArchiveClassFileProvider(jarPath);
+      } catch (IOException e) {
+        throw reporter.fatal(new ExceptionDiagnostic(e, new JarFileOrigin(jarPath)));
+      }
       for (String javaDescriptor : provider.getClassDescriptors()) {
           String javaType = DescriptorUtils.descriptorToJavaType(javaDescriptor);
           mapping.addMapping(javaType, featureJar.getOutputName());
@@ -94,7 +130,7 @@ public class FeatureClassMapping {
     }
   }
 
-  public String featureForClass(String clazz) throws FeatureMappingException {
+  public String featureForClass(String clazz) {
     if (usesOnlyExactMappings) {
       return parsedRules.getOrDefault(clazz, baseName);
     } else {
