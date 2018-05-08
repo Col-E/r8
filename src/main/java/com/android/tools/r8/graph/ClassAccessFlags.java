@@ -98,10 +98,11 @@ public class ClassAccessFlags extends AccessFlags {
       if ((majorVersion >= 53) && isSuper()) {
         return false;
       }
-      // We require interfaces to be abstract - except for package-info classes - as both old
-      // versions of javac and other tools can produce package-info classes that are interfaces but
-      // not abstract.
-      if (!isAbstract() && !isPackageInfo) {
+      // When not coming from DEX input we require interfaces to be abstract - except for
+      // package-info classes - as both old versions of javac and other tools can produce
+      // package-info classes that are interfaces but not abstract.
+      if (((majorVersion > Constants.CORRESPONDING_CLASS_FILE_VERSION) && !isAbstract())
+          && !isPackageInfo) {
         return false;
       }
       return !isFinal() && !isEnum();
