@@ -5,8 +5,8 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
+import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.FileUtils;
-import com.android.tools.r8.utils.IOExceptionDiagnostic;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Path;
@@ -89,7 +89,8 @@ public interface UsageInformationConsumer {
       try {
         FileUtils.writeToFile(outputPath, null, data);
       } catch (IOException e) {
-        handler.error(new IOExceptionDiagnostic(e, new PathOrigin(outputPath)));
+        Origin origin = new PathOrigin(outputPath);
+        handler.error(new ExceptionDiagnostic(e, origin));
       }
     }
   }
@@ -125,7 +126,7 @@ public interface UsageInformationConsumer {
       try {
         outputStream.write(data);
       } catch (IOException e) {
-        handler.error(new IOExceptionDiagnostic(e, origin));
+        handler.error(new ExceptionDiagnostic(e, origin));
       }
     }
   }

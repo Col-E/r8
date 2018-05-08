@@ -78,9 +78,12 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -105,6 +108,8 @@ import org.objectweb.asm.TypePath;
  */
 public class JarClassFileReader {
 
+  private static final byte[] CLASSFILE_HEADER = ByteBuffer.allocate(4).putInt(0xCAFEBABE).array();
+
   // Hidden ASM "synthetic attribute" bit we need to clear.
   private static final int ACC_SYNTHETIC_ATTRIBUTE = 0x40000;
   // Descriptor used by ASM for missing annotations.
@@ -120,6 +125,24 @@ public class JarClassFileReader {
   }
 
   public void read(Origin origin, ClassKind classKind, InputStream input) throws IOException {
+    if (!input.markSupported()) {
+      input = new BufferedInputStream(input);
+    }
+    byte[] header = new byte[CLASSFILE_HEADER.length];
+    input.mark(header.length);
+    int size = 0;
+    while (size < header.length) {
+      int read = input.read(header, size, header.length - size);
+      if (read < 0) {
+        throw new CompilationError("Invalid empty classfile", origin);
+      }
+      size += read;
+    }
+    if (!Arrays.equals(CLASSFILE_HEADER, header)) {
+      throw new CompilationError("Invalid classfile header", origin);
+    }
+    input.reset();
+
     ClassReader reader = new ClassReader(input);
     int flags = SKIP_FRAMES;
     if (application.options.enableCfFrontend) {

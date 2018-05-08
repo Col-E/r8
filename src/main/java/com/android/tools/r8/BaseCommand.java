@@ -9,6 +9,7 @@ import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.AbortException;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
+import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -65,6 +66,34 @@ public abstract class BaseCommand {
 
   // Internal access to the internal options.
   abstract InternalOptions getInternalOptions();
+
+  abstract static class InputFileOrigin extends PathOrigin {
+    private final String inputType;
+
+    public InputFileOrigin(String inputType, Path file) {
+      super(file);
+      this.inputType = inputType;
+    }
+
+    @Override
+    public String part() {
+      return inputType + " '" + super.part() + "'";
+    }
+  }
+
+  private static class ProgramInputOrigin extends InputFileOrigin {
+
+    public ProgramInputOrigin(Path file) {
+      super("program input", file);
+    }
+  }
+
+  private static class LibraryInputOrigin extends InputFileOrigin {
+
+    public LibraryInputOrigin(Path file) {
+      super("library input", file);
+    }
+  }
 
   /**
    * Base builder for commands.
@@ -147,7 +176,7 @@ public abstract class BaseCommand {
                     app.addProgramFile(path);
                     programFiles.add(path);
                   } catch (IOException | CompilationError e) {
-                    error("Error with input file: ", path, e);
+                    error(new ProgramInputOrigin(path), e);
                   }
                 });
           });
@@ -181,7 +210,7 @@ public abstract class BaseCommand {
                   try {
                     app.addLibraryFile(path);
                   } catch (IOException | CompilationError e) {
-                    error("Error with library file: ", path, e);
+                    error(new LibraryInputOrigin(path), e);
                   }
                 });
           });
@@ -289,9 +318,8 @@ public abstract class BaseCommand {
     void validate() {}
 
     // Helper to signify an error.
-    void error(String baseMessage, Path path, Throwable throwable) {
-      reporter.error(new StringDiagnostic(
-          baseMessage + throwable.getMessage(), new PathOrigin(path)), throwable);
+    void error(Origin origin, Throwable throwable) {
+      reporter.error(new ExceptionDiagnostic(throwable, origin));
     }
 
     // Helper to guard and handle exceptions.

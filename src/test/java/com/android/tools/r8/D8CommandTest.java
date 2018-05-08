@@ -15,8 +15,10 @@ import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.origin.EmbeddedOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.collect.ImmutableList;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -139,7 +141,7 @@ public class D8CommandTest {
     Path input = Paths.get(EXAMPLES_BUILD_DIR, "arithmetic.jar");
     ProcessResult result =
         ToolHelper.forkD8(Paths.get("."), input.toString(), "--output", existingDir.toString());
-    assertEquals(0, result.exitCode);
+    assertEquals(result.toString(), 0, result.exitCode);
     assertTrue(Files.exists(classesFiles.get(0)));
     for (int i = 1; i < classesFiles.size(); i++) {
       Path file = classesFiles.get(i);
@@ -358,6 +360,62 @@ public class D8CommandTest {
         .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
         .setDisableDesugaring(true)
         .build());
+  }
+
+  @Test(expected = CompilationFailedException.class)
+  public void errorOnEmptyClassfile() throws IOException, CompilationFailedException {
+    Path emptyFile = temp.getRoot().toPath().resolve("empty-file.class");
+    FileUtils.writeToFile(emptyFile, null, new byte[0]);
+    DiagnosticsChecker.checkErrorsContains(
+        "empty",
+        handler ->
+            D8.run(
+                D8Command.builder(handler)
+                    .addProgramFiles(emptyFile)
+                    .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+                    .build()));
+  }
+
+  @Test(expected = CompilationFailedException.class)
+  public void errorOnInvalidClassfileHeader() throws IOException, CompilationFailedException {
+    Path emptyFile = temp.getRoot().toPath().resolve("empty-file.class");
+    FileUtils.writeToFile(emptyFile, null, new byte[] {'C', 'A', 'F', 'E', 'B', 'A', 'B', 'F'});
+    DiagnosticsChecker.checkErrorsContains(
+        "header",
+        handler ->
+            D8.run(
+                D8Command.builder(handler)
+                    .addProgramFiles(emptyFile)
+                    .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+                    .build()));
+  }
+
+  @Test(expected = CompilationFailedException.class)
+  public void errorOnEmptyDex() throws IOException, CompilationFailedException {
+    Path emptyFile = temp.getRoot().toPath().resolve("empty-file.dex");
+    FileUtils.writeToFile(emptyFile, null, new byte[0]);
+    DiagnosticsChecker.checkErrorsContains(
+        "empty",
+        handler ->
+            D8.run(
+                D8Command.builder(handler)
+                    .addProgramFiles(emptyFile)
+                    .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+                    .build()));
+  }
+
+  @Test(expected = CompilationFailedException.class)
+  public void errorOnInvalidDexHeader() throws IOException, CompilationFailedException {
+    Path emptyFile = temp.getRoot().toPath().resolve("empty-file.dex");
+    FileUtils.writeToFile(emptyFile, null, new byte[] {'C', 'A', 'F', 'E', 'B', 'A', 'B', 'E'});
+    DiagnosticsChecker.checkErrorsContains(
+        "header",
+        handler ->
+            D8.run(
+                D8Command.builder(handler)
+                    .addProgramFiles(emptyFile)
+                    .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+                    .build()));
   }
 
   private D8Command parse(String... args) throws CompilationFailedException {

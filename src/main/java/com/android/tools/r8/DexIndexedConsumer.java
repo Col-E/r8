@@ -3,11 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.ArchiveBuilder;
 import com.android.tools.r8.utils.DirectoryBuilder;
+import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.FileUtils;
-import com.android.tools.r8.utils.IOExceptionDiagnostic;
 import com.android.tools.r8.utils.OutputBuilder;
 import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.io.ByteStreams;
@@ -126,6 +127,10 @@ public interface DexIndexedConsumer extends ProgramConsumer {
       }
     }
 
+    public Origin getOrigin() {
+      return outputBuilder.getOrigin();
+    }
+
     @Override
     public DataResourceConsumer getDataResourceConsumer() {
       return consumeDataResources ? this : null;
@@ -154,7 +159,7 @@ public interface DexIndexedConsumer extends ProgramConsumer {
       try {
         outputBuilder.close();
       } catch (IOException e) {
-        handler.error(new IOExceptionDiagnostic(e, outputBuilder.getOrigin()));
+        handler.error(new ExceptionDiagnostic(e, outputBuilder.getOrigin()));
       }
     }
 
@@ -219,7 +224,7 @@ public interface DexIndexedConsumer extends ProgramConsumer {
       try {
         prepareDirectory();
       } catch (IOException e) {
-        handler.error(new IOExceptionDiagnostic(e, new PathOrigin(directory)));
+        handler.error(new ExceptionDiagnostic(e, new PathOrigin(directory)));
       }
       outputBuilder.addFile(getDexFileName(fileIndex), data, handler);
     }
@@ -240,7 +245,7 @@ public interface DexIndexedConsumer extends ProgramConsumer {
       try {
         outputBuilder.close();
       } catch (IOException e) {
-        handler.error(new IOExceptionDiagnostic(e, outputBuilder.getOrigin()));
+        handler.error(new ExceptionDiagnostic(e, outputBuilder.getOrigin()));
       }
     }
 

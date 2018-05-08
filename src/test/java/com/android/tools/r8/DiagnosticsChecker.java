@@ -40,6 +40,8 @@ class DiagnosticsChecker implements DiagnosticsHandler {
     try {
       runner.run(handler);
     } catch (CompilationFailedException e) {
+      System.out.println("Expecting match for '" + snippet + "'");
+      System.out.println("StdErr:\n" + handler.errors);
       assertTrue(
           "Expected to find snippet '"
               + snippet

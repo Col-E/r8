@@ -301,8 +301,7 @@ public class AndroidApp {
     }
 
     /** Add filtered archives of program resources. */
-    public Builder addFilteredProgramArchives(Collection<FilteredClassPath> filteredArchives)
-        throws NoSuchFileException {
+    public Builder addFilteredProgramArchives(Collection<FilteredClassPath> filteredArchives) {
       for (FilteredClassPath archive : filteredArchives) {
         assert isArchive(archive.getPath());
         ArchiveResourceProvider archiveResourceProvider =
