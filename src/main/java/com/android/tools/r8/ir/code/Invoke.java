@@ -119,8 +119,19 @@ public abstract class Invoke extends Instruction {
     assert !needsRangedInvoke(builder);
     int i = 0;
     for (Value value : arguments()) {
-      int register = builder.allocatedRegister(value, getNumber());
-      assert register <= Constants.U4BIT_MAX;
+      // If one of the arguments to the invoke instruction is an argument of the enclosing method
+      // that has been spilled at this location, then we need to take the argument from its
+      // original input register (because the register allocator never inserts moves from an
+      // argument register to a spill register). Note that this is only a problem if an argument
+      // has been spilled to a register that is not the argument's original register.
+      //
+      // For simplicity, we just use the original input register for all arguments if the register
+      // fits in 4 bits.
+      int register = builder.argumentOrAllocateRegister(value, getNumber());
+      if (register + value.requiredRegisters() - 1 > Constants.U4BIT_MAX) {
+        register = builder.allocatedRegister(value, getNumber());
+      }
+      assert register + value.requiredRegisters() - 1 <= Constants.U4BIT_MAX;
       for (int j = 0; j < value.requiredRegisters(); j++) {
         assert i < 5;
         registers[i++] = register++;

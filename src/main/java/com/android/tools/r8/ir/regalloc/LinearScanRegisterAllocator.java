@@ -1144,6 +1144,10 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   }
 
   private int getSpillRegister(LiveIntervals intervals) {
+    if (intervals.isArgumentInterval()) {
+      return intervals.getSplitParent().getRegister();
+    }
+
     int register = maxRegisterNumber + 1;
     increaseCapacity(maxRegisterNumber + intervals.requiredRegisters());
     assert registersAreFree(register, intervals.getType().isWide());
@@ -1476,14 +1480,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       // of finding another candidate to spill via allocateBlockedRegister.
       if (!unhandledInterval.getUses().first().hasConstraint()) {
         int nextConstrainedPosition = unhandledInterval.firstUseWithConstraint().getPosition();
-        int register;
-        // Arguments are always in the argument registers, so for arguments just use that register
-        // for the unconstrained prefix. For everything else, get a spill register.
-        if (unhandledInterval.isArgumentInterval()) {
-          register = unhandledInterval.getSplitParent().getRegister();
-        } else {
-          register = getSpillRegister(unhandledInterval);
-        }
+        int register = getSpillRegister(unhandledInterval);
         LiveIntervals split = unhandledInterval.splitBefore(nextConstrainedPosition);
         assignFreeRegisterToUnhandledInterval(unhandledInterval, register);
         unhandled.add(split);

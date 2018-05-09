@@ -88,6 +88,9 @@ public class LiveIntervals implements Comparable<LiveIntervals> {
   }
 
   public void setSpilled(boolean value) {
+    // Check that we always spill arguments to their original register.
+    assert getRegister() != NO_REGISTER;
+    assert !(value && isArgumentInterval()) || getRegister() == getSplitParent().getRegister();
     spilled = value;
   }
 
