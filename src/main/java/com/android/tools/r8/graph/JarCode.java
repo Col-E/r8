@@ -5,6 +5,7 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.errors.InvalidDebugInfoException;
+import com.android.tools.r8.graph.JarClassFileReader.ReparseContext;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
@@ -17,9 +18,7 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
@@ -37,16 +36,6 @@ public class JarCode extends Code {
   // TODO(zerny): Write via the IR.
   public void writeTo(MethodVisitor visitor) {
     node.accept(visitor);
-  }
-
-  public static class ReparseContext {
-
-    // This will hold the content of the whole class. Once all the methods of the class are swapped
-    // from this to the actual JarCode, no other references would be left and the content can be
-    // GC'd.
-    public byte[] classCache;
-    public DexProgramClass owner;
-    private final List<JarCode> codeList = new ArrayList<>();
   }
 
   private final DexMethod method;
@@ -227,7 +216,7 @@ public class JarCode extends Code {
       JarCode code = null;
       MethodAccessFlags flags = JarClassFileReader.createMethodAccessFlags(name, access);
       if (!flags.isAbstract() && !flags.isNative()) {
-        code = context.codeList.get(methodIndex++);
+        code = context.codeList.get(methodIndex++).asJarCode();
         assert code.method == application.getMethod(context.owner.type, name, desc);
       }
       if (code != null) {
