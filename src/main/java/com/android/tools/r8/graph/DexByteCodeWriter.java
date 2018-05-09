@@ -82,8 +82,12 @@ public abstract class DexByteCodeWriter {
 
   private void writeClass(DexProgramClass clazz, PrintStream ps) {
     writeClassHeader(clazz, ps);
+    writeFieldsHeader(clazz, ps);
     clazz.forEachField(field -> writeField(field, ps));
+    writeFieldsFooter(clazz, ps);
+    writeMethodsHeader(clazz, ps);
     clazz.forEachMethod(method -> writeMethod(method, ps));
+    writeMethodsFooter(clazz, ps);
     writeClassFooter(clazz, ps);
   }
 
@@ -91,9 +95,25 @@ public abstract class DexByteCodeWriter {
 
   abstract void writeClassHeader(DexProgramClass clazz, PrintStream ps);
 
+  void writeFieldsHeader(DexProgramClass clazz, PrintStream ps) {
+    // Do nothing.
+  }
+
   abstract void writeField(DexEncodedField field, PrintStream ps);
 
+  void writeFieldsFooter(DexProgramClass clazz, PrintStream ps) {
+    // Do nothing.
+  }
+
+  void writeMethodsHeader(DexProgramClass clazz, PrintStream ps) {
+    // Do nothing.
+  }
+
   abstract void writeMethod(DexEncodedMethod method, PrintStream ps);
+
+  void writeMethodsFooter(DexProgramClass clazz, PrintStream ps) {
+    // Do nothing.
+  }
 
   abstract void writeClassFooter(DexProgramClass clazz, PrintStream ps);
 }

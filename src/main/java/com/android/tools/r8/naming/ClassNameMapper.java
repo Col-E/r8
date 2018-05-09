@@ -110,9 +110,9 @@ public class ClassNameMapper implements ProguardMap {
     return (MethodSignature) canonicalizeSignature(signature);
   }
 
-  public Signature getRenamedFieldSignature(DexField field) {
+  public FieldSignature getRenamedFieldSignature(DexField field) {
     String type = deobfuscateType(field.type.toDescriptorString());
-    return canonicalizeSignature(new FieldSignature(field.name.toString(), type));
+    return (FieldSignature) canonicalizeSignature(new FieldSignature(field.name.toString(), type));
   }
 
   /**
@@ -229,6 +229,20 @@ public class ClassNameMapper implements ProguardMap {
       return memberSignature;
     }
     return memberNaming.signature;
+  }
+
+  public FieldSignature originalSignatureOf(DexField field) {
+    String decoded = descriptorToJavaType(field.clazz.descriptor.toString());
+    FieldSignature memberSignature = getRenamedFieldSignature(field);
+    ClassNaming classNaming = getClassNaming(decoded);
+    if (classNaming == null) {
+      return memberSignature;
+    }
+    MemberNaming memberNaming = classNaming.lookup(memberSignature);
+    if (memberNaming == null) {
+      return memberSignature;
+    }
+    return (FieldSignature) memberNaming.signature;
   }
 
   public String originalNameOf(DexType clazz) {

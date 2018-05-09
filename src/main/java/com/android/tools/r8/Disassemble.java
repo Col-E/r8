@@ -32,6 +32,7 @@ public class Disassemble {
       private Path outputPath = null;
       private Path proguardMapFile = null;
       private boolean useSmali = false;
+      private boolean allInfo = false;
 
       @Override
       Builder self() {
@@ -52,6 +53,11 @@ public class Disassemble {
         return this;
       }
 
+      public Builder setAllInfo(boolean allInfo) {
+        this.allInfo = allInfo;
+        return this;
+      }
+
       public Builder setUseSmali(boolean useSmali) {
         this.useSmali = useSmali;
         return this;
@@ -67,6 +73,7 @@ public class Disassemble {
             getAppBuilder().build(),
             getOutputPath(),
             proguardMapFile == null ? null : StringResource.fromFile(proguardMapFile),
+            allInfo,
             useSmali);
       }
     }
@@ -75,6 +82,7 @@ public class Disassemble {
         "Usage: disasm [options] <input-files>",
         " where <input-files> are dex files",
         " and options are:",
+        "  --all                   # Include all information in disassembly.",
         "  --smali                 # Disassemble using smali syntax.",
         "  --pg-map <file>         # Proguard map <file> for mapping names.",
         "  --output                # Specify a file or directory to write to.",
@@ -82,6 +90,7 @@ public class Disassemble {
         "  --help                  # Print this message."));
 
 
+    private final boolean allInfo;
     private final boolean useSmali;
 
     public static Builder builder() {
@@ -103,6 +112,8 @@ public class Disassemble {
           builder.setPrintHelp(true);
         } else if (arg.equals("--version")) {
           builder.setPrintVersion(true);
+          } else if (arg.equals("--all")) {
+          builder.setAllInfo(true);
         } else if (arg.equals("--smali")) {
           builder.setUseSmali(true);
         } else if (arg.equals("--pg-map")) {
@@ -121,10 +132,12 @@ public class Disassemble {
     }
 
     private DisassembleCommand(
-        AndroidApp inputApp, Path outputPath, StringResource proguardMap, boolean useSmali) {
+        AndroidApp inputApp, Path outputPath, StringResource proguardMap,
+        boolean allInfo, boolean useSmali) {
       super(inputApp);
       this.outputPath = outputPath;
       this.proguardMap = proguardMap;
+      this.allInfo = allInfo;
       this.useSmali = useSmali;
     }
 
@@ -132,6 +145,7 @@ public class Disassemble {
       super(printHelp, printVersion);
       outputPath = null;
       proguardMap = null;
+      allInfo = false;
       useSmali = false;
     }
 
@@ -177,7 +191,7 @@ public class Disassemble {
           new ApplicationReader(app, options, timing).read(command.proguardMap, executor);
       DexByteCodeWriter writer = command.useSmali()
           ? new SmaliWriter(application, options)
-          : new AssemblyWriter(application, options);
+          : new AssemblyWriter(application, options, command.allInfo);
       if (command.getOutputPath() != null) {
         writer.write(command.getOutputPath());
       } else {
