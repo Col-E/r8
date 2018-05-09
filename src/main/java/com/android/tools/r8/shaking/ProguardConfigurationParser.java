@@ -18,6 +18,8 @@ import com.android.tools.r8.position.TextRange;
 import com.android.tools.r8.shaking.ProguardConfiguration.Builder;
 import com.android.tools.r8.shaking.ProguardTypeMatcher.ClassOrType;
 import com.android.tools.r8.shaking.ProguardTypeMatcher.MatchSpecificType;
+import com.android.tools.r8.shaking.ProguardWildcard.BackReference;
+import com.android.tools.r8.shaking.ProguardWildcard.Pattern;
 import com.android.tools.r8.utils.IdentifierUtils;
 import com.android.tools.r8.utils.InternalOptions.PackageObfuscationMode;
 import com.android.tools.r8.utils.LongInterval;
@@ -34,12 +36,9 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class ProguardConfigurationParser {
 
@@ -571,30 +570,28 @@ public class ProguardConfigurationParser {
         ProguardKeepRule subsequentRule = parseKeepRule();
         ifRuleBuilder.setSubsequentRule(subsequentRule);
         ProguardIfRule ifRule = ifRuleBuilder.build();
-        verifyWildcardRange(ifRule.getWildcards());
+        verifyAndLinkBackReferences(ifRule.getWildcards());
         return ifRule;
       }
       throw reporter.fatalError(new StringDiagnostic(
           "Expecting '-keep' option after '-if' option.", origin, getPosition(optionStart)));
     }
 
-    private void verifyWildcardRange(Iterable<String> wildcards) {
-      Pattern backReference = Pattern.compile("<(\\d+)>");
-      int i = 1;
-      Iterator<String> iterator = wildcards.iterator();
-      while (iterator.hasNext()) {
-        String wildcard = iterator.next();
-        Matcher m = backReference.matcher(wildcard);
-        if (m.matches()) {
-          int n = Integer.parseInt(m.group(1));
-          if (i <= n) {
+    void verifyAndLinkBackReferences(Iterable<ProguardWildcard> wildcards) {
+      List<Pattern> patterns = new ArrayList<>();
+      for (ProguardWildcard wildcard : wildcards) {
+        if (wildcard.isBackReference()) {
+          BackReference backReference = wildcard.asBackReference();
+          if (patterns.size() < backReference.referenceIndex) {
             throw reporter.fatalError(new StringDiagnostic(
-                "Wildcard <" + n + "> is invalid.", origin, getPosition()));
+                "Wildcard <" + backReference.referenceIndex + "> is invalid "
+                    + "(only seen " + patterns.size() + " at this point).",
+                origin, getPosition()));
           }
+          backReference.setReference(patterns.get(backReference.referenceIndex - 1));
         } else {
-          // Increase the index of wildcards for non-back-reference only
-          // to not allow one back-reference to point to another back-reference
-          i++;
+          assert wildcard.isPattern();
+          patterns.add(wildcard.asPattern());
         }
       }
     }
@@ -1162,7 +1159,7 @@ public class ProguardConfigurationParser {
     }
 
     private IdentifierPatternWithWildcards acceptIdentifierWithBackreference(IdentifierType kind) {
-      ImmutableList.Builder<String> wildcardsCollector = ImmutableList.builder();
+      ImmutableList.Builder<ProguardWildcard> wildcardsCollector = ImmutableList.builder();
       StringBuilder currentAsterisks = null;
       StringBuilder currentBackreference = null;
       skipWhitespace();
@@ -1180,15 +1177,15 @@ public class ProguardConfigurationParser {
                 throw reporter.fatalError(new StringDiagnostic(
                     "Wildcard <" + backreference + "> is invalid.", origin, getPosition()));
               }
+              wildcardsCollector.add(new BackReference(backreference));
+              currentBackreference = null;
+              end += Character.charCount(current);
+              continue;
             } catch (NumberFormatException e) {
               throw reporter.fatalError(new StringDiagnostic(
                   "Wildcard <" + currentBackreference.toString() + "> is invalid.",
                   origin, getPosition()));
             }
-            wildcardsCollector.add("<" + currentBackreference.toString() + ">");
-            currentBackreference = null;
-            end += Character.charCount(current);
-            continue;
           } else if (('0' <= current && current <= '9')
               // Only collect integer literal for the back reference.
               || (current == '-' && currentBackreference.length() == 0)) {
@@ -1209,7 +1206,7 @@ public class ProguardConfigurationParser {
             end += Character.charCount(current);
             continue;
           } else {
-            wildcardsCollector.add(currentAsterisks.toString());
+            wildcardsCollector.add(new ProguardWildcard.Pattern(currentAsterisks.toString()));
             currentAsterisks = null;
           }
         }
@@ -1220,7 +1217,7 @@ public class ProguardConfigurationParser {
           currentAsterisks.append((char) current);
           end += Character.charCount(current);
         } else if (current == '?' || current == '%') {
-          wildcardsCollector.add(String.valueOf((char) current));
+          wildcardsCollector.add(new ProguardWildcard.Pattern(String.valueOf((char) current)));
           end += Character.charCount(current);
         } else if (CLASS_NAME_PREDICATE.test(current) || current == '>') {
           end += Character.charCount(current);
@@ -1232,7 +1229,7 @@ public class ProguardConfigurationParser {
         }
       }
       if (currentAsterisks != null) {
-        wildcardsCollector.add(currentAsterisks.toString());
+        wildcardsCollector.add(new ProguardWildcard.Pattern(currentAsterisks.toString()));
       }
       if (kind == IdentifierType.CLASS_NAME && currentBackreference != null) {
         // Proguard 6 reports this error message, so try to be compatible.
@@ -1479,9 +1476,9 @@ public class ProguardConfigurationParser {
 
   static class IdentifierPatternWithWildcards {
     final String pattern;
-    final List<String> wildcards;
+    final List<ProguardWildcard> wildcards;
 
-    IdentifierPatternWithWildcards(String pattern, List<String> wildcards) {
+    IdentifierPatternWithWildcards(String pattern, List<ProguardWildcard> wildcards) {
       this.pattern = pattern;
       this.wildcards = wildcards;
     }

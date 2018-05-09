@@ -9,11 +9,9 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.ProguardConfigurationParser.IdentifierPatternWithWildcards;
 import com.android.tools.r8.utils.StringUtils;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 public class ProguardMemberRule {
@@ -266,17 +264,17 @@ public class ProguardMemberRule {
     return false;
   }
 
-  Iterable<String> getWildcards() {
+  Iterable<ProguardWildcard> getWildcards() {
     return Iterables.concat(
-        annotation != null ? annotation.getWildcards() : ImmutableList.of(),
-        type != null ? type.getWildcards() : ImmutableList.of(),
-        name != null ? name.getWildcards() : ImmutableList.of(),
+        ProguardTypeMatcher.getWildcardsOrEmpty(annotation),
+        ProguardTypeMatcher.getWildcardsOrEmpty(type),
+        ProguardNameMatcher.getWildcardsOrEmpty(name),
         arguments != null
             ? arguments.stream()
                 .map(ProguardTypeMatcher::getWildcards)
                 .flatMap(it -> StreamSupport.stream(it.spliterator(), false))
-                .collect(Collectors.toList())
-            : ImmutableList.of()
+                ::iterator
+            : Collections::emptyIterator
     );
   }
 

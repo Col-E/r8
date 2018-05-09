@@ -75,8 +75,12 @@ public abstract class ProguardClassNameList {
 
   public abstract boolean matches(DexType type);
 
-  protected Iterable<String> getWildcards() {
-    return ImmutableList.of();
+  protected Iterable<ProguardWildcard> getWildcards() {
+    return Collections::emptyIterator;
+  }
+
+  static Iterable<ProguardWildcard> getWildcardsOrEmpty(ProguardClassNameList nameList) {
+    return nameList == null ? Collections::emptyIterator : nameList.getWildcards();
   }
 
   public abstract void forEachTypeMatcher(Consumer<ProguardTypeMatcher> consumer);
@@ -140,7 +144,7 @@ public abstract class ProguardClassNameList {
     }
 
     @Override
-    protected Iterable<String> getWildcards() {
+    protected Iterable<ProguardWildcard> getWildcards() {
       return className.getWildcards();
     }
 
@@ -190,11 +194,11 @@ public abstract class ProguardClassNameList {
     }
 
     @Override
-    protected Iterable<String> getWildcards() {
+    protected Iterable<ProguardWildcard> getWildcards() {
       return classNames.stream()
           .map(ProguardTypeMatcher::getWildcards)
           .flatMap(it -> StreamSupport.stream(it.spliterator(), false))
-          .collect(Collectors.toList());
+          ::iterator;
     }
 
     @Override
@@ -248,11 +252,11 @@ public abstract class ProguardClassNameList {
     }
 
     @Override
-    protected Iterable<String> getWildcards() {
+    protected Iterable<ProguardWildcard> getWildcards() {
       return classNames.keySet().stream()
           .map(ProguardTypeMatcher::getWildcards)
           .flatMap(it -> StreamSupport.stream(it.spliterator(), false))
-          .collect(Collectors.toList());
+          ::iterator;
     }
 
     @Override

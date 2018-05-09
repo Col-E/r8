@@ -43,6 +43,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.function.Function;
 import org.junit.Before;
@@ -1388,7 +1389,17 @@ public class ProguardConfigurationParserTest extends TestBase {
     assertEquals("**$R**", if0.getClassNames().toString());
     assertEquals(ProguardKeepRuleType.KEEP, if0.subsequentRule.getType());
     assertEquals("**$D<2>", if0.subsequentRule.getClassNames().toString());
-    // TODO(b/73800755): Test <2> matches with expected wildcard: ** after '$R'.
+
+    // Test <2> literally refers to the second wildcard in the rule.
+    Iterator<ProguardWildcard> it1 = if0.getClassNames().getWildcards().iterator();
+    it1.next();
+    ProguardWildcard secondWildcardInIf = it1.next();
+    assertTrue(secondWildcardInIf.isPattern());
+    Iterator<ProguardWildcard> it2 = if0.subsequentRule.getWildcards().iterator();
+    it2.next();
+    ProguardWildcard backReference = it2.next();
+    assertTrue(backReference.isBackReference());
+    assertSame(secondWildcardInIf.asPattern(), backReference.asBackReference().reference);
 
     verifyWithProguard6(proguardConfig);
   }

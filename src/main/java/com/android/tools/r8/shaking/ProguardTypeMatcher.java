@@ -8,7 +8,10 @@ import static com.android.tools.r8.utils.DescriptorUtils.javaTypeToDescriptor;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.ProguardConfigurationParser.IdentifierPatternWithWildcards;
+import com.android.tools.r8.shaking.ProguardWildcard.BackReference;
+import com.android.tools.r8.shaking.ProguardWildcard.Pattern;
 import com.google.common.collect.ImmutableList;
+import java.util.Collections;
 import java.util.List;
 
 public abstract class ProguardTypeMatcher {
@@ -29,8 +32,12 @@ public abstract class ProguardTypeMatcher {
 
   public abstract boolean matches(DexType type);
 
-  protected Iterable<String> getWildcards() {
-    return ImmutableList.of();
+  protected Iterable<ProguardWildcard> getWildcards() {
+    return Collections::emptyIterator;
+  }
+
+  static Iterable<ProguardWildcard> getWildcardsOrEmpty(ProguardTypeMatcher typeMatcher) {
+    return typeMatcher == null ? Collections::emptyIterator : typeMatcher.getWildcards();
   }
 
   @Override
@@ -89,14 +96,21 @@ public abstract class ProguardTypeMatcher {
 
     private static final ProguardTypeMatcher MATCH_ALL_TYPES = new MatchAllTypes();
 
+    private final ProguardWildcard wildcard;
+
+    MatchAllTypes() {
+      this.wildcard = new Pattern(MATCH_ALL_PATTERN);
+    }
+
     @Override
     public boolean matches(DexType type) {
+      wildcard.setCaptured(type.toSourceString());
       return true;
     }
 
     @Override
-    protected Iterable<String> getWildcards() {
-      return ImmutableList.of(MATCH_ALL_PATTERN);
+    protected Iterable<ProguardWildcard> getWildcards() {
+      return ImmutableList.of(wildcard);
     }
 
     @Override
@@ -147,26 +161,32 @@ public abstract class ProguardTypeMatcher {
 
   private static class MatchClassTypes extends ProguardTypeMatcher {
 
-    private static final ProguardTypeMatcher MATCH_CLASS_TYPES = new MatchClassTypes(
-        MATCH_CLASS_PATTERN);
-    private static final ProguardTypeMatcher LEGACY_MATCH_CLASS_TYPES = new MatchClassTypes(
-        LEGACY_MATCH_CLASS_PATTERN);
+    private static final ProguardTypeMatcher MATCH_CLASS_TYPES =
+        new MatchClassTypes(MATCH_CLASS_PATTERN);
+    private static final ProguardTypeMatcher LEGACY_MATCH_CLASS_TYPES =
+        new MatchClassTypes(LEGACY_MATCH_CLASS_PATTERN);
 
     private final String pattern;
+    private final ProguardWildcard wildcard;
 
     private MatchClassTypes(String pattern) {
       assert pattern.equals(LEGACY_MATCH_CLASS_PATTERN) || pattern.equals(MATCH_CLASS_PATTERN);
       this.pattern = pattern;
+      this.wildcard = new Pattern(pattern);
     }
 
     @Override
     public boolean matches(DexType type) {
-      return type.isClassType();
+      if (type.isClassType()) {
+        wildcard.setCaptured(type.toSourceString());
+        return true;
+      }
+      return false;
     }
 
     @Override
-    protected Iterable<String> getWildcards() {
-      return ImmutableList.of(pattern);
+    protected Iterable<ProguardWildcard> getWildcards() {
+      return ImmutableList.of(wildcard);
     }
 
     @Override
@@ -189,14 +209,24 @@ public abstract class ProguardTypeMatcher {
 
     private static final ProguardTypeMatcher MATCH_BASIC_TYPES = new MatchBasicTypes();
 
-    @Override
-    public boolean matches(DexType type) {
-      return type.isPrimitiveType();
+    private final ProguardWildcard wildcard;
+
+    MatchBasicTypes() {
+      this.wildcard = new Pattern(MATCH_BASIC_PATTERN);
     }
 
     @Override
-    protected Iterable<String> getWildcards() {
-      return ImmutableList.of(MATCH_BASIC_PATTERN);
+    public boolean matches(DexType type) {
+      if (type.isPrimitiveType()) {
+        wildcard.setCaptured(type.toSourceString());
+        return true;
+      }
+      return false;
+    }
+
+    @Override
+    protected Iterable<ProguardWildcard> getWildcards() {
+      return ImmutableList.of(wildcard);
     }
 
     @Override
@@ -255,7 +285,7 @@ public abstract class ProguardTypeMatcher {
   private static class MatchTypePattern extends ProguardTypeMatcher {
 
     private final String pattern;
-    private final List<String> wildcards;
+    private final List<ProguardWildcard> wildcards;
     private final ClassOrType kind;
 
     private MatchTypePattern(
@@ -269,63 +299,101 @@ public abstract class ProguardTypeMatcher {
     public boolean matches(DexType type) {
       // TODO(herhut): Translate pattern to work on descriptors instead.
       String typeName = type.toSourceString();
-      return matchClassOrTypeNameImpl(pattern, 0, typeName, 0, kind);
+      boolean matched = matchClassOrTypeNameImpl(pattern, 0, typeName, 0, wildcards, 0, kind);
+      if (!matched) {
+        wildcards.forEach(ProguardWildcard::clearCaptured);
+      }
+      return matched;
     }
 
     @Override
-    protected Iterable<String> getWildcards() {
+    protected Iterable<ProguardWildcard> getWildcards() {
       return wildcards;
     }
 
     private static boolean matchClassOrTypeNameImpl(
-        String pattern, int patternIndex, String className, int nameIndex, ClassOrType kind) {
+        String pattern, int patternIndex,
+        String name, int nameIndex,
+        List<ProguardWildcard> wildcards, int wildcardIndex,
+        ClassOrType kind) {
+      ProguardWildcard wildcard;
+      Pattern wildcardPattern;
+      BackReference backReference;
       for (int i = patternIndex; i < pattern.length(); i++) {
         char patternChar = pattern.charAt(i);
         switch (patternChar) {
           case '*':
+            wildcard = wildcards.get(wildcardIndex);
+            assert wildcard.isPattern();
+            wildcardPattern = wildcard.asPattern();
             boolean includeSeparators = pattern.length() > (i + 1) && pattern.charAt(i + 1) == '*';
             int nextPatternIndex = i + (includeSeparators ? 2 : 1);
             // Fast cases for the common case where a pattern ends with '**' or '*'.
             if (nextPatternIndex == pattern.length()) {
+              wildcardPattern.setCaptured(name.substring(nameIndex, name.length()));
               if (includeSeparators) {
-                return kind == ClassOrType.CLASS || !isArrayType(className);
+                return kind == ClassOrType.CLASS || !isArrayType(name);
               }
-              boolean hasSeparators = containsSeparatorsStartingAt(className, nameIndex);
-              return !hasSeparators && (kind == ClassOrType.CLASS || !isArrayType(className));
+              boolean hasSeparators = containsSeparatorsStartingAt(name, nameIndex);
+              return !hasSeparators && (kind == ClassOrType.CLASS || !isArrayType(name));
             }
             // Match the rest of the pattern against the (non-empty) rest of the class name.
-            for (int nextNameIndex = nameIndex; nextNameIndex < className.length();
-                nextNameIndex++) {
-              if (!includeSeparators && className.charAt(nextNameIndex) == '.') {
-                return matchClassOrTypeNameImpl(pattern, nextPatternIndex, className, nextNameIndex,
+            for (int nextNameIndex = nameIndex; nextNameIndex < name.length(); nextNameIndex++) {
+              wildcardPattern.setCaptured(name.substring(nameIndex, nextNameIndex));
+              if (!includeSeparators && name.charAt(nextNameIndex) == '.') {
+                return matchClassOrTypeNameImpl(
+                    pattern, nextPatternIndex, name, nextNameIndex, wildcards, wildcardIndex + 1,
                     kind);
               }
-              if (kind == ClassOrType.TYPE && className.charAt(nextNameIndex) == '[') {
-                return matchClassOrTypeNameImpl(pattern, nextPatternIndex, className, nextNameIndex,
+              if (kind == ClassOrType.TYPE && name.charAt(nextNameIndex) == '[') {
+                return matchClassOrTypeNameImpl(
+                    pattern, nextPatternIndex, name, nextNameIndex, wildcards, wildcardIndex + 1,
                     kind);
               }
-              if (matchClassOrTypeNameImpl(pattern, nextPatternIndex, className, nextNameIndex,
+              if (matchClassOrTypeNameImpl(
+                  pattern, nextPatternIndex, name, nextNameIndex, wildcards, wildcardIndex + 1,
                   kind)) {
                 return true;
               }
             }
             // Finally, check the case where the '*' or '**' eats all of the class name.
-            return matchClassOrTypeNameImpl(pattern, nextPatternIndex, className,
-                className.length(),
+            wildcardPattern.setCaptured(name.substring(nameIndex, name.length()));
+            return matchClassOrTypeNameImpl(
+                pattern, nextPatternIndex, name, name.length(), wildcards, wildcardIndex + 1,
                 kind);
           case '?':
-            if (nameIndex == className.length() || className.charAt(nameIndex++) == '.') {
+            wildcard = wildcards.get(wildcardIndex);
+            assert wildcard.isPattern();
+            if (nameIndex == name.length() || name.charAt(nameIndex) == '.') {
               return false;
             }
+            wildcardPattern = wildcard.asPattern();
+            wildcardPattern.setCaptured(name.substring(nameIndex, nameIndex + 1));
+            nameIndex++;
+            wildcardIndex++;
+            break;
+          case '<':
+            wildcard = wildcards.get(wildcardIndex);
+            assert wildcard.isBackReference();
+            backReference = wildcard.asBackReference();
+            String captured = backReference.getCaptured();
+            if (captured == null
+                || name.length() < nameIndex + captured.length()
+                || !captured.equals(name.substring(nameIndex, nameIndex + captured.length()))) {
+              return false;
+            }
+            nameIndex = nameIndex + captured.length();
+            wildcardIndex++;
+            i = pattern.indexOf(">", i);
             break;
           default:
-            if (nameIndex == className.length() || patternChar != className.charAt(nameIndex++)) {
+            if (nameIndex == name.length() || patternChar != name.charAt(nameIndex++)) {
               return false;
             }
             break;
         }
       }
-      return nameIndex == className.length();
+      return nameIndex == name.length();
     }
 
     private static boolean containsSeparatorsStartingAt(String className, int nameIndex) {

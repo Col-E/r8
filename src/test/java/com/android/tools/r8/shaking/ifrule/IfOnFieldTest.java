@@ -3,9 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking.ifrule;
 
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatabilityTestBase;
 import com.android.tools.r8.utils.DexInspector;
 import com.google.common.collect.ImmutableList;
@@ -89,11 +86,6 @@ public class IfOnFieldTest extends ProguardCompatabilityTestBase {
 
   @Test
   public void ifOnField_withNthWildcard() throws Exception {
-    // TODO(b/73800755): not implemented yet.
-    if (shrinker == Shrinker.R8) {
-      return;
-    }
-
     List<String> config = ImmutableList.of(
         "-keep class **.MainUsesR {",
         "  public static void main(java.lang.String[]);",
@@ -136,11 +128,6 @@ public class IfOnFieldTest extends ProguardCompatabilityTestBase {
 
   @Test
   public void ifOnFieldWithCapture_withNthWildcard() throws Exception {
-    // TODO(b/73800755): not implemented yet.
-    if (shrinker == Shrinker.R8) {
-      return;
-    }
-
     List<String> config = ImmutableList.of(
         "-keep class **.MainWithIf {",
         "  public static void main(java.lang.String[]);",
@@ -180,11 +167,6 @@ public class IfOnFieldTest extends ProguardCompatabilityTestBase {
 
   @Test
   public void ifOnFieldWithInner_withNthWildcard() throws Exception {
-    // TODO(b/73800755): not implemented yet.
-    if (shrinker == Shrinker.R8) {
-      return;
-    }
-
     List<String> config = ImmutableList.of(
         "-keep class **.MainWithInner {",
         "  public static void main(java.lang.String[]);",
@@ -201,33 +183,6 @@ public class IfOnFieldTest extends ProguardCompatabilityTestBase {
         R.class, D.class, R1.class, D1.class, R2.class, D2.class);
     verifyClassesPresent(dexInspector,
         MainWithInner.InnerR.class, MainWithInner.InnerD.class);
-  }
-
-  @Test
-  public void ifOnFieldWithInner_outOfRange() throws Exception {
-    // TODO(b/73800755): not implemented yet.
-    if (shrinker == Shrinker.R8) {
-      return;
-    }
-
-    List<String> config = ImmutableList.of(
-        "-keep class **.MainWithInner {",
-        "  public static void main(java.lang.String[]);",
-        "}",
-        "-if class **$*R",
-        "-keep class <1>$<3>D"
-    );
-
-    try {
-      runShrinker(shrinker, CLASSES, config);
-      fail("Expect to see an error about wrong range of <n>.");
-    } catch (Error e) {
-      // "Invalid reference to wildcard (3, must lie between 1 and 2)"
-      String message = e.getMessage();
-      assertTrue(message.contains("Invalid"));
-      assertTrue(message.contains("wildcard"));
-      assertTrue(message.contains("3"));
-    }
   }
 
   @Test
@@ -254,11 +209,6 @@ public class IfOnFieldTest extends ProguardCompatabilityTestBase {
 
   @Test
   public void ifOnFieldInImplementer_withNthWildcard() throws Exception {
-    // TODO(b/73800755): not implemented yet.
-    if (shrinker == Shrinker.R8) {
-      return;
-    }
-
     List<String> config = ImmutableList.of(
         "-keep class **.MainUsesImpl {",
         "  public static void main(java.lang.String[]);",

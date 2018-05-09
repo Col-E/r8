@@ -9,8 +9,11 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.shaking.ProguardConfigurationParser.IdentifierPatternWithWildcards;
 import com.android.tools.r8.shaking.ProguardTypeMatcher.ClassOrType;
+import com.android.tools.r8.shaking.ProguardWildcard.BackReference;
+import com.android.tools.r8.shaking.ProguardWildcard.Pattern;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import org.junit.Test;
@@ -24,7 +27,7 @@ public class ProguardNameMatchingTest {
 
   private static boolean matchTypeName(String typeName, String pattern) {
     return ProguardTypeMatcher.create(
-        toIdentifierPatternWithWildCards(pattern), ClassOrType.TYPE, dexItemFactory)
+        toIdentifierPatternWithWildCards(pattern, false), ClassOrType.TYPE, dexItemFactory)
         .matches(dexItemFactory.createType(DescriptorUtils.javaTypeToDescriptor(typeName)));
   }
 
@@ -39,13 +42,21 @@ public class ProguardNameMatchingTest {
       for (String pattern : patterns) {
         boolean isNegated = pattern.startsWith("!");
         String actualPattern = isNegated ? pattern.substring(1) : pattern;
-        listBuilder.addClassName(isNegated, ProguardTypeMatcher.create(
-            toIdentifierPatternWithWildCards(actualPattern), ClassOrType.CLASS, dexItemFactory));
+        listBuilder.addClassName(isNegated,
+            ProguardTypeMatcher.create(
+                toIdentifierPatternWithWildCards(actualPattern, false),
+                ClassOrType.CLASS, dexItemFactory));
       }
       builder.addPattern(listBuilder.build());
     }
     return builder.build()
         .matches(dexItemFactory.createType(DescriptorUtils.javaTypeToDescriptor(className)));
+  }
+
+  private static boolean matchMemberName(String pattern, String memberName) {
+    ProguardNameMatcher nameMatcher =
+        ProguardNameMatcher.create(toIdentifierPatternWithWildCards(pattern, true));
+    return nameMatcher.matches(memberName);
   }
 
   @Test
@@ -67,22 +78,29 @@ public class ProguardNameMatchingTest {
 
     assertTrue(matchClassName("java.lang.Object", "java.*g.O*"));
     assertTrue(matchClassName("java.lang.Object", "java.*g.O?je?t"));
+    assertTrue(matchClassName("java.lang.Object", "?ava.*g.Ob<1>e*"));
+    assertTrue(matchClassName("java.lang.Object", "j?v<1>.*<1>*g.Obj*"));
+    assertTrue(matchClassName("java.lang.Object", "j*v?.*<2>*g.Obj*"));
     assertFalse(matchClassName("java.lang.Object", "java.*g.O?je?t?"));
     assertFalse(matchClassName("java.lang.Object", "java?lang.Object"));
     assertTrue(matchClassName("java.lang.Object", "*a*.*a**"));
     assertTrue(matchClassName("java.lang.Object", "*a**a**"));
+    assertTrue(matchClassName("java.lang.Object", "*?**<2>**"));
 
     assertTrue(matchClassName("java.lang.Object", "!java.util.**", "java**"));
     assertFalse(matchClassName("java.lang.Object", "!java.**", "java.lang.*"));
     assertTrue(matchClassName("java.lang.Object", "java.lang.*", "!java.**"));
 
     assertTrue(matchClassName("boobar", "!foobar", "*bar"));
+    assertTrue(matchClassName("boobar", "!foobar", "?*<1>ar"));
     assertFalse(matchClassName("foobar", "!foobar", "*bar"));
 
     assertFalse(matchClassName("foo", "!boo"));
     assertFalse(matchClassName("foo", "baz,!boo"));
 
     assertFalse(matchClassName("boo", "!boo", "**"));
+    assertFalse(matchClassName("boo", "!b*<1>", "**"));
+    assertFalse(matchClassName("boo", "!b?<1>", "**"));
     assertTrue(matchClassName("boo", "**", "!boo"));
     assertTrue(matchClassName("boo",
         ImmutableList.of(ImmutableList.of("!boo"), ImmutableList.of("**"))));
@@ -132,48 +150,91 @@ public class ProguardNameMatchingTest {
 
   @Test
   public void matchFieldOrMethodNames() {
-    assertTrue(ProguardNameMatcher.matchFieldOrMethodName("*", ""));
-    assertTrue(ProguardNameMatcher.matchFieldOrMethodName("*", "get"));
-    assertTrue(ProguardNameMatcher.matchFieldOrMethodName("get*", "get"));
-    assertTrue(ProguardNameMatcher.matchFieldOrMethodName("get*", "getObject"));
-    assertTrue(ProguardNameMatcher.matchFieldOrMethodName("*t", "get"));
-    assertTrue(ProguardNameMatcher.matchFieldOrMethodName("g*t*", "getObject"));
-    assertTrue(
-        ProguardNameMatcher.matchFieldOrMethodName("g*t***************", "getObject"));
-    assertFalse(ProguardNameMatcher.matchFieldOrMethodName("get*y", "getObject"));
-    assertFalse(ProguardNameMatcher.matchFieldOrMethodName("getObject?", "getObject"));
-    assertTrue(ProguardNameMatcher.matchFieldOrMethodName("getObject?", "getObject1"));
-    assertTrue(ProguardNameMatcher.matchFieldOrMethodName("getObject?", "getObject5"));
+    assertTrue(matchMemberName("*", ""));
+    assertTrue(matchMemberName("*", "get"));
+    assertTrue(matchMemberName("get*", "get"));
+    assertTrue(matchMemberName("get*", "getObject"));
+    assertTrue(matchMemberName("*t", "get"));
+    assertTrue(matchMemberName("g*t*", "getObject"));
+    assertTrue(matchMemberName("g*t***************", "getObject"));
+    assertFalse(matchMemberName("get*y", "getObject"));
+    assertFalse(matchMemberName("getObject?", "getObject"));
+    assertTrue(matchMemberName("getObject?", "getObject1"));
+    assertTrue(matchMemberName("getObject?", "getObject5"));
+
+    assertTrue(matchMemberName("ge?Objec<1>", "getObject"));
+    assertTrue(matchMemberName("ge*Objec<1>", "getObject"));
+    assertTrue(matchMemberName("ge*Objec<1>", "geObjec"));
+    assertTrue(matchMemberName("g?*Obj<1>c<2>", "getObject"));
+    assertTrue(matchMemberName("g??Obj<1>c<2>", "getObject"));
+    assertTrue(matchMemberName("g*?Obj<1>c<2>", "getObject"));
+    assertFalse(matchMemberName("g?*Obj<1>c<2>", "getObject1"));
+    assertTrue(matchMemberName("g**Obj<1>c<2>", "getObject"));
+    assertFalse(matchMemberName("g**Obj<1>c<2>", "getObject1"));
+    assertTrue(matchMemberName("g?*Obj<1>c<2>?", "getObject1"));
+    assertTrue(matchMemberName("g**Obj<1>c<2>?", "getObject1"));
+    assertTrue(matchMemberName("*foo<1>", "foofoofoo"));
+    assertTrue(matchMemberName("*foo<1>", "barfoobar"));
+    assertFalse(matchMemberName("*foo<1>", "barfoobaz"));
   }
 
-  private static IdentifierPatternWithWildcards toIdentifierPatternWithWildCards(String pattern) {
-    ImmutableList.Builder<String> builder = ImmutableList.builder();
+  private static IdentifierPatternWithWildcards toIdentifierPatternWithWildCards(
+      String pattern, boolean isForNameMatcher) {
+    ImmutableList.Builder<ProguardWildcard> builder = ImmutableList.builder();
     String allPattern = "";
     String backReference = "";
     for (int i = 0; i < pattern.length(); i++) {
       char patternChar = pattern.charAt(i);
-      if (patternChar == '?' || patternChar == '%') {
-        builder.add(String.valueOf(patternChar));
-      } else if (patternChar == '*') {
-        allPattern += patternChar;
-      } else if (patternChar == '<') {
-        backReference += patternChar;
-      } else if (patternChar == '>') {
-        backReference += patternChar;
-        builder.add(backReference);
-        backReference = "";
-      } else {
-        if (allPattern.length() > 0) {
-          builder.add(allPattern);
-          allPattern = "";
-        } else if (backReference.length() > 0) {
+      if (backReference.length() > 0) {
+        if (patternChar == '>') {
+          backReference += patternChar;
+          builder.add(new BackReference(
+              Integer.parseInt(backReference.substring(1, backReference.length() - 1))));
+          backReference = "";
+        } else {
           backReference += patternChar;
         }
+        continue;
+      } else if (allPattern.length() > 0) {
+        if (patternChar == '*') {
+          allPattern += patternChar;
+          continue;
+        } else {
+          builder.add(new Pattern(allPattern));
+          allPattern = "";
+        }
+      }
+
+      if (patternChar == '*') {
+        if (isForNameMatcher) {
+          builder.add(new Pattern(String.valueOf(patternChar)));
+        } else {
+          allPattern += patternChar;
+        }
+      } else if (patternChar == '?' || patternChar == '%') {
+        builder.add(new Pattern(String.valueOf(patternChar)));
+      } else if (patternChar == '<') {
+        backReference += patternChar;
       }
     }
     if (allPattern.length() > 0) {
-      builder.add(allPattern);
+      builder.add(new Pattern(allPattern));
     }
-    return new IdentifierPatternWithWildcards(pattern, builder.build());
+    List<ProguardWildcard> wildcards = builder.build();
+    linkBackReferences(wildcards);
+    return new IdentifierPatternWithWildcards(pattern, wildcards);
+  }
+
+  private static void linkBackReferences(Iterable<ProguardWildcard> wildcards) {
+    List<Pattern> patterns = new ArrayList<>();
+    for (ProguardWildcard wildcard : wildcards) {
+      if (wildcard.isBackReference()) {
+        BackReference backReference = wildcard.asBackReference();
+        backReference.setReference(patterns.get(backReference.referenceIndex - 1));
+      } else {
+        assert wildcard.isPattern();
+        patterns.add(wildcard.asPattern());
+      }
+    }
   }
 }
