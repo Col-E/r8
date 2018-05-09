@@ -56,10 +56,7 @@ public class BootstrapTest extends TestBase {
 
     @Override
     public String toString() {
-      // TODO(mathiasr): Add pgMap to output when resource API (go/r8g/19460) has landed.
-      // Without resource API, comparing pgMaps will fail because R8 does not keep the resource
-      // indicating which Git revision R8 was compiled from.
-      return processResult.toString();
+      return processResult.toString() + "\n\n" + pgMap;
     }
   }
 
@@ -71,37 +68,52 @@ public class BootstrapTest extends TestBase {
     assertEquals(0, runHello.exitCode);
 
     // Run r8.jar on hello.jar to ensure that r8.jar is a working compiler.
-    R8Result runInputR8 = runExternalR8(R8_STABLE_JAR, hello, "input", KEEP_HELLO);
+    R8Result runInputR8 = runExternalR8(R8_STABLE_JAR, hello, "input", KEEP_HELLO, "--debug");
     ProcessResult runHelloR8 = ToolHelper.runJava(runInputR8.outputJar, "hello.Hello");
     assertEquals(runHello.toString(), runHelloR8.toString());
 
+    // TODO(b/75997473): Enable when inlining is supported in the CF backend
+    // compareR8(
+    //     hello, runInputR8, CompilationMode.RELEASE, "r8-r8-rel", "--release", "output-rel");
+    compareR8(hello, runInputR8, CompilationMode.DEBUG, "r8-r8", "--debug", "output");
+  }
+
+  private void compareR8(
+      Path hello,
+      R8Result runInputR8,
+      CompilationMode internalMode,
+      String internalOutput,
+      String externalMode,
+      String externalOutput)
+      throws Exception {
     // Run R8 on r8.jar, and run the resulting compiler on hello.jar.
-    Path output = runR8(R8_STABLE_JAR, "r8-r8", KEEP_R8);
-    R8Result runR8R8 = runExternalR8(output, hello, "output", KEEP_HELLO);
+    Path output = runR8(R8_STABLE_JAR, internalOutput, KEEP_R8, internalMode);
+    R8Result runR8R8 = runExternalR8(output, hello, externalOutput, KEEP_HELLO, externalMode);
     // Check that the process outputs (exit code, stdout, stderr) are the same.
     assertEquals(runInputR8.toString(), runR8R8.toString());
     // Check that the output jars are the same.
     assertProgramsEqual(runInputR8.outputJar, runR8R8.outputJar);
   }
 
-  private Path runR8(Path inputJar, String outputFolder, String[] keepRules) throws Exception {
+  private Path runR8(Path inputJar, String outputFolder, String[] keepRules, CompilationMode mode)
+      throws Exception {
     Path outputPath = temp.newFolder(outputFolder).toPath();
     Path outputJar = outputPath.resolve("output.jar");
     Path pgConfigFile = outputPath.resolve("keep.rules");
     FileUtils.writeTextFile(pgConfigFile, keepRules);
     ToolHelper.runR8(
         R8Command.builder()
-            .setMode(CompilationMode.DEBUG)
+            .setMode(mode)
             .addLibraryFiles(Paths.get(ToolHelper.JAVA_8_RUNTIME))
-            // TODO(mathiasr): Add resources to output when resource API (go/r8g/19460) has landed.
-            .setProgramConsumer(new ClassFileConsumer.ArchiveConsumer(outputJar))
+            .setProgramConsumer(new ClassFileConsumer.ArchiveConsumer(outputJar, true))
             .addProgramFiles(inputJar)
             .addProguardConfigurationFiles(pgConfigFile)
             .build());
     return outputJar;
   }
 
-  private R8Result runExternalR8(Path r8Jar, Path inputJar, String outputFolder, String[] keepRules)
+  private R8Result runExternalR8(
+      Path r8Jar, Path inputJar, String outputFolder, String[] keepRules, String mode)
       throws Exception {
     Path outputPath = temp.newFolder(outputFolder).toPath();
     Path pgConfigFile = outputPath.resolve("keep.rules");
@@ -120,7 +132,7 @@ public class BootstrapTest extends TestBase {
             outputJar.toString(),
             "--pg-conf",
             pgConfigFile.toString(),
-            "--debug",
+            mode,
             "--pg-map-output",
             pgMapFile.toString());
     if (processResult.exitCode != 0) {
