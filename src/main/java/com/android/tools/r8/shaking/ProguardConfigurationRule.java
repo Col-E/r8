@@ -4,10 +4,9 @@
 package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.utils.StringUtils;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 public abstract class ProguardConfigurationRule extends ProguardClassSpecification {
@@ -36,22 +35,19 @@ public abstract class ProguardConfigurationRule extends ProguardClassSpecificati
     return false;
   }
 
-  protected Iterable<String> getWildcards() {
-    ProguardTypeMatcher classAnnotation = getClassAnnotation();
-    ProguardTypeMatcher inheritanceAnnotation = getInheritanceAnnotation();
-    ProguardTypeMatcher inheritanceClassName = getInheritanceClassName();
+  protected Iterable<ProguardWildcard> getWildcards() {
     List<ProguardMemberRule> memberRules = getMemberRules();
     return Iterables.concat(
-        classAnnotation != null ? classAnnotation.getWildcards() : ImmutableList.of(),
-        getClassNames().getWildcards(),
-        inheritanceAnnotation != null ? inheritanceAnnotation.getWildcards() : ImmutableList.of(),
-        inheritanceClassName != null ? inheritanceClassName.getWildcards() : ImmutableList.of(),
+        ProguardTypeMatcher.getWildcardsOrEmpty(getClassAnnotation()),
+        ProguardClassNameList.getWildcardsOrEmpty(getClassNames()),
+        ProguardTypeMatcher.getWildcardsOrEmpty(getInheritanceAnnotation()),
+        ProguardTypeMatcher.getWildcardsOrEmpty(getInheritanceClassName()),
         memberRules != null
             ? memberRules.stream()
                 .map(ProguardMemberRule::getWildcards)
                 .flatMap(it -> StreamSupport.stream(it.spliterator(), false))
-                .collect(Collectors.toList())
-            : ImmutableList.of()
+                ::iterator
+            : Collections::emptyIterator
     );
   }
 

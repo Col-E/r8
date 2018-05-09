@@ -133,11 +133,6 @@ public class IfOnClassTest extends ProguardCompatabilityTestBase {
       return;
     }
 
-    // TODO(b/73800755): not implemented yet.
-    if (shrinker == Shrinker.R8) {
-      return;
-    }
-
     ClassSubject clazz = dexInspector.clazz(DependentUser.class);
     assertThat(clazz, isRenamed());
     // Members of DependentUser are not used anywhere.
@@ -248,11 +243,6 @@ public class IfOnClassTest extends ProguardCompatabilityTestBase {
         return;
       }
       assertEquals(1, dexInspector.allClasses().size());
-      return;
-    }
-
-    // TODO(b/73800755): not implemented yet.
-    if (shrinker == Shrinker.R8) {
       return;
     }
 

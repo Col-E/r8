@@ -322,18 +322,86 @@ public class RootSetBuilder {
       Set<DexEncodedMethod> liveMethods,
       Set<DexEncodedField> liveFields) throws ExecutionException {
     application.timing.begin("Find consequent items for -if rules...");
+    Function<DexType, DexClass> definitionForWithLiveTypes = type -> {
+      DexClass clazz = appInfo.definitionFor(type);
+      if (clazz != null && liveTypes.contains(clazz.type)) {
+        return clazz;
+      }
+      return null;
+    };
     try {
       List<Future<?>> futures = new ArrayList<>();
       if (rules != null) {
         for (ProguardConfigurationRule rule : rules) {
           assert rule instanceof ProguardIfRule;
           ProguardIfRule ifRule = (ProguardIfRule) rule;
-          if (ruleSatisfiedWithLiveItems(
-              ifRule, appInfo::definitionFor, liveTypes, liveMethods, liveFields)) {
-            runPerRule(executorService, futures, ifRule.subsequentRule, ifRule);
+          // Depending on which types trigger the -if rule, the application of the subsequent
+          // -keep rule may vary (due to back references). So, we need to try all pairs of -if rule
+          // and live types.
+          for (DexType currentLiveType : liveTypes) {
+            if (ifRule.hasInheritanceClassName()) {
+              if (!satisfyInheritanceRule(currentLiveType, definitionForWithLiveTypes, ifRule)) {
+                // Try another live type since the current one doesn't satisfy the inheritance rule.
+                continue;
+              }
+            }
+            if (ifRule.getClassNames().matches(currentLiveType)) {
+              Collection<ProguardMemberRule> memberKeepRules = ifRule.getMemberRules();
+              if (memberKeepRules.isEmpty()) {
+                runPerRule(executorService, futures, ifRule.subsequentRule, ifRule);
+                // TODO(b/79486261): remove this barrier per rule.
+                ThreadUtils.awaitFutures(futures);
+                futures.clear();
+                // No member rule to satisfy. Move on to the next live type.
+                continue;
+              }
+              Set<DexItem> filteredFields = liveFields.stream()
+                  .filter(f -> f.field.getHolder() == currentLiveType)
+                  .collect(Collectors.toSet());
+              Set<DexItem> filteredMethods = liveMethods.stream()
+                  .filter(m -> m.method.getHolder() == currentLiveType)
+                  .collect(Collectors.toSet());
+              // If the number of member rules to hold is more than live members, we can't make it.
+              if (filteredFields.size() + filteredMethods.size() < memberKeepRules.size()) {
+                continue;
+              }
+              // Depending on which members trigger the -if rule, the application of the subsequent
+              // -keep rule may vary (due to back references). So, we need to try literally all
+              // combinations of live members.
+              // TODO(b/79486261): Some of those are equivalent from the point of view of -if rule.
+              Set<Set<DexItem>> combinationsOfMembers = Sets.combinations(
+                  Sets.union(filteredFields, filteredMethods), memberKeepRules.size());
+              for (Set<DexItem> combination : combinationsOfMembers) {
+                Set<DexEncodedField> fieldsInCombination = combination.stream()
+                    .filter(item -> item instanceof DexEncodedField)
+                    .map(item -> (DexEncodedField) item)
+                    .collect(Collectors.toSet());
+                Set<DexEncodedMethod> methodsInCombination = combination.stream()
+                    .filter(item -> item instanceof DexEncodedMethod)
+                    .map(item -> (DexEncodedMethod) item)
+                    .collect(Collectors.toSet());
+                // Member rules are combined as AND logic: if found unsatisfied member rule, this
+                // combination of live members is not a good fit.
+                boolean satisfied = true;
+                for (ProguardMemberRule memberRule : memberKeepRules) {
+                  if (!ruleSatisfiedByFields(memberRule, fieldsInCombination)
+                      && !ruleSatisfiedByMethods(memberRule, methodsInCombination)) {
+                    satisfied = false;
+                    break;
+                  }
+                }
+                if (satisfied) {
+                  runPerRule(executorService, futures, ifRule.subsequentRule, ifRule);
+                  // TODO(b/79486261): remove this barrier per rule.
+                  ThreadUtils.awaitFutures(futures);
+                  futures.clear();
+                }
+              }
+            }
           }
         }
-        ThreadUtils.awaitFutures(futures);
+        // TODO(b/79486261): This is the best place to fully utilize available threads.
+        // ThreadUtils.awaitFutures(futures);
       }
     } finally {
       application.timing.end();
@@ -437,58 +505,6 @@ public class RootSetBuilder {
             definitionFor,
             rule.getInheritanceClassName(),
             rule.getInheritanceAnnotation());
-  }
-
-  private boolean ruleSatisfiedWithLiveItems(
-      ProguardIfRule ifRule,
-      Function<DexType, DexClass> definitionFor,
-      Set<DexType> liveTypes,
-      Set<DexEncodedMethod> liveMethods,
-      Set<DexEncodedField> liveFields) {
-    DexType matchedType = null;
-    Function<DexType, DexClass> definitionForWithLiveTypes = type -> {
-      DexClass clazz = definitionFor.apply(type);
-      if (clazz != null && liveTypes.contains(clazz.type)) {
-        return clazz;
-      }
-      return null;
-    };
-    for (DexType liveType : liveTypes) {
-      if (ifRule.hasInheritanceClassName()) {
-        if (!satisfyInheritanceRule(liveType, definitionForWithLiveTypes, ifRule)) {
-          // Try another live type since the current one doesn't satisfy the inheritance rule.
-          continue;
-        }
-      }
-      if (ifRule.getClassNames().matches(liveType)) {
-        matchedType = liveType;
-        final DexType filterType = matchedType;
-        Collection<ProguardMemberRule> memberKeepRules = ifRule.getMemberRules();
-        Set<DexEncodedMethod> filteredMethods =
-            liveMethods.stream().filter(method -> method.method.getHolder() == filterType)
-                .collect(Collectors.toSet());
-        Set<DexEncodedField> filteredFields =
-            liveFields.stream().filter(field -> field.field.getHolder() == filterType)
-                .collect(Collectors.toSet());
-        boolean notSatisfied = false;
-        for (ProguardMemberRule rule : memberKeepRules) {
-          if (!ruleSatisfiedByMethods(rule, filteredMethods)
-            && !ruleSatisfiedByFields(rule, filteredFields)) {
-            notSatisfied = true;
-            break;
-          }
-        }
-        // Try another live type if the current live type does not satisfy any member rule.
-        if (notSatisfied) {
-          continue;
-        }
-        // TODO(b/73800755): we may need to return the matched live type for back reference.
-        // Maybe, collect all matched live types.
-        return true;
-      }
-    }
-    // No live types satisfy the given -if rule.
-    return false;
   }
 
   private boolean allRulesSatisfied(Collection<ProguardMemberRule> memberKeepRules,

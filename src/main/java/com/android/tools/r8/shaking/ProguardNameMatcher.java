@@ -4,7 +4,10 @@
 package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.shaking.ProguardConfigurationParser.IdentifierPatternWithWildcards;
+import com.android.tools.r8.shaking.ProguardWildcard.BackReference;
+import com.android.tools.r8.shaking.ProguardWildcard.Pattern;
 import com.google.common.collect.ImmutableList;
+import java.util.Collections;
 import java.util.List;
 
 public abstract class ProguardNameMatcher {
@@ -25,35 +28,53 @@ public abstract class ProguardNameMatcher {
     }
   }
 
-  /**
-   * Determines if the proguard name pattern matches the given field or method name.
-   *
-   * @param pattern Proguard name pattern potentially with wildcards: ?, *.
-   * @param name The name to match against.
-   * @return true iff the pattern matches the name.
-   */
-  public static boolean matchFieldOrMethodName(String pattern, String name) {
-    return matchFieldOrMethodNameImpl(pattern, 0, name, 0);
-  }
-
   private static boolean matchFieldOrMethodNameImpl(
-      String pattern, int patternIndex, String name, int nameIndex) {
+      String pattern, int patternIndex,
+      String name, int nameIndex,
+      List<ProguardWildcard> wildcards, int wildcardIndex) {
+    ProguardWildcard wildcard;
+    Pattern wildcardPattern;
+    BackReference backReference;
     for (int i = patternIndex; i < pattern.length(); i++) {
       char patternChar = pattern.charAt(i);
       switch (patternChar) {
         case '*':
+          wildcard = wildcards.get(wildcardIndex);
+          assert wildcard.isPattern();
+          wildcardPattern = wildcard.asPattern();
           // Match the rest of the pattern against the rest of the name.
           for (int nextNameIndex = nameIndex; nextNameIndex <= name.length(); nextNameIndex++) {
-            if (matchFieldOrMethodNameImpl(pattern, i + 1, name, nextNameIndex)) {
+            wildcardPattern.setCaptured(name.substring(nameIndex, nextNameIndex));
+            if (matchFieldOrMethodNameImpl(
+                pattern, i + 1, name, nextNameIndex, wildcards, wildcardIndex + 1)) {
               return true;
             }
           }
           return false;
         case '?':
+          wildcard = wildcards.get(wildcardIndex);
+          assert wildcard.isPattern();
           if (nameIndex == name.length()) {
             return false;
           }
+          wildcardPattern = wildcard.asPattern();
+          wildcardPattern.setCaptured(name.substring(nameIndex, nameIndex + 1));
           nameIndex++;
+          wildcardIndex++;
+          break;
+        case '<':
+          wildcard = wildcards.get(wildcardIndex);
+          assert wildcard.isBackReference();
+          backReference = wildcard.asBackReference();
+          String captured = backReference.getCaptured();
+          if (captured == null
+              || name.length() < nameIndex + captured.length()
+              || !captured.equals(name.substring(nameIndex, nameIndex + captured.length()))) {
+            return false;
+          }
+          nameIndex = nameIndex + captured.length();
+          wildcardIndex++;
+          i = pattern.indexOf(">", i);
           break;
         default:
           if (nameIndex == name.length() || patternChar != name.charAt(nameIndex++)) {
@@ -67,20 +88,30 @@ public abstract class ProguardNameMatcher {
 
   public abstract boolean matches(String name);
 
-  protected Iterable<String> getWildcards() {
-    return ImmutableList.of();
+  protected Iterable<ProguardWildcard> getWildcards() {
+    return Collections::emptyIterator;
+  }
+
+  static Iterable<ProguardWildcard> getWildcardsOrEmpty(ProguardNameMatcher nameMatcher) {
+    return nameMatcher == null ? Collections::emptyIterator : nameMatcher.getWildcards();
   }
 
   private static class MatchAllNames extends ProguardNameMatcher {
+    private final ProguardWildcard wildcard;
+
+    MatchAllNames() {
+      this.wildcard = new Pattern("*");
+    }
 
     @Override
     public boolean matches(String name) {
+      wildcard.setCaptured(name);
       return true;
     }
 
     @Override
-    protected Iterable<String> getWildcards() {
-      return ImmutableList.of("*");
+    protected Iterable<ProguardWildcard> getWildcards() {
+      return ImmutableList.of(wildcard);
     }
 
     @Override
@@ -92,7 +123,7 @@ public abstract class ProguardNameMatcher {
   private static class MatchNamePattern extends ProguardNameMatcher {
 
     private final String pattern;
-    private final List<String> wildcards;
+    private final List<ProguardWildcard> wildcards;
 
     MatchNamePattern(IdentifierPatternWithWildcards identifierPatternWithWildcards) {
       this.pattern = identifierPatternWithWildcards.pattern;
@@ -101,11 +132,15 @@ public abstract class ProguardNameMatcher {
 
     @Override
     public boolean matches(String name) {
-      return matchFieldOrMethodName(pattern, name);
+      boolean matched = matchFieldOrMethodNameImpl(pattern, 0, name, 0, wildcards, 0);
+      if (!matched) {
+        wildcards.forEach(ProguardWildcard::clearCaptured);
+      }
+      return matched;
     }
 
     @Override
-    protected Iterable<String> getWildcards() {
+    protected Iterable<ProguardWildcard> getWildcards() {
       return wildcards;
     }
 

@@ -59,11 +59,6 @@ public class IfOnAnnotationTest extends ProguardCompatabilityTestBase {
 
   @Test
   public void ifOnAnnotation_withNthWildcard() throws Exception {
-    // TODO(b/73800755): not implemented yet.
-    if (shrinker == Shrinker.R8) {
-      return;
-    }
-
     List<String> config = ImmutableList.of(
         "-keepattributes *Annotation*",
         "-keep class **.Main* {",

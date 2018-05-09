@@ -46,7 +46,7 @@ public class ProguardIfRule extends ProguardKeepRule {
   }
 
   @Override
-  protected Iterable<String> getWildcards() {
+  protected Iterable<ProguardWildcard> getWildcards() {
     return Iterables.concat(super.getWildcards(), subsequentRule.getWildcards());
   }
 
