@@ -1279,9 +1279,10 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     return false;
   }
 
-  private boolean longOverlappingLong(int register1, int register2) {
-    return register1 == register2 || register1 == (register2 + 1)
-        || (register1 + 1) == register2 || (register1 + 1) == (register2 + 1);
+  // Check if the two longs are half-overlapping, that is first register of one is the second
+  // register of the other.
+  private boolean longHalfOverlappingLong(int register1, int register2) {
+    return register1 == (register2 + 1) || (register1 + 1) == register2;
   }
 
   private boolean isLongResultOverlappingLongOperands(
@@ -1297,7 +1298,8 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     // The dalvik bug is actually only for overlap with the second operand, For now we
     // make sure that there is no overlap with either register of either operand. Some vendor
     // optimization have bees seen to need this more conservative check.
-    return longOverlappingLong(register, leftReg) || longOverlappingLong(register, rightReg);
+    return longHalfOverlappingLong(register, leftReg)
+        || longHalfOverlappingLong(register, rightReg);
   }
 
   // Intervals overlap a move exception interval if one of the splits of the intervals does.
