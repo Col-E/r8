@@ -60,6 +60,10 @@ public abstract class Code extends CachedHashValueDexItem {
     throw new Unreachable(getClass().getCanonicalName() + ".asCfCode()");
   }
 
+  public LazyCfCode asLazyCfCode() {
+    throw new Unreachable(getClass().getCanonicalName() + ".asLazyCfCode()");
+  }
+
   public DexCode asDexCode() {
     throw new Unreachable(getClass().getCanonicalName() + ".asDexCode()");
   }
