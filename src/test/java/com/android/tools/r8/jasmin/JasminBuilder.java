@@ -136,6 +136,15 @@ public class JasminBuilder {
       return addMethod("public", name, argumentTypes, returnType, lines);
     }
 
+    public MethodSignature addNativeMethod(
+        String name,
+        List<String> argumentTypes,
+        String returnType,
+        String... lines) {
+      makeInit = true;
+      return addMethod("public static native", name, argumentTypes, returnType, lines);
+    }
+
     public MethodSignature addBridgeMethod(
         String name,
         List<String> argumentTypes,

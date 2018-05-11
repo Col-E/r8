@@ -440,9 +440,7 @@ public class JarClassFileReader {
 
   private static class CreateMethodVisitor extends MethodVisitor {
 
-    private final int access;
     private final String name;
-    private final String desc;
     final CreateDexClassVisitor parent;
     private final int parameterCount;
     private List<DexAnnotation> annotations = null;
@@ -458,9 +456,7 @@ public class JarClassFileReader {
     public CreateMethodVisitor(int access, String name, String desc, String signature,
         String[] exceptions, CreateDexClassVisitor parent) {
       super(ASM6);
-      this.access = access;
       this.name = name;
-      this.desc = desc;
       this.parent = parent;
       this.method = parent.application.getMethod(parent.type, name, desc);
       this.flags = createMethodAccessFlags(name, access);
@@ -564,8 +560,7 @@ public class JarClassFileReader {
 
     @Override
     public void visitCode() {
-      assert !flags.isAbstract() && !flags.isNative();
-      if (parent.classKind == ClassKind.PROGRAM) {
+      if (!flags.isAbstract() && !flags.isNative() && parent.classKind == ClassKind.PROGRAM) {
         if (parent.application.options.enableCfFrontend) {
           code = new LazyCfCode(method, parent.origin, parent.context, parent.application);
         } else {
