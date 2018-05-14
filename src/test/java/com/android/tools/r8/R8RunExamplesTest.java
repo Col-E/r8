@@ -24,7 +24,7 @@ public class R8RunExamplesTest extends R8RunExamplesCommon {
 
   private static final boolean ONLY_RUN_CF_TESTS = false;
 
-  @Parameters(name = "{0}_{1}_{2}_{3}_{5}")
+  @Parameters(name = "{0}_{1}_{2}_{3}_{5}_{6}")
   public static Collection<String[]> data() {
     String[] tests = {
         "arithmetic.Arithmetic",
@@ -99,6 +99,15 @@ public class R8RunExamplesTest extends R8RunExamplesCommon {
       fullTestList.add(
           makeTest(
               Input.JAVAC_ALL, CompilerUnderTest.R8, CompilationMode.RELEASE, test, Output.CF));
+      // TODO(b/75997473): Enable when inlining is supported in the CF backend
+      // fullTestList.add(
+      //     makeTest(
+      //         Input.JAVAC_ALL,
+      //         CompilerUnderTest.R8,
+      //         CompilationMode.RELEASE,
+      //         test,
+      //         Frontend.CF,
+      //         Output.CF));
     }
     return fullTestList;
   }
@@ -109,8 +118,9 @@ public class R8RunExamplesTest extends R8RunExamplesCommon {
       String compiler,
       String mode,
       String mainClass,
+      String frontend,
       String output) {
-    super(pkg, input, compiler, mode, mainClass, output);
+    super(pkg, input, compiler, mode, mainClass, frontend, output);
   }
 
   @Override

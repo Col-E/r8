@@ -33,6 +33,11 @@ public abstract class R8RunExamplesCommon {
     DX, JAVAC, JAVAC_ALL, JAVAC_NONE
   }
 
+  protected enum Frontend {
+    JAR,
+    CF
+  }
+
   protected enum Output {
     DEX,
     CF
@@ -45,8 +50,20 @@ public abstract class R8RunExamplesCommon {
 
   protected static String[] makeTest(
       Input input, CompilerUnderTest compiler, CompilationMode mode, String clazz, Output output) {
+    return makeTest(input, compiler, mode, clazz, Frontend.JAR, output);
+  }
+
+  protected static String[] makeTest(
+      Input input,
+      CompilerUnderTest compiler,
+      CompilationMode mode,
+      String clazz,
+      Frontend frontend,
+      Output output) {
     String pkg = clazz.substring(0, clazz.lastIndexOf('.'));
-    return new String[] {pkg, input.name(), compiler.name(), mode.name(), clazz, output.name()};
+    return new String[] {
+      pkg, input.name(), compiler.name(), mode.name(), clazz, frontend.name(), output.name()
+    };
   }
 
   @Rule
@@ -57,6 +74,7 @@ public abstract class R8RunExamplesCommon {
   private final CompilationMode mode;
   private final String pkg;
   private final String mainClass;
+  private final Frontend frontend;
   private final Output output;
 
   public R8RunExamplesCommon(
@@ -65,12 +83,14 @@ public abstract class R8RunExamplesCommon {
       String compiler,
       String mode,
       String mainClass,
+      String frontend,
       String output) {
     this.pkg = pkg;
     this.input = Input.valueOf(input);
     this.compiler = CompilerUnderTest.valueOf(compiler);
     this.mode = CompilationMode.valueOf(mode);
     this.mainClass = mainClass;
+    this.frontend = Frontend.valueOf(frontend);
     this.output = Output.valueOf(output);
   }
 
@@ -135,17 +155,24 @@ public abstract class R8RunExamplesCommon {
                 .build());
         break;
       }
-      case R8: {
-        R8Command command = addInputFile(R8Command.builder())
-            .setOutput(getOutputFile(), outputMode)
-            .setMode(mode)
-            .build();
-        ExceptionUtils.withR8CompilationHandler(command.getReporter(), () ->
-            ToolHelper.runR8(
-                command,
-                options -> options.lineNumberOptimization = LineNumberOptimization.OFF));
-        break;
-      }
+      case R8:
+        {
+          R8Command command =
+              addInputFile(R8Command.builder())
+                  .setOutput(getOutputFile(), outputMode)
+                  .setMode(mode)
+                  .build();
+          ExceptionUtils.withR8CompilationHandler(
+              command.getReporter(),
+              () ->
+                  ToolHelper.runR8(
+                      command,
+                      options -> {
+                        options.lineNumberOptimization = LineNumberOptimization.OFF;
+                        options.enableCfFrontend = frontend == Frontend.CF;
+                      }));
+          break;
+        }
       default:
         throw new Unreachable();
     }
