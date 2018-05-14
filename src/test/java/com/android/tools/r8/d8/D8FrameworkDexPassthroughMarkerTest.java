@@ -11,6 +11,7 @@ import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
@@ -61,12 +62,14 @@ public class D8FrameworkDexPassthroughMarkerTest {
     Marker marker = new Marker(Tool.D8)
         .setVersion("1.0.0")
         .setMinApi(minApi);
-    Marker selfie = Marker.parse(marker.toString());
+    InternalOptions options = new InternalOptions();
+    DexString markerDexString = options.itemFactory.createString(marker.toString());
+    Marker selfie = Marker.parse(markerDexString);
     assert marker.equals(selfie);
-    AndroidApp app = ToolHelper.runD8(command, options -> options.setMarker(marker));
+    AndroidApp app = ToolHelper.runD8(command, opts -> opts.setMarker(marker));
     DexApplication dexApp =
         new ApplicationReader(
-                app, new InternalOptions(), new Timing("D8FrameworkDexPassthroughMarkerTest"))
+                app, options, new Timing("D8FrameworkDexPassthroughMarkerTest"))
             .read();
     Marker readMarker = dexApp.dexItemFactory.extractMarker();
     assertEquals(marker, readMarker);
