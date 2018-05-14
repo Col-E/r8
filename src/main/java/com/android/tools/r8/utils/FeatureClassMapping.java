@@ -77,6 +77,10 @@ public class FeatureClassMapping {
     }
   }
 
+  public static FeatureClassMapping fromSpecification(Path file) throws FeatureMappingException {
+    return fromSpecification(file, new DexSplitter.Reporter());
+  }
+
   public static FeatureClassMapping fromSpecification(Path file, DexSplitter.Reporter reporter)
       throws FeatureMappingException {
     FeatureClassMapping mapping = new FeatureClassMapping();
@@ -91,6 +95,11 @@ public class FeatureClassMapping {
       mapping.parseAndAdd(line, i);
     }
     return mapping;
+  }
+
+  public static FeatureClassMapping fromJarFiles(List<FeatureJar> featureJars, String baseName)
+      throws FeatureMappingException {
+    return fromJarFiles(featureJars, baseName, new DexSplitter.Reporter());
   }
 
   public static FeatureClassMapping fromJarFiles(
