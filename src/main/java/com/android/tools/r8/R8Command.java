@@ -228,12 +228,6 @@ public class R8Command extends BaseCompilerCommand {
           new EnsureNonDexProgramResourceProvider(programProvider));
     }
 
-    public Builder addDataResourceProvider(DataResourceProvider dataResourceProvider) {
-      assert dataResourceProvider != null;
-      getAppBuilder().addDataResourceProvider(dataResourceProvider);
-      return self();
-    }
-
     @Override
     protected InternalProgramOutputPathConsumer createProgramOutputConsumer(
         Path path,

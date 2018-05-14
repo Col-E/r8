@@ -99,6 +99,11 @@ public class ArchiveResourceProvider implements ProgramResourceProvider, DataRes
   }
 
   @Override
+  public DataResourceProvider getDataResourceProvider() {
+    return this;
+  }
+
+  @Override
   public void accept(Visitor resourceBrowser) throws ResourceException {
     try (ZipFile zipFile = new ZipFile(archive.getPath().toFile())) {
       final Enumeration<? extends ZipEntry> entries = zipFile.entries();

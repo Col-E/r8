@@ -10,6 +10,7 @@ import com.android.tools.r8.DataResourceConsumer;
 import com.android.tools.r8.DataResourceProvider;
 import com.android.tools.r8.DataResourceProvider.Visitor;
 import com.android.tools.r8.DexIndexedConsumer;
+import com.android.tools.r8.ProgramResourceProvider;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.DexOverflowException;
@@ -42,9 +43,11 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 
 public class ApplicationWriter {
 
@@ -297,7 +300,14 @@ public class ApplicationWriter {
     }
     DataResourceConsumer dataResourceConsumer = options.dataResourceConsumer;
     if (dataResourceConsumer != null) {
-      for (DataResourceProvider dataResourceProvider : application.dataResourceProviders) {
+
+      List<DataResourceProvider> dataResourceProviders = application.programResourceProviders
+          .stream()
+          .map(ProgramResourceProvider::getDataResourceProvider)
+          .filter(Objects::nonNull)
+          .collect(Collectors.toList());
+
+      for (DataResourceProvider dataResourceProvider : dataResourceProviders) {
         try {
           dataResourceProvider.accept(new Visitor() {
             @Override
