@@ -29,11 +29,12 @@ public class DexEncodedField extends KeyedDexItem<DexField> {
   }
 
   @Override
-  public void collectIndexedItems(IndexedItemCollection indexedItems) {
-    field.collectIndexedItems(indexedItems);
-    annotations.collectIndexedItems(indexedItems);
+  public void collectIndexedItems(IndexedItemCollection indexedItems,
+      DexMethod method, int instructionOffset) {
+    field.collectIndexedItems(indexedItems, method, instructionOffset);
+    annotations.collectIndexedItems(indexedItems, method, instructionOffset);
     if (accessFlags.isStatic()) {
-      getStaticValue().collectIndexedItems(indexedItems);
+      getStaticValue().collectIndexedItems(indexedItems, method, instructionOffset);
     }
   }
 

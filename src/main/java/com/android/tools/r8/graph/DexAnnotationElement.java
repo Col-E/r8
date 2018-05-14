@@ -39,9 +39,10 @@ public class DexAnnotationElement extends DexItem {
   }
 
   @Override
-  public void collectIndexedItems(IndexedItemCollection indexedItems) {
-    name.collectIndexedItems(indexedItems);
-    value.collectIndexedItems(indexedItems);
+  public void collectIndexedItems(IndexedItemCollection indexedItems,
+      DexMethod method, int instructionOffset) {
+    name.collectIndexedItems(indexedItems, method, instructionOffset);
+    value.collectIndexedItems(indexedItems, method, instructionOffset);
   }
 
   @Override

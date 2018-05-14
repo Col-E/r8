@@ -40,9 +40,9 @@ public class DexItemFactory {
   private final ConcurrentHashMap<DexField, DexField> fields = new ConcurrentHashMap<>();
   private final ConcurrentHashMap<DexProto, DexProto> protos = new ConcurrentHashMap<>();
   private final ConcurrentHashMap<DexMethod, DexMethod> methods = new ConcurrentHashMap<>();
-  private final ConcurrentHashMap<DexCallSite, DexCallSite> callSites = new ConcurrentHashMap<>();
   private final ConcurrentHashMap<DexMethodHandle, DexMethodHandle> methodHandles =
       new ConcurrentHashMap<>();
+  private final List<DexCallSite> callSites = new ArrayList<>();
 
   // DexDebugEvent Canonicalization.
   private final Int2ObjectMap<AdvanceLine> advanceLines = new Int2ObjectOpenHashMap<>();
@@ -611,9 +611,13 @@ public class DexItemFactory {
   public DexCallSite createCallSite(
       DexString methodName, DexProto methodProto,
       DexMethodHandle bootstrapMethod, List<DexValue> bootstrapArgs) {
+    // Call sites are never equal and therefore we do not canonicalize.
     assert !sorted;
     DexCallSite callSite = new DexCallSite(methodName, methodProto, bootstrapMethod, bootstrapArgs);
-    return canonicalize(callSites, callSite);
+    synchronized (callSites) {
+      callSites.add(callSite);
+    }
+    return callSite;
   }
 
   public DexMethod createMethod(DexString clazzDescriptor, DexString name,
@@ -727,7 +731,7 @@ public class DexItemFactory {
     new ArrayList<>(types.values()).forEach(f);
   }
 
-  public void forAllCallSites(Consumer<DexCallSite> f) {
-    new ArrayList<>(callSites.values()).forEach(f);
+  synchronized public void forAllCallSites(Consumer<DexCallSite> f) {
+    new ArrayList<>(callSites).forEach(f);
   }
 }

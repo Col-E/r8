@@ -261,10 +261,11 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   }
 
   @Override
-  public void collectIndexedItems(IndexedItemCollection indexedItems) {
-    method.collectIndexedItems(indexedItems);
+  public void collectIndexedItems(IndexedItemCollection indexedItems,
+      DexMethod method, int instructionOffset) {
+    this.method.collectIndexedItems(indexedItems);
     if (code != null) {
-      code.collectIndexedItems(indexedItems);
+      code.collectIndexedItems(indexedItems, this.method);
     }
     annotations.collectIndexedItems(indexedItems);
     parameterAnnotations.collectIndexedItems(indexedItems);

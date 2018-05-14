@@ -17,9 +17,10 @@ public class DexMemberAnnotation<T extends Descriptor<?,?>, S extends DexItem> e
   }
 
   @Override
-  public void collectIndexedItems(IndexedItemCollection indexedItems) {
-    item.collectIndexedItems(indexedItems);
-    annotations.collectIndexedItems(indexedItems);
+  public void collectIndexedItems(IndexedItemCollection indexedItems,
+      DexMethod method, int instructionOffset) {
+    item.collectIndexedItems(indexedItems, method, instructionOffset);
+    annotations.collectIndexedItems(indexedItems, method, instructionOffset);
   }
 
   @Override

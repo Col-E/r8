@@ -42,11 +42,12 @@ public class DexProto extends IndexedDexItem implements PresortedComparable<DexP
   }
 
   @Override
-  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+  public void collectIndexedItems(IndexedItemCollection indexedItems,
+      DexMethod method, int instructionOffset) {
     if (indexedItems.addProto(this)) {
-      shorty.collectIndexedItems(indexedItems);
-      returnType.collectIndexedItems(indexedItems);
-      parameters.collectIndexedItems(indexedItems);
+      shorty.collectIndexedItems(indexedItems, method, instructionOffset);
+      returnType.collectIndexedItems(indexedItems, method, instructionOffset);
+      parameters.collectIndexedItems(indexedItems, method, instructionOffset);
     }
   }
 

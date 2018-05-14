@@ -50,7 +50,8 @@ public class DexClasspathClass extends DexClass implements Supplier<DexClasspath
   }
 
   @Override
-  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+  public void collectIndexedItems(IndexedItemCollection indexedItems,
+      DexMethod method, int instructionOffset) {
     throw new Unreachable();
   }
 

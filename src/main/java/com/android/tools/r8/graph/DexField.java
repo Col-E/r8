@@ -48,11 +48,13 @@ public class DexField extends Descriptor<DexEncodedField, DexField> implements
   }
 
   @Override
-  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+  public void collectIndexedItems(IndexedItemCollection indexedItems,
+      DexMethod method, int instructionOffset) {
     if (indexedItems.addField(this)) {
-      clazz.collectIndexedItems(indexedItems);
-      type.collectIndexedItems(indexedItems);
-      indexedItems.getRenamedName(this).collectIndexedItems(indexedItems);
+      clazz.collectIndexedItems(indexedItems, method, instructionOffset);
+      type.collectIndexedItems(indexedItems, method, instructionOffset);
+      indexedItems.getRenamedName(this).collectIndexedItems(
+          indexedItems, method, instructionOffset);
     }
   }
 

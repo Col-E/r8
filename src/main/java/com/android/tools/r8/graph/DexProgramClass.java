@@ -111,22 +111,23 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
   }
 
   @Override
-  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+  public void collectIndexedItems(IndexedItemCollection indexedItems,
+      DexMethod method, int instructionOffset) {
     if (indexedItems.addClass(this)) {
-      type.collectIndexedItems(indexedItems);
+      type.collectIndexedItems(indexedItems, method, instructionOffset);
       if (superType != null) {
-        superType.collectIndexedItems(indexedItems);
+        superType.collectIndexedItems(indexedItems, method, instructionOffset);
       } else {
         assert type.toDescriptorString().equals("Ljava/lang/Object;");
       }
       if (sourceFile != null) {
-        sourceFile.collectIndexedItems(indexedItems);
+        sourceFile.collectIndexedItems(indexedItems, method, instructionOffset);
       }
       if (annotations != null) {
-        annotations.collectIndexedItems(indexedItems);
+        annotations.collectIndexedItems(indexedItems, method, instructionOffset);
       }
       if (interfaces != null) {
-        interfaces.collectIndexedItems(indexedItems);
+        interfaces.collectIndexedItems(indexedItems, method, instructionOffset);
       }
       if (getEnclosingMethod() != null) {
         getEnclosingMethod().collectIndexedItems(indexedItems);

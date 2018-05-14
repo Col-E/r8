@@ -34,9 +34,10 @@ public class DexTypeList extends DexItem implements Comparable<DexTypeList> {
   }
 
   @Override
-  void collectIndexedItems(IndexedItemCollection indexedItems) {
+  void collectIndexedItems(IndexedItemCollection indexedItems,
+      DexMethod method, int instructionOffset) {
     for (DexType type : values) {
-      type.collectIndexedItems(indexedItems);
+      type.collectIndexedItems(indexedItems, method, instructionOffset);
     }
   }
 

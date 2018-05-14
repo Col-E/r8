@@ -40,11 +40,13 @@ public class DexMethod extends Descriptor<DexEncodedMethod, DexMethod>
   }
 
   @Override
-  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+  public void collectIndexedItems(IndexedItemCollection indexedItems,
+      DexMethod method, int instructionOffset) {
     if (indexedItems.addMethod(this)) {
-      holder.collectIndexedItems(indexedItems);
-      proto.collectIndexedItems(indexedItems);
-      indexedItems.getRenamedName(this).collectIndexedItems(indexedItems);
+      holder.collectIndexedItems(indexedItems, method, instructionOffset);
+      proto.collectIndexedItems(indexedItems, method, instructionOffset);
+      indexedItems.getRenamedName(this).collectIndexedItems(
+          indexedItems, method, instructionOffset);
     }
   }
 

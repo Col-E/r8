@@ -39,7 +39,8 @@ public class DexAnnotationSet extends CachedHashValueDexItem {
   }
 
   @Override
-  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+  public void collectIndexedItems(IndexedItemCollection indexedItems,
+      DexMethod method, int instructionOffset) {
     collectAll(indexedItems, annotations);
   }
 

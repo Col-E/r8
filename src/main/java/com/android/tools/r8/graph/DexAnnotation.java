@@ -55,8 +55,9 @@ public class DexAnnotation extends DexItem {
   }
 
   @Override
-  public void collectIndexedItems(IndexedItemCollection indexedItems) {
-    annotation.collectIndexedItems(indexedItems);
+  public void collectIndexedItems(IndexedItemCollection indexedItems,
+      DexMethod method, int instructionOffset) {
+    annotation.collectIndexedItems(indexedItems, method, instructionOffset);
   }
 
   @Override

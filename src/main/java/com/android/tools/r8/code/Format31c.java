@@ -6,6 +6,7 @@ package com.android.tools.r8.code;
 import static com.android.tools.r8.dex.Constants.U8BIT_MAX;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.IndexedDexItem;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
@@ -58,8 +59,9 @@ abstract class Format31c extends Base3Format {
   }
 
   @Override
-  public void collectIndexedItems(IndexedItemCollection indexedItems) {
-    BBBBBBBB.collectIndexedItems(indexedItems);
+  public void collectIndexedItems(IndexedItemCollection indexedItems,
+      DexMethod method, int instructionOffset) {
+    BBBBBBBB.collectIndexedItems(indexedItems, method, instructionOffset);
   }
 
   @Override

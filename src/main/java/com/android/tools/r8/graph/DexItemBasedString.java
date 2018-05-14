@@ -40,7 +40,8 @@ public class DexItemBasedString extends DexString {
   }
 
   @Override
-  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+  public void collectIndexedItems(IndexedItemCollection indexedItems,
+      DexMethod method, int instructionOffset) {
     // This instance should not exist when collecting indexed items.
     // {@link com.android.tools.r8.naming.IdentifierMinifier} will replace this with an appropriate
     // {@link DexString}.

@@ -336,9 +336,11 @@ public class DexCode extends Code {
   }
 
   @Override
-  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+  public void collectIndexedItems(
+      IndexedItemCollection indexedItems, DexMethod method, int instructionOffset) {
+    assert instructionOffset == -1;
     for (Instruction insn : instructions) {
-      insn.collectIndexedItems(indexedItems);
+      insn.collectIndexedItems(indexedItems, method, insn.getOffset());
     }
     if (debugInfo != null) {
       debugInfo.collectIndexedItems(indexedItems);
@@ -417,7 +419,8 @@ public class DexCode extends Code {
     }
 
     @Override
-    void collectIndexedItems(IndexedItemCollection indexedItems) {
+    void collectIndexedItems(IndexedItemCollection indexedItems,
+        DexMethod method, int instructionOffset) {
       // Intentionally left empty.
     }
 
@@ -462,7 +465,8 @@ public class DexCode extends Code {
     }
 
     @Override
-    public void collectIndexedItems(IndexedItemCollection indexedItems) {
+    public void collectIndexedItems(IndexedItemCollection indexedItems,
+        DexMethod method, int instructionOffset) {
       collectAll(indexedItems, pairs);
     }
 
@@ -503,8 +507,9 @@ public class DexCode extends Code {
       }
 
       @Override
-      public void collectIndexedItems(IndexedItemCollection indexedItems) {
-        type.collectIndexedItems(indexedItems);
+      public void collectIndexedItems(IndexedItemCollection indexedItems,
+          DexMethod method, int instructionOffset) {
+        type.collectIndexedItems(indexedItems, method, instructionOffset);
       }
 
       @Override

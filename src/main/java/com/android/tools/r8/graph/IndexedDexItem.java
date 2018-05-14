@@ -15,7 +15,8 @@ public abstract class IndexedDexItem extends CachedHashValueDexItem implements P
   private int sortedIndex = SORTED_INDEX_UNKNOWN; // assigned globally after reading.
 
   @Override
-  public abstract void collectIndexedItems(IndexedItemCollection indexedItems);
+  public abstract void collectIndexedItems(IndexedItemCollection indexedItems,
+      DexMethod method, int instructionOffset);
 
   @Override
   void collectMixedSectionItems(MixedSectionCollection mixedItems) {

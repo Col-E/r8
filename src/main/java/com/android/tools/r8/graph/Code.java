@@ -77,7 +77,8 @@ public abstract class Code extends CachedHashValueDexItem {
   }
 
   @Override
-  void collectIndexedItems(IndexedItemCollection collection) {
+  void collectIndexedItems(IndexedItemCollection collection,
+      DexMethod method, int instructionOffset) {
     throw new Unreachable();
   }
 

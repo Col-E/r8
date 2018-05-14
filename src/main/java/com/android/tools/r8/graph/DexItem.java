@@ -38,7 +38,16 @@ public abstract class DexItem {
     }
   }
 
-  abstract void collectIndexedItems(IndexedItemCollection collection);
+  abstract void collectIndexedItems(IndexedItemCollection collection,
+      DexMethod method, int instructionOffset);
+
+  public void collectIndexedItems(IndexedItemCollection collection) {
+    collectIndexedItems(collection, null, -1);
+  }
+
+  public void collectIndexedItems(IndexedItemCollection collection, DexMethod method) {
+    collectIndexedItems(collection, method, -1);
+  }
 
   abstract void collectMixedSectionItems(MixedSectionCollection collection);
 

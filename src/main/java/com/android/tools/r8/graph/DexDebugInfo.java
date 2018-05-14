@@ -55,7 +55,8 @@ public class DexDebugInfo extends CachedHashValueDexItem {
   }
 
   @Override
-  public void collectIndexedItems(IndexedItemCollection collection) {
+  public void collectIndexedItems(IndexedItemCollection collection,
+      DexMethod method, int instructionOffset) {
     collectAll(collection, parameters);
     collectAll(collection, events);
   }

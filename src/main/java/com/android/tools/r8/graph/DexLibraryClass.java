@@ -55,7 +55,8 @@ public class DexLibraryClass extends DexClass implements Supplier<DexLibraryClas
   }
 
   @Override
-  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+  public void collectIndexedItems(IndexedItemCollection indexedItems,
+      DexMethod method, int instructionOffset) {
     throw new Unreachable();
   }
 

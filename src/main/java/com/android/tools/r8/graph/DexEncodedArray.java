@@ -16,7 +16,8 @@ public class DexEncodedArray extends DexItem {
   }
 
   @Override
-  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+  public void collectIndexedItems(IndexedItemCollection indexedItems,
+      DexMethod method, int instructionOffset) {
     collectAll(indexedItems, values);
   }
 

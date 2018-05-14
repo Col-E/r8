@@ -239,7 +239,8 @@ public abstract class Instruction {
 
   public abstract void write(ShortBuffer buffer, ObjectToOffsetMapping mapping);
 
-  public abstract void collectIndexedItems(IndexedItemCollection indexedItems);
+  public abstract void collectIndexedItems(
+      IndexedItemCollection indexedItems, DexMethod method, int instructionOffset);
 
   public boolean equals(Instruction other, BiPredicate<IndexedDexItem, IndexedDexItem> equality) {
     // In the default case, there is nothing to substitute.

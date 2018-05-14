@@ -13,7 +13,8 @@ import java.util.Objects;
 abstract public class DexDebugEvent extends DexItem {
 
   @Override
-  public void collectIndexedItems(IndexedItemCollection collection) {
+  public void collectIndexedItems(IndexedItemCollection collection,
+      DexMethod method, int instructionOffset) {
     // Empty by default.
   }
 
@@ -212,15 +213,16 @@ abstract public class DexDebugEvent extends DexItem {
     }
 
     @Override
-    public void collectIndexedItems(IndexedItemCollection collection) {
+    public void collectIndexedItems(IndexedItemCollection collection,
+        DexMethod method, int instructionOffset) {
       if (name != null) {
-        name.collectIndexedItems(collection);
+        name.collectIndexedItems(collection, method, instructionOffset);
       }
       if (type != null) {
-        type.collectIndexedItems(collection);
+        type.collectIndexedItems(collection, method, instructionOffset);
       }
       if (signature != null) {
-        signature.collectIndexedItems(collection);
+        signature.collectIndexedItems(collection, method, instructionOffset);
       }
     }
 
@@ -351,8 +353,9 @@ abstract public class DexDebugEvent extends DexItem {
     }
 
     @Override
-    public void collectIndexedItems(IndexedItemCollection collection) {
-      fileName.collectIndexedItems(collection);
+    public void collectIndexedItems(IndexedItemCollection collection,
+        DexMethod method, int instructionOffset) {
+      fileName.collectIndexedItems(collection, method, instructionOffset);
     }
 
     @Override

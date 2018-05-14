@@ -98,7 +98,8 @@ public class DexAnnotationDirectory extends DexItem {
   }
 
   @Override
-  public void collectIndexedItems(IndexedItemCollection collection) {
+  public void collectIndexedItems(IndexedItemCollection collection,
+      DexMethod method, int instructionOffset) {
     throw new Unreachable();
   }
 

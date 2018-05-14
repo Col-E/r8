@@ -93,9 +93,10 @@ public abstract class Format4rcc extends Base4Format {
   }
 
   @Override
-  public void collectIndexedItems(IndexedItemCollection indexedItems) {
-    BBBB.collectIndexedItems(indexedItems);
-    HHHH.collectIndexedItems(indexedItems);
+  public void collectIndexedItems(IndexedItemCollection indexedItems,
+      DexMethod method, int instructionOffset) {
+    BBBB.collectIndexedItems(indexedItems, method, instructionOffset);
+    HHHH.collectIndexedItems(indexedItems, method, instructionOffset);
   }
 
   @Override

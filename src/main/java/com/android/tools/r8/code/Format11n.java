@@ -5,6 +5,7 @@ package com.android.tools.r8.code;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.IndexedItemCollection;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.naming.ClassNameMapper;
 import java.nio.ShortBuffer;
@@ -58,7 +59,8 @@ abstract class Format11n extends Base1Format {
   }
 
   @Override
-  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+  public void collectIndexedItems(IndexedItemCollection indexedItems,
+      DexMethod method, int instructionOffset) {
     // No references.
   }
 }

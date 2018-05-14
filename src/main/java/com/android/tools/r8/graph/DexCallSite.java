@@ -21,7 +21,7 @@ import org.objectweb.asm.Handle;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.InvokeDynamicInsnNode;
 
-public final class DexCallSite extends IndexedDexItem {
+public final class DexCallSite extends IndexedDexItem implements Comparable<DexCallSite> {
 
   public final DexString methodName;
   public final DexProto methodProto;
@@ -30,6 +30,11 @@ public final class DexCallSite extends IndexedDexItem {
   public final List<DexValue> bootstrapArgs;
 
   private DexEncodedArray encodedArray = null;
+
+  // Only used for sorting for deterministic output. This is the method and the instruction
+  // offset where this DexCallSite ends up in the output.
+  private DexMethod method;
+  private int instructionOffset;
 
   DexCallSite(
       DexString methodName,
@@ -110,13 +115,18 @@ public final class DexCallSite extends IndexedDexItem {
   }
 
   @Override
-  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+  public void collectIndexedItems(IndexedItemCollection indexedItems,
+      DexMethod method, int instructionOffset) {
+    assert method != null;
     if (indexedItems.addCallSite(this)) {
-      methodName.collectIndexedItems(indexedItems);
-      methodProto.collectIndexedItems(indexedItems);
-      bootstrapMethod.collectIndexedItems(indexedItems);
+      assert this.method == null;
+      this.method = method;
+      this.instructionOffset = instructionOffset;
+      methodName.collectIndexedItems(indexedItems, method, instructionOffset);
+      methodProto.collectIndexedItems(indexedItems, method, instructionOffset);
+      bootstrapMethod.collectIndexedItems(indexedItems, method, instructionOffset);
       for (DexValue arg : bootstrapArgs) {
-        arg.collectIndexedItems(indexedItems);
+        arg.collectIndexedItems(indexedItems, method, instructionOffset);
       }
     }
   }
@@ -139,6 +149,17 @@ public final class DexCallSite extends IndexedDexItem {
 
   public String getHash() {
     return new HashBuilder().build();
+  }
+
+  @Override
+  public int compareTo(DexCallSite other) {
+    assert method != null && other.method != null;
+    int methodCompare = method.slowCompareTo(other.method);
+    if (methodCompare != 0) {
+      return methodCompare;
+    }
+    assert (instructionOffset - other.instructionOffset) != 0;
+    return instructionOffset - other.instructionOffset;
   }
 
   private final class HashBuilder {

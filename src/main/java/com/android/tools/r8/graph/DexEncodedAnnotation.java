@@ -22,8 +22,9 @@ public class DexEncodedAnnotation extends DexItem {
   }
 
   @Override
-  public void collectIndexedItems(IndexedItemCollection indexedItems) {
-    type.collectIndexedItems(indexedItems);
+  public void collectIndexedItems(IndexedItemCollection indexedItems,
+      DexMethod method, int instructionOffset) {
+    type.collectIndexedItems(indexedItems, method, instructionOffset);
     collectAll(indexedItems, elements);
   }
 

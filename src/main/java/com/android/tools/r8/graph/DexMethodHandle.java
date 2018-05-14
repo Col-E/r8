@@ -206,9 +206,10 @@ public class DexMethodHandle extends IndexedDexItem implements
   }
 
   @Override
-  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+  public void collectIndexedItems(IndexedItemCollection indexedItems,
+      DexMethod method, int instructionOffset) {
     if (indexedItems.addMethodHandle(this)) {
-      fieldOrMethod.collectIndexedItems(indexedItems);
+      fieldOrMethod.collectIndexedItems(indexedItems, method, instructionOffset);
     }
   }
 
@@ -289,7 +290,7 @@ public class DexMethodHandle extends IndexedDexItem implements
 
   @Override
   public int compareTo(DexMethodHandle other) {
-    return sortedCompareTo(other.getSortedIndex());
+    return slowCompareTo(other);
   }
 
   public Handle toAsmHandle(NamingLens lens) {

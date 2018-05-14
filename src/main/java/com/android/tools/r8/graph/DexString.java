@@ -139,7 +139,8 @@ public class DexString extends IndexedDexItem implements PresortedComparable<Dex
   }
 
   @Override
-  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+  public void collectIndexedItems(IndexedItemCollection indexedItems,
+      DexMethod method, int instructionOffset) {
     indexedItems.addString(this);
   }
 

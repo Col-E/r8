@@ -52,16 +52,13 @@ public class ObjectToOffsetMapping {
     assert methodHandles != null;
 
     this.classes = sortClasses(application, classes);
-    this.protos = createMap(protos, true, this::failOnOverflow);
-    this.types = createMap(types, true, this::failOnOverflow);
-    this.methods = createMap(methods, true, this::failOnOverflow);
-    this.fields = createMap(fields, true, this::failOnOverflow);
-    this.strings = createMap(strings, true, this::setFirstJumboString);
-    // No need to sort CallSite, they will be written in data section in the callSites order,
-    // consequently offset of call site used into the call site section will be in ascending order.
-    this.callSites = createMap(callSites, false, this::failOnOverflow);
-    // No need to sort method handle
-    this.methodHandles = createMap(methodHandles, false, this::failOnOverflow);
+    this.protos = createMap(protos, this::failOnOverflow);
+    this.types = createMap(types, this::failOnOverflow);
+    this.methods = createMap(methods, this::failOnOverflow);
+    this.fields = createMap(fields, this::failOnOverflow);
+    this.strings = createMap(strings, this::setFirstJumboString);
+    this.callSites = createMap(callSites, this::failOnOverflow);
+    this.methodHandles = createMap(methodHandles, this::failOnOverflow);
   }
 
   private void setFirstJumboString(DexString string) {
@@ -74,13 +71,13 @@ public class ObjectToOffsetMapping {
   }
 
   private <T extends IndexedDexItem> Reference2IntMap<T> createMap(Collection<T> items,
-      boolean sort, Consumer<T> onUInt16Overflow) {
+      Consumer<T> onUInt16Overflow) {
     if (items.isEmpty()) {
       return null;
     }
     Reference2IntMap<T> map = new Reference2IntLinkedOpenHashMap<>(items.size());
     map.defaultReturnValue(NOT_FOUND);
-    Collection<T> sorted = sort ? items.stream().sorted().collect(Collectors.toList()) : items;
+    Collection<T> sorted = items.stream().sorted().collect(Collectors.toList());
     int index = 0;
     for (T item : sorted) {
       if (index == Constants.U16BIT_MAX + 1) {
