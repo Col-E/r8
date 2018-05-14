@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.dex;
 
+import com.android.tools.r8.graph.DexString;
 import java.util.Map;
 import java.util.TreeMap;
 import org.json.simple.JSONObject;
@@ -20,9 +21,10 @@ public class Marker {
 
   public enum Tool {D8, R8}
 
-  private static final String kPrefix = "~~";
-  private static final String kD8prefix = kPrefix + Tool.D8 + "{";
-  private static final String kR8prefix = kPrefix + Tool.R8 + "{";
+  private static final char PREFIX_CHAR = '~';
+  private static final String PREFIX = "~~";
+  private static final String D8_PREFIX = PREFIX + Tool.D8 + "{";
+  private static final String R8_PREFIX = PREFIX + Tool.R8 + "{";
 
   private final TreeMap<String, Object> content;
   private final Tool tool;
@@ -92,7 +94,7 @@ public class Marker {
   public String toString() {
     // The JSONObject does not support a predictable sorted serialization of the object.
     // Therefore, a TreeMap is used and iteration is over the keySet.
-    StringBuffer sb = new StringBuffer(kPrefix + tool);
+    StringBuffer sb = new StringBuffer(PREFIX + tool);
     boolean first = true;
     sb.append('{');
     for (String key : content.keySet()) {
@@ -123,12 +125,17 @@ public class Marker {
 
   // Try to parse str as a marker.
   // Returns null if parsing fails.
-  public static Marker parse(String str) {
-    if (str.startsWith(kD8prefix)) {
-      return internalParse(Tool.D8, str.substring(kD8prefix.length() - 1));
-    }
-    if (str.startsWith(kR8prefix)) {
-      return internalParse(Tool.R8, str.substring(kR8prefix.length() - 1));
+  public static Marker parse(DexString dexString) {
+    if (dexString.size > 2
+        && dexString.content[0] == PREFIX_CHAR
+        && dexString.content[1] == PREFIX_CHAR) {
+      String str = dexString.toString();
+      if (str.startsWith(D8_PREFIX)) {
+        return internalParse(Tool.D8, str.substring(D8_PREFIX.length() - 1));
+      }
+      if (str.startsWith(R8_PREFIX)) {
+        return internalParse(Tool.R8, str.substring(R8_PREFIX.length() - 1));
+      }
     }
     return null;
   }
