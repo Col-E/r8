@@ -430,20 +430,6 @@ public class TestBase {
   }
 
   /**
-   * Run application on Art with the specified main class.
-   */
-  protected String runOnArt(AndroidApp app, String mainClass) throws IOException {
-    return runOnArtRaw(app, mainClass).stdout;
-  }
-
-  /**
-   * Run application on Art with the specified main class.
-   */
-  protected String runOnArt(AndroidApp app, Class mainClass) throws IOException {
-    return runOnArtRaw(app, mainClass).stdout;
-  }
-
-  /**
    * Run application on Art with the specified main class and provided arguments.
    */
   protected String runOnArt(AndroidApp app, Class mainClass, String... args) throws IOException {

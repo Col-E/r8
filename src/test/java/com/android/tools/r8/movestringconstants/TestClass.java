@@ -5,6 +5,8 @@
 package com.android.tools.r8.movestringconstants;
 
 public class TestClass {
+  public static void main(String[] args) {}
+
   static void foo(String arg1, String arg2, String arg3, String arg4) {
     Utils.check(arg1, "StringConstants::foo#1");
     Utils.check("", "StringConstants::foo#2");
