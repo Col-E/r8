@@ -83,7 +83,7 @@ public abstract class R8RunArtTestsTest {
     D8_AFTER_R8CF
   }
 
-  private static final String ART_TESTS_DIR = "tests/2017-10-04/art";
+  public static final String ART_TESTS_DIR = "tests/2017-10-04/art";
   private static final String ART_LEGACY_TESTS_DIR = "tests/2016-12-19/art/";
   private static final String ART_TESTS_NATIVE_LIBRARY_DIR = "tests/2017-10-04/art/lib64";
   private static final String ART_LEGACY_TESTS_NATIVE_LIBRARY_DIR = "tests/2016-12-19/art/lib64";
