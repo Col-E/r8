@@ -9,4 +9,8 @@ import java.util.Collection;
 public interface ProgramResourceProvider {
 
   Collection<ProgramResource> getProgramResources() throws ResourceException;
+
+  default DataResourceProvider getDataResourceProvider() {
+    return null;
+  }
 }

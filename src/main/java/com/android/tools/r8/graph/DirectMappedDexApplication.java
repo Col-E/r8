@@ -6,7 +6,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.DataResourceProvider;
+import com.android.tools.r8.ProgramResourceProvider;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.ProgramClassCollection;
 import com.android.tools.r8.utils.Timing;
@@ -25,12 +25,12 @@ public class DirectMappedDexApplication extends DexApplication {
 
   private DirectMappedDexApplication(ClassNameMapper proguardMap,
       ProgramClassCollection programClasses,
-      ImmutableList<DataResourceProvider> dataResourceProviders,
+      ImmutableList<ProgramResourceProvider> programResourceProviders,
       ImmutableMap<DexType, DexLibraryClass> libraryClasses,
       ImmutableSet<DexType> mainDexList, String deadCode,
       DexItemFactory dexItemFactory, DexString highestSortingString,
       Timing timing) {
-    super(proguardMap, programClasses, dataResourceProviders, mainDexList, deadCode,
+    super(proguardMap, programClasses, programResourceProviders, mainDexList, deadCode,
         dexItemFactory, highestSortingString, timing);
     this.libraryClasses = libraryClasses;
   }
@@ -119,7 +119,7 @@ public class DirectMappedDexApplication extends DexApplication {
           proguardMap,
           ProgramClassCollection.create(
               programClasses, ProgramClassCollection::resolveClassConflictImpl),
-          ImmutableList.copyOf(dataResourceProviders),
+          ImmutableList.copyOf(programResourceProviders),
           libraryClasses.stream().collect(ImmutableMap.toImmutableMap(c -> c.type, c -> c)),
           ImmutableSet.copyOf(mainDexList),
           deadCode,
