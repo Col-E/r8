@@ -8,6 +8,7 @@ import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.Invoke;
@@ -93,26 +94,45 @@ public class CfInvoke extends CfInstruction {
   public void buildIR(IRBuilder builder, CfState state, CfSourceCode code)
       throws ApiLevelException {
     Invoke.Type type;
+    DexMethod canonicalMethod;
+    DexProto callSiteProto = null;
     switch (opcode) {
       case Opcodes.INVOKEINTERFACE:
-        type = Type.INTERFACE;
-        break;
-      case Opcodes.INVOKEVIRTUAL:
-        // TODO(mathiasr): Handle InvokePolymorphic
-        type = Type.VIRTUAL;
-        break;
-      case Opcodes.INVOKESPECIAL:
-        if (method.name.toString().equals(Constants.INSTANCE_INITIALIZER_NAME)) {
-          type = Type.DIRECT;
-        } else if (builder.getMethod().holder == method.holder) {
-          type = Type.DIRECT;
-        } else {
-          type = Type.SUPER;
+        {
+          canonicalMethod = method;
+          type = Type.INTERFACE;
+          break;
         }
-        break;
+      case Opcodes.INVOKEVIRTUAL:
+        {
+          canonicalMethod = builder.getFactory().polymorphicMethods.canonicalize(method);
+          if (canonicalMethod == null) {
+            type = Type.VIRTUAL;
+            canonicalMethod = method;
+          } else {
+            type = Type.POLYMORPHIC;
+            callSiteProto = method.proto;
+          }
+          break;
+        }
+      case Opcodes.INVOKESPECIAL:
+        {
+          canonicalMethod = method;
+          if (method.name.toString().equals(Constants.INSTANCE_INITIALIZER_NAME)) {
+            type = Type.DIRECT;
+          } else if (builder.getMethod().holder == method.holder) {
+            type = Type.DIRECT;
+          } else {
+            type = Type.SUPER;
+          }
+          break;
+        }
       case Opcodes.INVOKESTATIC:
-        type = Type.STATIC;
-        break;
+        {
+          canonicalMethod = method;
+          type = Type.STATIC;
+          break;
+        }
       default:
         throw new Unreachable("unknown CfInvoke opcode " + opcode);
     }
@@ -127,8 +147,8 @@ public class CfInvoke extends CfInstruction {
       types[i] = slot.type;
       registers[i] = slot.register;
     }
-    builder.addInvoke(type, method, null, Arrays.asList(types), Arrays.asList(registers), itf);
-    // TODO(mathiasr): For InvokePolymorphic, use correct return type
+    builder.addInvoke(
+        type, canonicalMethod, callSiteProto, Arrays.asList(types), Arrays.asList(registers), itf);
     if (!method.proto.returnType.isVoidType()) {
       builder.addMoveResult(state.push(method.proto.returnType).register);
     }

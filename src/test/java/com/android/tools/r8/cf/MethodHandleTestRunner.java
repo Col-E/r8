@@ -9,9 +9,9 @@ import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.ProgramConsumer;
-import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.R8Command.Builder;
+import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.ProcessResult;
@@ -19,45 +19,75 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
-import org.junit.Rule;
+import java.util.List;
+import org.junit.Assume;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
-public class MethodHandleTestRunner {
+@RunWith(Parameterized.class)
+public class MethodHandleTestRunner extends TestBase {
   static final Class<?> CLASS = MethodHandleTest.class;
 
-  private boolean ldc = false;
-  private boolean minify = false;
+  enum LookupType {
+    DYNAMIC,
+    CONSTANT,
+  }
 
-  @Rule
-  public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
+  enum MinifyMode {
+    NONE,
+    MINIFY,
+  }
 
-  @Test
-  public void testMethodHandlesLookup() throws Exception {
-    // Run test with dynamic method lookups, i.e. using MethodHandles.lookup().find*()
-    ldc = false;
-    test();
+  enum Frontend {
+    JAR,
+    CF,
+  }
+
+  private CompilationMode compilationMode;
+  private LookupType lookupType;
+  private Frontend frontend;
+  private ProcessResult runInput;
+  private MinifyMode minifyMode;
+
+  @Parameters(name = "{0}_{1}_{2}_{3}")
+  public static List<String[]> data() {
+    List<String[]> res = new ArrayList<>();
+    for (LookupType lookupType : LookupType.values()) {
+      for (Frontend frontend : Frontend.values()) {
+        for (MinifyMode minifyMode : MinifyMode.values()) {
+          if (lookupType == LookupType.DYNAMIC && minifyMode == MinifyMode.MINIFY) {
+            // Skip because we don't keep the members looked up dynamically.
+            continue;
+          }
+          for (CompilationMode compilationMode : CompilationMode.values()) {
+            res.add(
+                new String[] {
+                  lookupType.name(), frontend.name(), minifyMode.name(), compilationMode.name()
+                });
+          }
+        }
+      }
+    }
+    return res;
+  }
+
+  public MethodHandleTestRunner(
+      String lookupType, String frontend, String minifyMode, String compilationMode) {
+    this.lookupType = LookupType.valueOf(lookupType);
+    this.frontend = Frontend.valueOf(frontend);
+    this.minifyMode = MinifyMode.valueOf(minifyMode);
+    this.compilationMode = CompilationMode.valueOf(compilationMode);
   }
 
   @Test
-  public void testLdcMethodHandle() throws Exception {
-    // Run test with LDC methods, i.e. without java.lang.invoke.MethodHandles
-    ldc = true;
-    test();
-  }
-
-  @Test
-  public void testMinify() throws Exception {
-    // Run test with LDC methods, i.e. without java.lang.invoke.MethodHandles
-    ldc = true;
-    ProcessResult runInput = runInput();
-    assertEquals(0, runInput.exitCode);
-    Path outCf = temp.getRoot().toPath().resolve("cf.jar");
-    build(new ClassFileConsumer.ArchiveConsumer(outCf), true);
-    ProcessResult runCf =
-        ToolHelper.runJava(outCf, CLASS.getCanonicalName(), ldc ? "error" : "exception");
-    assertEquals(runInput.toString(), runCf.toString());
+  public void test() throws Exception {
+    runInput();
+    runCf();
+    runDex();
   }
 
   private final Class[] inputClasses = {
@@ -70,25 +100,41 @@ public class MethodHandleTestRunner {
     MethodHandleTest.F.class,
   };
 
-  private void test() throws Exception {
-    ProcessResult runInput = runInput();
-    Path outCf = temp.getRoot().toPath().resolve("cf.jar");
-    build(new ClassFileConsumer.ArchiveConsumer(outCf), false);
-    Path outDex = temp.getRoot().toPath().resolve("dex.zip");
-    build(new DexIndexedConsumer.ArchiveConsumer(outDex), false);
-
-    ProcessResult runCf =
-        ToolHelper.runJava(outCf, CLASS.getCanonicalName(), ldc ? "error" : "exception");
-    assertEquals(runInput.toString(), runCf.toString());
-    // TODO(mathiasr): Once we include a P runtime, change this to "P and above".
-    if (ToolHelper.getDexVm() != DexVm.ART_DEFAULT) {
-      return;
+  private void runInput() throws Exception {
+    Path out = temp.getRoot().toPath().resolve("input.jar");
+    ClassFileConsumer.ArchiveConsumer archiveConsumer = new ClassFileConsumer.ArchiveConsumer(out);
+    for (Class<?> c : inputClasses) {
+      archiveConsumer.accept(
+          getClassAsBytes(c), DescriptorUtils.javaTypeToDescriptor(c.getName()), null);
     }
+    archiveConsumer.finished(null);
+    String expected = lookupType == LookupType.CONSTANT ? "error" : "exception";
+    runInput = ToolHelper.runJava(out, CLASS.getName(), expected);
+    if (runInput.exitCode != 0) {
+      System.out.println(runInput);
+    }
+    assertEquals(0, runInput.exitCode);
+  }
+
+  private void runCf() throws Exception {
+    Path outCf = temp.getRoot().toPath().resolve("cf.jar");
+    build(new ClassFileConsumer.ArchiveConsumer(outCf));
+    String expected = lookupType == LookupType.CONSTANT ? "error" : "exception";
+    ProcessResult runCf = ToolHelper.runJava(outCf, CLASS.getCanonicalName(), expected);
+    assertEquals(runInput.toString(), runCf.toString());
+  }
+
+  private void runDex() throws Exception {
+    // TODO(mathiasr): Once we include a P runtime, change this to "P and above".
+    Assume.assumeTrue(ToolHelper.getDexVm() == DexVm.ART_DEFAULT);
+    Path outDex = temp.getRoot().toPath().resolve("dex.zip");
+    build(new DexIndexedConsumer.ArchiveConsumer(outDex));
+    String expected = lookupType == LookupType.CONSTANT ? "pass" : "exception";
     ProcessResult runDex =
         ToolHelper.runArtRaw(
             outDex.toString(),
             CLASS.getCanonicalName(),
-            cmd -> cmd.appendProgramArgument(ldc ? "pass" : "exception"));
+            cmd -> cmd.appendProgramArgument(expected));
     // Only compare stdout and exitCode since dex2oat prints to stderr.
     if (runInput.exitCode != runDex.exitCode) {
       System.out.println(runDex.stderr);
@@ -97,51 +143,36 @@ public class MethodHandleTestRunner {
     assertEquals(runInput.exitCode, runDex.exitCode);
   }
 
-  private void build(ProgramConsumer programConsumer, boolean minify) throws Exception {
+  private void build(ProgramConsumer programConsumer) throws Exception {
     // MethodHandle.invoke() only supported from Android O
     // ConstMethodHandle only supported from Android P
     AndroidApiLevel apiLevel = AndroidApiLevel.P;
-    Builder cfBuilder =
+    Builder command =
         R8Command.builder()
-            .setMode(CompilationMode.DEBUG)
+            .setMode(compilationMode)
             .addLibraryFiles(ToolHelper.getAndroidJar(apiLevel))
             .setProgramConsumer(programConsumer);
     if (!(programConsumer instanceof ClassFileConsumer)) {
-      cfBuilder.setMinApiLevel(apiLevel.getLevel());
+      command.setMinApiLevel(apiLevel.getLevel());
     }
     for (Class<?> c : inputClasses) {
       byte[] classAsBytes = getClassAsBytes(c);
-      cfBuilder.addClassProgramData(classAsBytes, Origin.unknown());
+      command.addClassProgramData(classAsBytes, Origin.unknown());
     }
-    if (minify) {
-      cfBuilder.addProguardConfiguration(
+    if (minifyMode == MinifyMode.MINIFY) {
+      command.addProguardConfiguration(
           Arrays.asList(
               "-keep public class com.android.tools.r8.cf.MethodHandleTest {",
               "  public static void main(...);",
               "}"),
           Origin.unknown());
     }
-    R8.run(cfBuilder.build());
-  }
-
-  private ProcessResult runInput() throws Exception {
-    Path out = temp.getRoot().toPath().resolve("input.jar");
-    ClassFileConsumer.ArchiveConsumer archiveConsumer = new ClassFileConsumer.ArchiveConsumer(out);
-    for (Class<?> c : inputClasses) {
-      archiveConsumer.accept(
-          getClassAsBytes(c), DescriptorUtils.javaTypeToDescriptor(c.getName()), null);
-    }
-    archiveConsumer.finished(null);
-    ProcessResult runInput = ToolHelper.runJava(out, CLASS.getName(), ldc ? "error" : "exception");
-    if (runInput.exitCode != 0) {
-      System.out.println(runInput);
-    }
-    assertEquals(0, runInput.exitCode);
-    return runInput;
+    ToolHelper.runR8(
+        command.build(), options -> options.enableCfFrontend = frontend == Frontend.CF);
   }
 
   private byte[] getClassAsBytes(Class<?> clazz) throws Exception {
-    if (ldc) {
+    if (lookupType == LookupType.CONSTANT) {
       if (clazz == MethodHandleTest.D.class) {
         return MethodHandleDump.dumpD();
       } else if (clazz == MethodHandleTest.class) {
