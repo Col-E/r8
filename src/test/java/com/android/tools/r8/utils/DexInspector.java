@@ -136,6 +136,19 @@ public class DexInspector {
             .read(app.getProguardMapOutputData()));
   }
 
+  public DexInspector(AndroidApp app, Consumer<InternalOptions> optionsConsumer)
+      throws IOException, ExecutionException {
+    this(
+        new ApplicationReader(app, runOptionsConsumer(optionsConsumer), new Timing("DexInspector"))
+            .read(app.getProguardMapOutputData()));
+  }
+
+  private static InternalOptions runOptionsConsumer(Consumer<InternalOptions> optionsConsumer) {
+    InternalOptions internalOptions = new InternalOptions();
+    optionsConsumer.accept(internalOptions);
+    return internalOptions;
+  }
+
   public DexInspector(AndroidApp app, Path proguardMap) throws IOException, ExecutionException {
     this(
         new ApplicationReader(app, new InternalOptions(), new Timing("DexInspector"))

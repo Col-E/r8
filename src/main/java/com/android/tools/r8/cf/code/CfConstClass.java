@@ -7,6 +7,9 @@ import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.UseRegistry;
+import com.android.tools.r8.ir.conversion.CfSourceCode;
+import com.android.tools.r8.ir.conversion.CfState;
+import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.naming.NamingLens;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
@@ -31,6 +34,11 @@ public class CfConstClass extends CfInstruction {
   @Override
   public void print(CfPrinter printer) {
     printer.print(this);
+  }
+
+  @Override
+  public boolean canThrow() {
+    return true;
   }
 
   private String getInternalName(NamingLens lens) {
@@ -62,5 +70,10 @@ public class CfConstClass extends CfInstruction {
   @Override
   public void registerUse(UseRegistry registry, DexType clazz) {
     registry.registerConstClass(type);
+  }
+
+  @Override
+  public void buildIR(IRBuilder builder, CfState state, CfSourceCode code) {
+    builder.addConstClass(state.push(builder.getFactory().classType).register, type);
   }
 }

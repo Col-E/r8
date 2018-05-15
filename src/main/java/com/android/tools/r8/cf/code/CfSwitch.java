@@ -4,6 +4,10 @@
 package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
+import com.android.tools.r8.ir.conversion.CfSourceCode;
+import com.android.tools.r8.ir.conversion.CfState;
+import com.android.tools.r8.ir.conversion.CfState.Slot;
+import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.naming.NamingLens;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
@@ -41,7 +45,7 @@ public class CfSwitch extends CfInstruction {
     return new IntArrayList(keys);
   }
 
-  public List<CfLabel> getTargets() {
+  public List<CfLabel> getSwitchTargets() {
     return targets;
   }
 
@@ -66,5 +70,15 @@ public class CfSwitch extends CfInstruction {
   @Override
   public void print(CfPrinter printer) {
     printer.print(this);
+  }
+
+  @Override
+  public void buildIR(IRBuilder builder, CfState state, CfSourceCode code) {
+    int[] labelOffsets = new int[targets.size()];
+    for (int i = 0; i < targets.size(); i++) {
+      labelOffsets[i] = code.getLabelOffset(targets.get(i));
+    }
+    Slot value = state.pop();
+    builder.addSwitch(value.register, keys, code.getLabelOffset(defaultTarget), labelOffsets);
   }
 }

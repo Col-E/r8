@@ -19,7 +19,12 @@ import com.android.tools.r8.graph.DexValue.DexValueMethodType;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.DexValue.DexValueType;
 import com.android.tools.r8.graph.UseRegistry;
+import com.android.tools.r8.ir.code.ValueType;
+import com.android.tools.r8.ir.conversion.CfSourceCode;
+import com.android.tools.r8.ir.conversion.CfState;
+import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.naming.NamingLens;
+import java.util.ArrayList;
 import java.util.List;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.MethodVisitor;
@@ -82,5 +87,27 @@ public class CfInvokeDynamic extends CfInstruction {
   @Override
   public void registerUse(UseRegistry registry, DexType clazz) {
     registry.registerCallSite(callSite);
+  }
+
+  @Override
+  public boolean canThrow() {
+    return true;
+  }
+
+  @Override
+  public void buildIR(IRBuilder builder, CfState state, CfSourceCode code) {
+    DexType[] parameterTypes = callSite.methodProto.parameters.values;
+    List<Integer> registers = new ArrayList<>(parameterTypes.length);
+    for (int register : state.popReverse(parameterTypes.length)) {
+      registers.add(register);
+    }
+    List<ValueType> types = new ArrayList<>(parameterTypes.length);
+    for (DexType value : parameterTypes) {
+      types.add(ValueType.fromDexType(value));
+    }
+    builder.addInvokeCustom(callSite, types, registers);
+    if (!callSite.methodProto.returnType.isVoidType()) {
+      builder.addMoveResult(state.push(callSite.methodProto.returnType).register);
+    }
   }
 }

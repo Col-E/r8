@@ -56,7 +56,7 @@ public class EnumOrdinalMapCollector {
       return;
     }
     DexEncodedMethod initializer = clazz.getClassInitializer();
-    IRCode code = initializer.getCode().buildIR(initializer, options);
+    IRCode code = initializer.getCode().buildIR(initializer, options, clazz.origin);
     Reference2IntMap<DexField> ordinalsMap = new Reference2IntArrayMap<>();
     ordinalsMap.defaultReturnValue(-1);
     InstructionIterator it = code.instructionIterator();

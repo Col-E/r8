@@ -104,7 +104,7 @@ public class JarCode extends Code {
   }
 
   @Override
-  public IRCode buildIR(DexEncodedMethod encodedMethod, InternalOptions options)
+  public IRCode buildIR(DexEncodedMethod encodedMethod, InternalOptions options, Origin origin)
       throws ApiLevelException {
     triggerDelayedParsingIfNeccessary();
     return options.debug
@@ -117,7 +117,8 @@ public class JarCode extends Code {
       DexEncodedMethod encodedMethod,
       InternalOptions options,
       ValueNumberGenerator generator,
-      Position callerPosition)
+      Position callerPosition,
+      Origin origin)
       throws ApiLevelException {
     assert generator != null;
     triggerDelayedParsingIfNeccessary();

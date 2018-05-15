@@ -16,7 +16,6 @@ import com.android.tools.r8.R8Command.Builder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
 import java.io.IOException;
@@ -119,13 +118,10 @@ public class LambdaRenamingTestRunner extends TestBase {
             .addProgramFiles(inputJar)
             .setProgramConsumer(consumer)
             .addProguardConfigurationFiles(writeProguardRules(aggressive));
-    if (consumer instanceof ClassFileConsumer) {
-      // TODO(b/75997473): Enable inlining when supported by CF backend
-      ToolHelper.runR8(builder.build(), options -> options.enableInlining = false);
-    } else {
+    if (!(consumer instanceof ClassFileConsumer)) {
       builder.setMinApiLevel(ToolHelper.getMinApiLevelForDexVm().getLevel());
-      ToolHelper.runR8(builder.build());
     }
+    ToolHelper.runR8(builder.build());
   }
 
   private void buildAndRunProguard(String outName, boolean aggressive) throws Exception {

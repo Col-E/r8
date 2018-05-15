@@ -13,110 +13,287 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.BiConsumer;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.util.ASMifier;
 import org.objectweb.asm.util.TraceClassVisitor;
 
-@RunWith(Parameterized.class)
 public class CfFrontendExamplesTest extends TestBase {
 
-  static final Collection<Object[]> TESTS = Arrays.asList(
-    makeTest("arithmetic.Arithmetic"),
-    makeTest("arrayaccess.ArrayAccess"),
-    makeTest("barray.BArray"),
-    makeTest("bridge.BridgeMethod"),
-    makeTest("cse.CommonSubexpressionElimination"),
-    makeTest("constants.Constants"),
-    makeTest("controlflow.ControlFlow"),
-    makeTest("conversions.Conversions"),
-    makeTest("floating_point_annotations.FloatingPointValuedAnnotationTest"),
-    makeTest("filledarray.FilledArray"),
-    makeTest("hello.Hello"),
-    makeTest("ifstatements.IfStatements"),
-    makeTest("instancevariable.InstanceVariable"),
-    makeTest("instanceofstring.InstanceofString"),
-    makeTest("invoke.Invoke"),
-    makeTest("jumbostring.JumboString"),
-    makeTest("loadconst.LoadConst"),
-    makeTest("loop.UdpServer"),
-    makeTest("newarray.NewArray"),
-    makeTest("regalloc.RegAlloc"),
-    makeTest("returns.Returns"),
-    makeTest("staticfield.StaticField"),
-    makeTest("stringbuilding.StringBuilding"),
-    makeTest("switches.Switches"),
-    makeTest("sync.Sync"),
-    makeTest("throwing.Throwing"),
-    makeTest("trivial.Trivial"),
-    makeTest("trycatch.TryCatch"),
-    makeTest("nestedtrycatches.NestedTryCatches"),
-    makeTest("trycatchmany.TryCatchMany"),
-    makeTest("invokeempty.InvokeEmpty"),
-    makeTest("regress.Regress"),
-    makeTest("regress2.Regress2"),
-    makeTest("regress_37726195.Regress"),
-    makeTest("regress_37658666.Regress", CfFrontendExamplesTest::compareRegress37658666),
-    makeTest("regress_37875803.Regress"),
-    makeTest("regress_37955340.Regress"),
-    makeTest("regress_62300145.Regress"),
-    makeTest("regress_64881691.Regress"),
-    makeTest("regress_65104300.Regress"),
-    makeTest("regress_70703087.Test"),
-    makeTest("regress_70736958.Test"),
-    makeTest("regress_70737019.Test"),
-    makeTest("regress_72361252.Test"),
-    makeTest("memberrebinding2.Memberrebinding"),
-    makeTest("memberrebinding3.Memberrebinding"),
-    makeTest("minification.Minification"),
-    makeTest("enclosingmethod.Main"),
-    makeTest("enclosingmethod_proguarded.Main"),
-    makeTest("interfaceinlining.Main"),
-    makeTest("switchmaps.Switches")
-  );
-
-  private static Object[] makeTest(String className) {
-    return makeTest(className, null);
-  }
-
-  private static Object[] makeTest(String className, BiConsumer<byte[], byte[]> comparator) {
-    return new Object[] {className, comparator};
-  }
-
-  @Parameters(name = "{0}")
-  public static Collection<Object[]> data() {
-    return TESTS;
-  }
-
-  private static void compareRegress37658666(byte[] expectedBytes, byte[] actualBytes) {
-    // javac emits LDC(-0.0f) instead of the shorter FCONST_0 FNEG emitted by CfConstNumber.
-    String ldc = "mv.visitLdcInsn(new Float(\"-0.0\"));";
-    String constNeg = "mv.visitInsn(FCONST_0);\nmv.visitInsn(FNEG);";
-    assertEquals(
-        asmToString(expectedBytes).replace(ldc, constNeg),
-        asmToString(actualBytes));
-  }
-
-  private final Path inputJar;
-  private final BiConsumer<byte[], byte[]> comparator;
-
-  public CfFrontendExamplesTest(String clazz, BiConsumer<byte[], byte[]> comparator) {
-    this.comparator = comparator;
-    String pkg = clazz.substring(0, clazz.lastIndexOf('.'));
-    String suffix = "_debuginfo_all";
-    inputJar = Paths.get(ToolHelper.EXAMPLES_BUILD_DIR, pkg + suffix + JAR_EXTENSION);
+  @Test
+  public void testArithmetic() throws Exception {
+    runTest("arithmetic.Arithmetic");
   }
 
   @Test
-  public void test() throws Exception {
+  public void testArrayAccess() throws Exception {
+    runTest("arrayaccess.ArrayAccess");
+  }
+
+  @Test
+  public void testBArray() throws Exception {
+    runTest("barray.BArray");
+  }
+
+  @Test
+  public void testBridgeMethod() throws Exception {
+    runTest("bridge.BridgeMethod");
+  }
+
+  @Test
+  public void testCommonSubexpressionElimination() throws Exception {
+    runTest("cse.CommonSubexpressionElimination");
+  }
+
+  @Test
+  public void testConstants() throws Exception {
+    runTest("constants.Constants");
+  }
+
+  @Test
+  public void testControlFlow() throws Exception {
+    runTest("controlflow.ControlFlow");
+  }
+
+  @Test
+  public void testConversions() throws Exception {
+    runTest("conversions.Conversions");
+  }
+
+  @Test
+  public void testFloatingPointValuedAnnotation() throws Exception {
+    runTest("floating_point_annotations.FloatingPointValuedAnnotationTest");
+  }
+
+  @Test
+  public void testFilledArray() throws Exception {
+    runTest("filledarray.FilledArray");
+  }
+
+  @Test
+  public void testHello() throws Exception {
+    runTest("hello.Hello");
+  }
+
+  @Test
+  public void testIfStatements() throws Exception {
+    runTest("ifstatements.IfStatements");
+  }
+
+  @Test
+  public void testInstanceVariable() throws Exception {
+    runTest("instancevariable.InstanceVariable");
+  }
+
+  @Test
+  public void testInstanceofString() throws Exception {
+    runTest("instanceofstring.InstanceofString");
+  }
+
+  @Test
+  public void testInvoke() throws Exception {
+    runTest("invoke.Invoke");
+  }
+
+  @Test
+  public void testJumboString() throws Exception {
+    runTest("jumbostring.JumboString");
+  }
+
+  @Test
+  public void testLoadConst() throws Exception {
+    runTest("loadconst.LoadConst");
+  }
+
+  @Test
+  public void testUdpServer() throws Exception {
+    runTest("loop.UdpServer");
+  }
+
+  @Test
+  public void testNewArray() throws Exception {
+    runTest("newarray.NewArray");
+  }
+
+  @Test
+  public void testRegAlloc() throws Exception {
+    runTest("regalloc.RegAlloc");
+  }
+
+  @Test
+  public void testReturns() throws Exception {
+    runTest("returns.Returns");
+  }
+
+  @Test
+  public void testStaticField() throws Exception {
+    runTest("staticfield.StaticField");
+  }
+
+  @Test
+  public void testStringBuilding() throws Exception {
+    runTest("stringbuilding.StringBuilding");
+  }
+
+  @Test
+  public void testSwitches() throws Exception {
+    runTest("switches.Switches");
+  }
+
+  @Test
+  public void testSync() throws Exception {
+    runTest("sync.Sync");
+  }
+
+  @Test
+  public void testThrowing() throws Exception {
+    runTest("throwing.Throwing");
+  }
+
+  @Test
+  public void testTrivial() throws Exception {
+    runTest("trivial.Trivial");
+  }
+
+  @Test
+  public void testTryCatch() throws Exception {
+    runTest("trycatch.TryCatch");
+  }
+
+  @Test
+  public void testNestedTryCatches() throws Exception {
+    runTest("nestedtrycatches.NestedTryCatches");
+  }
+
+  @Test
+  public void testTryCatchMany() throws Exception {
+    runTest("trycatchmany.TryCatchMany");
+  }
+
+  @Test
+  public void testInvokeEmpty() throws Exception {
+    runTest("invokeempty.InvokeEmpty");
+  }
+
+  @Test
+  public void testRegress() throws Exception {
+    runTest("regress.Regress");
+  }
+
+  @Test
+  public void testRegress2() throws Exception {
+    runTest("regress2.Regress2");
+  }
+
+  @Test
+  public void testRegress37726195() throws Exception {
+    runTest("regress_37726195.Regress");
+  }
+
+  @Test
+  public void testRegress37658666() throws Exception {
+    runTest(
+        "regress_37658666.Regress",
+        (expectedBytes, actualBytes) -> {
+          // javac emits LDC(-0.0f) instead of the shorter FCONST_0 FNEG emitted by CfConstNumber.
+          String ldc = "mv.visitLdcInsn(new Float(\"-0.0\"));";
+          String constNeg = "mv.visitInsn(FCONST_0);\nmv.visitInsn(FNEG);";
+          assertEquals(asmToString(expectedBytes).replace(ldc, constNeg), asmToString(actualBytes));
+        });
+  }
+
+  @Test
+  public void testRegress37875803() throws Exception {
+    runTest("regress_37875803.Regress");
+  }
+
+  @Test
+  public void testRegress37955340() throws Exception {
+    runTest("regress_37955340.Regress");
+  }
+
+  @Test
+  public void testRegress62300145() throws Exception {
+    runTest("regress_62300145.Regress");
+  }
+
+  @Test
+  public void testRegress64881691() throws Exception {
+    runTest("regress_64881691.Regress");
+  }
+
+  @Test
+  public void testRegress65104300() throws Exception {
+    runTest("regress_65104300.Regress");
+  }
+
+  @Test
+  public void testRegress70703087() throws Exception {
+    runTest("regress_70703087.Test");
+  }
+
+  @Test
+  public void testRegress70736958() throws Exception {
+    runTest("regress_70736958.Test");
+  }
+
+  @Test
+  public void testRegress70737019() throws Exception {
+    runTest("regress_70737019.Test");
+  }
+
+  @Test
+  public void testRegress72361252() throws Exception {
+    runTest("regress_72361252.Test");
+  }
+
+  @Test
+  public void testMemberrebinding2() throws Exception {
+    runTest("memberrebinding2.Memberrebinding");
+  }
+
+  @Test
+  public void testMemberrebinding3() throws Exception {
+    runTest("memberrebinding3.Memberrebinding");
+  }
+
+  @Test
+  public void testMinification() throws Exception {
+    runTest("minification.Minification");
+  }
+
+  @Test
+  public void testEnclosingmethod() throws Exception {
+    runTest("enclosingmethod.Main");
+  }
+
+  @Test
+  public void testEnclosingmethodProguarded() throws Exception {
+    runTest("enclosingmethod_proguarded.Main");
+  }
+
+  @Test
+  public void testInterfaceInlining() throws Exception {
+    runTest("interfaceinlining.Main");
+  }
+
+  @Test
+  public void testSwitchmaps() throws Exception {
+    runTest("switchmaps.Switches");
+  }
+
+  private void runTest(String clazz) throws Exception {
+    runTest(clazz, null);
+  }
+
+  private void runTest(String clazz, BiConsumer<byte[], byte[]> comparator) throws Exception {
+    String pkg = clazz.substring(0, clazz.lastIndexOf('.'));
+    String suffix = "_debuginfo_all";
+    Path inputJar = Paths.get(ToolHelper.EXAMPLES_BUILD_DIR, pkg + suffix + JAR_EXTENSION);
     Path outputJar = temp.getRoot().toPath().resolve("output.jar");
     R8Command command =
         R8Command.builder()

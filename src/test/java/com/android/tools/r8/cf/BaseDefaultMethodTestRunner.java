@@ -46,8 +46,7 @@ public class BaseDefaultMethodTestRunner {
     for (Class<?> c : CLASSES) {
       builder.addClassProgramData(ToolHelper.getClassAsBytes(c), Origin.unknown());
     }
-    // TODO(b/75997473): Enable inlining when supported
-    ToolHelper.runR8(builder.build(), options -> options.enableInlining = false);
+    ToolHelper.runR8(builder.build());
     ProcessResult runOutput = ToolHelper.runJava(out, CLASS.getCanonicalName());
     assertEquals(runInput.toString(), runOutput.toString());
   }

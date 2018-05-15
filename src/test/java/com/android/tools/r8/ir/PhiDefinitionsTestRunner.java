@@ -115,12 +115,6 @@ public class PhiDefinitionsTestRunner extends TestBase {
     } else {
       builder.addLibraryFiles(ToolHelper.getAndroidJar(ToolHelper.getMinApiLevelForDexVm()));
     }
-    // TODO(b/75997473): Enable inlining when supported by CF backend
-    ToolHelper.runR8(
-        builder.build(),
-        options -> {
-          options.enableInlining = false;
-          options.invalidDebugInfoFatal = true;
-        });
+    ToolHelper.runR8(builder.build(), options -> options.invalidDebugInfoFatal = true);
   }
 }

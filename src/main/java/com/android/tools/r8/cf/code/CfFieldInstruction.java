@@ -8,6 +8,10 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.UseRegistry;
+import com.android.tools.r8.ir.conversion.CfSourceCode;
+import com.android.tools.r8.ir.conversion.CfState;
+import com.android.tools.r8.ir.conversion.CfState.Slot;
+import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.naming.NamingLens;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -61,6 +65,44 @@ public class CfFieldInstruction extends CfInstruction {
       case Opcodes.PUTSTATIC:
         registry.registerStaticFieldWrite(field);
         break;
+      default:
+        throw new Unreachable("Unexpected opcode " + opcode);
+    }
+  }
+
+  @Override
+  public boolean canThrow() {
+    return true;
+  }
+
+  @Override
+  public void buildIR(IRBuilder builder, CfState state, CfSourceCode code) {
+    DexType type = field.type;
+    switch (opcode) {
+      case Opcodes.GETSTATIC:
+        {
+          builder.addStaticGet(state.push(type).register, field);
+          break;
+        }
+      case Opcodes.PUTSTATIC:
+        {
+          Slot value = state.pop();
+          builder.addStaticPut(value.register, field);
+          break;
+        }
+      case Opcodes.GETFIELD:
+        {
+          Slot object = state.pop();
+          builder.addInstanceGet(state.push(type).register, object.register, field);
+          break;
+        }
+      case Opcodes.PUTFIELD:
+        {
+          Slot value = state.pop();
+          Slot object = state.pop();
+          builder.addInstancePut(value.register, object.register, field);
+          break;
+        }
       default:
         throw new Unreachable("Unexpected opcode " + opcode);
     }

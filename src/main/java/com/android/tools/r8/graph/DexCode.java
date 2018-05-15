@@ -17,6 +17,7 @@ import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.conversion.DexSourceCode;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.android.tools.r8.utils.StringUtils;
@@ -163,7 +164,7 @@ public class DexCode extends Code {
   }
 
   @Override
-  public IRCode buildIR(DexEncodedMethod encodedMethod, InternalOptions options)
+  public IRCode buildIR(DexEncodedMethod encodedMethod, InternalOptions options, Origin origin)
       throws ApiLevelException {
     DexSourceCode source =
         new DexSourceCode(
@@ -177,7 +178,8 @@ public class DexCode extends Code {
       DexEncodedMethod encodedMethod,
       InternalOptions options,
       ValueNumberGenerator valueNumberGenerator,
-      Position callerPosition)
+      Position callerPosition,
+      Origin origin)
       throws ApiLevelException {
     DexSourceCode source =
         new DexSourceCode(

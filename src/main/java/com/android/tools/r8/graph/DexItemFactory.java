@@ -125,6 +125,8 @@ public class DexItemFactory {
   public final DexString getMethodName = createString("getMethod");
   public final DexString getDeclaredMethodName = createString("getDeclaredMethod");
   public final DexString assertionsDisabled = createString("$assertionsDisabled");
+  public final DexString invokeMethodName = createString("invoke");
+  public final DexString invokeExactMethodName = createString("invokeExact");
 
   public final DexString stringDescriptor = createString("Ljava/lang/String;");
   public final DexString stringArrayDescriptor = createString("[Ljava/lang/String;");
@@ -209,6 +211,7 @@ public class DexItemFactory {
   public final AtomicFieldUpdaterMethods atomicFieldUpdaterMethods =
       new AtomicFieldUpdaterMethods();
   public final Kotlin kotlin;
+  public final PolymorphicMethods polymorphicMethods = new PolymorphicMethods();
 
   // Dex system annotations.
   // See https://source.android.com/devices/tech/dalvik/dex-format.html#system-annotation
@@ -468,6 +471,75 @@ public class DexItemFactory {
       consumer.accept(appendString);
       consumer.accept(appendStringBuffer);
       consumer.accept(appendBoolean);
+    }
+  }
+
+  public class PolymorphicMethods {
+
+    private final DexProto signature = createProto(objectType, objectArrayType);
+    private final DexProto setSignature = createProto(voidType, objectArrayType);
+    private final DexProto compareAndSetSignature = createProto(booleanType, objectArrayType);
+
+    private final Set<DexString> varHandleMethods =
+        createStrings(
+            "compareAndExchange",
+            "compareAndExchangeAcquire",
+            "compareAndExchangeRelease",
+            "get",
+            "getAcquire",
+            "getAndAdd",
+            "getAndAddAcquire",
+            "getAndAddRelease",
+            "getAndBitwiseAnd",
+            "getAndBitwiseAndAcquire",
+            "getAndBitwiseAndRelease",
+            "getAndBitwiseOr",
+            "getAndBitwiseOrAcquire",
+            "getAndBitwiseOrRelease",
+            "getAndBitwiseXor",
+            "getAndBitwiseXorAcquire",
+            "getAndBitwiseXorRelease",
+            "getAndSet",
+            "getAndSetAcquire",
+            "getAndSetRelease",
+            "getOpaque",
+            "getVolatile");
+
+    private final Set<DexString> varHandleSetMethods =
+        createStrings("set", "setOpaque", "setRelease", "setVolatile");
+
+    private final Set<DexString> varHandleCompareAndSetMethods =
+        createStrings(
+            "compareAndSet",
+            "weakCompareAndSet",
+            "weakCompareAndSetAcquire",
+            "weakCompareAndSetPlain",
+            "weakCompareAndSetRelease");
+
+    public DexMethod canonicalize(DexMethod invokeProto) {
+      if (invokeProto.holder == methodHandleType) {
+        if (invokeProto.name == invokeMethodName || invokeProto.name == invokeExactMethodName) {
+          return createMethod(methodHandleType, signature, invokeProto.name);
+        }
+      } else if (invokeProto.holder == varHandleType) {
+        if (varHandleMethods.contains(invokeProto.name)) {
+          return createMethod(varHandleType, signature, invokeProto.name);
+        } else if (varHandleSetMethods.contains(invokeProto.name)) {
+          return createMethod(varHandleType, setSignature, invokeProto.name);
+        } else if (varHandleCompareAndSetMethods.contains(invokeProto.name)) {
+          return createMethod(varHandleType, compareAndSetSignature, invokeProto.name);
+        }
+      }
+      return null;
+    }
+
+    private Set<DexString> createStrings(String... strings) {
+      IdentityHashMap<DexString, DexString> map = new IdentityHashMap<>();
+      for (String string : strings) {
+        DexString dexString = createString(string);
+        map.put(dexString, dexString);
+      }
+      return map.keySet();
     }
   }
 

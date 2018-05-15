@@ -6,6 +6,10 @@ package com.android.tools.r8.cf.code;
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.code.NumericType;
+import com.android.tools.r8.ir.code.ValueType;
+import com.android.tools.r8.ir.conversion.CfSourceCode;
+import com.android.tools.r8.ir.conversion.CfState;
+import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.naming.NamingLens;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -115,5 +119,37 @@ public class CfArithmeticBinop extends CfInstruction {
   @Override
   public void write(MethodVisitor visitor, NamingLens lens) {
     visitor.visitInsn(getAsmOpcode());
+  }
+
+  @Override
+  public boolean canThrow() {
+    return (type != NumericType.FLOAT && type != NumericType.DOUBLE)
+        && (opcode == Opcode.Div || opcode == Opcode.Rem);
+  }
+
+  @Override
+  public void buildIR(IRBuilder builder, CfState state, CfSourceCode code) {
+    int right = state.pop().register;
+    int left = state.pop().register;
+    int dest = state.push(ValueType.fromNumericType(type)).register;
+    switch (opcode) {
+      case Add:
+        builder.addAdd(type, dest, left, right);
+        break;
+      case Sub:
+        builder.addSub(type, dest, left, right);
+        break;
+      case Mul:
+        builder.addMul(type, dest, left, right);
+        break;
+      case Div:
+        builder.addDiv(type, dest, left, right);
+        break;
+      case Rem:
+        builder.addRem(type, dest, left, right);
+        break;
+      default:
+        throw new Unreachable("CfArithmeticBinop has unknown opcode " + opcode);
+    }
   }
 }

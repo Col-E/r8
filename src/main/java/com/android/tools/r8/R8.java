@@ -358,12 +358,9 @@ public class R8 {
         }
         application = application.asDirect().rewrittenWithLense(graphLense);
         appInfo = appInfo.withLiveness().rewrittenWithLense(application.asDirect(), graphLense);
-        // TODO(mathiasr): Remove this check when CF->IR construction is complete.
-        if (!options.skipIR) {
-          // Collect switch maps and ordinals maps.
-          appInfo = new SwitchMapCollector(appInfo.withLiveness(), options).run();
-          appInfo = new EnumOrdinalMapCollector(appInfo.withLiveness(), options).run();
-        }
+        // Collect switch maps and ordinals maps.
+        appInfo = new SwitchMapCollector(appInfo.withLiveness(), options).run();
+        appInfo = new EnumOrdinalMapCollector(appInfo.withLiveness(), options).run();
 
         // TODO(b/79143143): re-enable once fixed.
         // graphLense = new BridgeMethodAnalysis(graphLense, appInfo.withLiveness()).run();

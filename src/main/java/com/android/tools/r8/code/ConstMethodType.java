@@ -8,6 +8,7 @@ import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.OffsetToObjectMapping;
+import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.naming.ClassNameMapper;
 import java.nio.ShortBuffer;
@@ -53,6 +54,11 @@ public class ConstMethodType extends Format21c {
   @Override
   public String toSmaliString(ClassNameMapper naming) {
     return formatSmaliString("v" + AA + ", \"" + BBBB.toString() + "\"");
+  }
+
+  @Override
+  public void registerUse(UseRegistry registry) {
+    registry.registerProto(getMethodType());
   }
 
   @Override

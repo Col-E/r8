@@ -13,6 +13,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.SourceCode;
 import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.function.Consumer;
 
@@ -37,7 +38,8 @@ public final class SynthesizedCode extends Code {
   }
 
   @Override
-  public final IRCode buildIR(DexEncodedMethod encodedMethod, InternalOptions options)
+  public final IRCode buildIR(
+      DexEncodedMethod encodedMethod, InternalOptions options, Origin origin)
       throws ApiLevelException {
     return new IRBuilder(encodedMethod, sourceCode, options).build();
   }

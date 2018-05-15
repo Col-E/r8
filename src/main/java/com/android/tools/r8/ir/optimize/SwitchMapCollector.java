@@ -93,7 +93,7 @@ public class SwitchMapCollector {
     List<DexEncodedField> switchMapFields = Arrays.stream(clazz.staticFields())
         .filter(this::maybeIsSwitchMap).collect(Collectors.toList());
     if (!switchMapFields.isEmpty()) {
-      IRCode initializer = clazz.getClassInitializer().buildIR(options);
+      IRCode initializer = clazz.getClassInitializer().buildIR(options, clazz.origin);
       switchMapFields.forEach(field -> extractSwitchMap(field, initializer));
     }
   }

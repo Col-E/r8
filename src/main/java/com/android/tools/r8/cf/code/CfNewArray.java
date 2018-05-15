@@ -7,6 +7,10 @@ import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.UseRegistry;
+import com.android.tools.r8.ir.conversion.CfSourceCode;
+import com.android.tools.r8.ir.conversion.CfState;
+import com.android.tools.r8.ir.conversion.CfState.Slot;
+import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.DescriptorUtils;
 import org.objectweb.asm.MethodVisitor;
@@ -75,5 +79,17 @@ public class CfNewArray extends CfInstruction {
     if (!type.isPrimitiveArrayType()) {
       registry.registerTypeReference(type);
     }
+  }
+
+  @Override
+  public boolean canThrow() {
+    return true;
+  }
+
+  @Override
+  public void buildIR(IRBuilder builder, CfState state, CfSourceCode code) {
+    Slot size = state.pop();
+    Slot push = state.push(type);
+    builder.addNewArrayEmpty(push.register, size.register, type);
   }
 }

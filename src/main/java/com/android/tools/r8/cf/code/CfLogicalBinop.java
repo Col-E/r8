@@ -6,6 +6,10 @@ package com.android.tools.r8.cf.code;
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.code.NumericType;
+import com.android.tools.r8.ir.code.ValueType;
+import com.android.tools.r8.ir.conversion.CfSourceCode;
+import com.android.tools.r8.ir.conversion.CfState;
+import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.naming.NamingLens;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -90,5 +94,34 @@ public class CfLogicalBinop extends CfInstruction {
   @Override
   public void write(MethodVisitor visitor, NamingLens lens) {
     visitor.visitInsn(getAsmOpcode());
+  }
+
+  @Override
+  public void buildIR(IRBuilder builder, CfState state, CfSourceCode code) {
+    int right = state.pop().register;
+    int left = state.pop().register;
+    int dest = state.push(ValueType.fromNumericType(type)).register;
+    switch (opcode) {
+      case Shl:
+        builder.addShl(type, dest, left, right);
+        break;
+      case Shr:
+        builder.addShr(type, dest, left, right);
+        break;
+      case Ushr:
+        builder.addUshr(type, dest, left, right);
+        break;
+      case And:
+        builder.addAnd(type, dest, left, right);
+        break;
+      case Or:
+        builder.addOr(type, dest, left, right);
+        break;
+      case Xor:
+        builder.addXor(type, dest, left, right);
+        break;
+      default:
+        throw new Unreachable("CfLogicalBinop has unknown opcode " + opcode);
+    }
   }
 }

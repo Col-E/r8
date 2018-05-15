@@ -3,9 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.cf.code;
 
+import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.UseRegistry;
+import com.android.tools.r8.ir.conversion.CfSourceCode;
+import com.android.tools.r8.ir.conversion.CfState;
+import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.naming.NamingLens;
 import org.objectweb.asm.MethodVisitor;
 
@@ -24,5 +28,32 @@ public abstract class CfInstruction {
 
   public void registerUse(UseRegistry registry, DexType clazz) {
     // Intentionally empty.
+  }
+
+  public CfLabel getTarget() {
+    return null;
+  }
+
+  /** Return true if this instruction is CfReturn or CfReturnVoid. */
+  public boolean isReturn() {
+    return false;
+  }
+
+  /** Return true if this instruction is CfIf or CfIfCmp. */
+  public boolean isConditionalJump() {
+    return false;
+  }
+
+  /** Return true if this instruction or its DEX equivalent can throw. */
+  public boolean canThrow() {
+    return false;
+  }
+
+  public abstract void buildIR(IRBuilder builder, CfState state, CfSourceCode code)
+      throws ApiLevelException;
+
+  /** Return true if this instruction directly emits IR instructions. */
+  public boolean emitsIR() {
+    return true;
   }
 }

@@ -12,18 +12,21 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.optimize.Outliner.OutlineCode;
 import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions;
 
 public abstract class Code extends CachedHashValueDexItem {
 
-  public abstract IRCode buildIR(DexEncodedMethod encodedMethod, InternalOptions options)
+  public abstract IRCode buildIR(
+      DexEncodedMethod encodedMethod, InternalOptions options, Origin origin)
       throws ApiLevelException;
 
   public IRCode buildInliningIR(
       DexEncodedMethod encodedMethod,
       InternalOptions options,
       ValueNumberGenerator valueNumberGenerator,
-      Position callerPosition)
+      Position callerPosition,
+      Origin origin)
       throws ApiLevelException {
     throw new Unreachable("Unexpected attempt to build IR graph for inlining from: "
         + getClass().getCanonicalName());
@@ -52,8 +55,14 @@ public abstract class Code extends CachedHashValueDexItem {
     return false;
   }
 
+  /** Estimate the number of IR instructions emitted by buildIR(). */
   public int estimatedSizeForInlining() {
     return Integer.MAX_VALUE;
+  }
+
+  /** Compute estimatedSizeForInlining() <= threshold. */
+  public boolean estimatedSizeForInliningAtMost(int threshold) {
+    return estimatedSizeForInlining() <= threshold;
   }
 
   public CfCode asCfCode() {

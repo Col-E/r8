@@ -31,6 +31,7 @@ import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterFieldAccess;
 import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterInvoke;
 import com.android.tools.r8.ir.optimize.NonNullTracker;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.DexInspector;
@@ -57,7 +58,7 @@ public class NullabilityTest extends TestBase {
     AppInfo appInfo = new AppInfo(dexApplication);
     DexInspector dexInspector = new DexInspector(appInfo.app);
     DexEncodedMethod foo = dexInspector.clazz(mainClass.getName()).method(signature).getMethod();
-    IRCode irCode = foo.buildIR(TEST_OPTIONS);
+    IRCode irCode = foo.buildIR(TEST_OPTIONS, Origin.unknown());
     NonNullTracker nonNullTracker = new NonNullTracker();
     nonNullTracker.addNonNull(irCode);
     TypeAnalysis analysis = new TypeAnalysis(appInfo, foo, irCode);

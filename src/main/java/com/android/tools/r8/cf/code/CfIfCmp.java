@@ -8,6 +8,9 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.If.Type;
 import com.android.tools.r8.ir.code.ValueType;
+import com.android.tools.r8.ir.conversion.CfSourceCode;
+import com.android.tools.r8.ir.conversion.CfState;
+import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.naming.NamingLens;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -32,6 +35,7 @@ public class CfIfCmp extends CfInstruction {
     return type;
   }
 
+  @Override
   public CfLabel getTarget() {
     return target;
   }
@@ -63,5 +67,19 @@ public class CfIfCmp extends CfInstruction {
   @Override
   public void write(MethodVisitor visitor, NamingLens lens) {
     visitor.visitJumpInsn(getOpcode(), target.getLabel());
+  }
+
+  @Override
+  public boolean isConditionalJump() {
+    return true;
+  }
+
+  @Override
+  public void buildIR(IRBuilder builder, CfState state, CfSourceCode code) {
+    int right = state.pop().register;
+    int left = state.pop().register;
+    int trueTargetOffset = code.getLabelOffset(target);
+    int falseTargetOffset = code.getCurrentInstructionIndex() + 1;
+    builder.addIf(kind, type, left, right, trueTargetOffset, falseTargetOffset);
   }
 }

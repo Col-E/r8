@@ -12,6 +12,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
@@ -67,7 +68,7 @@ public class CatchSuccessorFallthroughTest extends SmaliTestBase {
 
     DexEncodedMethod method = getMethod(originalApplication, methodSig);
     // Get the IR pre-optimization.
-    IRCode code = method.buildIR(new InternalOptions());
+    IRCode code = method.buildIR(new InternalOptions(), Origin.unknown());
 
     // Find the exit block and assert that the value is a phi merging the exceptional edge
     // with the normal edge.

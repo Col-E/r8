@@ -5,6 +5,9 @@ package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.ir.conversion.CfSourceCode;
+import com.android.tools.r8.ir.conversion.CfState;
+import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.naming.NamingLens;
 import org.objectweb.asm.MethodVisitor;
 
@@ -30,5 +33,11 @@ public class CfPosition extends CfInstruction {
 
   public Position getPosition() {
     return position;
+  }
+
+  @Override
+  public void buildIR(IRBuilder builder, CfState state, CfSourceCode code) {
+    state.setPosition(position);
+    builder.addDebugPosition(position);
   }
 }

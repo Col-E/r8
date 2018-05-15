@@ -22,8 +22,11 @@ import com.android.tools.r8.ir.code.Throw;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.code.ValueType;
+import com.android.tools.r8.ir.conversion.CfSourceCode;
+import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -120,6 +123,29 @@ public class CfCode extends Code {
   }
 
   @Override
+  public int estimatedSizeForInlining() {
+    return countNonStackOperations(Integer.MAX_VALUE);
+  }
+
+  @Override
+  public boolean estimatedSizeForInliningAtMost(int threshold) {
+    return countNonStackOperations(threshold) <= threshold;
+  }
+
+  private int countNonStackOperations(int threshold) {
+    int result = 0;
+    for (CfInstruction instruction : instructions) {
+      if (instruction.emitsIR()) {
+        result++;
+        if (result > threshold) {
+          break;
+        }
+      }
+    }
+    return result;
+  }
+
+  @Override
   public boolean isCfCode() {
     return true;
   }
@@ -183,7 +209,7 @@ public class CfCode extends Code {
   }
 
   @Override
-  public IRCode buildIR(DexEncodedMethod encodedMethod, InternalOptions options)
+  public IRCode buildIR(DexEncodedMethod encodedMethod, InternalOptions options, Origin origin)
       throws ApiLevelException {
     if (instructions.size() == 2
         && instructions.get(0) instanceof CfConstNull
@@ -200,7 +226,7 @@ public class CfCode extends Code {
       LinkedList<BasicBlock> blocks = new LinkedList<>(Collections.singleton(block));
       return new IRCode(options, encodedMethod, blocks, null, false);
     }
-    throw new Unimplemented("Converting Java class-file bytecode to IR not yet supported");
+    return internalBuild(encodedMethod, options, null, null, origin);
   }
 
   @Override
@@ -208,9 +234,29 @@ public class CfCode extends Code {
       DexEncodedMethod encodedMethod,
       InternalOptions options,
       ValueNumberGenerator valueNumberGenerator,
-      Position callerPosition)
+      Position callerPosition,
+      Origin origin)
       throws ApiLevelException {
-    throw new Unimplemented("Converting Java class-file bytecode to IR not yet supported");
+    assert valueNumberGenerator != null;
+    assert callerPosition != null;
+    return internalBuild(encodedMethod, options, valueNumberGenerator, callerPosition, origin);
+  }
+
+  private IRCode internalBuild(
+      DexEncodedMethod encodedMethod,
+      InternalOptions options,
+      ValueNumberGenerator generator,
+      Position callerPosition,
+      Origin origin)
+      throws ApiLevelException {
+    assert !options.isGeneratingDex() || !encodedMethod.accessFlags.isSynchronized()
+        : "Converting CfCode to IR not supported for DEX output of synchronized methods.";
+    CfSourceCode source = new CfSourceCode(this, encodedMethod, callerPosition, origin);
+    IRBuilder builder =
+        (generator == null)
+            ? new IRBuilder(encodedMethod, source, options)
+            : new IRBuilder(encodedMethod, source, options, generator);
+    return builder.build();
   }
 
   @Override

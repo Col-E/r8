@@ -619,7 +619,7 @@ public class MainDexListTests extends TestBase {
                 DexAnnotationSet.empty(),
                 DexAnnotationSetRefList.empty(),
                 code);
-        IRCode ir = code.buildIR(method, options);
+        IRCode ir = code.buildIR(method, options, Origin.unknown());
         RegisterAllocator allocator = new LinearScanRegisterAllocator(ir, options);
         method.setCode(ir, allocator, options);
         directMethods[i] = method;

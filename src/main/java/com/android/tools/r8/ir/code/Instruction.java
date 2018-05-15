@@ -72,6 +72,10 @@ public abstract class Instruction {
     this.position = position;
   }
 
+  public String getPositionAsString() {
+    return position == null ? "???" : position.toString();
+  }
+
   public List<Value> inValues() {
     return inValues;
   }

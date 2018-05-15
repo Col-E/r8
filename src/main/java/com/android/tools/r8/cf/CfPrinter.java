@@ -50,6 +50,7 @@ import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.CfCode.LocalVariableInfo;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.If;
@@ -124,9 +125,10 @@ public class CfPrinter {
       for (int i = 0; i < tryCatch.guards.size(); i++) {
         newline();
         DexType guard = tryCatch.guards.get(i);
+        assert guard != null;
         builder
             .append(".catch ")
-            .append(guard == null ? "all" : guard.getInternalName())
+            .append(guard == DexItemFactory.catchAllType ? "all" : guard.getInternalName())
             .append(" from ")
             .append(getLabel(tryCatch.start))
             .append(" to ")
@@ -430,7 +432,7 @@ public class CfPrinter {
     Kind kind = cfSwitch.getKind();
     builder.append(kind == Kind.LOOKUP ? "lookup" : "table").append("switch");
     IntList keys = cfSwitch.getKeys();
-    List<CfLabel> targets = cfSwitch.getTargets();
+    List<CfLabel> targets = cfSwitch.getSwitchTargets();
     for (int i = 0; i < targets.size(); i++) {
       indent();
       int key = kind == Kind.LOOKUP ? keys.getInt(i) : (keys.getInt(0) + i);
