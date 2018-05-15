@@ -42,6 +42,7 @@ import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.Arrays;
 import java.util.Collections;
@@ -227,20 +228,23 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     compilationState = CompilationState.NOT_PROCESSED;
   }
 
-  public IRCode buildIR(InternalOptions options) throws ApiLevelException {
-    return code == null ? null : code.buildIR(this, options);
+  public IRCode buildIR(InternalOptions options, Origin origin) throws ApiLevelException {
+    return code == null ? null : code.buildIR(this, options, origin);
   }
 
   public IRCode buildInliningIRForTesting(
       InternalOptions options, ValueNumberGenerator valueNumberGenerator)
       throws ApiLevelException {
-    return buildInliningIR(options, valueNumberGenerator, null);
+    return buildInliningIR(options, valueNumberGenerator, null, Origin.unknown());
   }
 
   public IRCode buildInliningIR(
-      InternalOptions options, ValueNumberGenerator valueNumberGenerator, Position callerPosition)
+      InternalOptions options,
+      ValueNumberGenerator valueNumberGenerator,
+      Position callerPosition,
+      Origin origin)
       throws ApiLevelException {
-    return code.buildInliningIR(this, options, valueNumberGenerator, callerPosition);
+    return code.buildInliningIR(this, options, valueNumberGenerator, callerPosition, origin);
   }
 
   public void setCode(Code code) {

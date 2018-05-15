@@ -125,7 +125,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
                 new MethodSignature("subtractConstants8bitRegisters", "int", ImmutableList.of()))
             .getMethod();
     try {
-      IRCode irCode = subtract.buildIR(TEST_OPTIONS);
+      IRCode irCode = subtract.buildIR(TEST_OPTIONS, Origin.unknown());
       TypeAnalysis analysis = new TypeAnalysis(appInfo, subtract, irCode);
       analysis.forEach((v, l) -> {
         assertEither(l, PRIMITIVE, NULL, TOP);
@@ -143,7 +143,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
             .method(new MethodSignature("fibonacci", "int", ImmutableList.of("int")))
             .getMethod();
     try {
-      IRCode irCode = fib.buildIR(TEST_OPTIONS);
+      IRCode irCode = fib.buildIR(TEST_OPTIONS, Origin.unknown());
       TypeAnalysis analysis = new TypeAnalysis(appInfo, fib, irCode);
       analysis.forEach((v, l) -> {
         assertEither(l, PRIMITIVE, NULL);
@@ -161,7 +161,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
             .method(new MethodSignature("test1", "int[]", ImmutableList.of()))
             .getMethod();
     try {
-      IRCode irCode = test1.buildIR(TEST_OPTIONS);
+      IRCode irCode = test1.buildIR(TEST_OPTIONS, Origin.unknown());
       TypeAnalysis analysis = new TypeAnalysis(appInfo, test1, irCode);
       Value array = null;
       InstructionIterator iterator = irCode.instructionIterator();
@@ -196,7 +196,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
             .method(new MethodSignature("test4", "int[]", ImmutableList.of()))
             .getMethod();
     try {
-      IRCode irCode = test4.buildIR(TEST_OPTIONS);
+      IRCode irCode = test4.buildIR(TEST_OPTIONS, Origin.unknown());
       TypeAnalysis analysis = new TypeAnalysis(appInfo, test4, irCode);
       Value array = null;
       InstructionIterator iterator = irCode.instructionIterator();
@@ -231,7 +231,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
             .method(new MethodSignature("loop2", "void", ImmutableList.of()))
             .getMethod();
     try {
-      IRCode irCode = loop2.buildIR(TEST_OPTIONS);
+      IRCode irCode = loop2.buildIR(TEST_OPTIONS, Origin.unknown());
       TypeAnalysis analysis = new TypeAnalysis(appInfo, loop2, irCode);
       analysis.forEach((v, l) -> {
         if (l.isClassTypeLatticeElement()) {
@@ -254,7 +254,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
             .method(new MethodSignature("test2_throw", "int", ImmutableList.of()))
             .getMethod();
     try {
-      IRCode irCode = test2.buildIR(TEST_OPTIONS);
+      IRCode irCode = test2.buildIR(TEST_OPTIONS, Origin.unknown());
       TypeAnalysis analysis = new TypeAnalysis(appInfo, test2, irCode);
       analysis.forEach((v, l) -> {
         if (l.isClassTypeLatticeElement()) {
@@ -284,7 +284,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
         CheckCast.class, new ClassTypeLatticeElement(test, true),
         NewInstance.class, new ClassTypeLatticeElement(test, false));
     try {
-      IRCode irCode = method.buildIR(TEST_OPTIONS);
+      IRCode irCode = method.buildIR(TEST_OPTIONS, Origin.unknown());
       TypeAnalysis analysis = new TypeAnalysis(appInfo, method, irCode);
       analysis.forEach((v, l) -> verifyTypeEnvironment(expectedLattices, v, l));
     } catch (ApiLevelException e) {
@@ -306,7 +306,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
       InstanceOf.class, PRIMITIVE,
       StaticGet.class, new ClassTypeLatticeElement(test, true));
     try {
-      IRCode irCode = method.buildIR(TEST_OPTIONS);
+      IRCode irCode = method.buildIR(TEST_OPTIONS, Origin.unknown());
       TypeAnalysis analysis = new TypeAnalysis(appInfo, method, irCode);
       analysis.forEach((v, l) -> verifyTypeEnvironment(expectedLattices, v, l));
     } catch (ApiLevelException e) {

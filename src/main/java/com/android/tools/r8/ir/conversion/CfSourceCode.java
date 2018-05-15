@@ -27,6 +27,7 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.CfState.Snapshot;
 import com.android.tools.r8.ir.conversion.IRBuilder.BlockInfo;
+import com.android.tools.r8.origin.Origin;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap.Entry;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
@@ -178,10 +179,11 @@ public class CfSourceCode implements SourceCode {
     }
   }
 
-  private CfState state = new CfState();
+  private CfState state;
   private final CfCode code;
   private final DexEncodedMethod method;
   private final Position callerPosition;
+  private final Origin origin;
 
   // Synthetic position with line = 0.
   private final Position preamblePosition;
@@ -196,10 +198,12 @@ public class CfSourceCode implements SourceCode {
       new Int2ReferenceOpenHashMap<>();
   private Int2ReferenceMap<CfState.Snapshot> incomingState = new Int2ReferenceOpenHashMap<>();
 
-  public CfSourceCode(CfCode code, DexEncodedMethod method, Position callerPosition) {
+  public CfSourceCode(
+      CfCode code, DexEncodedMethod method, Position callerPosition, Origin origin) {
     this.code = code;
     this.method = method;
     this.callerPosition = callerPosition;
+    this.origin = origin;
     preamblePosition = Position.synthetic(0, method.method, null);
     for (int i = 0; i < code.getInstructions().size(); i++) {
       CfInstruction instruction = code.getInstructions().get(i);
@@ -207,6 +211,7 @@ public class CfSourceCode implements SourceCode {
         labelOffsets.put((CfLabel) instruction, instructionOffset(i));
       }
     }
+    this.state = new CfState(origin);
   }
 
   @Override
@@ -390,7 +395,7 @@ public class CfSourceCode implements SourceCode {
 
   private void recordStateForTarget(int target, Snapshot snapshot) {
     Snapshot existing = incomingState.get(target);
-    Snapshot merged = CfState.merge(existing, snapshot);
+    Snapshot merged = CfState.merge(existing, snapshot, origin);
     if (merged != existing) {
       incomingState.put(target, merged);
     }

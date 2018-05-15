@@ -24,6 +24,7 @@ import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterFieldAccess;
 import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterInvoke;
 import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterNullCheck;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.InternalOptions;
@@ -47,7 +48,7 @@ public class NonNullTrackerTest extends TestBase {
     AppInfo appInfo = new AppInfo(dexApplication);
     DexInspector dexInspector = new DexInspector(appInfo.app);
     DexEncodedMethod foo = dexInspector.clazz(testClass.getName()).method(signature).getMethod();
-    IRCode irCode = foo.buildIR(TEST_OPTIONS);
+    IRCode irCode = foo.buildIR(TEST_OPTIONS, Origin.unknown());
     checkCountOfNonNull(irCode, 0);
 
     NonNullTracker nonNullTracker = new NonNullTracker();

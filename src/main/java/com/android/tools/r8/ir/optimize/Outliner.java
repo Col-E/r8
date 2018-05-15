@@ -46,6 +46,7 @@ import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.SourceCode;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
@@ -1002,7 +1003,7 @@ public class Outliner {
     }
 
     @Override
-    public IRCode buildIR(DexEncodedMethod encodedMethod, InternalOptions options)
+    public IRCode buildIR(DexEncodedMethod encodedMethod, InternalOptions options, Origin origin)
         throws ApiLevelException {
       OutlineSourceCode source = new OutlineSourceCode(outline);
       IRBuilder builder = new IRBuilder(encodedMethod, source, options);

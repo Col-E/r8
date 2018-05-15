@@ -151,9 +151,9 @@ public class LazyCfCode extends Code {
   }
 
   @Override
-  public IRCode buildIR(DexEncodedMethod encodedMethod, InternalOptions options)
+  public IRCode buildIR(DexEncodedMethod encodedMethod, InternalOptions options, Origin origin)
       throws ApiLevelException {
-    return asCfCode().buildIR(encodedMethod, options);
+    return asCfCode().buildIR(encodedMethod, options, origin);
   }
 
   @Override
@@ -161,9 +161,11 @@ public class LazyCfCode extends Code {
       DexEncodedMethod encodedMethod,
       InternalOptions options,
       ValueNumberGenerator valueNumberGenerator,
-      Position callerPosition)
+      Position callerPosition,
+      Origin origin)
       throws ApiLevelException {
-    return asCfCode().buildInliningIR(encodedMethod, options, valueNumberGenerator, callerPosition);
+    return asCfCode().buildInliningIR(
+        encodedMethod, options, valueNumberGenerator, callerPosition, origin);
   }
 
   @Override

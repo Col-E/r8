@@ -29,6 +29,7 @@ import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.LensCodeRewriter;
 import com.android.tools.r8.ir.conversion.OptimizationFeedback;
 import com.android.tools.r8.logging.Log;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Sets;
@@ -268,7 +269,8 @@ public class Inliner {
         Position callerPosition)
         throws ApiLevelException {
       // Build the IR for a yet not processed method, and perform minimal IR processing.
-      IRCode code = target.buildInliningIR(options, generator, callerPosition);
+      Origin origin = appInfo.originFor(target.method.holder);
+      IRCode code = target.buildInliningIR(options, generator, callerPosition, origin);
       if (!target.isProcessed()) {
         new LensCodeRewriter(graphLense, appInfo).rewrite(code, target);
       }

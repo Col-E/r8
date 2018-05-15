@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -60,6 +61,11 @@ public class AppInfo {
 
   public DexClass definitionFor(DexType type) {
     return app.definitionFor(type);
+  }
+
+  public Origin originFor(DexType type) {
+    DexClass definition = app.definitionFor(type);
+    return definition == null ? Origin.unknown() : definition.origin;
   }
 
   public DexEncodedMethod definitionFor(DexMethod method) {
