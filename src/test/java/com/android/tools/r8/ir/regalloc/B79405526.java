@@ -5,12 +5,9 @@
 package com.android.tools.r8.ir.regalloc;
 
 import static com.android.tools.r8.utils.DexInspectorMatchers.isPresent;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DexInspector;
 import org.junit.Test;
@@ -22,13 +19,13 @@ public class B79405526 extends TestBase {
     DexInspector inspector = new DexInspector(app);
     DexInspector.ClassSubject clazz = inspector.clazz(TestClass.class);
     assertThat(clazz, isPresent());
-    // TODO(christofferqa): Ensure runOnArt checks that there are no verification errors, and then
-    // use runOnArt instead of runOnArtRaw.
-    ToolHelper.ProcessResult d8Result = runOnArtRaw(app, TestClass.class.getCanonicalName());
-    assertThat(d8Result.stderr, not(containsString("Verification error")));
+    // Throws if a method in TestClass does not verify.
+    runOnArt(app, TestClass.class.getName());
   }
 
   private static class TestClass {
+    public static void main(String[] args) {}
+
     public void method() {
       Object x = this;
       TestClass y = this;
