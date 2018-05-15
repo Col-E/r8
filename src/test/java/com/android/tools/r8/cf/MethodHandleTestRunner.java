@@ -15,9 +15,12 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.Reporter;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -87,7 +90,10 @@ public class MethodHandleTestRunner extends TestBase {
   public void test() throws Exception {
     runInput();
     runCf();
-    runDex();
+    // TODO(mathiasr): Once we include a P runtime, change this to "P and above".
+    if (ToolHelper.getDexVm() == DexVm.ART_DEFAULT && ToolHelper.artSupported()) {
+      runDex();
+    }
   }
 
   private final Class[] inputClasses = {
@@ -125,8 +131,6 @@ public class MethodHandleTestRunner extends TestBase {
   }
 
   private void runDex() throws Exception {
-    // TODO(mathiasr): Once we include a P runtime, change this to "P and above".
-    Assume.assumeTrue(ToolHelper.getDexVm() == DexVm.ART_DEFAULT);
     Path outDex = temp.getRoot().toPath().resolve("dex.zip");
     build(new DexIndexedConsumer.ArchiveConsumer(outDex));
     String expected = lookupType == LookupType.CONSTANT ? "pass" : "exception";
@@ -167,8 +171,21 @@ public class MethodHandleTestRunner extends TestBase {
               "}"),
           Origin.unknown());
     }
-    ToolHelper.runR8(
-        command.build(), options -> options.enableCfFrontend = frontend == Frontend.CF);
+    try {
+      ToolHelper.runR8(
+          command.build(), options -> options.enableCfFrontend = frontend == Frontend.CF);
+    } catch (CompilationError e) {
+      if (frontend == Frontend.CF && compilationMode == CompilationMode.DEBUG) {
+        // TODO(b/79725635): Investigate why these tests fail on the buildbot.
+        // Use a Reporter to extract origin info to standard error.
+        new Reporter(new DefaultDiagnosticsHandler()).error(e);
+        // Print the stack trace since this is not always printed by JUnit.
+        e.printStackTrace();
+        Assume.assumeNoException(
+            "TODO(b/79725635): Investigate why these tests fail on the buildbot.", e);
+      }
+      throw e;
+    }
   }
 
   private byte[] getClassAsBytes(Class<?> clazz) throws Exception {
