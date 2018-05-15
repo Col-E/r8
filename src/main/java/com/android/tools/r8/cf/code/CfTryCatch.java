@@ -21,6 +21,14 @@ public class CfTryCatch {
     this.end = end;
     this.guards = guards;
     this.targets = targets;
+    assert verifyAllNonNull(guards);
+  }
+
+  private static boolean verifyAllNonNull(List<DexType> types) {
+    for (DexType type : types) {
+      assert type != null;
+    }
+    return true;
   }
 
   public static CfTryCatch fromBuilder(

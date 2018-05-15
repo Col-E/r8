@@ -72,9 +72,7 @@ public class BootstrapTest extends TestBase {
     ProcessResult runHelloR8 = ToolHelper.runJava(runInputR8.outputJar, "hello.Hello");
     assertEquals(runHello.toString(), runHelloR8.toString());
 
-    // TODO(b/75997473): Enable when inlining is supported in the CF backend
-    // compareR8(
-    //     hello, runInputR8, CompilationMode.RELEASE, "r8-r8-rel", "--release", "output-rel");
+    compareR8(hello, runInputR8, CompilationMode.RELEASE, "r8-r8-rel", "--release", "output-rel");
     compareR8(hello, runInputR8, CompilationMode.DEBUG, "r8-r8", "--debug", "output");
   }
 

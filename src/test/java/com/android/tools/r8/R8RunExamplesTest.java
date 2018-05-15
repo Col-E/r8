@@ -99,15 +99,14 @@ public class R8RunExamplesTest extends R8RunExamplesCommon {
       fullTestList.add(
           makeTest(
               Input.JAVAC_ALL, CompilerUnderTest.R8, CompilationMode.RELEASE, test, Output.CF));
-      // TODO(b/75997473): Enable when inlining is supported in the CF backend
-      // fullTestList.add(
-      //     makeTest(
-      //         Input.JAVAC_ALL,
-      //         CompilerUnderTest.R8,
-      //         CompilationMode.RELEASE,
-      //         test,
-      //         Frontend.CF,
-      //         Output.CF));
+      fullTestList.add(
+          makeTest(
+              Input.JAVAC_ALL,
+              CompilerUnderTest.R8,
+              CompilationMode.RELEASE,
+              test,
+              Frontend.CF,
+              Output.CF));
     }
     return fullTestList;
   }
@@ -144,7 +143,6 @@ public class R8RunExamplesTest extends R8RunExamplesCommon {
   @Override
   protected Set<String> getFailingCompileCf() {
     return new ImmutableSet.Builder<String>()
-        .add("invoke.Invoke") // outline / CF->IR
         .build();
   }
 

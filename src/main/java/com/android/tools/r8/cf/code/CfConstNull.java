@@ -4,6 +4,10 @@
 package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
+import com.android.tools.r8.ir.code.ValueType;
+import com.android.tools.r8.ir.conversion.CfSourceCode;
+import com.android.tools.r8.ir.conversion.CfState;
+import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.naming.NamingLens;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -18,5 +22,10 @@ public class CfConstNull extends CfInstruction {
   @Override
   public void print(CfPrinter printer) {
     printer.print(this);
+  }
+
+  @Override
+  public void buildIR(IRBuilder builder, CfState state, CfSourceCode code) {
+    builder.addNullConst(state.push(ValueType.OBJECT).register);
   }
 }

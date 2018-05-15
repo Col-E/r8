@@ -130,9 +130,9 @@ public class If extends JumpInstruction {
         + " "
         + type
         + " block "
-        + blockNumberToString(getTrueTarget())
+        + getTrueTarget().getNumberAsString()
         + " (fallthrough "
-        + blockNumberToString(fallthroughBlock())
+        + fallthroughBlock().getNumberAsString()
         + ")";
   }
 

@@ -424,6 +424,10 @@ public class BasicBlock {
     this.number = number;
   }
 
+  public String getNumberAsString() {
+    return number >= 0 ? "" + number : "<unknown>";
+  }
+
   public int numberInstructions(int nextInstructionNumber) {
     for (Instruction instruction : instructions) {
       instruction.setNumber(nextInstructionNumber);
@@ -826,7 +830,7 @@ public class BasicBlock {
       StringBuilder builder, List<BasicBlock> list, Function<BasicBlock, String> postfix) {
     if (list.size() > 0) {
       for (BasicBlock block : list) {
-        builder.append(block.number >= 0 ? block.number : "<unknown>");
+        builder.append(block.getNumberAsString());
         builder.append(postfix.apply(block));
         builder.append(' ');
       }
@@ -901,16 +905,15 @@ public class BasicBlock {
     int lineColumn = 0;
     int numberColumn = 0;
     for (Instruction instruction : instructions) {
-      lineColumn = Math.max(lineColumn, instruction.getPosition().toString().length());
+      lineColumn = Math.max(lineColumn, instruction.getPositionAsString().length());
       numberColumn = Math.max(numberColumn, digits(instruction.getNumber()));
     }
-    Position currentPosition = null;
+    String currentPosition = null;
     for (Instruction instruction : instructions) {
       if (lineColumn > 0) {
         String line = "";
-        if (!instruction.getPosition().equals(currentPosition)) {
-          currentPosition = instruction.getPosition();
-          line = currentPosition.toString();
+        if (!instruction.getPositionAsString().equals(currentPosition)) {
+          line = currentPosition = instruction.getPositionAsString();
         }
         StringUtils.appendLeftPadded(builder, line, lineColumn + 1);
         builder.append(": ");

@@ -52,8 +52,14 @@ public abstract class Code extends CachedHashValueDexItem {
     return false;
   }
 
+  /** Estimate the number of IR instructions emitted by buildIR(). */
   public int estimatedSizeForInlining() {
     return Integer.MAX_VALUE;
+  }
+
+  /** Compute estimatedSizeForInlining() <= threshold. */
+  public boolean estimatedSizeForInliningAtMost(int threshold) {
+    return estimatedSizeForInlining() <= threshold;
   }
 
   public CfCode asCfCode() {

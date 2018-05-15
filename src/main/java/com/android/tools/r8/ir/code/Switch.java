@@ -266,7 +266,7 @@ public class Switch extends JumpInstruction {
       builder.append("          ");
       builder.append(getKey(i));
       builder.append(" -> ");
-      builder.append(blockNumberToString(targetBlock(i)));
+      builder.append(targetBlock(i).getNumberAsString());
       builder.append("\n");
     }
     builder.append("          F -> ");

@@ -4,6 +4,10 @@
 package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
+import com.android.tools.r8.ir.code.NumericType;
+import com.android.tools.r8.ir.conversion.CfSourceCode;
+import com.android.tools.r8.ir.conversion.CfState;
+import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.naming.NamingLens;
 import org.objectweb.asm.MethodVisitor;
 
@@ -33,5 +37,11 @@ public class CfIinc extends CfInstruction {
 
   public int getIncrement() {
     return increment;
+  }
+
+  @Override
+  public void buildIR(IRBuilder builder, CfState state, CfSourceCode code) {
+    int local = state.read(var).register;
+    builder.addAddLiteral(NumericType.INT, local, local, increment);
   }
 }

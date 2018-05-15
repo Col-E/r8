@@ -3,13 +3,22 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.cf.code;
 
+import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.UseRegistry;
+import com.android.tools.r8.ir.code.Invoke;
+import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.ir.code.ValueType;
+import com.android.tools.r8.ir.conversion.CfSourceCode;
+import com.android.tools.r8.ir.conversion.CfState;
+import com.android.tools.r8.ir.conversion.CfState.Slot;
+import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.naming.NamingLens;
+import java.util.Arrays;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -72,6 +81,56 @@ public class CfInvoke extends CfInstruction {
         break;
       default:
         throw new Unreachable("unknown CfInvoke opcode " + opcode);
+    }
+  }
+
+  @Override
+  public boolean canThrow() {
+    return true;
+  }
+
+  @Override
+  public void buildIR(IRBuilder builder, CfState state, CfSourceCode code)
+      throws ApiLevelException {
+    Invoke.Type type;
+    switch (opcode) {
+      case Opcodes.INVOKEINTERFACE:
+        type = Type.INTERFACE;
+        break;
+      case Opcodes.INVOKEVIRTUAL:
+        // TODO(mathiasr): Handle InvokePolymorphic
+        type = Type.VIRTUAL;
+        break;
+      case Opcodes.INVOKESPECIAL:
+        if (method.name.toString().equals(Constants.INSTANCE_INITIALIZER_NAME)) {
+          type = Type.DIRECT;
+        } else if (builder.getMethod().holder == method.holder) {
+          type = Type.DIRECT;
+        } else {
+          type = Type.SUPER;
+        }
+        break;
+      case Opcodes.INVOKESTATIC:
+        type = Type.STATIC;
+        break;
+      default:
+        throw new Unreachable("unknown CfInvoke opcode " + opcode);
+    }
+    int parameterCount = method.proto.parameters.size();
+    if (type != Type.STATIC) {
+      parameterCount += 1;
+    }
+    ValueType[] types = new ValueType[parameterCount];
+    Integer[] registers = new Integer[parameterCount];
+    for (int i = parameterCount - 1; i >= 0; i--) {
+      Slot slot = state.pop();
+      types[i] = slot.type;
+      registers[i] = slot.register;
+    }
+    builder.addInvoke(type, method, null, Arrays.asList(types), Arrays.asList(registers), itf);
+    // TODO(mathiasr): For InvokePolymorphic, use correct return type
+    if (!method.proto.returnType.isVoidType()) {
+      builder.addMoveResult(state.push(method.proto.returnType).register);
     }
   }
 }

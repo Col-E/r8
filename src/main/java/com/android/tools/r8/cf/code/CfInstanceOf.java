@@ -6,6 +6,9 @@ package com.android.tools.r8.cf.code;
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.UseRegistry;
+import com.android.tools.r8.ir.conversion.CfSourceCode;
+import com.android.tools.r8.ir.conversion.CfState;
+import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.naming.NamingLens;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -35,5 +38,16 @@ public class CfInstanceOf extends CfInstruction {
   @Override
   public void registerUse(UseRegistry registry, DexType clazz) {
     registry.registerTypeReference(type);
+  }
+
+  @Override
+  public boolean canThrow() {
+    return true;
+  }
+
+  @Override
+  public void buildIR(IRBuilder builder, CfState state, CfSourceCode code) {
+    int value = state.pop().register;
+    builder.addInstanceOf(state.push(builder.getFactory().booleanType).register, value, type);
   }
 }

@@ -141,6 +141,16 @@ public class LazyCfCode extends Code {
   }
 
   @Override
+  public int estimatedSizeForInlining() {
+    return asCfCode().estimatedSizeForInlining();
+  }
+
+  @Override
+  public boolean estimatedSizeForInliningAtMost(int threshold) {
+    return asCfCode().estimatedSizeForInliningAtMost(threshold);
+  }
+
+  @Override
   public IRCode buildIR(DexEncodedMethod encodedMethod, InternalOptions options)
       throws ApiLevelException {
     return asCfCode().buildIR(encodedMethod, options);
@@ -302,7 +312,7 @@ public class LazyCfCode extends Code {
 
     private DexType createTypeFromInternalType(String local) {
       assert local.indexOf('.') == -1;
-      return factory.createType("L" + local + ";");
+      return factory.createType(Type.getObjectType(local).getDescriptor());
     }
 
     @Override

@@ -9,6 +9,9 @@ import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.conversion.CfSourceCode;
+import com.android.tools.r8.ir.conversion.CfState;
+import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.naming.NamingLens;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import java.util.List;
@@ -48,6 +51,22 @@ public class CfFrame extends CfInstruction {
 
     public CfLabel getUninitializedLabel() {
       return null;
+    }
+
+    public boolean isUninitializedThis() {
+      return false;
+    }
+
+    public boolean isInitialized() {
+      return false;
+    }
+
+    public DexType getInitializedType() {
+      return null;
+    }
+
+    public boolean isTop() {
+      return false;
     }
 
     private FrameType() {}
@@ -92,6 +111,16 @@ public class CfFrame extends CfInstruction {
     public boolean isWide() {
       return type.isPrimitiveType() && (type.toShorty() == 'J' || type.toShorty() == 'D');
     }
+
+    @Override
+    public boolean isInitialized() {
+      return true;
+    }
+
+    @Override
+    public DexType getInitializedType() {
+      return type;
+    }
   }
 
   private static class Top extends FrameType {
@@ -106,6 +135,11 @@ public class CfFrame extends CfInstruction {
     @Override
     Object getTypeOpcode(NamingLens lens) {
       return Opcodes.TOP;
+    }
+
+    @Override
+    public boolean isTop() {
+      return true;
     }
   }
 
@@ -127,6 +161,11 @@ public class CfFrame extends CfInstruction {
     }
 
     @Override
+    public boolean isUninitializedNew() {
+      return true;
+    }
+
+    @Override
     public CfLabel getUninitializedLabel() {
       return label;
     }
@@ -143,6 +182,11 @@ public class CfFrame extends CfInstruction {
     @Override
     public String toString() {
       return "uninitialized this";
+    }
+
+    @Override
+    public boolean isUninitializedThis() {
+      return true;
     }
   }
 
@@ -231,5 +275,16 @@ public class CfFrame extends CfInstruction {
   @Override
   public void print(CfPrinter printer) {
     printer.print(this);
+  }
+
+  @Override
+  public void buildIR(IRBuilder builder, CfState state, CfSourceCode code) {
+    // TODO(mathiasr): Verify stack map frames before building IR.
+    code.setStateFromFrame(this);
+  }
+
+  @Override
+  public boolean emitsIR() {
+    return false;
   }
 }

@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexProto;
@@ -112,6 +113,10 @@ import java.util.Set;
 public class IRBuilder {
 
   public static final int INITIAL_BLOCK_OFFSET = -1;
+
+  public DexItemFactory getFactory() {
+    return options.itemFactory;
+  }
 
   // SSA construction uses a worklist of basic blocks reachable from the entry and their
   // instruction offsets.
@@ -240,6 +245,35 @@ public class IRBuilder {
       fallthroughInfo.exceptionalSuccessors = new IntArraySet(this.exceptionalSuccessors);
       return fallthroughInfo;
     }
+
+    @Override
+    public String toString() {
+      StringBuilder stringBuilder =
+          new StringBuilder()
+              .append("block ")
+              .append(block.getNumberAsString())
+              .append(" predecessors: ");
+      String sep = "";
+      for (int offset : normalPredecessors) {
+        stringBuilder.append(sep).append(offset);
+        sep = ", ";
+      }
+      for (int offset : exceptionalPredecessors) {
+        stringBuilder.append(sep).append('*').append(offset);
+        sep = ", ";
+      }
+      stringBuilder.append(" successors: ");
+      sep = "";
+      for (int offset : normalSuccessors) {
+        stringBuilder.append(sep).append(offset);
+        sep = ", ";
+      }
+      for (int offset : exceptionalSuccessors) {
+        stringBuilder.append(sep).append('*').append(offset);
+        sep = ", ";
+      }
+      return stringBuilder.toString();
+    }
   }
 
   // Mapping from instruction offsets to basic-block targets.
@@ -302,6 +336,10 @@ public class IRBuilder {
 
   public Int2ReferenceSortedMap<BlockInfo> getCFG() {
     return targets;
+  }
+
+  public DexMethod getMethod() {
+    return method.method;
   }
 
   private void addToWorklist(BasicBlock block, int firstInstructionIndex) {
@@ -615,6 +653,7 @@ public class IRBuilder {
     assert local != null;
     assert local == getOutgoingLocal(register);
     ValueType valueType = ValueType.fromDexType(local.type);
+    // TODO(mathiasr): Here we create a Phi with type based on debug info. That's just wrong!
     Value incomingValue = readRegisterIgnoreLocal(register, valueType);
 
     // TODO(mathiasr): This can be simplified once trivial phi removal is local-info aware.

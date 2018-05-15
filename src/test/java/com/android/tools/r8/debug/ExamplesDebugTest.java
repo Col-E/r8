@@ -37,6 +37,13 @@ public class ExamplesDebugTest extends DebugTestBase {
     return streamDebugTest(getCfConfig("r8jar.jar", o -> {}), clazzName, ANDROID_FILTER);
   }
 
+  private Stream<DebuggeeState> r8cf() throws Exception {
+    return streamDebugTest(
+        getCfConfig("r8cf.jar", options -> options.enableCfFrontend = true),
+        clazzName,
+        ANDROID_FILTER);
+  }
+
   private DebugTestConfig getCfConfig(String outputName, Consumer<InternalOptions> optionsConsumer)
       throws Exception {
     Path input = inputJar;
@@ -140,10 +147,10 @@ public class ExamplesDebugTest extends DebugTestBase {
     testDebugging("loadconst", "LoadConst");
   }
 
-  @Ignore("TODO(b/79671093): We don't match JVM's behavior on this example.")
   @Test
   public void testUdpServer() throws Exception {
-    testDebuggingJvmOnly("loop", "UdpServer");
+    // TODO(b/79671093): We don't match JVM's behavior on this example.
+    testDebuggingJvmOutputOnly("loop", "UdpServer");
   }
 
   @Test
@@ -185,10 +192,10 @@ public class ExamplesDebugTest extends DebugTestBase {
     testDebuggingJvmOnly("sync", "Sync");
   }
 
-  @Ignore("TODO(b/79671093): We don't match JVM's behavior on this example.")
   @Test
   public void testThrowing() throws Exception {
-    testDebuggingJvmOnly("throwing", "Throwing");
+    // TODO(b/79671093): We don't match JVM's behavior on this example.
+    testDebuggingJvmOutputOnly("throwing", "Throwing");
   }
 
   @Test
@@ -196,10 +203,11 @@ public class ExamplesDebugTest extends DebugTestBase {
     testDebugging("trivial", "Trivial");
   }
 
-  @Ignore("TODO(b/79671093): We don't match JVM's behavior on this example.")
+  @Ignore("TODO(mathiasr): InvalidDebugInfoException in CfSourceCode")
   @Test
   public void testTryCatch() throws Exception {
-    testDebuggingJvmOnly("trycatch", "TryCatch");
+    // TODO(b/79671093): We don't match JVM's behavior on this example.
+    testDebuggingJvmOutputOnly("trycatch", "TryCatch");
   }
 
   @Test
@@ -229,10 +237,11 @@ public class ExamplesDebugTest extends DebugTestBase {
     testDebuggingJvmOnly("regress2", "Regress2");
   }
 
-  @Ignore("TODO(b/79671093): We don't match JVM's behavior on this example.")
+  @Ignore("TODO(mathiasr): Different behavior CfSourceCode vs JarSourceCode")
   @Test
   public void testRegress37726195() throws Exception {
-    testDebuggingJvmOnly("regress_37726195", "Regress");
+    // TODO(b/79671093): We don't match JVM's behavior on this example.
+    testDebuggingJvmOutputOnly("regress_37726195", "Regress");
   }
 
   @Test
@@ -280,10 +289,11 @@ public class ExamplesDebugTest extends DebugTestBase {
     testDebuggingJvmOnly("regress_70736958", "Test");
   }
 
-  @Ignore("TODO(b/79671093): We don't match JVM's behavior on this example.")
+  @Ignore("TODO(mathiasr): Different behavior CfSourceCode vs JarSourceCode")
   @Test
   public void testRegress70737019() throws Exception {
-    testDebuggingJvmOnly("regress_70737019", "Test");
+    // TODO(b/79671093): We don't match JVM's behavior on this example.
+    testDebuggingJvmOutputOnly("regress_70737019", "Test");
   }
 
   @Test
@@ -315,10 +325,10 @@ public class ExamplesDebugTest extends DebugTestBase {
     testDebuggingJvmOnly("enclosingmethod", "Main");
   }
 
-  @Ignore("TODO(b/79671093): We don't match JVM's behavior on this example.")
   @Test
   public void testEnclosingmethod_proguarded() throws Exception {
-    testDebuggingJvmOnly("enclosingmethod_proguarded", "Main");
+    // TODO(b/79671093): We don't match JVM's behavior on this example.
+    testDebuggingJvmOutputOnly("enclosingmethod_proguarded", "Main");
   }
 
   @Test
@@ -333,18 +343,25 @@ public class ExamplesDebugTest extends DebugTestBase {
   }
 
   private void testDebugging(String pkg, String clazz) throws Exception {
-    // TODO(b/75997473): Enable CF frontend when CF->IR construction is implemented.
     init(pkg, clazz)
         .add("Input", input())
+        .add("R8/CfSourceCode", r8cf())
         .add("R8/JarSourceCode", r8jar())
         .add("D8", d8())
         .compare();
   }
 
   private void testDebuggingJvmOnly(String pkg, String clazz) throws Exception {
-    // TODO(b/75997473): Enable CF frontend when CF->IR construction is implemented.
     init(pkg, clazz)
         .add("Input", input())
+        .add("R8/CfSourceCode", r8cf())
+        .add("R8/JarSourceCode", r8jar())
+        .compare();
+  }
+
+  private void testDebuggingJvmOutputOnly(String pkg, String clazz) throws Exception {
+    init(pkg, clazz)
+        .add("R8/CfSourceCode", r8cf())
         .add("R8/JarSourceCode", r8jar())
         .compare();
   }

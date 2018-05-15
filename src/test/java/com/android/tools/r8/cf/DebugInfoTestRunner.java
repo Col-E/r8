@@ -58,11 +58,6 @@ public class DebugInfoTestRunner extends TestBase {
             .addLibraryFiles(ToolHelper.getAndroidJar(ToolHelper.getMinApiLevelForDexVm()))
             .setProgramConsumer(consumer);
     input.accept(builder);
-    ToolHelper.runR8(
-        builder.build(),
-        o -> {
-          o.invalidDebugInfoFatal = true;
-          o.enableInlining = false;
-        });
+    ToolHelper.runR8(builder.build(), o -> o.invalidDebugInfoFatal = true);
   }
 }

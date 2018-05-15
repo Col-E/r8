@@ -1085,7 +1085,30 @@ public class Outliner {
             direct,
             DexEncodedMethod.EMPTY_ARRAY, // Virtual methods.
             options.itemFactory.getSkipNameValidationForTesting());
+    if (options.isGeneratingClassFiles()) {
+      // Don't set class file version below 50.0 (JDK release 1.6).
+      clazz.setClassFileVersion(Math.max(50, getClassFileVersion()));
+    }
 
     return clazz;
+  }
+
+  private int getClassFileVersion() {
+    assert options.isGeneratingClassFiles();
+    int classFileVersion = -1;
+    Set<DexType> seen = Sets.newIdentityHashSet();
+    for (List<DexEncodedMethod> methods : candidates.values()) {
+      for (DexEncodedMethod method : methods) {
+        DexType holder = method.method.holder;
+        if (seen.add(holder)) {
+          DexProgramClass programClass = appInfo.definitionFor(holder).asProgramClass();
+          assert programClass != null : "Attempt to outline from library class";
+          assert programClass.originatesFromClassResource()
+              : "Attempt to outline from non-classfile input to classfile output";
+          classFileVersion = Math.max(classFileVersion, programClass.getClassFileVersion());
+        }
+      }
+    }
+    return classFileVersion;
   }
 }

@@ -36,10 +36,6 @@ public class R8CFExamplesTests extends TestBase {
   public static List<Object[]> data() {
     List<Object[]> data = new ArrayList<>();
     for (TestMode testMode : TestMode.values()) {
-      // TODO(b/75997473): Enable CF_TO_IR when inlining is supported in the CF backend.
-      if (testMode == TestMode.CF_TO_IR) {
-        continue;
-      }
       for (CompilationMode compilationMode : CompilationMode.values()) {
         data.add(new Object[] {testMode, compilationMode});
       }

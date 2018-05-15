@@ -6,6 +6,10 @@ package com.android.tools.r8.cf.code;
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.code.ValueType;
+import com.android.tools.r8.ir.conversion.CfSourceCode;
+import com.android.tools.r8.ir.conversion.CfState;
+import com.android.tools.r8.ir.conversion.CfState.Slot;
+import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.naming.NamingLens;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -53,5 +57,17 @@ public class CfLoad extends CfInstruction {
 
   public int getLocalIndex() {
     return var;
+  }
+
+  @Override
+  public void buildIR(IRBuilder builder, CfState state, CfSourceCode code) {
+    Slot local = state.read(var);
+    Slot stack = state.push(local);
+    builder.addMove(local.type, stack.register, local.register);
+  }
+
+  @Override
+  public boolean emitsIR() {
+    return false;
   }
 }

@@ -100,11 +100,6 @@ public class InterfaceRenamingTestRunner extends TestBase {
     for (Class<?> c : CLASSES) {
       builder.addClassProgramData(ToolHelper.getClassAsBytes(c), Origin.unknown());
     }
-    if (consumer instanceof ClassFileConsumer) {
-      // TODO(b/75997473): Enable inlining when supported by CF backend
-      ToolHelper.runR8(builder.build(), options -> options.enableInlining = false);
-    } else {
-      ToolHelper.runR8(builder.build());
-    }
+    ToolHelper.runR8(builder.build());
   }
 }

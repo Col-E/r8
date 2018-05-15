@@ -139,8 +139,7 @@ public class InliningOracle {
   private synchronized boolean isDoubleInliningTarget(DexEncodedMethod candidate) {
     // 10 is found from measuring.
     return inliner.isDoubleInliningTarget(callSiteInformation, candidate)
-        && candidate.getCode().isDexCode()
-        && (candidate.getCode().asDexCode().instructions.length <= 10);
+        && candidate.getCode().estimatedSizeForInliningAtMost(10);
   }
 
   private boolean passesInliningConstraints(InvokeMethod invoke, DexEncodedMethod candidate,
@@ -204,7 +203,7 @@ public class InliningOracle {
     if (reason == Reason.SIMPLE) {
       // If we are looking for a simple method, only inline if actually simple.
       Code code = candidate.getCode();
-      if (code.estimatedSizeForInlining() > inliningInstructionLimit) {
+      if (!code.estimatedSizeForInliningAtMost(inliningInstructionLimit)) {
         return false;
       }
     }
