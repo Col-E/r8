@@ -3,11 +3,11 @@
   copyrightHolder: The Guava Authors
   license: The Apache Software License, Version 2.0
   licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
-- artifact: com.googlecode.json-simple:json-simple:+
-  name: JSON.Simple
+- artifact: com.google.code.gson:gson:+
+  name: Gson
   license: The Apache Software License, Version 2.0
   licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
-  url: http://code.google.com/p/json-simple/
+  url: https://github.com/google/gson
 - artifact: it.unimi.dsi:fastutil:+
   name: fastutil
   license: Apache License, Version 2.0

@@ -4,11 +4,12 @@
 package com.android.tools.r8.dex;
 
 import com.android.tools.r8.graph.DexString;
-import java.util.Map;
-import java.util.TreeMap;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonSyntaxException;
+import java.util.Comparator;
+import java.util.Map.Entry;
 
 /**
  * Abstraction for hidden dex marker intended for the main dex file.
@@ -26,22 +27,17 @@ public class Marker {
   private static final String D8_PREFIX = PREFIX + Tool.D8 + "{";
   private static final String R8_PREFIX = PREFIX + Tool.R8 + "{";
 
-  private final TreeMap<String, Object> content;
+  private final JsonObject jsonObject;
   private final Tool tool;
 
   public Marker(Tool tool) {
     this.tool = tool;
-    this.content = new TreeMap<>();
+    jsonObject = new JsonObject();
   }
 
-  private Marker(Tool tool, JSONObject object) {
+  private Marker(Tool tool, JsonObject jsonObject) {
     this.tool = tool;
-    content = new TreeMap<>();
-    // This loop is necessary to make the type checker to shut up.
-    for (Object e : object.entrySet()) {
-      Map.Entry<?,?> entry = (Map.Entry<?,?>) e;
-      content.put(String.valueOf(entry.getKey()), entry.getValue());
-    }
+    this.jsonObject = jsonObject;
   }
 
   public Tool getTool() {
@@ -57,70 +53,58 @@ public class Marker {
   }
 
   public String getVersion() {
-    return (String) content.get(VERSION);
+    return jsonObject.get(VERSION).getAsString();
   }
 
   public Marker setVersion(String version) {
-    internalPut(VERSION, version);
+    assert !jsonObject.has(VERSION);
+    jsonObject.addProperty(VERSION, version);
     return this;
   }
 
   public Long getMinApi() {
-    return (Long) content.get(MIN_API);
+    return jsonObject.get(MIN_API).getAsLong();
   }
 
   public Marker setMinApi(long minApi) {
-    internalPut(MIN_API, minApi);
+    assert !jsonObject.has(MIN_API);
+    jsonObject.addProperty(MIN_API, minApi);
     return this;
   }
 
   public String getSha1() {
-    return (String) content.get(SHA1);
+    return jsonObject.get(SHA1).getAsString();
   }
 
   public Marker setSha1(String sha1) {
-    internalPut(SHA1, sha1);
-    return this;
-  }
-
-  private Marker internalPut(String key, Object value) {
-    assert (key != null) && (value != null);
-    assert !content.containsKey(key);
-    content.put(key, value);
+    assert !jsonObject.has(SHA1);
+    jsonObject.addProperty(SHA1, sha1);
     return this;
   }
 
   @Override
   public String toString() {
-    // The JSONObject does not support a predictable sorted serialization of the object.
-    // Therefore, a TreeMap is used and iteration is over the keySet.
-    StringBuffer sb = new StringBuffer(PREFIX + tool);
-    boolean first = true;
-    sb.append('{');
-    for (String key : content.keySet()) {
-      if (first) {
-        first = false;
-      } else {
-        sb.append(',');
-      }
-      sb.append(JSONObject.toString(key, content.get(key)));
-    }
-    sb.append('}');
-    return sb.toString();
+    // In order to make printing of markers deterministic we sort the entries by key.
+    final JsonObject sortedJson = new JsonObject();
+    jsonObject.entrySet()
+        .stream()
+        .sorted(Comparator.comparing(Entry::getKey))
+        .forEach(entry -> sortedJson.add(entry.getKey(), entry.getValue()));
+    return PREFIX + tool + sortedJson;
   }
 
   @Override
   public boolean equals(Object obj) {
     if (obj instanceof Marker) {
       Marker other = (Marker) obj;
-      return (tool == other.tool) && content.equals(other.content);
+      return (tool == other.tool) && jsonObject.equals(other.jsonObject);
     }
     return false;
   }
 
   @Override
   public int hashCode() {
-    return tool.hashCode() + 3 * content.hashCode();
+    return tool.hashCode() + 3 * jsonObject.hashCode();
   }
 
   // Try to parse str as a marker.
@@ -142,11 +126,11 @@ public class Marker {
 
   private static Marker internalParse(Tool tool, String str) {
     try {
-      Object result =  new JSONParser().parse(str);
-      if (result instanceof JSONObject) {
-        return new Marker(tool, (JSONObject) result);
+      JsonElement result =  new JsonParser().parse(str);
+      if (result.isJsonObject()) {
+        return new Marker(tool, result.getAsJsonObject());
       }
-    } catch (ParseException e) {
+    } catch (JsonSyntaxException e) {
       // Fall through.
     }
     return null;
