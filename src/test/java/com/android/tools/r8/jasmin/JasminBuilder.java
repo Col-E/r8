@@ -5,6 +5,8 @@ package com.android.tools.r8.jasmin;
 
 import static com.android.tools.r8.utils.DescriptorUtils.getPathFromDescriptor;
 
+import com.android.tools.r8.ClassFileConsumer;
+import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
@@ -136,7 +138,11 @@ public class JasminBuilder {
       return addMethod("public", name, argumentTypes, returnType, lines);
     }
 
-    public MethodSignature addNativeMethod(
+    /**
+     * Note that the JVM rejects native methods with code. This method is used to test that D8
+     * removes code from native methods.
+     */
+    public MethodSignature addNativeMethodWithCode(
         String name,
         List<String> argumentTypes,
         String returnType,
@@ -365,6 +371,19 @@ public class JasminBuilder {
       outputs.add(path);
     }
     return outputs;
+  }
+
+  public void writeClassFiles(ClassFileConsumer consumer, DiagnosticsHandler handler)
+      throws Exception {
+    for (ClassBuilder clazz : classes) {
+      consumer.accept(compile(clazz), clazz.getDescriptor(), handler);
+    }
+  }
+
+  public void writeJar(Path output, DiagnosticsHandler handler) throws Exception {
+    ClassFileConsumer consumer = new ClassFileConsumer.ArchiveConsumer(output);
+    writeClassFiles(consumer, handler);
+    consumer.finished(handler);
   }
 
   public DexApplication read() throws Exception {
