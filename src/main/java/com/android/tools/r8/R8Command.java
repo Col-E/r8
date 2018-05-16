@@ -12,9 +12,11 @@ import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationParser;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.shaking.ProguardConfigurationSource;
+import com.android.tools.r8.shaking.ProguardConfigurationSourceBytes;
 import com.android.tools.r8.shaking.ProguardConfigurationSourceFile;
 import com.android.tools.r8.shaking.ProguardConfigurationSourceStrings;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
@@ -22,15 +24,17 @@ import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 /**
- * Immutable command structure for an invocation of the {@link D8} compiler.
+ * Immutable command structure for an invocation of the {@link R8} compiler.
  *
  * <p>To build a R8 command use the {@link R8Command.Builder} class. For example:
  *
@@ -282,20 +286,53 @@ public class R8Command extends BaseCompilerCommand {
         mainDexKeepRules = parser.getConfig().getRules();
       }
 
-      ProguardConfiguration.Builder configurationBuilder;
-      if (proguardConfigs.isEmpty()) {
-        configurationBuilder = ProguardConfiguration.builder(factory, reporter);
-      } else {
-        ProguardConfigurationParser parser =
-            new ProguardConfigurationParser(factory, reporter);
+      ProguardConfigurationParser parser = new ProguardConfigurationParser(factory, reporter);
+      if (!proguardConfigs.isEmpty()) {
         parser.parse(proguardConfigs);
-        configurationBuilder = parser.getConfigurationBuilder();
-        configurationBuilder.setForceProguardCompatibility(forceProguardCompatibility);
       }
+      ProguardConfiguration.Builder configurationBuilder = parser.getConfigurationBuilder();
+      configurationBuilder.setForceProguardCompatibility(forceProguardCompatibility);
 
       if (proguardConfigurationConsumer != null) {
         proguardConfigurationConsumer.accept(configurationBuilder);
       }
+
+      // Process Proguard configurations supplied through data resources in the input.
+      DataResourceProvider.Visitor embeddedProguardConfigurationVisitor =
+          new DataResourceProvider.Visitor() {
+            @Override
+            public void visit(DataDirectoryResource directory) {
+              // Don't do anything.
+            }
+
+            @Override
+            public void visit(DataEntryResource resource) {
+              if (resource.getName().startsWith("META-INF/proguard/")) {
+                try (InputStream in = resource.getByteStream()) {
+                  ProguardConfigurationSource source =
+                      new ProguardConfigurationSourceBytes(in, resource.getOrigin());
+                  parser.parse(source);
+                } catch (ResourceException e) {
+                  reporter.error(new StringDiagnostic("Failed to open input: " + e.getMessage(),
+                      resource.getOrigin()));
+                } catch (Exception e) {
+                  reporter.error(new ExceptionDiagnostic(e, resource.getOrigin()));
+                }
+              }
+            }
+          };
+
+      getAppBuilder().getProgramResourceProviders()
+          .stream()
+          .map(ProgramResourceProvider::getDataResourceProvider)
+          .filter(Objects::nonNull)
+          .forEach(dataResourceProvider -> {
+              try {
+                dataResourceProvider.accept(embeddedProguardConfigurationVisitor);
+              } catch (ResourceException e) {
+                reporter.error(new ExceptionDiagnostic(e));
+              }
+          });
 
       if (disableTreeShaking) {
         configurationBuilder.disableShrinking();
@@ -368,6 +405,11 @@ public class R8Command extends BaseCompilerCommand {
         }
       }
       return resources;
+    }
+
+    @Override
+    public DataResourceProvider getDataResourceProvider() {
+      return provider.getDataResourceProvider();
     }
   }
 

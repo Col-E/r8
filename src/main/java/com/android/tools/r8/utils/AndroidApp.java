@@ -589,5 +589,9 @@ public class AndroidApp {
         throw new CompilationError("Unsupported source file type", new PathOrigin(file));
       }
     }
+
+    public List<ProgramResourceProvider> getProgramResourceProviders() {
+      return programResourceProviders;
+    }
   }
 }

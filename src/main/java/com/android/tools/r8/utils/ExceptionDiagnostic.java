@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.utils;
 
+import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import java.io.FileNotFoundException;
@@ -17,6 +18,10 @@ public class ExceptionDiagnostic extends DiagnosticWithThrowable {
   public ExceptionDiagnostic(Throwable e, Origin origin) {
     super(e);
     this.origin = origin;
+  }
+
+  public ExceptionDiagnostic(ResourceException e) {
+    this(e, e.getOrigin());
   }
 
   @Override

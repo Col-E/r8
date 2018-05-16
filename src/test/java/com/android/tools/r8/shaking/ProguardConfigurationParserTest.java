@@ -1718,6 +1718,7 @@ public class ProguardConfigurationParserTest extends TestBase {
     assertEquals(0, handler.errors.size());
   }
 
+  // TODO(sgjesse): Change to use DiagnosticsChecker.
   private Diagnostic checkDiagnostic(List<Diagnostic> diagnostics, Path path, int lineStart,
       int columnStart, String... messageParts) {
     assertEquals(1, diagnostics.size());
