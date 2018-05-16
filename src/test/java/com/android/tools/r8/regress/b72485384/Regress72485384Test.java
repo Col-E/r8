@@ -14,13 +14,16 @@ import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class Regress72485384Test extends TestBase {
+  @Rule public ExpectedException thrown = ExpectedException.none();
 
   @Parameters(name = "{0}")
   public static Collection<Object[]> getParameters() {
@@ -53,7 +56,13 @@ public class Regress72485384Test extends TestBase {
   @Test
   public void testSignatureRewrite() throws Exception {
     AndroidApp app = compileWithR8(CLASSES, proguardConfig);
+
     if (expectedErrorMessage == null) {
+      if (ToolHelper.getDexVm().getVersion().isOlderThanOrEqual(ToolHelper.DexVm.Version.V6_0_1)) {
+        // Resolution of java.util.function.Function fails.
+        thrown.expect(AssertionError.class);
+      }
+
       runOnArt(app, Main.class.getCanonicalName());
     } else {
       ToolHelper.ProcessResult result = runOnArtRaw(app, Main.class.getCanonicalName());
