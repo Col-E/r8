@@ -59,7 +59,7 @@ public class GenerateMainDexList {
     // Print -whyareyoukeeping results if any.
     if (mainDexRootSet.reasonAsked.size() > 0) {
       // Print reasons on the application after pruning, so that we reflect the actual result.
-      TreePruner pruner = new TreePruner(application, appInfo.withLiveness(), options);
+      TreePruner pruner = new TreePruner(application, mainDexAppInfo.withLiveness(), options);
       application = pruner.run();
       ReasonPrinter reasonPrinter = enqueuer.getReasonPrinter(mainDexRootSet.reasonAsked);
       reasonPrinter.run(application);
