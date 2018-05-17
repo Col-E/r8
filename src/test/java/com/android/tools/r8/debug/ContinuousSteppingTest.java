@@ -51,8 +51,9 @@ public class ContinuousSteppingTest extends DebugTestBase {
       .add(KotlinD8Config.DEBUGGEE_KOTLIN_JAR, ContinuousSteppingTest::allVersions)
       .addAll(findAllJarsIn(Paths.get(ToolHelper.EXAMPLES_ANDROID_N_BUILD_DIR)),
           ContinuousSteppingTest::fromAndroidN)
-      .addAll(findAllJarsIn(Paths.get(ToolHelper.EXAMPLES_ANDROID_O_BUILD_DIR)),
-          ContinuousSteppingTest::fromAndroidO)
+      // TODO(b/79911828) Investigate timeout issues for Android O examples.
+      //  .addAll(findAllJarsIn(Paths.get(ToolHelper.EXAMPLES_ANDROID_O_BUILD_DIR)),
+      //      ContinuousSteppingTest::fromAndroidO)
       .build();
 
   private static final Map<Path, DebugTestConfig> compiledJarConfig = new HashMap<>();
