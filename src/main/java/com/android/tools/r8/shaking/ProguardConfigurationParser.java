@@ -137,8 +137,7 @@ public class ProguardConfigurationParser {
     parse(ImmutableList.of(new ProguardConfigurationSourceFile(path)));
   }
 
-  // package visible for testing
-  void parse(ProguardConfigurationSource source) {
+  public void parse(ProguardConfigurationSource source) {
     parse(ImmutableList.of(source));
   }
 
@@ -968,6 +967,11 @@ public class ProguardConfigurationParser {
     private Path parseFileName() throws ProguardRuleParserException {
       TextPosition start = getPosition();
       skipWhitespace();
+
+      if (baseDirectory == null) {
+        throw parseError("Options with file names are not supported", start);
+      }
+
       String fileName = acceptString(character ->
           character != File.pathSeparatorChar
               && !Character.isWhitespace(character)

@@ -153,16 +153,23 @@ public class TestBase {
   protected Path jarTestClasses(Class... classes) throws IOException {
     Path jar = File.createTempFile("junit", ".jar", temp.getRoot()).toPath();
     try (JarOutputStream out = new JarOutputStream(new FileOutputStream(jar.toFile()))) {
-      for (Class clazz : classes) {
-        try (FileInputStream in =
-            new FileInputStream(ToolHelper.getClassFileForTestClass(clazz).toFile())) {
-          out.putNextEntry(new ZipEntry(ToolHelper.getJarEntryForTestClass(clazz)));
-          ByteStreams.copy(in, out);
-          out.closeEntry();
-        }
-      }
+      addTestClassesToJar(out, classes);
     }
     return jar;
+  }
+
+  /**
+   * Create a temporary JAR file containing the specified test classes.
+   */
+  protected void addTestClassesToJar(JarOutputStream out, Class... classes) throws IOException {
+    for (Class clazz : classes) {
+      try (FileInputStream in =
+          new FileInputStream(ToolHelper.getClassFileForTestClass(clazz).toFile())) {
+        out.putNextEntry(new ZipEntry(ToolHelper.getJarEntryForTestClass(clazz)));
+        ByteStreams.copy(in, out);
+        out.closeEntry();
+      }
+    }
   }
 
   /**
