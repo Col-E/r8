@@ -210,7 +210,7 @@ def main(argv):
   # Create directory structure for this version.
   version = determine_version()
   with utils.TempDir() as tmp_dir:
-    version_dir = join(tmp_dir, 'com', 'android', 'tools', 'r8', version)
+    version_dir = join(tmp_dir, utils.get_maven_path(version))
     makedirs(version_dir)
     # Write the pom file.
     pom_file = join(version_dir, 'r8-' + version + '.pom')
