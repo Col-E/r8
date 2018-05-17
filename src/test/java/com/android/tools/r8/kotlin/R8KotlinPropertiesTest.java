@@ -57,6 +57,28 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
           .addProperty("internalLateInitProp", JAVA_LANG_STRING, Visibility.INTERNAL)
           .addProperty("publicLateInitProp", JAVA_LANG_STRING, Visibility.PUBLIC);
 
+  private static final TestKotlinClass OBJECT_PROPERTY_CLASS =
+      new TestKotlinClass("properties.ObjectProperties")
+          .addProperty("privateProp", JAVA_LANG_STRING, Visibility.PRIVATE)
+          .addProperty("protectedProp", JAVA_LANG_STRING, Visibility.PROTECTED)
+          .addProperty("internalProp", JAVA_LANG_STRING, Visibility.INTERNAL)
+          .addProperty("publicProp", JAVA_LANG_STRING, Visibility.PUBLIC)
+          .addProperty("primitiveProp", "int", Visibility.PUBLIC)
+          .addProperty("privateLateInitProp", JAVA_LANG_STRING, Visibility.PRIVATE)
+          .addProperty("internalLateInitProp", JAVA_LANG_STRING, Visibility.INTERNAL)
+          .addProperty("publicLateInitProp", JAVA_LANG_STRING, Visibility.PUBLIC);
+
+  private static final TestFileLevelKotlinClass FILE_PROPERTY_CLASS =
+      new TestFileLevelKotlinClass("properties.FilePropertiesKt")
+          .addProperty("privateProp", JAVA_LANG_STRING, Visibility.PRIVATE)
+          .addProperty("protectedProp", JAVA_LANG_STRING, Visibility.PROTECTED)
+          .addProperty("internalProp", JAVA_LANG_STRING, Visibility.INTERNAL)
+          .addProperty("publicProp", JAVA_LANG_STRING, Visibility.PUBLIC)
+          .addProperty("primitiveProp", "int", Visibility.PUBLIC)
+          .addProperty("privateLateInitProp", JAVA_LANG_STRING, Visibility.PRIVATE)
+          .addProperty("internalLateInitProp", JAVA_LANG_STRING, Visibility.INTERNAL)
+          .addProperty("publicLateInitProp", JAVA_LANG_STRING, Visibility.PUBLIC);
+
   @Test
   public void testMutableProperty_getterAndSetterAreRemoveIfNotUsed() throws Exception {
     String mainClass = addMainToClasspath("properties/MutablePropertyKt",
@@ -537,4 +559,363 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
       assertTrue(fieldSubject.getField().accessFlags.isPublic());
     });
   }
+
+  @Test
+  public void testObjectClass_primitivePropertyCannotBeInlined() throws Exception {
+    final TestKotlinClass testedClass = OBJECT_PROPERTY_CLASS;
+    String mainClass = addMainToClasspath(
+        "properties.ObjectPropertiesKt", "objectProperties_usePrimitiveProp");
+    runTest(PACKAGE_NAME, mainClass, (app) -> {
+      DexInspector dexInspector = new DexInspector(app);
+      ClassSubject objectClass = checkClassExists(dexInspector, testedClass.getClassName());
+      String propertyName = "primitiveProp";
+      FieldSubject fieldSubject = checkFieldIsPresent(objectClass, "int", propertyName);
+      assertTrue(fieldSubject.getField().accessFlags.isStatic());
+
+      MemberNaming.MethodSignature getter = testedClass.getGetterForProperty(propertyName);
+      MemberNaming.MethodSignature setter = testedClass.getSetterForProperty(propertyName);
+
+      // Getter and setter cannot be inlined when we don't know if null check semantic is
+      // preserved.
+      checkMethodIsPresent(objectClass, getter);
+      checkMethodIsPresent(objectClass, setter);
+      if (allowAccessModification) {
+        assertTrue(fieldSubject.getField().accessFlags.isPublic());
+      } else {
+        assertTrue(fieldSubject.getField().accessFlags.isPrivate());
+      }
+    });
+  }
+
+  @Test
+  public void testObjectClass_privatePropertyIsAlwaysInlined() throws Exception {
+    final TestKotlinClass testedClass = OBJECT_PROPERTY_CLASS;
+    String mainClass = addMainToClasspath(
+        "properties.ObjectPropertiesKt", "objectProperties_usePrivateProp");
+    runTest(PACKAGE_NAME, mainClass, (app) -> {
+      DexInspector dexInspector = new DexInspector(app);
+      ClassSubject objectClass = checkClassExists(dexInspector, testedClass.getClassName());
+      String propertyName = "privateProp";
+      FieldSubject fieldSubject = checkFieldIsPresent(objectClass, JAVA_LANG_STRING, propertyName);
+      assertTrue(fieldSubject.getField().accessFlags.isStatic());
+
+      MemberNaming.MethodSignature getter = testedClass.getGetterForProperty(propertyName);
+      MemberNaming.MethodSignature setter = testedClass.getSetterForProperty(propertyName);
+
+      // A private property has no getter/setter.
+      checkMethodIsAbsent(objectClass, getter);
+      checkMethodIsAbsent(objectClass, setter);
+
+      if (allowAccessModification) {
+        assertTrue(fieldSubject.getField().accessFlags.isPublic());
+      } else {
+        assertTrue(fieldSubject.getField().accessFlags.isPrivate());
+      }
+    });
+  }
+
+  @Test
+  public void testObjectClass_internalPropertyCannotBeInlined() throws Exception {
+    final TestKotlinClass testedClass = OBJECT_PROPERTY_CLASS;
+    String mainClass = addMainToClasspath(
+        "properties.ObjectPropertiesKt", "objectProperties_useInternalProp");
+    runTest(PACKAGE_NAME, mainClass, (app) -> {
+      DexInspector dexInspector = new DexInspector(app);
+      ClassSubject objectClass = checkClassExists(dexInspector, testedClass.getClassName());
+      String propertyName = "internalProp";
+      FieldSubject fieldSubject = checkFieldIsPresent(objectClass, JAVA_LANG_STRING, propertyName);
+      assertTrue(fieldSubject.getField().accessFlags.isStatic());
+
+      MemberNaming.MethodSignature getter = testedClass.getGetterForProperty(propertyName);
+      MemberNaming.MethodSignature setter = testedClass.getSetterForProperty(propertyName);
+
+      // Getter and setter cannot be inlined when we don't know if null check semantic is
+      // preserved.
+      checkMethodIsPresent(objectClass, getter);
+      checkMethodIsPresent(objectClass, setter);
+      if (allowAccessModification) {
+        assertTrue(fieldSubject.getField().accessFlags.isPublic());
+      } else {
+        assertTrue(fieldSubject.getField().accessFlags.isPrivate());
+      }
+    });
+  }
+
+  @Test
+  public void testObjectClass_publicPropertyCannotBeInlined() throws Exception {
+    final TestKotlinClass testedClass = OBJECT_PROPERTY_CLASS;
+    String mainClass = addMainToClasspath(
+        "properties.ObjectPropertiesKt", "objectProperties_usePublicProp");
+    runTest(PACKAGE_NAME, mainClass, (app) -> {
+      DexInspector dexInspector = new DexInspector(app);
+      ClassSubject objectClass = checkClassExists(dexInspector, testedClass.getClassName());
+      String propertyName = "publicProp";
+      FieldSubject fieldSubject = checkFieldIsPresent(objectClass, JAVA_LANG_STRING, propertyName);
+      assertTrue(fieldSubject.getField().accessFlags.isStatic());
+
+      MemberNaming.MethodSignature getter = testedClass.getGetterForProperty(propertyName);
+      MemberNaming.MethodSignature setter = testedClass.getSetterForProperty(propertyName);
+
+      // Getter and setter cannot be inlined when we don't know if null check semantic is
+      // preserved.
+      checkMethodIsPresent(objectClass, getter);
+      checkMethodIsPresent(objectClass, setter);
+      if (allowAccessModification) {
+        assertTrue(fieldSubject.getField().accessFlags.isPublic());
+      } else {
+        assertTrue(fieldSubject.getField().accessFlags.isPrivate());
+      }
+    });
+  }
+
+  @Test
+  public void testObjectClass_privateLateInitPropertyIsAlwaysInlined() throws Exception {
+    final TestKotlinClass testedClass = OBJECT_PROPERTY_CLASS;
+    String mainClass = addMainToClasspath(
+        "properties.ObjectPropertiesKt", "objectProperties_useLateInitPrivateProp");
+    runTest(PACKAGE_NAME, mainClass, (app) -> {
+      DexInspector dexInspector = new DexInspector(app);
+      ClassSubject objectClass = checkClassExists(dexInspector, testedClass.getClassName());
+      String propertyName = "privateLateInitProp";
+      FieldSubject fieldSubject = checkFieldIsPresent(objectClass, JAVA_LANG_STRING, propertyName);
+      assertTrue(fieldSubject.getField().accessFlags.isStatic());
+
+      MemberNaming.MethodSignature getter = testedClass.getGetterForProperty(propertyName);
+      MemberNaming.MethodSignature setter = testedClass.getSetterForProperty(propertyName);
+
+      // A private property has no getter/setter.
+      checkMethodIsAbsent(objectClass, getter);
+      checkMethodIsAbsent(objectClass, setter);
+
+      if (allowAccessModification) {
+        assertTrue(fieldSubject.getField().accessFlags.isPublic());
+      } else {
+        assertTrue(fieldSubject.getField().accessFlags.isPrivate());
+      }
+    });
+  }
+
+  @Test
+  public void testObjectClass_internalLateInitPropertyCannotBeInlined() throws Exception {
+    final TestKotlinClass testedClass = OBJECT_PROPERTY_CLASS;
+    String mainClass = addMainToClasspath(
+        "properties.ObjectPropertiesKt", "objectProperties_useLateInitInternalProp");
+    runTest(PACKAGE_NAME, mainClass, (app) -> {
+      DexInspector dexInspector = new DexInspector(app);
+      ClassSubject objectClass = checkClassExists(dexInspector, testedClass.getClassName());
+      String propertyName = "internalLateInitProp";
+      FieldSubject fieldSubject = checkFieldIsPresent(objectClass, JAVA_LANG_STRING, propertyName);
+      assertTrue(fieldSubject.getField().accessFlags.isStatic());
+
+      MemberNaming.MethodSignature getter = testedClass.getGetterForProperty(propertyName);
+      MemberNaming.MethodSignature setter = testedClass.getSetterForProperty(propertyName);
+
+      // Getter and setter cannot be inlined when we don't know if null check semantic is
+      // preserved.
+      checkMethodIsPresent(objectClass, getter);
+      checkMethodIsPresent(objectClass, setter);
+      assertTrue(fieldSubject.getField().accessFlags.isPublic());
+    });
+  }
+
+  @Test
+  public void testObjectClass_publicLateInitPropertyCannotBeInlined() throws Exception {
+    final TestKotlinClass testedClass = OBJECT_PROPERTY_CLASS;
+    String mainClass = addMainToClasspath(
+        "properties.ObjectPropertiesKt", "objectProperties_useLateInitPublicProp");
+    runTest(PACKAGE_NAME, mainClass, (app) -> {
+      DexInspector dexInspector = new DexInspector(app);
+      ClassSubject objectClass = checkClassExists(dexInspector, testedClass.getClassName());
+      String propertyName = "publicLateInitProp";
+      FieldSubject fieldSubject = checkFieldIsPresent(objectClass, JAVA_LANG_STRING, propertyName);
+      assertTrue(fieldSubject.getField().accessFlags.isStatic());
+
+      MemberNaming.MethodSignature getter = testedClass.getGetterForProperty(propertyName);
+      MemberNaming.MethodSignature setter = testedClass.getSetterForProperty(propertyName);
+
+      // Getter and setter cannot be inlined when we don't know if null check semantic is
+      // preserved.
+      checkMethodIsPresent(objectClass, getter);
+      checkMethodIsPresent(objectClass, setter);
+      assertTrue(fieldSubject.getField().accessFlags.isPublic());
+    });
+  }
+
+  @Test
+  public void testFileLevel_primitivePropertyIsInlinedIfAccessIsRelaxed() throws Exception {
+    final TestKotlinClass testedClass = FILE_PROPERTY_CLASS;
+    String mainClass = addMainToClasspath(
+        "properties.FilePropertiesKt", "fileProperties_usePrimitiveProp");
+    runTest(PACKAGE_NAME, mainClass, (app) -> {
+      DexInspector dexInspector = new DexInspector(app);
+      ClassSubject objectClass = checkClassExists(dexInspector, testedClass.getClassName());
+      String propertyName = "primitiveProp";
+      FieldSubject fieldSubject = checkFieldIsPresent(objectClass, "int", propertyName);
+      assertTrue(fieldSubject.getField().accessFlags.isStatic());
+
+      MemberNaming.MethodSignature getter = testedClass.getGetterForProperty(propertyName);
+      MemberNaming.MethodSignature setter = testedClass.getSetterForProperty(propertyName);
+
+      if (allowAccessModification) {
+        assertTrue(fieldSubject.getField().accessFlags.isPublic());
+        checkMethodIsAbsent(objectClass, getter);
+        checkMethodIsAbsent(objectClass, setter);
+      } else {
+        assertTrue(fieldSubject.getField().accessFlags.isPrivate());
+        checkMethodIsPresent(objectClass, getter);
+        checkMethodIsPresent(objectClass, setter);
+      }
+    });
+  }
+
+  @Test
+  public void testFileLevel_privatePropertyIsAlwaysInlined() throws Exception {
+    final TestKotlinClass testedClass = FILE_PROPERTY_CLASS;
+    String mainClass = addMainToClasspath(
+        "properties.FilePropertiesKt", "fileProperties_usePrivateProp");
+    runTest(PACKAGE_NAME, mainClass, (app) -> {
+      DexInspector dexInspector = new DexInspector(app);
+      ClassSubject objectClass = checkClassExists(dexInspector, testedClass.getClassName());
+      String propertyName = "privateProp";
+      FieldSubject fieldSubject = checkFieldIsPresent(objectClass, JAVA_LANG_STRING, propertyName);
+      assertTrue(fieldSubject.getField().accessFlags.isStatic());
+
+      MemberNaming.MethodSignature getter = testedClass.getGetterForProperty(propertyName);
+      MemberNaming.MethodSignature setter = testedClass.getSetterForProperty(propertyName);
+
+      // A private property has no getter/setter.
+      checkMethodIsAbsent(objectClass, getter);
+      checkMethodIsAbsent(objectClass, setter);
+      if (allowAccessModification) {
+        assertTrue(fieldSubject.getField().accessFlags.isPublic());
+      } else {
+        assertTrue(fieldSubject.getField().accessFlags.isPrivate());
+      }
+    });
+  }
+
+  @Test
+  public void testFileLevel_internalPropertyGetterIsInlinedIfAccessIsRelaxed() throws Exception {
+    final TestKotlinClass testedClass = FILE_PROPERTY_CLASS;
+    String mainClass = addMainToClasspath(
+        "properties.FilePropertiesKt", "fileProperties_useInternalProp");
+    runTest(PACKAGE_NAME, mainClass, (app) -> {
+      DexInspector dexInspector = new DexInspector(app);
+      ClassSubject objectClass = checkClassExists(dexInspector, testedClass.getClassName());
+      String propertyName = "internalProp";
+      FieldSubject fieldSubject = checkFieldIsPresent(objectClass, JAVA_LANG_STRING, propertyName);
+      assertTrue(fieldSubject.getField().accessFlags.isStatic());
+
+      // We expect getter to be inlined when access (of the backing field) is relaxed to public.
+      // Note: the setter is considered as a regular method (because of KotlinC adding extra null
+      // checks), thus we cannot say if the setter would be inlined or not by R8.
+      MemberNaming.MethodSignature getter = testedClass.getGetterForProperty(propertyName);
+      if (allowAccessModification) {
+        assertTrue(fieldSubject.getField().accessFlags.isPublic());
+        checkMethodIsAbsent(objectClass, getter);
+      } else {
+        assertTrue(fieldSubject.getField().accessFlags.isPrivate());
+        checkMethodIsPresent(objectClass, getter);
+      }
+    });
+  }
+
+  @Test
+  public void testFileLevel_publicPropertyGetterIsInlinedIfAccessIsRelaxed() throws Exception {
+    final TestKotlinClass testedClass = FILE_PROPERTY_CLASS;
+    String mainClass = addMainToClasspath(
+        "properties.FilePropertiesKt", "fileProperties_usePublicProp");
+    runTest(PACKAGE_NAME, mainClass, (app) -> {
+      DexInspector dexInspector = new DexInspector(app);
+      ClassSubject objectClass = checkClassExists(dexInspector, testedClass.getClassName());
+      String propertyName = "publicProp";
+      FieldSubject fieldSubject = checkFieldIsPresent(objectClass, JAVA_LANG_STRING, propertyName);
+      assertTrue(fieldSubject.getField().accessFlags.isStatic());
+
+      // We expect getter to be inlined when access (of the backing field) is relaxed to public.
+      // On the other hand, the setter is considered as a regular method (because of null checks),
+      // thus we cannot say if it can be inlined or not.
+      MemberNaming.MethodSignature getter = testedClass.getGetterForProperty(propertyName);
+
+      if (allowAccessModification) {
+        assertTrue(fieldSubject.getField().accessFlags.isPublic());
+        checkMethodIsAbsent(objectClass, getter);
+      } else {
+        assertTrue(fieldSubject.getField().accessFlags.isPrivate());
+        checkMethodIsPresent(objectClass, getter);
+      }
+    });
+  }
+
+  @Test
+  public void testFileLevel_privateLateInitPropertyIsAlwaysInlined() throws Exception {
+    final TestKotlinClass testedClass = FILE_PROPERTY_CLASS;
+    String mainClass = addMainToClasspath(
+        "properties.FilePropertiesKt", "fileProperties_useLateInitPrivateProp");
+    runTest(PACKAGE_NAME, mainClass, (app) -> {
+      DexInspector dexInspector = new DexInspector(app);
+      ClassSubject fileClass = checkClassExists(dexInspector, testedClass.getClassName());
+      String propertyName = "privateLateInitProp";
+      FieldSubject fieldSubject = checkFieldIsPresent(fileClass, JAVA_LANG_STRING, propertyName);
+      assertTrue(fieldSubject.getField().accessFlags.isStatic());
+
+      MemberNaming.MethodSignature getter = testedClass.getGetterForProperty(propertyName);
+      MemberNaming.MethodSignature setter = testedClass.getSetterForProperty(propertyName);
+
+      // A private property has no getter/setter.
+      checkMethodIsAbsent(fileClass, getter);
+      checkMethodIsAbsent(fileClass, setter);
+      if (allowAccessModification) {
+        assertTrue(fieldSubject.getField().accessFlags.isPublic());
+      } else {
+        assertTrue(fieldSubject.getField().accessFlags.isPrivate());
+      }
+    });
+  }
+
+  @Test
+  public void testFileLevel_internalLateInitPropertyCannotBeInlined() throws Exception {
+    final TestKotlinClass testedClass = FILE_PROPERTY_CLASS;
+    String mainClass = addMainToClasspath(
+        "properties.FilePropertiesKt", "fileProperties_useLateInitInternalProp");
+    runTest(PACKAGE_NAME, mainClass, (app) -> {
+      DexInspector dexInspector = new DexInspector(app);
+      ClassSubject objectClass = checkClassExists(dexInspector, testedClass.getClassName());
+      String propertyName = "internalLateInitProp";
+      FieldSubject fieldSubject = checkFieldIsPresent(objectClass, JAVA_LANG_STRING, propertyName);
+      assertTrue(fieldSubject.getField().accessFlags.isStatic());
+      assertTrue(fieldSubject.getField().accessFlags.isPublic());
+
+      MemberNaming.MethodSignature getter = testedClass.getGetterForProperty(propertyName);
+      MemberNaming.MethodSignature setter = testedClass.getSetterForProperty(propertyName);
+
+      // Field is public and getter is small so we expect to always inline it.
+      checkMethodIsAbsent(objectClass, getter);
+
+      // Setter has null check of new value, thus may not be inlined.
+      checkMethodIsPresent(objectClass, setter);
+    });
+  }
+
+  @Test
+  public void testFileLevel_publicLateInitPropertyCannotBeInlined() throws Exception {
+    final TestKotlinClass testedClass = FILE_PROPERTY_CLASS;
+    String mainClass = addMainToClasspath(
+        "properties.FilePropertiesKt", "fileProperties_useLateInitPublicProp");
+    runTest(PACKAGE_NAME, mainClass, (app) -> {
+      DexInspector dexInspector = new DexInspector(app);
+      ClassSubject objectClass = checkClassExists(dexInspector, testedClass.getClassName());
+      String propertyName = "publicLateInitProp";
+      FieldSubject fieldSubject = checkFieldIsPresent(objectClass, JAVA_LANG_STRING, propertyName);
+      assertTrue(fieldSubject.getField().accessFlags.isStatic());
+
+      MemberNaming.MethodSignature getter = testedClass.getGetterForProperty(propertyName);
+      MemberNaming.MethodSignature setter = testedClass.getSetterForProperty(propertyName);
+
+      checkMethodIsAbsent(objectClass, getter);
+      checkMethodIsPresent(objectClass, setter);
+      assertTrue(fieldSubject.getField().accessFlags.isPublic());
+    });
+  }
+
 }
