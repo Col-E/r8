@@ -49,21 +49,30 @@ def IsMaster(version):
                       'in a commit that have -dev in version')
   return True
 
-def GetStorageDestination(storage_prefix, version, file_name, is_master):
+def GetStorageDestination(storage_prefix,
+                          version_or_path,
+                          file_name,
+                          is_master):
   # We archive master commits under raw/master instead of directly under raw
-  version_dir = GetVersionDestination(storage_prefix, version, is_master)
+  version_dir = GetVersionDestination(storage_prefix,
+                                      version_or_path,
+                                      is_master)
   return '%s/%s' % (version_dir, file_name)
 
-def GetVersionDestination(storage_prefix, version, is_master):
+def GetVersionDestination(storage_prefix, version_or_path, is_master):
   archive_dir = 'raw/master' if is_master else 'raw'
-  return '%s%s/%s/%s' % (storage_prefix, ARCHIVE_BUCKET, archive_dir, version)
+  return '%s%s/%s/%s' % (storage_prefix, ARCHIVE_BUCKET,
+                         archive_dir, version_or_path)
 
-def GetUploadDestination(version, file_name, is_master):
-  return GetStorageDestination('gs://', version, file_name, is_master)
+def GetUploadDestination(version_or_path, file_name, is_master):
+  return GetStorageDestination('gs://', version_or_path, file_name, is_master)
 
-def GetUrl(version, file_name, is_master):
+def GetUrl(version_or_path, file_name, is_master):
   return GetStorageDestination('http://storage.googleapis.com/',
-                               version, file_name, is_master)
+                               version_or_path, file_name, is_master)
+
+def GetMavenUrl(is_master):
+  return GetVersionDestination('http://storage.googleapis.com/', '', is_master)
 
 def Main():
   if not 'BUILDBOT_BUILDERNAME' in os.environ:
@@ -113,14 +122,13 @@ def Main():
       print('Uploading %s to %s' % (tagged_jar, destination))
       utils.upload_file_to_cloud_storage(tagged_jar, destination)
       print('File available at: %s' % GetUrl(version, file_name, is_master))
-    # Upload extracted maven directory for easy testing in studio.
-    zip_ref = zipfile.ZipFile(utils.MAVEN_ZIP, 'r')
-    zip_ref.extractall(temp)
-    zip_ref.close()
-    utils.upload_dir_to_cloud_storage(
-        os.path.join(temp, 'com'),
-        GetUploadDestination(version, 'com', is_master))
-    print('Maven repo root available at: %s' % GetUrl(version, '', is_master))
+      if file == utils.R8_JAR:
+        # Upload R8 to a maven compatible location.
+        maven_dst = GetUploadDestination(utils.get_maven_path(version),
+                                         'r8-%s.jar' % version, is_master)
+        utils.upload_file_to_cloud_storage(tagged_jar, maven_dst)
+        print('Maven repo root available at: %s' % GetMavenUrl(is_master))
+
 
 if __name__ == '__main__':
   sys.exit(Main())

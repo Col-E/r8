@@ -207,6 +207,9 @@ def getDexSegmentSizes(dex_files):
 
   return result
 
+def get_maven_path(version):
+  return os.path.join('com', 'android', 'tools', 'r8', version)
+
 def print_dexsegments(prefix, dex_files):
   for segment_name, size in getDexSegmentSizes(dex_files).items():
     print('{}-{}(CodeSize): {}'
