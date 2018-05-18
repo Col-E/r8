@@ -159,21 +159,13 @@ public abstract class DexClass extends DexItem {
       for (DexAnnotation annotation : method.annotations.annotations) {
         consumer.accept(annotation);
       }
-      for (DexAnnotationSet parameterAnnotations : method.parameterAnnotations.values) {
-        for (DexAnnotation annotation : parameterAnnotations.annotations) {
-          consumer.accept(annotation);
-        }
-      }
+      method.parameterAnnotationsList.forEachAnnotation(consumer);
     }
     for (DexEncodedMethod method : virtualMethods()) {
       for (DexAnnotation annotation : method.annotations.annotations) {
         consumer.accept(annotation);
       }
-      for (DexAnnotationSet parameterAnnotations : method.parameterAnnotations.values) {
-        for (DexAnnotation annotation : parameterAnnotations.annotations) {
-          consumer.accept(annotation);
-        }
-      }
+      method.parameterAnnotationsList.forEachAnnotation(consumer);
     }
     for (DexEncodedField field : instanceFields()) {
       for (DexAnnotation annotation : field.annotations.annotations) {

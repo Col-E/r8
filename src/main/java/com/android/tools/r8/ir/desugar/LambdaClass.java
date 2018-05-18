@@ -10,7 +10,6 @@ import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexAnnotationSet;
-import com.android.tools.r8.graph.DexAnnotationSetRefList;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -27,6 +26,7 @@ import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DexValue.DexValueNull;
 import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.android.tools.r8.origin.SynthesizedOrigin;
@@ -171,7 +171,7 @@ final class LambdaClass {
             MethodAccessFlags.fromSharedAccessFlags(
                 Constants.ACC_PUBLIC | Constants.ACC_FINAL, false),
             DexAnnotationSet.empty(),
-            DexAnnotationSetRefList.empty(),
+            ParameterAnnotationsList.empty(),
             new SynthesizedCode(new LambdaMainMethodSourceCode(this, mainMethod)));
 
     // Synthesize bridge methods.
@@ -187,7 +187,7 @@ final class LambdaClass {
                       | Constants.ACC_BRIDGE,
                   false),
               DexAnnotationSet.empty(),
-              DexAnnotationSetRefList.empty(),
+              ParameterAnnotationsList.empty(),
               new SynthesizedCode(
                   new LambdaBridgeMethodSourceCode(this, mainMethod, bridgeMethod)));
     }
@@ -208,7 +208,7 @@ final class LambdaClass {
                     | Constants.ACC_SYNTHETIC,
                 true),
             DexAnnotationSet.empty(),
-            DexAnnotationSetRefList.empty(),
+            ParameterAnnotationsList.empty(),
             new SynthesizedCode(new LambdaConstructorSourceCode(this)));
 
     // Class constructor for stateless lambda classes.
@@ -219,7 +219,7 @@ final class LambdaClass {
               MethodAccessFlags.fromSharedAccessFlags(
                   Constants.ACC_SYNTHETIC | Constants.ACC_STATIC, true),
               DexAnnotationSet.empty(),
-              DexAnnotationSetRefList.empty(),
+              ParameterAnnotationsList.empty(),
               new SynthesizedCode(new LambdaClassConstructorSourceCode(this)));
     }
     return methods;
@@ -492,7 +492,7 @@ final class LambdaClass {
           // relax its accessibility without making it virtual.
           DexEncodedMethod newMethod = new DexEncodedMethod(
               callTarget, encodedMethod.accessFlags, encodedMethod.annotations,
-              encodedMethod.parameterAnnotations, encodedMethod.getCode());
+              encodedMethod.parameterAnnotationsList, encodedMethod.getCode());
           // TODO(ager): Should we give the new first parameter an actual name? Maybe 'this'?
           encodedMethod.accessFlags.setStatic();
           encodedMethod.accessFlags.unsetPrivate();
@@ -532,7 +532,7 @@ final class LambdaClass {
               Constants.ACC_SYNTHETIC | Constants.ACC_STATIC | Constants.ACC_PUBLIC,
               false);
       DexEncodedMethod accessorEncodedMethod = new DexEncodedMethod(
-          callTarget, accessorFlags, DexAnnotationSet.empty(), DexAnnotationSetRefList.empty(),
+          callTarget, accessorFlags, DexAnnotationSet.empty(), ParameterAnnotationsList.empty(),
           new SynthesizedCode(new AccessorMethodSourceCode(LambdaClass.this)));
       accessorClass.setDirectMethods(appendMethod(
           accessorClass.directMethods(), accessorEncodedMethod));

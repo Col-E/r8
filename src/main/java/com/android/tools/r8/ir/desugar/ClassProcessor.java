@@ -111,7 +111,7 @@ final class ClassProcessor {
     // Some debuggers (like IntelliJ) automatically skip synthetic methods on single step.
     newFlags.setSynthetic();
     return new DexEncodedMethod(newMethod, newFlags,
-        defaultMethod.annotations, defaultMethod.parameterAnnotations,
+        defaultMethod.annotations, defaultMethod.parameterAnnotationsList,
         new SynthesizedCode(new ForwardMethodSourceCode(
             clazz.type, method.proto, /* static method */ null,
             rewriter.defaultAsMethodOfCompanionClass(method),

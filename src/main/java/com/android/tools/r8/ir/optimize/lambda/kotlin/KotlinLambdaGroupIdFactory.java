@@ -191,7 +191,7 @@ public abstract class KotlinLambdaGroupIdFactory implements KotlinLambdaConstant
       throw new LambdaStructureError("unexpected method annotations [" +
           method.annotations.toSmaliString() + "] on " + method.method.toSourceString());
     }
-    if (!method.parameterAnnotations.isEmpty()) {
+    if (!method.parameterAnnotationsList.isEmpty()) {
       throw new LambdaStructureError("unexpected method parameters annotations [" +
           method.annotations.toSmaliString() + "] on " + method.method.toSourceString());
     }

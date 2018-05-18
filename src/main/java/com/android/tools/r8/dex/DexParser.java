@@ -19,7 +19,6 @@ import com.android.tools.r8.graph.Descriptor;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationElement;
 import com.android.tools.r8.graph.DexAnnotationSet;
-import com.android.tools.r8.graph.DexAnnotationSetRefList;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexCode;
@@ -56,6 +55,7 @@ import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.OffsetToObjectMapping;
+import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
@@ -340,11 +340,11 @@ public class DexParser {
     return result;
   }
 
-  private DexAnnotationSetRefList annotationSetRefListAt(int offset) {
-    return (DexAnnotationSetRefList) cacheAt(offset, this::parseAnnotationSetRefList);
+  private ParameterAnnotationsList annotationSetRefListAt(int offset) {
+    return (ParameterAnnotationsList) cacheAt(offset, this::parseAnnotationSetRefList);
   }
 
-  private DexAnnotationSetRefList parseAnnotationSetRefList() {
+  private ParameterAnnotationsList parseAnnotationSetRefList() {
     int size = dexReader.getUint();
     int[] annotationOffsets = new int[size];
     for (int i = 0; i < size; i++) {
@@ -354,7 +354,7 @@ public class DexParser {
     for (int i = 0; i < size; i++) {
       values[i] = annotationSetAt(annotationOffsets[i]);
     }
-    return new DexAnnotationSetRefList(values);
+    return new ParameterAnnotationsList(values);
   }
 
   private DexParameterAnnotation[] parseParameterAnnotations(int size) {
@@ -373,7 +373,8 @@ public class DexParser {
       DexMethod method = indexedItems.getMethod(methodIndices[i]);
       result[i] = new DexParameterAnnotation(
           method,
-          annotationSetRefListAt(annotationOffsets[i]));
+          annotationSetRefListAt(annotationOffsets[i])
+              .withParameterCount(method.proto.parameters.size()));
     }
     dexReader.position(saved);
     return result;
@@ -589,8 +590,8 @@ public class DexParser {
     int methodIndex = 0;
     MemberAnnotationIterator<DexMethod, DexAnnotationSet> annotationIterator =
         new MemberAnnotationIterator<>(annotations, DexAnnotationSet::empty);
-    MemberAnnotationIterator<DexMethod, DexAnnotationSetRefList> parameterAnnotationsIterator =
-        new MemberAnnotationIterator<>(parameters, DexAnnotationSetRefList::empty);
+    MemberAnnotationIterator<DexMethod, ParameterAnnotationsList> parameterAnnotationsIterator =
+        new MemberAnnotationIterator<>(parameters, ParameterAnnotationsList::empty);
     for (int i = 0; i < size; i++) {
       methodIndex += dexReader.getUleb128();
       MethodAccessFlags accessFlags = MethodAccessFlags.fromDexAccessFlags(dexReader.getUleb128());

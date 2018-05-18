@@ -17,7 +17,6 @@ import com.android.tools.r8.errors.DexOverflowException;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationDirectory;
 import com.android.tools.r8.graph.DexAnnotationSet;
-import com.android.tools.r8.graph.DexAnnotationSetRefList;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexDebugInfo;
@@ -30,6 +29,7 @@ import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
+import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.ProguardMapSupplier;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -106,7 +106,7 @@ public class ApplicationWriter {
     }
 
     @Override
-    public boolean add(DexAnnotationSetRefList annotationSetRefList) {
+    public boolean add(ParameterAnnotationsList parameterAnnotationsList) {
       return true;
     }
 

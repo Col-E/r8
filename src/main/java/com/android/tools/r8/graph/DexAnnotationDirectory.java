@@ -33,7 +33,7 @@ public class DexAnnotationDirectory extends DexItem {
       if (!method.annotations.isEmpty()) {
         methodAnnotations.add(method);
       }
-      if (!method.parameterAnnotations.isEmpty()) {
+      if (!method.parameterAnnotationsList.isEmpty()) {
         parameterAnnotations.add(method);
       }
     }

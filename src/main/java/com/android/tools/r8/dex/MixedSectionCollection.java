@@ -6,13 +6,13 @@ package com.android.tools.r8.dex;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationDirectory;
 import com.android.tools.r8.graph.DexAnnotationSet;
-import com.android.tools.r8.graph.DexAnnotationSetRefList;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexDebugInfo;
 import com.android.tools.r8.graph.DexEncodedArray;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexTypeList;
+import com.android.tools.r8.graph.ParameterAnnotationsList;
 
 /**
  * Collection of the various components of the mixed section of a dex file.
@@ -86,7 +86,7 @@ public abstract class MixedSectionCollection {
    *
    * @return true if the item was not added before
    */
-  public abstract boolean add(DexAnnotationSetRefList annotationSetRefList);
+  public abstract boolean add(ParameterAnnotationsList annotationSetRefList);
 
   /**
    * Adds the given annotation to the collection.

@@ -446,7 +446,7 @@ public class JarClassFileReader {
     private List<DexAnnotation> annotations = null;
     private DexValue defaultAnnotation = null;
     private int fakeParameterAnnotations = 0;
-    private List<List<DexAnnotation>> parameterAnnotations = null;
+    private List<List<DexAnnotation>> parameterAnnotationsLists = null;
     private List<DexValue> parameterNames = null;
     private List<DexValue> parameterFlags = null;
     final DexMethod method;
@@ -508,21 +508,21 @@ public class JarClassFileReader {
         // We can iterate through all the parameters twice. Once for visible and once for
         // invisible parameter annotations. We only record the number of fake parameter
         // annotations once.
-        if (parameterAnnotations == null) {
+        if (parameterAnnotationsLists == null) {
           fakeParameterAnnotations++;
         }
         return null;
       }
-      if (parameterAnnotations == null) {
+      if (parameterAnnotationsLists == null) {
         int adjustedParameterCount = parameterCount - fakeParameterAnnotations;
-        parameterAnnotations = new ArrayList<>(adjustedParameterCount);
+        parameterAnnotationsLists = new ArrayList<>(adjustedParameterCount);
         for (int i = 0; i < adjustedParameterCount; i++) {
-          parameterAnnotations.add(new ArrayList<>());
+          parameterAnnotationsLists.add(new ArrayList<>());
         }
       }
       assert mv == null;
       return createAnnotationVisitor(desc, visible,
-          parameterAnnotations.get(parameter - fakeParameterAnnotations), parent.application);
+          parameterAnnotationsLists.get(parameter - fakeParameterAnnotations), parent.application);
     }
 
     @Override
@@ -573,15 +573,15 @@ public class JarClassFileReader {
     public void visitEnd() {
       assert flags.isAbstract() || flags.isNative() || parent.classKind != ClassKind.PROGRAM
           || code != null;
-      DexAnnotationSetRefList parameterAnnotationSets;
-      if (parameterAnnotations == null) {
-        parameterAnnotationSets = DexAnnotationSetRefList.empty();
+      ParameterAnnotationsList annotationsList;
+      if (parameterAnnotationsLists == null) {
+        annotationsList = ParameterAnnotationsList.empty();
       } else {
-        DexAnnotationSet[] sets = new DexAnnotationSet[parameterAnnotations.size()];
-        for (int i = 0; i < parameterAnnotations.size(); i++) {
-          sets[i] = createAnnotationSet(parameterAnnotations.get(i));
+        DexAnnotationSet[] sets = new DexAnnotationSet[parameterAnnotationsLists.size()];
+        for (int i = 0; i < parameterAnnotationsLists.size(); i++) {
+          sets[i] = createAnnotationSet(parameterAnnotationsLists.get(i));
         }
-        parameterAnnotationSets = new DexAnnotationSetRefList(sets, fakeParameterAnnotations);
+        annotationsList = new ParameterAnnotationsList(sets, fakeParameterAnnotations);
       }
       InternalOptions internalOptions = parent.application.options;
       if (parameterNames != null && internalOptions.canUseParameterNameAnnotations()) {
@@ -596,7 +596,7 @@ public class JarClassFileReader {
             parent.application.getFactory()));
       }
       DexEncodedMethod dexMethod = new DexEncodedMethod(method, flags,
-          createAnnotationSet(annotations), parameterAnnotationSets, code);
+          createAnnotationSet(annotations), annotationsList, code);
       if (flags.isStatic() || flags.isConstructor() || flags.isPrivate()) {
         parent.directMethods.add(dexMethod);
       } else {

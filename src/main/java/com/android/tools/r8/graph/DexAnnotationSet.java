@@ -5,7 +5,9 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.function.Predicate;
 
 public class DexAnnotationSet extends CachedHashValueDexItem {
 
@@ -114,5 +116,31 @@ public class DexAnnotationSet extends CachedHashValueDexItem {
     System.arraycopy(annotations, 0, extendedArray, 0, annotations.length);
     extendedArray[annotations.length] = newAnnotation;
     return new DexAnnotationSet(extendedArray);
+  }
+
+  public DexAnnotationSet keepIf(Predicate<DexAnnotation> filter) {
+    ArrayList<DexAnnotation> filtered = null;
+    for (int i = 0; i < annotations.length; i++) {
+      DexAnnotation annotation = annotations[i];
+      if (filter.test(annotation)) {
+        if (filtered != null) {
+          filtered.add(annotation);
+        }
+      } else {
+        if (filtered == null) {
+          filtered = new ArrayList<>(annotations.length);
+          for (int j = 0; j < i; j++) {
+            filtered.add(annotations[j]);
+          }
+        }
+      }
+    }
+    if (filtered == null) {
+      return this;
+    } else if (filtered.isEmpty()) {
+      return DexAnnotationSet.empty();
+    } else {
+      return new DexAnnotationSet(filtered.toArray(new DexAnnotation[filtered.size()]));
+    }
   }
 }

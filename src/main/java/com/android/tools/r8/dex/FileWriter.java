@@ -13,7 +13,6 @@ import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationDirectory;
 import com.android.tools.r8.graph.DexAnnotationElement;
 import com.android.tools.r8.graph.DexAnnotationSet;
-import com.android.tools.r8.graph.DexAnnotationSetRefList;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
@@ -40,6 +39,7 @@ import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.IndexedDexItem;
 import com.android.tools.r8.graph.KeyedDexItem;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
+import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.PresortedComparable;
 import com.android.tools.r8.graph.ProgramClassVisitor;
 import com.android.tools.r8.logging.Log;
@@ -510,12 +510,17 @@ public class FileWriter {
     }
   }
 
-  private void writeAnnotationSetRefList(DexAnnotationSetRefList setRefList) {
-    assert !setRefList.isEmpty();
-    mixedSectionOffsets.setOffsetFor(setRefList, dest.align(4));
-    dest.putInt(setRefList.values.length);
-    for (DexAnnotationSet set : setRefList.values) {
-      dest.putInt(mixedSectionOffsets.getOffsetFor(set));
+  private void writeAnnotationSetRefList(ParameterAnnotationsList parameterAnnotationsList) {
+    assert !parameterAnnotationsList.isEmpty();
+    mixedSectionOffsets.setOffsetFor(parameterAnnotationsList, dest.align(4));
+    dest.putInt(parameterAnnotationsList.countNonMissing());
+    for (int i = 0; i < parameterAnnotationsList.size(); i++) {
+      if (parameterAnnotationsList.isMissing(i)) {
+        // b/62300145: Maintain broken ParameterAnnotations attribute by only outputting the
+        // non-missing annotation lists.
+        continue;
+      }
+      dest.putInt(mixedSectionOffsets.getOffsetFor(parameterAnnotationsList.get(i)));
     }
   }
 
@@ -541,7 +546,7 @@ public class FileWriter {
     writeMemberAnnotations(methodAnnotations,
         item -> mixedSectionOffsets.getOffsetFor(item.annotations));
     writeMemberAnnotations(parameterAnnotations,
-        item -> mixedSectionOffsets.getOffsetFor(item.parameterAnnotations));
+        item -> mixedSectionOffsets.getOffsetFor(item.parameterAnnotationsList));
   }
 
   private void writeEncodedFields(DexEncodedField[] fields) {
@@ -990,7 +995,7 @@ public class FileWriter {
     private final Reference2IntMap<DexString> stringData = createReference2IntMap();
     private final Object2IntMap<DexAnnotation> annotations = createObject2IntMap();
     private final Object2IntMap<DexAnnotationSet> annotationSets = createObject2IntMap();
-    private final Object2IntMap<DexAnnotationSetRefList> annotationSetRefLists
+    private final Object2IntMap<ParameterAnnotationsList> annotationSetRefLists
         = createObject2IntMap();
     private final Object2IntMap<DexAnnotationDirectory> annotationDirectories
         = createObject2IntMap();
@@ -1072,7 +1077,7 @@ public class FileWriter {
     }
 
     @Override
-    public boolean add(DexAnnotationSetRefList annotationSetRefList) {
+    public boolean add(ParameterAnnotationsList annotationSetRefList) {
       if (annotationSetRefList.isEmpty()) {
         return false;
       }
@@ -1120,7 +1125,7 @@ public class FileWriter {
       return annotationSets.keySet();
     }
 
-    public Collection<DexAnnotationSetRefList> getAnnotationSetRefLists() {
+    public Collection<ParameterAnnotationsList> getAnnotationSetRefLists() {
       return annotationSetRefLists.keySet();
     }
 
@@ -1200,7 +1205,7 @@ public class FileWriter {
       return lookup(annotationSet, annotationSets);
     }
 
-    public int getOffsetFor(DexAnnotationSetRefList annotationSetRefList) {
+    public int getOffsetFor(ParameterAnnotationsList annotationSetRefList) {
       if (annotationSetRefList.isEmpty()) {
         return 0;
       }
@@ -1261,7 +1266,7 @@ public class FileWriter {
       setOffsetFor(encodedArray, offset, encodedArrays);
     }
 
-    void setOffsetFor(DexAnnotationSetRefList annotationSetRefList, int offset) {
+    void setOffsetFor(ParameterAnnotationsList annotationSetRefList, int offset) {
       assert offset != 0 && !annotationSetRefList.isEmpty();
       setOffsetFor(annotationSetRefList, offset, annotationSetRefLists);
     }

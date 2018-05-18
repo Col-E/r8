@@ -327,12 +327,12 @@ public final class LambdaMerger {
 
     for (DexEncodedMethod method : clazz.directMethods()) {
       lambdaInvalidator.accept(method.annotations);
-      lambdaInvalidator.accept(method.parameterAnnotations);
+      lambdaInvalidator.accept(method.parameterAnnotationsList);
       lambdaInvalidator.accept(method.method, clazz.type);
     }
     for (DexEncodedMethod method : clazz.virtualMethods()) {
       lambdaInvalidator.accept(method.annotations);
-      lambdaInvalidator.accept(method.parameterAnnotations);
+      lambdaInvalidator.accept(method.parameterAnnotationsList);
       lambdaInvalidator.accept(method.method, clazz.type);
     }
   }
