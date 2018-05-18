@@ -11,7 +11,6 @@ import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexAnnotationSet;
-import com.android.tools.r8.graph.DexAnnotationSetRefList;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -22,6 +21,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.Add;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -1057,7 +1057,7 @@ public class Outliner {
       DexString methodName = dexItemFactory.createString(OutlineOptions.METHOD_PREFIX + count);
       DexMethod method = outline.buildMethod(type, methodName);
       direct[count] = new DexEncodedMethod(method, methodAccess, DexAnnotationSet.empty(),
-          DexAnnotationSetRefList.empty(), new OutlineCode(outline));
+          ParameterAnnotationsList.empty(), new OutlineCode(outline));
       generatedOutlines.put(outline, method);
       count++;
     }

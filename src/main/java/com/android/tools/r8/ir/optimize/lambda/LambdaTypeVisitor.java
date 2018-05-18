@@ -7,7 +7,6 @@ package com.android.tools.r8.ir.optimize.lambda;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationElement;
 import com.android.tools.r8.graph.DexAnnotationSet;
-import com.android.tools.r8.graph.DexAnnotationSetRefList;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexEncodedAnnotation;
 import com.android.tools.r8.graph.DexField;
@@ -24,6 +23,7 @@ import com.android.tools.r8.graph.DexValue.DexValueMethod;
 import com.android.tools.r8.graph.DexValue.DexValueMethodHandle;
 import com.android.tools.r8.graph.DexValue.DexValueMethodType;
 import com.android.tools.r8.graph.DexValue.DexValueType;
+import com.android.tools.r8.graph.ParameterAnnotationsList;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -116,10 +116,8 @@ final class LambdaTypeVisitor {
     }
   }
 
-  void accept(DexAnnotationSetRefList annotationSetRefList) {
-    for (DexAnnotationSet annotationSet : annotationSetRefList.values) {
-      accept(annotationSet);
-    }
+  void accept(ParameterAnnotationsList parameterAnnotationsList) {
+    parameterAnnotationsList.forEachAnnotation(this::accept);
   }
 
   private void accept(DexAnnotation annotation) {

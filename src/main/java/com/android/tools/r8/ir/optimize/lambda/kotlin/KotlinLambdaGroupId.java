@@ -5,13 +5,13 @@
 package com.android.tools.r8.ir.optimize.lambda.kotlin;
 
 import com.android.tools.r8.graph.DexAnnotationSet;
-import com.android.tools.r8.graph.DexAnnotationSetRefList;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.InnerClassAttribute;
+import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.ir.optimize.lambda.LambdaGroup;
 import com.android.tools.r8.ir.optimize.lambda.LambdaGroupId;
 
@@ -41,7 +41,7 @@ abstract class KotlinLambdaGroupId implements LambdaGroupId {
   final DexString mainMethodName;
   final DexProto mainMethodProto;
   final DexAnnotationSet mainMethodAnnotations;
-  final DexAnnotationSetRefList mainMethodParamAnnotations;
+  final ParameterAnnotationsList mainMethodParamAnnotations;
 
   final EnclosingMethodAttribute enclosing;
 
@@ -61,7 +61,7 @@ abstract class KotlinLambdaGroupId implements LambdaGroupId {
     this.mainMethodName = mainMethod.method.name;
     this.mainMethodProto = mainMethod.method.proto;
     this.mainMethodAnnotations = mainMethod.annotations;
-    this.mainMethodParamAnnotations = mainMethod.parameterAnnotations;
+    this.mainMethodParamAnnotations = mainMethod.parameterAnnotationsList;
     this.innerClassAccess = inner != null ? inner.getAccess() : MISSING_INNER_CLASS_ATTRIBUTE;
     this.enclosing = enclosing;
     this.hash = computeHashCode();

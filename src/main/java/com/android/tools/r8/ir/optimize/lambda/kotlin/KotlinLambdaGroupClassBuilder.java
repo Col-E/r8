@@ -7,7 +7,6 @@ package com.android.tools.r8.ir.optimize.lambda.kotlin;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationSet;
-import com.android.tools.r8.graph.DexAnnotationSetRefList;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -19,6 +18,7 @@ import com.android.tools.r8.graph.DexValue.DexValueNull;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.ir.optimize.lambda.LambdaGroupClassBuilder;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.android.tools.r8.ir.synthetic.SyntheticSourceCode;
@@ -113,7 +113,7 @@ abstract class KotlinLambdaGroupClassBuilder<T extends KotlinLambdaGroup>
             factory.createMethod(group.getGroupClassType(), methodProto, methodName),
             accessFlags,
             isMainMethod ? id.mainMethodAnnotations : DexAnnotationSet.empty(),
-            isMainMethod ? id.mainMethodParamAnnotations : DexAnnotationSetRefList.empty(),
+            isMainMethod ? id.mainMethodParamAnnotations : ParameterAnnotationsList.empty(),
             new SynthesizedCode(
                 new KotlinLambdaVirtualMethodSourceCode(factory, group.getGroupClassType(),
                     methodProto, group.getLambdaIdField(factory), implMethods))));
@@ -159,7 +159,7 @@ abstract class KotlinLambdaGroupClassBuilder<T extends KotlinLambdaGroup>
         factory.createMethod(groupClassType, initializerProto, factory.constructorMethodName),
         CONSTRUCTOR_FLAGS_RELAXED,  // always create access-relaxed constructor.
         DexAnnotationSet.empty(),
-        DexAnnotationSetRefList.empty(),
+        ParameterAnnotationsList.empty(),
         new SynthesizedCode(createInstanceInitializerSourceCode(groupClassType, initializerProto)));
 
     // Static class initializer for stateless lambdas.
@@ -170,7 +170,7 @@ abstract class KotlinLambdaGroupClassBuilder<T extends KotlinLambdaGroup>
               factory.classConstructorMethodName),
           CLASS_INITIALIZER_FLAGS,
           DexAnnotationSet.empty(),
-          DexAnnotationSetRefList.empty(),
+          ParameterAnnotationsList.empty(),
           new SynthesizedCode(new ClassInitializerSourceCode(factory, group)));
     }
 

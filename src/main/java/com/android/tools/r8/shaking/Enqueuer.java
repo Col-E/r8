@@ -15,7 +15,6 @@ import com.android.tools.r8.graph.AppInfo.ResolutionResult;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.Descriptor;
 import com.android.tools.r8.graph.DexAnnotation;
-import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
@@ -552,14 +551,18 @@ public class Enqueuer {
 
   private void processAnnotations(DexAnnotation[] annotations) {
     for (DexAnnotation annotation : annotations) {
-      DexType type = annotation.annotation.type;
-      if (liveTypes.contains(type)) {
-        // The type of this annotation is already live, so pick up its dependencies.
-        handleAnnotationOfLiveType(annotation);
-      } else {
-        // Remember this annotation for later.
-        deferredAnnotations.computeIfAbsent(type, ignore -> new HashSet<>()).add(annotation);
-      }
+      processAnnotation(annotation);
+    }
+  }
+
+  private void processAnnotation(DexAnnotation annotation) {
+    DexType type = annotation.annotation.type;
+    if (liveTypes.contains(type)) {
+      // The type of this annotation is already live, so pick up its dependencies.
+      handleAnnotationOfLiveType(annotation);
+    } else {
+      // Remember this annotation for later.
+      deferredAnnotations.computeIfAbsent(type, ignore -> new HashSet<>()).add(annotation);
     }
   }
 
@@ -1239,9 +1242,7 @@ public class Enqueuer {
         }
       }
       processAnnotations(method.annotations.annotations);
-      for (DexAnnotationSet parameterAnnotation : method.parameterAnnotations.values) {
-        processAnnotations(parameterAnnotation.annotations);
-      }
+      method.parameterAnnotationsList.forEachAnnotation(this::processAnnotation);
       if (protoLiteExtension != null && protoLiteExtension.appliesTo(method)) {
         protoLiteExtension.processMethod(method, new UseRegistry(method), protoLiteFields);
       } else {

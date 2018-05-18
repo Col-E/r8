@@ -29,7 +29,6 @@ import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexAnnotationSet;
-import com.android.tools.r8.graph.DexAnnotationSetRefList;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -40,6 +39,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Position;
@@ -617,7 +617,7 @@ public class MainDexListTests extends TestBase {
                     DexString.EMPTY_ARRAY),
                 access,
                 DexAnnotationSet.empty(),
-                DexAnnotationSetRefList.empty(),
+                ParameterAnnotationsList.empty(),
                 code);
         IRCode ir = code.buildIR(method, options, Origin.unknown());
         RegisterAllocator allocator = new LinearScanRegisterAllocator(ir, options);

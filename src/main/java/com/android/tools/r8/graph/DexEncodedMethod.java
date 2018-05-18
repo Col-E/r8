@@ -93,7 +93,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   public final DexMethod method;
   public final MethodAccessFlags accessFlags;
   public DexAnnotationSet annotations;
-  public DexAnnotationSetRefList parameterAnnotations;
+  public ParameterAnnotationsList parameterAnnotationsList;
   private Code code;
   private CompilationState compilationState = CompilationState.NOT_PROCESSED;
   private OptimizationInfo optimizationInfo = DefaultOptimizationInfo.DEFAULT;
@@ -102,12 +102,12 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       DexMethod method,
       MethodAccessFlags accessFlags,
       DexAnnotationSet annotations,
-      DexAnnotationSetRefList parameterAnnotations,
+      ParameterAnnotationsList parameterAnnotationsList,
       Code code) {
     this.method = method;
     this.accessFlags = accessFlags;
     this.annotations = annotations;
-    this.parameterAnnotations = parameterAnnotations;
+    this.parameterAnnotationsList = parameterAnnotationsList;
     this.code = code;
     assert code == null || !accessFlags.isAbstract();
   }
@@ -272,7 +272,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       code.collectIndexedItems(indexedItems, this.method);
     }
     annotations.collectIndexedItems(indexedItems);
-    parameterAnnotations.collectIndexedItems(indexedItems);
+    parameterAnnotationsList.collectIndexedItems(indexedItems);
   }
 
   @Override
@@ -281,7 +281,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       code.collectMixedSectionItems(mixedItems);
     }
     annotations.collectMixedSectionItems(mixedItems);
-    parameterAnnotations.collectMixedSectionItems(mixedItems);
+    parameterAnnotationsList.collectMixedSectionItems(mixedItems);
   }
 
   public Code getCode() {
@@ -537,7 +537,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   }
 
   public boolean hasAnnotation() {
-    return !annotations.isEmpty() || !parameterAnnotations.isEmpty();
+    return !annotations.isEmpty() || !parameterAnnotationsList.isEmpty();
   }
 
   public void registerCodeReferences(UseRegistry registry) {
@@ -727,7 +727,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     private DexMethod method;
     private final MethodAccessFlags accessFlags;
     private final DexAnnotationSet annotations;
-    private final DexAnnotationSetRefList parameterAnnotations;
+    private final ParameterAnnotationsList parameterAnnotations;
     private Code code;
     private CompilationState compilationState = CompilationState.NOT_PROCESSED;
     private OptimizationInfo optimizationInfo = DefaultOptimizationInfo.DEFAULT;
@@ -737,7 +737,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       method = from.method;
       accessFlags = from.accessFlags.copy();
       annotations = from.annotations;
-      parameterAnnotations = from.parameterAnnotations;
+      parameterAnnotations = from.parameterAnnotationsList;
       code = from.code;
       compilationState = from.compilationState;
       optimizationInfo = from.optimizationInfo.copy();

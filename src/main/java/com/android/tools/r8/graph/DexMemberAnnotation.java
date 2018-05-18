@@ -60,9 +60,9 @@ public class DexMemberAnnotation<T extends Descriptor<?,?>, S extends DexItem> e
   }
 
   public static class DexParameterAnnotation extends
-      DexMemberAnnotation<DexMethod, DexAnnotationSetRefList> {
+      DexMemberAnnotation<DexMethod, ParameterAnnotationsList> {
 
-    public DexParameterAnnotation(DexMethod item, DexAnnotationSetRefList annotations) {
+    public DexParameterAnnotation(DexMethod item, ParameterAnnotationsList annotations) {
       super(item, annotations);
     }
   }

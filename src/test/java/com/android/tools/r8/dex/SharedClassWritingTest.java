@@ -11,7 +11,6 @@ import com.android.tools.r8.code.ReturnVoid;
 import com.android.tools.r8.errors.DexOverflowException;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexAnnotationSet;
-import com.android.tools.r8.graph.DexAnnotationSetRefList;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexCode.Try;
@@ -25,6 +24,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
@@ -80,7 +80,7 @@ public class SharedClassWritingTest {
             holder, dexItemFactory.createProto(dexItemFactory.voidType), "theMethod"),
         MethodAccessFlags.fromSharedAccessFlags(Constants.ACC_PUBLIC, false),
         DexAnnotationSet.empty(),
-        DexAnnotationSetRefList.empty(),
+        ParameterAnnotationsList.empty(),
         code);
   }
 

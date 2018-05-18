@@ -70,7 +70,7 @@ final class InterfaceProcessor {
             || (companionMethod.getArity() == dexCode.getDebugInfo().parameters.length);
 
         companionMethods.add(new DexEncodedMethod(companionMethod,
-            newFlags, virtual.annotations, virtual.parameterAnnotations, code));
+            newFlags, virtual.annotations, virtual.parameterAnnotationsList, code));
 
         // Make the method abstract.
         virtual.accessFlags.setAbstract();
@@ -106,7 +106,7 @@ final class InterfaceProcessor {
             + "either be public or private in " + iface.origin;
         companionMethods.add(new DexEncodedMethod(
             rewriter.staticAsMethodOfCompanionClass(direct.method), newFlags,
-            direct.annotations, direct.parameterAnnotations, direct.getCode()));
+            direct.annotations, direct.parameterAnnotationsList, direct.getCode()));
 
       } else {
         if (originalFlags.isPrivate()) {
@@ -129,7 +129,7 @@ final class InterfaceProcessor {
               || (companionMethod.getArity() == dexCode.getDebugInfo().parameters.length);
 
           companionMethods.add(new DexEncodedMethod(companionMethod,
-              newFlags, direct.annotations, direct.parameterAnnotations, code));
+              newFlags, direct.annotations, direct.parameterAnnotationsList, code));
 
         } else {
           // Since there are no interface constructors at this point,
