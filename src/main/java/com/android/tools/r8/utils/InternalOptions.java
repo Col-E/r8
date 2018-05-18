@@ -4,10 +4,10 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.ClassFileConsumer;
-import com.android.tools.r8.DexFilePerClassFileConsumer;
-import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.DataResourceConsumer;
 import com.android.tools.r8.DataResourceProvider;
+import com.android.tools.r8.DexFilePerClassFileConsumer;
+import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.ProgramConsumer;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.dex.Marker;
@@ -183,6 +183,9 @@ public class InternalOptions {
   public OffOrAuto interfaceMethodDesugaring = OffOrAuto.Auto;
   // Defines try-with-resources rewriter behavior.
   public OffOrAuto tryWithResourcesDesugaring = OffOrAuto.Auto;
+  // Flag to turn on/off processing of @dalvik.annotation.codegen.CovariantReturnType and
+  // @dalvik.annotation.codegen.CovariantReturnType$CovariantReturnTypes.
+  public boolean processCovariantReturnTypeAnnotations = true;
 
   // Whether or not to check for valid multi-dex builds.
   //
