@@ -3,22 +3,25 @@
 # for details. All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
-import gradle
 import create_maven_release
-import d8
+import gradle
 import os
-import r8
+import shutil
 import subprocess
 import sys
+import toolhelper
 import utils
-import shutil
 import zipfile
 
 ARCHIVE_BUCKET = 'r8-releases'
 
+def GetToolVersion(jar_path):
+  output = subprocess.check_output(['java', '-jar', jar_path, '--version'])
+  return output.splitlines()[0].strip()
+
 def GetVersion():
-  r8_version = r8.run(['--version'], build = False).splitlines()[0].strip()
-  d8_version = d8.run(['--version'], build = False).splitlines()[0].strip()
+  r8_version = GetToolVersion(utils.R8_JAR)
+  d8_version = GetToolVersion(utils.D8_JAR)
   # The version printed is "D8 vVERSION_NUMBER" and "R8 vVERSION_NUMBER"
   # Sanity check that versions match.
   if d8_version.split()[1] != r8_version.split()[1]:

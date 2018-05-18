@@ -3,11 +3,11 @@
 # for details. All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
-import d8
 import gmscore_data
 import optparse
 import os
 import sys
+import toolhelper
 
 def ParseOptions():
   result = optparse.OptionParser()
@@ -70,8 +70,13 @@ def main():
     with open(options.dump_args_file, 'w') as args_file:
       args_file.writelines([arg + os.linesep for arg in args])
   else:
-    d8.run(args, not options.no_build, not options.no_debug, options.profile,
-           options.track_memory_to_file)
+    toolhelper.run(
+        'd8',
+        args,
+        build=not options.no_build,
+        debug=not options.no_debug,
+        profile=options.profile,
+        track_memory_to_file=options.track_memory_to_file)
 
 if __name__ == '__main__':
   sys.exit(main())

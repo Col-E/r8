@@ -514,7 +514,7 @@ task R8(type: ShadowJar) {
     classifier = null
     version = null
     manifest {
-        attributes 'Main-Class': 'com.android.tools.r8.R8'
+        attributes 'Main-Class': 'com.android.tools.r8.SwissArmyKnife'
     }
     // In order to build without dependencies, pass the exclude_deps property using:
     // gradle -Pexclude_deps R8
@@ -527,163 +527,26 @@ task R8(type: ShadowJar) {
 }
 
 task D8(type: ShadowJar) {
-    from consolidatedLicense.outputs.files
-    exclude { path ->
-      path.getRelativePath().getPathString().startsWith("META-INF")
-    }
+    from R8.outputs.files
     baseName 'd8'
-    classifier = null
-    version = null
     manifest {
         attributes 'Main-Class': 'com.android.tools.r8.D8'
     }
-    // In order to build without dependencies, pass the exclude_deps property using:
-    // gradle -Pexclude_deps D8
-    if (!project.hasProperty('exclude_deps')) {
-        from repackageSources.outputs.files
-        from repackageDeps.outputs.files
-    } else {
-        from sourceSets.main.output
-    }
 }
 
-task CompatDx(type: Jar) {
-    from sourceSets.main.output
+task CompatDx(type: ShadowJar) {
+    from R8.outputs.files
     baseName 'compatdx'
     manifest {
       attributes 'Main-Class': 'com.android.tools.r8.compatdx.CompatDx'
     }
-    // In order to build without dependencies, pass the exclude_deps property using:
-    // gradle -Pexclude_deps CompatDx
-    if (!project.hasProperty('exclude_deps')) {
-        // Also include dependencies
-        from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
-    }
 }
 
-task DexFileMerger(type: Jar) {
-    from sourceSets.main.output
-    baseName 'dexfilemerger'
-    manifest {
-      attributes 'Main-Class': 'com.android.tools.r8.dexfilemerger.DexFileMerger'
-    }
-    // In order to build without dependencies, pass the exclude_deps property using:
-    // gradle -Pexclude_deps CompatDx
-    if (!project.hasProperty('exclude_deps')) {
-        // Also include dependencies
-        from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
-    }
-}
-
-task DexSplitter(type: Jar) {
-    from sourceSets.main.output
-    baseName 'dexsplitter'
-    manifest {
-      attributes 'Main-Class': 'com.android.tools.r8.dexsplitter.DexSplitter'
-    }
-    // In order to build without dependencies, pass the exclude_deps property using:
-    // gradle -Pexclude_deps CompatDx
-    if (!project.hasProperty('exclude_deps')) {
-        // Also include dependencies
-        from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
-    }
-}
-
-task CompatProguard(type: Jar) {
-    from sourceSets.main.output
+task CompatProguard(type: ShadowJar) {
+    from R8.outputs.files
     baseName 'compatproguard'
     manifest {
         attributes 'Main-Class': 'com.android.tools.r8.compatproguard.CompatProguard'
-    }
-    // In order to build without dependencies, pass the exclude_deps property using:
-    // gradle -Pexclude_deps CompatProguard
-    if (!project.hasProperty('exclude_deps')) {
-        // Also include dependencies
-        from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
-    }
-}
-
-task D8Logger(type: Jar) {
-    from sourceSets.main.output
-    baseName 'd8logger'
-    manifest {
-      attributes 'Main-Class': 'com.android.tools.r8.D8Logger'
-    }
-    // In order to build without dependencies, pass the exclude_deps property using:
-    // gradle -Pexclude_deps D8Logger
-    if (!project.hasProperty('exclude_deps')) {
-        // Also include dependencies
-        from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
-    }
-}
-
-task disasm(type: Jar) {
-    from sourceSets.main.output
-    baseName 'disasm'
-    manifest {
-        attributes 'Main-Class': 'com.android.tools.r8.Disassemble'
-    }
-    // In order to build without dependencies, pass the exclude_deps property using:
-    // gradle -Pexclude_deps D8
-    if (!project.hasProperty('exclude_deps')) {
-        // Also include dependencies
-        from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
-    }
-}
-
-task bisect(type: Jar) {
-    from sourceSets.main.output
-    baseName 'bisect'
-    manifest {
-      attributes 'Main-Class': 'com.android.tools.r8.bisect.Bisect'
-    }
-    // In order to build without dependencies, pass the exclude_deps property using:
-    // gradle -Pexclude_deps R8
-    if (!project.hasProperty('exclude_deps')) {
-        // Also include dependencies
-        from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
-    }
-}
-
-task DexSegments(type: Jar) {
-    from sourceSets.main.output
-    baseName 'dexsegments'
-    manifest {
-      attributes 'Main-Class': 'com.android.tools.r8.DexSegments'
-    }
-    // In order to build without dependencies, pass the exclude_deps property using:
-    // gradle -Pexclude_deps DexSegments
-    if (!project.hasProperty('exclude_deps')) {
-        // Also include dependencies
-        from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
-    }
-}
-
-task maindex(type: Jar) {
-    from sourceSets.main.output
-    baseName 'maindex'
-    manifest {
-      attributes 'Main-Class': 'com.android.tools.r8.GenerateMainDexList'
-    }
-    // In order to build without dependencies, pass the exclude_deps property using:
-    // gradle -Pexclude_deps maindex
-    if (!project.hasProperty('exclude_deps')) {
-        // Also include dependencies
-        from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
-    }
-}
-
-task ExtractMarker(type: Jar) {
-    from sourceSets.main.output
-    baseName 'extractmarker'
-    manifest {
-      attributes 'Main-Class': 'com.android.tools.r8.ExtractMarker'
-    }
-    // In order to build without dependencies, pass the exclude_deps property using:
-    // gradle -Pexclude_deps ExtractMarker
-    if (!project.hasProperty('exclude_deps')) {
-        // Also include dependencies
-        from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
     }
 }
 
@@ -694,26 +557,12 @@ task bspatch(type: Jar) {
         attributes 'Main-Class': 'com.android.tools.r8.dex.BSPatch'
     }
     // In order to build without dependencies, pass the exclude_deps property using:
-    // gradle -Pexclude_deps maindex
+    // gradle -Pexclude_deps bspatch
     if (!project.hasProperty('exclude_deps')) {
         // Also include dependencies
         from {
             configurations.bsPatchCompile.collect { it.isDirectory() ? it : zipTree(it) }
         }
-    }
-}
-
-task jardiff(type: Jar) {
-    from sourceSets.main.output
-    baseName 'jardiff'
-    manifest {
-      attributes 'Main-Class': 'com.android.tools.r8.JarDiff'
-    }
-    // In order to build without dependencies, pass the exclude_deps property using:
-    // gradle -Pexclude_deps jardiff
-    if (!project.hasProperty('exclude_deps')) {
-        // Also include dependencies
-        from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
     }
 }
 
