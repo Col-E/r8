@@ -10,10 +10,9 @@ import os
 import sys
 import time
 
-import d8
 import gmail_data
 import gmscore_data
-import r8
+import toolhelper
 import utils
 import youtube_data
 
@@ -191,22 +190,20 @@ def main(argv):
       if options.print_memoryuse and not options.track_memory_to_file:
         options.track_memory_to_file = os.path.join(temp,
             utils.MEMORY_USE_TMP_FILE)
-      if options.compiler == 'd8':
-        d8.run(args, not options.no_build, not options.no_debug,
-            options.profile, options.track_memory_to_file)
-      else:
-        if app_provided_pg_conf:
-          # Ensure that output of -printmapping and -printseeds go to the output
-          # location and not where the app Proguard configuration places them.
-          if outdir.endswith('.zip') or outdir.endswith('.jar'):
-            pg_outdir = os.path.dirname(outdir)
-          else:
-            pg_outdir = outdir
-          additional_pg_conf = GenerateAdditionalProguardConfiguration(
-              temp, os.path.abspath(pg_outdir))
-          args.extend(['--pg-conf', additional_pg_conf])
-        r8.run(args, not options.no_build, not options.no_debug,
-            options.profile, options.track_memory_to_file)
+      if options.compiler == 'r8' and app_provided_pg_conf:
+        # Ensure that output of -printmapping and -printseeds go to the output
+        # location and not where the app Proguard configuration places them.
+        if outdir.endswith('.zip') or outdir.endswith('.jar'):
+          pg_outdir = os.path.dirname(outdir)
+        else:
+          pg_outdir = outdir
+        additional_pg_conf = GenerateAdditionalProguardConfiguration(
+            temp, os.path.abspath(pg_outdir))
+        args.extend(['--pg-conf', additional_pg_conf])
+      toolhelper.run(options.compiler, args, build=not options.no_build,
+                     debug=not options.no_debug,
+                     profile=options.profile,
+                     track_memory_to_file=options.track_memory_to_file)
       if options.print_memoryuse:
         print('{}(MemoryUse): {}'
             .format(options.print_memoryuse,
