@@ -28,6 +28,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -86,6 +87,7 @@ public class JasminBuilder {
     private final List<String> fields = new ArrayList<>();
     private boolean makeInit = false;
     private boolean hasInit = false;
+    private final List<String> clinit = new ArrayList<>();
     private boolean isInterface = false;
     private String access = "public";
 
@@ -217,6 +219,10 @@ public class JasminBuilder {
       return new MethodSignature(name, returnJavaType, argumentJavaTypes);
     }
 
+    public void addClassInitializer(String... lines) {
+      clinit.addAll(Arrays.asList(lines));
+    }
+
     public FieldSignature addField(String flags, String name, String type, String value) {
       fields.add(
           ".field " + flags + " " + name + " " + type + (value != null ? (" = " + value) : ""));
@@ -261,6 +267,11 @@ public class JasminBuilder {
       }
       for (String method : methods) {
         builder.append(method).append("\n");
+      }
+      if (!clinit.isEmpty()) {
+        builder.append(".method public static <clinit>()V\n");
+        clinit.forEach(line -> builder.append(line).append('\n'));
+        builder.append(".end method\n");
       }
       return builder.toString();
     }

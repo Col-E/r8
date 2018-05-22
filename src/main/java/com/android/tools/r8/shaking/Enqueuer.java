@@ -834,7 +834,7 @@ public class Enqueuer {
       return;
     }
     if (Log.ENABLED) {
-      Log.verbose(getClass(), "Register new instatiation of `%s`.", clazz);
+      Log.verbose(getClass(), "Register new instantiation of `%s`.", clazz);
     }
     workList.add(Action.markInstantiated(clazz, KeepReason.instantiatedIn(method)));
   }
