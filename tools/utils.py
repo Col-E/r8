@@ -15,8 +15,6 @@ import tempfile
 TOOLS_DIR = os.path.abspath(os.path.normpath(os.path.join(__file__, '..')))
 REPO_ROOT = os.path.realpath(os.path.join(TOOLS_DIR, '..'))
 MEMORY_USE_TMP_FILE = 'memory_use.tmp'
-DEX_SEGMENTS_JAR = os.path.join(REPO_ROOT, 'build', 'libs',
-    'dexsegments.jar')
 DEX_SEGMENTS_RESULT_PATTERN = re.compile('- ([^:]+): ([0-9]+)')
 BUILD = os.path.join(REPO_ROOT, 'build')
 LIBS = os.path.join(BUILD, 'libs')
@@ -189,7 +187,7 @@ def grep_memoryuse(logfile):
 # Return a dictionary: {segment_name -> segments_size}
 def getDexSegmentSizes(dex_files):
   assert len(dex_files) > 0
-  cmd = ['java', '-jar', DEX_SEGMENTS_JAR]
+  cmd = ['java', '-jar', R8_JAR, 'dexsegments']
   cmd.extend(dex_files)
   PrintCmd(cmd)
   output = subprocess.check_output(cmd)
