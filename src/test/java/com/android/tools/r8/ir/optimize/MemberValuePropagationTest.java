@@ -110,7 +110,7 @@ public class MemberValuePropagationTest {
             .addProguardConfigurationFiles(proguardConfig)
             .setDisableMinification(true)
             .build(),
-        null);
+        o -> o.enableClassInlining = false);
     return dexOutputDir.resolve("classes.dex");
   }
 }

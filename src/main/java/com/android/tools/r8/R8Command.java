@@ -701,6 +701,7 @@ public class R8Command extends BaseCompilerCommand {
     if (internal.debug) {
       // TODO(zerny): Should we support inlining in debug mode? b/62937285
       internal.enableInlining = false;
+      internal.enableClassInlining = false;
       // TODO(zerny): Should we support outlining in debug mode? b/62937285
       internal.outline.enabled = false;
     }

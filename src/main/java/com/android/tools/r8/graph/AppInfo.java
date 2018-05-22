@@ -3,15 +3,21 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
+import com.google.common.collect.Sets;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
@@ -473,6 +479,40 @@ public class AppInfo {
       type = clazz.superType;
     } while (type != null);
     return result;
+  }
+
+  public boolean canTriggerStaticInitializer(DexType clazz) {
+    Set<DexType> knownInterfaces = Sets.newIdentityHashSet();
+
+    // Process superclass chain.
+    while (clazz != null && clazz != dexItemFactory.objectType) {
+      DexClass definition = definitionFor(clazz);
+      if (definition == null || definition.hasClassInitializer()) {
+        return true; // Assume it *may* trigger if we didn't find the definition.
+      }
+      knownInterfaces.addAll(Arrays.asList(definition.interfaces.values));
+      clazz = definition.superType;
+    }
+
+    // Process interfaces.
+    Queue<DexType> queue = new ArrayDeque<>(knownInterfaces);
+    while (!queue.isEmpty()) {
+      DexType iface = queue.remove();
+      DexClass definition = definitionFor(iface);
+      if (definition == null || definition.hasClassInitializer()) {
+        return true; // Assume it *may* trigger if we didn't find the definition.
+      }
+      if (!definition.accessFlags.isInterface()) {
+        throw new Unreachable(iface.toSourceString() + " is expected to be an interface");
+      }
+
+      for (DexType superIface : definition.interfaces.values) {
+        if (knownInterfaces.add(superIface)) {
+          queue.add(superIface);
+        }
+      }
+    }
+    return false;
   }
 
   public interface ResolutionResult {

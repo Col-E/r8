@@ -12,6 +12,8 @@ import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.DexInspector.FieldSubject;
+import com.android.tools.r8.utils.InternalOptions;
+import java.util.function.Consumer;
 import org.junit.Test;
 
 public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
@@ -79,11 +81,13 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
           .addProperty("internalLateInitProp", JAVA_LANG_STRING, Visibility.INTERNAL)
           .addProperty("publicLateInitProp", JAVA_LANG_STRING, Visibility.PUBLIC);
 
+  private Consumer<InternalOptions> disableClassInliner = o -> o.enableClassInlining = false;
+
   @Test
   public void testMutableProperty_getterAndSetterAreRemoveIfNotUsed() throws Exception {
     String mainClass = addMainToClasspath("properties/MutablePropertyKt",
         "mutableProperty_noUseOfProperties");
-    runTest(PACKAGE_NAME, mainClass, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableClassInliner, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject classSubject = checkClassExists(dexInspector,
           MUTABLE_PROPERTY_CLASS.getClassName());
@@ -100,7 +104,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
   public void testMutableProperty_privateIsAlwaysInlined() throws Exception {
     String mainClass = addMainToClasspath("properties/MutablePropertyKt",
         "mutableProperty_usePrivateProp");
-    runTest(PACKAGE_NAME, mainClass, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableClassInliner, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject classSubject = checkClassExists(dexInspector,
           MUTABLE_PROPERTY_CLASS.getClassName());
@@ -122,7 +126,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
   public void testMutableProperty_protectedIsAlwaysInlined() throws Exception {
     String mainClass = addMainToClasspath("properties/MutablePropertyKt",
         "mutableProperty_useProtectedProp");
-    runTest(PACKAGE_NAME, mainClass, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableClassInliner, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject classSubject = checkClassExists(dexInspector,
           MUTABLE_PROPERTY_CLASS.getClassName());
@@ -145,7 +149,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
   public void testMutableProperty_internalIsAlwaysInlined() throws Exception {
     String mainClass = addMainToClasspath("properties/MutablePropertyKt",
         "mutableProperty_useInternalProp");
-    runTest(PACKAGE_NAME, mainClass, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableClassInliner, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject classSubject = checkClassExists(dexInspector,
           MUTABLE_PROPERTY_CLASS.getClassName());
@@ -168,7 +172,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
   public void testMutableProperty_publicIsAlwaysInlined() throws Exception {
     String mainClass = addMainToClasspath("properties/MutablePropertyKt",
         "mutableProperty_usePublicProp");
-    runTest(PACKAGE_NAME, mainClass, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableClassInliner, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject classSubject = checkClassExists(dexInspector,
           MUTABLE_PROPERTY_CLASS.getClassName());
@@ -191,7 +195,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
   public void testMutableProperty_primitivePropertyIsAlwaysInlined() throws Exception {
     String mainClass = addMainToClasspath("properties/MutablePropertyKt",
         "mutableProperty_usePrimitiveProp");
-    runTest(PACKAGE_NAME, mainClass, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableClassInliner, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject classSubject = checkClassExists(dexInspector,
           MUTABLE_PROPERTY_CLASS.getClassName());
@@ -216,7 +220,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
   public void testLateInitProperty_getterAndSetterAreRemoveIfNotUsed() throws Exception {
     String mainClass = addMainToClasspath("properties/LateInitPropertyKt",
         "lateInitProperty_noUseOfProperties");
-    runTest(PACKAGE_NAME, mainClass, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableClassInliner, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject classSubject = checkClassExists(dexInspector,
           LATE_INIT_PROPERTY_CLASS.getClassName());
@@ -233,7 +237,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
   public void testLateInitProperty_privateIsAlwaysInlined() throws Exception {
     String mainClass = addMainToClasspath(
         "properties/LateInitPropertyKt", "lateInitProperty_usePrivateLateInitProp");
-    runTest(PACKAGE_NAME, mainClass, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableClassInliner, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject classSubject = checkClassExists(dexInspector,
           LATE_INIT_PROPERTY_CLASS.getClassName());
@@ -256,7 +260,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
   public void testLateInitProperty_protectedIsAlwaysInlined() throws Exception {
     String mainClass = addMainToClasspath("properties/LateInitPropertyKt",
         "lateInitProperty_useProtectedLateInitProp");
-    runTest(PACKAGE_NAME, mainClass, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableClassInliner, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject classSubject = checkClassExists(dexInspector,
           LATE_INIT_PROPERTY_CLASS.getClassName());
@@ -277,7 +281,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
   public void testLateInitProperty_internalIsAlwaysInlined() throws Exception {
     String mainClass = addMainToClasspath(
         "properties/LateInitPropertyKt", "lateInitProperty_useInternalLateInitProp");
-    runTest(PACKAGE_NAME, mainClass, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableClassInliner, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject classSubject = checkClassExists(dexInspector,
           LATE_INIT_PROPERTY_CLASS.getClassName());
@@ -296,7 +300,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
   public void testLateInitProperty_publicIsAlwaysInlined() throws Exception {
     String mainClass = addMainToClasspath(
         "properties/LateInitPropertyKt", "lateInitProperty_usePublicLateInitProp");
-    runTest(PACKAGE_NAME, mainClass, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableClassInliner, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject classSubject = checkClassExists(dexInspector,
           LATE_INIT_PROPERTY_CLASS.getClassName());
@@ -315,7 +319,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
   public void testUserDefinedProperty_getterAndSetterAreRemoveIfNotUsed() throws Exception {
     String mainClass = addMainToClasspath(
         "properties/UserDefinedPropertyKt", "userDefinedProperty_noUseOfProperties");
-    runTest(PACKAGE_NAME, mainClass, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableClassInliner, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject classSubject = checkClassExists(dexInspector,
           USER_DEFINED_PROPERTY_CLASS.getClassName());
@@ -332,7 +336,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
   public void testUserDefinedProperty_publicIsAlwaysInlined() throws Exception {
     String mainClass = addMainToClasspath(
         "properties/UserDefinedPropertyKt", "userDefinedProperty_useProperties");
-    runTest(PACKAGE_NAME, mainClass, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableClassInliner, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject classSubject = checkClassExists(dexInspector,
           USER_DEFINED_PROPERTY_CLASS.getClassName());
@@ -358,7 +362,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
   public void testCompanionProperty_primitivePropertyCannotBeInlined() throws Exception {
     String mainClass = addMainToClasspath(
         "properties.CompanionPropertiesKt", "companionProperties_usePrimitiveProp");
-    runTest(PACKAGE_NAME, mainClass, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableClassInliner, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject outerClass = checkClassExists(dexInspector,
           "properties.CompanionProperties");
@@ -389,7 +393,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
   public void testCompanionProperty_privatePropertyIsAlwaysInlined() throws Exception {
     String mainClass = addMainToClasspath(
         "properties.CompanionPropertiesKt", "companionProperties_usePrivateProp");
-    runTest(PACKAGE_NAME, mainClass, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableClassInliner, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject outerClass = checkClassExists(dexInspector,
           "properties.CompanionProperties");
@@ -423,7 +427,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
   public void testCompanionProperty_internalPropertyCannotBeInlined() throws Exception {
     String mainClass = addMainToClasspath(
         "properties.CompanionPropertiesKt", "companionProperties_useInternalProp");
-    runTest(PACKAGE_NAME, mainClass, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableClassInliner, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject outerClass = checkClassExists(dexInspector,
           "properties.CompanionProperties");
@@ -454,7 +458,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
   public void testCompanionProperty_publicPropertyCannotBeInlined() throws Exception {
     String mainClass = addMainToClasspath(
         "properties.CompanionPropertiesKt", "companionProperties_usePublicProp");
-    runTest(PACKAGE_NAME, mainClass, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableClassInliner, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject outerClass = checkClassExists(dexInspector,
           "properties.CompanionProperties");
@@ -486,7 +490,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     final TestKotlinCompanionClass testedClass = COMPANION_LATE_INIT_PROPERTY_CLASS;
     String mainClass = addMainToClasspath("properties.CompanionLateInitPropertiesKt",
         "companionLateInitProperties_usePrivateLateInitProp");
-    runTest(PACKAGE_NAME, mainClass, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableClassInliner, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject outerClass = checkClassExists(dexInspector, testedClass.getOuterClassName());
       ClassSubject companionClass = checkClassExists(dexInspector, testedClass.getClassName());
@@ -517,7 +521,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     final TestKotlinCompanionClass testedClass = COMPANION_LATE_INIT_PROPERTY_CLASS;
     String mainClass = addMainToClasspath("properties.CompanionLateInitPropertiesKt",
         "companionLateInitProperties_useInternalLateInitProp");
-    runTest(PACKAGE_NAME, mainClass, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableClassInliner, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject outerClass = checkClassExists(dexInspector, testedClass.getOuterClassName());
       ClassSubject companionClass = checkClassExists(dexInspector, testedClass.getClassName());
@@ -541,7 +545,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     final TestKotlinCompanionClass testedClass = COMPANION_LATE_INIT_PROPERTY_CLASS;
     String mainClass = addMainToClasspath("properties.CompanionLateInitPropertiesKt",
         "companionLateInitProperties_usePublicLateInitProp");
-    runTest(PACKAGE_NAME, mainClass, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableClassInliner, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject outerClass = checkClassExists(dexInspector, testedClass.getOuterClassName());
       ClassSubject companionClass = checkClassExists(dexInspector, testedClass.getClassName());

@@ -50,7 +50,7 @@ public class CheckCastRemovalTest extends JasminTestBase {
     List<String> pgConfigs = ImmutableList.of(
         "-keep class " + CLASS_NAME + " { *; }",
         "-dontshrink");
-    AndroidApp app = compileWithR8(builder, pgConfigs, null);
+    AndroidApp app = compileWithR8(builder, pgConfigs, o -> o.enableClassInlining = false);
 
     DexEncodedMethod method = getMethod(app, CLASS_NAME, main);
     assertNotNull(method);

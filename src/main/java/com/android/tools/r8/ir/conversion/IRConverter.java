@@ -46,6 +46,7 @@ import com.android.tools.r8.ir.optimize.MemberValuePropagation;
 import com.android.tools.r8.ir.optimize.NonNullTracker;
 import com.android.tools.r8.ir.optimize.Outliner;
 import com.android.tools.r8.ir.optimize.PeepholeOptimizer;
+import com.android.tools.r8.ir.optimize.classinliner.ClassInliner;
 import com.android.tools.r8.ir.optimize.lambda.LambdaMerger;
 import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
@@ -87,6 +88,7 @@ public class IRConverter {
   private final LambdaRewriter lambdaRewriter;
   private final InterfaceMethodRewriter interfaceMethodRewriter;
   private final LambdaMerger lambdaMerger;
+  private final ClassInliner classInliner;
   private final InternalOptions options;
   private final CfgPrinter printer;
   private final GraphLense graphLense;
@@ -160,6 +162,9 @@ public class IRConverter {
       this.identifierNameStringMarker = null;
       this.devirtualizer = null;
     }
+    this.classInliner =
+        (options.enableClassInlining && options.enableInlining && inliner != null)
+            ? new ClassInliner(appInfo.dexItemFactory) : null;
   }
 
   /**
@@ -686,6 +691,15 @@ public class IRConverter {
       assert code.isConsistentSSA();
     }
 
+    if (classInliner != null) {
+      assert options.enableInlining && inliner != null;
+      classInliner.processMethodCode(
+          appInfo.withSubtyping(), method, code, isProcessedConcurrently,
+          methodsToInline -> inliner.performForcedInlining(method, code, methodsToInline)
+      );
+      assert code.isConsistentSSA();
+    }
+
     if (options.outline.enabled) {
       outlineHandler.accept(code, method);
       assert code.isConsistentSSA();
@@ -703,6 +717,12 @@ public class IRConverter {
     if (options.methodMatchesLogArgumentsFilter(method)) {
       codeRewriter.logArgumentTypes(method, code);
       assert code.isConsistentSSA();
+    }
+
+    // Analysis must be done after method is rewritten by logArgumentTypes()
+    codeRewriter.identifyReceiverOnlyUsedForReadingFields(method, code, feedback);
+    if (method.isInstanceInitializer()) {
+      codeRewriter.identifyOnlyInitializesFieldsWithNoOtherSideEffects(method, code, feedback);
     }
 
     printMethod(code, "Optimized IR (SSA)");

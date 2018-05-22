@@ -39,7 +39,7 @@ public class DefaultMethodsTest extends TestBase {
         "-dontobfuscate"),
         Origin.unknown());
     builder.addProguardConfiguration(additionalKeepRules, Origin.unknown());
-    AndroidApp app = ToolHelper.runR8(builder.build());
+    AndroidApp app = ToolHelper.runR8(builder.build(), o -> o.enableClassInlining = false);
     inspection.accept(new DexInspector(app));
   }
 

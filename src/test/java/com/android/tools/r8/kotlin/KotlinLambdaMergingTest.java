@@ -252,7 +252,7 @@ public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
   @Test
   public void testTrivialKs() throws Exception {
     final String mainClassName = "lambdas_kstyle_trivial.MainKt";
-    runTest("lambdas_kstyle_trivial", mainClassName, null, (app) -> {
+    runTest("lambdas_kstyle_trivial", mainClassName, (app) -> {
       Verifier verifier = new Verifier(app);
       String pkg = "lambdas_kstyle_trivial";
 
@@ -293,7 +293,7 @@ public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
   @Test
   public void testCapturesKs() throws Exception {
     final String mainClassName = "lambdas_kstyle_captures.MainKt";
-    runTest("lambdas_kstyle_captures", mainClassName, null, (app) -> {
+    runTest("lambdas_kstyle_captures", mainClassName, (app) -> {
       Verifier verifier = new Verifier(app);
       String pkg = "lambdas_kstyle_captures";
       String grpPkg = allowAccessModification ? "" : pkg;
@@ -318,7 +318,7 @@ public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
   @Test
   public void testGenericsNoSignatureKs() throws Exception {
     final String mainClassName = "lambdas_kstyle_generics.MainKt";
-    runTest("lambdas_kstyle_generics", mainClassName, null, (app) -> {
+    runTest("lambdas_kstyle_generics", mainClassName, (app) -> {
       Verifier verifier = new Verifier(app);
       String pkg = "lambdas_kstyle_generics";
       String grpPkg = allowAccessModification ? "" : pkg;
@@ -387,7 +387,7 @@ public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
   @Test
   public void testTrivialJs() throws Exception {
     final String mainClassName = "lambdas_jstyle_trivial.MainKt";
-    runTest("lambdas_jstyle_trivial", mainClassName, null, (app) -> {
+    runTest("lambdas_jstyle_trivial", mainClassName, (app) -> {
       Verifier verifier = new Verifier(app);
       String pkg = "lambdas_jstyle_trivial";
       String grp = allowAccessModification ? "" : pkg;
@@ -435,7 +435,7 @@ public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
   @Test
   public void testSingleton() throws Exception {
     final String mainClassName = "lambdas_singleton.MainKt";
-    runTest("lambdas_singleton", mainClassName, null, (app) -> {
+    runTest("lambdas_singleton", mainClassName, (app) -> {
       Verifier verifier = new Verifier(app);
       String pkg = "lambdas_singleton";
       String grp = allowAccessModification ? "" : pkg;

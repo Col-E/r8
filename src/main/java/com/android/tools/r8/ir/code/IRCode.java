@@ -358,6 +358,15 @@ public class IRCode {
     return true;
   }
 
+  public boolean hasCatchHandlers() {
+    for (BasicBlock block : blocks) {
+      if (block.hasCatchHandlers()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   private boolean consistentDefUseChains() {
     Set<Value> values = new HashSet<>();
 
@@ -578,16 +587,23 @@ public class IRCode {
   }
 
   public List<Value> collectArguments() {
+    return collectArguments(false);
+  }
+
+  public List<Value> collectArguments(boolean ignoreReceiver) {
     final List<Value> arguments = new ArrayList<>();
     Iterator<Instruction> iterator = blocks.get(0).iterator();
     while (iterator.hasNext()) {
       Instruction instruction = iterator.next();
       if (instruction.isArgument()) {
-        arguments.add(instruction.asArgument().outValue());
+        Value out = instruction.asArgument().outValue();
+        if (!ignoreReceiver || !out.isThis()) {
+          arguments.add(out);
+        }
       }
     }
     assert arguments.size()
-        == method.method.getArity() + (method.accessFlags.isStatic() ? 0 : 1);
+        == method.method.getArity() + ((method.accessFlags.isStatic() || ignoreReceiver) ? 0 : 1);
     return arguments;
   }
 

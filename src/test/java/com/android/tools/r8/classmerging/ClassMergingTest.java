@@ -39,6 +39,7 @@ public class ClassMergingTest {
 
   private void configure(InternalOptions options) {
     options.enableClassMerging = true;
+    options.enableClassInlining = false;
   }
 
   private void runR8(Path proguardConfig, Consumer<InternalOptions> optionsConsumer)

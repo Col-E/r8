@@ -333,6 +333,8 @@ public class D8Command extends BaseCompilerCommand {
     // Disable some of R8 optimizations.
     assert internal.enableInlining;
     internal.enableInlining = false;
+    assert internal.enableClassInlining;
+    internal.enableClassInlining = false;
     assert internal.enableSwitchMapRemoval;
     internal.enableSwitchMapRemoval = false;
     assert internal.outline.enabled;

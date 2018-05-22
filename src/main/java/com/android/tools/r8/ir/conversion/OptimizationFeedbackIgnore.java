@@ -5,7 +5,10 @@
 package com.android.tools.r8.ir.conversion;
 
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
+import java.util.Map;
+import java.util.Set;
 
 public class OptimizationFeedbackIgnore implements OptimizationFeedback {
 
@@ -29,4 +32,13 @@ public class OptimizationFeedbackIgnore implements OptimizationFeedback {
 
   @Override
   public void markTriggerClassInitBeforeAnySideEffect(DexEncodedMethod method, boolean mark) {}
+
+  @Override
+  public void markReceiverOnlyUsedForReadingFields(DexEncodedMethod method, Set<DexField> fields) {
+  }
+
+  @Override
+  public void markOnlyInitializesFieldsWithNoOtherSideEffects(DexEncodedMethod method,
+      Map<DexField, Integer> mapping) {
+  }
 }
