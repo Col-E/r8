@@ -238,6 +238,7 @@ public class DexItemFactory {
   public final DexType callSiteType = createType("Ljava/lang/invoke/CallSite;");
   public final DexType lookupType = createType("Ljava/lang/invoke/MethodHandles$Lookup;");
   public final DexType serializableType = createType("Ljava/io/Serializable;");
+  public final DexType comparableType = createType("Ljava/lang/Comparable;");
 
   public final DexMethod metafactoryMethod =
       createMethod(
