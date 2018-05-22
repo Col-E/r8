@@ -104,22 +104,12 @@ class TestKotlinClass {
 
   public MemberNaming.MethodSignature getGetterForProperty(String propertyName) {
     KotlinProperty property = getProperty(propertyName);
-    String type = property.type;
-    String getterName = computeGetterName(propertyName);
-    if (property.getVisibility() == Visibility.INTERNAL) {
-      getterName = appendInternalSuffix(getterName);
-    }
-    return new MemberNaming.MethodSignature(getterName, type, Collections.emptyList());
+    return getGetterForProperty(property, property.getVisibility() == Visibility.INTERNAL);
   }
 
   public MemberNaming.MethodSignature getSetterForProperty(String propertyName) {
     KotlinProperty property = getProperty(propertyName);
-    String setterName = computeSetterName(propertyName);
-    if (property.getVisibility() == Visibility.INTERNAL) {
-      setterName = appendInternalSuffix(setterName);
-    }
-    return new MemberNaming.MethodSignature(setterName, "void",
-        Collections.singleton(property.getType()));
+    return getSetterForProperty(property, property.getVisibility() == Visibility.INTERNAL);
   }
 
   public MemberNaming.MethodSignature getGetterAccessorForProperty(String propertyName,
@@ -150,6 +140,26 @@ class TestKotlinClass {
       argumentTypes = ImmutableList.of(property.getType());
     }
     return new MemberNaming.MethodSignature(setterName, "void", argumentTypes);
+  }
+
+  protected final MemberNaming.MethodSignature getGetterForProperty(KotlinProperty property,
+      boolean applyMangling) {
+    String type = property.type;
+    String getterName = computeGetterName(property.name);
+    if (applyMangling) {
+      getterName = appendInternalSuffix(getterName);
+    }
+    return new MemberNaming.MethodSignature(getterName, type, Collections.emptyList());
+  }
+
+  protected final MemberNaming.MethodSignature getSetterForProperty(KotlinProperty property,
+      boolean applyMangling) {
+    String setterName = computeSetterName(property.name);
+    if (applyMangling) {
+      setterName = appendInternalSuffix(setterName);
+    }
+    return new MemberNaming.MethodSignature(setterName, "void",
+        Collections.singleton(property.getType()));
   }
 
   private static String computeGetterName(String propertyName) {
