@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package lambdadesugaring;
 
+import java.io.Serializable;
+
 public class ValueAdjustments {
   interface B2i {
     int foo(Byte i);
@@ -35,6 +37,22 @@ public class ValueAdjustments {
 
   interface iNumber {
     Number f();
+  }
+
+  interface iSerializableOut {
+    Serializable f();
+  }
+
+  interface iSerializableInt {
+    Object f(Serializable s);
+  }
+
+  interface iComparableOut<T> {
+    Comparable<T> f();
+  }
+
+  interface iComparableInt<T> {
+    Object f(Comparable<T> c);
   }
 
   interface iByte {
@@ -162,6 +180,30 @@ public class ValueAdjustments {
         .append(((iNumber) ValueAdjustments::F).f()).append(' ')
         .append(((iNumber) ValueAdjustments::d).f()).append(' ')
         .append(((iNumber) ValueAdjustments::D).f()).append('\n');
+  }
+
+  private static void checkSerializableOut(StringBuffer builder) {
+    builder
+        .append(((iSerializableOut) ValueAdjustments::z).f()).append(' ')
+        .append(((iSerializableOut) ValueAdjustments::c).f()).append(' ')
+        .append(((iSerializableOut) ValueAdjustments::b).f()).append(' ')
+        .append(((iSerializableOut) ValueAdjustments::s).f()).append(' ')
+        .append(((iSerializableOut) ValueAdjustments::i).f()).append(' ')
+        .append(((iSerializableOut) ValueAdjustments::j).f()).append(' ')
+        .append(((iSerializableOut) ValueAdjustments::f).f()).append(' ')
+        .append(((iSerializableOut) ValueAdjustments::d).f()).append(' ');
+  }
+
+  private static void checkComparableOut(StringBuffer builder) {
+    builder
+        .append(((iComparableOut) ValueAdjustments::z).f()).append(' ')
+        .append(((iComparableOut) ValueAdjustments::c).f()).append(' ')
+        .append(((iComparableOut) ValueAdjustments::b).f()).append(' ')
+        .append(((iComparableOut) ValueAdjustments::s).f()).append(' ')
+        .append(((iComparableOut) ValueAdjustments::i).f()).append(' ')
+        .append(((iComparableOut) ValueAdjustments::j).f()).append(' ')
+        .append(((iComparableOut) ValueAdjustments::f).f()).append(' ')
+        .append(((iComparableOut) ValueAdjustments::d).f()).append(' ');
   }
 
   private static void checkBoxes(StringBuffer builder) {
@@ -310,20 +352,44 @@ public class ValueAdjustments {
         .append(((BnUnB) ValueAdjustments::boxingAndUnboxingW).foo(true, false, (byte) 1, (byte) 2,
             (char) 33, (char) 44, (short) 5, (short) 6, 7, 8, 9, 10L, 11, 12f, 13, 14d))
         .append('\n')
+        .append(((BnUnB) ValueAdjustments::allSerializable).foo(true, false, (byte) 1, (byte) 2,
+            (char) 33, (char) 44, (short) 5, (short) 6, 7, 8, 9, 10L, 11, 12f, 13, 14d))
+        .append('\n')
+        .append(((BnUnB) ValueAdjustments::allComparable).foo(true, false, (byte) 1, (byte) 2,
+            (char) 33, (char) 44, (short) 5, (short) 6, 7, 8, 9, 10L, 11, 12f, 13, 14d))
+        .append('\n')
         .append(((B2i) (Integer::new)).foo(Byte.valueOf((byte) 44))).append('\n');
   }
 
   static String boxingAndUnboxing(Boolean Z, boolean z, Byte B, byte b, Character C, char c,
       Short S, short s, Integer I, int i, Long L, long l, Float F, float f, Double D, double d) {
-    return "" + Z + ":" + z + ":" + B + ":" + b + ":" + C + ":" + c + ":" + S + ":" + s
-        + ":" + I + ":" + i + ":" + L + ":" + l + ":" + F + ":" + f + ":" + D + ":" + d;
+    return "boxingAndUnboxing: " + Z + ":" + z + ":" + B + ":" + b + ":" + C + ":" + c + ":" + S +
+        ":" + s + ":" + I + ":" + i + ":" + L + ":" + l + ":" + F + ":" + f + ":" + D + ":" + d;
   }
 
   static String boxingAndUnboxingW(boolean Z, boolean z, double B, double b,
       double C, double c, double S, double s, double I, double i, double L, double l,
       double F, double f, double D, double d) {
-    return "" + Z + ":" + z + ":" + B + ":" + b + ":" + C + ":" + c + ":" + S + ":" + s
-        + ":" + I + ":" + i + ":" + L + ":" + l + ":" + F + ":" + f + ":" + D + ":" + d;
+    return "boxingAndUnboxingW: " + Z + ":" + z + ":" + B + ":" + b + ":" + C + ":" + c + ":" + S +
+        ":" + s + ":" + I + ":" + i + ":" + L + ":" + l + ":" + F + ":" + f + ":" + D + ":" + d;
+  }
+
+  static String allSerializable(
+      Serializable Z, Serializable z, Serializable B, Serializable b,
+      Serializable C, Serializable c, Serializable S, Serializable s,
+      Serializable I, Serializable i, Serializable L, Serializable l,
+      Serializable F, Serializable f, Serializable D, Serializable d) {
+    return "allSerializable: " + Z + ":" + z + ":" + B + ":" + b + ":" + C + ":" + c + ":" + S +
+        ":" + s + ":" + I + ":" + i + ":" + L + ":" + l + ":" + F + ":" + f + ":" + D + ":" + d;
+  }
+
+  static String allComparable(
+      Comparable Z, Comparable z, Comparable B, Comparable b,
+      Comparable C, Comparable c, Comparable S, Comparable s,
+      Comparable I, Comparable i, Comparable L, Comparable l,
+      Comparable F, Comparable f, Comparable D, Comparable d) {
+    return "allComparable: " + Z + ":" + z + ":" + B + ":" + b + ":" + C + ":" + c + ":" + S +
+        ":" + s + ":" + I + ":" + i + ":" + L + ":" + l + ":" + F + ":" + f + ":" + D + ":" + d;
   }
 
   static boolean z() {
@@ -393,7 +459,7 @@ public class ValueAdjustments {
   private static void bB70348575(StringBuffer builder) {
     B70348575_C1 c1 = new B70348575_C1();
     B70348575_A1 a = c1.getB().get();
-    builder.append(a.greet()).append('\n');;
+    builder.append(a.greet()).append('\n');
   }
 
   public static void main(String[] args) {
@@ -410,6 +476,8 @@ public class ValueAdjustments {
 
     checkBoxes(builder);
     checkNumber(builder);
+    checkSerializableOut(builder);
+    checkComparableOut(builder);
     checkObject(builder);
 
     checkMisc(builder);

@@ -126,7 +126,10 @@ final class LambdaMainMethodSourceCode extends SynthesizedLambdaSourceCode {
 
       // `a` is primitive and `b` is a supertype of the boxed type `a`.
       DexType boxedPrimitiveType = getBoxedForPrimitiveType(a);
-      if (b == boxedPrimitiveType || b == factory.objectType) {
+      if (b == boxedPrimitiveType ||
+          b == factory.objectType ||
+          b == factory.serializableType ||
+          b == factory.comparableType) {
         return true;
       }
       return boxedPrimitiveType != factory.boxedCharType
@@ -337,6 +340,8 @@ final class LambdaMainMethodSourceCode extends SynthesizedLambdaSourceCode {
       DexType boxedFromType = getBoxedForPrimitiveType(fromType);
       if (toType == boxedFromType ||
           toType == factory().objectType ||
+          toType == factory().serializableType ||
+          toType == factory().comparableType ||
           (boxedFromType != factory().booleanType &&
               boxedFromType != factory().charType &&
               toType == factory().boxedNumberType)) {
