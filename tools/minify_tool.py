@@ -15,6 +15,7 @@ import argparse
 import os
 import re
 import sys
+import time
 import toolhelper
 import utils
 import zipfile
@@ -28,17 +29,23 @@ RT = os.path.join(utils.REPO_ROOT, 'third_party/openjdk/openjdk-rt-1.8/rt.jar')
 parser = argparse.ArgumentParser(description=__doc__.strip(),
                                  formatter_class=argparse.RawTextHelpFormatter)
 parser.add_argument(
-    '-i', '--input-jar',
+    '-i', '--input-jar', default=utils.R8_JAR,
     help='Input JAR to use (default: build/libs/r8.jar)')
 parser.add_argument(
     '-o', '--output-jar',
     help='Path to output JAR (default: build/libs/<MainClass>-min.jar)')
 parser.add_argument(
-    '-l', '--lib',
+    '-l', '--lib', default=RT,
     help='Path to rt.jar to use instead of OpenJDK 1.8')
 parser.add_argument(
     '-m', '--mainclass',
     help='Create/overwrite MANIFEST.MF with the given Main-Class')
+parser.add_argument(
+    '-O', '--no-debug', dest='debug', action='store_false',
+    help='Disable assertions when running R8')
+parser.add_argument(
+    '--print-runtimeraw', metavar='BENCHMARKNAME',
+    help='Print "<BENCHMARKNAME>(RunTimeRaw): <elapsed> ms" at the end')
 
 def generate_output_name(input_jar, mainclass):
   if not mainclass:
@@ -75,12 +82,10 @@ def extract_mainclass(input_jar):
           'No --mainclass specified and no Main-Class in input JAR manifest.')
     return mo.group(1)
 
-def main():
-  args = parser.parse_args()
-  mainclass = args.mainclass
-  input_jar = args.input_jar or utils.R8_JAR
-  output_jar = args.output_jar or generate_output_name(input_jar, mainclass)
-  lib = args.lib or RT
+def minify_tool(mainclass=None, input_jar=utils.R8_JAR, output_jar=None, lib=RT,
+                debug=True, build=True, print_runtimeraw=None):
+  if output_jar is None:
+    output_jar = generate_output_name(input_jar, mainclass)
   with utils.TempDir() as path:
     if mainclass:
       tmp_input_path = os.path.join(path, 'input.jar')
@@ -97,7 +102,12 @@ def main():
             '--pg-conf', keep_path,
             '--release',
             tmp_input_path)
-    return toolhelper.run('r8', args)
+    start_time = time.time()
+    return_code = toolhelper.run('r8', args, debug=debug, build=build)
+    if print_runtimeraw:
+      elapsed_ms = 1000 * (time.time() - start_time)
+      print('%s-Total(RunTimeRaw): %s ms' % (print_runtimeraw, elapsed_ms))
+    return return_code
 
 if __name__ == '__main__':
-  sys.exit(main())
+  sys.exit(minify_tool(**vars(parser.parse_args())))
