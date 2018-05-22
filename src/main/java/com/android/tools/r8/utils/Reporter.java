@@ -8,6 +8,8 @@ import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.position.Position;
 import java.util.ArrayList;
 import java.util.Collection;
 
@@ -80,7 +82,15 @@ public class Reporter implements DiagnosticsHandler {
       if (errorCount != 0) {
         AbortException abort;
         if (lastError != null && lastError.getDiagnosticMessage() != null) {
-          abort = new AbortException("Error: " + lastError.getDiagnosticMessage());
+          StringBuilder builder = new StringBuilder("Error: ");
+          if (lastError.getOrigin() != Origin.unknown()) {
+            builder.append(lastError.getOrigin()).append(", ");
+          }
+          if (lastError.getPosition() != Position.UNKNOWN) {
+            builder.append(lastError.getPosition()).append(", ");
+          }
+          builder.append(lastError.getDiagnosticMessage());
+          abort = new AbortException(builder.toString());
         } else {
           abort = new AbortException();
         }
