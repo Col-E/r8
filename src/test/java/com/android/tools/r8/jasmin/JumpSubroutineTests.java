@@ -8,11 +8,15 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.OutputMode;
+import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassFileVersion;
 import com.android.tools.r8.utils.AndroidApp;
 import com.google.common.collect.ImmutableList;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import org.junit.Test;
 
 public class JumpSubroutineTests extends JasminTestBase {
@@ -22,8 +26,26 @@ public class JumpSubroutineTests extends JasminTestBase {
     assertEquals(expected, javaResult);
     String artResult = runOnArtD8(builder, main);
     assertEquals(expected, artResult);
+    String cfFrontendResult = runOnJavaR8CfFrontend(builder, main);
+    assertEquals(expected, cfFrontendResult);
     String dxArtResult = runOnArtDx(builder, main);
     assertEquals(expected, dxArtResult);
+  }
+
+  private String runOnJavaR8CfFrontend(JasminBuilder builder, String main) throws Exception {
+    Path inputJar = temp.getRoot().toPath().resolve("input.jar");
+    Path outputJar = temp.getRoot().toPath().resolve("output.jar");
+    builder.writeJar(inputJar, null);
+    ToolHelper.runR8(
+        R8Command.builder()
+            .addProgramFiles(inputJar)
+            .setOutput(outputJar, OutputMode.ClassFile)
+            .addLibraryFiles(Paths.get(ToolHelper.JAVA_8_RUNTIME))
+            .build(),
+        options -> options.enableCfFrontend = true);
+    ProcessResult processResult = ToolHelper.runJava(outputJar, main);
+    assertEquals(0, processResult.exitCode);
+    return processResult.stdout;
   }
 
   private void expectDxFailure(JasminBuilder builder) throws Exception {
@@ -387,6 +409,8 @@ public class JumpSubroutineTests extends JasminTestBase {
     assertEquals(expected, javaResult);
     String artResult = runOnArtD8(builder, clazz.name);
     assertEquals(expected, artResult);
+    String cfFrontendResult = runOnJavaR8CfFrontend(builder, clazz.name);
+    assertEquals(expected, cfFrontendResult);
     // This fails with dx.
     expectDxFailure(builder);
   }
@@ -1344,6 +1368,8 @@ public class JumpSubroutineTests extends JasminTestBase {
     String artResult = runOnArtD8(builder, clazz.name);
     // The ASM jsr inliner does not get the control-flow dependent ret right in his case.
     assertNotEquals(expected, artResult);
+    String cfFrontendResult = runOnJavaR8CfFrontend(builder, clazz.name);
+    assertNotEquals(expected, cfFrontendResult);
     // This fails with dx.
     expectDxFailure(builder);
   }
@@ -1392,6 +1418,8 @@ public class JumpSubroutineTests extends JasminTestBase {
     String artResult = runOnArtD8(builder, clazz.name);
     // The ASM jsr inliner does not get the control-flow dependent ret right in his case.
     assertNotEquals(expected, artResult);
+    String cfFrontendResult = runOnJavaR8CfFrontend(builder, clazz.name);
+    assertNotEquals(expected, cfFrontendResult);
     // This fails with dx.
     expectDxFailure(builder);
   }
@@ -1441,6 +1469,8 @@ public class JumpSubroutineTests extends JasminTestBase {
     String artResult = runOnArtD8(builder, clazz.name);
     // The ASM jsr inliner does not get the control-flow dependent ret right in his case.
     assertNotEquals(expected, artResult);
+    String cfFrontendResult = runOnJavaR8CfFrontend(builder, clazz.name);
+    assertNotEquals(expected, cfFrontendResult);
     // This fails with dx.
     expectDxFailure(builder);
   }

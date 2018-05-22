@@ -79,6 +79,12 @@ import org.objectweb.asm.commons.JSRInlinerAdapter;
 
 public class LazyCfCode extends Code {
 
+  private static class JsrEncountered extends RuntimeException {
+    public JsrEncountered(String s) {
+      super(s);
+    }
+  }
+
   public LazyCfCode(
       DexMethod method, Origin origin, ReparseContext context, JarApplicationReader application) {
 
@@ -108,15 +114,32 @@ public class LazyCfCode extends Code {
   @Override
   public CfCode asCfCode() {
     if (code == null) {
+      ReparseContext context = this.context;
       assert context != null;
-      // The SecondVistor is in charge of setting the context to null.
-      DexProgramClass owner = context.owner;
-      ClassReader classReader = new ClassReader(context.classCache);
-      classReader.accept(new ClassCodeVisitor(context, application), ClassReader.EXPAND_FRAMES);
-      assert verifyNoReparseContext(owner);
+      // The ClassCodeVisitor is in charge of setting this.context to null.
+      try {
+        parseCode(context, false);
+      } catch (JsrEncountered e) {
+        System.out.println("LazyCfCode: JSR encountered; reparse using JSRInlinerAdapter");
+        for (Code code : context.codeList) {
+          code.asLazyCfCode().code = null;
+          code.asLazyCfCode().context = context;
+        }
+        try {
+          parseCode(context, true);
+        } catch (JsrEncountered e1) {
+          throw new Unreachable(e1);
+        }
+      }
+      assert verifyNoReparseContext(context.owner);
     }
     assert code != null;
     return code;
+  }
+
+  public void parseCode(ReparseContext context, boolean useJsrInliner) {
+    ClassCodeVisitor classVisitor = new ClassCodeVisitor(context, application, useJsrInliner);
+    new ClassReader(context.classCache).accept(classVisitor, ClassReader.EXPAND_FRAMES);
   }
 
   private void setCode(CfCode code) {
@@ -189,11 +212,14 @@ public class LazyCfCode extends Code {
     private final ReparseContext context;
     private final JarApplicationReader application;
     private int methodIndex = 0;
+    private boolean usrJsrInliner;
 
-    ClassCodeVisitor(ReparseContext context, JarApplicationReader application) {
+    ClassCodeVisitor(
+        ReparseContext context, JarApplicationReader application, boolean useJsrInliner) {
       super(Opcodes.ASM6);
       this.context = context;
       this.application = application;
+      this.usrJsrInliner = useJsrInliner;
     }
 
     @Override
@@ -205,6 +231,9 @@ public class LazyCfCode extends Code {
         DexMethod method = application.getMethod(context.owner.type, name, desc);
         assert code.method == method;
         MethodCodeVisitor methodVisitor = new MethodCodeVisitor(application, code);
+        if (!usrJsrInliner) {
+          return methodVisitor;
+        }
         return new JSRInlinerAdapter(methodVisitor, access, name, desc, signature, exceptions);
       }
       return null;
@@ -581,7 +610,7 @@ public class LazyCfCode extends Code {
           type = ValueType.OBJECT;
           break;
         case Opcodes.RET:
-          throw new Unreachable("RET should be handled by the ASM jsr inliner");
+          throw new JsrEncountered("RET should be handled by the ASM jsr inliner");
         default:
           throw new Unreachable("Unexpected VarInsn opcode: " + opcode);
       }
@@ -670,7 +699,7 @@ public class LazyCfCode extends Code {
             instructions.add(new CfIf(type, ValueType.OBJECT, target));
             break;
           case Opcodes.JSR:
-            throw new Unreachable("JSR should be handled by the ASM jsr inliner");
+            throw new JsrEncountered("JSR should be handled by the ASM jsr inliner");
           default:
             throw new Unreachable("Unexpected JumpInsn opcode: " + opcode);
         }

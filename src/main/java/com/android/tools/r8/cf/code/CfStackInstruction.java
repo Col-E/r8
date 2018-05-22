@@ -216,9 +216,7 @@ public class CfStackInstruction extends CfInstruction {
           // Current stack: ..., value1, value2, value1copy
           state.pop();
           // Output stack: ..., value1, value2
-          throw new Unimplemented(
-              "Building IR for CfStackInstruction " + opcode + " not supported");
-          // break;
+          break;
         }
     }
   }
