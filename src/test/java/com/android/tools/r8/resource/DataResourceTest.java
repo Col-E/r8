@@ -6,7 +6,7 @@ package com.android.tools.r8.resource;
 
 import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.OutputMode;
+import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
@@ -35,9 +35,10 @@ public class DataResourceTest {
     ProcessResult referenceResult = ToolHelper.runJava(inputJar, mainClassName);
 
     Path r8Out = temp.getRoot().toPath().resolve("r8out.jar");
-    R8Command.Builder builder = R8Command.builder()
-        .addProgramFiles(inputJar)
-        .setOutput(r8Out, OutputMode.DexIndexed);
+    R8Command.Builder builder =
+        R8Command.builder()
+            .addProgramFiles(inputJar)
+            .setProgramConsumer(new DexIndexedConsumer.ArchiveConsumer(r8Out, true));
     ToolHelper.runR8(builder.build());
 
     ProcessResult r8Result = ToolHelper.runArtRaw(r8Out.toString(), mainClassName);

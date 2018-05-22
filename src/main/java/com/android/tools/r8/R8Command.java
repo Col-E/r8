@@ -237,7 +237,7 @@ public class R8Command extends BaseCompilerCommand {
         Path path,
         OutputMode mode,
         boolean consumeDataResources) {
-      return super.createProgramOutputConsumer(path, mode, true);
+      return super.createProgramOutputConsumer(path, mode, false);
     }
 
     @Override
