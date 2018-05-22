@@ -26,6 +26,7 @@ import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.DexInspector.FieldSubject;
 import com.android.tools.r8.utils.DexInspector.MethodSubject;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -34,6 +35,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import org.junit.Assume;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -183,13 +185,23 @@ public abstract class AbstractR8KotlinTestBase extends TestBase {
         + "}";
   }
 
-  protected void runTest(String folder, String mainClass, AndroidAppInspector inspector)
-      throws Exception {
-    runTest(folder, mainClass, null, inspector);
+  protected void runTest(String folder, String mainClass,
+      AndroidAppInspector inspector) throws Exception {
+    runTest(folder, mainClass, null, null, inspector);
+  }
+
+  protected void runTest(String folder, String mainClass,
+      Consumer<InternalOptions> optionsConsumer, AndroidAppInspector inspector) throws Exception {
+    runTest(folder, mainClass, null, optionsConsumer, inspector);
+  }
+
+  protected void runTest(String folder, String mainClass,
+      String extraProguardRules, AndroidAppInspector inspector) throws Exception {
+    runTest(folder, mainClass, extraProguardRules, null, inspector);
   }
 
   protected void runTest(String folder, String mainClass, String extraProguardRules,
-      AndroidAppInspector inspector) throws Exception {
+      Consumer<InternalOptions> optionsConsumer, AndroidAppInspector inspector) throws Exception {
     Assume.assumeTrue(ToolHelper.artSupported());
 
     String proguardRules = buildProguardRules(mainClass);
@@ -206,7 +218,7 @@ public abstract class AbstractR8KotlinTestBase extends TestBase {
     // Build with R8
     AndroidApp.Builder builder = AndroidApp.builder();
     builder.addProgramFiles(classpath);
-    AndroidApp app = compileWithR8(builder.build(), proguardRules);
+    AndroidApp app = compileWithR8(builder.build(), proguardRules, optionsConsumer);
 
     // Materialize file for execution.
     Path generatedDexFile = temp.getRoot().toPath().resolve("classes.jar");

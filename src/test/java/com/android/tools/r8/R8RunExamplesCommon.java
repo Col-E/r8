@@ -155,24 +155,27 @@ public abstract class R8RunExamplesCommon {
                 .build());
         break;
       }
-      case R8:
-        {
-          R8Command command =
-              addInputFile(R8Command.builder())
-                  .setOutput(getOutputFile(), outputMode)
-                  .setMode(mode)
-                  .build();
-          ExceptionUtils.withR8CompilationHandler(
-              command.getReporter(),
-              () ->
-                  ToolHelper.runR8(
-                      command,
-                      options -> {
-                        options.lineNumberOptimization = LineNumberOptimization.OFF;
-                        options.enableCfFrontend = frontend == Frontend.CF;
-                      }));
-          break;
-        }
+      case R8: {
+        R8Command command =
+            addInputFile(R8Command.builder())
+                .setOutput(getOutputFile(), outputMode)
+                .setMode(mode)
+                .build();
+        ExceptionUtils.withR8CompilationHandler(
+            command.getReporter(),
+            () ->
+                ToolHelper.runR8(
+                    command,
+                    options -> {
+                      options.lineNumberOptimization = LineNumberOptimization.OFF;
+                      options.enableCfFrontend = frontend == Frontend.CF;
+                      if (output == Output.CF) {
+                        // Class inliner is not supported with CF backend yet.
+                        options.enableClassInlining = false;
+                      }
+                    }));
+        break;
+      }
       default:
         throw new Unreachable();
     }

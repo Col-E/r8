@@ -44,9 +44,12 @@ import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions;
+import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 
 public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements ResolutionResult {
@@ -564,6 +567,8 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     private boolean useIdentifierNameString = false;
     private boolean checksNullReceiverBeforeAnySideEffect = false;
     private boolean triggersClassInitBeforeAnySideEffect = false;
+    private Set<DexField> receiverOnlyUsedForReadingFields = null;
+    private Map<DexField, Integer> onlyInitializesFieldsWithNoOtherSideEffects = null;
 
     private OptimizationInfo() {
       // Intentionally left empty.
@@ -598,6 +603,15 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
 
     public boolean returnsConstant() {
       return returnsConstant;
+    }
+
+    public boolean isReceiverOnlyUsedForReadingFields(Set<DexField> fields) {
+      return receiverOnlyUsedForReadingFields != null &&
+          fields.containsAll(receiverOnlyUsedForReadingFields);
+    }
+
+    public Map<DexField, Integer> onlyInitializesFieldsWithNoOtherSideEffects() {
+      return onlyInitializesFieldsWithNoOtherSideEffects;
     }
 
     public long getReturnedConstant() {
@@ -639,6 +653,19 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       assert !returnsConstant || returnedConstant == value;
       returnsConstant = true;
       returnedConstant = value;
+    }
+
+    private void markReceiverOnlyUsedForReadingFields(Set<DexField> fields) {
+      receiverOnlyUsedForReadingFields = fields;
+    }
+
+    private void markOnlyInitializesFieldsWithNoOtherSideEffects(Map<DexField, Integer> mapping) {
+      if (mapping == null) {
+        onlyInitializesFieldsWithNoOtherSideEffects = null;
+      } else {
+        onlyInitializesFieldsWithNoOtherSideEffects = mapping.isEmpty()
+            ? Collections.emptyMap() : ImmutableMap.copyOf(mapping);
+      }
     }
 
     private void markForceInline() {
@@ -696,6 +723,15 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
 
   synchronized public void markReturnsConstant(long value) {
     ensureMutableOI().markReturnsConstant(value);
+  }
+
+  synchronized public void markReceiverOnlyUsedForReadingFields(Set<DexField> fields) {
+    ensureMutableOI().markReceiverOnlyUsedForReadingFields(fields);
+  }
+
+  synchronized public void markOnlyInitializesFieldsWithNoOtherSideEffects(
+      Map<DexField, Integer> mapping) {
+    ensureMutableOI().markOnlyInitializesFieldsWithNoOtherSideEffects(mapping);
   }
 
   synchronized public void markForceInline() {

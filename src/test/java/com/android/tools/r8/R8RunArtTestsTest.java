@@ -995,6 +995,14 @@ public abstract class R8RunArtTestsTest {
       "625-checker-licm-regressions"
   );
 
+  private static List<String> requireClassInliningToBeDisabled = ImmutableList.of(
+      // Test depends on exception produced for missing method or similar cases, but
+      // after class inlining removes class instantiations and references the exception
+      // is not produced.
+      "042-new-instance",
+      "075-verification-error"
+  );
+
   private static List<String> hasMissingClasses = ImmutableList.of(
       "091-override-package-private-method",
       "003-omnibus-opcodes",
@@ -1085,6 +1093,8 @@ public abstract class R8RunArtTestsTest {
     private final boolean outputMayDiffer;
     // Whether to disable inlining
     private final boolean disableInlining;
+    // Whether to disable class inlining
+    private final boolean disableClassInlining;
     // Has missing classes.
     private final boolean hasMissingClasses;
 
@@ -1102,6 +1112,7 @@ public abstract class R8RunArtTestsTest {
         boolean expectedToFailWithX8,
         boolean outputMayDiffer,
         boolean disableInlining,
+        boolean disableClassInlining,
         boolean hasMissingClasses,
         DexVm dexVm) {
       this.name = name;
@@ -1117,6 +1128,7 @@ public abstract class R8RunArtTestsTest {
       this.expectedToFailWithX8 = expectedToFailWithX8;
       this.outputMayDiffer = outputMayDiffer;
       this.disableInlining = disableInlining;
+      this.disableClassInlining = disableClassInlining;
       this.hasMissingClasses = hasMissingClasses;
     }
 
@@ -1142,6 +1154,7 @@ public abstract class R8RunArtTestsTest {
           false,
           false,
           disableInlining,
+          true, // Disable class inlining for JCTF tests.
           false,
           dexVm);
     }
@@ -1306,6 +1319,7 @@ public abstract class R8RunArtTestsTest {
                 expectedToFailWithCompilerSet.contains(name),
                 outputMayDiffer.contains(name),
                 requireInliningToBeDisabled.contains(name),
+                requireClassInliningToBeDisabled.contains(name),
                 hasMissingClasses.contains(name),
                 dexVm));
       }
@@ -1372,11 +1386,12 @@ public abstract class R8RunArtTestsTest {
       String resultPath,
       CompilationMode compilationMode,
       boolean disableInlining,
+      boolean disableClassInlining,
       boolean hasMissingClasses)
       throws IOException, ProguardRuleParserException, ExecutionException, CompilationException,
       CompilationFailedException {
     executeCompilerUnderTest(compilerUnderTest, fileNames, resultPath, compilationMode, null,
-        disableInlining, hasMissingClasses);
+        disableInlining, disableClassInlining, hasMissingClasses);
   }
 
   private void executeCompilerUnderTest(
@@ -1385,7 +1400,9 @@ public abstract class R8RunArtTestsTest {
       String resultPath,
       CompilationMode mode,
       String keepRulesFile,
-      boolean disableInlining, boolean hasMissingClasses)
+      boolean disableInlining,
+      boolean disableClassInlining,
+      boolean hasMissingClasses)
       throws IOException, ProguardRuleParserException, ExecutionException, CompilationException,
         CompilationFailedException {
     assert mode != null;
@@ -1522,6 +1539,9 @@ public abstract class R8RunArtTestsTest {
               options -> {
                 if (disableInlining) {
                   options.enableInlining = false;
+                }
+                if (disableClassInlining) {
+                  options.enableClassInlining = false;
                 }
                 options.lineNumberOptimization = LineNumberOptimization.OFF;
                 // Some tests actually rely on missing classes for what they test.
@@ -1734,7 +1754,8 @@ public abstract class R8RunArtTestsTest {
       throws IOException, ProguardRuleParserException, ExecutionException, CompilationException,
       CompilationFailedException {
     executeCompilerUnderTest(compilerUnderTest, fileNames, resultDir.getAbsolutePath(), mode,
-        specification.disableInlining, specification.hasMissingClasses);
+        specification.disableInlining, specification.disableClassInlining,
+        specification.hasMissingClasses);
 
     if (!ToolHelper.artSupported()) {
       return;
@@ -1907,7 +1928,8 @@ public abstract class R8RunArtTestsTest {
       try {
         executeCompilerUnderTest(
             compilerUnderTest, fileNames, resultDir.getCanonicalPath(), compilationMode,
-            specification.disableInlining, specification.hasMissingClasses);
+            specification.disableInlining, specification.disableClassInlining,
+            specification.hasMissingClasses);
       } catch (CompilationException | CompilationFailedException e) {
         throw new CompilationError(e.getMessage(), e);
       } catch (ExecutionException e) {
@@ -1919,13 +1941,15 @@ public abstract class R8RunArtTestsTest {
       expectException(Throwable.class);
       executeCompilerUnderTest(
           compilerUnderTest, fileNames, resultDir.getCanonicalPath(), compilationMode,
-          specification.disableInlining, specification.hasMissingClasses);
+          specification.disableInlining, specification.disableClassInlining,
+          specification.hasMissingClasses);
       System.err.println("Should have failed R8/D8 compilation with an exception.");
       return;
     } else {
       executeCompilerUnderTest(
           compilerUnderTest, fileNames, resultDir.getCanonicalPath(), compilationMode,
-          specification.disableInlining, specification.hasMissingClasses);
+          specification.disableInlining, specification.disableClassInlining,
+          specification.hasMissingClasses);
     }
 
     if (!specification.skipArt && ToolHelper.artSupported()) {

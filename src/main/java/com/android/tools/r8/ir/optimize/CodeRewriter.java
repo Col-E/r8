@@ -47,10 +47,13 @@ import com.android.tools.r8.ir.code.Goto;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.If.Type;
+import com.android.tools.r8.ir.code.InstanceGet;
+import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Invoke;
+import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.InvokeVirtual;
@@ -731,6 +734,122 @@ public class CodeRewriter {
       feedback.markCheckNullReceiverBeforeAnySideEffect(method,
           receiver.isUsed() && checksNullReceiverBeforeSideEffect(code, receiver));
     }
+  }
+
+  public void identifyReceiverOnlyUsedForReadingFields(
+      DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
+    if (!method.isNonAbstractVirtualMethod()) {
+      return;
+    }
+
+    feedback.markReceiverOnlyUsedForReadingFields(method, null);
+
+    Value instance = code.getThis();
+    if (instance.numberOfPhiUsers() > 0) {
+      return;
+    }
+
+    Set<DexField> fields = Sets.newIdentityHashSet();
+    for (Instruction insn : instance.uniqueUsers()) {
+      if (!insn.isInstanceGet()) {
+        return;
+      }
+      InstanceGet get = insn.asInstanceGet();
+      if (get.dest() == instance || get.object() != instance) {
+        return;
+      }
+      fields.add(get.getField());
+    }
+    feedback.markReceiverOnlyUsedForReadingFields(method, fields);
+  }
+
+  public void identifyOnlyInitializesFieldsWithNoOtherSideEffects(
+      DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
+    assert method.isInstanceInitializer();
+
+    feedback.markOnlyInitializesFieldsWithNoOtherSideEffects(method, null);
+
+    if (code.hasCatchHandlers()) {
+      return;
+    }
+
+    List<Value> args = code.collectArguments(true /* not interested in receiver */);
+    Map<DexField, Integer> mapping = new IdentityHashMap<>();
+    Value receiver = code.getThis();
+
+    InstructionIterator it = code.instructionIterator();
+    while (it.hasNext()) {
+      Instruction instruction = it.next();
+
+      // Mark an argument.
+      if (instruction.isArgument()) {
+        continue;
+      }
+
+      // Allow super call to java.lang.Object.<init>() on 'this'.
+      if (instruction.isInvokeDirect()) {
+        InvokeDirect invokedDirect = instruction.asInvokeDirect();
+        if (invokedDirect.getInvokedMethod() != dexItemFactory.objectMethods.constructor ||
+            invokedDirect.getReceiver() != receiver) {
+          return;
+        }
+        continue;
+      }
+
+      // Allow final return.
+      if (instruction.isReturn()) {
+        continue;
+      }
+
+      // Allow assignment to this class' fields. If the assigned value is an argument
+      // reference update the mep. Otherwise just allow assigning any value, since all
+      // invalid values should be filtered out at the definitions.
+      if (instruction.isInstancePut()) {
+        InstancePut instancePut = instruction.asInstancePut();
+        DexField field = instancePut.getField();
+        if (instancePut.object() != receiver) {
+          return;
+        }
+
+        Value value = instancePut.value();
+        if (value.isArgument() && !value.isThis()) {
+          assert (args.contains(value));
+          mapping.put(field, args.indexOf(value));
+        } else {
+          mapping.remove(field);
+        }
+        continue;
+      }
+
+      // Allow non-throwing constants.
+      if (instruction.isConstInstruction()) {
+        if (instruction.instructionTypeCanThrow()) {
+          return;
+        }
+        continue;
+      }
+
+      // Allow goto instructions jumping to the next block.
+      if (instruction.isGoto()) {
+        if (instruction.getBlock().getNumber() + 1 !=
+            instruction.asGoto().getTarget().getNumber()) {
+          return;
+        }
+        continue;
+      }
+
+      // Allow binary and unary instructions if they don't throw.
+      if (instruction.isBinop() || instruction.isUnop()) {
+        if (instruction.instructionTypeCanThrow()) {
+          return;
+        }
+        continue;
+      }
+
+      return;
+    }
+
+    feedback.markOnlyInitializesFieldsWithNoOtherSideEffects(method, mapping);
   }
 
   /**

@@ -599,7 +599,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
     AndroidApp app;
     builder.setProgramConsumer(DexIndexedConsumer.emptyConsumer());
     try {
-      app = ToolHelper.runR8(builder.build());
+      app = ToolHelper.runR8(builder.build(), o -> o.enableClassInlining = false);
     } catch (CompilationError e) {
       assertTrue(!forceProguardCompatibility && (!innerClasses || !enclosingMethod));
       return;
@@ -656,7 +656,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
     builder.setMinApiLevel(AndroidApiLevel.O.getLevel());
     Path proguardCompatibilityRules = temp.newFile().toPath();
     builder.setProguardCompatibilityRulesOutput(proguardCompatibilityRules);
-    AndroidApp app = ToolHelper.runR8(builder.build());
+    AndroidApp app = ToolHelper.runR8(builder.build(), o -> o.enableClassInlining = false);
     inspection.accept(new DexInspector(app));
     // Check the Proguard compatibility configuration generated.
     ProguardConfigurationParser parser =

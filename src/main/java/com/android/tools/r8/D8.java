@@ -155,6 +155,7 @@ public final class D8 {
       // Disable global optimizations.
       options.enableMinification = false;
       options.enableInlining = false;
+      options.enableClassInlining = false;
       options.outline.enabled = false;
 
       DexApplication app = new ApplicationReader(inputApp, options, timing).read(executor);

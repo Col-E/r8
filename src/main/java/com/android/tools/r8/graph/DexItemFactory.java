@@ -115,6 +115,7 @@ public class DexItemFactory {
   public final DexString valueOfMethodName = createString("valueOf");
 
   public final DexString getClassMethodName = createString("getClass");
+  public final DexString finalizeMethodName = createString("finalize");
   public final DexString ordinalMethodName = createString("ordinal");
   public final DexString desiredAssertionStatusMethodName = createString("desiredAssertionStatus");
   public final DexString forNameMethodName = createString("forName");
@@ -325,12 +326,15 @@ public class DexItemFactory {
 
     public final DexMethod getClass;
     public final DexMethod constructor;
+    public final DexMethod finalize;
 
     private ObjectMethods() {
       getClass = createMethod(objectDescriptor, getClassMethodName, classDescriptor,
           DexString.EMPTY_ARRAY);
       constructor = createMethod(objectDescriptor,
           constructorMethodName, voidType.descriptor, DexString.EMPTY_ARRAY);
+      finalize = createMethod(objectDescriptor,
+          finalizeMethodName, voidType.descriptor, DexString.EMPTY_ARRAY);
     }
   }
 

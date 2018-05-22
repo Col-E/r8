@@ -21,6 +21,7 @@ import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.InvokeMethod;
+import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
@@ -28,7 +29,6 @@ import com.android.tools.r8.ir.conversion.CallSiteInformation;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.LensCodeRewriter;
 import com.android.tools.r8.ir.conversion.OptimizationFeedback;
-import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
@@ -43,10 +43,11 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class Inliner {
+  private static final int INITIAL_INLINING_INSTRUCTION_ALLOWANCE = 1500;
 
   protected final AppInfoWithLiveness appInfo;
   private final GraphLense graphLense;
-  private final InternalOptions options;
+  final InternalOptions options;
 
   // State for inlining methods which are known to be called twice.
   private boolean applyDoubleInlining = false;
@@ -278,7 +279,7 @@ public class Inliner {
     }
   }
 
-  private int numberOfInstructions(IRCode code) {
+  final int numberOfInstructions(IRCode code) {
     int numOfInstructions = 0;
     for (BasicBlock block : code.blocks) {
       numOfInstructions += block.getInstructions().size();
@@ -364,6 +365,23 @@ public class Inliner {
     return true;
   }
 
+  public static class InliningInfo {
+    public final DexEncodedMethod target;
+    public final DexType receiverType; // null, if unknown
+
+    public InliningInfo(DexEncodedMethod target, DexType receiverType) {
+      this.target = target;
+      this.receiverType = receiverType;
+    }
+  }
+
+  public void performForcedInlining(DexEncodedMethod method, IRCode code,
+      Map<InvokeMethodWithReceiver, InliningInfo> invokesToInline) throws ApiLevelException {
+
+    ForcedInliningOracle oracle = new ForcedInliningOracle(method, invokesToInline);
+    performInliningImpl(oracle, oracle, method, code);
+  }
+
   public void performInlining(
       DexEncodedMethod method,
       IRCode code,
@@ -371,29 +389,40 @@ public class Inliner {
       Predicate<DexEncodedMethod> isProcessedConcurrently,
       CallSiteInformation callSiteInformation)
       throws ApiLevelException {
-    int instruction_allowance = 1500;
-    instruction_allowance -= numberOfInstructions(code);
-    if (instruction_allowance < 0) {
-      return;
-    }
-    InliningOracle oracle =
-        new InliningOracle(
+
+    DefaultInliningOracle oracle =
+        new DefaultInliningOracle(
             this,
             method,
+            code,
             typeEnvironment,
             callSiteInformation,
             isProcessedConcurrently,
-            options.inliningInstructionLimit);
+            options.inliningInstructionLimit,
+            INITIAL_INLINING_INSTRUCTION_ALLOWANCE - numberOfInstructions(code));
+
+    performInliningImpl(oracle, oracle, method, code);
+  }
+
+  private void performInliningImpl(
+      InliningStrategy strategy,
+      InliningOracle oracle,
+      DexEncodedMethod method,
+      IRCode code)
+      throws ApiLevelException {
+    if (strategy.exceededAllowance()) {
+      return;
+    }
 
     List<BasicBlock> blocksToRemove = new ArrayList<>();
     ListIterator<BasicBlock> blockIterator = code.listIterator();
-    while (blockIterator.hasNext() && (instruction_allowance >= 0)) {
+    while (blockIterator.hasNext() && !strategy.exceededAllowance()) {
       BasicBlock block = blockIterator.next();
       if (blocksToRemove.contains(block)) {
         continue;
       }
       InstructionListIterator iterator = block.listIterator();
-      while (iterator.hasNext() && (instruction_allowance >= 0)) {
+      while (iterator.hasNext() && !strategy.exceededAllowance()) {
         Instruction current = iterator.next();
         if (current.isInvokeMethod()) {
           InvokeMethod invoke = current.asInvokeMethod();
@@ -416,49 +445,27 @@ public class Inliner {
               if (block.hasCatchHandlers() && inlinee.computeNormalExitBlocks().isEmpty()) {
                 continue;
               }
+
               // If this code did not go through the full pipeline, apply inlining to make sure
               // that force inline targets get processed.
-              if (!target.isProcessed()) {
-                assert result.reason == Reason.FORCE;
-                if (Log.ENABLED) {
-                  Log.verbose(getClass(), "Forcing extra inline on " + target.toSourceString());
-                }
-                performInlining(
-                    target, inlinee, typeEnvironment, isProcessedConcurrently, callSiteInformation);
-              }
+              strategy.ensureMethodProcessed(target, inlinee);
+
               // Make sure constructor inlining is legal.
               assert !target.isClassInitializer();
               if (target.isInstanceInitializer()
                   && !legalConstructorInline(method, invoke, inlinee)) {
                 continue;
               }
-              DexType downcast = null;
-              if (invoke.isInvokeMethodWithReceiver()) {
-                // If the invoke has a receiver but the declared method holder is different
-                // from the computed target holder, inlining requires a downcast of the receiver.
-                if (target.method.getHolder() != invoke.getInvokedMethod().getHolder()) {
-                  downcast = result.target.method.getHolder();
-                }
-              }
+              DexType downcast = createDowncastIfNeeded(strategy, invoke, target);
               // Inline the inlinee code in place of the invoke instruction
               // Back up before the invoke instruction.
               iterator.previous();
-              instruction_allowance -= numberOfInstructions(inlinee);
-              if (instruction_allowance >= 0 || result.ignoreInstructionBudget()) {
+              strategy.markInlined(inlinee);
+              if (!strategy.exceededAllowance() || result.ignoreInstructionBudget()) {
                 BasicBlock invokeSuccessor =
                     iterator.inlineInvoke(code, inlinee, blockIterator, blocksToRemove, downcast);
-                if (options.enableNonNullTracking) {
-                  // Move the cursor back to where the inlinee blocks are added.
-                  blockIterator = code.blocks.listIterator(code.blocks.indexOf(block));
-                  // Kick off the tracker to add non-null IRs only to the inlinee blocks.
-                  new NonNullTracker()
-                      .addNonNullInPart(code, blockIterator, inlinee.blocks::contains);
-                  // Move the cursor forward to where the inlinee blocks end.
-                  blockIterator = code.blocks.listIterator(code.blocks.indexOf(invokeSuccessor));
-                }
-                // Update type env for inlined blocks.
-                typeEnvironment.analyzeBlocks(inlinee.topologicallySortedBlocks());
-                // TODO(b/69964136): need a test where refined env in inlinee affects the caller.
+                blockIterator = strategy.
+                    updateTypeInformationIfNeeded(inlinee, blockIterator, block, invokeSuccessor);
 
                 // If we inlined the invoke from a bridge method, it is no longer a bridge method.
                 if (method.accessFlags.isBridge()) {
@@ -480,5 +487,23 @@ public class Inliner {
     code.removeBlocks(blocksToRemove);
     code.removeAllTrivialPhis();
     assert code.isConsistentSSA();
+  }
+
+  private DexType createDowncastIfNeeded(
+      InliningStrategy strategy, InvokeMethod invoke, DexEncodedMethod target) {
+    if (invoke.isInvokeMethodWithReceiver()) {
+      // If the invoke has a receiver but the actual type of the receiver is different
+      // from the computed target holder, inlining requires a downcast of the receiver.
+      DexType assumedReceiverType = strategy.getReceiverTypeIfKnown(invoke);
+      if (assumedReceiverType == null) {
+        // In case we don't know exact type of the receiver we use declared
+        // method holder as a fallback.
+        assumedReceiverType = invoke.getInvokedMethod().getHolder();
+      }
+      if (assumedReceiverType != target.method.getHolder()) {
+        return target.method.getHolder();
+      }
+    }
+    return null;
   }
 }

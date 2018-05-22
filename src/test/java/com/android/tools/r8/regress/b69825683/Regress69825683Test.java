@@ -33,7 +33,7 @@ public class Regress69825683Test extends TestBase {
         "-dontobfuscate"),
         Origin.unknown());
     builder.setProgramConsumer(DexIndexedConsumer.emptyConsumer());
-    AndroidApp app = ToolHelper.runR8(builder.build());
+    AndroidApp app = ToolHelper.runR8(builder.build(), o -> o.enableClassInlining = false);
     DexInspector inspector = new DexInspector(app);
     List<FoundClassSubject> classes = inspector.allClasses();
 
@@ -66,7 +66,7 @@ public class Regress69825683Test extends TestBase {
         "-dontobfuscate"),
         Origin.unknown());
     builder.setProgramConsumer(DexIndexedConsumer.emptyConsumer());
-    AndroidApp app = ToolHelper.runR8(builder.build());
+    AndroidApp app = ToolHelper.runR8(builder.build(), o -> o.enableClassInlining = false);
     DexInspector inspector = new DexInspector(app);
     List<FoundClassSubject> classes = inspector.allClasses();
 
