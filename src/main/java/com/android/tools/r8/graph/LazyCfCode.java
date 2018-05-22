@@ -64,6 +64,7 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -218,6 +219,7 @@ public class LazyCfCode extends Code {
     private List<CfInstruction> instructions;
     private List<CfTryCatch> tryCatchRanges;
     private List<LocalVariableInfo> localVariables;
+    private final Map<DebugLocalInfo, DebugLocalInfo> canonicalDebugLocalInfo = new HashMap<>();
     private Map<Label, CfLabel> labelMap;
     private final LazyCfCode code;
     private DexMethod method;
@@ -780,12 +782,17 @@ public class LazyCfCode extends Code {
     public void visitLocalVariable(
         String name, String desc, String signature, Label start, Label end, int index) {
       DebugLocalInfo debugLocalInfo =
-          new DebugLocalInfo(
-              factory.createString(name),
-              factory.createType(desc),
-              signature == null ? null : factory.createString(signature));
+          canonicalize(
+              new DebugLocalInfo(
+                  factory.createString(name),
+                  factory.createType(desc),
+                  signature == null ? null : factory.createString(signature)));
       localVariables.add(
           new LocalVariableInfo(index, debugLocalInfo, getLabel(start), getLabel(end)));
+    }
+
+    private DebugLocalInfo canonicalize(DebugLocalInfo debugLocalInfo) {
+      return canonicalDebugLocalInfo.computeIfAbsent(debugLocalInfo, o -> debugLocalInfo);
     }
 
     @Override
