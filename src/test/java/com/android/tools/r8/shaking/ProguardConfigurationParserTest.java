@@ -1681,6 +1681,17 @@ public class ProguardConfigurationParserTest extends TestBase {
   }
 
   @Test
+  public void parse_mergeinterfaceaggressively() throws Exception {
+    Path proguardConfig = writeTextToTempFile(
+        "-mergeinterfacesaggressively"
+    );
+    ProguardConfigurationParser parser =
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
+    parser.parse(proguardConfig);
+    verifyParserEndsCleanly();
+  }
+
+  @Test
   public void parse_addconfigurationdebugging() throws Exception {
     Path proguardConfig = writeTextToTempFile(
         "-addconfigurationdebugging"

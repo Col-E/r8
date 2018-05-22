@@ -65,6 +65,8 @@ public class ProguardConfigurationParser {
       "dontskipnonpubliclibraryclasses",
       "dontskipnonpubliclibraryclassmembers",
       "invokebasemethod",
+      // TODO(b/62524562): we may support this later.
+      "mergeinterfacesaggressively",
       "android");
 
   private static final List<String> IGNORED_CLASS_DESCRIPTOR_OPTIONS = ImmutableList.of(
@@ -72,8 +74,7 @@ public class ProguardConfigurationParser {
       "whyarenotsimple");
 
   private static final List<String> WARNED_SINGLE_ARG_OPTIONS = ImmutableList.of(
-      // TODO -outjars (http://b/37137994) and -adaptresourcefilecontents (http://b/37139570)
-      // should be reported as errors, not just as warnings!
+      // TODO(b/37137994): -outjars should be reported as errors, not just as warnings!
       "outjars");
 
   private static final List<String> WARNED_FLAG_OPTIONS = ImmutableList.of(
@@ -338,9 +339,11 @@ public class ProguardConfigurationParser {
       } else if (acceptString("adaptclassstrings")) {
         parseClassFilter(configurationBuilder::addAdaptClassStringsPattern);
       } else if (acceptString("adaptresourcefilenames")) {
+        // TODO(b/76377381): should be report an error until it's fully supported.
         parsePathFilter(configurationBuilder::addAdaptResourceFilenames);
       } else if (acceptString("adaptresourcefilecontents")) {
         parsePathFilter(configurationBuilder::addAdaptResourceFilecontents);
+        // TODO(b/37139570): should be report an error until it's fully supported.
       } else if (acceptString("identifiernamestring")) {
         configurationBuilder.addRule(parseIdentifierNameStringRule());
       } else if (acceptString("if")) {
