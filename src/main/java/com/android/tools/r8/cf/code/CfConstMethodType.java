@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.cf.code;
 
-import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
@@ -49,8 +48,7 @@ public class CfConstMethodType extends CfInstruction {
   }
 
   @Override
-  public void buildIR(IRBuilder builder, CfState state, CfSourceCode code)
-      throws ApiLevelException {
+  public void buildIR(IRBuilder builder, CfState state, CfSourceCode code) {
     builder.addConstMethodType(state.push(builder.getFactory().methodTypeType).register, type);
   }
 }

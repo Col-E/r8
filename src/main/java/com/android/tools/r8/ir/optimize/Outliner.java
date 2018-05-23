@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.optimize;
 
-import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
@@ -1004,9 +1003,8 @@ public class Outliner {
     }
 
     @Override
-    public IRCode buildIR(DexEncodedMethod encodedMethod,
-        AppInfo appInfo, InternalOptions options, Origin origin)
-        throws ApiLevelException {
+    public IRCode buildIR(
+        DexEncodedMethod encodedMethod, AppInfo appInfo, InternalOptions options, Origin origin) {
       OutlineSourceCode source = new OutlineSourceCode(outline);
       IRBuilder builder = new IRBuilder(encodedMethod, appInfo, source, options);
       return builder.build();

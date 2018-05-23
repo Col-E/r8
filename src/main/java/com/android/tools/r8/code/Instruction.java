@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.code;
 
-import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.graph.DexCallSite;
@@ -184,7 +183,7 @@ public abstract class Instruction {
     return NO_TARGETS;
   }
 
-  public abstract void buildIR(IRBuilder builder) throws ApiLevelException;
+  public abstract void buildIR(IRBuilder builder);
 
   public DexCallSite getCallSite() {
     return null;

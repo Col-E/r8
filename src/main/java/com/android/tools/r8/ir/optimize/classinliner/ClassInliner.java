@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.optimize.classinliner;
 
-import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
@@ -40,7 +39,7 @@ public final class ClassInliner {
   private static final Map<DexField, Integer> NO_MAPPING = new IdentityHashMap<>();
 
   public interface InlinerAction {
-    void inline(Map<InvokeMethodWithReceiver, InliningInfo> methods) throws ApiLevelException;
+    void inline(Map<InvokeMethodWithReceiver, InliningInfo> methods);
   }
 
   public ClassInliner(DexItemFactory factory) {
@@ -110,7 +109,7 @@ public final class ClassInliner {
       DexEncodedMethod method,
       IRCode code,
       Predicate<DexEncodedMethod> isProcessedConcurrently,
-      InlinerAction inliner) throws ApiLevelException {
+      InlinerAction inliner) {
 
     // Collect all the new-instance instructions in the code before inlining.
     List<NewInstance> newInstances = Streams.stream(code.instructionIterator())
@@ -246,8 +245,8 @@ public final class ClassInliner {
     }
   }
 
-  private void inlineAllCalls(InlinerAction inliner,
-      Map<InvokeMethodWithReceiver, InliningInfo> methodCalls) throws ApiLevelException {
+  private void inlineAllCalls(
+      InlinerAction inliner, Map<InvokeMethodWithReceiver, InliningInfo> methodCalls) {
     if (!methodCalls.isEmpty()) {
       inliner.inline(methodCalls);
     }

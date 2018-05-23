@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.conversion;
 
-import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
@@ -29,7 +28,6 @@ import com.android.tools.r8.ir.conversion.IRBuilder.BlockInfo;
 import com.android.tools.r8.ir.conversion.JarState.Local;
 import com.android.tools.r8.ir.conversion.JarState.Slot;
 import com.android.tools.r8.logging.Log;
-import com.android.tools.r8.utils.ThrowingBiConsumer;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap.Entry;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
@@ -44,6 +42,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
@@ -478,8 +477,7 @@ public class JarSourceCode implements SourceCode {
 
   @Override
   public void buildInstruction(
-      IRBuilder builder, int instructionIndex, boolean firstBlockInstruction)
-      throws ApiLevelException {
+      IRBuilder builder, int instructionIndex, boolean firstBlockInstruction) {
     if (instructionIndex == EXCEPTIONAL_SYNC_EXIT_OFFSET) {
       buildExceptionalPostlude(builder);
       return;
@@ -1816,7 +1814,7 @@ public class JarSourceCode implements SourceCode {
 
   // IR instruction building procedures.
 
-  private void build(AbstractInsnNode insn, IRBuilder builder) throws ApiLevelException {
+  private void build(AbstractInsnNode insn, IRBuilder builder) {
     switch (insn.getType()) {
       case AbstractInsnNode.INSN:
         build((InsnNode) insn, builder);
@@ -2540,7 +2538,7 @@ public class JarSourceCode implements SourceCode {
     }
   }
 
-  private void build(MethodInsnNode insn, IRBuilder builder) throws ApiLevelException {
+  private void build(MethodInsnNode insn, IRBuilder builder) {
     // Resolve the target method of the invoke.
     DexMethod method = application.getMethod(insn.owner, insn.name, insn.desc);
 
@@ -2619,8 +2617,7 @@ public class JarSourceCode implements SourceCode {
       Type methodOwner,
       boolean addImplicitReceiver,
       IRBuilder builder,
-      ThrowingBiConsumer<List<ValueType>, List<Integer>, ApiLevelException> creator)
-      throws ApiLevelException {
+      BiConsumer<List<ValueType>, List<Integer>> creator) {
 
     // Build the argument list of the form [owner, param1, ..., paramN].
     // The arguments are in reverse order on the stack, so we pop off the parameters here.
@@ -2657,7 +2654,7 @@ public class JarSourceCode implements SourceCode {
     registers.add(slot.register);
   }
 
-  private void build(InvokeDynamicInsnNode insn, IRBuilder builder) throws ApiLevelException {
+  private void build(InvokeDynamicInsnNode insn, IRBuilder builder) {
     DexCallSite callSite = DexCallSite.fromAsmInvokeDynamic(insn, application, clazz);
 
     buildInvoke(insn.desc, null /* Not needed */,
@@ -2716,7 +2713,7 @@ public class JarSourceCode implements SourceCode {
     // Intentionally empty.
   }
 
-  private void build(LdcInsnNode insn, IRBuilder builder) throws ApiLevelException {
+  private void build(LdcInsnNode insn, IRBuilder builder) {
     if (insn.cst instanceof Type) {
       Type type = (Type) insn.cst;
       if (type.getSort() == Type.METHOD) {
@@ -2781,7 +2778,7 @@ public class JarSourceCode implements SourceCode {
     builder.addSwitch(index, keys, fallthroughOffset, labelOffsets);
   }
 
-  private void build(MultiANewArrayInsnNode insn, IRBuilder builder) throws ApiLevelException {
+  private void build(MultiANewArrayInsnNode insn, IRBuilder builder) {
     // Type of the full array.
     Type arrayType = application.getAsmObjectType(insn.desc);
     DexType dexArrayType = application.getType(arrayType);

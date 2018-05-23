@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.desugar;
 
-import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
@@ -425,7 +424,7 @@ final class LambdaClass {
     }
 
     // Ensure access of the referenced symbol(s).
-    abstract boolean ensureAccessibility() throws ApiLevelException;
+    abstract boolean ensureAccessibility();
 
     DexClass definitionFor(DexType type) {
       return rewriter.converter.appInfo.app.definitionFor(type);
@@ -520,7 +519,7 @@ final class LambdaClass {
     }
 
     @Override
-    boolean ensureAccessibility() throws ApiLevelException {
+    boolean ensureAccessibility() {
       // Create a static accessor with proper accessibility.
       DexProgramClass accessorClass = programDefinitionFor(callTarget.holder);
       assert accessorClass != null;

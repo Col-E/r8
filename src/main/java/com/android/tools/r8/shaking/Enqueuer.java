@@ -7,7 +7,6 @@ import static com.android.tools.r8.naming.IdentifierNameStringUtils.identifyIden
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.isReflectionMethod;
 import static com.android.tools.r8.shaking.ProguardConfigurationUtils.buildIdentifierNameStringRule;
 
-import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.Unreachable;
@@ -1343,13 +1342,8 @@ public class Enqueuer {
   }
 
   private void handleProguardReflectiveBehavior(DexEncodedMethod method) {
-    try {
-      IRCode code = method.buildIR(appInfo, options, appInfo.originFor(method.method.holder));
-      code.instructionIterator().forEachRemaining(this::handleProguardReflectiveBehavior);
-    } catch (ApiLevelException e) {
-      // Ignore this exception here. It will be hit again further in the pipeline when
-      // generating code.
-    }
+    IRCode code = method.buildIR(appInfo, options, appInfo.originFor(method.method.holder));
+    code.instructionIterator().forEachRemaining(this::handleProguardReflectiveBehavior);
   }
 
   private void handleProguardReflectiveBehavior(Instruction instruction) {

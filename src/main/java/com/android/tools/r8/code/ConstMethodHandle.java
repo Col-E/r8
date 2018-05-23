@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.code;
 
-import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
@@ -71,7 +70,7 @@ public class ConstMethodHandle extends Format21c {
   }
 
   @Override
-  public void buildIR(IRBuilder builder) throws ApiLevelException {
+  public void buildIR(IRBuilder builder) {
     builder.addConstMethodHandle(AA, (DexMethodHandle) BBBB);
   }
 

@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.errors.InvalidDebugInfoException;
 import com.android.tools.r8.graph.JarClassFileReader.ReparseContext;
 import com.android.tools.r8.ir.code.IRCode;
@@ -104,9 +103,8 @@ public class JarCode extends Code {
   }
 
   @Override
-  public IRCode buildIR(DexEncodedMethod encodedMethod, AppInfo appInfo,
-      InternalOptions options, Origin origin)
-      throws ApiLevelException {
+  public IRCode buildIR(
+      DexEncodedMethod encodedMethod, AppInfo appInfo, InternalOptions options, Origin origin) {
     triggerDelayedParsingIfNeccessary();
     return options.debug
         ? internalBuildWithLocals(encodedMethod, appInfo, options, null, null)
@@ -116,11 +114,11 @@ public class JarCode extends Code {
   @Override
   public IRCode buildInliningIR(
       DexEncodedMethod encodedMethod,
-      AppInfo appInfo, InternalOptions options,
+      AppInfo appInfo,
+      InternalOptions options,
       ValueNumberGenerator generator,
       Position callerPosition,
-      Origin origin)
-      throws ApiLevelException {
+      Origin origin) {
     assert generator != null;
     triggerDelayedParsingIfNeccessary();
     return options.debug
@@ -130,10 +128,10 @@ public class JarCode extends Code {
 
   private IRCode internalBuildWithLocals(
       DexEncodedMethod encodedMethod,
-      AppInfo appInfo, InternalOptions options,
+      AppInfo appInfo,
+      InternalOptions options,
       ValueNumberGenerator generator,
-      Position callerPosition)
-      throws ApiLevelException {
+      Position callerPosition) {
     try {
       return internalBuild(encodedMethod, appInfo, options, generator, callerPosition);
     } catch (InvalidDebugInfoException e) {
@@ -145,10 +143,10 @@ public class JarCode extends Code {
 
   private IRCode internalBuild(
       DexEncodedMethod encodedMethod,
-      AppInfo appInfo, InternalOptions options,
+      AppInfo appInfo,
+      InternalOptions options,
       ValueNumberGenerator generator,
-      Position callerPosition)
-      throws ApiLevelException {
+      Position callerPosition) {
     if (!options.debug) {
       node.localVariables.clear();
     }

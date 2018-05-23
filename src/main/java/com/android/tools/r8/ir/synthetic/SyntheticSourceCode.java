@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.synthetic;
 
 import static com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo.NO_THROW;
 
-import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexProto;
@@ -18,9 +17,9 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.SourceCode;
-import com.android.tools.r8.utils.ThrowingConsumer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 public abstract class SyntheticSourceCode implements SourceCode {
@@ -43,7 +42,7 @@ public abstract class SyntheticSourceCode implements SourceCode {
   private Value[] paramValues;
 
   // Instruction constructors
-  private List<ThrowingConsumer<IRBuilder, ApiLevelException>> constructors = new ArrayList<>();
+  private List<Consumer<IRBuilder>> constructors = new ArrayList<>();
   private List<Predicate<IRBuilder>> traceEvents = new ArrayList<>();
 
   protected SyntheticSourceCode(DexType receiver, DexProto proto) {
@@ -63,12 +62,11 @@ public abstract class SyntheticSourceCode implements SourceCode {
     }
   }
 
-  protected final void add(ThrowingConsumer<IRBuilder, ApiLevelException> constructor) {
+  protected final void add(Consumer<IRBuilder> constructor) {
     add(constructor, doesNotEndBlock);
   }
 
-  protected final void add(
-      ThrowingConsumer<IRBuilder, ApiLevelException> constructor, Predicate<IRBuilder> traceEvent) {
+  protected final void add(Consumer<IRBuilder> constructor, Predicate<IRBuilder> traceEvent) {
     constructors.add(constructor);
     traceEvents.add(traceEvent);
   }
@@ -189,8 +187,7 @@ public abstract class SyntheticSourceCode implements SourceCode {
 
   @Override
   public final void buildInstruction(
-      IRBuilder builder, int instructionIndex, boolean firstBlockInstruction)
-      throws ApiLevelException {
+      IRBuilder builder, int instructionIndex, boolean firstBlockInstruction) {
     constructors.get(instructionIndex).accept(builder);
   }
 

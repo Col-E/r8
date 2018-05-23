@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.code;
 
-import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.OffsetToObjectMapping;
 import com.android.tools.r8.graph.UseRegistry;
@@ -50,7 +49,7 @@ public class InvokeVirtual extends Format35c {
   }
 
   @Override
-  public void buildIR(IRBuilder builder) throws ApiLevelException {
+  public void buildIR(IRBuilder builder) {
     builder.addInvokeRegisters(Type.VIRTUAL, getMethod(), getProto(), A, new int[]{C, D, E, F, G});
   }
 

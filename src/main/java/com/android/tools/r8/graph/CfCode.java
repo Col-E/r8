@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfLabel;
@@ -201,11 +200,7 @@ public class CfCode extends Code {
 
   @Override
   public IRCode buildIR(
-      DexEncodedMethod encodedMethod,
-      AppInfo appInfo,
-      InternalOptions options,
-      Origin origin)
-      throws ApiLevelException {
+      DexEncodedMethod encodedMethod, AppInfo appInfo, InternalOptions options, Origin origin) {
     return internalBuild(encodedMethod, appInfo, options, null, null, origin);
   }
 
@@ -216,8 +211,7 @@ public class CfCode extends Code {
       InternalOptions options,
       ValueNumberGenerator valueNumberGenerator,
       Position callerPosition,
-      Origin origin)
-      throws ApiLevelException {
+      Origin origin) {
     assert valueNumberGenerator != null;
     assert callerPosition != null;
     return internalBuild(
@@ -230,8 +224,7 @@ public class CfCode extends Code {
       InternalOptions options,
       ValueNumberGenerator generator,
       Position callerPosition,
-      Origin origin)
-      throws ApiLevelException {
+      Origin origin) {
     assert !options.isGeneratingDex() || !encodedMethod.accessFlags.isSynchronized()
         : "Converting CfCode to IR not supported for DEX output of synchronized methods.";
     CfSourceCode source = new CfSourceCode(this, encodedMethod, callerPosition, origin);

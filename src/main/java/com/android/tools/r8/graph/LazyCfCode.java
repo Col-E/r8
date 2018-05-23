@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.cf.code.CfArithmeticBinop;
 import com.android.tools.r8.cf.code.CfArrayLength;
 import com.android.tools.r8.cf.code.CfArrayLoad;
@@ -151,9 +150,8 @@ public class LazyCfCode extends Code {
   }
 
   @Override
-  public IRCode buildIR(DexEncodedMethod encodedMethod, AppInfo appInfo,
-      InternalOptions options, Origin origin)
-      throws ApiLevelException {
+  public IRCode buildIR(
+      DexEncodedMethod encodedMethod, AppInfo appInfo, InternalOptions options, Origin origin) {
     return asCfCode().buildIR(encodedMethod, appInfo, options, origin);
   }
 
@@ -164,8 +162,7 @@ public class LazyCfCode extends Code {
       InternalOptions options,
       ValueNumberGenerator valueNumberGenerator,
       Position callerPosition,
-      Origin origin)
-      throws ApiLevelException {
+      Origin origin) {
     return asCfCode().buildInliningIR(
         encodedMethod, appInfo, options, valueNumberGenerator, callerPosition, origin);
   }

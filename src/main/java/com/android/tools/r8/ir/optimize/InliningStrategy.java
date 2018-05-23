@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.optimize;
 
-import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -17,8 +16,7 @@ interface InliningStrategy {
 
   void markInlined(IRCode inlinee);
 
-  void ensureMethodProcessed(
-      DexEncodedMethod target, IRCode inlinee) throws ApiLevelException;
+  void ensureMethodProcessed(DexEncodedMethod target, IRCode inlinee);
 
   ListIterator<BasicBlock> updateTypeInformationIfNeeded(IRCode inlinee,
       ListIterator<BasicBlock> blockIterator, BasicBlock block, BasicBlock invokeSuccessor);
