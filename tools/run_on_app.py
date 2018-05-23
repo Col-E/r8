@@ -203,7 +203,7 @@ def main(argv):
       toolhelper.run(options.compiler, args, build=not options.no_build,
                      debug=not options.no_debug,
                      profile=options.profile,
-                     track_memory_to_file=options.track_memory_to_file)
+                     track_memory_file=options.track_memory_to_file)
       if options.print_memoryuse:
         print('{}(MemoryUse): {}'
             .format(options.print_memoryuse,

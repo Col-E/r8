@@ -76,7 +76,7 @@ def main():
         build=not options.no_build,
         debug=not options.no_debug,
         profile=options.profile,
-        track_memory_to_file=options.track_memory_to_file)
+        track_memory_file=options.track_memory_to_file)
 
 if __name__ == '__main__':
   sys.exit(main())
