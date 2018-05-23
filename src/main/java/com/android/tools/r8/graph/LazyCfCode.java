@@ -64,6 +64,7 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -77,6 +78,12 @@ import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.JSRInlinerAdapter;
 
 public class LazyCfCode extends Code {
+
+  private static class JsrEncountered extends RuntimeException {
+    public JsrEncountered(String s) {
+      super(s);
+    }
+  }
 
   public LazyCfCode(
       DexMethod method, Origin origin, ReparseContext context, JarApplicationReader application) {
@@ -107,15 +114,32 @@ public class LazyCfCode extends Code {
   @Override
   public CfCode asCfCode() {
     if (code == null) {
+      ReparseContext context = this.context;
       assert context != null;
-      // The SecondVistor is in charge of setting the context to null.
-      DexProgramClass owner = context.owner;
-      ClassReader classReader = new ClassReader(context.classCache);
-      classReader.accept(new ClassCodeVisitor(context, application), ClassReader.EXPAND_FRAMES);
-      assert verifyNoReparseContext(owner);
+      // The ClassCodeVisitor is in charge of setting this.context to null.
+      try {
+        parseCode(context, false);
+      } catch (JsrEncountered e) {
+        System.out.println("LazyCfCode: JSR encountered; reparse using JSRInlinerAdapter");
+        for (Code code : context.codeList) {
+          code.asLazyCfCode().code = null;
+          code.asLazyCfCode().context = context;
+        }
+        try {
+          parseCode(context, true);
+        } catch (JsrEncountered e1) {
+          throw new Unreachable(e1);
+        }
+      }
+      assert verifyNoReparseContext(context.owner);
     }
     assert code != null;
     return code;
+  }
+
+  public void parseCode(ReparseContext context, boolean useJsrInliner) {
+    ClassCodeVisitor classVisitor = new ClassCodeVisitor(context, application, useJsrInliner);
+    new ClassReader(context.classCache).accept(classVisitor, ClassReader.EXPAND_FRAMES);
   }
 
   private void setCode(CfCode code) {
@@ -190,11 +214,14 @@ public class LazyCfCode extends Code {
     private final ReparseContext context;
     private final JarApplicationReader application;
     private int methodIndex = 0;
+    private boolean usrJsrInliner;
 
-    ClassCodeVisitor(ReparseContext context, JarApplicationReader application) {
+    ClassCodeVisitor(
+        ReparseContext context, JarApplicationReader application, boolean useJsrInliner) {
       super(Opcodes.ASM6);
       this.context = context;
       this.application = application;
+      this.usrJsrInliner = useJsrInliner;
     }
 
     @Override
@@ -206,6 +233,9 @@ public class LazyCfCode extends Code {
         DexMethod method = application.getMethod(context.owner.type, name, desc);
         assert code.method == method;
         MethodCodeVisitor methodVisitor = new MethodCodeVisitor(application, code);
+        if (!usrJsrInliner) {
+          return methodVisitor;
+        }
         return new JSRInlinerAdapter(methodVisitor, access, name, desc, signature, exceptions);
       }
       return null;
@@ -220,6 +250,7 @@ public class LazyCfCode extends Code {
     private List<CfInstruction> instructions;
     private List<CfTryCatch> tryCatchRanges;
     private List<LocalVariableInfo> localVariables;
+    private final Map<DebugLocalInfo, DebugLocalInfo> canonicalDebugLocalInfo = new HashMap<>();
     private Map<Label, CfLabel> labelMap;
     private final LazyCfCode code;
     private DexMethod method;
@@ -581,7 +612,7 @@ public class LazyCfCode extends Code {
           type = ValueType.OBJECT;
           break;
         case Opcodes.RET:
-          throw new Unreachable("RET should be handled by the ASM jsr inliner");
+          throw new JsrEncountered("RET should be handled by the ASM jsr inliner");
         default:
           throw new Unreachable("Unexpected VarInsn opcode: " + opcode);
       }
@@ -670,7 +701,7 @@ public class LazyCfCode extends Code {
             instructions.add(new CfIf(type, ValueType.OBJECT, target));
             break;
           case Opcodes.JSR:
-            throw new Unreachable("JSR should be handled by the ASM jsr inliner");
+            throw new JsrEncountered("JSR should be handled by the ASM jsr inliner");
           default:
             throw new Unreachable("Unexpected JumpInsn opcode: " + opcode);
         }
@@ -782,12 +813,17 @@ public class LazyCfCode extends Code {
     public void visitLocalVariable(
         String name, String desc, String signature, Label start, Label end, int index) {
       DebugLocalInfo debugLocalInfo =
-          new DebugLocalInfo(
-              factory.createString(name),
-              factory.createType(desc),
-              signature == null ? null : factory.createString(signature));
+          canonicalize(
+              new DebugLocalInfo(
+                  factory.createString(name),
+                  factory.createType(desc),
+                  signature == null ? null : factory.createString(signature)));
       localVariables.add(
           new LocalVariableInfo(index, debugLocalInfo, getLabel(start), getLabel(end)));
+    }
+
+    private DebugLocalInfo canonicalize(DebugLocalInfo debugLocalInfo) {
+      return canonicalDebugLocalInfo.computeIfAbsent(debugLocalInfo, o -> debugLocalInfo);
     }
 
     @Override

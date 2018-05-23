@@ -187,13 +187,42 @@ public class JarCode extends Code {
   }
 
   private void triggerDelayedParsingIfNeccessary() {
-    if (context != null) {
-      // The SecondVistor is in charge of setting the context to null.
-      DexProgramClass owner = context.owner;
-      new ClassReader(context.classCache).accept(new SecondVisitor(context, application),
-          ClassReader.SKIP_FRAMES);
-      assert verifyNoReparseContext(owner);
+    if (this.context != null) {
+      // The SecondVisitor is in charge of setting this.context to null.
+      ReparseContext context = this.context;
+      parseCode(context, false);
+      if (hasJsr(context)) {
+        System.out.println("JarCode: JSR encountered; reparse using JSRInlinerAdapter");
+        parseCode(context, true);
+        assert !hasJsr(context);
+      }
+      assert verifyNoReparseContext(context.owner);
     }
+  }
+
+  private void parseCode(ReparseContext context, boolean useJsrInliner) {
+    SecondVisitor classVisitor = new SecondVisitor(context, application, useJsrInliner);
+    new ClassReader(context.classCache).accept(classVisitor, ClassReader.SKIP_FRAMES);
+  }
+
+  private boolean hasJsr(ReparseContext context) {
+    for (Code code : context.codeList) {
+      if (hasJsr(code.asJarCode().node)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private boolean hasJsr(MethodNode node) {
+    Iterator<AbstractInsnNode> it = node.instructions.iterator();
+    while (it.hasNext()) {
+      int opcode = it.next().getOpcode();
+      if (opcode == Opcodes.JSR || opcode == Opcodes.RET) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
@@ -203,18 +232,24 @@ public class JarCode extends Code {
 
     private final ReparseContext context;
     private final JarApplicationReader application;
+    private final boolean useJsrInliner;
     private int methodIndex = 0;
 
-    public SecondVisitor(ReparseContext context, JarApplicationReader application) {
+    public SecondVisitor(
+        ReparseContext context, JarApplicationReader application, boolean useJsrInliner) {
       super(Opcodes.ASM6);
       this.context = context;
       this.application = application;
+      this.useJsrInliner = useJsrInliner;
     }
 
     @Override
     public MethodVisitor visitMethod(int access, String name, String desc, String signature,
         String[] exceptions) {
-      MethodNode node = new JSRInlinerAdapter(null, access, name, desc, signature, exceptions);
+      MethodNode node =
+          useJsrInliner
+              ? new JSRInlinerAdapter(null, access, name, desc, signature, exceptions)
+              : new MethodNode(Opcodes.ASM6, access, name, desc, signature, exceptions);
       JarCode code = null;
       MethodAccessFlags flags = JarClassFileReader.createMethodAccessFlags(name, access);
       if (!flags.isAbstract() && !flags.isNative()) {
