@@ -4,7 +4,6 @@
 package com.android.tools.r8.cf;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.CompilationMode;
@@ -14,8 +13,6 @@ import com.android.tools.r8.R8Command.Builder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.errors.InvalidDebugInfoException;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import java.nio.file.Path;
@@ -36,18 +33,9 @@ public class DebugInfoTestRunner extends TestBase {
     ProcessResult run1 = ToolHelper.runJava(out1, CLASS.getCanonicalName());
     assertEquals(runInput.toString(), run1.toString());
     Path out2 = temp.getRoot().toPath().resolve("out2.zip");
-    boolean invalidDebugInfo = false;
-    try {
-      build(builder -> builder.addProgramFiles(out1), new ClassFileConsumer.ArchiveConsumer(out2));
-    } catch (CompilationError e) {
-      invalidDebugInfo = e.getCause() instanceof InvalidDebugInfoException;
-    }
-    // TODO(b/77522100): Change to assertFalse when fixed.
-    assertTrue(invalidDebugInfo);
-    if (!invalidDebugInfo) {
-      ProcessResult run2 = ToolHelper.runJava(out2, CLASS.getCanonicalName());
-      assertEquals(runInput.toString(), run2.toString());
-    }
+    build(builder -> builder.addProgramFiles(out1), new ClassFileConsumer.ArchiveConsumer(out2));
+    ProcessResult run2 = ToolHelper.runJava(out2, CLASS.getCanonicalName());
+    assertEquals(runInput.toString(), run2.toString());
   }
 
   private void build(ThrowingConsumer<Builder, Exception> input, ProgramConsumer consumer)
