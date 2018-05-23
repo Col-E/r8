@@ -109,7 +109,7 @@ public class RemoveVisibilityBridgeMethodsTest extends TestBase {
     assertEquals(0, javaResult.exitCode);
 
     AndroidApp optimizedApp = compileWithR8(jasminBuilder.build(), proguardConfig,
-        // Disable inlining to avoid the (short) tested method from being inlined then removed.
+        // Disable inlining to avoid the (short) tested method from being inlined and then removed.
         internalOptions -> internalOptions.enableInlining = false);
 
     // Run optimized (output) program on ART
