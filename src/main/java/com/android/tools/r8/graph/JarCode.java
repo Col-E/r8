@@ -104,18 +104,19 @@ public class JarCode extends Code {
   }
 
   @Override
-  public IRCode buildIR(DexEncodedMethod encodedMethod, InternalOptions options, Origin origin)
+  public IRCode buildIR(DexEncodedMethod encodedMethod, AppInfo appInfo,
+      InternalOptions options, Origin origin)
       throws ApiLevelException {
     triggerDelayedParsingIfNeccessary();
     return options.debug
-        ? internalBuildWithLocals(encodedMethod, options, null, null)
-        : internalBuild(encodedMethod, options, null, null);
+        ? internalBuildWithLocals(encodedMethod, appInfo, options, null, null)
+        : internalBuild(encodedMethod, appInfo, options, null, null);
   }
 
   @Override
   public IRCode buildInliningIR(
       DexEncodedMethod encodedMethod,
-      InternalOptions options,
+      AppInfo appInfo, InternalOptions options,
       ValueNumberGenerator generator,
       Position callerPosition,
       Origin origin)
@@ -123,28 +124,28 @@ public class JarCode extends Code {
     assert generator != null;
     triggerDelayedParsingIfNeccessary();
     return options.debug
-        ? internalBuildWithLocals(encodedMethod, options, generator, callerPosition)
-        : internalBuild(encodedMethod, options, generator, callerPosition);
+        ? internalBuildWithLocals(encodedMethod, appInfo, options, generator, callerPosition)
+        : internalBuild(encodedMethod, appInfo, options, generator, callerPosition);
   }
 
   private IRCode internalBuildWithLocals(
       DexEncodedMethod encodedMethod,
-      InternalOptions options,
+      AppInfo appInfo, InternalOptions options,
       ValueNumberGenerator generator,
       Position callerPosition)
       throws ApiLevelException {
     try {
-      return internalBuild(encodedMethod, options, generator, callerPosition);
+      return internalBuild(encodedMethod, appInfo, options, generator, callerPosition);
     } catch (InvalidDebugInfoException e) {
       options.warningInvalidDebugInfo(encodedMethod, origin, e);
       node.localVariables.clear();
-      return internalBuild(encodedMethod, options, generator, callerPosition);
+      return internalBuild(encodedMethod, appInfo, options, generator, callerPosition);
     }
   }
 
   private IRCode internalBuild(
       DexEncodedMethod encodedMethod,
-      InternalOptions options,
+      AppInfo appInfo, InternalOptions options,
       ValueNumberGenerator generator,
       Position callerPosition)
       throws ApiLevelException {
@@ -155,8 +156,8 @@ public class JarCode extends Code {
         method.getHolder(), node, application, encodedMethod.method, callerPosition);
     IRBuilder builder =
         (generator == null)
-            ? new IRBuilder(encodedMethod, source, options)
-            : new IRBuilder(encodedMethod, source, options, generator);
+            ? new IRBuilder(encodedMethod, appInfo, source, options)
+            : new IRBuilder(encodedMethod, appInfo, source, options, generator);
     return builder.build();
   }
 

@@ -1344,7 +1344,7 @@ public class Enqueuer {
 
   private void handleProguardReflectiveBehavior(DexEncodedMethod method) {
     try {
-      IRCode code = method.buildIR(options, appInfo.originFor(method.method.holder));
+      IRCode code = method.buildIR(appInfo, options, appInfo.originFor(method.method.holder));
       code.instructionIterator().forEachRemaining(this::handleProguardReflectiveBehavior);
     } catch (ApiLevelException e) {
       // Ignore this exception here. It will be hit again further in the pipeline when

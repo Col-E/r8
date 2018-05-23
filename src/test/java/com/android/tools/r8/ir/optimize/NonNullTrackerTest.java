@@ -48,7 +48,7 @@ public class NonNullTrackerTest extends TestBase {
     AppInfo appInfo = new AppInfo(dexApplication);
     DexInspector dexInspector = new DexInspector(appInfo.app);
     DexEncodedMethod foo = dexInspector.clazz(testClass.getName()).method(signature).getMethod();
-    IRCode irCode = foo.buildIR(TEST_OPTIONS, Origin.unknown());
+    IRCode irCode = foo.buildIR(appInfo, TEST_OPTIONS, Origin.unknown());
     checkCountOfNonNull(irCode, 0);
 
     NonNullTracker nonNullTracker = new NonNullTracker();

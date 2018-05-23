@@ -200,14 +200,19 @@ public class CfCode extends Code {
   }
 
   @Override
-  public IRCode buildIR(DexEncodedMethod encodedMethod, InternalOptions options, Origin origin)
+  public IRCode buildIR(
+      DexEncodedMethod encodedMethod,
+      AppInfo appInfo,
+      InternalOptions options,
+      Origin origin)
       throws ApiLevelException {
-    return internalBuild(encodedMethod, options, null, null, origin);
+    return internalBuild(encodedMethod, appInfo, options, null, null, origin);
   }
 
   @Override
   public IRCode buildInliningIR(
       DexEncodedMethod encodedMethod,
+      AppInfo appInfo,
       InternalOptions options,
       ValueNumberGenerator valueNumberGenerator,
       Position callerPosition,
@@ -215,11 +220,13 @@ public class CfCode extends Code {
       throws ApiLevelException {
     assert valueNumberGenerator != null;
     assert callerPosition != null;
-    return internalBuild(encodedMethod, options, valueNumberGenerator, callerPosition, origin);
+    return internalBuild(
+        encodedMethod, appInfo, options, valueNumberGenerator, callerPosition, origin);
   }
 
   private IRCode internalBuild(
       DexEncodedMethod encodedMethod,
+      AppInfo appInfo,
       InternalOptions options,
       ValueNumberGenerator generator,
       Position callerPosition,
@@ -230,8 +237,8 @@ public class CfCode extends Code {
     CfSourceCode source = new CfSourceCode(this, encodedMethod, callerPosition, origin);
     IRBuilder builder =
         (generator == null)
-            ? new IRBuilder(encodedMethod, source, options)
-            : new IRBuilder(encodedMethod, source, options, generator);
+            ? new IRBuilder(encodedMethod, appInfo, source, options)
+            : new IRBuilder(encodedMethod, appInfo, source, options, generator);
     return builder.build();
   }
 

@@ -583,7 +583,7 @@ public class IRConverter {
       feedback.markProcessed(method, Constraint.NEVER);
       return;
     }
-    IRCode code = method.buildIR(options, appInfo.originFor(method.method.holder));
+    IRCode code = method.buildIR(appInfo, options, appInfo.originFor(method.method.holder));
     if (code == null) {
       feedback.markProcessed(method, Constraint.NEVER);
       return;
