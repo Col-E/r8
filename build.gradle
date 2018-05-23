@@ -34,7 +34,7 @@ ext {
     fastutilVersion = '7.2.0'
     guavaVersion = '23.0'
     joptSimpleVersion = '4.6'
-    jsonSimpleVersion = '1.1'
+    gsonVersion = '2.7'
     junitVersion = '4.12'
     kotlinVersion = '1.2.30'
     protobufVersion = '3.0.0'
@@ -205,7 +205,7 @@ configurations {
 
 dependencies {
     compile "net.sf.jopt-simple:jopt-simple:$joptSimpleVersion"
-    compile "com.googlecode.json-simple:json-simple:$jsonSimpleVersion"
+    compile "com.google.code.gson:gson:$gsonVersion"
     // Include all of guava when compiling the code, but exclude annotations that we don't
     // need from the packaging.
     compileOnly("com.google.guava:guava:$guavaVersion")
@@ -485,11 +485,11 @@ task consolidatedLicense {
 
 static configureRelocations(ShadowJar task) {
     task.relocate('com.google.common', 'com.android.tools.r8.com.google.common')
+    task.relocate('com.google.gson', 'com.android.tools.r8.com.google.gson')
     task.relocate('com.google.thirdparty', 'com.android.tools.r8.com.google.thirdparty')
     task.relocate('joptsimple', 'com.android.tools.r8.joptsimple')
     task.relocate('org.apache.commons', 'com.android.tools.r8.org.apache.commons')
     task.relocate('org.objectweb.asm', 'com.android.tools.r8.org.objectweb.asm')
-    task.relocate('org.json.simple', 'com.android.tools.r8.org.json.simple')
     task.relocate('it.unimi.dsi.fastutil', 'com.android.tools.r8.it.unimi.dsi.fastutil')
 }
 
