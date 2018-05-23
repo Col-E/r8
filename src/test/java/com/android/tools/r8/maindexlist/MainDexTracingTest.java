@@ -15,8 +15,12 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -38,6 +42,23 @@ public class MainDexTracingTest {
   private static final String EXAMPLE_O_SRC_DIR = ToolHelper.EXAMPLES_ANDROID_O_DIR;
 
   @Rule public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
+
+  @Test
+  public void traceMainDexList001_whyareyoukeeping() throws Throwable {
+    PrintStream stdout = System.out;
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    System.setOut(new PrintStream(baos));
+    doTest(
+        "traceMainDexList001_1",
+        "multidex001",
+        EXAMPLE_BUILD_DIR,
+        Paths.get(EXAMPLE_SRC_DIR, "multidex", "main-dex-rules-whyareyoukeeping.txt"),
+        Paths.get(EXAMPLE_SRC_DIR, "multidex001", "ref-list-1.txt"),
+        AndroidApiLevel.I);
+    String output = new String(baos.toByteArray(), Charset.defaultCharset());
+    Assert.assertTrue(output.contains("is live because referenced in keep rule:"));
+    System.setOut(stdout);
+  }
 
   @Test
   public void traceMainDexList001_1() throws Throwable {
@@ -271,10 +292,9 @@ public class MainDexTracingTest {
   }
 
   private String mainDexStringToDescriptor(String mainDexString) {
-    final String CLASS_EXTENSION = ".class";
-    Assert.assertTrue(mainDexString.endsWith(CLASS_EXTENSION));
+    Assert.assertTrue(mainDexString.endsWith(FileUtils.CLASS_EXTENSION));
     return DescriptorUtils.getDescriptorFromClassBinaryName(
-        mainDexString.substring(0, mainDexString.length() - CLASS_EXTENSION.length()));
+        mainDexString.substring(0, mainDexString.length() - FileUtils.CLASS_EXTENSION.length()));
   }
 
   private void checkSameMainDexEntry(String reference, String computed) {
