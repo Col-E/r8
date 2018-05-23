@@ -14,8 +14,8 @@ PINNED_R8_JAR = os.path.join(utils.REPO_ROOT, 'third_party/r8/r8.jar')
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
-    '--print-runtimeraw', metavar='BENCHMARKNAME',
-    help='Print "<BENCHMARKNAME>(RunTimeRaw): <elapsed> ms" at the end')
+    '--name', metavar='NAME', dest='benchmark_name',
+    help='Print "<NAME>(RunTimeRaw): <elapsed> ms" at the end')
 
 
 if __name__ == '__main__':
