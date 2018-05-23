@@ -139,6 +139,8 @@ public class ProguardConfigurationParserTest extends TestBase {
   private Reporter reporter;
   private KeepingDiagnosticHandler handler;
   private ProguardConfigurationParser parser;
+  private List<String> whiteSpace = ImmutableList.of("", " ", "   ", "\t", " \t", " \t", " \t ", " \t\t \t ");
+
 
   @Before
   public void reset() {
@@ -789,12 +791,10 @@ public class ProguardConfigurationParserTest extends TestBase {
 
   @Test
   public void parseKeepModifiers() {
-    List<String> ws = ImmutableList.of("", " ", "   ", "\t", " \t", " \t", " \t ", " \t\t \t ");
-
-    for (String before : ws) {
-      for (String after : ws) {
+    for (String before : whiteSpace) {
+      for (String after : whiteSpace) {
         reset();
-        ProguardConfiguration config = parseAndVerifyParserEndsCleanly(ImmutableList.of(
+        parseAndVerifyParserEndsCleanly(ImmutableList.of(
             "-keep"
                 + before + "," + after + "includedescriptorclasses"
                 + before + "," + after + "allowshrinking"
@@ -803,6 +803,16 @@ public class ProguardConfigurationParserTest extends TestBase {
                 + "class A { *; }"
         ));
       }
+    }
+  }
+
+  @Test
+  public void parseKeepAnnotation() {
+    for (String space : whiteSpace) {
+      reset();
+      parseAndVerifyParserEndsCleanly(ImmutableList.of(
+          "-keep @" + space + "interface A"
+      ));
     }
   }
 
@@ -1714,6 +1724,24 @@ public class ProguardConfigurationParserTest extends TestBase {
         new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(proguardConfig);
     verifyParserEndsCleanly();
+    verifyWithProguard(proguardConfig);
+  }
+
+  @Test
+  public void parse_regress79925760() throws Exception {
+    Path proguardConfig = writeTextToTempFile(
+        "-keep public @ interface test.MyAnnotation"
+    );
+    ProguardConfigurationParser parser =
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
+    parser.parse(proguardConfig);
+    verifyParserEndsCleanly();
+
+    ProguardConfiguration config = parser.getConfig();
+    assertEquals(1, config.getRules().size());
+    ProguardKeepRule rule = (ProguardKeepRule) config.getRules().get(0);
+    assertEquals(ProguardClassType.ANNOTATION_INTERFACE, rule.getClassType());
+
     verifyWithProguard(proguardConfig);
   }
 

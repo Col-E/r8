@@ -717,6 +717,11 @@ public class ProguardConfigurationParser {
       }
     }
 
+    private StringDiagnostic parseClassTypeUnexpected(Origin origin, TextPosition start) {
+      return new StringDiagnostic(
+          "Expected [!]interface|@interface|class|enum", origin, getPosition(start));
+    }
+
     private void parseClassType(
         ProguardClassSpecification.Builder builder) throws ProguardRuleParserException {
       skipWhitespace();
@@ -724,17 +729,21 @@ public class ProguardConfigurationParser {
       if (acceptChar('!')) {
         builder.setClassTypeNegated(true);
       }
-      if (acceptString("interface")) {
+      if (acceptChar('@')) {
+        skipWhitespace();
+        if (acceptString("interface")) {
+          builder.setClassType(ProguardClassType.ANNOTATION_INTERFACE);
+        } else {
+          throw reporter.fatalError(parseClassTypeUnexpected(origin, start));
+        }
+      } else if (acceptString("interface")) {
         builder.setClassType(ProguardClassType.INTERFACE);
-      } else if (acceptString("@interface")) {
-        builder.setClassType(ProguardClassType.ANNOTATION_INTERFACE);
       } else if (acceptString("class")) {
         builder.setClassType(ProguardClassType.CLASS);
       } else if (acceptString("enum")) {
         builder.setClassType(ProguardClassType.ENUM);
       } else {
-        throw reporter.fatalError(new StringDiagnostic(
-            "Expected [!]interface|@interface|class|enum", origin, getPosition(start)));
+        throw reporter.fatalError(parseClassTypeUnexpected(origin, start));
       }
     }
 
