@@ -1063,7 +1063,8 @@ public class IRBuilder {
       // therefore we use an invoke-direct instead. We need to do this as the Android Runtime
       // will not allow invoke-virtual of a private method.
       DexMethod method = (DexMethod) item;
-      if (appInfo.lookupDirectTarget(method) != null) {
+      DexEncodedMethod directTarget = appInfo.lookupDirectTarget(method);
+      if (directTarget != null && method.holder == directTarget.method.holder) {
         type = Type.DIRECT;
       }
     }
