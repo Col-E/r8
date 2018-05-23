@@ -68,7 +68,7 @@ public class CatchSuccessorFallthroughTest extends SmaliTestBase {
 
     DexEncodedMethod method = getMethod(originalApplication, methodSig);
     // Get the IR pre-optimization.
-    IRCode code = method.buildIR(new InternalOptions(), Origin.unknown());
+    IRCode code = method.buildIR(null, new InternalOptions(), Origin.unknown());
 
     // Find the exit block and assert that the value is a phi merging the exceptional edge
     // with the normal edge.

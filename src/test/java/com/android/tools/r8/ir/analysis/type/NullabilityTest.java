@@ -58,7 +58,7 @@ public class NullabilityTest extends TestBase {
     AppInfo appInfo = new AppInfo(dexApplication);
     DexInspector dexInspector = new DexInspector(appInfo.app);
     DexEncodedMethod foo = dexInspector.clazz(mainClass.getName()).method(signature).getMethod();
-    IRCode irCode = foo.buildIR(TEST_OPTIONS, Origin.unknown());
+    IRCode irCode = foo.buildIR(appInfo, TEST_OPTIONS, Origin.unknown());
     NonNullTracker nonNullTracker = new NonNullTracker();
     nonNullTracker.addNonNull(irCode);
     TypeAnalysis analysis = new TypeAnalysis(appInfo, foo, irCode);

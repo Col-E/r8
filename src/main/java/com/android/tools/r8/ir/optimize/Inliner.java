@@ -270,7 +270,7 @@ public class Inliner {
         throws ApiLevelException {
       // Build the IR for a yet not processed method, and perform minimal IR processing.
       Origin origin = appInfo.originFor(target.method.holder);
-      IRCode code = target.buildInliningIR(options, generator, callerPosition, origin);
+      IRCode code = target.buildInliningIR(appInfo, options, generator, callerPosition, origin);
       if (!target.isProcessed()) {
         new LensCodeRewriter(graphLense, appInfo).rewrite(code, target);
       }
