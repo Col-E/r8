@@ -9,6 +9,7 @@ import com.android.tools.r8.shaking.ProguardWildcard.Pattern;
 import com.google.common.collect.ImmutableList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public abstract class ProguardNameMatcher {
 
@@ -96,11 +97,19 @@ public abstract class ProguardNameMatcher {
     return nameMatcher == null ? Collections::emptyIterator : nameMatcher.getWildcards();
   }
 
+  protected ProguardNameMatcher materialize() {
+    return this;
+  }
+
   private static class MatchAllNames extends ProguardNameMatcher {
     private final ProguardWildcard wildcard;
 
     MatchAllNames() {
-      this.wildcard = new Pattern("*");
+      this(new Pattern("*"));
+    }
+
+    private MatchAllNames(ProguardWildcard wildcard) {
+      this.wildcard = wildcard;
     }
 
     @Override
@@ -112,6 +121,11 @@ public abstract class ProguardNameMatcher {
     @Override
     protected Iterable<ProguardWildcard> getWildcards() {
       return ImmutableList.of(wildcard);
+    }
+
+    @Override
+    protected MatchAllNames materialize() {
+      return new MatchAllNames(wildcard.materialize());
     }
 
     @Override
@@ -142,6 +156,15 @@ public abstract class ProguardNameMatcher {
     @Override
     protected Iterable<ProguardWildcard> getWildcards() {
       return wildcards;
+    }
+
+    @Override
+    protected MatchNamePattern materialize() {
+      List<ProguardWildcard> materializedWildcards =
+          wildcards.stream().map(ProguardWildcard::materialize).collect(Collectors.toList());
+      IdentifierPatternWithWildcards identifierPatternWithMaterializedWildcards =
+          new IdentifierPatternWithWildcards(pattern, materializedWildcards);
+      return new MatchNamePattern(identifierPatternWithMaterializedWildcards);
     }
 
     @Override

@@ -348,10 +348,9 @@ public class RootSetBuilder {
             if (ifRule.getClassNames().matches(currentLiveType)) {
               Collection<ProguardMemberRule> memberKeepRules = ifRule.getMemberRules();
               if (memberKeepRules.isEmpty()) {
-                runPerRule(executorService, futures, ifRule.subsequentRule, ifRule);
-                // TODO(b/79486261): remove this barrier per rule.
-                ThreadUtils.awaitFutures(futures);
-                futures.clear();
+                ProguardIfRule materializedRule = ifRule.materialize();
+                runPerRule(
+                    executorService, futures, materializedRule.subsequentRule, materializedRule);
                 // No member rule to satisfy. Move on to the next live type.
                 continue;
               }
@@ -391,17 +390,15 @@ public class RootSetBuilder {
                   }
                 }
                 if (satisfied) {
-                  runPerRule(executorService, futures, ifRule.subsequentRule, ifRule);
-                  // TODO(b/79486261): remove this barrier per rule.
-                  ThreadUtils.awaitFutures(futures);
-                  futures.clear();
+                  ProguardIfRule materializedRule = ifRule.materialize();
+                  runPerRule(
+                      executorService, futures, materializedRule.subsequentRule, materializedRule);
                 }
               }
             }
           }
         }
-        // TODO(b/79486261): This is the best place to fully utilize available threads.
-        // ThreadUtils.awaitFutures(futures);
+        ThreadUtils.awaitFutures(futures);
       }
     } finally {
       application.timing.end();

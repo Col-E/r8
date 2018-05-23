@@ -5,6 +5,7 @@ package com.android.tools.r8.shaking;
 
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 public class ProguardKeepRule extends ProguardConfigurationRule {
 
@@ -66,6 +67,24 @@ public class ProguardKeepRule extends ProguardConfigurationRule {
 
   public ProguardKeepRuleModifiers getModifiers() {
     return modifiers;
+  }
+
+  protected ProguardKeepRule materialize() {
+    return new ProguardKeepRule(
+        getClassAnnotation(),
+        getClassAccessFlags(),
+        getNegatedClassAccessFlags(),
+        getClassTypeNegated(),
+        getClassType(),
+        getClassNames() == null ? null : getClassNames().materialize(),
+        getInheritanceAnnotation() == null ? null : getInheritanceAnnotation().materialize(),
+        getInheritanceClassName() == null ? null : getInheritanceClassName().materialize(),
+        getInheritanceIsExtends(),
+        getMemberRules() == null ? null :
+            getMemberRules().stream()
+                .map(ProguardMemberRule::materialize).collect(Collectors.toList()),
+        getType(),
+        getModifiers());
   }
 
   @Override
