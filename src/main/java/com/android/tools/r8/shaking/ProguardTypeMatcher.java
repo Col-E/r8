@@ -13,6 +13,7 @@ import com.android.tools.r8.shaking.ProguardWildcard.Pattern;
 import com.google.common.collect.ImmutableList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public abstract class ProguardTypeMatcher {
 
@@ -38,6 +39,10 @@ public abstract class ProguardTypeMatcher {
 
   static Iterable<ProguardWildcard> getWildcardsOrEmpty(ProguardTypeMatcher typeMatcher) {
     return typeMatcher == null ? Collections::emptyIterator : typeMatcher.getWildcards();
+  }
+
+  protected ProguardTypeMatcher materialize() {
+    return this;
   }
 
   @Override
@@ -99,7 +104,11 @@ public abstract class ProguardTypeMatcher {
     private final ProguardWildcard wildcard;
 
     MatchAllTypes() {
-      this.wildcard = new Pattern(MATCH_ALL_PATTERN);
+      this(new Pattern(MATCH_ALL_PATTERN));
+    }
+
+    private MatchAllTypes(ProguardWildcard wildcard) {
+      this.wildcard = wildcard;
     }
 
     @Override
@@ -111,6 +120,11 @@ public abstract class ProguardTypeMatcher {
     @Override
     protected Iterable<ProguardWildcard> getWildcards() {
       return ImmutableList.of(wildcard);
+    }
+
+    @Override
+    protected MatchAllTypes materialize() {
+      return new MatchAllTypes(wildcard.materialize());
     }
 
     @Override
@@ -170,9 +184,13 @@ public abstract class ProguardTypeMatcher {
     private final ProguardWildcard wildcard;
 
     private MatchClassTypes(String pattern) {
+      this(pattern, new Pattern(pattern));
+    }
+
+    private MatchClassTypes(String pattern, ProguardWildcard wildcard) {
       assert pattern.equals(LEGACY_MATCH_CLASS_PATTERN) || pattern.equals(MATCH_CLASS_PATTERN);
       this.pattern = pattern;
-      this.wildcard = new Pattern(pattern);
+      this.wildcard = wildcard;
     }
 
     @Override
@@ -187,6 +205,11 @@ public abstract class ProguardTypeMatcher {
     @Override
     protected Iterable<ProguardWildcard> getWildcards() {
       return ImmutableList.of(wildcard);
+    }
+
+    @Override
+    protected MatchClassTypes materialize() {
+      return new MatchClassTypes(pattern, wildcard.materialize());
     }
 
     @Override
@@ -212,7 +235,11 @@ public abstract class ProguardTypeMatcher {
     private final ProguardWildcard wildcard;
 
     MatchBasicTypes() {
-      this.wildcard = new Pattern(MATCH_BASIC_PATTERN);
+      this(new Pattern(MATCH_BASIC_PATTERN));
+    }
+
+    private MatchBasicTypes(ProguardWildcard wildcard) {
+      this.wildcard = wildcard;
     }
 
     @Override
@@ -227,6 +254,11 @@ public abstract class ProguardTypeMatcher {
     @Override
     protected Iterable<ProguardWildcard> getWildcards() {
       return ImmutableList.of(wildcard);
+    }
+
+    @Override
+    protected MatchBasicTypes materialize() {
+      return new MatchBasicTypes(wildcard.materialize());
     }
 
     @Override
@@ -309,6 +341,15 @@ public abstract class ProguardTypeMatcher {
     @Override
     protected Iterable<ProguardWildcard> getWildcards() {
       return wildcards;
+    }
+
+    @Override
+    protected MatchTypePattern materialize() {
+      List<ProguardWildcard> materializedWildcards =
+          wildcards.stream().map(ProguardWildcard::materialize).collect(Collectors.toList());
+      IdentifierPatternWithWildcards identifierPatternWithMaterializedWildcards =
+          new IdentifierPatternWithWildcards(pattern, materializedWildcards);
+      return new MatchTypePattern(identifierPatternWithMaterializedWildcards, kind);
     }
 
     private static boolean matchClassOrTypeNameImpl(

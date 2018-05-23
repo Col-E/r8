@@ -12,6 +12,7 @@ import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.Iterables;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 public class ProguardMemberRule {
@@ -276,6 +277,20 @@ public class ProguardMemberRule {
                 ::iterator
             : Collections::emptyIterator
     );
+  }
+
+  ProguardMemberRule materialize() {
+    return new ProguardMemberRule(
+        getAnnotation() == null ? null : getAnnotation().materialize(),
+        getAccessFlags(),
+        getNegatedAccessFlags(),
+        getRuleType(),
+        getType() == null ? null : getType().materialize(),
+        getName() == null ? null : getName().materialize(),
+        getArguments() == null ? null :
+            getArguments().stream()
+                .map(ProguardTypeMatcher::materialize).collect(Collectors.toList()),
+        getReturnValue());
   }
 
   @Override

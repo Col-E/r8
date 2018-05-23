@@ -10,6 +10,7 @@ public abstract class ProguardWildcard {
   abstract void setCaptured(String captured);
   abstract void clearCaptured();
   abstract String getCaptured();
+  abstract ProguardWildcard materialize();
 
   boolean isPattern() {
     return false;
@@ -29,7 +30,6 @@ public abstract class ProguardWildcard {
 
   static class Pattern extends ProguardWildcard {
     final String pattern;
-    // TODO(b/79486261): Having captured part here makes back-reference handling not thread-safe.
     private String captured = null;
 
     Pattern(String pattern) {
@@ -37,18 +37,28 @@ public abstract class ProguardWildcard {
     }
 
     @Override
-    void setCaptured(String captured) {
+    synchronized void setCaptured(String captured) {
       this.captured = captured;
     }
 
     @Override
-    void clearCaptured() {
+    synchronized void clearCaptured() {
       captured = null;
     }
 
     @Override
-    String getCaptured() {
+    synchronized String getCaptured() {
       return captured;
+    }
+
+    @Override
+    Pattern materialize() {
+      if (captured == null) {
+        return this;
+      }
+      Pattern copy = new Pattern(pattern);
+      copy.setCaptured(captured);
+      return copy;
     }
 
     @Override
@@ -93,6 +103,16 @@ public abstract class ProguardWildcard {
     @Override
     String getCaptured() {
       return reference != null ? reference.getCaptured() : null;
+    }
+
+    @Override
+    BackReference materialize() {
+      if (reference == null || reference.getCaptured() == null) {
+        return this;
+      }
+      BackReference copy = new BackReference(referenceIndex);
+      copy.setReference(reference.materialize());
+      return copy;
     }
 
     @Override

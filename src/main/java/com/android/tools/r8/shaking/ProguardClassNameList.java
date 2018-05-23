@@ -83,6 +83,10 @@ public abstract class ProguardClassNameList {
     return nameList == null ? Collections::emptyIterator : nameList.getWildcards();
   }
 
+  protected ProguardClassNameList materialize() {
+    return this;
+  }
+
   public abstract void forEachTypeMatcher(Consumer<ProguardTypeMatcher> consumer);
 
   private static class EmptyClassNameList extends ProguardClassNameList {
@@ -149,6 +153,11 @@ public abstract class ProguardClassNameList {
     }
 
     @Override
+    protected SingleClassNameList materialize() {
+      return new SingleClassNameList(className.materialize());
+    }
+
+    @Override
     public void forEachTypeMatcher(Consumer<ProguardTypeMatcher> consumer) {
       consumer.accept(className);
     }
@@ -199,6 +208,12 @@ public abstract class ProguardClassNameList {
           .map(ProguardTypeMatcher::getWildcards)
           .flatMap(it -> StreamSupport.stream(it.spliterator(), false))
           ::iterator;
+    }
+
+    @Override
+    protected PositiveClassNameList materialize() {
+      return new PositiveClassNameList(
+          classNames.stream().map(ProguardTypeMatcher::materialize).collect(Collectors.toList()));
     }
 
     @Override
@@ -257,6 +272,13 @@ public abstract class ProguardClassNameList {
           .map(ProguardTypeMatcher::getWildcards)
           .flatMap(it -> StreamSupport.stream(it.spliterator(), false))
           ::iterator;
+    }
+
+    @Override
+    protected ProguardClassNameList materialize() {
+      Builder builder = builder();
+      classNames.forEach((m, negated) -> builder.addClassName(negated, m.materialize()));
+      return builder.build();
     }
 
     @Override

@@ -5,6 +5,7 @@ package com.android.tools.r8.shaking;
 
 import com.google.common.collect.Iterables;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class ProguardIfRule extends ProguardKeepRule {
 
@@ -48,6 +49,24 @@ public class ProguardIfRule extends ProguardKeepRule {
   @Override
   protected Iterable<ProguardWildcard> getWildcards() {
     return Iterables.concat(super.getWildcards(), subsequentRule.getWildcards());
+  }
+
+  @Override
+  protected ProguardIfRule materialize() {
+    return new ProguardIfRule(
+        getClassAnnotation(),
+        getClassAccessFlags(),
+        getNegatedClassAccessFlags(),
+        getClassTypeNegated(),
+        getClassType(),
+        getClassNames().materialize(),
+        getInheritanceAnnotation() == null ? null : getInheritanceAnnotation().materialize(),
+        getInheritanceClassName() == null ? null : getInheritanceClassName().materialize(),
+        getInheritanceIsExtends(),
+        getMemberRules() == null ? null :
+            getMemberRules().stream()
+                .map(ProguardMemberRule::materialize).collect(Collectors.toList()),
+        subsequentRule.materialize());
   }
 
   @Override
