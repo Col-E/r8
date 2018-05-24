@@ -57,19 +57,18 @@ public class ArchiveBuilder implements OutputBuilder {
     if (stream != null) {
       return stream;
     }
-    return new ZipOutputStream(Files.newOutputStream(
+    stream = new ZipOutputStream(Files.newOutputStream(
         archive, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING));
+    return stream;
   }
 
   /** Get or open the zip output stream. */
   private synchronized ZipOutputStream getStream(DiagnosticsHandler handler) {
     assert !closed;
-    if (stream == null) {
-      try {
-        getStreamRaw();
-      } catch (IOException e) {
-        handler.error(new ExceptionDiagnostic(e, origin));
-      }
+    try {
+      getStreamRaw();
+    } catch (IOException e) {
+      handler.error(new ExceptionDiagnostic(e, origin));
     }
     return stream;
   }
