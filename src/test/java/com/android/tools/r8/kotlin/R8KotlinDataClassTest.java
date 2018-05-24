@@ -41,23 +41,23 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
     final String extraRules = keepClassMethod(mainClassName, testMethodSignature);
     runTest("dataclass", mainClassName, extraRules, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
-      ClassSubject dataClass = checkClassExists(dexInspector, TEST_DATA_CLASS.getClassName());
+      ClassSubject dataClass = checkClassIsKept(dexInspector, TEST_DATA_CLASS.getClassName());
 
       // Getters should be removed after inlining, which is possible only if access is relaxed.
       final boolean areGetterPresent = !allowAccessModification;
-      checkMethod(dataClass, NAME_GETTER_METHOD, areGetterPresent);
-      checkMethod(dataClass, AGE_GETTER_METHOD, areGetterPresent);
+      checkMethodisKeptOrRemoved(dataClass, NAME_GETTER_METHOD, areGetterPresent);
+      checkMethodisKeptOrRemoved(dataClass, AGE_GETTER_METHOD, areGetterPresent);
 
       // No use of componentN functions.
-      checkMethodIsAbsent(dataClass, COMPONENT1_METHOD);
-      checkMethodIsAbsent(dataClass, COMPONENT2_METHOD);
+      checkMethodIsRemoved(dataClass, COMPONENT1_METHOD);
+      checkMethodIsRemoved(dataClass, COMPONENT2_METHOD);
 
       // No use of copy functions.
-      checkMethodIsAbsent(dataClass, COPY_METHOD);
-      checkMethodIsAbsent(dataClass, COPY_DEFAULT_METHOD);
+      checkMethodIsRemoved(dataClass, COPY_METHOD);
+      checkMethodIsRemoved(dataClass, COPY_DEFAULT_METHOD);
 
-      ClassSubject classSubject = checkClassExists(dexInspector, mainClassName);
-      MethodSubject testMethod = checkMethodIsPresent(classSubject, testMethodSignature);
+      ClassSubject classSubject = checkClassIsKept(dexInspector, mainClassName);
+      MethodSubject testMethod = checkMethodIsKept(classSubject, testMethodSignature);
       DexCode dexCode = getDexCode(testMethod);
       if (allowAccessModification) {
         // Both getters should be inlined
@@ -76,24 +76,24 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
     final String extraRules = keepClassMethod(mainClassName, testMethodSignature);
     runTest("dataclass", mainClassName, extraRules, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
-      ClassSubject dataClass = checkClassExists(dexInspector, TEST_DATA_CLASS.getClassName());
+      ClassSubject dataClass = checkClassIsKept(dexInspector, TEST_DATA_CLASS.getClassName());
 
       // ComponentN functions should be removed after inlining, which is possible only if access
       // is relaxed.
       final boolean areComponentMethodsPresent = !allowAccessModification;
-      checkMethod(dataClass, COMPONENT1_METHOD, areComponentMethodsPresent);
-      checkMethod(dataClass, COMPONENT2_METHOD, areComponentMethodsPresent);
+      checkMethodisKeptOrRemoved(dataClass, COMPONENT1_METHOD, areComponentMethodsPresent);
+      checkMethodisKeptOrRemoved(dataClass, COMPONENT2_METHOD, areComponentMethodsPresent);
 
       // No use of getter.
-      checkMethodIsAbsent(dataClass, NAME_GETTER_METHOD);
-      checkMethodIsAbsent(dataClass, AGE_GETTER_METHOD);
+      checkMethodIsRemoved(dataClass, NAME_GETTER_METHOD);
+      checkMethodIsRemoved(dataClass, AGE_GETTER_METHOD);
 
       // No use of copy functions.
-      checkMethodIsAbsent(dataClass, COPY_METHOD);
-      checkMethodIsAbsent(dataClass, COPY_DEFAULT_METHOD);
+      checkMethodIsRemoved(dataClass, COPY_METHOD);
+      checkMethodIsRemoved(dataClass, COPY_DEFAULT_METHOD);
 
-      ClassSubject classSubject = checkClassExists(dexInspector, mainClassName);
-      MethodSubject testMethod = checkMethodIsPresent(classSubject, testMethodSignature);
+      ClassSubject classSubject = checkClassIsKept(dexInspector, mainClassName);
+      MethodSubject testMethod = checkMethodIsKept(classSubject, testMethodSignature);
       DexCode dexCode = getDexCode(testMethod);
       if (allowAccessModification) {
         checkMethodIsNeverInvoked(dexCode, COMPONENT1_METHOD, COMPONENT2_METHOD);
@@ -111,24 +111,24 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
     final String extraRules = keepClassMethod(mainClassName, testMethodSignature);
     runTest("dataclass", mainClassName, extraRules, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
-      ClassSubject dataClass = checkClassExists(dexInspector, TEST_DATA_CLASS.getClassName());
+      ClassSubject dataClass = checkClassIsKept(dexInspector, TEST_DATA_CLASS.getClassName());
 
       boolean component2IsPresent = !allowAccessModification;
-      checkMethod(dataClass, COMPONENT2_METHOD, component2IsPresent);
+      checkMethodisKeptOrRemoved(dataClass, COMPONENT2_METHOD, component2IsPresent);
 
       // Function component1 is not used.
-      checkMethodIsAbsent(dataClass, COMPONENT1_METHOD);
+      checkMethodIsRemoved(dataClass, COMPONENT1_METHOD);
 
       // No use of getter.
-      checkMethodIsAbsent(dataClass, NAME_GETTER_METHOD);
-      checkMethodIsAbsent(dataClass, AGE_GETTER_METHOD);
+      checkMethodIsRemoved(dataClass, NAME_GETTER_METHOD);
+      checkMethodIsRemoved(dataClass, AGE_GETTER_METHOD);
 
       // No use of copy functions.
-      checkMethodIsAbsent(dataClass, COPY_METHOD);
-      checkMethodIsAbsent(dataClass, COPY_DEFAULT_METHOD);
+      checkMethodIsRemoved(dataClass, COPY_METHOD);
+      checkMethodIsRemoved(dataClass, COPY_DEFAULT_METHOD);
 
-      ClassSubject classSubject = checkClassExists(dexInspector, mainClassName);
-      MethodSubject testMethod = checkMethodIsPresent(classSubject, testMethodSignature);
+      ClassSubject classSubject = checkClassIsKept(dexInspector, mainClassName);
+      MethodSubject testMethod = checkMethodIsKept(classSubject, testMethodSignature);
       DexCode dexCode = getDexCode(testMethod);
       if (allowAccessModification) {
         checkMethodIsNeverInvoked(dexCode, COMPONENT2_METHOD);
@@ -146,10 +146,10 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
     final String extraRules = keepClassMethod(mainClassName, testMethodSignature);
     runTest("dataclass", mainClassName, extraRules, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
-      ClassSubject dataClass = checkClassExists(dexInspector, TEST_DATA_CLASS.getClassName());
+      ClassSubject dataClass = checkClassIsKept(dexInspector, TEST_DATA_CLASS.getClassName());
 
-      checkMethodIsAbsent(dataClass, COPY_METHOD);
-      checkMethodIsAbsent(dataClass, COPY_DEFAULT_METHOD);
+      checkMethodIsRemoved(dataClass, COPY_METHOD);
+      checkMethodIsRemoved(dataClass, COPY_DEFAULT_METHOD);
     });
   }
 
@@ -161,9 +161,9 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
     final String extraRules = keepClassMethod(mainClassName, testMethodSignature);
     runTest("dataclass", mainClassName, extraRules, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
-      ClassSubject dataClass = checkClassExists(dexInspector, TEST_DATA_CLASS.getClassName());
+      ClassSubject dataClass = checkClassIsKept(dexInspector, TEST_DATA_CLASS.getClassName());
 
-      checkMethodIsAbsent(dataClass, COPY_DEFAULT_METHOD);
+      checkMethodIsRemoved(dataClass, COPY_DEFAULT_METHOD);
     });
   }
 

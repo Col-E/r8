@@ -28,7 +28,7 @@ public class R8KotlinIntrinsicsTest extends AbstractR8KotlinTestBase {
 
     runTest("intrinsics", "intrinsics.IntrinsicsKt", extraRules, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
-      ClassSubject intrinsicsClass = checkClassExists(
+      ClassSubject intrinsicsClass = checkClassIsKept(
           dexInspector, KOTLIN_INTRINSICS_CLASS.getClassName());
 
       checkMethodsPresence(intrinsicsClass,

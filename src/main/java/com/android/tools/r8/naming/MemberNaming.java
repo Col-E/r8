@@ -299,5 +299,16 @@ public class MemberNaming {
       }
       writer.append(')');
     }
+
+    public String toDescriptor() {
+      StringBuilder sb = new StringBuilder();
+      sb.append('(');
+      for (String parameterType : parameters) {
+        sb.append(javaTypeToDescriptor(parameterType));
+      }
+      sb.append(')');
+      sb.append(javaTypeToDescriptor(type));
+      return sb.toString();
+    }
   }
 }
