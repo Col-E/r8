@@ -51,6 +51,7 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.FlagFile;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.android.tools.r8.utils.LineNumberOptimizer;
@@ -89,7 +90,7 @@ import java.util.concurrent.ExecutorService;
  * <p>R8 supports some configuration using configuration files mostly compatible with the format of
  * the <a href="https://www.guardsquare.com/en/proguard">ProGuard</a> optimizer.
  *
- * <p>The compiler is invoked by calling {@link #run(R8Command) R8.run} with an appropriate {@link
+ * <p>The compiler is invoked by calling {@link #run(R8Command) R8.run} with an appropriate {link
  * R8Command}. For example:
  *
  * <pre>
@@ -533,8 +534,9 @@ public class R8 {
     }
   }
 
-  private static void run(String[] args) throws CompilationFailedException {
-    R8Command command = R8Command.parse(args, CommandLineOrigin.INSTANCE).build();
+  private static void run(String[] args) throws CompilationFailedException, IOException {
+    String[] expandedArgs = FlagFile.expandFlagFiles(args);
+    R8Command command = R8Command.parse(expandedArgs, CommandLineOrigin.INSTANCE).build();
     if (command.isPrintHelp()) {
       System.out.println(USAGE_MESSAGE);
       return;

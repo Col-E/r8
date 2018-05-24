@@ -6,12 +6,15 @@ package com.android.tools.r8;
 import static com.android.tools.r8.R8CommandTest.getOutputPath;
 import static com.android.tools.r8.ToolHelper.EXAMPLES_BUILD_DIR;
 import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
+import static java.nio.file.StandardOpenOption.CREATE_NEW;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.sdklib.AndroidVersion;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.dex.Marker;
+import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.origin.EmbeddedOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
@@ -20,6 +23,7 @@ import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
@@ -84,6 +88,26 @@ public class D8CommandTest {
     assertFalse(Files.exists(output));
     assertEquals(0, ToolHelper.forkD8(working, input.toString()).exitCode);
     assertTrue(Files.exists(output));
+  }
+
+  @Test
+  public void flagsFile() throws Throwable {
+    Path working = temp.getRoot().toPath();
+    Path flagsFile = working.resolve("flags.txt");
+    Path input = Paths.get(EXAMPLES_BUILD_DIR + "/arithmetic.jar").toAbsolutePath();
+    Path output = working.resolve("output.zip");
+    FileUtils.writeTextFile(
+        flagsFile,
+        "--output",
+        output.toString(),
+        "--min-api",
+        "24",
+        input.toString());
+    assertEquals(0, ToolHelper.forkD8(working, "@flags.txt").exitCode);
+    assertTrue(Files.exists(output));
+    Marker marker = ExtractMarker.extractMarkerFromDexFile(output);
+    assertEquals(24, marker.getMinApi().intValue());
+    assertEquals(Tool.D8, marker.getTool());
   }
 
   @Test

@@ -11,6 +11,8 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.dex.Marker;
+import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.origin.EmbeddedOrigin;
 import com.android.tools.r8.utils.FileUtils;
 import com.google.common.collect.ImmutableList;
@@ -87,6 +89,29 @@ public class R8CommandTest {
         ToolHelper.forkR8(working, input.toString(), "--lib", library.toAbsolutePath().toString());
     assertEquals("R8 run failed: " + result.stderr, 0, result.exitCode);
     assertTrue(Files.exists(output));
+  }
+
+  @Test
+  public void flagsFile() throws Throwable {
+    Path working = temp.getRoot().toPath();
+    Path library = ToolHelper.getDefaultAndroidJar();
+    Path input = Paths.get(EXAMPLES_BUILD_DIR + "/arithmetic.jar").toAbsolutePath();
+    Path output = working.resolve("output.zip");
+    Path flagsFile = working.resolve("flags.txt");
+    FileUtils.writeTextFile(
+        flagsFile,
+        "--output",
+        output.toString(),
+        "--min-api",
+        "24",
+        "--lib",
+        library.toAbsolutePath().toString(),
+        input.toString());
+    assertEquals(0, ToolHelper.forkR8(working, "@flags.txt").exitCode);
+    assertTrue(Files.exists(output));
+    Marker marker = ExtractMarker.extractMarkerFromDexFile(output);
+    assertEquals(24, marker.getMinApi().intValue());
+    assertEquals(Tool.R8, marker.getTool());
   }
 
   @Test
@@ -257,24 +282,6 @@ public class R8CommandTest {
   public void invalidOutputFileTypeParse() throws Throwable {
     Path invalidType = temp.getRoot().toPath().resolve("an-invalid-output-file-type.foobar");
     parse("--output", invalidType.toString());
-  }
-
-  @Test
-  public void argumentsInFile() throws Throwable {
-    Path inputFile = temp.newFile("foobar.class").toPath();
-    Path pgConfFile = temp.newFile("pgconf.config").toPath();
-    Path argsFile = temp.newFile("more-args.txt").toPath();
-    FileUtils.writeTextFile(argsFile, ImmutableList.of(
-        "--debug --no-minification",
-        "--pg-conf " + pgConfFile,
-        inputFile.toString()
-    ));
-    R8Command command = parse("@" + argsFile.toString());
-    assertEquals(CompilationMode.DEBUG, command.getMode());
-    assertFalse(command.getEnableMinification());
-    assertFalse(
-        command.getEnableTreeShaking()); // We have no keep rules (proguard config file is empty).
-    assertEquals(1, ToolHelper.getApp(command).getClassProgramResourcesForTesting().size());
   }
 
   @Test
