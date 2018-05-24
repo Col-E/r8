@@ -159,6 +159,7 @@ public final class CovariantReturnTypeAnnotationTransformer {
         factory.createProto(
             covariantReturnType, method.method.proto.shorty, method.method.proto.parameters);
     MethodAccessFlags newAccessFlags = method.accessFlags.copy();
+    newAccessFlags.setBridge();
     newAccessFlags.setSynthetic();
     DexEncodedMethod newVirtualMethod =
         new DexEncodedMethod(
