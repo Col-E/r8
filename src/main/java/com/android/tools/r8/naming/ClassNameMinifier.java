@@ -34,6 +34,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 class ClassNameMinifier {
 
@@ -50,6 +51,7 @@ class ClassNameMinifier {
   private final ImmutableList<String> packageDictionary;
   private final ImmutableList<String> classDictionary;
   private final boolean keepInnerClassStructure;
+  private final Set<DexType> keepPackageName;
 
   private final Namespace topLevelState;
 
@@ -69,6 +71,12 @@ class ClassNameMinifier {
     this.packageDictionary = options.proguardConfiguration.getPackageObfuscationDictionary();
     this.classDictionary = options.proguardConfiguration.getClassObfuscationDictionary();
     this.keepInnerClassStructure = options.proguardConfiguration.getKeepAttributes().signature;
+    this.keepPackageName =
+        rootSet.keepPackageName.stream()
+            .filter(DexClass.class::isInstance)
+            .map(DexClass.class::cast)
+            .map(DexClass::getType)
+            .collect(Collectors.toSet());
 
     // Initialize top-level naming state.
     topLevelState = new Namespace(
@@ -92,7 +100,7 @@ class ClassNameMinifier {
     timing.begin("rename-classes");
     for (DexClass clazz : classes) {
       if (!renaming.containsKey(clazz.type)) {
-        DexString renamed = computeName(clazz);
+        DexString renamed = computeName(clazz.type);
         renaming.put(clazz.type, renamed);
       }
     }
@@ -231,27 +239,27 @@ class ClassNameMinifier {
     return null;
   }
 
-  private DexString computeName(DexClass clazz) {
+  private DexString computeName(DexType type) {
     Namespace state = null;
     if (keepInnerClassStructure) {
       // When keeping the nesting structure of inner classes, we have to insert the name
       // of the outer class for the $ prefix.
-      DexType outerClass = getOutClassForType(clazz.type);
+      DexType outerClass = getOutClassForType(type);
       if (outerClass != null) {
         state = getStateForOuterClass(outerClass);
       }
     }
     if (state == null) {
-      state = getStateForClass(clazz);
+      state = getStateForClass(type);
     }
     return state.nextTypeName();
   }
 
-  private Namespace getStateForClass(DexClass clazz) {
-    String packageName = getPackageBinaryNameFromJavaType(clazz.type.getPackageDescriptor());
+  private Namespace getStateForClass(DexType type) {
+    String packageName = getPackageBinaryNameFromJavaType(type.getPackageDescriptor());
     // Check whether the given class should be kept.
     // or check whether the given class belongs to a package that is kept for another class.
-    if (rootSet.keepPackageName.contains(clazz)
+    if (keepPackageName.contains(type)
         || noObfuscationPrefixes.contains(packageName)) {
       return states.computeIfAbsent(packageName, Namespace::new);
     }
@@ -307,13 +315,12 @@ class ClassNameMinifier {
       DexString renamed = renaming.get(outer);
       if (renamed == null) {
         // The outer class has not been renamed yet, so rename the outer class first.
-        DexClass outerClass = appInfo.definitionFor(outer);
-        if (outerClass == null) {
-          renamed = outer.descriptor;
-        } else {
-          renamed = computeName(outerClass);
-          renaming.put(outer, renamed);
-        }
+        // Note that here we proceed unconditionally---w/o regards to the existence of the outer
+        // class: it could be the case that the outer class is not renamed because it's shrunk.
+        // Even though that's the case, we can _implicitly_ assign a new name to the outer class
+        // and then use that renamed name as a base prefix for the current inner class.
+        renamed = computeName(outer);
+        renaming.put(outer, renamed);
       }
       String binaryName = getClassBinaryNameFromDescriptor(renamed.toString());
       state = new Namespace(binaryName, "$");
