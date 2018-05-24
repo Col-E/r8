@@ -388,10 +388,14 @@ public class IRConverter {
           .build(application, appInfo.withLiveness(), graphLense, options);
       timing.end();
       timing.begin("IR conversion phase 1");
-      callGraph.forEachMethod((method, isProcessedConcurrently) -> {
-        processMethod(method, directFeedback, isProcessedConcurrently, callGraph,
-            outliner == null ? Outliner::noProcessing : outliner::identifyCandidates);
-      }, executorService);
+      BiConsumer<IRCode, DexEncodedMethod> outlineHandler =
+          outliner == null ? Outliner::noProcessing : outliner.identifyCandidateMethods();
+      callGraph.forEachMethod(
+          (method, isProcessedConcurrently) -> {
+            processMethod(
+                method, directFeedback, isProcessedConcurrently, callGraph, outlineHandler);
+          },
+          executorService);
       timing.end();
     }
 
@@ -414,25 +418,23 @@ public class IRConverter {
 
     if (outliner != null) {
       timing.begin("IR conversion phase 2");
-      // Compile all classes flagged for outlining and
-      // add the outline support class IF needed.
-      DexProgramClass outlineClass = prepareOutlining();
-      if (outlineClass != null) {
-        // We need a new call graph to ensure deterministic order and also processing inside out
-        // to get maximal inlining. Use a identity lense, as the code has been rewritten.
-        CallGraph callGraph = CallGraph
-            .build(application, appInfo.withLiveness(), GraphLense.getIdentityLense(), options);
-        Set<DexEncodedMethod> outlineMethods = outliner.getMethodsSelectedForOutlining();
-        callGraph.forEachMethod((method, isProcessedConcurrently) -> {
-          if (!outlineMethods.contains(method)) {
-            return;
-          }
-          // This is the second time we compile this method first mark it not processed.
-          assert !method.getCode().isOutlineCode();
-          processMethod(method, ignoreOptimizationFeedback, isProcessedConcurrently, callGraph,
-              outliner::applyOutliningCandidate);
-          assert method.isProcessed();
-        }, executorService);
+      if (outliner.selectMethodsForOutlining()) {
+        forEachSelectedOutliningMethod(
+            executorService,
+            (code, method) -> {
+              printMethod(code, "IR before outlining (SSA)");
+              outliner.identifyOutlineSites(code, method);
+            });
+        DexProgramClass outlineClass = outliner.buildOutlinerClass(computeOutlineClassType());
+        optimizeSynthesizedClass(outlineClass);
+        forEachSelectedOutliningMethod(
+            executorService,
+            (code, method) -> {
+              outliner.applyOutliningCandidate(code, method);
+              printMethod(code, "IR after outlining (SSA)");
+              finalizeIR(method, code, ignoreOptimizationFeedback);
+            });
+        assert outliner.checkAllOutlineSitesFoundAgain();
         builder.addSynthesizedClass(outlineClass, true);
         clearDexMethodCompilationState(outlineClass);
       }
@@ -445,6 +447,33 @@ public class IRConverter {
     }
 
     return builder.build();
+  }
+
+  private void forEachSelectedOutliningMethod(
+      ExecutorService executorService, BiConsumer<IRCode, DexEncodedMethod> consumer)
+      throws ExecutionException {
+    assert !options.skipIR;
+    Set<DexEncodedMethod> methods = outliner.getMethodsSelectedForOutlining();
+    List<Future<?>> futures = new ArrayList<>();
+    for (DexEncodedMethod method : methods) {
+      futures.add(
+          executorService.submit(
+              () -> {
+                IRCode code =
+                    method.buildIR(appInfo, options, appInfo.originFor(method.method.holder));
+                assert code != null;
+                assert !method.getCode().isOutlineCode();
+                // Instead of repeating all the optimizations of rewriteCode(), only run the
+                // optimizations needed for outlining: rewriteMoveResult() to remove out-values on
+                // StringBuilder/StringBuffer method invocations, and removeDeadCode() to remove
+                // unused out-values.
+                codeRewriter.rewriteMoveResult(code);
+                DeadCodeRemover.removeDeadCode(code, codeRewriter, options);
+                consumer.accept(code, method);
+                return null;
+              }));
+    }
+    ThreadUtils.awaitFutures(futures);
   }
 
   private void collectLambdaMergingCandidates(DexApplication application) {
@@ -509,15 +538,6 @@ public class IRConverter {
     // Register the newly generated type in the subtyping hierarchy, if we have one.
     appInfo.registerNewType(result, appInfo.dexItemFactory.objectType);
     return result;
-  }
-
-  private DexProgramClass prepareOutlining() {
-    if (!outliner.selectMethodsForOutlining()) {
-      return null;
-    }
-    DexProgramClass outlineClass = outliner.buildOutlinerClass(computeOutlineClassType());
-    optimizeSynthesizedClass(outlineClass);
-    return outlineClass;
   }
 
   public void optimizeSynthesizedClass(DexProgramClass clazz) {

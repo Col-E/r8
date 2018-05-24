@@ -63,13 +63,44 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.function.BiConsumer;
 
+/**
+ * Support class for implementing outlining (i.e. extracting common code patterns as methods).
+ *
+ * <p>Outlining happens in three steps.
+ *
+ * <ul>
+ *   <li>First, all methods are converted to IR and passed to {@link
+ *       Outliner#identifyCandidateMethods()} to identify outlining candidates and the methods
+ *       containing each candidate. IR is converted to the output format (DEX or CF) and thrown away
+ *       along with the outlining candidates; only a list of lists of methods is kept, where each
+ *       list of methods corresponds to methods containing an outlining candidate.
+ *   <li>Second, {@link Outliner#selectMethodsForOutlining()} is called to retain the lists of
+ *       methods found in the first step that are large enough (see {@link InternalOptions#outline}
+ *       {@link OutlineOptions#threshold}), and the methods to be further analyzed for outlining is
+ *       returned by {@link Outliner#getMethodsSelectedForOutlining}. Each selected method is then
+ *       converted back to IR and passed to {@link Outliner#identifyOutlineSites(IRCode,
+ *       DexEncodedMethod)}, which then stores concrete outlining candidates in {@link
+ *       Outliner#outlineSites}.
+ *   <li>Third, {@link Outliner#buildOutlinerClass(DexType)} is called to construct the <em>outline
+ *       support class</em> containing a static helper method for each outline candidate that occurs
+ *       frequently enough. Each selected method is then converted to IR, passed to {@link
+ *       Outliner#applyOutliningCandidate(IRCode, DexEncodedMethod)} to perform the outlining, and
+ *       converted back to the output format (DEX or CF).
+ * </ul>
+ */
 public class Outliner {
 
   private final InternalOptions options;
-  private final Map<Outline, List<DexEncodedMethod>> candidates = new HashMap<>();
-  private final Map<Outline, DexMethod> generatedOutlines = new HashMap<>();
+  /** Result of first step (see {@link Outliner#identifyCandidateMethods()}. */
+  private final List<List<DexEncodedMethod>> candidateMethodLists = new ArrayList<>();
+  /** Result of second step (see {@link Outliner#selectMethodsForOutlining()}. */
   private final Set<DexEncodedMethod> methodsSelectedForOutlining = Sets.newIdentityHashSet();
+  /** Result of second step (see {@link Outliner#selectMethodsForOutlining()}. */
+  private final Map<Outline, List<DexEncodedMethod>> outlineSites = new HashMap<>();
+  /** Result of third step (see {@link Outliner#buildOutlinerClass(DexType)}. */
+  private final Map<Outline, DexMethod> generatedOutlines = new HashMap<>();
 
   static final int MAX_IN_SIZE = 5;  // Avoid using ranged calls for outlined code.
 
@@ -651,16 +682,42 @@ public class Outliner {
 
   // Collect outlining candidates with the methods that can use them.
   // TODO(sgjesse): This does not take several usages in the same method into account.
-  private class OutlineIdentifier extends OutlineSpotter {
+  private class OutlineMethodIdentifier extends OutlineSpotter {
 
-    OutlineIdentifier(DexEncodedMethod method, BasicBlock block) {
+    private final Map<Outline, List<DexEncodedMethod>> candidateMap;
+
+    OutlineMethodIdentifier(
+        DexEncodedMethod method,
+        BasicBlock block,
+        Map<Outline, List<DexEncodedMethod>> candidateMap) {
+      super(method, block);
+      this.candidateMap = candidateMap;
+    }
+
+    @Override
+    protected void handle(int start, int end, Outline outline) {
+      synchronized (candidateMap) {
+        candidateMap.computeIfAbsent(outline, this::addOutlineMethodList).add(method);
+      }
+    }
+
+    private List<DexEncodedMethod> addOutlineMethodList(Outline outline) {
+      List<DexEncodedMethod> result = new ArrayList<>();
+      candidateMethodLists.add(result);
+      return result;
+    }
+  }
+
+  private class OutlineSiteIdentifier extends OutlineSpotter {
+
+    OutlineSiteIdentifier(DexEncodedMethod method, BasicBlock block) {
       super(method, block);
     }
 
     @Override
     protected void handle(int start, int end, Outline outline) {
-      synchronized (candidates) {
-        candidates.computeIfAbsent(outline, k -> new ArrayList<>()).add(method);
+      synchronized (outlineSites) {
+        outlineSites.computeIfAbsent(outline, k -> new ArrayList<>()).add(method);
       }
     }
   }
@@ -684,9 +741,9 @@ public class Outliner {
 
     @Override
     protected void handle(int start, int end, Outline outline) {
-      if (candidates.containsKey(outline)) {
-        DexMethod m = generatedOutlines.get(outline);
-        assert m != null;
+      DexMethod m = generatedOutlines.get(outline);
+      if (m != null) {
+        assert removeMethodFromOutlineList(outline);
         List<Value> in = new ArrayList<>();
         Value returnValue = null;
         argumentsMapIndex = 0;
@@ -747,6 +804,14 @@ public class Outliner {
         }
       }
     }
+
+    /** When assertions are enabled, remove method from the outline's list. */
+    private boolean removeMethodFromOutlineList(Outline outline) {
+      synchronized (outlineSites) {
+        assert outlineSites.get(outline).remove(method);
+      }
+      return true;
+    }
   }
 
   public Outliner(AppInfoWithLiveness appInfo, InternalOptions options) {
@@ -755,31 +820,131 @@ public class Outliner {
     this.options = options;
   }
 
-  public void identifyCandidates(IRCode code, DexEncodedMethod method) {
+  public BiConsumer<IRCode, DexEncodedMethod> identifyCandidateMethods() {
+    // Since optimizations may change the map identity of Outline objects (e.g. by setting the
+    // out-value of invokes to null), this map must not be used except for identifying methods
+    // potentially relevant to outlining. OutlineMethodIdentifier will add method lists to
+    // candidateMethodLists whenever it adds an entry to candidateMap.
+    Map<Outline, List<DexEncodedMethod>> candidateMap = new HashMap<>();
+    assert candidateMethodLists.isEmpty();
+    return (code, method) -> {
+      assert !(method.getCode() instanceof OutlineCode);
+      for (BasicBlock block : code.blocks) {
+        new OutlineMethodIdentifier(method, block, candidateMap).process();
+      }
+    };
+  }
+
+  public void identifyOutlineSites(IRCode code, DexEncodedMethod method) {
     assert !(method.getCode() instanceof OutlineCode);
     for (BasicBlock block : code.blocks) {
-      new OutlineIdentifier(method, block).process();
+      new OutlineSiteIdentifier(method, block).process();
     }
   }
 
   public boolean selectMethodsForOutlining() {
     assert methodsSelectedForOutlining.size() == 0;
-    List<Outline> toRemove = new ArrayList<>();
-    for (Entry<Outline, List<DexEncodedMethod>> entry : candidates.entrySet()) {
-      if (entry.getValue().size() < options.outline.threshold) {
-        toRemove.add(entry.getKey());
-      } else {
-        methodsSelectedForOutlining.addAll(entry.getValue());
+    assert outlineSites.size() == 0;
+    for (List<DexEncodedMethod> outlineMethods : candidateMethodLists) {
+      if (outlineMethods.size() >= options.outline.threshold) {
+        methodsSelectedForOutlining.addAll(outlineMethods);
       }
     }
-    for (Outline outline : toRemove) {
-      candidates.remove(outline);
-    }
+    candidateMethodLists.clear();
     return methodsSelectedForOutlining.size() > 0;
   }
 
   public Set<DexEncodedMethod> getMethodsSelectedForOutlining() {
     return methodsSelectedForOutlining;
+  }
+
+  public DexProgramClass buildOutlinerClass(DexType type) {
+    // Build the outlined methods.
+    // By now the candidates are the actual selected outlines. Name the generated methods in a
+    // consistent order, to provide deterministic output.
+    List<Outline> outlines = selectOutlines();
+    outlines.sort(Comparator.naturalOrder());
+    DexEncodedMethod[] direct = new DexEncodedMethod[outlines.size()];
+    int count = 0;
+    for (Outline outline : outlines) {
+      MethodAccessFlags methodAccess =
+          MethodAccessFlags.fromSharedAccessFlags(
+              Constants.ACC_PUBLIC | Constants.ACC_STATIC, false);
+      DexString methodName = dexItemFactory.createString(OutlineOptions.METHOD_PREFIX + count);
+      DexMethod method = outline.buildMethod(type, methodName);
+      direct[count] =
+          new DexEncodedMethod(
+              method,
+              methodAccess,
+              DexAnnotationSet.empty(),
+              ParameterAnnotationsList.empty(),
+              new OutlineCode(outline));
+      generatedOutlines.put(outline, method);
+      count++;
+    }
+    // No need to sort the direct methods as they are generated in sorted order.
+
+    // Build the outliner class.
+    DexType superType = dexItemFactory.createType("Ljava/lang/Object;");
+    DexTypeList interfaces = DexTypeList.empty();
+    DexString sourceFile = dexItemFactory.createString("outline");
+    ClassAccessFlags accessFlags = ClassAccessFlags.fromSharedAccessFlags(Constants.ACC_PUBLIC);
+    DexProgramClass clazz =
+        new DexProgramClass(
+            type,
+            null,
+            new SynthesizedOrigin("outlining", getClass()),
+            accessFlags,
+            superType,
+            interfaces,
+            sourceFile,
+            null,
+            Collections.emptyList(),
+            // TODO: Build dex annotations structure.
+            DexAnnotationSet.empty(),
+            DexEncodedField.EMPTY_ARRAY, // Static fields.
+            DexEncodedField.EMPTY_ARRAY, // Instance fields.
+            direct,
+            DexEncodedMethod.EMPTY_ARRAY, // Virtual methods.
+            options.itemFactory.getSkipNameValidationForTesting());
+    if (options.isGeneratingClassFiles()) {
+      // Don't set class file version below 50.0 (JDK release 1.6).
+      clazz.setClassFileVersion(Math.max(50, getClassFileVersion(outlines)));
+    }
+
+    return clazz;
+  }
+
+  private List<Outline> selectOutlines() {
+    assert outlineSites.size() > 0;
+    assert candidateMethodLists.isEmpty();
+    List<Outline> result = new ArrayList<>();
+    for (Entry<Outline, List<DexEncodedMethod>> entry : outlineSites.entrySet()) {
+      if (entry.getValue().size() >= options.outline.threshold) {
+        result.add(entry.getKey());
+      }
+    }
+    return result;
+  }
+
+  private int getClassFileVersion(List<Outline> outlines) {
+    assert options.isGeneratingClassFiles();
+    int classFileVersion = -1;
+    Set<DexType> seen = Sets.newIdentityHashSet();
+    for (Outline outline : outlines) {
+      List<DexEncodedMethod> methods = outlineSites.get(outline);
+      for (DexEncodedMethod method : methods) {
+        DexType holder = method.method.holder;
+        if (seen.add(holder)) {
+          DexProgramClass programClass = appInfo.definitionFor(holder).asProgramClass();
+          assert programClass != null : "Attempt to outline from library class";
+          assert programClass.originatesFromClassResource()
+              : "Attempt to outline from non-classfile input to classfile output";
+          classFileVersion = Math.max(classFileVersion, programClass.getClassFileVersion());
+        }
+      }
+    }
+    return classFileVersion;
   }
 
   public void applyOutliningCandidate(IRCode code, DexEncodedMethod method) {
@@ -791,6 +956,13 @@ public class Outliner {
       new OutlineRewriter(method, code, blocksIterator, block, toRemove).process();
       block.removeInstructions(toRemove);
     }
+  }
+
+  public boolean checkAllOutlineSitesFoundAgain() {
+    for (Outline outline : generatedOutlines.keySet()) {
+      assert outlineSites.get(outline).isEmpty() : outlineSites.get(outline);
+    }
+    return true;
   }
 
   static public void noProcessing(IRCode code, DexEncodedMethod method) {
@@ -1034,82 +1206,5 @@ public class Outliner {
     public String toString(DexEncodedMethod method, ClassNameMapper naming) {
       return null;
     }
-  }
-
-
-  public DexProgramClass buildOutlinerClass(DexType type) {
-    if (candidates.size() == 0) {
-      return null;
-    }
-
-    // Build the outlined methods.
-    DexEncodedMethod[] direct = new DexEncodedMethod[candidates.size()];
-    int count = 0;
-
-    // By now the candidates are the actual selected outlines. Name the generated methods in a
-    // consistent order, to provide deterministic output.
-    List<Outline> outlines = new ArrayList<>(candidates.keySet());
-    outlines.sort(Comparator.naturalOrder());
-    for (Outline outline : outlines) {
-      MethodAccessFlags methodAccess =
-          MethodAccessFlags.fromSharedAccessFlags(
-              Constants.ACC_PUBLIC | Constants.ACC_STATIC, false);
-      DexString methodName = dexItemFactory.createString(OutlineOptions.METHOD_PREFIX + count);
-      DexMethod method = outline.buildMethod(type, methodName);
-      direct[count] = new DexEncodedMethod(method, methodAccess, DexAnnotationSet.empty(),
-          ParameterAnnotationsList.empty(), new OutlineCode(outline));
-      generatedOutlines.put(outline, method);
-      count++;
-    }
-    // No need to sort the direct methods as they are generated in sorted order.
-
-    // Build the outliner class.
-    DexType superType = dexItemFactory.createType("Ljava/lang/Object;");
-    DexTypeList interfaces = DexTypeList.empty();
-    DexString sourceFile = dexItemFactory.createString("outline");
-    ClassAccessFlags accessFlags = ClassAccessFlags.fromSharedAccessFlags(Constants.ACC_PUBLIC);
-    DexProgramClass clazz =
-        new DexProgramClass(
-            type,
-            null,
-            new SynthesizedOrigin("outlining", getClass()),
-            accessFlags,
-            superType,
-            interfaces,
-            sourceFile,
-            null,
-            Collections.emptyList(),
-            // TODO: Build dex annotations structure.
-            DexAnnotationSet.empty(),
-            DexEncodedField.EMPTY_ARRAY, // Static fields.
-            DexEncodedField.EMPTY_ARRAY, // Instance fields.
-            direct,
-            DexEncodedMethod.EMPTY_ARRAY, // Virtual methods.
-            options.itemFactory.getSkipNameValidationForTesting());
-    if (options.isGeneratingClassFiles()) {
-      // Don't set class file version below 50.0 (JDK release 1.6).
-      clazz.setClassFileVersion(Math.max(50, getClassFileVersion()));
-    }
-
-    return clazz;
-  }
-
-  private int getClassFileVersion() {
-    assert options.isGeneratingClassFiles();
-    int classFileVersion = -1;
-    Set<DexType> seen = Sets.newIdentityHashSet();
-    for (List<DexEncodedMethod> methods : candidates.values()) {
-      for (DexEncodedMethod method : methods) {
-        DexType holder = method.method.holder;
-        if (seen.add(holder)) {
-          DexProgramClass programClass = appInfo.definitionFor(holder).asProgramClass();
-          assert programClass != null : "Attempt to outline from library class";
-          assert programClass.originatesFromClassResource()
-              : "Attempt to outline from non-classfile input to classfile output";
-          classFileVersion = Math.max(classFileVersion, programClass.getClassFileVersion());
-        }
-      }
-    }
-    return classFileVersion;
   }
 }
