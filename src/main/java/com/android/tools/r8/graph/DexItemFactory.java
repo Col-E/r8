@@ -230,6 +230,10 @@ public class DexItemFactory {
   public final DexType annotationThrows = createType("Ldalvik/annotation/Throws;");
   public final DexType annotationSynthesizedClassMap =
       createType("Lcom/android/tools/r8/annotations/SynthesizedClassMap;");
+  public final DexType annotationCovariantReturnType =
+      createType("Ldalvik/annotation/codegen/CovariantReturnType;");
+  public final DexType annotationCovariantReturnTypes =
+      createType("Ldalvik/annotation/codegen/CovariantReturnType$CovariantReturnTypes;");
 
   private static final String METAFACTORY_METHOD_NAME = "metafactory";
   private static final String METAFACTORY_ALT_METHOD_NAME = "altMetafactory";

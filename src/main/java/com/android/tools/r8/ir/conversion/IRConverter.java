@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.conversion;
 import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.Flavor.ExcludeDexResources;
 import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.Flavor.IncludeAllResources;
 
+import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
@@ -32,6 +33,7 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
+import com.android.tools.r8.ir.desugar.CovariantReturnTypeAnnotationTransformer;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import com.android.tools.r8.ir.desugar.StringConcatRewriter;
@@ -99,6 +101,7 @@ public class IRConverter {
   private final ProtoLitePruner protoLiteRewriter;
   private final IdentifierNameStringMarker identifierNameStringMarker;
   private final Devirtualizer devirtualizer;
+  private final CovariantReturnTypeAnnotationTransformer covariantReturnTypeAnnotationTransformer;
 
   private final OptimizationFeedback ignoreOptimizationFeedback = new OptimizationFeedbackIgnore();
   private DexString highestSortingString;
@@ -126,6 +129,10 @@ public class IRConverter {
             ? new InterfaceMethodRewriter(this, options) : null;
     this.lambdaMerger = options.enableLambdaMerging
         ? new LambdaMerger(appInfo.dexItemFactory, options.reporter) : null;
+    this.covariantReturnTypeAnnotationTransformer =
+        options.processCovariantReturnTypeAnnotations
+            ? new CovariantReturnTypeAnnotationTransformer(this, appInfo.dexItemFactory)
+            : null;
     if (enableWholeProgramOptimizations) {
       assert appInfo.hasLiveness();
       this.nonNullTracker = new NonNullTracker();
@@ -246,6 +253,12 @@ public class IRConverter {
     }
   }
 
+  private void processCovariantReturnTypeAnnotations(Builder<?> builder) throws ApiLevelException {
+    if (covariantReturnTypeAnnotationTransformer != null) {
+      covariantReturnTypeAnnotationTransformer.process(builder);
+    }
+  }
+
   public DexApplication convertToDex(DexApplication application, ExecutorService executor)
       throws ExecutionException {
     removeLambdaDeserializationMethods();
@@ -259,6 +272,7 @@ public class IRConverter {
 
     synthesizeLambdaClasses(builder);
     desugarInterfaceMethods(builder, ExcludeDexResources);
+    processCovariantReturnTypeAnnotations(builder);
 
     handleSynthesizedClassMapping(builder);
     timing.end();

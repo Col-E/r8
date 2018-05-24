@@ -21,15 +21,27 @@ public final class ForwardMethodSourceCode extends SyntheticSourceCode {
   private final DexType targetReceiver;
   private final DexMethod target;
   private final Invoke.Type invokeType;
+  private final boolean castResult;
 
   public ForwardMethodSourceCode(DexType receiver, DexProto proto,
       DexType targetReceiver, DexMethod target, Invoke.Type invokeType) {
+    this(receiver, proto, targetReceiver, target, invokeType, false);
+  }
+
+  public ForwardMethodSourceCode(
+      DexType receiver,
+      DexProto proto,
+      DexType targetReceiver,
+      DexMethod target,
+      Invoke.Type invokeType,
+      boolean castResult) {
     super(receiver, proto);
     assert (targetReceiver == null) == (invokeType == Invoke.Type.STATIC);
 
     this.target = target;
     this.targetReceiver = targetReceiver;
     this.invokeType = invokeType;
+    this.castResult = castResult;
     assert checkSignatures();
 
     switch (invokeType) {
@@ -67,7 +79,7 @@ public final class ForwardMethodSourceCode extends SyntheticSourceCode {
       assert (source.isClassType() && target.isClassType()) || source == target;
     }
 
-    assert this.proto.returnType == target.proto.returnType;
+    assert this.proto.returnType == target.proto.returnType || castResult;
     return true;
   }
 
@@ -99,6 +111,9 @@ public final class ForwardMethodSourceCode extends SyntheticSourceCode {
       ValueType valueType = ValueType.fromDexType(proto.returnType);
       int tempValue = nextRegister(valueType);
       add(builder -> builder.addMoveResult(tempValue));
+      if (this.proto.returnType != target.proto.returnType) {
+        add(builder -> builder.addCheckCast(tempValue, this.proto.returnType));
+      }
       add(builder -> builder.addReturn(valueType, tempValue));
     }
   }

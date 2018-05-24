@@ -14,7 +14,6 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DexInspector;
 import java.util.Collections;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class CovariantReturnTypeAnnotationTransformerTest extends AsmTestBase {
@@ -49,7 +48,6 @@ public class CovariantReturnTypeAnnotationTransformerTest extends AsmTestBase {
     failsIndependentOfFlag(input);
   }
 
-  @Ignore("b/78618808")
   @Test
   public void testVersion2WithClient1And2() throws Exception {
     AndroidApp input =
@@ -63,7 +61,6 @@ public class CovariantReturnTypeAnnotationTransformerTest extends AsmTestBase {
     succeedsIndependentOfFlag(input, true);
   }
 
-  @Ignore("b/78618808")
   @Test
   public void testVersion2WithClient3() throws Exception {
     AndroidApp input =
@@ -106,6 +103,23 @@ public class CovariantReturnTypeAnnotationTransformerTest extends AsmTestBase {
 
     // Version 3 of the library should always work with client 1.
     succeedsIndependentOfFlag(input, false);
+  }
+
+  @Test
+  public void testRepeatedCompilation() throws Exception {
+    AndroidApp input =
+        buildAndroidApp(
+            ToolHelper.getClassAsBytes(Client.class),
+            ToolHelper.getClassAsBytes(A.class),
+            com.android.tools.r8.ir.desugar.annotations.version2.BDump.dump(),
+            com.android.tools.r8.ir.desugar.annotations.version2.CDump.dump());
+
+    AndroidApp output =
+        compileWithD8(input, options -> options.processCovariantReturnTypeAnnotations = true);
+
+    // Compilation will fail with a compilation error the second time if the implementation does
+    // not remove the CovariantReturnType annotations properly during the first compilation.
+    compileWithD8(output, options -> options.processCovariantReturnTypeAnnotations = true);
   }
 
   private void succeedsWithOption(
