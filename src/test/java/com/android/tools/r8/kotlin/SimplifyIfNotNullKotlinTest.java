@@ -36,9 +36,9 @@ public class SimplifyIfNotNullKotlinTest extends AbstractR8KotlinTestBase {
     final String extraRules = keepAllMembers(mainClassName);
     runTest(FOLDER, mainClassName, extraRules, app -> {
       DexInspector dexInspector = new DexInspector(app);
-      ClassSubject clazz = checkClassExists(dexInspector, ex1.getClassName());
+      ClassSubject clazz = checkClassIsKept(dexInspector, ex1.getClassName());
 
-      MethodSubject testMethod = checkMethodIsPresent(clazz, testMethodSignature);
+      MethodSubject testMethod = checkMethodIsKept(clazz, testMethodSignature);
       DexCode dexCode = getDexCode(testMethod);
       long count = Arrays.stream(dexCode.instructions)
           .filter(SimplifyIfNotNullKotlinTest::isIf).count();
@@ -62,9 +62,9 @@ public class SimplifyIfNotNullKotlinTest extends AbstractR8KotlinTestBase {
     final String extraRules = keepAllMembers(mainClassName);
     runTest(FOLDER, mainClassName, extraRules, app -> {
       DexInspector dexInspector = new DexInspector(app);
-      ClassSubject clazz = checkClassExists(dexInspector, ex2.getClassName());
+      ClassSubject clazz = checkClassIsKept(dexInspector, ex2.getClassName());
 
-      MethodSubject testMethod = checkMethodIsPresent(clazz, testMethodSignature);
+      MethodSubject testMethod = checkMethodIsKept(clazz, testMethodSignature);
       DexCode dexCode = getDexCode(testMethod);
       long count = Arrays.stream(dexCode.instructions)
           .filter(SimplifyIfNotNullKotlinTest::isIf).count();

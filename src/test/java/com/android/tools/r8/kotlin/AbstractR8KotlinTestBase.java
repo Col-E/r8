@@ -49,6 +49,12 @@ public abstract class AbstractR8KotlinTestBase extends TestBase {
   // invoke the tested method.
   private static final String JASMIN_MAIN_CLASS = "TestMain";
 
+  @Parameter(0) public boolean allowAccessModification;
+  @Parameter(1) public KotlinTargetVersion targetVersion;
+
+  private final List<Path> classpath = new ArrayList<>();
+  private final List<Path> extraClasspath = new ArrayList<>();
+
   @Parameters(name = "allowAccessModification: {0} target: {1}")
   public static Collection<Object[]> data() {
     ImmutableList.Builder<Object[]> builder = new ImmutableList.Builder<>();
@@ -58,11 +64,6 @@ public abstract class AbstractR8KotlinTestBase extends TestBase {
     }
     return builder.build();
   }
-
-  @Parameter(0) public boolean allowAccessModification;
-  @Parameter(1) public KotlinTargetVersion targetVersion;
-
-  private final List<Path> extraClasspath = new ArrayList<>();
 
   protected void addExtraClasspath(Path path) {
     extraClasspath.add(path);
@@ -111,47 +112,67 @@ public abstract class AbstractR8KotlinTestBase extends TestBase {
     }));
   }
 
-  protected static ClassSubject checkClassExists(DexInspector inspector, String className) {
+  protected ClassSubject checkClassIsKept(DexInspector inspector, String className) {
+    checkClassExistsInInput(className);
     ClassSubject classSubject = inspector.clazz(className);
     assertNotNull(classSubject);
     assertTrue("No class " + className, classSubject.isPresent());
     return classSubject;
   }
 
-  protected static FieldSubject checkFieldIsPresent(ClassSubject classSubject, String fieldType,
+  protected FieldSubject checkFieldIsKept(ClassSubject classSubject, String fieldType,
       String fieldName) {
+    // Field must exist in the input.
+    checkFieldPresenceInInput(classSubject.getOriginalName(), fieldType, fieldName, true);
     FieldSubject fieldSubject = classSubject.field(fieldType, fieldName);
     assertTrue("No field " + fieldName + " in " + classSubject.getOriginalName(),
         fieldSubject.isPresent());
     return fieldSubject;
   }
 
-  protected static void checkFieldIsAbsent(ClassSubject classSubject, String fieldType,
+  protected void checkFieldIsAbsent(ClassSubject classSubject, String fieldType,
       String fieldName) {
+    // Field must NOT exist in the input.
+    checkFieldPresenceInInput(classSubject.getOriginalName(), fieldType, fieldName, false);
     FieldSubject fieldSubject = classSubject.field(fieldType, fieldName);
     assertNotNull(fieldSubject);
     assertFalse(fieldSubject.isPresent());
   }
 
-  protected static MethodSubject checkMethodIsPresent(ClassSubject classSubject,
+  protected void checkMethodIsAbsent(ClassSubject classSubject,
       MethodSignature methodSignature) {
-    return checkMethod(classSubject, methodSignature, true);
+    checkMethodPresenceInInput(classSubject.getOriginalName(), methodSignature, false);
+    checkMethodPresenceInOutput(classSubject, methodSignature, false);
   }
 
-  protected static void checkMethodIsAbsent(ClassSubject classSubject,
+  protected MethodSubject checkMethodIsKept(ClassSubject classSubject,
       MethodSignature methodSignature) {
-    checkMethod(classSubject, methodSignature, false);
+    checkMethodPresenceInInput(classSubject.getOriginalName(), methodSignature, true);
+    return checkMethodisKeptOrRemoved(classSubject, methodSignature, true);
   }
 
-  protected static MethodSubject checkMethod(ClassSubject classSubject,
+  protected void checkMethodIsRemoved(ClassSubject classSubject,
+      MethodSignature methodSignature) {
+    checkMethodPresenceInInput(classSubject.getOriginalName(), methodSignature, true);
+    checkMethodisKeptOrRemoved(classSubject, methodSignature, false);
+  }
+
+  protected MethodSubject checkMethodisKeptOrRemoved(ClassSubject classSubject,
+      MethodSignature methodSignature, boolean isPresent) {
+    checkMethodPresenceInInput(classSubject.getOriginalName(), methodSignature, true);
+    return checkMethodPresenceInOutput(classSubject, methodSignature, isPresent);
+  }
+
+  private MethodSubject checkMethodPresenceInOutput(ClassSubject classSubject,
       MethodSignature methodSignature, boolean isPresent) {
     MethodSubject methodSubject = classSubject.method(methodSignature);
     assertNotNull(methodSubject);
 
+    String methodSig = methodSignature.name + methodSignature.toDescriptor();
     if (isPresent) {
-      assertTrue("No method " + methodSignature.name, methodSubject.isPresent());
+      assertTrue("No method " + methodSig + " in output", methodSubject.isPresent());
     } else {
-      assertFalse("Method " + methodSignature.name + " exists", methodSubject.isPresent());
+      assertFalse("Method " + methodSig + " exists in output", methodSubject.isPresent());
     }
     return methodSubject;
   }
@@ -210,7 +231,7 @@ public abstract class AbstractR8KotlinTestBase extends TestBase {
     }
 
     // Build classpath for compilation (and java execution)
-    List<Path> classpath = new ArrayList<>(extraClasspath.size() + 1);
+    assert classpath.isEmpty();
     classpath.add(getKotlinJarFile(folder));
     classpath.add(getJavaJarFile(folder));
     classpath.addAll(extraClasspath);
@@ -238,6 +259,36 @@ public abstract class AbstractR8KotlinTestBase extends TestBase {
     assertEquals("JVM and ART output differ", javaResult.stdout, artOutput);
 
     inspector.inspectApp(app);
+  }
+
+  protected void checkClassExistsInInput(String className) {
+    if (!AsmUtils.doesClassExist(classpath, className)) {
+      throw new AssertionError("Class " + className + " does not exist in input");
+    }
+  }
+
+  private void checkMethodPresenceInInput(String className, MethodSignature methodSignature,
+      boolean isPresent) {
+    boolean foundMethod = AsmUtils.doesMethodExist(classpath, className,
+        methodSignature.name, methodSignature.toDescriptor());
+    if (isPresent != foundMethod) {
+      throw new AssertionError(
+          "Method " + methodSignature.name + methodSignature.toDescriptor()
+              + " " + (foundMethod ? "exists" : "does not exist")
+              + " in input class " + className + " but is expected to be "
+              + (isPresent ? "present" : "absent"));
+    }
+  }
+
+  private void checkFieldPresenceInInput(String className, String fieldType, String fieldName,
+      boolean isPresent) {
+    boolean foundField = AsmUtils.doesFieldExist(classpath, className, fieldName, fieldType);
+    if (isPresent != foundField) {
+      throw new AssertionError(
+          "Field " + fieldName + " " + (foundField ? "exists" : "does not exist")
+              + " in input class " + className + " but is expected to be "
+              + (isPresent ? "present" : "absent"));
+    }
   }
 
   private Path getKotlinJarFile(String folder) {
