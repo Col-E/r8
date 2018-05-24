@@ -30,7 +30,7 @@ public class DirectoryBuilder implements OutputBuilder {
   }
 
   @Override
-  public void close() {
+  public void close(DiagnosticsHandler handler) {
   }
 
   @Override

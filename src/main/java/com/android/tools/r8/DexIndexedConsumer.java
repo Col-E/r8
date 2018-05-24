@@ -156,11 +156,7 @@ public interface DexIndexedConsumer extends ProgramConsumer {
     @Override
     public void finished(DiagnosticsHandler handler) {
       super.finished(handler);
-      try {
-        outputBuilder.close();
-      } catch (IOException e) {
-        handler.error(new ExceptionDiagnostic(e, outputBuilder.getOrigin()));
-      }
+      outputBuilder.close(handler);
     }
 
     public static void writeResources(Path archive, List<ProgramResource> resources)
@@ -242,11 +238,7 @@ public interface DexIndexedConsumer extends ProgramConsumer {
     @Override
     public void finished(DiagnosticsHandler handler) {
       super.finished(handler);
-      try {
-        outputBuilder.close();
-      } catch (IOException e) {
-        handler.error(new ExceptionDiagnostic(e, outputBuilder.getOrigin()));
-      }
+      outputBuilder.close(handler);
     }
 
     private synchronized void prepareDirectory() throws IOException {

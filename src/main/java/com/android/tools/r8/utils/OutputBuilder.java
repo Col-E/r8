@@ -7,13 +7,14 @@ package com.android.tools.r8.utils;
 import com.android.tools.r8.DataEntryResource;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.origin.Origin;
-import java.io.Closeable;
 import java.nio.file.Path;
 
-public interface OutputBuilder extends Closeable {
+public interface OutputBuilder {
   char NAME_SEPARATOR = '/';
 
   void open();
+
+  void close(DiagnosticsHandler handler);
 
   void addDirectory(String name, DiagnosticsHandler handler);
 

@@ -8,7 +8,6 @@ import static com.android.tools.r8.utils.FileUtils.DEX_EXTENSION;
 import com.android.tools.r8.utils.ArchiveBuilder;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.DirectoryBuilder;
-import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.OutputBuilder;
 import com.android.tools.r8.utils.ZipUtils;
@@ -153,11 +152,7 @@ public interface DexFilePerClassFileConsumer extends ProgramConsumer {
     @Override
     public void finished(DiagnosticsHandler handler) {
       super.finished(handler);
-      try {
-        outputBuilder.close();
-      } catch (IOException e) {
-        handler.error(new ExceptionDiagnostic(e, outputBuilder.getOrigin()));
-      }
+      outputBuilder.close(handler);
     }
 
     @Override

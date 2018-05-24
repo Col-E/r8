@@ -14,6 +14,7 @@ import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.origin.EmbeddedOrigin;
 import com.android.tools.r8.utils.FileUtils;
 import com.google.common.collect.ImmutableList;
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -21,6 +22,7 @@ import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.zip.ZipFile;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -426,6 +428,17 @@ public class R8CommandTest {
     assertTrue(result.stdout.contains("-printseeds"));
     assertTrue(result.stdout.contains("-printusage"));
     assertTrue(result.stdout.contains("-printconfiguration"));
+  }
+
+  @Test
+  public void noInputOutputsEmptyZip() throws CompilationFailedException, IOException {
+    Path emptyZip = temp.getRoot().toPath().resolve("empty.zip");
+    R8.run(
+        R8Command.builder()
+            .setOutput(emptyZip, OutputMode.DexIndexed)
+            .build());
+    assertTrue(Files.exists(emptyZip));
+    assertEquals(0, new ZipFile(emptyZip.toFile()).size());
   }
 
   private R8Command parse(String... args) throws CompilationFailedException {

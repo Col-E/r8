@@ -35,20 +35,30 @@ public class ArchiveBuilder implements OutputBuilder {
   @Override
   public synchronized void open() {
     assert !closed;
-    openCount ++;
+    openCount++;
   }
 
   @Override
-  public synchronized void close() throws IOException {
+  public synchronized void close(DiagnosticsHandler handler)  {
     assert !closed;
     openCount--;
     if (openCount == 0) {
       closed = true;
-      if (stream != null) {
-        stream.close();
+      try {
+        getStreamRaw().close();
         stream = null;
+      } catch (IOException e) {
+        handler.error(new ExceptionDiagnostic(e, origin));
       }
     }
+  }
+
+  private ZipOutputStream getStreamRaw() throws IOException {
+    if (stream != null) {
+      return stream;
+    }
+    return new ZipOutputStream(Files.newOutputStream(
+        archive, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING));
   }
 
   /** Get or open the zip output stream. */
@@ -56,10 +66,7 @@ public class ArchiveBuilder implements OutputBuilder {
     assert !closed;
     if (stream == null) {
       try {
-        stream =
-            new ZipOutputStream(
-                Files.newOutputStream(
-                    archive, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING));
+        getStreamRaw();
       } catch (IOException e) {
         handler.error(new ExceptionDiagnostic(e, origin));
       }

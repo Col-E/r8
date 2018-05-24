@@ -418,6 +418,17 @@ public class D8CommandTest {
                     .build()));
   }
 
+  @Test
+  public void noInputOutputsEmptyZip() throws CompilationFailedException, IOException {
+    Path emptyZip = temp.getRoot().toPath().resolve("empty.zip");
+    D8.run(
+        D8Command.builder()
+            .setOutput(emptyZip, OutputMode.DexIndexed)
+            .build());
+    assertTrue(Files.exists(emptyZip));
+    assertEquals(0, new ZipFile(emptyZip.toFile()).size());
+  }
+
   private D8Command parse(String... args) throws CompilationFailedException {
     return D8Command.parse(args, EmbeddedOrigin.INSTANCE).build();
   }

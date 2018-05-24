@@ -199,7 +199,6 @@ public class ApplicationWriter {
       // Use a linked hash map as the order matters when addDexProgramData is called below.
       Map<VirtualFile, Future<ObjectToOffsetMapping>> offsetMappingFutures = new LinkedHashMap<>();
       for (VirtualFile newFile : distribute(executorService)) {
-        assert !newFile.isEmpty();
         if (!newFile.isEmpty()) {
           offsetMappingFutures
               .put(newFile, executorService.submit(() -> {
