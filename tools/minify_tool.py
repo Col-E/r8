@@ -9,6 +9,9 @@ Run R8 (with the class-file backend) to optimize a command-line program.
 Given an input JAR (default: r8.jar) and a main-class, generates a new input JAR
 with the given main-class in the manifest along with a -keep rule for keeping
 just the main entrypoint, and runs R8 in release+classfile mode on the JAR.
+
+If --benchmark-name NAME is given, prints "<NAME>(RunTimeRaw): <elapsed> ms"
+to standard output at the end of the run.
 '''
 
 import argparse
@@ -44,8 +47,8 @@ parser.add_argument(
     '-O', '--no-debug', dest='debug', action='store_false',
     help='Disable assertions when running R8')
 parser.add_argument(
-    '--print-runtimeraw', metavar='BENCHMARKNAME',
-    help='Print "<BENCHMARKNAME>(RunTimeRaw): <elapsed> ms" at the end')
+    '--benchmark-name',
+    help='Print benchmarks with the given name')
 
 def generate_output_name(input_jar, mainclass):
   if not mainclass:
@@ -83,7 +86,7 @@ def extract_mainclass(input_jar):
     return mo.group(1)
 
 def minify_tool(mainclass=None, input_jar=utils.R8_JAR, output_jar=None, lib=RT,
-                debug=True, build=True, print_runtimeraw=None):
+                debug=True, build=True, benchmark_name=None):
   if output_jar is None:
     output_jar = generate_output_name(input_jar, mainclass)
   with utils.TempDir() as path:
@@ -104,9 +107,9 @@ def minify_tool(mainclass=None, input_jar=utils.R8_JAR, output_jar=None, lib=RT,
             tmp_input_path)
     start_time = time.time()
     return_code = toolhelper.run('r8', args, debug=debug, build=build)
-    if print_runtimeraw:
+    if benchmark_name:
       elapsed_ms = 1000 * (time.time() - start_time)
-      print('%s-Total(RunTimeRaw): %s ms' % (print_runtimeraw, elapsed_ms))
+      print('%s(RunTimeRaw): %s ms' % (benchmark_name, elapsed_ms))
     return return_code
 
 if __name__ == '__main__':
