@@ -632,13 +632,21 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       LiveIntervals intervals = current.getLiveIntervals();
       assert intervals.getRegisterLimit() == Constants.U16BIT_MAX;
       boolean canUseArgumentRegister = true;
+      boolean couldUseArgumentRegister = true;
       for (LiveIntervals child : intervals.getSplitChildren()) {
-        if (child.getRegisterLimit() < highestUsedRegister()) {
-          canUseArgumentRegister = false;
-          break;
+        int registerConstraint = child.getRegisterLimit();
+        if (registerConstraint < Constants.U16BIT_MAX) {
+          couldUseArgumentRegister = false;
+
+          if (registerConstraint < highestUsedRegister()) {
+            canUseArgumentRegister = false;
+            break;
+          }
         }
       }
-      if (canUseArgumentRegister) {
+      if (canUseArgumentRegister && !couldUseArgumentRegister) {
+        // Only return true if there is a constrained use where it turns out that we can use the
+        // original argument register. This way we will not unnecessarily redo move insertion.
         argumentRegisterUnsplit = true;
         for (LiveIntervals child : intervals.getSplitChildren()) {
           child.clearRegisterAssignment();
