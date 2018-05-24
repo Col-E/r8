@@ -17,6 +17,7 @@ import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.ExceptionUtils;
+import com.android.tools.r8.utils.FlagFile;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
@@ -93,8 +94,9 @@ public final class D8 {
         });
   }
 
-  private static void run(String[] args) throws CompilationFailedException {
-    D8Command command = D8Command.parse(args, CommandLineOrigin.INSTANCE).build();
+  private static void run(String[] args) throws CompilationFailedException, IOException {
+    String[] expandedArgs = FlagFile.expandFlagFiles(args);
+    D8Command command = D8Command.parse(expandedArgs, CommandLineOrigin.INSTANCE).build();
     if (command.isPrintHelp()) {
       System.out.println(USAGE_MESSAGE);
       return;

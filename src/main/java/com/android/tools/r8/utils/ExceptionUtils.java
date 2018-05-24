@@ -74,7 +74,7 @@ public abstract class ExceptionUtils {
   }
 
   public interface MainAction {
-    void run() throws CompilationFailedException;
+    void run() throws CompilationFailedException, IOException;
   }
 
   public static void withMainProgramHandler(MainAction action) {
@@ -84,7 +84,7 @@ public abstract class ExceptionUtils {
       // Detail of the errors were already reported
       System.err.println("Compilation failed");
       System.exit(STATUS_ERROR);
-    } catch (RuntimeException e) {
+    } catch (RuntimeException  | IOException e) {
       System.err.println("Compilation failed with an internal error.");
       Throwable cause = e.getCause() == null ? e : e.getCause();
       cause.printStackTrace();

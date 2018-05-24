@@ -23,7 +23,6 @@ import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableList;
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -581,29 +580,6 @@ public class R8Command extends BaseCompilerCommand {
         builder.addProguardConfigurationFiles(Paths.get(args[++i]));
       } else if (arg.equals("--pg-map-output")) {
         builder.setProguardMapOutputPath(Paths.get(args[++i]));
-      } else if (arg.startsWith("@")) {
-        // TODO(zerny): Replace this with pipe reading.
-        Path argsFile = Paths.get(arg.substring(1));
-        Origin argsFileOrigin = new PathOrigin(argsFile);
-        try {
-          List<String> linesInFile = FileUtils.readAllLines(argsFile);
-          List<String> argsInFile = new ArrayList<>();
-          for (String line : linesInFile) {
-            for (String word : line.split("\\s")) {
-              String trimmed = word.trim();
-              if (!trimmed.isEmpty()) {
-                argsInFile.add(trimmed);
-              }
-            }
-          }
-          // TODO(zerny): We need to define what CWD should be for files referenced in an args file.
-          state = parse(argsInFile.toArray(new String[argsInFile.size()]),
-              argsFileOrigin, builder, state);
-        } catch (IOException e) {
-          builder.getReporter().error(new StringDiagnostic(
-              "Failed to read arguments from file " + argsFile + ": " + e.getMessage(),
-              argsFileOrigin));
-        }
       } else {
         if (arg.startsWith("--")) {
           builder.getReporter().error(new StringDiagnostic("Unknown option: " + arg, argsOrigin));
