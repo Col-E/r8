@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.optimize.lambda;
 
-import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
@@ -187,9 +186,13 @@ public final class LambdaMerger {
     }
   }
 
-  public final void applyLambdaClassMapping(DexApplication app,
-      IRConverter converter, OptimizationFeedback feedback, Builder<?> builder,
-      ExecutorService executorService) throws ExecutionException, ApiLevelException {
+  public final void applyLambdaClassMapping(
+      DexApplication app,
+      IRConverter converter,
+      OptimizationFeedback feedback,
+      Builder<?> builder,
+      ExecutorService executorService)
+      throws ExecutionException {
     if (lambdas.isEmpty()) {
       return;
     }
@@ -294,8 +297,7 @@ public final class LambdaMerger {
     }
   }
 
-  private void rewriteLambdaReferences(
-      IRConverter converter, OptimizationFeedback feedback) throws ApiLevelException {
+  private void rewriteLambdaReferences(IRConverter converter, OptimizationFeedback feedback) {
     List<DexEncodedMethod> methods =
         methodsToReprocess
             .stream()

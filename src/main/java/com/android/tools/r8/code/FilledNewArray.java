@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.code;
 
-import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.OffsetToObjectMapping;
 import com.android.tools.r8.ir.conversion.IRBuilder;
@@ -42,7 +41,7 @@ public class FilledNewArray extends Format35c {
   }
 
   @Override
-  public void buildIR(IRBuilder builder) throws ApiLevelException {
+  public void buildIR(IRBuilder builder) {
     builder.addInvokeNewArray(getType(), A, new int[]{C, D, E, F, G});
   }
 

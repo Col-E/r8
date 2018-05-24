@@ -51,7 +51,6 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DexVersion;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.LebUtils;
-import com.android.tools.r8.utils.ThrowingConsumer;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.objects.Object2IntLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
@@ -135,7 +134,7 @@ public class FileWriter {
     return this;
   }
 
-  public byte[] generate() throws ApiLevelException {
+  public byte[] generate() {
     // Check restrictions on interface methods.
     checkInterfaceMethods();
 
@@ -203,7 +202,7 @@ public class FileWriter {
     return Arrays.copyOf(dest.asArray(), layout.getEndOfFile());
   }
 
-  private void checkInterfaceMethods() throws ApiLevelException {
+  private void checkInterfaceMethods() {
     for (DexProgramClass clazz : mapping.getClasses()) {
       if (clazz.isInterface()) {
         for (DexEncodedMethod method : clazz.directMethods()) {
@@ -222,7 +221,7 @@ public class FileWriter {
   //  -- starting with N interfaces may also have public or private
   //     static methods, as well as public non-abstract (default)
   //     and private instance methods.
-  private void checkInterfaceMethod(DexEncodedMethod method) throws ApiLevelException {
+  private void checkInterfaceMethod(DexEncodedMethod method) {
     if (application.dexItemFactory.isClassConstructor(method.method)) {
       return; // Class constructor is always OK.
     }
@@ -295,16 +294,16 @@ public class FileWriter {
     }
   }
 
-  private <T extends IndexedDexItem> void writeFixedSectionItems(Collection<T> items, int offset,
-      ThrowingConsumer<T, ApiLevelException> writer) throws ApiLevelException {
+  private <T extends IndexedDexItem> void writeFixedSectionItems(
+      Collection<T> items, int offset, Consumer<T> writer) {
     assert dest.position() == offset;
     for (T item : items) {
       writer.accept(item);
     }
   }
 
-  private void writeFixedSectionItems(DexProgramClass[] items, int offset,
-      ThrowingConsumer<DexProgramClass, ApiLevelException> writer) throws ApiLevelException {
+  private void writeFixedSectionItems(
+      DexProgramClass[] items, int offset, Consumer<DexProgramClass> writer) {
     assert dest.position() == offset;
     for (DexProgramClass item : items) {
       writer.accept(item);
@@ -610,7 +609,7 @@ public class FileWriter {
     }
   }
 
-  private void writeMethodHandle(DexMethodHandle methodHandle) throws ApiLevelException {
+  private void writeMethodHandle(DexMethodHandle methodHandle) {
     checkThatInvokeCustomIsAllowed();
     MethodHandleType methodHandleDexType;
     switch (methodHandle.type) {
@@ -636,7 +635,7 @@ public class FileWriter {
     dest.putShort((short) 0); // unused
   }
 
-  private void writeCallSite(DexCallSite callSite) throws ApiLevelException {
+  private void writeCallSite(DexCallSite callSite) {
     checkThatInvokeCustomIsAllowed();
     assert dest.isAligned(4);
     dest.putInt(mixedSectionOffsets.getOffsetFor(callSite.getEncodedArray()));
@@ -1296,7 +1295,7 @@ public class FileWriter {
     }
   }
 
-  private void checkThatInvokeCustomIsAllowed() throws ApiLevelException {
+  private void checkThatInvokeCustomIsAllowed() {
     if (!options.canUseInvokeCustom()) {
       throw new ApiLevelException(
           AndroidApiLevel.O,

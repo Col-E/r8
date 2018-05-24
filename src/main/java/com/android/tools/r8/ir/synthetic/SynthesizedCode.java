@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.synthetic;
 
-import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.Code;
@@ -40,9 +39,7 @@ public final class SynthesizedCode extends Code {
 
   @Override
   public final IRCode buildIR(
-      DexEncodedMethod encodedMethod, AppInfo appInfo,
-      InternalOptions options, Origin origin)
-      throws ApiLevelException {
+      DexEncodedMethod encodedMethod, AppInfo appInfo, InternalOptions options, Origin origin) {
     return new IRBuilder(encodedMethod, appInfo, sourceCode, options).build();
   }
 

@@ -196,7 +196,7 @@ public final class D8 {
       InternalOptions options,
       Timing timing,
       ExecutorService executor)
-      throws IOException, ExecutionException, ApiLevelException {
+      throws IOException, ExecutionException {
     final CfgPrinter printer = options.printCfg ? new CfgPrinter() : null;
 
     IRConverter converter = new IRConverter(appInfo, options, timing, printer);

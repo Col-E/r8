@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.dex;
 
-import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.DataDirectoryResource;
 import com.android.tools.r8.DataEntryResource;
 import com.android.tools.r8.DataResourceConsumer;
@@ -429,8 +428,7 @@ public class ApplicationWriter {
     }
   }
 
-  private byte[] writeDexFile(ObjectToOffsetMapping mapping)
-      throws ApiLevelException {
+  private byte[] writeDexFile(ObjectToOffsetMapping mapping) {
     FileWriter fileWriter = new FileWriter(mapping, application, options, namingLens);
     // Collect the non-fixed sections.
     fileWriter.collect();

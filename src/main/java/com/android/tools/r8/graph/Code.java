@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.Unreachable;
@@ -18,11 +17,7 @@ import com.android.tools.r8.utils.InternalOptions;
 public abstract class Code extends CachedHashValueDexItem {
 
   public abstract IRCode buildIR(
-      DexEncodedMethod encodedMethod,
-      AppInfo appInfo,
-      InternalOptions options,
-      Origin origin)
-      throws ApiLevelException;
+      DexEncodedMethod encodedMethod, AppInfo appInfo, InternalOptions options, Origin origin);
 
   public IRCode buildInliningIR(
       DexEncodedMethod encodedMethod,
@@ -30,8 +25,7 @@ public abstract class Code extends CachedHashValueDexItem {
       InternalOptions options,
       ValueNumberGenerator valueNumberGenerator,
       Position callerPosition,
-      Origin origin)
-      throws ApiLevelException {
+      Origin origin) {
     throw new Unreachable("Unexpected attempt to build IR graph for inlining from: "
         + getClass().getCanonicalName());
   }

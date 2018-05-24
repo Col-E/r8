@@ -7,9 +7,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
-import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfo;
@@ -124,15 +122,11 @@ public class TypeAnalysisTest extends SmaliTestBase {
             .method(
                 new MethodSignature("subtractConstants8bitRegisters", "int", ImmutableList.of()))
             .getMethod();
-    try {
-      IRCode irCode = subtract.buildIR(appInfo, TEST_OPTIONS, Origin.unknown());
-      TypeAnalysis analysis = new TypeAnalysis(appInfo, subtract, irCode);
-      analysis.forEach((v, l) -> {
-        assertEither(l, PRIMITIVE, NULL, TOP);
-      });
-    } catch (ApiLevelException e) {
-      fail(e.getMessage());
-    }
+    IRCode irCode = subtract.buildIR(appInfo, TEST_OPTIONS, Origin.unknown());
+    TypeAnalysis analysis = new TypeAnalysis(appInfo, subtract, irCode);
+    analysis.forEach((v, l) -> {
+      assertEither(l, PRIMITIVE, NULL, TOP);
+    });
   }
 
   // A couple branches, along with some recursive calls.
@@ -142,15 +136,11 @@ public class TypeAnalysisTest extends SmaliTestBase {
         inspector.clazz("Test")
             .method(new MethodSignature("fibonacci", "int", ImmutableList.of("int")))
             .getMethod();
-    try {
-      IRCode irCode = fib.buildIR(appInfo, TEST_OPTIONS, Origin.unknown());
-      TypeAnalysis analysis = new TypeAnalysis(appInfo, fib, irCode);
-      analysis.forEach((v, l) -> {
-        assertEither(l, PRIMITIVE, NULL);
-      });
-    } catch (ApiLevelException e) {
-      fail(e.getMessage());
-    }
+    IRCode irCode = fib.buildIR(appInfo, TEST_OPTIONS, Origin.unknown());
+    TypeAnalysis analysis = new TypeAnalysis(appInfo, fib, irCode);
+    analysis.forEach((v, l) -> {
+      assertEither(l, PRIMITIVE, NULL);
+    });
   }
 
   // fill-array-data
@@ -160,32 +150,28 @@ public class TypeAnalysisTest extends SmaliTestBase {
         inspector.clazz("Test")
             .method(new MethodSignature("test1", "int[]", ImmutableList.of()))
             .getMethod();
-    try {
-      IRCode irCode = test1.buildIR(appInfo, TEST_OPTIONS, Origin.unknown());
-      TypeAnalysis analysis = new TypeAnalysis(appInfo, test1, irCode);
-      Value array = null;
-      InstructionIterator iterator = irCode.instructionIterator();
-      while (iterator.hasNext()) {
-        Instruction instruction = iterator.next();
-        if (instruction instanceof NewArrayEmpty) {
-          array = instruction.outValue();
-          break;
-        }
+    IRCode irCode = test1.buildIR(appInfo, TEST_OPTIONS, Origin.unknown());
+    TypeAnalysis analysis = new TypeAnalysis(appInfo, test1, irCode);
+    Value array = null;
+    InstructionIterator iterator = irCode.instructionIterator();
+    while (iterator.hasNext()) {
+      Instruction instruction = iterator.next();
+      if (instruction instanceof NewArrayEmpty) {
+        array = instruction.outValue();
+        break;
       }
-      assertNotNull(array);
-      final Value finalArray = array;
-      analysis.forEach((v, l) -> {
-        if (v == finalArray) {
-          assertTrue(l.isArrayTypeLatticeElement());
-          ArrayTypeLatticeElement lattice = l.asArrayTypeLatticeElement();
-          assertTrue(lattice.getArrayType().isPrimitiveArrayType());
-          assertEquals(1, lattice.getNesting());
-          assertFalse(lattice.isNullable());
-        }
-      });
-    } catch (ApiLevelException e) {
-      fail(e.getMessage());
     }
+    assertNotNull(array);
+    final Value finalArray = array;
+    analysis.forEach((v, l) -> {
+      if (v == finalArray) {
+        assertTrue(l.isArrayTypeLatticeElement());
+        ArrayTypeLatticeElement lattice = l.asArrayTypeLatticeElement();
+        assertTrue(lattice.getArrayType().isPrimitiveArrayType());
+        assertEquals(1, lattice.getNesting());
+        assertFalse(lattice.isNullable());
+      }
+    });
   }
 
   // filled-new-array
@@ -195,32 +181,28 @@ public class TypeAnalysisTest extends SmaliTestBase {
         inspector.clazz("Test")
             .method(new MethodSignature("test4", "int[]", ImmutableList.of()))
             .getMethod();
-    try {
-      IRCode irCode = test4.buildIR(appInfo, TEST_OPTIONS, Origin.unknown());
-      TypeAnalysis analysis = new TypeAnalysis(appInfo, test4, irCode);
-      Value array = null;
-      InstructionIterator iterator = irCode.instructionIterator();
-      while (iterator.hasNext()) {
-        Instruction instruction = iterator.next();
-        if (instruction instanceof InvokeNewArray) {
-          array = instruction.outValue();
-          break;
-        }
+    IRCode irCode = test4.buildIR(appInfo, TEST_OPTIONS, Origin.unknown());
+    TypeAnalysis analysis = new TypeAnalysis(appInfo, test4, irCode);
+    Value array = null;
+    InstructionIterator iterator = irCode.instructionIterator();
+    while (iterator.hasNext()) {
+      Instruction instruction = iterator.next();
+      if (instruction instanceof InvokeNewArray) {
+        array = instruction.outValue();
+        break;
       }
-      assertNotNull(array);
-      final Value finalArray = array;
-      analysis.forEach((v, l) -> {
-        if (v == finalArray) {
-          assertTrue(l.isArrayTypeLatticeElement());
-          ArrayTypeLatticeElement lattice = l.asArrayTypeLatticeElement();
-          assertTrue(lattice.getArrayType().isPrimitiveArrayType());
-          assertEquals(1, lattice.getNesting());
-          assertFalse(lattice.isNullable());
-        }
-      });
-    } catch (ApiLevelException e) {
-      fail(e.getMessage());
     }
+    assertNotNull(array);
+    final Value finalArray = array;
+    analysis.forEach((v, l) -> {
+      if (v == finalArray) {
+        assertTrue(l.isArrayTypeLatticeElement());
+        ArrayTypeLatticeElement lattice = l.asArrayTypeLatticeElement();
+        assertTrue(lattice.getArrayType().isPrimitiveArrayType());
+        assertEquals(1, lattice.getNesting());
+        assertFalse(lattice.isNullable());
+      }
+    });
   }
 
   // Make sure the analysis does not hang.
@@ -230,20 +212,16 @@ public class TypeAnalysisTest extends SmaliTestBase {
         inspector.clazz("Test")
             .method(new MethodSignature("loop2", "void", ImmutableList.of()))
             .getMethod();
-    try {
-      IRCode irCode = loop2.buildIR(appInfo, TEST_OPTIONS, Origin.unknown());
-      TypeAnalysis analysis = new TypeAnalysis(appInfo, loop2, irCode);
-      analysis.forEach((v, l) -> {
-        if (l.isClassTypeLatticeElement()) {
-          ClassTypeLatticeElement lattice = l.asClassTypeLatticeElement();
-          assertEquals("Ljava/io/PrintStream;", lattice.getClassType().toDescriptorString());
-          // TODO(b/70795205): Can be refined by using control-flow info.
-          assertTrue(l.isNullable());
-        }
-      });
-    } catch (ApiLevelException e) {
-      fail(e.getMessage());
-    }
+    IRCode irCode = loop2.buildIR(appInfo, TEST_OPTIONS, Origin.unknown());
+    TypeAnalysis analysis = new TypeAnalysis(appInfo, loop2, irCode);
+    analysis.forEach((v, l) -> {
+      if (l.isClassTypeLatticeElement()) {
+        ClassTypeLatticeElement lattice = l.asClassTypeLatticeElement();
+        assertEquals("Ljava/io/PrintStream;", lattice.getClassType().toDescriptorString());
+        // TODO(b/70795205): Can be refined by using control-flow info.
+        assertTrue(l.isNullable());
+      }
+    });
   }
 
   // move-exception
@@ -253,19 +231,15 @@ public class TypeAnalysisTest extends SmaliTestBase {
         inspector.clazz("Test")
             .method(new MethodSignature("test2_throw", "int", ImmutableList.of()))
             .getMethod();
-    try {
-      IRCode irCode = test2.buildIR(appInfo, TEST_OPTIONS, Origin.unknown());
-      TypeAnalysis analysis = new TypeAnalysis(appInfo, test2, irCode);
-      analysis.forEach((v, l) -> {
-        if (l.isClassTypeLatticeElement()) {
-          ClassTypeLatticeElement lattice = l.asClassTypeLatticeElement();
-          assertEquals("Ljava/lang/Throwable;", lattice.getClassType().toDescriptorString());
-          assertFalse(l.isNullable());
-        }
-      });
-    } catch (ApiLevelException e) {
-      fail(e.getMessage());
-    }
+    IRCode irCode = test2.buildIR(appInfo, TEST_OPTIONS, Origin.unknown());
+    TypeAnalysis analysis = new TypeAnalysis(appInfo, test2, irCode);
+    analysis.forEach((v, l) -> {
+      if (l.isClassTypeLatticeElement()) {
+        ClassTypeLatticeElement lattice = l.asClassTypeLatticeElement();
+        assertEquals("Ljava/lang/Throwable;", lattice.getClassType().toDescriptorString());
+        assertFalse(l.isNullable());
+      }
+    });
   }
 
   // One very complicated example.
@@ -283,13 +257,9 @@ public class TypeAnalysisTest extends SmaliTestBase {
         ConstString.class, new ClassTypeLatticeElement(appInfo.dexItemFactory.stringType, false),
         CheckCast.class, new ClassTypeLatticeElement(test, true),
         NewInstance.class, new ClassTypeLatticeElement(test, false));
-    try {
-      IRCode irCode = method.buildIR(appInfo, TEST_OPTIONS, Origin.unknown());
-      TypeAnalysis analysis = new TypeAnalysis(appInfo, method, irCode);
-      analysis.forEach((v, l) -> verifyTypeEnvironment(expectedLattices, v, l));
-    } catch (ApiLevelException e) {
-      fail(e.getMessage());
-    }
+    IRCode irCode = method.buildIR(appInfo, TEST_OPTIONS, Origin.unknown());
+    TypeAnalysis analysis = new TypeAnalysis(appInfo, method, irCode);
+    analysis.forEach((v, l) -> verifyTypeEnvironment(expectedLattices, v, l));
   }
 
   // One more complicated example.
@@ -305,13 +275,9 @@ public class TypeAnalysisTest extends SmaliTestBase {
       ConstString.class, new ClassTypeLatticeElement(appInfo.dexItemFactory.stringType, false),
       InstanceOf.class, PRIMITIVE,
       StaticGet.class, new ClassTypeLatticeElement(test, true));
-    try {
-      IRCode irCode = method.buildIR(appInfo, TEST_OPTIONS, Origin.unknown());
-      TypeAnalysis analysis = new TypeAnalysis(appInfo, method, irCode);
-      analysis.forEach((v, l) -> verifyTypeEnvironment(expectedLattices, v, l));
-    } catch (ApiLevelException e) {
-      fail(e.getMessage());
-    }
+    IRCode irCode = method.buildIR(appInfo, TEST_OPTIONS, Origin.unknown());
+    TypeAnalysis analysis = new TypeAnalysis(appInfo, method, irCode);
+    analysis.forEach((v, l) -> verifyTypeEnvironment(expectedLattices, v, l));
   }
 
   private static void assertEither(TypeLatticeElement actual, TypeLatticeElement... expected) {

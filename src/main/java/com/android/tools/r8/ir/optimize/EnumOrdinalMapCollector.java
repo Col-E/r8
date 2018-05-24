@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
-import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -40,7 +39,7 @@ public class EnumOrdinalMapCollector {
     this.options = options;
   }
 
-  public AppInfoWithLiveness run() throws ApiLevelException {
+  public AppInfoWithLiveness run() {
     for (DexProgramClass clazz : appInfo.classes()) {
       processClasses(clazz);
     }
@@ -50,7 +49,7 @@ public class EnumOrdinalMapCollector {
     return appInfo;
   }
 
-  private void processClasses(DexProgramClass clazz) throws ApiLevelException {
+  private void processClasses(DexProgramClass clazz) {
     // Enum classes are flagged as such. Also, for library classes, the ordinals are not known.
     if (!clazz.accessFlags.isEnum() || clazz.isLibraryClass() || !clazz.hasClassInitializer()) {
       return;

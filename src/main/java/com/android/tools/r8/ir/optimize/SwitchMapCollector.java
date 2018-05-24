@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
-import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
@@ -75,7 +74,7 @@ public class SwitchMapCollector {
     intArrayType = appInfo.dexItemFactory.createType("[I");
   }
 
-  public AppInfoWithLiveness run() throws ApiLevelException {
+  public AppInfoWithLiveness run() {
     for (DexProgramClass clazz : appInfo.classes()) {
       processClasses(clazz);
     }
@@ -85,7 +84,7 @@ public class SwitchMapCollector {
     return appInfo;
   }
 
-  private void processClasses(DexProgramClass clazz) throws ApiLevelException {
+  private void processClasses(DexProgramClass clazz) {
     // Switchmap classes are synthetic and have a class initializer.
     if (!clazz.accessFlags.isSynthetic() && !clazz.hasClassInitializer()) {
       return;

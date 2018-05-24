@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
-import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -305,8 +304,7 @@ final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
   }
 
   @Override
-  public void ensureMethodProcessed(
-      DexEncodedMethod target, IRCode inlinee) throws ApiLevelException {
+  public void ensureMethodProcessed(DexEncodedMethod target, IRCode inlinee) {
     if (!target.isProcessed()) {
       if (Log.ENABLED) {
         Log.verbose(getClass(), "Forcing extra inline on " + target.toSourceString());

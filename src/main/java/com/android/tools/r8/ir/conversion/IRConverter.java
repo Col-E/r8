@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.conversion;
 import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.Flavor.ExcludeDexResources;
 import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.Flavor.IncludeAllResources;
 
-import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
@@ -233,7 +232,7 @@ public class IRConverter {
     }
   }
 
-  private void synthesizeLambdaClasses(Builder<?> builder) throws ApiLevelException {
+  private void synthesizeLambdaClasses(Builder<?> builder) {
     if (lambdaRewriter != null) {
       lambdaRewriter.adjustAccessibility();
       lambdaRewriter.synthesizeLambdaClasses(builder);
@@ -241,15 +240,14 @@ public class IRConverter {
   }
 
   private void desugarInterfaceMethods(
-      Builder<?> builder, InterfaceMethodRewriter.Flavor includeAllResources)
-      throws ApiLevelException {
+      Builder<?> builder, InterfaceMethodRewriter.Flavor includeAllResources) {
     if (interfaceMethodRewriter != null) {
       interfaceMethodRewriter.desugarInterfaceMethods(builder, includeAllResources);
     }
   }
 
   public DexApplication convertToDex(DexApplication application, ExecutorService executor)
-      throws ExecutionException, ApiLevelException {
+      throws ExecutionException {
     removeLambdaDeserializationMethods();
 
     timing.begin("IR conversion");
@@ -347,7 +345,7 @@ public class IRConverter {
     ThreadUtils.awaitFutures(futures);
   }
 
-  void convertMethodToDex(DexEncodedMethod method) throws ApiLevelException {
+  void convertMethodToDex(DexEncodedMethod method) {
     assert options.isGeneratingDex();
     if (method.getCode() != null) {
       boolean matchesMethodFilter = options.methodMatchesFilter(method);
@@ -362,8 +360,7 @@ public class IRConverter {
     }
   }
 
-  public DexApplication optimize(DexApplication application)
-      throws ExecutionException, ApiLevelException {
+  public DexApplication optimize(DexApplication application) throws ExecutionException {
     ExecutorService executor = Executors.newSingleThreadExecutor();
     try {
       return optimize(application, executor);
@@ -372,9 +369,8 @@ public class IRConverter {
     }
   }
 
-  public DexApplication optimize(DexApplication application,
-      ExecutorService executorService)
-      throws ExecutionException, ApiLevelException {
+  public DexApplication optimize(DexApplication application, ExecutorService executorService)
+      throws ExecutionException {
     removeLambdaDeserializationMethods();
     collectLambdaMergingCandidates(application);
 
@@ -457,9 +453,12 @@ public class IRConverter {
     }
   }
 
-  private void finalizeLambdaMerging(DexApplication application,
-      OptimizationFeedback directFeedback, Builder<?> builder, ExecutorService executorService)
-      throws ExecutionException, ApiLevelException {
+  private void finalizeLambdaMerging(
+      DexApplication application,
+      OptimizationFeedback directFeedback,
+      Builder<?> builder,
+      ExecutorService executorService)
+      throws ExecutionException {
     if (lambdaMerger != null) {
       lambdaMerger.applyLambdaClassMapping(
           application, this, directFeedback, builder, executorService);
@@ -512,7 +511,7 @@ public class IRConverter {
     return result;
   }
 
-  private DexProgramClass prepareOutlining() throws ApiLevelException {
+  private DexProgramClass prepareOutlining() {
     if (!outliner.selectMethodsForOutlining()) {
       return null;
     }
@@ -521,7 +520,7 @@ public class IRConverter {
     return outlineClass;
   }
 
-  public void optimizeSynthesizedClass(DexProgramClass clazz) throws ApiLevelException {
+  public void optimizeSynthesizedClass(DexProgramClass clazz) {
     try {
       codeRewriter.enterCachedClass(clazz);
       // Process the generated class, but don't apply any outlining.
@@ -531,7 +530,7 @@ public class IRConverter {
     }
   }
 
-  public void optimizeSynthesizedMethod(DexEncodedMethod method) throws ApiLevelException {
+  public void optimizeSynthesizedMethod(DexEncodedMethod method) {
     // Process the generated method, but don't apply any outlining.
     processMethod(method, ignoreOptimizationFeedback, x -> false, CallSiteInformation.empty(),
         Outliner::noProcessing);
@@ -541,12 +540,12 @@ public class IRConverter {
     return options.useSmaliSyntax ? method.toSmaliString(null) : method.codeToString();
   }
 
-  public void processMethod(DexEncodedMethod method,
+  public void processMethod(
+      DexEncodedMethod method,
       OptimizationFeedback feedback,
       Predicate<DexEncodedMethod> isProcessedConcurrently,
       CallSiteInformation callSiteInformation,
-      BiConsumer<IRCode, DexEncodedMethod> outlineHandler)
-      throws ApiLevelException {
+      BiConsumer<IRCode, DexEncodedMethod> outlineHandler) {
     Code code = method.getCode();
     boolean matchesMethodFilter = options.methodMatchesFilter(method);
     if (code != null && matchesMethodFilter) {
@@ -565,12 +564,12 @@ public class IRConverter {
     }
   }
 
-  private void rewriteCode(DexEncodedMethod method,
+  private void rewriteCode(
+      DexEncodedMethod method,
       OptimizationFeedback feedback,
       Predicate<DexEncodedMethod> isProcessedConcurrently,
       CallSiteInformation callSiteInformation,
-      BiConsumer<IRCode, DexEncodedMethod> outlineHandler)
-      throws ApiLevelException {
+      BiConsumer<IRCode, DexEncodedMethod> outlineHandler) {
     if (options.verbose) {
       options.reporter.info(
           new StringDiagnostic("Processing: " + method.toSourceString()));

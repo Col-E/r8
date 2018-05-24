@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
-import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.graph.AccessFlags;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexClass;
@@ -151,8 +150,8 @@ public class Inliner {
     return target;
   }
 
-  public synchronized void processDoubleInlineCallers(IRConverter converter,
-      OptimizationFeedback feedback) throws ApiLevelException {
+  public synchronized void processDoubleInlineCallers(
+      IRConverter converter, OptimizationFeedback feedback) {
     if (doubleInlineCallers.size() > 0) {
       applyDoubleInlining = true;
       List<DexEncodedMethod> methods = doubleInlineCallers
@@ -267,8 +266,7 @@ public class Inliner {
         AppInfoWithSubtyping appInfo,
         GraphLense graphLense,
         InternalOptions options,
-        Position callerPosition)
-        throws ApiLevelException {
+        Position callerPosition) {
       // Build the IR for a yet not processed method, and perform minimal IR processing.
       Origin origin = appInfo.originFor(target.method.holder);
       IRCode code = target.buildInliningIR(appInfo, options, generator, callerPosition, origin);
@@ -375,8 +373,10 @@ public class Inliner {
     }
   }
 
-  public void performForcedInlining(DexEncodedMethod method, IRCode code,
-      Map<InvokeMethodWithReceiver, InliningInfo> invokesToInline) throws ApiLevelException {
+  public void performForcedInlining(
+      DexEncodedMethod method,
+      IRCode code,
+      Map<InvokeMethodWithReceiver, InliningInfo> invokesToInline) {
 
     ForcedInliningOracle oracle = new ForcedInliningOracle(method, invokesToInline);
     performInliningImpl(oracle, oracle, method, code);
@@ -387,8 +387,7 @@ public class Inliner {
       IRCode code,
       TypeEnvironment typeEnvironment,
       Predicate<DexEncodedMethod> isProcessedConcurrently,
-      CallSiteInformation callSiteInformation)
-      throws ApiLevelException {
+      CallSiteInformation callSiteInformation) {
 
     DefaultInliningOracle oracle =
         new DefaultInliningOracle(
@@ -405,11 +404,7 @@ public class Inliner {
   }
 
   private void performInliningImpl(
-      InliningStrategy strategy,
-      InliningOracle oracle,
-      DexEncodedMethod method,
-      IRCode code)
-      throws ApiLevelException {
+      InliningStrategy strategy, InliningOracle oracle, DexEncodedMethod method, IRCode code) {
     if (strategy.exceededAllowance()) {
       return;
     }

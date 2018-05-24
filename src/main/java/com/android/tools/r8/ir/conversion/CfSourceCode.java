@@ -5,7 +5,6 @@ package com.android.tools.r8.ir.conversion;
 
 import static it.unimi.dsi.fastutil.ints.Int2ObjectSortedMaps.emptyMap;
 
-import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.cf.code.CfFrame;
 import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.cf.code.CfGoto;
@@ -359,8 +358,7 @@ public class CfSourceCode implements SourceCode {
 
   @Override
   public void buildInstruction(
-      IRBuilder builder, int instructionIndex, boolean firstBlockInstruction)
-      throws ApiLevelException {
+      IRBuilder builder, int instructionIndex, boolean firstBlockInstruction) {
     CfInstruction instruction = code.getInstructions().get(instructionIndex);
     currentInstructionIndex = instructionIndex;
     if (firstBlockInstruction) {

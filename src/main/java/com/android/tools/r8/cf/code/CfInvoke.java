@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.cf.code;
 
-import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
@@ -91,8 +90,7 @@ public class CfInvoke extends CfInstruction {
   }
 
   @Override
-  public void buildIR(IRBuilder builder, CfState state, CfSourceCode code)
-      throws ApiLevelException {
+  public void buildIR(IRBuilder builder, CfState state, CfSourceCode code) {
     Invoke.Type type;
     DexMethod canonicalMethod;
     DexProto callSiteProto = null;

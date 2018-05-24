@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.code;
 
-import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.OffsetToObjectMapping;
@@ -53,7 +52,7 @@ public class InvokePolymorphicRange extends Format4rcc {
   }
 
   @Override
-  public void buildIR(IRBuilder builder) throws ApiLevelException {
+  public void buildIR(IRBuilder builder) {
     builder.addInvokeRange(Type.POLYMORPHIC, getMethod(), getProto(), AA, CCCC);
   }
 
