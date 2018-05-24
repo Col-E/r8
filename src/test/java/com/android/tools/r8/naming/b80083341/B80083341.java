@@ -16,14 +16,12 @@ import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 @RunWith(VmTestRunner.class)
 public class B80083341 extends TestBase {
 
-  @Ignore("b/80083341")
   @Test
   public void test() throws Exception {
     Class mainClass = TestMain.class;
