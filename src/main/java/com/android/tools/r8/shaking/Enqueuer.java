@@ -739,7 +739,6 @@ public class Enqueuer {
       transitionNonAbstractMethodsToLiveAndShadow(
           reachableMethods.getItems(), instantiatedType, seen.newNestedScope());
     }
-    seen = seen.newNestedScope();
     for (DexType subInterface : clazz.interfaces.values) {
       transitionDefaultMethodsForInstantiatedClass(subInterface, instantiatedType, seen);
     }
