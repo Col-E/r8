@@ -68,6 +68,25 @@ public abstract class AccessFlags {
     return flags;
   }
 
+  public boolean isMoreVisibleThan(AccessFlags other) {
+    return visibilityOrdinal() > other.visibilityOrdinal();
+  }
+
+  private int visibilityOrdinal() {
+    // public > protected > package > private
+    if (isPublic()) {
+      return 3;
+    }
+    if (isProtected()) {
+      return 2;
+    }
+    if (isPrivate()) {
+      return 0;
+    }
+    // Package-private
+    return 1;
+  }
+
   public boolean isPublic() {
     return isSet(Constants.ACC_PUBLIC);
   }

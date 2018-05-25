@@ -3,19 +3,20 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.HashMap;
+import java.util.Map;
 
 class ScopedDexMethodSet {
 
   private static final Equivalence<DexMethod> METHOD_EQUIVALENCE = MethodSignatureEquivalence.get();
 
   private final ScopedDexMethodSet parent;
-  private final Set<Wrapper<DexMethod>> items = new HashSet<>();
+  private final Map<Wrapper<DexMethod>, DexEncodedMethod> items = new HashMap<>();
 
   public ScopedDexMethodSet() {
     this(null);
@@ -29,14 +30,32 @@ class ScopedDexMethodSet {
     return new ScopedDexMethodSet(this);
   }
 
-  private boolean contains(Wrapper<DexMethod> item) {
-    return items.contains(item)
-        || ((parent != null) && parent.contains(item));
+  private DexEncodedMethod lookup(Wrapper<DexMethod> item) {
+    DexEncodedMethod ownMethod = items.get(item);
+    return ownMethod != null ? ownMethod : (parent != null ? parent.lookup(item) : null);
   }
 
-  public boolean addMethod(DexMethod method) {
-    Wrapper<DexMethod> wrapped = METHOD_EQUIVALENCE.wrap(method);
-    return !contains(wrapped) && items.add(wrapped);
+  private boolean contains(Wrapper<DexMethod> item) {
+    return lookup(item) != null;
+  }
+
+  public boolean addMethod(DexEncodedMethod method) {
+    Wrapper<DexMethod> wrapped = METHOD_EQUIVALENCE.wrap(method.method);
+    if (contains(wrapped)) {
+      return false;
+    }
+    items.put(wrapped, method);
+    return true;
+  }
+
+  public boolean addMethodIfMoreVisible(DexEncodedMethod method) {
+    Wrapper<DexMethod> wrapped = METHOD_EQUIVALENCE.wrap(method.method);
+    DexEncodedMethod existing = lookup(wrapped);
+    if (existing == null || method.accessFlags.isMoreVisibleThan(existing.accessFlags)) {
+      items.put(wrapped, method);
+      return true;
+    }
+    return false;
   }
 
   public ScopedDexMethodSet getParent() {

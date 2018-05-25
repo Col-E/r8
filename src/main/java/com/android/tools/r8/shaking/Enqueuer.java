@@ -748,7 +748,7 @@ public class Enqueuer {
   private void transitionNonAbstractMethodsToLiveAndShadow(Iterable<DexEncodedMethod> reachable,
       DexType instantiatedType, ScopedDexMethodSet seen) {
     for (DexEncodedMethod encodedMethod : reachable) {
-      if (seen.addMethod(encodedMethod.method)) {
+      if (seen.addMethod(encodedMethod)) {
         // Abstract methods do shadow implementations but they cannot be live, as they have no
         // code.
         if (!encodedMethod.accessFlags.isAbstract()) {
