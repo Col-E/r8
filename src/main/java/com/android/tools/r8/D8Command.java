@@ -7,6 +7,7 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.FlagFile;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -215,9 +216,10 @@ public class D8Command extends BaseCompilerCommand {
     Path outputPath = null;
     OutputMode outputMode = null;
     boolean hasDefinedApiLevel = false;
+    String[] expandedArgs = FlagFile.expandFlagFiles(args, builder.getReporter());
     try {
-      for (int i = 0; i < args.length; i++) {
-        String arg = args[i].trim();
+      for (int i = 0; i < expandedArgs.length; i++) {
+        String arg = expandedArgs[i].trim();
         if (arg.length() == 0) {
           continue;
         } else if (arg.equals("--help")) {
@@ -243,7 +245,7 @@ public class D8Command extends BaseCompilerCommand {
         } else if (arg.equals("--file-per-class")) {
           outputMode = OutputMode.DexFilePerClassFile;
         } else if (arg.equals("--output")) {
-          String output = args[++i];
+          String output = expandedArgs[++i];
           if (outputPath != null) {
             builder.getReporter().error(new StringDiagnostic(
                 "Cannot output both to '" + outputPath.toString() + "' and '" + output + "'",
@@ -252,15 +254,15 @@ public class D8Command extends BaseCompilerCommand {
           }
           outputPath = Paths.get(output);
         } else if (arg.equals("--lib")) {
-          builder.addLibraryFiles(Paths.get(args[++i]));
+          builder.addLibraryFiles(Paths.get(expandedArgs[++i]));
         } else if (arg.equals("--classpath")) {
-          builder.addClasspathFiles(Paths.get(args[++i]));
+          builder.addClasspathFiles(Paths.get(expandedArgs[++i]));
         } else if (arg.equals("--main-dex-list")) {
-          builder.addMainDexListFiles(Paths.get(args[++i]));
+          builder.addMainDexListFiles(Paths.get(expandedArgs[++i]));
         } else if (arg.equals("--optimize-multidex-for-linearalloc")) {
           builder.setOptimizeMultidexForLinearAlloc(true);
         } else if (arg.equals("--min-api")) {
-          hasDefinedApiLevel = parseMinApi(builder, args[++i], hasDefinedApiLevel, origin);
+          hasDefinedApiLevel = parseMinApi(builder, expandedArgs[++i], hasDefinedApiLevel, origin);
         } else if (arg.equals("--intermediate")) {
           builder.setIntermediate(true);
         } else if (arg.equals("--no-desugaring")) {

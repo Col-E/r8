@@ -49,13 +49,14 @@ public class DiagnosticsChecker implements DiagnosticsHandler {
     try {
       runner.run(handler);
     } catch (CompilationFailedException e) {
+      List<String> messages = ListUtils.map(handler.errors, Diagnostic::getDiagnosticMessage);
       System.out.println("Expecting match for '" + snippet + "'");
-      System.out.println("StdErr:\n" + handler.errors);
+      System.out.println("StdErr:\n" + messages);
       assertTrue(
           "Expected to find snippet '"
               + snippet
               + "' in error messages:\n"
-              + String.join("\n", ListUtils.map(handler.errors, Diagnostic::getDiagnosticMessage)),
+              + String.join("\n", messages),
           handler.errors.stream().anyMatch(d -> d.getDiagnosticMessage().contains(snippet)));
       throw e;
     }
