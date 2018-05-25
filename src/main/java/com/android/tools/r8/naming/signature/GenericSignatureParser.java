@@ -5,6 +5,7 @@
 package com.android.tools.r8.naming.signature;
 
 import java.lang.reflect.GenericSignatureFormatError;
+import java.nio.CharBuffer;
 
 /**
  * Implements a parser for the generics signature attribute as defined by JVMS 7 $ 4.3.4.
@@ -177,7 +178,7 @@ public class GenericSignatureParser<T> {
         updateTypeVariableSignature();
         break;
       default:
-        throw new GenericSignatureFormatError();
+        parseError();
     }
   }
 
@@ -340,7 +341,7 @@ public class GenericSignatureParser<T> {
         eof = true;
       }
     } else {
-      throw new GenericSignatureFormatError();
+      parseError("Unexpected end of signature");
     }
   }
 
@@ -348,7 +349,7 @@ public class GenericSignatureParser<T> {
     if (symbol == c) {
       scanSymbol();
     } else {
-      throw new GenericSignatureFormatError();
+      parseError("Expected " + c);
     }
   }
 
@@ -395,10 +396,20 @@ public class GenericSignatureParser<T> {
         // Ident starts with incorrect char.
         symbol = 0;
         eof = true;
-        throw new GenericSignatureFormatError();
+        parseError();
       }
     } else {
-      throw new GenericSignatureFormatError();
+      parseError("Unexpected end of signature");
     }
+  }
+
+  private void parseError() {
+    parseError("Unexpected");
+  }
+
+  private void parseError(String message) {
+    String arrow = CharBuffer.allocate(pos).toString().replace('\0', ' ') + '^';
+    throw new GenericSignatureFormatError(
+        message + " at position " + (pos + 1) + "\n" + String.valueOf(buffer) + "\n" + arrow);
   }
 }
