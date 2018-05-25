@@ -585,7 +585,7 @@ public class ConstantFoldingTest extends SmaliTestBase {
 
   private void notIntMethodBuilder(SmaliBuilder builder, String name, Object parameters) {
     Integer value = (Integer) parameters;
-    builder.addStaticMethod("long", name, Collections.emptyList(),
+    builder.addStaticMethod("int", name, Collections.emptyList(),
         1,
         "    const v0, " + value,
         "    not-int v0, v0",
@@ -950,6 +950,7 @@ public class ConstantFoldingTest extends SmaliTestBase {
     addCmpFloatFoldTests(testBuilder);
     addCmpDoubleFoldTests(testBuilder);
     addCmpLongFold(testBuilder);
+    runDex2Oat(testBuilder.builder.build());
     testBuilder.run();
   }
 

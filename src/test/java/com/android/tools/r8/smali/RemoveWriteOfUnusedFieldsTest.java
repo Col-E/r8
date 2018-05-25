@@ -6,12 +6,15 @@ package com.android.tools.r8.smali;
 
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.OutputMode;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
+import java.nio.file.Path;
 import org.junit.Test;
 
 public class RemoveWriteOfUnusedFieldsTest extends SmaliTestBase {
@@ -36,12 +39,13 @@ public class RemoveWriteOfUnusedFieldsTest extends SmaliTestBase {
     builder.addStaticMethod("void", "test", ImmutableList.of(),
         2,
         "const               v0, 0",
-        "sput-byte           v0, LTest;->booleanField:Z",
+        "sput-boolean        v0, LTest;->booleanField:Z",
         "sput-byte           v0, LTest;->byteField:B",
         "sput-short          v0, LTest;->shortField:S",
         "sput                v0, LTest;->intField:I",
         "sput                v0, LTest;->floatField:F",
         "sput-char           v0, LTest;->charField:C",
+        "const               v0, 0",
         "sput-object         v0, LTest;->objectField:Ljava/lang/Object;",
         "sput-object         v0, LTest;->stringField:Ljava/lang/String;",
         "sput-object         v0, LTest;->testField:LTest;",
@@ -55,9 +59,16 @@ public class RemoveWriteOfUnusedFieldsTest extends SmaliTestBase {
         "    invoke-static       { }, LTest;->test()V",
         "    return-void                             ");
 
+    AndroidApp input =
+        AndroidApp.builder().addDexProgramData(builder.compile(), Origin.unknown()).build();
+
+    Path inputPath = temp.getRoot().toPath().resolve("input.zip");
+    input.writeToZip(inputPath, OutputMode.DexIndexed);
+    ToolHelper.runArtNoVerificationErrors(inputPath.toString(), DEFAULT_CLASS_NAME);
+
     AndroidApp app =
         compileWithR8(
-            AndroidApp.builder().addDexProgramData(builder.compile(), Origin.unknown()).build(),
+            input,
             keepMainProguardConfiguration("Test"),
             options -> options.enableInlining = false);
 
@@ -87,12 +98,13 @@ public class RemoveWriteOfUnusedFieldsTest extends SmaliTestBase {
     builder.addInstanceMethod("void", "test", ImmutableList.of(),
         2,
         "const               v0, 0",
-        "iput-byte           v0, p0, LTest;->booleanField:Z",
+        "iput-boolean        v0, p0, LTest;->booleanField:Z",
         "iput-byte           v0, p0, LTest;->byteField:B",
         "iput-short          v0, p0, LTest;->shortField:S",
         "iput                v0, p0, LTest;->intField:I",
         "iput                v0, p0, LTest;->floatField:F",
         "iput-char           v0, p0, LTest;->charField:C",
+        "const               v0, 0",
         "iput-object         v0, p0, LTest;->objectField:Ljava/lang/Object;",
         "iput-object         v0, p0, LTest;->stringField:Ljava/lang/String;",
         "iput-object         v0, p0, LTest;->testField:LTest;",
@@ -104,12 +116,20 @@ public class RemoveWriteOfUnusedFieldsTest extends SmaliTestBase {
     builder.addMainMethod(
         1,
         "    new-instance         v0, LTest;",
+        "    invoke-direct        { v0 }, LTest;-><init>()V",
         "    invoke-virtual       { v0 }, LTest;->test()V",
         "    return-void                             ");
 
+    AndroidApp input =
+        AndroidApp.builder().addDexProgramData(builder.compile(), Origin.unknown()).build();
+
+    Path inputPath = temp.getRoot().toPath().resolve("input.zip");
+    input.writeToZip(inputPath, OutputMode.DexIndexed);
+    ToolHelper.runArtNoVerificationErrors(inputPath.toString(), DEFAULT_CLASS_NAME);
+
     AndroidApp app =
         compileWithR8(
-            AndroidApp.builder().addDexProgramData(builder.compile(), Origin.unknown()).build(),
+            input,
             keepMainProguardConfiguration("Test"),
             options -> options.enableInlining = false);
 
