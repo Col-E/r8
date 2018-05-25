@@ -1,8 +1,5 @@
 Lmultidex005/DirectlyReferenced;
 Lmultidex005/FieldReference;
-Lmultidex005/IndirectlyReferenced;
-Lmultidex005/IndirectlyReferencedInterface;
-Lmultidex005/IndirectlyReferencedSuperClass;
 Lmultidex005/Interface1;
 Lmultidex005/Interface2;
 Lmultidex005/Interface3;
