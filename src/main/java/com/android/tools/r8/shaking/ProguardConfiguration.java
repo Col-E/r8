@@ -305,8 +305,8 @@ public class ProguardConfiguration {
         // disableOptimization();
       }
 
-      if ((keepAttributePatterns.isEmpty()
-          && (rulesWasEmpty || (forceProguardCompatibility && !isObfuscating())))
+      if ((keepAttributePatterns.isEmpty() && rulesWasEmpty)
+          || (forceProguardCompatibility && !isObfuscating())
           || !isShrinking()) {
         keepAttributePatterns.addAll(ProguardKeepAttributes.KEEP_ALL);
       }
