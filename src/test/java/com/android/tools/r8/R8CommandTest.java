@@ -101,7 +101,7 @@ public class R8CommandTest {
     FileUtils.writeTextFile(
         flagsFile,
         "--output",
-        output.toString(),
+        "output.zip",
         "--min-api",
         "24",
         "--lib",
@@ -112,6 +112,20 @@ public class R8CommandTest {
     Marker marker = ExtractMarker.extractMarkerFromDexFile(output);
     assertEquals(24, marker.getMinApi().intValue());
     assertEquals(Tool.R8, marker.getTool());
+  }
+
+
+  @Test(expected=CompilationFailedException.class)
+  public void nonExistingFlagsFile() throws Throwable {
+    Path working = temp.getRoot().toPath();
+    Path flags = working.resolve("flags.txt").toAbsolutePath();
+    assertNotEquals(0, ToolHelper.forkR8(working, "@flags.txt").exitCode);
+    DiagnosticsChecker.checkErrorsContains("File not found", handler ->
+        R8.run(
+            R8Command.parse(
+                new String[] { "@" + flags.toString() },
+                EmbeddedOrigin.INSTANCE,
+                handler).build()));
   }
 
   @Test

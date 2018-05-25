@@ -18,6 +18,7 @@ import com.android.tools.r8.shaking.ProguardConfigurationSourceStrings;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.FlagFile;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.android.tools.r8.utils.Reporter;
@@ -513,8 +514,9 @@ public class R8Command extends BaseCompilerCommand {
       Origin argsOrigin,
       Builder builder,
       ParseState state) {
-    for (int i = 0; i < args.length; i++) {
-      String arg = args[i].trim();
+    String[] expandedArgs = FlagFile.expandFlagFiles(args, builder.getReporter());
+    for (int i = 0; i < expandedArgs.length; i++) {
+      String arg = expandedArgs[i].trim();
       if (arg.length() == 0) {
         continue;
       } else if (arg.equals("--help")) {
@@ -546,7 +548,7 @@ public class R8Command extends BaseCompilerCommand {
         }
         state.outputMode = OutputMode.ClassFile;
       } else if (arg.equals("--output")) {
-        String outputPath = args[++i];
+        String outputPath = expandedArgs[++i];
         if (state.outputPath != null) {
           builder.getReporter().error(new StringDiagnostic(
               "Cannot output both to '"
@@ -558,10 +560,10 @@ public class R8Command extends BaseCompilerCommand {
         }
         state.outputPath = Paths.get(outputPath);
       } else if (arg.equals("--lib")) {
-        builder.addLibraryFiles(Paths.get(args[++i]));
+        builder.addLibraryFiles(Paths.get(expandedArgs[++i]));
       } else if (arg.equals("--min-api")) {
         state.hasDefinedApiLevel =
-            parseMinApi(builder, args[++i], state.hasDefinedApiLevel, argsOrigin);
+            parseMinApi(builder, expandedArgs[++i], state.hasDefinedApiLevel, argsOrigin);
       } else if (arg.equals("--no-tree-shaking")) {
         builder.setDisableTreeShaking(true);
       } else if (arg.equals("--no-minification")) {
@@ -569,17 +571,17 @@ public class R8Command extends BaseCompilerCommand {
       } else if (arg.equals("--no-desugaring")) {
         builder.setDisableDesugaring(true);
       } else if (arg.equals("--main-dex-rules")) {
-        builder.addMainDexRulesFiles(Paths.get(args[++i]));
+        builder.addMainDexRulesFiles(Paths.get(expandedArgs[++i]));
       } else if (arg.equals("--main-dex-list")) {
-        builder.addMainDexListFiles(Paths.get(args[++i]));
+        builder.addMainDexListFiles(Paths.get(expandedArgs[++i]));
       } else if (arg.equals("--main-dex-list-output")) {
-        builder.setMainDexListOutputPath(Paths.get(args[++i]));
+        builder.setMainDexListOutputPath(Paths.get(expandedArgs[++i]));
       } else if (arg.equals("--optimize-multidex-for-linearalloc")) {
         builder.setOptimizeMultidexForLinearAlloc(true);
       } else if (arg.equals("--pg-conf")) {
-        builder.addProguardConfigurationFiles(Paths.get(args[++i]));
+        builder.addProguardConfigurationFiles(Paths.get(expandedArgs[++i]));
       } else if (arg.equals("--pg-map-output")) {
-        builder.setProguardMapOutputPath(Paths.get(args[++i]));
+        builder.setProguardMapOutputPath(Paths.get(expandedArgs[++i]));
       } else {
         if (arg.startsWith("--")) {
           builder.getReporter().error(new StringDiagnostic("Unknown option: " + arg, argsOrigin));

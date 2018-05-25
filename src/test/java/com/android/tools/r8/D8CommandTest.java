@@ -9,6 +9,7 @@ import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 import static java.nio.file.StandardOpenOption.CREATE_NEW;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.sdklib.AndroidVersion;
@@ -99,7 +100,7 @@ public class D8CommandTest {
     FileUtils.writeTextFile(
         flagsFile,
         "--output",
-        output.toString(),
+        "output.zip",
         "--min-api",
         "24",
         input.toString());
@@ -108,6 +109,19 @@ public class D8CommandTest {
     Marker marker = ExtractMarker.extractMarkerFromDexFile(output);
     assertEquals(24, marker.getMinApi().intValue());
     assertEquals(Tool.D8, marker.getTool());
+  }
+
+  @Test(expected=CompilationFailedException.class)
+  public void nonExistingFlagsFile() throws Throwable {
+    Path working = temp.getRoot().toPath();
+    Path flags = working.resolve("flags.txt").toAbsolutePath();
+    assertNotEquals(0, ToolHelper.forkR8(working, "@flags.txt").exitCode);
+    DiagnosticsChecker.checkErrorsContains("File not found", handler ->
+        D8.run(
+            D8Command.parse(
+                new String[] { "@" + flags.toString() },
+                EmbeddedOrigin.INSTANCE,
+                handler).build()));
   }
 
   @Test
