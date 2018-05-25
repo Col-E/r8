@@ -52,7 +52,7 @@ public class AbstractMethodRemover {
     List<DexEncodedMethod> methods = null;
     for (int i = 0; i < virtualMethods.length; i++) {
       DexEncodedMethod method = virtualMethods[i];
-      if (scope.addMethod(method.method) || !method.accessFlags.isAbstract()) {
+      if (scope.addMethodIfMoreVisible(method) || !method.accessFlags.isAbstract()) {
         if (methods != null) {
           methods.add(method);
         }

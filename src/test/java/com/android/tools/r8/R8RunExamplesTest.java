@@ -27,6 +27,7 @@ public class R8RunExamplesTest extends R8RunExamplesCommon {
   @Parameters(name = "{0}_{1}_{2}_{3}_{5}_{6}")
   public static Collection<String[]> data() {
     String[] tests = {
+        "abstractmethodremoval.AbstractMethodRemoval",
         "arithmetic.Arithmetic",
         "arrayaccess.ArrayAccess",
         "barray.BArray",
