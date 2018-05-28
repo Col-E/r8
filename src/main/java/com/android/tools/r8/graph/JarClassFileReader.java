@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import static org.objectweb.asm.ClassReader.SKIP_CODE;
 import static org.objectweb.asm.ClassReader.SKIP_FRAMES;
 import static org.objectweb.asm.Opcodes.ACC_DEPRECATED;
 import static org.objectweb.asm.Opcodes.ASM6;
@@ -90,7 +91,7 @@ public class JarClassFileReader {
     ClassReader reader = new ClassReader(input);
     reader.accept(
         new CreateDexClassVisitor(origin, classKind, reader.b, application, classConsumer),
-        SKIP_FRAMES);
+        SKIP_FRAMES | SKIP_CODE);
   }
 
   private static int cleanAccessFlags(int access) {
@@ -560,6 +561,11 @@ public class JarClassFileReader {
 
     @Override
     public void visitCode() {
+      throw new Unreachable("visitCode() should not be called when SKIP_CODE is set");
+    }
+
+    @Override
+    public void visitEnd() {
       if (!flags.isAbstract() && !flags.isNative() && parent.classKind == ClassKind.PROGRAM) {
         if (parent.application.options.enableCfFrontend) {
           code = new LazyCfCode(method, parent.origin, parent.context, parent.application);
@@ -567,12 +573,6 @@ public class JarClassFileReader {
           code = new JarCode(method, parent.origin, parent.context, parent.application);
         }
       }
-    }
-
-    @Override
-    public void visitEnd() {
-      assert flags.isAbstract() || flags.isNative() || parent.classKind != ClassKind.PROGRAM
-          || code != null;
       ParameterAnnotationsList annotationsList;
       if (parameterAnnotationsLists == null) {
         annotationsList = ParameterAnnotationsList.empty();
