@@ -149,6 +149,13 @@ public class ProguardConfigurationParserTest extends TestBase {
     parser = new ProguardConfigurationParser(new DexItemFactory(), reporter);
   }
 
+  @Before
+  public void resetAllowPartiallyImplementedOptions() {
+    handler = new KeepingDiagnosticHandler();
+    reporter = new Reporter(handler);
+    parser = new ProguardConfigurationParser(new DexItemFactory(), reporter, false);
+  }
+
   @Test
   public void parse() throws Exception {
     ProguardConfigurationParser parser;
@@ -859,7 +866,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   @Test
   public void parseKeepdirectories() throws Exception {
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(), reporter);
+        new ProguardConfigurationParser(new DexItemFactory(), reporter, false);
     parser.parse(Paths.get(KEEPDIRECTORIES));
     verifyParserEndsCleanly();
   }
@@ -1216,6 +1223,7 @@ public class ProguardConfigurationParserTest extends TestBase {
 
   @Test
   public void parse_adaptresourcexxx_keepdirectories_noArguments1() {
+    resetAllowPartiallyImplementedOptions();
     ProguardConfiguration config = parseAndVerifyParserEndsCleanly(ImmutableList.of(
         "-adaptresourcefilenames",
         "-adaptresourcefilecontents",
@@ -1228,6 +1236,7 @@ public class ProguardConfigurationParserTest extends TestBase {
 
   @Test
   public void parse_adaptresourcexxx_keepdirectories_noArguments2() {
+    resetAllowPartiallyImplementedOptions();
     ProguardConfiguration config = parseAndVerifyParserEndsCleanly(ImmutableList.of(
         "-keepdirectories",
         "-adaptresourcefilenames",
@@ -1240,6 +1249,7 @@ public class ProguardConfigurationParserTest extends TestBase {
 
   @Test
   public void parse_adaptresourcexxx_keepdirectories_noArguments3() {
+    resetAllowPartiallyImplementedOptions();
     ProguardConfiguration config = parseAndVerifyParserEndsCleanly(ImmutableList.of(
         "-adaptresourcefilecontents",
         "-keepdirectories",
@@ -1261,6 +1271,7 @@ public class ProguardConfigurationParserTest extends TestBase {
 
   @Test
   public void parse_adaptresourcexxx_keepdirectories_singleArgument() {
+    resetAllowPartiallyImplementedOptions();
     ProguardConfiguration config = parseAndVerifyParserEndsCleanly(ImmutableList.of(
         "-adaptresourcefilenames " + FILE_FILTER_SINGLE,
         "-adaptresourcefilecontents " + FILE_FILTER_SINGLE,
@@ -1293,6 +1304,7 @@ public class ProguardConfigurationParserTest extends TestBase {
 
   @Test
   public void parse_adaptresourcexxx_keepdirectories_multipleArgument() {
+    resetAllowPartiallyImplementedOptions();
     ProguardConfiguration config = parseAndVerifyParserEndsCleanly(ImmutableList.of(
         "-adaptresourcefilenames " + FILE_FILTER_MULTIPLE,
         "-adaptresourcefilecontents " + FILE_FILTER_MULTIPLE,
@@ -1309,7 +1321,7 @@ public class ProguardConfigurationParserTest extends TestBase {
         "-adaptresourcefilenames", "-adaptresourcefilecontents", "-keepdirectories");
     for (String option : options) {
       try {
-        reset();
+        resetAllowPartiallyImplementedOptions();
         parser.parse(createConfigurationForTesting(ImmutableList.of(option + " ,")));
         fail("Expect to fail due to the lack of path filter.");
       } catch (AbortException e) {
@@ -1324,7 +1336,7 @@ public class ProguardConfigurationParserTest extends TestBase {
         "-adaptresourcefilenames", "-adaptresourcefilecontents", "-keepdirectories");
     for (String option : options) {
       try {
-        reset();
+        resetAllowPartiallyImplementedOptions();
         parser.parse(createConfigurationForTesting(ImmutableList.of(option + " xxx,,yyy")));
         fail("Expect to fail due to the lack of path filter.");
       } catch (AbortException e) {
@@ -1339,7 +1351,7 @@ public class ProguardConfigurationParserTest extends TestBase {
         "-adaptresourcefilenames", "-adaptresourcefilecontents", "-keepdirectories");
     for (String option : options) {
       try {
-        reset();
+        resetAllowPartiallyImplementedOptions();
         parser.parse(createConfigurationForTesting(ImmutableList.of(option + " xxx,")));
         fail("Expect to fail due to the lack of path filter.");
       } catch (AbortException e) {
@@ -1744,6 +1756,24 @@ public class ProguardConfigurationParserTest extends TestBase {
 
     verifyWithProguard(proguardConfig);
   }
+
+  public void testNotSupported(String option) {
+    try {
+      reset();
+      parser.parse(createConfigurationForTesting(ImmutableList.of(option)));
+      fail("Expect to fail due to unsupported option.");
+    } catch (AbortException e) {
+      checkDiagnostic(handler.errors, null, 1, 1, "Option " + option + " currently not supported");
+    }
+  }
+
+  @Test
+  public void parse_pariallyImplemented_notSupported() {
+    testNotSupported("-keepdirectories");
+    testNotSupported("-adaptresourcefilenames");
+    testNotSupported("-adaptresourcefilecontents");
+  }
+
 
   private ProguardConfiguration parseAndVerifyParserEndsCleanly(List<String> config) {
     parser.parse(createConfigurationForTesting(config));
