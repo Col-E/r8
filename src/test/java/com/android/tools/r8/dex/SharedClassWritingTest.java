@@ -8,7 +8,6 @@ import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.code.ConstString;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.ReturnVoid;
-import com.android.tools.r8.errors.DexOverflowException;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
@@ -108,8 +107,7 @@ public class SharedClassWritingTest {
   }
 
   @Test
-  public void manyFilesWithSharedSynthesizedClass()
-      throws ExecutionException, IOException, DexOverflowException {
+  public void manyFilesWithSharedSynthesizedClass() throws ExecutionException, IOException {
 
     // Create classes that all reference enough strings to overflow the index, but are all
     // at different offsets in the strings array. This ensures we trigger multiple rounds of

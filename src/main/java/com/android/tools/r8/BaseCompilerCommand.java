@@ -37,7 +37,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     programConsumer = null;
     mode = null;
     minApiLevel = 0;
-    reporter = new Reporter(new DefaultDiagnosticsHandler());
+    reporter = new Reporter(new DefaultDiagnosticsHandler(), this);
     enableDesugaring = true;
     optimizeMultidexForLinearAlloc = false;
   }

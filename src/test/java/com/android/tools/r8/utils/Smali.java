@@ -7,7 +7,6 @@ import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.ApplicationWriter;
-import com.android.tools.r8.errors.DexOverflowException;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
@@ -37,27 +36,27 @@ import org.jf.smali.smaliTreeWalker;
 public class Smali {
 
   public static byte[] compile(String smaliText)
-      throws RecognitionException, IOException, DexOverflowException, ExecutionException {
+      throws RecognitionException, IOException, ExecutionException {
     return compile(smaliText, 15);
   }
 
   public static byte[] compile(String... smaliText)
-      throws RecognitionException, IOException, DexOverflowException, ExecutionException {
+      throws RecognitionException, IOException, ExecutionException {
     return compile(Arrays.asList(smaliText), 15);
   }
 
   public static byte[] compile(String smaliText, int apiLevel)
-      throws IOException, RecognitionException, DexOverflowException, ExecutionException {
+      throws IOException, RecognitionException, ExecutionException {
     return compile(ImmutableList.of(smaliText), apiLevel);
   }
 
   public static byte[] compile(List<String> smaliTexts)
-      throws RecognitionException, IOException, DexOverflowException, ExecutionException {
+      throws RecognitionException, IOException, ExecutionException {
     return compile(smaliTexts, 15);
   }
 
   public static byte[] compile(List<String> smaliTexts, int apiLevel)
-      throws RecognitionException, IOException, ExecutionException, DexOverflowException {
+      throws RecognitionException, IOException, ExecutionException {
     DexBuilder dexBuilder = new DexBuilder(Opcodes.forApi(apiLevel));
 
     for (String smaliText : smaliTexts) {

@@ -14,7 +14,6 @@ import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.errors.DexOverflowException;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
@@ -45,7 +44,7 @@ public class SmaliTestBase extends TestBase {
   protected AndroidApp buildApplication(SmaliBuilder builder) {
     try {
       return AndroidApp.builder().addDexProgramData(builder.compile(), Origin.unknown()).build();
-    } catch (IOException | RecognitionException | DexOverflowException | ExecutionException e) {
+    } catch (IOException | RecognitionException | ExecutionException e) {
       throw new RuntimeException(e);
     }
   }
@@ -56,7 +55,7 @@ public class SmaliTestBase extends TestBase {
           .addDexProgramData(builder.compile(), EmbeddedOrigin.INSTANCE)
           .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
           .build();
-    } catch (IOException | RecognitionException | ExecutionException | DexOverflowException e) {
+    } catch (IOException | RecognitionException | ExecutionException e) {
       throw new RuntimeException(e);
     }
   }
@@ -233,13 +232,11 @@ public class SmaliTestBase extends TestBase {
         processdApplication, DEFAULT_CLASS_NAME, returnType, DEFAULT_METHOD_NAME, parameters);
   }
 
-  public String runArt(AndroidApp application) throws DexOverflowException {
+  public String runArt(AndroidApp application) {
     return runArt(application, DEFAULT_MAIN_CLASS_NAME);
   }
 
-
-  public String runArt(AndroidApp application, String mainClass)
-      throws DexOverflowException {
+  public String runArt(AndroidApp application, String mainClass) {
     try {
       Path out = temp.getRoot().toPath().resolve("run-art-input.zip");
       // TODO(sgjesse): Pass in a unique temp directory for each run.
@@ -258,8 +255,7 @@ public class SmaliTestBase extends TestBase {
     }
   }
 
-  public void runDex2Oat(AndroidApp application)
-      throws DexOverflowException {
+  public void runDex2Oat(AndroidApp application) {
     try {
       Path dexOut = temp.getRoot().toPath().resolve("run-dex2oat-input.zip");
       Path oatFile = temp.getRoot().toPath().resolve("oat-file");

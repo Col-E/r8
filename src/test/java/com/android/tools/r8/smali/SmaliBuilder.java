@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.smali;
 
-import com.android.tools.r8.errors.DexOverflowException;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -334,13 +333,11 @@ public class SmaliBuilder {
     return result;
   }
 
-  public byte[] compile()
-      throws IOException, RecognitionException, DexOverflowException, ExecutionException {
+  public byte[] compile() throws IOException, RecognitionException, ExecutionException {
     return Smali.compile(buildSource());
   }
 
-  public AndroidApp build()
-      throws IOException, RecognitionException, DexOverflowException, ExecutionException {
+  public AndroidApp build() throws IOException, RecognitionException, ExecutionException {
     return AndroidApp.builder().addDexProgramData(compile(), Origin.unknown()).build();
   }
 

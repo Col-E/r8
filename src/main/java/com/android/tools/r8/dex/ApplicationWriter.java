@@ -12,7 +12,6 @@ import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.ProgramResourceProvider;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.errors.DexOverflowException;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationDirectory;
 import com.android.tools.r8.graph.DexAnnotationSet;
@@ -162,7 +161,7 @@ public class ApplicationWriter {
   }
 
   private Iterable<VirtualFile> distribute(ExecutorService executorService)
-      throws ExecutionException, IOException, DexOverflowException {
+      throws ExecutionException, IOException {
     // Distribute classes into dex files.
     VirtualFile.Distributor distributor;
     if (options.isGeneratingDexFilePerClassFile()) {
@@ -179,8 +178,7 @@ public class ApplicationWriter {
     return distributor.run();
   }
 
-  public void write(ExecutorService executorService)
-      throws IOException, ExecutionException, DexOverflowException {
+  public void write(ExecutorService executorService) throws IOException, ExecutionException {
     application.timing.begin("DexApplication.write");
     try {
       insertAttributeAnnotations();

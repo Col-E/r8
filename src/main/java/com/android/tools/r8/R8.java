@@ -10,7 +10,6 @@ import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.errors.DexOverflowException;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.ClassAndMemberPublicizer;
 import com.android.tools.r8.graph.DexApplication;
@@ -179,7 +178,7 @@ public class R8 {
       String proguardSeedsData,
       InternalOptions options,
       ProguardMapSupplier proguardMapSupplier)
-      throws ExecutionException, DexOverflowException {
+      throws ExecutionException {
     try {
       Marker marker = getMarker(options);
       if (options.isGeneratingClassFiles()) {

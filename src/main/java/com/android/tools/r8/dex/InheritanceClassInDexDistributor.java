@@ -5,7 +5,7 @@
 package com.android.tools.r8.dex;
 
 import com.android.tools.r8.dex.VirtualFile.VirtualFileCycler;
-import com.android.tools.r8.errors.DexOverflowException;
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -306,7 +306,7 @@ public class InheritanceClassInDexDistributor {
     directSubClasses = new DirectSubClassesInfo(app, classes);
   }
 
-  public void distribute() throws DexOverflowException {
+  public void distribute() {
     List<ClassGroup> remainingInheritanceGroups = collectInheritanceGroups();
     // Sort to ensure reproducible allocation
     remainingInheritanceGroups.sort(null);
@@ -369,8 +369,7 @@ public class InheritanceClassInDexDistributor {
     return groupClassNumber;
   }
 
-  private Collection<VirtualFile> assignGroup(ClassGroup group,
-      List<VirtualFile> dexBlackList) throws DexOverflowException {
+  private Collection<VirtualFile> assignGroup(ClassGroup group, List<VirtualFile> dexBlackList) {
     VirtualFileCycler cycler = new VirtualFileCycler(dexes, namingLens, dexIndexOffset);
     if (group.members.isEmpty()) {
       return Collections.emptyList();
@@ -411,8 +410,8 @@ public class InheritanceClassInDexDistributor {
    * They will fail to link during DexOpt but they will be loaded only once.
    * @param classes set of classes to assign, the set will be destroyed during assignment.
    */
-  private Collection<VirtualFile> assignClassesWithLinkingError(Set<DexProgramClass> classes,
-      Collection<VirtualFile> dexBlackList) throws DexOverflowException {
+  private Collection<VirtualFile> assignClassesWithLinkingError(
+      Set<DexProgramClass> classes, Collection<VirtualFile> dexBlackList) {
 
     List<ClassGroup> layers = collectNoDirectInheritanceGroups(classes);
 
@@ -440,7 +439,7 @@ public class InheritanceClassInDexDistributor {
             dexForLayer.abortTransaction();
             if (dexForLayer.isEmpty()) {
               // The class is too big to fit in one dex
-              throw new DexOverflowException("Class '" + dexProgramClass.toSourceString()
+              throw new CompilationError("Class '" + dexProgramClass.toSourceString()
                   + "' from " + dexProgramClass.getOrigin().toString()
                   + " is too big to fit in a dex.");
             }
@@ -614,8 +613,8 @@ public class InheritanceClassInDexDistributor {
    * Assign as many classes as possible by layer starting by roots.
    * @return the list of classes that were not assigned.
    */
-  private Set<DexProgramClass> assignFromRoot(VirtualFile dex,
-      Collection<DexProgramClass> classes) throws DexOverflowException {
+  private Set<DexProgramClass> assignFromRoot(
+      VirtualFile dex, Collection<DexProgramClass> classes) {
 
     int totalClasses = classes.size();
     int assignedClasses = 0;
@@ -635,7 +634,7 @@ public class InheritanceClassInDexDistributor {
             dex.abortTransaction();
             if (dex.isEmpty()) {
               // The class is too big to fit in one dex
-              throw new DexOverflowException("Class '" + clazz.toSourceString() + "' from "
+              throw new CompilationError("Class '" + clazz.toSourceString() + "' from "
                   + clazz.getOrigin().toString() + " is too big to fit in a dex.");
             }
             isLayerFullyAssigned = false;

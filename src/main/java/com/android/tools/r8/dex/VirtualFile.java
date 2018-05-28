@@ -3,9 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.dex;
 
-import com.android.tools.r8.errors.DexOverflowException;
 import com.android.tools.r8.errors.InternalCompilerError;
-import com.android.tools.r8.errors.MainDexOverflowException;
+import com.android.tools.r8.errors.MainDexOverflow;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
@@ -24,6 +23,7 @@ import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
@@ -185,15 +185,16 @@ public class VirtualFile {
     return transaction.getNumberOfFields();
   }
 
-  void throwIfFull(boolean hasMainDexList) throws DexOverflowException {
+  void throwIfFull(boolean hasMainDexList, Reporter reporter) {
     if (!isFull()) {
       return;
     }
-    throw new MainDexOverflowException(
-        hasMainDexList,
-        transaction.getNumberOfMethods(),
-        transaction.getNumberOfFields(),
-        MAX_ENTRIES);
+    throw reporter.fatalError(
+        new MainDexOverflow(
+            hasMainDexList,
+            transaction.getNumberOfMethods(),
+            transaction.getNumberOfFields(),
+            MAX_ENTRIES));
   }
 
   private boolean isFilledEnough(FillStrategy fillStrategy) {
@@ -226,8 +227,7 @@ public class VirtualFile {
       this.writer = writer;
     }
 
-    public abstract Collection<VirtualFile> run()
-        throws ExecutionException, IOException, DexOverflowException;
+    public abstract Collection<VirtualFile> run() throws ExecutionException, IOException;
   }
 
   /**
@@ -296,7 +296,7 @@ public class VirtualFile {
       originalNames = computeOriginalNameMapping(classes, application.getProguardMap());
     }
 
-    protected void fillForMainDexList(Set<DexProgramClass> classes) throws DexOverflowException {
+    protected void fillForMainDexList(Set<DexProgramClass> classes) {
       if (!application.mainDexList.isEmpty()) {
         VirtualFile mainDexFile = virtualFiles.get(0);
         for (DexType type : application.mainDexList) {
@@ -314,7 +314,7 @@ public class VirtualFile {
           }
           mainDexFile.commitTransaction();
         }
-        mainDexFile.throwIfFull(true);
+        mainDexFile.throwIfFull(true, options.reporter);
       }
     }
 
@@ -363,7 +363,7 @@ public class VirtualFile {
     }
 
     @Override
-    public Collection<VirtualFile> run() throws IOException, DexOverflowException {
+    public Collection<VirtualFile> run() throws IOException {
       int totalClassNumber = classes.size();
       // First fill required classes into the main dex file.
       fillForMainDexList(classes);
@@ -408,14 +408,13 @@ public class VirtualFile {
     }
 
     @Override
-    public Collection<VirtualFile> run()
-        throws ExecutionException, IOException, DexOverflowException {
+    public Collection<VirtualFile> run() throws ExecutionException, IOException {
       // Add all classes to the main dex file.
       for (DexProgramClass programClass : classes) {
         mainDexFile.addClass(programClass);
       }
       mainDexFile.commitTransaction();
-      mainDexFile.throwIfFull(false);
+      mainDexFile.throwIfFull(false, options.reporter);
       return virtualFiles;
     }
   }

@@ -14,6 +14,8 @@ import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
+import com.android.tools.r8.Diagnostic;
+import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.StringResource;
@@ -22,7 +24,6 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.errors.DexOverflowException;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.Code;
@@ -52,9 +53,11 @@ import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
+import com.android.tools.r8.utils.AbortException;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
+import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.FoundClassSubject;
@@ -62,6 +65,7 @@ import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.MainDexList;
+import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
@@ -99,6 +103,8 @@ public class MainDexListTests extends TestBase {
   @ClassRule
   public static TemporaryFolder generatedApplicationsFolder =
       ToolHelper.getTemporaryFolderForTest();
+
+  private List<Diagnostic> errors = new ArrayList<>();
 
   // Generate the test applications in a @BeforeClass method, as they are used by several tests.
   @BeforeClass
@@ -177,12 +183,15 @@ public class MainDexListTests extends TestBase {
     try {
       verifyMainDexContains(TWO_LARGE_CLASSES, getTwoLargeClassesAppPath(), false);
       fail("Expect to fail, for there are too many classes for the main-dex list.");
-    } catch (DexOverflowException e) {
+    } catch (AbortException e) {
+      assertEquals(1, errors.size());
+      String message = errors.get(0).getDiagnosticMessage();
       // Make sure {@link MonoDexDistributor} was _not_ used.
-      assertFalse(e.getMessage().contains("single dex file"));
+      assertFalse(message.contains("single dex file"));
       // Make sure what exceeds the limit is the number of methods.
-      assertTrue(e.getMessage().contains("# methods: "
-          + String.valueOf(TWO_LARGE_CLASSES.size() * MAX_METHOD_COUNT)));
+      assertTrue(
+          message.contains(
+              "# methods: " + String.valueOf(TWO_LARGE_CLASSES.size() * MAX_METHOD_COUNT)));
     }
   }
 
@@ -218,12 +227,16 @@ public class MainDexListTests extends TestBase {
     try {
       verifyMainDexContains(MANY_CLASSES, getManyClassesMultiDexAppPath(), false);
       fail("Expect to fail, for there are too many classes for the main-dex list.");
-    } catch (DexOverflowException e) {
+    } catch (AbortException e) {
+      assertEquals(1, errors.size());
+      String message = errors.get(0).getDiagnosticMessage();
       // Make sure {@link MonoDexDistributor} was _not_ used.
-      assertFalse(e.getMessage().contains("single dex file"));
+      assertFalse(message.contains("single dex file"));
       // Make sure what exceeds the limit is the number of methods.
-      assertTrue(e.getMessage().contains("# methods: "
-          + String.valueOf(MANY_CLASSES_COUNT * MANY_CLASSES_MULTI_DEX_METHODS_PER_CLASS)));
+      assertTrue(
+          message.contains(
+              "# methods: "
+                  + String.valueOf(MANY_CLASSES_COUNT * MANY_CLASSES_MULTI_DEX_METHODS_PER_CLASS)));
     }
   }
 
@@ -442,15 +455,22 @@ public class MainDexListTests extends TestBase {
     // Notice that this one fails due to the min API.
     try {
       generateApplication(
-          MANY_CLASSES, AndroidApiLevel.K.getLevel(), false,
-          MANY_CLASSES_MULTI_DEX_METHODS_PER_CLASS);
+          MANY_CLASSES,
+          AndroidApiLevel.K.getLevel(),
+          false,
+          MANY_CLASSES_MULTI_DEX_METHODS_PER_CLASS,
+          new TestDiagnosticsHandler());
       fail("Expect to fail, for there are many classes while multidex is not enabled.");
-    } catch (DexOverflowException e) {
+    } catch (AbortException e) {
+      assertEquals(1, errors.size());
+      String message = errors.get(0).getDiagnosticMessage();
       // Make sure {@link MonoDexDistributor} was used.
-      assertTrue(e.getMessage().contains("single dex file"));
+      assertTrue(message.contains("single dex file"));
       // Make sure what exceeds the limit is the number of methods.
-      assertTrue(e.getMessage().contains("# methods: "
-          + String.valueOf(MANY_CLASSES_COUNT * MANY_CLASSES_MULTI_DEX_METHODS_PER_CLASS)));
+      assertTrue(
+          message.contains(
+              "# methods: "
+                  + String.valueOf(MANY_CLASSES_COUNT * MANY_CLASSES_MULTI_DEX_METHODS_PER_CLASS)));
     }
   }
 
@@ -506,7 +526,7 @@ public class MainDexListTests extends TestBase {
     }
     Path outDir = temp.newFolder().toPath();
     R8Command.Builder builder =
-        R8Command.builder()
+        R8Command.builder(new TestDiagnosticsHandler())
             .addProgramFiles(app)
             .setMode(
                 minimalMainDex && mainDex.size() > 0
@@ -592,8 +612,20 @@ public class MainDexListTests extends TestBase {
   private static AndroidApp generateApplication(
       List<String> classes, int minApi, boolean intermediate, int methodCount)
       throws IOException, ExecutionException {
+    return generateApplication(
+        classes, minApi, intermediate, methodCount, new DefaultDiagnosticsHandler());
+  }
+
+  private static AndroidApp generateApplication(
+      List<String> classes,
+      int minApi,
+      boolean intermediate,
+      int methodCount,
+      DiagnosticsHandler diagnosticsHandler)
+      throws IOException, ExecutionException {
     Timing timing = new Timing("MainDexListTests");
-    InternalOptions options = new InternalOptions();
+    InternalOptions options =
+        new InternalOptions(new DexItemFactory(), new Reporter(diagnosticsHandler));
     options.minApiLevel = minApi;
     options.intermediate = intermediate;
     DexItemFactory factory = options.itemFactory;
@@ -761,6 +793,14 @@ public class MainDexListTests extends TestBase {
     @Override
     public boolean verifyLocalInScope(DebugLocalInfo local) {
       throw new Unreachable();
+    }
+  }
+
+  private class TestDiagnosticsHandler implements DiagnosticsHandler {
+
+    @Override
+    public void error(Diagnostic error) {
+      errors.add(error);
     }
   }
 }
