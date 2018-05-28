@@ -460,10 +460,11 @@ public class Enqueuer {
         DexType baseType = type.toBaseType(appInfo.dexItemFactory);
         if (baseType.isClassType()) {
           DexClass baseClass = appInfo.definitionFor(baseType);
-          if (baseClass != null && !baseClass.isLibraryClass()) {
+          if (baseClass != null && baseClass.isProgramClass()
+              && baseClass.hasDefaultInitializer()) {
             markClassAsInstantiatedWithCompatRule(baseClass);
           } else {
-            // This handles reporting of missing classes.
+            // This also handles reporting of missing classes.
             markTypeAsLive(baseType);
           }
           return true;
