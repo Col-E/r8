@@ -110,7 +110,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
 
     // The test contains only a member class so the enclosing-method attribute will be null.
     assertEquals(
-        !keepAnnotations && forceProguardCompatibility,
+        forceProguardCompatibility,
         !clazz.getDexClass().getInnerClasses().isEmpty());
     assertEquals(forceProguardCompatibility || keepAnnotations,
         clazz.annotation(annotationClass.getCanonicalName()).isPresent());
