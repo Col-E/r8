@@ -66,6 +66,8 @@ public class R8Command extends BaseCompilerCommand {
     // Internal compatibility mode for use from CompatProguard tool.
     Path proguardCompatibilityRulesOutput = null;
 
+    private boolean allowPartiallyImplementedProguardOptions = false;
+
     private StringConsumer mainDexListConsumer = null;
 
     // TODO(zerny): Consider refactoring CompatProguardCommandBuilder to avoid subclassing.
@@ -286,7 +288,8 @@ public class R8Command extends BaseCompilerCommand {
         mainDexKeepRules = parser.getConfig().getRules();
       }
 
-      ProguardConfigurationParser parser = new ProguardConfigurationParser(factory, reporter);
+      ProguardConfigurationParser parser = new ProguardConfigurationParser(
+          factory, reporter, !allowPartiallyImplementedProguardOptions);
       if (!proguardConfigs.isEmpty()) {
         parser.parse(proguardConfigs);
       }
@@ -383,6 +386,11 @@ public class R8Command extends BaseCompilerCommand {
             }
             c.accept(builder);
           };
+    }
+
+    // Internal for-testing method to add post-processors of the proguard configuration.
+    void allowPartiallyImplementedProguardOptions() {
+      allowPartiallyImplementedProguardOptions = true;
     }
   }
 

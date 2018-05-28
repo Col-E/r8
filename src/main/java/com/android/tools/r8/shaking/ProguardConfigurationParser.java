@@ -47,6 +47,7 @@ public class ProguardConfigurationParser {
   private final DexItemFactory dexItemFactory;
 
   private final Reporter reporter;
+  private final boolean failOnPartiallyImplementedOptions;
 
   private static final List<String> IGNORED_SINGLE_ARG_OPTIONS = ImmutableList.of(
       "protomapping",
@@ -96,10 +97,16 @@ public class ProguardConfigurationParser {
 
   public ProguardConfigurationParser(
       DexItemFactory dexItemFactory, Reporter reporter) {
+    this(dexItemFactory, reporter, true);
+  }
+
+  public ProguardConfigurationParser(
+      DexItemFactory dexItemFactory, Reporter reporter, boolean failOnPartiallyImplementedOptions) {
     this.dexItemFactory = dexItemFactory;
     configurationBuilder = ProguardConfiguration.builder(dexItemFactory, reporter);
 
     this.reporter = reporter;
+    this.failOnPartiallyImplementedOptions = failOnPartiallyImplementedOptions;
   }
 
   public ProguardConfiguration.Builder getConfigurationBuilder() {
@@ -219,6 +226,10 @@ public class ProguardConfigurationParser {
         ProguardCheckDiscardRule rule = parseCheckDiscardRule();
         configurationBuilder.addRule(rule);
       } else if (acceptString("keepdirectories")) {
+        // TODO(74279367): Report an error until it's fully supported.
+        if (failOnPartiallyImplementedOptions) {
+          failPartiallyImplementedOption("-keepdirectories", optionStart);
+        }
         parsePathFilter(configurationBuilder::addKeepDirectories);
       } else if (acceptString("keep")) {
         ProguardKeepRule rule = parseKeepRule();
@@ -339,11 +350,17 @@ public class ProguardConfigurationParser {
       } else if (acceptString("adaptclassstrings")) {
         parseClassFilter(configurationBuilder::addAdaptClassStringsPattern);
       } else if (acceptString("adaptresourcefilenames")) {
-        // TODO(b/76377381): should be report an error until it's fully supported.
+        // TODO(76377381): Report an error until it's fully supported.
+        if (failOnPartiallyImplementedOptions) {
+          failPartiallyImplementedOption("-adaptresourcefilenames", optionStart);
+        }
         parsePathFilter(configurationBuilder::addAdaptResourceFilenames);
       } else if (acceptString("adaptresourcefilecontents")) {
+        // TODO(36847655): Report an error until it's fully supported.
+        if (failOnPartiallyImplementedOptions) {
+          failPartiallyImplementedOption("-adaptresourcefilecontents", optionStart);
+        }
         parsePathFilter(configurationBuilder::addAdaptResourceFilecontents);
-        // TODO(b/37139570): should be report an error until it's fully supported.
       } else if (acceptString("identifiernamestring")) {
         configurationBuilder.addRule(parseIdentifierNameStringRule());
       } else if (acceptString("if")) {
@@ -1471,6 +1488,11 @@ public class ProguardConfigurationParser {
     private void warnOverridingOptions(String optionName, String victim, TextPosition start) {
       reporter.warning(new StringDiagnostic(
           "Option -" + optionName + " overrides -" + victim, origin, getPosition(start)));
+    }
+
+    private void failPartiallyImplementedOption(String optionName, TextPosition start) {
+      throw reporter.fatalError(new StringDiagnostic(
+          "Option " + optionName + " currently not supported", origin, getPosition(start)));
     }
 
     private Position getPosition(TextPosition start) {

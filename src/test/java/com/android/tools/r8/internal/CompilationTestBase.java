@@ -98,6 +98,7 @@ public abstract class CompilationTestBase {
       builder.setMode(mode);
       builder.setProgramConsumer(DexIndexedConsumer.emptyConsumer());
       builder.setMinApiLevel(AndroidApiLevel.L.getLevel());
+      ToolHelper.allowPartiallyImplementedProguardOptions(builder);
       ToolHelper.addProguardConfigurationConsumer(
           builder,
           pgConfig -> {
