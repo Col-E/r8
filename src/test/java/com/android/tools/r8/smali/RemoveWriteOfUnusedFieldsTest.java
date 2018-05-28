@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
@@ -36,6 +37,10 @@ public class RemoveWriteOfUnusedFieldsTest extends SmaliTestBase {
     builder.addStaticField("stringField", "Ljava/lang/String;");
     builder.addStaticField("testField", "LTest;");
 
+    boolean isDalvik = ToolHelper.getDexVm().isOlderThanOrEqual(DexVm.ART_4_4_4_HOST);
+    String additionalConstZero = isDalvik ? "const v0, 0" : "";
+    String additionalConstZeroWide = isDalvik ? "const-wide v0, 0" : "";
+
     builder.addStaticMethod("void", "test", ImmutableList.of(),
         2,
         "const               v0, 0",
@@ -43,7 +48,9 @@ public class RemoveWriteOfUnusedFieldsTest extends SmaliTestBase {
         "sput-byte           v0, LTest;->byteField:B",
         "sput-short          v0, LTest;->shortField:S",
         "sput                v0, LTest;->intField:I",
+        // Dalvik 4.x. does not require a new const 0 here.
         "sput                v0, LTest;->floatField:F",
+        additionalConstZero,  // Required for Dalvik 4.x.
         "sput-char           v0, LTest;->charField:C",
         "const               v0, 0",
         "sput-object         v0, LTest;->objectField:Ljava/lang/Object;",
@@ -51,6 +58,7 @@ public class RemoveWriteOfUnusedFieldsTest extends SmaliTestBase {
         "sput-object         v0, LTest;->testField:LTest;",
         "const-wide          v0, 0",
         "sput-wide           v0, LTest;->longField:J",
+        additionalConstZeroWide,  // Required for Dalvik 4.x.
         "sput-wide           v0, LTest;->doubleField:D",
         "return-void");
 
@@ -95,6 +103,10 @@ public class RemoveWriteOfUnusedFieldsTest extends SmaliTestBase {
     builder.addInstanceField("stringField", "Ljava/lang/String;");
     builder.addInstanceField("testField", "LTest;");
 
+    boolean isDalvik = ToolHelper.getDexVm().isOlderThanOrEqual(DexVm.ART_4_4_4_HOST);
+    String additionalConstZero = isDalvik ? "const v0, 0" : "";
+    String additionalConstZeroWide = isDalvik ? "const-wide v0, 0" : "";
+
     builder.addInstanceMethod("void", "test", ImmutableList.of(),
         2,
         "const               v0, 0",
@@ -102,7 +114,9 @@ public class RemoveWriteOfUnusedFieldsTest extends SmaliTestBase {
         "iput-byte           v0, p0, LTest;->byteField:B",
         "iput-short          v0, p0, LTest;->shortField:S",
         "iput                v0, p0, LTest;->intField:I",
+        // Dalvik 4.x. does not require a new const 0 here.
         "iput                v0, p0, LTest;->floatField:F",
+        additionalConstZero,  // Required for Dalvik 4.x.
         "iput-char           v0, p0, LTest;->charField:C",
         "const               v0, 0",
         "iput-object         v0, p0, LTest;->objectField:Ljava/lang/Object;",
@@ -110,8 +124,14 @@ public class RemoveWriteOfUnusedFieldsTest extends SmaliTestBase {
         "iput-object         v0, p0, LTest;->testField:LTest;",
         "const-wide          v0, 0",
         "iput-wide           v0, p0, LTest;->longField:J",
+        additionalConstZeroWide,  // Required for Dalvik 4.x.
         "iput-wide           v0, p0, LTest;->doubleField:D",
         "return-void");
+
+    builder.addInitializer(ImmutableList.of(), 0,
+        "invoke-direct {p0}, Ljava/lang/Object;-><init>()V",
+        "return-void"
+    );
 
     builder.addMainMethod(
         1,
