@@ -11,7 +11,6 @@ import static org.junit.Assert.fail;
 import com.android.tools.r8.DeviceRunner.DeviceRunnerConfigurationException;
 import com.android.tools.r8.ToolHelper.DexVm.Kind;
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.errors.DexOverflowException;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -1353,7 +1352,7 @@ public class ToolHelper {
   }
 
   public static void writeApplication(DexApplication application, InternalOptions options)
-      throws ExecutionException, DexOverflowException {
+      throws ExecutionException {
     R8.writeApplication(
         Executors.newSingleThreadExecutor(),
         application,

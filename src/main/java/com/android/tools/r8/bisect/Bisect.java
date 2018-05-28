@@ -8,7 +8,6 @@ import com.android.tools.r8.bisect.BisectOptions.Result;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.errors.DexOverflowException;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.utils.AndroidApp;
@@ -175,7 +174,7 @@ public class Bisect {
   }
 
   private static void writeApp(DexApplication app, Path output, ExecutorService executor)
-      throws IOException, ExecutionException, DexOverflowException {
+      throws IOException, ExecutionException {
     InternalOptions options = new InternalOptions();
     AndroidAppConsumers compatSink = new AndroidAppConsumers(options);
     ApplicationWriter writer = new ApplicationWriter(app, options, null, null, null, null, null);

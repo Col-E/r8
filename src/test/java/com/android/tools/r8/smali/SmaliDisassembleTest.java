@@ -6,7 +6,6 @@ package com.android.tools.r8.smali;
 
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.errors.DexOverflowException;
 import com.android.tools.r8.graph.SmaliWriter;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
@@ -27,7 +26,7 @@ public class SmaliDisassembleTest extends SmaliTestBase {
       AndroidApp application =
           AndroidApp.builder().addDexProgramData(Smali.compile(smali), Origin.unknown()).build();
       assertEquals(smali, SmaliWriter.smali(application, new InternalOptions()));
-    } catch (IOException | RecognitionException | ExecutionException | DexOverflowException e) {
+    } catch (IOException | RecognitionException | ExecutionException e) {
       throw new RuntimeException(e);
     }
   }

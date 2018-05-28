@@ -10,7 +10,6 @@ import static org.junit.Assert.assertNull;
 
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm;
-import com.android.tools.r8.errors.DexOverflowException;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.smali.SmaliTestBase;
 import com.android.tools.r8.utils.AndroidApp;
@@ -165,7 +164,7 @@ public class TargetLookupTest extends SmaliTestBase {
   }
 
   @Test
-  public void lookupFieldWithDefaultInInterface() throws DexOverflowException {
+  public void lookupFieldWithDefaultInInterface() {
     SmaliBuilder builder = new SmaliBuilder();
 
     builder.addInterface("Interface");

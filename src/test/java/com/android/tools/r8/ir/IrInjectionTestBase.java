@@ -5,7 +5,6 @@ package com.android.tools.r8.ir;
 
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.errors.DexOverflowException;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -37,7 +36,7 @@ public class IrInjectionTestBase extends SmaliTestBase {
       return buildApplication(
           AndroidApp.builder().addDexProgramData(builder.compile(), Origin.unknown()).build(),
           options);
-    } catch (IOException | RecognitionException | ExecutionException | DexOverflowException e) {
+    } catch (IOException | RecognitionException | ExecutionException e) {
       throw new RuntimeException(e);
     }
   }
@@ -118,8 +117,7 @@ public class IrInjectionTestBase extends SmaliTestBase {
       return iterator;
     }
 
-    private AndroidApp writeDex(DexApplication application, InternalOptions options)
-        throws DexOverflowException {
+    private AndroidApp writeDex(DexApplication application, InternalOptions options) {
       try {
         ToolHelper.writeApplication(application, options);
         options.signalFinishedToConsumers();
@@ -129,7 +127,7 @@ public class IrInjectionTestBase extends SmaliTestBase {
       }
     }
 
-    public String run() throws DexOverflowException, IOException {
+    public String run() throws IOException {
       AppInfo appInfo = new AppInfo(application);
       IRConverter converter = new IRConverter(appInfo, options);
       converter.replaceCodeForTesting(method, code);
