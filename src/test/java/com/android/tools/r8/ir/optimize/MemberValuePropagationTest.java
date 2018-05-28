@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.optimize;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
@@ -99,8 +98,7 @@ public class MemberValuePropagationTest {
         });
   }
 
-  private Path runR8(Path proguardConfig)
-      throws IOException, CompilationException, CompilationFailedException {
+  private Path runR8(Path proguardConfig) throws IOException, CompilationFailedException {
     Path dexOutputDir = temp.newFolder().toPath();
     ToolHelper.runR8(
         R8Command.builder()

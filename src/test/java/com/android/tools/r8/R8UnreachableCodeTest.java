@@ -30,7 +30,7 @@ public class R8UnreachableCodeTest {
 
   @Ignore
   @Test
-  public void UnreachableCode() throws IOException, ExecutionException, CompilationException {
+  public void UnreachableCode() throws IOException, ExecutionException {
     String name = "unreachable-code-1";
     AndroidApp input =
         AndroidApp.builder()

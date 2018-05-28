@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
-import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.ResourceException;
@@ -15,7 +14,6 @@ import java.io.IOException;
 import java.nio.file.FileSystemException;
 import java.nio.file.Paths;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 public abstract class ExceptionUtils {
 
@@ -37,31 +35,26 @@ public abstract class ExceptionUtils {
   }
 
   public interface CompileAction {
-    void run() throws IOException, CompilationException, CompilationError, ResourceException;
+    void run() throws IOException, CompilationError, ResourceException;
   }
 
   public static void withD8CompilationHandler(Reporter reporter, CompileAction action)
       throws CompilationFailedException {
-    withCompilationHandler(reporter, action, CompilationException::getMessageForD8);
+    withCompilationHandler(reporter, action);
   }
 
   public static void withR8CompilationHandler(Reporter reporter, CompileAction action)
       throws CompilationFailedException {
-    withCompilationHandler(reporter, action, CompilationException::getMessageForR8);
+    withCompilationHandler(reporter, action);
   }
 
-  public static void withCompilationHandler(
-      Reporter reporter,
-      CompileAction action,
-      Function<CompilationException, String> compilerMessage)
+  public static void withCompilationHandler(Reporter reporter, CompileAction action)
       throws CompilationFailedException {
     try {
       try {
         action.run();
       } catch (IOException e) {
         throw reporter.fatalError(new ExceptionDiagnostic(e, extractIOExceptionOrigin(e)));
-      } catch (CompilationException e) {
-        throw reporter.fatalError(new StringDiagnostic(compilerMessage.apply(e)), e);
       } catch (CompilationError e) {
         throw reporter.fatalError(e);
       } catch (ResourceException e) {

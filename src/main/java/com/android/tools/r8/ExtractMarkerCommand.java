@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.errors.CompilationError;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -54,7 +55,7 @@ class ExtractMarkerCommand {
       return this;
     }
 
-    public ExtractMarkerCommand build() throws CompilationException, IOException {
+    public ExtractMarkerCommand build() throws IOException {
       // If printing versions ignore everything else.
       if (isPrintHelp()) {
         return new ExtractMarkerCommand(isPrintHelp());
@@ -76,15 +77,13 @@ class ExtractMarkerCommand {
     return new Builder();
   }
 
-  public static Builder parse(String[] args)
-      throws CompilationException, IOException {
+  public static Builder parse(String[] args) throws IOException {
     Builder builder = builder();
     parse(args, builder);
     return builder;
   }
 
-  private static void parse(String[] args, Builder builder)
-      throws CompilationException, IOException {
+  private static void parse(String[] args, Builder builder) throws IOException {
     for (int i = 0; i < args.length; i++) {
       String arg = args[i].trim();
       if (arg.length() == 0) {
@@ -101,7 +100,7 @@ class ExtractMarkerCommand {
         builder.setPrintHelp(true);
       } else {
         if (arg.startsWith("--")) {
-          throw new CompilationException("Unknown option: " + arg);
+          throw new CompilationError("Unknown option: " + arg);
         }
         builder.addProgramFile(Paths.get(arg));
       }

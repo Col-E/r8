@@ -9,8 +9,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import java.io.IOException;
 
 public class CompatDxHelper {
-  public static void run(D8Command command, Boolean minimalMainDex)
-      throws IOException, CompilationException {
+  public static void run(D8Command command, Boolean minimalMainDex) throws IOException {
     AndroidApp app = command.getInputApp();
     InternalOptions options = command.getInternalOptions();
     // DX does not desugar.

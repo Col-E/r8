@@ -6,7 +6,6 @@ package com.android.tools.r8.benchmarks;
 import static com.android.tools.r8.benchmarks.BenchmarkUtils.printRuntimeNanoseconds;
 
 import com.android.tools.r8.ClassFileResourceProvider;
-import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8;
@@ -112,7 +111,7 @@ public class FrameworkIncrementalDexingBenchmark {
       boolean desugar,
       Map<String, ProgramResource> outputs,
       ExecutorService executor)
-      throws IOException, CompilationException, CompilationFailedException {
+      throws IOException, CompilationFailedException {
 
     ProgramConsumer consumer =
         new DexFilePerClassFileConsumer.ForwardingConsumer(null) {
@@ -155,7 +154,7 @@ public class FrameworkIncrementalDexingBenchmark {
       boolean desugar,
       Map<String, ProgramResource> outputs,
       ExecutorService executor)
-      throws IOException, CompilationException, CompilationFailedException {
+      throws IOException, CompilationFailedException {
     ProgramConsumer consumer =
         new ForwardingConsumer(null) {
           @Override
@@ -199,7 +198,7 @@ public class FrameworkIncrementalDexingBenchmark {
 
   private static void merge(
       boolean desugar, Map<String, ProgramResource> outputs, ExecutorService executor)
-      throws IOException, CompilationException, CompilationFailedException, ResourceException {
+      throws IOException, CompilationFailedException, ResourceException {
     Builder builder =
         D8Command.builder()
             .setMinApiLevel(API)
@@ -221,7 +220,7 @@ public class FrameworkIncrementalDexingBenchmark {
   }
 
   public static void main(String[] args)
-      throws IOException, CompilationException, CompilationFailedException, ResourceException {
+      throws IOException, CompilationFailedException, ResourceException {
     boolean desugar = Arrays.asList(args).contains("--desugar");
     Path input = desugar ? JAR_NOT_DESUGARED : JAR_DESUGARED;
     InMemoryClassPathProvider provider = new InMemoryClassPathProvider(input);

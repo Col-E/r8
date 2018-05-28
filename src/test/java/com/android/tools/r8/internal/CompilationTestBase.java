@@ -8,7 +8,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8;
@@ -64,14 +63,14 @@ public abstract class CompilationTestBase {
       String referenceApk,
       String pgConf,
       String input)
-      throws ExecutionException, IOException, ProguardRuleParserException, CompilationException,
+      throws ExecutionException, IOException, ProguardRuleParserException,
           CompilationFailedException {
     return runAndCheckVerification(
         compiler, mode, referenceApk, pgConf, null, Collections.singletonList(input));
   }
 
   public AndroidApp runAndCheckVerification(D8Command.Builder builder, String referenceApk)
-      throws IOException, ExecutionException, CompilationException, CompilationFailedException {
+      throws IOException, ExecutionException, CompilationFailedException {
     AndroidAppConsumers appSink = new AndroidAppConsumers(builder);
     D8.run(builder.build());
     AndroidApp result = appSink.build();
@@ -86,7 +85,7 @@ public abstract class CompilationTestBase {
       String pgConf,
       Consumer<InternalOptions> optionsConsumer,
       List<String> inputs)
-      throws ExecutionException, IOException, ProguardRuleParserException, CompilationException,
+      throws ExecutionException, IOException, ProguardRuleParserException,
       CompilationFailedException {
     assertTrue(referenceApk == null || new File(referenceApk).exists());
     AndroidAppConsumers outputApp;

@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.internal;
 
-import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.R8RunArtTestsTest.CompilerUnderTest;
@@ -33,14 +32,14 @@ public abstract class GMSCoreCompilationTestBase extends CompilationTestBase {
   static final String REFERENCE_APK = "noshrink_x86_GmsCore_prod_alldpi_release_unsigned.apk";
 
   public void runR8AndCheckVerification(CompilationMode mode, String version)
-      throws ProguardRuleParserException, ExecutionException, IOException, CompilationException,
+      throws ProguardRuleParserException, ExecutionException, IOException,
       CompilationFailedException {
     runAndCheckVerification(CompilerUnderTest.R8, mode, version);
   }
 
   public void runAndCheckVerification(
       CompilerUnderTest compiler, CompilationMode mode, String version)
-      throws ExecutionException, IOException, ProguardRuleParserException, CompilationException,
+      throws ExecutionException, IOException, ProguardRuleParserException,
       CompilationFailedException {
     runAndCheckVerification(
         compiler, mode, version + GMSCORE_APK, null, Paths.get(version, GMSCORE_APK).toString());

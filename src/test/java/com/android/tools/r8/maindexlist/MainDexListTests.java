@@ -10,7 +10,6 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8;
@@ -25,7 +24,6 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.DexOverflowException;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DebugLocalInfo;
@@ -498,7 +496,7 @@ public class MainDexListTests extends TestBase {
   private void doVerifyMainDexContains(
       List<String> mainDex, Path app, boolean singleDexApp, boolean minimalMainDex,
       MultiDexTestMode testMode)
-      throws IOException, CompilationException, ExecutionException, ProguardRuleParserException,
+      throws IOException, ExecutionException, ProguardRuleParserException,
       CompilationFailedException {
     AndroidApp originalApp = AndroidApp.builder().addProgramFiles(app).build();
     DexInspector originalInspector = new DexInspector(originalApp);
@@ -587,13 +585,13 @@ public class MainDexListTests extends TestBase {
   }
 
   public static AndroidApp generateApplication(List<String> classes, int minApi, int methodCount)
-      throws IOException, ExecutionException, CompilationException {
+      throws IOException, ExecutionException {
     return generateApplication(classes, minApi, false, methodCount);
   }
 
   private static AndroidApp generateApplication(
       List<String> classes, int minApi, boolean intermediate, int methodCount)
-      throws IOException, ExecutionException, CompilationException {
+      throws IOException, ExecutionException {
     Timing timing = new Timing("MainDexListTests");
     InternalOptions options = new InternalOptions();
     options.minApiLevel = minApi;

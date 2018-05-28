@@ -4,7 +4,6 @@
 package com.android.tools.r8.compatdexbuilder;
 
 import com.android.tools.r8.CompatDxHelper;
-import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8;
@@ -154,7 +153,7 @@ public class CompatDexBuilder {
   }
 
   private DexConsumer dexEntry(ZipFile zipFile, ZipEntry classEntry, ExecutorService executor)
-      throws IOException, CompilationException, CompilationFailedException {
+      throws IOException, CompilationFailedException {
     DexConsumer consumer = new DexConsumer();
     D8Command.Builder builder = D8Command.builder();
     CompatDxHelper.ignoreDexInArchive(builder);

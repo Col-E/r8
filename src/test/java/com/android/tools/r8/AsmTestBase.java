@@ -54,8 +54,8 @@ public class AsmTestBase extends TestBase {
   }
 
   private void ensureSameOutput(String main, AndroidApp app, byte[]... classes)
-      throws IOException, CompilationException, ExecutionException, CompilationFailedException,
-      ProguardRuleParserException {
+      throws IOException, ExecutionException, CompilationFailedException,
+          ProguardRuleParserException {
     ProcessResult javaResult = runOnJava(main, classes);
     ProcessResult d8Result = runOnArtRaw(compileWithD8(app), main);
     ProcessResult r8Result = runOnArtRaw(compileWithR8(app), main);
@@ -88,8 +88,8 @@ public class AsmTestBase extends TestBase {
   }
 
   protected void ensureSameOutputAfterMerging(String main, byte[]... classes)
-      throws IOException, CompilationException, ExecutionException,
-      CompilationFailedException, ProguardRuleParserException {
+      throws IOException, ExecutionException, CompilationFailedException,
+          ProguardRuleParserException {
     AndroidApp app = buildAndroidApp(classes);
     // Compile to dex files with D8.
     AndroidApp dexApp = compileWithD8(app);

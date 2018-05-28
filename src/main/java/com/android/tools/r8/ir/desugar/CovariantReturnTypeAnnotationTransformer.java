@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.desugar;
 
-import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationElement;
@@ -56,7 +55,7 @@ public final class CovariantReturnTypeAnnotationTransformer {
     this.factory = factory;
   }
 
-  public void process(DexApplication.Builder<?> builder) throws ApiLevelException {
+  public void process(DexApplication.Builder<?> builder) {
     // List of methods that should be added to the next class.
     List<DexEncodedMethod> methodsWithCovariantReturnTypeAnnotation = new LinkedList<>();
     List<DexEncodedMethod> covariantReturnTypeMethods = new LinkedList<>();
@@ -114,8 +113,7 @@ public final class CovariantReturnTypeAnnotationTransformer {
   private void buildCovariantReturnTypeMethodsForClass(
       DexClass clazz,
       List<DexEncodedMethod> methodsWithCovariantReturnTypeAnnotation,
-      List<DexEncodedMethod> covariantReturnTypeMethods)
-      throws ApiLevelException {
+      List<DexEncodedMethod> covariantReturnTypeMethods) {
     for (DexEncodedMethod method : clazz.virtualMethods()) {
       if (methodHasCovariantReturnTypeAnnotation(method)) {
         methodsWithCovariantReturnTypeAnnotation.add(method);
@@ -137,8 +135,7 @@ public final class CovariantReturnTypeAnnotationTransformer {
   // variantReturnTypes annotations on the given method. Adds the newly constructed, synthetic
   // methods to the list covariantReturnTypeMethods.
   private void buildCovariantReturnTypeMethodsForMethod(
-      DexClass clazz, DexEncodedMethod method, List<DexEncodedMethod> covariantReturnTypeMethods)
-      throws ApiLevelException {
+      DexClass clazz, DexEncodedMethod method, List<DexEncodedMethod> covariantReturnTypeMethods) {
     assert methodHasCovariantReturnTypeAnnotation(method);
     for (DexType covariantReturnType : getCovariantReturnTypes(clazz, method)) {
       DexEncodedMethod covariantReturnTypeMethod =
@@ -153,8 +150,7 @@ public final class CovariantReturnTypeAnnotationTransformer {
   //
   // Note: any "synchronized" or "strictfp" modifier could be dropped safely.
   private DexEncodedMethod buildCovariantReturnTypeMethod(
-      DexClass clazz, DexEncodedMethod method, DexType covariantReturnType)
-      throws ApiLevelException {
+      DexClass clazz, DexEncodedMethod method, DexType covariantReturnType) {
     DexProto newProto =
         factory.createProto(
             covariantReturnType, method.method.proto.shorty, method.method.proto.parameters);

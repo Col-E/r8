@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.internal;
 
-import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.OutputMode;
@@ -33,7 +32,7 @@ public class R8GMSCoreDeterministicTest extends GMSCoreCompilationTestBase {
   }
 
   private AndroidApp doRun()
-      throws IOException, ProguardRuleParserException, CompilationException, ExecutionException,
+      throws IOException, ProguardRuleParserException, ExecutionException,
       CompilationFailedException {
     R8Command command =
         R8Command.builder()

@@ -131,8 +131,7 @@ public class R8EntryPointTests extends TestBase {
     Assert.assertTrue(Files.isRegularFile(testFlags.getParent().resolve(SEEDS)));
   }
 
-  private R8Command getCommand(Path out)
-      throws CompilationException, IOException, CompilationFailedException {
+  private R8Command getCommand(Path out) throws IOException, CompilationFailedException {
     return R8Command.builder()
         .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
         .addProgramFiles(INPUT_JAR)

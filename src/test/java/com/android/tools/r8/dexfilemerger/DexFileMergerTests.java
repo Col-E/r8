@@ -6,7 +6,6 @@ package com.android.tools.r8.dexfilemerger;
 
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.DexFileMergerHelper;
@@ -39,7 +38,7 @@ public class DexFileMergerTests {
   @Rule public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
   private Path createMergerInputWithTwoClasses(OutputMode outputMode, boolean addMarker)
-      throws CompilationFailedException, CompilationException, IOException {
+      throws CompilationFailedException, IOException {
     // Compile Class1 and Class2
     Path mergerInputZip = temp.newFolder().toPath().resolve("merger-input.zip");
     D8Command command =
@@ -55,8 +54,7 @@ public class DexFileMergerTests {
   }
 
   private void testMarker(boolean addMarkerToInput)
-      throws CompilationFailedException, CompilationException, IOException, ResourceException,
-          ExecutionException {
+      throws CompilationFailedException, IOException, ResourceException, ExecutionException {
     Path mergerInputZip = createMergerInputWithTwoClasses(OutputMode.DexIndexed, addMarkerToInput);
 
     Marker inputMarker = ExtractMarker.extractMarkerFromDexFile(mergerInputZip);
@@ -74,20 +72,18 @@ public class DexFileMergerTests {
 
   @Test
   public void testMarkerPreserved()
-      throws CompilationFailedException, CompilationException, IOException, ResourceException,
-          ExecutionException {
+      throws CompilationFailedException, IOException, ResourceException, ExecutionException {
     testMarker(true);
   }
 
   @Test
   public void testMarkerNotAdded()
-      throws CompilationFailedException, CompilationException, IOException, ResourceException,
-          ExecutionException {
+      throws CompilationFailedException, IOException, ResourceException, ExecutionException {
     testMarker(false);
   }
 
   @Test
-  public void mergeTwoFiles() throws CompilationFailedException, CompilationException, IOException {
+  public void mergeTwoFiles() throws CompilationFailedException, IOException {
     Path mergerInputZip = createMergerInputWithTwoClasses(OutputMode.DexFilePerClassFile, false);
 
     Path mergerOutputZip = temp.getRoot().toPath().resolve("merger-out.zip");
@@ -107,7 +103,7 @@ public class DexFileMergerTests {
   }
 
   private void generateClassesAndTest(int extraMethodCount, int programResourcesSize)
-      throws IOException, ExecutionException, CompilationException, CompilationFailedException {
+      throws IOException, ExecutionException, CompilationFailedException {
     AndroidApp generatedApp =
         MainDexListTests.generateApplication(
             ImmutableList.of("A", "B"),
@@ -125,8 +121,7 @@ public class DexFileMergerTests {
   }
 
   @Test(expected = CompilationFailedException.class)
-  public void failIfTooBig()
-      throws IOException, ExecutionException, CompilationException, CompilationFailedException {
+  public void failIfTooBig() throws IOException, ExecutionException, CompilationFailedException {
     // Generates an application with two classes, each with the number of methods just enough not to
     // fit into a single dex file.
     generateClassesAndTest(1, 2);
@@ -134,7 +129,7 @@ public class DexFileMergerTests {
 
   @Test
   public void failIfTooBigControl()
-      throws IOException, ExecutionException, CompilationException, CompilationFailedException {
+      throws IOException, ExecutionException, CompilationFailedException {
     // Control test for failIfTooBig to make sure we don't fail with less methods.
     generateClassesAndTest(0, 1);
   }

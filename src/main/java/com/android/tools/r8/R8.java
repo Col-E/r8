@@ -214,8 +214,7 @@ public class R8 {
     return result;
   }
 
-  static void runForTesting(AndroidApp app, InternalOptions options)
-      throws IOException, CompilationException {
+  static void runForTesting(AndroidApp app, InternalOptions options) throws IOException {
     ExecutorService executor = ThreadUtils.getExecutorService(options);
     try {
       run(app, options, executor);
@@ -224,16 +223,12 @@ public class R8 {
     }
   }
 
-  private static void run(
-      AndroidApp app,
-      InternalOptions options,
-      ExecutorService executor)
-      throws IOException, CompilationException {
+  private static void run(AndroidApp app, InternalOptions options, ExecutorService executor)
+      throws IOException {
     new R8(options).run(app, executor);
   }
 
-  private void run(AndroidApp inputApp, ExecutorService executorService)
-      throws IOException, CompilationException {
+  private void run(AndroidApp inputApp, ExecutorService executorService) throws IOException {
     assert options.programConsumer != null;
     if (options.quiet) {
       System.setOut(new PrintStream(ByteStreams.nullOutputStream()));
@@ -503,31 +498,15 @@ public class R8 {
     }
   }
 
-  static void unwrapExecutionException(ExecutionException executionException)
-      throws CompilationException {
+  static void unwrapExecutionException(ExecutionException executionException) {
     Throwable cause = executionException.getCause();
     if (cause instanceof CompilationError) {
       // add original exception as suppressed exception to provide the original stack trace
       cause.addSuppressed(executionException);
       throw (CompilationError) cause;
-    } else if (cause instanceof CompilationException) {
-      cause.addSuppressed(executionException);
-      throw (CompilationException) cause;
     } else if (cause instanceof RuntimeException) {
-      // ForkJoinPool wraps checked exceptions in RuntimeExceptions
-      if (cause.getCause() != null
-          && cause.getCause() instanceof CompilationException) {
-        cause.addSuppressed(executionException);
-        throw (CompilationException) cause.getCause();
-      // ForkJoinPool sometimes uses 2 levels of RuntimeExceptions, to provide accurate stack traces
-      } else if (cause.getCause() != null && cause.getCause().getCause() != null
-          && cause.getCause().getCause() instanceof CompilationException) {
-        cause.addSuppressed(executionException);
-        throw (CompilationException) cause.getCause().getCause();
-      } else {
-        cause.addSuppressed(executionException);
-        throw (RuntimeException) cause;
-      }
+      cause.addSuppressed(executionException);
+      throw (RuntimeException) cause;
     } else {
       throw new RuntimeException(executionException.getMessage(), cause);
     }

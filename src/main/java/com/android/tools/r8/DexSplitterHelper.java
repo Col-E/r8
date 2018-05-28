@@ -40,8 +40,7 @@ public class DexSplitterHelper {
     try {
       ExceptionUtils.withCompilationHandler(
           command.getReporter(),
-          () -> run(command, featureClassMapping, output, proguardMap, executor),
-          CompilationException::getMessage);
+          () -> run(command, featureClassMapping, output, proguardMap, executor));
     } finally {
       executor.shutdown();
     }
@@ -53,7 +52,7 @@ public class DexSplitterHelper {
       String output,
       String proguardMap,
       ExecutorService executor)
-      throws IOException, CompilationException {
+      throws IOException {
     InternalOptions options = command.getInternalOptions();
     options.enableDesugaring = false;
     options.enableMainDexListCheck = false;
@@ -135,7 +134,7 @@ public class DexSplitterHelper {
   }
 
   public static void runD8ForTesting(D8Command command, boolean dontCreateMarkerInD8)
-      throws IOException, CompilationException {
+      throws IOException {
     InternalOptions options = command.getInternalOptions();
     options.testing.dontCreateMarkerInD8 = dontCreateMarkerInD8;
     D8.runForTesting(command.getInputApp(), options);

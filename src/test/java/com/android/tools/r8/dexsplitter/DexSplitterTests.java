@@ -8,7 +8,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.DexSplitterHelper;
@@ -56,7 +55,7 @@ public class DexSplitterTests {
   @Rule public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
   private Path createInput(boolean dontCreateMarkerInD8)
-      throws IOException, CompilationFailedException, CompilationException {
+      throws IOException, CompilationFailedException {
     // Initial normal compile to create dex files.
     Path inputZip = temp.newFolder().toPath().resolve("input.zip");
     D8Command command =
@@ -76,8 +75,7 @@ public class DexSplitterTests {
   }
 
   private void testMarker(boolean addMarkerToInput)
-      throws CompilationFailedException, CompilationException, IOException, ResourceException,
-          ExecutionException {
+      throws CompilationFailedException, IOException, ResourceException, ExecutionException {
     Path inputZip = createInput(!addMarkerToInput);
 
     Path output = temp.newFolder().toPath().resolve("output");
@@ -102,15 +100,13 @@ public class DexSplitterTests {
 
   @Test
   public void testMarkerPreserved()
-      throws CompilationFailedException, CompilationException, IOException, ResourceException,
-          ExecutionException {
+      throws CompilationFailedException, IOException, ResourceException, ExecutionException {
     testMarker(true);
   }
 
   @Test
   public void testMarkerNotAdded()
-      throws CompilationFailedException, CompilationException, IOException, ResourceException,
-          ExecutionException {
+      throws CompilationFailedException, IOException, ResourceException, ExecutionException {
     testMarker(false);
   }
 
@@ -124,14 +120,13 @@ public class DexSplitterTests {
   @Test
   public void splitFilesNoObfuscation()
       throws CompilationFailedException, IOException, FeatureMappingException, ResourceException,
-      CompilationException, ExecutionException {
+          ExecutionException {
     noObfuscation(false);
     noObfuscation(true);
   }
 
   private void noObfuscation(boolean useOptions)
-      throws IOException, CompilationFailedException, FeatureMappingException,
-      ResourceException, ExecutionException, CompilationException {
+      throws IOException, CompilationFailedException, FeatureMappingException {
     Path inputZip = createInput(false);
     Path output = temp.newFolder().toPath().resolve("output");
     Files.createDirectory(output);
@@ -228,7 +223,7 @@ public class DexSplitterTests {
   @Test
   public void splitFilesFromJar()
       throws IOException, CompilationFailedException, FeatureMappingException, ResourceException,
-      CompilationException, ExecutionException {
+          ExecutionException {
     splitFromJars(true, true);
     splitFromJars(false, true);
     splitFromJars(true, false);
@@ -236,8 +231,7 @@ public class DexSplitterTests {
   }
 
   private void splitFromJars(boolean useOptions, boolean explicitBase)
-      throws IOException, CompilationFailedException, FeatureMappingException, ResourceException,
-      ExecutionException, CompilationException {
+      throws IOException, CompilationFailedException, FeatureMappingException {
     Path inputZip = createInput(false);
     Path output = temp.newFolder().toPath().resolve("output");
     Files.createDirectory(output);

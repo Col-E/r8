@@ -6,7 +6,6 @@ package com.android.tools.r8.smali;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.OutputMode;
@@ -79,7 +78,7 @@ public class SmaliTestBase extends TestBase {
       Consumer<InternalOptions> optionsConsumer) {
     try {
       return ToolHelper.runR8(application, optionsConsumer);
-    } catch (IOException | CompilationException e) {
+    } catch (IOException e) {
       throw new RuntimeException(e);
     }
   }
@@ -105,7 +104,9 @@ public class SmaliTestBase extends TestBase {
           .addDexProgramData(builder.compile(), EmbeddedOrigin.INSTANCE);
       ToolHelper.runR8WithFullResult(command.build(), optionsConsumer);
       return dexOutputDir.resolve("classes.dex");
-    } catch (CompilationException | IOException | RecognitionException | ExecutionException
+    } catch (IOException
+        | RecognitionException
+        | ExecutionException
         | CompilationFailedException e) {
       throw new RuntimeException(e);
     }

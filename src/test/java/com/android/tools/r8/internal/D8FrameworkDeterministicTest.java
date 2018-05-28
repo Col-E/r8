@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.internal;
 
-import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8;
@@ -19,7 +18,7 @@ public class D8FrameworkDeterministicTest extends CompilationTestBase {
   private static final String JAR = "third_party/framework/framework_160115954.jar";
 
   private AndroidApp doRun(D8Command.Builder builder)
-      throws IOException, CompilationException, CompilationFailedException {
+      throws IOException, CompilationFailedException {
     builder.setProgramConsumer(null);
     AndroidAppConsumers appSink = new AndroidAppConsumers(builder);
     D8.run(builder.build());

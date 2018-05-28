@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.resource;
 
-import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.R8Command;
@@ -25,8 +24,7 @@ public class DataResourceTest {
   public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
   @Test
-  public void dataResourceTest()
-      throws IOException, CompilationFailedException, CompilationException {
+  public void dataResourceTest() throws IOException, CompilationFailedException {
     String packageName = "dataresource";
     String mainClassName = packageName + ".ResourceTest";
     Path inputJar = Paths.get(ToolHelper.EXAMPLES_BUILD_DIR,

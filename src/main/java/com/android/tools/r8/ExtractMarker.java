@@ -94,7 +94,7 @@ public class ExtractMarker {
   }
 
   public static void main(String[] args)
-      throws IOException, CompilationException, ExecutionException, ResourceException {
+      throws IOException, ExecutionException, ResourceException {
     ExtractMarkerCommand.Builder builder = ExtractMarkerCommand.parse(args);
     ExtractMarkerCommand command = builder.build();
     if (command.isPrintHelp()) {

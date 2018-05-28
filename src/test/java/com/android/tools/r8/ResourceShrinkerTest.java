@@ -73,8 +73,7 @@ public class ResourceShrinkerTest extends TestBase {
   }
 
   @Test
-  public void testEmptyClass()
-      throws CompilationFailedException, IOException, ExecutionException, CompilationException {
+  public void testEmptyClass() throws CompilationFailedException, IOException, ExecutionException {
     TrackAll analysis = runAnalysis(EmptyClass.class);
 
     assertThat(analysis.integers, is(Sets.newHashSet()));
@@ -95,7 +94,7 @@ public class ResourceShrinkerTest extends TestBase {
 
   @Test
   public void testConstsAndFieldAndMethods()
-      throws CompilationFailedException, IOException, ExecutionException, CompilationException {
+      throws CompilationFailedException, IOException, ExecutionException {
     TrackAll analysis = runAnalysis(ConstInCode.class);
 
     assertThat(analysis.integers, is(Sets.newHashSet(10, 11)));
@@ -125,7 +124,7 @@ public class ResourceShrinkerTest extends TestBase {
 
   @Test
   public void testStaticValues()
-      throws CompilationFailedException, IOException, ExecutionException, CompilationException {
+      throws CompilationFailedException, IOException, ExecutionException {
     TrackAll analysis = runAnalysis(StaticFields.class);
 
     assertThat(analysis.integers, hasItems(10, 11, 12, 13));
@@ -163,8 +162,7 @@ public class ResourceShrinkerTest extends TestBase {
   }
 
   @Test
-  public void testAnnotations()
-      throws CompilationFailedException, IOException, ExecutionException, CompilationException {
+  public void testAnnotations() throws CompilationFailedException, IOException, ExecutionException {
     TrackAll analysis = runAnalysis(IntAnnotation.class, OuterAnnotation.class, Annotated.class);
 
     assertThat(analysis.integers, hasItems(10, 11, 12, 13, 14, 15, 42));
@@ -184,7 +182,7 @@ public class ResourceShrinkerTest extends TestBase {
 
   @Test
   public void testWithSkippingSome()
-      throws ExecutionException, CompilationFailedException, CompilationException, IOException {
+      throws ExecutionException, CompilationFailedException, IOException {
     TrackAll analysis = runAnalysis(ResourceClassToSkip.class, ToProcess.class);
 
     assertThat(analysis.integers, hasItems(10, 11, 12));
@@ -222,13 +220,13 @@ public class ResourceShrinkerTest extends TestBase {
   }
 
   private TrackAll runAnalysis(Class<?>... classes)
-      throws IOException, CompilationException, ExecutionException, CompilationFailedException {
+      throws IOException, ExecutionException, CompilationFailedException {
     AndroidApp app = readClasses(classes);
     return runOnApp(app);
   }
 
   private TrackAll runOnApp(AndroidApp app)
-      throws IOException, ExecutionException, CompilationFailedException, CompilationException {
+      throws IOException, ExecutionException, CompilationFailedException {
     AndroidApp outputApp = compileWithD8(app);
     Path outputDex = tmp.newFolder().toPath().resolve("classes.dex");
     outputApp.writeToDirectory(outputDex.getParent(), OutputMode.DexIndexed);

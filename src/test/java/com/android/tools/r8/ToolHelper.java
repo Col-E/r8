@@ -768,7 +768,7 @@ public class ToolHelper {
 
   public static ProguardConfiguration loadProguardConfiguration(
       DexItemFactory factory, List<Path> configPaths)
-      throws IOException, ProguardRuleParserException, CompilationException {
+      throws IOException, ProguardRuleParserException {
     Reporter reporter = new Reporter(new DefaultDiagnosticsHandler());
     if (configPaths.isEmpty()) {
       return ProguardConfiguration.defaultConfiguration(factory, reporter);
@@ -789,7 +789,7 @@ public class ToolHelper {
     return R8Command.builder(app).setProgramConsumer(DexIndexedConsumer.emptyConsumer());
   }
 
-  public static AndroidApp runR8(AndroidApp app) throws IOException, CompilationException {
+  public static AndroidApp runR8(AndroidApp app) throws IOException {
     try {
       return runR8(prepareR8CommandBuilder(app).build());
     } catch (CompilationFailedException e) {
@@ -798,7 +798,7 @@ public class ToolHelper {
   }
 
   public static AndroidApp runR8(AndroidApp app, Consumer<InternalOptions> optionsConsumer)
-      throws IOException, CompilationException {
+      throws IOException {
     try {
       return runR8(prepareR8CommandBuilder(app).build(), optionsConsumer);
     } catch (CompilationFailedException e) {
@@ -806,18 +806,17 @@ public class ToolHelper {
     }
   }
 
-  public static AndroidApp runR8(R8Command command) throws IOException, CompilationException {
+  public static AndroidApp runR8(R8Command command) throws IOException {
     return runR8(command, null);
   }
 
   public static AndroidApp runR8(R8Command command, Consumer<InternalOptions> optionsConsumer)
-      throws IOException, CompilationException {
+      throws IOException {
     return runR8WithFullResult(command, optionsConsumer);
   }
 
   public static AndroidApp runR8WithFullResult(
-      R8Command command, Consumer<InternalOptions> optionsConsumer)
-      throws IOException, CompilationException {
+      R8Command command, Consumer<InternalOptions> optionsConsumer) throws IOException {
     // TODO(zerny): Should we really be adding the android library in ToolHelper?
     AndroidApp app = command.getInputApp();
     if (app.getLibraryResourceProviders().isEmpty()) {
@@ -848,12 +847,12 @@ public class ToolHelper {
             ImmutableList.of("!junit/**", "!android/test/**"))));
   }
 
-  public static AndroidApp runD8(AndroidApp app) throws CompilationException, IOException {
+  public static AndroidApp runD8(AndroidApp app) throws IOException {
     return runD8(app, null);
   }
 
   public static AndroidApp runD8(AndroidApp app, Consumer<InternalOptions> optionsConsumer)
-      throws CompilationException, IOException {
+      throws IOException {
     try {
       return runD8(D8Command.builder(app), optionsConsumer);
     } catch (CompilationFailedException e) {
@@ -862,13 +861,13 @@ public class ToolHelper {
   }
 
   public static AndroidApp runD8(D8Command.Builder builder)
-      throws IOException, CompilationException, CompilationFailedException {
+      throws IOException, CompilationFailedException {
     return runD8(builder, null);
   }
 
   public static AndroidApp runD8(
       D8Command.Builder builder, Consumer<InternalOptions> optionsConsumer)
-      throws IOException, CompilationException, CompilationFailedException {
+      throws IOException, CompilationFailedException {
     AndroidAppConsumers compatSink = new AndroidAppConsumers(builder);
     D8Command command = builder.build();
     InternalOptions options = command.getInternalOptions();

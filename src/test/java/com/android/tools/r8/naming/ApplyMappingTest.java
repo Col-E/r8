@@ -9,7 +9,6 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
@@ -270,8 +269,7 @@ public class ApplyMappingTest {
   }
 
   private R8Command.Builder getCommandForInstrumentation(
-      Path out, Path flag, Path mainApp, Path instrApp)
-      throws CompilationException, IOException {
+      Path out, Path flag, Path mainApp, Path instrApp) throws IOException {
     return R8Command.builder()
         .addLibraryFiles(ToolHelper.getDefaultAndroidJar(), mainApp)
         .addProgramFiles(instrApp)
@@ -279,9 +277,8 @@ public class ApplyMappingTest {
         .addProguardConfigurationFiles(flag);
   }
 
-  private R8Command.Builder getCommandForApps(
-      Path out, Path flag, Path... jars)
-      throws CompilationException, IOException {
+  private R8Command.Builder getCommandForApps(Path out, Path flag, Path... jars)
+      throws IOException {
     return R8Command.builder()
         .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
         .addProgramFiles(jars)
@@ -290,7 +287,7 @@ public class ApplyMappingTest {
   }
 
   private static AndroidApp runR8(R8Command command)
-      throws ProguardRuleParserException, ExecutionException, CompilationException, IOException {
+      throws ProguardRuleParserException, ExecutionException, IOException {
     return ToolHelper.runR8(command, options -> {
       // Disable inlining to make this test not depend on inlining decisions.
       options.enableInlining = false;

@@ -11,7 +11,6 @@ import static com.android.tools.r8.utils.FileUtils.isJarFile;
 import static com.android.tools.r8.utils.FileUtils.isZipFile;
 
 import com.android.tools.r8.CompatDxHelper;
-import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8Command;
@@ -312,9 +311,6 @@ public class CompatDx {
   public static void main(String[] args) throws IOException {
     try {
       run(args);
-    } catch (CompilationException e) {
-      System.err.println(e.getMessage());
-      System.exit(1);
     } catch (DxUsageMessage e) {
       System.err.println(USAGE_HEADER);
       e.printHelpOn(System.err);
@@ -325,7 +321,7 @@ public class CompatDx {
   }
 
   private static void run(String[] args)
-      throws DxUsageMessage, IOException, CompilationException, CompilationFailedException {
+      throws DxUsageMessage, IOException, CompilationFailedException {
     DxCompatOptions dexArgs = DxCompatOptions.parse(args);
     if (dexArgs.help) {
       printHelpOn(System.out);

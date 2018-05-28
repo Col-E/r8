@@ -121,8 +121,7 @@ public final class D8 {
     ExceptionUtils.withMainProgramHandler(() -> run(args));
   }
 
-  static void runForTesting(AndroidApp inputApp, InternalOptions options)
-      throws IOException, CompilationException {
+  static void runForTesting(AndroidApp inputApp, InternalOptions options) throws IOException {
     ExecutorService executor = ThreadUtils.getExecutorService(options);
     try {
       run(inputApp, options, executor);
@@ -149,7 +148,7 @@ public final class D8 {
   }
 
   private static void run(AndroidApp inputApp, InternalOptions options, ExecutorService executor)
-      throws IOException, CompilationException {
+      throws IOException {
     Timing timing = new Timing("D8");
     try {
       // Disable global optimizations.

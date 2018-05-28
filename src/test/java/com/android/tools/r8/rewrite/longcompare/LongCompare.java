@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.rewrite.longcompare;
 
-import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
@@ -35,7 +34,7 @@ public class LongCompare {
   public TemporaryFolder tmpOutputDir = ToolHelper.getTemporaryFolderForTest();
 
   void compileWithD8(Path intputPath, Path outputPath)
-      throws IOException, CompilationException, CompilationFailedException {
+      throws IOException, CompilationFailedException {
     D8.run(
         D8Command.builder()
             .addProgramFiles(intputPath)

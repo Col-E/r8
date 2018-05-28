@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
-import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.ClassAndMemberPublicizer;
@@ -65,7 +64,7 @@ abstract class NamingTestBase {
   }
 
   NamingLens runMinifier(List<Path> configPaths)
-      throws IOException, ProguardRuleParserException, ExecutionException, CompilationException {
+      throws IOException, ProguardRuleParserException, ExecutionException {
     ProguardConfiguration configuration =
         ToolHelper.loadProguardConfiguration(dexItemFactory, configPaths);
     InternalOptions options = new InternalOptions(configuration,

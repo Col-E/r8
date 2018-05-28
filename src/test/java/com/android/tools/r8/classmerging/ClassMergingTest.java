@@ -6,7 +6,6 @@ package com.android.tools.r8.classmerging;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
@@ -43,7 +42,7 @@ public class ClassMergingTest {
   }
 
   private void runR8(Path proguardConfig, Consumer<InternalOptions> optionsConsumer)
-      throws IOException, ProguardRuleParserException, ExecutionException, CompilationException,
+      throws IOException, ProguardRuleParserException, ExecutionException,
       CompilationFailedException {
     ToolHelper.runR8(
         R8Command.builder()

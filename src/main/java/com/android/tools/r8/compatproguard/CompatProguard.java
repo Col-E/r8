@@ -5,12 +5,12 @@
 package com.android.tools.r8.compatproguard;
 
 import com.android.tools.r8.CompatProguardCommandBuilder;
-import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.Version;
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.utils.AbortException;
 import com.google.common.collect.ImmutableList;
@@ -58,7 +58,7 @@ public class CompatProguard {
       this.printHelpAndExit = printHelpAndExit;
     }
 
-    public static CompatProguardOptions parse(String[] args) throws CompilationException {
+    public static CompatProguardOptions parse(String[] args) {
       String output = null;
       int minApi = 1;
       boolean forceProguardCompatibility = false;
@@ -97,7 +97,7 @@ public class CompatProguard {
             } else if (arg.equals("--no-locals")) {
               noLocals = true;
             } else if (arg.equals("-outjars")) {
-              throw new CompilationException(
+              throw new CompilationError(
                   "Proguard argument -outjar is not supported. Use R8 compatible --output flag");
             } else {
               if (currentLine.length() > 0) {
@@ -150,8 +150,7 @@ public class CompatProguard {
     CompatProguardOptions.print();
   }
 
-  private static void run(String[] args)
-      throws IOException, CompilationException, CompilationFailedException {
+  private static void run(String[] args) throws IOException, CompilationFailedException {
     // Run R8 passing all the options from the command line as a Proguard configuration.
     CompatProguardOptions options = CompatProguardOptions.parse(args);
     if (options.printHelpAndExit || options.output == null) {
@@ -175,9 +174,6 @@ public class CompatProguard {
   public static void main(String[] args) throws IOException {
     try {
       run(args);
-    } catch (CompilationException e) {
-      System.err.println(e.getMessage());
-      System.exit(1);
     } catch (CompilationFailedException | AbortException e) {
       // Detail of the errors were already reported
       System.err.println("Compilation failed");

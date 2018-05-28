@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.conversion;
 import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.Flavor.ExcludeDexResources;
 import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.Flavor.IncludeAllResources;
 
-import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
@@ -253,7 +252,7 @@ public class IRConverter {
     }
   }
 
-  private void processCovariantReturnTypeAnnotations(Builder<?> builder) throws ApiLevelException {
+  private void processCovariantReturnTypeAnnotations(Builder<?> builder) {
     if (covariantReturnTypeAnnotationTransformer != null) {
       covariantReturnTypeAnnotationTransformer.process(builder);
     }

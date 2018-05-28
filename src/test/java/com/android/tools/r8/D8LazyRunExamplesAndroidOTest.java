@@ -119,7 +119,7 @@ public class D8LazyRunExamplesAndroidOTest
   }
 
   private AndroidApp mergeDexResources(int minAPILevel, List<ProgramResource> individalDexes)
-      throws IOException, CompilationException, CompilationFailedException, ResourceException {
+      throws IOException, CompilationFailedException, ResourceException {
     D8Command.Builder builder = D8Command.builder()
         .setMinApiLevel(minAPILevel);
     for (ProgramResource resource : individalDexes) {

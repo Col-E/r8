@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.internal;
 
-import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.R8RunArtTestsTest.CompilerUnderTest;
@@ -19,7 +18,7 @@ public class GMSCoreDeployJarVerificationTest extends GMSCoreCompilationTestBase
 
   public AndroidApp buildFromDeployJar(
       CompilerUnderTest compiler, CompilationMode mode, String base, boolean hasReference)
-      throws ExecutionException, IOException, ProguardRuleParserException, CompilationException,
+      throws ExecutionException, IOException, ProguardRuleParserException,
       CompilationFailedException {
     return runAndCheckVerification(
         compiler, mode, hasReference ? base + REFERENCE_APK : null, null, base + DEPLOY_JAR);
@@ -29,7 +28,7 @@ public class GMSCoreDeployJarVerificationTest extends GMSCoreCompilationTestBase
   public AndroidApp buildFromDeployJar(
       CompilerUnderTest compiler, CompilationMode mode, String base, boolean hasReference,
       Consumer<InternalOptions> optionsConsumer)
-      throws ExecutionException, IOException, ProguardRuleParserException, CompilationException,
+      throws ExecutionException, IOException, ProguardRuleParserException,
       CompilationFailedException {
     return runAndCheckVerification(
         compiler,

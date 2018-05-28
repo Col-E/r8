@@ -67,7 +67,7 @@ public class DexFileMergerHelper {
       InternalOptions options,
       Boolean minimalMainDex,
       Map<String, Integer> inputOrdering)
-      throws IOException, CompilationException {
+      throws IOException {
     options.enableDesugaring = false;
     options.enableMainDexListCheck = false;
     options.minimalMainDex = minimalMainDex;
@@ -106,7 +106,7 @@ public class DexFileMergerHelper {
   }
 
   public static void runD8ForTesting(D8Command command, boolean dontCreateMarkerInD8)
-      throws IOException, CompilationException {
+      throws IOException {
     InternalOptions options = command.getInternalOptions();
     options.testing.dontCreateMarkerInD8 = dontCreateMarkerInD8;
     D8.runForTesting(command.getInputApp(), options);

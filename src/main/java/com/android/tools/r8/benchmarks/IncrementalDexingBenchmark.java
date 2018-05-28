@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.benchmarks;
 
-import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8;
@@ -20,7 +19,7 @@ public class IncrementalDexingBenchmark {
   private static final int ITERATIONS = 1000;
 
   public static void compile(ExecutorService executor)
-      throws IOException, CompilationException, CompilationFailedException {
+      throws IOException, CompilationFailedException {
     D8.run(
         D8Command.builder()
             .addProgramFiles(Paths.get("build/test/examples/arithmetic.jar"))
@@ -43,8 +42,7 @@ public class IncrementalDexingBenchmark {
         executor);
   }
 
-  public static void main(String[] args)
-      throws IOException, CompilationException, CompilationFailedException {
+  public static void main(String[] args) throws IOException, CompilationFailedException {
     int threads = Integer.min(Runtime.getRuntime().availableProcessors(), 16) / 2;
     ExecutorService executor = ThreadUtils.getExecutorService(threads);
     try {

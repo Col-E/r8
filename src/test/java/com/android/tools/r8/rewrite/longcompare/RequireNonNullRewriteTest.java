@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.rewrite.longcompare;
 
-import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8;
@@ -34,7 +33,7 @@ public class RequireNonNullRewriteTest {
   public TemporaryFolder tmpOutputDir = ToolHelper.getTemporaryFolderForTest();
 
   void compileWithD8(Path intputPath, Path outputPath, CompilationMode mode)
-      throws IOException, CompilationException, CompilationFailedException {
+      throws IOException, CompilationFailedException {
     D8.run(
         D8Command.builder()
             .setMode(mode)
@@ -68,7 +67,7 @@ public class RequireNonNullRewriteTest {
   }
 
   private void runTest(CompilationMode mode)
-      throws IOException, CompilationException, ExecutionException, CompilationFailedException {
+      throws IOException, ExecutionException, CompilationFailedException {
     final Path inputPath = Paths.get(ToolHelper.EXAMPLES_BUILD_DIR + "/rewrite.jar");
     Path outputPath = tmpOutputDir.newFolder().toPath();
 

@@ -5,7 +5,6 @@ package com.android.tools.r8.debuginfo;
 
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.CompilationException;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8;
@@ -32,8 +31,7 @@ public class DebugInfoTestBase {
   @Rule
   public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
-  static AndroidApp compileWithD8(Class... classes) throws CompilationException, IOException,
-      CompilationFailedException {
+  static AndroidApp compileWithD8(Class... classes) throws IOException, CompilationFailedException {
     D8Command.Builder builder = D8Command.builder();
     for (Class clazz : classes) {
       builder.addProgramFiles(ToolHelper.getClassFileForTestClass(clazz));

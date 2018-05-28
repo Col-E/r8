@@ -215,7 +215,7 @@ public class TestBase {
    * Compile an application with D8.
    */
   protected AndroidApp compileWithD8(AndroidApp app)
-      throws CompilationException, ExecutionException, IOException, CompilationFailedException {
+      throws ExecutionException, IOException, CompilationFailedException {
     D8Command.Builder builder = ToolHelper.prepareD8CommandBuilder(app);
     AndroidAppConsumers appSink = new AndroidAppConsumers(builder);
     D8.run(builder.build());
@@ -226,7 +226,7 @@ public class TestBase {
    * Compile an application with D8.
    */
   protected AndroidApp compileWithD8(AndroidApp app, Consumer<InternalOptions> optionsConsumer)
-      throws CompilationException, ExecutionException, IOException, CompilationFailedException {
+      throws ExecutionException, IOException, CompilationFailedException {
     return ToolHelper.runD8(app, optionsConsumer);
   }
 
@@ -234,7 +234,7 @@ public class TestBase {
    * Compile an application with R8.
    */
   protected AndroidApp compileWithR8(Class... classes)
-      throws CompilationException, ProguardRuleParserException, ExecutionException, IOException,
+      throws ProguardRuleParserException, ExecutionException, IOException,
       CompilationFailedException {
     return ToolHelper.runR8(readClasses(classes));
   }
@@ -243,7 +243,7 @@ public class TestBase {
    * Compile an application with R8.
    */
   protected AndroidApp compileWithR8(List<Class> classes)
-      throws CompilationException, ProguardRuleParserException, ExecutionException, IOException,
+      throws ProguardRuleParserException, ExecutionException, IOException,
       CompilationFailedException {
     R8Command command = ToolHelper.prepareR8CommandBuilder(readClasses(classes)).build();
     return ToolHelper.runR8(command);
@@ -253,7 +253,7 @@ public class TestBase {
    * Compile an application with R8.
    */
   protected AndroidApp compileWithR8(List<Class> classes, Consumer<InternalOptions> optionsConsumer)
-      throws CompilationException, ProguardRuleParserException, ExecutionException, IOException,
+      throws ProguardRuleParserException, ExecutionException, IOException,
       CompilationFailedException {
     R8Command command = ToolHelper.prepareR8CommandBuilder(readClasses(classes)).build();
     return ToolHelper.runR8(command, optionsConsumer);
@@ -263,7 +263,7 @@ public class TestBase {
    * Compile an application with R8.
    */
   protected AndroidApp compileWithR8(AndroidApp app)
-      throws CompilationException, ProguardRuleParserException, ExecutionException, IOException,
+      throws ProguardRuleParserException, ExecutionException, IOException,
       CompilationFailedException {
     R8Command command = ToolHelper.prepareR8CommandBuilder(app).build();
     return ToolHelper.runR8(command);
@@ -273,7 +273,7 @@ public class TestBase {
    * Compile an application with R8.
    */
   protected AndroidApp compileWithR8(AndroidApp app, Consumer<InternalOptions> optionsConsumer)
-      throws CompilationException, ProguardRuleParserException, ExecutionException, IOException,
+      throws ProguardRuleParserException, ExecutionException, IOException,
       CompilationFailedException {
     R8Command command = ToolHelper.prepareR8CommandBuilder(app).build();
     return ToolHelper.runR8(command, optionsConsumer);
@@ -283,7 +283,7 @@ public class TestBase {
    * Compile an application with R8 using the supplied proguard configuration.
    */
   protected AndroidApp compileWithR8(List<Class> classes, String proguardConfig)
-      throws CompilationException, ProguardRuleParserException, ExecutionException, IOException,
+      throws ProguardRuleParserException, ExecutionException, IOException,
       CompilationFailedException {
     return compileWithR8(readClasses(classes), proguardConfig);
   }
@@ -293,7 +293,7 @@ public class TestBase {
    */
   protected AndroidApp compileWithR8(
       List<Class> classes, String proguardConfig, Consumer<InternalOptions> optionsConsumer)
-      throws CompilationException, ProguardRuleParserException, ExecutionException, IOException,
+      throws ProguardRuleParserException, ExecutionException, IOException,
       CompilationFailedException {
     return compileWithR8(readClasses(classes), proguardConfig, optionsConsumer);
   }
@@ -302,7 +302,7 @@ public class TestBase {
    * Compile an application with R8 using the supplied proguard configuration.
    */
   protected AndroidApp compileWithR8(List<Class> classes, Path proguardConfig)
-      throws CompilationException, ProguardRuleParserException, ExecutionException, IOException,
+      throws ProguardRuleParserException, ExecutionException, IOException,
       CompilationFailedException {
     return compileWithR8(readClasses(classes), proguardConfig);
   }
@@ -311,7 +311,7 @@ public class TestBase {
    * Compile an application with R8 using the supplied proguard configuration.
    */
   protected AndroidApp compileWithR8(AndroidApp app, Path proguardConfig)
-      throws CompilationException, ProguardRuleParserException, ExecutionException, IOException,
+      throws ProguardRuleParserException, ExecutionException, IOException,
       CompilationFailedException {
     R8Command command =
         ToolHelper.prepareR8CommandBuilder(app)
@@ -324,7 +324,7 @@ public class TestBase {
    * Compile an application with R8 using the supplied proguard configuration.
    */
   protected AndroidApp compileWithR8(AndroidApp app, String proguardConfig)
-      throws CompilationException, ProguardRuleParserException, ExecutionException, IOException,
+      throws ProguardRuleParserException, ExecutionException, IOException,
       CompilationFailedException {
     return compileWithR8(app, proguardConfig, null);
   }
@@ -334,7 +334,7 @@ public class TestBase {
    */
   protected AndroidApp compileWithR8(
       AndroidApp app, String proguardConfig, Consumer<InternalOptions> optionsConsumer)
-      throws CompilationException, ProguardRuleParserException, ExecutionException, IOException,
+      throws ProguardRuleParserException, ExecutionException, IOException,
       CompilationFailedException {
     R8Command command =
         ToolHelper.prepareR8CommandBuilder(app)
@@ -348,7 +348,7 @@ public class TestBase {
    */
   protected AndroidApp compileWithR8(
       AndroidApp app, Path proguardConfig, Consumer<InternalOptions> optionsConsumer)
-      throws CompilationException, ProguardRuleParserException, ExecutionException, IOException,
+      throws ProguardRuleParserException, ExecutionException, IOException,
       CompilationFailedException {
     R8Command command =
         ToolHelper.prepareR8CommandBuilder(app)

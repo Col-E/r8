@@ -1388,7 +1388,7 @@ public abstract class R8RunArtTestsTest {
       boolean disableInlining,
       boolean disableClassInlining,
       boolean hasMissingClasses)
-      throws IOException, ProguardRuleParserException, ExecutionException, CompilationException,
+      throws IOException, ProguardRuleParserException, ExecutionException,
       CompilationFailedException {
     executeCompilerUnderTest(compilerUnderTest, fileNames, resultPath, compilationMode, null,
         disableInlining, disableClassInlining, hasMissingClasses);
@@ -1403,7 +1403,7 @@ public abstract class R8RunArtTestsTest {
       boolean disableInlining,
       boolean disableClassInlining,
       boolean hasMissingClasses)
-      throws IOException, ProguardRuleParserException, ExecutionException, CompilationException,
+      throws IOException, ProguardRuleParserException, ExecutionException,
         CompilationFailedException {
     assert mode != null;
     switch (compilerUnderTest) {
@@ -1434,7 +1434,7 @@ public abstract class R8RunArtTestsTest {
                   }
                 }
               } catch (ResourceException e) {
-                throw new CompilationException(e);
+                throw new CompilationError("", e);
               }
             }
           }
@@ -1621,7 +1621,7 @@ public abstract class R8RunArtTestsTest {
 
   protected void runJctfTest(CompilerUnderTest compilerUnderTest, String classFilePath,
       String fullClassName)
-      throws IOException, ProguardRuleParserException, ExecutionException, CompilationException,
+      throws IOException, ProguardRuleParserException, ExecutionException,
       CompilationFailedException {
     DexVm dexVm = ToolHelper.getDexVm();
 
@@ -1751,7 +1751,7 @@ public abstract class R8RunArtTestsTest {
       CompilationMode mode,
       DexVm dexVm,
       File resultDir)
-      throws IOException, ProguardRuleParserException, ExecutionException, CompilationException,
+      throws IOException, ProguardRuleParserException, ExecutionException,
       CompilationFailedException {
     executeCompilerUnderTest(compilerUnderTest, fileNames, resultDir.getAbsolutePath(), mode,
         specification.disableInlining, specification.disableClassInlining,
@@ -1930,7 +1930,7 @@ public abstract class R8RunArtTestsTest {
             compilerUnderTest, fileNames, resultDir.getCanonicalPath(), compilationMode,
             specification.disableInlining, specification.disableClassInlining,
             specification.hasMissingClasses);
-      } catch (CompilationException | CompilationFailedException e) {
+      } catch (CompilationFailedException e) {
         throw new CompilationError(e.getMessage(), e);
       } catch (ExecutionException e) {
         throw e.getCause();

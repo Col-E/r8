@@ -76,7 +76,7 @@ public class D8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<D8Command
 
       // compilation should have failed on CompilationError since A is declaring a default method.
       Assert.fail();
-    } catch (CompilationError | CompilationException e) {
+    } catch (CompilationError e) {
       // Expected.
     }
   }
