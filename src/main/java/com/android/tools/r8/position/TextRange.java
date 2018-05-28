@@ -45,6 +45,11 @@ public class TextRange implements Position {
   }
 
   @Override
+  public String toString() {
+      return "Text range from: '" + getStart() + "', to: '" + getEnd() + "'";
+  }
+
+  @Override
   public String getDescription() {
     return start.getDescription();
   }
