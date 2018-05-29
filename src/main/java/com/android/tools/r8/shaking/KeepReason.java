@@ -77,10 +77,10 @@ abstract class KeepReason {
     @Override
     public void print(ReasonFormatter formatter) {
       formatter.addReason("referenced in keep rule:");
-      formatter.addMessage("  " + keepRule + " {");
+      formatter.addMessage("  " + keepRule.toShortString() + " {");
       int ruleCount = 0;
       for (ProguardMemberRule memberRule : keepRule.getMemberRules()) {
-        formatter.addMessage("    " + memberRule);
+        formatter.addMessage("    " + memberRule + ";");
         if (++ruleCount > 10) {
           formatter.addMessage("      <...>");
           break;

@@ -249,7 +249,7 @@ public abstract class ProguardClassSpecification {
     return result;
   }
 
-  protected StringBuilder append(StringBuilder builder) {
+  protected StringBuilder append(StringBuilder builder, boolean includeMemberRules) {
     StringUtils.appendNonEmpty(builder, "@", classAnnotation, null);
     StringUtils.appendNonEmpty(builder, "", classAccessFlags, null);
     StringUtils.appendNonEmpty(builder, "!", negatedClassAccessFlags.toString().replace(" ", " !"),
@@ -269,18 +269,27 @@ public abstract class ProguardClassSpecification {
       builder.append(' ');
       builder.append(inheritanceClassName);
     }
-    builder.append(" {\n");
-    memberRules.forEach(memberRule -> {
-      builder.append("  ");
-      builder.append(memberRule);
-      builder.append(";\n");
-    });
-    builder.append("}");
+    if (includeMemberRules) {
+      builder.append(" {\n");
+      memberRules.forEach(memberRule -> {
+        builder.append("  ");
+        builder.append(memberRule);
+        builder.append(";\n");
+      });
+      builder.append("}");
+    }
     return builder;
+  }
+
+  /**
+   * Short String representation without member rules.
+   */
+  public String toShortString() {
+    return append(new StringBuilder(), false).toString();
   }
 
   @Override
   public String toString() {
-    return append(new StringBuilder()).toString();
+    return append(new StringBuilder(), true).toString();
   }
 }
