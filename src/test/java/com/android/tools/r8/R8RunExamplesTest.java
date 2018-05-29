@@ -32,6 +32,7 @@ public class R8RunExamplesTest extends R8RunExamplesCommon {
         "arrayaccess.ArrayAccess",
         "barray.BArray",
         "bridge.BridgeMethod",
+        "catchhandleroverlap.CatchHandlerOverlap",
         "cse.CommonSubexpressionElimination",
         "constants.Constants",
         "controlflow.ControlFlow",

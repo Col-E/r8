@@ -813,8 +813,8 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       if (overlappingMoveExceptionIntervals) {
         for (LiveIntervals intervals : moveExceptionIntervals) {
           if (intervals.getUses().size() > 1) {
-            LiveIntervalsUse secondUse = intervals.getUses().stream().skip(1).findFirst().get();
-            LiveIntervals split = intervals.splitBefore(secondUse.getPosition());
+            LiveIntervals split =
+                intervals.splitBefore(intervals.getFirstUse() + INSTRUCTION_NUMBER_DELTA);
             unhandled.add(split);
           }
         }
@@ -1353,6 +1353,12 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   private boolean overlapsMoveExceptionInterval(LiveIntervals intervals) {
     if (!hasDedicatedMoveExceptionRegister()) {
       return false;
+    }
+    // If there are that many move exception intervals we don't spent the time
+    // going through them all. In that case it is unlikely that we can reuse the move exception
+    // register in any case.
+    if (moveExceptionIntervals.size() > 1000) {
+      return true;
     }
     for (LiveIntervals moveExceptionInterval : moveExceptionIntervals) {
       if (intervals.anySplitOverlaps(moveExceptionInterval)) {
