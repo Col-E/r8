@@ -304,6 +304,20 @@ public abstract class BaseCommand {
       return self();
     }
 
+    /** Signal an error. */
+    public void error(Diagnostic diagnostic) {
+      reporter.error(diagnostic);
+    }
+
+    /**
+     * Signal an error and throw {@link AbortException}.
+     *
+     * @throws AbortException always.
+     */
+    public RuntimeException fatalError(Diagnostic diagnostic) {
+      return reporter.fatalError(diagnostic);
+    }
+
     // Internal helper for compat tools to make them ignore DEX code in input archives.
     void setIgnoreDexInArchive(boolean value) {
       guard(() -> app.setIgnoreDexInArchive(value));

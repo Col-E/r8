@@ -3,18 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
-import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.FlagFile;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
-import com.android.tools.r8.utils.StringDiagnostic;
-import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
 
@@ -150,24 +145,7 @@ public class D8Command extends BaseCompilerCommand {
     }
   }
 
-  static final String USAGE_MESSAGE = String.join("\n", ImmutableList.of(
-      "Usage: d8 [options] <input-files>",
-      " where <input-files> are any combination of dex, class, zip, jar, or apk files",
-      " and options are:",
-      "  --debug                 # Compile with debugging information (default).",
-      "  --release               # Compile without debugging information.",
-      "  --output <file>         # Output result in <outfile>.",
-      "                          # <file> must be an existing directory or a zip file.",
-      "  --lib <file>            # Add <file> as a library resource.",
-      "  --classpath <file>      # Add <file> as a classpath resource.",
-      "  --min-api               # Minimum Android API level compatibility",
-      "  --intermediate          # Compile an intermediate result intended for later",
-      "                          # merging.",
-      "  --file-per-class        # Produce a separate dex file per input class",
-      "  --no-desugaring         # Force disable desugaring.",
-      "  --main-dex-list <file>  # List of classes to place in the primary dex file.",
-      "  --version               # Print the version of d8.",
-      "  --help                  # Print this message."));
+  static final String USAGE_MESSAGE = D8CommandParser.USAGE_MESSAGE;
 
   private boolean intermediate = false;
 
@@ -194,7 +172,7 @@ public class D8Command extends BaseCompilerCommand {
    * @return D8 command builder with state set up according to parsed command line.
    */
   public static Builder parse(String[] args, Origin origin) {
-    return parse(args, origin, builder());
+    return D8CommandParser.parse(args, origin);
   }
 
   /**
@@ -208,87 +186,7 @@ public class D8Command extends BaseCompilerCommand {
    * @return D8 command builder with state set up according to parsed command line.
    */
   public static Builder parse(String[] args, Origin origin, DiagnosticsHandler handler) {
-    return parse(args, origin, builder(handler));
-  }
-
-  private static Builder parse(String[] args, Origin origin, Builder builder) {
-    CompilationMode compilationMode = null;
-    Path outputPath = null;
-    OutputMode outputMode = null;
-    boolean hasDefinedApiLevel = false;
-    String[] expandedArgs = FlagFile.expandFlagFiles(args, builder.getReporter());
-    try {
-      for (int i = 0; i < expandedArgs.length; i++) {
-        String arg = expandedArgs[i].trim();
-        if (arg.length() == 0) {
-          continue;
-        } else if (arg.equals("--help")) {
-          builder.setPrintHelp(true);
-        } else if (arg.equals("--version")) {
-          builder.setPrintVersion(true);
-        } else if (arg.equals("--debug")) {
-          if (compilationMode == CompilationMode.RELEASE) {
-            builder.getReporter().error(new StringDiagnostic(
-                "Cannot compile in both --debug and --release mode.",
-                origin));
-            continue;
-          }
-          compilationMode = CompilationMode.DEBUG;
-        } else if (arg.equals("--release")) {
-          if (compilationMode == CompilationMode.DEBUG) {
-            builder.getReporter().error(new StringDiagnostic(
-                "Cannot compile in both --debug and --release mode.",
-                origin));
-            continue;
-          }
-          compilationMode = CompilationMode.RELEASE;
-        } else if (arg.equals("--file-per-class")) {
-          outputMode = OutputMode.DexFilePerClassFile;
-        } else if (arg.equals("--output")) {
-          String output = expandedArgs[++i];
-          if (outputPath != null) {
-            builder.getReporter().error(new StringDiagnostic(
-                "Cannot output both to '" + outputPath.toString() + "' and '" + output + "'",
-                origin));
-            continue;
-          }
-          outputPath = Paths.get(output);
-        } else if (arg.equals("--lib")) {
-          builder.addLibraryFiles(Paths.get(expandedArgs[++i]));
-        } else if (arg.equals("--classpath")) {
-          builder.addClasspathFiles(Paths.get(expandedArgs[++i]));
-        } else if (arg.equals("--main-dex-list")) {
-          builder.addMainDexListFiles(Paths.get(expandedArgs[++i]));
-        } else if (arg.equals("--optimize-multidex-for-linearalloc")) {
-          builder.setOptimizeMultidexForLinearAlloc(true);
-        } else if (arg.equals("--min-api")) {
-          hasDefinedApiLevel = parseMinApi(builder, expandedArgs[++i], hasDefinedApiLevel, origin);
-        } else if (arg.equals("--intermediate")) {
-          builder.setIntermediate(true);
-        } else if (arg.equals("--no-desugaring")) {
-          builder.setDisableDesugaring(true);
-        } else {
-          if (arg.startsWith("--")) {
-            builder.getReporter().error(new StringDiagnostic("Unknown option: " + arg,
-                origin));
-            continue;
-          }
-          builder.addProgramFiles(Paths.get(arg));
-        }
-      }
-      if (compilationMode != null) {
-        builder.setMode(compilationMode);
-      }
-      if (outputMode == null) {
-        outputMode = OutputMode.DexIndexed;
-      }
-      if (outputPath == null) {
-        outputPath = Paths.get(".");
-      }
-      return builder.setOutput(outputPath, outputMode);
-    } catch (CompilationError e) {
-      throw builder.getReporter().fatalError(e);
-    }
+    return D8CommandParser.parse(args, origin, handler);
   }
 
   private D8Command(
