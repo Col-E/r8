@@ -21,22 +21,15 @@ import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 @RunWith(VmTestRunner.class)
 public class FieldTypeTest extends TestBase {
 
-  @Ignore("b/78788577")
-  @Test
-  public void test_brokenTypeHierarchy() throws Exception {
-    JasminBuilder jasminBuilder = new JasminBuilder();
-    // interface Itf
-    ClassBuilder itf = jasminBuilder.addInterface("Itf");
-    MethodSignature foo = itf.addAbstractMethod("foo", ImmutableList.of(), "V");
-    // class Impl /* implements Itf */
-    ClassBuilder impl = jasminBuilder.addClass("Impl");
+  private ClassBuilder addImplementor(
+      JasminBuilder jasminBuilder, String name, String superName, String... interfaces) {
+    ClassBuilder impl = jasminBuilder.addClass(name, superName, interfaces);
     impl.addDefaultConstructor();
     impl.addVirtualMethod("foo", ImmutableList.of(), "V",
         ".limit locals 2",
@@ -50,15 +43,43 @@ public class FieldTypeTest extends TestBase {
         ".limit stack 2",
         "ldc \"" + impl.name + "\"",
         "areturn");
+    return impl;
+  }
+
+  @Test
+  public void test_brokenTypeHierarchy() throws Exception {
+    JasminBuilder jasminBuilder = new JasminBuilder();
+    // interface Itf1
+    ClassBuilder itf1 = jasminBuilder.addInterface("Itf1");
+    MethodSignature foo1 = itf1.addAbstractMethod("foo", ImmutableList.of(), "V");
+    // class Impl1 /* implements Itf1 */
+    ClassBuilder impl1 = addImplementor(jasminBuilder, "Impl1", "java/lang/Object");
+
+    // Another interface and implementer with a correct relation.
+    ClassBuilder itf2 = jasminBuilder.addInterface("Itf2");
+    MethodSignature foo2 = itf2.addAbstractMethod("foo", ImmutableList.of(), "V");
+    ClassBuilder impl2 = addImplementor(jasminBuilder, "Impl2", "java/lang/Object", itf2.name);
+
     ClassBuilder client = jasminBuilder.addClass("Client");
-    FieldSignature obj = client.addStaticFinalField("obj", itf.getDescriptor(), null);
+    client.setAccess("final");
+    client.addDefaultConstructor();
+    FieldSignature a = client.addStaticFinalField("a", "Ljava/lang/Object;", null);
+    FieldSignature obj1 = client.addField("private static", "obj1", itf1.getDescriptor(), null);
+    FieldSignature obj2 = client.addStaticFinalField("obj2", itf2.getDescriptor(), null);
     client.addClassInitializer(
         ".limit locals 1",
         ".limit stack 2",
-        "new " + impl.name,
+        "aconst_null",
+        "putstatic " + client.name + "/" + a.name  + " " + "Ljava/lang/Object;",
+        "new " + impl1.name,
         "dup",
-        "invokespecial " + impl.name + "/<init>()V",
-        "putstatic " + client.name + "/" + obj.name + " " + itf.getDescriptor(),
+        "invokespecial " + impl1.name + "/<init>()V",
+        // Unused, i.e., not read, field, yet still remained in the output.
+        "putstatic " + client.name + "/" + obj1.name + " " + itf1.getDescriptor(),
+        "new " + impl2.name,
+        "dup",
+        "invokespecial " + impl2.name + "/<init>()V",
+        "putstatic " + client.name + "/" + obj2.name + " " + itf2.getDescriptor(),
         "return"
     );
 
@@ -67,8 +88,8 @@ public class FieldTypeTest extends TestBase {
         ".limit locals 2",
         ".limit stack 2",
         "getstatic java/lang/System/out Ljava/io/PrintStream;",
-        "getstatic " + client.name + "/" + obj.name + " " + itf.getDescriptor(),
         /*
+        "getstatic " + client.name + "/" + obj1.name + " " + itf1.getDescriptor(),
         "astore_0",
         "aload_0",
         // java.lang.IncompatibleClassChangeError:
@@ -76,19 +97,24 @@ public class FieldTypeTest extends TestBase {
         "invokeinterface " + itf.name + "/" + foo.name + "()V 1",
         "aload_0",
         */
+        "getstatic " + client.name + "/" + obj2.name + " " + itf2.getDescriptor(),
         "invokevirtual java/io/PrintStream/print(Ljava/lang/Object;)V",
         "return"
     );
 
     final String mainClassName = mainClass.name;
-    String proguardConfig = keepMainProguardConfiguration(mainClass.name, false, false);
+    String proguardConfig =
+        keepMainProguardConfiguration(mainClass.name, false, false)
+            // AGP default is to not turn optimizations on, which disables MemberValuePropagation,
+            // resulting in the problematic putstatic being remained.
+            + "-dontoptimize\n";
 
     // Run input program on java.
     Path outputDirectory = temp.newFolder().toPath();
     jasminBuilder.writeClassFiles(outputDirectory);
     ProcessResult javaResult = ToolHelper.runJava(outputDirectory, mainClassName);
     assertEquals(0, javaResult.exitCode);
-    assertThat(javaResult.stdout, containsString(impl.name));
+    assertThat(javaResult.stdout, containsString(impl2.name));
 
     AndroidApp processedApp = compileWithR8(jasminBuilder.build(), proguardConfig,
         // Disable inlining to avoid the (short) tested method from being inlined and then removed.
@@ -97,12 +123,12 @@ public class FieldTypeTest extends TestBase {
     // Run processed (output) program on ART
     ProcessResult artResult = runOnArtRaw(processedApp, mainClassName);
     assertEquals(0, artResult.exitCode);
-    assertThat(artResult.stdout, containsString(impl.name));
+    assertThat(artResult.stdout, containsString(impl2.name));
     assertEquals(-1, artResult.stderr.indexOf("DoFieldPut"));
 
     DexInspector inspector = new DexInspector(processedApp);
-    ClassSubject itfSubject = inspector.clazz(itf.name);
-    assertThat(itfSubject, isPresent());
+    ClassSubject itf1Subject = inspector.clazz(itf1.name);
+    assertThat(itf1Subject, isPresent());
   }
 
 }

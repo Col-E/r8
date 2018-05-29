@@ -785,6 +785,9 @@ public class Enqueuer {
     // Mark the type live here, so that the class exists at runtime. Note that this also marks all
     // supertypes as live, so even if the field is actually on a supertype, its class will be live.
     markTypeAsLive(field.clazz);
+    if (field.type.isClassType()) {
+      markTypeAsLive(field.type);
+    }
     // Find the actual field.
     DexEncodedField encodedField = appInfo.resolveFieldOn(field.clazz, field);
     if (encodedField == null) {
@@ -814,6 +817,9 @@ public class Enqueuer {
   private void markInstanceFieldAsLive(DexEncodedField field, KeepReason reason) {
     assert field != null;
     markTypeAsLive(field.field.clazz);
+    if (field.field.type.isClassType()) {
+      markTypeAsLive(field.field.type);
+    }
     if (Log.ENABLED) {
       Log.verbose(getClass(), "Adding instance field `%s` to live set.", field.field);
     }

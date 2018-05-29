@@ -11,6 +11,7 @@ import com.android.tools.r8.GenerateMainDexList;
 import com.android.tools.r8.GenerateMainDexListCommand;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
+import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -30,18 +31,14 @@ import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.junit.Assert;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
-public class MainDexTracingTest {
+public class MainDexTracingTest extends TestBase {
 
   private static final String EXAMPLE_BUILD_DIR = ToolHelper.EXAMPLES_BUILD_DIR;
   private static final String EXAMPLE_O_BUILD_DIR = ToolHelper.EXAMPLES_ANDROID_O_BUILD_DIR;
   private static final String EXAMPLE_SRC_DIR = ToolHelper.EXAMPLES_DIR;
   private static final String EXAMPLE_O_SRC_DIR = ToolHelper.EXAMPLES_ANDROID_O_DIR;
-
-  @Rule public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
   @Test
   public void traceMainDexList001_whyareyoukeeping() throws Throwable {
@@ -53,6 +50,7 @@ public class MainDexTracingTest {
         "multidex001",
         EXAMPLE_BUILD_DIR,
         Paths.get(EXAMPLE_SRC_DIR, "multidex", "main-dex-rules-whyareyoukeeping.txt"),
+        Paths.get(EXAMPLE_SRC_DIR, "multidex001", "ref-list-1.txt"),
         Paths.get(EXAMPLE_SRC_DIR, "multidex001", "ref-list-1.txt"),
         AndroidApiLevel.I);
     String output = new String(baos.toByteArray(), Charset.defaultCharset());
@@ -68,6 +66,7 @@ public class MainDexTracingTest {
         EXAMPLE_BUILD_DIR,
         Paths.get(EXAMPLE_SRC_DIR, "multidex", "main-dex-rules.txt"),
         Paths.get(EXAMPLE_SRC_DIR, "multidex001", "ref-list-1.txt"),
+        Paths.get(EXAMPLE_SRC_DIR, "multidex001", "ref-list-1.txt"),
         AndroidApiLevel.I);
   }
 
@@ -78,6 +77,7 @@ public class MainDexTracingTest {
         "multidex001",
         EXAMPLE_BUILD_DIR,
         Paths.get(EXAMPLE_SRC_DIR, "multidex001", "main-dex-rules-2.txt"),
+        Paths.get(EXAMPLE_SRC_DIR, "multidex001", "ref-list-2.txt"),
         Paths.get(EXAMPLE_SRC_DIR, "multidex001", "ref-list-2.txt"),
         AndroidApiLevel.I);
   }
@@ -90,6 +90,7 @@ public class MainDexTracingTest {
         EXAMPLE_BUILD_DIR,
         Paths.get(EXAMPLE_SRC_DIR, "multidex", "main-dex-rules.txt"),
         Paths.get(EXAMPLE_SRC_DIR, "multidex002", "ref-list-1.txt"),
+        Paths.get(EXAMPLE_SRC_DIR, "multidex002", "ref-list-1.txt"),
         AndroidApiLevel.I);
   }
 
@@ -101,6 +102,7 @@ public class MainDexTracingTest {
         EXAMPLE_BUILD_DIR,
         Paths.get(EXAMPLE_SRC_DIR, "multidex", "main-dex-rules.txt"),
         Paths.get(EXAMPLE_SRC_DIR, "multidex003", "ref-list-1.txt"),
+        Paths.get(EXAMPLE_SRC_DIR, "multidex003", "ref-list-1.txt"),
         AndroidApiLevel.I);
   }
 
@@ -111,6 +113,7 @@ public class MainDexTracingTest {
         "multidex004",
         EXAMPLE_O_BUILD_DIR,
         Paths.get(EXAMPLE_SRC_DIR, "multidex", "main-dex-rules.txt"),
+        Paths.get(EXAMPLE_O_SRC_DIR, "multidex004", "ref-list-1.txt"),
         Paths.get(EXAMPLE_O_SRC_DIR, "multidex004", "ref-list-1.txt"),
         AndroidApiLevel.I);
   }
@@ -132,7 +135,14 @@ public class MainDexTracingTest {
 
   @Test
   public void traceMainDexList005_4() throws Throwable {
-    doTest5(4);
+    doTest(
+        "traceMainDexList005",
+        "multidex005",
+        EXAMPLE_BUILD_DIR,
+        Paths.get(EXAMPLE_SRC_DIR, "multidex005", "main-dex-rules-4.txt"),
+        Paths.get(EXAMPLE_SRC_DIR, "multidex005", "ref-list-4-r8.txt"),
+        Paths.get(EXAMPLE_SRC_DIR, "multidex005", "ref-list-4.txt"),
+        AndroidApiLevel.I);
   }
 
   @Test
@@ -158,6 +168,7 @@ public class MainDexTracingTest {
         EXAMPLE_BUILD_DIR,
         Paths.get(EXAMPLE_SRC_DIR, "multidex006", "main-dex-rules-1.txt"),
         Paths.get(EXAMPLE_SRC_DIR, "multidex006", "ref-list-1.txt"),
+        Paths.get(EXAMPLE_SRC_DIR, "multidex006", "ref-list-1.txt"),
         AndroidApiLevel.I);
   }
 
@@ -168,6 +179,7 @@ public class MainDexTracingTest {
         EXAMPLE_BUILD_DIR,
         Paths.get(EXAMPLE_SRC_DIR, "multidex005", "main-dex-rules-" + variant + ".txt"),
         Paths.get(EXAMPLE_SRC_DIR, "multidex005", "ref-list-" + variant + ".txt"),
+        Paths.get(EXAMPLE_SRC_DIR, "multidex005", "ref-list-" + variant + ".txt"),
         AndroidApiLevel.I);
   }
 
@@ -176,6 +188,7 @@ public class MainDexTracingTest {
       String packageName,
       String buildDir,
       Path mainDexRules,
+      Path expectedR8MainDexList,
       Path expectedMainDexList,
       AndroidApiLevel minSdk)
       throws Throwable {
@@ -184,6 +197,7 @@ public class MainDexTracingTest {
         packageName,
         buildDir,
         mainDexRules,
+        expectedR8MainDexList,
         expectedMainDexList,
         minSdk,
         (options) -> {
@@ -196,6 +210,7 @@ public class MainDexTracingTest {
       String packageName,
       String buildDir,
       Path mainDexRules,
+      Path expectedR8MainDexList,
       Path expectedMainDexList,
       AndroidApiLevel minSdk,
       Consumer<InternalOptions> optionsConsumer)
@@ -259,17 +274,22 @@ public class MainDexTracingTest {
               .map(this::mainDexStringToDescriptor)
               .sorted()
               .collect(Collectors.toList());
-      // Check that both generated lists are the same as the reference list, except for lambda
+      // Check that generated lists are the same as the reference list, except for lambda
       // classes which are only produced when running R8.
+      String[] r8RefList = new String(Files.readAllBytes(
+          expectedR8MainDexList), StandardCharsets.UTF_8).split("\n");
+      for (int i = 0; i < r8RefList.length; i++) {
+        String reference = r8RefList[i].trim();
+        if (r8MainDexList.size() <= i) {
+          Assert.fail("R8 main dex list is missing '" + reference + "'");
+        }
+        checkSameMainDexEntry(reference, r8MainDexList.get(i));
+      }
       String[] refList = new String(Files.readAllBytes(
           expectedMainDexList), StandardCharsets.UTF_8).split("\n");
       int nonLambdaOffset = 0;
       for (int i = 0; i < refList.length; i++) {
         String reference = refList[i].trim();
-        if (r8MainDexList.size() <= i) {
-          Assert.fail("R8 main dex list is missing '" + reference + "'");
-        }
-        checkSameMainDexEntry(reference, r8MainDexList.get(i));
         // The main dex list generator does not do any lambda desugaring.
         if (!isLambda(reference)) {
           if (mainDexGeneratorMainDexList.size() <= i - nonLambdaOffset) {
