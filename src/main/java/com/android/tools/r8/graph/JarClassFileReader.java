@@ -595,8 +595,14 @@ public class JarClassFileReader {
             parameterFlags.toArray(new DexValue[parameterFlags.size()]),
             parent.application.getFactory()));
       }
-      DexEncodedMethod dexMethod = new DexEncodedMethod(method, flags,
-          createAnnotationSet(annotations), annotationsList, code);
+      DexEncodedMethod dexMethod =
+          new DexEncodedMethod(
+              method,
+              flags,
+              createAnnotationSet(annotations),
+              annotationsList,
+              code,
+              parent.version);
       if (flags.isStatic() || flags.isConstructor() || flags.isPrivate()) {
         parent.directMethods.add(dexMethod);
       } else {

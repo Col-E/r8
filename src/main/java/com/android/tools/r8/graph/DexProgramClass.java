@@ -356,7 +356,12 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
   }
 
   public void setClassFileVersion(int classFileVersion) {
+    assert classFileVersion >= 0;
     this.classFileVersion = classFileVersion;
+  }
+
+  public boolean hasClassFileVersion() {
+    return classFileVersion >= 0;
   }
 
   public int getClassFileVersion() {
