@@ -73,7 +73,15 @@ public class TypeConstraintResolver {
 
   private ValueType getPreciseType(Value value) {
     ValueType type = canonical(value).outType();
-    return type != ValueType.INT_OR_FLOAT_OR_NULL ? type : ValueType.INT_OR_FLOAT;
+    if (type.isPreciseType()) {
+      return type;
+    }
+    // If the type is still imprecise, then there are no constraints forcing its type and we
+    // arbitrarily choose long for wide values and int for single values.
+    if (type.isWide()) {
+      return ValueType.LONG;
+    }
+    return ValueType.INT;
   }
 
   private void link(Value canonical1, Value canonical2) {

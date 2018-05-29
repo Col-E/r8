@@ -376,7 +376,7 @@ public class IRCode {
       for (Phi phi : block.getPhis()) {
         assert !phi.isTrivialPhi();
         assert phi.getOperands().size() == predecessorCount;
-        assert phi.outType() != ValueType.INT_OR_FLOAT_OR_NULL;
+        assert phi.outType().isPreciseType();
         values.add(phi);
         for (Value value : phi.getOperands()) {
           values.add(value);
@@ -393,7 +393,7 @@ public class IRCode {
         if (outValue != null) {
           values.add(outValue);
           assert outValue.definition == instruction;
-          assert outValue.outType() != ValueType.INT_OR_FLOAT_OR_NULL;
+          assert outValue.outType().isPreciseType();
         }
         for (Value value : instruction.inValues()) {
           values.add(value);
