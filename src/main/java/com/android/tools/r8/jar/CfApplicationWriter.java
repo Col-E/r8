@@ -108,7 +108,7 @@ public class CfApplicationWriter {
   private void writeClass(DexProgramClass clazz, ClassFileConsumer consumer) throws IOException {
     ClassWriter writer = new ClassWriter(0);
     writer.visitSource(clazz.sourceFile != null ? clazz.sourceFile.toString() : null, null);
-    int version = clazz.getClassFileVersion();
+    int version = getClassFileVersion(clazz);
     int access = clazz.accessFlags.getAsCfAccessFlags();
     String desc = namingLens.lookupDescriptor(clazz.type).toString();
     String name = namingLens.lookupInternalName(clazz.type);
@@ -159,6 +159,17 @@ public class CfApplicationWriter {
     }
     ExceptionUtils.withConsumeResourceHandler(
         options.reporter, handler -> consumer.accept(result, desc, handler));
+  }
+
+  private int getClassFileVersion(DexProgramClass clazz) {
+    int version = clazz.getClassFileVersion();
+    for (DexEncodedMethod method : clazz.directMethods()) {
+      version = Math.max(version, method.getClassFileVersion());
+    }
+    for (DexEncodedMethod method : clazz.virtualMethods()) {
+      version = Math.max(version, method.getClassFileVersion());
+    }
+    return version;
   }
 
   private DexValue getSystemAnnotationValue(DexAnnotationSet annotations, DexType type) {

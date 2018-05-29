@@ -99,6 +99,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   private Code code;
   private CompilationState compilationState = CompilationState.NOT_PROCESSED;
   private OptimizationInfo optimizationInfo = DefaultOptimizationInfo.DEFAULT;
+  private int classFileVersion = -1;
 
   public DexEncodedMethod(
       DexMethod method,
@@ -112,6 +113,17 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     this.parameterAnnotationsList = parameterAnnotationsList;
     this.code = code;
     assert code == null || !accessFlags.isAbstract();
+  }
+
+  public DexEncodedMethod(
+      DexMethod method,
+      MethodAccessFlags flags,
+      DexAnnotationSet annotationSet,
+      ParameterAnnotationsList annotationsList,
+      Code code,
+      int classFileVersion) {
+    this(method, flags, annotationSet, annotationsList, code);
+    this.classFileVersion = classFileVersion;
   }
 
   public boolean isProcessed() {
@@ -301,6 +313,21 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   public boolean hasDebugPositions() {
     assert code != null && code.isDexCode();
     return code.asDexCode().hasDebugPositions();
+  }
+
+  public int getClassFileVersion() {
+    assert classFileVersion >= 0;
+    return classFileVersion;
+  }
+
+  public boolean hasClassFileVersion() {
+    return classFileVersion >= 0;
+  }
+
+  public void upgradeClassFileVersion(int version) {
+    assert version >= 0;
+    assert !hasClassFileVersion() || version >= getClassFileVersion();
+    classFileVersion = version;
   }
 
   public String qualifiedName() {
@@ -751,6 +778,16 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
 
   public OptimizationInfo getOptimizationInfo() {
     return optimizationInfo;
+  }
+
+  public void copyMetadataFromInlinee(DexEncodedMethod inlinee) {
+    // Record that the current method uses identifier name string if the inlinee did so.
+    if (inlinee.getOptimizationInfo().useIdentifierNameString()) {
+      markUseIdentifierNameString();
+    }
+    if (inlinee.classFileVersion > classFileVersion) {
+      upgradeClassFileVersion(inlinee.getClassFileVersion());
+    }
   }
 
   private static Builder builder(DexEncodedMethod from) {

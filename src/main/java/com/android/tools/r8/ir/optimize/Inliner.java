@@ -468,10 +468,7 @@ public class Inliner {
                   method.accessFlags.unsetBridge();
                 }
 
-                // Record that the current method uses identifier name string if the inlinee did so.
-                if (target.getOptimizationInfo().useIdentifierNameString()) {
-                  method.markUseIdentifierNameString();
-                }
+                method.copyMetadataFromInlinee(target);
               }
             }
           }
