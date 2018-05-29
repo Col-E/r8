@@ -26,6 +26,7 @@ import java.util.zip.ZipOutputStream;
  *
  * <p>This consumer can only be provided to R8.
  */
+@KeepForSubclassing
 public interface ClassFileConsumer extends ProgramConsumer {
 
   /**
@@ -49,6 +50,7 @@ public interface ClassFileConsumer extends ProgramConsumer {
   }
 
   /** Forwarding consumer to delegate to an optional existing consumer. */
+  @Keep
   class ForwardingConsumer implements ClassFileConsumer {
 
     private static final ClassFileConsumer EMPTY_CONSUMER = new ForwardingConsumer(null);
@@ -80,6 +82,7 @@ public interface ClassFileConsumer extends ProgramConsumer {
   }
 
   /** Consumer to write program resources to an output. */
+  @Keep
   class ArchiveConsumer extends ForwardingConsumer
       implements DataResourceConsumer, InternalProgramOutputPathConsumer {
     private final OutputBuilder outputBuilder;
@@ -163,6 +166,7 @@ public interface ClassFileConsumer extends ProgramConsumer {
   }
 
   /** Directory consumer to write program resources to a directory. */
+  @Keep
   class DirectoryConsumer extends ForwardingConsumer implements InternalProgramOutputPathConsumer {
     private final OutputBuilder outputBuilder;
     protected final boolean consumeDataResouces;

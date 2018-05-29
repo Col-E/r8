@@ -4,9 +4,12 @@
 
 package com.android.tools.r8.origin;
 
+import com.android.tools.r8.Keep;
+
 /**
  * Origin representing an entry in an archive.
  */
+@Keep
 public class ArchiveEntryOrigin extends Origin {
 
   final String entryName;

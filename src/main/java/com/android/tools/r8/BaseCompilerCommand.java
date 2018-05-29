@@ -21,6 +21,7 @@ import java.util.List;
  * <p>For concrete builders, see for example {@link D8Command.Builder} and {@link
  * R8Command.Builder}.
  */
+@Keep
 public abstract class BaseCompilerCommand extends BaseCommand {
 
   private final CompilationMode mode;
@@ -104,6 +105,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
    * @param <B> Concrete builder extending this base, e.g., {@link R8Command.Builder} or {@link
    *     D8Command.Builder}.
    */
+  @Keep
   public abstract static class Builder<C extends BaseCompilerCommand, B extends Builder<C, B>>
       extends BaseCommand.Builder<C, B> {
 

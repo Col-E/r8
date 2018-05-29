@@ -52,6 +52,7 @@ import java.util.concurrent.ExecutorService;
  * them to DEX bytecode (compiling from Java bytecode for such inputs and merging for DEX inputs),
  * and then writes the result to the directory or zip archive specified by {@code outputPath}.
  */
+@Keep
 public final class D8 {
 
   private D8() {}

@@ -6,6 +6,8 @@ package com.android.tools.r8;
 
 import java.nio.file.Path;
 
+// This class is used by the Android Studio Gradle plugin and is thus part of the R8 API.
+@Keep
 public class CompatProguardCommandBuilder extends R8Command.Builder {
   public CompatProguardCommandBuilder() {
     this(true);

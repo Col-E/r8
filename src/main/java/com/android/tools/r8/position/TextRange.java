@@ -4,6 +4,9 @@
 
 package com.android.tools.r8.position;
 
+import com.android.tools.r8.Keep;
+
+@Keep
 public class TextRange implements Position {
   private final TextPosition start;
   private final TextPosition end;

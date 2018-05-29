@@ -19,6 +19,7 @@ import com.android.tools.r8.origin.Origin;
  * The D8/R8 compilers uses default implementations for various file-system resources, but the
  * client is free to provide their own.
  */
+@KeepForSubclassing
 public interface Resource {
   /**
    * Get the origin of the resource.

@@ -4,6 +4,7 @@
 package com.android.tools.r8;
 
 /** Compilation mode. */
+@Keep
 public enum CompilationMode {
   /** Preserves debugging information during compilation, eg, line-numbers and locals. */
   DEBUG,

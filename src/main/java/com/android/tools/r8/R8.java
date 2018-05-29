@@ -103,6 +103,7 @@ import java.util.concurrent.ExecutorService;
  * them to DEX bytecode, using {@code androidJar} as the reference of the system runtime library,
  * and then writes the result to the directory or zip archive specified by {@code outputPath}.
  */
+@Keep
 public class R8 {
 
   private final Timing timing = new Timing("R8");

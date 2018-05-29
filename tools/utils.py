@@ -35,6 +35,7 @@ COMPATDX_JAR = os.path.join(LIBS, 'compatdx.jar')
 COMPATPROGUARD_JAR = os.path.join(LIBS, 'compatproguard.jar')
 MAVEN_ZIP = os.path.join(LIBS, 'r8.zip')
 GENERATED_LICENSE = os.path.join(GENERATED_LICENSE_DIR, 'LICENSE')
+RT_JAR = os.path.join(REPO_ROOT, 'third_party/openjdk/openjdk-rt-1.8/rt.jar')
 
 def PrintCmd(s):
   if type(s) is list:

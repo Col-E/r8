@@ -29,6 +29,7 @@ import java.util.zip.ZipOutputStream;
  *
  * <p>This consumer receives DEX file content for each Java class-file input.
  */
+@KeepForSubclassing
 public interface DexFilePerClassFileConsumer extends ProgramConsumer {
 
   /**
@@ -57,6 +58,7 @@ public interface DexFilePerClassFileConsumer extends ProgramConsumer {
   }
 
   /** Forwarding consumer to delegate to an optional existing consumer. */
+  @Keep
   class ForwardingConsumer implements DexFilePerClassFileConsumer {
 
     private static final DexFilePerClassFileConsumer EMPTY_CONSUMER = new ForwardingConsumer(null);
@@ -92,6 +94,7 @@ public interface DexFilePerClassFileConsumer extends ProgramConsumer {
   }
 
   /** Consumer to write program resources to an output. */
+  @Keep
   class ArchiveConsumer extends ForwardingConsumer
       implements DataResourceConsumer, InternalProgramOutputPathConsumer {
     private final OutputBuilder outputBuilder;
@@ -181,6 +184,7 @@ public interface DexFilePerClassFileConsumer extends ProgramConsumer {
   }
 
   /** Directory consumer to write program resources to a directory. */
+  @Keep
   class DirectoryConsumer extends ForwardingConsumer
       implements DataResourceConsumer, InternalProgramOutputPathConsumer {
     private final OutputBuilder outputBuilder;

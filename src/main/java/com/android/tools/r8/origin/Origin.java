@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.origin;
 
+import com.android.tools.r8.KeepForSubclassing;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,6 +23,7 @@ import java.util.List;
  * Origin.unknown()}. The former is the parent of any file path, while the latter is an unknown
  * origin (e.g., for generated resources of raw bytes).
  */
+@KeepForSubclassing
 public abstract class Origin implements Comparable<Origin> {
 
   private static final Origin ROOT =

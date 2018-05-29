@@ -27,7 +27,6 @@ KEEP = '-keep public class %s { public static void main(...); }\n'
 MANIFEST_PATH = 'META-INF/MANIFEST.MF'
 MANIFEST = 'Manifest-Version: 1.0\nMain-Class: %s\n\n'
 MANIFEST_PATTERN = r'Main-Class:\s*(\S+)'
-RT = os.path.join(utils.REPO_ROOT, 'third_party/openjdk/openjdk-rt-1.8/rt.jar')
 
 parser = argparse.ArgumentParser(description=__doc__.strip(),
                                  formatter_class=argparse.RawTextHelpFormatter)
@@ -38,7 +37,7 @@ parser.add_argument(
     '-o', '--output-jar',
     help='Path to output JAR (default: build/libs/<MainClass>-min.jar)')
 parser.add_argument(
-    '-l', '--lib', default=RT,
+    '-l', '--lib', default=utils.RT_JAR,
     help='Path to rt.jar to use instead of OpenJDK 1.8')
 parser.add_argument(
     '-m', '--mainclass',
@@ -85,8 +84,8 @@ def extract_mainclass(input_jar):
           'No --mainclass specified and no Main-Class in input JAR manifest.')
     return mo.group(1)
 
-def minify_tool(mainclass=None, input_jar=utils.R8_JAR, output_jar=None, lib=RT,
-                debug=True, build=True, benchmark_name=None):
+def minify_tool(mainclass=None, input_jar=utils.R8_JAR, output_jar=None,
+                lib=utils.RT_JAR, debug=True, build=True, benchmark_name=None):
   if output_jar is None:
     output_jar = generate_output_name(input_jar, mainclass)
   with utils.TempDir() as path:

@@ -12,6 +12,7 @@ import java.util.Set;
  * only created on-demand when they are needed by the compiler. If never needed, the resource will
  * never be loaded.
  */
+@KeepForSubclassing
 public interface ClassFileResourceProvider {
 
   /**

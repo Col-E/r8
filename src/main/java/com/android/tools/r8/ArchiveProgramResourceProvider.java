@@ -29,8 +29,10 @@ import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
 
 /** Provider for archives of program resources. */
+@KeepForSubclassing
 public class ArchiveProgramResourceProvider implements ProgramResourceProvider {
 
+  @KeepForSubclassing
   public interface ZipFileSupplier {
     ZipFile open() throws IOException;
   }

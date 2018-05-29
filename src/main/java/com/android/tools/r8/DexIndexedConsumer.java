@@ -31,6 +31,7 @@ import java.util.zip.ZipOutputStream;
  * <p>This consumer receives DEX file content using standard indexed-multidex for programs larger
  * than a single DEX file. This is the default consumer for DEX programs.
  */
+@KeepForSubclassing
 public interface DexIndexedConsumer extends ProgramConsumer {
 
   /**
@@ -58,6 +59,7 @@ public interface DexIndexedConsumer extends ProgramConsumer {
   }
 
   /** Forwarding consumer to delegate to an optional existing consumer. */
+  @Keep
   class ForwardingConsumer implements DexIndexedConsumer {
 
     private static final DexIndexedConsumer EMPTY_CONSUMER = new ForwardingConsumer(null);
@@ -100,6 +102,7 @@ public interface DexIndexedConsumer extends ProgramConsumer {
   }
 
   /** Consumer to write program resources to an output. */
+  @Keep
   class ArchiveConsumer extends ForwardingConsumer
       implements DataResourceConsumer, InternalProgramOutputPathConsumer {
     protected final OutputBuilder outputBuilder;
@@ -181,6 +184,7 @@ public interface DexIndexedConsumer extends ProgramConsumer {
     }
   }
 
+  @Keep
   class DirectoryConsumer extends ForwardingConsumer
       implements DataResourceConsumer, InternalProgramOutputPathConsumer {
     private final Path directory;

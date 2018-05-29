@@ -26,7 +26,8 @@ import java.util.Collection;
  *     .build();
  * </pre>
  */
-public class D8Command extends BaseCompilerCommand {
+@Keep
+public final class D8Command extends BaseCompilerCommand {
 
   private static class ClasspathInputOrigin extends InputFileOrigin {
 
@@ -40,6 +41,7 @@ public class D8Command extends BaseCompilerCommand {
    *
    * <p>A builder is obtained by calling {@link D8Command#builder}.
    */
+  @Keep
   public static class Builder extends BaseCompilerCommand.Builder<D8Command, Builder> {
 
     private boolean intermediate = false;

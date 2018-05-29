@@ -9,6 +9,7 @@ import com.android.tools.r8.position.Position;
 /**
  * Interface for all diagnostic message produced by D8 and R8.
  */
+@Keep
 public interface Diagnostic {
 
   /**

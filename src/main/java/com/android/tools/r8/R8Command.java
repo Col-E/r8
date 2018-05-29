@@ -45,13 +45,15 @@ import java.util.function.Consumer;
  *     .build();
  * </pre>
  */
-public class R8Command extends BaseCompilerCommand {
+@Keep
+public final class R8Command extends BaseCompilerCommand {
 
   /**
    * Builder for constructing a R8Command.
    *
    * <p>A builder is obtained by calling {@link R8Command#builder}.
    */
+  @Keep
   public static class Builder extends BaseCompilerCommand.Builder<R8Command, Builder> {
 
     private final List<ProguardConfigurationSource> mainDexRules = new ArrayList<>();

@@ -7,6 +7,7 @@ package com.android.tools.r8;
  * Exception thrown when compilation failed to complete because of errors previously reported
  * through {@link com.android.tools.r8.DiagnosticsHandler}.
  */
+@Keep
 public class CompilationFailedException extends Exception {
 
   public CompilationFailedException() {
