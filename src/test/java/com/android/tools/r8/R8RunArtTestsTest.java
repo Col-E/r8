@@ -595,11 +595,6 @@ public abstract class R8RunArtTestsTest {
           // Verifier says: can't modify final field LMain;.staticFinalField.
           .put("600-verifier-fails",
               TestCondition.match(TestCondition.runtimesUpTo(DexVm.Version.V4_4_4)))
-          // VFY: args to if-eq/if-ne must both be refs or cat1.
-          .put(
-              "134-reg-promotion",
-              TestCondition.match(
-                  TestCondition.R8DEX_COMPILER, TestCondition.runtimesUpTo(DexVm.Version.V4_4_4)))
           // VFY: tried to get class from non-ref register.
           .put("506-verify-aput",
               TestCondition.match(TestCondition.runtimesUpTo(DexVm.Version.V4_4_4)))
