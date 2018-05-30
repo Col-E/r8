@@ -20,9 +20,11 @@ import java.util.Set;
  * A resource may optionally include a set describing the class descriptors for each type that is
  * defined by the resource.
  */
+@KeepForSubclassing
 public interface ProgramResource extends Resource {
 
   /** Type of program-format kinds. */
+  @Keep
   enum Kind {
     /** Format-kind for Java class-file resources. */
     CF,
@@ -66,6 +68,7 @@ public interface ProgramResource extends Resource {
   Set<String> getClassDescriptors();
 
   /** File-based program resource. */
+  @Keep
   class FileResource implements ProgramResource {
     private final Origin origin;
     private final Kind kind;
@@ -105,6 +108,7 @@ public interface ProgramResource extends Resource {
   }
 
   /** Byte-content based program resource. */
+  @Keep
   class ByteResource implements ProgramResource {
     private final Origin origin;
     private final Kind kind;

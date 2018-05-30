@@ -11,6 +11,7 @@ import com.android.tools.r8.origin.Origin;
  * For example, this is the expected exception that must be thrown if a resource fails to produce
  * its content. See {@link ProgramResource#getByteStream()} and {@link StringResource#getString()}.
  */
+@Keep
 public class ResourceException extends Exception {
 
   private final Origin origin;

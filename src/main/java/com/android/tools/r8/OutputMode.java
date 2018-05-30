@@ -4,6 +4,7 @@
 package com.android.tools.r8;
 
 /** Enumeration of the possible output formats of compilation. */
+@Keep
 public enum OutputMode {
 
   /** Produce DEX files using standard indexed-multidex for programs larger that a single file. */

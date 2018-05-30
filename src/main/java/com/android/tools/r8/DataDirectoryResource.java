@@ -12,6 +12,7 @@ import java.nio.file.Paths;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
+@Keep
 public interface DataDirectoryResource extends DataResource {
 
   static DataDirectoryResource fromFile(Path dir, Path file) {

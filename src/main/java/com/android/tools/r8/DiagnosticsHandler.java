@@ -10,6 +10,7 @@ import com.android.tools.r8.origin.Origin;
  *
  * <p>During compilation the warning and info methods will be called.
  */
+@Keep
 public interface DiagnosticsHandler {
 
   /**

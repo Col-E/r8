@@ -6,6 +6,7 @@ package com.android.tools.r8;
 import java.util.Collection;
 
 /** Program resource provider. */
+@KeepForSubclassing
 public interface ProgramResourceProvider {
 
   Collection<ProgramResource> getProgramResources() throws ResourceException;

@@ -31,7 +31,8 @@ import java.util.Map.Entry;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
-public class DexSplitterHelper {
+@Keep
+public final class DexSplitterHelper {
 
   public static void run(
       D8Command command, FeatureClassMapping featureClassMapping, String output, String proguardMap)

@@ -19,6 +19,7 @@ import java.util.Set;
  * Lazy resource provider returning class file resources based
  * on filesystem directory content.
  */
+@Keep
 public final class DirectoryClassFileProvider implements ClassFileResourceProvider {
   private final Path root;
 

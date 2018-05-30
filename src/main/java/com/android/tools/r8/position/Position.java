@@ -4,10 +4,13 @@
 
 package com.android.tools.r8.position;
 
+import com.android.tools.r8.Keep;
+
 /**
  * Represent a position in a resource, it can for example be line in a text file of the byte offset
  * in a binary stream.
  */
+@Keep
 public interface Position {
 
   /**

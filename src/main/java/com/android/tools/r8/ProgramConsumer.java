@@ -6,6 +6,7 @@ package com.android.tools.r8;
 /**
  * Base for all program consumers to allow abstracting which concrete consumer is provided to D8/R8.
  */
+@KeepForSubclassing
 public interface ProgramConsumer {
 
   /**

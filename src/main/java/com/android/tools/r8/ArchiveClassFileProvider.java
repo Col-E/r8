@@ -35,6 +35,7 @@ import java.util.zip.ZipFile;
  * <p>The descriptor index is built eagerly upon creating the provider and subsequent requests for
  * resources in the descriptor set will then force the read of zip entry contents.
  */
+@Keep
 public class ArchiveClassFileProvider implements ClassFileResourceProvider, Closeable {
   private final Origin origin;
   private final ZipFile zipFile;

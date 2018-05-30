@@ -4,9 +4,11 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.Diagnostic;
+import com.android.tools.r8.Keep;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 
+@Keep
 public class StringDiagnostic implements Diagnostic {
 
   private final Origin origin;

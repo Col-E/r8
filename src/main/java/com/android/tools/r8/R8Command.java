@@ -18,7 +18,6 @@ import com.android.tools.r8.shaking.ProguardConfigurationSourceStrings;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.FileUtils;
-import com.android.tools.r8.utils.FlagFile;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.android.tools.r8.utils.Reporter;
@@ -46,13 +45,15 @@ import java.util.function.Consumer;
  *     .build();
  * </pre>
  */
-public class R8Command extends BaseCompilerCommand {
+@Keep
+public final class R8Command extends BaseCompilerCommand {
 
   /**
    * Builder for constructing a R8Command.
    *
    * <p>A builder is obtained by calling {@link R8Command#builder}.
    */
+  @Keep
   public static class Builder extends BaseCompilerCommand.Builder<R8Command, Builder> {
 
     private final List<ProguardConfigurationSource> mainDexRules = new ArrayList<>();
@@ -421,38 +422,7 @@ public class R8Command extends BaseCompilerCommand {
     }
   }
 
-  // Internal state to verify parsing properties not enforced by the builder.
-  private static class ParseState {
-    CompilationMode mode = null;
-    OutputMode outputMode = null;
-    Path outputPath = null;
-    boolean hasDefinedApiLevel = false;
-  }
-
-  static final String USAGE_MESSAGE = String.join("\n", ImmutableList.of(
-      "Usage: r8 [options] <input-files>",
-      " where <input-files> are any combination of dex, class, zip, jar, or apk files",
-      " and options are:",
-      "  --release                # Compile without debugging information (default).",
-      "  --debug                  # Compile with debugging information.",
-      // TODO(b/65390962): Add help for output-mode flags once the CF backend is complete.
-      //"  --dex                    # Compile program to DEX file format (default).",
-      //"  --classfile              # Compile program to Java classfile format.",
-      "  --output <file>          # Output result in <file>.",
-      "                           # <file> must be an existing directory or a zip file.",
-      "  --lib <file>             # Add <file> as a library resource.",
-      "  --min-api                # Minimum Android API level compatibility.",
-      "  --pg-conf <file>         # Proguard configuration <file>.",
-      "  --pg-map-output <file>   # Output the resulting name and line mapping to <file>.",
-      "  --no-tree-shaking        # Force disable tree shaking of unreachable classes.",
-      "  --no-minification        # Force disable minification of names.",
-      "  --no-desugaring          # Force disable desugaring.",
-      "  --main-dex-rules <file>  # Proguard keep rules for classes to place in the",
-      "                           # primary dex file.",
-      "  --main-dex-list <file>   # List of classes to place in the primary dex file.",
-      "  --main-dex-list-output <file>  # Output the full main-dex list in <file>.",
-      "  --version                # Print the version of r8.",
-      "  --help                   # Print this message."));
+  static final String USAGE_MESSAGE = R8CommandParser.USAGE_MESSAGE;
 
   private final ImmutableList<ProguardConfigurationRule> mainDexKeepRules;
   private final StringConsumer mainDexListConsumer;
@@ -488,7 +458,7 @@ public class R8Command extends BaseCompilerCommand {
    * @return R8 command builder with state set up according to parsed command line.
    */
   public static Builder parse(String[] args, Origin origin) {
-    return parse(args, origin, builder());
+    return R8CommandParser.parse(args, origin);
   }
 
   /**
@@ -502,102 +472,7 @@ public class R8Command extends BaseCompilerCommand {
    * @return R8 command builder with state set up according to parsed command line.
    */
   public static Builder parse(String[] args, Origin origin, DiagnosticsHandler handler) {
-    return parse(args, origin, builder(handler));
-  }
-
-  private static Builder parse(String[] args, Origin origin, Builder builder) {
-    ParseState state = new ParseState();
-    parse(args, origin, builder, state);
-    if (state.mode != null) {
-      builder.setMode(state.mode);
-    }
-    Path outputPath = state.outputPath != null ? state.outputPath : Paths.get(".");
-    OutputMode outputMode = state.outputMode != null ? state.outputMode : OutputMode.DexIndexed;
-    builder.setOutput(outputPath, outputMode);
-    return builder;
-  }
-
-  private static ParseState parse(
-      String[] args,
-      Origin argsOrigin,
-      Builder builder,
-      ParseState state) {
-    String[] expandedArgs = FlagFile.expandFlagFiles(args, builder.getReporter());
-    for (int i = 0; i < expandedArgs.length; i++) {
-      String arg = expandedArgs[i].trim();
-      if (arg.length() == 0) {
-        continue;
-      } else if (arg.equals("--help")) {
-        builder.setPrintHelp(true);
-      } else if (arg.equals("--version")) {
-        builder.setPrintVersion(true);
-      } else if (arg.equals("--debug")) {
-        if (state.mode == CompilationMode.RELEASE) {
-          builder.getReporter().error(new StringDiagnostic(
-              "Cannot compile in both --debug and --release mode.", argsOrigin));
-        }
-        state.mode = CompilationMode.DEBUG;
-      } else if (arg.equals("--release")) {
-        if (state.mode == CompilationMode.DEBUG) {
-          builder.getReporter().error(new StringDiagnostic(
-              "Cannot compile in both --debug and --release mode.", argsOrigin));
-        }
-        state.mode = CompilationMode.RELEASE;
-      } else if (arg.equals("--dex")) {
-        if (state.outputMode == OutputMode.ClassFile) {
-          builder.getReporter().error(new StringDiagnostic(
-              "Cannot compile in both --dex and --classfile output mode.", argsOrigin));
-        }
-        state.outputMode = OutputMode.DexIndexed;
-      } else if (arg.equals("--classfile")) {
-        if (state.outputMode == OutputMode.DexIndexed) {
-          builder.getReporter().error(new StringDiagnostic(
-              "Cannot compile in both --dex and --classfile output mode.", argsOrigin));
-        }
-        state.outputMode = OutputMode.ClassFile;
-      } else if (arg.equals("--output")) {
-        String outputPath = expandedArgs[++i];
-        if (state.outputPath != null) {
-          builder.getReporter().error(new StringDiagnostic(
-              "Cannot output both to '"
-                  + state.outputPath.toString()
-                  + "' and '"
-                  + outputPath
-                  + "'",
-              argsOrigin));
-        }
-        state.outputPath = Paths.get(outputPath);
-      } else if (arg.equals("--lib")) {
-        builder.addLibraryFiles(Paths.get(expandedArgs[++i]));
-      } else if (arg.equals("--min-api")) {
-        state.hasDefinedApiLevel =
-            parseMinApi(builder, expandedArgs[++i], state.hasDefinedApiLevel, argsOrigin);
-      } else if (arg.equals("--no-tree-shaking")) {
-        builder.setDisableTreeShaking(true);
-      } else if (arg.equals("--no-minification")) {
-        builder.setDisableMinification(true);
-      } else if (arg.equals("--no-desugaring")) {
-        builder.setDisableDesugaring(true);
-      } else if (arg.equals("--main-dex-rules")) {
-        builder.addMainDexRulesFiles(Paths.get(expandedArgs[++i]));
-      } else if (arg.equals("--main-dex-list")) {
-        builder.addMainDexListFiles(Paths.get(expandedArgs[++i]));
-      } else if (arg.equals("--main-dex-list-output")) {
-        builder.setMainDexListOutputPath(Paths.get(expandedArgs[++i]));
-      } else if (arg.equals("--optimize-multidex-for-linearalloc")) {
-        builder.setOptimizeMultidexForLinearAlloc(true);
-      } else if (arg.equals("--pg-conf")) {
-        builder.addProguardConfigurationFiles(Paths.get(expandedArgs[++i]));
-      } else if (arg.equals("--pg-map-output")) {
-        builder.setProguardMapOutputPath(Paths.get(expandedArgs[++i]));
-      } else {
-        if (arg.startsWith("--")) {
-          builder.getReporter().error(new StringDiagnostic("Unknown option: " + arg, argsOrigin));
-        }
-        builder.addProgramFiles(Paths.get(arg));
-      }
-    }
-    return state;
+    return R8CommandParser.parse(args, origin, handler);
   }
 
   private R8Command(

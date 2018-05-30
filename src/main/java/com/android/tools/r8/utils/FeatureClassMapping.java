@@ -4,6 +4,7 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.ArchiveClassFileProvider;
+import com.android.tools.r8.Keep;
 import com.android.tools.r8.dexsplitter.DexSplitter;
 import com.android.tools.r8.dexsplitter.DexSplitter.FeatureJar;
 import com.android.tools.r8.origin.PathOrigin;
@@ -38,6 +39,7 @@ import java.util.regex.Pattern;
  * <p>Note that this format does not allow specifying inter-module dependencies, this is simply a
  * placement tool.
  */
+@Keep
 public class FeatureClassMapping {
 
   HashMap<String, String> parsedRules = new HashMap<>(); // Already parsed rules.
@@ -198,6 +200,7 @@ public class FeatureClassMapping {
         "Invalid mappings specification: " + error + "\n in file " + mappingFile + ":" + line);
   }
 
+  @Keep
   public static class FeatureMappingException extends Exception {
     FeatureMappingException(String message) {
       super(message);

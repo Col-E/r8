@@ -111,7 +111,12 @@ sourceSets {
     }
     apiUsageSample {
         java {
-            srcDirs = ['src/test/apiUsageSample']
+            srcDirs = ['src/test/apiUsageSample', 'src/main/java']
+            include 'com/android/tools/apiusagesample/*.java'
+            include 'com/android/tools/r8/BaseCompilerCommandParser.java'
+            include 'com/android/tools/r8/D8CommandParser.java'
+            include 'com/android/tools/r8/R8CommandParser.java'
+            include 'com/android/tools/r8/utils/FlagFile.java'
         }
     }
     debugTestResources {

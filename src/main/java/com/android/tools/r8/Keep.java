@@ -4,8 +4,6 @@
 package com.android.tools.r8;
 
 @Keep
-public interface DataResource extends Resource {
-  char SEPARATOR = '/';
+public @interface Keep {
 
-  String getName();
 }

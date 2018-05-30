@@ -4,13 +4,11 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.Reporter;
-import com.android.tools.r8.utils.StringDiagnostic;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,6 +21,7 @@ import java.util.List;
  * <p>For concrete builders, see for example {@link D8Command.Builder} and {@link
  * R8Command.Builder}.
  */
+@Keep
 public abstract class BaseCompilerCommand extends BaseCommand {
 
   private final CompilationMode mode;
@@ -106,6 +105,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
    * @param <B> Concrete builder extending this base, e.g., {@link R8Command.Builder} or {@link
    *     D8Command.Builder}.
    */
+  @Keep
   public abstract static class Builder<C extends BaseCompilerCommand, B extends Builder<C, B>>
       extends BaseCommand.Builder<C, B> {
 
@@ -341,31 +341,4 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     }
   }
 
-  static <C extends BaseCompilerCommand, B extends BaseCompilerCommand.Builder<C, B>>
-  boolean parseMinApi(
-      BaseCompilerCommand.Builder<C, B> builder,
-      String minApiString,
-      boolean hasDefinedApiLevel,
-      Origin origin) {
-    if (hasDefinedApiLevel) {
-      builder.getReporter().error(new StringDiagnostic(
-          "Cannot set multiple --min-api options", origin));
-      return false;
-    }
-    int minApi;
-    try {
-      minApi = Integer.valueOf(minApiString);
-    } catch (NumberFormatException e) {
-      builder.getReporter().error(new StringDiagnostic(
-          "Invalid argument to --min-api: " + minApiString, origin));
-      return false;
-    }
-    if (minApi < 1) {
-      builder.getReporter().error(new StringDiagnostic(
-          "Invalid argument to --min-api: " + minApiString, origin));
-      return false;
-    }
-    builder.setMinApiLevel(minApi);
-    return true;
-  }
 }

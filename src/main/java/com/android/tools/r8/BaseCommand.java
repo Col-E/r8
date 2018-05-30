@@ -28,6 +28,7 @@ import java.util.List;
  * <p>For concrete builders, see for example {@link D8Command.Builder} and {@link
  * R8Command.Builder}.
  */
+@Keep
 public abstract class BaseCommand {
 
   private final boolean printHelp;
@@ -101,6 +102,7 @@ public abstract class BaseCommand {
    * @param <B> Concrete builder extending this base, e.g., {@link R8Command.Builder} or {@link
    *     D8Command.Builder}.
    */
+  @Keep
   public abstract static class Builder<C extends BaseCommand, B extends Builder<C, B>> {
 
     private final Reporter reporter;
@@ -302,6 +304,20 @@ public abstract class BaseCommand {
     public B setPrintVersion(boolean printVersion) {
       this.printVersion = printVersion;
       return self();
+    }
+
+    /** Signal an error. */
+    public void error(Diagnostic diagnostic) {
+      reporter.error(diagnostic);
+    }
+
+    /**
+     * Signal an error and throw {@link AbortException}.
+     *
+     * @throws AbortException always.
+     */
+    public RuntimeException fatalError(Diagnostic diagnostic) {
+      return reporter.fatalError(diagnostic);
     }
 
     // Internal helper for compat tools to make them ignore DEX code in input archives.

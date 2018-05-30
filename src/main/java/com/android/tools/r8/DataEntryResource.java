@@ -15,6 +15,7 @@ import java.nio.file.Paths;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
+@Keep
 public interface DataEntryResource extends DataResource {
 
   /** Get the bytes of the data entry resource. */
