@@ -28,8 +28,8 @@ public class InstancePut extends FieldInstruction {
 
   public InstancePut(MemberType type, DexField field, Value object, Value value) {
     super(type, field, null, Arrays.asList(object, value));
-    assert object().type.isObjectOrNull();
-    assert value().type.compatible(ValueType.fromDexType(field.type));
+    assert object().type.isObject();
+    assert value().type.verifyCompatible(ValueType.fromDexType(field.type));
   }
 
   public Value object() {

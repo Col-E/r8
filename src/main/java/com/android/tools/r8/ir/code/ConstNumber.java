@@ -281,7 +281,7 @@ public class ConstNumber extends ConstInstruction {
     if (outType().isSingle() || outType().isWide()) {
       return PrimitiveTypeLatticeElement.getInstance();
     }
-    assert outType().isObjectOrNull();
+    assert outType().isObject();
     return Top.getInstance();
   }
 }

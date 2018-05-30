@@ -319,7 +319,6 @@ public class JarSourceCode implements SourceCode {
       }
       int localRegister = state.getLocalRegister(local.index, localType);
       ValueType existingLocalType = initializedLocals.get(localRegister);
-      assert existingLocalType == null || existingLocalType.compatible(localValueType);
       if (existingLocalType == null) {
         // For uninitialized entries write the local to ensure it exists in the local state.
         int writeRegister = state.writeLocal(local.index, localType);

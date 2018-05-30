@@ -54,10 +54,10 @@ public class Return extends JumpInstruction {
       int register = builder.allocatedRegister(returnValue(), getNumber());
       switch (MoveType.fromValueType(returnType)) {
         case OBJECT:
-          assert returnValue().outType().isObjectOrNull();
+          assert returnValue().outType().isObject();
           return new ReturnObject(register);
         case SINGLE:
-          assert returnValue().outType().isSingleOrZero();
+          assert returnValue().outType().isSingle();
           return new com.android.tools.r8.code.Return(register);
         case WIDE:
           assert returnValue().outType().isWide();

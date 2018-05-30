@@ -32,7 +32,7 @@ public class CfArrayLength extends CfInstruction {
   @Override
   public void buildIR(IRBuilder builder, CfState state, CfSourceCode code) {
     Slot array = state.pop();
-    assert array.type.isObjectOrNull();
+    assert array.type.isObject();
     builder.addArrayLength(state.push(builder.getFactory().intType).register, array.register);
   }
 }

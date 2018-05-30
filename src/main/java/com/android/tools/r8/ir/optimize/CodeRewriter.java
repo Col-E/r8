@@ -1034,8 +1034,7 @@ public class CodeRewriter {
                 if (argumentIndex != -1 && checkArgumentType(invoke, target.method,
                     argumentIndex)) {
                   Value argument = invoke.arguments().get(argumentIndex);
-                  assert invoke.outType().compatible(argument.outType())
-                      || (options.isGeneratingDex() && verifyCompatibleFromDex(invoke, argument));
+                  assert invoke.outType() == argument.outType();
                   invoke.outValue().replaceUsers(argument);
                   invoke.setOutValue(null);
                 }
@@ -1046,15 +1045,6 @@ public class CodeRewriter {
       }
     }
     assert code.isConsistentGraph();
-  }
-
-  private static boolean verifyCompatibleFromDex(Invoke invoke, Value argument) {
-    ValueType invokeType = invoke.outType();
-    ValueType argumentType = argument.outType();
-    assert argument.isZero();
-    assert (invokeType.isObject() && argumentType.isObjectOrNull())
-        || (invokeType.isSingle() && argumentType.isSingleOrZero());
-    return true;
   }
 
   /**

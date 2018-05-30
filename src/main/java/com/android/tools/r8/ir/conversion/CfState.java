@@ -127,7 +127,7 @@ public class CfState {
     for (int i = 0; i < current.stack.length; i++) {
       ValueType currentType = current.stack[i].getImprecise();
       ValueType updateType = update.stack[i].getImprecise();
-      if (!currentType.compatible(updateType)) {
+      if (currentType != updateType) {
         throw new CompilationError(
             "Incompatible types in stack position "
                 + i

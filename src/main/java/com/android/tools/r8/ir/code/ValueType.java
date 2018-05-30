@@ -35,14 +35,6 @@ public enum ValueType {
     return !isWide();
   }
 
-  public boolean isObjectOrNull() {
-    return isObject() || this == INT_OR_FLOAT_OR_NULL;
-  }
-
-  public boolean isSingleOrZero() {
-    return isSingle() || this == INT_OR_FLOAT_OR_NULL;
-  }
-
   public boolean isPreciseType() {
     return this != ValueType.INT_OR_FLOAT
         && this != ValueType.LONG_OR_DOUBLE
@@ -107,8 +99,10 @@ public enum ValueType {
     throw new CompilationError("Cannot compute meet of types: " + this + " and " + other);
   }
 
-  public boolean compatible(ValueType other) {
-    return isWide() == other.isWide();
+  public boolean verifyCompatible(ValueType other) {
+    // Computing meet will throw on incompatible types.
+    assert meet(other) != null;
+    return true;
   }
 
   public int requiredRegisters() {

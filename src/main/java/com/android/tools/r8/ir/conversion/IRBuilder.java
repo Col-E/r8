@@ -1368,7 +1368,7 @@ public class IRBuilder {
 
   public void addReturn(ValueType type, int value) {
     ValueType returnType = ValueType.fromDexType(method.method.proto.returnType);
-    assert returnType.compatible(type);
+    assert returnType.verifyCompatible(type);
     Value in = readRegister(value, returnType);
     addReturn(new Return(in, returnType));
   }

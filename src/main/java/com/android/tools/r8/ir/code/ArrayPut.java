@@ -35,8 +35,8 @@ public class ArrayPut extends Instruction {
   public ArrayPut(MemberType type, Value array, Value index, Value value) {
     super(null, Arrays.asList(array, index, value));
     assert type != null;
-    assert array.type.isObjectOrNull();
-    assert index.type.isSingleOrZero();
+    assert array.type.isObject();
+    assert index.type.isSingle();
     this.type = type;
   }
 

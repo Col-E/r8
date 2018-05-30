@@ -71,7 +71,7 @@ public class CfArrayLoad extends CfInstruction {
     Slot index = state.pop();
     Slot array = state.pop();
     Slot value;
-    assert array.type.isObjectOrNull();
+    assert array.type.isObject();
     ValueType memberType = ValueType.fromMemberType(type);
     if (array.preciseType != null) {
       value = state.push(array.preciseType.toArrayElementType(builder.getFactory()));
