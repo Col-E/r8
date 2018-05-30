@@ -37,6 +37,6 @@ public class Move extends Format12x {
 
   @Override
   public void buildIR(IRBuilder builder) {
-    builder.addMove(ValueType.INT_OR_FLOAT_OR_NULL, A, B);
+    builder.addMove(ValueType.INT_OR_FLOAT, A, B);
   }
 }

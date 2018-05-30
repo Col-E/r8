@@ -65,6 +65,7 @@ public class Phi extends Value {
       EdgeType edgeType = pred.getEdgeType(block);
       // Since this read has been delayed we must provide the local info for the value.
       Value operand = builder.readRegister(register, type, pred, edgeType, getLocalInfo());
+      operand.constrainType(type);
       canBeNull |= operand.canBeNull();
       appendOperand(operand);
     }

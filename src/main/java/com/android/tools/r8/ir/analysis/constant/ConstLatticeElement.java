@@ -26,10 +26,6 @@ public class ConstLatticeElement extends LatticeElement {
     return Bottom.getInstance();
   }
 
-  public int getBranchCondition() {
-    return value.getIntValue();
-  }
-
   @Override
   public boolean isConst() {
     return true;

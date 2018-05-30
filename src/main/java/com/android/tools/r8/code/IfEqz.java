@@ -4,6 +4,7 @@
 package com.android.tools.r8.code;
 
 import com.android.tools.r8.ir.code.If.Type;
+import com.android.tools.r8.ir.code.ValueType;
 
 public class IfEqz extends Format21t {
 
@@ -37,5 +38,10 @@ public class IfEqz extends Format21t {
   @Override
   public Type getType() {
     return Type.EQ;
+  }
+
+  @Override
+  protected ValueType getOperandType() {
+    return ValueType.INT_OR_FLOAT_OR_NULL;
   }
 }

@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexType;
@@ -46,6 +47,64 @@ public enum ValueType {
     return this != ValueType.INT_OR_FLOAT
         && this != ValueType.LONG_OR_DOUBLE
         && this != ValueType.INT_OR_FLOAT_OR_NULL;
+  }
+
+  public ValueType meet(ValueType other) {
+    if (this == other) {
+      return this;
+    }
+    if (other == INT_OR_FLOAT_OR_NULL) {
+      return other.meet(this);
+    }
+    switch (this) {
+      case OBJECT:
+        {
+          if (other.isObject()) {
+            return this;
+          }
+          break;
+        }
+      case INT:
+      case FLOAT:
+        {
+          if (other.isSingle()) {
+            return this;
+          }
+          break;
+        }
+      case LONG:
+      case DOUBLE:
+        {
+          if (other.isWide()) {
+            return this;
+          }
+          break;
+        }
+      case INT_OR_FLOAT_OR_NULL:
+        {
+          if (other.isObjectOrSingle()) {
+            return other;
+          }
+          break;
+        }
+      case INT_OR_FLOAT:
+        {
+          if (other.isSingle()) {
+            return other;
+          }
+          break;
+        }
+      case LONG_OR_DOUBLE:
+        {
+          if (other.isWide()) {
+            return other;
+          }
+          break;
+        }
+      default:
+        throw new Unreachable("Unexpected value-type in meet: " + this);
+    }
+    throw new CompilationError("Cannot compute meet of types: " + this + " and " + other);
   }
 
   public boolean compatible(ValueType other) {

@@ -863,8 +863,24 @@ public abstract class R8RunArtTestsTest {
           .put("121-modifiers", TestCondition.match(TestCondition.tools(DexTool.NONE)))
           // This test uses register r1 in method that is declared to only use 1 register (r0).
           .put("142-classloader2", TestCondition.match(TestCondition.R8DEX_COMPILER))
+          // Test with invalid register usage: invoke-static {v2,v2,v2} f(LIF)V
+          .put("457-regs", TestCondition.match(TestCondition.R8DEX_COMPILER))
           // This test uses an uninitialized register.
           .put("471-uninitialized-locals", TestCondition.match(TestCondition.R8DEX_COMPILER))
+          // Test which mixes int and float registers.
+          .put("459-dead-phi", TestCondition.match(TestCondition.R8DEX_COMPILER))
+          // Test for verification error: contains an aput-object with an single-valued input.
+          .put("506-verify-aput", TestCondition.match(TestCondition.R8DEX_COMPILER))
+          // Test with invalid register usage: returns a register of either long or double.
+          .put("510-checker-try-catch", TestCondition.match(TestCondition.R8DEX_COMPILER))
+          // Test with invalid register usage: contains an int-to-byte on the result of aget-object.
+          .put("518-null-array-get", TestCondition.match(TestCondition.R8DEX_COMPILER))
+          // Test with invalid register usage: phi of int and float.
+          .put("535-regression-const-val", TestCondition.match(TestCondition.R8DEX_COMPILER))
+          // Test with invalid register usage: phi of int and float.
+          .put("552-checker-primitive-typeprop", TestCondition.match(TestCondition.R8DEX_COMPILER))
+          // Test with invalid register usage: invoke-static {v0,v0}, foo(IL)V
+          .put("557-checker-ref-equivalent", TestCondition.match(TestCondition.R8DEX_COMPILER))
           // This test is starting from invalid dex code. It splits up a double value and uses
           // the first register of a double with the second register of another double.
           .put("800-smali", TestCondition.match(TestCondition.R8DEX_COMPILER))

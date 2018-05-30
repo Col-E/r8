@@ -313,6 +313,9 @@ public class IRBuilder {
 
   private int nextBlockNumber = 0;
 
+  // Flag indicating if the instructions define values with imprecise types.
+  private boolean hasImpreciseInstructionOutValueTypes = false;
+
   public IRBuilder(DexEncodedMethod method, AppInfo appInfo,
       SourceCode source, InternalOptions options) {
     this(method, appInfo, source, options, new ValueNumberGenerator());
@@ -435,18 +438,38 @@ public class IRBuilder {
     // necessary.
     ir.splitCriticalEdges();
 
-    // Clear the code so we don't build multiple times.
-    source.clear();
-    source = null;
-
     for (BasicBlock block : blocks) {
       block.deduplicatePhis();
     }
 
     ir.removeAllTrivialPhis();
 
+    if (hasImpreciseTypes()) {
+      TypeConstraintResolver resolver = new TypeConstraintResolver();
+      resolver.resolve(ir);
+    }
+
+    // Clear the code so we don't build multiple times.
+    source.clear();
+    source = null;
+
     assert ir.isConsistentSSA();
     return ir;
+  }
+
+  private boolean hasImpreciseTypes() {
+    if (hasImpreciseInstructionOutValueTypes) {
+      return true;
+    }
+    // TODO(zerny): Consider keeping track of the imprecise phi types during phi construction.
+    for (BasicBlock block : blocks) {
+      for (Phi phi : block.getPhis()) {
+        if (!phi.outType().isPreciseType()) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   private boolean insertDebugPositions() {
@@ -1344,8 +1367,10 @@ public class IRBuilder {
   }
 
   public void addReturn(ValueType type, int value) {
-    Value in = readRegister(value, type);
-    addReturn(new Return(in, type));
+    ValueType returnType = ValueType.fromDexType(method.method.proto.returnType);
+    assert returnType.compatible(type);
+    Value in = readRegister(value, returnType);
+    addReturn(new Return(in, returnType));
   }
 
   public void addReturn() {
@@ -1630,6 +1655,7 @@ public class IRBuilder {
     assert !value.hasLocalInfo()
         || value.getDebugLocalEnds() != null
         || source.verifyLocalInScope(value.getLocalInfo());
+    value.constrainType(type);
     return value;
   }
 
@@ -1806,6 +1832,7 @@ public class IRBuilder {
   }
 
   private void addInstruction(Instruction ir, Position position) {
+    hasImpreciseInstructionOutValueTypes |= ir.outValue() != null && !ir.outType().isPreciseType();
     ir.setPosition(position);
     attachLocalValues(ir);
     currentBlock.add(ir);

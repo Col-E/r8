@@ -183,9 +183,9 @@ public class NonNullTracker {
         // ...
         If theIf = block.exit().asIf();
         Value knownToBeNonNullValue = theIf.inValues().get(0);
-        // Avoid adding redundant non-null instruction.
-        if (!knownToBeNonNullValue.isNeverNull()) {
-          BasicBlock target = theIf.targetFromCondition(1L);
+        // Avoid adding redundant non-null instruction (or non-null of non-object types).
+        if (knownToBeNonNullValue.outType().isObject() && !knownToBeNonNullValue.isNeverNull()) {
+          BasicBlock target = theIf.targetFromNonNullObject();
           // Ignore uncommon empty blocks.
           if (!target.isEmpty()) {
             DominatorTree dominatorTree = new DominatorTree(code);

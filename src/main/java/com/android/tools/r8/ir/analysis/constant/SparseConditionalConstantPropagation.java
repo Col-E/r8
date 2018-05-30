@@ -179,7 +179,7 @@ public class SparseConditionalConstantPropagation {
       if (theIf.isZeroTest()) {
         LatticeElement element = getLatticeElement(theIf.inValues().get(0));
         if (element.isConst()) {
-          BasicBlock target = theIf.targetFromCondition(element.asConst().getBranchCondition());
+          BasicBlock target = theIf.targetFromCondition(element.asConst().getConstNumber());
           if (!isExecutableEdge(jumpInstBlockNumber, target.getNumber())) {
             setExecutableEdge(jumpInstBlockNumber, target.getNumber());
             flowEdges.add(target);
@@ -190,9 +190,9 @@ public class SparseConditionalConstantPropagation {
         LatticeElement leftElement = getLatticeElement(theIf.inValues().get(0));
         LatticeElement rightElement = getLatticeElement(theIf.inValues().get(1));
         if (leftElement.isConst() && rightElement.isConst()) {
-          long leftValue = leftElement.asConst().getConstNumber().getIntValue();
-          long rightValue = rightElement.asConst().getConstNumber().getIntValue();
-          BasicBlock target = theIf.targetFromCondition(leftValue - rightValue);
+          ConstNumber leftNumber = leftElement.asConst().getConstNumber();
+          ConstNumber rightNumber = rightElement.asConst().getConstNumber();
+          BasicBlock target = theIf.targetFromCondition(leftNumber, rightNumber);
           if (!isExecutableEdge(jumpInstBlockNumber, target.getNumber())) {
             setExecutableEdge(jumpInstBlockNumber, target.getNumber());
             flowEdges.add(target);

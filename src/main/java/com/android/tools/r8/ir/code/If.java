@@ -171,7 +171,29 @@ public class If extends JumpInstruction {
     return 0;
   }
 
-  public BasicBlock targetFromCondition(long cond) {
+  public BasicBlock targetFromCondition(ConstNumber value) {
+    assert isZeroTest();
+    assert value.outType() == ValueType.INT
+        || (value.outType().isObjectOrSingle() && (type == Type.EQ || type == Type.NE));
+    return targetFromCondition(Long.signum(value.getRawValue()));
+  }
+
+  public BasicBlock targetFromCondition(ConstNumber left, ConstNumber right) {
+    assert !isZeroTest();
+    assert left.outType() == right.outType();
+    assert left.outType() == ValueType.INT
+        || (left.outType().isObjectOrSingle() && (type == Type.EQ || type == Type.NE));
+    return targetFromCondition(Long.signum(left.getRawValue() - right.getRawValue()));
+  }
+
+  public BasicBlock targetFromNonNullObject() {
+    assert isZeroTest();
+    assert inValues.get(0).outType().isObject();
+    return targetFromCondition(1);
+  }
+
+  public BasicBlock targetFromCondition(int cond) {
+    assert Integer.signum(cond) == cond;
     switch (type) {
       case EQ:
         return cond == 0 ? getTrueTarget() : fallthroughBlock();

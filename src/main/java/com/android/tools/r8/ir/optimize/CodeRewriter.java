@@ -2161,12 +2161,14 @@ public class CodeRewriter {
             && (theIf.isZeroTest() || inValues.get(1).isConstNumber())) {
           // Zero test with a constant of comparison between between two constants.
           if (theIf.isZeroTest()) {
-            int cond = inValues.get(0).getConstInstruction().asConstNumber().getIntValue();
-            simplifyIfWithKnownCondition(code, block, theIf, cond);
+            ConstNumber cond = inValues.get(0).getConstInstruction().asConstNumber();
+            BasicBlock target = theIf.targetFromCondition(cond);
+            simplifyIfWithKnownCondition(code, block, theIf, target);
           } else {
-            long left = (long) inValues.get(0).getConstInstruction().asConstNumber().getIntValue();
-            long right = (long) inValues.get(1).getConstInstruction().asConstNumber().getIntValue();
-            simplifyIfWithKnownCondition(code, block, theIf, Long.signum(left - right));
+            ConstNumber left = inValues.get(0).getConstInstruction().asConstNumber();
+            ConstNumber right = inValues.get(1).getConstInstruction().asConstNumber();
+            BasicBlock target = theIf.targetFromCondition(left, right);
+            simplifyIfWithKnownCondition(code, block, theIf, target);
           }
         } else if (inValues.get(0).hasValueRange()
             && (theIf.isZeroTest() || inValues.get(1).hasValueRange())) {
@@ -2193,7 +2195,6 @@ public class CodeRewriter {
             // TODO(b/72693244): annotate type lattice to value
             TypeLatticeElement l = typeEnvironment.getLatticeElement(inValues.get(0));
             if (!l.isPrimitive() && !l.isNullable()) {
-              // Any non-zero value should work.
               simplifyIfWithKnownCondition(code, block, theIf, 1);
             }
           }
@@ -2204,11 +2205,15 @@ public class CodeRewriter {
     assert code.isConsistentSSA();
   }
 
-  private void simplifyIfWithKnownCondition(IRCode code, BasicBlock block, If theIf, int cond) {
-    BasicBlock target = theIf.targetFromCondition(cond);
+  private void simplifyIfWithKnownCondition(
+      IRCode code, BasicBlock block, If theIf, BasicBlock target) {
     BasicBlock deadTarget =
         target == theIf.getTrueTarget() ? theIf.fallthroughBlock() : theIf.getTrueTarget();
     rewriteIfToGoto(code, block, theIf, target, deadTarget);
+  }
+
+  private void simplifyIfWithKnownCondition(IRCode code, BasicBlock block, If theIf, int cond) {
+    simplifyIfWithKnownCondition(code, block, theIf, theIf.targetFromCondition(cond));
   }
 
   // Find all method invocations that never returns normally, split the block
@@ -2434,15 +2439,13 @@ public class CodeRewriter {
     Value rightValue = inValues.get(1);
     if (leftValue.isConstNumber() || rightValue.isConstNumber()) {
       if (leftValue.isConstNumber()) {
-        int left = leftValue.getConstInstruction().asConstNumber().getIntValue();
-        if (left == 0) {
+        if (leftValue.getConstInstruction().asConstNumber().isZero()) {
           If ifz = new If(theIf.getType().forSwappedOperands(), rightValue);
           block.replaceLastInstruction(ifz);
           assert block.exit() == ifz;
         }
       } else {
-        int right = rightValue.getConstInstruction().asConstNumber().getIntValue();
-        if (right == 0) {
+        if (rightValue.getConstInstruction().asConstNumber().isZero()) {
           If ifz = new If(theIf.getType(), leftValue);
           block.replaceLastInstruction(ifz);
           assert block.exit() == ifz;
