@@ -40,7 +40,7 @@ def build_r8lib():
 
 def test_d8sample():
   with utils.TempDir() as path:
-    args = ['java', '-cp', '%s:%s' % (R8LIB_JAR, SAMPLE_JAR),
+    args = ['java', '-cp', '%s:%s' % (SAMPLE_JAR, R8LIB_JAR),
             'com.android.tools.apiusagesample.D8ApiUsageSample',
             '--output', path,
             '--min-api', str(API_LEVEL),
@@ -52,12 +52,47 @@ def test_d8sample():
     subprocess.check_call(args)
 
 
+def test_r8command():
+  with utils.TempDir() as path:
+    # SAMPLE_JAR and R8LIB_JAR should not have any classes in common, since e.g.
+    # R8CommandParser should have been minified in R8LIB_JAR.
+    # Just in case R8CommandParser is also present in R8LIB_JAR, we put
+    # SAMPLE_JAR first on the classpath to use its version of R8CommandParser.
+    args = ['java', '-cp', '%s:%s' % (SAMPLE_JAR, R8LIB_JAR),
+            'com.android.tools.r8.R8CommandParser',
+            '--output', path + "/output.zip",
+            '--min-api', str(API_LEVEL),
+            '--lib', ANDROID_JAR,
+            '--main-dex-list', '/dev/null',
+            os.path.join(utils.BUILD, 'test/examples/hello.jar')]
+    utils.PrintCmd(args)
+    subprocess.check_call(args)
+
+
+def test_r8cfcommand():
+  with utils.TempDir() as path:
+    # SAMPLE_JAR and R8LIB_JAR should not have any classes in common, since e.g.
+    # R8CommandParser should have been minified in R8LIB_JAR.
+    # Just in case R8CommandParser is also present in R8LIB_JAR, we put
+    # SAMPLE_JAR first on the classpath to use its version of R8CommandParser.
+    args = ['java', '-cp', '%s:%s' % (SAMPLE_JAR, R8LIB_JAR),
+            'com.android.tools.r8.R8CommandParser',
+            '--classfile',
+            '--output', path + "/output.jar",
+            '--lib', utils.RT_JAR,
+            os.path.join(utils.BUILD, 'test/examples/hello.jar')]
+    utils.PrintCmd(args)
+    subprocess.check_call(args)
+
+
 def main():
   # Handle --help
   parser.parse_args()
 
   build_r8lib()
   test_d8sample()
+  test_r8command()
+  test_r8cfcommand()
 
 
 if __name__ == '__main__':
