@@ -604,7 +604,7 @@ public class ProguardConfiguration {
       builder.append('\n');
     }
     for (ProguardConfigurationRule rule : rules) {
-      rule.append(builder);
+      rule.append(builder, true);
       builder.append('\n');
     }
     return builder.toString();

@@ -66,17 +66,12 @@ public abstract class ProguardConfigurationRule extends ProguardClassSpecificati
   }
 
   @Override
-  protected StringBuilder append(StringBuilder builder) {
+  protected StringBuilder append(StringBuilder builder, boolean includeMemberRules) {
     builder.append("-");
     builder.append(typeString());
     StringUtils.appendNonEmpty(builder, ",", modifierString(), null);
     builder.append(' ');
-    super.append(builder);
+    super.append(builder, includeMemberRules);
     return builder;
-  }
-
-  @Override
-  public String toString() {
-    return append(new StringBuilder()).toString();
   }
 }
