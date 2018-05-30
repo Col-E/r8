@@ -8,8 +8,8 @@ import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.DexSplitterHelper;
-import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.DiagnosticsHandler;
+import com.android.tools.r8.Keep;
 import com.android.tools.r8.utils.AbortException;
 import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.ExceptionUtils;
@@ -24,43 +24,13 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
-public class DexSplitter {
+@Keep
+public final class DexSplitter {
 
   private static final String DEFAULT_OUTPUT_DIR = "output";
   private static final String DEFAULT_BASE_NAME = "base";
 
   private static final boolean PRINT_ARGS = false;
-
-  public static class Reporter implements DiagnosticsHandler {
-
-    private final DiagnosticsHandler handler = new DefaultDiagnosticsHandler();
-    private boolean reportedErrors = false;
-
-    public RuntimeException fatal(Diagnostic error) {
-      error(error);
-      throw new AbortException();
-    }
-
-    public boolean hasReportedErrors() {
-      return reportedErrors;
-    }
-
-    @Override
-    public void error(Diagnostic error) {
-      handler.error(error);
-      reportedErrors = true;
-    }
-
-    @Override
-    public void warning(Diagnostic warning) {
-      handler.warning(warning);
-    }
-
-    @Override
-    public void info(Diagnostic info) {
-      handler.info(info);
-    }
-  }
 
   public static class FeatureJar {
     private String jar;
@@ -94,8 +64,9 @@ public class DexSplitter {
 
   }
 
-  public static class Options {
-    private final Reporter reporter = new Reporter();
+  @Keep
+  public static final class Options {
+    private final DiagnosticsHandler diagnosticsHandler = new DefaultDiagnosticsHandler();
     private List<String> inputArchives = new ArrayList<>();
     private List<FeatureJar> featureJars = new ArrayList<>();
     private String baseOutputName = DEFAULT_BASE_NAME;
@@ -103,8 +74,8 @@ public class DexSplitter {
     private String featureSplitMapping;
     private String proguardMap;
 
-    public Reporter getReporter() {
-      return reporter;
+    public DiagnosticsHandler getDiagnosticsHandler() {
+      return diagnosticsHandler;
     }
 
     public String getOutput() {
@@ -143,7 +114,7 @@ public class DexSplitter {
       inputArchives.add(inputArchive);
     }
 
-    protected void addFeatureJar(FeatureJar featureJar) {
+    private void addFeatureJar(FeatureJar featureJar) {
       featureJars.add(featureJar);
     }
 
@@ -159,13 +130,13 @@ public class DexSplitter {
       return ImmutableList.copyOf(inputArchives);
     }
 
-    public ImmutableList<FeatureJar> getFeatureJars() {
+    ImmutableList<FeatureJar> getFeatureJars() {
       return ImmutableList.copyOf(featureJars);
     }
 
     // Shorthand error messages.
     public void error(String msg) {
-      reporter.error(new StringDiagnostic(msg));
+      diagnosticsHandler.error(new StringDiagnostic(msg));
     }
   }
 
@@ -231,11 +202,11 @@ public class DexSplitter {
       throws FeatureMappingException {
     if (options.getFeatureSplitMapping() != null) {
       return FeatureClassMapping.fromSpecification(
-          Paths.get(options.getFeatureSplitMapping()), options.getReporter());
+          Paths.get(options.getFeatureSplitMapping()), options.getDiagnosticsHandler());
     }
     assert !options.getFeatureJars().isEmpty();
-    return FeatureClassMapping.fromJarFiles(
-        options.getFeatureJars(), options.getBaseOutputName(), options.getReporter());
+    return FeatureClassMapping.Internal.fromJarFiles(
+        options.getFeatureJars(), options.getBaseOutputName(), options.getDiagnosticsHandler());
   }
 
   private static void run(String[] args)
@@ -246,16 +217,20 @@ public class DexSplitter {
 
   public static void run(Options options)
       throws FeatureMappingException, CompilationFailedException {
+    boolean errors = false;
     if (options.getInputArchives().isEmpty()) {
+      errors = true;
       options.error("Need at least one --input");
     }
     if (options.getFeatureSplitMapping() == null && options.getFeatureJars().isEmpty()) {
+      errors = true;
       options.error("You must supply a feature split mapping or feature jars");
     }
     if (options.getFeatureSplitMapping() != null && !options.getFeatureJars().isEmpty()) {
+      errors = true;
       options.error("You can't supply both a feature split mapping and feature jars");
     }
-    if (options.getReporter().hasReportedErrors()) {
+    if (errors) {
       throw new AbortException();
     }
 
