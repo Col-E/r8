@@ -87,6 +87,7 @@ public class ToolHelper {
   public static final String DEFAULT_PROGUARD_MAP_FILE = "proguard.map";
 
   public static final String JAVA_8_RUNTIME = "third_party/openjdk/openjdk-rt-1.8/rt.jar";
+  public static final String KT_RUNTIME = "third_party/kotlin/kotlinc/lib/kotlin-runtime.jar";
   private static final String ANDROID_JAR_PATTERN = "third_party/android_jar/lib-v%d/android.jar";
   private static final AndroidApiLevel DEFAULT_MIN_SDK = AndroidApiLevel.I;
 
@@ -540,9 +541,16 @@ public class ToolHelper {
     String jar = String.format(
         ANDROID_JAR_PATTERN,
         (apiLevel == AndroidApiLevel.getDefault() ? DEFAULT_MIN_SDK : apiLevel).getLevel());
-    assert Files.exists(Paths.get(jar))
+    Path path = Paths.get(jar);
+    assert Files.exists(path)
         : "Expected android jar to exist for API level " + apiLevel;
-    return Paths.get(jar);
+    return path;
+  }
+
+  public static Path getKotlinRuntimeJar() {
+    Path path = Paths.get(KT_RUNTIME);
+    assert Files.exists(path) : "Expected kotlin runtime jar";
+    return path;
   }
 
   public static Path getJdwpTestsCfJarPath(AndroidApiLevel minSdk) {

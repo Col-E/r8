@@ -224,6 +224,34 @@ public class DexType extends IndexedDexItem implements PresortedComparable<DexTy
     }
   }
 
+  /**
+   * Collect all interfaces that this type directly or indirectly implements.
+   * @param appInfo where the definition of a certain {@link DexType} is looked up.
+   * @return a set of interfaces of {@link DexType}.
+   */
+  public Set<DexType> implementedInterfaces(AppInfo appInfo) {
+    Set<DexType> interfaces = Sets.newIdentityHashSet();
+    implementedInterfaces(appInfo, interfaces);
+    return interfaces;
+  }
+
+  private void implementedInterfaces(AppInfo appInfo, Set<DexType> interfaces) {
+    DexClass dexClass = appInfo.definitionFor(this);
+    // Loop to traverse the super type hierarchy of the current type.
+    while (dexClass != null) {
+      if (dexClass.isInterface()) {
+        interfaces.add(dexClass.type);
+      }
+      for (DexType itf : dexClass.interfaces.values) {
+        itf.implementedInterfaces(appInfo, interfaces);
+      }
+      if (dexClass.superType == null) {
+        break;
+      }
+      dexClass = appInfo.definitionFor(dexClass.superType);
+    }
+  }
+
   public boolean isSamePackage(DexType other) {
     return getPackageDescriptor().equals(other.getPackageDescriptor());
   }

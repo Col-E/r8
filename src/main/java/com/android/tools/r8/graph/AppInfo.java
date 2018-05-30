@@ -481,13 +481,14 @@ public class AppInfo {
     return result;
   }
 
-  public boolean canTriggerStaticInitializer(DexType clazz) {
+  public boolean canTriggerStaticInitializer(DexType type) {
     Set<DexType> knownInterfaces = Sets.newIdentityHashSet();
 
     // Process superclass chain.
+    DexType clazz = type;
     while (clazz != null && clazz != dexItemFactory.objectType) {
       DexClass definition = definitionFor(clazz);
-      if (definition == null || definition.hasClassInitializer()) {
+      if (canTriggerStaticInitializer(definition)) {
         return true; // Assume it *may* trigger if we didn't find the definition.
       }
       knownInterfaces.addAll(Arrays.asList(definition.interfaces.values));
@@ -499,10 +500,10 @@ public class AppInfo {
     while (!queue.isEmpty()) {
       DexType iface = queue.remove();
       DexClass definition = definitionFor(iface);
-      if (definition == null || definition.hasClassInitializer()) {
+      if (canTriggerStaticInitializer(definition)) {
         return true; // Assume it *may* trigger if we didn't find the definition.
       }
-      if (!definition.accessFlags.isInterface()) {
+      if (!definition.isInterface()) {
         throw new Unreachable(iface.toSourceString() + " is expected to be an interface");
       }
 
@@ -513,6 +514,10 @@ public class AppInfo {
       }
     }
     return false;
+  }
+
+  private static boolean canTriggerStaticInitializer(DexClass clazz) {
+    return clazz == null || clazz.hasClassInitializer();
   }
 
   public interface ResolutionResult {
