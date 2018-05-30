@@ -16,6 +16,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 /** Interface for receiving String resource. */
+@KeepForSubclassing
 public interface StringConsumer {
 
   /**
