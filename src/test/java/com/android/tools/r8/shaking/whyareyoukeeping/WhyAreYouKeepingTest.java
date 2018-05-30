@@ -30,7 +30,7 @@ public class WhyAreYouKeepingTest extends TestBase {
     compileWithR8(ImmutableList.of(A.class), proguardConfig);
     String output = new String(baos.toByteArray(), Charset.defaultCharset());
     System.setOut(stdout);
-    String expected = String.join("\n", ImmutableList.of(
+    String expected = String.join(System.lineSeparator(), ImmutableList.of(
         "com.android.tools.r8.shaking.whyareyoukeeping.A",
         "|- is live because referenced in keep rule:",
         "|    -keep  class com.android.tools.r8.shaking.whyareyoukeeping.A {",
