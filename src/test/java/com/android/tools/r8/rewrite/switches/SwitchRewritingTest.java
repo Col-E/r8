@@ -152,7 +152,8 @@ public class SwitchRewritingTest extends SmaliTestBase {
       assertTrue(code.instructions[0] instanceof PackedSwitch);
     } else {
       if (key1 == 0) {
-        assertTrue(code.instructions[0] instanceof IfEqz);
+        // Const instruction may be before if.
+        assertTrue(code.instructions[0] instanceof IfEqz || code.instructions[1] instanceof IfEqz);
       } else {
         // Const instruction before if.
         assertTrue(code.instructions[1] instanceof IfEq);

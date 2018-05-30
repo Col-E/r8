@@ -24,6 +24,10 @@ import java.util.Set;
 
 public class Value {
 
+  public void constrainType(ValueType constraint) {
+    type = type.meet(constraint);
+  }
+
   // Lazily allocated internal data for the debug information of locals.
   // This is wrapped in a class to avoid multiple pointers in the value structure.
   private static class DebugData {
@@ -92,7 +96,7 @@ public class Value {
   public static final Value UNDEFINED = new Value(UNDEFINED_NUMBER, ValueType.OBJECT, null);
 
   protected final int number;
-  protected final ValueType type;
+  protected ValueType type;
   public Instruction definition = null;
   private LinkedList<Instruction> users = new LinkedList<>();
   private Set<Instruction> uniqueUsers = null;

@@ -54,6 +54,8 @@ public abstract class Format21t extends Base2Format {
 
   public abstract Type getType();
 
+  protected abstract ValueType getOperandType();
+
   @Override
   public int[] getTargets() {
     return new int[]{BBBB, getSize()};
@@ -63,7 +65,7 @@ public abstract class Format21t extends Base2Format {
   public void buildIR(IRBuilder builder) {
     int offset = getOffset();
     int size = getSize();
-    builder.addIfZero(getType(), ValueType.INT_OR_FLOAT_OR_NULL, AA, offset + BBBB, offset + size);
+    builder.addIfZero(getType(), getOperandType(), AA, offset + BBBB, offset + size);
   }
 
   @Override

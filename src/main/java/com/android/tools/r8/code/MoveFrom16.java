@@ -5,6 +5,7 @@ package com.android.tools.r8.code;
 
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
+
 public class MoveFrom16 extends Format22x {
 
   public static final int OPCODE = 0x2;
@@ -36,6 +37,6 @@ public class MoveFrom16 extends Format22x {
 
   @Override
   public void buildIR(IRBuilder builder) {
-    builder.addMove(ValueType.INT_OR_FLOAT_OR_NULL, AA, BBBB);
+    builder.addMove(ValueType.INT_OR_FLOAT, AA, BBBB);
   }
 }
