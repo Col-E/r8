@@ -10,6 +10,7 @@ import com.android.tools.r8.DexFilePerClassFileConsumer;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.ProgramConsumer;
 import com.android.tools.r8.StringConsumer;
+import com.android.tools.r8.Version;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.InvalidDebugInfoException;
@@ -97,7 +98,8 @@ public class InternalOptions {
   public boolean enableClassMerging = false;
   public boolean enableDevirtualization = true;
   public boolean enableNonNullTracking = true;
-  public boolean enableInlining = true;
+  public boolean enableInlining =
+      !Version.isDev() || System.getProperty("com.android.tools.r8.disableinlining") == null;
   public boolean enableClassInlining = true;
   public int inliningInstructionLimit = 5;
   public boolean enableSwitchMapRemoval = true;
