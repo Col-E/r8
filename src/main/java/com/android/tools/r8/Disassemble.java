@@ -161,6 +161,7 @@ public class Disassemble {
     InternalOptions getInternalOptions() {
       InternalOptions internal = new InternalOptions();
       internal.useSmaliSyntax = useSmali;
+      internal.enableCfFrontend = true;
       return internal;
     }
   }
