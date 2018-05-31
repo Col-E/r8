@@ -79,7 +79,7 @@ public class AssemblyWriter extends DexByteCodeWriter {
   void writeMethod(DexEncodedMethod method, PrintStream ps) {
     ClassNameMapper naming = application.getProguardMap();
     String methodName = naming != null
-        ? naming.originalSignatureOf(method.method).toString()
+        ? naming.originalSignatureOf(method.method).name
         : method.method.name.toString();
     ps.println("#");
     ps.println("# Method: '" + methodName + "':");

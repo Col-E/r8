@@ -59,6 +59,8 @@ import com.android.tools.r8.ir.code.Monitor;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueType;
+import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.DescriptorUtils;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap.Entry;
 import it.unimi.dsi.fastutil.ints.IntList;
@@ -80,15 +82,18 @@ public class CfPrinter {
   private final Map<CfLabel, String> labels;
 
   private final StringBuilder builder = new StringBuilder();
+  private final ClassNameMapper mapper;
 
   /** Entry for printing single instructions without global knowledge (eg, label numbers). */
   public CfPrinter() {
     indent = "";
     labels = null;
+    mapper = null;
   }
 
   /** Entry for printing a complete code object. */
-  public CfPrinter(CfCode code) {
+  public CfPrinter(CfCode code, ClassNameMapper mapper) {
+    this.mapper = mapper;
     indent = "  ";
     labels = new HashMap<>();
     int nextLabelNumber = 0;
@@ -284,12 +289,13 @@ public class CfPrinter {
   }
 
   public void print(CfFrame frame) {
-    StringBuilder builder = new StringBuilder("frame: [");
+    indent();
+    builder.append("; frame: [");
     {
       String separator = "";
       for (Entry<FrameType> entry : frame.getLocals().int2ReferenceEntrySet()) {
         builder.append(separator).append(entry.getIntKey()).append(':');
-        print(entry.getValue(), builder);
+        print(entry.getValue());
         separator = ", ";
       }
     }
@@ -298,17 +304,18 @@ public class CfPrinter {
       String separator = "";
       for (FrameType element : frame.getStack()) {
         builder.append(separator);
-        print(element, builder);
+        print(element);
         separator = ", ";
       }
     }
     builder.append(']');
-    comment(builder.toString());
   }
 
-  private void print(FrameType type, StringBuilder builder) {
+  private void print(FrameType type) {
     if (type.isUninitializedNew()) {
       builder.append("uninitialized ").append(getLabel(type.getUninitializedLabel()));
+    } else if (type.isInitialized()) {
+      appendType(type.getInitializedType());
     } else {
       builder.append(type.toString());
     }
@@ -566,19 +573,50 @@ public class CfPrinter {
   }
 
   private void appendDescriptor(DexType type) {
+    if (mapper != null) {
+      builder.append(DescriptorUtils.javaTypeToDescriptor(mapper.originalNameOf(type)));
+      return;
+    }
     builder.append(type.toDescriptorString());
   }
 
+  private void appendType(DexType type) {
+    if (type.isArrayType() || type.isClassType()) {
+      appendClass(type);
+    } else {
+      builder.append(type);
+    }
+  }
+
   private void appendClass(DexType type) {
-    builder.append(type.getInternalName());
+    assert type.isArrayType() || type.isClassType();
+    if (mapper == null) {
+      builder.append(type.getInternalName());
+    } else if (type == DexItemFactory.nullValueType) {
+      builder.append("NULL");
+    } else {
+      builder.append(
+          DescriptorUtils.descriptorToInternalName(
+              DescriptorUtils.javaTypeToDescriptor(mapper.originalNameOf(type))));
+    }
   }
 
   private void appendField(DexField field) {
+    if (mapper != null) {
+      builder.append(mapper.originalSignatureOf(field).toString());
+      return;
+    }
     appendClass(field.getHolder());
     builder.append('/').append(field.name);
   }
 
   private void appendMethod(DexMethod method) {
+    if (mapper != null) {
+      MethodSignature signature = (MethodSignature) mapper.originalSignatureOf(method);
+      builder.append(mapper.originalNameOf(method.holder)).append('.');
+      builder.append(signature.name).append(signature.toDescriptor());
+      return;
+    }
     builder.append(method.qualifiedName());
     builder.append(method.proto.toDescriptorString());
   }

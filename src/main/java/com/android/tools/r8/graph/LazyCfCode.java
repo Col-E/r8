@@ -203,7 +203,7 @@ public class LazyCfCode extends Code {
 
   @Override
   public String toString(DexEncodedMethod method, ClassNameMapper naming) {
-    return null;
+    return asCfCode().toString(method, naming);
   }
 
   private static class ClassCodeVisitor extends ClassVisitor {

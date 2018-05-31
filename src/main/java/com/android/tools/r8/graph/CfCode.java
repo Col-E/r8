@@ -251,11 +251,11 @@ public class CfCode extends Code {
 
   @Override
   public String toString() {
-    return new CfPrinter(this).toString();
+    return new CfPrinter(this, null).toString();
   }
 
   @Override
   public String toString(DexEncodedMethod method, ClassNameMapper naming) {
-    return null;
+    return new CfPrinter(this, naming).toString();
   }
 }
