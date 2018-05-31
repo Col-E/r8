@@ -26,6 +26,7 @@ import com.android.tools.r8.utils.DexInspector.MethodSubject;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.PreloadedClassFileProvider;
+import com.android.tools.r8.utils.TestDescriptionWatcher;
 import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -58,6 +59,9 @@ public class TestBase {
 
   @Rule
   public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
+
+  @Rule
+  public TestDescriptionWatcher watcher = new TestDescriptionWatcher();
 
   /**
    * Check if tests should also run Proguard when applicable.

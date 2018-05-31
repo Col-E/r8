@@ -15,6 +15,7 @@ import org.hamcrest.core.CombinableMatcher;
 import org.hamcrest.core.IsInstanceOf;
 import org.hamcrest.core.StringContains;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.internal.matchers.ThrowableMessageMatcher;
 
@@ -156,16 +157,20 @@ public class D8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<D8Command
     // TODO check compilation warnings are correctly reported
 
     // Missing interface B is causing the wrong code to be executed.
-    if (ToolHelper.artSupported()) {
-      thrown.expect(AssertionError.class);
-      execute(
-          "testMissingInterfaceDesugared2AndroidK",
-          "desugaringwithmissingclasstest2.Main",
-          new Path[] {
-              lib1.getInputJar(), lib2.getInputJar(), lib3.getInputJar(), test.getInputJar()
-          },
-          new Path[] {lib1Dex, lib2Dex, lib3Dex, testDex});
+    if (!ToolHelper.artSupported() && !ToolHelper.compareAgaintsGoldenFiles()) {
+      return;
     }
+    if (ToolHelper.artSupported() && !ToolHelper.compareAgaintsGoldenFiles()) {
+      thrown.expect(AssertionError.class);
+    }
+    execute(
+        "testMissingInterfaceDesugared2AndroidK",
+        "desugaringwithmissingclasstest2.Main",
+        new Path[] {
+            lib1.getInputJar(), lib2.getInputJar(), lib3.getInputJar(), test.getInputJar()
+        },
+        new Path[] {lib1Dex, lib2Dex, lib3Dex, testDex});
+
   }
 
   @Test
@@ -256,17 +261,20 @@ public class D8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<D8Command
     Path testDex = test.build();
     // TODO check compilation warnings are correctly reported
 
+    Assume.assumeTrue(ToolHelper.artSupported() || ToolHelper.compareAgaintsGoldenFiles());
+
     // Missing interface B is causing the wrong method to be executed.
-    if (ToolHelper.artSupported()) {
+    if (ToolHelper.artSupported() && !ToolHelper.compareAgaintsGoldenFiles()) {
       thrown.expect(AssertionError.class);
-      execute(
-          "testCallToMissingSuperInterfaceDesugaredAndroidK",
-          "desugaringwithmissingclasstest3.Main",
-          new Path[] {
-              lib1.getInputJar(), lib2.getInputJar(), lib3.getInputJar(), test.getInputJar()
-          },
-          new Path[] {lib1Dex, lib2Dex, lib3Dex, testDex});
     }
+    execute(
+        "testCallToMissingSuperInterfaceDesugaredAndroidK",
+        "desugaringwithmissingclasstest3.Main",
+        new Path[] {
+            lib1.getInputJar(), lib2.getInputJar(), lib3.getInputJar(), test.getInputJar()
+        },
+        new Path[] {lib1Dex, lib2Dex, lib3Dex, testDex});
+
   }
 
   @Test

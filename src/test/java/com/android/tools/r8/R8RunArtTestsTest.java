@@ -12,6 +12,7 @@ import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.DexVm.Kind;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
@@ -22,6 +23,7 @@ import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.TestDescriptionWatcher;
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
@@ -1363,6 +1365,9 @@ public abstract class R8RunArtTestsTest {
   @Rule
   public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
+  @Rule
+  public TestDescriptionWatcher watcher = new TestDescriptionWatcher();
+
   public R8RunArtTestsTest(String name, DexTool toolchain) {
     this.name = name;
     this.toolchain = toolchain;
@@ -1768,7 +1773,7 @@ public abstract class R8RunArtTestsTest {
         specification.disableInlining, specification.disableClassInlining,
         specification.hasMissingClasses);
 
-    if (!ToolHelper.artSupported()) {
+    if (!ToolHelper.artSupported() && !ToolHelper.dealsWithGoldenFiles()) {
       return;
     }
 
@@ -1789,9 +1794,11 @@ public abstract class R8RunArtTestsTest {
 
     boolean compileOnly = System.getProperty("jctf_compile_only", "0").equals("1");
     if (compileOnly || specification.skipArt) {
-      // verify dex code instead of running it
-      Path oatFile = temp.getRoot().toPath().resolve("all.oat");
-      ToolHelper.runDex2Oat(processedFile.toPath(), oatFile);
+      if (ToolHelper.isDex2OatSupported()) {
+        // verify dex code instead of running it
+        Path oatFile = temp.getRoot().toPath().resolve("all.oat");
+        ToolHelper.runDex2Oat(processedFile.toPath(), oatFile);
+      }
       return;
     }
 
@@ -1963,7 +1970,7 @@ public abstract class R8RunArtTestsTest {
           specification.hasMissingClasses);
     }
 
-    if (!specification.skipArt && ToolHelper.artSupported()) {
+    if (!specification.skipArt && (ToolHelper.artSupported() || ToolHelper.dealsWithGoldenFiles())) {
       File originalFile;
       File processedFile;
 

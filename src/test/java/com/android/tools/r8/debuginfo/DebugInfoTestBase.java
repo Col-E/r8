@@ -15,6 +15,7 @@ import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
+import com.android.tools.r8.utils.TestDescriptionWatcher;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -30,6 +31,9 @@ public class DebugInfoTestBase {
 
   @Rule
   public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
+
+  @Rule
+  public TestDescriptionWatcher watcher = new TestDescriptionWatcher();
 
   static AndroidApp compileWithD8(Class... classes) throws IOException, CompilationFailedException {
     D8Command.Builder builder = D8Command.builder();

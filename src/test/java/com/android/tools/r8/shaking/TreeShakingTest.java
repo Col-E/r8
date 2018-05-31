@@ -19,6 +19,7 @@ import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.DexInspector.FoundFieldSubject;
 import com.android.tools.r8.utils.DexInspector.FoundMethodSubject;
 import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.TestDescriptionWatcher;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -75,6 +76,9 @@ public abstract class TreeShakingTest {
 
   @Rule
   public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
+
+  @Rule
+  public TestDescriptionWatcher watcher = new TestDescriptionWatcher();
 
   protected TreeShakingTest(
       String name, String mainClass, Frontend frontend, Backend backend, MinifyMode minify) {
@@ -204,7 +208,7 @@ public abstract class TreeShakingTest {
       }
       return;
     }
-    if (!ToolHelper.artSupported()) {
+    if (!ToolHelper.artSupported() && !ToolHelper.compareAgaintsGoldenFiles()) {
       return;
     }
     Consumer<ArtCommandBuilder> extraArtArgs = builder -> {

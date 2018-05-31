@@ -31,6 +31,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+
 @RunWith(Parameterized.class)
 public class MethodHandleTestRunner extends TestBase {
   static final Class<?> CLASS = MethodHandleTest.class;
@@ -143,8 +144,8 @@ public class MethodHandleTestRunner extends TestBase {
     if (runInput.exitCode != runDex.exitCode) {
       System.out.println(runDex.stderr);
     }
-    assertEquals(runInput.stdout, runDex.stdout);
     assertEquals(runInput.exitCode, runDex.exitCode);
+    assertEquals(runInput.stdout, runDex.stdout);
   }
 
   private void build(ProgramConsumer programConsumer) throws Exception {

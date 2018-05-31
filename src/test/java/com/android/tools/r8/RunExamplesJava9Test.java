@@ -19,6 +19,7 @@ import com.android.tools.r8.utils.DexInspector.FoundMethodSubject;
 import com.android.tools.r8.utils.DexInspector.InstructionSubject;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OffOrAuto;
+import com.android.tools.r8.utils.TestDescriptionWatcher;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.ByteStreams;
@@ -143,7 +144,7 @@ public abstract class RunExamplesJava9Test
 
       build(inputFile, out);
 
-      if (!ToolHelper.artSupported()) {
+      if (!ToolHelper.artSupported() && !ToolHelper.dealsWithGoldenFiles()) {
         return;
       }
 
@@ -223,6 +224,9 @@ public abstract class RunExamplesJava9Test
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
+
+  @Rule
+  public TestDescriptionWatcher watcher = new TestDescriptionWatcher();
 
   boolean failsOn(Map<DexVm.Version, List<String>> failsOn, String name) {
     DexVm.Version vmVersion = ToolHelper.getDexVm().getVersion();

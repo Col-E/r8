@@ -1239,6 +1239,18 @@ task AospJarTest(type: Exec) {
 }
 
 test {
+    if (project.hasProperty('generate_golden_files_to')) {
+        systemProperty 'generate_golden_files_to', project.property('generate_golden_files_to')
+        assert project.hasProperty('HEAD_sha1')
+        systemProperty 'test_git_HEAD_sha1', project.property('HEAD_sha1')
+    }
+
+    if (project.hasProperty('use_golden_files_in')) {
+        systemProperty 'use_golden_files_in', project.property('use_golden_files_in')
+        assert project.hasProperty('HEAD_sha1')
+        systemProperty 'test_git_HEAD_sha1', project.property('HEAD_sha1')
+    }
+
     dependsOn getJarsFromSupportLibs
     testLogging.exceptionFormat = 'full'
     if (project.hasProperty('print_test_stdout')) {

@@ -23,18 +23,23 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
 import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
+import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.Timing;
+import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.CharStreams;
+import com.google.gson.Gson;
 import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -702,6 +707,10 @@ public class ToolHelper {
     return true;
   }
 
+  public static boolean isDex2OatSupported() {
+    return !isWindows();
+  }
+
   public static Path getClassPathForTests() {
     return Paths.get(BUILD_DIR, "classes", "test");
   }
@@ -1021,17 +1030,197 @@ public class ToolHelper {
     return runArtRaw(files, mainClass, extras, null);
   }
 
+  // Index used to name directory aimed at storing dex files and process result
+  // for one invokation of runArtRaw() in order to avoid conflicts in case of
+  // multiple calls within the same test.
+  private static int testOutputPathIndex = 0;
+
   public static ProcessResult runArtRaw(List<String> files, String mainClass,
       Consumer<ArtCommandBuilder> extras, DexVm version)
       throws IOException {
-    ArtCommandBuilder builder =
-        version != null ? new ArtCommandBuilder(version) : new ArtCommandBuilder();
-    files.forEach(builder::appendClasspath);
-    builder.setMainClass(mainClass);
-    if (extras != null) {
-      extras.accept(builder);
+
+      ArtCommandBuilder builder =
+          version != null ? new ArtCommandBuilder(version) : new ArtCommandBuilder();
+      files.forEach(builder::appendClasspath);
+      builder.setMainClass(mainClass);
+      if (extras != null) {
+        extras.accept(builder);
+      }
+
+      ProcessResult processResult = null;
+
+      // Whenever we start a new test method we reset the index count.
+      String reset_output_index = System.getProperty("reset_output_index");
+      if (reset_output_index != null) {
+        System.clearProperty("reset_output_index");
+        testOutputPathIndex = 0;
+      } else {
+        assert testOutputPathIndex >= 0;
+        testOutputPathIndex++;
+      }
+
+      String goldenFilesDirInProp = System.getProperty("use_golden_files_in");
+      if (goldenFilesDirInProp != null) {
+        File goldenFileDir = new File(goldenFilesDirInProp);
+        assert goldenFileDir.isDirectory();
+        processResult = compareAgainstGoldenFiles(
+            files.stream().map(f -> new File(f)).collect(Collectors.toList()), goldenFileDir);
+        if (processResult.exitCode == 0) {
+          processResult = readProcessResult(goldenFileDir);
+        }
+      } else {
+        processResult = runArtProcessRaw(builder);
+      }
+
+      String goldenFilesDirToProp = System.getProperty("generate_golden_files_to");
+      if (goldenFilesDirToProp != null) {
+        File goldenFileDir = new File(goldenFilesDirToProp);
+        assert goldenFileDir.isDirectory();
+        storeAsGoldenFiles(files.stream().map(f -> new File(f)).collect(Collectors.toList()),
+            goldenFileDir);
+        storeProcessResult(processResult, goldenFileDir);
+      }
+
+      return processResult;
+  }
+
+  private static Path findNonConflictingDestinationFilePath(Path testOutputPath) {
+    int index = 0;
+    Path destFilePath;
+    do {
+      destFilePath = Paths.get(testOutputPath.toString(),
+          "classes-" + String.format("%03d", index) + FileUtils.DEX_EXTENSION);
+      index++;
+    } while (destFilePath.toFile().exists());
+
+    return destFilePath;
+  }
+
+  private static Path getTestOutputPath(File destDir) throws IOException {
+    assert destDir.exists();
+    assert destDir.isDirectory();
+
+    String testClassName = System.getProperty("test_class_name");
+    String testName = System.getProperty("test_name");
+    String headSha1 = System.getProperty("test_git_HEAD_sha1");
+
+    assert testClassName != null;
+    assert testName != null;
+    assert headSha1 != null;
+
+    return Files.createDirectories(
+         Paths.get(destDir.getAbsolutePath(), headSha1, testClassName, testName + "-" + String
+             .format("%03d", testOutputPathIndex)));
+  }
+
+  private static List<File> unzipDexFilesArchive(File zipFile) throws IOException {
+    File tmpDir = Files.createTempDirectory("r8-test-").toFile();
+    tmpDir.deleteOnExit();
+    return ZipUtils.unzip(zipFile.getAbsolutePath(), tmpDir);
+  }
+
+  private static void storeAsGoldenFiles(List<File> files, File destDir) throws IOException {
+    Path testOutputPath = getTestOutputPath(destDir);
+
+    for (File f : files) {
+      Path filePath = f.toPath();
+      // TODO(jmhenaff): Check it's been produced by D8/R8?
+      List<File> testFiles = Collections.singletonList(f);
+      if (FileUtils.isArchive(filePath)) {
+        testFiles = unzipDexFilesArchive(f);
+      }
+      for (File testFile : testFiles) {
+        Path testFilePath = testFile.toPath();
+        if (FileUtils.isDexFile(testFilePath)) {
+          Path destFile = findNonConflictingDestinationFilePath(testOutputPath);
+          FileUtils.writeToFile(destFile, null, Files.readAllBytes(testFilePath));
+        }
+      }
     }
-    return runArtProcessRaw(builder);
+  }
+
+  @SuppressWarnings("unchecked")
+  private static void storeProcessResult(ProcessResult processResult, File dest)
+      throws IOException {
+    Gson gson = new Gson();
+    Path testOutputPath = getTestOutputPath(dest);
+    try (FileWriter fw = new FileWriter(new File(testOutputPath.toFile(), "processResult.json"))) {
+      gson.toJson(processResult, ProcessResult.class, fw);
+    }
+  }
+
+  private static ProcessResult readProcessResult(File dest) throws IOException {
+    File processResultFile = new File(getTestOutputPath(dest).toFile(), "processResult.json");
+    Gson gson = new Gson();
+    try (FileReader fr = new FileReader(processResultFile)) {
+      return gson.fromJson(fr, ProcessResult.class);
+    }
+  }
+
+  private static ProcessResult compareAgainstGoldenFiles(List<File> files, File destDir)
+      throws IOException {
+    Path testOutputPath = getTestOutputPath(destDir);
+
+    int index = 0;
+    String stdErr = "";
+    boolean passed = true;
+    for (File f : files) {
+      Path filePath = f.toPath();
+
+      List<File> testFiles = Collections.singletonList(f);
+      if (FileUtils.isArchive(filePath)) {
+        testFiles = unzipDexFilesArchive(f);
+      }
+
+      for (File testFile : testFiles) {
+        Path testFilePath = testFile.toPath();
+        // TODO(jmhenaff): Check it's been produced by D8/R8?
+        if (FileUtils.isDexFile(testFilePath)) {
+          File goldenFile = Paths.get(testOutputPath.toString(),
+              "classes-" + String.format("%03d", index) + FileUtils.DEX_EXTENSION).toFile();
+          if (!goldenFile.exists()) {
+            String fileDesc = "'" + testFile.getAbsolutePath() + "'";
+            if (FileUtils.isZipFile(filePath)) {
+              fileDesc += " (extracted from '" + f.getAbsolutePath() + "')";
+            }
+            stdErr += "Cannot find golden file '" + goldenFile.getAbsolutePath()
+                + "' to compare against test file " + fileDesc + "\n";
+            passed = false;
+          } else if (!com.google.common.io.Files.equal(testFile, goldenFile)) {
+            String fileDesc = "'" + testFile.getAbsolutePath() + "'";
+            if (FileUtils.isZipFile(filePath)) {
+              fileDesc += " (extracted from '" + f.getAbsolutePath() + "')";
+            }
+            stdErr +=
+                "File " + fileDesc + " differs from golden file '" + goldenFile.getAbsolutePath()
+                    + "'\n";
+            passed = false;
+          }
+          index++;
+        }
+      }
+    }
+    // Ensure we processed as many files as there are golden files
+    File goldenFile = Paths.get(testOutputPath.toString(),
+        "classes-" + String.format("%03d", index) + FileUtils.DEX_EXTENSION).toFile();
+    if (goldenFile.exists()) {
+      stdErr += "Less dex files have been produced: there is at least one more golden file ('"
+          + goldenFile.getAbsolutePath() + "'\n";
+      passed = false;
+    }
+    return new ProcessResult(passed ? 0 : -1, "", stdErr);
+  }
+
+  public static boolean dealsWithGoldenFiles() {
+    return compareAgaintsGoldenFiles() || generateGoldenFiles();
+  }
+
+  public static boolean compareAgaintsGoldenFiles() {
+    return System.getProperty("use_golden_files_in") != null;
+  }
+
+  public static boolean generateGoldenFiles() {
+    return System.getProperty("generate_golden_files_to") != null;
   }
 
   public static ProcessResult runArtNoVerificationErrorsRaw(String file, String mainClass)
@@ -1086,7 +1275,7 @@ public class ToolHelper {
   }
 
   private static ProcessResult runArtProcessRaw(ArtCommandBuilder builder) throws IOException {
-    Assume.assumeTrue(ToolHelper.artSupported());
+    Assume.assumeTrue(artSupported() || dealsWithGoldenFiles());
     ProcessResult result;
     if (builder.isForDevice()) {
       try {
@@ -1161,7 +1350,7 @@ public class ToolHelper {
   }
 
   public static void runDex2Oat(Path file, Path outFile, DexVm vm) throws IOException {
-    Assume.assumeTrue(ToolHelper.artSupported());
+    Assume.assumeTrue(ToolHelper.isDex2OatSupported());
     // TODO(jmhenaff): find a way to run this on windows (push dex and run on device/emulator?)
     Assume.assumeTrue(!ToolHelper.isWindows());
     assert Files.exists(file);

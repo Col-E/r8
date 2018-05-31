@@ -14,6 +14,7 @@ import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
+import com.android.tools.r8.utils.TestDescriptionWatcher;
 import java.io.IOException;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
@@ -21,6 +22,7 @@ import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -68,6 +70,9 @@ public abstract class R8RunExamplesCommon {
 
   @Rule
   public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
+
+  @Rule
+  public TestDescriptionWatcher watcher = new TestDescriptionWatcher();
 
   private final Input input;
   private final CompilerUnderTest compiler;
@@ -183,9 +188,8 @@ public abstract class R8RunExamplesCommon {
 
   @Test
   public void outputIsIdentical() throws IOException, InterruptedException, ExecutionException {
-    if (!ToolHelper.artSupported()) {
-      return;
-    }
+    Assume.assumeTrue(ToolHelper.artSupported() || ToolHelper.compareAgaintsGoldenFiles());
+
 
     DexVm vm = ToolHelper.getDexVm();
 

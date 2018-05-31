@@ -21,6 +21,7 @@ import com.android.tools.r8.utils.DexInspector.InstructionSubject;
 import com.android.tools.r8.utils.DexInspector.InvokeInstructionSubject;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OffOrAuto;
+import com.android.tools.r8.utils.TestDescriptionWatcher;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.ByteStreams;
@@ -47,6 +48,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
+import org.junit.rules.TestWatcher;
 
 public abstract class RunExamplesAndroidOTest
       <B extends BaseCommand.Builder<? extends BaseCommand, B>> {
@@ -148,7 +150,7 @@ public abstract class RunExamplesAndroidOTest
 
       build(inputFile, out);
 
-      if (!ToolHelper.artSupported()) {
+      if (!ToolHelper.artSupported() && !ToolHelper.dealsWithGoldenFiles()) {
         return;
       }
 
@@ -269,6 +271,9 @@ public abstract class RunExamplesAndroidOTest
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
+
+  @Rule
+  public TestDescriptionWatcher watcher = new TestDescriptionWatcher();
 
   boolean failsOn(Map<ToolHelper.DexVm.Version, List<String>> failsOn, String name) {
     Version vmVersion = ToolHelper.getDexVm().getVersion();
@@ -553,14 +558,14 @@ public abstract class RunExamplesAndroidOTest
       throws IOException {
 
     boolean expectedToFail = expectedToFail(testName);
-    if (expectedToFail) {
+    if (expectedToFail && !ToolHelper.compareAgaintsGoldenFiles()) {
       thrown.expect(Throwable.class);
     }
     String output = ToolHelper.runArtNoVerificationErrors(
         Arrays.stream(dexes).map(path -> path.toString()).collect(Collectors.toList()),
         qualifiedMainClass,
         null);
-    if (!expectedToFail && !skipRunningOnJvm(testName)) {
+    if (!expectedToFail && !skipRunningOnJvm(testName) && !ToolHelper.compareAgaintsGoldenFiles()) {
       ToolHelper.ProcessResult javaResult =
           ToolHelper.runJava(ImmutableList.copyOf(jars), qualifiedMainClass);
       assertEquals("JVM run failed", javaResult.exitCode, 0);

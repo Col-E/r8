@@ -8,6 +8,7 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.TestDescriptionWatcher;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.nio.file.Path;
@@ -90,6 +91,9 @@ public class R8RunSmaliTestsTest {
 
   @Rule
   public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
+
+  @Rule
+  public TestDescriptionWatcher watcher = new TestDescriptionWatcher();
 
   @Parameters(name = "{0}")
   public static Collection<String[]> data() {
