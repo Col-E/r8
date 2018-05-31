@@ -60,6 +60,9 @@ public class TypeConstraintResolver {
             merge(ifInstruction.inValues().get(0), ifInstruction.inValues().get(1));
           }
         }
+
+        // TODO(zerny): Once we have detailed value types we must join the array element-type with
+        // the value/dest for array-put/get instructions.
       }
     }
     for (Value value : impreciseValues) {
@@ -73,15 +76,7 @@ public class TypeConstraintResolver {
 
   private ValueType getPreciseType(Value value) {
     ValueType type = canonical(value).outType();
-    if (type.isPreciseType()) {
-      return type;
-    }
-    // If the type is still imprecise, then there are no constraints forcing its type and we
-    // arbitrarily choose long for wide values and int for single values.
-    if (type.isWide()) {
-      return ValueType.LONG;
-    }
-    return ValueType.INT;
+    return type != ValueType.INT_OR_FLOAT_OR_NULL ? type : ValueType.INT_OR_FLOAT;
   }
 
   private void link(Value canonical1, Value canonical2) {

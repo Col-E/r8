@@ -1034,7 +1034,7 @@ public class CodeRewriter {
                 if (argumentIndex != -1 && checkArgumentType(invoke, target.method,
                     argumentIndex)) {
                   Value argument = invoke.arguments().get(argumentIndex);
-                  assert invoke.outType() == argument.outType();
+                  assert invoke.outType().verifyCompatible(argument.outType());
                   invoke.outValue().replaceUsers(argument);
                   invoke.setOutValue(null);
                 }
