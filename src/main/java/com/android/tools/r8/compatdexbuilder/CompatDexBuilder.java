@@ -77,7 +77,11 @@ public class CompatDexBuilder {
 
     for (int i = 0; i < flags.size(); i++) {
       String flag = flags.get(i);
-      if (flag.startsWith("--positions")) {
+      if (flag.startsWith("--positions=")) {
+        String positionsValue = flag.substring("--positions=".length());
+        if (positionsValue.startsWith("throwing") || positionsValue.startsWith("important")) {
+          noLocals = true;
+        }
         continue;
       }
       if (flag.startsWith("--num-threads=")) {
