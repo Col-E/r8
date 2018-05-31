@@ -39,7 +39,7 @@ def Main():
   dest = os.path.join(GMSCORE_DEPS, sha1)
   print 'Uploading to %s' % dest
   shutil.copyfile(filename, dest)
-  os.chmod(dest, stat.S_IRWXU | stat.S_IROTH | stat.S_IXOTH | stat.S_IRWXG)
+  subprocess.check_call(['chmod', '664', dest])
   sha1_file = '%s.sha1' % filename
   with open(sha1_file, 'w') as output:
     output.write(sha1)
