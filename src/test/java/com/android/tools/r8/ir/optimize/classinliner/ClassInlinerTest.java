@@ -16,6 +16,11 @@ import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.VmTestRunner;
 import com.android.tools.r8.code.NewInstance;
 import com.android.tools.r8.graph.DexCode;
+import com.android.tools.r8.ir.optimize.classinliner.builders.BuildersTestClass;
+import com.android.tools.r8.ir.optimize.classinliner.builders.ControlFlow;
+import com.android.tools.r8.ir.optimize.classinliner.builders.Pair;
+import com.android.tools.r8.ir.optimize.classinliner.builders.PairBuilder;
+import com.android.tools.r8.ir.optimize.classinliner.builders.Tuple;
 import com.android.tools.r8.ir.optimize.classinliner.trivial.ClassWithFinal;
 import com.android.tools.r8.ir.optimize.classinliner.trivial.CycleReferenceAB;
 import com.android.tools.r8.ir.optimize.classinliner.trivial.CycleReferenceBA;
@@ -75,8 +80,7 @@ public class ClassInlinerTest extends TestBase {
         collectNewInstanceTypes(clazz, "testConstructorMapping1"));
 
     assertEquals(
-        Collections.singleton(
-            "com.android.tools.r8.ir.optimize.classinliner.trivial.ReferencedFields"),
+        Collections.emptySet(),
         collectNewInstanceTypes(clazz, "testConstructorMapping2"));
 
     assertEquals(
@@ -120,6 +124,60 @@ public class ClassInlinerTest extends TestBase {
     assertFalse(inspector.clazz(CycleReferenceBA.class).isPresent());
   }
 
+  @Test
+  public void testBuilders() throws Exception {
+    byte[][] classes = {
+        ToolHelper.getClassAsBytes(BuildersTestClass.class),
+        ToolHelper.getClassAsBytes(BuildersTestClass.Pos.class),
+        ToolHelper.getClassAsBytes(Tuple.class),
+        ToolHelper.getClassAsBytes(Pair.class),
+        ToolHelper.getClassAsBytes(PairBuilder.class),
+        ToolHelper.getClassAsBytes(ControlFlow.class),
+    };
+    String main = BuildersTestClass.class.getCanonicalName();
+    ProcessResult javaOutput = runOnJava(main, classes);
+    assertEquals(0, javaOutput.exitCode);
+
+    AndroidApp app = runR8(buildAndroidApp(classes), BuildersTestClass.class);
+
+    DexInspector inspector = new DexInspector(app);
+    ClassSubject clazz = inspector.clazz(BuildersTestClass.class);
+
+    assertEquals(
+        Sets.newHashSet(
+            "com.android.tools.r8.ir.optimize.classinliner.builders.Pair",
+            "java.lang.StringBuilder"),
+        collectNewInstanceTypes(clazz, "testSimpleBuilder"));
+
+    // Note that Pair created instances were also inlined in the following method since
+    // we use 'System.out.println(pX.toString())', if we used 'System.out.println(pX)'
+    // as in the above method, the instance of pair would be passed to println() which
+    // would make it not eligible for inlining.
+    assertEquals(
+        Collections.singleton("java.lang.StringBuilder"),
+        collectNewInstanceTypes(clazz, "testSimpleBuilderWithMultipleBuilds"));
+
+    assertFalse(inspector.clazz(PairBuilder.class).isPresent());
+
+    assertEquals(
+        Collections.singleton("java.lang.StringBuilder"),
+        collectNewInstanceTypes(clazz, "testBuilderConstructors"));
+
+    assertFalse(inspector.clazz(Tuple.class).isPresent());
+
+    assertEquals(
+        Collections.singleton("java.lang.StringBuilder"),
+        collectNewInstanceTypes(clazz, "testWithControlFlow"));
+
+    assertFalse(inspector.clazz(ControlFlow.class).isPresent());
+
+    assertEquals(
+        Collections.emptySet(),
+        collectNewInstanceTypes(clazz, "testWithMoreControlFlow"));
+
+    assertFalse(inspector.clazz(BuildersTestClass.Pos.class).isPresent());
+  }
+
   private Set<String> collectNewInstanceTypes(
       ClassSubject clazz, String methodName, String... params) {
     assertNotNull(clazz);
@@ -135,7 +193,11 @@ public class ClassInlinerTest extends TestBase {
         + "-dontobfuscate\n"
         + "-allowaccessmodification";
 
-    AndroidApp compiled = compileWithR8(app, config, o -> o.enableClassInlining = true);
+    AndroidApp compiled = compileWithR8(app, config,
+        o -> {
+          o.enableClassInlining = true;
+          o.classInliningInstructionLimit = 10000;
+        });
 
     // Materialize file for execution.
     Path generatedDexFile = temp.getRoot().toPath().resolve("classes.jar");

@@ -61,6 +61,11 @@ final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
   }
 
   @Override
+  public boolean isValidTarget(InvokeMethod invoke, DexEncodedMethod target, IRCode inlinee) {
+    return true;
+  }
+
+  @Override
   public ListIterator<BasicBlock> updateTypeInformationIfNeeded(IRCode inlinee,
       ListIterator<BasicBlock> blockIterator, BasicBlock block, BasicBlock invokeSuccessor) {
     return blockIterator;

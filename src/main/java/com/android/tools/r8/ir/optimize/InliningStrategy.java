@@ -18,6 +18,8 @@ interface InliningStrategy {
 
   void ensureMethodProcessed(DexEncodedMethod target, IRCode inlinee);
 
+  boolean isValidTarget(InvokeMethod invoke, DexEncodedMethod target, IRCode inlinee);
+
   ListIterator<BasicBlock> updateTypeInformationIfNeeded(IRCode inlinee,
       ListIterator<BasicBlock> blockIterator, BasicBlock block, BasicBlock invokeSuccessor);
 

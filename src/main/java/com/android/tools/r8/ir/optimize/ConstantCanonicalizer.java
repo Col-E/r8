@@ -86,6 +86,7 @@ public class ConstantCanonicalizer {
           });
     }
 
+    code.removeAllTrivialPhis();
     assert code.isConsistentSSA();
   }
 

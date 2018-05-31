@@ -285,7 +285,7 @@ public class Inliner {
     return numOfInstructions;
   }
 
-  private boolean legalConstructorInline(DexEncodedMethod method,
+  boolean legalConstructorInline(DexEncodedMethod method,
       InvokeMethod invoke, IRCode code) {
 
     // In the Java VM Specification section "4.10.2.4. Instance Initialization Methods and
@@ -447,8 +447,7 @@ public class Inliner {
 
               // Make sure constructor inlining is legal.
               assert !target.isClassInitializer();
-              if (target.isInstanceInitializer()
-                  && !legalConstructorInline(method, invoke, inlinee)) {
+              if (!strategy.isValidTarget(invoke, target, inlinee)) {
                 continue;
               }
               DexType downcast = createDowncastIfNeeded(strategy, invoke, target);

@@ -43,12 +43,9 @@ import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions;
-import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.function.Consumer;
 
 public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements ResolutionResult {
@@ -582,6 +579,14 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     return m1.method.slowCompareTo(m2.method);
   }
 
+  public static class ClassInlinerEligibility {
+    public final boolean returnsReceiver;
+
+    public ClassInlinerEligibility(boolean returnsReceiver) {
+      this.returnsReceiver = returnsReceiver;
+    }
+  }
+
   public static class OptimizationInfo {
 
     private int returnedArgument = -1;
@@ -593,8 +598,9 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     private boolean useIdentifierNameString = false;
     private boolean checksNullReceiverBeforeAnySideEffect = false;
     private boolean triggersClassInitBeforeAnySideEffect = false;
-    private Set<DexField> receiverOnlyUsedForReadingFields = null;
-    private Map<DexField, Integer> onlyInitializesFieldsWithNoOtherSideEffects = null;
+    // Stores information about instance methods and constructors for
+    // class inliner, null value indicates that the method is not eligible.
+    private ClassInlinerEligibility classInlinerEligibility = null;
 
     private OptimizationInfo() {
       // Intentionally left empty.
@@ -631,13 +637,12 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       return returnsConstant;
     }
 
-    public boolean isReceiverOnlyUsedForReadingFields(Set<DexField> fields) {
-      return receiverOnlyUsedForReadingFields != null &&
-          fields.containsAll(receiverOnlyUsedForReadingFields);
+    private void setClassInlinerEligibility(ClassInlinerEligibility eligibility) {
+      this.classInlinerEligibility = eligibility;
     }
 
-    public Map<DexField, Integer> onlyInitializesFieldsWithNoOtherSideEffects() {
-      return onlyInitializesFieldsWithNoOtherSideEffects;
+    public ClassInlinerEligibility getClassInlinerEligibility() {
+      return this.classInlinerEligibility;
     }
 
     public long getReturnedConstant() {
@@ -679,19 +684,6 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       assert !returnsConstant || returnedConstant == value;
       returnsConstant = true;
       returnedConstant = value;
-    }
-
-    private void markReceiverOnlyUsedForReadingFields(Set<DexField> fields) {
-      receiverOnlyUsedForReadingFields = fields;
-    }
-
-    private void markOnlyInitializesFieldsWithNoOtherSideEffects(Map<DexField, Integer> mapping) {
-      if (mapping == null) {
-        onlyInitializesFieldsWithNoOtherSideEffects = null;
-      } else {
-        onlyInitializesFieldsWithNoOtherSideEffects = mapping.isEmpty()
-            ? Collections.emptyMap() : ImmutableMap.copyOf(mapping);
-      }
     }
 
     private void markForceInline() {
@@ -751,13 +743,8 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     ensureMutableOI().markReturnsConstant(value);
   }
 
-  synchronized public void markReceiverOnlyUsedForReadingFields(Set<DexField> fields) {
-    ensureMutableOI().markReceiverOnlyUsedForReadingFields(fields);
-  }
-
-  synchronized public void markOnlyInitializesFieldsWithNoOtherSideEffects(
-      Map<DexField, Integer> mapping) {
-    ensureMutableOI().markOnlyInitializesFieldsWithNoOtherSideEffects(mapping);
+  synchronized public void setClassInlinerEligibility(ClassInlinerEligibility eligibility) {
+    ensureMutableOI().setClassInlinerEligibility(eligibility);
   }
 
   synchronized public void markForceInline() {

@@ -10,7 +10,9 @@ import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.DexInspector.MethodSubject;
+import com.android.tools.r8.utils.InternalOptions;
 import java.util.Collections;
+import java.util.function.Consumer;
 import org.junit.Test;
 
 public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
@@ -33,13 +35,15 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
   private static final MethodSignature COPY_DEFAULT_METHOD =
       TEST_DATA_CLASS.getCopyDefaultSignature();
 
+  private Consumer<InternalOptions> disableClassInliner = o -> o.enableClassInlining = false;
+
   @Test
   public void test_dataclass_gettersOnly() throws Exception {
     final String mainClassName = "dataclass.MainGettersOnlyKt";
     final MethodSignature testMethodSignature =
         new MethodSignature("testDataClassGetters", "void", Collections.emptyList());
     final String extraRules = keepClassMethod(mainClassName, testMethodSignature);
-    runTest("dataclass", mainClassName, extraRules, (app) -> {
+    runTest("dataclass", mainClassName, extraRules, disableClassInliner, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject dataClass = checkClassIsKept(dexInspector, TEST_DATA_CLASS.getClassName());
 
@@ -74,7 +78,7 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
     final MethodSignature testMethodSignature =
         new MethodSignature("testAllDataClassComponentFunctions", "void", Collections.emptyList());
     final String extraRules = keepClassMethod(mainClassName, testMethodSignature);
-    runTest("dataclass", mainClassName, extraRules, (app) -> {
+    runTest("dataclass", mainClassName, extraRules, disableClassInliner, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject dataClass = checkClassIsKept(dexInspector, TEST_DATA_CLASS.getClassName());
 
@@ -109,7 +113,7 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
     final MethodSignature testMethodSignature =
         new MethodSignature("testSomeDataClassComponentFunctions", "void", Collections.emptyList());
     final String extraRules = keepClassMethod(mainClassName, testMethodSignature);
-    runTest("dataclass", mainClassName, extraRules, (app) -> {
+    runTest("dataclass", mainClassName, extraRules, disableClassInliner, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject dataClass = checkClassIsKept(dexInspector, TEST_DATA_CLASS.getClassName());
 
@@ -144,7 +148,7 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
     final MethodSignature testMethodSignature =
         new MethodSignature("testDataClassCopy", "void", Collections.emptyList());
     final String extraRules = keepClassMethod(mainClassName, testMethodSignature);
-    runTest("dataclass", mainClassName, extraRules, (app) -> {
+    runTest("dataclass", mainClassName, extraRules, disableClassInliner, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject dataClass = checkClassIsKept(dexInspector, TEST_DATA_CLASS.getClassName());
 
@@ -159,7 +163,7 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
     final MethodSignature testMethodSignature =
         new MethodSignature("testDataClassCopyWithDefault", "void", Collections.emptyList());
     final String extraRules = keepClassMethod(mainClassName, testMethodSignature);
-    runTest("dataclass", mainClassName, extraRules, (app) -> {
+    runTest("dataclass", mainClassName, extraRules, disableClassInliner, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject dataClass = checkClassIsKept(dexInspector, TEST_DATA_CLASS.getClassName());
 

@@ -315,6 +315,12 @@ final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
   }
 
   @Override
+  public boolean isValidTarget(InvokeMethod invoke, DexEncodedMethod target, IRCode inlinee) {
+    return !target.isInstanceInitializer()
+        || inliner.legalConstructorInline(method, invoke, inlinee);
+  }
+
+  @Override
   public boolean exceededAllowance() {
     return instructionAllowance < 0;
   }

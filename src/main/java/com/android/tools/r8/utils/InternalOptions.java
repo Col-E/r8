@@ -101,6 +101,7 @@ public class InternalOptions {
   public boolean enableInlining =
       !Version.isDev() || System.getProperty("com.android.tools.r8.disableinlining") == null;
   public boolean enableClassInlining = true;
+  public int classInliningInstructionLimit = 50;
   public int inliningInstructionLimit = 5;
   public boolean enableSwitchMapRemoval = true;
   public final OutlineOptions outline = new OutlineOptions();

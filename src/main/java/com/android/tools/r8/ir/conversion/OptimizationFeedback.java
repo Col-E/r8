@@ -5,10 +5,8 @@
 package com.android.tools.r8.ir.conversion;
 
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
-import java.util.Map;
-import java.util.Set;
 
 public interface OptimizationFeedback {
   void methodReturnsArgument(DexEncodedMethod method, int argument);
@@ -18,7 +16,5 @@ public interface OptimizationFeedback {
   void markProcessed(DexEncodedMethod method, Constraint state);
   void markCheckNullReceiverBeforeAnySideEffect(DexEncodedMethod method, boolean mark);
   void markTriggerClassInitBeforeAnySideEffect(DexEncodedMethod method, boolean mark);
-  void markReceiverOnlyUsedForReadingFields(DexEncodedMethod method, Set<DexField> fields);
-  void markOnlyInitializesFieldsWithNoOtherSideEffects(
-      DexEncodedMethod method, Map<DexField, Integer> mapping);
+  void setClassInlinerEligibility(DexEncodedMethod method, ClassInlinerEligibility eligibility);
 }

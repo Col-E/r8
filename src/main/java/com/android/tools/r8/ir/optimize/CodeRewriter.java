@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -47,8 +48,6 @@ import com.android.tools.r8.ir.code.Goto;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.If.Type;
-import com.android.tools.r8.ir.code.InstanceGet;
-import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
@@ -736,120 +735,72 @@ public class CodeRewriter {
     }
   }
 
-  public void identifyReceiverOnlyUsedForReadingFields(
+  public void identifyClassInlinerEligibility(
       DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
-    if (!method.isNonAbstractVirtualMethod()) {
+    // Method eligibility is calculated in similar way for regular method
+    // and for the constructor. To be eligible method should only be using its
+    // receiver in the following ways:
+    //
+    //  (1) as a receiver of reads/writes of instance fields of the holder class
+    //  (2) as a return value
+    //  (3) as a receiver of a call to the superclass initializer
+    //
+    boolean instanceInitializer = method.isInstanceInitializer();
+    if (method.accessFlags.isNative() ||
+        (!method.isNonAbstractVirtualMethod() && !instanceInitializer)) {
       return;
     }
 
-    feedback.markReceiverOnlyUsedForReadingFields(method, null);
+    feedback.setClassInlinerEligibility(method, null);  // To allow returns below.
 
-    Value instance = code.getThis();
-    if (instance.numberOfPhiUsers() > 0) {
-      return;
-    }
-
-    Set<DexField> fields = Sets.newIdentityHashSet();
-    for (Instruction insn : instance.uniqueUsers()) {
-      if (!insn.isInstanceGet()) {
-        return;
-      }
-      InstanceGet get = insn.asInstanceGet();
-      if (get.dest() == instance || get.object() != instance) {
-        return;
-      }
-      fields.add(get.getField());
-    }
-    feedback.markReceiverOnlyUsedForReadingFields(method, fields);
-  }
-
-  public void identifyOnlyInitializesFieldsWithNoOtherSideEffects(
-      DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
-    assert method.isInstanceInitializer();
-
-    feedback.markOnlyInitializesFieldsWithNoOtherSideEffects(method, null);
-
-    if (code.hasCatchHandlers()) {
-      return;
-    }
-
-    List<Value> args = code.collectArguments(true /* not interested in receiver */);
-    Map<DexField, Integer> mapping = new IdentityHashMap<>();
     Value receiver = code.getThis();
-
-    InstructionIterator it = code.instructionIterator();
-    while (it.hasNext()) {
-      Instruction instruction = it.next();
-
-      // Mark an argument.
-      if (instruction.isArgument()) {
-        continue;
-      }
-
-      // Allow super call to java.lang.Object.<init>() on 'this'.
-      if (instruction.isInvokeDirect()) {
-        InvokeDirect invokedDirect = instruction.asInvokeDirect();
-        if (invokedDirect.getInvokedMethod() != dexItemFactory.objectMethods.constructor ||
-            invokedDirect.getReceiver() != receiver) {
-          return;
-        }
-        continue;
-      }
-
-      // Allow final return.
-      if (instruction.isReturn()) {
-        continue;
-      }
-
-      // Allow assignment to this class' fields. If the assigned value is an argument
-      // reference update the mep. Otherwise just allow assigning any value, since all
-      // invalid values should be filtered out at the definitions.
-      if (instruction.isInstancePut()) {
-        InstancePut instancePut = instruction.asInstancePut();
-        DexField field = instancePut.getField();
-        if (instancePut.object() != receiver) {
-          return;
-        }
-
-        Value value = instancePut.value();
-        if (value.isArgument() && !value.isThis()) {
-          assert (args.contains(value));
-          mapping.put(field, args.indexOf(value));
-        } else {
-          mapping.remove(field);
-        }
-        continue;
-      }
-
-      // Allow non-throwing constants.
-      if (instruction.isConstInstruction()) {
-        if (instruction.instructionTypeCanThrow()) {
-          return;
-        }
-        continue;
-      }
-
-      // Allow goto instructions jumping to the next block.
-      if (instruction.isGoto()) {
-        if (instruction.getBlock().getNumber() + 1 !=
-            instruction.asGoto().getTarget().getNumber()) {
-          return;
-        }
-        continue;
-      }
-
-      // Allow binary and unary instructions if they don't throw.
-      if (instruction.isBinop() || instruction.isUnop()) {
-        if (instruction.instructionTypeCanThrow()) {
-          return;
-        }
-        continue;
-      }
-
+    if (receiver.numberOfPhiUsers() > 0) {
       return;
     }
 
-    feedback.markOnlyInitializesFieldsWithNoOtherSideEffects(method, mapping);
+    boolean receiverUsedAsReturnValue = false;
+    boolean seenSuperInitCall = false;
+    for (Instruction insn : receiver.uniqueUsers()) {
+      if (insn.isReturn()) {
+        receiverUsedAsReturnValue = true;
+        continue;
+      }
+
+      if (insn.isInstanceGet() ||
+          (insn.isInstancePut() && insn.asInstancePut().object() == receiver)) {
+        DexField field = insn.asFieldInstruction().getField();
+        if (field.clazz == method.method.holder) {
+          // Since class inliner currently only supports classes directly extending
+          // java.lang.Object, we don't need to worry about fields defined in superclasses.
+          continue;
+        }
+        return;
+      }
+
+      // If this is an instance initializer allow one call
+      // to java.lang.Object.<init>() on 'this'.
+      if (instanceInitializer && insn.isInvokeDirect()) {
+        InvokeDirect invokedDirect = insn.asInvokeDirect();
+        if (invokedDirect.getInvokedMethod() == dexItemFactory.objectMethods.constructor &&
+            invokedDirect.getReceiver() == receiver &&
+            !seenSuperInitCall) {
+          seenSuperInitCall = true;
+          continue;
+        }
+        return;
+      }
+
+      // Other receiver usages make the method not eligible.
+      return;
+    }
+
+    if (instanceInitializer && !seenSuperInitCall) {
+      // Call to super constructor not found?
+      return;
+    }
+
+    feedback.setClassInlinerEligibility(
+        method, new ClassInlinerEligibility(receiverUsedAsReturnValue));
   }
 
   /**

@@ -76,6 +76,10 @@ public class Phi extends Value {
   }
 
   public void addOperands(List<Value> operands) {
+    addOperands(operands, true);
+  }
+
+  public void addOperands(List<Value> operands, boolean removeTrivialPhi) {
     // Phi operands are only filled in once to complete the phi. Some phis are incomplete for a
     // period of time to break cycles. When the cycle has been resolved they are completed
     // exactly once by adding the operands.
@@ -91,7 +95,9 @@ public class Phi extends Value {
     if (!canBeNull) {
       markNeverNull();
     }
-    removeTrivialPhi();
+    if (removeTrivialPhi) {
+      removeTrivialPhi();
+    }
   }
 
   public void addDebugValue(Value value) {

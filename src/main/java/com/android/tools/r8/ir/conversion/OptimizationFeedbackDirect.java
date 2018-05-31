@@ -5,10 +5,8 @@
 package com.android.tools.r8.ir.conversion;
 
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
-import java.util.Map;
-import java.util.Set;
 
 public class OptimizationFeedbackDirect implements OptimizationFeedback {
 
@@ -48,13 +46,8 @@ public class OptimizationFeedbackDirect implements OptimizationFeedback {
   }
 
   @Override
-  public void markReceiverOnlyUsedForReadingFields(DexEncodedMethod method, Set<DexField> fields) {
-    method.markReceiverOnlyUsedForReadingFields(fields);
-  }
-
-  @Override
-  public void markOnlyInitializesFieldsWithNoOtherSideEffects(DexEncodedMethod method,
-      Map<DexField, Integer> mapping) {
-    method.markOnlyInitializesFieldsWithNoOtherSideEffects(mapping);
+  public void setClassInlinerEligibility(
+      DexEncodedMethod method, ClassInlinerEligibility eligibility) {
+    method.setClassInlinerEligibility(eligibility);
   }
 }

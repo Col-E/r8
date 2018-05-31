@@ -169,7 +169,8 @@ public class IRConverter {
     }
     this.classInliner =
         (options.enableClassInlining && options.enableInlining && inliner != null)
-            ? new ClassInliner(appInfo.dexItemFactory) : null;
+            ? new ClassInliner(appInfo.dexItemFactory, options.classInliningInstructionLimit)
+            : null;
   }
 
   /**
@@ -752,10 +753,7 @@ public class IRConverter {
     }
 
     // Analysis must be done after method is rewritten by logArgumentTypes()
-    codeRewriter.identifyReceiverOnlyUsedForReadingFields(method, code, feedback);
-    if (method.isInstanceInitializer()) {
-      codeRewriter.identifyOnlyInitializesFieldsWithNoOtherSideEffects(method, code, feedback);
-    }
+    codeRewriter.identifyClassInlinerEligibility(method, code, feedback);
 
     printMethod(code, "Optimized IR (SSA)");
     finalizeIR(method, code, feedback);

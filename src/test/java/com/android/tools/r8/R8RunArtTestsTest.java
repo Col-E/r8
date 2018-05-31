@@ -1010,8 +1010,7 @@ public abstract class R8RunArtTestsTest {
       // Test depends on exception produced for missing method or similar cases, but
       // after class inlining removes class instantiations and references the exception
       // is not produced.
-      "042-new-instance",
-      "075-verification-error"
+      "435-new-instance"
   );
 
   private static List<String> hasMissingClasses = ImmutableList.of(
@@ -1554,6 +1553,8 @@ public abstract class R8RunArtTestsTest {
                 if (disableClassInlining) {
                   options.enableClassInlining = false;
                 }
+                // Make sure we don't depend on this settings.
+                options.classInliningInstructionLimit = 10000;
                 options.lineNumberOptimization = LineNumberOptimization.OFF;
                 // Some tests actually rely on missing classes for what they test.
                 options.ignoreMissingClasses = hasMissingClasses;
