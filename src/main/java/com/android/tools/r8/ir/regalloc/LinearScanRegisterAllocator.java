@@ -77,6 +77,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
 
   public static final int REGISTER_CANDIDATE_NOT_FOUND = -1;
   public static final int MIN_CONSTANT_FREE_FOR_POSITIONS = 5;
+  public static final int EXCEPTION_INTERVALS_OVERLAP_CUTOFF = 500;
 
   private enum ArgumentReuseMode {
     ALLOW_ARGUMENT_REUSE,
@@ -1357,7 +1358,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     // If there are that many move exception intervals we don't spent the time
     // going through them all. In that case it is unlikely that we can reuse the move exception
     // register in any case.
-    if (moveExceptionIntervals.size() > 1000) {
+    if (moveExceptionIntervals.size() > EXCEPTION_INTERVALS_OVERLAP_CUTOFF) {
       return true;
     }
     for (LiveIntervals moveExceptionInterval : moveExceptionIntervals) {

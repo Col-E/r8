@@ -11,7 +11,10 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.utils.CfgPrinter;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.TreeSet;
@@ -20,12 +23,15 @@ import java.util.function.IntConsumer;
 public class LiveIntervals implements Comparable<LiveIntervals> {
 
   public static final int NO_REGISTER = Integer.MIN_VALUE;
+  public static final int CHILDREN_SORTING_CUTOFF = 100;
 
   private final Value value;
   private LiveIntervals nextConsecutive;
   private LiveIntervals previousConsecutive;
   private final LiveIntervals splitParent;
   private final List<LiveIntervals> splitChildren = new ArrayList<>();
+  private final IntArrayList sortedSplitChildrenEnds = new IntArrayList();
+  private boolean sortedChildren = false;
   private List<LiveRange> ranges = new ArrayList<>();
   private final TreeSet<LiveIntervalsUse> uses = new TreeSet<>();
   private int numberOfConsecutiveRegisters = -1;
@@ -187,6 +193,26 @@ public class LiveIntervals implements Comparable<LiveIntervals> {
 
   public boolean hasSplits() {
     return splitChildren.size() != 0;
+  }
+
+  private void sortSplitChildrenIfNeeded() {
+    if (!sortedChildren) {
+      splitChildren.sort(Comparator.comparingInt(LiveIntervals::getEnd));
+      sortedSplitChildrenEnds.clear();
+      for (LiveIntervals splitChild : splitChildren) {
+        sortedSplitChildrenEnds.add(splitChild.getEnd());
+      }
+      assert sortedChildrenConsistent();
+      sortedChildren = true;
+    }
+  }
+
+  private boolean sortedChildrenConsistent() {
+    for (int i = 0; i < splitChildren.size(); i++) {
+      assert splitChildren.get(i).getEnd() == sortedSplitChildrenEnds.getInt(i);
+      assert i == 0 || sortedSplitChildrenEnds.getInt(i - 1) <= sortedSplitChildrenEnds.getInt(i);
+    }
+    return true;
   }
 
   public List<LiveIntervals> getSplitChildren() {
@@ -404,6 +430,7 @@ public class LiveIntervals implements Comparable<LiveIntervals> {
     start = toGapPosition(start);
     LiveIntervals splitChild = new LiveIntervals(splitParent);
     splitParent.splitChildren.add(splitChild);
+    splitParent.sortedChildren = false;
     List<LiveRange> beforeSplit = new ArrayList<>();
     List<LiveRange> afterSplit = new ArrayList<>();
     if (start == getEnd()) {
@@ -460,7 +487,19 @@ public class LiveIntervals implements Comparable<LiveIntervals> {
     // whose end is the instruction number. This is needed when transitioning values across
     // control-flow boundaries.
     LiveIntervals matchingEnd = getEnd() == instructionNumber ? this : null;
-    for (LiveIntervals splitChild : splitChildren) {
+    // When there are many children, avoid looking at the ones for which the end is before
+    // the instruction number by doing a binary search for the first candidate whose end is after
+    // the instruction number.
+    int firstCandidate = 0;
+    if (splitChildren.size() > CHILDREN_SORTING_CUTOFF) {
+      sortSplitChildrenIfNeeded();
+      firstCandidate = Collections.binarySearch(sortedSplitChildrenEnds, instructionNumber);
+      if (firstCandidate < 0) {
+        firstCandidate = -(firstCandidate + 1);
+      }
+    }
+    for (int i = firstCandidate; i < splitChildren.size(); i++) {
+      LiveIntervals splitChild = splitChildren.get(i);
       if (splitChild.getStart() <= instructionNumber && splitChild.getEnd() > instructionNumber) {
         return splitChild;
       }
