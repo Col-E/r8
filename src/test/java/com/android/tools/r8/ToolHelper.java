@@ -793,12 +793,22 @@ public class ToolHelper {
   }
 
   public static R8Command.Builder prepareR8CommandBuilder(AndroidApp app) {
-    return R8Command.builder(app).setProgramConsumer(DexIndexedConsumer.emptyConsumer());
+    return prepareR8CommandBuilder(app, DexIndexedConsumer.emptyConsumer());
+  }
+
+  public static R8Command.Builder prepareR8CommandBuilder(
+      AndroidApp app, ProgramConsumer programConsumer) {
+    return R8Command.builder(app).setProgramConsumer(programConsumer);
   }
 
   public static AndroidApp runR8(AndroidApp app) throws IOException {
+    return runR8WithProgramConsumer(app, DexIndexedConsumer.emptyConsumer());
+  }
+
+  public static AndroidApp runR8WithProgramConsumer(AndroidApp app, ProgramConsumer programConsumer)
+      throws IOException {
     try {
-      return runR8(prepareR8CommandBuilder(app).build());
+      return runR8(prepareR8CommandBuilder(app, programConsumer).build());
     } catch (CompilationFailedException e) {
       throw new RuntimeException(e);
     }
