@@ -118,10 +118,14 @@ public final class DexCallSite extends IndexedDexItem implements Comparable<DexC
   public void collectIndexedItems(IndexedItemCollection indexedItems,
       DexMethod method, int instructionOffset) {
     assert method != null;
+    // Since collectIndexedItems() is called in transactions that may be rolled back, we may end up
+    // setting this.method and this.instructionOffset more than once. If we do set them more than
+    // once, then we must have the same values for method and instructionOffset every time.
+    assert this.method == null || this.method == method;
+    assert this.instructionOffset == 0 || this.instructionOffset == instructionOffset;
+    this.method = method;
+    this.instructionOffset = instructionOffset;
     if (indexedItems.addCallSite(this)) {
-      assert this.method == null;
-      this.method = method;
-      this.instructionOffset = instructionOffset;
       methodName.collectIndexedItems(indexedItems, method, instructionOffset);
       methodProto.collectIndexedItems(indexedItems, method, instructionOffset);
       bootstrapMethod.collectIndexedItems(indexedItems, method, instructionOffset);
