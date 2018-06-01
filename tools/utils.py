@@ -10,6 +10,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tarfile
 import tempfile
 
 TOOLS_DIR = os.path.abspath(os.path.normpath(os.path.join(__file__, '..')))
@@ -71,6 +72,12 @@ def get_sha1(filename):
       sha1.update(chunk)
   return sha1.hexdigest()
 
+def get_HEAD_sha1():
+  cmd = ['git', 'rev-parse', 'HEAD']
+  PrintCmd(cmd)
+  with ChangedWorkingDirectory(REPO_ROOT):
+    return subprocess.check_output(cmd).strip()
+
 def makedirs_if_needed(path):
   try:
     os.makedirs(path)
@@ -91,6 +98,29 @@ def upload_file_to_cloud_storage(source, destination):
   cmd = ['gsutil.py', 'cp', '-a', 'public-read', source, destination]
   PrintCmd(cmd)
   subprocess.check_call(cmd)
+
+def download_file_from_cloud_storage(source, destination):
+  cmd = ['gsutil.py', 'cp', source, destination]
+  PrintCmd(cmd)
+  subprocess.check_call(cmd)
+
+def create_archive(name):
+  tarname = '%s.tar.gz' % name
+  with tarfile.open(tarname, 'w:gz') as tar:
+    tar.add(name)
+  return tarname
+
+def extract_dir(filename):
+  return filename[0:len(filename) - len('.tar.gz')]
+
+def unpack_archive(filename):
+  dest_dir = extract_dir(filename)
+  if os.path.exists(dest_dir):
+    print 'Deleting existing dir %s' % dest_dir
+    shutil.rmtree(dest_dir)
+  dirname = os.path.dirname(os.path.abspath(filename))
+  with tarfile.open(filename, 'r:gz') as tar:
+    tar.extractall(path=dirname)
 
 # Note that gcs is eventually consistent with regards to list operations.
 # This is not a problem in our case, but don't ever use this method

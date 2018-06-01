@@ -68,7 +68,7 @@ public class VmTestRunner extends BlockJUnit4ClassRunner {
   @Override
   protected boolean isIgnored(FrameworkMethod child) {
     // Do not run VM tests if running VMs is not even supported.
-    if (!ToolHelper.artSupported()) {
+    if (!ToolHelper.artSupported() && !ToolHelper.dealsWithGoldenFiles()) {
       return true;
     }
     if (super.isIgnored(child)) {

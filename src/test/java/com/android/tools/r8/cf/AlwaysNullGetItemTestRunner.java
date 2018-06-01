@@ -14,6 +14,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.TestDescriptionWatcher;
 import java.nio.file.Path;
 import org.junit.Rule;
 import org.junit.Test;
@@ -24,6 +25,9 @@ public class AlwaysNullGetItemTestRunner {
 
   @Rule
   public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
+
+  @Rule
+  public TestDescriptionWatcher watcher = new TestDescriptionWatcher();
 
   @Test
   public void test() throws Exception {

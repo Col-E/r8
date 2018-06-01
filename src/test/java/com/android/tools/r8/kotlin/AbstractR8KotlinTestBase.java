@@ -223,7 +223,7 @@ public abstract class AbstractR8KotlinTestBase extends TestBase {
 
   protected void runTest(String folder, String mainClass, String extraProguardRules,
       Consumer<InternalOptions> optionsConsumer, AndroidAppInspector inspector) throws Exception {
-    Assume.assumeTrue(ToolHelper.artSupported());
+    Assume.assumeTrue(ToolHelper.artSupported() || ToolHelper.compareAgaintsGoldenFiles());
 
     String proguardRules = buildProguardRules(mainClass);
     if (extraProguardRules != null) {

@@ -35,7 +35,7 @@ public class R8InliningRegressionTests extends TestBase {
   }
 
   private void buildAndTest(String folder, String mainClass) throws Exception {
-    Assume.assumeTrue(ToolHelper.artSupported());
+    Assume.assumeTrue(ToolHelper.artSupported() || ToolHelper.compareAgaintsGoldenFiles());
 
     Path proguardRules = Paths.get(ToolHelper.EXAMPLES_DIR, folder, "keep-rules.txt");
     Path jarFile =

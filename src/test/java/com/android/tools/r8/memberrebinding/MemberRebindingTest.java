@@ -16,6 +16,7 @@ import com.android.tools.r8.utils.DexInspector.FieldAccessInstructionSubject;
 import com.android.tools.r8.utils.DexInspector.InstructionSubject;
 import com.android.tools.r8.utils.DexInspector.InvokeInstructionSubject;
 import com.android.tools.r8.utils.DexInspector.MethodSubject;
+import com.android.tools.r8.utils.TestDescriptionWatcher;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -26,6 +27,7 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -59,6 +61,9 @@ public class MemberRebindingTest {
 
   @Rule
   public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
+
+  @Rule
+  public TestDescriptionWatcher watcher = new TestDescriptionWatcher();
 
   public MemberRebindingTest(TestConfiguration configuration) {
     this.kind = configuration.kind;
@@ -319,9 +324,8 @@ public class MemberRebindingTest {
 
   @Test
   public void memberRebindingTest() throws IOException, InterruptedException, ExecutionException {
-    if (!ToolHelper.artSupported()) {
-      return;
-    }
+    Assume.assumeTrue(ToolHelper.artSupported() || ToolHelper.compareAgaintsGoldenFiles());
+
     String out = temp.getRoot().getCanonicalPath();
     Path processed = Paths.get(out, "classes.dex");
 

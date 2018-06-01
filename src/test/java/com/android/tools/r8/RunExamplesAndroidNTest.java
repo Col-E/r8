@@ -14,6 +14,7 @@ import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OffOrAuto;
+import com.android.tools.r8.utils.TestDescriptionWatcher;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.nio.file.Path;
@@ -73,7 +74,7 @@ public abstract class RunExamplesAndroidNTest<B> {
 
       build(inputFile, out);
 
-      if (!ToolHelper.artSupported()) {
+      if (!ToolHelper.artSupported() && !ToolHelper.dealsWithGoldenFiles()) {
         return;
       }
 
@@ -117,6 +118,8 @@ public abstract class RunExamplesAndroidNTest<B> {
   @Rule public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
   @Rule public ExpectedException thrown = ExpectedException.none();
+
+  @Rule public TestDescriptionWatcher watcher = new TestDescriptionWatcher();
 
   @Test
   public void staticInterfaceMethods() throws Throwable {

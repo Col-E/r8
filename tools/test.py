@@ -15,6 +15,7 @@ import sys
 import utils
 import uuid
 import notify
+import upload_to_x20
 
 
 ALL_ART_VMS = ["default", "7.0.0", "6.0.1", "5.1.1", "4.4.4", "4.0.4"]
@@ -78,6 +79,13 @@ def ParseOptions():
           ' Note that the directory will not be cleared before the test.')
   result.add_option('--java_home',
       help='Use a custom java version to run tests.')
+  result.add_option('--generate_golden_files_to',
+      help='Store dex files produced by tests in the specified directory.'
+           ' It is aimed to be read on platforms with no host runtime available'
+           ' for comparison.')
+  result.add_option('--use_golden_files_in',
+      help='Download golden files hierarchy for this commit in the specified'
+           ' location and use them instead of executing on host runtime.')
 
   return result.parse_args()
 
@@ -93,7 +101,7 @@ def archive_failures():
 def Main():
   (options, args) = ParseOptions()
 
-  gradle_args = []
+  gradle_args = ['--stacktrace']
   # Set all necessary Gradle properties and options first.
   if options.verbose:
     gradle_args.append('-Pprint_test_stdout')
@@ -134,7 +142,16 @@ def Main():
       os.makedirs(options.test_dir)
   if options.java_home:
     gradle_args.append('-Dorg.gradle.java.home=' + options.java_home)
-
+  if options.generate_golden_files_to:
+    gradle_args.append('-Pgenerate_golden_files_to=' + options.generate_golden_files_to)
+    if not os.path.exists(options.generate_golden_files_to):
+      os.makedirs(options.generate_golden_files_to)
+    gradle_args.append('-PHEAD_sha1=' + utils.get_HEAD_sha1())
+  if options.use_golden_files_in:
+    gradle_args.append('-Puse_golden_files_in=' + options.use_golden_files_in)
+    if not os.path.exists(options.use_golden_files_in):
+      os.makedirs(options.use_golden_files_in)
+    gradle_args.append('-PHEAD_sha1=' + utils.get_HEAD_sha1())
   # Add Gradle tasks
   gradle_args.append('cleanTest')
   gradle_args.append('test')
@@ -146,12 +163,29 @@ def Main():
     # Create Jacoco report after tests.
     gradle_args.append('jacocoTestReport')
 
+  if options.use_golden_files_in:
+    sha1 = '%s' % utils.get_HEAD_sha1()
+    with utils.ChangedWorkingDirectory(options.use_golden_files_in):
+      utils.download_file_from_cloud_storage(
+                                    'gs://r8-test-results/golden-files/%s.tar.gz' % sha1,
+                                    '%s.tar.gz' % sha1)
+      utils.unpack_archive('%s.tar.gz' % sha1)
+
+
   # Now run tests on selected runtime(s).
   vms_to_test = [options.dex_vm] if options.dex_vm != "all" else ALL_ART_VMS
   for art_vm in vms_to_test:
     vm_kind_to_test = "_" + options.dex_vm_kind if art_vm != "default" else ""
     return_code = gradle.RunGradle(gradle_args + ['-Pdex_vm=%s' % (art_vm + vm_kind_to_test)],
                                    throw_on_failure=False)
+
+    if options.generate_golden_files_to:
+      sha1 = '%s' % utils.get_HEAD_sha1()
+      with utils.ChangedWorkingDirectory(options.generate_golden_files_to):
+        archive = utils.create_archive(sha1)
+        utils.upload_file_to_cloud_storage(archive,
+                                           'gs://r8-test-results/golden-files/' + archive)
+
     if return_code != 0:
       if options.archive_failures and os.name != 'nt':
         archive_failures()

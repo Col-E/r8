@@ -19,17 +19,10 @@ GMSCORE_DEPS = '/google/data/ro/teams/r8/deps'
 def parse_options():
   return optparse.OptionParser().parse_args()
 
-def extract_dir(filename):
-  return filename[0:len(filename) - len('.tar.gz')]
-
-def unpack_archive(filename):
-  dest_dir = extract_dir(filename)
-  if os.path.exists(dest_dir):
-    print 'Deleting existing dir %s' % dest_dir
-    shutil.rmtree(dest_dir)
-  dirname = os.path.dirname(os.path.abspath(filename))
-  with tarfile.open(filename, 'r:gz') as tar:
-    tar.extractall(path=dirname)
+def download(src, dest):
+  print 'Downloading %s to %s' % (src, dest)
+  shutil.copyfile(src, dest)
+  utils.unpack_archive(dest)
 
 def Main():
   (options, args) = parse_options()
@@ -41,20 +34,18 @@ def Main():
     sha1 = input_sha.readline()
   if os.path.exists(dest) and utils.get_sha1(dest) == sha1:
     print 'sha1 matches, not downloading'
-    dest_dir = extract_dir(dest)
+    dest_dir = utils.extract_dir(dest)
     if os.path.exists(dest_dir):
       print 'destination directory exists, no extraction'
     else:
-      unpack_archive(dest)
+      utils.unpack_archive(dest)
     return
   src = os.path.join(GMSCORE_DEPS, sha1)
   if not os.path.exists(src):
     print 'File (%s) does not exist on x20' % src
     print 'Maybe pass -Pno_internal to your gradle invocation'
     return 42
-  print 'Downloading %s to %s' % (src, dest)
-  shutil.copyfile(src, dest)
-  unpack_archive(dest)
+  download(src, dest)
 
 if __name__ == '__main__':
   sys.exit(Main())
