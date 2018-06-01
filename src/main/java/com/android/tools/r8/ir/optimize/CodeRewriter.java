@@ -59,6 +59,7 @@ import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.NewArrayFilledData;
+import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Position;
@@ -96,9 +97,12 @@ import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.ints.IntLists;
 import it.unimi.dsi.fastutil.objects.Object2IntLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import it.unimi.dsi.fastutil.objects.Reference2IntMap;
+import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -2633,5 +2637,148 @@ public class CodeRewriter {
     }
     // When we fall out of the loop the iterator is in the last eol block.
     iterator.add(new InvokeVirtual(printLn, null, ImmutableList.of(out, empty)));
+  }
+
+  public static void ensureDirectStringNewToInit(IRCode code) {
+    DexItemFactory factory = code.options.itemFactory;
+    for (BasicBlock block : code.blocks) {
+      for (InstructionListIterator it = block.listIterator(); it.hasNext(); ) {
+        Instruction instruction = it.next();
+        if (instruction.isInvokeDirect()) {
+          InvokeDirect invoke = instruction.asInvokeDirect();
+          DexMethod method = invoke.getInvokedMethod();
+          if (factory.isConstructor(method)
+              && method.holder == factory.stringType
+              && invoke.getReceiver().isPhi()) {
+            NewInstance newInstance = findNewInstance(invoke.getReceiver().asPhi());
+            replaceTrivialNewInstancePhis(newInstance.outValue());
+            if (invoke.getReceiver().isPhi()) {
+              throw new CompilationError(
+                  "Failed to remove trivial phis between new-instance and <init>");
+            }
+            newInstance.markNoSpilling();
+          }
+        }
+      }
+    }
+  }
+
+  private static NewInstance findNewInstance(Phi phi) {
+    Set<Phi> seen = new HashSet<>();
+    Set<Value> values = new HashSet<>();
+    recursiveAddOperands(phi, seen, values);
+    if (values.size() != 1) {
+      throw new CompilationError("Failed to identify unique new-instance for <init>");
+    }
+    Value newInstanceValue = values.iterator().next();
+    if (newInstanceValue.definition == null || !newInstanceValue.definition.isNewInstance()) {
+      throw new CompilationError("Invalid defining value for call to <init>");
+    }
+    return newInstanceValue.definition.asNewInstance();
+  }
+
+  private static void recursiveAddOperands(Phi phi, Set<Phi> seen, Set<Value> values) {
+    for (Value operand : phi.getOperands()) {
+      if (!operand.isPhi()) {
+        values.add(operand);
+      } else {
+        Phi phiOp = operand.asPhi();
+        if (seen.add(phiOp)) {
+          recursiveAddOperands(phiOp, seen, values);
+        }
+      }
+    }
+  }
+
+  // If an <init> call takes place on a phi the code must contain an irreducible loop between the
+  // new-instance and the <init>. Assuming the code is verifiable, new-instance must flow to a
+  // unique <init>. Here we compute the set of strongly connected phis making use of the
+  // new-instance value and replace all trivial ones by the new-instance value.
+  // This is a simplified variant of the removeRedundantPhis algorithm in Section 3.2 of:
+  // http://compilers.cs.uni-saarland.de/papers/bbhlmz13cc.pdf
+  private static void replaceTrivialNewInstancePhis(Value newInstanceValue) {
+    List<Set<Value>> components = new SCC().computeSCC(newInstanceValue);
+    for (int i = components.size() - 1; i >= 0; i--) {
+      Set<Value> component = components.get(i);
+      if (component.size() == 1 && component.iterator().next() == newInstanceValue) {
+        continue;
+      }
+      Set<Phi> trivialPhis = new HashSet<>();
+      for (Value value : component) {
+        boolean isTrivial = true;
+        Phi p = value.asPhi();
+        for (Value op : p.getOperands()) {
+          if (op != newInstanceValue && !component.contains(op)) {
+            isTrivial = false;
+            break;
+          }
+        }
+        if (isTrivial) {
+          trivialPhis.add(p);
+        }
+      }
+      for (Phi trivialPhi : trivialPhis) {
+        for (Value op : trivialPhi.getOperands()) {
+          op.removePhiUser(trivialPhi);
+        }
+        trivialPhi.replaceUsers(newInstanceValue);
+        trivialPhi.getBlock().removePhi(trivialPhi);
+      }
+    }
+  }
+
+  // Dijkstra's path-based strongly-connected components algorithm.
+  // https://en.wikipedia.org/wiki/Path-based_strong_component_algorithm
+  private static class SCC {
+
+    private int currentTime = 0;
+    private final Reference2IntMap<Value> discoverTime = new Reference2IntOpenHashMap<>();
+    private final Set<Value> unassignedSet = new HashSet<>();
+    private final Deque<Value> unassignedStack = new ArrayDeque<>();
+    private final Deque<Value> preorderStack = new ArrayDeque<>();
+    private final List<Set<Value>> components = new ArrayList<>();
+
+    public List<Set<Value>> computeSCC(Value v) {
+      assert currentTime == 0;
+      dfs(v);
+      return components;
+    }
+
+    private void dfs(Value value) {
+      discoverTime.put(value, currentTime++);
+      unassignedSet.add(value);
+      unassignedStack.push(value);
+      preorderStack.push(value);
+      for (Phi phi : value.uniquePhiUsers()) {
+        if (!discoverTime.containsKey(phi)) {
+          // If not seen yet, continue the search.
+          dfs(phi);
+        } else if (unassignedSet.contains(phi)) {
+          // If seen already and the element is on the unassigned stack we have found a cycle.
+          // Pop off everything discovered later than the target from the preorder stack. This may
+          // not coincide with the cycle as an outer cycle may already have popped elements off.
+          int discoverTimeOfPhi = discoverTime.getInt(phi);
+          while (discoverTimeOfPhi < discoverTime.getInt(preorderStack.peek())) {
+            preorderStack.pop();
+          }
+        }
+      }
+      if (preorderStack.peek() == value) {
+        // If the current element is the top of the preorder stack, then we are at entry to a
+        // strongly-connected component consisting of this element and every element above this
+        // element on the stack.
+        Set<Value> component = new HashSet<>(unassignedStack.size());
+        while (true) {
+          Value member = unassignedStack.pop();
+          unassignedSet.remove(member);
+          component.add(member);
+          if (member == value) {
+            components.add(component);
+            break;
+          }
+        }
+        preorderStack.pop();
+      }
+    }
   }
 }

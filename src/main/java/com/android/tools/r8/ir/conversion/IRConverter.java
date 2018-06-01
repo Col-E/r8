@@ -628,6 +628,10 @@ public class IRConverter {
     printC1VisualizerHeader(method);
     printMethod(code, "Initial IR (SSA)");
 
+    if (options.canHaveArtStringNewInitBug()) {
+      codeRewriter.ensureDirectStringNewToInit(code);
+    }
+
     if (options.debug) {
       codeRewriter.simplifyDebugLocals(code);
     }

@@ -621,4 +621,12 @@ public class InternalOptions {
   public boolean canHaveDex2OatLinkedListBug() {
     return minApiLevel < AndroidApiLevel.N.getLevel();
   }
+
+  // Art 7.0.0 and later Art JIT may perform an invalid optimization if a string new-instance does
+  // not flow directly to the init call.
+  //
+  // See b/78493232 and b/80118070.
+  public boolean canHaveArtStringNewInitBug() {
+    return minApiLevel <= AndroidApiLevel.P.getLevel();
+  }
 }

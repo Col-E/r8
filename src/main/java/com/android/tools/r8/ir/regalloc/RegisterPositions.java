@@ -23,6 +23,7 @@ public class RegisterPositions {
   private int[] backing;
   private final BitSet registerHoldsConstant;
   private final BitSet registerHoldsMonitor;
+  private final BitSet registerHoldsNewStringInstanceDisallowingSpilling;
 
   public RegisterPositions(int limit) {
     this.limit = limit;
@@ -32,6 +33,7 @@ public class RegisterPositions {
     }
     registerHoldsConstant = new BitSet(limit);
     registerHoldsMonitor = new BitSet(limit);
+    registerHoldsNewStringInstanceDisallowingSpilling = new BitSet(limit);
   }
 
   public boolean hasType(int index, Type type) {
@@ -41,7 +43,9 @@ public class RegisterPositions {
       case CONST_NUMBER:
         return holdsConstant(index);
       case OTHER:
-        return !holdsMonitor(index) && !holdsConstant(index);
+        return !holdsMonitor(index)
+            && !holdsConstant(index)
+            && !holdsNewStringInstanceDisallowingSpilling(index);
       case ANY:
         return true;
       default:
@@ -55,6 +59,10 @@ public class RegisterPositions {
 
   private boolean holdsMonitor(int index) { return registerHoldsMonitor.get(index); }
 
+  private boolean holdsNewStringInstanceDisallowingSpilling(int index) {
+    return registerHoldsNewStringInstanceDisallowingSpilling.get(index);
+  }
+
   public void set(int index, int value) {
     if (index >= backing.length) {
       grow(index + 1);
@@ -66,6 +74,8 @@ public class RegisterPositions {
     set(index, value);
     registerHoldsConstant.set(index, intervals.isConstantNumberInterval());
     registerHoldsMonitor.set(index, intervals.usedInMonitorOperation());
+    registerHoldsNewStringInstanceDisallowingSpilling.set(
+        index, intervals.isNewStringInstanceDisallowingSpilling());
   }
 
   public int get(int index) {
