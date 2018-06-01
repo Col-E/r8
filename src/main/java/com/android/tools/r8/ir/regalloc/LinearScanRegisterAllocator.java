@@ -1819,6 +1819,10 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       // we allow ourselves to look at monitor spill candidates as well. Registers holding objects
       // used as monitors should not be spilled if we can avoid it. Spilling them can lead
       // to Art lock verification issues.
+      // Also, at this point we still don't allow splitting any string new-instance instructions
+      // that have been explicitly blocked. Doing so could lead to a behavioral bug on some ART
+      // runtimes (b/80118070). To remove this restriction, we would need to know when the call to
+      // <init> has definitely happened, and would be safe to split the value after that point.
       if (candidate == REGISTER_CANDIDATE_NOT_FOUND) {
         candidate = getLargestValidCandidate(
             unhandledInterval, registerConstraint, needsRegisterPair, usePositions, Type.MONITOR);

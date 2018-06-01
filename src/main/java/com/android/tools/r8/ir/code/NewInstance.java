@@ -19,6 +19,7 @@ import java.util.function.Function;
 public class NewInstance extends Instruction {
 
   public final DexType clazz;
+  private boolean allowSpilling = true;
 
   public NewInstance(DexType clazz, Value dest) {
     super(dest);
@@ -108,5 +109,13 @@ public class NewInstance extends Instruction {
   @Override
   public boolean triggersInitializationOfClass(DexType klass) {
     return clazz == klass;
+  }
+
+  public void markNoSpilling() {
+    allowSpilling = false;
+  }
+
+  public boolean isSpillingAllowed() {
+    return allowSpilling;
   }
 }

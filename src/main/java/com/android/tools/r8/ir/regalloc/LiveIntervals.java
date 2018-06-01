@@ -522,6 +522,13 @@ public class LiveIntervals implements Comparable<LiveIntervals> {
     return usedInMonitorOperations;
   }
 
+  public boolean isNewStringInstanceDisallowingSpilling() {
+    // Due to b/80118070 some String new-instances must not be spilled.
+    return value.definition != null
+        && value.definition.isNewInstance()
+        && !value.definition.asNewInstance().isSpillingAllowed();
+  }
+
   public int numberOfUsesWithConstraint() {
     int count = 0;
     for (LiveIntervalsUse use : getUses()) {
