@@ -31,13 +31,14 @@ public class Regress78493232Utils {
 
   public static void compare(String output, int iterations) {
     String expected = "java.security.SecureRandom";
-    if (output.equals(expected)) {
+    if (expected.equals(output)) {
       return;
     }
     System.out.println(
         "After " + iterations + " iterations, expected \"" +
         expected + "\", but got \"" + output + "\"");
-    System.exit(1);
+    // Exit with code 0 to allow test to use ensureSameOutput().
+    System.exit(0);
   }
 
   public static void compareHash(int a, int b, byte[] c, int iterations) {
@@ -53,6 +54,7 @@ public class Regress78493232Utils {
     System.out.println("staticIntB: " + b);
     System.out.print("staticIntByteArray: ");
     printByteArray(c);
-    System.exit(1);
+    // Exit with code 0 to allow test to use ensureSameOutput().
+    System.exit(0);
   }
 }
