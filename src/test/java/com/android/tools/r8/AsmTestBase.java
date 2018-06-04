@@ -64,6 +64,10 @@ public class AsmTestBase extends TestBase {
     Assert.assertEquals(javaResult.stdout, d8Result.stdout);
     Assert.assertEquals(javaResult.stdout, r8Result.stdout);
     Assert.assertEquals(javaResult.stdout, r8ShakenResult.stdout);
+    Assert.assertEquals(0, javaResult.exitCode);
+    Assert.assertEquals(0, d8Result.exitCode);
+    Assert.assertEquals(0, r8Result.exitCode);
+    Assert.assertEquals(0, r8ShakenResult.exitCode);
   }
 
   protected void ensureR8FailsWithCompilationError(String main, byte[]... classes)

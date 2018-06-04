@@ -231,21 +231,25 @@ public class Regress78493232Dump_WithPhi implements Opcodes {
       mv.visitJumpInsn(IFEQ, l7_b1);
       mv.visitLabel(l7_b0);
       mv.visitInsn(ACONST_NULL);
+      // At this point, NULL flows to l7_join.
       mv.visitJumpInsn(GOTO, l7_join);
       mv.visitLabel(l7_b1);
       mv.visitVarInsn(ALOAD, 10);
-      // Swap the new-instance or null, with the byte-array.
+      // At this point, an uninitialized String flows to l7_join.
       mv.visitLabel(l7_join);
+      // At this point, stack contains [staticByteArray, NULL/uninitialized]
       mv.visitInsn(SWAP);
-      // Load the new-instacne and swap again with the byte-array.
+      // At this point, stack contains [NULL/uninitialized, staticByteArray]
       mv.visitVarInsn(ALOAD, 10);
+      // At this point, stack contains [NULL/uninitialized, staticByteArray, uninitialized]
       mv.visitInsn(SWAP);
+      // At this point, stack contains [NULL/uninitialized, uninitialized, staticByteArray]
       mv.visitInsn(ICONST_0);
-      // Invoke special will now always be on the new-instance as receiver.
+      // At this point, stack contains [NULL/uninitialized, uninitialized, staticByteArray, 0]
       mv.visitMethodInsn(INVOKESPECIAL, "java/lang/String", "<init>", "([BI)V", false);
-      // Return will be either new-instance or null.
+      // Just before ARETURN, stack contains [NULL/String].
       // This will force a non-trivial phi of the new-instance on this block, ie, prior to <init>.
-      // This phi must remain.
+      // This phi must remain since it is not trivial.
       mv.visitInsn(ARETURN);
       mv.visitLabel(l8);
       mv.visitVarInsn(ILOAD, 0);
