@@ -341,22 +341,35 @@ public class DescriptorUtils {
     }
   }
 
-  // Guess class descriptor from location of the class file.
+  /**
+   * Guess class descriptor from location of the class file on the file system
+   *
+   * @param name Path of the file to convert to the corresponding descriptor
+   * @return java class descriptor
+   */
   public static String guessTypeDescriptor(Path name) {
-    return guessTypeDescriptor(name.toString());
+    String fileName = name.toString();
+    if (File.separatorChar != '/') {
+      fileName = fileName.replace(File.separatorChar, '/');
+    }
+    return guessTypeDescriptor(fileName);
   }
 
-  // Guess class descriptor from location of the class file.
+  /**
+   * Guess class descriptor from location of the class file. This method assumes that the
+   * name uses '/' as the separator. Therefore, this should not be the name of a file
+   * on a file system.
+   *
+   * @param name the location of the class file to convert to descriptor
+   * @return java class descriptor
+   */
   public static String guessTypeDescriptor(String name) {
     assert name != null;
     assert name.endsWith(CLASS_EXTENSION) :
         "Name " + name + " must have " + CLASS_EXTENSION + " suffix";
-    String fileName =
-        File.separatorChar == '/' ? name.toString() :
-            name.toString().replace(File.separatorChar, '/');
-    String descriptor = fileName.substring(0, fileName.length() - CLASS_EXTENSION.length());
+    String descriptor = name.substring(0, name.length() - CLASS_EXTENSION.length());
     if (descriptor.contains(".")) {
-      throw new CompilationError("Unexpected class file name: " + fileName);
+      throw new CompilationError("Unexpected class file name: " + name);
     }
     return 'L' + descriptor + ';';
   }
