@@ -6,7 +6,10 @@ package com.android.tools.r8.utils;
 
 import static org.junit.Assert.assertEquals;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import org.junit.Test;
 
 public class DescriptorUtilsTest {
@@ -66,5 +69,17 @@ public class DescriptorUtilsTest {
     assertEquals("int[][]", DescriptorUtils.descriptorToJavaType("[[I"));
     assertEquals("java.lang.Object", DescriptorUtils.descriptorToJavaType("Ljava/lang/Object;"));
     assertEquals("a.b.C", DescriptorUtils.descriptorToJavaType("La/b/C;"));
+  }
+
+  @Test
+  public void guessClassDescriptor() {
+    String obj = "java/lang/Object.class";
+    assertEquals("Ljava/lang/Object;", DescriptorUtils.guessTypeDescriptor(obj));
+    String objBackslash = "java\\lang\\Object.class";
+    assertEquals("Ljava\\lang\\Object;", DescriptorUtils.guessTypeDescriptor(objBackslash));
+    String objFileSeparatorChar =
+        "java" + File.separatorChar + "lang" + File.separatorChar + "Object.class";
+    assertEquals("Ljava/lang/Object;",
+        DescriptorUtils.guessTypeDescriptor(Paths.get(objFileSeparatorChar)));
   }
 }

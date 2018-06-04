@@ -54,17 +54,18 @@ public class ArchiveResourceProvider implements ProgramResourceProvider, DataRes
       while (entries.hasMoreElements()) {
         ZipEntry entry = entries.nextElement();
         try (InputStream stream = zipFile.getInputStream(entry)) {
-          Path name = Paths.get(entry.getName());
-          Origin entryOrigin = new ArchiveEntryOrigin(entry.getName(), origin);
-          if (archive.matchesFile(name)) {
-            if (isDexFile(name)) {
+          String name = entry.getName();
+          Path path = Paths.get(name);
+          Origin entryOrigin = new ArchiveEntryOrigin(name, origin);
+          if (archive.matchesFile(path)) {
+            if (isDexFile(path)) {
               if (!ignoreDexInArchive) {
                 ProgramResource resource =
                     OneShotByteResource.create(
                         Kind.DEX, entryOrigin, ByteStreams.toByteArray(stream), null);
                 dexResources.add(resource);
               }
-            } else if (isClassFile(name)) {
+            } else if (isClassFile(path)) {
               String descriptor = DescriptorUtils.guessTypeDescriptor(name);
               ProgramResource resource =
                   OneShotByteResource.create(
