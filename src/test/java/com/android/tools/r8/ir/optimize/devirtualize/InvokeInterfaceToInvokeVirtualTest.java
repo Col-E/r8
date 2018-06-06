@@ -60,7 +60,7 @@ public class InvokeInterfaceToInvokeVirtualTest extends TestBase {
         ToolHelper.getClassAsBytes(Main.class)
     };
     String main = Main.class.getCanonicalName();
-    ProcessResult javaOutput = runOnJava(main, classes);
+    ProcessResult javaOutput = runOnJavaRaw(main, classes);
     assertEquals(0, javaOutput.exitCode);
 
     AndroidApp originalApp = buildAndroidApp(classes);
