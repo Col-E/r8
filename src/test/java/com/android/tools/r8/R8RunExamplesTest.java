@@ -151,7 +151,7 @@ public class R8RunExamplesTest extends R8RunExamplesCommon {
   }
 
   @Override
-  protected Set<String> getFailingCompileCfToDex() {
+  protected Set<String> getFailingRunCfToDex() {
     return new ImmutableSet.Builder<String>()
         // TODO(b/109788783): Implement byte/boolean distinction for array load/store.
         .add("arrayaccess.ArrayAccess")
@@ -161,7 +161,7 @@ public class R8RunExamplesTest extends R8RunExamplesCommon {
   }
 
   @Override
-  protected Set<String> getFailingRunCfToDex() {
+  protected Set<String> getFailingCompileCfToDex() {
     return new ImmutableSet.Builder<String>()
         // TODO(b/109789541): Implement method synchronization for DEX backend.
         .add("sync.Sync")
