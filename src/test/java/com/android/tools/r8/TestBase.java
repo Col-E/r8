@@ -503,7 +503,7 @@ public class TestBase {
     return result.stdout;
   }
 
-  protected ProcessResult runOnJava(String main, byte[]... classes) throws IOException {
+  protected ProcessResult runOnJavaRaw(String main, byte[]... classes) throws IOException {
     Path file = writeToZip(Arrays.asList(classes));
     return ToolHelper.runJavaNoVerify(file, main);
   }

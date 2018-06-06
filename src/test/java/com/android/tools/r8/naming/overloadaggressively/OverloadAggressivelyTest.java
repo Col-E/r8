@@ -8,9 +8,9 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.TestBase;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
+import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.VmTestRunner;
@@ -77,7 +77,7 @@ public class OverloadAggressivelyTest extends TestBase {
     assertEquals(overloadaggressively, f2.field.name == f3.field.name);
 
     String main = FieldUpdater.class.getCanonicalName();
-    ProcessResult javaOutput = runOnJava(main, classes);
+    ProcessResult javaOutput = runOnJavaRaw(main, classes);
     assertEquals(0, javaOutput.exitCode);
     ProcessResult artOutput = runOnArtRaw(processedApp, main);
     // TODO(b/72858955): eventually, R8 should avoid this field resolution conflict.
@@ -123,7 +123,7 @@ public class OverloadAggressivelyTest extends TestBase {
     assertEquals(overloadaggressively, f1.field.name == f3.field.name);
 
     String main = FieldResolution.class.getCanonicalName();
-    ProcessResult javaOutput = runOnJava(main, classes);
+    ProcessResult javaOutput = runOnJavaRaw(main, classes);
     assertEquals(0, javaOutput.exitCode);
     ProcessResult artOutput = runOnArtRaw(processedApp, main);
     // TODO(b/72858955): R8 should avoid field resolution conflict even w/ -overloadaggressively.
@@ -175,7 +175,7 @@ public class OverloadAggressivelyTest extends TestBase {
     assertEquals(overloadaggressively, m2.method.name == m3.method.name);
 
     String main = MethodResolution.class.getCanonicalName();
-    ProcessResult javaOutput = runOnJava(main, classes);
+    ProcessResult javaOutput = runOnJavaRaw(main, classes);
     assertEquals(0, javaOutput.exitCode);
     ProcessResult artOutput = runOnArtRaw(processedApp, main);
     // TODO(b/72858955): R8 should avoid method resolution conflict even w/ -overloadaggressively.

@@ -63,7 +63,7 @@ public class ClassInlinerTest extends TestBase {
         ToolHelper.getClassAsBytes(ClassWithFinal.class)
     };
     String main = TrivialTestClass.class.getCanonicalName();
-    ProcessResult javaOutput = runOnJava(main, classes);
+    ProcessResult javaOutput = runOnJavaRaw(main, classes);
     assertEquals(0, javaOutput.exitCode);
 
     AndroidApp app = runR8(buildAndroidApp(classes), TrivialTestClass.class);
@@ -135,7 +135,7 @@ public class ClassInlinerTest extends TestBase {
         ToolHelper.getClassAsBytes(ControlFlow.class),
     };
     String main = BuildersTestClass.class.getCanonicalName();
-    ProcessResult javaOutput = runOnJava(main, classes);
+    ProcessResult javaOutput = runOnJavaRaw(main, classes);
     assertEquals(0, javaOutput.exitCode);
 
     AndroidApp app = runR8(buildAndroidApp(classes), BuildersTestClass.class);

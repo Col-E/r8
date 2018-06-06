@@ -23,7 +23,7 @@ public class AsmTestBase extends TestBase {
 
   protected void ensureException(String main, Class<? extends Throwable> exceptionClass,
       byte[]... classes) throws Exception {
-    ensureExceptionThrown(runOnJava(main, classes), exceptionClass);
+    ensureExceptionThrown(runOnJavaRaw(main, classes), exceptionClass);
     AndroidApp app = buildAndroidApp(classes);
     ensureExceptionThrown(runOnArtRaw(compileWithD8(app), main), exceptionClass);
     ensureExceptionThrown(runOnArtRaw(compileWithR8(app), main), exceptionClass);
@@ -37,7 +37,7 @@ public class AsmTestBase extends TestBase {
       throws Exception {
     AndroidApp app = buildAndroidApp(classes);
     Consumer<InternalOptions> setMinApiLevel = o -> o.minApiLevel = apiLevel.getLevel();
-    ProcessResult javaResult = runOnJava(main, classes);
+    ProcessResult javaResult = runOnJavaRaw(main, classes);
     ProcessResult d8Result = runOnArtRaw(compileWithD8(app, setMinApiLevel), main);
     ProcessResult r8Result = runOnArtRaw(compileWithR8(app, setMinApiLevel), main);
     ProcessResult r8ShakenResult = runOnArtRaw(
@@ -56,7 +56,7 @@ public class AsmTestBase extends TestBase {
   private void ensureSameOutput(String main, AndroidApp app, byte[]... classes)
       throws IOException, ExecutionException, CompilationFailedException,
           ProguardRuleParserException {
-    ProcessResult javaResult = runOnJava(main, classes);
+    ProcessResult javaResult = runOnJavaRaw(main, classes);
     ProcessResult d8Result = runOnArtRaw(compileWithD8(app), main);
     ProcessResult r8Result = runOnArtRaw(compileWithR8(app), main);
     ProcessResult r8ShakenResult = runOnArtRaw(
