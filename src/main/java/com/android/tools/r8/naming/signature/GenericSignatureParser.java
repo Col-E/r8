@@ -75,24 +75,51 @@ public class GenericSignatureParser<T> {
   }
 
   public void parseClassSignature(String signature) {
-    actions.start();
-    setInput(signature);
-    parseClassSignature();
-    actions.stop();
+    try {
+      actions.start();
+      setInput(signature);
+      parseClassSignature();
+      actions.stop();
+    } catch (GenericSignatureFormatError e) {
+      throw e;
+    } catch (Throwable t) {
+      Error e = new GenericSignatureFormatError(
+          "Unknown error parsing generic signature: " + t.getMessage());
+      e.addSuppressed(t);
+      throw e;
+    }
   }
 
   public void parseMethodSignature(String signature) {
-    actions.start();
-    setInput(signature);
-    parseMethodTypeSignature();
-    actions.stop();
+    try {
+      actions.start();
+      setInput(signature);
+      parseMethodTypeSignature();
+      actions.stop();
+    } catch (GenericSignatureFormatError e) {
+      throw e;
+    } catch (Throwable t) {
+      Error e = new GenericSignatureFormatError(
+          "Unknown error parsing generic signature: " + t.getMessage());
+      e.addSuppressed(t);
+      throw e;
+    }
   }
 
   public void parseFieldSignature(String signature) {
-    actions.start();
-    setInput(signature);
-    parseFieldTypeSignature();
-    actions.stop();
+    try {
+      actions.start();
+      setInput(signature);
+      parseFieldTypeSignature();
+      actions.stop();
+  } catch (GenericSignatureFormatError e) {
+    throw e;
+  } catch (Throwable t) {
+    Error e = new GenericSignatureFormatError(
+        "Unknown error parsing generic signature: " + t.getMessage());
+    e.addSuppressed(t);
+    throw e;
+  }
   }
 
   private void setInput(String input) {
@@ -178,7 +205,7 @@ public class GenericSignatureParser<T> {
         updateTypeVariableSignature();
         break;
       default:
-        parseError();
+        parseError("Expected L, [ or T", pos);
     }
   }
 
@@ -341,15 +368,18 @@ public class GenericSignatureParser<T> {
         eof = true;
       }
     } else {
-      parseError("Unexpected end of signature");
+      parseError("Unexpected end of signature", pos);
     }
   }
 
   private void expect(char c) {
+    if (eof) {
+      parseError("Unexpected end of signature", pos);
+    }
     if (symbol == c) {
       scanSymbol();
     } else {
-      parseError("Expected " + c);
+      parseError("Expected " + c, pos - 1);
     }
   }
 
@@ -369,7 +399,7 @@ public class GenericSignatureParser<T> {
   // PRE: symbol is the first char of the identifier.
   // POST: symbol = the next symbol AFTER the identifier.
   private void scanIdentifier() {
-    if (!eof) {
+    if (!eof && pos < buffer.length) {
       StringBuilder identBuf = new StringBuilder(32);
       if (!isStopSymbol(symbol)) {
         identBuf.append(symbol);
@@ -399,15 +429,15 @@ public class GenericSignatureParser<T> {
         parseError();
       }
     } else {
-      parseError("Unexpected end of signature");
+      parseError("Unexpected end of signature", pos);
     }
   }
 
   private void parseError() {
-    parseError("Unexpected");
+    parseError("Unexpected", pos);
   }
 
-  private void parseError(String message) {
+  private void parseError(String message, int pos) {
     String arrow = CharBuffer.allocate(pos).toString().replace('\0', ' ') + '^';
     throw new GenericSignatureFormatError(
         message + " at position " + (pos + 1) + "\n" + String.valueOf(buffer) + "\n" + arrow);
