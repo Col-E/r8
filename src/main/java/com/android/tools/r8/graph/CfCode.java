@@ -225,8 +225,11 @@ public class CfCode extends Code {
       ValueNumberGenerator generator,
       Position callerPosition,
       Origin origin) {
-    assert !options.isGeneratingDex() || !encodedMethod.accessFlags.isSynchronized()
-        : "Converting CfCode to IR not supported for DEX output of synchronized methods.";
+    // TODO(b/109789541): Implement CF->IR->DEX for synchronized methods.
+    if (options.isGeneratingDex() && encodedMethod.accessFlags.isSynchronized()) {
+      throw new Unimplemented(
+          "Converting CfCode to IR not supported for DEX output of synchronized methods.");
+    }
     CfSourceCode source = new CfSourceCode(this, encodedMethod, callerPosition, origin);
     IRBuilder builder =
         (generator == null)

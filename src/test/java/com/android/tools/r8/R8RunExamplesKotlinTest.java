@@ -49,6 +49,16 @@ public class R8RunExamplesKotlinTest extends R8RunExamplesCommon {
   }
 
   @Override
+  protected Set<String> getFailingCompileCfToDex() {
+    return Collections.emptySet();
+  }
+
+  @Override
+  protected Set<String> getFailingRunCfToDex() {
+    return Collections.emptySet();
+  }
+
+  @Override
   protected Set<String> getFailingCompileCf() {
     return Collections.emptySet();
   }

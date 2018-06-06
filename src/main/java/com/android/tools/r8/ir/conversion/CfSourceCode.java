@@ -324,7 +324,7 @@ public class CfSourceCode implements SourceCode {
     buildArgumentInstructions(builder);
     recordStateForTarget(0, state.getSnapshot());
     // TODO: addDebugLocalUninitialized + addDebugLocalStart for non-argument locals live at 0
-    // TODO: Generate method synchronization
+    // TODO(b/109789541): Generate method synchronization for DEX backend.
     inPrelude = false;
   }
 
@@ -353,7 +353,7 @@ public class CfSourceCode implements SourceCode {
 
   @Override
   public void buildPostlude(IRBuilder builder) {
-    // Since we're generating classfiles, we never need to synthesize monitor enter/exit.
+    // TODO(b/109789541): Generate method synchronization for DEX backend.
   }
 
   @Override

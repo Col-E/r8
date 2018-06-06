@@ -148,6 +148,11 @@ public abstract class R8RunExamplesCommon {
     if (output == Output.CF && getFailingCompileCf().contains(mainClass)) {
       thrown.expect(Throwable.class);
     }
+    if (frontend == Frontend.CF
+        && output == Output.DEX
+        && getFailingCompileCfToDex().contains(mainClass)) {
+      thrown.expect(Throwable.class);
+    }
     OutputMode outputMode = output == Output.CF ? OutputMode.ClassFile : OutputMode.DexIndexed;
     switch (compiler) {
       case D8: {
@@ -215,6 +220,12 @@ public abstract class R8RunExamplesCommon {
       thrown = ExpectedException.none();
     }
 
+    if (frontend == Frontend.CF
+        && output == Output.DEX
+        && getFailingRunCfToDex().contains(mainClass)) {
+      thrown.expect(Throwable.class);
+    }
+
     if (output == Output.CF) {
       ToolHelper.ProcessResult result = ToolHelper.runJava(generated, mainClass);
       if (result.exitCode != 0) {
@@ -256,6 +267,11 @@ public abstract class R8RunExamplesCommon {
   protected abstract Map<String, TestCondition> getFailingRun();
 
   protected abstract Map<String, TestCondition> getFailingRunCf();
+
+  protected abstract Set<String> getFailingCompileCfToDex();
+
+  // TODO(mathiasr): Add CompilerSet for CfToDex so we can fold this into getFailingRun().
+  protected abstract Set<String> getFailingRunCfToDex();
 
   protected abstract Set<String> getFailingCompileCf();
 
