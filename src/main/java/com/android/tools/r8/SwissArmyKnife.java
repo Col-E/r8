@@ -28,44 +28,50 @@ public class SwissArmyKnife {
       return;
     }
     switch (args[0]) {
-      case "r8":
-        R8.main(shift(args));
-        break;
-      case "d8":
-        D8.main(shift(args));
+      case "bisect":
+        Bisect.main(shift(args));
         break;
       case "compatdx":
         CompatDx.main(shift(args));
         break;
-      case "dexfilemerger":
-        DexFileMerger.main(shift(args));
-        break;
-      case "dexsplitter":
-        DexSplitter.main(shift(args));
-        break;
       case "compatproguard":
         CompatProguard.main(shift(args));
+        break;
+      case "d8":
+        D8.main(shift(args));
         break;
       case "d8logger":
         D8Logger.main(shift(args));
         break;
-      case "disasm":
-        Disassemble.main(shift(args));
-        break;
-      case "bisect":
-        Bisect.main(shift(args));
+      case "dexfilemerger":
+        DexFileMerger.main(shift(args));
         break;
       case "dexsegments":
         DexSegments.main(shift(args));
         break;
-      case "maindex":
-        GenerateMainDexList.main(shift(args));
+      case "dexsplitter":
+        DexSplitter.main(shift(args));
+        break;
+      case "disasm":
+        Disassemble.main(shift(args));
         break;
       case "extractmarker":
         ExtractMarker.main(shift(args));
         break;
       case "jardiff":
         JarDiff.main(shift(args));
+        break;
+      case "maindex":
+        GenerateMainDexList.main(shift(args));
+        break;
+      case "printseeds":
+        PrintSeeds.main(shift(args));
+        break;
+      case "printuses":
+        PrintUses.main(shift(args));
+        break;
+      case "r8":
+        R8.main(shift(args));
         break;
       default:
         runDefault(args);

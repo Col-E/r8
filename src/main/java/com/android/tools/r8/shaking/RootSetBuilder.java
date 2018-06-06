@@ -43,6 +43,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class RootSetBuilder {
@@ -441,17 +442,28 @@ public class RootSetBuilder {
   }
 
   // TODO(67934426): Test this code.
-  public static void writeSeeds(AppInfoWithLiveness appInfo, PrintStream out) {
+  public static void writeSeeds(
+      AppInfoWithLiveness appInfo, PrintStream out, Predicate<DexType> include) {
     for (DexItem seed : appInfo.getPinnedItems()) {
       if (seed instanceof DexType) {
-        out.println(seed.toSourceString());
+        if (include.test((DexType) seed)) {
+          out.println(seed.toSourceString());
+        }
       } else if (seed instanceof DexField) {
         DexField field = ((DexField) seed);
-        out.println(
-            field.clazz.toSourceString() + ": " + field.type.toSourceString() + " " + field.name
-                .toSourceString());
+        if (include.test(field.clazz)) {
+          out.println(
+              field.clazz.toSourceString()
+                  + ": "
+                  + field.type.toSourceString()
+                  + " "
+                  + field.name.toSourceString());
+        }
       } else if (seed instanceof DexMethod) {
         DexMethod method = (DexMethod) seed;
+        if (!include.test(method.holder)) {
+          continue;
+        }
         out.print(method.holder.toSourceString() + ": ");
         DexEncodedMethod encodedMethod = appInfo.definitionFor(method);
         if (encodedMethod.accessFlags.isConstructor()) {

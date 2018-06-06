@@ -18,7 +18,6 @@ parser = argparse.ArgumentParser(description=__doc__.strip(),
                                  formatter_class=argparse.RawTextHelpFormatter)
 
 SAMPLE_JAR = os.path.join(utils.REPO_ROOT, 'tests/d8_api_usage_sample.jar')
-KEEP_RULES = os.path.join(utils.REPO_ROOT, 'src/main/keep.txt')
 R8LIB_JAR = os.path.join(utils.LIBS, 'r8lib.jar')
 R8LIB_MAP_FILE = os.path.join(utils.LIBS, 'r8lib-map.txt')
 
@@ -34,7 +33,7 @@ def build_r8lib():
        '--lib', utils.RT_JAR,
        utils.R8_JAR,
        '--output', R8LIB_JAR,
-       '--pg-conf', KEEP_RULES,
+       '--pg-conf', utils.R8LIB_KEEP_RULES,
        '--pg-map-output', R8LIB_MAP_FILE))
 
 
