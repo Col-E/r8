@@ -145,12 +145,7 @@ public abstract class R8RunExamplesCommon {
 
   @Before
   public void compile() throws Exception {
-    if (output == Output.CF && getFailingCompileCf().contains(mainClass)) {
-      thrown.expect(Throwable.class);
-    }
-    if (frontend == Frontend.CF
-        && output == Output.DEX
-        && getFailingCompileCfToDex().contains(mainClass)) {
+    if (shouldCompileFail()) {
       thrown.expect(Throwable.class);
     }
     OutputMode outputMode = output == Output.CF ? OutputMode.ClassFile : OutputMode.DexIndexed;
@@ -191,8 +186,25 @@ public abstract class R8RunExamplesCommon {
     }
   }
 
+  private boolean shouldCompileFail() {
+    if (output == Output.CF && getFailingCompileCf().contains(mainClass)) {
+      return true;
+    }
+    if (frontend == Frontend.CF
+        && output == Output.DEX
+        && getFailingCompileCfToDex().contains(mainClass)) {
+      return true;
+    }
+    return false;
+  }
+
   @Test
   public void outputIsIdentical() throws IOException, InterruptedException, ExecutionException {
+    if (shouldCompileFail()) {
+      // We expected an exception, but got none.
+      // Return to ensure that this test fails due to the missing exception.
+      return;
+    }
     Assume.assumeTrue(ToolHelper.artSupported() || ToolHelper.compareAgaintsGoldenFiles());
 
 
@@ -216,8 +228,6 @@ public abstract class R8RunExamplesCommon {
         output == Output.CF ? getFailingRunCf().get(mainClass) : getFailingRun().get(mainClass);
     if (condition != null && condition.test(getTool(), compiler, vm.getVersion(), mode)) {
       thrown.expect(Throwable.class);
-    } else {
-      thrown = ExpectedException.none();
     }
 
     if (frontend == Frontend.CF
