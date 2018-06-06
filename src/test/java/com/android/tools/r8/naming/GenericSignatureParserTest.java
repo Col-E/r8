@@ -452,7 +452,7 @@ public class GenericSignatureParserTest extends TestBase {
           assertEquals("ERROR", e.getMessage());
         } else {
           plainErrorCount++;
-          assertEquals("Unknown error parsing generic signaure: ERROR", e.getMessage());
+          assertEquals("Unknown error parsing generic signature: ERROR", e.getMessage());
         }
       }
     }
