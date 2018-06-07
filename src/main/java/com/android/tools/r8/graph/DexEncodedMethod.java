@@ -264,9 +264,10 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
 
   public void setCode(
       IRCode ir,
+      GraphLense graphLense,
       RegisterAllocator registerAllocator,
       InternalOptions options) {
-    final DexBuilder builder = new DexBuilder(ir, registerAllocator, options);
+    final DexBuilder builder = new DexBuilder(ir, graphLense, registerAllocator, options);
     code = builder.build(method.getArity());
   }
 
