@@ -9,7 +9,7 @@ import sys
 import utils
 
 def run(tool, args, build=None, debug=True,
-        profile=False, track_memory_file=None):
+        profile=False, track_memory_file=None, extra_args=None):
   if build is None:
     build, args = extract_build_from_args(args)
   if build:
@@ -18,6 +18,8 @@ def run(tool, args, build=None, debug=True,
   if track_memory_file:
     cmd.extend(['tools/track_memory.sh', track_memory_file])
   cmd.append('java')
+  if extra_args:
+    cmd.extend(extra_args)
   if debug:
     cmd.append('-ea')
   if profile:

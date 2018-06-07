@@ -25,16 +25,21 @@ API_LEVEL = 26
 ANDROID_JAR = 'third_party/android_jar/lib-v%s/android.jar' % API_LEVEL
 
 
-def build_r8lib():
+def build_r8lib(output_path=None, output_map=None, **kwargs):
+  if output_path is None:
+    output_path = R8LIB_JAR
+  if output_map is None:
+    output_map = R8LIB_MAP_FILE
   toolhelper.run(
       'r8',
       ('--release',
        '--classfile',
        '--lib', utils.RT_JAR,
        utils.R8_JAR,
-       '--output', R8LIB_JAR,
+       '--output', output_path,
        '--pg-conf', utils.R8LIB_KEEP_RULES,
-       '--pg-map-output', R8LIB_MAP_FILE))
+       '--pg-map-output', output_map),
+      **kwargs)
 
 
 def test_d8sample():
