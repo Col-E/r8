@@ -61,7 +61,10 @@ def errorProneConfiguration = [
     '-Xep:MissingDefault:ERROR',
     '-Xep:MultipleTopLevelClasses:ERROR',
     '-Xep:NarrowingCompoundAssignment:ERROR',
-    '-Xep:BoxedPrimitiveConstructor:ERROR']
+    '-Xep:BoxedPrimitiveConstructor:ERROR',
+    '-Xep:LogicalAssignment:ERROR',
+    '-Xep:FloatCast:ERROR',
+    '-Xep:ReturnValueIgnored:ERROR']
 
 apply from: 'copyAdditionalJctfCommonFiles.gradle'
 
