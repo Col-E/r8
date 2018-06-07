@@ -14,7 +14,6 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
-import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -33,6 +32,7 @@ public class Disassemble {
       private Path proguardMapFile = null;
       private boolean useSmali = false;
       private boolean allInfo = false;
+      private boolean useIr;
 
       @Override
       Builder self() {
@@ -63,6 +63,11 @@ public class Disassemble {
         return this;
       }
 
+      public Builder setUseIr(boolean useIr) {
+        this.useIr = useIr;
+        return this;
+      }
+
       @Override
       protected DisassembleCommand makeCommand() {
         // If printing versions ignore everything else.
@@ -74,24 +79,26 @@ public class Disassemble {
             getOutputPath(),
             proguardMapFile == null ? null : StringResource.fromFile(proguardMapFile),
             allInfo,
-            useSmali);
+            useSmali,
+            useIr);
       }
     }
 
-    static final String USAGE_MESSAGE = String.join("\n", ImmutableList.of(
-        "Usage: disasm [options] <input-files>",
-        " where <input-files> are dex files",
-        " and options are:",
-        "  --all                   # Include all information in disassembly.",
-        "  --smali                 # Disassemble using smali syntax.",
-        "  --pg-map <file>         # Proguard map <file> for mapping names.",
-        "  --output                # Specify a file or directory to write to.",
-        "  --version               # Print the version of r8.",
-        "  --help                  # Print this message."));
-
+    static final String USAGE_MESSAGE =
+        "Usage: disasm [options] <input-files>\n"
+            + " where <input-files> are dex files\n"
+            + " and options are:\n"
+            + "  --all                   # Include all information in disassembly.\n"
+            + "  --smali                 # Disassemble using smali syntax.\n"
+            + "  --ir                    # Print IR before and after optimization.\n"
+            + "  --pg-map <file>         # Proguard map <file> for mapping names.\n"
+            + "  --output                # Specify a file or directory to write to.\n"
+            + "  --version               # Print the version of r8.\n"
+            + "  --help                  # Print this message.";
 
     private final boolean allInfo;
     private final boolean useSmali;
+    private final boolean useIr;
 
     public static Builder builder() {
       return new Builder();
@@ -112,10 +119,12 @@ public class Disassemble {
           builder.setPrintHelp(true);
         } else if (arg.equals("--version")) {
           builder.setPrintVersion(true);
-          } else if (arg.equals("--all")) {
+        } else if (arg.equals("--all")) {
           builder.setAllInfo(true);
         } else if (arg.equals("--smali")) {
           builder.setUseSmali(true);
+        } else if (arg.equals("--ir")) {
+          builder.setUseIr(true);
         } else if (arg.equals("--pg-map")) {
           builder.setProguardMapFile(Paths.get(args[++i]));
         } else if (arg.equals("--output")) {
@@ -132,13 +141,18 @@ public class Disassemble {
     }
 
     private DisassembleCommand(
-        AndroidApp inputApp, Path outputPath, StringResource proguardMap,
-        boolean allInfo, boolean useSmali) {
+        AndroidApp inputApp,
+        Path outputPath,
+        StringResource proguardMap,
+        boolean allInfo,
+        boolean useSmali,
+        boolean useIr) {
       super(inputApp);
       this.outputPath = outputPath;
       this.proguardMap = proguardMap;
       this.allInfo = allInfo;
       this.useSmali = useSmali;
+      this.useIr = useIr;
     }
 
     private DisassembleCommand(boolean printHelp, boolean printVersion) {
@@ -147,6 +161,7 @@ public class Disassemble {
       proguardMap = null;
       allInfo = false;
       useSmali = false;
+      useIr = false;
     }
 
     public Path getOutputPath() {
@@ -155,6 +170,10 @@ public class Disassemble {
 
     public boolean useSmali() {
       return useSmali;
+    }
+
+    public boolean useIr() {
+      return useIr;
     }
 
     @Override
@@ -190,9 +209,10 @@ public class Disassemble {
     try {
       DexApplication application =
           new ApplicationReader(app, options, timing).read(command.proguardMap, executor);
-      DexByteCodeWriter writer = command.useSmali()
-          ? new SmaliWriter(application, options)
-          : new AssemblyWriter(application, options, command.allInfo);
+      DexByteCodeWriter writer =
+          command.useSmali()
+              ? new SmaliWriter(application, options)
+              : new AssemblyWriter(application, options, command.allInfo, command.useIr());
       if (command.getOutputPath() != null) {
         writer.write(command.getOutputPath());
       } else {
