@@ -3,9 +3,15 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.ClassFileConsumer;
+import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.conversion.OptimizationFeedback;
+import com.android.tools.r8.ir.conversion.OptimizationFeedbackIgnore;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
+import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.Timing;
 import java.io.PrintStream;
 
 public class AssemblyWriter extends DexByteCodeWriter {
@@ -13,12 +19,29 @@ public class AssemblyWriter extends DexByteCodeWriter {
   private final boolean writeAllClassInfo;
   private final boolean writeFields;
   private final boolean writeAnnotations;
+  private final boolean writeIR;
+  private final AppInfoWithSubtyping appInfo;
+  private final Timing timing = new Timing("AssemblyWriter");
+  private final OptimizationFeedback ignoreOptimizationFeedback = new OptimizationFeedbackIgnore();
 
-  public AssemblyWriter(DexApplication application, InternalOptions options, boolean allInfo) {
+  public AssemblyWriter(
+      DexApplication application, InternalOptions options, boolean allInfo, boolean writeIR) {
     super(application, options);
     this.writeAllClassInfo = allInfo;
     this.writeFields = allInfo;
     this.writeAnnotations = allInfo;
+    this.writeIR = writeIR;
+    if (writeIR) {
+      this.appInfo = new AppInfoWithSubtyping(application.toDirect());
+      if (options.programConsumer == null) {
+        // Use class-file backend, since the CF frontend for testing does not support desugaring of
+        // synchronized methods for the DEX backend (b/109789541).
+        options.programConsumer = ClassFileConsumer.emptyConsumer();
+      }
+      options.outline.enabled = false;
+    } else {
+      this.appInfo = null;
+    }
   }
 
   @Override
@@ -88,8 +111,19 @@ public class AssemblyWriter extends DexByteCodeWriter {
     ps.println();
     Code code = method.getCode();
     if (code != null) {
-      ps.println(code.toString(method, naming));
+      if (writeIR) {
+        writeIR(method, ps);
+      } else {
+        ps.println(code.toString(method, naming));
+      }
     }
+  }
+
+  private void writeIR(DexEncodedMethod method, PrintStream ps) {
+    CfgPrinter printer = new CfgPrinter();
+    new IRConverter(appInfo, options, timing, printer)
+        .processMethod(method, ignoreOptimizationFeedback, null, null, null);
+    ps.println(printer.toString());
   }
 
   private void writeAnnotations(DexAnnotationSet annotations, PrintStream ps) {
