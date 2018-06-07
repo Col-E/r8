@@ -557,7 +557,7 @@ public abstract class DexValue extends DexItem {
 
     @Override
     public int hashCode() {
-      return (int) value * 19;
+      return (int) (value * 19);
     }
 
     @Override
@@ -615,7 +615,7 @@ public abstract class DexValue extends DexItem {
 
     @Override
     public int hashCode() {
-      return (int) value * 29;
+      return (int) (value * 29);
     }
 
     @Override

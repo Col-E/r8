@@ -812,45 +812,45 @@ public class ProguardConfigurationParser {
         skipWhitespace();
         switch (peekChar()) {
           case 'a':
-            if (found = acceptString("abstract")) {
+            if ((found = acceptString("abstract"))) {
               flags.setAbstract();
             }
             break;
           case 'f':
-            if (found = acceptString("final")) {
+            if ((found = acceptString("final"))) {
               flags.setFinal();
             }
             break;
           case 'n':
-            if (found = acceptString("native")) {
+            if ((found = acceptString("native"))) {
               flags.setNative();
             }
             break;
           case 'p':
-            if (found = acceptString("public")) {
+            if ((found = acceptString("public"))) {
               flags.setPublic();
-            } else if (found = acceptString("private")) {
+            } else if ((found = acceptString("private"))) {
               flags.setPrivate();
-            } else if (found = acceptString("protected")) {
+            } else if ((found = acceptString("protected"))) {
               flags.setProtected();
             }
             break;
           case 's':
-            if (found = acceptString("synchronized")) {
+            if ((found = acceptString("synchronized"))) {
               flags.setSynchronized();
-            } else if (found = acceptString("static")) {
+            } else if ((found = acceptString("static"))) {
               flags.setStatic();
-            } else if (found = acceptString("strictfp")) {
+            } else if ((found = acceptString("strictfp"))) {
               flags.setStrict();
             }
             break;
           case 't':
-            if (found = acceptString("transient")) {
+            if ((found = acceptString("transient"))) {
               flags.setTransient();
             }
             break;
           case 'v':
-            if (found = acceptString("volatile")) {
+            if ((found = acceptString("volatile"))) {
               flags.setVolatile();
             }
             break;

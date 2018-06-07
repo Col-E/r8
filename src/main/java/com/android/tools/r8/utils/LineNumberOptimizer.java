@@ -20,6 +20,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.ClassNaming;
+import com.android.tools.r8.naming.ClassNaming.Builder;
 import com.android.tools.r8.naming.MemberNaming;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
@@ -187,6 +188,22 @@ public class LineNumberOptimizer {
     }
   }
 
+  // We will be remapping positional debug events and collect them as MappedPositions.
+  private static class MappedPosition {
+    private final DexMethod method;
+    private final int originalLine;
+    private final Position caller;
+    private final int obfuscatedLine;
+
+    private MappedPosition(
+        DexMethod method, int originalLine, Position caller, int obfuscatedLine) {
+      this.method = method;
+      this.originalLine = originalLine;
+      this.caller = caller;
+      this.obfuscatedLine = obfuscatedLine;
+    }
+  }
+
   public static ClassNameMapper run(
       DexApplication application, NamingLens namingLens, boolean identityMapping) {
     IdentityHashMap<DexString, List<DexProgramClass>> classesOfFiles = new IdentityHashMap<>();
@@ -199,25 +216,8 @@ public class LineNumberOptimizer {
         continue;
       }
 
-      // Group methods by name
       IdentityHashMap<DexString, List<DexEncodedMethod>> methodsByName =
-          new IdentityHashMap<>(clazz.directMethods().length + clazz.virtualMethods().length);
-      clazz.forEachMethod(
-          method -> {
-            // Add method only if renamed or contains positions.
-            if (namingLens.lookupName(method.method) != method.method.name
-                || doesContainPositions(method)) {
-              methodsByName.compute(
-                  method.method.name,
-                  (name, methods) -> {
-                    if (methods == null) {
-                      methods = new ArrayList<>();
-                    }
-                    methods.add(method);
-                    return methods;
-                  });
-            }
-          });
+          groupMethodsByName(namingLens, clazz);
 
       // At this point we don't know if we really need to add this class to the builder.
       // It depends on whether any methods/fields are renamed or some methods contain positions.
@@ -230,24 +230,11 @@ public class LineNumberOptimizer {
                       DescriptorUtils.descriptorToJavaType(renamedClassName.toString()),
                       clazz.toString()));
 
-      // We do know we need to create a ClassNaming.Builder if the class itself had been renamed.
-      if (!clazz.toString().equals(renamedClassName.toString())) {
-        // Not using return value, it's registered in classNameMapperBuilder
-        onDemandClassNamingBuilder.get();
-      }
+      // If the class is renamed add it to the classNamingBuilder.
+      addClassToClassNaming(clazz, renamedClassName, onDemandClassNamingBuilder);
 
       // First transfer renamed fields to classNamingBuilder.
-      clazz.forEachField(
-          dexEncodedField -> {
-            DexField dexField = dexEncodedField.field;
-            DexString renamedName = namingLens.lookupName(dexField);
-            if (renamedName != dexField.name) {
-              FieldSignature signature =
-                  new FieldSignature(dexField.name.toString(), dexField.type.toString());
-              MemberNaming memberNaming = new MemberNaming(signature, renamedName.toString());
-              onDemandClassNamingBuilder.get().addMemberEntry(memberNaming);
-            }
-          });
+      addFieldsToClassNaming(namingLens, clazz, onDemandClassNamingBuilder);
 
       // Then process the methods.
       for (List<DexEncodedMethod> methods : methodsByName.values()) {
@@ -256,47 +243,13 @@ public class LineNumberOptimizer {
           // deterministic behaviour: the algorithm will assign new line numbers in this order.
           // Methods with different names can share the same line numbers, that's why they don't
           // need to be sorted.
-          methods.sort(
-              (lhs, rhs) -> {
-                // Sort by startline, then DexEncodedMethod.slowCompare.
-                // Use startLine = 0 if no debuginfo.
-                Code lhsCode = lhs.getCode();
-                Code rhsCode = rhs.getCode();
-                DexCode lhsDexCode =
-                    lhsCode == null || !lhsCode.isDexCode() ? null : lhsCode.asDexCode();
-                DexCode rhsDexCode =
-                    rhsCode == null || !rhsCode.isDexCode() ? null : rhsCode.asDexCode();
-                DexDebugInfo lhsDebugInfo = lhsDexCode == null ? null : lhsDexCode.getDebugInfo();
-                DexDebugInfo rhsDebugInfo = rhsDexCode == null ? null : rhsDexCode.getDebugInfo();
-                int lhsStartLine = lhsDebugInfo == null ? 0 : lhsDebugInfo.startLine;
-                int rhsStartLine = rhsDebugInfo == null ? 0 : rhsDebugInfo.startLine;
-                int startLineDiff = lhsStartLine - rhsStartLine;
-                if (startLineDiff != 0) return startLineDiff;
-                return DexEncodedMethod.slowCompare(lhs, rhs);
-              });
+          sortMethods(methods);
         }
 
         PositionRemapper positionRemapper =
             identityMapping ? new IdentityPositionRemapper() : new OptimizingPositionRemapper();
 
         for (DexEncodedMethod method : methods) {
-
-          // We will be remapping positional debug events and collect them as MappedPositions.
-          class MappedPosition {
-            private final DexMethod method;
-            private final int originalLine;
-            private final Position caller;
-            private final int obfuscatedLine;
-
-            private MappedPosition(
-                DexMethod method, int originalLine, Position caller, int obfuscatedLine) {
-              this.method = method;
-              this.originalLine = originalLine;
-              this.caller = caller;
-              this.obfuscatedLine = obfuscatedLine;
-            }
-          }
-
           List<MappedPosition> mappedPositions = new ArrayList<>();
 
           if (doesContainPositions(method)) {
@@ -427,6 +380,75 @@ public class LineNumberOptimizer {
       } // for each method group, grouped by name
     } // for each class
     return classNameMapperBuilder.build();
+  }
+
+  // Sort by startline, then DexEncodedMethod.slowCompare.
+  // Use startLine = 0 if no debuginfo.
+  private static void sortMethods(List<DexEncodedMethod> methods) {
+    methods.sort(
+        (lhs, rhs) -> {
+          Code lhsCode = lhs.getCode();
+          Code rhsCode = rhs.getCode();
+          DexCode lhsDexCode =
+              lhsCode == null || !lhsCode.isDexCode() ? null : lhsCode.asDexCode();
+          DexCode rhsDexCode =
+              rhsCode == null || !rhsCode.isDexCode() ? null : rhsCode.asDexCode();
+          DexDebugInfo lhsDebugInfo = lhsDexCode == null ? null : lhsDexCode.getDebugInfo();
+          DexDebugInfo rhsDebugInfo = rhsDexCode == null ? null : rhsDexCode.getDebugInfo();
+          int lhsStartLine = lhsDebugInfo == null ? 0 : lhsDebugInfo.startLine;
+          int rhsStartLine = rhsDebugInfo == null ? 0 : rhsDebugInfo.startLine;
+          int startLineDiff = lhsStartLine - rhsStartLine;
+          if (startLineDiff != 0) return startLineDiff;
+          return DexEncodedMethod.slowCompare(lhs, rhs);
+        });
+  }
+
+  @SuppressWarnings("ReturnValueIgnored")
+  private static void addClassToClassNaming(DexProgramClass clazz, DexString renamedClassName,
+      Supplier<Builder> onDemandClassNamingBuilder) {
+    // We do know we need to create a ClassNaming.Builder if the class itself had been renamed.
+    if (!clazz.toString().equals(renamedClassName.toString())) {
+      // Not using return value, it's registered in classNameMapperBuilder
+      onDemandClassNamingBuilder.get();
+    }
+  }
+
+  private static void addFieldsToClassNaming(NamingLens namingLens, DexProgramClass clazz,
+      Supplier<Builder> onDemandClassNamingBuilder) {
+    clazz.forEachField(
+        dexEncodedField -> {
+          DexField dexField = dexEncodedField.field;
+          DexString renamedName = namingLens.lookupName(dexField);
+          if (renamedName != dexField.name) {
+            FieldSignature signature =
+                new FieldSignature(dexField.name.toString(), dexField.type.toString());
+            MemberNaming memberNaming = new MemberNaming(signature, renamedName.toString());
+            onDemandClassNamingBuilder.get().addMemberEntry(memberNaming);
+          }
+        });
+  }
+
+  private static IdentityHashMap<DexString, List<DexEncodedMethod>> groupMethodsByName(
+      NamingLens namingLens, DexProgramClass clazz) {
+    IdentityHashMap<DexString, List<DexEncodedMethod>> methodsByName =
+        new IdentityHashMap<>(clazz.directMethods().length + clazz.virtualMethods().length);
+    clazz.forEachMethod(
+        method -> {
+          // Add method only if renamed or contains positions.
+          if (namingLens.lookupName(method.method) != method.method.name
+              || doesContainPositions(method)) {
+            methodsByName.compute(
+                method.method.name,
+                (name, methods) -> {
+                  if (methods == null) {
+                    methods = new ArrayList<>();
+                  }
+                  methods.add(method);
+                  return methods;
+                });
+          }
+        });
+    return methodsByName;
   }
 
   private static boolean doesContainPositions(DexEncodedMethod method) {
