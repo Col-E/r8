@@ -61,6 +61,9 @@ public class SwissArmyKnife {
       case "jardiff":
         JarDiff.main(shift(args));
         break;
+      case "jarsizecompare":
+        JarSizeCompare.main(shift(args));
+        break;
       case "maindex":
         GenerateMainDexList.main(shift(args));
         break;
