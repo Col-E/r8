@@ -367,6 +367,13 @@ public class CfSourceCode implements SourceCode {
     }
     setLocalVariableLists();
     readEndingLocals(builder);
+    if (currentBlockInfo != null && instruction.canThrow()) {
+      Snapshot exceptionTransfer =
+          state.getSnapshot().exceptionTransfer(builder.getFactory().throwableType);
+      for (int target : currentBlockInfo.exceptionalSuccessors) {
+        recordStateForTarget(target, exceptionTransfer);
+      }
+    }
     if (isControlFlow(instruction)) {
       ensureDebugValueLivenessControl(builder);
       instruction.buildIR(builder, state, this);
@@ -376,13 +383,6 @@ public class CfSourceCode implements SourceCode {
       }
       state.clear();
     } else {
-      if (currentBlockInfo != null && instruction.canThrow()) {
-        Snapshot exceptionTransfer =
-            state.getSnapshot().exceptionTransfer(builder.getFactory().throwableType);
-        for (int target : currentBlockInfo.exceptionalSuccessors) {
-          recordStateForTarget(target, exceptionTransfer);
-        }
-      }
       instruction.buildIR(builder, state, this);
       ensureDebugValueLiveness(builder);
       if (builder.getCFG().containsKey(currentInstructionIndex + 1)) {
