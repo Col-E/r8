@@ -82,7 +82,7 @@ public class GenericSignatureParserTest extends TestBase {
     parseSimpleError(
         GenericSignatureParser::parseClassSignature,
         e -> assertTrue(e.getMessage().startsWith("Expected L at position 1")));
-    // TODO(sgjesse): The position 2 reported here is onr off.
+    // TODO(sgjesse): The position 2 reported here is one off.
     parseSimpleError(
         GenericSignatureParser::parseFieldSignature,
         e -> assertTrue(e.getMessage().startsWith("Expected L, [ or T at position 2")));
@@ -104,7 +104,7 @@ public class GenericSignatureParserTest extends TestBase {
           fail("Succesfully parsed " + signature.substring(0, i) + " (position " + i +")");
         }
       } catch (GenericSignatureFormatError e) {
-        assertTrue("" + i + " Was: " + e.getMessage(), e.getMessage().contains("at position " + (i + 1)));
+        assertTrue(e.getMessage().contains("at position " + (i + 1)));
       }
     }
   }
