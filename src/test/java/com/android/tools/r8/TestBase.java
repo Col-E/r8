@@ -151,6 +151,11 @@ public class TestBase {
     return builder.build();
   }
 
+  /** Build an AndroidApp from the specified program files. */
+  protected AndroidApp readProgramFiles(Path... programFiles) throws IOException {
+    return AndroidApp.builder().addProgramFiles(programFiles).build();
+  }
+
   /**
    * Create a temporary JAR file containing the specified test classes.
    */
