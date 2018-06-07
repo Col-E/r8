@@ -41,6 +41,7 @@ public class R8RunExamplesTest extends R8RunExamplesCommon {
         "filledarray.FilledArray",
         "hello.Hello",
         "ifstatements.IfStatements",
+        "inlining.Inlining",
         "instancevariable.InstanceVariable",
         "instanceofstring.InstanceofString",
         "invoke.Invoke",

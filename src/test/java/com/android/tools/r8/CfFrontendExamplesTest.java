@@ -85,6 +85,11 @@ public class CfFrontendExamplesTest extends TestBase {
   }
 
   @Test
+  public void testInlining() throws Exception {
+    runTest("inlining.Inlining");
+  }
+
+  @Test
   public void testInstanceVariable() throws Exception {
     runTest("instancevariable.InstanceVariable");
   }
