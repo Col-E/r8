@@ -20,17 +20,32 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
+/**
+ * PrintSeeds prints the classes, interfaces, methods and fields selected by a given ProGuard
+ * configuration &lt;pg-conf.txt&gt; when compiling a given program &lt;r8.jar&gt; alongside a given
+ * library &lt;rt.jar&gt;.
+ *
+ * <p>The output format is identical to what is printed when {@code -printseeds} is specified in
+ * &lt;pg-conf.txt&gt;, but running PrintSeeds can be faster than running R8 with {@code
+ * -printseeds}. See also the {@link PrintUses} program in R8.
+ */
 public class PrintSeeds {
 
   private static final String USAGE =
       "Arguments: <rt.jar> <r8.jar> <pg-conf.txt>\n"
           + "\n"
           + "PrintSeeds prints the classes, interfaces, methods and fields selected by\n"
-          + "<pg-conf.txt> when compiling <r8.jar> alongside <rt.jar>.";
+          + "<pg-conf.txt> when compiling <r8.jar> alongside <rt.jar>.\n"
+          + "\n"
+          + "The output format is identical to what is printed when -printseeds is specified in\n"
+          + "<pg-conf.txt>, but running PrintSeeds can be faster than running R8 with \n"
+          + "-printseeds. See also the "
+          + PrintUses.class.getSimpleName()
+          + " program in R8.";
 
   public static void main(String[] args) throws Exception {
     if (args.length != 3) {
-      System.out.println(USAGE);
+      System.out.println(USAGE.replace("\n", System.lineSeparator()));
       System.exit(1);
     }
     Path rtJar = Paths.get(args[0]);

@@ -31,6 +31,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * PrintUses prints the classes, interfaces, methods and fields used by a given program
+ * &lt;sample.jar&gt;, restricted to classes and interfaces in a given library &lt;r8.jar&gt; that
+ * are not in &lt;sample.jar&gt;.
+ *
+ * <p>The output is in the same format as what is printed when specifying {@code -printseeds} in a
+ * ProGuard configuration file. See also the {@link PrintSeeds} program in R8.
+ *
+ * <p>Note that this tool is not related to the {@code -printusage} option of ProGuard configuration
+ * files.
+ */
 public class PrintUses {
 
   private static final String USAGE =
@@ -38,7 +49,12 @@ public class PrintUses {
           + "\n"
           + "PrintUses prints the classes, interfaces, methods and fields used by <sample.jar>,\n"
           + "restricted to classes and interfaces in <r8.jar> that are not in <sample.jar>.\n"
-          + "<rt.jar> and <r8.jar> should point to libraries used by <sample.jar>.";
+          + "<rt.jar> and <r8.jar> should point to libraries used by <sample.jar>.\n"
+          + "\n"
+          + "The output is in the same format as what is printed when specifying -printseeds in\n"
+          + "a ProGuard configuration file. See also the "
+          + PrintSeeds.class.getSimpleName()
+          + " program in R8.";
 
   private final Set<String> descriptors;
   private final PrintStream out;
@@ -191,7 +207,7 @@ public class PrintUses {
 
   public static void main(String[] args) throws Exception {
     if (args.length != 3) {
-      System.out.println(USAGE);
+      System.out.println(USAGE.replace("\n", System.lineSeparator()));
       return;
     }
     AndroidApp.Builder builder = AndroidApp.builder();
