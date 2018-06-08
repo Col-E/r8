@@ -791,6 +791,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     private Code code;
     private CompilationState compilationState = CompilationState.NOT_PROCESSED;
     private OptimizationInfo optimizationInfo = DefaultOptimizationInfo.DEFAULT;
+    private final int classFileVersion;
 
     private Builder(DexEncodedMethod from) {
       // Copy all the mutable state of a DexEncodedMethod here.
@@ -801,6 +802,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       code = from.code;
       compilationState = from.compilationState;
       optimizationInfo = from.optimizationInfo.copy();
+      classFileVersion = from.classFileVersion;
     }
 
     public void setMethod(DexMethod method) {
@@ -817,7 +819,8 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       assert annotations != null;
       assert parameterAnnotations != null;
       DexEncodedMethod result =
-          new DexEncodedMethod(method, accessFlags, annotations, parameterAnnotations, code);
+          new DexEncodedMethod(
+              method, accessFlags, annotations, parameterAnnotations, code, classFileVersion);
       result.compilationState = compilationState;
       result.optimizationInfo = optimizationInfo;
       return result;
