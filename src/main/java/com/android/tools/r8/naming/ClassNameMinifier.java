@@ -8,9 +8,11 @@ import static com.android.tools.r8.utils.DescriptorUtils.getDescriptorFromClassB
 import static com.android.tools.r8.utils.DescriptorUtils.getPackageBinaryNameFromJavaType;
 
 import com.android.tools.r8.graph.DexAnnotation;
+import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
@@ -18,16 +20,20 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.naming.signature.GenericSignatureAction;
 import com.android.tools.r8.naming.signature.GenericSignatureParser;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.PackageObfuscationMode;
+import com.android.tools.r8.utils.Reporter;
+import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import java.lang.reflect.GenericSignatureFormatError;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -40,6 +46,7 @@ class ClassNameMinifier {
 
   private final AppInfoWithLiveness appInfo;
   private final RootSet rootSet;
+  private final Reporter reporter;
   private final PackageObfuscationMode packageObfuscationMode;
   private final boolean isAccessModificationAllowed;
   private final Set<String> noObfuscationPrefixes = Sets.newHashSet();
@@ -66,6 +73,7 @@ class ClassNameMinifier {
       InternalOptions options) {
     this.appInfo = appInfo;
     this.rootSet = rootSet;
+    this.reporter = options.reporter;
     this.packageObfuscationMode = options.proguardConfiguration.getPackageObfuscationMode();
     this.isAccessModificationAllowed = options.proguardConfiguration.isAccessModificationAllowed();
     this.packageDictionary = options.proguardConfiguration.getPackageObfuscationDictionary();
@@ -152,27 +160,75 @@ class ClassNameMinifier {
     }
   }
 
+  private void parseError(DexItem item, Origin origin, GenericSignatureFormatError e) {
+    StringBuilder message = new StringBuilder("Invalid class signature for ");
+    if (item instanceof DexClass) {
+      message.append("class ");
+      message.append(((DexClass) item).getType().toSourceString());
+    } else if (item instanceof DexEncodedField) {
+      message.append("field ");
+      message.append(item.toSourceString());
+    } else {
+      assert item instanceof DexEncodedMethod;
+      message.append("method ");
+      message.append(item.toSourceString());
+    }
+    message.append(".\n");
+    message.append(e.getMessage());
+    reporter.warning(new StringDiagnostic(message.toString(), origin));
+  }
+
   private void renameTypesInGenericSignatures() {
     for (DexClass clazz : appInfo.classes()) {
-      rewriteGenericSignatures(clazz.annotations.annotations,
-          genericSignatureParser::parseClassSignature);
+      clazz.annotations = rewriteGenericSignatures(clazz.annotations,
+          genericSignatureParser::parseClassSignature,
+          e -> parseError(clazz, clazz.getOrigin(), e));
       clazz.forEachField(field -> rewriteGenericSignatures(
-          field.annotations.annotations, genericSignatureParser::parseFieldSignature));
+          field.annotations, genericSignatureParser::parseFieldSignature,
+          e -> parseError(field, clazz.getOrigin(), e)));
       clazz.forEachMethod(method -> rewriteGenericSignatures(
-          method.annotations.annotations, genericSignatureParser::parseMethodSignature));
+          method.annotations, genericSignatureParser::parseMethodSignature,
+          e -> parseError(method, clazz.getOrigin(), e)));
     }
   }
 
-  private void rewriteGenericSignatures(DexAnnotation[] annotations, Consumer<String> parser) {
-    for (int i = 0; i < annotations.length; i++) {
-      DexAnnotation annotation = annotations[i];
+  private DexAnnotationSet rewriteGenericSignatures(
+      DexAnnotationSet annotations,
+      Consumer<String> parser,
+      Consumer<GenericSignatureFormatError> parseError) {
+    // There can be no more than one signature annotation in an annotation set.
+    final int VALID = -1;
+    int invalid = VALID;
+    for (int i = 0; i < annotations.annotations.length && invalid == VALID; i++) {
+      DexAnnotation annotation = annotations.annotations[i];
       if (DexAnnotation.isSignatureAnnotation(annotation, appInfo.dexItemFactory)) {
-        parser.accept(DexAnnotation.getSignature(annotation));
-        annotations[i] = DexAnnotation.createSignatureAnnotation(
-            genericSignatureRewriter.getRenamedSignature(),
-            appInfo.dexItemFactory);
+        try {
+          parser.accept(DexAnnotation.getSignature(annotation));
+          annotations.annotations[i] = DexAnnotation.createSignatureAnnotation(
+              genericSignatureRewriter.getRenamedSignature(),
+              appInfo.dexItemFactory);
+        } catch (GenericSignatureFormatError e) {
+          parseError.accept(e);
+          invalid = i;
+        }
       }
     }
+
+    // Return the rewritten signatures if it was valid and could be rewritten.
+    if (invalid == VALID) {
+      return annotations;
+    }
+    // Remove invalid signature if found.
+    DexAnnotation[] prunedAnnotations =
+        new DexAnnotation[annotations.annotations.length - 1];
+    int dest = 0;
+    for (int i = 0; i < annotations.annotations.length; i++) {
+      if (i != invalid) {
+        prunedAnnotations[dest++] = annotations.annotations[i];
+      }
+    }
+    assert dest == prunedAnnotations.length;
+    return new DexAnnotationSet(prunedAnnotations);
   }
 
   /**
@@ -453,7 +509,6 @@ class ClassNameMinifier {
       String renamed =
           getClassBinaryNameFromDescriptor(
               renaming.getOrDefault(type, type.descriptor).toString());
-      assert renamed.startsWith(enclosingRenamedBinaryName + Minifier.INNER_CLASS_SEPARATOR);
       String outName = renamed.substring(enclosingRenamedBinaryName.length() + 1);
       renamedSignature.append(outName);
       return type;
