@@ -6,13 +6,13 @@ package com.android.tools.r8;
 import static com.android.tools.r8.R8CommandTest.getOutputPath;
 import static com.android.tools.r8.ToolHelper.EXAMPLES_BUILD_DIR;
 import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
-import static java.nio.file.StandardOpenOption.CREATE_NEW;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.sdklib.AndroidVersion;
+import com.android.tools.r8.D8CommandParser.OrderedClassFileResourceProvider;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
@@ -24,7 +24,6 @@ import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
@@ -263,11 +262,35 @@ public class D8CommandTest {
         tmpClassesDir.toString());
     AndroidApp inputApp = ToolHelper.getApp(command);
     assertEquals(1, inputApp.getClasspathResourceProviders().size());
+    OrderedClassFileResourceProvider classpathProvider =
+        (OrderedClassFileResourceProvider) inputApp.getClasspathResourceProviders().get(0);
+    assertEquals(1, classpathProvider.providers.size());
     assertTrue(Files.isSameFile(tmpClassesDir,
-        ((DirectoryClassFileProvider) inputApp.getClasspathResourceProviders().get(0)).getRoot()));
+        ((DirectoryClassFileProvider) classpathProvider.providers.get(0)).getRoot()));
     assertEquals(1, inputApp.getLibraryResourceProviders().size());
     assertTrue(Files.isSameFile(tmpClassesDir,
         ((DirectoryClassFileProvider) inputApp.getLibraryResourceProviders().get(0)).getRoot()));
+  }
+
+  @Test
+  public void folderClasspathMultiple() throws Throwable {
+    Path inputFile =
+        Paths.get(ToolHelper.EXAMPLES_ANDROID_N_BUILD_DIR, "interfacemethods" + JAR_EXTENSION);
+    Path tmpClassesDir1 = temp.newFolder().toPath();
+    Path tmpClassesDir2 = temp.newFolder().toPath();
+    ZipUtils.unzip(inputFile.toString(), tmpClassesDir1.toFile());
+    ZipUtils.unzip(inputFile.toString(), tmpClassesDir2.toFile());
+    D8Command command = parse("--classpath", tmpClassesDir1.toString(), "--classpath",
+        tmpClassesDir2.toString());
+    AndroidApp inputApp = ToolHelper.getApp(command);
+    assertEquals(1, inputApp.getClasspathResourceProviders().size());
+    OrderedClassFileResourceProvider classpathProvider =
+        (OrderedClassFileResourceProvider) inputApp.getClasspathResourceProviders().get(0);
+    assertEquals(2, classpathProvider.providers.size());
+    assertTrue(Files.isSameFile(tmpClassesDir1,
+        ((DirectoryClassFileProvider) classpathProvider.providers.get(0)).getRoot()));
+    assertTrue(Files.isSameFile(tmpClassesDir2,
+        ((DirectoryClassFileProvider) classpathProvider.providers.get(1)).getRoot()));
   }
 
   @Test(expected = CompilationFailedException.class)
