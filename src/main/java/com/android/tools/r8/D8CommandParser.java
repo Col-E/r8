@@ -3,15 +3,78 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import static com.android.tools.r8.utils.FileUtils.isArchive;
+
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.origin.PathOrigin;
+import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.FlagFile;
 import com.android.tools.r8.utils.StringDiagnostic;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
 
 public class D8CommandParser extends BaseCompilerCommandParser {
+
+  static class OrderedClassFileResourceProvider implements ClassFileResourceProvider {
+    static class Builder {
+      private final ImmutableList.Builder<ClassFileResourceProvider> builder =
+          ImmutableList.builder();
+      boolean empty = true;
+
+      OrderedClassFileResourceProvider build() {
+        return new OrderedClassFileResourceProvider(builder.build());
+      }
+
+      Builder addClassFileResourceProvider(ClassFileResourceProvider provider) {
+        builder.add(provider);
+        empty = false;
+        return this;
+      }
+
+      boolean isEmpty() {
+        return empty;
+      }
+    }
+
+    final List<ClassFileResourceProvider> providers;
+    final Set<String> descriptors = Sets.newHashSet();
+
+    private OrderedClassFileResourceProvider(ImmutableList<ClassFileResourceProvider> providers) {
+      this.providers = providers;
+      // Collect all descriptors that can be provided.
+      this.providers.forEach(provider -> this.descriptors.addAll(provider.getClassDescriptors()));
+    }
+
+    static Builder builder() {
+      return new Builder();
+    }
+
+    @Override
+    public Set<String> getClassDescriptors() {
+      return descriptors;
+    }
+
+    @Override
+    public ProgramResource getProgramResource(String descriptor) {
+      // Search the providers in order. Return the program resource from the first provider that
+      // can provide it.
+      for (ClassFileResourceProvider provider : providers) {
+        if (provider.getClassDescriptors().contains(descriptor)) {
+          return provider.getProgramResource(descriptor);
+        }
+      }
+      return null;
+    }
+  }
 
   public static void main(String[] args) throws CompilationFailedException {
     D8Command command = parse(args, Origin.root()).build();
@@ -76,6 +139,8 @@ public class D8CommandParser extends BaseCompilerCommandParser {
     Path outputPath = null;
     OutputMode outputMode = null;
     boolean hasDefinedApiLevel = false;
+    OrderedClassFileResourceProvider.Builder classpathBuilder =
+        OrderedClassFileResourceProvider.builder();
     String[] expandedArgs = FlagFile.expandFlagFiles(args, builder);
     try {
       for (int i = 0; i < expandedArgs.length; i++) {
@@ -115,7 +180,22 @@ public class D8CommandParser extends BaseCompilerCommandParser {
         } else if (arg.equals("--lib")) {
           builder.addLibraryFiles(Paths.get(expandedArgs[++i]));
         } else if (arg.equals("--classpath")) {
-          builder.addClasspathFiles(Paths.get(expandedArgs[++i]));
+          Path file = Paths.get(expandedArgs[++i]);
+          try {
+            if (!Files.exists(file)) {
+              throw new NoSuchFileException(file.toString());
+            }
+            if (isArchive(file)) {
+              classpathBuilder.addClassFileResourceProvider(new ArchiveClassFileProvider(file));
+            } else if (Files.isDirectory(file)) {
+              classpathBuilder.addClassFileResourceProvider(
+                  DirectoryClassFileProvider.fromDirectory(file));
+            } else {
+              throw new CompilationError("Unsupported classpath file type", new PathOrigin(file));
+            }
+          } catch (IOException e) {
+            builder.error(new ExceptionDiagnostic(e, new PathOrigin(file)));
+          }
         } else if (arg.equals("--main-dex-list")) {
           builder.addMainDexListFiles(Paths.get(expandedArgs[++i]));
         } else if (arg.equals("--optimize-multidex-for-linearalloc")) {
@@ -139,6 +219,9 @@ public class D8CommandParser extends BaseCompilerCommandParser {
           }
           builder.addProgramFiles(Paths.get(arg));
         }
+      }
+      if (!classpathBuilder.isEmpty()) {
+        builder.addClasspathResourceProvider(classpathBuilder.build());
       }
       if (compilationMode != null) {
         builder.setMode(compilationMode);
