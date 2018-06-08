@@ -87,7 +87,7 @@ def main(tmpdir=None, inlining=True,
              '-injar', utils.R8_JAR,
              '-printmapping', pg_map,
              '-outjar', pg_output]
-  for library_name, relocated_package in utils.R8_RELOCATIONS:
+  for library_name, relocated_package in R8_RELOCATIONS:
     pg_args.extend(['-dontwarn', relocated_package + '.**',
                     '-dontnote', relocated_package + '.**'])
   check_call(pg_args)
