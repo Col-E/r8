@@ -5,9 +5,9 @@ package com.android.tools.r8.naming;
 
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
-import com.android.tools.r8.graph.ClassAndMemberPublicizer;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.optimize.ClassAndMemberPublicizer;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
