@@ -146,6 +146,21 @@ public class ClassMergingTest extends TestBase {
     assertEquals(2, numberOfMoveExceptionInstructions);
   }
 
+  @Test
+  public void testTemplateMethodPattern() throws Exception {
+    String main = "classmerging.TemplateMethodTest";
+    Path[] programFiles =
+        new Path[] {
+          CF_DIR.resolve("TemplateMethodTest.class"),
+          CF_DIR.resolve("TemplateMethodTest$AbstractClass.class"),
+          CF_DIR.resolve("TemplateMethodTest$AbstractClassImpl.class")
+        };
+    Set<String> preservedClassNames =
+        ImmutableSet.of(
+            "classmerging.TemplateMethodTest", "classmerging.TemplateMethodTest$AbstractClassImpl");
+    runTest(main, programFiles, preservedClassNames);
+  }
+
   private DexInspector runTest(String main, Path[] programFiles, Set<String> preservedClassNames)
       throws Exception {
     AndroidApp input = readProgramFiles(programFiles);
