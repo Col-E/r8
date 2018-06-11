@@ -23,6 +23,7 @@ import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -342,7 +343,7 @@ public class D8CommandTest {
     Path input = Paths.get(EXAMPLES_BUILD_DIR, "arithmetic.jar");
     ProgramResourceProvider myProvider =
         ArchiveProgramResourceProvider.fromSupplier(
-            new MyOrigin(), () -> new ZipFile(input.toFile()));
+            new MyOrigin(), () -> new ZipFile(input.toFile(), StandardCharsets.UTF_8));
     D8Command command =
         D8Command.builder()
             .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
@@ -487,7 +488,7 @@ public class D8CommandTest {
             .setOutput(emptyZip, OutputMode.DexIndexed)
             .build());
     assertTrue(Files.exists(emptyZip));
-    assertEquals(0, new ZipFile(emptyZip.toFile()).size());
+    assertEquals(0, new ZipFile(emptyZip.toFile(), StandardCharsets.UTF_8).size());
   }
 
   private D8Command parse(String... args) throws CompilationFailedException {

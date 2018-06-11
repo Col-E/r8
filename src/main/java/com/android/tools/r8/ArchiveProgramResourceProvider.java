@@ -16,6 +16,7 @@ import com.android.tools.r8.utils.FileUtils;
 import com.google.common.io.ByteStreams;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -60,7 +61,10 @@ public class ArchiveProgramResourceProvider implements ProgramResourceProvider {
 
   public static ArchiveProgramResourceProvider fromArchive(
       Path archive, Predicate<String> include) {
-    return fromSupplier(new PathOrigin(archive), () -> new ZipFile(archive.toFile()), include);
+    return fromSupplier(
+        new PathOrigin(archive),
+        () -> new ZipFile(archive.toFile(), StandardCharsets.UTF_8),
+        include);
   }
 
   public static ArchiveProgramResourceProvider fromSupplier(

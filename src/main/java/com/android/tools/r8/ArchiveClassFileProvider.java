@@ -17,6 +17,7 @@ import com.google.common.io.ByteStreams;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
@@ -60,7 +61,7 @@ public class ArchiveClassFileProvider implements ClassFileResourceProvider, Clos
     assert isArchive(archive);
     origin = new PathOrigin(archive);
     try {
-      zipFile = new ZipFile(archive.toFile());
+      zipFile = new ZipFile(archive.toFile(), StandardCharsets.UTF_8);
     } catch (IOException e) {
       if (!Files.exists(archive)) {
         throw new NoSuchFileException(archive.toString());

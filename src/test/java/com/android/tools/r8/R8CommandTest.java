@@ -18,6 +18,7 @@ import com.android.tools.r8.utils.FileUtils;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -459,7 +460,7 @@ public class R8CommandTest {
             .setOutput(emptyZip, OutputMode.DexIndexed)
             .build());
     assertTrue(Files.exists(emptyZip));
-    assertEquals(0, new ZipFile(emptyZip.toFile()).size());
+    assertEquals(0, new ZipFile(emptyZip.toFile(), StandardCharsets.UTF_8).size());
   }
 
   private R8Command parse(String... args) throws CompilationFailedException {

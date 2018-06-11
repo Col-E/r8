@@ -22,6 +22,7 @@ import com.android.tools.r8.utils.StringDiagnostic;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -387,7 +388,7 @@ public class D8ApiUsageSample {
     for (Path file : files) {
       if (isArchive(file)) {
         Origin zipOrigin = new PathOrigin(file);
-        ZipInputStream zip = new ZipInputStream(Files.newInputStream(file));
+        ZipInputStream zip = new ZipInputStream(Files.newInputStream(file), StandardCharsets.UTF_8);
         ZipEntry entry;
         while (null != (entry = zip.getNextEntry())) {
           if (isClassFile(Paths.get(entry.getName()))) {

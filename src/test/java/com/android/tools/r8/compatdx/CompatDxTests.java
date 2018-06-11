@@ -17,6 +17,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -197,8 +198,8 @@ public class CompatDxTests {
   }
 
   private void compareArchiveFiles(Path d8File, Path dxFile) throws IOException {
-    ZipFile d8Zip = new ZipFile(d8File.toFile());
-    ZipFile dxZip = new ZipFile(dxFile.toFile());
+    ZipFile d8Zip = new ZipFile(d8File.toFile(), StandardCharsets.UTF_8);
+    ZipFile dxZip = new ZipFile(dxFile.toFile(), StandardCharsets.UTF_8);
     // TODO(zerny): This should test resource containment too once supported.
     Set<String> d8Content = d8Zip.stream().map(ZipEntry::getName).collect(Collectors.toSet());
     Set<String> dxContent = dxZip.stream().map(ZipEntry::getName).collect(Collectors.toSet());
