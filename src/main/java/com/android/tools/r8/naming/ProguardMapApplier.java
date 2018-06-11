@@ -331,7 +331,7 @@ public class ProguardMapApplier {
       }
       for (int i = 0; i < fields.length; i++) {
         DexEncodedField encodedField = fields[i];
-        DexField appliedField = appliedLense.lookupField(encodedField.field, null);
+        DexField appliedField = appliedLense.lookupField(encodedField.field);
         DexType newHolderType = substituteType(appliedField.clazz, null);
         DexType newFieldType = substituteType(appliedField.type, null);
         DexField newField;
@@ -427,7 +427,7 @@ public class ProguardMapApplier {
           return type.replaceBaseType(fixed, appInfo.dexItemFactory);
         }
       }
-      return appliedLense.lookupType(type, context);
+      return appliedLense.lookupType(type);
     }
   }
 

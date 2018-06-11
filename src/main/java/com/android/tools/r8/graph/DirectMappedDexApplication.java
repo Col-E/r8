@@ -69,7 +69,7 @@ public class DirectMappedDexApplication extends DexApplication {
   }
 
   public DirectMappedDexApplication rewrittenWithLense(GraphLense graphLense) {
-    assert graphLense.isContextFree();
+    assert graphLense.isContextFreeForMethods();
     assert mappingIsValid(graphLense, programClasses.getAllTypes());
     assert mappingIsValid(graphLense, libraryClasses.keySet());
     // As a side effect, this will rebuild the program classes and library classes maps.
@@ -81,7 +81,7 @@ public class DirectMappedDexApplication extends DexApplication {
     // (e.g. relinking a type) or it might encode a type that was renamed, in which case the
     // original type will point to a definition that was renamed.
     for (DexType type : types) {
-      DexType renamed = graphLense.lookupType(type, null);
+      DexType renamed = graphLense.lookupType(type);
       if (renamed != type) {
         if (definitionFor(type).type != renamed && definitionFor(renamed) == null) {
           return false;

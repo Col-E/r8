@@ -86,8 +86,8 @@ public class BridgeMethodAnalysis {
     }
 
     @Override
-    public DexType lookupType(DexType type, DexEncodedMethod context) {
-      return previousLense.lookupType(type, context);
+    public DexType lookupType(DexType type) {
+      return previousLense.lookupType(type);
     }
 
     @Override
@@ -105,12 +105,12 @@ public class BridgeMethodAnalysis {
     }
 
     @Override
-    public DexField lookupField(DexField field, DexEncodedMethod context) {
-      return previousLense.lookupField(field, context);
+    public DexField lookupField(DexField field) {
+      return previousLense.lookupField(field);
     }
 
     @Override
-    public boolean isContextFree() {
+    public boolean isContextFreeForMethods() {
       return false;
     }
 

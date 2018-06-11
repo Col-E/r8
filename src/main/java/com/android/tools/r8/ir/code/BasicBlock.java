@@ -690,10 +690,7 @@ public class BasicBlock {
     List<DexType> newGuards = new ArrayList<>(catchHandlers.getGuards().size());
     for (DexType guard : catchHandlers.getGuards()) {
       // The type may have changed due to class merging.
-      // TODO(christofferqa): This assumes that the graph lense is context insensitive for the
-      // given type (which is always the case). Consider removing the context-argument from
-      // GraphLense.lookupType, since we do not currently have a use case for it.
-      newGuards.add(graphLense.lookupType(guard, null));
+      newGuards.add(graphLense.lookupType(guard));
     }
     this.catchHandlers = new CatchHandlers<>(newGuards, catchHandlers.getAllTargets());
   }

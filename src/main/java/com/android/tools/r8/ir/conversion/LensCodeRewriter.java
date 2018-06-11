@@ -107,10 +107,11 @@ public class LensCodeRewriter {
                 && newInvoke.outValue() != null) {
               Value newValue = code.createValue(newInvoke.outType(), invoke.getLocalInfo());
               newInvoke.outValue().replaceUsers(newValue);
-              CheckCast cast = new CheckCast(
-                  newValue,
-                  newInvoke.outValue(),
-                  graphLense.lookupType(invokedMethod.proto.returnType, method));
+              CheckCast cast =
+                  new CheckCast(
+                      newValue,
+                      newInvoke.outValue(),
+                      graphLense.lookupType(invokedMethod.proto.returnType));
               cast.setPosition(current.getPosition());
               iterator.add(cast);
               // If the current block has catch handlers split the check cast into its own block.
@@ -123,7 +124,7 @@ public class LensCodeRewriter {
         } else if (current.isInstanceGet()) {
           InstanceGet instanceGet = current.asInstanceGet();
           DexField field = instanceGet.getField();
-          DexField actualField = graphLense.lookupField(field, method);
+          DexField actualField = graphLense.lookupField(field);
           if (actualField != field) {
             InstanceGet newInstanceGet =
                 new InstanceGet(
@@ -133,7 +134,7 @@ public class LensCodeRewriter {
         } else if (current.isInstancePut()) {
           InstancePut instancePut = current.asInstancePut();
           DexField field = instancePut.getField();
-          DexField actualField = graphLense.lookupField(field, method);
+          DexField actualField = graphLense.lookupField(field);
           if (actualField != field) {
             InstancePut newInstancePut =
                 new InstancePut(
@@ -143,7 +144,7 @@ public class LensCodeRewriter {
         } else if (current.isStaticGet()) {
           StaticGet staticGet = current.asStaticGet();
           DexField field = staticGet.getField();
-          DexField actualField = graphLense.lookupField(field, method);
+          DexField actualField = graphLense.lookupField(field);
           if (actualField != field) {
             StaticGet newStaticGet =
                 new StaticGet(staticGet.getType(), staticGet.dest(), actualField);
@@ -152,7 +153,7 @@ public class LensCodeRewriter {
         } else if (current.isStaticPut()) {
           StaticPut staticPut = current.asStaticPut();
           DexField field = staticPut.getField();
-          DexField actualField = graphLense.lookupField(field, method);
+          DexField actualField = graphLense.lookupField(field);
           if (actualField != field) {
             StaticPut newStaticPut =
                 new StaticPut(staticPut.getType(), staticPut.inValue(), actualField);
@@ -160,7 +161,7 @@ public class LensCodeRewriter {
           }
         } else if (current.isCheckCast()) {
           CheckCast checkCast = current.asCheckCast();
-          DexType newType = graphLense.lookupType(checkCast.getType(), method);
+          DexType newType = graphLense.lookupType(checkCast.getType());
           if (newType != checkCast.getType()) {
             CheckCast newCheckCast =
                 new CheckCast(makeOutValue(checkCast, code), checkCast.object(), newType);
@@ -168,14 +169,14 @@ public class LensCodeRewriter {
           }
         } else if (current.isConstClass()) {
           ConstClass constClass = current.asConstClass();
-          DexType newType = graphLense.lookupType(constClass.getValue(), method);
+          DexType newType = graphLense.lookupType(constClass.getValue());
           if (newType != constClass.getValue()) {
             ConstClass newConstClass = new ConstClass(makeOutValue(constClass, code), newType);
             iterator.replaceCurrentInstruction(newConstClass);
           }
         } else if (current.isInstanceOf()) {
           InstanceOf instanceOf = current.asInstanceOf();
-          DexType newType = graphLense.lookupType(instanceOf.type(), method);
+          DexType newType = graphLense.lookupType(instanceOf.type());
           if (newType != instanceOf.type()) {
             InstanceOf newInstanceOf = new InstanceOf(makeOutValue(instanceOf, code),
                 instanceOf.value(), newType);
@@ -183,7 +184,7 @@ public class LensCodeRewriter {
           }
         } else if (current.isInvokeNewArray()) {
           InvokeNewArray newArray = current.asInvokeNewArray();
-          DexType newType = graphLense.lookupType(newArray.getArrayType(), method);
+          DexType newType = graphLense.lookupType(newArray.getArrayType());
           if (newType != newArray.getArrayType()) {
             InvokeNewArray newNewArray = new InvokeNewArray(newType, makeOutValue(newArray, code),
                 newArray.inValues());
@@ -191,7 +192,7 @@ public class LensCodeRewriter {
           }
         } else if (current.isNewArrayEmpty()) {
           NewArrayEmpty newArrayEmpty = current.asNewArrayEmpty();
-          DexType newType = graphLense.lookupType(newArrayEmpty.type, method);
+          DexType newType = graphLense.lookupType(newArrayEmpty.type);
           if (newType != newArrayEmpty.type) {
             NewArrayEmpty newNewArray = new NewArrayEmpty(makeOutValue(newArrayEmpty, code),
                 newArrayEmpty.size(), newType);
@@ -199,7 +200,7 @@ public class LensCodeRewriter {
           }
         } else if (current.isNewInstance()) {
             NewInstance newInstance= current.asNewInstance();
-            DexType newClazz = graphLense.lookupType(newInstance.clazz, method);
+          DexType newClazz = graphLense.lookupType(newInstance.clazz);
             if (newClazz != newInstance.clazz) {
               NewInstance newNewInstance =
                   new NewInstance(newClazz, makeOutValue(newInstance, code));
@@ -229,7 +230,7 @@ public class LensCodeRewriter {
       }
     } else {
       DexField field = methodHandle.asField();
-      DexField actualField = graphLense.lookupField(field, method);
+      DexField actualField = graphLense.lookupField(field);
       if (actualField != field) {
         return new DexMethodHandle(methodHandle.type, actualField);
       }

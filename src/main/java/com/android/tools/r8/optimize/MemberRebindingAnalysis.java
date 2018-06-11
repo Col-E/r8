@@ -29,7 +29,7 @@ public class MemberRebindingAnalysis {
   private final GraphLense.Builder builder = GraphLense.builder();
 
   public MemberRebindingAnalysis(AppInfoWithLiveness appInfo, GraphLense lense) {
-    assert lense.isContextFree();
+    assert lense.isContextFreeForMethods();
     this.appInfo = appInfo;
     this.lense = lense;
   }
@@ -188,7 +188,7 @@ public class MemberRebindingAnalysis {
       BiFunction<DexClass, DexField, DexEncodedField> lookupTargetOnClass) {
     for (Map.Entry<DexField, Set<DexEncodedMethod>> entry : fields.entrySet()) {
       DexField field = entry.getKey();
-      field = lense.lookupField(field, null);
+      field = lense.lookupField(field);
       DexEncodedField target = lookup.apply(field.getHolder(), field);
       // Rebind to the lowest library class or program class. Do not rebind accesses to fields that
       // are not visible from the access context.

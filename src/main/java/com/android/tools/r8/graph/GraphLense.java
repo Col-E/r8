@@ -59,13 +59,18 @@ public abstract class GraphLense {
     return new Builder();
   }
 
-  public abstract DexType lookupType(DexType type, DexEncodedMethod context);
+  public abstract DexType lookupType(DexType type);
+
+  public DexMethod lookupMethod(DexMethod method) {
+    assert isContextFreeForMethods();
+    return lookupMethod(method, null);
+  }
 
   public abstract DexMethod lookupMethod(DexMethod method, DexEncodedMethod context);
 
-  public abstract DexField lookupField(DexField field, DexEncodedMethod context);
+  public abstract DexField lookupField(DexField field);
 
-  public abstract boolean isContextFree();
+  public abstract boolean isContextFreeForMethods();
 
   public static GraphLense getIdentityLense() {
     return new IdentityGraphLense();
@@ -78,7 +83,7 @@ public abstract class GraphLense {
   private static class IdentityGraphLense extends GraphLense {
 
     @Override
-    public DexType lookupType(DexType type, DexEncodedMethod context) {
+    public DexType lookupType(DexType type) {
       return type;
     }
 
@@ -88,12 +93,12 @@ public abstract class GraphLense {
     }
 
     @Override
-    public DexField lookupField(DexField field, DexEncodedMethod context) {
+    public DexField lookupField(DexField field) {
       return field;
     }
 
     @Override
-    public boolean isContextFree() {
+    public boolean isContextFreeForMethods() {
       return true;
     }
   }
@@ -118,14 +123,14 @@ public abstract class GraphLense {
     }
 
     @Override
-    public DexType lookupType(DexType type, DexEncodedMethod context) {
+    public DexType lookupType(DexType type) {
       if (type.isArrayType()) {
         synchronized (this) {
           // This block need to be synchronized due to arrayTypeCache.
           DexType result = arrayTypeCache.get(type);
           if (result == null) {
             DexType baseType = type.toBaseType(dexItemFactory);
-            DexType newType = lookupType(baseType, context);
+            DexType newType = lookupType(baseType);
             if (baseType == newType) {
               result = type;
             } else {
@@ -136,7 +141,7 @@ public abstract class GraphLense {
           return result;
         }
       }
-      DexType previous = previousLense.lookupType(type, context);
+      DexType previous = previousLense.lookupType(type);
       return typeMap.getOrDefault(previous, previous);
     }
 
@@ -147,14 +152,14 @@ public abstract class GraphLense {
     }
 
     @Override
-    public DexField lookupField(DexField field, DexEncodedMethod context) {
-      DexField previous = previousLense.lookupField(field, context);
+    public DexField lookupField(DexField field) {
+      DexField previous = previousLense.lookupField(field);
       return fieldMap.getOrDefault(previous, previous);
     }
 
     @Override
-    public boolean isContextFree() {
-      return previousLense.isContextFree();
+    public boolean isContextFreeForMethods() {
+      return previousLense.isContextFreeForMethods();
     }
 
     @Override

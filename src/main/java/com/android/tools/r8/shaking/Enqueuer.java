@@ -71,7 +71,6 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -1739,7 +1738,7 @@ public class Enqueuer {
       for (DexItem item : items) {
         if (item instanceof DexClass) {
           DexType type = ((DexClass) item).type;
-          assert lense.lookupType(type, null) == type;
+          assert lense.lookupType(type) == type;
         } else if (item instanceof DexEncodedMethod) {
           DexEncodedMethod method = (DexEncodedMethod) item;
           // We only allow changes to bridge methods, as these get retargeted even if they
@@ -1748,7 +1747,7 @@ public class Enqueuer {
               || lense.lookupMethod(method.method, null) == method.method;
         } else if (item instanceof DexEncodedField) {
           DexField field = ((DexEncodedField) item).field;
-          assert lense.lookupField(field, null) == field;
+          assert lense.lookupField(field) == field;
         } else {
           assert false;
         }
@@ -1794,30 +1793,30 @@ public class Enqueuer {
     }
 
     private static <T extends PresortedComparable<T>> ImmutableSortedSet<T> rewriteItems(
-        Set<T> original, BiFunction<T, DexEncodedMethod, T> rewrite) {
+        Set<T> original, Function<T, T> rewrite) {
       ImmutableSortedSet.Builder<T> builder =
           new ImmutableSortedSet.Builder<>(PresortedComparable::slowCompare);
       for (T item : original) {
-        builder.add(rewrite.apply(item, null));
+        builder.add(rewrite.apply(item));
       }
       return builder.build();
     }
 
     private static <T extends PresortedComparable<T>, S> ImmutableMap<T, S> rewriteKeys(
-        Map<T, S> original, BiFunction<T, DexEncodedMethod, T> rewrite) {
+        Map<T, S> original, Function<T, T> rewrite) {
       ImmutableMap.Builder<T, S> builder = new ImmutableMap.Builder<>();
       for (T item : original.keySet()) {
-        builder.put(rewrite.apply(item, null), original.get(item));
+        builder.put(rewrite.apply(item), original.get(item));
       }
       return builder.build();
     }
 
-    private static <T extends PresortedComparable<T>, S> Map<T, Set<S>>
-        rewriteKeysWhileMergingValues(
-            Map<T, Set<S>> original, BiFunction<T, DexEncodedMethod, T> rewrite) {
+    private static <T extends PresortedComparable<T>, S>
+        Map<T, Set<S>> rewriteKeysWhileMergingValues(
+            Map<T, Set<S>> original, Function<T, T> rewrite) {
       Map<T, Set<S>> result = new IdentityHashMap<>();
       for (T item : original.keySet()) {
-        T rewrittenKey = rewrite.apply(item, null);
+        T rewrittenKey = rewrite.apply(item);
         result.computeIfAbsent(rewrittenKey, k -> Sets.newIdentityHashSet())
             .addAll(original.get(item));
       }
@@ -1830,11 +1829,11 @@ public class Enqueuer {
       for (DexItem item : original) {
         // TODO(b/67934123) There should be a common interface to perform the dispatch.
         if (item instanceof DexType) {
-          builder.add(lense.lookupType((DexType) item, null));
+          builder.add(lense.lookupType((DexType) item));
         } else if (item instanceof DexMethod) {
-          builder.add(lense.lookupMethod((DexMethod) item, null));
+          builder.add(lense.lookupMethod((DexMethod) item));
         } else if (item instanceof DexField) {
-          builder.add(lense.lookupField((DexField) item, null));
+          builder.add(lense.lookupField((DexField) item));
         } else {
           throw new Unreachable();
         }
@@ -1893,7 +1892,7 @@ public class Enqueuer {
 
     public AppInfoWithLiveness rewrittenWithLense(DirectMappedDexApplication application,
         GraphLense lense) {
-      assert lense.isContextFree();
+      assert lense.isContextFreeForMethods();
       return new AppInfoWithLiveness(this, application, lense);
     }
 

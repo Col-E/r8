@@ -137,10 +137,7 @@ public class DeadCodeRemover {
     List<BasicBlock> deadCatchHandlers = new ArrayList<>();
     for (int i = 0; i < guards.size(); i++) {
       // The type may have changed due to class merging.
-      // TODO(christofferqa): This assumes that the graph lense is context insensitive for the
-      // given type (which is always the case). Consider removing the context-argument from
-      // GraphLense.lookupType, since we do not currently have a use case for it.
-      DexType guard = graphLense.lookupType(guards.get(i), null);
+      DexType guard = graphLense.lookupType(guards.get(i));
       boolean guardSeenBefore = !previouslySeenGuards.add(guard);
       if (guardSeenBefore) {
         deadCatchHandlers.add(targets.get(i));
