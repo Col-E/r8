@@ -36,6 +36,9 @@ import java.util.function.Consumer;
 import org.junit.Ignore;
 import org.junit.Test;
 
+// TODO(christofferqa): Add tests to check that statically typed invocations on method handles
+// continue to work after class merging. Rewriting of method handles should be carried out by
+// LensCodeRewriter.rewriteDexMethodHandle.
 public class ClassMergingTest extends TestBase {
 
   private static final Path CF_DIR =

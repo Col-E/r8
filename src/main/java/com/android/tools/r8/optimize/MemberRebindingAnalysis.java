@@ -115,7 +115,7 @@ public class MemberRebindingAnalysis {
   private void computeMethodRebinding(Set<DexMethod> methods,
       Function<DexMethod, DexEncodedMethod> lookupTarget) {
     for (DexMethod method : methods) {
-      method = lense.lookupMethod(method, null);
+      method = lense.lookupMethod(method);
       // We can safely ignore array types, as the corresponding methods are defined in a library.
       if (!method.getHolder().isClassType()) {
         continue;

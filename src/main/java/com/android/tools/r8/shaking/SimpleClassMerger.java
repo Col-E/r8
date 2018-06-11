@@ -181,7 +181,8 @@ public class SimpleClassMerger {
     if (Log.ENABLED) {
       Log.debug(getClass(), "Merged %d classes.", numberOfMerges);
     }
-    return renamedMembersLense.build(application.dexItemFactory, graphLense);
+    return new VerticalClassMergerGraphLense(
+        renamedMembersLense.build(application.dexItemFactory, graphLense));
   }
 
   private class ClassMerger {

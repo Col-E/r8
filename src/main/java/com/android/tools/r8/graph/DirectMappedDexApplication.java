@@ -69,7 +69,6 @@ public class DirectMappedDexApplication extends DexApplication {
   }
 
   public DirectMappedDexApplication rewrittenWithLense(GraphLense graphLense) {
-    assert graphLense.isContextFreeForMethods();
     assert mappingIsValid(graphLense, programClasses.getAllTypes());
     assert mappingIsValid(graphLense, libraryClasses.keySet());
     // As a side effect, this will rebuild the program classes and library classes maps.

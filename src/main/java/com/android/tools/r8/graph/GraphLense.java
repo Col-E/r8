@@ -3,8 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.ir.code.Invoke.Type;
+import com.google.common.collect.ImmutableSet;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * A GraphLense implements a virtual view on top of the graph, used to delay global rewrites until
@@ -61,16 +65,31 @@ public abstract class GraphLense {
 
   public abstract DexType lookupType(DexType type);
 
+  // This overload can be used when the graph lense is known to be context insensitive.
   public DexMethod lookupMethod(DexMethod method) {
-    assert isContextFreeForMethods();
-    return lookupMethod(method, null);
+    assert isContextFreeForMethod(method);
+    return lookupMethod(method, null, null);
   }
 
-  public abstract DexMethod lookupMethod(DexMethod method, DexEncodedMethod context);
+  public abstract DexMethod lookupMethod(DexMethod method, DexEncodedMethod context, Type type);
+
+  // Context sensitive graph lenses should override this method.
+  public Set<DexMethod> lookupMethodInAllContexts(DexMethod method) {
+    assert isContextFreeForMethod(method);
+    DexMethod result = lookupMethod(method);
+    if (result != null) {
+      return ImmutableSet.of(result);
+    }
+    return ImmutableSet.of();
+  }
 
   public abstract DexField lookupField(DexField field);
 
   public abstract boolean isContextFreeForMethods();
+
+  public boolean isContextFreeForMethod(DexMethod method) {
+    return isContextFreeForMethods();
+  }
 
   public static GraphLense getIdentityLense() {
     return new IdentityGraphLense();
@@ -88,7 +107,7 @@ public abstract class GraphLense {
     }
 
     @Override
-    public DexMethod lookupMethod(DexMethod method, DexEncodedMethod context) {
+    public DexMethod lookupMethod(DexMethod method, DexEncodedMethod context, Type type) {
       return method;
     }
 
@@ -146,9 +165,18 @@ public abstract class GraphLense {
     }
 
     @Override
-    public DexMethod lookupMethod(DexMethod method, DexEncodedMethod context) {
-      DexMethod previous = previousLense.lookupMethod(method, context);
+    public DexMethod lookupMethod(DexMethod method, DexEncodedMethod context, Type type) {
+      DexMethod previous = previousLense.lookupMethod(method, context, type);
       return methodMap.getOrDefault(previous, previous);
+    }
+
+    @Override
+    public Set<DexMethod> lookupMethodInAllContexts(DexMethod method) {
+      Set<DexMethod> result = new HashSet<>();
+      for (DexMethod previous : previousLense.lookupMethodInAllContexts(method)) {
+        result.add(methodMap.getOrDefault(previous, previous));
+      }
+      return result;
     }
 
     @Override
@@ -160,6 +188,11 @@ public abstract class GraphLense {
     @Override
     public boolean isContextFreeForMethods() {
       return previousLense.isContextFreeForMethods();
+    }
+
+    @Override
+    public boolean isContextFreeForMethod(DexMethod method) {
+      return previousLense.isContextFreeForMethod(method);
     }
 
     @Override
