@@ -15,6 +15,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Enumeration;
 import java.util.HashSet;
@@ -65,7 +66,7 @@ public class CompatDexBuilderTests {
     for (String className : CLASS_NAMES) {
       expectedNames.add(SUBDIR + "/" + className + ".class.dex");
     }
-    try (ZipFile zipFile = new ZipFile(outputZip.toFile())) {
+    try (ZipFile zipFile = new ZipFile(outputZip.toFile(), StandardCharsets.UTF_8)) {
       for (Enumeration<? extends ZipEntry> e = zipFile.entries(); e.hasMoreElements(); ) {
         ZipEntry ze = e.nextElement();
         expectedNames.remove(ze.getName());

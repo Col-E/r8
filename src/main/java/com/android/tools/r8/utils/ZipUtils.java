@@ -10,6 +10,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Enumeration;
@@ -27,7 +28,7 @@ public class ZipUtils {
   }
 
   public static void iter(String zipFileStr, OnEntryHandler handler) throws IOException {
-    try (ZipFile zipFile = new ZipFile(zipFileStr)) {
+    try (ZipFile zipFile = new ZipFile(zipFileStr, StandardCharsets.UTF_8)) {
       final Enumeration<? extends ZipEntry> entries = zipFile.entries();
       while (entries.hasMoreElements()) {
         ZipEntry entry = entries.nextElement();

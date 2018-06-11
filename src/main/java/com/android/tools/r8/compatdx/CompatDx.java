@@ -34,6 +34,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -572,7 +573,7 @@ public class CompatDx {
       // For each input archive file, add all class files within.
       for (Path input : inputs) {
         if (isArchive(input)) {
-          try (ZipFile zipFile = new ZipFile(input.toFile())) {
+          try (ZipFile zipFile = new ZipFile(input.toFile(), StandardCharsets.UTF_8)) {
             final Enumeration<? extends ZipEntry> entries = zipFile.entries();
             while (entries.hasMoreElements()) {
               ZipEntry entry = entries.nextElement();

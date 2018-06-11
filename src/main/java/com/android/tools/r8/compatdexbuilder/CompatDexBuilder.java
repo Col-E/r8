@@ -17,6 +17,7 @@ import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.io.ByteStreams;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -127,7 +128,7 @@ public class CompatDexBuilder {
 
       List<ZipEntry> toDex = new ArrayList<>();
 
-      try (ZipFile zipFile = new ZipFile(input)) {
+      try (ZipFile zipFile = new ZipFile(input, StandardCharsets.UTF_8)) {
         final Enumeration<? extends ZipEntry> entries = zipFile.entries();
         while (entries.hasMoreElements()) {
           ZipEntry entry = entries.nextElement();
