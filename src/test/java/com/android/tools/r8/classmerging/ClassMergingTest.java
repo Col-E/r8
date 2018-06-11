@@ -3,8 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.classmerging;
 
+import static com.android.tools.r8.utils.DexInspectorMatchers.isPresent;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.CompilationFailedException;
@@ -12,9 +14,14 @@ import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.code.Instruction;
+import com.android.tools.r8.code.MoveException;
+import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DexInspector;
+import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.DexInspector.FoundClassSubject;
+import com.android.tools.r8.utils.DexInspector.MethodSubject;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -110,14 +117,36 @@ public class ClassMergingTest extends TestBase {
         new Path[] {
           CF_DIR.resolve("ExceptionTest.class"),
           CF_DIR.resolve("ExceptionTest$ExceptionA.class"),
-          CF_DIR.resolve("ExceptionTest$ExceptionB.class")
+          CF_DIR.resolve("ExceptionTest$ExceptionB.class"),
+          CF_DIR.resolve("ExceptionTest$Exception1.class"),
+          CF_DIR.resolve("ExceptionTest$Exception2.class")
         };
     Set<String> preservedClassNames =
-        ImmutableSet.of("classmerging.ExceptionTest", "classmerging.ExceptionTest$ExceptionB");
-    runTest(main, programFiles, preservedClassNames);
+        ImmutableSet.of(
+            "classmerging.ExceptionTest",
+            "classmerging.ExceptionTest$ExceptionB",
+            "classmerging.ExceptionTest$Exception2");
+    DexInspector inspector = runTest(main, programFiles, preservedClassNames);
+
+    ClassSubject mainClass = inspector.clazz(main);
+    assertThat(mainClass, isPresent());
+
+    MethodSubject mainMethod =
+        mainClass.method("void", "main", ImmutableList.of("java.lang.String[]"));
+    assertThat(mainMethod, isPresent());
+
+    // Check that the second catch handler has been removed.
+    DexCode code = mainMethod.getMethod().getCode().asDexCode();
+    int numberOfMoveExceptionInstructions = 0;
+    for (Instruction instruction : code.instructions) {
+      if (instruction instanceof MoveException) {
+        numberOfMoveExceptionInstructions++;
+      }
+    }
+    assertEquals(2, numberOfMoveExceptionInstructions);
   }
 
-  private void runTest(String main, Path[] programFiles, Set<String> preservedClassNames)
+  private DexInspector runTest(String main, Path[] programFiles, Set<String> preservedClassNames)
       throws Exception {
     AndroidApp input = readProgramFiles(programFiles);
     AndroidApp output = compileWithR8(input, EXAMPLE_KEEP, this::configure);
@@ -135,5 +164,6 @@ public class ClassMergingTest extends TestBase {
     }
     // Check that the R8-generated code produces the same result as D8-generated code.
     assertEquals(runOnArt(compileWithD8(input), main), runOnArt(output, main));
+    return inspector;
   }
 }

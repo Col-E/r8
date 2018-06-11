@@ -22,6 +22,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CatchHandlers;
@@ -118,13 +119,16 @@ public class CfBuilder {
   }
 
   public CfCode build(
-      CodeRewriter rewriter, InternalOptions options, AppInfoWithSubtyping appInfo) {
+      CodeRewriter rewriter,
+      GraphLense graphLense,
+      InternalOptions options,
+      AppInfoWithSubtyping appInfo) {
     computeInitializers();
     types = new TypeVerificationHelper(code, factory, appInfo).computeVerificationTypes();
     splitExceptionalBlocks();
     LoadStoreHelper loadStoreHelper = new LoadStoreHelper(code, types);
     loadStoreHelper.insertLoadsAndStores();
-    DeadCodeRemover.removeDeadCode(code, rewriter, options);
+    DeadCodeRemover.removeDeadCode(code, rewriter, graphLense, options);
     removeUnneededLoadsAndStores();
     registerAllocator = new CfRegisterAllocator(code, options);
     registerAllocator.allocateRegisters();

@@ -43,7 +43,6 @@ import com.android.tools.r8.graph.DexDebugEventBuilder;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CatchHandlers;
@@ -82,10 +81,6 @@ public class DexBuilder {
   // The IR representation of the code to build.
   private final IRCode ir;
 
-  // Graph lense for building the exception handlers. Needed since program classes that inherit
-  // from Throwable may get merged into their subtypes during class merging.
-  private final GraphLense graphLense;
-
   // The register allocator providing register assignments for the code to build.
   private final RegisterAllocator registerAllocator;
 
@@ -121,14 +116,11 @@ public class DexBuilder {
 
   public DexBuilder(
       IRCode ir,
-      GraphLense graphLense,
       RegisterAllocator registerAllocator,
       InternalOptions options) {
     assert ir != null;
-    assert graphLense != null;
     assert registerAllocator != null;
     this.ir = ir;
-    this.graphLense = graphLense;
     this.registerAllocator = registerAllocator;
     this.options = options;
   }
@@ -714,12 +706,7 @@ public class DexBuilder {
           assert i == handlerGroup.getGuards().size() - 1;
           catchAllOffset = targetOffset;
         } else {
-          // The type may have changed due to class merging.
-          // TODO(christofferqa): This assumes that the graph lense is context insensitive for the
-          // given type (which is always the case). Consider removing the context-argument from
-          // GraphLense.lookupType, since we do not currently have a use case for it.
-          DexType actualType = graphLense.lookupType(type, null);
-          pairs.add(new TypeAddrPair(actualType, targetOffset));
+          pairs.add(new TypeAddrPair(type, targetOffset));
         }
       }
       TypeAddrPair[] pairsArray = pairs.toArray(new TypeAddrPair[pairs.size()]);

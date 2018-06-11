@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
+import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.IRCode;
@@ -11,15 +13,19 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.utils.InternalOptions;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Queue;
+import java.util.Set;
 
 public class DeadCodeRemover {
 
   public static void removeDeadCode(
-      IRCode code, CodeRewriter codeRewriter, InternalOptions options) {
-    removeUnneededCatchHandlers(code);
+      IRCode code, CodeRewriter codeRewriter, GraphLense graphLense, InternalOptions options) {
+    removeUnneededCatchHandlers(code, graphLense, options);
     Queue<BasicBlock> worklist = new LinkedList<>();
     worklist.addAll(code.blocks);
     for (BasicBlock block = worklist.poll(); block != null; block = worklist.poll()) {
@@ -98,15 +104,52 @@ public class DeadCodeRemover {
     }
   }
 
-  private static void removeUnneededCatchHandlers(IRCode code) {
+  private static void removeUnneededCatchHandlers(
+      IRCode code, GraphLense graphLense, InternalOptions options) {
     for (BasicBlock block : code.blocks) {
-      if (block.hasCatchHandlers() && !block.canThrow()) {
-        CatchHandlers<BasicBlock> handlers = block.getCatchHandlers();
-        for (BasicBlock target : handlers.getUniqueTargets()) {
-          target.unlinkCatchHandler();
+      if (block.hasCatchHandlers()) {
+        if (block.canThrow()) {
+          if (options.enableClassMerging) {
+            // Handle the case where an exception class has been merged into its sub class.
+            block.renameGuardsInCatchHandlers(graphLense);
+            unlinkDeadCatchHandlers(block, graphLense);
+          }
+        } else {
+          CatchHandlers<BasicBlock> handlers = block.getCatchHandlers();
+          for (BasicBlock target : handlers.getUniqueTargets()) {
+            target.unlinkCatchHandler();
+          }
         }
       }
     }
     code.removeUnreachableBlocks();
+  }
+
+  // Due to class merging, it is possible that two exception classes have been merged into one. This
+  // function removes catch handlers where the guards ended up being the same as a previous one.
+  private static void unlinkDeadCatchHandlers(BasicBlock block, GraphLense graphLense) {
+    assert block.hasCatchHandlers();
+    CatchHandlers<BasicBlock> catchHandlers = block.getCatchHandlers();
+    List<DexType> guards = catchHandlers.getGuards();
+    List<BasicBlock> targets = catchHandlers.getAllTargets();
+
+    Set<DexType> previouslySeenGuards = new HashSet<>();
+    List<BasicBlock> deadCatchHandlers = new ArrayList<>();
+    for (int i = 0; i < guards.size(); i++) {
+      // The type may have changed due to class merging.
+      // TODO(christofferqa): This assumes that the graph lense is context insensitive for the
+      // given type (which is always the case). Consider removing the context-argument from
+      // GraphLense.lookupType, since we do not currently have a use case for it.
+      DexType guard = graphLense.lookupType(guards.get(i), null);
+      boolean guardSeenBefore = !previouslySeenGuards.add(guard);
+      if (guardSeenBefore) {
+        deadCatchHandlers.add(targets.get(i));
+      }
+    }
+    // Remove the guards that are guaranteed to be dead.
+    for (BasicBlock deadCatchHandler : deadCatchHandlers) {
+      deadCatchHandler.unlinkCatchHandler();
+    }
+    assert block.consistentCatchHandlers();
   }
 }

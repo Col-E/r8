@@ -9,7 +9,9 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DebugLocalInfo.PrintLevel;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.utils.CfgPrinter;
@@ -20,10 +22,13 @@ import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableList;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntList;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -173,7 +178,7 @@ public class BasicBlock {
   public void removeSuccessor(BasicBlock block) {
     int index = successors.indexOf(block);
     assert index >= 0 : "removeSuccessor did not find the successor to remove";
-    removeSuccessorsByIndex(Collections.singletonList(index));
+    removeSuccessorsByIndex(new IntArrayList(new int[] {index}));
   }
 
   public void removePredecessor(BasicBlock block) {
@@ -328,7 +333,7 @@ public class BasicBlock {
     assert false : "replaceSuccessor did not find the predecessor to replace";
   }
 
-  public void removeSuccessorsByIndex(List<Integer> successorsToRemove) {
+  public void removeSuccessorsByIndex(IntList successorsToRemove) {
     if (successorsToRemove.isEmpty()) {
       return;
     }
@@ -676,6 +681,47 @@ public class BasicBlock {
       successorIndexes.add(index);
     }
     catchHandlers = new CatchHandlers<>(guards, successorIndexes);
+  }
+
+  // Due to class merging, it is possible that two exception classes have been merged into one.
+  // This function renames the guards according to the given graph lense.
+  public void renameGuardsInCatchHandlers(GraphLense graphLense) {
+    assert hasCatchHandlers();
+    List<DexType> newGuards = new ArrayList<>(catchHandlers.getGuards().size());
+    for (DexType guard : catchHandlers.getGuards()) {
+      // The type may have changed due to class merging.
+      // TODO(christofferqa): This assumes that the graph lense is context insensitive for the
+      // given type (which is always the case). Consider removing the context-argument from
+      // GraphLense.lookupType, since we do not currently have a use case for it.
+      newGuards.add(graphLense.lookupType(guard, null));
+    }
+    this.catchHandlers = new CatchHandlers<>(newGuards, catchHandlers.getAllTargets());
+  }
+
+  public boolean consistentCatchHandlers() {
+    // Check that catch handlers are always the first successors of a block.
+    if (hasCatchHandlers()) {
+      assert exit().isGoto() || exit().isThrow();
+      CatchHandlers<Integer> catchHandlers = getCatchHandlersWithSuccessorIndexes();
+      // If there is a catch-all guard it must be the last.
+      List<DexType> guards = catchHandlers.getGuards();
+      int lastGuardIndex = guards.size() - 1;
+      for (int i = 0; i < guards.size(); i++) {
+        assert guards.get(i) != DexItemFactory.catchAllType || i == lastGuardIndex;
+      }
+      // Check that all successors except maybe the last are catch successors.
+      List<Integer> sortedHandlerIndices = new ArrayList<>(catchHandlers.getAllTargets());
+      sortedHandlerIndices.sort(Comparator.naturalOrder());
+      int firstIndex = sortedHandlerIndices.get(0);
+      int lastIndex = sortedHandlerIndices.get(sortedHandlerIndices.size() - 1);
+      assert firstIndex == 0;
+      assert lastIndex < sortedHandlerIndices.size();
+      int lastSuccessorIndex = getSuccessors().size() - 1;
+      assert lastIndex == lastSuccessorIndex // All successors are catch successors.
+          || lastIndex == lastSuccessorIndex - 1; // All but one successors are catch successors.
+      assert lastIndex == lastSuccessorIndex || !exit().isThrow();
+    }
+    return true;
   }
 
   public void clearCurrentDefinitions() {

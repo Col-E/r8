@@ -5,8 +5,6 @@ package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
@@ -473,28 +471,7 @@ public class IRCode {
 
   private boolean consistentCatchHandlers() {
     for (BasicBlock block : blocks) {
-      // Check that catch handlers are always the first successors of a block.
-      if (block.hasCatchHandlers()) {
-        assert block.exit().isGoto() || block.exit().isThrow();
-        CatchHandlers<Integer> catchHandlers = block.getCatchHandlersWithSuccessorIndexes();
-        // If there is a catch-all guard it must be the last.
-        List<DexType> guards = catchHandlers.getGuards();
-        int lastGuardIndex = guards.size() - 1;
-        for (int i = 0; i < guards.size(); i++) {
-          assert guards.get(i) != DexItemFactory.catchAllType || i == lastGuardIndex;
-        }
-        // Check that all successors except maybe the last are catch successors.
-        List<Integer> sortedHandlerIndices = new ArrayList<>(catchHandlers.getAllTargets());
-        sortedHandlerIndices.sort(Comparator.naturalOrder());
-        int firstIndex = sortedHandlerIndices.get(0);
-        int lastIndex = sortedHandlerIndices.get(sortedHandlerIndices.size() - 1);
-        assert firstIndex == 0;
-        assert lastIndex < sortedHandlerIndices.size();
-        int lastSuccessorIndex = block.getSuccessors().size() - 1;
-        assert lastIndex == lastSuccessorIndex  // All successors are catch successors.
-            || lastIndex == lastSuccessorIndex - 1; // All but one successors are catch successors.
-        assert lastIndex == lastSuccessorIndex || !block.exit().isThrow();
-      }
+      assert block.consistentCatchHandlers();
     }
     return true;
   }
