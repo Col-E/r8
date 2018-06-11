@@ -56,6 +56,7 @@ import com.android.tools.r8.code.Throw;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationElement;
+import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexCode;
@@ -92,6 +93,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ExecutionException;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -197,6 +199,50 @@ public class DexInspector {
       consumer.accept(constructor.apply(item));
     }
   }
+
+  DexAnnotation findAnnotation(String name, DexAnnotationSet annotations) {
+    for (DexAnnotation annotation : annotations.annotations) {
+      DexType type = annotation.annotation.type;
+      String original = mapping == null ? type.toSourceString() : mapping.originalNameOf(type);
+      if (original.equals(name)) {
+        return annotation;
+      }
+    }
+    return null;
+  }
+
+  public String getFinalSignatureAttribute(DexAnnotationSet annotations) {
+    DexAnnotation annotation =
+        findAnnotation("dalvik.annotation.Signature", annotations);
+    if (annotation == null) {
+      return null;
+    }
+    assert annotation.annotation.elements.length == 1;
+    DexAnnotationElement element = annotation.annotation.elements[0];
+    assert element.value instanceof DexValueArray;
+    StringBuilder builder = new StringBuilder();
+    DexValueArray valueArray = (DexValueArray) element.value;
+    for (DexValue value : valueArray.getValues()) {
+      assertTrue(value instanceof DexValueString);
+      DexValueString s = (DexValueString) value;
+      builder.append(s.getValue());
+    }
+    return builder.toString();
+  }
+
+  public String getOriginalSignatureAttribute(
+      DexAnnotationSet annotations, BiConsumer<GenericSignatureParser, String> parse) {
+    String finalSignature = getFinalSignatureAttribute(annotations);
+    if (finalSignature == null || mapping == null) {
+      return finalSignature;
+    }
+
+    GenericSignatureGenerater rewriter = new GenericSignatureGenerater();
+    GenericSignatureParser<String> parser = new GenericSignatureParser<>(rewriter);
+    parse.accept(parser, finalSignature);
+    return rewriter.getSignature();
+  }
+
 
   public ClassSubject clazz(Class clazz) {
     return clazz(clazz.getTypeName());
@@ -582,21 +628,10 @@ public class DexInspector {
       assert !name.endsWith("EnclosingClass")
           && !name.endsWith("EnclosingMethod")
           && !name.endsWith("InnerClass");
-      DexAnnotation annotation = findAnnotation(name);
+      DexAnnotation annotation = findAnnotation(name, dexClass.annotations);
       return annotation == null
           ? new AbsentAnnotationSubject()
           : new FoundAnnotationSubject(annotation);
-    }
-
-    private DexAnnotation findAnnotation(String name) {
-      for (DexAnnotation annotation : dexClass.annotations.annotations) {
-        DexType type = annotation.annotation.type;
-        String original = mapping == null ? type.toSourceString() : mapping.originalNameOf(type);
-        if (original.equals(name)) {
-          return annotation;
-        }
-      }
-      return null;
     }
 
     @Override
@@ -663,94 +698,13 @@ public class DexInspector {
 
     @Override
     public String getOriginalSignatureAttribute() {
-      // Build the generic signature using the current mapping if any.
-      class GenericSignatureGenerater implements GenericSignatureAction<String> {
-
-        private StringBuilder signature;
-
-        public String getSignature() {
-          return signature.toString();
-        }
-
-        @Override
-        public void parsedSymbol(char symbol) {
-          signature.append(symbol);
-        }
-
-        @Override
-        public void parsedIdentifier(String identifier) {
-          signature.append(identifier);
-        }
-
-        @Override
-        public String parsedTypeName(String name) {
-          String type = name;
-          if (originalToObfuscatedMapping != null) {
-            String original = originalToObfuscatedMapping.inverse().get(name);
-            type = original != null ? original : name;
-          }
-          signature.append(type);
-          return type;
-        }
-
-        @Override
-        public String parsedInnerTypeName(String enclosingType, String name) {
-          if (originalToObfuscatedMapping != null) {
-            // The enclosingType has already been mapped if a mapping is present.
-            String minifiedEnclosing = originalToObfuscatedMapping.get(enclosingType);
-            String type = originalToObfuscatedMapping.inverse().get(minifiedEnclosing + "$" + name);
-            if (type != null) {
-              assert type.startsWith(enclosingType + "$");
-              name = type.substring(enclosingType.length() + 1);
-            }
-            signature.append(name);
-            return type;
-          } else {
-            String type = enclosingType + "$" + name;
-            signature.append(name);
-            return type;
-          }
-        }
-
-        @Override
-        public void start() {
-          signature = new StringBuilder();
-        }
-
-        @Override
-        public void stop() {
-          // nothing to do
-        }
-      }
-
-      String finalSignature = getFinalSignatureAttribute();
-      if (finalSignature == null || mapping == null) {
-        return finalSignature;
-      }
-
-      GenericSignatureGenerater rewriter = new GenericSignatureGenerater();
-      GenericSignatureParser<String> parser = new GenericSignatureParser<>(rewriter);
-      parser.parseClassSignature(finalSignature);
-      return rewriter.getSignature();
+      return DexInspector.this.getOriginalSignatureAttribute(
+          dexClass.annotations, GenericSignatureParser::parseClassSignature);
     }
 
     @Override
     public String getFinalSignatureAttribute() {
-      DexAnnotation annotation = findAnnotation("dalvik.annotation.Signature");
-      if (annotation == null) {
-        return null;
-      }
-      assert annotation.annotation.elements.length == 1;
-      DexAnnotationElement element = annotation.annotation.elements[0];
-      assert element.value instanceof DexValueArray;
-      StringBuilder builder = new StringBuilder();
-      DexValueArray valueArray = (DexValueArray) element.value;
-      for (DexValue value : valueArray.getValues()) {
-        assertTrue(value instanceof DexValueString);
-        DexValueString s = (DexValueString) value;
-        builder.append(s.getValue());
-      }
-      return builder.toString();
+      return DexInspector.this.getFinalSignatureAttribute(dexClass.annotations);
     }
 
     @Override
@@ -789,6 +743,10 @@ public class DexInspector {
     public abstract boolean isInstanceInitializer();
 
     public abstract boolean isClassInitializer();
+
+    public abstract String getOriginalSignatureAttribute();
+
+    public abstract String getFinalSignatureAttribute();
 
     public abstract DexEncodedMethod getMethod();
 
@@ -856,6 +814,16 @@ public class DexInspector {
 
     @Override
     public Signature getFinalSignature() {
+      return null;
+    }
+
+    @Override
+    public String getOriginalSignatureAttribute() {
+      return null;
+    }
+
+    @Override
+    public String getFinalSignatureAttribute() {
       return null;
     }
   }
@@ -930,6 +898,17 @@ public class DexInspector {
     }
 
     @Override
+    public String getOriginalSignatureAttribute() {
+      return DexInspector.this.getOriginalSignatureAttribute(
+          dexMethod.annotations, GenericSignatureParser::parseMethodSignature);
+    }
+
+    @Override
+    public String getFinalSignatureAttribute() {
+      return DexInspector.this.getFinalSignatureAttribute(dexMethod.annotations);
+    }
+
+    @Override
     public Iterator<InstructionSubject> iterateInstructions() {
       return new InstructionIterator(this);
     }
@@ -954,6 +933,10 @@ public class DexInspector {
     public abstract DexValue getStaticValue();
 
     public abstract boolean isRenamed();
+
+    public abstract String getOriginalSignatureAttribute();
+
+    public abstract String getFinalSignatureAttribute();
   }
 
   public class AbsentFieldSubject extends FieldSubject {
@@ -1000,6 +983,16 @@ public class DexInspector {
 
     @Override
     public DexEncodedField getField() {
+      return null;
+    }
+
+    @Override
+    public String getOriginalSignatureAttribute() {
+      return null;
+    }
+
+    @Override
+    public String getFinalSignatureAttribute() {
       return null;
     }
   }
@@ -1066,6 +1059,17 @@ public class DexInspector {
     @Override
     public DexEncodedField getField() {
       return dexField;
+    }
+
+    @Override
+    public String getOriginalSignatureAttribute() {
+      return DexInspector.this.getOriginalSignatureAttribute(
+          dexField.annotations, GenericSignatureParser::parseFieldSignature);
+    }
+
+    @Override
+    public String getFinalSignatureAttribute() {
+      return DexInspector.this.getFinalSignatureAttribute(dexField.annotations);
     }
 
     @Override
@@ -1521,6 +1525,65 @@ public class DexInspector {
       T result = (T) pendingNext;
       pendingNext = null;
       return result;
+    }
+  }
+
+  // Build the generic signature using the current mapping if any.
+  class GenericSignatureGenerater implements GenericSignatureAction<String> {
+
+    private StringBuilder signature;
+
+    public String getSignature() {
+      return signature.toString();
+    }
+
+    @Override
+    public void parsedSymbol(char symbol) {
+      signature.append(symbol);
+    }
+
+    @Override
+    public void parsedIdentifier(String identifier) {
+      signature.append(identifier);
+    }
+
+    @Override
+    public String parsedTypeName(String name) {
+      String type = name;
+      if (originalToObfuscatedMapping != null) {
+        String original = originalToObfuscatedMapping.inverse().get(name);
+        type = original != null ? original : name;
+      }
+      signature.append(type);
+      return type;
+    }
+
+    @Override
+    public String parsedInnerTypeName(String enclosingType, String name) {
+      String type;
+      if (originalToObfuscatedMapping != null) {
+        // The enclosingType has already been mapped if a mapping is present.
+        String minifiedEnclosing = originalToObfuscatedMapping.get(enclosingType);
+        type = originalToObfuscatedMapping.inverse().get(minifiedEnclosing + "$" + name);
+        if (type != null) {
+          assert type.startsWith(enclosingType + "$");
+          name = type.substring(enclosingType.length() + 1);
+        }
+      } else {
+        type = enclosingType + "$" + name;
+      }
+      signature.append(name);
+      return type;
+    }
+
+    @Override
+    public void start() {
+      signature = new StringBuilder();
+    }
+
+    @Override
+    public void stop() {
+      // nothing to do
     }
   }
 }
