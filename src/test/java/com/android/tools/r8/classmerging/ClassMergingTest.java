@@ -26,12 +26,14 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class ClassMergingTest extends TestBase {
@@ -108,6 +110,23 @@ public class ClassMergingTest extends TestBase {
     assertTrue(inspector.clazz("classmerging.SubClassThatReferencesSuperMethod").isPresent());
   }
 
+  @Test
+  public void testConflictingInterfaceSignatures() throws Exception {
+    String main = "classmerging.ConflictingInterfaceSignaturesTest";
+    Path[] programFiles =
+        new Path[] {
+          CF_DIR.resolve("ConflictingInterfaceSignaturesTest.class"),
+          CF_DIR.resolve("ConflictingInterfaceSignaturesTest$A.class"),
+          CF_DIR.resolve("ConflictingInterfaceSignaturesTest$B.class"),
+          CF_DIR.resolve("ConflictingInterfaceSignaturesTest$InterfaceImpl.class")
+        };
+    Set<String> preservedClassNames =
+        ImmutableSet.of(
+            "classmerging.ConflictingInterfaceSignaturesTest",
+            "classmerging.ConflictingInterfaceSignaturesTest$InterfaceImpl");
+    runTest(main, programFiles, preservedClassNames);
+  }
+
   // If an exception class A is merged into another exception class B, then all exception tables
   // should be updated, and class A should be removed entirely.
   @Test
@@ -146,6 +165,40 @@ public class ClassMergingTest extends TestBase {
     assertEquals(2, numberOfMoveExceptionInstructions);
   }
 
+  @Ignore("b/73958515")
+  @Test
+  public void testNoIllegalClassAccess() throws Exception {
+    String main = "classmerging.SimpleInterfaceAccessTest";
+    Path[] programFiles =
+        new Path[] {
+          CF_DIR.resolve("SimpleInterface.class"),
+          CF_DIR.resolve("SimpleInterfaceAccessTest.class"),
+          CF_DIR.resolve("pkg/SimpleInterfaceImplRetriever.class"),
+          CF_DIR.resolve("pkg/SimpleInterfaceImplRetriever$SimpleInterfaceImpl.class")
+        };
+    // SimpleInterface cannot be merged into SimpleInterfaceImpl because SimpleInterfaceImpl
+    // is in a different package and is not public.
+    ImmutableSet<String> preservedClassNames =
+        ImmutableSet.of(
+            "classmerging.SimpleInterface",
+            "classmerging.SimpleInterfaceAccessTest",
+            "classmerging.pkg.SimpleInterfaceImplRetriever",
+            "classmerging.pkg.SimpleInterfaceImplRetriever$SimpleInterfaceImpl");
+    runTest(main, programFiles, preservedClassNames);
+    // If access modifications are allowed then SimpleInterface should be merged into
+    // SimpleInterfaceImpl.
+    preservedClassNames =
+        ImmutableSet.of(
+            "classmerging.SimpleInterfaceAccessTest",
+            "classmerging.pkg.SimpleInterfaceImplRetriever",
+            "classmerging.pkg.SimpleInterfaceImplRetriever$SimpleInterfaceImpl");
+    runTest(
+        main,
+        programFiles,
+        preservedClassNames,
+        getProguardConfig(EXAMPLE_KEEP, "-allowaccessmodification"));
+  }
+
   @Test
   public void testTemplateMethodPattern() throws Exception {
     String main = "classmerging.TemplateMethodTest";
@@ -163,8 +216,14 @@ public class ClassMergingTest extends TestBase {
 
   private DexInspector runTest(String main, Path[] programFiles, Set<String> preservedClassNames)
       throws Exception {
+    return runTest(main, programFiles, preservedClassNames, getProguardConfig(EXAMPLE_KEEP, null));
+  }
+
+  private DexInspector runTest(
+      String main, Path[] programFiles, Set<String> preservedClassNames, String proguardConfig)
+      throws Exception {
     AndroidApp input = readProgramFiles(programFiles);
-    AndroidApp output = compileWithR8(input, EXAMPLE_KEEP, this::configure);
+    AndroidApp output = compileWithR8(input, proguardConfig, this::configure);
     DexInspector inspector = new DexInspector(output);
     // Check that all classes in [preservedClassNames] are in fact preserved.
     for (String className : preservedClassNames) {
@@ -180,5 +239,17 @@ public class ClassMergingTest extends TestBase {
     // Check that the R8-generated code produces the same result as D8-generated code.
     assertEquals(runOnArt(compileWithD8(input), main), runOnArt(output, main));
     return inspector;
+  }
+
+  private String getProguardConfig(Path path, String additionalRules) throws IOException {
+    StringBuilder builder = new StringBuilder();
+    for (String line : Files.readAllLines(path)) {
+      builder.append(line);
+      builder.append(System.lineSeparator());
+    }
+    if (additionalRules != null) {
+      builder.append(additionalRules);
+    }
+    return builder.toString();
   }
 }
