@@ -482,7 +482,7 @@ public class IRConverter {
                 // StringBuilder/StringBuffer method invocations, and removeDeadCode() to remove
                 // unused out-values.
                 codeRewriter.rewriteMoveResult(code);
-                DeadCodeRemover.removeDeadCode(code, codeRewriter, options);
+                DeadCodeRemover.removeDeadCode(code, codeRewriter, graphLense, options);
                 consumer.accept(code, method);
                 return null;
               }));
@@ -532,7 +532,7 @@ public class IRConverter {
     assert code.isConsistentSSA();
     code.traceBlocks();
     RegisterAllocator registerAllocator = performRegisterAllocation(code, method);
-    method.setCode(code, graphLense, registerAllocator, options);
+    method.setCode(code, registerAllocator, options);
     if (Log.ENABLED) {
       Log.debug(getClass(), "Resulting dex code for %s:\n%s",
           method.toSourceString(), logCode(options, method));
@@ -705,7 +705,7 @@ public class IRConverter {
     // Dead code removal. Performed after simplifications to remove code that becomes dead
     // as a result of those simplifications. The following optimizations could reveal more
     // dead code which is removed right before register allocation in performRegisterAllocation.
-    DeadCodeRemover.removeDeadCode(code, codeRewriter, options);
+    DeadCodeRemover.removeDeadCode(code, codeRewriter, graphLense, options);
     assert code.isConsistentSSA();
 
     if (options.enableDesugaring && enableTryWithResourcesDesugaring()) {
@@ -776,7 +776,7 @@ public class IRConverter {
   private void finalizeToCf(DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
     assert !method.getCode().isDexCode();
     CfBuilder builder = new CfBuilder(method, code, options.itemFactory);
-    CfCode result = builder.build(codeRewriter, options, appInfo.withSubtyping());
+    CfCode result = builder.build(codeRewriter, graphLense, options, appInfo.withSubtyping());
     method.setCode(result);
     markProcessed(method, code, feedback);
   }
@@ -784,7 +784,7 @@ public class IRConverter {
   private void finalizeToDex(DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
     // Perform register allocation.
     RegisterAllocator registerAllocator = performRegisterAllocation(code, method);
-    method.setCode(code, graphLense, registerAllocator, options);
+    method.setCode(code, registerAllocator, options);
     updateHighestSortingStrings(method);
     if (Log.ENABLED) {
       Log.debug(getClass(), "Resulting dex code for %s:\n%s",
@@ -818,7 +818,7 @@ public class IRConverter {
   private RegisterAllocator performRegisterAllocation(IRCode code, DexEncodedMethod method) {
     // Always perform dead code elimination before register allocation. The register allocator
     // does not allow dead code (to make sure that we do not waste registers for unneeded values).
-    DeadCodeRemover.removeDeadCode(code, codeRewriter, options);
+    DeadCodeRemover.removeDeadCode(code, codeRewriter, graphLense, options);
     materializeInstructionBeforeLongOperationsWorkaround(code, options);
     LinearScanRegisterAllocator registerAllocator = new LinearScanRegisterAllocator(code, options);
     registerAllocator.allocateRegisters(options.debug);
