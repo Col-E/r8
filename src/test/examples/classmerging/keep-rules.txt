@@ -7,7 +7,13 @@
 -keep public class classmerging.Test {
   public static void main(...);
 }
+-keep public class classmerging.ConflictingInterfaceSignaturesTest {
+  public static void main(...);
+}
 -keep public class classmerging.ExceptionTest {
+  public static void main(...);
+}
+-keep public class classmerging.SimpleInterfaceAccessTest {
   public static void main(...);
 }
 -keep public class classmerging.TemplateMethodTest {
