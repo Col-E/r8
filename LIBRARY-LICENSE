@@ -48,21 +48,3 @@
   license: ASM license
   licenseUrl: http://asm.ow2.org/license.html
   url: http://asm.ow2.org/index.html
-- artifact: org.jetbrains.kotlin:kotlin-stdlib:+
-  name: org.jetbrains.kotlin:kotlin-stdlib
-  copyrightHolder: JetBrains s.r.o.
-  license: The Apache License, Version 2.0
-  licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
-  url: https://kotlinlang.org/
-- artifact: org.jetbrains.kotlinx:kotlinx-metadata-jvm:+
-  name: org.jetbrains.kotlinx:kotlinx-metadata-jvm
-  copyrightHolder: JetBrains s.r.o.
-  license: The Apache License, Version 2.0
-  licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
-  url: https://kotlinlang.org/
-- artifact: org.jetbrains:annotations:+
-  name: IntelliJ IDEA Annotations
-  copyrightHolder: JetBrains s.r.o.
-  license: The Apache Software License, Version 2.0
-  licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
-  url: http://www.jetbrains.org
