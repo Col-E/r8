@@ -4,22 +4,10 @@
 
 package com.android.tools.r8.kotlin;
 
-import kotlinx.metadata.jvm.KotlinClassMetadata;
-
 // Provides access to kotlin information.
-public abstract class KotlinInfo<MetadataKind extends KotlinClassMetadata> {
-  MetadataKind metadata;
-
+public abstract class KotlinInfo {
   KotlinInfo() {
   }
-
-  KotlinInfo(MetadataKind metadata) {
-    validateMetadata(metadata);
-    this.metadata = metadata;
-  }
-
-  // Subtypes will define how to validate the given metadata.
-  abstract void validateMetadata(MetadataKind metadata);
 
   public enum Kind {
     Class, File, Synthetic, Part, Facade
