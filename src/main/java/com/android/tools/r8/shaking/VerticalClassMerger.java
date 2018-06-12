@@ -52,18 +52,16 @@ import java.util.stream.Collectors;
  * <p>A common use-case for this is to merge an interface into its single implementation.
  *
  * <p>The class merger only fixes the structure of the graph but leaves the actual instructions
- * untouched. Fixup of instructions is deferred via a {@link GraphLense} to the Ir building phase.
+ * untouched. Fixup of instructions is deferred via a {@link GraphLense} to the IR building phase.
  */
 public class VerticalClassMerger {
 
   private final DexApplication application;
   private final AppInfoWithLiveness appInfo;
   private final GraphLense graphLense;
-  private final GraphLense.Builder renamedMembersLense = GraphLense.builder();
   private final Map<DexType, DexType> mergedClasses = new IdentityHashMap<>();
   private final Timing timing;
   private Collection<DexMethod> invokes;
-  private int numberOfMerges = 0;
 
   public VerticalClassMerger(
       DexApplication application,
@@ -170,6 +168,12 @@ public class VerticalClassMerger {
     Deque<DexProgramClass> worklist = new ArrayDeque<>();
     Set<DexProgramClass> seenBefore = new HashSet<>();
 
+    int numberOfMerges = 0;
+
+    // The resulting graph lense that should be used after class merging.
+    VerticalClassMergerGraphLense.Builder renamedMembersLense =
+        new VerticalClassMergerGraphLense.Builder();
+
     Iterator<DexProgramClass> classIterator = classes.iterator();
 
     // Visit the program classes in a top-down order according to the class hierarchy.
@@ -218,7 +222,12 @@ public class VerticalClassMerger {
         }
         continue;
       }
-      boolean merged = new ClassMerger(clazz, targetClass).merge();
+      ClassMerger merger = new ClassMerger(clazz, targetClass);
+      boolean merged = merger.merge();
+      if (merged) {
+        // Commit the changes to the graph lense.
+        renamedMembersLense.merge(merger.getRenamings());
+      }
       if (Log.ENABLED) {
         if (merged) {
           numberOfMerges++;
@@ -239,8 +248,7 @@ public class VerticalClassMerger {
     if (Log.ENABLED) {
       Log.debug(getClass(), "Merged %d classes.", numberOfMerges);
     }
-    return new VerticalClassMergerGraphLense(
-        renamedMembersLense.build(application.dexItemFactory, graphLense));
+    return renamedMembersLense.build(graphLense);
   }
 
   private class ClassMerger {
@@ -249,7 +257,8 @@ public class VerticalClassMerger {
 
     private final DexClass source;
     private final DexClass target;
-    private final Map<DexEncodedMethod, DexEncodedMethod> deferredRenamings = new HashMap<>();
+    private final VerticalClassMergerGraphLense.Builder deferredRenamings =
+        new VerticalClassMergerGraphLense.Builder();
     private boolean abortMerge = false;
 
     private ClassMerger(DexClass source, DexClass target) {
@@ -338,9 +347,11 @@ public class VerticalClassMerger {
       source.interfaces = DexTypeList.empty();
       // Step 4: Record merging.
       mergedClasses.put(source.type, target.type);
-      // Step 5: Make deferred renamings final.
-      deferredRenamings.forEach((from, to) -> renamedMembersLense.map(from.method, to.method));
       return true;
+    }
+
+    public VerticalClassMergerGraphLense.Builder getRenamings() {
+      return deferredRenamings;
     }
 
     private DexEncodedMethod filterShadowedInterfaceMethods(DexEncodedMethod m) {
@@ -348,7 +359,7 @@ public class VerticalClassMerger {
       assert actual != null;
       if (actual != m) {
         // We will drop a method here, so record it as a potential renaming.
-        deferredRenamings.put(m, actual);
+        deferredRenamings.map(m.method, actual.method);
         return null;
       }
       // We will keep the method, so the class better be abstract.
@@ -426,7 +437,7 @@ public class VerticalClassMerger {
       if (method.accessFlags.isAbstract()) {
         // We make a method disappear here, so record the renaming so that calls to the previous
         // target get forwarded properly.
-        deferredRenamings.put(method, existing);
+        deferredRenamings.map(method.method, existing.method);
         return existing;
       } else if (existing.accessFlags.isBridge()) {
         InvokeSingleTargetExtractor extractor = new InvokeSingleTargetExtractor();
@@ -450,7 +461,7 @@ public class VerticalClassMerger {
       DexEncodedMethod result = method
           .toRenamedMethod(makeMergedName(CONSTRUCTOR_NAME, holder), application.dexItemFactory);
       result.markForceInline();
-      deferredRenamings.put(method, result);
+      deferredRenamings.map(method.method, result.method);
       // Renamed constructors turn into ordinary private functions. They can be private, as
       // they are only references from their direct subclass, which they were merged into.
       result.accessFlags.unsetConstructor();
@@ -468,7 +479,7 @@ public class VerticalClassMerger {
       String name = method.method.name.toSourceString();
       DexEncodedMethod result = method
           .toRenamedMethod(makeMergedName(name, holder), application.dexItemFactory);
-      renamedMembersLense.map(method.method, result.method);
+      deferredRenamings.map(method.method, result.method);
       return result;
     }
 
@@ -478,7 +489,7 @@ public class VerticalClassMerger {
       DexEncodedField result = field
           .toRenamedField(makeMergedName(oldName.toSourceString(), holder),
               application.dexItemFactory);
-      renamedMembersLense.map(field.field, result.field);
+      deferredRenamings.map(field.field, result.field);
       return result;
     }
   }

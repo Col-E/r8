@@ -10,7 +10,9 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.code.Invoke.Type;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import java.util.Map;
 import java.util.Set;
 
 // This graph lense is instantiated during vertical class merging. The graph lense is context
@@ -40,8 +42,16 @@ import java.util.Set;
 public class VerticalClassMergerGraphLense extends GraphLense {
   private final GraphLense previousLense;
 
-  public VerticalClassMergerGraphLense(GraphLense previousLense) {
+  private final Map<DexField, DexField> fieldMap;
+  private final Map<DexMethod, DexMethod> methodMap;
+
+  public VerticalClassMergerGraphLense(
+      Map<DexField, DexField> fieldMap,
+      Map<DexMethod, DexMethod> methodMap,
+      GraphLense previousLense) {
     this.previousLense = previousLense;
+    this.fieldMap = fieldMap;
+    this.methodMap = methodMap;
   }
 
   @Override
@@ -54,32 +64,66 @@ public class VerticalClassMergerGraphLense extends GraphLense {
     // TODO(christofferqa): If [type] is Type.SUPER and [method] has been merged into the class of
     // [context], then return the DIRECT method that has been created for [method] by SimpleClass-
     // Merger. Otherwise, return the VIRTUAL method corresponding to [method].
-    return previousLense.lookupMethod(method, context, type);
+    assert isContextFreeForMethod(method) || context != null;
+    DexMethod previous = previousLense.lookupMethod(method, context, type);
+    return methodMap.getOrDefault(previous, previous);
   }
 
   @Override
   public Set<DexMethod> lookupMethodInAllContexts(DexMethod method) {
-    DexMethod result = lookupMethod(method);
-    if (result != null) {
-      return ImmutableSet.of(result);
+    ImmutableSet.Builder<DexMethod> builder = ImmutableSet.builder();
+    for (DexMethod previous : previousLense.lookupMethodInAllContexts(method)) {
+      builder.add(methodMap.getOrDefault(previous, previous));
     }
-    return ImmutableSet.of();
+    return builder.build();
   }
 
   @Override
   public DexField lookupField(DexField field) {
-    return previousLense.lookupField(field);
+    DexField previous = previousLense.lookupField(field);
+    return fieldMap.getOrDefault(previous, previous);
   }
 
   @Override
   public boolean isContextFreeForMethods() {
-    return false;
+    return previousLense.isContextFreeForMethods();
   }
 
   @Override
   public boolean isContextFreeForMethod(DexMethod method) {
     // TODO(christofferqa): Should return false for methods where this graph lense is context
     // sensitive.
-    return true;
+    return previousLense.isContextFreeForMethod(method);
+  }
+
+  public static class Builder {
+
+    private final ImmutableMap.Builder<DexField, DexField> fieldMapBuilder = ImmutableMap.builder();
+    private final ImmutableMap.Builder<DexMethod, DexMethod> methodMapBuilder =
+        ImmutableMap.builder();
+
+    public Builder() {}
+
+    public GraphLense build(GraphLense previousLense) {
+      Map<DexField, DexField> fieldMap = fieldMapBuilder.build();
+      Map<DexMethod, DexMethod> methodMap = methodMapBuilder.build();
+      if (fieldMap.isEmpty() && methodMap.isEmpty()) {
+        return previousLense;
+      }
+      return new VerticalClassMergerGraphLense(fieldMap, methodMap, previousLense);
+    }
+
+    public void map(DexField from, DexField to) {
+      fieldMapBuilder.put(from, to);
+    }
+
+    public void map(DexMethod from, DexMethod to) {
+      methodMapBuilder.put(from, to);
+    }
+
+    public void merge(VerticalClassMergerGraphLense.Builder builder) {
+      fieldMapBuilder.putAll(builder.fieldMapBuilder.build());
+      methodMapBuilder.putAll(builder.methodMapBuilder.build());
+    }
   }
 }
