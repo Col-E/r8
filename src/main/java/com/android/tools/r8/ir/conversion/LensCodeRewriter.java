@@ -96,7 +96,7 @@ public class LensCodeRewriter {
           if (!invokedHolder.isClassType()) {
             continue;
           }
-          DexMethod actualTarget = graphLense.lookupMethod(invokedMethod, method);
+          DexMethod actualTarget = graphLense.lookupMethod(invokedMethod, method, invoke.getType());
           Invoke.Type invokeType = getInvokeType(invoke, actualTarget, invokedMethod);
           if (actualTarget != invokedMethod || invoke.getType() != invokeType) {
             Invoke newInvoke = Invoke.create(invokeType, actualTarget, null,
@@ -216,7 +216,8 @@ public class LensCodeRewriter {
       DexEncodedMethod method, DexMethodHandle methodHandle) {
     if (methodHandle.isMethodHandle()) {
       DexMethod invokedMethod = methodHandle.asMethod();
-      DexMethod actualTarget = graphLense.lookupMethod(invokedMethod, method);
+      DexMethod actualTarget =
+          graphLense.lookupMethod(invokedMethod, method, methodHandle.type.toInvokeType());
       if (actualTarget != invokedMethod) {
         DexClass clazz = appInfo.definitionFor(actualTarget.holder);
         MethodHandleType newType = methodHandle.type;

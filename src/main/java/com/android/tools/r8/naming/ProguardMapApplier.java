@@ -37,6 +37,7 @@ public class ProguardMapApplier {
       AppInfoWithLiveness appInfo,
       GraphLense previousLense,
       SeedMapper seedMapper) {
+    assert previousLense.isContextFreeForMethods();
     this.appInfo = appInfo;
     this.previousLense = previousLense;
     this.seedMapper = seedMapper;
@@ -44,7 +45,7 @@ public class ProguardMapApplier {
 
   public GraphLense run(Timing timing) {
     timing.begin("from-pg-map-to-lense");
-    GraphLense lenseFromMap = new MapToLenseConverter().run(previousLense);
+    GraphLense lenseFromMap = new MapToLenseConverter().run();
     timing.end();
     timing.begin("fix-types-in-programs");
     GraphLense typeFixedLense = new TreeFixer(lenseFromMap).run();
@@ -61,7 +62,7 @@ public class ProguardMapApplier {
       lenseBuilder = new ConflictFreeBuilder();
     }
 
-    private GraphLense run(GraphLense previousLense) {
+    private GraphLense run() {
       // To handle inherited yet undefined methods in library classes, we are traversing types in
       // a subtyping order. That also helps us detect conflicted mappings in a diamond case:
       //   LibItfA#foo -> a, LibItfB#foo -> b, while PrgA implements LibItfA and LibItfB.
@@ -308,7 +309,7 @@ public class ProguardMapApplier {
       }
       for (int i = 0; i < methods.length; i++) {
         DexEncodedMethod encodedMethod = methods[i];
-        DexMethod appliedMethod = appliedLense.lookupMethod(encodedMethod.method, encodedMethod);
+        DexMethod appliedMethod = appliedLense.lookupMethod(encodedMethod.method);
         DexType newHolderType = substituteType(appliedMethod.holder, encodedMethod);
         DexProto newProto = substituteTypesIn(appliedMethod.proto, encodedMethod);
         DexMethod newMethod;

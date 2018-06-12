@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.optimize.InvokeSingleTargetExtractor.InvokeKind;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
@@ -43,16 +44,17 @@ public class BridgeMethodAnalysis {
       InvokeKind kind = targetExtractor.getKind();
       if (target != null && target.getArity() == method.method.getArity()) {
         assert !method.accessFlags.isPrivate() && !method.accessFlags.isConstructor();
-        target = lense.lookupMethod(target, method);
         if (kind == InvokeKind.STATIC) {
           assert method.accessFlags.isStatic();
-          DexEncodedMethod targetMethod = appInfo.lookupStaticTarget(target);
+          DexMethod actualTarget = lense.lookupMethod(target, method, Type.STATIC);
+          DexEncodedMethod targetMethod = appInfo.lookupStaticTarget(actualTarget);
           if (targetMethod != null) {
             addForwarding(method, targetMethod);
           }
         } else if (kind == InvokeKind.VIRTUAL) {
           // TODO(herhut): Add support for bridges with multiple targets.
-          DexEncodedMethod targetMethod = appInfo.lookupSingleVirtualTarget(target);
+          DexMethod actualTarget = lense.lookupMethod(target, method, Type.VIRTUAL);
+          DexEncodedMethod targetMethod = appInfo.lookupSingleVirtualTarget(actualTarget);
           if (targetMethod != null) {
             addForwarding(method, targetMethod);
           }
@@ -91,17 +93,15 @@ public class BridgeMethodAnalysis {
     }
 
     @Override
-    public DexMethod lookupMethod(DexMethod method, DexEncodedMethod context) {
-      DexMethod previous = previousLense.lookupMethod(method, context);
+    public DexMethod lookupMethod(DexMethod method, DexEncodedMethod context, Type type) {
+      DexMethod previous = previousLense.lookupMethod(method, context, type);
       DexMethod bridge = bridgeTargetToBridgeMap.get(previous);
       // Do not forward calls from a bridge method to itself while the bridge method is still
       // a bridge.
-      if (bridge == null
-          || (context.accessFlags.isBridge() && bridge == context.method)) {
+      if (bridge == null || (context.accessFlags.isBridge() && bridge == context.method)) {
         return previous;
-      } else {
-        return bridge;
       }
+      return bridge;
     }
 
     @Override

@@ -1638,8 +1638,8 @@ public class Enqueuer {
       this.liveTypes = rewriteItems(previous.liveTypes, lense::lookupType);
       this.instantiatedTypes = rewriteItems(previous.instantiatedTypes, lense::lookupType);
       this.instantiatedLambdas = rewriteItems(previous.instantiatedLambdas, lense::lookupType);
-      this.targetedMethods = rewriteItems(previous.targetedMethods, lense::lookupMethod);
-      this.liveMethods = rewriteItems(previous.liveMethods, lense::lookupMethod);
+      this.targetedMethods = rewriteMethodsConservatively(previous.targetedMethods, lense);
+      this.liveMethods = rewriteMethodsConservatively(previous.liveMethods, lense);
       this.liveFields = rewriteItems(previous.liveFields, lense::lookupField);
       this.instanceFieldReads =
           rewriteKeysWhileMergingValues(previous.instanceFieldReads, lense::lookupField);
@@ -1652,11 +1652,11 @@ public class Enqueuer {
       this.fieldsRead = rewriteItems(previous.fieldsRead, lense::lookupField);
       this.fieldsWritten = rewriteItems(previous.fieldsWritten, lense::lookupField);
       this.pinnedItems = rewriteMixedItems(previous.pinnedItems, lense);
-      this.virtualInvokes = rewriteItems(previous.virtualInvokes, lense::lookupMethod);
-      this.interfaceInvokes = rewriteItems(previous.interfaceInvokes, lense::lookupMethod);
-      this.superInvokes = rewriteItems(previous.superInvokes, lense::lookupMethod);
-      this.directInvokes = rewriteItems(previous.directInvokes, lense::lookupMethod);
-      this.staticInvokes = rewriteItems(previous.staticInvokes, lense::lookupMethod);
+      this.virtualInvokes = rewriteMethodsConservatively(previous.virtualInvokes, lense);
+      this.interfaceInvokes = rewriteMethodsConservatively(previous.interfaceInvokes, lense);
+      this.superInvokes = rewriteMethodsConservatively(previous.superInvokes, lense);
+      this.directInvokes = rewriteMethodsConservatively(previous.directInvokes, lense);
+      this.staticInvokes = rewriteMethodsConservatively(previous.staticInvokes, lense);
       this.prunedTypes = rewriteItems(previous.prunedTypes, lense::lookupType);
       // TODO(herhut): Migrate these to Descriptors, as well.
       assert assertNotModifiedByLense(previous.noSideEffects.keySet(), lense);
@@ -1744,7 +1744,7 @@ public class Enqueuer {
           // We only allow changes to bridge methods, as these get retargeted even if they
           // are kept.
           assert method.accessFlags.isBridge()
-              || lense.lookupMethod(method.method, null) == method.method;
+              || lense.lookupMethod(method.method) == method.method;
         } else if (item instanceof DexEncodedField) {
           DexField field = ((DexEncodedField) item).field;
           assert lense.lookupField(field) == field;
@@ -1787,6 +1787,29 @@ public class Enqueuer {
           builder.add(((DexEncodedField) item).field);
         } else {
           throw new Unreachable();
+        }
+      }
+      return builder.build();
+    }
+
+    private static ImmutableSortedSet<DexMethod> rewriteMethodsConservatively(
+        Set<DexMethod> original, GraphLense lense) {
+      ImmutableSortedSet.Builder<DexMethod> builder =
+          new ImmutableSortedSet.Builder<>(PresortedComparable::slowCompare);
+      if (lense.isContextFreeForMethods()) {
+        for (DexMethod item : original) {
+          builder.add(lense.lookupMethod(item));
+        }
+      } else {
+        for (DexMethod item : original) {
+          // Avoid using lookupMethodInAllContexts when possible.
+          if (lense.isContextFreeForMethod(item)) {
+            builder.add(lense.lookupMethod(item));
+          } else {
+            // The lense is context sensitive, but we do not have the context here. Therefore, we
+            // conservatively look up the method in all contexts.
+            builder.addAll(lense.lookupMethodInAllContexts(item));
+          }
         }
       }
       return builder.build();
@@ -1892,7 +1915,6 @@ public class Enqueuer {
 
     public AppInfoWithLiveness rewrittenWithLense(DirectMappedDexApplication application,
         GraphLense lense) {
-      assert lense.isContextFreeForMethods();
       return new AppInfoWithLiveness(this, application, lense);
     }
 

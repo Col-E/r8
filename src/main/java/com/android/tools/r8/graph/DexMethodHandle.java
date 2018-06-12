@@ -6,6 +6,7 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.naming.NamingLens;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.Opcodes;
@@ -158,6 +159,26 @@ public class DexMethodHandle extends IndexedDexItem implements
 
     public boolean isInvokeConstructor() {
       return this == MethodHandleType.INVOKE_CONSTRUCTOR;
+    }
+
+    public Type toInvokeType() {
+      assert isMethodType();
+      switch (this) {
+        case INVOKE_STATIC:
+          return Type.STATIC;
+        case INVOKE_INSTANCE:
+          return Type.VIRTUAL;
+        case INVOKE_CONSTRUCTOR:
+          return Type.DIRECT;
+        case INVOKE_DIRECT:
+          return Type.DIRECT;
+        case INVOKE_INTERFACE:
+          return Type.INTERFACE;
+        case INVOKE_SUPER:
+          return Type.SUPER;
+        default:
+          throw new Unreachable("DexMethodHandle with unexpected type: " + this);
+      }
     }
   }
 
