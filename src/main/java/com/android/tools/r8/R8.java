@@ -42,8 +42,8 @@ import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ReasonPrinter;
 import com.android.tools.r8.shaking.RootSetBuilder;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
-import com.android.tools.r8.shaking.SimpleClassMerger;
 import com.android.tools.r8.shaking.TreePruner;
+import com.android.tools.r8.shaking.VerticalClassMerger;
 import com.android.tools.r8.shaking.protolite.ProtoLiteExtension;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
@@ -335,8 +335,8 @@ public class R8 {
         // Class merging requires inlining.
         if (options.enableClassMerging && options.enableInlining) {
           timing.begin("ClassMerger");
-          SimpleClassMerger classMerger = new SimpleClassMerger(application,
-              appInfo.withLiveness(), graphLense, timing);
+          VerticalClassMerger classMerger =
+              new VerticalClassMerger(application, appInfo.withLiveness(), graphLense, timing);
           graphLense = classMerger.run();
           timing.end();
 

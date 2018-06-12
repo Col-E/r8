@@ -32,8 +32,10 @@ import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
+import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -46,13 +48,13 @@ import java.util.stream.Collectors;
 
 /**
  * Merges Supertypes with a single implementation into their single subtype.
- * <p>
- * A common use-case for this is to merge an interface into its single implementation.
- * <p>
- * The class merger only fixes the structure of the graph but leaves the actual instructions
+ *
+ * <p>A common use-case for this is to merge an interface into its single implementation.
+ *
+ * <p>The class merger only fixes the structure of the graph but leaves the actual instructions
  * untouched. Fixup of instructions is deferred via a {@link GraphLense} to the Ir building phase.
  */
-public class SimpleClassMerger {
+public class VerticalClassMerger {
 
   private final DexApplication application;
   private final AppInfoWithLiveness appInfo;
@@ -63,8 +65,11 @@ public class SimpleClassMerger {
   private Collection<DexMethod> invokes;
   private int numberOfMerges = 0;
 
-  public SimpleClassMerger(DexApplication application, AppInfoWithLiveness appInfo,
-      GraphLense graphLense, Timing timing) {
+  public VerticalClassMerger(
+      DexApplication application,
+      AppInfoWithLiveness appInfo,
+      GraphLense graphLense,
+      Timing timing) {
     this.application = application;
     this.appInfo = appInfo;
     this.graphLense = graphLense;
@@ -135,46 +140,99 @@ public class SimpleClassMerger {
     return result;
   }
 
+  private void addAncestorsToWorklist(
+      DexProgramClass clazz, Deque<DexProgramClass> worklist, Set<DexProgramClass> seenBefore) {
+    if (seenBefore.contains(clazz)) {
+      return;
+    }
+
+    worklist.addFirst(clazz);
+
+    // Add super classes to worklist.
+    if (clazz.superType != null) {
+      DexClass definition = appInfo.definitionFor(clazz.superType);
+      if (definition != null && definition.isProgramClass()) {
+        addAncestorsToWorklist(definition.asProgramClass(), worklist, seenBefore);
+      }
+    }
+
+    // Add super interfaces to worklist.
+    for (DexType interfaceType : clazz.interfaces.values) {
+      DexClass definition = appInfo.definitionFor(interfaceType);
+      if (definition != null && definition.isProgramClass()) {
+        addAncestorsToWorklist(definition.asProgramClass(), worklist, seenBefore);
+      }
+    }
+  }
+
   private GraphLense mergeClasses(GraphLense graphLense) {
-    for (DexProgramClass clazz : application.classes()) {
-      if (isMergeCandidate(clazz)) {
-        DexClass targetClass = appInfo.definitionFor(clazz.type.getSingleSubtype());
-        if (appInfo.isPinned(targetClass.type)) {
-          // We have to keep the target class intact, so we cannot merge it.
+    Iterable<DexProgramClass> classes = application.classesWithDeterministicOrder();
+    Deque<DexProgramClass> worklist = new ArrayDeque<>();
+    Set<DexProgramClass> seenBefore = new HashSet<>();
+
+    Iterator<DexProgramClass> classIterator = classes.iterator();
+
+    // Visit the program classes in a top-down order according to the class hierarchy.
+    while (classIterator.hasNext() || !worklist.isEmpty()) {
+      if (worklist.isEmpty()) {
+        // Add the ancestors of this class (including the class itself) to the worklist in such a
+        // way that all super types of the class come before the class itself.
+        addAncestorsToWorklist(classIterator.next(), worklist, seenBefore);
+        if (worklist.isEmpty()) {
           continue;
         }
-        if (mergedClasses.containsKey(targetClass.type)) {
-          // TODO(herhut): Traverse top-down.
-          continue;
-        }
-        if (clazz.hasClassInitializer() && targetClass.hasClassInitializer()) {
-          // TODO(herhut): Handle class initializers.
-          if (Log.ENABLED) {
-            Log.info(getClass(), "Cannot merge %s into %s due to static initializers.",
-                clazz.toSourceString(), targetClass.toSourceString());
-          }
-          continue;
-        }
-        // Guard against the case where we have two methods that may get the same signature
-        // if we replace types. This is rare, so we approximate and err on the safe side here.
-        if (new CollisionDetector(clazz.type, targetClass.type, getInvokes(), mergedClasses)
-            .mayCollide()) {
-          if (Log.ENABLED) {
-            Log.info(getClass(), "Cannot merge %s into %s due to conflict.", clazz.toSourceString(),
-                targetClass.toSourceString());
-          }
-          continue;
-        }
-        boolean merged = new ClassMerger(clazz, targetClass).merge();
+      }
+
+      DexProgramClass clazz = worklist.removeFirst();
+      if (!seenBefore.add(clazz) || !isMergeCandidate(clazz)) {
+        continue;
+      }
+
+      DexClass targetClass = appInfo.definitionFor(clazz.type.getSingleSubtype());
+      assert !mergedClasses.containsKey(targetClass.type);
+      if (appInfo.isPinned(targetClass.type)) {
+        // We have to keep the target class intact, so we cannot merge it.
+        continue;
+      }
+      if (clazz.hasClassInitializer() && targetClass.hasClassInitializer()) {
+        // TODO(herhut): Handle class initializers.
         if (Log.ENABLED) {
-          if (merged) {
-            numberOfMerges++;
-            Log.info(getClass(), "Merged class %s into %s.", clazz.toSourceString(),
-                targetClass.toSourceString());
-          } else {
-            Log.info(getClass(), "Aborted merge for class %s into %s.",
-                clazz.toSourceString(), targetClass.toSourceString());
-          }
+          Log.info(
+              getClass(),
+              "Cannot merge %s into %s due to static initializers.",
+              clazz.toSourceString(),
+              targetClass.toSourceString());
+        }
+        continue;
+      }
+      // Guard against the case where we have two methods that may get the same signature
+      // if we replace types. This is rare, so we approximate and err on the safe side here.
+      if (new CollisionDetector(clazz.type, targetClass.type, getInvokes(), mergedClasses)
+          .mayCollide()) {
+        if (Log.ENABLED) {
+          Log.info(
+              getClass(),
+              "Cannot merge %s into %s due to conflict.",
+              clazz.toSourceString(),
+              targetClass.toSourceString());
+        }
+        continue;
+      }
+      boolean merged = new ClassMerger(clazz, targetClass).merge();
+      if (Log.ENABLED) {
+        if (merged) {
+          numberOfMerges++;
+          Log.info(
+              getClass(),
+              "Merged class %s into %s.",
+              clazz.toSourceString(),
+              targetClass.toSourceString());
+        } else {
+          Log.info(
+              getClass(),
+              "Aborted merge for class %s into %s.",
+              clazz.toSourceString(),
+              targetClass.toSourceString());
         }
       }
     }
