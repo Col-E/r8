@@ -6,6 +6,7 @@ package classmerging;
 public class SuperClassWithReferencedMethod {
 
   public String referencedMethod() {
-    return "From Super";
+    System.out.println("In referencedMethod on SuperClassWithReferencedMethod");
+    return "SuperClassWithReferencedMethod.referencedMethod()";
   }
 }

@@ -7,6 +7,9 @@ public class SubClassThatReferencesSuperMethod extends SuperClassWithReferencedM
 
   @Override
   public String referencedMethod() {
-    return "From sub: " + super.referencedMethod();
+    System.out.println("In referencedMethod on SubClassThatReferencesSuperMethod");
+    System.out.println("Calling referencedMethod on SuperClassWithReferencedMethod with super");
+    System.out.println("Got: " + super.referencedMethod());
+    return "SubClassThatReferencesSuperMethod.referencedMethod()";
   }
 }

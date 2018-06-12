@@ -106,11 +106,21 @@ public class ClassMergingTest extends TestBase {
     assertTrue(inspector.clazz("classmerging.ConflictingInterfaceImpl").isPresent());
   }
 
+  @Ignore("b/73958515")
   @Test
   public void testSuperCallWasDetected() throws Exception {
-    runR8(EXAMPLE_KEEP, this::configure);
-    assertTrue(inspector.clazz("classmerging.SuperClassWithReferencedMethod").isPresent());
-    assertTrue(inspector.clazz("classmerging.SubClassThatReferencesSuperMethod").isPresent());
+    String main = "classmerging.SuperCallRewritingTest";
+    Path[] programFiles =
+        new Path[] {
+          CF_DIR.resolve("SubClassThatReferencesSuperMethod.class"),
+          CF_DIR.resolve("SuperClassWithReferencedMethod.class"),
+          CF_DIR.resolve("SuperCallRewritingTest.class")
+        };
+    Set<String> preservedClassNames =
+        ImmutableSet.of(
+            "classmerging.SubClassThatReferencesSuperMethod",
+            "classmerging.SuperCallRewritingTest");
+    runTest(main, programFiles, preservedClassNames);
   }
 
   @Test
