@@ -4,11 +4,7 @@
 
 package com.android.tools.r8.kotlin;
 
-import com.android.tools.r8.graph.DexClass;
-import kotlinx.metadata.KmLambdaVisitor;
-import kotlinx.metadata.jvm.KotlinClassMetadata;
-
-public final class KotlinSyntheticClass extends KotlinInfo<KotlinClassMetadata.SyntheticClass> {
+public final class KotlinSyntheticClass extends KotlinInfo {
   public enum Flavour {
     KotlinStyleLambda,
     JavaStyleLambda,
@@ -17,40 +13,12 @@ public final class KotlinSyntheticClass extends KotlinInfo<KotlinClassMetadata.S
 
   private final Flavour flavour;
 
-  static KotlinSyntheticClass fromKotlinClassMetadata(
-      KotlinClassMetadata kotlinClassMetadata, Kotlin kotlin, DexClass clazz) {
-    assert kotlinClassMetadata instanceof KotlinClassMetadata.SyntheticClass;
-    KotlinClassMetadata.SyntheticClass syntheticClass =
-        (KotlinClassMetadata.SyntheticClass) kotlinClassMetadata;
-    if (isKotlinStyleLambda(syntheticClass, kotlin, clazz)) {
-      return new KotlinSyntheticClass(Flavour.KotlinStyleLambda, syntheticClass);
-    } else if (isJavaStyleLambda(syntheticClass, kotlin, clazz)) {
-      return new KotlinSyntheticClass(Flavour.JavaStyleLambda, syntheticClass);
-    } else {
-      return new KotlinSyntheticClass(Flavour.Unclassified, syntheticClass);
-    }
-  }
-
-  private KotlinSyntheticClass(Flavour flavour, KotlinClassMetadata.SyntheticClass metadata) {
+  KotlinSyntheticClass(Flavour flavour) {
     this.flavour = flavour;
-    validateMetadata(metadata);
-    this.metadata = metadata;
-  }
-
-  @Override
-  void validateMetadata(KotlinClassMetadata.SyntheticClass metadata) {
-    if (metadata.isLambda()) {
-      SyntheticClassMetadataVisitor visitor = new SyntheticClassMetadataVisitor();
-      // To avoid lazy parsing/verifying metadata.
-      metadata.accept(visitor);
-    }
-  }
-
-  private static class SyntheticClassMetadataVisitor extends KmLambdaVisitor {
   }
 
   public boolean isLambda() {
-    return isKotlinStyleLambda() || isJavaStyleLambda();
+    return flavour == Flavour.KotlinStyleLambda || flavour == Flavour.JavaStyleLambda;
   }
 
   public boolean isKotlinStyleLambda() {
@@ -75,31 +43,4 @@ public final class KotlinSyntheticClass extends KotlinInfo<KotlinClassMetadata.S
   public KotlinSyntheticClass asSyntheticClass() {
     return this;
   }
-
-  /**
-   * Returns {@code true} if the given {@link DexClass} is a Kotlin-style lambda:
-   *   a class that
-   *     1) is recognized as lambda in its Kotlin metadata;
-   *     2) directly extends kotlin.jvm.internal.Lambda
-   */
-  private static boolean isKotlinStyleLambda(
-      KotlinClassMetadata.SyntheticClass metadata, Kotlin kotlin, DexClass clazz) {
-    return metadata.isLambda()
-        && clazz.superType == kotlin.functional.lambdaType;
-  }
-
-  /**
-   * Returns {@code true} if the given {@link DexClass} is a Java-style lambda:
-   *   a class that
-   *     1) is recognized as lambda in its Kotlin metadata;
-   *     2) doesn't extend any other class;
-   *     3) directly implements only one Java SAM.
-   */
-  private static boolean isJavaStyleLambda(
-      KotlinClassMetadata.SyntheticClass metadata, Kotlin kotlin, DexClass clazz) {
-    return metadata.isLambda()
-        && clazz.superType == kotlin.factory.objectType
-        && clazz.interfaces.size() == 1;
-  }
-
 }

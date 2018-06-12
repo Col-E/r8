@@ -5,11 +5,19 @@
 package com.android.tools.r8.kotlin;
 
 import com.android.tools.r8.DiagnosticsHandler;
+import com.android.tools.r8.graph.DexAnnotation;
+import com.android.tools.r8.graph.DexAnnotationElement;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DexValue;
+import com.android.tools.r8.graph.DexValue.DexValueArray;
+import com.android.tools.r8.graph.DexValue.DexValueInt;
+import com.android.tools.r8.graph.DexValue.DexValueString;
+import com.android.tools.r8.kotlin.KotlinSyntheticClass.Flavour;
+import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.Sets;
 import java.util.Set;
 
@@ -50,13 +58,10 @@ public final class Kotlin {
 
     public final DexString kotlinStyleLambdaInstanceName = factory.createString("INSTANCE");
 
-    public final DexType functionBase = factory.createType("Lkotlin/jvm/internal/FunctionBase;");
     public final DexType lambdaType = factory.createType("Lkotlin/jvm/internal/Lambda;");
 
-    public final DexMethod lambdaInitializerMethod = factory.createMethod(
-        lambdaType,
-        factory.createProto(factory.voidType, factory.intType),
-        factory.constructorMethodName);
+    public final DexMethod lambdaInitializerMethod = factory.createMethod(lambdaType,
+        factory.createProto(factory.voidType, factory.intType), factory.constructorMethodName);
 
     public boolean isFunctionInterface(DexType type) {
       return functions.contains(type);
@@ -65,14 +70,9 @@ public final class Kotlin {
 
   public final class Metadata {
     public final DexType kotlinMetadataType = factory.createType("Lkotlin/Metadata;");
-    public final DexString kind = factory.createString("k");
-    public final DexString metadataVersion = factory.createString("mv");
-    public final DexString bytecodeVersion = factory.createString("bv");
-    public final DexString data1 = factory.createString("d1");
-    public final DexString data2 = factory.createString("d2");
-    public final DexString extraString = factory.createString("xs");
-    public final DexString packageName = factory.createString("pn");
-    public final DexString extraInt = factory.createString("xi");
+    public final DexString elementNameK = factory.createString("k");
+    public final DexString elementNameD1 = factory.createString("d1");
+    public final DexString elementNameD2 = factory.createString("d2");
   }
 
   // kotlin.jvm.internal.Intrinsics class
@@ -86,6 +86,98 @@ public final class Kotlin {
 
   // Calculates kotlin info for a class.
   public KotlinInfo getKotlinInfo(DexClass clazz, DiagnosticsHandler reporter) {
-    return KotlinClassMetadataReader.getKotlinInfo(this, clazz, reporter);
+    if (clazz.annotations.isEmpty()) {
+      return null;
+    }
+    DexAnnotation meta = clazz.annotations.getFirstMatching(metadata.kotlinMetadataType);
+    if (meta != null) {
+      try {
+        return createKotlinInfo(clazz, meta);
+      } catch (MetadataError e) {
+        reporter.warning(
+            new StringDiagnostic("Class " + clazz.type.toSourceString() +
+                " has malformed kotlin.Metadata: " + e.getMessage()));
+      }
+    }
+    return null;
+  }
+
+  private KotlinInfo createKotlinInfo(DexClass clazz, DexAnnotation meta) {
+    DexAnnotationElement kindElement = getAnnotationElement(meta, metadata.elementNameK);
+    if (kindElement == null) {
+      throw new MetadataError("element 'k' is missing");
+    }
+
+    DexValue value = kindElement.value;
+    if (!(value instanceof DexValueInt)) {
+      throw new MetadataError("invalid 'k' value: " + value.toSourceString());
+    }
+
+    DexValueInt intValue = (DexValueInt) value;
+    switch (intValue.value) {
+      case 1:
+        return new KotlinClass();
+      case 2:
+        return new KotlinFile();
+      case 3:
+        return createSyntheticClass(clazz, meta);
+      case 4:
+        return new KotlinClassFacade();
+      case 5:
+        return new KotlinClassPart();
+      default:
+        throw new MetadataError("unsupported 'k' value: " + value.toSourceString());
+    }
+  }
+
+  private KotlinSyntheticClass createSyntheticClass(DexClass clazz, DexAnnotation meta) {
+    if (isKotlinStyleLambda(clazz)) {
+      return new KotlinSyntheticClass(Flavour.KotlinStyleLambda);
+    }
+    if (isJavaStyleLambda(clazz, meta)) {
+      return new KotlinSyntheticClass(Flavour.JavaStyleLambda);
+    }
+    return new KotlinSyntheticClass(Flavour.Unclassified);
+  }
+
+  private boolean isKotlinStyleLambda(DexClass clazz) {
+    // TODO: replace with direct hints from kotlin metadata when available.
+    return clazz.superType == this.functional.lambdaType;
+  }
+
+  private boolean isJavaStyleLambda(DexClass clazz, DexAnnotation meta) {
+    assert !isKotlinStyleLambda(clazz);
+    return clazz.superType == this.factory.objectType &&
+        clazz.interfaces.size() == 1 &&
+        isAnnotationElementNotEmpty(meta, metadata.elementNameD1);
+  }
+
+  private DexAnnotationElement getAnnotationElement(DexAnnotation annotation, DexString name) {
+    for (DexAnnotationElement element : annotation.annotation.elements) {
+      if (element.name == name) {
+        return element;
+      }
+    }
+    return null;
+  }
+
+  private boolean isAnnotationElementNotEmpty(DexAnnotation annotation, DexString name) {
+    for (DexAnnotationElement element : annotation.annotation.elements) {
+      if (element.name == name && element.value instanceof DexValueArray) {
+        DexValue[] values = ((DexValueArray) element.value).getValues();
+        if (values.length == 1 && values[0] instanceof DexValueString) {
+          return true;
+        }
+        // Must be broken metadata.
+        assert false;
+      }
+    }
+    return false;
+  }
+
+  private static class MetadataError extends RuntimeException {
+    MetadataError(String cause) {
+      super(cause);
+    }
   }
 }

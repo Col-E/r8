@@ -4,31 +4,7 @@
 
 package com.android.tools.r8.kotlin;
 
-import kotlinx.metadata.KmClassVisitor;
-import kotlinx.metadata.jvm.KotlinClassMetadata;
-
-public class KotlinClass extends KotlinInfo<KotlinClassMetadata.Class> {
-
-  static KotlinClass fromKotlinClassMetadata(KotlinClassMetadata kotlinClassMetadata) {
-    assert kotlinClassMetadata instanceof KotlinClassMetadata.Class;
-    KotlinClassMetadata.Class kClass = (KotlinClassMetadata.Class) kotlinClassMetadata;
-    return new KotlinClass(kClass);
-  }
-
-  private KotlinClass(KotlinClassMetadata.Class metadata) {
-    super(metadata);
-  }
-
-  @Override
-  void validateMetadata(KotlinClassMetadata.Class metadata) {
-    ClassMetadataVisitor visitor = new ClassMetadataVisitor();
-    // To avoid lazy parsing/verifying metadata.
-    metadata.accept(visitor);
-  }
-
-  private static class ClassMetadataVisitor extends KmClassVisitor {
-  }
-
+public class KotlinClass extends KotlinInfo {
   @Override
   public Kind getKind() {
     return Kind.Class;
@@ -44,4 +20,6 @@ public class KotlinClass extends KotlinInfo<KotlinClassMetadata.Class> {
     return this;
   }
 
+  KotlinClass() {
+  }
 }

@@ -4,31 +4,7 @@
 
 package com.android.tools.r8.kotlin;
 
-import kotlinx.metadata.KmPackageVisitor;
-import kotlinx.metadata.jvm.KotlinClassMetadata;
-
-public final class KotlinFile extends KotlinInfo<KotlinClassMetadata.FileFacade> {
-
-  static KotlinFile fromKotlinClassMetadata(KotlinClassMetadata kotlinClassMetadata) {
-    assert kotlinClassMetadata instanceof KotlinClassMetadata.FileFacade;
-    KotlinClassMetadata.FileFacade fileFacade =
-        (KotlinClassMetadata.FileFacade) kotlinClassMetadata;
-    return new KotlinFile(fileFacade);
-  }
-
-  private KotlinFile(KotlinClassMetadata.FileFacade metadata) {
-    super(metadata);
-  }
-
-  @Override
-  void validateMetadata(KotlinClassMetadata.FileFacade metadata) {
-    // To avoid lazy parsing/verifying metadata.
-    metadata.accept(new FileFacadeMetadataVisitor());
-  }
-
-  private static class FileFacadeMetadataVisitor extends KmPackageVisitor {
-  }
-
+public final class KotlinFile extends KotlinInfo {
   @Override
   public Kind getKind() {
     return Kind.File;
@@ -44,4 +20,6 @@ public final class KotlinFile extends KotlinInfo<KotlinClassMetadata.FileFacade>
     return this;
   }
 
+  KotlinFile() {
+  }
 }
