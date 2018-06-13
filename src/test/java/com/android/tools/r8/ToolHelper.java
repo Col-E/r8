@@ -1413,6 +1413,11 @@ public class ToolHelper {
     return result.stdout;
   }
 
+  public static ProcessResult runProguardRaw(
+      Path inJar, Path outJar, Path lib, Path config, Path map) throws IOException {
+    return runProguardRaw(getProguardScript(), inJar, outJar, lib, ImmutableList.of(config), map);
+  }
+
   public static ProcessResult runProguardRaw(Path inJar, Path outJar, List<Path> config, Path map)
       throws IOException {
     return runProguardRaw(getProguardScript(), inJar, outJar, config, map);

@@ -6,13 +6,16 @@ package com.android.tools.r8.shaking.forceproguardcompatibility;
 import static com.android.tools.r8.utils.DexInspectorMatchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 import com.android.tools.r8.CompatProguardCommandBuilder;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
@@ -24,12 +27,42 @@ import java.util.List;
 
 public class ProguardCompatabilityTestBase extends TestBase {
 
+  protected Path proguardMap;
+
   public enum Shrinker {
     PROGUARD5,
     PROGUARD6,
     PROGUARD6_THEN_D8,
     R8_COMPAT,
     R8
+  }
+
+  protected static boolean isR8(Shrinker shrinker) {
+    return shrinker == Shrinker.R8_COMPAT || shrinker == Shrinker.R8;
+  }
+
+  protected AndroidApp runShrinkerRaw(
+      Shrinker mode, List<Class> programClasses, List<String> proguadConfigs) throws Exception {
+    return runShrinkerRaw(
+        mode, programClasses, String.join(System.lineSeparator(), proguadConfigs));
+  }
+
+  protected AndroidApp runShrinkerRaw(
+      Shrinker mode, List<Class> programClasses, String proguardConfig) throws Exception {
+    proguardMap = File.createTempFile("proguard", ".map", temp.getRoot()).toPath();
+    switch (mode) {
+      case PROGUARD5:
+        return runProguard5Raw(programClasses, proguardConfig, proguardMap);
+      case PROGUARD6:
+        return runProguard6Raw(programClasses, proguardConfig, proguardMap);
+      case PROGUARD6_THEN_D8:
+        return runProguard6AndD8Raw(programClasses, proguardConfig, proguardMap);
+      case R8_COMPAT:
+        return runR8CompatRaw(programClasses, proguardConfig);
+      case R8:
+        return runR8Raw(programClasses, proguardConfig);
+    }
+    throw new IllegalArgumentException("Unknown shrinker: " + mode);
   }
 
   protected DexInspector runShrinker(
@@ -54,21 +87,31 @@ public class ProguardCompatabilityTestBase extends TestBase {
     throw new IllegalArgumentException("Unknown shrinker: " + mode);
   }
 
-  protected DexInspector runR8(List<Class> programClasses, String proguardConfig) throws Exception {
-    AndroidApp app = readClasses(programClasses);
+  protected AndroidApp runR8Raw(List<Class> programClasses, String proguardConfig) throws Exception {
+    AndroidApp app = readClassesAndAndriodJar(programClasses);
     R8Command.Builder builder = ToolHelper.prepareR8CommandBuilder(app);
     builder.addProguardConfiguration(ImmutableList.of(proguardConfig), Origin.unknown());
-    return new DexInspector(ToolHelper.runR8(builder.build()));
+    return ToolHelper.runR8(builder.build());
   }
 
-  protected DexInspector runR8Compat(
+  protected DexInspector runR8(List<Class> programClasses, String proguardConfig) throws Exception {
+    return new DexInspector(runR8Raw(programClasses, proguardConfig));
+  }
+
+  protected AndroidApp runR8CompatRaw(
       List<Class> programClasses, String proguardConfig) throws Exception {
     CompatProguardCommandBuilder builder = new CompatProguardCommandBuilder(true);
     builder.addProguardConfiguration(ImmutableList.of(proguardConfig), Origin.unknown());
     programClasses.forEach(
         clazz -> builder.addProgramFiles(ToolHelper.getClassFileForTestClass(clazz)));
+    builder.addLibraryFiles(ToolHelper.getDefaultAndroidJar());
     builder.setProgramConsumer(DexIndexedConsumer.emptyConsumer());
-    return new DexInspector(ToolHelper.runR8(builder.build()));
+    return ToolHelper.runR8(builder.build());
+  }
+
+  protected DexInspector runR8Compat(
+      List<Class> programClasses, String proguardConfig) throws Exception {
+    return new DexInspector(runR8CompatRaw(programClasses, proguardConfig));
   }
 
   protected DexInspector runR8CompatKeepingMain(Class mainClass, List<Class> programClasses)
@@ -76,41 +119,79 @@ public class ProguardCompatabilityTestBase extends TestBase {
     return runR8Compat(programClasses, keepMainProguardConfiguration(mainClass));
   }
 
-  protected DexInspector runProguard5(
-      List<Class> programClasses, String proguardConfig) throws Exception {
+  protected AndroidApp runProguard5Raw(
+      List<Class> programClasses, String proguardConfig, Path proguardMap) throws Exception {
     Path proguardedJar =
         File.createTempFile("proguarded", FileUtils.JAR_EXTENSION, temp.getRoot()).toPath();
     Path proguardConfigFile = File.createTempFile("proguard", ".config", temp.getRoot()).toPath();
-    Path proguardMap = File.createTempFile("proguard", ".map", temp.getRoot()).toPath();
     FileUtils.writeTextFile(proguardConfigFile, proguardConfig);
-    ToolHelper.runProguard(
-        jarTestClasses(programClasses), proguardedJar, proguardConfigFile, proguardMap);
-    return new DexInspector(readJar(proguardedJar), proguardMap);
+    ProcessResult result = ToolHelper.runProguardRaw(
+        jarTestClasses(programClasses),
+        proguardedJar,
+        ToolHelper.getAndroidJar(AndroidApiLevel.N),
+        proguardConfigFile,
+        proguardMap);
+    if (result.exitCode != 0) {
+      fail("Proguard failed, exit code " + result.exitCode + ", stderr:\n" + result.stderr);
+    }
+    return readJar(proguardedJar);
+  }
+
+  protected DexInspector runProguard5(
+      List<Class> programClasses, String proguardConfig) throws Exception {
+    proguardMap = File.createTempFile("proguard", ".map", temp.getRoot()).toPath();
+    return new DexInspector(
+        runProguard5Raw(programClasses, proguardConfig, proguardMap), proguardMap);
+  }
+
+  protected AndroidApp runProguard6Raw(
+      List<Class> programClasses, String proguardConfig, Path proguardMap) throws Exception {
+    Path proguardedJar =
+        File.createTempFile("proguarded", FileUtils.JAR_EXTENSION, temp.getRoot()).toPath();
+    Path proguardConfigFile = File.createTempFile("proguard", ".config", temp.getRoot()).toPath();
+    FileUtils.writeTextFile(proguardConfigFile, proguardConfig);
+    ProcessResult result = ToolHelper.runProguard6Raw(
+        jarTestClasses(programClasses),
+        proguardedJar,
+        ToolHelper.getAndroidJar(AndroidApiLevel.N),
+        proguardConfigFile,
+        proguardMap);
+    if (result.exitCode != 0) {
+      fail("Proguard failed, exit code " + result.exitCode + ", stderr:\n" + result.stderr);
+    }
+    return readJar(proguardedJar);
   }
 
   protected DexInspector runProguard6(
       List<Class> programClasses, String proguardConfig) throws Exception {
+    proguardMap = File.createTempFile("proguard", ".map", temp.getRoot()).toPath();
+    return new DexInspector(
+        runProguard6Raw(programClasses, proguardConfig, proguardMap), proguardMap);
+  }
+
+  protected AndroidApp runProguard6AndD8Raw(
+      List<Class> programClasses, String proguardConfig, Path proguardMap) throws Exception {
     Path proguardedJar =
         File.createTempFile("proguarded", FileUtils.JAR_EXTENSION, temp.getRoot()).toPath();
     Path proguardConfigFile = File.createTempFile("proguard", ".config", temp.getRoot()).toPath();
-    Path proguardMap = File.createTempFile("proguard", ".map", temp.getRoot()).toPath();
     FileUtils.writeTextFile(proguardConfigFile, proguardConfig);
-    ToolHelper.runProguard6(
-        jarTestClasses(programClasses), proguardedJar, proguardConfigFile, proguardMap);
-    return new DexInspector(readJar(proguardedJar), proguardMap);
+    ProcessResult result = ToolHelper.runProguard6Raw(
+        jarTestClasses(programClasses),
+        proguardedJar,
+        ToolHelper.getAndroidJar(AndroidApiLevel.N),
+        proguardConfigFile,
+        proguardMap);
+    if (result.exitCode != 0) {
+      fail("Proguard failed, exit code " + result.exitCode + ", stderr:\n" + result.stderr);
+    }
+    return ToolHelper.runD8(readJar(proguardedJar));
   }
 
   protected DexInspector runProguard6AndD8(
       List<Class> programClasses, String proguardConfig) throws Exception {
-    Path proguardedJar =
-        File.createTempFile("proguarded", FileUtils.JAR_EXTENSION, temp.getRoot()).toPath();
-    Path proguardConfigFile = File.createTempFile("proguard", ".config", temp.getRoot()).toPath();
-    Path proguardMap = File.createTempFile("proguard", ".map", temp.getRoot()).toPath();
-    FileUtils.writeTextFile(proguardConfigFile, proguardConfig);
-    ToolHelper.runProguard6(
-        jarTestClasses(programClasses), proguardedJar, proguardConfigFile, proguardMap);
-    AndroidApp app = ToolHelper.runD8(readJar(proguardedJar));
-    return new DexInspector(app, proguardMap);
+    proguardMap = File.createTempFile("proguard", ".map", temp.getRoot()).toPath();
+    return new DexInspector(
+        runProguard6AndD8Raw(programClasses, proguardConfig, proguardMap), proguardMap);
   }
 
   protected DexInspector runProguardKeepingMain(Class mainClass, List<Class> programClasses)
