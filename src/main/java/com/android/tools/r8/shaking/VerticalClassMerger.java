@@ -4,6 +4,7 @@
 package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -18,7 +19,12 @@ import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.Builder;
 import com.android.tools.r8.graph.KeyedDexItem;
+import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.PresortedComparable;
+import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
+import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.optimize.InvokeSingleTargetExtractor;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
@@ -33,6 +39,7 @@ import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
@@ -41,6 +48,7 @@ import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
@@ -74,12 +82,20 @@ public class VerticalClassMerger {
     this.timing = timing;
   }
 
-  private boolean isMergeCandidate(DexProgramClass clazz) {
+  // Returns a set of types that must not be merged into other types.
+  private Set<DexType> getPinnedTypes(Iterable<DexProgramClass> classes) {
+    // TODO(christofferqa): Compute types from [classes] that must be pinned in order for vertical
+    // class merging to work.
+    return new HashSet<>();
+  }
+
+  private boolean isMergeCandidate(DexProgramClass clazz, Set<DexType> pinnedTypes) {
     // We can merge program classes if they are not instantiated, have a single subtype
     // and we do not have to keep them.
     return !clazz.isLibraryClass()
         && !appInfo.instantiatedTypes.contains(clazz.type)
         && !appInfo.isPinned(clazz.type)
+        && !pinnedTypes.contains(clazz.type)
         && clazz.type.getSingleSubtype() != null;
   }
 
@@ -170,6 +186,9 @@ public class VerticalClassMerger {
 
     int numberOfMerges = 0;
 
+    // Types that are pinned (in addition to those where appInfo.isPinned returns true).
+    Set<DexType> pinnedTypes = getPinnedTypes(classes);
+
     // The resulting graph lense that should be used after class merging.
     VerticalClassMergerGraphLense.Builder renamedMembersLense =
         new VerticalClassMergerGraphLense.Builder();
@@ -188,7 +207,7 @@ public class VerticalClassMerger {
       }
 
       DexProgramClass clazz = worklist.removeFirst();
-      if (!seenBefore.add(clazz) || !isMergeCandidate(clazz)) {
+      if (!seenBefore.add(clazz) || !isMergeCandidate(clazz, pinnedTypes)) {
         continue;
       }
 
@@ -227,6 +246,9 @@ public class VerticalClassMerger {
       if (merged) {
         // Commit the changes to the graph lense.
         renamedMembersLense.merge(merger.getRenamings());
+        // Do not allow merging the resulting class into its subclass.
+        // TODO(christofferqa): Get rid of this limitation.
+        pinnedTypes.add(targetClass.type);
       }
       if (Log.ENABLED) {
         if (merged) {
@@ -278,25 +300,81 @@ public class VerticalClassMerger {
       Set<Wrapper<DexMethod>> existingMethods = new HashSet<>();
       addAll(existingMethods, target.directMethods(), MethodSignatureEquivalence.get());
       addAll(existingMethods, target.virtualMethods(), MethodSignatureEquivalence.get());
-      Collection<DexEncodedMethod> mergedDirectMethods = mergeItems(
-          Iterators.transform(Iterators.forArray(source.directMethods()), this::renameConstructors),
-          target.directMethods(),
-          MethodSignatureEquivalence.get(),
-          existingMethods,
-          this::renameMethod
-      );
-      Iterator<DexEncodedMethod> methods = Iterators.forArray(source.virtualMethods());
-      if (source.accessFlags.isInterface()) {
-        // If merging an interface, only merge methods that are not otherwise defined in the
-        // target class.
-        methods = Iterators.transform(methods, this::filterShadowedInterfaceMethods);
+
+      List<DexEncodedMethod> directMethods = new ArrayList<>();
+      for (DexEncodedMethod directMethod : source.directMethods()) {
+        if (directMethod.isInstanceInitializer()) {
+          directMethods.add(renameConstructor(directMethod));
+        } else {
+          directMethods.add(directMethod);
+        }
       }
-      Collection<DexEncodedMethod> mergedVirtualMethods = mergeItems(
-          methods,
-          target.virtualMethods(),
-          MethodSignatureEquivalence.get(),
-          existingMethods,
-          this::abortOnNonAbstract);
+
+      List<DexEncodedMethod> virtualMethods = new ArrayList<>();
+      for (DexEncodedMethod virtualMethod : source.virtualMethods()) {
+        DexEncodedMethod shadowedBy = findMethodInTarget(virtualMethod);
+        if (shadowedBy != null) {
+          if (virtualMethod.accessFlags.isAbstract()) {
+            // Remove abstract/interface methods that are shadowed.
+            deferredRenamings.map(virtualMethod.method, shadowedBy.method);
+            continue;
+          }
+        } else {
+          // The method is shadowed. If it is abstract, we can simply move it to the subclass.
+          // Non-abstract methods are handled below (they cannot simply be moved to the subclass as
+          // a virtual method, because they might be the target of an invoke-super instruction).
+          if (virtualMethod.accessFlags.isAbstract()) {
+            DexEncodedMethod resultingVirtualMethod =
+                renameMethod(virtualMethod, target.type, false);
+            deferredRenamings.map(virtualMethod.method, resultingVirtualMethod.method);
+            virtualMethods.add(resultingVirtualMethod);
+            continue;
+          }
+        }
+
+        // This virtual method could be called directly from a sub class via an invoke-super
+        // instruction. Therefore, we translate this virtual method into a direct method, such that
+        // relevant invoke-super instructions can be rewritten into invoke-direct instructions.
+        DexEncodedMethod resultingDirectMethod = renameMethod(virtualMethod, target.type, true);
+        makePrivate(resultingDirectMethod);
+        directMethods.add(resultingDirectMethod);
+
+        // Record that invoke-super instructions in the target class should be redirected to the
+        // newly created direct method.
+        deferredRenamings.mapVirtualMethodToDirectInType(
+            virtualMethod.method, resultingDirectMethod.method, target.type);
+
+        if (shadowedBy == null) {
+          // In addition to the newly added direct method, create a virtual method such that we do
+          // not accidentally remove the method from the interface of this class.
+          // Note that this method is added independently of whether it will actually be used. If
+          // it turns out that the method is never used, it will be removed by the final round
+          // of tree shaking.
+          shadowedBy = buildBridgeMethod(virtualMethod, resultingDirectMethod.method);
+          virtualMethods.add(shadowedBy);
+        }
+
+        deferredRenamings.map(virtualMethod.method, shadowedBy.method);
+      }
+
+      Collection<DexEncodedMethod> mergedDirectMethods =
+          mergeItems(
+              directMethods.iterator(),
+              target.directMethods(),
+              MethodSignatureEquivalence.get(),
+              existingMethods,
+              (existing, method) -> {
+                DexEncodedMethod renamedMethod = renameMethod(method, target.type, true);
+                deferredRenamings.map(method.method, renamedMethod.method);
+                return renamedMethod;
+              });
+      Collection<DexEncodedMethod> mergedVirtualMethods =
+          mergeItems(
+              virtualMethods.iterator(),
+              target.virtualMethods(),
+              MethodSignatureEquivalence.get(),
+              existingMethods,
+              this::abortOnNonAbstract);
       if (abortMerge) {
         return false;
       }
@@ -354,17 +432,39 @@ public class VerticalClassMerger {
       return deferredRenamings;
     }
 
-    private DexEncodedMethod filterShadowedInterfaceMethods(DexEncodedMethod m) {
-      DexEncodedMethod actual = appInfo.resolveMethod(target.type, m.method).asSingleTarget();
-      assert actual != null;
-      if (actual != m) {
-        // We will drop a method here, so record it as a potential renaming.
-        deferredRenamings.map(m.method, actual.method);
+    private DexEncodedMethod buildBridgeMethod(
+        DexEncodedMethod signature, DexMethod invocationTarget) {
+      DexType holder = target.type;
+      DexProto proto = invocationTarget.proto;
+      DexString name = signature.method.name;
+      MethodAccessFlags accessFlags = signature.accessFlags.copy();
+      accessFlags.setBridge();
+      accessFlags.setSynthetic();
+      accessFlags.unsetAbstract();
+      return new DexEncodedMethod(
+          application.dexItemFactory.createMethod(holder, proto, name),
+          accessFlags,
+          DexAnnotationSet.empty(),
+          ParameterAnnotationsList.empty(),
+          new SynthesizedCode(
+              new ForwardMethodSourceCode(holder, proto, holder, invocationTarget, Type.DIRECT),
+              registry -> registry.registerInvokeDirect(invocationTarget)));
+    }
+
+    // Returns the method that shadows the given method, or null if method is not shadowed.
+    private DexEncodedMethod findMethodInTarget(DexEncodedMethod method) {
+      DexEncodedMethod actual = appInfo.resolveMethod(target.type, method.method).asSingleTarget();
+      if (actual == null) {
+        // May happen in case of missing classes.
+        abortMerge = true;
         return null;
       }
-      // We will keep the method, so the class better be abstract.
-      assert target.accessFlags.isAbstract();
-      return m;
+      if (actual != method) {
+        return actual;
+      }
+      // We will keep the method, so the class better be abstract if there is no implementation.
+      assert !method.accessFlags.isAbstract() || target.accessFlags.isAbstract();
+      return null;
     }
 
     private <T extends KeyedDexItem<S>, S extends PresortedComparable<S>> void addAll(
@@ -420,78 +520,82 @@ public class VerticalClassMerger {
       }
     }
 
-    private DexString makeMergedName(String nameString, DexType holder) {
-      return application.dexItemFactory
-          .createString(nameString + "$" + holder.toSourceString().replace('.', '$'));
+    // Note that names returned by this function are not necessarily unique. However, class merging
+    // is aborted if it turns out that the returned name is not unique.
+    // TODO(christofferqa): Write a test that checks that class merging is aborted if this function
+    // generates a name that is not unique.
+    private DexString getFreshName(String nameString, DexType holder) {
+      String freshName = nameString + "$" + holder.toSourceString().replace('.', '$');
+      return application.dexItemFactory.createString(freshName);
     }
 
     private DexEncodedMethod abortOnNonAbstract(DexEncodedMethod existing,
         DexEncodedMethod method) {
-      if (existing == null) {
-        // This is a conflict between a static and virtual method. Abort.
-        abortMerge = true;
-        return method;
-      }
-      // Ignore if we merge in an abstract method or if we override a bridge method that would
-      // bridge to the superclasses method.
-      if (method.accessFlags.isAbstract()) {
-        // We make a method disappear here, so record the renaming so that calls to the previous
-        // target get forwarded properly.
-        deferredRenamings.map(method.method, existing.method);
-        return existing;
-      } else if (existing.accessFlags.isBridge()) {
+      // Ignore if we override a bridge method that would bridge to the superclasses method.
+      if (existing != null && existing.accessFlags.isBridge()) {
         InvokeSingleTargetExtractor extractor = new InvokeSingleTargetExtractor();
         existing.getCode().registerCodeReferences(extractor);
-        if (extractor.getTarget() != method.method) {
-          abortMerge = true;
+        if (extractor.getTarget() == method.method) {
+          return method;
         }
-        return method;
-      } else {
-        abortMerge = true;
-        return existing;
       }
+
+      // Abstract shadowed methods are removed prior to calling mergeItems.
+      assert !method.accessFlags.isAbstract();
+
+      // If [existing] is null, there is a conflict between a static and virtual method. Otherwise,
+      // there is a non-abstract method that is shadowed. We translate virtual shadowed methods into
+      // direct methods with a fresh name, so this situation should never happen. We currently get
+      // in this situation if getFreshName returns a name that is not unique, though.
+      abortMerge = true;
+      return method;
     }
 
-    private DexEncodedMethod renameConstructors(DexEncodedMethod method) {
-      // Only rename instance initializers.
-      if (!method.isInstanceInitializer()) {
-        return method;
-      }
+    private DexEncodedMethod renameConstructor(DexEncodedMethod method) {
+      assert method.isInstanceInitializer();
       DexType holder = method.method.holder;
-      DexEncodedMethod result = method
-          .toRenamedMethod(makeMergedName(CONSTRUCTOR_NAME, holder), application.dexItemFactory);
+      DexEncodedMethod result =
+          method.toRenamedMethod(
+              getFreshName(CONSTRUCTOR_NAME, holder), application.dexItemFactory);
       result.markForceInline();
       deferredRenamings.map(method.method, result.method);
       // Renamed constructors turn into ordinary private functions. They can be private, as
       // they are only references from their direct subclass, which they were merged into.
       result.accessFlags.unsetConstructor();
-      result.accessFlags.unsetPublic();
-      result.accessFlags.unsetProtected();
-      result.accessFlags.setPrivate();
+      makePrivate(result);
       return result;
     }
 
-    private DexEncodedMethod renameMethod(DexEncodedMethod existing, DexEncodedMethod method) {
+    private DexEncodedMethod renameMethod(
+        DexEncodedMethod method, DexType newHolder, boolean useFreshName) {
       // We cannot handle renaming static initializers yet and constructors should have been
       // renamed already.
       assert !method.accessFlags.isConstructor();
-      DexType holder = method.method.holder;
-      String name = method.method.name.toSourceString();
-      DexEncodedMethod result = method
-          .toRenamedMethod(makeMergedName(name, holder), application.dexItemFactory);
-      deferredRenamings.map(method.method, result.method);
-      return result;
+      DexType oldHolder = method.method.holder;
+      DexString oldName = method.method.name;
+      DexString newName =
+          useFreshName ? getFreshName(oldName.toSourceString(), oldHolder) : oldName;
+      DexMethod newSignature =
+          application.dexItemFactory.createMethod(newHolder, method.method.proto, newName);
+      return method.toTypeSubstitutedMethod(newSignature);
     }
 
     private DexEncodedField renameField(DexEncodedField existing, DexEncodedField field) {
       DexString oldName = field.field.name;
       DexType holder = field.field.clazz;
-      DexEncodedField result = field
-          .toRenamedField(makeMergedName(oldName.toSourceString(), holder),
-              application.dexItemFactory);
+      DexEncodedField result =
+          field.toRenamedField(
+              getFreshName(oldName.toSourceString(), holder), application.dexItemFactory);
       deferredRenamings.map(field.field, result.field);
       return result;
     }
+  }
+
+  private static void makePrivate(DexEncodedMethod method) {
+    assert !method.accessFlags.isAbstract();
+    method.accessFlags.unsetPublic();
+    method.accessFlags.unsetProtected();
+    method.accessFlags.setPrivate();
   }
 
   private class TreeFixer {
