@@ -45,6 +45,7 @@ public final class ForwardMethodSourceCode extends SyntheticSourceCode {
     assert checkSignatures();
 
     switch (invokeType) {
+      case DIRECT:
       case STATIC:
       case SUPER:
       case INTERFACE:

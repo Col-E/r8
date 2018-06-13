@@ -34,6 +34,7 @@ import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.utils.InternalOptions;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.stream.Collectors;
@@ -42,10 +43,13 @@ public class LensCodeRewriter {
 
   private final GraphLense graphLense;
   private final AppInfoWithSubtyping appInfo;
+  private final InternalOptions options;
 
-  public LensCodeRewriter(GraphLense graphLense, AppInfoWithSubtyping appInfo) {
+  public LensCodeRewriter(
+      GraphLense graphLense, AppInfoWithSubtyping appInfo, InternalOptions options) {
     this.graphLense = graphLense;
     this.appInfo = appInfo;
+    this.options = options;
   }
 
   private Value makeOutValue(Instruction insn, IRCode code) {
@@ -97,7 +101,7 @@ public class LensCodeRewriter {
             continue;
           }
           DexMethod actualTarget = graphLense.lookupMethod(invokedMethod, method, invoke.getType());
-          Invoke.Type invokeType = getInvokeType(invoke, actualTarget, invokedMethod);
+          Invoke.Type invokeType = getInvokeType(invoke, actualTarget, invokedMethod, method);
           if (actualTarget != invokedMethod || invoke.getType() != invokeType) {
             Invoke newInvoke = Invoke.create(invokeType, actualTarget, null,
                     invoke.outValue(), invoke.inValues());
@@ -242,7 +246,8 @@ public class LensCodeRewriter {
   private Type getInvokeType(
       InvokeMethod invoke,
       DexMethod actualTarget,
-      DexMethod originalTarget) {
+      DexMethod originalTarget,
+      DexEncodedMethod invocationContext) {
     // We might move methods from interfaces to classes and vice versa. So we have to support
     // fixing the invoke kind, yet only if it was correct to start with.
     if (invoke.isInvokeVirtual() || invoke.isInvokeInterface()) {
@@ -250,23 +255,42 @@ public class LensCodeRewriter {
       DexClass newTargetClass = appInfo.definitionFor(actualTarget.holder);
       if (newTargetClass == null) {
         return invoke.getType();
-      } else {
-        DexClass originalTargetClass = appInfo.definitionFor(originalTarget.holder);
-        if (originalTargetClass != null
-            && (originalTargetClass.isInterface() ^ (invoke.getType() == Type.INTERFACE))) {
-          // The invoke was wrong to start with, so we keep it wrong. This is to ensure we get
-          // the IncompatibleClassChangeError the original invoke would have triggered.
-          return newTargetClass.accessFlags.isInterface()
-              ? Type.VIRTUAL
-              : Type.INTERFACE;
-        } else {
-          return newTargetClass.accessFlags.isInterface()
-              ? Type.INTERFACE
-              : Type.VIRTUAL;
+      }
+      DexClass originalTargetClass = appInfo.definitionFor(originalTarget.holder);
+      if (originalTargetClass != null
+          && (originalTargetClass.isInterface() ^ (invoke.getType() == Type.INTERFACE))) {
+        // The invoke was wrong to start with, so we keep it wrong. This is to ensure we get
+        // the IncompatibleClassChangeError the original invoke would have triggered.
+        return newTargetClass.accessFlags.isInterface() ? Type.VIRTUAL : Type.INTERFACE;
+      }
+      return newTargetClass.accessFlags.isInterface() ? Type.INTERFACE : Type.VIRTUAL;
+    }
+    if (options.enableClassMerging && invoke.isInvokeSuper()) {
+      if (actualTarget.getHolder() == invocationContext.method.getHolder()) {
+        DexClass targetClass = appInfo.definitionFor(actualTarget.holder);
+        if (targetClass == null) {
+          return invoke.getType();
+        }
+
+        // If the super class A of the enclosing class B (i.e., invocationContext.method.holder)
+        // has been merged into B during vertical class merging, and this invoke-super instruction
+        // was resolving to a method in A, then the target method has been changed to a direct
+        // method and moved into B, so that we need to use an invoke-direct instruction instead of
+        // invoke-super.
+        //
+        // At this point, we have an invoke-super instruction where the static target is the
+        // enclosing class. However, such an instruction could occur even if a subclass has never
+        // been merged into the enclosing class. Therefore, to determine if vertical class merging
+        // has been applied, we look if there is a direct method with the right signature, and only
+        // return Type.DIRECT in that case.
+        DexEncodedMethod method = targetClass.lookupDirectMethod(actualTarget);
+        if (method != null) {
+          // The target method has been moved from the super class into the sub class during class
+          // merging such that we now need to use an invoke-direct instruction.
+          return Type.DIRECT;
         }
       }
-    } else {
-      return invoke.getType();
     }
+    return invoke.getType();
   }
 }

@@ -271,7 +271,7 @@ public class Inliner {
       Origin origin = appInfo.originFor(target.method.holder);
       IRCode code = target.buildInliningIR(appInfo, options, generator, callerPosition, origin);
       if (!target.isProcessed()) {
-        new LensCodeRewriter(graphLense, appInfo).rewrite(code, target);
+        new LensCodeRewriter(graphLense, appInfo, options).rewrite(code, target);
       }
       return code;
     }

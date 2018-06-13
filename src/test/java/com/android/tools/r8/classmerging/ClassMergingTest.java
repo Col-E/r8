@@ -17,6 +17,8 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.MoveException;
 import com.android.tools.r8.graph.DexCode;
+import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
@@ -106,7 +108,6 @@ public class ClassMergingTest extends TestBase {
     assertTrue(inspector.clazz("classmerging.ConflictingInterfaceImpl").isPresent());
   }
 
-  @Ignore("b/73958515")
   @Test
   public void testSuperCallWasDetected() throws Exception {
     String main = "classmerging.SuperCallRewritingTest";
@@ -121,6 +122,65 @@ public class ClassMergingTest extends TestBase {
             "classmerging.SubClassThatReferencesSuperMethod",
             "classmerging.SuperCallRewritingTest");
     runTest(main, programFiles, preservedClassNames);
+  }
+
+  // When a subclass A has been merged into its subclass B, we rewrite invoke-super calls that hit
+  // methods in A to invoke-direct calls. However, we should be careful not to transform invoke-
+  // super instructions into invoke-direct instructions simply because the static target is a method
+  // in the enclosing class.
+  //
+  // This test hand-crafts an invoke-super instruction in SubClassThatReferencesSuperMethod that
+  // targets SubClassThatReferencesSuperMethod.referencedMethod. When running without class
+  // merging, R8 should not rewrite the invoke-super instruction into invoke-direct.
+  @Test
+  public void testSuperCallNotRewrittenToDirect() throws Exception {
+    String main = "classmerging.SuperCallRewritingTest";
+    Path[] programFiles =
+        new Path[] {
+          CF_DIR.resolve("SuperClassWithReferencedMethod.class"),
+          CF_DIR.resolve("SuperCallRewritingTest.class")
+        };
+    Set<String> preservedClassNames =
+        ImmutableSet.of(
+            "classmerging.SubClassThatReferencesSuperMethod",
+            "classmerging.SuperClassWithReferencedMethod",
+            "classmerging.SuperCallRewritingTest");
+
+    // Build SubClassThatReferencesMethod.
+    SmaliBuilder smaliBuilder =
+        new SmaliBuilder(
+            "classmerging.SubClassThatReferencesSuperMethod",
+            "classmerging.SuperClassWithReferencedMethod");
+    smaliBuilder.addInitializer(
+        ImmutableList.of(),
+        0,
+        "invoke-direct {p0}, Lclassmerging/SuperClassWithReferencedMethod;-><init>()V",
+        "return-void");
+    smaliBuilder.addInstanceMethod(
+        "java.lang.String",
+        "referencedMethod",
+        ImmutableList.of(),
+        2,
+        "sget-object v0, Ljava/lang/System;->out:Ljava/io/PrintStream;",
+        "const-string v1, \"In referencedMethod on SubClassThatReferencesSuperMethod\"",
+        "invoke-virtual {v0, v1}, Ljava/io/PrintStream;->println(Ljava/lang/String;)V",
+        "invoke-super {p0}, Lclassmerging/SubClassThatReferencesSuperMethod;->referencedMethod()Ljava/lang/String;",
+        "move-result-object v1",
+        "return-object v1");
+
+    // Build app.
+    AndroidApp.Builder builder = AndroidApp.builder();
+    builder.addProgramFiles(programFiles);
+    builder.addDexProgramData(smaliBuilder.compile(), Origin.unknown());
+
+    // Run test.
+    runTestOnInput(
+        main,
+        builder.build(),
+        preservedClassNames,
+        // Prevent class merging, such that the generated code would be invalid if we rewrite the
+        // invoke-super instruction into an invoke-direct instruction.
+        getProguardConfig(EXAMPLE_KEEP, "-keep class *"));
   }
 
   @Test
@@ -229,13 +289,19 @@ public class ClassMergingTest extends TestBase {
 
   private DexInspector runTest(String main, Path[] programFiles, Set<String> preservedClassNames)
       throws Exception {
-    return runTest(main, programFiles, preservedClassNames, getProguardConfig(EXAMPLE_KEEP, null));
+    return runTest(main, programFiles, preservedClassNames, getProguardConfig(EXAMPLE_KEEP));
   }
 
   private DexInspector runTest(
       String main, Path[] programFiles, Set<String> preservedClassNames, String proguardConfig)
       throws Exception {
-    AndroidApp input = readProgramFiles(programFiles);
+    return runTestOnInput(
+        main, readProgramFiles(programFiles), preservedClassNames, proguardConfig);
+  }
+
+  private DexInspector runTestOnInput(
+      String main, AndroidApp input, Set<String> preservedClassNames, String proguardConfig)
+      throws Exception {
     AndroidApp output = compileWithR8(input, proguardConfig, this::configure);
     DexInspector inspector = new DexInspector(output);
     // Check that all classes in [preservedClassNames] are in fact preserved.
@@ -254,14 +320,14 @@ public class ClassMergingTest extends TestBase {
     return inspector;
   }
 
-  private String getProguardConfig(Path path, String additionalRules) throws IOException {
+  private String getProguardConfig(Path path, String... additionalRules) throws IOException {
     StringBuilder builder = new StringBuilder();
     for (String line : Files.readAllLines(path)) {
       builder.append(line);
       builder.append(System.lineSeparator());
     }
-    if (additionalRules != null) {
-      builder.append(additionalRules);
+    for (String rule : additionalRules) {
+      builder.append(rule);
     }
     return builder.toString();
   }

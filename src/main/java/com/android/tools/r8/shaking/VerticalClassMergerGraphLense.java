@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -44,14 +45,17 @@ public class VerticalClassMergerGraphLense extends GraphLense {
 
   private final Map<DexField, DexField> fieldMap;
   private final Map<DexMethod, DexMethod> methodMap;
+  private final Map<DexType, Map<DexMethod, DexMethod>> contextualVirtualToDirectMethodMaps;
 
   public VerticalClassMergerGraphLense(
       Map<DexField, DexField> fieldMap,
       Map<DexMethod, DexMethod> methodMap,
+      Map<DexType, Map<DexMethod, DexMethod>> contextualVirtualToDirectMethodMaps,
       GraphLense previousLense) {
     this.previousLense = previousLense;
     this.fieldMap = fieldMap;
     this.methodMap = methodMap;
+    this.contextualVirtualToDirectMethodMaps = contextualVirtualToDirectMethodMaps;
   }
 
   @Override
@@ -61,11 +65,18 @@ public class VerticalClassMergerGraphLense extends GraphLense {
 
   @Override
   public DexMethod lookupMethod(DexMethod method, DexEncodedMethod context, Type type) {
-    // TODO(christofferqa): If [type] is Type.SUPER and [method] has been merged into the class of
-    // [context], then return the DIRECT method that has been created for [method] by SimpleClass-
-    // Merger. Otherwise, return the VIRTUAL method corresponding to [method].
-    assert isContextFreeForMethod(method) || context != null;
+    assert isContextFreeForMethod(method) || (context != null && type != null);
     DexMethod previous = previousLense.lookupMethod(method, context, type);
+    if (type == Type.SUPER) {
+      Map<DexMethod, DexMethod> virtualToDirectMethodMap =
+          contextualVirtualToDirectMethodMaps.get(context.method.holder);
+      if (virtualToDirectMethodMap != null) {
+        DexMethod directMethod = virtualToDirectMethodMap.get(previous);
+        if (directMethod != null) {
+          return directMethod;
+        }
+      }
+    }
     return methodMap.getOrDefault(previous, previous);
   }
 
@@ -74,6 +85,13 @@ public class VerticalClassMergerGraphLense extends GraphLense {
     ImmutableSet.Builder<DexMethod> builder = ImmutableSet.builder();
     for (DexMethod previous : previousLense.lookupMethodInAllContexts(method)) {
       builder.add(methodMap.getOrDefault(previous, previous));
+      for (Map<DexMethod, DexMethod> virtualToDirectMethodMap :
+          contextualVirtualToDirectMethodMaps.values()) {
+        DexMethod directMethod = virtualToDirectMethodMap.get(previous);
+        if (directMethod != null) {
+          builder.add(directMethod);
+        }
+      }
     }
     return builder.build();
   }
@@ -86,14 +104,22 @@ public class VerticalClassMergerGraphLense extends GraphLense {
 
   @Override
   public boolean isContextFreeForMethods() {
-    return previousLense.isContextFreeForMethods();
+    return contextualVirtualToDirectMethodMaps.isEmpty() && previousLense.isContextFreeForMethods();
   }
 
   @Override
   public boolean isContextFreeForMethod(DexMethod method) {
-    // TODO(christofferqa): Should return false for methods where this graph lense is context
-    // sensitive.
-    return previousLense.isContextFreeForMethod(method);
+    if (!previousLense.isContextFreeForMethod(method)) {
+      return false;
+    }
+    DexMethod previous = previousLense.lookupMethod(method);
+    for (Map<DexMethod, DexMethod> virtualToDirectMethodMap :
+        contextualVirtualToDirectMethodMaps.values()) {
+      if (virtualToDirectMethodMap.containsKey(previous)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   public static class Builder {
@@ -101,16 +127,21 @@ public class VerticalClassMergerGraphLense extends GraphLense {
     private final ImmutableMap.Builder<DexField, DexField> fieldMapBuilder = ImmutableMap.builder();
     private final ImmutableMap.Builder<DexMethod, DexMethod> methodMapBuilder =
         ImmutableMap.builder();
+    private final Map<DexType, Map<DexMethod, DexMethod>> contextualVirtualToDirectMethodMaps =
+        new HashMap<>();
 
     public Builder() {}
 
     public GraphLense build(GraphLense previousLense) {
       Map<DexField, DexField> fieldMap = fieldMapBuilder.build();
       Map<DexMethod, DexMethod> methodMap = methodMapBuilder.build();
-      if (fieldMap.isEmpty() && methodMap.isEmpty()) {
+      if (fieldMap.isEmpty()
+          && methodMap.isEmpty()
+          && contextualVirtualToDirectMethodMaps.isEmpty()) {
         return previousLense;
       }
-      return new VerticalClassMergerGraphLense(fieldMap, methodMap, previousLense);
+      return new VerticalClassMergerGraphLense(
+          fieldMap, methodMap, contextualVirtualToDirectMethodMaps, previousLense);
     }
 
     public void map(DexField from, DexField to) {
@@ -121,9 +152,24 @@ public class VerticalClassMergerGraphLense extends GraphLense {
       methodMapBuilder.put(from, to);
     }
 
+    public void mapVirtualMethodToDirectInType(DexMethod from, DexMethod to, DexType type) {
+      Map<DexMethod, DexMethod> virtualToDirectMethodMap =
+          contextualVirtualToDirectMethodMaps.computeIfAbsent(type, key -> new HashMap<>());
+      virtualToDirectMethodMap.put(from, to);
+    }
+
     public void merge(VerticalClassMergerGraphLense.Builder builder) {
       fieldMapBuilder.putAll(builder.fieldMapBuilder.build());
       methodMapBuilder.putAll(builder.methodMapBuilder.build());
+      for (DexType context : builder.contextualVirtualToDirectMethodMaps.keySet()) {
+        Map<DexMethod, DexMethod> current = contextualVirtualToDirectMethodMaps.get(context);
+        Map<DexMethod, DexMethod> other = builder.contextualVirtualToDirectMethodMaps.get(context);
+        if (current != null) {
+          current.putAll(other);
+        } else {
+          contextualVirtualToDirectMethodMaps.put(context, other);
+        }
+      }
     }
   }
 }
