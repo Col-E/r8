@@ -886,7 +886,31 @@ public class DexInspector {
     @Override
     public MethodSignature getOriginalSignature() {
       MethodSignature signature = getFinalSignature();
-      MemberNaming memberNaming = clazz.naming != null ? clazz.naming.lookup(signature) : null;
+      if (clazz.naming == null) {
+        return signature;
+      }
+
+      // Map the parameters and return type to original names. This is needed as the in the
+      // Proguard map the names on the left side are the original names. E.g.
+      //
+      //   X -> a
+      //     X method(X) -> a
+      //
+      // whereas the final signature is for X.a is "a (a)"
+      String[] OriginalParameters = new String[signature.parameters.length];
+      for (int i = 0; i < OriginalParameters.length; i++) {
+        String obfuscated = signature.parameters[i];
+        String original = originalToObfuscatedMapping.inverse().get(obfuscated);
+        OriginalParameters[i] = original != null ? original : obfuscated;
+      }
+      String obfuscatedReturnType = signature.type;
+      String originalReturnType = originalToObfuscatedMapping.inverse().get(obfuscatedReturnType);
+      String returnType = originalReturnType != null ? originalReturnType : obfuscatedReturnType;
+
+      MethodSignature lookupSignature =
+          new MethodSignature(signature.name, returnType, OriginalParameters);
+
+      MemberNaming memberNaming = clazz.naming.lookup(lookupSignature);
       return memberNaming != null
           ? (MethodSignature) memberNaming.getOriginalSignature()
           : signature;
@@ -1035,7 +1059,24 @@ public class DexInspector {
     @Override
     public FieldSignature getOriginalSignature() {
       FieldSignature signature = getFinalSignature();
-      MemberNaming memberNaming = clazz.naming != null ? clazz.naming.lookup(signature) : null;
+      if (clazz.naming == null) {
+        return signature;
+      }
+
+      // Map the type to the original name. This is needed as the in the Proguard map the
+      // names on the left side are the original names. E.g.
+      //
+      //   X -> a
+      //     X field -> a
+      //
+      // whereas the final signature is for X.a is "a a"
+      String obfuscatedType = signature.type;
+      String originalType = originalToObfuscatedMapping.inverse().get(obfuscatedType);
+      String fieldType = originalType != null ? originalType : obfuscatedType;
+
+      FieldSignature lookupSignature = new FieldSignature(signature.name, fieldType);
+
+      MemberNaming memberNaming = clazz.naming.lookup(lookupSignature);
       return memberNaming != null
           ? (FieldSignature) memberNaming.getOriginalSignature()
           : signature;

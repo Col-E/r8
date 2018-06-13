@@ -350,7 +350,8 @@ public class GenericSignatureParserTest extends TestBase {
     forMethodSignatures(this::parseMethodSignature);
   }
 
-  private void failingParseAction(Consumer<GenericSignatureParser<String>> parse)
+  private void failingParseAction(
+      Consumer<GenericSignatureParser<String>> parse, String errorMessageType)
       throws Exception {
     class ThrowsInParserActionBase<E extends Error> extends ReGenerateGenericSignatureRewriter {
       protected Supplier<? extends E> exceptionSupplier;
@@ -452,7 +453,8 @@ public class GenericSignatureParserTest extends TestBase {
           assertEquals("ERROR", e.getMessage());
         } else {
           plainErrorCount++;
-          assertEquals("Unknown error parsing generic signature: ERROR", e.getMessage());
+          assertEquals("Unknown error parsing "
+              + errorMessageType + " signature: ERROR", e.getMessage());
         }
       }
     }
@@ -463,10 +465,10 @@ public class GenericSignatureParserTest extends TestBase {
   public void failingParseAction() throws Exception {
     // These signatures hits all action callbacks.
     failingParseAction(parser -> parser.parseClassSignature(
-        "<U:Ljava/lang/Object;>LOuter<TT;>.Inner;Ljava/util/List<TU;>;"));
+        "<U:Ljava/lang/Object;>LOuter<TT;>.Inner;Ljava/util/List<TU;>;"), "class");
     failingParseAction(
-        parser -> parser.parseFieldSignature("LOuter$InnerInterface<TU;>.Inner;"));
+        parser -> parser.parseFieldSignature("LOuter$InnerInterface<TU;>.Inner;"), "field");
     failingParseAction(
-        parser -> parser.parseMethodSignature("(LOuter$InnerInterface<TU;>.Inner;)V"));
+        parser -> parser.parseMethodSignature("(LOuter$InnerInterface<TU;>.Inner;)V"), "method");
   }
 }

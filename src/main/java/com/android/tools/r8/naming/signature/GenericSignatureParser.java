@@ -84,7 +84,7 @@ public class GenericSignatureParser<T> {
       throw e;
     } catch (Throwable t) {
       Error e = new GenericSignatureFormatError(
-          "Unknown error parsing generic signature: " + t.getMessage());
+          "Unknown error parsing class signature: " + t.getMessage());
       e.addSuppressed(t);
       throw e;
     }
@@ -100,7 +100,7 @@ public class GenericSignatureParser<T> {
       throw e;
     } catch (Throwable t) {
       Error e = new GenericSignatureFormatError(
-          "Unknown error parsing generic signature: " + t.getMessage());
+          "Unknown error parsing method signature: " + t.getMessage());
       e.addSuppressed(t);
       throw e;
     }
@@ -112,14 +112,14 @@ public class GenericSignatureParser<T> {
       setInput(signature);
       parseFieldTypeSignature();
       actions.stop();
-  } catch (GenericSignatureFormatError e) {
-    throw e;
-  } catch (Throwable t) {
-    Error e = new GenericSignatureFormatError(
-        "Unknown error parsing generic signature: " + t.getMessage());
-    e.addSuppressed(t);
-    throw e;
-  }
+    } catch (GenericSignatureFormatError e) {
+      throw e;
+    } catch (Throwable t) {
+      Error e = new GenericSignatureFormatError(
+          "Unknown error parsing field signature: " + t.getMessage());
+      e.addSuppressed(t);
+      throw e;
+    }
   }
 
   private void setInput(String input) {
