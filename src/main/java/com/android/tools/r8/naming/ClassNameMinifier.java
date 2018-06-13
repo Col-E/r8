@@ -506,11 +506,18 @@ class ClassNameMinifier {
       String enclosingRenamedBinaryName =
           getClassBinaryNameFromDescriptor(
               renaming.getOrDefault(enclosingType, enclosingType.descriptor).toString());
-      String renamed =
-          getClassBinaryNameFromDescriptor(
-              renaming.getOrDefault(type, type.descriptor).toString());
-      String outName = renamed.substring(enclosingRenamedBinaryName.length() + 1);
-      renamedSignature.append(outName);
+      DexString renamedDescriptor = renaming.get(type);
+      if (renamedDescriptor != null) {
+        // Pick the renamed inner class from the fully renamed binary name.
+        String fullRenamedBinaryName =
+            getClassBinaryNameFromDescriptor(renamedDescriptor.toString());
+        renamedSignature.append(
+            fullRenamedBinaryName.substring(enclosingRenamedBinaryName.length() + 1));
+      } else {
+        // Did not find the class - keep the inner class name as is.
+        // TODO(110085899): Warn about missing classes in signatures?
+        renamedSignature.append(name);
+      }
       return type;
     }
 

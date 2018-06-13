@@ -424,10 +424,50 @@ public class MinifierClassSignatureTest extends TestBase {
 
   @Test
   public void classSignatureOuter_classNotFound() throws Exception {
-    String signature = "<T:LNotFound;>LNotFound;";
+    String signature = "<T:LNotFound;>LAlsoNotFound;";
     testSingleClass("Outer", signature, this::noWarnings, inspector -> {
       assertThat(inspector.clazz("NotFound"), not(isPresent()));
       ClassSubject outer = inspector.clazz("Outer");
+      assertEquals(signature, outer.getOriginalSignatureAttribute());
+    });
+  }
+
+  @Test
+  public void classSignatureExtendsInner_innerClassNotFound() throws Exception {
+    String signature = "LOuter<TT;>.NotFound;";
+    testSingleClass("Outer$ExtendsInner", signature, this::noWarnings, inspector -> {
+      assertThat(inspector.clazz("NotFound"), not(isPresent()));
+      ClassSubject outer = inspector.clazz("Outer$ExtendsInner");
+      assertEquals(signature, outer.getOriginalSignatureAttribute());
+    });
+  }
+
+  @Test
+  public void classSignatureExtendsInner_outerAndInnerClassNotFound() throws Exception {
+    String signature = "LNotFound<TT;>.AlsoNotFound;";
+    testSingleClass("Outer$ExtendsInner", signature, this::noWarnings, inspector -> {
+      assertThat(inspector.clazz("NotFound"), not(isPresent()));
+      ClassSubject outer = inspector.clazz("Outer$ExtendsInner");
+      assertEquals(signature, outer.getOriginalSignatureAttribute());
+    });
+  }
+
+  @Test
+  public void classSignatureExtendsInner_nestedInnerClassNotFound() throws Exception {
+    String signature = "LOuter<TT;>.Inner.NotFound;";
+    testSingleClass("Outer$ExtendsInner", signature, this::noWarnings, inspector -> {
+      assertThat(inspector.clazz("NotFound"), not(isPresent()));
+      ClassSubject outer = inspector.clazz("Outer$ExtendsInner");
+      assertEquals(signature, outer.getOriginalSignatureAttribute());
+    });
+  }
+
+  @Test
+  public void classSignatureExtendsInner_multipleMestedInnerClassesNotFound() throws Exception {
+    String signature = "LOuter<TT;>.NotFound.AlsoNotFound;";
+    testSingleClass("Outer$ExtendsInner", signature, this::noWarnings, inspector -> {
+      assertThat(inspector.clazz("NotFound"), not(isPresent()));
+      ClassSubject outer = inspector.clazz("Outer$ExtendsInner");
       assertEquals(signature, outer.getOriginalSignatureAttribute());
     });
   }
