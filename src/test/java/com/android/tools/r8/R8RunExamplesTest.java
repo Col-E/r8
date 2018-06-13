@@ -45,9 +45,11 @@ public class R8RunExamplesTest extends R8RunExamplesCommon {
         "instancevariable.InstanceVariable",
         "instanceofstring.InstanceofString",
         "invoke.Invoke",
+        "invokeempty.InvokeEmpty",
         "jumbostring.JumboString",
         "loadconst.LoadConst",
         "loop.UdpServer",
+        "nestedtrycatches.NestedTryCatches",
         "newarray.NewArray",
         "regalloc.RegAlloc",
         "returns.Returns",
@@ -58,9 +60,7 @@ public class R8RunExamplesTest extends R8RunExamplesCommon {
         "throwing.Throwing",
         "trivial.Trivial",
         "trycatch.TryCatch",
-        "nestedtrycatches.NestedTryCatches",
         "trycatchmany.TryCatchMany",
-        "invokeempty.InvokeEmpty",
         "regress.Regress",
         "regress2.Regress2",
         "regress_37726195.Regress",
@@ -81,6 +81,7 @@ public class R8RunExamplesTest extends R8RunExamplesCommon {
         "enclosingmethod_proguarded.Main",
         "interfaceinlining.Main",
         "switchmaps.Switches",
+        "uninitializedfinal.UninitializedFinalFieldLeak",
     };
 
     List<String[]> fullTestList = new ArrayList<>(tests.length * 2);

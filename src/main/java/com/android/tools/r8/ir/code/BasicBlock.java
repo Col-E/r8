@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.code;
 import static com.android.tools.r8.ir.code.IRCode.INSTRUCTION_NUMBER_DELTA;
 
 import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DebugLocalInfo.PrintLevel;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -468,7 +467,7 @@ public class BasicBlock {
         return instruction;
       }
     }
-    throw new Unreachable();
+    return null;
   }
 
   public void clearUserInfo() {
