@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.optimize.InvokeSingleTargetExtractor.InvokeKind;
 import com.google.common.collect.Sets;
@@ -28,7 +29,8 @@ public class VisibilityBridgeRemover {
   }
 
   private void identifyBridgeMethod(DexEncodedMethod method) {
-    if (method.accessFlags.isBridge()) {
+    MethodAccessFlags accessFlags = method.accessFlags;
+    if (accessFlags.isBridge() && !accessFlags.isAbstract()) {
       InvokeSingleTargetExtractor targetExtractor = new InvokeSingleTargetExtractor();
       method.getCode().registerCodeReferences(targetExtractor);
       DexMethod target = targetExtractor.getTarget();
@@ -36,11 +38,11 @@ public class VisibilityBridgeRemover {
       // javac-generated visibility forward bridge method has same descriptor (name, signature and
       // return type).
       if (target != null && target.hasSameProtoAndName(method.method)) {
-        assert !method.accessFlags.isPrivate() && !method.accessFlags.isConstructor();
+        assert !accessFlags.isPrivate() && !accessFlags.isConstructor();
         if (kind == InvokeKind.SUPER) {
           // This is a visibility forward, so check for the direct target.
-          DexEncodedMethod targetMethod
-              = appInfo.resolveMethod(target.getHolder(), target).asSingleTarget();
+          DexEncodedMethod targetMethod =
+              appInfo.resolveMethod(target.getHolder(), target).asSingleTarget();
           if (targetMethod != null && targetMethod.accessFlags.isPublic()) {
             if (Log.ENABLED) {
               Log.info(getClass(), "Removing visibility forwarding %s -> %s", method.method,

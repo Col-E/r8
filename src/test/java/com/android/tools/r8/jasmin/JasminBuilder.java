@@ -195,7 +195,7 @@ public class JasminBuilder {
       return addStaticMethod("main", ImmutableList.of("[Ljava/lang/String;"), "V", lines);
     }
 
-    private MethodSignature addMethod(
+    public MethodSignature addMethod(
         String access,
         String name,
         List<String> argumentTypes,
