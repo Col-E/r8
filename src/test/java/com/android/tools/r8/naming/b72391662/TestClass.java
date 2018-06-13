@@ -18,6 +18,10 @@ public class TestClass extends Super implements Interface {
     return value;
   }
 
+  static void unused() {
+    System.out.println("This should be discarded unless there is a keep rule.");
+  }
+
   static String staticMethod() {
     return "1";
   }
