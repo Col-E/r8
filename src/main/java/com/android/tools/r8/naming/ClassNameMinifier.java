@@ -161,7 +161,7 @@ class ClassNameMinifier {
   }
 
   private void parseError(DexItem item, Origin origin, GenericSignatureFormatError e) {
-    StringBuilder message = new StringBuilder("Invalid class signature for ");
+    StringBuilder message = new StringBuilder("Invalid signature for ");
     if (item instanceof DexClass) {
       message.append("class ");
       message.append(((DexClass) item).getType().toSourceString());
@@ -183,12 +183,14 @@ class ClassNameMinifier {
       clazz.annotations = rewriteGenericSignatures(clazz.annotations,
           genericSignatureParser::parseClassSignature,
           e -> parseError(clazz, clazz.getOrigin(), e));
-      clazz.forEachField(field -> rewriteGenericSignatures(
-          field.annotations, genericSignatureParser::parseFieldSignature,
-          e -> parseError(field, clazz.getOrigin(), e)));
-      clazz.forEachMethod(method -> rewriteGenericSignatures(
-          method.annotations, genericSignatureParser::parseMethodSignature,
-          e -> parseError(method, clazz.getOrigin(), e)));
+      clazz.forEachField(field ->
+          field.annotations = rewriteGenericSignatures(
+              field.annotations, genericSignatureParser::parseFieldSignature,
+              e -> parseError(field, clazz.getOrigin(), e)));
+      clazz.forEachMethod(method ->
+        method.annotations = rewriteGenericSignatures(
+            method.annotations, genericSignatureParser::parseMethodSignature,
+            e -> parseError(method, clazz.getOrigin(), e)));
     }
   }
 
