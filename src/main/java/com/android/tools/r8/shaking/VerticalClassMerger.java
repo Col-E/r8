@@ -582,10 +582,11 @@ public class VerticalClassMerger {
 
     private DexEncodedField renameField(DexEncodedField existing, DexEncodedField field) {
       DexString oldName = field.field.name;
-      DexType holder = field.field.clazz;
-      DexEncodedField result =
-          field.toRenamedField(
-              getFreshName(oldName.toSourceString(), holder), application.dexItemFactory);
+      DexType oldHolder = field.field.clazz;
+      DexString newName = getFreshName(oldName.toSourceString(), oldHolder);
+      DexField newSignature =
+          application.dexItemFactory.createField(target.type, field.field.type, newName);
+      DexEncodedField result = field.toTypeSubstitutedField(newSignature);
       deferredRenamings.map(field.field, result.field);
       return result;
     }
