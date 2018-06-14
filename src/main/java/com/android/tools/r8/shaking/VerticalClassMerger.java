@@ -113,11 +113,20 @@ public class VerticalClassMerger {
   }
 
   private boolean isMergeCandidate(DexProgramClass clazz, Set<DexType> pinnedTypes) {
-    if (clazz.isLibraryClass()
-        || appInfo.instantiatedTypes.contains(clazz.type)
+    if (appInfo.instantiatedTypes.contains(clazz.type)
         || appInfo.isPinned(clazz.type)
-        || pinnedTypes.contains(clazz.type)
-        || clazz.type.getSingleSubtype() == null) {
+        || pinnedTypes.contains(clazz.type)) {
+      return false;
+    }
+    DexType singleSubtype = clazz.type.getSingleSubtype();
+    if (singleSubtype == null) {
+      // TODO(christofferqa): Even if [clazz] has multiple subtypes, we could still merge it into
+      // its subclass if [clazz] is not live. This should only be done, though, if it does not
+      // lead to members being duplicated.
+      return false;
+    }
+    DexClass targetClass = appInfo.definitionFor(singleSubtype);
+    if (mergeMayLeadToIllegalAccesses(clazz, targetClass)) {
       return false;
     }
     for (DexEncodedField field : clazz.fields()) {
@@ -134,6 +143,20 @@ public class VerticalClassMerger {
         return false;
       }
     }
+    return true;
+  }
+
+  private boolean mergeMayLeadToIllegalAccesses(DexClass clazz, DexClass singleSubclass) {
+    if (clazz.type.isSamePackage(singleSubclass.type)) {
+      return false;
+    }
+    // TODO(christofferqa): To merge [clazz] into a class from another package we need to ensure:
+    // (A) All accesses to [clazz] and its members from inside the current package of [clazz] will
+    //     continue to work. This is guaranteed if [clazz] is public and all members of [clazz] are
+    //     either private or public.
+    // (B) All accesses from [clazz] to classes or members from the current package of [clazz] will
+    //     continue to work. This is guaranteed if the methods of [clazz] do not access any private
+    //     or protected classes or members from the current package of [clazz].
     return true;
   }
 
