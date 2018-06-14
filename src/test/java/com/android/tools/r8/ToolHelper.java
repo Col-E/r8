@@ -807,7 +807,9 @@ public class ToolHelper {
 
   public static R8Command.Builder prepareR8CommandBuilder(
       AndroidApp app, ProgramConsumer programConsumer) {
-    return R8Command.builder(app).setProgramConsumer(programConsumer);
+    return R8Command.builder(app)
+        .setProgramConsumer(programConsumer)
+        .setProguardMapConsumer(StringConsumer.emptyConsumer());
   }
 
   public static AndroidApp runR8(AndroidApp app) throws IOException {

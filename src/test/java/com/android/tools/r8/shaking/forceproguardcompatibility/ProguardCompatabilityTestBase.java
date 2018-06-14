@@ -20,10 +20,12 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class ProguardCompatabilityTestBase extends TestBase {
 
@@ -87,11 +89,18 @@ public class ProguardCompatabilityTestBase extends TestBase {
     throw new IllegalArgumentException("Unknown shrinker: " + mode);
   }
 
-  protected AndroidApp runR8Raw(List<Class> programClasses, String proguardConfig) throws Exception {
+  protected AndroidApp runR8Raw(List<Class> programClasses, String proguardConfig)
+      throws Exception {
+    return runR8Raw(programClasses, proguardConfig, null);
+  }
+
+  protected AndroidApp runR8Raw(
+      List<Class> programClasses, String proguardConfig, Consumer<InternalOptions> configure)
+      throws Exception {
     AndroidApp app = readClassesAndAndriodJar(programClasses);
     R8Command.Builder builder = ToolHelper.prepareR8CommandBuilder(app);
     builder.addProguardConfiguration(ImmutableList.of(proguardConfig), Origin.unknown());
-    return ToolHelper.runR8(builder.build());
+    return ToolHelper.runR8(builder.build(), configure);
   }
 
   protected DexInspector runR8(List<Class> programClasses, String proguardConfig) throws Exception {
