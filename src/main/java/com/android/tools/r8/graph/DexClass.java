@@ -10,6 +10,7 @@ import com.android.tools.r8.kotlin.KotlinInfo;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.google.common.base.MoreObjects;
+import com.google.common.collect.Iterators;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
@@ -94,6 +95,16 @@ public abstract class DexClass extends DexItem {
               + type.descriptor.toString()
               + "' cannot be represented in dex format.");
     }
+  }
+
+  public Iterable<DexEncodedField> fields() {
+    return () ->
+        Iterators.concat(Iterators.forArray(instanceFields), Iterators.forArray(staticFields));
+  }
+
+  public Iterable<DexEncodedMethod> methods() {
+    return () ->
+        Iterators.concat(Iterators.forArray(directMethods), Iterators.forArray(virtualMethods));
   }
 
   @Override
