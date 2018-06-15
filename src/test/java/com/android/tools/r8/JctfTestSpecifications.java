@@ -1920,11 +1920,6 @@ public class JctfTestSpecifications {
           // 1) t03
           // java.lang.AssertionError: expected null, but was:<[I@1b32f32>
 
-          .put("lang.ref.WeakReference.isEnqueued.WeakReference_isEnqueued_A01",
-              match(runtimes(Version.DEFAULT, Version.V7_0_0, Version.V6_0_1, Version.V5_1_1)))
-          // 1) t03
-          // java.lang.AssertionError: reference is not enqueued after 2 sec
-
           .put("lang.StackTraceElement.toString.StackTraceElement_toString_A01",
               match(runtimes(Version.DEFAULT)))
           // 1) t03
@@ -4959,8 +4954,9 @@ public class JctfTestSpecifications {
           .put("lang.ref.PhantomReference.isEnqueued.PhantomReference_isEnqueued_A01",
               match(runtimesUpTo(Version.V4_4_4)))
 
-          .put("lang.ref.WeakReference.isEnqueued.WeakReference_isEnqueued_A01",
-              match(runtimesUpTo(Version.V4_4_4)))
+          .put("lang.ref.WeakReference.isEnqueued.WeakReference_isEnqueued_A01", any())
+          // 1) t03
+          // java.lang.AssertionError: reference is not enqueued after 2 sec
 
           .put("lang.ref.WeakReference.enqueue.WeakReference_enqueue_A01",
               match(runtimesUpTo(Version.V4_4_4)))
