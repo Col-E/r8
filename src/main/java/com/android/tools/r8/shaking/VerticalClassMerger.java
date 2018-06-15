@@ -4,6 +4,7 @@
 package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.graph.DefaultUseRegistry;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
@@ -68,7 +69,7 @@ public class VerticalClassMerger {
   private final DexApplication application;
   private final AppInfoWithLiveness appInfo;
   private final GraphLense graphLense;
-  private final Map<DexType, DexType> mergedClasses = new IdentityHashMap<>();
+  private final Map<DexType, DexType> mergedClasses = new HashMap<>();
   private final Timing timing;
   private Collection<DexMethod> invokes;
 
@@ -106,6 +107,36 @@ public class VerticalClassMerger {
               pinnedTypes.add(other.type);
             }
           }
+        }
+
+        // Avoid merging two types if this could remove a NoSuchMethodError, as illustrated by the
+        // following example. (Alternatively, it would be possible to merge A and B and rewrite the
+        // "invoke-super A.m" instruction into "invoke-super Object.m" to preserve the error. This
+        // situation should generally not occur in practice, though.)
+        //
+        //   class A {}
+        //   class B extends A {
+        //     public void m() {}
+        //   }
+        //   class C extends A {
+        //     public void m() {
+        //       invoke-super "A.m" <- should yield NoSuchMethodError, cannot merge A and B
+        //     }
+        //   }
+        if (!method.isStaticMethod()) {
+          method.registerCodeReferences(
+              new DefaultUseRegistry() {
+                @Override
+                public boolean registerInvokeSuper(DexMethod target) {
+                  DexClass targetClass = appInfo.definitionFor(target.getHolder());
+                  if (targetClass != null
+                      && targetClass.isProgramClass()
+                      && targetClass.lookupVirtualMethod(target) == null) {
+                    pinnedTypes.add(target.getHolder());
+                  }
+                  return true;
+                }
+              });
         }
       }
     }
@@ -401,8 +432,7 @@ public class VerticalClassMerger {
 
         // Record that invoke-super instructions in the target class should be redirected to the
         // newly created direct method.
-        deferredRenamings.mapVirtualMethodToDirectInType(
-            virtualMethod.method, resultingDirectMethod.method, target.type);
+        redirectSuperCallsInTarget(virtualMethod.method, resultingDirectMethod.method);
 
         if (shadowedBy == null) {
           // In addition to the newly added direct method, create a virtual method such that we do
@@ -489,6 +519,36 @@ public class VerticalClassMerger {
 
     public VerticalClassMergerGraphLense.Builder getRenamings() {
       return deferredRenamings;
+    }
+
+    private void redirectSuperCallsInTarget(DexMethod oldTarget, DexMethod newTarget) {
+      // If we merge class B into class C, and class C contains an invocation super.m(), then it
+      // is insufficient to rewrite "invoke-super B.m()" to "invoke-direct C.m$B()" (the method
+      // C.m$B denotes the direct method that has been created in C for B.m). In particular, there
+      // might be an instruction "invoke-super A.m()" in C that resolves to B.m at runtime (A is
+      // a superclass of B), which also needs to be rewritten to "invoke-direct C.m$B()".
+      //
+      // We handle this by adding a mapping for [target] and all of its supertypes.
+      DexClass holder = target;
+      while (holder != null && holder.isProgramClass()) {
+        DexMethod signatureInHolder =
+            application.dexItemFactory.createMethod(holder.type, oldTarget.proto, oldTarget.name);
+        // Only rewrite the invoke-super call if it does not lead to a NoSuchMethodError.
+        if (resolutionSucceeds(signatureInHolder)) {
+          deferredRenamings.mapVirtualMethodToDirectInType(
+              signatureInHolder, newTarget, target.type);
+          holder = holder.superType != null ? appInfo.definitionFor(holder.superType) : null;
+        } else {
+          break;
+        }
+      }
+    }
+
+    private boolean resolutionSucceeds(DexMethod targetMethod) {
+      DexClass enclosingClass = appInfo.definitionFor(targetMethod.holder);
+      return enclosingClass != null
+          && (enclosingClass.lookupVirtualMethod(targetMethod) != null
+              || appInfo.lookupSuperTarget(targetMethod, enclosingClass.type) != null);
     }
 
     private DexEncodedMethod buildBridgeMethod(
