@@ -34,16 +34,8 @@ public class FilteredClassPathTest {
 
   private void testPath(List<String> filters, List<String> positives, List<String> negatives) {
     FilteredClassPath path = makeFilteredClassPath(filters);
-    Assert.assertTrue(
-        positives.stream().map(FilteredClassPathTest::adaptFileSeparator).map(Paths::get)
-            .allMatch(path::matchesFile));
-    Assert.assertFalse(
-        negatives.stream().map(FilteredClassPathTest::adaptFileSeparator).map(Paths::get)
-            .allMatch(path::matchesFile));
-  }
-
-  private static String adaptFileSeparator(String s) {
-    return s.replace('/', File.separatorChar);
+    Assert.assertTrue(positives.stream().allMatch(path::matchesFile));
+    Assert.assertFalse(negatives.stream().allMatch(path::matchesFile));
   }
 
   private static FilteredClassPath makeFilteredClassPath(List<String> filters) {
@@ -51,9 +43,7 @@ public class FilteredClassPathTest {
   }
 
   private static FilteredClassPath makeFilteredClassPath(Path path, List<String> filters) {
-    return new FilteredClassPath(path,
-        filters.stream().map(FilteredClassPathTest::adaptFileSeparator)
-            .collect(ImmutableList.toImmutableList()));
+    return new FilteredClassPath(path, ImmutableList.copyOf(filters));
   }
 
   @Test
