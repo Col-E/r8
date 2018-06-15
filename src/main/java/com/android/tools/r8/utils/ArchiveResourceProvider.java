@@ -4,8 +4,6 @@
 package com.android.tools.r8.utils;
 
 import static com.android.tools.r8.utils.FileUtils.isArchive;
-import static com.android.tools.r8.utils.FileUtils.isClassFile;
-import static com.android.tools.r8.utils.FileUtils.isDexFile;
 
 import com.android.tools.r8.DataDirectoryResource;
 import com.android.tools.r8.DataEntryResource;
@@ -23,8 +21,6 @@ import com.google.common.io.ByteStreams;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -56,17 +52,16 @@ public class ArchiveResourceProvider implements ProgramResourceProvider, DataRes
         ZipEntry entry = entries.nextElement();
         try (InputStream stream = zipFile.getInputStream(entry)) {
           String name = entry.getName();
-          Path path = Paths.get(name);
           Origin entryOrigin = new ArchiveEntryOrigin(name, origin);
-          if (archive.matchesFile(path)) {
-            if (isDexFile(path)) {
+          if (archive.matchesFile(name)) {
+            if (ZipUtils.isDexFile(name)) {
               if (!ignoreDexInArchive) {
                 ProgramResource resource =
                     OneShotByteResource.create(
                         Kind.DEX, entryOrigin, ByteStreams.toByteArray(stream), null);
                 dexResources.add(resource);
               }
-            } else if (isClassFile(path)) {
+            } else if (ZipUtils.isClassFile(name)) {
               String descriptor = DescriptorUtils.guessTypeDescriptor(name);
               ProgramResource resource =
                   OneShotByteResource.create(
@@ -111,7 +106,7 @@ public class ArchiveResourceProvider implements ProgramResourceProvider, DataRes
       final Enumeration<? extends ZipEntry> entries = zipFile.entries();
       while (entries.hasMoreElements()) {
         ZipEntry entry = entries.nextElement();
-        Path name = Paths.get(entry.getName());
+        String name = entry.getName();
         if (archive.matchesFile(name) && !isProgramResourceName(name)) {
           if (entry.isDirectory()) {
             resourceBrowser.visit(DataDirectoryResource.fromZip(zipFile, entry));
@@ -129,7 +124,7 @@ public class ArchiveResourceProvider implements ProgramResourceProvider, DataRes
     }
   }
 
-  private boolean isProgramResourceName(Path name) {
-    return isClassFile(name) || (isDexFile(name) && !ignoreDexInArchive);
+  private boolean isProgramResourceName(String name) {
+    return ZipUtils.isClassFile(name) || (ZipUtils.isDexFile(name) && !ignoreDexInArchive);
   }
 }

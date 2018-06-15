@@ -6,12 +6,11 @@ package com.android.tools.r8.utils;
 import com.android.tools.r8.ArchiveClassFileProvider;
 import com.android.tools.r8.shaking.FilteredClassPath;
 import java.io.IOException;
-import java.nio.file.Paths;
 
 // Internal filtered class-file provider.
 class FilteredArchiveClassFileProvider extends ArchiveClassFileProvider {
 
   FilteredArchiveClassFileProvider(FilteredClassPath archive) throws IOException {
-    super(archive.getPath(), entry -> archive.matchesFile(Paths.get(entry)));
+    super(archive.getPath(), entry -> archive.matchesFile(entry));
   }
 }

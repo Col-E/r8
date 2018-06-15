@@ -22,7 +22,6 @@ import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.DescriptorUtils;
-import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.collect.ImmutableMap;
@@ -61,7 +60,7 @@ public class FrameworkIncrementalDexingBenchmark {
           archive.toString(),
           (entry, stream) -> {
             String name = entry.getName();
-            if (FileUtils.isClassFile(Paths.get(name))) {
+            if (ZipUtils.isClassFile(name)) {
               String descriptor = DescriptorUtils.guessTypeDescriptor(name);
               builder.put(descriptor, ByteStreams.toByteArray(stream));
             }

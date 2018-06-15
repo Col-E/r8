@@ -382,8 +382,9 @@ public class R8ApiUsageSample {
         ZipInputStream zip = new ZipInputStream(Files.newInputStream(file), StandardCharsets.UTF_8);
         ZipEntry entry;
         while (null != (entry = zip.getNextEntry())) {
-          if (isClassFile(Paths.get(entry.getName()))) {
-            Origin origin = new ArchiveEntryOrigin(entry.getName(), zipOrigin);
+          String name = entry.getName();
+          if (isClassFile(name)) {
+            Origin origin = new ArchiveEntryOrigin(name, zipOrigin);
             classfiles.add(new ClassFileContent(origin, readBytes(zip)));
           }
         }

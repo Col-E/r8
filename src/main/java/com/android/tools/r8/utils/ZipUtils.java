@@ -3,6 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
+import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
+import static com.android.tools.r8.utils.FileUtils.DEX_EXTENSION;
+import static com.android.tools.r8.utils.FileUtils.MODULE_INFO_CLASS;
+
 import com.android.tools.r8.errors.CompilationError;
 import com.google.common.io.ByteStreams;
 import java.io.File;
@@ -91,5 +95,18 @@ public class ZipUtils {
     stream.putNextEntry(zipEntry);
     stream.write(content);
     stream.closeEntry();
+  }
+
+  public static boolean isDexFile(String entry) {
+    String name = entry.toLowerCase();
+    return name.endsWith(DEX_EXTENSION);
+  }
+
+  public static boolean isClassFile(String entry) {
+    String name = entry.toLowerCase();
+    if (name.endsWith(MODULE_INFO_CLASS)) {
+      return false;
+    }
+    return name.endsWith(CLASS_EXTENSION);
   }
 }

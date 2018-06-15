@@ -12,7 +12,7 @@ import com.android.tools.r8.origin.ArchiveEntryOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.DescriptorUtils;
-import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.io.ByteStreams;
 import java.io.Closeable;
 import java.io.IOException;
@@ -21,7 +21,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashSet;
@@ -73,7 +72,7 @@ public class ArchiveClassFileProvider implements ClassFileResourceProvider, Clos
     while (entries.hasMoreElements()) {
       ZipEntry entry = entries.nextElement();
       String name = entry.getName();
-      if (FileUtils.isClassFile(Paths.get(name)) && include.test(name)) {
+      if (ZipUtils.isClassFile(name) && include.test(name)) {
         descriptors.add(DescriptorUtils.guessTypeDescriptor(name));
       }
     }

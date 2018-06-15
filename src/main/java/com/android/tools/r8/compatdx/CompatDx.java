@@ -3,13 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.compatdx;
 
-import static com.android.tools.r8.utils.FileUtils.isApkFile;
-import static com.android.tools.r8.utils.FileUtils.isArchive;
-import static com.android.tools.r8.utils.FileUtils.isClassFile;
-import static com.android.tools.r8.utils.FileUtils.isDexFile;
-import static com.android.tools.r8.utils.FileUtils.isJarFile;
-import static com.android.tools.r8.utils.FileUtils.isZipFile;
-
 import com.android.tools.r8.CompatDxHelper;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
@@ -28,6 +21,7 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.ThreadUtils;
+import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.ByteStreams;
 import java.io.File;
@@ -475,7 +469,7 @@ public class CompatDx {
     }
     if (singleDexFile) {
       return new SingleDexFileConsumer(
-          isDexFile(output)
+          FileUtils.isDexFile(output)
               ? new NamedDexFileConsumer(output)
               : createDexConsumer(output, inputs, keepClasses));
     }
@@ -486,13 +480,13 @@ public class CompatDx {
       Path output, List<Path> inputs, boolean keepClasses)
       throws DxUsageMessage {
     if (keepClasses) {
-      if (!isArchive(output)) {
+      if (!FileUtils.isArchive(output)) {
         throw new DxCompatOptions.DxUsageMessage(
             "Output must be an archive when --keep-classes is set.");
       }
       return new DexKeepClassesConsumer(output, inputs);
     }
-    return isArchive(output)
+    return FileUtils.isArchive(output)
         ? new DexIndexedConsumer.ArchiveConsumer(output)
         : new DexIndexedConsumer.DirectoryConsumer(output);
   }
@@ -572,12 +566,12 @@ public class CompatDx {
     private void writeZipWithClasses(DiagnosticsHandler handler) throws IOException {
       // For each input archive file, add all class files within.
       for (Path input : inputs) {
-        if (isArchive(input)) {
+        if (FileUtils.isArchive(input)) {
           try (ZipFile zipFile = new ZipFile(input.toFile(), StandardCharsets.UTF_8)) {
             final Enumeration<? extends ZipEntry> entries = zipFile.entries();
             while (entries.hasMoreElements()) {
               ZipEntry entry = entries.nextElement();
-              if (isClassFile(Paths.get(entry.getName()))) {
+              if (ZipUtils.isClassFile(entry.getName())) {
                 try (InputStream entryStream = zipFile.getInputStream(entry)) {
                   outputBuilder.addFile(
                       entry.getName(), ByteStreams.toByteArray(entryStream), handler);
@@ -604,11 +598,11 @@ public class CompatDx {
       return;
     }
     Path path = file.toPath();
-    if (isZipFile(path) || isJarFile(path) || isClassFile(path)) {
+    if (FileUtils.isZipFile(path) || FileUtils.isJarFile(path) || FileUtils.isClassFile(path)) {
       files.add(path);
       return;
     }
-    if (isApkFile(path)) {
+    if (FileUtils.isApkFile(path)) {
       throw new Unimplemented("apk files not yet supported");
     }
   }

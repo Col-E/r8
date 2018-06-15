@@ -46,14 +46,18 @@ public class FilteredClassPath {
     return path;
   }
 
-  public boolean matchesFile(Path file) {
+  public boolean matchesFile(Path path) {
+    return matchesFile(path.toString());
+  }
+
+  public boolean matchesFile(String name) {
     if (isUnfiltered()) {
       return true;
     }
     boolean isNegated = false;
     for (String pattern : pattern) {
       isNegated = pattern.charAt(0) == '!';
-      boolean matches = matchAgainstFileName(file.toString(), 0, pattern, isNegated ? 1 : 0);
+      boolean matches = matchAgainstFileName(name, 0, pattern, isNegated ? 1 : 0);
       if (matches) {
         return !isNegated;
       }

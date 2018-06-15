@@ -3,22 +3,18 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
-import static com.android.tools.r8.utils.FileUtils.isClassFile;
-import static com.android.tools.r8.utils.FileUtils.isDexFile;
-
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.origin.ArchiveEntryOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.DescriptorUtils;
-import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.io.ByteStreams;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -39,16 +35,15 @@ public class ArchiveProgramResourceProvider implements ProgramResourceProvider {
   }
 
   public static boolean includeClassFileEntries(String entry) {
-    return isClassFile(Paths.get(entry));
+    return ZipUtils.isClassFile(entry);
   }
 
   public static boolean includeDexEntries(String entry) {
-    return isDexFile(Paths.get(entry));
+    return ZipUtils.isDexFile(entry);
   }
 
   public static boolean includeClassFileOrDexEntries(String entry) {
-    Path path = Paths.get(entry);
-    return isClassFile(path) || isDexFile(path);
+    return ZipUtils.isClassFile(entry) || ZipUtils.isDexFile(entry);
   }
 
   private final Origin origin;
@@ -97,14 +92,13 @@ public class ArchiveProgramResourceProvider implements ProgramResourceProvider {
         ZipEntry entry = entries.nextElement();
         try (InputStream stream = zipFile.getInputStream(entry)) {
           String name = entry.getName();
-          Path path = Paths.get(name);
-          Origin entryOrigin = new ArchiveEntryOrigin(entry.getName(), origin);
+          Origin entryOrigin = new ArchiveEntryOrigin(name, origin);
           if (include.test(name)) {
-            if (FileUtils.isDexFile(path)) {
+            if (ZipUtils.isDexFile(name)) {
               dexResources.add(
                   ProgramResource.fromBytes(
                       entryOrigin, Kind.DEX, ByteStreams.toByteArray(stream), null));
-            } else if (isClassFile(path)) {
+            } else if (ZipUtils.isClassFile(name)) {
               String descriptor = DescriptorUtils.guessTypeDescriptor(name);
               classResources.add(
                   ProgramResource.fromBytes(
