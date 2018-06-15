@@ -31,7 +31,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
-
 @RunWith(Parameterized.class)
 public class MethodHandleTestRunner extends TestBase {
   static final Class<?> CLASS = MethodHandleTest.class;
@@ -169,7 +168,9 @@ public class MethodHandleTestRunner extends TestBase {
           Arrays.asList(
               "-keep public class com.android.tools.r8.cf.MethodHandleTest {",
               "  public static void main(...);",
-              "}"),
+              "}",
+              // Disallow merging MethodHandleTest$I into MethodHandleTest$Impl
+              "-keep public interface com.android.tools.r8.cf.MethodHandleTest$I"),
           Origin.unknown());
     }
     try {
