@@ -320,6 +320,11 @@ public class VerticalClassMerger {
         }
         continue;
       }
+      // Field resolution first considers the direct interfaces of [targetClass] before it proceeds
+      // to the super class.
+      if (fieldResolutionMayChange(clazz, targetClass)) {
+        continue;
+      }
       // Guard against the case where we have two methods that may get the same signature
       // if we replace types. This is rare, so we approximate and err on the safe side here.
       if (new CollisionDetector(clazz.type, targetClass.type, getInvokes(), mergedClasses)
@@ -363,6 +368,35 @@ public class VerticalClassMerger {
       Log.debug(getClass(), "Merged %d classes.", numberOfMerges);
     }
     return renamedMembersLense.build(graphLense);
+  }
+
+  private boolean fieldResolutionMayChange(DexClass source, DexClass target) {
+    if (source.type == target.superType) {
+      // If there is a "iget Target.f" or "iput Target.f" instruction in target, and the class
+      // Target implements an interface that declares a static final field f, this should yield an
+      // IncompatibleClassChangeError.
+      // TODO(christofferqa): In the following we only check if a static field from an interface
+      // shadows an instance field from [source]. We could actually check if there is an iget/iput
+      // instruction whose resolution would be affected by the merge. The situation where a static
+      // field shadows an instance field is probably not widespread in practice, though.
+      FieldSignatureEquivalence equivalence = FieldSignatureEquivalence.get();
+      Set<Wrapper<DexField>> staticFieldsInInterfacesOfTarget = new HashSet<>();
+      for (DexType interfaceType : target.interfaces.values) {
+        DexClass clazz = appInfo.definitionFor(interfaceType);
+        for (DexEncodedField staticField : clazz.staticFields()) {
+          staticFieldsInInterfacesOfTarget.add(equivalence.wrap(staticField.field));
+        }
+      }
+      for (DexEncodedField instanceField : source.instanceFields()) {
+        if (staticFieldsInInterfacesOfTarget.contains(equivalence.wrap(instanceField.field))) {
+          // An instruction "iget Target.f" or "iput Target.f" that used to hit a static field in an
+          // interface would now hit an instance field from [source], so that an IncompatibleClass-
+          // ChangeError would no longer be thrown. Abort merge.
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   private class ClassMerger {
