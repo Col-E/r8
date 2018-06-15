@@ -238,7 +238,6 @@ public class ClassMergingTest extends TestBase {
     assertEquals(2, numberOfMoveExceptionInstructions);
   }
 
-  @Ignore("b/73958515")
   @Test
   public void testNoIllegalClassAccess() throws Exception {
     String main = "classmerging.SimpleInterfaceAccessTest";
@@ -258,18 +257,36 @@ public class ClassMergingTest extends TestBase {
             "classmerging.pkg.SimpleInterfaceImplRetriever",
             "classmerging.pkg.SimpleInterfaceImplRetriever$SimpleInterfaceImpl");
     runTest(main, programFiles, preservedClassNames);
+  }
+
+  @Ignore("b/73958515")
+  @Test
+  public void testNoIllegalClassAccessWithAccessModifications() throws Exception {
     // If access modifications are allowed then SimpleInterface should be merged into
     // SimpleInterfaceImpl.
-    preservedClassNames =
+    String main = "classmerging.SimpleInterfaceAccessTest";
+    Path[] programFiles =
+        new Path[] {
+          CF_DIR.resolve("SimpleInterface.class"),
+          CF_DIR.resolve("SimpleInterfaceAccessTest.class"),
+          CF_DIR.resolve("pkg/SimpleInterfaceImplRetriever.class"),
+          CF_DIR.resolve("pkg/SimpleInterfaceImplRetriever$SimpleInterfaceImpl.class")
+        };
+    ImmutableSet<String> preservedClassNames =
         ImmutableSet.of(
             "classmerging.SimpleInterfaceAccessTest",
             "classmerging.pkg.SimpleInterfaceImplRetriever",
             "classmerging.pkg.SimpleInterfaceImplRetriever$SimpleInterfaceImpl");
+    // Allow access modifications (and prevent SimpleInterfaceImplRetriever from being removed as
+    // a result of inlining).
     runTest(
         main,
         programFiles,
         preservedClassNames,
-        getProguardConfig(EXAMPLE_KEEP, "-allowaccessmodification"));
+        getProguardConfig(
+            EXAMPLE_KEEP,
+            "-allowaccessmodification",
+            "-keep public class classmerging.pkg.SimpleInterfaceImplRetriever"));
   }
 
   @Test
@@ -328,6 +345,7 @@ public class ClassMergingTest extends TestBase {
     }
     for (String rule : additionalRules) {
       builder.append(rule);
+      builder.append(System.lineSeparator());
     }
     return builder.toString();
   }
