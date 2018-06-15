@@ -195,7 +195,8 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       transformBridgeMethod();
     }
     computeNeedsRegister();
-    insertArgumentMoves();
+    constrainArgumentIntervals();
+    insertRangeInvokeMoves();
     ImmutableList<BasicBlock> blocks = computeLivenessInformation();
     // First attempt to allocate register allowing argument reuse. This will fail if spilling
     // is required or if we end up using more than 16 registers.
@@ -2598,11 +2599,14 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     }
   }
 
-  private void insertArgumentMoves() {
+  private void constrainArgumentIntervals() {
     // Record the constraint that incoming arguments are in consecutive registers.
     List<Value> arguments = code.collectArguments();
     createArgumentLiveIntervals(arguments);
     linkArgumentValuesAndIntervals(arguments);
+  }
+
+  private void insertRangeInvokeMoves() {
     for (BasicBlock block : code.blocks) {
       InstructionListIterator it = block.listIterator();
       while (it.hasNext()) {
