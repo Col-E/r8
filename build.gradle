@@ -37,6 +37,7 @@ ext {
     gsonVersion = '2.7'
     junitVersion = '4.12'
     kotlinVersion = '1.2.30'
+    kotlinExtMetadataJVMVersion = '0.0.2'
     protobufVersion = '3.0.0'
     smaliVersion = '2.2b4'
 }
@@ -74,6 +75,7 @@ if (project.hasProperty('with_code_coverage')) {
 
 repositories {
     maven { url 'https://maven.google.com' }
+    maven { url 'https://kotlin.bintray.com/kotlinx' }
     mavenCentral()
 }
 
@@ -223,6 +225,7 @@ dependencies {
         exclude group: 'org.codehaus.mojo'
     })
     compile group: 'it.unimi.dsi', name: 'fastutil', version: fastutilVersion
+    compile "org.jetbrains.kotlinx:kotlinx-metadata-jvm:$kotlinExtMetadataJVMVersion"
     compile group: 'org.ow2.asm', name: 'asm', version: asmVersion
     compile group: 'org.ow2.asm', name: 'asm-commons', version: asmVersion
     compile group: 'org.ow2.asm', name: 'asm-tree', version: asmVersion

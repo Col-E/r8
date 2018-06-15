@@ -4,7 +4,26 @@
 
 package com.android.tools.r8.kotlin;
 
-public final class KotlinClassFacade extends KotlinInfo {
+import kotlinx.metadata.jvm.KotlinClassMetadata;
+
+public final class KotlinClassFacade extends KotlinInfo<KotlinClassMetadata.MultiFileClassFacade> {
+
+  static KotlinClassFacade fromKotlinClassMetadata(KotlinClassMetadata kotlinClassMetadata) {
+    assert kotlinClassMetadata instanceof KotlinClassMetadata.MultiFileClassFacade;
+    KotlinClassMetadata.MultiFileClassFacade multiFileClassFacade =
+        (KotlinClassMetadata.MultiFileClassFacade) kotlinClassMetadata;
+    return new KotlinClassFacade(multiFileClassFacade);
+  }
+
+  private KotlinClassFacade(KotlinClassMetadata.MultiFileClassFacade metadata) {
+    super(metadata);
+  }
+
+  @Override
+  void validateMetadata(KotlinClassMetadata.MultiFileClassFacade metadata) {
+    // No worries about lazy parsing/verifying, since no API to explore metadata details.
+  }
+
   @Override
   public Kind getKind() {
     return Kind.Facade;
@@ -20,7 +39,4 @@ public final class KotlinClassFacade extends KotlinInfo {
     return this;
   }
 
-  KotlinClassFacade() {
-    super();
-  }
 }

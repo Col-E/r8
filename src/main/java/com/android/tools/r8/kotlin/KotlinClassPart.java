@@ -4,7 +4,31 @@
 
 package com.android.tools.r8.kotlin;
 
-public final class KotlinClassPart extends KotlinInfo {
+import kotlinx.metadata.KmPackageVisitor;
+import kotlinx.metadata.jvm.KotlinClassMetadata;
+
+public final class KotlinClassPart extends KotlinInfo<KotlinClassMetadata.MultiFileClassPart> {
+
+  static KotlinClassPart fromKotlinClassMetdata(KotlinClassMetadata kotlinClassMetadata) {
+    assert kotlinClassMetadata instanceof KotlinClassMetadata.MultiFileClassPart;
+    KotlinClassMetadata.MultiFileClassPart multiFileClassPart =
+        (KotlinClassMetadata.MultiFileClassPart) kotlinClassMetadata;
+    return new KotlinClassPart(multiFileClassPart);
+  }
+
+  private KotlinClassPart(KotlinClassMetadata.MultiFileClassPart metadata) {
+    super(metadata);
+  }
+
+  @Override
+  void validateMetadata(KotlinClassMetadata.MultiFileClassPart metadata) {
+    // To avoid lazy parsing/verifying metadata.
+    metadata.accept(new MultiFileClassPartMetadataVisitor());
+  }
+
+  private static class MultiFileClassPartMetadataVisitor extends KmPackageVisitor {
+  }
+
   @Override
   public Kind getKind() {
     return Kind.Part;
@@ -20,6 +44,4 @@ public final class KotlinClassPart extends KotlinInfo {
     return this;
   }
 
-  KotlinClassPart() {
-  }
 }
