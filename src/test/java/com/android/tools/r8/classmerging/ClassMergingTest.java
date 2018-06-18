@@ -289,7 +289,9 @@ public class ClassMergingTest extends TestBase {
             "-keep public class classmerging.pkg.SimpleInterfaceImplRetriever"));
   }
 
-  @Ignore("b/73958515")
+  // TODO(christofferqa): This test checks that the invoke-super instruction in B is not rewritten
+  // into an invoke-direct instruction after it gets merged into class C. We should add a test that
+  // checks that this works with and without inlining of the method B.m().
   @Test
   public void testRewritePinnedMethod() throws Exception {
     String main = "classmerging.RewritePinnedMethodTest";
