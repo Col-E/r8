@@ -19,9 +19,10 @@ import os
 import re
 import sys
 import time
+import zipfile
+
 import toolhelper
 import utils
-import zipfile
 
 KEEP = '-keep public class %s { public static void main(...); }\n'
 MANIFEST_PATH = 'META-INF/MANIFEST.MF'
@@ -85,7 +86,8 @@ def extract_mainclass(input_jar):
     return mo.group(1)
 
 def minify_tool(mainclass=None, input_jar=utils.R8_JAR, output_jar=None,
-                lib=utils.RT_JAR, debug=True, build=True, benchmark_name=None):
+                lib=utils.RT_JAR, debug=True, build=True, benchmark_name=None,
+                track_memory_file=None):
   if output_jar is None:
     output_jar = generate_output_name(input_jar, mainclass)
   with utils.TempDir() as path:
@@ -105,10 +107,15 @@ def minify_tool(mainclass=None, input_jar=utils.R8_JAR, output_jar=None,
             '--release',
             tmp_input_path)
     start_time = time.time()
-    return_code = toolhelper.run('r8', args, debug=debug, build=build)
+    return_code = toolhelper.run('r8', args, debug=debug, build=build,
+                                 track_memory_file=track_memory_file)
     if benchmark_name:
       elapsed_ms = 1000 * (time.time() - start_time)
       print('%s(RunTimeRaw): %s ms' % (benchmark_name, elapsed_ms))
+      if track_memory_file:
+        print('%s(MemoryUse): %s' %
+              (benchmark_name, utils.grep_memoryuse(track_memory_file)))
+
     return return_code
 
 if __name__ == '__main__':
