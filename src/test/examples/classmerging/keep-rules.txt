@@ -13,6 +13,9 @@
 -keep public class classmerging.ExceptionTest {
   public static void main(...);
 }
+-keep public class classmerging.RewritePinnedMethodTest {
+  public static void main(...);
+}
 -keep public class classmerging.SimpleInterfaceAccessTest {
   public static void main(...);
 }
